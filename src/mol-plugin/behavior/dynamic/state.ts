@@ -15,9 +15,11 @@ const Key = Binding.TriggerKey;
 const DefaultSnapshotControlsBindings = {
     next: Binding([
         Key('ArrowRight', M.create({ control: true })),
+        Key('GamepadY'),
     ]),
     previous: Binding([
         Key('ArrowLeft', M.create({ control: true })),
+        Key('GamepadX'),
     ]),
     first: Binding([
         Key('ArrowUp', M.create({ control: true })),
@@ -39,7 +41,6 @@ export const SnapshotControls = PluginBehavior.create<SnapshotControlsProps>({
             this.subscribeObservable(this.ctx.behaviors.interaction.keyReleased, ({ code, modifiers, key }) => {
                 if (!this.ctx.canvas3d || this.ctx.isBusy) return;
 
-                // include defaults for backwards state compatibility
                 const b = this.params.bindings;
                 const { snapshot } = this.ctx.managers;
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -18,12 +18,14 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { TuneSvg } from '../../../mol-plugin-ui/controls/icons';
 import { RendererParams } from '../../../mol-gl/renderer';
 import { TrackballControlsParams } from '../../../mol-canvas3d/controls/trackball';
+import { XRManagerParams } from '../../../mol-canvas3d/helper/xr-manager';
 
 const Spacer = () => <div style={{ height: '2em' }} />;
 
 const ViewportParams = {
     renderer: PD.Group(RendererParams),
     trackball: PD.Group(TrackballControlsParams),
+    xr: PD.Group(XRManagerParams, { label: 'XR' }),
 };
 
 class ViewportSettingsUI extends CollapsableControls<{}, {}> {

@@ -192,6 +192,12 @@ export function WarningSvg() { return _Warning; }
 const _ContentCut = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M 9.64 7.64 c 0.23 -0.5 0.36 -1.05 0.36 -1.64 c 0 -2.21 -1.79 -4 -4 -4 S 2 3.79 2 6 s 1.79 4 4 4 c 0.59 0 1.14 -0.13 1.64 -0.36 L 10 12 l -2.36 2.36 C 7.14 14.13 6.59 14 6 14 c -2.21 0 -4 1.79 -4 4 s 1.79 4 4 4 s 4 -1.79 4 -4 c 0 -0.59 -0.13 -1.14 -0.36 -1.64 L 12 14 l 7 7 h 3 v -1 L 9.64 7.64 Z M 6 8 c -1.1 0 -2 -0.89 -2 -2 s 0.9 -2 2 -2 s 2 0.89 2 2 s -0.9 2 -2 2 Z m 0 12 c -1.1 0 -2 -0.89 -2 -2 s 0.9 -2 2 -2 s 2 0.89 2 2 s -0.9 2 -2 2 Z m 6 -7.5 c -0.28 0 -0.5 -0.22 -0.5 -0.5 s 0.22 -0.5 0.5 -0.5 s 0.5 0.22 0.5 0.5 s -0.22 0.5 -0.5 0.5 Z M 19 3 l -6 6 l 2 2 l 7 -7 V 3 Z' /></svg>;
 export function ContentCutSvg() { return _ContentCut; }
 
+// The following icons are adapted from https://icons.getbootstrap.com/ and
+// licensed with https://github.com/twbs/bootstrap/blob/main/LICENSE
+
+const _HeadsetVR = <svg width='16px' height='16px' viewBox='0 0 16 16'><path d='M8 1.248c1.857 0 3.526.641 4.65 1.794a5 5 0 0 1 2.518 1.09C13.907 1.482 11.295 0 8 0 4.75 0 2.12 1.48.844 4.122a5 5 0 0 1 2.289-1.047C4.236 1.872 5.974 1.248 8 1.248'/><path d='M12 12a4 4 0 0 1-2.786-1.13l-.002-.002a1.6 1.6 0 0 0-.276-.167A2.2 2.2 0 0 0 8 10.5c-.414 0-.729.103-.935.201a1.6 1.6 0 0 0-.277.167l-.002.002A4 4 0 1 1 4 4h8a4 4 0 0 1 0 8'/></svg>;
+export function HeadsetVRSvg() { return _HeadsetVR; }
+
 // Aliases
 
 export const SelectionModeSvg = CursorDefaultOutlineSvg;

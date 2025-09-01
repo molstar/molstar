@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -24,7 +24,8 @@ const Trigger = Binding.Trigger;
 
 const DefaultMesoSelectLociBindings = {
     click: Binding([
-        Trigger(B.Flag.Primary, M.create())
+        Trigger(B.Flag.Primary, M.create()),
+        Trigger(B.Flag.Trigger),
     ], 'Click', 'Click element using ${triggers}'),
     clickToggleSelect: Binding([
         Trigger(B.Flag.Primary, M.create({ shift: true })),

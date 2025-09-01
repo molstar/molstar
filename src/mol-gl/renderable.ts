@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -42,6 +42,7 @@ export interface Renderable<T extends RenderableValues> {
 
     cull: (cameraPlane: Plane3D, frustum: Frustum3D, isOccluded: ((s: Sphere3D) => boolean) | null, stats: WebGLStats) => void
     uncull: () => void
+    cullSimple: (d: number, radius: number, scale: number) => void
     render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => void
     getProgram: (variant: GraphicsRenderVariant) => Program
     setTransparency: (transparency: Transparency) => void
@@ -303,6 +304,33 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
         },
         uncull: () => {
             cullEnabled = false;
+        },
+        cullSimple: (d: number, radius: number, scale: number) => {
+            const lodLevels: [minDistance: number, maxDistance: number, overlap: number, count: number, sizeFactor: number][] | undefined = values.lodLevels?.ref.value;
+            if (!lodLevels || lodLevels.length === 0) return;
+
+            if (values.lodLevels?.ref.version !== lodLevelsVersion) {
+                updateLodLevels();
+            } else {
+                for (let i = 0, il = lodLevels.length; i < il; ++i) {
+                    mdbDataList[i].count = 0;
+                }
+            }
+
+            for (let j = 0, jl = lodLevels.length; j < jl; ++j) {
+                if (d + radius < lodLevels[j][1] * scale) {
+                    const l = mdbDataList[j];
+                    const o = l.count;
+
+                    l.counts[o] = lodLevels[j][3];
+                    l.instanceCounts[o] = values.instanceCount.ref.value;
+                    l.baseInstances[o] = 0;
+                    l.count += 1;
+                    break;
+                }
+            }
+
+            cullEnabled = true;
         },
         render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => {
             if (values.uAlpha && values.alpha) {

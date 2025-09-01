@@ -68,6 +68,7 @@ export class ImagePass {
             camera: new CameraHelper(webgl, this.props.cameraHelper),
             debug: helper.debug,
             handle: helper.handle,
+            pointer: helper.pointer,
         };
 
         this.setSize(1024, 768);

@@ -158,7 +158,6 @@ export function defaultCanvas3DParams(): Partial<Canvas3DProps> {
             },
             fov: 90,
             manualReset: false,
-            scale: 1,
         },
         cameraResetDurationMs: 0,
         cameraFog: {

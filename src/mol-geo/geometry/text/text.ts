@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -223,7 +223,8 @@ export namespace Text {
 
         const counts = { drawCount: text.charCount * 2 * 3, vertexCount: text.charCount * 4, groupCount, instanceCount };
 
-        const padding = getPadding(text.mappingBuffer.ref.value, text.depthBuffer.ref.value, text.charCount, getMaxSize(size));
+        const scale = getMaxSize(size) * props.sizeFactor;
+        const padding = getPadding(text.mappingBuffer.ref.value, text.depthBuffer.ref.value, text.charCount, scale);
         const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), text.boundingSphere, padding);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount, 0);
 
@@ -291,7 +292,8 @@ export namespace Text {
     }
 
     function updateBoundingSphere(values: TextValues, text: Text) {
-        const padding = getPadding(values.aMapping.ref.value, values.aDepth.ref.value, text.charCount, getMaxSize(values));
+        const scale = getMaxSize(values) * values.uSizeFactor.ref.value;
+        const padding = getPadding(values.aMapping.ref.value, values.aDepth.ref.value, text.charCount, scale);
         const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), text.boundingSphere, padding);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, values.aTransform.ref.value, values.instanceCount.ref.value, 0);
 
@@ -319,7 +321,7 @@ export namespace Text {
     }
 }
 
-function getPadding(mappings: Float32Array, depths: Float32Array, charCount: number, maxSize: number) {
+function getPadding(mappings: Float32Array, depths: Float32Array, charCount: number, scale: number) {
     let maxOffset = 0;
     let maxDepth = 0;
     for (let i = 0, il = charCount * 4; i < il; ++i) {
@@ -331,7 +333,5 @@ function getPadding(mappings: Float32Array, depths: Float32Array, charCount: num
         const d = Math.abs(depths[i]);
         if (d > maxDepth) maxDepth = d;
     }
-    // console.log(maxDepth + maxSize, maxDepth, maxSize, maxSize + maxSize * maxOffset, depths)
-    return Math.max(maxDepth, maxSize + maxSize * maxOffset);
-    // return maxSize + maxSize * maxOffset + maxDepth
+    return scale * Math.max(maxDepth, maxOffset);
 }

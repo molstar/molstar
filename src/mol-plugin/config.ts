@@ -60,6 +60,7 @@ export const PluginConfig = {
         ShowAnimation: item('viewer.show-animation-button', true),
         ShowTrajectoryControls: item('viewer.show-trajectory-controls', true),
         ShowScreenshotControls: item('viewer.show-screenshot-controls', true),
+        ShowXR: item('viewer.show-xr', true),
     },
     Download: {
         DefaultPdbProvider: item<PdbDownloadProvider>('download.default-pdb-provider', 'pdbe'),

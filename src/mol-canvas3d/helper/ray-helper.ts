@@ -80,12 +80,16 @@ export class RayHelper {
         this.camera.near = cam.near;
         this.camera.fogFar = cam.fogFar;
         this.camera.fogNear = cam.fogNear;
+        this.camera.forceFull = cam.forceFull;
+        this.camera.scale = cam.scale;
         Viewport.copy(this.camera.viewport, this.viewport);
         Camera.copySnapshot(this.camera.state, { ...cam.state, mode: 'orthographic' });
 
-        updateOrthoRayCamera(this.camera, ray);
+        updateOrthoRayCamera(this.camera, ray, cam.up);
         Mat4.mul(this.camera.projectionView, this.camera.projection, this.camera.view);
         Mat4.tryInvert(this.camera.inverseProjectionView, this.camera.projectionView);
+
+        Mat4.copy(this.camera.viewEye, cam.view);
     }
 
     private getPickData(): PickData | undefined {
@@ -104,7 +108,7 @@ export class RayHelper {
     }
 
     identify(ray: Ray3D, cam: Camera): PickData | undefined {
-        if (!this.intersectsScene(ray, cam.state.scale)) return;
+        if (!this.intersectsScene(ray, cam.scale)) return;
 
         this.prepare(ray, cam);
 
@@ -117,7 +121,7 @@ export class RayHelper {
     }
 
     asyncIdentify(ray: Ray3D, cam: Camera): AsyncPickData | undefined {
-        if (!this.intersectsScene(ray, cam.state.scale)) return;
+        if (!this.intersectsScene(ray, cam.scale)) return;
 
         this.prepare(ray, cam);
 
@@ -168,10 +172,10 @@ export class RayHelper {
 
 //
 
-function updateOrthoRayCamera(camera: Camera, ray: Ray3D) {
+function updateOrthoRayCamera(camera: Camera, ray: Ray3D, up: Vec3) {
     const { near, far, viewport } = camera;
 
-    const height = 2 * Math.tan(degToRad(0.1) / 2) * Vec3.distance(camera.position, camera.target) * camera.state.scale;
+    const height = 2 * Math.tan(degToRad(0.1) / 2) * Vec3.distance(camera.position, camera.target) * camera.scale;
     const zoom = viewport.height / height;
 
     const fullLeft = -viewport.width / 2;
@@ -197,7 +201,6 @@ function updateOrthoRayCamera(camera: Camera, ray: Ray3D) {
     Quat.invert(r, r);
 
     const eye = Vec3.clone(ray.origin);
-    const up = Vec3.transformQuat(Vec3(), Vec3.unitY, r);
     const target = Vec3.add(Vec3(), eye, direction);
 
     // build view matrix

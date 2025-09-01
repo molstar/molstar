@@ -203,9 +203,12 @@ namespace Renderer {
         const modelViewProjection = Mat4();
         const invModelViewProjection = Mat4();
         const invHeadRotation = Mat4();
+        const modelViewEye = Mat4();
+        const invModelViewEye = Mat4();
 
         const cameraDir = Vec3();
         const cameraPosition = Vec3();
+        const cameraTarget = Vec3();
         const cameraPlane = Plane3D();
         const viewOffset = Vec2();
         const frustum = Frustum3D();
@@ -230,6 +233,10 @@ namespace Renderer {
             uInvModelViewProjection: ValueCell.create(invModelViewProjection),
             uHasHeadRotation: ValueCell.create(false),
             uInvHeadRotation: ValueCell.create(invHeadRotation),
+            uHasEyeCamera: ValueCell.create(false),
+            uModelViewEye: ValueCell.create(modelViewEye),
+            uInvModelViewEye: ValueCell.create(invModelViewEye),
+            uIsAsymmetricProjection: ValueCell.create(false),
 
             uIsOrtho: ValueCell.create(1),
             uViewOffset: ValueCell.create(viewOffset),
@@ -319,6 +326,14 @@ namespace Renderer {
                 } else {
                     r.uncull();
                 }
+            } else {
+                if (r.values.lodLevels) {
+                    const { center, radius } = boundingSphere;
+                    const d = Plane3D.distanceToPoint(cameraPlane, center);
+                    r.cullSimple(d, radius, modelScale);
+                } else {
+                    r.uncull();
+                }
             }
 
             let needUpdate = false;
@@ -405,10 +420,10 @@ namespace Renderer {
 
             ValueCell.updateIfChanged(globalUniforms.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0);
             ValueCell.update(globalUniforms.uViewOffset, camera.viewOffset.enabled ? Vec2.set(viewOffset, camera.viewOffset.offsetX * 16, camera.viewOffset.offsetY * 16) : Vec2.set(viewOffset, 0, 0));
-            ValueCell.updateIfChanged(globalUniforms.uModelScale, camera.state.scale);
+            ValueCell.updateIfChanged(globalUniforms.uModelScale, camera.scale);
 
             ValueCell.update(globalUniforms.uCameraPosition, Mat4.getTranslation(cameraPosition, invView));
-            const cameraTarget = Vec3.scale(Vec3(), camera.state.target, camera.state.scale);
+            Vec3.scale(cameraTarget, camera.state.target, camera.scale);
             Vec3.normalize(cameraDir, Vec3.sub(cameraDir, cameraTarget, cameraPosition));
             ValueCell.update(globalUniforms.uCameraDir, cameraDir);
 
@@ -429,22 +444,24 @@ namespace Renderer {
 
             const hasHeadRotation = !Mat4.isZero(camera.headRotation);
             if (hasHeadRotation) {
-                ValueCell.updateIfChanged(globalUniforms.uHasHeadRotation, hasHeadRotation);
+                ValueCell.updateIfChanged(globalUniforms.uHasHeadRotation, true);
                 ValueCell.update(globalUniforms.uInvHeadRotation, Mat4.invert(invHeadRotation, camera.headRotation));
                 ValueCell.update(globalUniforms.uLightDirection, getTransformedLightDirection(light, invHeadRotation));
             } else {
-                ValueCell.update(globalUniforms.uHasHeadRotation, false);
-                ValueCell.update(globalUniforms.uInvHeadRotation, Mat4.id);
+                ValueCell.updateIfChanged(globalUniforms.uHasHeadRotation, false);
+                ValueCell.updateIfChanged(globalUniforms.uInvHeadRotation, Mat4.id);
                 ValueCell.update(globalUniforms.uLightDirection, light.direction);
             }
+
+            ValueCell.update(globalUniforms.uIsAsymmetricProjection, camera.isAsymmetricProjection);
         };
 
         const updateInternal = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, renderMask: Mask, markingDepthTest: boolean) => {
             arrayMapUpsert(sharedTexturesList, 'tDepth', depthTexture || emptyDepthTexture);
 
-            modelScale = camera.state.scale;
+            modelScale = camera.scale;
 
-            ValueCell.update(globalUniforms.uModel, Mat4.scaleUniformly(model, group.view, camera.state.scale));
+            ValueCell.update(globalUniforms.uModel, Mat4.scaleUniformly(model, group.view, modelScale));
             ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, camera.view, model));
             ValueCell.update(globalUniforms.uInvModelView, Mat4.invert(invModelView, modelView));
             ValueCell.update(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection));
@@ -452,6 +469,17 @@ namespace Renderer {
 
             ValueCell.updateIfChanged(globalUniforms.uRenderMask, renderMask);
             ValueCell.updateIfChanged(globalUniforms.uMarkingDepthTest, markingDepthTest);
+
+            const hasEyeCamera = !Mat4.isZero(camera.viewEye);
+            if (hasEyeCamera) {
+                ValueCell.updateIfChanged(globalUniforms.uHasEyeCamera, true);
+                ValueCell.update(globalUniforms.uModelViewEye, Mat4.mul(modelViewEye, camera.viewEye, model));
+                ValueCell.update(globalUniforms.uInvModelViewEye, Mat4.invert(invModelViewEye, modelViewEye));
+            } else {
+                ValueCell.updateIfChanged(globalUniforms.uHasEyeCamera, false);
+                ValueCell.updateIfChanged(globalUniforms.uModelViewEye, Mat4.id);
+                ValueCell.updateIfChanged(globalUniforms.uInvModelViewEye, Mat4.id);
+            }
 
             state.enable(gl.SCISSOR_TEST);
             state.colorMask(true, true, true, true);
