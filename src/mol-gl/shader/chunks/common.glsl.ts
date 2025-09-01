@@ -84,6 +84,20 @@ float unpackRGToUnitInterval(const in vec2 enc) {
     return dot(enc, vec2(255.0 / (256.0 * 256.0), 255.0 / 256.0));
 }
 
+float pack2x4(vec2 v) {
+    vec2 clamped_v = clamp(v, 0.0, 1.0);
+    vec2 scaled_v = floor(clamped_v * 15.0 + 0.5); // round to 0–15
+    float c = scaled_v.x + scaled_v.y * 16.0;
+    return c / 255.0;
+}
+
+vec2 unpack2x4(float f) {
+    float c = floor(f * 255.0 + 0.5);
+    float lo = mod(c, 16.0);
+    float hi = floor(c / 16.0);
+    return vec2(lo, hi) / 15.0;
+}
+
 vec3 screenSpaceToViewSpace(const in vec3 ssPos, const in mat4 invProjection) {
     vec4 p = vec4(ssPos * 2.0 - 1.0, 1.0);
     p = invProjection * p;
