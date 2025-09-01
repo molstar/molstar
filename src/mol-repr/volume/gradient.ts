@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Mat4, Tensor, Vec3 } from '../../mol-math/linear-algebra';
+import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { Cylinders } from '../../mol-geo/geometry/cylinders/cylinders';
 import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
@@ -31,7 +31,9 @@ import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { sphereVertexCount } from '../../mol-geo/primitive/sphere';
 import { addCylinder, BasicCylinderProps } from '../../mol-geo/geometry/mesh/builder/cylinder';
-import { collectStreamlines, StreamlineSet } from '../../mol-math/volume/streamlines';
+import { collectStreamlines, GridInfo, StreamlineMode, StreamlineParams, StreamlineSet } from '../../mol-math/volume/streamlines';
+import { Sphere3D } from '../../mol-math/geometry';
+import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 
 // ---------------------------------------------------------------------------------------
 // Shared params
@@ -92,6 +94,94 @@ export const VolumeSpheresLinesParams = {
 export type VolumeSpheresLinesParams = typeof VolumeSpheresLinesParams
 export type VolumeSpheresLinesProps = PD.Values<VolumeSpheresLinesParams>
 
+
+// Caching as CustomProperties
+namespace VolumeStreamlinesProp {
+  export const name = 'volume-streamlines';
+  export const descriptor = CustomPropertyDescriptor({ name });
+
+  type Stored = {
+    /** key built from volume/version + streamline params */
+    key: string;
+    /** computed polylines in index space */
+    lines: StreamlineSet;
+    /** optional metadata (counts, etc.) */
+    meta?: { count: number };
+  };
+
+  /** Remove cached streamlines and detach assets. */
+  export function clear(volume: Volume) {
+    if (volume._propertyData?.[name]) {
+      // dispose any assets we registered
+      delete volume._propertyData[name];
+    }
+  }
+
+  /** Build the cell sizes (Å) from grid transform. */
+  function cellSizeFromTransform(gridToCartn: Mat4) {
+    const b = Mat4.extractBasis(gridToCartn);
+    return Vec3.create(Vec3.magnitude(b.x), Vec3.magnitude(b.y), Vec3.magnitude(b.z));
+  }
+
+  /** Minimal stable key. Include any input that changes geometry. */
+  function makeKey(volume: Volume, mode: StreamlineMode, p: StreamlineParams) {
+    const volVer = (volume as any)._version ?? 0; // many Mol* volumes track a version
+    return JSON.stringify({
+      volVer,
+      mode,
+      p: {
+        sd: p.seedDensity,
+        ms: p.maxSteps,
+        ds: p.stepSize,
+        eps: p.minSpeed,
+        lo: p.minLevel,
+        hi: p.maxLevel,
+        rk2: p.mid_interpolation,
+        ws: p.writeStride,
+      }
+    });
+  }
+
+  export type GetParams = {
+    mode: StreamlineMode;
+    streamline: StreamlineParams;
+  };
+
+  /** Get (compute or fetch) cached streamlines as a Volume custom property. */
+  export function get(volume: Volume, params: GetParams): { lines: StreamlineSet } {
+    const { mode, streamline } = params;
+
+    const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
+    const cellSize = cellSizeFromTransform(gridToCartn);
+
+    const { cells: { space, data } } = volume.grid;
+    const dims = Vec3.clone(volume.grid.cells.space.dimensions as Vec3);
+
+    const key = makeKey(volume, mode, streamline);
+
+    // (re)allocate container slot
+    if (!volume._propertyData[name]) {
+      volume._propertyData[name] = { key: '', lines: [] } as Stored;
+      volume.customProperties.add(descriptor);
+      // no GPU resources to dispose, but register a noop so remove() works cleanly
+      volume.customProperties.assets(descriptor, [{ dispose: () => {/* noop */} }]);
+    }
+
+    const store = volume._propertyData[name] as Stored;
+
+    // cache miss → compute & store
+    if (store.key !== key) {
+      const gridInfo: GridInfo = { space, data, dims, cellSize, gridToCartn };
+      const lines = collectStreamlines(gridInfo, streamline, mode);
+
+      store.key = key;
+      store.lines = lines;
+      store.meta = { count: lines.length };
+    }
+
+    return { lines: store.lines };
+  }
+}
 // ---------------------------------------------------------------------------------------
 // Visuals
 // ---------------------------------------------------------------------------------------
@@ -276,37 +366,47 @@ export function VolumeSphereMeshLinesVisual(materialId: number): VolumeVisual<Vo
 // ---------------------------------------------------------------------------------------
 // Geometry builders (shared streamline collection)
 // ---------------------------------------------------------------------------------------
+function getStreamLines(volume: Volume, props: VolumeLinesProps| VolumeCylindersLinesProps | VolumeSpheresLinesProps): StreamlineSet {
+    const mode: 'simple' | 'advanced' = props.algorithm === 'advanced' ? 'advanced' : 'simple';
+    const sParams = {
+        seedDensity: props.seedDensity,
+        maxSteps: props.maxSteps,
+        stepSize: props.stepSize, // Å
+        minSpeed: props.minSpeed, // 1/Å
+        minLevel: props.minLevel,
+        maxLevel: props.maxLevel,
+        mid_interpolation: props.mid_interpolation,
+        writeStride: props.writeStride,
+    };
+    // fetch (or compute+cache) streamlines from the custom property
+    const { lines: streamLines } = VolumeStreamlinesProp.get(volume, { mode: mode, streamline: sParams });
+    return streamLines;
+}
 
-function createVolumeLinesGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumeLinesProps, lines?: Lines): Lines {
+function createVolumeLinesGeometry(ctx: VisualContext, volume: Volume,
+                                _key: number, _theme: Theme,
+                                props: VolumeLinesProps,
+                                lines?: Lines): Lines {
+    const { cells: { space } } = volume.grid;
+    const gridDimension = space.dimensions as Vec3;
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    const { cells: { space, data } } = volume.grid;
-    const streamLines = collectStreamlines({
-        space: space,
-        data: data,
-        gridToCartn: gridToCartn,
-        dims: Vec3.zero(),
-        cellSize: Vec3.zero()
-    }, props, props.algorithm);
-
+    // fetch (or compute+cache) streamlines from the custom property
+    const streamLines = getStreamLines(volume, props);
     const segCount = countSegments(streamLines, props.geomStride);
     const builder = LinesBuilder.create(segCount, Math.ceil(segCount / 2), lines);
 
     writeSegmentsToBuilder(streamLines, gridToCartn, props.geomStride, (a, b, id) => builder.addVec(a, b, id));
 
     const g = builder.getLines();
+    g.setBoundingSphere(Sphere3D.fromDimensionsAndTransform(Sphere3D(), gridDimension, gridToCartn));
     return g;
 }
 
 function createVolumeCylindersGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumeCylindersLinesProps, cylinders?: Cylinders): Cylinders {
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    const { cells: { space, data } } = volume.grid;
-    const streamLines = collectStreamlines({
-        space: space,
-        data: data,
-        gridToCartn: gridToCartn,
-        dims: Vec3.zero(),
-        cellSize: Vec3.zero()
-    }, props, props.algorithm);
+    const { cells: { space } } = volume.grid;
+    const gridDimension = space.dimensions as Vec3;
+    const streamLines = getStreamLines(volume, props);
 
     const segCount = countSegments(streamLines, props.geomStride);
     const builder = CylindersBuilder.create(segCount, Math.ceil(segCount / 2), cylinders);
@@ -316,20 +416,16 @@ function createVolumeCylindersGeometry(ctx: VisualContext, volume: Volume, _key:
     });
 
     const g = builder.getCylinders();
+    g.setBoundingSphere(Sphere3D.fromDimensionsAndTransform(Sphere3D(), gridDimension, gridToCartn));
     return g;
 }
 
 
 function createVolumeCylindersMeshGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumeCylindersLinesProps, mesh?: Mesh): Mesh {
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    const { cells: { space, data } } = volume.grid;
-    const streamLines = collectStreamlines({
-        space: space,
-        data: data,
-        gridToCartn: gridToCartn,
-        dims: Vec3.zero(),
-        cellSize: Vec3.zero()
-    }, props, props.algorithm);
+    const { cells: { space } } = volume.grid;
+    const gridDimension = space.dimensions as Vec3;
+    const streamLines = getStreamLines(volume, props);
 
     const segCount = countSegments(streamLines, props.geomStride);
     const builder = MeshBuilder.createState(segCount, Math.ceil(segCount / 2), mesh);
@@ -344,19 +440,15 @@ function createVolumeCylindersMeshGeometry(ctx: VisualContext, volume: Volume, _
     });
 
     const g = MeshBuilder.getMesh(builder);
+    g.setBoundingSphere(Sphere3D.fromDimensionsAndTransform(Sphere3D(), gridDimension, gridToCartn));
     return g;
 }
 
 function createVolumePointsGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumePointsLinesProps, points?: Points): Points {
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    const { cells: { space, data } } = volume.grid;
-    const streamLines = collectStreamlines({
-        space: space,
-        data: data,
-        gridToCartn: gridToCartn,
-        dims: Vec3.zero(),
-        cellSize: Vec3.zero()
-    }, props, props.algorithm);
+    const { cells: { space } } = volume.grid;
+    const gridDimension = space.dimensions as Vec3;
+    const streamLines = getStreamLines(volume, props);
 
     const builder = PointsBuilder.create(streamLines.length, Math.ceil(streamLines.length / 2), points);
 
@@ -365,19 +457,16 @@ function createVolumePointsGeometry(ctx: VisualContext, volume: Volume, _key: nu
     });
 
     const g = builder.getPoints();
+    g.setBoundingSphere(Sphere3D.fromDimensionsAndTransform(Sphere3D(), gridDimension, gridToCartn));
     return g;
 }
 
 function createVolumeSpheresLinesGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumeSpheresLinesProps, spheres?: Spheres): Spheres {
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    const { cells: { space, data } } = volume.grid;
-    const streamLines = collectStreamlines({
-        space: space,
-        data: data,
-        gridToCartn: gridToCartn,
-        dims: Vec3.zero(),
-        cellSize: Vec3.zero()
-    }, props, props.algorithm);
+    const { cells: { space } } = volume.grid;
+    const gridDimension = space.dimensions as Vec3;
+    const streamLines = getStreamLines(volume, props);
+
     const segCount = countSegments(streamLines, props.geomStride);
     const builder = SpheresBuilder.create(segCount, Math.ceil(segCount / 2), spheres);
 
@@ -386,21 +475,16 @@ function createVolumeSpheresLinesGeometry(ctx: VisualContext, volume: Volume, _k
     });
 
     const g = builder.getSpheres();
+    g.setBoundingSphere(Sphere3D.fromDimensionsAndTransform(Sphere3D(), gridDimension, gridToCartn));
     return g;
 }
 
 function createVolumeSpheresMeshLinesGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumeSpheresLinesProps, mesh?: Mesh): Mesh {
     const { detail, sizeFactor } = props;
-
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    const { cells: { space, data } } = volume.grid;
-    const streamLines = collectStreamlines({
-        space: space,
-        data: data,
-        gridToCartn: gridToCartn,
-        dims: Vec3.zero(),
-        cellSize: Vec3.zero()
-    }, props, props.algorithm);
+    const { cells: { space } } = volume.grid;
+    const gridDimension = space.dimensions as Vec3;
+    const streamLines = getStreamLines(volume, props);
 
     const segCount = countSegments(streamLines, props.geomStride) * sphereVertexCount(detail);
     const builder = MeshBuilder.createState(segCount, Math.ceil(segCount / 2), mesh);
@@ -410,6 +494,7 @@ function createVolumeSpheresMeshLinesGeometry(ctx: VisualContext, volume: Volume
     });
 
     const g = MeshBuilder.getMesh(builder);
+    g.setBoundingSphere(Sphere3D.fromDimensionsAndTransform(Sphere3D(), gridDimension, gridToCartn));
     return g;
 }
 
