@@ -261,7 +261,9 @@ export class PickPass {
         if (this.webgl.extensions.drawBuffers) {
             this.framebuffer.bind();
             this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.None);
-            // printTextureImage(readTexture(this.webgl, this.groupPickTexture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
+            // if (this.pickWidth < 256) {
+            //     printTextureImage(readTexture(this.webgl, this.groupPickTexture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
+            // }
         } else {
             this.objectPickTarget.bind();
             this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Object);

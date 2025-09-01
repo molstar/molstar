@@ -66,6 +66,7 @@ class EyeCamera implements ICamera {
     projectionView = Mat4();
     inverseProjectionView = Mat4();
     headRotation = Mat4();
+    viewEye = Mat4();
     isAsymmetricProjection = true;
 
     state: Readonly<Camera.Snapshot> = Camera.createDefaultSnapshot();

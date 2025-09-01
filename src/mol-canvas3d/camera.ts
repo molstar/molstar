@@ -28,6 +28,7 @@ interface ICamera {
     readonly fogFar: number,
     readonly fogNear: number,
     readonly headRotation: Mat4,
+    readonly viewEye: Mat4,
     readonly isAsymmetricProjection: boolean,
 
     readonly forceFull: boolean;
@@ -43,6 +44,7 @@ export class Camera implements ICamera {
     readonly projectionView: Mat4 = Mat4.identity();
     readonly inverseProjectionView: Mat4 = Mat4.identity();
     readonly headRotation: Mat4 = Mat4.zero();
+    readonly viewEye: Mat4 = Mat4.zero();
     readonly isAsymmetricProjection = false;
 
     readonly viewport: Viewport;
