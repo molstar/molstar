@@ -69,6 +69,10 @@ export const assign_material_color = `
             alpha *= dta;
         #endif
 
+        #if defined(dPointStyle_fuzzy)
+            alpha *= fuzzyAlpha;
+        #endif
+
         #ifdef dXrayShaded
             alpha = calcXrayShadedAlpha(alpha, normal);
         #else

@@ -21,7 +21,6 @@ void main(){
     #include clip_pixel
 
     float fragmentDepth = gl_FragCoord.z;
-    #include assign_material_color
 
     #if defined(dPointStyle_circle)
         float dist = distance(gl_PointCoord, center);
@@ -31,6 +30,8 @@ void main(){
         float fuzzyAlpha = 1.0 - smoothstep(0.0, radius, dist);
         if (fuzzyAlpha < 0.0001) discard;
     #endif
+
+    #include assign_material_color
 
     #if defined(dPointStyle_fuzzy) && (defined(dRenderVariant_color) || defined(dRenderVariant_tracing))
         material.a *= fuzzyAlpha;
