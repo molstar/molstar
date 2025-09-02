@@ -54,7 +54,7 @@ float getDepthTransparent(const in vec2 coords) {
 }
 
 bool isBackground(const in float depth) {
-    return depth > 0.999; // handle depth packing precision issues
+    return depth > 0.9999; // handle depth packing precision issues
 }
 
 int squaredOutlineScale = dOutlineScale * dOutlineScale;

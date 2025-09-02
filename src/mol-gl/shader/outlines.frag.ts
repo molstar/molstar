@@ -48,7 +48,7 @@ vec2 getDepthTransparentWithAlpha(const in vec2 coords) {
 }
 
 bool isBackground(const in float depth) {
-    return depth == 1.0;
+    return depth > 0.9999;
 }
 
 float getPixelSize(const in vec2 coords, const in float depth) {
@@ -96,12 +96,17 @@ void main(void) {
             float sampleDepthTransparent = sampleDepthTransparentWithAlpha.x;
             float sampleAlphaTransparent = sampleDepthTransparentWithAlpha.y;
             float sampleViewZTransparent = isBackground(sampleDepthTransparent) ? backgroundViewZ : getViewZ(sampleDepthTransparent);
-            if (sampleDepthTransparent < sampleDepthOpaque && abs(selfViewZTransparent - sampleViewZTransparent) > pixelSizeTransparent && selfDepthTransparent > sampleDepthTransparent && sampleDepthTransparent <= bestTransparentDepth) {
+            if (abs(selfViewZTransparent - sampleViewZTransparent) > pixelSizeTransparent && selfDepthTransparent > sampleDepthTransparent && sampleDepthTransparent <= bestTransparentDepth) {
                 bestTransparentDepth = sampleDepthTransparent;
                 bestTransparentAlpha = sampleAlphaTransparent;
                 transparentOutlineFlag = 1.0;
             }
         }
+    }
+
+    if (transparentOutlineFlag > 0.0 && bestOpaqueDepth < 1.0 && bestTransparentDepth > bestOpaqueDepth) {
+        transparentOutlineFlag = 0.0;
+        bestTransparentAlpha = 0.0;
     }
     
     vec2 depthPacked; // Pack depth in G/B channels    
