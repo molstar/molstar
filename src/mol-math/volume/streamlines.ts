@@ -44,7 +44,6 @@ function getCellSize(gridToCartn: Mat4) {
 }
 
 // ---------------- Simple tracer (RK2/RK4) in index space ----------------
-
 function traceOneDirection(
     out: StreamlinePoint[],
     space: Tensor.Space, data: ArrayLike<number>, seed: Vec3,
@@ -57,34 +56,50 @@ function traceOneDirection(
     const [nx, ny, nz] = space.dimensions as Vec3;
     const p = S.p; Vec3.copy(p, seed);
 
-    // convert a world step to index steps per-axis
+    // convert a WORLD step to INDEX steps per-axis
     const sIx = dirSign * (dsWorld / hx), sIy = dirSign * (dsWorld / hy), sIz = dirSign * (dsWorld / hz);
+    const dsIdx = Math.sqrt(sIx * sIx + sIy * sIy + sIz * sIz); // nominal step in index units
+
+    // --- NEW: trap guards (cheap) ---
+    const seenVoxel = new Map<string, number>();
+    let prevDpX = 0, prevDpY = 0, prevDpZ = 0;
+    let oscillationCount = 0;
+    let stagnantCount = 0;
+
+    // tuning knobs (sane defaults)
+    const MAX_REVISITS_PER_VOXEL = 4; // stop if we loop in a voxel
+    const OSC_DOT_THRESH = -0.95; // strong back-and-forth
+    const MAX_OSC_STEPS = 6; // consecutive flips allowed
+    const STAGNANT_STEP_THRESH = 0.15 * dsIdx; // too-small move in idx units
+    const MAX_STAGNANT_STEPS = 10;
+
+    // (optional) set true to hop over minima instead of stopping
+    const JITTER_ESCAPE = false;
+    const JITTER_SCALE = 0.35; // fraction of index step
 
     let written = 0;
     for (let step = 0; step < maxSteps; step++) {
+        // boundary check
         if (p[0] < 1 || p[0] > (nx as number) - 2 || p[1] < 1 || p[1] > (ny as number) - 2 || p[2] < 1 || p[2] > (nz as number) - 2) break;
 
         // gW = -∇φ in WORLD units (1/Å)
         gradientAtP_world(S.g, space, data, p, hx, hy, hz);
         const m = Vec3.magnitude(S.g);
-        if (!(m > eps)) break;
+        if (!(m > eps)) break; // field too weak: stop
         Vec3.scale(S.v1, S.g, 1 / m); // unit world
 
+        // RK2 / RK4 gives S.dp in INDEX units (already in your code)
         if (order === 2) {
-            // RK2 midpoint in world, converted to index steps
             S.t1[0] = p[0] + 0.5 * sIx * S.v1[0];
             S.t1[1] = p[1] + 0.5 * sIy * S.v1[1];
             S.t1[2] = p[2] + 0.5 * sIz * S.v1[2];
-
             gradientAtP_world(S.g2, space, data, S.t1, hx, hy, hz);
             const m2 = Math.max(Vec3.magnitude(S.g2), eps);
             S.v2[0] = S.g2[0] / m2; S.v2[1] = S.g2[1] / m2; S.v2[2] = S.g2[2] / m2;
-
             S.dp[0] = sIx * S.v2[0]; S.dp[1] = sIy * S.v2[1]; S.dp[2] = sIz * S.v2[2];
         } else {
-            // RK4 in world, converted to index
+            // RK4 (unchanged from your version)
             Vec3.set(S.k1, sIx * S.v1[0], sIy * S.v1[1], sIz * S.v1[2]);
-
             S.t1[0] = p[0] + 0.5 * S.k1[0]; S.t1[1] = p[1] + 0.5 * S.k1[1]; S.t1[2] = p[2] + 0.5 * S.k1[2];
             gradientAtP_world(S.g2, space, data, S.t1, hx, hy, hz);
             const m2 = Math.max(Vec3.magnitude(S.g2), eps);
@@ -103,7 +118,6 @@ function traceOneDirection(
             S.v4[0] = S.g4[0] / m4; S.v4[1] = S.g4[1] / m4; S.v4[2] = S.g4[2] / m4;
             Vec3.set(S.k4, sIx * S.v4[0], sIy * S.v4[1], sIz * S.v4[2]);
 
-            // dp = (k1 + 2*k2 + 2*k3 + k4) / 6
             Vec3.copy(S.dp, S.k1);
             Vec3.scaleAndAdd(S.dp, S.dp, S.k2, 2);
             Vec3.scaleAndAdd(S.dp, S.dp, S.k3, 2);
@@ -111,11 +125,75 @@ function traceOneDirection(
             Vec3.scale(S.dp, S.dp, 1 / 6);
         }
 
+        // --- NEW: trap guards ---
+
+        // 1) Voxel revisit limit
+        {
+            const kx = (p[0] | 0), ky = (p[1] | 0), kz = (p[2] | 0);
+            const key = (kx << 20) ^ (ky << 10) ^ kz; // cheap integer hash
+            const c = (seenVoxel.get(key as unknown as string) || 0) + 1;
+            seenVoxel.set(key as unknown as string, c);
+            if (c > MAX_REVISITS_PER_VOXEL) {
+                // either stop…
+                if (!JITTER_ESCAPE) break;
+                // …or escape with a tiny jitter in index space
+                p[0] += (Math.random() - 0.5) * JITTER_SCALE * (sIx !== 0 ? Math.sign(sIx) : 1);
+                p[1] += (Math.random() - 0.5) * JITTER_SCALE * (sIy !== 0 ? Math.sign(sIy) : 1);
+                p[2] += (Math.random() - 0.5) * JITTER_SCALE * (sIz !== 0 ? Math.sign(sIz) : 1);
+                seenVoxel.clear(); oscillationCount = 0; stagnantCount = 0;
+            }
+        }
+
+        // 2) Oscillation detector (back-and-forth direction flips)
+        {
+            const dpX = S.dp[0], dpY = S.dp[1], dpZ = S.dp[2];
+            const dpm = Math.sqrt(dpX*dpX + dpY*dpY + dpZ*dpZ) || 1e-12;
+            const prevm = Math.sqrt(prevDpX*prevDpX + prevDpY*prevDpY + prevDpZ*prevDpZ) || 1e-12;
+            const dot = (dpX*prevDpX + dpY*prevDpY + dpZ*prevDpZ) / (dpm * prevm);
+            if (dot < OSC_DOT_THRESH) {
+                oscillationCount++;
+                if (oscillationCount >= MAX_OSC_STEPS) {
+                    if (!JITTER_ESCAPE) break;
+                    // hop ahead slightly along current dp to escape
+                    p[0] += 0.5 * S.dp[0];
+                    p[1] += 0.5 * S.dp[1];
+                    p[2] += 0.5 * S.dp[2];
+                    oscillationCount = 0; stagnantCount = 0; seenVoxel.clear();
+                }
+            } else {
+                oscillationCount = 0;
+            }
+            prevDpX = dpX; prevDpY = dpY; prevDpZ = dpZ;
+        }
+
+        // 3) Stagnation (progress too small for too long)
+        {
+            const stepLen = Math.sqrt(S.dp[0]*S.dp[0] + S.dp[1]*S.dp[1] + S.dp[2]*S.dp[2]);
+            if (stepLen < STAGNANT_STEP_THRESH) {
+                if (++stagnantCount >= MAX_STAGNANT_STEPS) {
+                    if (!JITTER_ESCAPE) break;
+                    // slight kick along the local gradient direction (index units)
+                    p[0] += JITTER_SCALE * S.dp[0];
+                    p[1] += JITTER_SCALE * S.dp[1];
+                    p[2] += JITTER_SCALE * S.dp[2];
+                    stagnantCount = 0; oscillationCount = 0; seenVoxel.clear();
+                }
+            } else {
+                stagnantCount = 0;
+            }
+        }
+
+        // write midpoint (keeps lines smooth and avoids tiny box at start)
         if (!(skipFirst && step === 0) && (step % writeStride === 0)) {
-            const value = getInterpolatedValue(space, data, p);
-            out.push({ x: p[0], y: p[1], z: p[2], value });
+            const midX = p[0] + 0.5 * S.dp[0];
+            const midY = p[1] + 0.5 * S.dp[1];
+            const midZ = p[2] + 0.5 * S.dp[2];
+            const value = getInterpolatedValue(space, data, Vec3.set(S.t3, midX, midY, midZ));
+            out.push({ x: midX, y: midY, z: midZ, value });
             written++;
         }
+
+        // advance
         Vec3.add(p, p, S.dp);
     }
     return written;
@@ -140,6 +218,7 @@ function traceStreamlineBothDirs(space: Tensor.Space, data: ArrayLike<number>,
     const S = Scratch;
 
     const nBack = traceOneDirection(line, space, data, seed, maxSteps, dsWorld, eps, hx, hy, hz, -1, false, S, writeStride, order);
+    // if (nBack === -1) return [];
     if (nBack > 1) reverseSegmentInPlace(line, 0, nBack - 1);
     traceOneDirection(line, space, data, seed, maxSteps, dsWorld, eps, hx, hy, hz, +1, true, S, writeStride, order);
     return line;
@@ -173,14 +252,25 @@ function computeSimpleStreamlines(grid: GridInfo, props: StreamlineParams, out: 
     const seeds: number[] = [];
     for (let z = zStart; z <= zEnd; z += seedStep)
         for (let y = yStart; y <= yEnd; y += seedStep)
-            for (let x = xStart; x <= xEnd; x += seedStep) { seeds.push(x, y, z); }
-    for (let i = seeds.length - 3; i > 0; i -= 3) {
-        const j = (Math.floor(Math.random() * (i / 3 + 1)) * 3) | 0;
-        const tx = seeds[i], ty = seeds[i+1], tz = seeds[i+2];
-        seeds[i] = seeds[j]; seeds[i+1] = seeds[j+1]; seeds[i+2] = seeds[j+2];
-        seeds[j] = tx; seeds[j+1] = ty; seeds[j+2] = tz;
-    }
+            for (let x = xStart; x <= xEnd; x += seedStep) {
+                // seeds.push(x + 0.5, y + 0.5, z + 0.5);
+                const jx = Math.random(), jy = Math.random(), jz = Math.random();
+                // jitter stays within the stride cell
+                const sx = Math.min(zEnd - 1e-3, x + jx * seedStep);
+                const sy = Math.min(yEnd - 1e-3, y + jy * seedStep);
+                const sz = Math.min(zEnd - 1e-3, z + jz * seedStep);
+                seeds.push(sx, sy, sz);
+            }
 
+    // shuffle in-place by triplets [x,y,z]
+    for (let i = (seeds.length / 3) - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const ia = i * 3, ja = j * 3;
+        // swap 3 numbers at once
+        const tx = seeds[ia], ty = seeds[ia+1], tz = seeds[ia+2];
+        seeds[ia] = seeds[ja]; seeds[ia+1] = seeds[ja+1]; seeds[ia+2] = seeds[ja+2];
+        seeds[ja] = tx; seeds[ja+1] = ty; seeds[ja+2] = tz;
+    }
     for (let i = 0; i < seeds.length; i += 3) {
         Vec3.set(pos, seeds[i], seeds[i + 1], seeds[i + 2]);
 
@@ -275,7 +365,6 @@ function computeAdvancedStreamlines(grid: GridInfo, props: StreamlineParams, out
                 r = normalizeFrac(fz, lk, k0, k1 - 2); fz = r.f; lk = r.l; if (r.done) break;
 
                 if (flag[flagIndex(li, lj, lk)]) break;
-
                 const level = interpolateValueFrac(space, data, li, lj, lk, fx, fy, fz);
                 if (level < props.minLevel || level > props.maxLevel) break;
 
@@ -342,12 +431,27 @@ function computeAdvancedStreamlines(grid: GridInfo, props: StreamlineParams, out
 
 // Trilinear interpolation from a Vec3 pos (index coords)
 function getInterpolatedValue(space: Tensor.Space, data: ArrayLike<number>, pos: Vec3): number {
-    const x = Math.floor(pos[0]), y = Math.floor(pos[1]), z = Math.floor(pos[2]);
-    const fx = pos[0] - x, fy = pos[1] - y, fz = pos[2] - z;
+    const [nx, ny, nz] = space.dimensions as Vec3;
+    // Clamp position to valid interpolation range
+    const x = Math.max(0, Math.min(nx - 2, Math.floor(pos[0])));
+    const y = Math.max(0, Math.min(ny - 2, Math.floor(pos[1])));
+    const z = Math.max(0, Math.min(nz - 2, Math.floor(pos[2])));
+
+    const fx = Math.max(0, Math.min(1, pos[0] - x));
+    const fy = Math.max(0, Math.min(1, pos[1] - y));
+    const fz = Math.max(0, Math.min(1, pos[2] - z));
+
     let acc = 0;
-    for (let dz = 0; dz <= 1; dz++) for (let dy = 0; dy <= 1; dy++) for (let dx = 0; dx <= 1; dx++) {
-        const w = (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz);
-        acc += data[space.dataOffset(x + dx, y + dy, z + dz)] * w;
+    for (let dz = 0; dz <= 1; dz++) {
+        for (let dy = 0; dy <= 1; dy++) {
+            for (let dx = 0; dx <= 1; dx++) {
+                const w = (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz);
+                const idx = space.dataOffset(x + dx, y + dy, z + dz);
+                if (idx >= 0 && idx < data.length) {
+                    acc += data[idx] * w;
+                }
+            }
+        }
     }
     return acc;
 }
@@ -370,37 +474,25 @@ function gradientAtP_world(
   p: Vec3,
   hx: number, hy: number, hz: number
 ): Vec3 {
-  // grid dims
-  const nx = space.dimensions[0] as number;
-  const ny = space.dimensions[1] as number;
-  const nz = space.dimensions[2] as number;
+    // grid dims
+    const [nx, ny, nz] = space.dimensions as Vec3;
+    // Clamp to valid range
+    const x0 = Math.max(1, Math.min(nx - 2, Math.floor(p[0])));
+    const y0 = Math.max(1, Math.min(ny - 2, Math.floor(p[1])));
+    const z0 = Math.max(1, Math.min(nz - 2, Math.floor(p[2])));
 
-  // base voxel (clamped)
-  // |0 is a fast floor for non-negative numbers; we clamp right after anyway.
-  let x0 = p[0] | 0; if (x0 < 0) x0 = 0; else if (x0 > nx - 1) x0 = nx - 1;
-  let y0 = p[1] | 0; if (y0 < 0) y0 = 0; else if (y0 > ny - 1) y0 = ny - 1;
-  let z0 = p[2] | 0; if (z0 < 0) z0 = 0; else if (z0 > nz - 1) z0 = nz - 1;
+    // Safe neighbor access
+    const φxp = data[space.dataOffset(x0 + 1, y0, z0)];
+    const φxm = data[space.dataOffset(x0 - 1, y0, z0)];
+    const φyp = data[space.dataOffset(x0, y0 + 1, z0)];
+    const φym = data[space.dataOffset(x0, y0 - 1, z0)];
+    const φzp = data[space.dataOffset(x0, y0, z0 + 1)];
+    const φzm = data[space.dataOffset(x0, y0, z0 - 1)];
 
-  // neighbor indices (clamped)
-  const xp = x0 + 1 <= nx - 1 ? x0 + 1 : nx - 1;
-  const xm = x0 - 1 >= 0 ? x0 - 1 : 0;
-  const yp = y0 + 1 <= ny - 1 ? y0 + 1 : ny - 1;
-  const ym = y0 - 1 >= 0 ? y0 - 1 : 0;
-  const zp = z0 + 1 <= nz - 1 ? z0 + 1 : nz - 1;
-  const zm = z0 - 1 >= 0 ? z0 - 1 : 0;
-
-  // central differences of φ, then E = -∇φ (world units)
-  const φxp = data[space.dataOffset(xp, y0, z0)];
-  const φxm = data[space.dataOffset(xm, y0, z0)];
-  const φyp = data[space.dataOffset(x0, yp, z0)];
-  const φym = data[space.dataOffset(x0, ym, z0)];
-  const φzp = data[space.dataOffset(x0, y0, zp)];
-  const φzm = data[space.dataOffset(x0, y0, zm)];
-
-  out[0] = - (φxp - φxm) / (2 * hx);
-  out[1] = - (φyp - φym) / (2 * hy);
-  out[2] = - (φzp - φzm) / (2 * hz);
-  return out;
+    out[0] = -(φxp - φxm) / (2 * hx);
+    out[1] = -(φyp - φym) / (2 * hy);
+    out[2] = -(φzp - φzm) / (2 * hz);
+    return out;
 }
 
 // Precompute WORLD gradient field (E = -∇φ) at voxel centers
@@ -438,3 +530,4 @@ function interpolateGradientWorld(space: Tensor.Space, grad: { gx: Float32Array,
     }
     out[0] = vx; out[1] = vy; out[2] = vz; return out;
 }
+
