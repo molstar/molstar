@@ -369,7 +369,7 @@ export function VolumeSphereMeshLinesVisual(materialId: number): VolumeVisual<Vo
 // ---------------------------------------------------------------------------------------
 // Geometry builders (shared streamline collection)
 // ---------------------------------------------------------------------------------------
-function getStreamLines(volume: Volume, props: VolumeLinesProps| VolumeCylindersLinesProps | VolumeSpheresLinesProps): StreamlineSet {
+function getStreamLines(volume: Volume, props: VolumeLinesProps| VolumeCylindersLinesProps | VolumeSpheresLinesProps | VolumePointsLinesProps): StreamlineSet {
     const mode: 'simple' | 'advanced' = props.algorithm === 'advanced' ? 'advanced' : 'simple';
     const sParams = {
         seedDensity: props.seedDensity,
