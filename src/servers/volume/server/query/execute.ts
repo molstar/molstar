@@ -92,7 +92,7 @@ async function createDataContext(file: FileHandle): Promise<Data.DataContext> {
     return {
         file,
         header,
-        spacegroup: SpacegroupCell.create(header.spacegroup.number, Vec3.ofArray(header.spacegroup.size), Vec3.scale(Vec3.zero(), Vec3.ofArray(header.spacegroup.angles), Math.PI / 180)),
+        spacegroup: SpacegroupCell.create(header.spacegroup.number || 'P 1', Vec3.ofArray(header.spacegroup.size), Vec3.scale(Vec3.zero(), Vec3.ofArray(header.spacegroup.angles), Math.PI / 180)),
         dataBox: { a: origin, b: Coords.add(origin, dimensions) },
         sampling: header.sampling.map((s, i) => createSampling(header, i, dataOffset))
     };
