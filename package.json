@@ -1,6 +1,6 @@
 {
   "name": "molstar",
-  "version": "5.0.0-dev.10",
+  "version": "5.0.0-dev.12",
   "description": "A comprehensive macromolecular library.",
   "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {

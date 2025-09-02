@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { bool, float, int, list, OptionalField, RequiredField, str, union, nullable, literal, ValueFor } from '../generic/field-schema';
+import { bool, float, int, list, OptionalField, RequiredField, str, union, nullable, literal, ValueFor, dict } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema } from '../generic/tree-schema';
 import { ColorT, ContinuousPalette, DiscretePalette, Matrix, Vector3 } from '../mvs/param-types';
@@ -75,8 +75,8 @@ const ColorInterpolation = {
     ..._Common,
     ..._Frequency,
     ..._Easing,
-    start: OptionalField(nullable(ColorT), null, 'Start value. If unset, parent state value is used.'),
-    end: OptionalField(nullable(ColorT), null, 'End value.'),
+    start: OptionalField(union(nullable(ColorT), dict(union(int, str), ColorT)), null, 'Start value. If unset, parent state value is used.'),
+    end: OptionalField(union(nullable(ColorT), dict(union(int, str), ColorT)), null, 'End value.'),
     palette: OptionalField(nullable(union(DiscretePalette, ContinuousPalette)), null, 'Palette to sample colors from. Overrides start and end values.'),
 };
 
