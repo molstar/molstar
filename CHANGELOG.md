@@ -102,8 +102,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix transform params not being normalized when used together with param hash version
 - Replace `immer` with `mutative`
 - Fix renderer transparency check
-- CCP4 parser: `defaultToP1` option
-- VolumeServer: use `defaultToP1` when parsing CCP4 files
+- VolumeServer & "VolumeCIF": default to P 1 spacegroup
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
