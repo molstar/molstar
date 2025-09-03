@@ -24,6 +24,8 @@ import { MarkerAction } from '../../mol-util/marker-action';
 import { memoizeLatest } from '../../mol-util/memoize';
 import { PluginUIComponent } from '../base';
 import { SequenceWrapper } from './wrapper';
+import { ThemeDataContext } from '../../mol-theme/theme';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 
 type SequenceProps = {
@@ -41,8 +43,10 @@ const DefaultMarkerColors = {
     focused: '',
 };
 
-type ColorThemeProvider = ColorTheme.Provider<any, string, ColorTypeLocation> | undefined
-
+interface ColorThemeSpec<P extends PD.Params = PD.Params> {
+    provider: ColorTheme.Provider<P, string, ColorTypeLocation>,
+    getProps?: (ctx: ThemeDataContext) => PD.Values<P>,
+}
 
 // TODO: this is somewhat inefficient and should be done using a canvas.
 export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
@@ -93,7 +97,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             this.updateColors();
             this.updateMarker();
         });
-        const experimentalSequenceColorTheme: BehaviorSubject<ColorThemeProvider> | undefined = this.plugin.customUIState.experimentalSequenceColorTheme;
+        const experimentalSequenceColorTheme: BehaviorSubject<ColorThemeSpec | undefined> | undefined = this.plugin.customUIState.experimentalSequenceColorTheme;
         if (experimentalSequenceColorTheme) {
             this.subscribe(experimentalSequenceColorTheme, theme => {
                 if (!theme && !this.customColorThemeWrapper) return;
@@ -385,7 +389,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
 
 type ColorThemeWrapper = ReturnType<typeof ColorThemeWrapper>
 
-function ColorThemeWrapper(plugin: PluginContext, theme: ColorThemeProvider, forceUpdate: () => void) {
+function ColorThemeWrapper(plugin: PluginContext, theme: ColorThemeSpec | undefined, forceUpdate: () => void) {
     const tmpLocation = StructureElement.Location.create();
 
     function computeColor(sequenceWrapper: SequenceWrapper.Any, idx: number, locationColor: LocationColor) {
@@ -403,20 +407,21 @@ function ColorThemeWrapper(plugin: PluginContext, theme: ColorThemeProvider, for
         if (!structure) return undefined;
 
         let themeColor: LocationColor | undefined = undefined;
-        if (theme.ensureCustomProperties) {
+        const props = theme.getProps?.({ structure }) ?? theme.provider.defaultValues;
+        if (theme.provider.ensureCustomProperties) {
             // The following task runs asynchronously
             plugin.runTask(Task.create('Attach custom properties for coloring theme', async runtime => {
                 try {
-                    await theme.ensureCustomProperties?.attach({ assetManager: plugin.managers.asset, runtime }, { structure });
+                    await theme.provider.ensureCustomProperties?.attach({ assetManager: plugin.managers.asset, runtime }, { structure });
                 } catch (err) {
-                    console.warn(`Failed to attach custom properties needed for coloring theme ${theme.name}:`, err);
+                    console.warn(`Failed to attach custom properties needed for coloring theme ${theme.provider.name}:`, err);
                 } finally {
-                    themeColor = theme.factory({ structure }, theme.defaultValues).color;
+                    themeColor = theme.provider.factory({ structure }, props).color;
                     forceUpdate();
                 }
             }));
         } else {
-            themeColor = theme.factory({ structure }, theme.defaultValues).color;
+            themeColor = theme.provider.factory({ structure }, props).color;
         }
 
         const cache: { [idx: number]: string } = {};
@@ -431,7 +436,7 @@ function ColorThemeWrapper(plugin: PluginContext, theme: ColorThemeProvider, for
     });
 
     return {
-        themeName: theme?.name,
+        themeName: theme?.provider.name,
         getColorFunction,
     };
 }
