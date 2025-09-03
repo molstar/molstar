@@ -43,7 +43,7 @@ const DefaultMarkerColors = {
     focused: '',
 };
 
-interface ColorThemeSpec<P extends PD.Params = PD.Params> {
+interface ColorThemeSpec<P extends PD.Params = any> {
     provider: ColorTheme.Provider<P, string, ColorTypeLocation>,
     getProps?: (ctx: ThemeDataContext) => PD.Values<P>,
 }
