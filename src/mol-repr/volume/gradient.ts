@@ -19,7 +19,7 @@ import { VisualContext } from '../visual';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Theme, ThemeRegistryContext } from '../../mol-theme/theme';
 import { CylindersBuilder } from '../../mol-geo/geometry/cylinders/cylinders-builder';
-import { createVolumeCellLocationIterator, eachVolumeLoci } from './util';
+import { createStreamlineLocationIterator, createVolumeCellLocationIterator, eachVolumeLoci } from './util';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
 import { Interval, OrderedSet } from '../../mol-data/int';
@@ -96,7 +96,7 @@ export type VolumeSpheresLinesProps = PD.Values<VolumeSpheresLinesParams>
 
 
 // Caching as CustomProperties
-namespace VolumeStreamlinesProp {
+export namespace VolumeStreamlinesProp {
   export const name = 'volume-streamlines';
   export const descriptor = CustomPropertyDescriptor({ name });
 
@@ -193,7 +193,7 @@ export function VolumeLinesVisual(materialId: number): VolumeVisual<VolumeLinesP
     return VolumeVisual<Lines, VolumeLinesParams>({
         defaultProps: PD.getDefaultValues(VolumeLinesParams),
         createGeometry: createVolumeLinesGeometry,
-        createLocationIterator: createVolumeCellLocationIterator,
+        createLocationIterator: createStreamlineLocationIterator,
         getLoci: getGradientLoci,
         eachLocation: eachGradient,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
@@ -516,6 +516,7 @@ function writeSegmentsToBuilder(
     const a = Vec3(), b = Vec3(), ai = Vec3(), bi = Vec3();
     for (let s = 0; s < streamLines.length; s++) {
         const L = streamLines[s];
+        if (L.length <= 3) continue;
         for (let i = 0, n = L.length - 1; i < n; i++) {
             if (i % Math.max(1, geomStride) !== 0) continue;
             ai[0] = L[i].x; ai[1] = L[i].y; ai[2] = L[i].z;
@@ -542,8 +543,11 @@ function getGradientLoci(pickingId: PickingId, volume: Volume, _key: number, pro
         const granularity = Volume.PickingGranularity.get(volume);
         const instances = OrderedSet.ofSingleton(instanceId as Volume.InstanceIndex);
         if (granularity === 'volume') return Volume.Loci(volume, instances);
-        const indices = Interval.ofSingleton(groupId as Volume.CellIndex);
-        return Volume.Cell.Loci(volume, [{ indices, instances }]);
+
+        // Use the elements array structure you defined
+        const streamlineIndex = groupId as number;
+        const lines = OrderedSet.ofSingleton(streamlineIndex as Volume.StreamIndex);
+        return Volume.Streamline.Loci(volume, [{ lines, instances }]);
     }
     return EmptyLoci;
 }
