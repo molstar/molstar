@@ -53,8 +53,8 @@ jobs:
 
       - name: Copy examples into build output
         run: |
-          mkdir -p ${{ steps.locate.outputs.site }}/examples/mvs
-          cp examples/mvs/hiv.mvsx ${{ steps.locate.outputs.site }}/examples/mvs/
+          mkdir -p build/viewer/examples/mvs
+          cp examples/mvs/hiv.mvsx build/viewer/examples/mvs/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
