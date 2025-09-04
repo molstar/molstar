@@ -102,6 +102,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix transform params not being normalized when used together with param hash version
 - Replace `immer` with `mutative`
 - Fix renderer transparency check
+- VolumeServer & "VolumeCIF": default to P 1 spacegroup
+- Fix `ColorScale` for continuous case without offsets (broke in v4.13.0)
+- Experimental: support for custom color themes in Sequence Panel
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:

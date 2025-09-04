@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,16 +7,21 @@
  */
 
 import * as React from 'react';
-import { Subject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { throttleTime } from 'rxjs/operators';
 import { OrderedSet } from '../../mol-data/int';
+import { ColorTypeLocation } from '../../mol-geo/geometry/color-data';
 import { EveryLoci } from '../../mol-model/loci';
 import { StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
 import { PluginCommands } from '../../mol-plugin/commands';
+import { PluginContext } from '../../mol-plugin/context';
 import { Representation } from '../../mol-repr/representation';
+import { Task } from '../../mol-task';
+import { ColorTheme, LocationColor } from '../../mol-theme/color';
 import { Color } from '../../mol-util/color';
 import { ButtonsType, getButton, getButtons, getModifiers, ModifiersKeys } from '../../mol-util/input/input-observer';
 import { MarkerAction } from '../../mol-util/marker-action';
+import { memoizeLatest } from '../../mol-util/memoize';
 import { PluginUIComponent } from '../base';
 import { SequenceWrapper } from './wrapper';
 
@@ -36,12 +41,19 @@ const DefaultMarkerColors = {
     focused: '',
 };
 
+type ColorThemeProvider = ColorTheme.Provider<any, string, ColorTypeLocation> | undefined
+
+
 // TODO: this is somewhat inefficient and should be done using a canvas.
 export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     protected parentDiv = React.createRef<HTMLDivElement>();
     protected lastMouseOverSeqIdx = -1;
     protected highlightQueue = new Subject<{ seqIdx: number, buttons: number, button: number, modifiers: ModifiersKeys }>();
     protected markerColors = { ...DefaultMarkerColors };
+    /** @experimental */
+    private customColorThemeWrapper: ColorThemeWrapper | undefined = undefined;
+    /** @experimental Custom function that assigns color to residues in the Sequence component (unless highlighted or selected) */
+    private customColorFunction: ((idx: number) => string) | undefined = undefined;
 
     protected lociHighlightProvider = (loci: Representation.Loci, action: MarkerAction) => {
         const changed = this.props.sequenceWrapper.markResidue(loci.loci, action);
@@ -81,6 +93,14 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             this.updateColors();
             this.updateMarker();
         });
+        const experimentalSequenceColorTheme: BehaviorSubject<ColorThemeProvider> | undefined = this.plugin.customUIState.experimentalSequenceColorTheme;
+        if (experimentalSequenceColorTheme) {
+            this.subscribe(experimentalSequenceColorTheme, theme => {
+                if (!theme && !this.customColorThemeWrapper) return;
+                this.customColorThemeWrapper = ColorThemeWrapper(this.plugin, theme, () => this.forceUpdate());
+                this.forceUpdate();
+            });
+        }
     }
 
     updateColors() {
@@ -199,9 +219,12 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
 
     protected getBackgroundColor(seqIdx: number) {
         const seqWrapper = this.props.sequenceWrapper;
-        if (seqWrapper.isHighlighted(seqIdx)) return this.markerColors.highlighted;
-        if (seqWrapper.isSelected(seqIdx)) return this.markerColors.selected;
-        if (seqWrapper.isFocused(seqIdx)) return this.markerColors.focused;
+        if (seqWrapper.isHighlighted(seqIdx) && this.markerColors.highlighted) return this.markerColors.highlighted;
+        if (seqWrapper.isSelected(seqIdx) && this.markerColors.selected) return this.markerColors.selected;
+        if (seqWrapper.isFocused(seqIdx) && this.markerColors.focused) return this.markerColors.focused;
+        if (this.customColorFunction) {
+            return this.customColorFunction(seqIdx);
+        }
         return '';
     }
 
@@ -322,8 +345,11 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
 
     render() {
         const sw = this.props.sequenceWrapper;
-
         const elems: JSX.Element[] = [];
+
+        if (this.customColorThemeWrapper) {
+            this.customColorFunction = this.customColorThemeWrapper.getColorFunction(sw);
+        }
 
         const hasNumbers = !this.props.hideSequenceNumbers, period = this.sequenceNumberPeriod;
         for (let i = 0, il = sw.length; i < il; ++i) {
@@ -354,4 +380,58 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             {elems}
         </div>;
     }
+}
+
+
+type ColorThemeWrapper = ReturnType<typeof ColorThemeWrapper>
+
+function ColorThemeWrapper(plugin: PluginContext, theme: ColorThemeProvider, forceUpdate: () => void) {
+    const tmpLocation = StructureElement.Location.create();
+
+    function computeColor(sequenceWrapper: SequenceWrapper.Any, idx: number, locationColor: LocationColor) {
+        const loci = sequenceWrapper.getLoci(idx);
+        if (!loci || StructureElement.Loci.isEmpty(loci)) return '';
+        StructureElement.Loci.getFirstLocation(loci, tmpLocation);
+        const color = locationColor(tmpLocation, false);
+        if (color < 0) return ''; // Color(-1) is used as special value NoColor
+        return Color.toHexStyle(color);
+    }
+
+    const getColorFunction = memoizeLatest((sequenceWrapper: SequenceWrapper.Any) => {
+        if (!theme) return undefined;
+        const structure = sequenceWrapper.getLoci(0)?.structure;
+        if (!structure) return undefined;
+
+        let themeColor: LocationColor | undefined = undefined;
+        if (theme.ensureCustomProperties) {
+            // The following task runs asynchronously
+            plugin.runTask(Task.create('Attach custom properties for coloring theme', async runtime => {
+                try {
+                    await theme.ensureCustomProperties?.attach({ assetManager: plugin.managers.asset, runtime }, { structure });
+                } catch (err) {
+                    console.warn(`Failed to attach custom properties needed for coloring theme ${theme.name}:`, err);
+                } finally {
+                    themeColor = theme.factory({ structure }, theme.defaultValues).color;
+                    forceUpdate();
+                }
+            }));
+        } else {
+            themeColor = theme.factory({ structure }, theme.defaultValues).color;
+        }
+
+        const cache: { [idx: number]: string } = {};
+
+        return (idx: number) => {
+            if (themeColor) { // custom properties ready
+                return cache[idx] ??= computeColor(sequenceWrapper, idx, themeColor);
+            } else { // custom properties not ready
+                return '';
+            }
+        };
+    });
+
+    return {
+        themeName: theme?.name,
+        getColorFunction,
+    };
 }

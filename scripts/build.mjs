@@ -131,8 +131,8 @@ function getPaths(app) {
 
 async function createBundle(app) {
     const { name, kind } = app;
-
     const { prefix, entry, outfile } = getPaths(app);
+    const NODE_ENV_PRD = isProduction || process.env.NODE_ENV === 'production';
 
     const ctx = await esbuild.context({
         entryPoints: [entry],
@@ -161,6 +161,7 @@ async function createBundle(app) {
         color: true,
         logLevel: 'info',
         define: {
+            'process.env.NODE_ENV': JSON.stringify(NODE_ENV_PRD ? 'production' : 'development'),
             'process.env.DEBUG': JSON.stringify(process.env.DEBUG || false),
             __MOLSTAR_PLUGIN_VERSION__: JSON.stringify(VERSION),
             __MOLSTAR_BUILD_TIMESTAMP__: `${TIMESTAMP}`,
