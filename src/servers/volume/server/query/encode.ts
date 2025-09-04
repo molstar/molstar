@@ -71,7 +71,8 @@ const _volume_data_3d_info_fields = [
     int32<_vd3d_Ctx>('sample_count[1]', ctx => ctx.grid.sampleCount[1]),
     int32<_vd3d_Ctx>('sample_count[2]', ctx => ctx.grid.sampleCount[2]),
 
-    int32<_vd3d_Ctx>('spacegroup_number', ctx => ctx.header.spacegroup.number),
+    // normalise spacegroup number: treat 0 as 'P 1' (1)
+    int32<_vd3d_Ctx>('spacegroup_number', ctx => ctx.header.spacegroup.number > 0 ? ctx.header.spacegroup.number : 1),
 
     float64<_vd3d_Ctx>('spacegroup_cell_size[0]', ctx => ctx.header.spacegroup.size[0], 3),
     float64<_vd3d_Ctx>('spacegroup_cell_size[1]', ctx => ctx.header.spacegroup.size[1], 3),

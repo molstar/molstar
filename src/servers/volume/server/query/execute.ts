@@ -89,10 +89,13 @@ async function createDataContext(file: FileHandle): Promise<Data.DataContext> {
     const origin = Coords.fractional(header.origin[0], header.origin[1], header.origin[2]);
     const dimensions = Coords.fractional(header.dimensions[0], header.dimensions[1], header.dimensions[2]);
 
+    // some data sources (e.g., CCP4/MRC) can report spacegroup number 0.
+    // treat that as P 1 so cartesian<->fractional transforms work with the provided cell.
+    const sgId: any = (header.spacegroup.number && header.spacegroup.number > 0) ? header.spacegroup.number : 'P 1';
     return {
         file,
         header,
-        spacegroup: SpacegroupCell.create(header.spacegroup.number, Vec3.ofArray(header.spacegroup.size), Vec3.scale(Vec3.zero(), Vec3.ofArray(header.spacegroup.angles), Math.PI / 180)),
+        spacegroup: SpacegroupCell.create(sgId, Vec3.ofArray(header.spacegroup.size), Vec3.scale(Vec3.zero(), Vec3.ofArray(header.spacegroup.angles), Math.PI / 180)),
         dataBox: { a: origin, b: Coords.add(origin, dimensions) },
         sampling: header.sampling.map((s, i) => createSampling(header, i, dataOffset))
     };
