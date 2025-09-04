@@ -12,6 +12,7 @@ import { SliceRepresentationProvider } from './slice';
 import { DirectVolumeRepresentationProvider } from './direct-volume';
 import { SegmentRepresentationProvider } from './segment';
 import { DotRepresentationProvider } from './dot';
+import { GradientRepresentationProvider } from './gradient';
 
 export class VolumeRepresentationRegistry extends RepresentationRegistry<Volume, Representation.State> {
     constructor() {
@@ -30,6 +31,7 @@ export namespace VolumeRepresentationRegistry {
         'isosurface': IsosurfaceRepresentationProvider,
         'segment': SegmentRepresentationProvider,
         'slice': SliceRepresentationProvider,
+        'gradient': GradientRepresentationProvider,
     };
 
     type _BuiltIn = typeof BuiltIn

@@ -44,4 +44,4 @@ export function isDirectLocation(x: any): x is DirectLocation {
     return !!x && x.kind === 'direct-location';
 }
 
-export type Location = StructureElement.Location | Bond.Location | ShapeGroup.Location | PositionLocation | DataLocation | NullLocation | DirectLocation | Volume.Cell.Location | Volume.Segment.Location
+export type Location = StructureElement.Location | Bond.Location | ShapeGroup.Location | PositionLocation | DataLocation | NullLocation | DirectLocation | Volume.Cell.Location | Volume.Segment.Location | Volume.Streamline.Location;
