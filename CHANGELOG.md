@@ -105,6 +105,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - VolumeServer & "VolumeCIF": default to P 1 spacegroup
 - Fix `ColorScale` for continuous case without offsets (broke in v4.13.0)
 - Experimental: support for custom color themes in Sequence Panel
+- Switch files.rcsb.org validation report URL to new endpoint /validation/view
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
