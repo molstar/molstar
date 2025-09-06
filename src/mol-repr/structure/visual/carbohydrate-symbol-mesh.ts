@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -206,8 +206,12 @@ function CarbohydrateElementIterator(structure: Structure): LocationIterator {
 function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId;
     if (id === objectId) {
-        const carb = structure.carbohydrates.elements[Math.floor(groupId / 2)];
-        return getAltResidueLociFromId(structure, carb.unit, carb.residueIndex, carb.altId);
+        if (groupId === PickingId.Null) {
+            return Structure.Loci(structure);
+        } else {
+            const carb = structure.carbohydrates.elements[Math.floor(groupId / 2)];
+            return getAltResidueLociFromId(structure, carb.unit, carb.residueIndex, carb.altId);
+        }
     }
     return EmptyLoci;
 }

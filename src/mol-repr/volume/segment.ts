@@ -83,7 +83,7 @@ function getSegmentLoci(pickingId: PickingId, volume: Volume, key: number, props
         const instances = OrderedSet.ofSingleton(instanceId as Volume.InstanceIndex);
         if (granularity === 'volume') {
             return Volume.Loci(volume, instances);
-        } else if (granularity === 'object') {
+        } else if (granularity === 'object' || groupId === PickingId.Null) {
             const segments = OrderedSet.ofSingleton(key as Volume.SegmentIndex);
             return Volume.Segment.Loci(volume, [{ segments, instances }]);
         } else {

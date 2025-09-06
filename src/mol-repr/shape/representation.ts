@@ -225,7 +225,11 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         getLoci(pickingId: PickingId) {
             const { objectId, groupId, instanceId } = pickingId;
             if (_renderObject && _renderObject.id === objectId) {
-                return ShapeGroup.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId), instance: instanceId }]);
+                if (groupId === PickingId.Null) {
+                    return Shape.Loci(_shape);
+                } else {
+                    return ShapeGroup.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId), instance: instanceId }]);
+                }
             }
             return EmptyLoci;
         },
