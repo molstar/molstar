@@ -26,6 +26,106 @@ export interface GridInfo {
   gridToCartn: Mat4; // transformation matrix from grid to Cartesian coordinates
 }
 
+// --- Filtering + formatting ---
+type FormatMode = 'keep-points' | 'keep-lines-nearby';
+
+interface FilterOpts {
+  center: [number, number, number]; // [x,y,z]
+  radius?: number; // if omitted, no filtering
+  mode?: FormatMode; // default 'keep-points'
+}
+/* ---------- 1) FILTER ---------- */
+/** Returns a new StreamlineSet after filtering; optionally orients each kept line by scalar value. */
+export function filterStreamlines(
+  lines: StreamlineSet,
+  opts: FilterOpts
+): StreamlineSet {
+  const { center, radius, mode = 'keep-points' } = opts;
+  const [cx, cy, cz] = center;
+  const r2 = radius !== undefined ? radius * radius : undefined;
+
+  const kept: StreamlineSet = [];
+
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li];
+    let points: StreamlinePoint[];
+
+    if (r2 === undefined) {
+      points = line;
+    } else if (mode === 'keep-lines-nearby') {
+      let near = false;
+      for (let k = 0; k < line.length; k++) {
+        const p = line[k];
+        const dx = p.x - cx, dy = p.y - cy, dz = p.z - cz;
+        if (dx*dx + dy*dy + dz*dz <= r2) { near = true; break; }
+      }
+      points = near ? line : [];
+    } else {
+      points = [];
+      for (let k = 0; k < line.length; k++) {
+        const p = line[k];
+        const dx = p.x - cx, dy = p.y - cy, dz = p.z - cz;
+        if (dx*dx + dy*dy + dz*dz <= r2) points.push(p);
+      }
+    }
+
+    if (points.length === 0) continue;
+
+    const copy = (points === line) ? line.slice() : points;
+    kept.push(copy);
+  }
+
+  return kept;
+}
+
+/* ---------- 2) FORMAT ---------- */
+export interface FormattedLines {
+  [lineId: string]: { pos: number[]; value: number[] };
+}
+
+export interface FormatOpts {
+  /** If true, reindex line IDs densely ("0","1",...). If false, keep original indices as IDs. */
+  denseIds?: boolean; // default true
+}
+
+/** Flattens lines to { id: {pos:[...], value:[...]}, ... }. */
+export function formatStreamlines(
+  lines: StreamlineSet,
+  gridToCartn: Mat4,
+  opts: FormatOpts = { denseIds: true }
+): FormattedLines {
+  const { denseIds = true } = opts;
+  const out: FormattedLines = {};
+
+  let outIdx = 0;
+  const a = Vec3(), ai = Vec3();
+  const b = Vec3(), bi = Vec3();
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li];
+    if (!line || line.length === 0) continue;
+    const n = line.length - 1;
+    const pos = new Array<number>(n * 6);
+    const value = new Array<number>(n);
+    if (line.length <= 3) continue;
+    for (let i = 0; i < n; i++) {
+      const p = line[i];
+      const j = 6 * i;
+      ai[0] = line[i].x; ai[1] = line[i].y; ai[2] = line[i].z;
+      bi[0] = line[i + 1].x; bi[1] = line[i + 1].y; bi[2] = line[i + 1].z;
+      Vec3.transformMat4(a, ai, gridToCartn);
+      Vec3.transformMat4(b, bi, gridToCartn);
+      pos[j] = a[0]; pos[j + 1] = a[1]; pos[j + 2] = a[2];
+      pos[j + 3] = b[0]; pos[j + 4] = b[1]; pos[j + 5] = b[2];
+      value[i] = p.value;
+    }
+
+    const id = denseIds ? String(outIdx++) : String(li);
+    out[id] = { pos, value };
+  }
+
+  return out;
+}
+
 /** Pure function: returns polylines in INDEX space (no transforms, no builders). */
 export function collectStreamlines(
   grid: GridInfo,
@@ -199,6 +299,15 @@ function traceOneDirection(
     return written;
 }
 
+/** Ensure points are ordered by increasing value (negative -> positive). */
+function orientLineByValueInPlace(line: StreamlinePoint[], eps = 1e-9) {
+  if (line.length < 2) return;
+  const v0 = line[0].value;
+  const v1 = line[line.length - 1].value;
+  // if it's decreasing overall, flip the whole line
+  if (v0 > v1 + eps) reverseSegmentInPlace(line, 0, line.length - 1);
+}
+
 function reverseSegmentInPlace<T>(arr: T[], start: number, end: number) {
     for (let i = start, j = end; i < j; i++, j--) { const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp; }
 }
@@ -221,6 +330,7 @@ function traceStreamlineBothDirs(space: Tensor.Space, data: ArrayLike<number>,
     // if (nBack === -1) return [];
     if (nBack > 1) reverseSegmentInPlace(line, 0, nBack - 1);
     traceOneDirection(line, space, data, seed, maxSteps, dsWorld, eps, hx, hy, hz, +1, true, S, writeStride, order);
+    orientLineByValueInPlace(line);
     return line;
 }
 
@@ -404,6 +514,9 @@ function computeAdvancedStreamlines(grid: GridInfo, props: StreamlineParams, out
             // discard degenerate polylines
             if (nVert < 2) {
                 out[segIdx] = [] as StreamlinePoint[]; // keep slot empty; harmless to geometry stage
+            } else {
+                // orient by value
+                orientLineByValueInPlace(out[segIdx]);
             }
         }
         // oblation (flag cells in a sphere of radius R around visited cells)

@@ -31,7 +31,7 @@ import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { sphereVertexCount } from '../../mol-geo/primitive/sphere';
 import { addCylinder, BasicCylinderProps } from '../../mol-geo/geometry/mesh/builder/cylinder';
-import { collectStreamlines, GridInfo, StreamlineMode, StreamlineParams, StreamlineSet } from '../../mol-math/volume/streamlines';
+import { collectStreamlines, filterStreamlines, formatStreamlines, GridInfo, StreamlineMode, StreamlineParams, StreamlineSet } from '../../mol-math/volume/streamlines';
 import { Sphere3D } from '../../mol-math/geometry';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 
@@ -50,6 +50,11 @@ export const VolumeGradientParams = {
     mid_interpolation: PD.Boolean(true, { description: 'Use RK2 (midpoint) instead of RK4 for the simple tracer.', hideIf: (o) => o.algorithm !== 'simple' }),
     writeStride: PD.Numeric(4, { min: 1, max: 50, step: 1 }, { description: 'Sample every N integration steps.' }),
     geomStride: PD.Numeric(1, { min: 1, max: 10, step: 1 }, { description: 'Emit every Nth segment to geometry.' }),
+    filter: PD.Group({
+        filter_type: PD.Select('none', PD.arrayToOptions(['none', 'keep-points', 'keep-lines-nearby'] as const), { description: 'Filter type.' }),
+        filter_center: PD.Vec3(Vec3.create(0, 0, 0), { description: 'Center (Å) of the filter sphere.' }),
+        filter_radius: PD.Numeric(10, { min: 0, max: 100, step: 1 }, { description: 'Radius (Å) of the filter sphere.' }),
+    }, { isFlat: true, description: 'Filter streamlines by their position relative to a sphere.' })
 };
 export type VolumeGradientParams = typeof VolumeGradientParams
 export type VolumeGradientProps = PD.Values<VolumeGradientParams>
@@ -188,6 +193,46 @@ export namespace VolumeStreamlinesProp {
 // ---------------------------------------------------------------------------------------
 // Visuals
 // ---------------------------------------------------------------------------------------
+// Reusable builder for setUpdateState across visuals
+// Common keys for both visuals
+const COMMON_KEYS: (keyof PD.Values<VolumeGradientParams>)[] = [
+  'seedDensity',
+  'maxSteps',
+  'stepSize',
+  'minSpeed',
+  'minLevel',
+  'maxLevel',
+  'writeStride',
+  'geomStride',
+  'mid_interpolation',
+  'algorithm',
+  'filter',
+];
+
+// Mesh lines has one extra prop to watch:
+const MESH_EXTRA: (keyof PD.Values<VolumeGradientParams>)[] = ['detail'];
+const CYLINDERS_EXTRA: (keyof PD.Values<VolumeGradientParams>)[] = ['detail', 'radius'];
+
+// Any change to the watched props triggers a geometry rebuild
+function makeSetUpdateState<P extends object>(keys: (keyof P)[]) {
+  return (
+    state: VisualUpdateState,
+    _volume: Volume,
+    newProps: P,
+    currentProps: P,
+    _newTheme: Theme,
+    _currentTheme: Theme
+  ) => {
+    // Any watched prop changed? -> rebuild geometry
+    for (const k of keys) {
+      if (newProps[k] !== currentProps[k]) {
+        state.createGeometry = true;
+        return;
+      }
+    }
+    state.createGeometry = false;
+  };
+}
 
 export function VolumeLinesVisual(materialId: number): VolumeVisual<VolumeLinesParams> {
     return VolumeVisual<Lines, VolumeLinesParams>({
@@ -196,20 +241,7 @@ export function VolumeLinesVisual(materialId: number): VolumeVisual<VolumeLinesP
         createLocationIterator: createStreamlineLocationIterator,
         getLoci: getGradientLoci,
         eachLocation: eachGradient,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
-            state.createGeometry = (
-                newProps.seedDensity !== currentProps.seedDensity ||
-                newProps.maxSteps !== currentProps.maxSteps ||
-                newProps.stepSize !== currentProps.stepSize ||
-                newProps.minSpeed !== currentProps.minSpeed ||
-                newProps.minLevel !== currentProps.minLevel ||
-                newProps.maxLevel !== currentProps.maxLevel ||
-                newProps.writeStride !== currentProps.writeStride ||
-                newProps.geomStride !== currentProps.geomStride||
-                newProps.mid_interpolation !== currentProps.mid_interpolation ||
-                newProps.algorithm !== currentProps.algorithm
-            );
-        },
+        setUpdateState: makeSetUpdateState<PD.Values<VolumeLinesParams>>(COMMON_KEYS),
         geometryUtils: Lines.Utils,
     }, materialId);
 }
@@ -227,21 +259,7 @@ export function VolumeCylindersImpostorVisual(materialId: number): VolumeVisual<
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getGradientLoci,
         eachLocation: eachGradient,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
-            state.createGeometry = (
-                newProps.seedDensity !== currentProps.seedDensity ||
-                newProps.maxSteps !== currentProps.maxSteps ||
-                newProps.stepSize !== currentProps.stepSize ||
-                newProps.minSpeed !== currentProps.minSpeed ||
-                newProps.radius !== currentProps.radius ||
-                newProps.minLevel !== currentProps.minLevel ||
-                newProps.maxLevel !== currentProps.maxLevel ||
-                newProps.writeStride !== currentProps.writeStride ||
-                newProps.geomStride !== currentProps.geomStride||
-                newProps.mid_interpolation !== currentProps.mid_interpolation ||
-                newProps.algorithm !== currentProps.algorithm
-            );
-        },
+        setUpdateState: makeSetUpdateState<PD.Values<VolumeCylindersLinesParams>>([...COMMON_KEYS, ...CYLINDERS_EXTRA]),
         geometryUtils: Cylinders.Utils,
         mustRecreate: (_: VolumeKey, __: PD.Values<VolumeCylindersLinesParams>, webgl?: WebGLContext) => !webgl,
     }, materialId);
@@ -254,23 +272,9 @@ export function VolumeCylindersMeshLinesVisual(materialId: number): VolumeVisual
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getGradientLoci,
         eachLocation: eachGradient,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
-            state.createGeometry = (
-                newProps.seedDensity !== currentProps.seedDensity ||
-                newProps.maxSteps !== currentProps.maxSteps ||
-                newProps.stepSize !== currentProps.stepSize ||
-                newProps.minSpeed !== currentProps.minSpeed ||
-                newProps.radius !== currentProps.radius ||
-                newProps.minLevel !== currentProps.minLevel ||
-                newProps.maxLevel !== currentProps.maxLevel ||
-                newProps.writeStride !== currentProps.writeStride ||
-                newProps.geomStride !== currentProps.geomStride||
-                newProps.mid_interpolation !== currentProps.mid_interpolation ||
-                newProps.algorithm !== currentProps.algorithm ||
-                newProps.detail !== currentProps.detail
-
-            );
-        },
+        setUpdateState: makeSetUpdateState<PD.Values<VolumeCylindersLinesParams>>(
+            [...COMMON_KEYS, ...MESH_EXTRA]
+        ),
         geometryUtils: Mesh.Utils,
         mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeCylindersLinesParams>, webgl?: WebGLContext) => {
             return props.tryUseImpostor && !!webgl;
@@ -285,21 +289,7 @@ export function VolumePointsLinesVisual(materialId: number): VolumeVisual<Volume
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getGradientLoci,
         eachLocation: eachGradient,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
-            state.createGeometry = (
-                newProps.seedDensity !== currentProps.seedDensity ||
-                newProps.maxSteps !== currentProps.maxSteps ||
-                newProps.stepSize !== currentProps.stepSize ||
-                newProps.minSpeed !== currentProps.minSpeed ||
-                newProps.minLevel !== currentProps.minLevel ||
-                newProps.maxLevel !== currentProps.maxLevel ||
-                newProps.writeStride !== currentProps.writeStride ||
-                newProps.geomStride !== currentProps.geomStride ||
-                newProps.mid_interpolation !== currentProps.mid_interpolation ||
-                newProps.algorithm !== currentProps.algorithm
-
-            );
-        },
+        setUpdateState: makeSetUpdateState<PD.Values<VolumePointsLinesParams>>(COMMON_KEYS),
         geometryUtils: Points.Utils,
         mustRecreate: (_: VolumeKey, __: PD.Values<VolumePointsLinesParams>, webgl?: WebGLContext) => !webgl,
     }, materialId);
@@ -318,21 +308,7 @@ export function VolumeSpheresImpostorLinesVisual(materialId: number): VolumeVisu
             createLocationIterator: createVolumeCellLocationIterator,
             getLoci: getGradientLoci,
             eachLocation: eachGradient,
-            setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
-                state.createGeometry = (
-                    newProps.seedDensity !== currentProps.seedDensity ||
-                    newProps.maxSteps !== currentProps.maxSteps ||
-                    newProps.stepSize !== currentProps.stepSize ||
-                    newProps.minSpeed !== currentProps.minSpeed ||
-                    newProps.minLevel !== currentProps.minLevel ||
-                    newProps.maxLevel !== currentProps.maxLevel ||
-                    newProps.writeStride !== currentProps.writeStride ||
-                    newProps.geomStride !== currentProps.geomStride ||
-                    newProps.mid_interpolation !== currentProps.mid_interpolation ||
-                    newProps.algorithm !== currentProps.algorithm
-
-                );
-            },
+            setUpdateState: makeSetUpdateState<PD.Values<VolumeSpheresLinesParams>>(COMMON_KEYS),
             geometryUtils: Spheres.Utils,
             mustRecreate: (_: VolumeKey, __: PD.Values<VolumeSpheresLinesParams>, webgl?: WebGLContext) => !webgl,
         }, materialId);
@@ -345,21 +321,9 @@ export function VolumeSphereMeshLinesVisual(materialId: number): VolumeVisual<Vo
             createLocationIterator: createVolumeCellLocationIterator,
             getLoci: getGradientLoci,
             eachLocation: eachGradient,
-            setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
-                state.createGeometry = (
-                    newProps.seedDensity !== currentProps.seedDensity ||
-                    newProps.maxSteps !== currentProps.maxSteps ||
-                    newProps.stepSize !== currentProps.stepSize ||
-                    newProps.minSpeed !== currentProps.minSpeed ||
-                    newProps.minLevel !== currentProps.minLevel ||
-                    newProps.maxLevel !== currentProps.maxLevel ||
-                    newProps.writeStride !== currentProps.writeStride ||
-                    newProps.geomStride !== currentProps.geomStride ||
-                    newProps.mid_interpolation !== currentProps.mid_interpolation ||
-                    newProps.algorithm !== currentProps.algorithm ||
-                    newProps.detail !== currentProps.detail
-                );
-            },
+            setUpdateState: makeSetUpdateState<PD.Values<VolumeSpheresLinesParams>>(
+                [...COMMON_KEYS, ...MESH_EXTRA]
+            ),
             geometryUtils: Mesh.Utils,
             mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeSpheresLinesParams>, webgl?: WebGLContext) => {
                 return props.tryUseImpostor && !!webgl;
@@ -381,9 +345,20 @@ function getStreamLines(volume: Volume, props: VolumeLinesProps| VolumeCylinders
         mid_interpolation: props.mid_interpolation,
         writeStride: props.writeStride,
     };
-    // fetch (or compute+cache) streamlines from the custom property
+
     const { lines: streamLines } = VolumeStreamlinesProp.get(volume, { mode: mode, streamline: sParams });
-    return streamLines;
+    if (props.filter.filter_type === 'none') return streamLines;
+    const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
+    const inv = Mat4();
+    Mat4.invert(inv, gridToCartn);
+    const v = Vec3.copy(Vec3(), props.filter.filter_center); // Vec3.create(-20.628, 2.496, -14.600);
+    Vec3.transformMat4(v, v, inv);
+    const filtered = filterStreamlines(streamLines, {
+        center: [v[0], v[1], v[2]],
+        radius: props.filter.filter_radius,
+        mode: props.filter.filter_type,
+        });
+    return filtered;
 }
 
 function createVolumeLinesGeometry(ctx: VisualContext, volume: Volume,
@@ -422,7 +397,6 @@ function createVolumeCylindersGeometry(ctx: VisualContext, volume: Volume, _key:
     g.setBoundingSphere(Sphere3D.fromDimensionsAndTransform(Sphere3D(), gridDimension, gridToCartn));
     return g;
 }
-
 
 function createVolumeCylindersMeshGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumeCylindersLinesProps, mesh?: Mesh): Mesh {
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
