@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -38,7 +38,12 @@ export function getNucleotideElementLoci(pickingId: PickingId, structureGroup: S
         const { structure, group } = structureGroup;
         const unit = group.units[instanceId];
         if (Unit.isAtomic(unit)) {
-            return getResidueLoci(structure, unit, unit.nucleotideElements[groupId]);
+            if (groupId === PickingId.Null) {
+                const indices = Interval.ofRange(0, unit.elements.length) as Interval<StructureElement.UnitIndex>;
+                return StructureElement.Loci(structure.target, [{ unit, indices }]);
+            } else {
+                return getResidueLoci(structure, unit, unit.nucleotideElements[groupId]);
+            }
         }
     }
     return EmptyLoci;
