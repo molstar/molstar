@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -21,14 +21,14 @@ export class PluginAnimationLoop {
     // longer than intended, but hopefully that's a reasonable tradeoff
     private properTimeT: number = 0;
 
-    private currentFrame: any = void 0;
+    private currentFrame: number | undefined = undefined;
     private _isAnimating = false;
 
     get isAnimating() {
         return this._isAnimating;
     }
 
-    async tick(t: number, options?: { isSynchronous?: boolean, manualDraw?: boolean, animation?: PluginAnimationManager.AnimationInfo, updateControls?: boolean}) {
+    async tick(t: number, options?: { isSynchronous?: boolean, manualDraw?: boolean, animation?: PluginAnimationManager.AnimationInfo, updateControls?: boolean, xrFrame?: XRFrame }) {
         await this.plugin.managers.animation.tick(t, options?.isSynchronous, options?.animation);
         this.plugin.canvas3d?.tick(t as now.Timestamp, options);
 
@@ -42,14 +42,14 @@ export class PluginAnimationLoop {
         }
     }
 
-    private frame = () => {
+    private frame = (_timestamp?: number, xrFrame?: XRFrame) => {
         const t = now();
         const dt = t - this.lastTickT;
         this.lastTickT = t;
         this.properTimeT += Math.min(dt, MaxProperFrameDelta);
-        this.tick(this.properTimeT);
+        this.tick(this.properTimeT, { xrFrame });
         if (this._isAnimating) {
-            this.currentFrame = requestAnimationFrame(this.frame);
+            this.currentFrame = this.plugin.canvas3d?.requestAnimationFrame(this.frame);
         }
     };
 
@@ -64,14 +64,14 @@ export class PluginAnimationLoop {
         this.properTimeT = 0;
         this.lastTickT = now();
         if (options?.immediate) this.frame();
-        else this.currentFrame = requestAnimationFrame(this.frame);
+        else this.currentFrame = this.plugin.canvas3d?.requestAnimationFrame(this.frame);
     }
 
     stop(options?: { noDraw?: boolean }) {
         this._isAnimating = false;
-        if (this.currentFrame !== void 0) {
-            cancelAnimationFrame(this.currentFrame);
-            this.currentFrame = void 0;
+        if (this.currentFrame !== undefined) {
+            this.plugin.canvas3d?.cancelAnimationFrame(this.currentFrame);
+            this.currentFrame = undefined;
         }
         if (options?.noDraw) {
             this.plugin.canvas3d?.pause(options?.noDraw);

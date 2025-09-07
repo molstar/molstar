@@ -34,6 +34,9 @@ uniform float uPixelRatio;
 uniform vec4 uViewport;
 uniform mat4 uInvHeadRotation;
 uniform bool uHasHeadRotation;
+uniform mat4 uModelViewEye;
+uniform mat4 uInvModelViewEye;
+uniform bool uHasEyeCamera;
 
 varying vec2 vTexCoord;
 
@@ -55,7 +58,9 @@ void main(void){
     float offsetZ = (uOffsetZ + aDepth * 0.95) * scale;
 
     vec4 position4 = vec4(aPosition, 1.0);
-    vec4 mvPosition = uModelView * aTransform * position4;
+    vec4 mvPosition = uHasEyeCamera
+         ? uModelViewEye * aTransform * position4
+         : uModelView * aTransform * position4;
 
     vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
 
@@ -86,10 +91,16 @@ void main(void){
         mvCorner.xyz += cornerOffset;
     }
 
-    if (uIsOrtho == 1.0) {
-        mvCorner.z += offsetZ;
-    } else {
-        mvCorner.xyz += normalize(-mvCorner.xyz) * offsetZ;
+    if (!uHasEyeCamera) {
+        if (uIsOrtho == 1.0) {
+            mvCorner.z += offsetZ;
+        } else {
+            mvCorner.xyz += normalize(-mvCorner.xyz) * offsetZ;
+        }
+    }
+
+    if (uHasEyeCamera) {
+        mvCorner = uModelView * uInvModelViewEye * mvCorner;
     }
 
     gl_Position = uProjection * mvCorner;

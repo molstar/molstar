@@ -152,12 +152,6 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                     ValueCell.updateIfChanged(_renderObject.values.uGroupCount, locationIt.groupCount);
                 }
 
-                if (updateState.updateTransform || updateState.createGeometry) {
-                    // console.log('updateBoundingSphere')
-                    geometryUtils.updateBoundingSphere(_renderObject.values, _shape.geometry);
-                    positionIt = geometryUtils.createPositionIterator(_shape.geometry, _renderObject.values);
-                }
-
                 if (updateState.updateColor) {
                     // console.log('update color')
                     createColors(locationIt, positionIt, _theme.color, _renderObject.values);
@@ -173,6 +167,13 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
                 geometryUtils.updateValues(_renderObject.values, newProps);
                 geometryUtils.updateRenderableState(_renderObject.state, newProps);
+
+                // needs to be done after size and values are updated
+                if (updateState.updateTransform || updateState.createGeometry) {
+                    // console.log('updateBoundingSphere')
+                    geometryUtils.updateBoundingSphere(_renderObject.values, _shape.geometry);
+                    positionIt = geometryUtils.createPositionIterator(_shape.geometry, _renderObject.values);
+                }
             }
 
             currentProps = newProps;

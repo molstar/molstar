@@ -107,6 +107,13 @@ Note that since we don't clearly distinguish between a public and private interf
 - Experimental: support for custom color themes in Sequence Panel
 - Switch files.rcsb.org validation report URL to new endpoint /validation/view
 - Improve picking of objects with too many groups, pick whole instance/object
+- Add WebXR support
+    - Requires immersive AR/VR headset
+    - Supplements non-XR: enter/exit XR anytime and see (mostly) the same scene
+    - Add `Canvas3D.xr` for managing XR sessions
+    - Add `PointerHelper` for rendering XR input devices
+    - Add XR button to Viewer and Mesoscale Explorer
+    - Add XR button to render-structure in tests/browser
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
