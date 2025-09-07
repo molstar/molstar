@@ -9,7 +9,7 @@
 
 import { Subject, Observable } from 'rxjs';
 import { Viewport } from '../../mol-canvas3d/camera/util';
-import { Vec2, EPSILON } from '../../mol-math/linear-algebra';
+import { Vec2, EPSILON, Vec3 } from '../../mol-math/linear-algebra';
 import { BitFlags, noop } from '../../mol-util';
 import { Ray3D } from '../../mol-math/geometry/primitives/ray3d';
 
@@ -125,10 +125,16 @@ export namespace ButtonsType {
         Forth = 0x8,
         /** 5th button (typically the "Browser Forward" button) */
         Five = 0x10,
+        /** Trigger button */
+        Trigger = 0x20,
+        /** Squeeze button */
+        Squeeze = 0x30,
     }
 }
 
 export type KeyCode = string
+
+export type PointerHandedness = 'left' | 'right' | 'none'
 
 type BaseInput = {
     buttons: ButtonsType
@@ -199,8 +205,8 @@ export type GestureInput = {
     deltaScale: number,
     deltaRotation: number
     isStart?: boolean,
-    isEnd?: boolean
-}
+    isEnd?: boolean,
+} & BaseInput
 
 export type KeyInput = {
     key: string,
@@ -211,7 +217,18 @@ export type KeyInput = {
     pageX: number,
     pageY: number,
     /** for overwriting browser shortcuts like `ctrl+s` as needed */
-    preventDefault: () => void
+    preventDefault: () => void,
+}
+
+export type TrackedPointerInput = {
+    handedness: PointerHandedness,
+    buttons: ButtonsType,
+    x: number,
+    y: number,
+    dx: number,
+    dy: number,
+    ray: Ray3D,
+    axes?: readonly number[],
 }
 
 export const EmptyKeyInput: KeyInput = {
@@ -277,9 +294,10 @@ interface InputObserver {
     readonly keyUp: Observable<KeyInput>
     readonly keyDown: Observable<KeyInput>
     readonly lock: Observable<boolean>
+    readonly trackedPointers: Observable<TrackedPointerInput[]>
 
     setPixelScale: (pixelScale: number) => void
-
+    updateTrackedPointers: (trackedPointers: TrackedPointerInput[]) => void
     requestPointerLock: (viewport: Viewport) => void
     exitPointerLock: () => void
     dispose: () => void
@@ -302,6 +320,7 @@ function createEvents() {
         keyUp: new Subject<KeyInput>(),
         keyDown: new Subject<KeyInput>(),
         lock: new Subject<boolean>(),
+        trackedPointers: new Subject<TrackedPointerInput[]>(),
     };
 }
 
@@ -322,7 +341,7 @@ namespace InputObserver {
             ...createEvents(),
 
             setPixelScale: noop,
-
+            updateTrackedPointers: noop,
             requestPointerLock: noop,
             exitPointerLock: noop,
             dispose: noop
@@ -381,7 +400,7 @@ namespace InputObserver {
         }
 
         const events = createEvents();
-        const { drag, interactionEnd, wheel, pinch, gesture, click, move, leave, enter, resize, modifiers, key, keyUp, keyDown, lock } = events;
+        const { drag, interactionEnd, wheel, pinch, gesture, click, move, leave, enter, resize, modifiers, key, keyUp, keyDown, lock, trackedPointers } = events;
 
         attach();
 
@@ -549,6 +568,135 @@ namespace InputObserver {
                 ...position,
                 preventDefault: () => event.preventDefault(),
             });
+        }
+
+        const trackedPointerState = {
+            primary: { prev: undefined as TrackedPointerInput | undefined, down: Vec2(), end: Vec2(), axes: [] as readonly number[] },
+            secondary: { prev: undefined as TrackedPointerInput | undefined, down: Vec2(), end: Vec2(), axes: [] as readonly number[] },
+            distance: -1,
+        };
+
+        function buttonUp(flag: ButtonsType.Flag, buttons: ButtonsType, prevButtons?: ButtonsType) {
+            const pressed = ButtonsType.has(buttons, flag);
+            const prevPressed = prevButtons ? ButtonsType.has(prevButtons, flag) : false;
+            return prevPressed && !pressed;
+        }
+
+        function handleTrackedPointer(trackedPointer: TrackedPointerInput, isSecondary: boolean) {
+            const { x, y, dx, dy, ray, buttons, axes } = trackedPointer;
+            const [pageX, pageY] = [x, y];
+            const modifiers = ModifiersKeys.create();
+            const useDelta = true;
+
+            const state = isSecondary ? trackedPointerState.secondary : trackedPointerState.primary;
+            const { prev } = state;
+
+            if (buttons === ButtonsType.Flag.Secondary) {
+                move.next({ x, y, pageX, pageY, buttons: ButtonsType.Flag.None, button: ButtonsType.Flag.None, modifiers, inside: true, onElement: true, ray });
+            } else if (prev?.buttons === ButtonsType.Flag.Secondary) {
+                leave.next(undefined);
+            }
+
+            const pressed = ButtonsType.has(buttons, ButtonsType.Flag.Primary);
+            const prevPressed = prev ? ButtonsType.has(prev.buttons, ButtonsType.Flag.Primary) : false;
+
+            if (prevPressed && !pressed) {
+                Vec2.set(state.end, x, y);
+                if (Vec2.distance(state.end, state.down) < 20) {
+                    click.next({ x, y, pageX, pageY, buttons: ButtonsType.Flag.Trigger, button: ButtonsType.Flag.Trigger, modifiers, ray });
+                }
+                interactionEnd.next(undefined);
+            }
+
+            if (pressed) {
+                const isStart = !prevPressed;
+                drag.next({ x, y, dx, dy, pageX, pageY, buttons: ButtonsType.Flag.Trigger, button: ButtonsType.Flag.Trigger, modifiers, isStart, useDelta });
+                if (isStart) {
+                    Vec2.set(state.down, x, y);
+                }
+            }
+
+            const keyValue = { x: 0, y: 0, pageX: 0, pageY: 0, modifiers, preventDefault: () => {} };
+
+            if (buttonUp(ButtonsType.Flag.Forth, buttons, prev?.buttons)) {
+                const forth = isSecondary ? 'GamepadX' : 'GamepadA';
+                keyUp.next({ ...keyValue, code: forth, key: forth });
+            }
+
+            if (buttonUp(ButtonsType.Flag.Five, buttons, prev?.buttons)) {
+                const five = isSecondary ? 'GamepadY' : 'GamepadB';
+                keyUp.next({ ...keyValue, code: five, key: five });
+            }
+
+            if (axes) {
+                if (axes[2] < 0) {
+                    keyDown.next({ ...keyValue, code: 'GamepadLeft', key: 'GamepadLeft' });
+                    keyUp.next({ ...keyValue, code: 'GamepadRight', key: 'GamepadRight' });
+                } else if (axes[2] > 0) {
+                    keyDown.next({ ...keyValue, code: 'GamepadRight', key: 'GamepadRight' });
+                    keyUp.next({ ...keyValue, code: 'GamepadLeft', key: 'GamepadLeft' });
+                } else if (axes[2] !== state.axes[2]) {
+                    keyUp.next({ ...keyValue, code: 'GamepadLeft', key: 'GamepadLeft' });
+                    keyUp.next({ ...keyValue, code: 'GamepadRight', key: 'GamepadRight' });
+                }
+
+                if (axes[3] < 0) {
+                    keyDown.next({ ...keyValue, code: 'GamepadUp', key: 'GamepadUp' });
+                    keyUp.next({ ...keyValue, code: 'GamepadDown', key: 'GamepadDown' });
+                } else if (axes[3] > 0) {
+                    keyDown.next({ ...keyValue, code: 'GamepadDown', key: 'GamepadDown' });
+                    keyUp.next({ ...keyValue, code: 'GamepadUp', key: 'GamepadUp' });
+                } else if (axes[3] !== state.axes[3]) {
+                    keyUp.next({ ...keyValue, code: 'GamepadUp', key: 'GamepadUp' });
+                    keyUp.next({ ...keyValue, code: 'GamepadDown', key: 'GamepadDown' });
+                }
+            }
+            state.axes = axes || [];
+            state.prev = trackedPointer;
+        }
+
+        function handleTrackedPointerGesture(primary: TrackedPointerInput, left: TrackedPointerInput, button: ButtonsType.Flag) {
+            const d = Vec3.distance(primary.ray.origin, left.ray.origin);
+
+            if (trackedPointerState.distance > 0) {
+                const f = d / trackedPointerState.distance;
+                gesture.next({
+                    scale: f, rotation: 0, deltaScale: 0, deltaRotation: 0,
+                    buttons: button, button, modifiers: getModifierKeys()
+                });
+            }
+
+            trackedPointerState.distance = d;
+        }
+
+        function handleTrackedPointers(trackedPointers: TrackedPointerInput[]) {
+            let primary: TrackedPointerInput | undefined;
+            let secondary: TrackedPointerInput | undefined;
+
+            for (const tp of trackedPointers) {
+                if (tp.handedness === 'right') {
+                    primary = tp;
+                } else if (tp.handedness === 'left') {
+                    secondary = tp;
+                }
+            }
+
+            if (!primary && secondary) {
+                primary = secondary;
+                secondary = undefined;
+            }
+
+            if (primary?.buttons === ButtonsType.Flag.Primary && secondary?.buttons === ButtonsType.Flag.Primary) {
+                handleTrackedPointerGesture(primary, secondary, ButtonsType.Flag.Trigger);
+            } else if (primary?.buttons === ButtonsType.Flag.Secondary && secondary?.buttons === ButtonsType.Flag.Secondary) {
+                handleTrackedPointerGesture(primary, secondary, ButtonsType.Flag.Squeeze);
+            } else {
+                if (trackedPointerState.distance === -1) {
+                    if (primary) handleTrackedPointer(primary, false);
+                    if (secondary) handleTrackedPointer(secondary, true);
+                }
+                trackedPointerState.distance = -1;
+            }
         }
 
         function getCenterTouch(ev: TouchEvent): PointerEvent {
@@ -831,7 +979,7 @@ namespace InputObserver {
             tryPreventGesture(ev);
             prevGestureScale = ev.scale;
             prevGestureRotation = ev.rotation;
-            gesture.next({ scale: ev.scale, rotation: ev.rotation, deltaRotation: 0, deltaScale: 0, isStart: true });
+            gesture.next({ scale: ev.scale, rotation: ev.rotation, deltaRotation: 0, deltaScale: 0, isStart: true, buttons, button, modifiers: getModifierKeys() });
         }
 
         function gestureDelta(ev: GestureEvent, isEnd?: boolean) {
@@ -840,7 +988,10 @@ namespace InputObserver {
                 rotation: ev.rotation,
                 deltaRotation: prevGestureRotation - ev.rotation,
                 deltaScale: prevGestureScale - ev.scale,
-                isEnd
+                isEnd,
+                buttons,
+                button,
+                modifiers: getModifierKeys()
             });
             prevGestureRotation = ev.rotation;
             prevGestureScale = ev.scale;
@@ -964,6 +1115,11 @@ namespace InputObserver {
                 pixelScale = value;
                 width = element.clientWidth * pixelRatio();
                 height = element.clientHeight * pixelRatio();
+            },
+
+            updateTrackedPointers: (input: TrackedPointerInput[]) => {
+                handleTrackedPointers(input);
+                trackedPointers.next(input);
             },
 
             requestPointerLock: (viewport: Viewport) => {

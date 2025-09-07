@@ -22,8 +22,6 @@ import { ICamera } from '../camera';
 import { Viewport } from '../camera/util';
 import { Helper } from '../helper/helper';
 
-const NullId = Math.pow(2, 24) - 2;
-
 export type PickData = { id: PickingId, position: Vec3 }
 
 export type AsyncPickData = {
@@ -261,7 +259,9 @@ export class PickPass {
         if (this.webgl.extensions.drawBuffers) {
             this.framebuffer.bind();
             this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.None);
-            // printTextureImage(readTexture(this.webgl, this.groupPickTexture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
+            // if (this.pickWidth < 256) {
+            //     printTextureImage(readTexture(this.webgl, this.groupPickTexture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
+            // }
         } else {
             this.objectPickTarget.bind();
             this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Object);
@@ -450,15 +450,15 @@ export class PickBuffers {
     getPickingId(x: number, y: number): PickingId | undefined {
         const objectId = this.getObjectId(x, y);
         // console.log('objectId', objectId);
-        if (objectId === -1 || objectId === NullId) return;
+        if (objectId === -1 || objectId === PickingId.Null) return;
 
         const instanceId = this.getInstanceId(x, y);
         // console.log('instanceId', instanceId);
-        if (instanceId === -1 || instanceId === NullId) return;
+        if (instanceId === -1 || instanceId === PickingId.Null) return;
 
         const groupId = this.getGroupId(x, y);
         // console.log('groupId', groupId);
-        if (groupId === -1 || groupId === NullId) return;
+        if (groupId === -1) return;
 
         return { objectId, instanceId, groupId };
     }

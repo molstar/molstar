@@ -11,6 +11,7 @@ import { StateTransformParameters } from './state/common';
 
 export class PluginUIContext extends PluginContext {
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
+    readonly customUIState: Record<string, any> = {};
 
     private initCustomParamEditors() {
         if (!this.spec.customParamEditors) return;

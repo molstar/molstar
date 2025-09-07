@@ -24,7 +24,10 @@ const Trigger = Binding.Trigger;
 const Key = Binding.TriggerKey;
 
 export const DefaultTrackballBindings = {
-    dragRotate: Binding([Trigger(B.Flag.Primary, M.create())], 'Rotate', 'Drag using ${triggers}'),
+    dragRotate: Binding([
+        Trigger(B.Flag.Primary, M.create()),
+        Trigger(B.Flag.Trigger)
+    ], 'Rotate', 'Drag using ${triggers}'),
     dragRotateZ: Binding([Trigger(B.Flag.Primary, M.create({ shift: true, control: true }))], 'Rotate around z-axis (roll)', 'Drag using ${triggers}'),
     dragPan: Binding([
         Trigger(B.Flag.Secondary, M.create()),
@@ -38,8 +41,14 @@ export const DefaultTrackballBindings = {
     scrollFocus: Binding([Trigger(B.Flag.Auxilary, M.create({ shift: true }))], 'Clip', 'Scroll using ${triggers}'),
     scrollFocusZoom: Binding.Empty,
 
-    keyMoveForward: Binding([Key('KeyW')], 'Move forward', 'Press ${triggers}'),
-    keyMoveBack: Binding([Key('KeyS')], 'Move back', 'Press ${triggers}'),
+    keyMoveForward: Binding([
+        Key('KeyW'),
+        Key('GamepadUp'),
+    ], 'Move forward', 'Press ${triggers}'),
+    keyMoveBack: Binding([
+        Key('KeyS'),
+        Key('GamepadDown'),
+    ], 'Move back', 'Press ${triggers}'),
     keyMoveLeft: Binding([Key('KeyA')], 'Move left', 'Press ${triggers}'),
     keyMoveRight: Binding([Key('KeyD')], 'Move right', 'Press ${triggers}'),
     keyMoveUp: Binding([Key('KeyR')], 'Move up', 'Press ${triggers}'),
@@ -390,20 +399,35 @@ namespace TrackballControls {
             const minDistance = Math.max(camera.state.minNear, p.minDistance);
             Vec3.setMagnitude(moveEye, moveEye, minDistance);
 
+            const moveTarget = p.flyMode || input.pointerLock;
             const moveSpeed = deltaT * (60 / 1000) * p.moveSpeed * (keyState.boostMove === 1 ? p.boostMoveFactor : 1);
 
             if (keyState.moveForward === 1) {
-                Vec3.normalize(moveDir, moveEye);
-                Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
-                if (p.flyMode || input.pointerLock) {
+                const cameraDistance = Vec3.distance(camera.position, scene.boundingSphereVisible.center);
+                if (cameraDistance < scene.boundingSphereVisible.radius && moveTarget) {
+                    Vec3.normalize(moveDir, moveEye);
+                    Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
+                } else {
+                    Vec3.sub(moveDir, camera.position, camera.target);
+                    Vec3.scale(moveDir, moveDir, 1 - moveSpeed / 100);
+                    Vec3.add(camera.position, camera.target, moveDir);
+                }
+                if (moveTarget) {
                     Vec3.sub(camera.target, camera.position, moveEye);
                 }
             }
 
             if (keyState.moveBack === 1) {
-                Vec3.normalize(moveDir, moveEye);
-                Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
-                if (p.flyMode || input.pointerLock) {
+                const cameraDistance = Vec3.distance(camera.position, scene.boundingSphereVisible.center);
+                if (cameraDistance < scene.boundingSphereVisible.radius && moveTarget) {
+                    Vec3.normalize(moveDir, moveEye);
+                    Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
+                } else {
+                    Vec3.sub(moveDir, camera.position, camera.target);
+                    Vec3.scale(moveDir, moveDir, 1 + moveSpeed / 100);
+                    Vec3.add(camera.position, camera.target, moveDir);
+                }
+                if (moveTarget) {
                     Vec3.sub(camera.target, camera.position, moveEye);
                 }
             }
@@ -411,7 +435,7 @@ namespace TrackballControls {
             if (keyState.moveLeft === 1) {
                 Vec3.cross(moveDir, moveEye, camera.up);
                 Vec3.normalize(moveDir, moveDir);
-                if (p.flyMode || input.pointerLock) {
+                if (moveTarget) {
                     Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
                     Vec3.sub(camera.target, camera.position, moveEye);
                 } else {
@@ -423,7 +447,7 @@ namespace TrackballControls {
             if (keyState.moveRight === 1) {
                 Vec3.cross(moveDir, moveEye, camera.up);
                 Vec3.normalize(moveDir, moveDir);
-                if (p.flyMode || input.pointerLock) {
+                if (moveTarget) {
                     Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
                     Vec3.sub(camera.target, camera.position, moveEye);
                 } else {
@@ -434,7 +458,7 @@ namespace TrackballControls {
 
             if (keyState.moveUp === 1) {
                 Vec3.normalize(moveDir, camera.up);
-                if (p.flyMode || input.pointerLock) {
+                if (moveTarget) {
                     Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
                     Vec3.sub(camera.target, camera.position, moveEye);
                 } else {
@@ -445,7 +469,7 @@ namespace TrackballControls {
 
             if (keyState.moveDown === 1) {
                 Vec3.normalize(moveDir, camera.up);
-                if (p.flyMode || input.pointerLock) {
+                if (moveTarget) {
                     Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
                     Vec3.sub(camera.target, camera.position, moveEye);
                 } else {
@@ -454,7 +478,7 @@ namespace TrackballControls {
                 }
             }
 
-            if (p.flyMode || input.pointerLock) {
+            if (moveTarget) {
                 const cameraDistance = Vec3.distance(camera.position, scene.boundingSphereVisible.center);
                 camera.setState({ minFar: cameraDistance + scene.boundingSphereVisible.radius });
             }
@@ -544,8 +568,8 @@ namespace TrackballControls {
 
         // listeners
 
-        function onDrag({ x, y, pageX, pageY, buttons, modifiers, isStart }: DragInput) {
-            const isOutside = outsideViewport(x, y);
+        function onDrag({ x, y, dx, dy, pageX, pageY, buttons, modifiers, isStart, useDelta }: DragInput) {
+            const isOutside = !useDelta && outsideViewport(x, y);
 
             if (isStart && isOutside) return;
             if (!isStart && !_isInteracting) return;
@@ -559,6 +583,10 @@ namespace TrackballControls {
             const dragZoom = Binding.match(b.dragZoom, buttons, modifiers);
             const dragFocus = Binding.match(b.dragFocus, buttons, modifiers);
             const dragFocusZoom = Binding.match(b.dragFocusZoom, buttons, modifiers);
+
+            if (useDelta && dragRotate) {
+                Vec2.copy(_rotPrev, getMouseOnCircle(pageX - dx, pageY - dy));
+            }
 
             getMouseOnCircle(pageX, pageY);
             getMouseOnScreen(pageX, pageY);

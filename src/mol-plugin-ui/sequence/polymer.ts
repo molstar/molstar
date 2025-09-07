@@ -67,7 +67,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
         return Interval.Empty;
     }
 
-    getLoci(seqIdx: number) {
+    override getLoci(seqIdx: number) {
         const query = createResidueQuery(this.data.units[0].chainGroupId, this.data.units[0].conformation.operator.name, this.seqId(seqIdx));
         return StructureSelection.toLociWithSourceUnits(StructureQuery.run(query, this.data.structure));
     }
