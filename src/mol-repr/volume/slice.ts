@@ -495,7 +495,7 @@ function getSliceLoci(pickingId: PickingId, volume: Volume, key: number, props: 
         const instances = OrderedSet.ofSingleton(instanceId as Volume.InstanceIndex);
         if (granularity === 'volume') {
             return Volume.Loci(volume, instances);
-        } if (granularity === 'object') {
+        } if (granularity === 'object' || groupId === PickingId.Null) {
             return getObjectLoci(volume, instances, props);
         } else {
             const indices = Interval.ofSingleton(groupId as Volume.CellIndex);

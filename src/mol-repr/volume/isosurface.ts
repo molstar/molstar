@@ -78,7 +78,7 @@ function getIsosurfaceLoci(pickingId: PickingId, volume: Volume, key: number, pr
         const instances = OrderedSet.ofSingleton(instanceId as Volume.InstanceIndex);
         if (granularity === 'volume') {
             return Volume.Loci(volume, instances);
-        } else if (granularity === 'object') {
+        } else if (granularity === 'object' || groupId === PickingId.Null) {
             return Volume.Isosurface.Loci(volume, props.isoValue, instances);
         } else {
             const indices = Interval.ofSingleton(groupId as Volume.CellIndex);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -236,14 +236,19 @@ export function getIntraBondLoci(pickingId: PickingId, structureGroup: Structure
     if (id === objectId) {
         const { structure, group } = structureGroup;
         const unit = group.units[instanceId];
-        if (Unit.isAtomic(unit)) {
-            const { target } = structure;
-            const iA = unit.bonds.a[groupId];
-            const iB = unit.bonds.b[groupId];
-            return Bond.Loci(target, [
-                Bond.Location(target, unit, iA, target, unit, iB),
-                Bond.Location(target, unit, iB, target, unit, iA)
-            ]);
+        if (groupId === PickingId.Null) {
+            const indices = OrderedSet.ofRange(0, unit.elements.length) as OrderedSet<StructureElement.UnitIndex>;
+            return StructureElement.Loci(structure.target, [{ unit, indices }]);
+        } else {
+            if (Unit.isAtomic(unit)) {
+                const { target } = structure;
+                const iA = unit.bonds.a[groupId];
+                const iB = unit.bonds.b[groupId];
+                return Bond.Loci(target, [
+                    Bond.Location(target, unit, iA, target, unit, iB),
+                    Bond.Location(target, unit, iB, target, unit, iA)
+                ]);
+            }
         }
     }
     return EmptyLoci;
@@ -296,13 +301,17 @@ export function getInterBondLoci(pickingId: PickingId, structure: Structure, id:
     const { objectId, groupId } = pickingId;
     if (id === objectId) {
         const { target } = structure;
-        const b = structure.interUnitBonds.edges[groupId];
-        const uA = structure.unitMap.get(b.unitA);
-        const uB = structure.unitMap.get(b.unitB);
-        return Bond.Loci(target, [
-            Bond.Location(target, uA, b.indexA, target, uB, b.indexB),
-            Bond.Location(target, uB, b.indexB, target, uA, b.indexA)
-        ]);
+        if (groupId === PickingId.Null) {
+            return Structure.Loci(target);
+        } else {
+            const b = structure.interUnitBonds.edges[groupId];
+            const uA = structure.unitMap.get(b.unitA);
+            const uB = structure.unitMap.get(b.unitB);
+            return Bond.Loci(target, [
+                Bond.Location(target, uA, b.indexA, target, uB, b.indexB),
+                Bond.Location(target, uB, b.indexB, target, uA, b.indexA)
+            ]);
+        }
     }
     return EmptyLoci;
 }

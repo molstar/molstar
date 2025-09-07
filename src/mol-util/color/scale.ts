@@ -80,7 +80,7 @@ export namespace ColorScale {
             }
         } else {
             switch (type) {
-                case 'continuous': color = (value: number) => valueToColor(value, colors, min, max, diff); break;
+                case 'continuous': color = (value: number) => valueToColor(value, colors, min, diff); break;
                 case 'discrete': color = (value: number) => valueToDiscreteColor(value, colors, min, max, diff); break;
             }
         }
@@ -113,8 +113,8 @@ export namespace ColorScale {
         return Color.interpolate(src[i - 1], src[i], t1);
     }
 
-    function valueToColor(value: number, colors: ColorListEntry[], min: number, max: number, diff: number) {
-        const t = Math.min(colors.length - 1, Math.max(0, ((value - min) / diff) * colors.length - 1));
+    function valueToColor(value: number, colors: ColorListEntry[], min: number, diff: number) {
+        const t = Math.min(colors.length - 1, Math.max(0, ((value - min) / diff) * (colors.length - 1)));
         const tf = Math.floor(t);
         const c1 = colors[tf] as Color;
         const c2 = colors[Math.ceil(t)] as Color;

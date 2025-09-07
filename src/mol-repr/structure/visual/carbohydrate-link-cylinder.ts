@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -99,14 +99,18 @@ function CarbohydrateLinkIterator(structure: Structure): LocationIterator {
 function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId;
     if (id === objectId) {
-        const { links, elements } = structure.carbohydrates;
-        const l = links[groupId];
-        const carbA = elements[l.carbohydrateIndexA];
-        const carbB = elements[l.carbohydrateIndexB];
-        return StructureElement.Loci.union(
-            getAltResidueLociFromId(structure, carbA.unit, carbA.residueIndex, carbA.altId),
-            getAltResidueLociFromId(structure, carbB.unit, carbB.residueIndex, carbB.altId)
-        );
+        if (groupId === PickingId.Null) {
+            return Structure.Loci(structure);
+        } else {
+            const { links, elements } = structure.carbohydrates;
+            const l = links[groupId];
+            const carbA = elements[l.carbohydrateIndexA];
+            const carbB = elements[l.carbohydrateIndexB];
+            return StructureElement.Loci.union(
+                getAltResidueLociFromId(structure, carbA.unit, carbA.residueIndex, carbA.altId),
+                getAltResidueLociFromId(structure, carbB.unit, carbB.residueIndex, carbB.altId)
+            );
+        }
     }
     return EmptyLoci;
 }

@@ -102,11 +102,16 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix transform params not being normalized when used together with param hash version
 - Replace `immer` with `mutative`
 - Fix renderer transparency check
+- VolumeServer & "VolumeCIF": default to P 1 spacegroup
+- Fix `ColorScale` for continuous case without offsets (broke in v4.13.0)
+- Experimental: support for custom color themes in Sequence Panel
+- Switch files.rcsb.org validation report URL to new endpoint /validation/view
+- Improve picking of objects with too many groups, pick whole instance/object
 - Add WebXR support
     - Requires immersive AR/VR headset
     - Supplements non-XR: enter/exit XR anytime and see (mostly) the same scene
     - Add `Canvas3D.xr` for managing XR sessions
-    - Add `PointerHelper` for XR input devices
+    - Add `PointerHelper` for rendering XR input devices
     - Add XR button to Viewer and Mesoscale Explorer
     - Add XR button to render-structure in tests/browser
 

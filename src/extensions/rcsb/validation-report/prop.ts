@@ -85,10 +85,10 @@ namespace ValidationReport {
         Clashes = 'rcsb-clashes',
     }
 
-    export const DefaultBaseUrl = 'https://files.rcsb.org/pub/pdb/validation_reports';
+    export const DefaultBaseUrl = 'https://files.rcsb.org/validation/view';
     export function getEntryUrl(pdbId: string, baseUrl: string) {
         const id = pdbId.toLowerCase();
-        return `${baseUrl}/${id.substr(1, 2)}/${id}/${id}_validation.xml.gz`;
+        return `${baseUrl}/${id}_validation.xml`;
     }
 
     export function isApplicable(model?: Model): boolean {

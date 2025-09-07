@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,6 +11,8 @@ export interface PickingId {
 }
 
 export namespace PickingId {
+    export const Null = 16777214 as const; // Math.pow(2, 24) - 2
+
     export function areSame(a: PickingId, b: PickingId) {
         return a.objectId === b.objectId && a.instanceId === b.instanceId && a.groupId === b.groupId;
     }

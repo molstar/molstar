@@ -16,7 +16,7 @@ export function volumeFromDensityServerData(source: DensityServer_Data_Database,
     return Task.create<Volume>('Create Volume', async ctx => {
         const { volume_data_3d_info: info, volume_data_3d: values } = source;
         const cell = SpacegroupCell.create(
-            info.spacegroup_number.value(0),
+            info.spacegroup_number.value(0) || 'P 1',
             Vec3.ofArray(info.spacegroup_cell_size.value(0)),
             Vec3.scale(Vec3.zero(), Vec3.ofArray(info.spacegroup_cell_angles.value(0)), Math.PI / 180)
         );
