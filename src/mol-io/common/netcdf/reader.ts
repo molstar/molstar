@@ -444,7 +444,7 @@ export class NetcdfReader {
     header: Partial<NetCDFHeader>;
     buffer: IOBuffer;
 
-    constructor(data: ArrayBuffer) {
+    constructor(data: ArrayBufferLike) {
         const buffer = new IOBuffer(data);
         buffer.setBigEndian();
 

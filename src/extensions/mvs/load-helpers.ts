@@ -219,7 +219,7 @@ export function collectInlineTooltips(tree: MolstarSubtree<'structure'>, context
                         text: node.params.text,
                         selector: {
                             name: 'annotation',
-                            params: { annotationId: p.annotationId, fieldName: p.fieldName, fieldValues: p.fieldValues },
+                            params: { annotationId: p.annotationId, fieldName: p.fieldName, fieldValues: p.fieldValues, label: p.label || 'Annotation' },
                         },
                     });
                 }
@@ -253,7 +253,7 @@ export function collectInlineLabels(tree: MolstarSubtree<'structure'>, context: 
                             params: {
                                 selector: {
                                     name: 'annotation',
-                                    params: { annotationId: p.annotationId, fieldName: p.fieldName, fieldValues: p.fieldValues },
+                                    params: { annotationId: p.annotationId, fieldName: p.fieldName, fieldValues: p.fieldValues, label: p.label || 'Annotation' },
                                 },
                             },
                         },

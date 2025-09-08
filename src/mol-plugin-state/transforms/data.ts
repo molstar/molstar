@@ -67,7 +67,7 @@ const Download = PluginStateTransform.BuiltIn({
             const asset = await plugin.managers.asset.resolve(url, p.isBinary ? 'binary' : 'string').runInContext(ctx);
             (cache as any).asset = asset;
             return p.isBinary
-                ? new SO.Data.Binary(asset.data as Uint8Array, { label: p.label ? p.label : url.url })
+                ? new SO.Data.Binary(asset.data as Uint8Array<ArrayBuffer>, { label: p.label ? p.label : url.url })
                 : new SO.Data.String(asset.data as string, { label: p.label ? p.label : url.url });
         });
     },
@@ -113,7 +113,7 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
                 else {
                     assets.push(r.result);
                     entries.push(src.isBinary
-                        ? { id: r.id, kind: 'binary', data: r.result.data as Uint8Array }
+                        ? { id: r.id, kind: 'binary', data: r.result.data as Uint8Array<ArrayBuffer> }
                         : { id: r.id, kind: 'string', data: r.result.data as string });
                 }
             }
@@ -162,7 +162,7 @@ const DeflateData = PluginStateTransform.BuiltIn({
                 const textData = utf8ReadLong(decompressedData);
                 return new SO.Data.String(textData, { label });
             }
-            return new SO.Data.Binary(decompressedData as Uint8Array, { label });
+            return new SO.Data.Binary(decompressedData as Uint8Array<ArrayBuffer>, { label });
         });
     }
 });
@@ -174,7 +174,7 @@ const RawData = PluginStateTransform.BuiltIn({
     from: [SO.Root],
     to: [SO.Data.String, SO.Data.Binary],
     params: {
-        data: PD.Value<string | number[] | ArrayBuffer | Uint8Array>('', { isHidden: true }),
+        data: PD.Value<string | number[] | ArrayBuffer | Uint8Array<ArrayBuffer>>('', { isHidden: true }),
         label: PD.Optional(PD.Text(''))
     }
 })({
@@ -244,7 +244,7 @@ const ReadFile = PluginStateTransform.BuiltIn({
             const asset = await plugin.managers.asset.resolve(p.file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
             (cache as any).asset = asset;
             const o = p.isBinary
-                ? new SO.Data.Binary(asset.data as Uint8Array, { label: p.label ? p.label : p.file.name })
+                ? new SO.Data.Binary(asset.data as Uint8Array<ArrayBuffer>, { label: p.label ? p.label : p.file.name })
                 : new SO.Data.String(asset.data as string, { label: p.label ? p.label : p.file.name });
 
             return o;

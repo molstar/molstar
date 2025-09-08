@@ -11,7 +11,7 @@ import { NumberArray } from '../type-helpers';
 import { U, makeCodes, codes2map, checkCompressionStreamSupport } from './util';
 import { RuntimeContext } from '../../mol-task';
 
-function InflateContext(data: Uint8Array, buf?: Uint8Array) {
+function InflateContext(data: Uint8Array<ArrayBuffer>, buf?: Uint8Array<ArrayBuffer>) {
     const noBuf = buf === undefined;
     if (buf === undefined) buf = new Uint8Array((data.length >>> 2) << 3);
     return {
@@ -157,7 +157,7 @@ function inflateBlocks(ctx: InflateContext, count: number) {
 // inflate: 428.925048828125 ms
 
 // https://tools.ietf.org/html/rfc1951
-export async function _inflate(runtime: RuntimeContext, data: Uint8Array, buf?: Uint8Array) {
+export async function _inflate(runtime: RuntimeContext, data: Uint8Array<ArrayBuffer>, buf?: Uint8Array<ArrayBuffer>): Promise<Uint8Array<ArrayBuffer>> {
     if (data[0] === 3 && data[1] === 0) return (buf ? buf : new Uint8Array(0));
 
     if (checkCompressionStreamSupport('deflate-raw')) {
@@ -206,7 +206,7 @@ export async function _inflate(runtime: RuntimeContext, data: Uint8Array, buf?: 
     return ctx.buf.length === ctx.off ? ctx.buf : ctx.buf.slice(0, ctx.off);
 }
 
-function _check(buf: Uint8Array, len: number) {
+function _check(buf: Uint8Array<ArrayBuffer>, len: number) {
     const bl = buf.length;
     if (len <= bl) return buf;
     const nbuf = new Uint8Array(Math.max(bl << 1, len));

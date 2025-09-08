@@ -227,7 +227,7 @@ export namespace Category {
     }
 }
 
-export interface Encoder<T = string | Uint8Array> extends EncoderBase {
+export interface Encoder<T = string | Uint8Array<ArrayBuffer>> extends EncoderBase {
     readonly isBinary: boolean,
 
     setFilter(filter?: Category.Filter): void,

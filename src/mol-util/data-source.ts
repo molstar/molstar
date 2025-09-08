@@ -28,8 +28,8 @@ export type DataResponse<T extends DataType> =
     T extends 'json' ? any :
         T extends 'xml' ? XMLDocument :
             T extends 'string' ? StringLike :
-                T extends 'binary' ? Uint8Array :
-                    T extends 'zip' ? { [k: string]: Uint8Array } : never
+                T extends 'binary' ? Uint8Array<ArrayBuffer> :
+                    T extends 'zip' ? { [k: string]: Uint8Array<ArrayBuffer> } : never
 
 export interface AjaxGetParams<T extends DataType = 'string'> {
     url: string,
@@ -127,7 +127,7 @@ function getCompression(name: string) {
 
 const reFilterPath = /^(__MACOSX|.DS_Store)/;
 
-async function decompress(ctx: RuntimeContext, data: Uint8Array, compression: DataCompressionMethod): Promise<Uint8Array> {
+async function decompress(ctx: RuntimeContext, data: Uint8Array<ArrayBuffer>, compression: DataCompressionMethod): Promise<Uint8Array<ArrayBuffer>> {
     switch (compression) {
         case DataCompressionMethod.None: return data;
         case DataCompressionMethod.Gzip: return ungzip(ctx, data);
@@ -135,7 +135,7 @@ async function decompress(ctx: RuntimeContext, data: Uint8Array, compression: Da
             const parsed = await unzip(ctx, data.buffer);
             const names = Object.keys(parsed).filter(n => !reFilterPath.test(n));
             if (names.length !== 1) throw new Error('can only decompress zip files with a single entry');
-            return parsed[names[0]] as Uint8Array;
+            return parsed[names[0]] as Uint8Array<ArrayBuffer>;
     }
 }
 
@@ -302,7 +302,7 @@ export function setFSModule(fs: typeof import('fs')) {
     _fs = fs;
 }
 
-function readFileAsync(filename: string): Promise<Buffer> {
+function readFileAsync(filename: string): Promise<NonSharedBuffer> {
     return new Promise((resolve, reject) => {
         getFS().readFile(filename, (err, data) => {
             if (err) reject(err);
@@ -322,7 +322,7 @@ function ajaxGetInternal_file_NodeJS<T extends DataType>(title: string | undefin
         const data = await readFileAsync(filename);
 
         await ctx.update({ message: 'Parsing response...', canAbort: false });
-        const result = await processFile(ctx, data, type, DataCompressionMethod.None);
+        const result = await processFile(ctx, data.buffer, type, DataCompressionMethod.None);
         return result;
     });
 }
@@ -341,7 +341,7 @@ function ajaxGetInternal_http_NodeJS<T extends DataType>(title: string | undefin
         const fileContent = await response.bytes();
 
         await ctx.update({ message: 'Parsing response...', canAbort: false });
-        const result = await processFile(ctx, fileContent, type, DataCompressionMethod.None);
+        const result = await processFile(ctx, fileContent.buffer, type, DataCompressionMethod.None);
         return result;
     }, () => {
         aborter.abort();

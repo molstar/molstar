@@ -61,11 +61,11 @@ export namespace PluginStateObject {
 
     export namespace Data {
         export class String extends Create<StringLike>({ name: 'String Data', typeClass: 'Data', }) { }
-        export class Binary extends Create<Uint8Array>({ name: 'Binary Data', typeClass: 'Data' }) { }
+        export class Binary extends Create<Uint8Array<ArrayBuffer>>({ name: 'Binary Data', typeClass: 'Data' }) { }
 
         export type BlobEntry = { id: string } & (
             { kind: 'string', data: string } |
-            { kind: 'binary', data: Uint8Array }
+            { kind: 'binary', data: Uint8Array<ArrayBuffer> }
         )
         export type BlobData = BlobEntry[]
         export class Blob extends Create<BlobData>({ name: 'Data Blob', typeClass: 'Data' }) { }
@@ -86,7 +86,7 @@ export namespace PluginStateObject {
         export type BlobEntry = { id: string } & (
             { kind: 'json', data: unknown } |
             { kind: 'string', data: string } |
-            { kind: 'binary', data: Uint8Array } |
+            { kind: 'binary', data: Uint8Array<ArrayBuffer> } |
             { kind: 'cif', data: CifFile } |
             { kind: 'pdb', data: CifFile } |
             { kind: 'gro', data: CifFile } |

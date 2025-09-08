@@ -9,14 +9,14 @@ import { MVSData } from '../../extensions/mvs/mvs-data';
 import type { MVSStoriesViewerModel } from './elements/viewer';
 
 export type MVSStoriesCommand =
-    | { kind: 'load-mvs', format?: 'mvsj' | 'mvsx', url?: string, data?: MVSData | string | Uint8Array }
+    | { kind: 'load-mvs', format?: 'mvsj' | 'mvsx', url?: string, data?: MVSData | string | Uint8Array<ArrayBuffer> }
 
 
 export class MVSStoriesContext {
     commands = new BehaviorSubject<MVSStoriesCommand | undefined>(undefined);
     state = {
         viewers: new BehaviorSubject<{ name?: string, model: MVSStoriesViewerModel }[]>([]),
-        currentStoryData: new BehaviorSubject<string | Uint8Array | undefined>(undefined),
+        currentStoryData: new BehaviorSubject<string | Uint8Array<ArrayBuffer> | undefined>(undefined),
         isLoading: new BehaviorSubject(false),
     };
 

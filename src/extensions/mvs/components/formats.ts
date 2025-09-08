@@ -112,16 +112,16 @@ export const MVSXFormatProvider: DataFormatProvider<{}, StateObjectRef<Mvs>, any
  * add all contained files to `plugin`'s asset manager,
  * and parse the main file in the archive as MVSJ.
  * Return parsed MVS data and `sourceUrl` for resolution of relative URIs.  */
-export async function loadMVSX(plugin: PluginContext, runtimeCtx: RuntimeContext, data: Uint8Array, mainFilePath: string = 'index.mvsj'): Promise<{ mvsData: MVSData, sourceUrl: string }> {
+export async function loadMVSX(plugin: PluginContext, runtimeCtx: RuntimeContext, data: Uint8Array<ArrayBuffer>, mainFilePath: string = 'index.mvsj'): Promise<{ mvsData: MVSData, sourceUrl: string }> {
     // Ensure at most one generation of MVSX file assets exists in the asset manager.
     // Hopefully, this is a reasonable compromise to ensure MVSX files work in multi-snapshot
     // states.
     clearMVSXFileAssets(plugin);
 
     const archiveId = `ni,MurmurHash3_128;${murmurHash3_128_fromBytes(data, 42)}`;
-    let files: { [path: string]: Uint8Array };
+    let files: { [path: string]: Uint8Array<ArrayBuffer> };
     try {
-        files = await unzip(runtimeCtx, data) as typeof files;
+        files = await unzip(runtimeCtx, data.buffer) as typeof files;
     } catch (err) {
         plugin.log.error('Invalid MVSX file');
         throw err;
@@ -138,7 +138,7 @@ export async function loadMVSX(plugin: PluginContext, runtimeCtx: RuntimeContext
     return { mvsData, sourceUrl };
 }
 
-export async function loadMVSData(plugin: PluginContext, data: MVSData | StringLike | Uint8Array, format: 'mvsj' | 'mvsx', options?: MVSLoadOptions) {
+export async function loadMVSData(plugin: PluginContext, data: MVSData | StringLike | Uint8Array<ArrayBuffer>, format: 'mvsj' | 'mvsx', options?: MVSLoadOptions) {
     if (typeof data === 'string' && data.startsWith('base64')) {
         data = Uint8Array.from(atob(data.substring(7)), c => c.charCodeAt(0)); // Decode base64 string to Uint8Array
     }
@@ -160,7 +160,7 @@ export async function loadMVSData(plugin: PluginContext, data: MVSData | StringL
             throw new Error("loadMvsData: if `format` is 'mvsx', then `data` must be a Uint8Array or a base64-encoded string prefixed with 'base64,'.");
         }
         await plugin.runTask(Task.create('Load MVSX file', async ctx => {
-            const parsed = await loadMVSX(plugin, ctx, data as Uint8Array);
+            const parsed = await loadMVSX(plugin, ctx, data as Uint8Array<ArrayBuffer>);
             await loadMVS(plugin, parsed.mvsData, { sanityChecks: true, ...options, sourceUrl: parsed.sourceUrl });
         }));
     } else {
@@ -190,7 +190,7 @@ function arcpUri(archiveId: string, path: string): string {
 
 /** Add a URL asset to asset manager.
  * Skip if an asset with the same URL already exists. */
-function ensureUrlAsset(manager: AssetManager, url: string, data: Uint8Array, options?: { isFile?: boolean }) {
+function ensureUrlAsset(manager: AssetManager, url: string, data: Uint8Array<ArrayBuffer>, options?: { isFile?: boolean }) {
     const asset = Asset.getUrlAsset(manager, url);
     if (!manager.has(asset)) {
         const filename = url.split('/').pop() ?? 'file';

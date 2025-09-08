@@ -39,7 +39,7 @@ function _exportHierarchy(plugin: PluginContext, options?: { format?: 'cif' | 'b
         const format = options?.format ?? 'cif';
         const { structures } = plugin.managers.structure.hierarchy.current;
 
-        const files: [name: string, data: string | Uint8Array][] = [];
+        const files: [name: string, data: string | Uint8Array<ArrayBuffer>][] = [];
         const entryMap = new Map<string, number>();
 
         for (const _s of structures) {
@@ -80,7 +80,7 @@ function _exportHierarchy(plugin: PluginContext, options?: { format?: 'cif' | 'b
         if (files.length === 1) {
             download(new Blob([files[0][1]]), files[0][0]);
         } else if (files.length > 1) {
-            const zipData: Record<string, Uint8Array> = {};
+            const zipData: Record<string, Uint8Array<ArrayBuffer>> = {};
             for (const [fn, data] of files) {
                 if (data instanceof Uint8Array) {
                     zipData[fn] = data;

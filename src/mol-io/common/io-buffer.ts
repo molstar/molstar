@@ -27,7 +27,7 @@ export class IOBuffer {
 
     offset = 0; // The current offset of the buffer's pointer
     littleEndian = true;
-    buffer: ArrayBuffer; // Reference to the internal ArrayBuffer object
+    buffer: ArrayBufferLike; // Reference to the internal ArrayBuffer object
     length: number; // Byte length of the internal ArrayBuffer
     byteLength: number; // Byte length of the internal ArrayBuffer
     byteOffset: number; // Byte offset of the internal ArrayBuffer
@@ -38,7 +38,7 @@ export class IOBuffer {
      * with a default length of 8 Kb. If its an ArrayBuffer, a TypedArray,
      * it will create a view over the underlying ArrayBuffer.
      */
-    constructor(data: number | ArrayBuffer | TypedArray, params: IOBufferParameters = {}) {
+    constructor(data: number | ArrayBufferLike | TypedArray, params: IOBufferParameters = {}) {
         let dataIsGiven = false;
         if (data === undefined) {
             data = defaultByteLength;
@@ -52,7 +52,7 @@ export class IOBuffer {
         const offset = params.offset ? params.offset >>> 0 : 0;
         const byteLength = data.byteLength - offset;
         let dvOffset = offset;
-        if (!(data instanceof ArrayBuffer)) {
+        if (!(data instanceof ArrayBuffer) && !(data instanceof SharedArrayBuffer)) {
             if (data.byteLength !== data.buffer.byteLength) {
                 dvOffset = data.byteOffset + offset;
             }

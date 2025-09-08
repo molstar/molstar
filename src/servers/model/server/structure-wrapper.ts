@@ -72,7 +72,7 @@ async function readFile(filename: string) {
     const isGz = /\.gz$/i.test(filename);
     if (filename.match(/\.bcif/)) {
         let input = await readFileAsync(filename);
-        if (isGz) input = await unzipAsync(input);
+        if (isGz) input = await unzipAsync(input) as NonSharedBuffer;
         const data = new Uint8Array(input.byteLength);
         for (let i = 0; i < input.byteLength; i++) data[i] = input[i];
         return { data, isBinary: true };

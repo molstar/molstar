@@ -560,7 +560,7 @@ export namespace Mesh {
 
         const mu = -lambda;
 
-        let dst = new Float32Array(mesh.vertexBuffer.ref.value.length);
+        let dst: Float32Array<ArrayBufferLike> = new Float32Array(mesh.vertexBuffer.ref.value.length);
 
         const step = (f: number) => {
             const pos = mesh.vertexBuffer.ref.value;

@@ -288,7 +288,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
             const state = new Uint8Array(utf8ByteCount(json));
             utf8Write(state, 0, json);
 
-            const zipDataObj: { [k: string]: Uint8Array } = {
+            const zipDataObj: { [k: string]: Uint8Array<ArrayBuffer> } = {
                 'state.json': state
             };
 

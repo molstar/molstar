@@ -29,7 +29,7 @@ async function readFile(ctx: RuntimeContext, filename: string): Promise<ReaderRe
     const isGz = /\.gz$/i.test(filename);
     if (filename.match(/\.bcif/)) {
         let input = await readFileAsync(filename);
-        if (isGz) input = await unzipAsync(input);
+        if (isGz) input = await unzipAsync(input) as NonSharedBuffer;
         return await CIF.parseBinary(new Uint8Array(input)).runInContext(ctx);
     } else {
         const data = isGz ? await unzipAsync(await readFileAsync(filename)) : await readFileAsync(filename);

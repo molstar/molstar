@@ -68,7 +68,7 @@ function getFloatArray(type: Encoding.FloatDataType, size: number) {
 
 function int8(data: Uint8Array) { return new Int8Array(data.buffer, data.byteOffset); }
 
-function view<T>(data: Uint8Array, byteSize: number, c: new (buffer: ArrayBuffer) => T) {
+function view<T>(data: Uint8Array, byteSize: number, c: new (buffer: ArrayBufferLike) => T) {
     if (IsNativeEndianLittle) return new c(data.buffer);
     return new c(flipByteOrder(data, byteSize));
 }

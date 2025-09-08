@@ -20,7 +20,7 @@ export function Unzip(buf: ArrayBuffer, onlyNames = false) {
 }
 
 export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames = false) {
-    const out: { [k: string]: Uint8Array | { size: number, csize: number } } = Object.create(null);
+    const out: { [k: string]: Uint8Array<ArrayBuffer> | { size: number, csize: number } } = Object.create(null);
     const data = new Uint8Array(buf);
     if (readUshort(data, 0) !== 0x4b50) {
         throw new Error('Invalid ZIP file. A valid ZIP file must start with two magic bytes \\x50\\x4b ("PK" in ASCII).');
@@ -71,7 +71,7 @@ export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames
     return out;
 }
 
-async function _readLocal(runtime: RuntimeContext, data: Uint8Array, o: number, out: { [k: string]: Uint8Array | { size: number, csize: number } }, onlyNames: boolean) {
+async function _readLocal(runtime: RuntimeContext, data: Uint8Array<ArrayBuffer>, o: number, out: { [k: string]: Uint8Array | { size: number, csize: number } }, onlyNames: boolean) {
     // const sign  = readUint(data, o);
     o += 4;
     // const ver   = readUshort(data, o);
@@ -119,11 +119,11 @@ async function _readLocal(runtime: RuntimeContext, data: Uint8Array, o: number, 
     }
 }
 
-export async function inflateRaw(runtime: RuntimeContext, file: Uint8Array, buf?: Uint8Array) {
+export async function inflateRaw(runtime: RuntimeContext, file: Uint8Array<ArrayBuffer>, buf?: Uint8Array<ArrayBuffer>) {
     return _inflate(runtime, file, buf);
 }
 
-export function inflate(runtime: RuntimeContext, file: Uint8Array, buf?: Uint8Array) {
+export function inflate(runtime: RuntimeContext, file: Uint8Array<ArrayBuffer>, buf?: Uint8Array<ArrayBuffer>) {
     // const CMF = file[0]
     // const FLG = file[1]
     // const CM = (CMF&15)
@@ -133,7 +133,7 @@ export function inflate(runtime: RuntimeContext, file: Uint8Array, buf?: Uint8Ar
 }
 
 // https://tools.ietf.org/html/rfc1952
-export async function ungzip(runtime: RuntimeContext, file: Uint8Array, buf?: Uint8Array) {
+export async function ungzip(runtime: RuntimeContext, file: Uint8Array<ArrayBuffer>, buf?: Uint8Array<ArrayBuffer>) {
     // const id1 = file[0]
     // const id2 = file[1]
     // const cm = file[2]
@@ -183,7 +183,7 @@ export async function ungzip(runtime: RuntimeContext, file: Uint8Array, buf?: Ui
     return inflated;
 }
 
-export async function deflate(runtime: RuntimeContext, data: Uint8Array, opts?: { level: number }/* , buf, off*/) {
+export async function deflate(runtime: RuntimeContext, data: Uint8Array<ArrayBuffer>, opts?: { level: number }/* , buf, off*/) {
     if (opts === undefined) opts = { level: 6 };
     let off = 0;
     const buf = new Uint8Array(50 + Math.floor(data.length * 1.1));
@@ -197,18 +197,18 @@ export async function deflate(runtime: RuntimeContext, data: Uint8Array, opts?: 
     return new Uint8Array(buf.buffer, 0, off + 4);
 }
 
-async function deflateRaw(runtime: RuntimeContext, data: Uint8Array, opts?: { level: number }) {
+async function deflateRaw(runtime: RuntimeContext, data: Uint8Array<ArrayBuffer>, opts?: { level: number }) {
     if (opts === undefined) opts = { level: 6 };
     const buf = new Uint8Array(50 + Math.floor(data.length * 1.1));
     const off = await _deflateRaw(runtime, data, buf, 0, opts.level);
     return new Uint8Array(buf.buffer, 0, off);
 }
 
-export function Zip(obj: { [k: string]: Uint8Array }, noCmpr = false) {
+export function Zip(obj: { [k: string]: Uint8Array<ArrayBuffer> }, noCmpr = false) {
     return Task.create('Zip', ctx => zip(ctx, obj, noCmpr));
 }
 
-export async function zip(runtime: RuntimeContext, obj: { [k: string]: Uint8Array }, noCmpr = false) {
+export async function zip(runtime: RuntimeContext, obj: { [k: string]: Uint8Array<ArrayBuffer> }, noCmpr = false) {
     let tot = 0;
     const zpd: { [k: string]: { cpr: boolean, usize: number, crc: number, file: Uint8Array } } = {};
     for (const p in obj) {
