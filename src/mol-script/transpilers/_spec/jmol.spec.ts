@@ -105,7 +105,7 @@ describe('jmol general', () => {
         it(str, () => {
             const transpileStr = () => transpiler(str);
             expect(transpileStr).toThrow();
-            expect(transpileStr).not.toThrowError(RangeError);
+            expect(transpileStr).not.toThrow(RangeError);
         });
     });
 });
