@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'CCD' schema file. Dictionary versions: mmCIF 5.404, IHM 1.28, MA 1.4.7.
+ * Code-generated 'CCD' schema file. Dictionary versions: mmCIF 5.406, IHM 1.28, MA 1.4.7.
  *
  * @author molstar/ciftools package
  */

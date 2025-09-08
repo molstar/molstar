@@ -11,8 +11,8 @@ import { Database, Column } from '../../../../mol-data/db';
 import Schema = Column.Schema;
 
 const float = Schema.float;
-const int = Schema.int;
 const str = Schema.str;
+const int = Schema.int;
 const Matrix = Schema.Matrix;
 
 export const CifCore_Schema = {
@@ -36,9 +36,13 @@ export const CifCore_Schema = {
         /**
          * The number of the formula units in the unit cell as specified
          * by _chemical_formula.structural, _chemical_formula.moiety or
-         * _chemical_formula.sum.
+         * _chemical_formula.sum. This is normally an integer value, but
+         * in exceptional circumstances (Brock, 2025) may be reported as
+         * non-integral.
+         *
+         * Reference: Brock, C. P. (2025). Acta Cryst. A81, nnn-nnn.
          */
-        formula_units_z: int,
+        formula_units_z: float,
         /**
          * The length of each cell axis.
          */
@@ -146,7 +150,7 @@ export const CifCore_Schema = {
         sum: str,
         /**
          * Mass corresponding to the formulae _chemical_formula.structural,
-         * *_IUPAC, *_moiety or *_sum and, together with the Z value and cell
+         * *.IUPAC, *.moiety or *.sum and, together with the Z value and cell
          * parameters yield the density given as _exptl_crystal.density_diffrn.
          */
         weight: float,
@@ -170,9 +174,9 @@ export const CifCore_Schema = {
      * Hermann-Mauguin symbol contains information on the choice of
      * the basis, but not on the choice of origin.
      *
-     * Ref: International Tables for Crystallography (2002). Volume A,
-     * Space-group symmetry, edited by Th. Hahn, 5th ed.
-     * Dordrecht: Kluwer Academic Publishers.
+     * Ref: International Tables for Crystallography (2016). Volume A,
+     * Space-group symmetry, edited by M. I. Aroyo, 6th ed.
+     * Chichester: John Wiley & Sons.
      */
     space_group: {
         /**
@@ -192,9 +196,9 @@ export const CifCore_Schema = {
         it_number: int,
         /**
          * The full international Hermann-Mauguin space-group symbol as
-         * defined in Section 2.2.3 and given as the second item of the
-         * second line of each of the space-group tables of Part 7 of
-         * International Tables for Crystallography Volume A (2002).
+         * defined in Section 2.1.3.3 and given as the second item of the
+         * second line of each of the space-group tables of Chapter 2.3 of
+         * International Tables for Crystallography Volume A (2016).
          *
          * Each component of the space-group name is separated by a
          * space or an underscore character. The use of a space is
@@ -216,9 +220,9 @@ export const CifCore_Schema = {
          * _space_group.name_Hall, or list the symmetry operations
          * or generators.
          *
-         * Ref: International Tables for Crystallography (2002). Volume A,
-         * Space-group symmetry, edited by Th. Hahn, 5th ed.
-         * Dordrecht: Kluwer Academic Publishers.
+         * Ref: International Tables for Crystallography (2016). Volume A,
+         * Space-group symmetry, edited by M. I. Aroyo, 6th ed.
+         * Chichester: John Wiley & Sons.
          */
         'name_h-m_full': str,
     },
