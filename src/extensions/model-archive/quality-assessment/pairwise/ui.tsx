@@ -305,7 +305,7 @@ function PlotInteractivity({ drawing, interactity }: { drawing: MAPairwiseMetric
     let labelNode: ReactNode | undefined;
     if (label) {
         const labelStyle: CSSProperties | undefined = label ? { fontSize: '45px', fill: 'black', fontWeight: 'bold', pointerEvents: 'none', userSelect: 'none' } : undefined;
-        let x: number, y: number, anchor: string;
+        let x: number, y: number, anchor: 'start' | 'end';
         if (crosshairOffset![0] < PlotSize / 2) {
             x = PlotOffset + crosshairOffset![0] + 20;
             anchor = 'start';
