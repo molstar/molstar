@@ -1,8 +1,10 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
+
+import { arrayRemoveInPlace } from './array';
 
 export interface Reference<T> { readonly value: T, usageCount: number }
 
@@ -28,11 +30,13 @@ export interface ReferenceCache<T, P> {
     get: (props: P) => ReferenceItem<T>
     clear: () => void
     readonly count: number
+    readonly values: T[]
     dispose: () => void
 }
 
 export function createReferenceCache<T, P>(hashFn: (props: P) => string, ctor: (props: P) => T, deleteFn: (v: T) => void): ReferenceCache<T, P> {
     const map: Map<string, Reference<T>> = new Map();
+    const values: T[] = [];
 
     return {
         get: (props: P) => {
@@ -41,6 +45,7 @@ export function createReferenceCache<T, P>(hashFn: (props: P) => string, ctor: (
             if (!ref) {
                 ref = createReference<T>(ctor(props));
                 map.set(id, ref);
+                values.push(ref.value);
             }
             ref.usageCount += 1;
             return createReferenceItem(ref);
@@ -53,15 +58,18 @@ export function createReferenceCache<T, P>(hashFn: (props: P) => string, ctor: (
                     }
                     deleteFn(ref.value);
                     map.delete(id);
+                    arrayRemoveInPlace(values, ref.value);
                 }
             });
         },
         get count() {
             return map.size;
         },
+        values,
         dispose: () => {
             map.forEach(ref => deleteFn(ref.value));
             map.clear();
+            values.length = 0;
         },
     };
 }
