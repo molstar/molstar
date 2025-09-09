@@ -8,14 +8,14 @@ import { RenderableState, Renderable } from './renderable';
 import { idFactory } from '../mol-util/id-factory';
 import { WebGLContext } from './webgl/context';
 import { DirectVolumeValues, DirectVolumeRenderable } from './renderable/direct-volume';
-import { MeshValues, MeshRenderable } from './renderable/mesh';
+import { MeshValues, MeshRenderable, linkMeshRenderableShader } from './renderable/mesh';
 import { PointsValues, PointsRenderable } from './renderable/points';
 import { LinesValues, LinesRenderable } from './renderable/lines';
-import { SpheresValues, SpheresRenderable } from './renderable/spheres';
+import { SpheresValues, SpheresRenderable, linkSpheresRenderableShader } from './renderable/spheres';
 import { TextValues, TextRenderable } from './renderable/text';
 import { TextureMeshValues, TextureMeshRenderable } from './renderable/texture-mesh';
 import { ImageValues, ImageRenderable } from './renderable/image';
-import { CylindersRenderable, CylindersValues } from './renderable/cylinders';
+import { CylindersRenderable, CylindersValues, linkCylindersRenderableShader } from './renderable/cylinders';
 import { Transparency } from './webgl/render-item';
 
 const getNextId = idFactory(0, 0x7FFFFFFF);
@@ -62,4 +62,14 @@ export function createRenderable<T extends RenderObjectType>(ctx: WebGLContext, 
         case 'texture-mesh': return TextureMeshRenderable(ctx, o.id, o.values as TextureMeshValues, o.state, o.materialId, transparency);
     }
     throw new Error('unsupported type');
+}
+
+export function linkRenderableShader<T extends RenderObjectType>(ctx: WebGLContext, o: GraphicsRenderObject<T>, transparency: Transparency) {
+    switch (o.type) {
+        case 'mesh': return linkMeshRenderableShader(ctx, o.id, o.values as MeshValues, o.state, o.materialId, transparency);
+        case 'spheres': return linkSpheresRenderableShader(ctx, o.id, o.values as SpheresValues, o.state, o.materialId, transparency);
+        case 'cylinders': return linkCylindersRenderableShader(ctx, o.id, o.values as CylindersValues, o.state, o.materialId, transparency);
+    }
+    console.log(o.type);
+    // throw new Error('unsupported type');
 }

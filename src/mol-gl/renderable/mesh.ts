@@ -6,7 +6,7 @@
 
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
-import { createGraphicsRenderItem, Transparency } from '../webgl/render-item';
+import { createGraphicsRenderItem, GraphicsRenderVariants, linkRenderItemProgram, Transparency } from '../webgl/render-item';
 import { GlobalUniformSchema, BaseSchema, AttributeSpec, ElementsSpec, DefineSpec, Values, InternalSchema, InternalValues, GlobalTextureSchema, ValueSpec, UniformSpec } from './schema';
 import { MeshShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
@@ -41,4 +41,13 @@ export function MeshRenderable(ctx: WebGLContext, id: number, values: MeshValues
     const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId, transparency);
 
     return createRenderable(renderItem, values, state);
+}
+
+export function linkMeshRenderableShader(ctx: WebGLContext, id: number, values: MeshValues, state: RenderableState, materialId: number, transparency: Transparency) {
+    const schema = { ...GlobalUniformSchema, ...GlobalTextureSchema, ...InternalSchema, ...MeshSchema };
+    const internalValues: InternalValues = {
+        uObjectId: ValueCell.create(id),
+    };
+    const shaderCode = MeshShaderCode;
+    linkRenderItemProgram(ctx, shaderCode, schema, { ...values, ...internalValues }, GraphicsRenderVariants, transparency);
 }

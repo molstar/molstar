@@ -6,7 +6,7 @@
 
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
-import { createGraphicsRenderItem, Transparency } from '../webgl/render-item';
+import { createGraphicsRenderItem, GraphicsRenderVariants, linkRenderItemProgram, Transparency } from '../webgl/render-item';
 import { GlobalUniformSchema, BaseSchema, Values, InternalSchema, SizeSchema, InternalValues, ValueSpec, DefineSpec, GlobalTextureSchema, UniformSpec, TextureSpec } from './schema';
 import { SpheresShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
@@ -46,4 +46,13 @@ export function SpheresRenderable(ctx: WebGLContext, id: number, values: Spheres
     const shaderCode = SpheresShaderCode;
     const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId, transparency);
     return createRenderable(renderItem, values, state);
+}
+
+export function linkSpheresRenderableShader(ctx: WebGLContext, id: number, values: SpheresValues, state: RenderableState, materialId: number, transparency: Transparency) {
+    const schema = { ...GlobalUniformSchema, ...GlobalTextureSchema, ...InternalSchema, ...SpheresSchema };
+    const internalValues: InternalValues = {
+        uObjectId: ValueCell.create(id),
+    };
+    const shaderCode = SpheresShaderCode;
+    linkRenderItemProgram(ctx, shaderCode, schema, { ...values, ...internalValues }, GraphicsRenderVariants, transparency);
 }

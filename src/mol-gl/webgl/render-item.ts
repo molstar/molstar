@@ -128,6 +128,26 @@ export function createComputeRenderItem(ctx: WebGLContext, drawMode: DrawMode, s
     return createRenderItem(ctx, drawMode, shaderCode, schema, values, materialId, ComputeRenderVariants, undefined);
 }
 
+export function linkRenderItemProgram<T extends string>(ctx: WebGLContext, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, renderVariants: T[], transparency: Transparency) {
+
+    // filter out unsupported variants
+    renderVariants = renderVariants.filter(v => {
+        if (v === 'tracing') return !!ctx.extensions.drawBuffers;
+        return true;
+    });
+
+    // TODO: optimize
+    const { defineValues } = splitValues(schema, values);
+
+    for (const rv of renderVariants) {
+        const defs = { ...defineValues, dRenderVariant: ValueCell.create(getRenderVariant(rv, transparency)) };
+        if (schema.dRenderVariant === undefined) {
+            Object.defineProperty(schema, 'dRenderVariant', { value: DefineSpec('string') });
+        }
+        ctx.resources.linkProgram(defs, shaderCode, schema);
+    }
+}
+
 /**
  * Creates a render item
  *

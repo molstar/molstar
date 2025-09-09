@@ -23,6 +23,12 @@ export class CommitQueue {
         return this.removeMap.size + this.addMap.size;
     }
 
+    forEachAdd(cb: (o: GraphicsRenderObject) => void) {
+        for (let n = this.addList.first; n; n = n.next) {
+            cb(n.value);
+        }
+    }
+
     add(o: GraphicsRenderObject) {
         if (this.removeMap.has(o)) {
             const a = this.removeMap.get(o)!;

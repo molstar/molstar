@@ -22,6 +22,7 @@ export interface Program {
     readonly id: number
 
     use: () => void
+    finalize: () => void
     setUniforms: (uniformValues: UniformsList) => void
     uniform: (k: string, v: UniformType) => void
     bindAttributes: (attribueBuffers: AttributeBuffers) => void
@@ -175,28 +176,37 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
     let locations: Locations;
     let uniformSetters: UniformSetters;
 
-    function init() {
+    function link() {
         vertShader.attach(program);
         fragShader.attach(program);
+        console.log('linking', programId)
         gl.linkProgram(program);
-        if (isDebugMode) {
-            checkProgram(gl, program);
-        }
 
-        locations = getLocations(gl, program, schema);
-        uniformSetters = getUniformSetters(schema);
+        // if (isDebugMode) {
+        //     checkProgram(gl, program);
+        // }
 
-        if (isDebugMode) {
-            checkActiveAttributes(gl, program, schema);
-            checkActiveUniforms(gl, program, schema);
-        }
+        // locations = getLocations(gl, program, schema);
+        // uniformSetters = getUniformSetters(schema);
+
+        // if (isDebugMode) {
+        //     checkActiveAttributes(gl, program, schema);
+        //     checkActiveUniforms(gl, program, schema);
+        // }
     }
-    init();
+    link();
 
     let destroyed = false;
 
     return {
         id: programId,
+
+        finalize: () => {
+            if (locations) return;
+            console.log('finalizing', programId)
+            locations = getLocations(gl, program, schema);
+            uniformSetters = getUniformSetters(schema);
+        },
 
         use: () => {
             // console.log('use', programId)
@@ -245,7 +255,7 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
 
         reset: () => {
             program = getProgram(gl);
-            init();
+            link();
         },
         destroy: () => {
             if (destroyed) return;

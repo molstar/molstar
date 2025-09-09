@@ -106,6 +106,7 @@ export class DrawPass {
             this.depthTextureOpaque.define(width, height);
         }
 
+        // TODO: link programs in parallel
         this.wboit = new WboitPass(webgl, width, height);
         this.dpoit = new DpoitPass(webgl, width, height);
         this.marking = new MarkingPass(webgl, width, height);

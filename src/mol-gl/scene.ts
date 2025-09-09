@@ -6,7 +6,7 @@
  */
 
 import { WebGLContext } from './webgl/context';
-import { GraphicsRenderObject, createRenderable } from './render-object';
+import { GraphicsRenderObject, createRenderable, linkRenderableShader as linkRenderableProgram } from './render-object';
 import { Object3D } from './object3d';
 import { Sphere3D } from '../mol-math/geometry/primitives/sphere3d';
 import { CommitQueue } from './commit-queue';
@@ -130,7 +130,9 @@ namespace Scene {
 
         function add(o: GraphicsRenderObject) {
             if (!renderableMap.has(o)) {
+                console.time(`create renderable ${o.type}`);
                 const renderable = createRenderable(ctx, o, transparency);
+                console.timeEnd(`create renderable ${o.type}`);
                 renderables.push(renderable);
                 if (o.type === 'direct-volume') {
                     volumes.push(renderable);
@@ -163,6 +165,10 @@ namespace Scene {
             const start = now();
 
             let i = 0;
+
+            // TODO: have to destroy programs that were not added (=removed before added)
+            commitQueue.forEachAdd(o => linkRenderableProgram(ctx, o, transparency));
+            // there could also be a separate queue just for program linking that calls program.finalize()
 
             while (true) {
                 const o = commitQueue.tryGetRemove();

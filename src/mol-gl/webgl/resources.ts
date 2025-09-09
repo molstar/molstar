@@ -56,6 +56,7 @@ export interface WebGLResources {
     elements: (array: ElementsType, usageHint?: UsageHint) => ElementsBuffer
     pixelPack: (format: TextureFormat, type: TextureType) => PixelPackBuffer
     framebuffer: () => Framebuffer
+    linkProgram: (defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) => Program
     program: (defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) => Program
     renderbuffer: (format: RenderbufferFormat, attachment: RenderbufferAttachment, width: number, height: number) => Renderbuffer
     shader: (type: ShaderType, source: string) => Shader
@@ -137,8 +138,14 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
         framebuffer: () => {
             return wrap('framebuffer', createFramebuffer(gl));
         },
-        program: (defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) => {
+        linkProgram: (defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) => {
             return wrapCached(programCache.get({ defineValues, shaderCode, schema }));
+        },
+        program: (defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) => {
+            // TODO: create function
+            const linked = wrapCached(programCache.get({ defineValues, shaderCode, schema }));
+            linked.finalize();
+            return linked;
         },
         renderbuffer: (format: RenderbufferFormat, attachment: RenderbufferAttachment, width: number, height: number) => {
             return wrap('renderbuffer', createRenderbuffer(gl, format, attachment, width, height));
