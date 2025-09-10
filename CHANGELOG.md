@@ -115,6 +115,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add `PointerHelper` for rendering XR input devices
     - Add XR button to Viewer and Mesoscale Explorer
     - Add XR button to render-structure in tests/browser
+- Fix illumination denoising with transparency on transparent background 
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:

@@ -131,7 +131,7 @@ vec4 smartDeNoise(sampler2D tex, vec2 uv) {
             normalW = pow(normalW, NormalWeightStrength);
             blurFactor *= normalW;
 
-            vec4 walkPx =  texture2D(tex, uvSample);
+            vec4 walkPx = texture2D(tex, uvSample);
 
             vec4 dC = walkPx - centrPx;
             float deltaFactor = exp(-dot(dC, dC) * invThresholdSqx2) * invThresholdSqrt2PI * blurFactor;
@@ -140,6 +140,11 @@ vec4 smartDeNoise(sampler2D tex, vec2 uv) {
             aBuff += deltaFactor * walkPx;
         }
     }
+
+    if (zBuff <= EPSILON) {
+        return centrPx;
+    }
+
     return aBuff / zBuff;
 }
 
