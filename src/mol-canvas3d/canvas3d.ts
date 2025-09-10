@@ -715,6 +715,10 @@ namespace Canvas3D {
 
         function draw(options?: { force?: boolean, xrFrame?: XRFrame }) {
             if (drawPaused || isContextLost) return;
+            if (!webgl.resources.getLinkStatus()) {
+                console.log('still linking programs');
+                return;
+            }
             if (render(!!options?.force, options?.xrFrame) && notifyDidDraw) {
                 didDraw.next(now() - startTime as now.Timestamp);
             }

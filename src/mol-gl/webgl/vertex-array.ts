@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -51,21 +51,23 @@ export function createVertexArray(gl: GLRenderingContext, extensions: WebGLExten
         if (elementsBuffer) elementsBuffer.bind();
         program.bindAttributes(attributeBuffers);
         vertexArrayObject.bindVertexArray(null);
+        isReady = true;
     }
 
-    update();
+    let isReady = false;
     let destroyed = false;
 
     return {
         id,
         bind: () => {
+            if (!isReady) update();
             vertexArrayObject.bindVertexArray(vertexArray);
         },
         update,
         reset: () => {
             vertexArray = getVertexArray(extensions);
             vertexArrayObject = getVertexArrayObject(extensions);
-            update();
+            isReady = false;
         },
         destroy: () => {
             if (destroyed) return;

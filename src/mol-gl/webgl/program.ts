@@ -15,11 +15,15 @@ import { RenderableSchema } from '../renderable/schema';
 import { isDebugMode } from '../../mol-util/debug';
 import { GLRenderingContext, isWebGL2 } from './compat';
 import { ShaderType, Shader } from './shader';
+import { WebGLParameters } from './context';
 
 const getNextProgramId = idFactory();
 
 export interface Program {
     readonly id: number
+
+    isReady(): boolean
+    getLinkStatus(): boolean
 
     use: () => void
     setUniforms: (uniformValues: UniformsList) => void
@@ -162,41 +166,65 @@ export function getProgram(gl: GLRenderingContext) {
 
 type ShaderGetter = (type: ShaderType, source: string) => Shader
 
-export function createProgram(gl: GLRenderingContext, state: WebGLState, extensions: WebGLExtensions, getShader: ShaderGetter, props: ProgramProps): Program {
+export function createProgram(gl: GLRenderingContext, state: WebGLState, extensions: WebGLExtensions, parameters: WebGLParameters, getShader: ShaderGetter, props: ProgramProps): Program {
     const { defineValues, shaderCode: _shaderCode, schema } = props;
 
     let program = getProgram(gl);
     const programId = getNextProgramId();
 
-    const shaderCode = addShaderDefines(gl, extensions, defineValues, _shaderCode);
+    const shaderCode = addShaderDefines(gl, extensions, parameters, defineValues, _shaderCode);
     const vertShader = getShader('vert', shaderCode.vert);
     const fragShader = getShader('frag', shaderCode.frag);
 
     let locations: Locations;
     let uniformSetters: UniformSetters;
 
-    function init() {
+    function link() {
         vertShader.attach(program);
         fragShader.attach(program);
         gl.linkProgram(program);
         if (isDebugMode) {
             checkProgram(gl, program);
         }
+    }
+    link();
 
+    function init() {
         locations = getLocations(gl, program, schema);
         uniformSetters = getUniformSetters(schema);
-
         if (isDebugMode) {
             checkActiveAttributes(gl, program, schema);
             checkActiveUniforms(gl, program, schema);
         }
+        isReady = true;
     }
-    init();
 
+    let isReady = false;
     let destroyed = false;
 
     return {
         id: programId,
+
+        isReady: () => {
+            return isReady;
+        },
+
+        getLinkStatus: () => {
+            if (isReady) return true;
+            console.time('LINK_STATUS');
+            let linkStatus = true;
+            if (extensions.parallelShaderCompile) {
+                linkStatus = gl.getProgramParameter(program, extensions.parallelShaderCompile.COMPLETION_STATUS);
+            } else {
+                linkStatus = true; // gl.getProgramParameter(program, gl.LINK_STATUS);
+            }
+            if (linkStatus) {
+                init();
+            }
+            // console.log(defineValues)
+            console.timeEnd('LINK_STATUS');
+            return linkStatus;
+        },
 
         use: () => {
             // console.log('use', programId)
@@ -245,7 +273,8 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
 
         reset: () => {
             program = getProgram(gl);
-            init();
+            isReady = false;
+            link();
         },
         destroy: () => {
             if (destroyed) return;

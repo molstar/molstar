@@ -348,6 +348,8 @@ namespace Renderer {
             if (needUpdate) r.update();
 
             const program = r.getProgram(variant);
+            if (!program.isReady()) return;
+
             if (state.currentProgramId !== program.id) {
                 // console.log('new program')
                 globalUniformsNeedUpdate = true;

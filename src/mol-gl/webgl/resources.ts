@@ -12,13 +12,14 @@ import { WebGLExtensions } from './extensions';
 import { WebGLState } from './state';
 import { AttributeBuffer, UsageHint, ArrayType, AttributeItemSize, createAttributeBuffer, ElementsBuffer, createElementsBuffer, ElementsType, AttributeBuffers, PixelPackBuffer, createPixelPackBuffer } from './buffer';
 import { createReferenceCache, ReferenceItem } from '../../mol-util/reference-cache';
-import { WebGLStats } from './context';
+import { WebGLParameters, WebGLStats } from './context';
 import { hashString, hashFnv32a } from '../../mol-data/util';
 import { DefineValues, ShaderCode } from '../shader-code';
 import { RenderableSchema } from '../renderable/schema';
 import { createRenderbuffer, Renderbuffer, RenderbufferAttachment, RenderbufferFormat } from './renderbuffer';
 import { Texture, TextureKind, TextureFormat, TextureType, TextureFilter, createTexture, CubeFaces, createCubeTexture } from './texture';
 import { VertexArray, createVertexArray } from './vertex-array';
+import { now } from '../../mol-util/now';
 
 function defineValueHash(v: boolean | number | string): number {
     return typeof v === 'boolean' ? (v ? 1 : 0) :
@@ -64,12 +65,13 @@ export interface WebGLResources {
     vertexArray: (program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) => VertexArray,
 
     getByteCounts: () => ByteCounts
+    getLinkStatus: () => boolean
 
     reset: () => void
     destroy: () => void
 }
 
-export function createResources(gl: GLRenderingContext, state: WebGLState, stats: WebGLStats, extensions: WebGLExtensions): WebGLResources {
+export function createResources(gl: GLRenderingContext, state: WebGLState, stats: WebGLStats, extensions: WebGLExtensions, parameters: WebGLParameters): WebGLResources {
     const sets: { [k in ResourceName]: Set<Resource> } = {
         attribute: new Set<Resource>(),
         elements: new Set<Resource>(),
@@ -117,7 +119,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
             });
             return hashFnv32a(array).toString();
         },
-        (props: ProgramProps) => wrap('program', createProgram(gl, state, extensions, getShader, props)),
+        (props: ProgramProps) => wrap('program', createProgram(gl, state, extensions, parameters, getShader, props)),
         (program: Program) => { program.destroy(); }
     );
 
@@ -174,6 +176,40 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
             });
 
             return { texture, attribute, elements };
+        },
+
+        getLinkStatus: () => {
+            let isReady = true;
+            for (const p of programCache.values) {
+                if (!p.isReady()) {
+                    isReady = false;
+                    break;
+                }
+            }
+            if (isReady) return true;
+
+            let linkStatus = true;
+            // console.time('LINK_STATUS_ALL');
+            if (extensions.parallelShaderCompile) {
+                for (const p of programCache.values) {
+                    if (!p.getLinkStatus()) linkStatus = false;
+                }
+            } else {
+                const t = now();
+                for (const p of programCache.values) {
+                    if (!p.isReady()) {
+                        // console.log(programCache.values.length)
+                        p.getLinkStatus();
+                        if (now() - t > 16) {
+                            // console.timeEnd('LINK_STATUS_ALL');
+                            return false;
+                        }
+                    }
+                }
+            }
+            // console.timeEnd('LINK_STATUS_ALL');
+
+            return linkStatus;
         },
 
         reset: () => {

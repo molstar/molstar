@@ -225,6 +225,21 @@ export type WebGLStats = ReturnType<typeof createStats>
 
 //
 
+function createParameters(gl: GLRenderingContext, extensions: WebGLExtensions) {
+    return {
+        maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE) as number,
+        max3dTextureSize: isWebGL2(gl) ? gl.getParameter(gl.MAX_3D_TEXTURE_SIZE) as number : 0,
+        maxRenderbufferSize: gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) as number,
+        maxDrawBuffers: extensions.drawBuffers ? gl.getParameter(extensions.drawBuffers.MAX_DRAW_BUFFERS) as number : 0,
+        maxTextureImageUnits: gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS) as number,
+        maxVertexTextureImageUnits: gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) as number,
+    };
+}
+
+export type WebGLParameters = ReturnType<typeof createParameters>
+
+//
+
 /** A WebGL context object, including the rendering context, resource caches and counts */
 export interface WebGLContext {
     readonly gl: GLRenderingContext
@@ -285,17 +300,9 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
     const extensions = createExtensions(gl);
     const state = createState(gl, extensions);
     const stats = createStats();
-    const resources = createResources(gl, state, stats, extensions);
+    const parameters = createParameters(gl, extensions);
+    const resources = createResources(gl, state, stats, extensions, parameters);
     const timer = createTimer(gl, extensions, stats);
-
-    const parameters = {
-        maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE) as number,
-        max3dTextureSize: isWebGL2(gl) ? gl.getParameter(gl.MAX_3D_TEXTURE_SIZE) as number : 0,
-        maxRenderbufferSize: gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) as number,
-        maxDrawBuffers: extensions.drawBuffers ? gl.getParameter(extensions.drawBuffers.MAX_DRAW_BUFFERS) as number : 0,
-        maxTextureImageUnits: gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS) as number,
-        maxVertexTextureImageUnits: gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) as number,
-    };
 
     if (parameters.maxVertexTextureImageUnits < 8) {
         throw new Error('Need "MAX_VERTEX_TEXTURE_IMAGE_UNITS" >= 8');
