@@ -79,7 +79,7 @@ export class PluginContextContainer extends React.Component<{ plugin: PluginUICo
 
 type RegionKind = 'top' | 'left' | 'right' | 'bottom' | 'main'
 
-class Layout extends PluginUIComponent {
+export class Layout extends PluginUIComponent {
     componentDidMount() {
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
     }
