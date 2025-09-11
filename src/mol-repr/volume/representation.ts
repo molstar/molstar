@@ -61,7 +61,7 @@ function createVolumeRenderObject<G extends Geometry>(volume: Volume, geometry: 
 interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
     defaultProps: PD.Values<P>
     createGeometry(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
-    createLocationIterator(volume: Volume, key: number): LocationIterator
+    createLocationIterator(volume: Volume, key: number, props?: PD.Values<P>): LocationIterator
     getLoci(pickingId: PickingId, volume: Volume, key: number, props: PD.Values<P>, id: number): Loci
     eachLocation(loci: Loci, volume: Volume, key: number, props: PD.Values<P>, apply: (interval: Interval) => boolean): boolean
     setUpdateState(state: VisualUpdateState, volume: Volume, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
@@ -150,7 +150,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
 
     function update(newGeometry?: G) {
         if (updateState.createNew) {
-            locationIt = createLocationIterator(newVolume, newKey);
+            locationIt = createLocationIterator(newVolume, newKey, newProps);
             if (newGeometry) {
                 renderObject = createVolumeRenderObject(newVolume, newGeometry, locationIt, newTheme, newProps, materialId);
                 positionIt = createPositionIterator(newGeometry, renderObject.values);
@@ -164,7 +164,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
 
             if (updateState.updateColor || updateState.updateSize || updateState.updateTransform) {
                 // console.log('update locationIterator');
-                locationIt = createLocationIterator(newVolume, newKey);
+                locationIt = createLocationIterator(newVolume, newKey, newProps);
             }
 
             if (updateState.updateTransform) {
@@ -252,6 +252,16 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
                 for (let i = 0, il = loci.instances.length; i < il; ++i) {
                     if (apply(Interval.ofSingleton(i))) changed = true;
                 }
+            }
+        } else if (Volume.Streamline.isLoci(loci)) {
+            if (Volume.Streamline.isLociEmpty(loci)) return false;
+            if (!Volume.areEquivalent(loci.volume, volume)) return false;
+            for (const { lines, instances } of loci.elements) {
+                OrderedSet.forEach(lines, lineId => {
+                    OrderedSet.forEach(instances, j => {
+                        if (apply(Interval.ofSingleton(j))) changed = true;
+                    });
+                });
             }
         } else if (Volume.isLoci(loci)) {
             if (Volume.isLociEmpty(loci)) return false;

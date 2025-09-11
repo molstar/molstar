@@ -81,6 +81,8 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
                 `${loci.volume.label || 'Volume'}`,
                 `${segmentCount === 1 ? `Segment ${firstSegment}` : `${segmentCount} Segments`}`
             ].join(' | ');
+        case 'streamline-loci':
+            return `${loci.volume.label || 'Volume'}`;
     }
 }
 
