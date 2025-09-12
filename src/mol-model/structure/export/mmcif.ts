@@ -288,11 +288,10 @@ function encode_mmCIF_categories_copyAll(encoder: CifWriter.Encoder, ctx: CifExp
     }
 }
 
-
-function to_mmCIF(name: string, structure: Structure, asBinary = false, params?: encode_mmCIF_categories_Params) {
+function to_mmCIF(name: string, structures: Structure | Structure[], asBinary = false, params?: encode_mmCIF_categories_Params) {
     const enc = params?.encoder ?? CifWriter.createEncoder({ binary: asBinary });
     enc.startDataBlock(name);
-    encode_mmCIF_categories(enc, structure, params);
+    encode_mmCIF_categories(enc, structures, params);
     return enc.getData();
 }
 
