@@ -113,6 +113,11 @@ const DefaultModelServerConfig = {
      * Optionally point to files. The service health-check will assert that all are readable and fail otherwise.
      */
     healthCheckPath: [] as string[],
+
+    /**
+     * Contents of a robots.txt file for web crawlers
+     */
+    robots: '' as string,
 };
 
 export const ModelServerFetchFormats = ['cif', 'bcif', 'cif.gz', 'bcif.gz'] as const;

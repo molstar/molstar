@@ -116,6 +116,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add XR button to Viewer and Mesoscale Explorer
     - Add XR button to render-structure in tests/browser
 - Change the `to_mmCIF` function parameter from `structure` to `structures` to support either a single structure or an array of structures
+- Add configurable robots.txt to ModelServer
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
