@@ -36,6 +36,26 @@ import { SsaoProps } from './ssao';
 import { OutlinePass } from './outline';
 import { BloomPass } from './bloom';
 
+let IlluminationWarningShown = false;
+
+function checkIlluminationSupport(webgl: WebGLContext) {
+    const { drawBuffers, textureFloat, colorBufferFloat, depthTexture } = webgl.extensions;
+    if (!textureFloat || !colorBufferFloat || !depthTexture || !drawBuffers) {
+        if (isDebugMode && !IlluminationWarningShown) {
+            const missing: string[] = [];
+            if (!textureFloat) missing.push('textureFloat');
+            if (!colorBufferFloat) missing.push('colorBufferFloat');
+            if (!depthTexture) missing.push('depthTexture');
+            if (!drawBuffers) missing.push('drawBuffers');
+            console.log(`Missing "${missing.join('", "')}" extensions required for "illumination"`);
+            IlluminationWarningShown = true;
+        }
+        return false;
+    } else {
+        return true;
+    }
+}
+
 type Props = {
     transparentBackground: boolean;
     dpoitIterations: number;
@@ -95,20 +115,11 @@ export class IlluminationPass {
     }
 
     static isSupported(webgl: WebGLContext) {
-        const { drawBuffers, textureFloat, colorBufferFloat, depthTexture } = webgl.extensions;
-        if (!textureFloat || !colorBufferFloat || !depthTexture || !drawBuffers) {
-            if (isDebugMode) {
-                const missing: string[] = [];
-                if (!textureFloat) missing.push('textureFloat');
-                if (!colorBufferFloat) missing.push('colorBufferFloat');
-                if (!depthTexture) missing.push('depthTexture');
-                if (!drawBuffers) missing.push('drawBuffers');
-                console.log(`Missing "${missing.join('", "')}" extensions required for "illumination"`);
-            }
-            return false;
-        } else {
-            return true;
-        }
+        return checkIlluminationSupport(webgl);
+    }
+
+    static isEnabled(webgl: WebGLContext, props: Props) {
+        return props.illumination.enabled && checkIlluminationSupport(webgl);
     }
 
     constructor(private readonly webgl: WebGLContext, private readonly drawPass: DrawPass) {

@@ -80,7 +80,7 @@ function getLevels(props: { radius: number, bias: number }[], scale: number, lev
 
 export class SsaoPass {
     static isEnabled(props: PostprocessingProps) {
-        return props.occlusion.name !== 'off';
+        return props.enabled && props.occlusion.name !== 'off';
     }
 
     static isTransparentEnabled(scene: Scene, props: SsaoProps) {

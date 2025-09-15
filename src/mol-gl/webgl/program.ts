@@ -16,14 +16,17 @@ import { isDebugMode } from '../../mol-util/debug';
 import { GLRenderingContext, isWebGL2 } from './compat';
 import { ShaderType, Shader } from './shader';
 import { WebGLParameters } from './context';
+import { ProgramVariant } from './render-item';
 
 const getNextProgramId = idFactory();
 
 export interface Program {
     readonly id: number
+    readonly variant: ProgramVariant
 
     isReady(): boolean
-    getLinkStatus(): boolean
+    link(): void
+    finalize(force?: boolean): boolean
 
     use: () => void
     setUniforms: (uniformValues: UniformsList) => void
@@ -166,11 +169,19 @@ export function getProgram(gl: GLRenderingContext) {
 
 type ShaderGetter = (type: ShaderType, source: string) => Shader
 
+function normalizeVariant(variant: any): ProgramVariant {
+    if (typeof variant !== 'string') throw new Error(`unknown program variant: ${variant}`);
+    if (variant.startsWith('color')) return 'color';
+    if (variant.startsWith('pick')) return 'pick';
+    return variant as ProgramVariant;
+}
+
 export function createProgram(gl: GLRenderingContext, state: WebGLState, extensions: WebGLExtensions, parameters: WebGLParameters, getShader: ShaderGetter, props: ProgramProps): Program {
     const { defineValues, shaderCode: _shaderCode, schema } = props;
 
     let program = getProgram(gl);
     const programId = getNextProgramId();
+    const variant = normalizeVariant(defineValues.dRenderVariant.ref.value);
 
     const shaderCode = addShaderDefines(gl, extensions, parameters, defineValues, _shaderCode);
     const vertShader = getShader('vert', shaderCode.vert);
@@ -179,6 +190,10 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
     let locations: Locations;
     let uniformSetters: UniformSetters;
 
+    let linked = false;
+    let finalized = false;
+    let destroyed = false;
+
     function link() {
         vertShader.attach(program);
         fragShader.attach(program);
@@ -186,44 +201,36 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
         if (isDebugMode) {
             checkProgram(gl, program);
         }
+        linked = true;
     }
-    link();
+    if (variant === 'compute') link();
 
-    function init() {
+    function finalize() {
         locations = getLocations(gl, program, schema);
         uniformSetters = getUniformSetters(schema);
         if (isDebugMode) {
             checkActiveAttributes(gl, program, schema);
             checkActiveUniforms(gl, program, schema);
         }
-        isReady = true;
+        finalized = true;
     }
-
-    let isReady = false;
-    let destroyed = false;
 
     return {
         id: programId,
+        variant,
 
         isReady: () => {
-            return isReady;
+            return finalized;
         },
-
-        getLinkStatus: () => {
-            if (isReady) return true;
-            console.time('LINK_STATUS');
-            let linkStatus = true;
-            if (extensions.parallelShaderCompile) {
-                linkStatus = gl.getProgramParameter(program, extensions.parallelShaderCompile.COMPLETION_STATUS);
-            } else {
-                linkStatus = true; // gl.getProgramParameter(program, gl.LINK_STATUS);
+        link: () => {
+            if (!linked) link();
+        },
+        finalize(force?: boolean): boolean {
+            if (!linked) link();
+            if (!finalized && (force || !extensions.parallelShaderCompile || gl.getProgramParameter(program, extensions.parallelShaderCompile.COMPLETION_STATUS))) {
+                finalize();
             }
-            if (linkStatus) {
-                init();
-            }
-            // console.log(defineValues)
-            console.timeEnd('LINK_STATUS');
-            return linkStatus;
+            return finalized;
         },
 
         use: () => {
@@ -273,8 +280,8 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
 
         reset: () => {
             program = getProgram(gl);
-            isReady = false;
-            link();
+            if (linked) link();
+            if (finalized) finalize();
         },
         destroy: () => {
             if (destroyed) return;

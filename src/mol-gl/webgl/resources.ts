@@ -20,6 +20,8 @@ import { createRenderbuffer, Renderbuffer, RenderbufferAttachment, RenderbufferF
 import { Texture, TextureKind, TextureFormat, TextureType, TextureFilter, createTexture, CubeFaces, createCubeTexture } from './texture';
 import { VertexArray, createVertexArray } from './vertex-array';
 import { now } from '../../mol-util/now';
+import { ProgramVariant } from './render-item';
+import { isTimingMode } from '../../mol-util/debug';
 
 function defineValueHash(v: boolean | number | string): number {
     return typeof v === 'boolean' ? (v ? 1 : 0) :
@@ -65,7 +67,9 @@ export interface WebGLResources {
     vertexArray: (program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) => VertexArray,
 
     getByteCounts: () => ByteCounts
-    getLinkStatus: () => boolean
+
+    linkPrograms: (variants?: ProgramVariant[]) => void
+    finalizePrograms: (variants?: ProgramVariant[], isSynchronous?: boolean) => boolean
 
     reset: () => void
     destroy: () => void
@@ -108,6 +112,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
         return wrapCached(shaderCache.get({ type, source }));
     }
 
+    const pendingPrograms = new Set<Program>();
     const programCache = createReferenceCache(
         (props: ProgramProps) => {
             const array = [props.shaderCode.id];
@@ -119,8 +124,17 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
             });
             return hashFnv32a(array).toString();
         },
-        (props: ProgramProps) => wrap('program', createProgram(gl, state, extensions, parameters, getShader, props)),
-        (program: Program) => { program.destroy(); }
+        (props: ProgramProps) => {
+            const program = createProgram(gl, state, extensions, parameters, getShader, props);
+            if (program.variant !== 'compute') {
+                pendingPrograms.add(program);
+            }
+            return wrap('program', program);
+        },
+        (program: Program) => {
+            pendingPrograms.delete(program);
+            program.destroy();
+        }
     );
 
     return {
@@ -178,36 +192,38 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
             return { texture, attribute, elements };
         },
 
-        getLinkStatus: () => {
+        linkPrograms: (variants?: ProgramVariant[]) => {
+            for (const p of pendingPrograms) {
+                if (variants && !variants.includes(p.variant)) continue;
+                p.link();
+            }
+        },
+        finalizePrograms: (variants?: ProgramVariant[], isSynchronous?: boolean) => {
             let isReady = true;
-            for (const p of programCache.values) {
-                if (!p.isReady()) {
-                    isReady = false;
-                    break;
-                }
+            for (const p of pendingPrograms) {
+                if (p.isReady()) pendingPrograms.delete(p);
+                if (!variants || variants.includes(p.variant)) isReady = false;
             }
             if (isReady) return true;
 
             let linkStatus = true;
-            // console.time('LINK_STATUS_ALL');
-            if (extensions.parallelShaderCompile) {
-                for (const p of programCache.values) {
-                    if (!p.getLinkStatus()) linkStatus = false;
+            const t = now();
+            for (const p of pendingPrograms) {
+                if (variants && !variants.includes(p.variant)) continue;
+                if (!p.finalize(isSynchronous)) {
+                    linkStatus = false;
+                } else {
+                    pendingPrograms.delete(p);
                 }
-            } else {
-                const t = now();
-                for (const p of programCache.values) {
-                    if (!p.isReady()) {
-                        // console.log(programCache.values.length)
-                        p.getLinkStatus();
-                        if (now() - t > 16) {
-                            // console.timeEnd('LINK_STATUS_ALL');
-                            return false;
-                        }
-                    }
+                if (!isSynchronous && now() - t > 16) {
+                    linkStatus = false;
+                    break;
                 }
             }
-            // console.timeEnd('LINK_STATUS_ALL');
+
+            if (isTimingMode) {
+                console.log(`finalized programs (${variants ? variants.join(',') : 'all'}) in ${now() - t}ms`, linkStatus);
+            }
 
             return linkStatus;
         },
@@ -238,6 +254,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
 
             shaderCache.clear();
             programCache.clear();
+            pendingPrograms.clear();
         }
     };
 }

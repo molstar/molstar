@@ -366,7 +366,10 @@ export function createComputeRenderable<T extends Values<RenderableSchema>>(rend
         id: getNextRenderableId(),
         values,
 
-        render: () => renderItem.render('compute', 0),
+        render: () => {
+            renderItem.getProgram('compute').finalize(true);
+            renderItem.render('compute', 0);
+        },
         update: () => renderItem.update(),
         dispose: () => renderItem.destroy()
     };

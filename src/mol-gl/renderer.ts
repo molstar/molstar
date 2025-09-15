@@ -348,8 +348,6 @@ namespace Renderer {
             if (needUpdate) r.update();
 
             const program = r.getProgram(variant);
-            if (!program.isReady()) return;
-
             if (state.currentProgramId !== program.id) {
                 // console.log('new program')
                 globalUniformsNeedUpdate = true;
@@ -523,7 +521,7 @@ namespace Renderer {
             );
         };
 
-        const renderPick = (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, pickType: PickType) => {
+        const renderPick = (group: Scene.Group, camera: ICamera, variant: 'pick' | 'depth', pickType: PickType) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderPick');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);

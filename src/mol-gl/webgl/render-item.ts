@@ -76,6 +76,8 @@ const ComputeRenderVariant = { compute: '' };
 export type ComputeRenderVariant = keyof typeof ComputeRenderVariant
 export const ComputeRenderVariants = Object.keys(ComputeRenderVariant) as ComputeRenderVariant[];
 
+export type ProgramVariant = GraphicsRenderVariant | ComputeRenderVariant
+
 function createProgramVariant(ctx: WebGLContext, variant: string, defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) {
     defineValues = { ...defineValues, dRenderVariant: ValueCell.create(variant) };
     if (schema.dRenderVariant === undefined) {
@@ -218,8 +220,6 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
             if (drawCount === 0 || instanceCount === 0) return;
 
             const program = programs[variant];
-            if (!program.isReady()) return;
-
             if (program.id === currentProgramId && state.currentRenderItemId === id) {
                 program.setUniforms(uniformValueEntries);
                 program.bindTextures(textures, sharedTexturesCount);
