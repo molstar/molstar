@@ -744,9 +744,9 @@ namespace Canvas3D {
         let drawPaused = false;
         let isContextLost = false;
 
-        function draw(options?: { force?: boolean, xrFrame?: XRFrame }) {
+        function draw(options?: { force?: boolean, isSynchronous?: boolean, xrFrame?: XRFrame }) {
             if (drawPaused || isContextLost) return;
-            if (!webgl.resources.finalizePrograms(requiredShaderVariants)) {
+            if (!webgl.resources.finalizePrograms(requiredShaderVariants, options?.isSynchronous)) {
                 forceNextRender = true;
                 return;
             }
@@ -780,7 +780,7 @@ namespace Canvas3D {
                 return;
             }
 
-            draw({ xrFrame: options?.xrFrame });
+            draw({ isSynchronous: options?.isSynchronous, xrFrame: options?.xrFrame });
             if (!camera.transition.inTransition && !webgl.isContextLost) {
                 interactionHelper.tick(currentTime);
             }
