@@ -1,26 +1,22 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { LinkedList } from '../mol-data/generic';
 import { GraphicsRenderObject } from './render-object';
-import { Renderable } from './renderable';
 
-type RenderObjectItem = LinkedList.Node<GraphicsRenderObject>
-type ReadyItem = { object: GraphicsRenderObject, renderable: Renderable<any> }
+type N = LinkedList.Node<GraphicsRenderObject>
 
 export class CommitQueue {
     private removeList = LinkedList<GraphicsRenderObject>();
-    private removeMap = new Map<GraphicsRenderObject, RenderObjectItem>();
+    private removeMap = new Map<GraphicsRenderObject, N>();
     private addList = LinkedList<GraphicsRenderObject>();
-    private addMap = new Map<GraphicsRenderObject, RenderObjectItem>();
-    private readyList = LinkedList<ReadyItem>();
-    private readyMap = new Map<Renderable<any>, LinkedList.Node<ReadyItem>>();
+    private addMap = new Map<GraphicsRenderObject, N>();
 
     get isEmpty() {
-        return this.removeList.count === 0 && this.addList.count === 0 && this.readyList.count === 0;
+        return this.removeList.count === 0 && this.addList.count === 0;
     }
 
     get size() {
@@ -49,12 +45,6 @@ export class CommitQueue {
         this.removeMap.set(o, b);
     }
 
-    ready(e: ReadyItem) {
-        if (this.readyMap.has(e.renderable)) return;
-        const b = this.readyList.addLast(e);
-        this.readyMap.set(e.renderable, b);
-    }
-
     tryGetRemove() {
         const o = this.removeList.removeFirst();
         if (o) this.removeMap.delete(o);
@@ -64,12 +54,6 @@ export class CommitQueue {
     tryGetAdd() {
         const o = this.addList.removeFirst();
         if (o) this.addMap.delete(o);
-        return o;
-    }
-
-    tryGetReady() {
-        const o = this.readyList.removeFirst();
-        if (o) this.readyMap.delete(o.renderable);
         return o;
     }
 }

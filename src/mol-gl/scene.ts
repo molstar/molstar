@@ -14,7 +14,7 @@ import { now } from '../mol-util/now';
 import { arraySetRemove } from '../mol-util/array';
 import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
 import { hash1 } from '../mol-data/util';
-import { GraphicsRenderable, Renderable } from './renderable';
+import { GraphicsRenderable } from './renderable';
 import { Transparency } from './webgl/render-item';
 import { clamp } from '../mol-math/interpolate';
 
@@ -128,38 +128,18 @@ namespace Scene {
         const object3d = Object3D.create();
         const { view, position, direction, up } = object3d;
 
-        const pendingReadyItems: { object: GraphicsRenderObject, renderable: Renderable<any> }[] = [];
-
-        function ready(e: { object: GraphicsRenderObject, renderable: Renderable<any> }) {
-            if (renderableMap.has(e.object)) {
-                console.warn(`RenderObject with id '${e.object.id}' already present`);
-                return;
-            }
-
-            // TODO: check program is ready
-            //       otherwise add it back to the queue
-            //       need to figure out how to handle changes to programs
-            //       done in setTransparency and update (perhaps eager compilation there?)
-            // if (!e.renderable.isReady) {
-            //     pendingReadyItems.push(e);
-            //     return;
-            // }
-
-            renderables.push(e.renderable);
-            if (e.object.type === 'direct-volume') {
-                volumes.push(e.renderable);
-            } else {
-                primitives.push(e.renderable);
-            }
-            renderableMap.set(e.object, e.renderable);
-            boundingSphereDirty = true;
-            boundingSphereVisibleDirty = true;
-        }
-
         function add(o: GraphicsRenderObject) {
             if (!renderableMap.has(o)) {
                 const renderable = createRenderable(ctx, o, transparency);
-                commitQueue.ready({ object: o, renderable });
+                renderables.push(renderable);
+                if (o.type === 'direct-volume') {
+                    volumes.push(renderable);
+                } else {
+                    primitives.push(renderable);
+                }
+                renderableMap.set(o, renderable);
+                boundingSphereDirty = true;
+                boundingSphereVisibleDirty = true;
             } else {
                 console.warn(`RenderObject with id '${o.id}' already present`);
             }
@@ -179,7 +159,6 @@ namespace Scene {
         }
 
         const commitBulkSize = 100;
-        const readyBulkSize = 4;
         function commit(maxTimeMs: number) {
             const start = now();
 
@@ -197,18 +176,6 @@ namespace Scene {
                 if (!o) break;
                 add(o);
                 if (++i % commitBulkSize === 0 && now() - start > maxTimeMs) return false;
-            }
-
-            i = 0;
-            while (true) {
-                const o = commitQueue.tryGetReady();
-                if (!o) break;
-                ready(o);
-                if (++i % readyBulkSize === 0 && now() - start > maxTimeMs) return false;
-            }
-
-            for (const item of pendingReadyItems) {
-                commitQueue.ready(item);
             }
 
             renderables.sort(renderableSort);
