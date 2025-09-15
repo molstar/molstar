@@ -962,7 +962,7 @@ export function buildStory(): MVSData_States {
         kind: 'multiple',
         snapshots,
         metadata: {
-            title: 'RCSB Molecule of the Month 1',
+            title: 'RCSB PDB Molecule of the Month 1',
             version: '1.0',
             timestamp: new Date().toISOString(),
         }
