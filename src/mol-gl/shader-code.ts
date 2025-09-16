@@ -9,6 +9,7 @@ import { ValueCell } from '../mol-util';
 import { idFactory } from '../mol-util/id-factory';
 import { WebGLExtensions } from './webgl/extensions';
 import { isWebGL2, GLRenderingContext } from './webgl/compat';
+import { WebGLParameters } from './webgl/context';
 import { assertUnreachable } from '../mol-util/type-helpers';
 
 export type DefineKind = 'boolean' | 'string' | 'number'
@@ -375,7 +376,7 @@ function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
     return prefix.join('\n') + '\n';
 }
 
-function getGlsl300FragPrefix(gl: WebGL2RenderingContext, extensions: WebGLExtensions, shaderExtensions: ShaderExtensions, outTypes: FragOutTypes) {
+function getGlsl300FragPrefix(extensions: WebGLExtensions, parameters: WebGLParameters, shaderExtensions: ShaderExtensions, outTypes: FragOutTypes) {
     const prefix = [
         '#version 300 es',
         `layout(location = 0) out highp ${outTypes[0] || 'vec4'} out_FragData0;`
@@ -388,8 +389,7 @@ function getGlsl300FragPrefix(gl: WebGL2RenderingContext, extensions: WebGLExten
     if (shaderExtensions.drawBuffers) {
         if (extensions.drawBuffers) {
             prefix.push('#define requiredDrawBuffers');
-            const maxDrawBuffers = gl.getParameter(gl.MAX_DRAW_BUFFERS) as number;
-            for (let i = 1, il = maxDrawBuffers; i < il; ++i) {
+            for (let i = 1, il = parameters.maxDrawBuffers; i < il; ++i) {
                 prefix.push(`layout(location = ${i}) out highp ${outTypes[i] || 'vec4'} out_FragData${i};`);
             }
         }
@@ -410,14 +410,14 @@ function transformGlsl300Frag(frag: string) {
     return frag.replace(/gl_FragData\[([0-9]+)\]/g, 'out_FragData$1');
 }
 
-export function addShaderDefines(gl: GLRenderingContext, extensions: WebGLExtensions, defines: ShaderDefines, shaders: ShaderCode): ShaderCode {
+export function addShaderDefines(gl: GLRenderingContext, extensions: WebGLExtensions, parameters: WebGLParameters, defines: ShaderDefines, shaders: ShaderCode): ShaderCode {
     const vertHeader = getDefinesCode(defines, shaders.ignoreDefine);
     const fragHeader = getDefinesCode(defines, shaders.ignoreDefine);
     const vertPrefix = isWebGL2(gl)
         ? getGlsl300VertPrefix(extensions, shaders.extensions)
         : getGlsl100VertPrefix(extensions, shaders.extensions);
     const fragPrefix = isWebGL2(gl)
-        ? getGlsl300FragPrefix(gl, extensions, shaders.extensions, shaders.outTypes)
+        ? getGlsl300FragPrefix(extensions, parameters, shaders.extensions, shaders.outTypes)
         : getGlsl100FragPrefix(extensions, shaders.extensions);
     const frag = isWebGL2(gl) ? transformGlsl300Frag(shaders.frag) : shaders.frag;
     return {

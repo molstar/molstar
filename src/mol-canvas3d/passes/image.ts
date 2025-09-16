@@ -23,6 +23,7 @@ import { IlluminationParams, IlluminationPass } from './illumination';
 import { RuntimeContext } from '../../mol-task';
 import { isTimingMode } from '../../mol-util/debug';
 import { printTimerResults } from '../../mol-gl/webgl/timer';
+import { ShaderManager } from '../helper/shader-manager';
 
 export const ImageParams = {
     transparentBackground: PD.Boolean(false),
@@ -99,15 +100,16 @@ export class ImagePass {
     }
 
     async render(runtime: RuntimeContext) {
+        ShaderManager.ensureRequired(this.webgl, this.scene, this.props);
         Camera.copySnapshot(this._camera.state, this.camera.state);
         Viewport.set(this._camera.viewport, 0, 0, this._width, this._height);
         this._camera.update();
 
         const ctx = { renderer: this.renderer, camera: this._camera, scene: this.scene, helper: this.helper };
         if (this.illuminationPass.supported && this.props.illumination.enabled) {
-            await runtime.update({ message: 'Tracing...', current: 1, max: this.illuminationPass.getMaxIterations(this.props) });
+            await runtime.update({ message: 'Tracing...', current: 1, max: this.illuminationPass.getMaxIterations(this.props.illumination) });
             this.illuminationPass.restart(true);
-            while (this.illuminationPass.shouldRender(this.props)) {
+            while (this.illuminationPass.shouldRender(this.props.illumination)) {
                 if (isTimingMode) this.webgl.timer.mark('ImagePass.render', { captureStats: true });
                 this.illuminationPass.render(ctx, this.props, false);
                 if (isTimingMode) this.webgl.timer.markEnd('ImagePass.render');
@@ -127,15 +129,6 @@ export class ImagePass {
                 this._colorTarget = this.drawPass.getColorTarget(this.props.postprocessing);
             }
             if (isTimingMode) this.webgl.timer.markEnd('ImagePass.render');
-        }
-
-        if (isTimingMode) {
-            const timerResults = this.webgl.timer.resolve();
-            if (timerResults) {
-                for (const result of timerResults) {
-                    printTimerResults([result]);
-                }
-            }
         }
 
         if (isTimingMode) {
