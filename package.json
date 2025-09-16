@@ -74,7 +74,7 @@
       "js"
     ],
     "transform": {
-      "\\.ts$": "ts-jest"
+      "\\.ts$": "esbuild-jest-transform"
     },
     "moduleDirectories": [
       "node_modules",
@@ -133,14 +133,15 @@
     "@types/pngjs": "^6.0.5",
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
+    "@types/webxr": "^0.5.23",
     "@typescript-eslint/eslint-plugin": "^8.42.0",
     "@typescript-eslint/parser": "^8.42.0",
-    "@types/webxr": "^0.5.23",
     "benchmark": "^2.1.4",
     "concurrently": "^9.2.1",
     "cpx2": "^8.0.0",
     "css-loader": "^7.1.2",
     "esbuild": "^0.25.9",
+    "esbuild-jest-transform": "^2.0.1",
     "esbuild-sass-plugin": "^3.3.1",
     "eslint": "^9.35.0",
     "fs-extra": "^11.3.1",
