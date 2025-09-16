@@ -117,6 +117,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add XR button to render-structure in tests/browser
 - Fix illumination denoising with transparency on transparent background 
 - Change the `to_mmCIF` function parameter from `structure` to `structures` to support either a single structure or an array of structures
+- ModelServer and VolumeServer: add configurable robots.txt
 - Adaptive parallel shader compilation
     - Split shader compilation into linking and finalizing
     - Start linking as early as possible and wait with finalizing to avoid blocking main thread

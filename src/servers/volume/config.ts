@@ -18,6 +18,10 @@ const DefaultServerConfig = {
     shutdownTimeoutVarianceMinutes: 60,
     idMap: [] as [string, string][],
     healthCheckPath: [] as string[],
+    /**
+     * Contents of a robots.txt file for web crawlers
+     */
+    robots: '' as string,
 };
 
 function addLimitsArgs(parser: argparse.ArgumentParser) {
