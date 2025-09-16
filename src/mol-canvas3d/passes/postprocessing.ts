@@ -161,7 +161,7 @@ export class PostprocessingPass {
     }
 
     static isTransparentDepthRequired(scene: Scene, props: PostprocessingProps) {
-        return props.enabled && (DofPass.isEnabled(props) || OutlinePass.isEnabled(props) && PostprocessingPass.isTransparentOutlineEnabled(props) || SsaoPass.isEnabled(props) && PostprocessingPass.isTransparentSsaoEnabled(scene, props));
+        return props.enabled && (DofPass.isEnabled(props) || OutlinePass.isEnabled(props) && PostprocessingPass.isTransparentOutlineEnabled(props) || SsaoPass.isEnabled(props) && PostprocessingPass.isTransparentSsaoEnabled(scene, props)) && scene.opacityAverage < 1;
     }
 
     static isTransparentOutlineEnabled(props: PostprocessingProps) {

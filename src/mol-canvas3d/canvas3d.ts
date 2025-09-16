@@ -51,6 +51,7 @@ import { DefaultXRManagerAttribs, XRManager, XRManagerParams } from './helper/xr
 import { Ray3D } from '../mol-math/geometry/primitives/ray3d';
 import { RayHelper } from './helper/ray-helper';
 import { produce } from '../mol-util/produce';
+import { ShaderManager } from './helper/shader-manager';
 
 export const CameraFogParams = {
     intensity: PD.Numeric(15, { min: 1, max: 100, step: 1 }),
@@ -453,6 +454,9 @@ namespace Canvas3D {
         const renderer = Renderer.create(webgl, p.renderer);
         renderer.setOcclusionTest(hiZ.isOccluded);
 
+        const shaderManager = new ShaderManager(webgl, scene);
+        shaderManager.updateRequired(p);
+
         const pickOptions = {
             pickPadding: p.pickPadding,
             maxAsyncReadLag: DefaultPickOptions.maxAsyncReadLag,
@@ -595,6 +599,9 @@ namespace Canvas3D {
                 helper.handle.scene.update(void 0, true);
                 helper.camera.scene.update(void 0, true);
 
+                shaderManager.updateRequired(p);
+                shaderManager.finalizeRequired(true);
+
                 interactionEvent.next();
             }
             return changed;
@@ -661,7 +668,7 @@ namespace Canvas3D {
                     passes.illumination.restart();
                 }
 
-                if (passes.illumination.shouldRender(p)
+                if (passes.illumination.shouldRender(p.illumination)
                     && ((!isActivelyInteracting && scene.count > 0) || passes.illumination.iteration === 0 || p.userInteractionReleaseMs === 0)
                 ) {
                     if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
@@ -713,8 +720,12 @@ namespace Canvas3D {
         let drawPaused = false;
         let isContextLost = false;
 
-        function draw(options?: { force?: boolean, xrFrame?: XRFrame }) {
+        function draw(options?: { force?: boolean, isSynchronous?: boolean, xrFrame?: XRFrame }) {
             if (drawPaused || isContextLost) return;
+            if (!shaderManager.finalizeRequired(options?.isSynchronous)) {
+                forceNextRender = true;
+                return;
+            }
             if (render(!!options?.force, options?.xrFrame) && notifyDidDraw) {
                 didDraw.next(now() - startTime as now.Timestamp);
             }
@@ -745,7 +756,7 @@ namespace Canvas3D {
                 return;
             }
 
-            draw({ xrFrame: options?.xrFrame });
+            draw({ isSynchronous: options?.isSynchronous, xrFrame: options?.xrFrame });
             if (!camera.transition.inTransition && !webgl.isContextLost) {
                 interactionHelper.tick(currentTime);
             }
@@ -798,6 +809,7 @@ namespace Canvas3D {
 
         function identify(target: Vec2 | Ray3D): PickData | undefined {
             if (webgl.isContextLost) return undefined;
+            shaderManager.finalize(['pick'], true);
 
             if ('origin' in target) {
                 return rayHelper.identify(target, camera);
@@ -809,6 +821,7 @@ namespace Canvas3D {
 
         function asyncIdentify(target: Vec2 | Ray3D): AsyncPickData | undefined {
             if (webgl.isContextLost) return undefined;
+            shaderManager.finalize(['pick'], true);
 
             if ('origin' in target) {
                 return rayHelper.asyncIdentify(target, camera);
@@ -820,6 +833,7 @@ namespace Canvas3D {
 
         function commit(isSynchronous: boolean = false) {
             const allCommited = commitScene(isSynchronous);
+            shaderManager.updateRequired(p);
             // Only reset the camera after the full scene has been commited.
             if (allCommited) {
                 resolveCameraReset();
@@ -1312,6 +1326,7 @@ namespace Canvas3D {
                     p.camera.stereo.name = 'off';
                 }
 
+                shaderManager.updateRequired(p);
                 if (!doNotRequestDraw) {
                     requestDraw();
                 }
