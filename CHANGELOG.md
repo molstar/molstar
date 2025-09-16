@@ -124,6 +124,7 @@ Note that since we don't clearly distinguish between a public and private interf
         - Use of `KHR_parallel_shader_compile` extension when available to check status
     - Add `ShaderManager` to compile shaders based on `Canvas3D` params and `Scene` content
     - Draw `Scene` only when shaders are ready
+- Fix incorrect animation loop handling in the screenshot code
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
