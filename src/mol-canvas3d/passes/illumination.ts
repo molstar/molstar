@@ -110,16 +110,16 @@ export class IlluminationPass {
         return this._supported;
     }
 
-    getMaxIterations(props: Props) {
-        return Math.pow(2, props.illumination.maxIterations);
+    getMaxIterations(props: IlluminationProps) {
+        return Math.pow(2, props.maxIterations);
     }
 
     static isSupported(webgl: WebGLContext) {
         return checkIlluminationSupport(webgl);
     }
 
-    static isEnabled(webgl: WebGLContext, props: Props) {
-        return props.illumination.enabled && checkIlluminationSupport(webgl);
+    static isEnabled(webgl: WebGLContext, props: IlluminationProps) {
+        return props.enabled && checkIlluminationSupport(webgl);
     }
 
     constructor(private readonly webgl: WebGLContext, private readonly drawPass: DrawPass) {
@@ -251,8 +251,8 @@ export class IlluminationPass {
         if (isTimingMode) this.webgl.timer.markEnd('IlluminationPass.renderInput');
     }
 
-    shouldRender(props: Props) {
-        return this._supported && props.illumination.enabled && this._iteration < this.getMaxIterations(props);
+    shouldRender(props: IlluminationProps) {
+        return this._supported && props.enabled && this._iteration < this.getMaxIterations(props);
     }
 
     setSize(width: number, height: number) {
@@ -296,11 +296,11 @@ export class IlluminationPass {
     }
 
     private renderInternal(ctx: RenderContext, props: Props, toDrawingBuffer: boolean, forceRenderInput: boolean) {
-        if (!this.shouldRender(props)) return;
+        if (!this.shouldRender(props.illumination)) return;
 
         if (isTimingMode) {
             this.webgl.timer.mark('IlluminationPass.render', {
-                note: `iteration ${this._iteration + 1} of ${this.getMaxIterations(props)}`
+                note: `iteration ${this._iteration + 1} of ${this.getMaxIterations(props.illumination)}`
             });
         }
         this.tracing.render(ctx, props.transparentBackground, props.illumination, this._iteration, forceRenderInput);
@@ -409,7 +409,7 @@ export class IlluminationPass {
         }
         const denoiseThreshold = props.multiSample.mode === 'on'
             ? props.illumination.denoiseThreshold[0]
-            : lerp(props.illumination.denoiseThreshold[1], props.illumination.denoiseThreshold[0], clamp(this.iteration / (this.getMaxIterations(props) / 2), 0, 1));
+            : lerp(props.illumination.denoiseThreshold[1], props.illumination.denoiseThreshold[0], clamp(this.iteration / (this.getMaxIterations(props.illumination) / 2), 0, 1));
         ValueCell.updateIfChanged(this.composeRenderable.values.uDenoiseThreshold, denoiseThreshold);
         if (needsUpdateCompose) this.composeRenderable.update();
         this.composeRenderable.render();
@@ -487,7 +487,7 @@ export class IlluminationPass {
         // each sample with camera jitter and accumulates the results.
         const offsetList = JitterVectors[Math.max(0, Math.min(props.multiSample.sampleLevel, 5))];
 
-        const maxIterations = this.getMaxIterations(props);
+        const maxIterations = this.getMaxIterations(props.illumination);
         const iteration = Math.min(this._iteration, maxIterations);
 
         const sampleIndex = Math.floor((iteration / maxIterations) * offsetList.length);

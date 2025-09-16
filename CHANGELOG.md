@@ -120,7 +120,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Split shader compilation into linking and finalizing
     - Start linking as early as possible and wait with finalizing to avoid blocking main thread
         - Use of `KHR_parallel_shader_compile` extension when available to check status
-    - Compile shaders when needed based on `Canvas3D` params and `Scene` content
+    - Add `ShaderManager` to compile shaders based on `Canvas3D` params and `Scene` content
     - Draw `Scene` only when shaders are ready
 
 ## [v4.18.0] - 2025-06-08

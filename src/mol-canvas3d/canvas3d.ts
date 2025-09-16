@@ -26,7 +26,7 @@ import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { DebugHelperParams } from './helper/bounding-sphere-helper';
 import { SetUtils } from '../mol-util/set';
 import { Canvas3dInteractionHelper, Canvas3dInteractionHelperParams } from './helper/interaction-events';
-import { PostprocessingParams, PostprocessingPass } from './passes/postprocessing';
+import { PostprocessingParams } from './passes/postprocessing';
 import { MultiSampleHelper, MultiSampleParams, MultiSamplePass } from './passes/multi-sample';
 import { AsyncPickData, DefaultPickOptions, PickData } from './passes/pick';
 import { PickHelper } from './helper/pick-helper';
@@ -39,20 +39,19 @@ import { StereoCamera, StereoCameraParams } from './camera/stereo';
 import { Helper } from './helper/helper';
 import { Passes } from './passes/passes';
 import { shallowEqual } from '../mol-util';
-import { MarkingParams, MarkingPass } from './passes/marking';
+import { MarkingParams } from './passes/marking';
 import { degToRad, radToDeg } from '../mol-math/misc';
 import { AssetManager } from '../mol-util/assets';
 import { deepClone } from '../mol-util/object';
 import { HiZParams, HiZPass } from './passes/hi-z';
-import { IlluminationParams, IlluminationPass } from './passes/illumination';
+import { IlluminationParams } from './passes/illumination';
 import { isMobileBrowser } from '../mol-util/browser';
 import { PointerHelperParams } from './helper/pointer-helper';
 import { DefaultXRManagerAttribs, XRManager, XRManagerParams } from './helper/xr-manager';
 import { Ray3D } from '../mol-math/geometry/primitives/ray3d';
 import { RayHelper } from './helper/ray-helper';
 import { produce } from '../mol-util/produce';
-import { GraphicsRenderVariant } from '../mol-gl/webgl/render-item';
-import { BloomPass } from './passes/bloom';
+import { ShaderManager } from './helper/shader-manager';
 
 export const CameraFogParams = {
     intensity: PD.Numeric(15, { min: 1, max: 100, step: 1 }),
@@ -455,6 +454,9 @@ namespace Canvas3D {
         const renderer = Renderer.create(webgl, p.renderer);
         renderer.setOcclusionTest(hiZ.isOccluded);
 
+        const shaderManager = new ShaderManager(webgl, scene);
+        shaderManager.updateRequired(p);
+
         const pickOptions = {
             pickPadding: p.pickPadding,
             maxAsyncReadLag: DefaultPickOptions.maxAsyncReadLag,
@@ -472,30 +474,6 @@ namespace Canvas3D {
         let nextCameraResetDuration: number | undefined = void 0;
         let nextCameraResetSnapshot: Camera.SnapshotProvider | undefined = void 0;
         let resizeRequested = false;
-
-        //
-
-        const requiredShaderVariants: GraphicsRenderVariant[] = [];
-
-        function updateRequiredShaderVariants() {
-            requiredShaderVariants.length = 0;
-            requiredShaderVariants.push('color');
-            if (IlluminationPass.isEnabled(webgl, p)) {
-                requiredShaderVariants.push('tracing');
-            }
-            if (MarkingPass.isEnabled(p.marking) && scene.markerAverage > 0) {
-                requiredShaderVariants.push('marking');
-            }
-            if (BloomPass.isEnabled(p.postprocessing) && scene.emissiveAverage > 0) {
-                requiredShaderVariants.push('emissive');
-            }
-            if (PostprocessingPass.isEnabled(p.postprocessing) || !webgl.extensions.drawBuffers || !webgl.extensions.depthTexture || IlluminationPass.isEnabled(webgl, p)) {
-                requiredShaderVariants.push('depth');
-
-            }
-            webgl.resources.linkPrograms(requiredShaderVariants);
-        }
-        updateRequiredShaderVariants();
 
         //
 
@@ -621,10 +599,8 @@ namespace Canvas3D {
                 helper.handle.scene.update(void 0, true);
                 helper.camera.scene.update(void 0, true);
 
-                updateRequiredShaderVariants();
-                if (requiredShaderVariants.includes('marking')) {
-                    webgl.resources.finalizePrograms(['marking'], true);
-                }
+                shaderManager.updateRequired(p);
+                shaderManager.finalizeRequired(true);
 
                 interactionEvent.next();
             }
@@ -692,7 +668,7 @@ namespace Canvas3D {
                     passes.illumination.restart();
                 }
 
-                if (passes.illumination.shouldRender(p)
+                if (passes.illumination.shouldRender(p.illumination)
                     && ((!isActivelyInteracting && scene.count > 0) || passes.illumination.iteration === 0 || p.userInteractionReleaseMs === 0)
                 ) {
                     if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
@@ -746,7 +722,7 @@ namespace Canvas3D {
 
         function draw(options?: { force?: boolean, isSynchronous?: boolean, xrFrame?: XRFrame }) {
             if (drawPaused || isContextLost) return;
-            if (!webgl.resources.finalizePrograms(requiredShaderVariants, options?.isSynchronous)) {
+            if (!shaderManager.finalizeRequired(options?.isSynchronous)) {
                 forceNextRender = true;
                 return;
             }
@@ -833,7 +809,7 @@ namespace Canvas3D {
 
         function identify(target: Vec2 | Ray3D): PickData | undefined {
             if (webgl.isContextLost) return undefined;
-            webgl.resources.finalizePrograms(['pick'], true);
+            shaderManager.finalize(['pick'], true);
 
             if ('origin' in target) {
                 return rayHelper.identify(target, camera);
@@ -845,7 +821,7 @@ namespace Canvas3D {
 
         function asyncIdentify(target: Vec2 | Ray3D): AsyncPickData | undefined {
             if (webgl.isContextLost) return undefined;
-            webgl.resources.finalizePrograms(['pick'], true);
+            shaderManager.finalize(['pick'], true);
 
             if ('origin' in target) {
                 return rayHelper.asyncIdentify(target, camera);
@@ -857,7 +833,7 @@ namespace Canvas3D {
 
         function commit(isSynchronous: boolean = false) {
             const allCommited = commitScene(isSynchronous);
-            updateRequiredShaderVariants();
+            shaderManager.updateRequired(p);
             // Only reset the camera after the full scene has been commited.
             if (allCommited) {
                 resolveCameraReset();
@@ -1350,7 +1326,7 @@ namespace Canvas3D {
                     p.camera.stereo.name = 'off';
                 }
 
-                updateRequiredShaderVariants();
+                shaderManager.updateRequired(p);
                 if (!doNotRequestDraw) {
                     requestDraw();
                 }

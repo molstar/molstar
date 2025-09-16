@@ -200,13 +200,18 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
         },
         finalizePrograms: (variants?: ProgramVariant[], isSynchronous?: boolean) => {
             let isReady = true;
+            let pendingCount = 0;
             for (const p of pendingPrograms) {
                 if (p.isReady()) pendingPrograms.delete(p);
-                if (!variants || variants.includes(p.variant)) isReady = false;
+                if (!variants || variants.includes(p.variant)) {
+                    isReady = false;
+                    pendingCount += 1;
+                }
             }
             if (isReady) return true;
 
             let linkStatus = true;
+            let finalizedCount = 0;
             const t = now();
             for (const p of pendingPrograms) {
                 if (variants && !variants.includes(p.variant)) continue;
@@ -214,6 +219,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
                     linkStatus = false;
                 } else {
                     pendingPrograms.delete(p);
+                    finalizedCount += 1;
                 }
                 if (!isSynchronous && now() - t > 16) {
                     linkStatus = false;
@@ -222,7 +228,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
             }
 
             if (isTimingMode) {
-                console.log(`finalized programs (${variants ? variants.join(',') : 'all'}) in ${now() - t}ms`, linkStatus);
+                console.log(`Finalized ${finalizedCount} of ${pendingCount} programs (${variants ? variants.join(', ') : 'all'}) in ${(now() - t).toFixed(2)} ms`);
             }
 
             return linkStatus;
