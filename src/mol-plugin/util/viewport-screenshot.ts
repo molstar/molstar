@@ -362,7 +362,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
         const { width, height, viewport } = this.getSizeAndViewport();
         if (width <= 0 || height <= 0) return;
 
-        this.plugin.canvas3d?.pause(true);
+        this.plugin.animationLoop.stop({ noDraw: true });
         try {
             await ctx.update('Rendering image...');
             const pass = this.imagePass;
@@ -377,7 +377,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
             if (!canvasCtx) throw new Error('Could not create canvas 2d context');
             canvasCtx.putImageData(imageData, 0, 0);
         } finally {
-            this.plugin.canvas3d?.animate();
+            this.plugin.animationLoop.start({ immediate: true });
         }
         return;
     }
