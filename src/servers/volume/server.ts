@@ -52,6 +52,10 @@ const app = express();
 app.use(compression({ level: 6, memLevel: 9, chunkSize: 16 * 16384, filter: () => true }));
 init(app);
 
+app.get('/robots.txt', function (req, res) {
+    res.type('text/plain').send(ServerConfig.robots);
+});
+
 app.listen(port);
 
 console.log(VOLUME_SERVER_HEADER);
