@@ -154,15 +154,24 @@ export namespace TextureMesh {
         }
         const framebuffer = webgl.namedFramebuffers[TextureMeshName];
         const [width, height] = textureMesh.geoTextureDim.ref.value;
-        const vertices = new Float32Array(width * height * 4);
-        framebuffer.bind();
-        textureMesh.vertexTexture.ref.value.attachFramebuffer(framebuffer, 0);
-        webgl.readPixels(0, 0, width, height, vertices);
 
-        const normals = new Float32Array(width * height * 4);
-        framebuffer.bind();
-        textureMesh.normalTexture.ref.value.attachFramebuffer(framebuffer, 0);
-        webgl.readPixels(0, 0, width, height, normals);
+        let data: { vertices: Float32Array, normals: Float32Array } | undefined = undefined;
+        const getData = () => {
+            if (!data) {
+                const vertices = new Float32Array(width * height * 4);
+                framebuffer.bind();
+                textureMesh.vertexTexture.ref.value.attachFramebuffer(framebuffer, 0);
+                webgl.readPixels(0, 0, width, height, vertices);
+
+                const normals = new Float32Array(width * height * 4);
+                framebuffer.bind();
+                textureMesh.normalTexture.ref.value.attachFramebuffer(framebuffer, 0);
+                webgl.readPixels(0, 0, width, height, normals);
+
+                data = { vertices, normals };
+            }
+            return data;
+        };
 
         const groupCount = textureMesh.vertexCount;
         const instanceCount = transform.instanceCount.ref.value;
@@ -171,6 +180,7 @@ export namespace TextureMesh {
         const n = location.normal;
         const m = transform.aTransform.ref.value;
         const getLocation = (groupIndex: number, instanceIndex: number) => {
+            const { vertices, normals } = getData();
             if (instanceIndex < 0) {
                 Vec3.fromArray(p, vertices, groupIndex * 4);
                 Vec3.fromArray(n, normals, groupIndex * 4);
