@@ -87,8 +87,6 @@ export class SsaoPass {
         return scene.opacityAverage < 1 && scene.transparencyMin < props.transparentThreshold;
     }
 
-    readonly target: RenderTarget;
-
     private readonly framebuffer: Framebuffer;
     private readonly blurFirstPassFramebuffer: Framebuffer;
     private readonly blurSecondPassFramebuffer: Framebuffer;
