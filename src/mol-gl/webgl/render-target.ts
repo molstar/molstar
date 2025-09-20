@@ -19,6 +19,8 @@ export interface RenderTarget {
     readonly framebuffer: Framebuffer
     readonly depthRenderbuffer: Renderbuffer | null
 
+    getByteCount: () => number
+
     getWidth: () => number
     getHeight: () => number
     /** binds framebuffer */
@@ -61,6 +63,8 @@ export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResou
         texture: targetTexture,
         framebuffer,
         depthRenderbuffer,
+
+        getByteCount: () => targetTexture.getByteCount() + (depthRenderbuffer ? depthRenderbuffer.getByteCount() : 0),
 
         getWidth: () => _width,
         getHeight: () => _height,

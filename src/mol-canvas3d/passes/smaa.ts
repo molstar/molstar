@@ -62,6 +62,11 @@ export class SmaaPass {
         this._supported = true;
     }
 
+    getByteCount() {
+        if (!this.supported) return 0;
+        return this.edgesTarget.getByteCount() + this.weightsTarget.getByteCount();
+    }
+
     private updateState(viewport: Viewport) {
         const { gl, state } = this.webgl;
 

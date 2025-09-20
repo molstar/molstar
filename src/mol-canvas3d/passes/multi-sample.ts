@@ -96,6 +96,10 @@ export class MultiSamplePass {
         this.compose = getComposeRenderable(webgl, drawPass.colorTarget.texture);
     }
 
+    getByteCount() {
+        return this.colorTarget.getByteCount() + this.composeTarget.getByteCount() + this.holdTarget.getByteCount();
+    }
+
     syncSize() {
         const width = this.drawPass.colorTarget.getWidth();
         const height = this.drawPass.colorTarget.getHeight();

@@ -212,6 +212,20 @@ export class SsaoPass {
         this.blurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.depthBlurProxyTexture, 'vertical');
     }
 
+    getByteCount() {
+        return (
+            this.downsampledDepthTargetOpaque.getByteCount() +
+            this.depthHalfTargetOpaque.getByteCount() +
+            this.depthQuarterTargetOpaque.getByteCount() +
+            this.downsampledDepthTargetTransparent.getByteCount() +
+            this.depthHalfTargetTransparent.getByteCount() +
+            this.depthQuarterTargetTransparent.getByteCount() +
+            this.ssaoDepthTexture.getByteCount() +
+            this.ssaoDepthTransparentTexture.getByteCount() +
+            this.depthBlurProxyTexture.getByteCount()
+        );
+    }
+
     setSize(width: number, height: number) {
         const [w, h] = this.texSize;
         const ssaoScale = this.calcSsaoScale(1);

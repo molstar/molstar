@@ -49,6 +49,10 @@ export class ShadowPass {
         this.renderable = getShadowsRenderable(webgl, depthTextureOpaque);
     }
 
+    getByteCount() {
+        return this.target.getByteCount();
+    }
+
     setSize(width: number, height: number) {
         const [w, h] = this.renderable.values.uTexSize.ref.value;
         if (width !== w || height !== h) {

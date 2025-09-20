@@ -44,6 +44,7 @@ export interface Renderable<T extends RenderableValues> {
     uncull: () => void
     cullSimple: (d: number, radius: number, scale: number) => void
     render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => void
+    getByteCount: () => number
     getProgram: (variant: GraphicsRenderVariant) => Program
     setTransparency: (transparency: Transparency) => void
     update: () => void
@@ -338,6 +339,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
             }
             renderItem.render(variant, sharedTexturesCount, cullEnabled ? mdbDataList : undefined);
         },
+        getByteCount: () => renderItem.getByteCount(),
         getProgram: (variant: GraphicsRenderVariant) => renderItem.getProgram(variant),
         setTransparency: (transparency: Transparency) => renderItem.setTransparency(transparency),
         update: () => {

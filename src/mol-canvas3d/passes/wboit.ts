@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -57,6 +57,11 @@ export class WboitPass {
     private _supported = false;
     get supported() {
         return this._supported;
+    }
+
+    getByteCount() {
+        if (!this._supported) return 0;
+        return this.textureA.getByteCount() + this.textureB.getByteCount() + this.depthRenderbuffer.getByteCount();
     }
 
     bind() {

@@ -50,6 +50,10 @@ export class DofPass {
         this.renderable = getDofRenderable(webgl, nullTexture, nullTexture, nullTexture);
     }
 
+    getByteCount() {
+        return this.target.getByteCount();
+    }
+
     private updateState(viewport: Viewport) {
         const { gl, state } = this.webgl;
 

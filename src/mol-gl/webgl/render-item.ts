@@ -58,6 +58,7 @@ export type MultiDrawBaseData = {
 export interface RenderItem<T extends string> {
     readonly id: number
     readonly materialId: number
+    getByteCount(): number
     getProgram: (variant: T) => Program
     setTransparency: (transparency: Transparency) => void
 
@@ -205,6 +206,20 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
     return {
         id,
         materialId,
+        getByteCount() {
+            let count = 0;
+            for (let i = 0, il = attributeBuffers.length; i < il; ++i) {
+                count += attributeBuffers[i][1].getByteCount();
+            }
+            if (elementsBuffer) count += elementsBuffer.getByteCount();
+            for (let i = 0, il = textures.length; i < il; ++i) {
+                count += textures[i][1].getByteCount();
+            }
+            for (let i = 0, il = materialTextures.length; i < il; ++i) {
+                count += materialTextures[i][1].getByteCount();
+            }
+            return count;
+        },
         getProgram: (variant: T) => programs[variant],
         setTransparency: (value: Transparency) => {
             if (value === transparency) return;

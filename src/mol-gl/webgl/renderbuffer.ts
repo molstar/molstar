@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -35,6 +35,19 @@ export function getFormat(gl: GLRenderingContext, format: RenderbufferFormat) {
     }
 }
 
+function getFormatSize(format: RenderbufferFormat): number {
+    switch (format) {
+        case 'depth16': return 4;
+        case 'stencil8': return 2;
+        case 'rgba4': return 4;
+        case 'depth-stencil': return 4;
+        case 'depth24': return 3;
+        case 'depth32f': return 4;
+        case 'depth24-stencil8': return 4;
+        case 'depth32f-stencil8': return 5;
+    }
+}
+
 export function getAttachment(gl: GLRenderingContext, attachment: RenderbufferAttachment) {
     switch (attachment) {
         case 'depth': return gl.DEPTH_ATTACHMENT;
@@ -46,6 +59,8 @@ export function getAttachment(gl: GLRenderingContext, attachment: RenderbufferAt
 
 export interface Renderbuffer {
     readonly id: number
+
+    getByteCount: () => number
 
     bind: () => void
     attachFramebuffer: (framebuffer: Framebuffer) => void
@@ -80,6 +95,8 @@ export function createRenderbuffer(gl: GLRenderingContext, format: RenderbufferF
 
     return {
         id: getNextRenderbufferId(),
+
+        getByteCount: () => getFormatSize(format) * _width * _height,
 
         bind,
         attachFramebuffer: (framebuffer: Framebuffer) => {

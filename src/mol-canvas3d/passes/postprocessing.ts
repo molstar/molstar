@@ -202,6 +202,15 @@ export class PostprocessingPass {
         this.background = new BackgroundPass(webgl, assetManager, width, height);
     }
 
+    getByteCount() {
+        return (
+            this.target.getByteCount() +
+            this.ssao.getByteCount() +
+            this.shadow.getByteCount() +
+            this.outline.getByteCount()
+        );
+    }
+
     setSize(width: number, height: number) {
         const [w, h] = this.renderable.values.uTexSize.ref.value;
 
@@ -372,6 +381,14 @@ export class AntialiasingPass {
         this.fxaa = new FxaaPass(webgl, this.target.texture);
         this.smaa = new SmaaPass(webgl, this.target.texture);
         this.cas = new CasPass(webgl, this.target.texture);
+    }
+
+    getByteCount() {
+        return (
+            this.target.getByteCount() +
+            this.internalTarget.getByteCount() +
+            this.smaa.getByteCount()
+        );
     }
 
     setSize(width: number, height: number) {

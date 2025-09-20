@@ -55,6 +55,10 @@ export class MarkingPass {
         this.overlay = getOverlayRenderable(webgl, this.edgesTarget.texture);
     }
 
+    getByteCount() {
+        return this.depthTarget.getByteCount() + this.maskTarget.getByteCount() + this.edgesTarget.getByteCount();
+    }
+
     private setEdgeState(viewport: Viewport) {
         const { gl, state } = this.webgl;
 

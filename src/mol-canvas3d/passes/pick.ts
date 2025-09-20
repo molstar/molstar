@@ -117,6 +117,25 @@ export class PickPass {
         }
     }
 
+    getByteCount() {
+        if (this.webgl.extensions.drawBuffers) {
+            return (
+                this.objectPickTexture.getByteCount() +
+                this.instancePickTexture.getByteCount() +
+                this.groupPickTexture.getByteCount() +
+                this.depthPickTexture.getByteCount() +
+                this.depthRenderbuffer.getByteCount()
+            );
+        } else {
+            return (
+                this.objectPickTarget.getByteCount() +
+                this.instancePickTarget.getByteCount() +
+                this.groupPickTarget.getByteCount() +
+                this.depthPickTarget.getByteCount()
+            );
+        }
+    }
+
     dispose() {
         if (this.webgl.extensions.drawBuffers) {
             this.framebuffer.destroy();

@@ -120,6 +120,25 @@ export class DrawPass {
         this.setTransparency(transparency);
     }
 
+    getByteCount() {
+        return (
+            this.drawTarget.getByteCount() +
+            this.colorTarget.getByteCount() +
+            this.transparentColorTarget.getByteCount() +
+            this.depthTargetTransparent.getByteCount() +
+            (this.depthTargetOpaque
+                ? this.depthTargetOpaque.getByteCount()
+                : this.depthTextureOpaque.getByteCount()) +
+            this.wboit.getByteCount() +
+            this.dpoit.getByteCount() +
+            this.marking.getByteCount() +
+            this.postprocessing.getByteCount() +
+            this.antialiasing.getByteCount() +
+            this.bloom.getByteCount() +
+            this.dof.getByteCount()
+        );
+    }
+
     reset() {
         this.wboit.reset();
         this.dpoit.reset();

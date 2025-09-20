@@ -50,8 +50,11 @@ type ResourceName = keyof WebGLStats['resourceCounts']
 
 type ByteCounts = {
     texture: number
+    cubeTexture: number
     attribute: number
     elements: number
+    pixelPack: number
+    renderbuffer: number
 }
 
 export interface WebGLResources {
@@ -175,21 +178,33 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
             sets.texture.forEach(r => {
                 texture += (r as Texture).getByteCount();
             });
+
+            let cubeTexture = 0;
             sets.cubeTexture.forEach(r => {
-                texture += (r as Texture).getByteCount();
+                cubeTexture += (r as Texture).getByteCount();
             });
 
             let attribute = 0;
             sets.attribute.forEach(r => {
-                attribute += (r as AttributeBuffer).length * 4;
+                attribute += (r as AttributeBuffer).getByteCount();
             });
 
             let elements = 0;
             sets.elements.forEach(r => {
-                elements += (r as ElementsBuffer).length * 4;
+                elements += (r as ElementsBuffer).getByteCount();
             });
 
-            return { texture, attribute, elements };
+            let pixelPack = 0;
+            sets.pixelPack.forEach(r => {
+                pixelPack += (r as PixelPackBuffer).getByteCount();
+            });
+
+            let renderbuffer = 0;
+            sets.renderbuffer.forEach(r => {
+                renderbuffer += (r as Renderbuffer).getByteCount();
+            });
+
+            return { texture, cubeTexture, attribute, elements, pixelPack, renderbuffer };
         },
 
         linkPrograms: (variants?: ProgramVariant[]) => {

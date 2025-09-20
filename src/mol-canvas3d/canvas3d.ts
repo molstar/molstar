@@ -52,6 +52,7 @@ import { Ray3D } from '../mol-math/geometry/primitives/ray3d';
 import { RayHelper } from './helper/ray-helper';
 import { produce } from '../mol-util/produce';
 import { ShaderManager } from './helper/shader-manager';
+import { toFixed } from '../mol-util/number';
 
 export const CameraFogParams = {
     intensity: PD.Numeric(15, { min: 1, max: 100, step: 1 }),
@@ -939,25 +940,42 @@ namespace Canvas3D {
                 instanceCount: r.values.instanceCount.ref.value,
                 materialId: r.materialId,
                 renderItemId: r.id,
+                geometryType: r.values.dGeometryType.ref.value,
+                'byteCount [MiB]': toFixed(r.getByteCount() / 1024 / 1024, 3),
             }));
 
             console.groupCollapsed(`${items.length} RenderItems`);
 
-            if (items.length < 50) {
+            if (items.length <= 64) {
                 console.table(items);
             } else {
                 console.log(items);
             }
             console.log(JSON.stringify(webgl.stats, undefined, 4));
 
-            const { texture, attribute, elements } = webgl.resources.getByteCounts();
+            const { texture, cubeTexture, attribute, elements, pixelPack, renderbuffer } = webgl.resources.getByteCounts();
             console.log(JSON.stringify({
                 texture: `${(texture / 1024 / 1024).toFixed(3)} MiB`,
+                cubeTexture: `${(cubeTexture / 1024 / 1024).toFixed(3)} MiB`,
                 attribute: `${(attribute / 1024 / 1024).toFixed(3)} MiB`,
                 elements: `${(elements / 1024 / 1024).toFixed(3)} MiB`,
+                pixelPack: `${(pixelPack / 1024 / 1024).toFixed(3)} MiB`,
+                renderbuffer: `${(renderbuffer / 1024 / 1024).toFixed(3)} MiB`,
             }, undefined, 4));
 
-            console.log(JSON.stringify(webgl.timer.formatedStats(), undefined, 4));
+            console.log(JSON.stringify({
+                renderables: `${(scene.renderables.reduce((sum, r) => sum + r.getByteCount(), 0) / 1024 / 1024).toFixed(3)} MiB`,
+                passes: {
+                    draw: `${(passes.draw.getByteCount() / 1024 / 1024).toFixed(3)} MiB`,
+                    illumination: `${(passes.illumination.getByteCount() / 1024 / 1024).toFixed(3)} MiB`,
+                    pick: `${(passes.pick.getByteCount() / 1024 / 1024).toFixed(3)} MiB`,
+                    hiZ: `${(hiZ.getByteCount() / 1024 / 1024).toFixed(3)} MiB`,
+                }
+            }, undefined, 4));
+
+            if (isTimingMode) {
+                console.log(JSON.stringify(webgl.timer.formatedStats(), undefined, 4));
+            }
 
             console.groupEnd();
         }

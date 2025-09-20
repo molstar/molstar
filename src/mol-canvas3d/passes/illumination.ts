@@ -110,6 +110,18 @@ export class IlluminationPass {
         return this._supported;
     }
 
+    getByteCount() {
+        if (!this._supported) return 0;
+        return (
+            this.tracing.getByteCount() +
+            this.transparentTarget.getByteCount() +
+            this.outputTarget.getByteCount() +
+            this.multiSampleComposeTarget.getByteCount() +
+            this.multiSampleHoldTarget.getByteCount() +
+            this.multiSampleAccumulateTarget.getByteCount()
+        );
+    }
+
     getMaxIterations(props: IlluminationProps) {
         return Math.pow(2, props.maxIterations);
     }

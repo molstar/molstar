@@ -102,6 +102,8 @@ export interface Buffer {
 
     readonly length: number
 
+    getByteCount: () => number
+
     getBuffer: () => WebGLBuffer
     updateData: (array: ArrayType) => void
     updateSubData: (array: ArrayType, offset: number, count: number) => void
@@ -144,6 +146,11 @@ function createBuffer(gl: GLRenderingContext, array: ArrayType, usageHint: Usage
         _bpe,
 
         length: _length,
+
+        getByteCount: () => {
+            return _bpe * _length;
+        },
+
         getBuffer: () => _buffer,
 
         updateData,
@@ -277,6 +284,8 @@ export interface PixelPackBuffer {
     readonly _format: number
     readonly _bpe: number
 
+    getByteCount: () => number
+
     read: (x: number, y: number, width: number, height: number) => void
     getSubData: (array: ArrayType) => void
 
@@ -291,7 +300,12 @@ export function createPixelPackBuffer(gl: WebGL2RenderingContext, extensions: We
     const _format = getFormat(gl, format, type);
     const _bpe = getBytesPerElement(format, type);
 
+    let _width = 0;
+    let _height = 0;
+
     function read(x: number, y: number, width: number, height: number) {
+        _width = width;
+        _height = height;
         gl.bindBuffer(gl.PIXEL_PACK_BUFFER, _buffer);
         gl.bufferData(gl.PIXEL_PACK_BUFFER, width * height * _bpe, gl.STREAM_READ);
         gl.readPixels(x, y, width, height, _format, _type, 0);
@@ -312,6 +326,10 @@ export function createPixelPackBuffer(gl: WebGL2RenderingContext, extensions: We
         _type,
         _format,
         _bpe,
+
+        getByteCount: () => {
+            return _bpe * _width * _height;
+        },
 
         read,
         getSubData,

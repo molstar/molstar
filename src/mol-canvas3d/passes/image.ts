@@ -21,7 +21,7 @@ import { MarkingParams } from './marking';
 import { AssetManager } from '../../mol-util/assets';
 import { IlluminationParams, IlluminationPass } from './illumination';
 import { RuntimeContext } from '../../mol-task';
-import { isTimingMode } from '../../mol-util/debug';
+import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 import { printTimerResults } from '../../mol-gl/webgl/timer';
 import { ShaderManager } from '../helper/shader-manager';
 
@@ -73,6 +73,10 @@ export class ImagePass {
         };
 
         this.setSize(1024, 768);
+    }
+
+    getByteCount() {
+        return this.drawPass.getByteCount() + this.illuminationPass.getByteCount() + this.multiSamplePass.getByteCount();
     }
 
     updateBackground() {
@@ -138,6 +142,10 @@ export class ImagePass {
                     printTimerResults([result]);
                 }
             }
+        }
+
+        if (isDebugMode) {
+            console.log(`image pass byte count ${(this.getByteCount() / 1024 / 1024).toFixed(3)} MiB`);
         }
     }
 

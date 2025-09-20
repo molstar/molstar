@@ -450,6 +450,8 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
                 framebuffer: createNullFramebuffer(),
                 depthRenderbuffer: null,
 
+                getByteCount: () => 0,
+
                 getWidth: () => getDrawingBufferSize(gl, xr.layer).width,
                 getHeight: () => getDrawingBufferSize(gl, xr.layer).height,
                 bind: () => {
