@@ -837,6 +837,7 @@ namespace Canvas3D {
 
         function commit(isSynchronous: boolean = false) {
             const allCommited = commitScene(isSynchronous);
+            shaderManager.updateRequired(p);
             // Only reset the camera after the full scene has been commited.
             if (allCommited) {
                 resolveCameraReset();
@@ -917,10 +918,7 @@ namespace Canvas3D {
             // clear hi-Z buffer when scene changes
             hiZ.clear();
 
-            const done = scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs);
-            shaderManager.updateRequired(p);
-
-            if (!done) {
+            if (!scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs)) {
                 commitQueueSize.next(scene.commitQueueSize);
                 return false;
             }
