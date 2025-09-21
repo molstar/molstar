@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem, Transparency } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, Values, InternalSchema, SizeSchema, InternalValues, ValueSpec, DefineSpec, GlobalTextureSchema, UniformSpec, TextureSpec, GlobalDefineValues, GlobalDefines } from './schema';
+import { GlobalUniformSchema, BaseSchema, Values, InternalSchema, SizeSchema, InternalValues, ValueSpec, DefineSpec, GlobalTextureSchema, UniformSpec, TextureSpec, GlobalDefineValues, GlobalDefines, GlobalDefineSchema } from './schema';
 import { SpheresShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
 
@@ -39,7 +39,7 @@ export type SpheresSchema = typeof SpheresSchema
 export type SpheresValues = Values<SpheresSchema>
 
 export function SpheresRenderable(ctx: WebGLContext, id: number, values: SpheresValues, state: RenderableState, materialId: number, transparency: Transparency, globals: GlobalDefines): Renderable<SpheresValues> {
-    const schema = { ...GlobalUniformSchema, ...GlobalTextureSchema, ...InternalSchema, ...SpheresSchema };
+    const schema = { ...GlobalUniformSchema, ...GlobalTextureSchema, ...GlobalDefineSchema, ...InternalSchema, ...SpheresSchema };
     const renderValues: SpheresValues & InternalValues & GlobalDefineValues = {
         ...values,
         uObjectId: ValueCell.create(id),
