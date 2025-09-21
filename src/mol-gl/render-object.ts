@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,6 +17,8 @@ import { TextureMeshValues, TextureMeshRenderable } from './renderable/texture-m
 import { ImageValues, ImageRenderable } from './renderable/image';
 import { CylindersRenderable, CylindersValues } from './renderable/cylinders';
 import { Transparency } from './webgl/render-item';
+import { GlobalDefines } from './renderable/schema';
+import { assertUnreachable } from '../mol-util/type-helpers';
 
 const getNextId = idFactory(0, 0x7FFFFFFF);
 
@@ -49,17 +51,17 @@ export function createRenderObject<T extends RenderObjectType>(type: T, values: 
     return { id: getNextId(), type, values, state, materialId } as GraphicsRenderObject<T>;
 }
 
-export function createRenderable<T extends RenderObjectType>(ctx: WebGLContext, o: GraphicsRenderObject<T>, transparency: Transparency): Renderable<any> {
+export function createRenderable<T extends RenderObjectType>(ctx: WebGLContext, o: GraphicsRenderObject<T>, transparency: Transparency, globals: GlobalDefines): Renderable<any> {
     switch (o.type) {
-        case 'mesh': return MeshRenderable(ctx, o.id, o.values as MeshValues, o.state, o.materialId, transparency);
-        case 'points': return PointsRenderable(ctx, o.id, o.values as PointsValues, o.state, o.materialId, transparency);
-        case 'spheres': return SpheresRenderable(ctx, o.id, o.values as SpheresValues, o.state, o.materialId, transparency);
-        case 'cylinders': return CylindersRenderable(ctx, o.id, o.values as CylindersValues, o.state, o.materialId, transparency);
-        case 'text': return TextRenderable(ctx, o.id, o.values as TextValues, o.state, o.materialId, transparency);
-        case 'lines': return LinesRenderable(ctx, o.id, o.values as LinesValues, o.state, o.materialId, transparency);
-        case 'direct-volume': return DirectVolumeRenderable(ctx, o.id, o.values as DirectVolumeValues, o.state, o.materialId, transparency);
-        case 'image': return ImageRenderable(ctx, o.id, o.values as ImageValues, o.state, o.materialId, transparency);
-        case 'texture-mesh': return TextureMeshRenderable(ctx, o.id, o.values as TextureMeshValues, o.state, o.materialId, transparency);
+        case 'mesh': return MeshRenderable(ctx, o.id, o.values as MeshValues, o.state, o.materialId, transparency, globals);
+        case 'points': return PointsRenderable(ctx, o.id, o.values as PointsValues, o.state, o.materialId, transparency, globals);
+        case 'spheres': return SpheresRenderable(ctx, o.id, o.values as SpheresValues, o.state, o.materialId, transparency, globals);
+        case 'cylinders': return CylindersRenderable(ctx, o.id, o.values as CylindersValues, o.state, o.materialId, transparency, globals);
+        case 'text': return TextRenderable(ctx, o.id, o.values as TextValues, o.state, o.materialId, transparency, globals);
+        case 'lines': return LinesRenderable(ctx, o.id, o.values as LinesValues, o.state, o.materialId, transparency, globals);
+        case 'direct-volume': return DirectVolumeRenderable(ctx, o.id, o.values as DirectVolumeValues, o.state, o.materialId, transparency, globals);
+        case 'image': return ImageRenderable(ctx, o.id, o.values as ImageValues, o.state, o.materialId, transparency, globals);
+        case 'texture-mesh': return TextureMeshRenderable(ctx, o.id, o.values as TextureMeshValues, o.state, o.materialId, transparency, globals);
     }
-    throw new Error('unsupported type');
+    assertUnreachable(o.type);
 }

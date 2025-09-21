@@ -432,7 +432,10 @@ namespace Canvas3D {
         let currentTime = 0;
 
         updateViewport();
-        const scene = Scene.create(webgl, passes.draw.transparency);
+        const scene = Scene.create(webgl, passes.draw.transparency, {
+            dColorMarker: p.renderer.colorMarker,
+            dLightCount: p.renderer.light?.length,
+        });
 
         function getSceneRadius() {
             return scene.boundingSphere.radius * p.sceneRadiusFactor;
@@ -834,7 +837,6 @@ namespace Canvas3D {
 
         function commit(isSynchronous: boolean = false) {
             const allCommited = commitScene(isSynchronous);
-            shaderManager.updateRequired(p);
             // Only reset the camera after the full scene has been commited.
             if (allCommited) {
                 resolveCameraReset();
@@ -915,7 +917,10 @@ namespace Canvas3D {
             // clear hi-Z buffer when scene changes
             hiZ.clear();
 
-            if (!scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs)) {
+            const done = scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs);
+            shaderManager.updateRequired(p);
+
+            if (!done) {
                 commitQueueSize.next(scene.commitQueueSize);
                 return false;
             }
@@ -1332,7 +1337,13 @@ namespace Canvas3D {
                 if (props.illumination) Object.assign(p.illumination, props.illumination);
                 if (props.multiSample) Object.assign(p.multiSample, props.multiSample);
                 if (props.hiZ) hiZ.setProps(props.hiZ);
-                if (props.renderer) renderer.setProps(props.renderer);
+                if (props.renderer) {
+                    scene.setGlobals({
+                        dColorMarker: props.renderer.colorMarker ?? renderer.props.colorMarker,
+                        dLightCount: props.renderer.light?.length ?? renderer.props.light.length,
+                    });
+                    renderer.setProps(props.renderer);
+                }
                 if (props.trackball) controls.setProps(props.trackball);
                 if (props.interaction) interactionHelper.setProps(props.interaction);
                 if (props.debug) helper.debug.setProps(props.debug);

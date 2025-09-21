@@ -17,6 +17,8 @@ import { hash1 } from '../mol-data/util';
 import { GraphicsRenderable } from './renderable';
 import { Transparency } from './webgl/render-item';
 import { clamp } from '../mol-math/interpolate';
+import { GlobalDefines } from './renderable/schema';
+import { ValueCell } from '../mol-util/value-cell';
 
 const boundaryHelper = new BoundaryHelper('98');
 
@@ -75,6 +77,7 @@ interface Scene extends Object3D {
     /** Returns `true` if some visibility has changed, `false` otherwise. */
     syncVisibility: () => boolean
     setTransparency: (transparency: Transparency) => void
+    setGlobals: (values: GlobalDefines) => void
     update: (objects: ArrayLike<GraphicsRenderObject> | undefined, keepBoundingSphere: boolean) => void
     add: (o: GraphicsRenderObject) => void // GraphicsRenderable
     remove: (o: GraphicsRenderObject) => void
@@ -101,7 +104,7 @@ namespace Scene {
         readonly renderables: ReadonlyArray<GraphicsRenderable>
     }
 
-    export function create(ctx: WebGLContext, transparency: Transparency = 'blended'): Scene {
+    export function create(ctx: WebGLContext, transparency: Transparency = 'blended', globals: GlobalDefines = { dColorMarker: true, dLightCount: 1 }): Scene {
         const renderableMap = new Map<GraphicsRenderObject, GraphicsRenderable>();
         const renderables: GraphicsRenderable[] = [];
         const boundingSphere = Sphere3D();
@@ -130,7 +133,7 @@ namespace Scene {
 
         function add(o: GraphicsRenderObject) {
             if (!renderableMap.has(o)) {
-                const renderable = createRenderable(ctx, o, transparency);
+                const renderable = createRenderable(ctx, o, transparency, globals);
                 renderables.push(renderable);
                 if (o.type === 'direct-volume') {
                     volumes.push(renderable);
@@ -309,6 +312,14 @@ namespace Scene {
                 transparency = value;
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     renderables[i].setTransparency(value);
+                }
+            },
+            setGlobals: (values: GlobalDefines) => {
+                globals = values;
+                for (const r of renderables) {
+                    ValueCell.updateIfChanged(r.values.dColorMarker, values.dColorMarker);
+                    ValueCell.updateIfChanged(r.values.dLightCount, values.dLightCount);
+                    r.update();
                 }
             },
             update(objects, keepBoundingSphere) {
