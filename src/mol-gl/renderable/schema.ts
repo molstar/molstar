@@ -198,6 +198,14 @@ export const GlobalTextureSchema = {
 export type GlobalTextureSchema = typeof GlobalTextureSchema
 export type GlobalTextureValues = Values<GlobalTextureSchema>
 
+export const GlobalDefineSchema = {
+    dLightCount: DefineSpec('number'),
+    dColorMarker: DefineSpec('boolean'),
+} as const;
+export type GlobalDefineSchema = typeof GlobalDefineSchema
+export type GlobalDefineValues = Values<GlobalDefineSchema>
+export type GlobalDefines = UnboxedValues<GlobalDefineSchema>
+
 export const InternalSchema = {
     uObjectId: UniformSpec('i'),
 } as const;
@@ -321,9 +329,6 @@ export const BaseSchema = {
     ...EmissiveSchema,
     ...SubstanceSchema,
     ...ClippingSchema,
-
-    dLightCount: DefineSpec('number'),
-    dColorMarker: DefineSpec('boolean'),
 
     dClipObjectCount: DefineSpec('number'),
     dClipVariant: DefineSpec('string', ['instance', 'pixel']),

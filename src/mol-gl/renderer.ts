@@ -336,17 +336,6 @@ namespace Renderer {
                 }
             }
 
-            let needUpdate = false;
-            if (r.values.dLightCount.ref.value !== light.count) {
-                ValueCell.update(r.values.dLightCount, light.count);
-                needUpdate = true;
-            }
-            if (r.values.dColorMarker.ref.value !== p.colorMarker) {
-                ValueCell.update(r.values.dColorMarker, p.colorMarker);
-                needUpdate = true;
-            }
-            if (needUpdate) r.update();
-
             const program = r.getProgram(variant);
             if (state.currentProgramId !== program.id) {
                 // console.log('new program')
