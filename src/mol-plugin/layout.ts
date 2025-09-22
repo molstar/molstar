@@ -115,7 +115,11 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
                 }
 
                 if (!hasExp) head.appendChild(this.expandedViewport);
-
+                
+                // TODO only use fullsceen mode if enabled in config
+                // if (state.requestFullscreen) {
+                body.requestFullscreen();
+                // }
 
                 const s = body.style;
 
@@ -157,6 +161,8 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
                         break;
                     }
                 }
+
+                document.exitFullscreen();
 
                 if (this.rootState) {
                     const t = this.rootState;
