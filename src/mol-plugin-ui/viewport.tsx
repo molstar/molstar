@@ -101,11 +101,17 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
         }
     }
 
-    icon(icon: React.FC, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
-        return <IconButton svg={icon} toggleState={isOn} onClick={onClick} title={title} style={{ background: 'transparent' }} />;
+    icon(icon: React.FC, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true, disabled = false) {
+        return <IconButton svg={icon} toggleState={isOn} onClick={onClick} title={title} style={{ background: 'transparent' }} disabled={disabled} />;
     }
 
     render() {
+        const showXr = this.plugin.config.get(PluginConfig.Viewport.ShowXR);
+        const xrIsSupported = !!this.plugin.canvas3d?.xr.isSupported.value;
+        const xrIsPresenting = !!this.plugin.canvas3d?.xr.isPresenting.value;
+        const xr = showXr === 'always' || (showXr === 'auto' && xrIsSupported);
+        const xrTitle = !xrIsSupported ? 'XR not supported' : (xrIsPresenting ? 'Exit XR' : 'Enter XR');
+
         return <div className={'msp-viewport-controls'}>
             <div className='msp-viewport-controls-buttons'>
                 {this.plugin.config.get(PluginConfig.Viewport.ShowReset) &&
@@ -143,7 +149,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                     {this.plugin.config.get(PluginConfig.Viewport.ShowControls) && this.icon(BuildOutlinedSvg, this.toggleControls, 'Toggle Controls Panel', this.plugin.layout.state.showControls)}
                     {this.plugin.config.get(PluginConfig.Viewport.ShowExpand) && this.icon(FullscreenSvg, this.toggleExpanded, 'Toggle Expanded Viewport', this.plugin.layout.state.isExpanded)}
                     {this.plugin.config.get(PluginConfig.Viewport.ShowSettings) && this.icon(TuneSvg, this.toggleSettingsExpanded, 'Settings / Controls Info', this.state.isSettingsExpanded)}
-                    {this.plugin.config.get(PluginConfig.Viewport.ShowXR) && this.plugin.canvas3d?.xr.isSupported.value && this.icon(HeadsetVRSvg, this.toggleXR, 'XR', this.plugin.canvas3d?.xr.isPresenting.value ?? false)}
+                    {xr && this.icon(HeadsetVRSvg, this.toggleXR, xrTitle, xrIsPresenting, !xrIsSupported)}
                 </div>
                 {this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode) && <div>
                     <div className='msp-semi-transparent-background' />
