@@ -695,7 +695,10 @@ namespace InputObserver {
                     if (primary) handleTrackedPointer(primary, false);
                     if (secondary) handleTrackedPointer(secondary, true);
                 }
-                trackedPointerState.distance = -1;
+                // end gesture only if all button are released
+                if (!primary?.buttons && !secondary?.buttons) {
+                    trackedPointerState.distance = -1;
+                }
             }
         }
 
