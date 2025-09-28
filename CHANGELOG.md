@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+
+## [v5.0.0] - 2025-09-28
 - [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
 - [Breaking] `Box3D.nearestIntersectionWithRay` -> `Ray3D.intersectBox3D`
 - [Breaking] `Plane3D.distanceToSpher3D` -> `distanceToSphere3D` (fix spelling)
@@ -115,7 +117,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add `PointerHelper` for rendering XR input devices
     - Add XR button to Viewer and Mesoscale Explorer
     - Add XR button to render-structure in tests/browser
-- Fix illumination denoising with transparency on transparent background 
+- Fix illumination denoising with transparency on transparent background
 - Change the `to_mmCIF` function parameter from `structure` to `structures` to support either a single structure or an array of structures
 - ModelServer and VolumeServer: add configurable robots.txt
 - Adaptive parallel shader compilation
