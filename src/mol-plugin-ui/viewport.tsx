@@ -110,7 +110,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
         const xrIsSupported = !!this.plugin.canvas3d?.xr.isSupported.value;
         const xrIsPresenting = !!this.plugin.canvas3d?.xr.isPresenting.value;
         const xr = showXr === 'always' || (showXr === 'auto' && xrIsSupported);
-        const xrTitle = !xrIsSupported ? 'XR not supported' : (xrIsPresenting ? 'Exit XR' : 'Enter XR');
+        const xrTitle = !xrIsSupported ? 'Augmented/Virtual Reality unavailable' : (xrIsPresenting ? 'Exit XR' : 'Enter XR');
 
         return <div className={'msp-viewport-controls'}>
             <div className='msp-viewport-controls-buttons'>
