@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Lukáš Polák <admin@lukaspolak.cz>
  */
 
 import { ParamDefinition as PD } from '../mol-util/param-definition';
@@ -209,10 +210,11 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
 
     constructor(private context: PluginContext) {
         const config = new PluginConfigManager(context.spec.config);
+        const expandToFullscreen = config.get(PluginConfig.General.ExpandToFullscreen) ?? false;
 
-        super({ ...PD.getDefaultValues(PluginLayoutStateParams), ...(context.spec.layout && context.spec.layout.initial), expandToFullscreen: config.get(PluginConfig.General.ExpandToFullscreen) ?? false });
+        super({ ...PD.getDefaultValues(PluginLayoutStateParams), ...(context.spec.layout && context.spec.layout.initial), expandToFullscreen });
 
-        if (config.get(PluginConfig.General.ExpandToFullscreen)) {
+        if (expandToFullscreen) {
             const fullscreenChangeHandler = () => {
                 // In case the user exits fullscreen mode by pressing ESC, treat it as an expand toggle
                 if (!document.fullscreenElement) {
