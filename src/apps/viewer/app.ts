@@ -108,6 +108,7 @@ const DefaultViewerOptions = {
     powerPreference: PluginConfig.General.PowerPreference.defaultValue,
     resolutionMode: PluginConfig.General.ResolutionMode.defaultValue,
     illumination: false,
+    expandToFullscreen: PluginConfig.General.ExpandToFullscreen.defaultValue,
 
     viewportShowReset: PluginConfig.Viewport.ShowReset.defaultValue,
     viewportShowScreenshotControls: PluginConfig.Viewport.ShowScreenshotControls.defaultValue,
@@ -189,6 +190,7 @@ export class Viewer {
                 [PluginConfig.General.AllowMajorPerformanceCaveat, o.allowMajorPerformanceCaveat],
                 [PluginConfig.General.PowerPreference, o.powerPreference],
                 [PluginConfig.General.ResolutionMode, o.resolutionMode],
+                [PluginConfig.General.ExpandToFullscreen, o.expandToFullscreen],
                 [PluginConfig.Viewport.ShowReset, o.viewportShowReset],
                 [PluginConfig.Viewport.ShowScreenshotControls, o.viewportShowScreenshotControls],
                 [PluginConfig.Viewport.ShowControls, o.viewportShowControls],
