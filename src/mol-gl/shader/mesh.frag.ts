@@ -21,11 +21,7 @@ void main() {
     #include fade_lod
     #include clip_pixel
 
-    // Workaround for buggy gl_FrontFacing (e.g. on some integrated Intel GPUs)
-    vec3 fdx = dFdx(vViewPosition);
-    vec3 fdy = dFdy(vViewPosition);
-    vec3 faceNormal = normalize(cross(fdx,fdy));
-    bool frontFacing = dot(vNormal, faceNormal) > 0.0;
+    bool frontFacing = gl_FrontFacing;
 
     #if defined(dFlipSided)
         interior = frontFacing;
@@ -37,7 +33,9 @@ void main() {
 
     #ifdef dNeedsNormal
         #if defined(dFlatShaded)
-            vec3 normal = -faceNormal;
+            vec3 fdx = dFdx(vViewPosition);
+            vec3 fdy = dFdy(vViewPosition);
+            vec3 normal = -normalize(cross(fdx,fdy));
         #else
             vec3 normal = -normalize(vNormal);
             if (uDoubleSided) normal *= float(frontFacing) * 2.0 - 1.0;
