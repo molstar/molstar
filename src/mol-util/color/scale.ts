@@ -101,7 +101,7 @@ export namespace ColorScale {
     function valueToColorWithOffsets(value: number, src: Color[], off: SortedArray<number>, min: number, maxId: number, diff: number) {
         const t = clamp((value - min) / diff, 0, 1);
         const i = SortedArray.findPredecessorIndex(off, t);
-        
+
         if (i === 0) {
             return src[0];
         } else if (i > maxId) {
