@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,12 +21,10 @@ void main() {
     #include fade_lod
     #include clip_pixel
 
-    bool frontFacing = gl_FrontFacing;
-
     #if defined(dFlipSided)
-        interior = frontFacing;
+        interior = gl_FrontFacing;
     #else
-        interior = !frontFacing;
+        interior = !gl_FrontFacing;
     #endif
 
     float fragmentDepth = gl_FragCoord.z;
@@ -38,7 +36,7 @@ void main() {
             vec3 normal = -normalize(cross(fdx,fdy));
         #else
             vec3 normal = -normalize(vNormal);
-            if (uDoubleSided) normal *= float(frontFacing) * 2.0 - 1.0;
+            if (uDoubleSided) normal *= float(gl_FrontFacing) * 2.0 - 1.0;
         #endif
     #endif
 
