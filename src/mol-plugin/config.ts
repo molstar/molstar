@@ -37,6 +37,7 @@ export const PluginConfig = {
         AllowMajorPerformanceCaveat: item('plugin-config.allow-major-performance-caveat', false),
         PowerPreference: item<WebGLContextAttributes['powerPreference']>('plugin-config.power-preference', 'high-performance'),
         ResolutionMode: item<'auto' | 'scaled' | 'native'>('plugin-config.resolution-mode', 'auto'),
+        ExpandToFullscreen: item('plugin-config.expand-to-fullscreen', false),
     },
     State: {
         DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),
