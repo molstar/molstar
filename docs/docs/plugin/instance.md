@@ -247,7 +247,7 @@ async function init() {
     const canvas = <HTMLCanvasElement> document.getElementById('molstar-canvas');
     const parent = <HTMLDivElement> document.getElementById('molstar-parent');
 
-    if (!(await plugin.initViewer(canvas, parent))) {
+    if (!(await plugin.initViewerAsync(canvas, parent))) {
         console.error('Failed to init Mol*');
         return;
     }
