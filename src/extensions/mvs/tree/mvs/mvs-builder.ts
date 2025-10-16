@@ -7,9 +7,10 @@
 
 import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
 import { GlobalMetadata, MVSData_State, Snapshot, SnapshotMetadata } from '../../mvs-data';
-import { CustomProps } from '../generic/tree-schema';
 import { MVSAnimationNodeParams, MVSAnimationSubtree } from '../animation/animation-tree';
+import { CustomProps } from '../generic/tree-schema';
 import { MVSKind, MVSNode, MVSNodeParams, MVSSubtree } from './mvs-tree';
+import { ColorT, PrimitivePositionT } from './param-types';
 
 
 /** Create a new MolViewSpec builder containing only a root node. Example of MVS builder usage:
@@ -365,6 +366,11 @@ export class Primitives extends _Base<'primitives'> implements FocusMixin {
         this.addChild('primitive', { kind: 'distance_measurement', ...params });
         return this;
     }
+    /** Defines an angle between vectors (b - a) and (c - b). */
+    angle(params: MVSPrimitiveSubparams<'angle_measurement'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'angle_measurement', ...params });
+        return this;
+    }
     /** Defines a label. */
     label(params: MVSPrimitiveSubparams<'label'> & CustomAndRef): Primitives {
         this.addChild('primitive', { kind: 'label', ...params });
@@ -375,8 +381,19 @@ export class Primitives extends _Base<'primitives'> implements FocusMixin {
         this.addChild('primitive', { kind: 'ellipse', ...params });
         return this;
     }
-    /** Defines an ellipsoid */
+    /** Defines an ellipsoid. */
     ellipsoid(params: MVSPrimitiveSubparams<'ellipsoid'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'ellipsoid', ...params });
+        return this;
+    }
+    /** Defines a sphere (a special case of ellipsoid). */
+    sphere(params: {
+        center: PrimitivePositionT,
+        radius?: number | null,
+        radius_extent?: number | null,
+        color?: ColorT | null,
+        tooltip?: string | null,
+    } & CustomAndRef): Primitives {
         this.addChild('primitive', { kind: 'ellipsoid', ...params });
         return this;
     }
