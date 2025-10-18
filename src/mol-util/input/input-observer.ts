@@ -231,6 +231,12 @@ export type TrackedPointerInput = {
     axes?: readonly number[],
 }
 
+export type ScreenTouchInput = {
+    x: number,
+    y: number,
+    ray: Ray3D,
+}
+
 export const EmptyKeyInput: KeyInput = {
     key: '',
     code: '',
@@ -298,6 +304,7 @@ interface InputObserver {
 
     setPixelScale: (pixelScale: number) => void
     updateTrackedPointers: (trackedPointers: TrackedPointerInput[]) => void
+    updateScreenTouches: (screenTouches: ScreenTouchInput[]) => void
     requestPointerLock: (viewport: Viewport) => void
     exitPointerLock: () => void
     dispose: () => void
@@ -342,6 +349,7 @@ namespace InputObserver {
 
             setPixelScale: noop,
             updateTrackedPointers: noop,
+            updateScreenTouches: noop,
             requestPointerLock: noop,
             exitPointerLock: noop,
             dispose: noop
@@ -700,6 +708,69 @@ namespace InputObserver {
                     trackedPointerState.distance = -1;
                 }
             }
+        }
+
+        let screenTouchPrev: ScreenTouchInput | undefined = undefined;
+        let screenTouchStart: ScreenTouchInput | undefined = undefined;
+        let screenTouchDistance = -1;
+
+        function handleScreenTouches(screenTouches: ScreenTouchInput[]) {
+            if (screenTouches.length === 2) {
+                const a = Vec2.fromObj(screenTouches[0]);
+                const b = Vec2.fromObj(screenTouches[1]);
+                const d = Vec2.distance(a, b);
+                const button = ButtonsType.Flag.Trigger;
+
+                if (screenTouchDistance > 0) {
+                    const f = d / screenTouchDistance;
+                    gesture.next({
+                        scale: f, rotation: 0, deltaScale: 0, deltaRotation: 0,
+                        buttons: button, button, modifiers: getModifierKeys()
+                    });
+                }
+
+                screenTouchDistance = d;
+                screenTouchPrev = undefined;
+                return;
+            }
+
+            screenTouchDistance = -1;
+
+            const t = screenTouches[0];
+            if (!t) {
+                if (screenTouchStart && screenTouchPrev) {
+                    const a = Vec2.fromObj(screenTouchStart);
+                    const b = Vec2.fromObj(screenTouchPrev);
+                    if (Vec2.distance(a, b) < 10) {
+                        const [x, y] = a;
+                        const [pageX, pageY] = [x, y];
+                        const modifiers = ModifiersKeys.create();
+                        const button = ButtonsType.Flag.Trigger;
+                        const { ray } = screenTouchStart;
+
+                        click.next({ x, y, pageX, pageY, buttons: button, button, modifiers, ray });
+                    }
+                    interactionEnd.next(undefined);
+                }
+                screenTouchPrev = undefined;
+                screenTouchStart = undefined;
+                return;
+            }
+
+            const p = Vec2.fromObj(t);
+            const [x, y] = p;
+            const [pageX, pageY] = [x, y];
+            const modifiers = ModifiersKeys.create();
+            const button = ButtonsType.Flag.Trigger;
+            const useDelta = true;
+            const isStart = screenTouchPrev === undefined;
+
+            const dx = screenTouchPrev ? x - screenTouchPrev.x : 0;
+            const dy = screenTouchPrev ? y - screenTouchPrev.y : 0;
+            screenTouchPrev = t;
+            if (isStart) screenTouchStart = t;
+
+            drag.next({ x, y, dx, dy, pageX, pageY, buttons: button, button, modifiers, isStart, useDelta });
         }
 
         function getCenterTouch(ev: TouchEvent): PointerEvent {
@@ -1123,6 +1194,10 @@ namespace InputObserver {
             updateTrackedPointers: (input: TrackedPointerInput[]) => {
                 handleTrackedPointers(input);
                 trackedPointers.next(input);
+            },
+
+            updateScreenTouches: (input: ScreenTouchInput[]) => {
+                handleScreenTouches(input);
             },
 
             requestPointerLock: (viewport: Viewport) => {

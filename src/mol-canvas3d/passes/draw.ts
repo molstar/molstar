@@ -393,6 +393,8 @@ export class DrawPass {
     }
 
     private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props) {
+        if (camera.disabled) return;
+
         const volumeRendering = scene.volumes.renderables.length > 0;
         const postprocessingEnabled = PostprocessingPass.isEnabled(props.postprocessing);
         const antialiasingEnabled = AntialiasingPass.isEnabled(props.postprocessing);

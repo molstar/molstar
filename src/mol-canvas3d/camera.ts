@@ -34,6 +34,8 @@ interface ICamera {
     readonly forceFull: boolean;
     readonly scale: number;
     readonly minTargetDistance: number;
+
+    readonly disabled: boolean;
 }
 
 const tmpClip = Vec4();
@@ -50,6 +52,8 @@ export class Camera implements ICamera {
     readonly viewport: Viewport;
     readonly state: Readonly<Camera.Snapshot> = Camera.createDefaultSnapshot();
     readonly viewOffset = Camera.ViewOffset();
+
+    readonly disabled = false as const;
 
     near = 1;
     far = 10000;
