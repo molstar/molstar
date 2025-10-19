@@ -12,7 +12,7 @@ import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 import { Camera, ICamera } from '../camera';
 import { PointerHelper } from './pointer-helper';
 import { Vec2 } from '../../mol-math/linear-algebra/3d/vec2';
-import { ButtonsType, InputObserver, TrackedPointerInput } from '../../mol-util/input/input-observer';
+import { ButtonsType, InputObserver, ScreenTouchInput, TrackedPointerInput } from '../../mol-util/input/input-observer';
 import { Plane3D } from '../../mol-math/geometry/primitives/plane3d';
 import { Vec4 } from '../../mol-math/linear-algebra/3d/vec4';
 import { StereoCamera } from '../camera/stereo';
@@ -160,9 +160,22 @@ export class XRManager {
         const points: Vec3[] = [];
 
         const trackedPointers: TrackedPointerInput[] = [];
+        const screenTouches: ScreenTouchInput[] = [];
 
         if (xrSession.inputSources) {
             for (const inputSource of xrSession.inputSources) {
+                if (inputSource.targetRayMode === 'screen') {
+                    if (inputSource.gamepad) {
+                        const { axes } = inputSource.gamepad;
+                        const { width, height } = camLeft.viewport;
+                        const x = ((axes[0] + 1) / 2) * width;
+                        const y = ((axes[1] + 1) / 2) * height;
+                        const ray = camLeft.getRay(Ray3D(), x, height - y);
+                        screenTouches.push({ x, y, ray });
+                    }
+                    continue;
+                }
+
                 if (inputSource.targetRayMode !== 'tracked-pointer') continue;
 
                 const { handedness, targetRaySpace, gamepad } = inputSource;
@@ -219,6 +232,8 @@ export class XRManager {
         }
 
         input.updateTrackedPointers(trackedPointers);
+        input.updateScreenTouches(screenTouches);
+
         pointerHelper.ensureEnabled();
         pointerHelper.update(pointers, points, this.hit);
 
