@@ -292,10 +292,11 @@ export namespace Camera {
         const r = Math.max(radius, 0.01);
         const aspect = width / height;
         const aspectFactor = (height < width ? 1 : aspect);
-        if (mode === 'orthographic')
+        if (mode === 'orthographic') {
             return Math.abs((r / aspectFactor) / Math.tan(fov / 2));
-        else
+        } else {
             return Math.abs((r / aspectFactor) / Math.sin(fov / 2));
+        }
     }
 
     export function createDefaultSnapshot(): Snapshot {
