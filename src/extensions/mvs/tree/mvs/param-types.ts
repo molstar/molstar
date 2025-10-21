@@ -27,6 +27,8 @@ export const ParseFormatT = literal(
     'xtc',
     // volumes
     'map',
+    'dx',
+    'dxbin',
 );
 export type ParseFormatT = ValueFor<typeof ParseFormatT>
 
@@ -45,7 +47,9 @@ export const MolstarParseFormatT = literal(
     // coordinates
     'xtc',
     // volumes
-    'map'
+    'map',
+    'dx',
+    'dxbin',
 );
 export type MolstarParseFormatT = ValueFor<typeof MolstarParseFormatT>
 
