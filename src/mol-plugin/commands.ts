@@ -49,7 +49,13 @@ export const PluginCommands = {
             Highlight: PluginCommand<{ state: State, ref: StateTransform.Ref | StateTransform.Ref[] }>(),
         },
         Structure: {
+            /**
+             * @todo **Not implemented yet**
+             */
             Highlight: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>(),
+            /**
+             * @todo **Not implemented yet**
+             */
             Select: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>()
         },
         ClearHighlights: PluginCommand<{}>(),
