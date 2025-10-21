@@ -8,6 +8,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Remove outdated `gl_FrontFacing` workaround for buggy drivers
 - Fix clip objects for deirect-volume rendering
 - Support "magic window" style AR (via WebXR)
+- Fix `PluginState.getStateTransitionFrameIndex`
+- MolViewSpec
+  - Add support for DX map format
 
 ## [v5.0.0] - 2025-09-28
 - [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')

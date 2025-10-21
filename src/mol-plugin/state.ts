@@ -307,7 +307,7 @@ namespace PluginState {
 
     export function getStateTransitionFrameIndex(snapshot: Snapshot, timestamp: number): number | undefined {
         const { transition } = snapshot;
-        if (!transition) return undefined;
+        if (!transition?.frames.length) return undefined;
 
         let t = timestamp;
         if (transition.loop) {
@@ -315,6 +315,7 @@ namespace PluginState {
         }
 
         let currentDuration = 0;
+        if (t <= transition.frames[0].durationInMs) return 0;
         for (let i = 0; i < transition.frames.length; i++) {
             if (currentDuration >= t) return i;
             const frame = transition.frames[i];
