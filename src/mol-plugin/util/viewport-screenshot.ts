@@ -171,18 +171,20 @@ export class ViewportScreenshotHelper extends PluginComponent {
     private createPass(isPreview: boolean) {
         const c = this.plugin.canvas3d!;
         const { colorBufferFloat, textureFloat } = c.webgl.extensions;
+        const props = c.props;
         return c.getImagePass({
             transparentBackground: this.values.transparent,
             cameraHelper: { axes: this.values.axes },
             multiSample: {
-                ...c.props.multiSample,
+                ...props.multiSample,
                 mode: isPreview ? 'off' : 'on',
                 sampleLevel: colorBufferFloat && textureFloat ? 4 : 2,
                 reuseOcclusion: false,
             },
             postprocessing: this.getPostprocessingProps(),
-            marking: { ...c.props.marking },
+            marking: { ...props.marking },
             illumination: this.getIlluminationProps(isPreview),
+            transparency: c.getTransparency()
         });
     }
 
@@ -194,13 +196,14 @@ export class ViewportScreenshotHelper extends PluginComponent {
     private _imagePass: ImagePass;
     get imagePass() {
         if (this._imagePass) {
-            const c = this.plugin.canvas3d!;
+            const canvasProps = this.plugin.canvas3d!.props;
             this._imagePass.setProps({
                 cameraHelper: { axes: this.values.axes },
                 transparentBackground: this.values.transparent,
                 postprocessing: this.getPostprocessingProps(),
-                marking: { ...c.props.marking },
+                marking: { ...canvasProps.marking },
                 illumination: this.getIlluminationProps(false),
+                transparency: this.plugin.canvas3d!.getTransparency()
             });
             return this._imagePass;
         }
@@ -325,6 +328,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
             transparentBackground: this.values.transparent,
             postprocessing: canvasProps.postprocessing,
             marking: canvasProps.marking,
+            transparency: this.plugin.canvas3d!.getTransparency()
         });
         const imageData = await this.previewPass.getImageData(ctx, w, h);
         const canvas = this.previewCanvas;
