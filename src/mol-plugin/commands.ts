@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Kim Juho <juho_kim@outlook.com>
  */
 
 import { Camera } from '../mol-canvas3d/camera';
