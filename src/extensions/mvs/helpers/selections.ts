@@ -6,11 +6,13 @@
  */
 
 import { Column } from '../../../mol-data/db';
+import { SortedArray } from '../../../mol-data/int';
 import { ChainIndex, ElementIndex, Model, ResidueIndex, StructureElement } from '../../../mol-model/structure';
+import { CoarseElements } from '../../../mol-model/structure/model/properties/coarse';
 import { Expression } from '../../../mol-script/language/expression';
-import { arrayExtend, filterInPlace, range } from '../../../mol-util/array';
+import { arrayExtend, filterInPlace, range, sortIfNeeded } from '../../../mol-util/array';
 import { AtomRanges } from './atom-ranges';
-import { IndicesAndSortings, Sorting } from './indexing';
+import { CoarseIndicesAndSortings, IndicesAndSortings, Sorting } from './indexing';
 import { MVSAnnotationRow } from './schemas';
 import { isAnyDefined, isDefined } from './utils';
 
@@ -18,8 +20,11 @@ import { isAnyDefined, isDefined } from './utils';
 const EmptyArray: readonly any[] = [];
 
 
+// ATOMIC SELECTIONS
+
 /** Return atom ranges in `model` which satisfy criteria given by `row` */
 export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: IndicesAndSortings): AtomRanges {
+    // TODO: allow returning undefined, return early if nAtoms===0
     if (isDefined(row.instance_id) && row.instance_id !== instanceId) return AtomRanges.empty();
 
     const h = model.atomicHierarchy;
@@ -298,6 +303,114 @@ function matchesRange<T>(requiredMin: T | undefined | null, requiredMax: T | und
     if (isDefined(requiredMax) && (!isDefined(value) || value > requiredMax)) return false;
     return true;
 }
+
+
+// COARSE SELECTIONS
+
+/** Return sphere ranges in `model` which satisfy criteria given by `row` */
+export function getSphereRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: CoarseIndicesAndSortings): AtomRanges | undefined {
+    if (!model.coarseHierarchy.isDefined) return undefined;
+    if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
+    return getCoarseElementRangesForRow(row, model.coarseHierarchy.spheres, indices);
+}
+
+/** Return gaussian ranges in `model` which satisfy criteria given by `row` */
+export function getGaussianRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: CoarseIndicesAndSortings): AtomRanges | undefined {
+    if (!model.coarseHierarchy.isDefined) return undefined;
+    if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
+    return getCoarseElementRangesForRow(row, model.coarseHierarchy.gaussians, indices);
+}
+
+/** Return ranges of coarse elements (spheres or gaussians) which satisfy criteria given by `row` */
+export function getCoarseElementRangesForRow(row: MVSAnnotationRow, coarseElements: CoarseElements, indices: CoarseIndicesAndSortings): AtomRanges | undefined {
+    const nElements = coarseElements.count;
+    if (nElements === 0) return undefined;
+
+    const hasResidueFilter = isAnyDefined(row.label_seq_id, row.beg_label_seq_id, row.end_label_seq_id);
+    const hasChainFilter = isAnyDefined(row.label_asym_id, row.label_entity_id);
+    const hasInvalidFilter = isAnyDefined(
+        row.auth_asym_id,
+        row.auth_seq_id, row.pdbx_PDB_ins_code, row.beg_auth_seq_id, row.end_auth_seq_id, row.label_comp_id, row.auth_comp_id,
+        row.label_atom_id, row.auth_atom_id, row.type_symbol, row.atom_id, row.atom_index);
+
+    if (hasInvalidFilter) {
+        printCoarseSelectorWarning();
+        return undefined;
+    }
+
+    if (!hasChainFilter && !hasResidueFilter) {
+        return AtomRanges.single(0 as ElementIndex, nElements as ElementIndex);
+    }
+
+    const qualifyingChains = getQualifyingCoarseChains(coarseElements, row, indices);
+    if (!hasResidueFilter) {
+        const chainOffsets = coarseElements.chainElementSegments.offsets;
+        const ranges = AtomRanges.empty();
+        for (const iChain of qualifyingChains) {
+            AtomRanges.add(ranges, chainOffsets[iChain], chainOffsets[iChain + 1]);
+        }
+        return ranges;
+    }
+
+    const qualifyingElements = getQualifyingCoarseElements(coarseElements, row, indices, qualifyingChains);
+    const ranges = AtomRanges.empty();
+    for (const iElem of qualifyingElements) {
+        AtomRanges.add(ranges, iElem, iElem + 1 as ElementIndex);
+    }
+    return ranges;
+}
+
+
+/** Return an array of chain indexes which satisfy criteria given by `row` */
+function getQualifyingCoarseChains(coarseElements: CoarseElements, row: MVSAnnotationRow, indices: CoarseIndicesAndSortings): readonly ChainIndex[] {
+    let result: readonly ChainIndex[] | undefined = undefined;
+    if (isDefined(row.label_asym_id)) {
+        result = indices.chainsByAsymId.get(row.label_asym_id) ?? EmptyArray;
+    }
+    if (isDefined(row.label_entity_id)) {
+        if (result) {
+            result = result.filter(iChain => coarseElements.entity_id.value(coarseElements.chainElementSegments.offsets[iChain]) === row.label_entity_id);
+        } else {
+            result = indices.chainsByEntityId.get(row.label_entity_id) ?? EmptyArray;
+        }
+    }
+    result ??= range(coarseElements.chainElementSegments.count) as ChainIndex[];
+    return result;
+}
+
+/** Return an array of residue indexes which satisfy criteria given by `row` */
+function getQualifyingCoarseElements(coarseElements: CoarseElements, row: MVSAnnotationRow, indices: CoarseIndicesAndSortings, fromChains: readonly ChainIndex[]): ElementIndex[] {
+    const result: ElementIndex[] = [];
+    for (const iChain of fromChains) {
+        const sorting = indices.elementsSortedBySeqIdBegin.get(iChain)!;
+        const queryStart = Math.max(row.label_seq_id ?? -Infinity, row.beg_label_seq_id ?? -Infinity);
+        const queryEnd = Math.min(row.label_seq_id ?? Infinity, row.end_label_seq_id ?? Infinity); // inclusive
+        const iStart = SortedArray.findPredecessorIndex(sorting.endUpperBounds, queryStart); // select elements potentially ending >=queryStart (necessary condition)
+        const iStop = SortedArray.findPredecessorIndex(sorting.values, queryEnd + 1); // select elements starting <=queryEnd (necessary and suffient condition) // exclusive
+
+        for (let i = iStart; i < iStop; i++) {
+            const iElem = sorting.keys[i];
+            if (coarseElements.seq_id_end.value(iElem) >= queryStart) { // rechecking seq_id_end, as the condition was not sufficient
+                result.push(iElem);
+            }
+        }
+        // This implementation can yield some elements even when queryStart>queryEnd (e.g. { beg_label_seq_id: 70, end_label_seq_id: 58, label_seq_id: 60 } -> sphere 51-100 qualifies ).
+        // This is on purpose, to have the same behavior as MolScript.
+    }
+    sortIfNeeded(result, iElem => iElem);
+    return result;
+}
+
+let coarseSelectorWarningPrinted = false;
+function printCoarseSelectorWarning() {
+    if (!coarseSelectorWarningPrinted) {
+        console.warn('Using unsupported selector fields (auth_asym_id, auth_seq_id, pdbx_PDB_ins_code, beg_auth_seq_id, end_auth_seq_id, label_comp_id, auth_comp_id, label_atom_id, auth_atom_id, type_symbol, atom_id, atom_index) on a coarse structure. The resulting selection will be empty.');
+        coarseSelectorWarningPrinted = true;
+    }
+}
+
+
+// GENERAL
 
 /** Convert an annotation row into a MolScript expression */
 export function rowToExpression(row: MVSAnnotationRow): Expression {

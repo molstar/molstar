@@ -7,11 +7,12 @@
 import { Column } from '../../../mol-data/db';
 import { SortedArray } from '../../../mol-data/int';
 import { ChainIndex, ElementIndex, Model, ResidueIndex } from '../../../mol-model/structure';
+import { CoarseElements } from '../../../mol-model/structure/model/properties/coarse';
 import { filterInPlace, range, sortIfNeeded } from '../../../mol-util/array';
 import { Mapping, MultiMap, NumberMap } from './utils';
 
 
-/** Auxiliary data structure for efficiently finding chains/residues/atoms in a model by their properties */
+/** Auxiliary data structure for efficiently finding chains/residues/atoms in an atomic model by their properties */
 export interface IndicesAndSortings {
     chainsByLabelEntityId: Mapping<string, readonly ChainIndex[]>,
     chainsByLabelAsymId: Mapping<string, readonly ChainIndex[]>,
@@ -113,6 +114,84 @@ export const IndicesAndSortings = {
             residuesByLabelCompId, residuesByLabelCompIdIsPure, residuesByAuthCompId, residuesByAuthCompIdIsPure,
             atomsById, atomsByIndex,
         };
+    },
+};
+
+
+/** Auxiliary data structure for efficiently finding chains/elements in a coarse model by their properties */
+export interface CoarseIndicesAndSortings {
+    /** Coarse equivalent to `model.atomicHierarchy.chains` */
+    chains: {
+        /** Number of chains */
+        count: number,
+        /** Maps chain index to `label_entity_id` value */
+        label_entity_id: string[],
+        /** Maps chain index to `label_asym_id` value */
+        label_asym_id: string[],
+    },
+    chainsByEntityId: Mapping<string, readonly ChainIndex[]>,
+    chainsByAsymId: Mapping<string, readonly ChainIndex[]>,
+    /** Coarse elements (per chain) sorted by `seq_id_begin`.
+     * This is used to get the range of elements which may overlap with a certain seq_id interval.
+     *
+     * (Filtering coarse elements by seq_id range is an interval search problem, so the worst-case-efficient solution would be to use a data structure optimized for that.
+     * But that would be overkill if we expect that in most cases the coarse elements cover non-overlapping seq_id ranges.
+     * So the current solution should be sufficient (fast for non-overlapping elements, while still correct if there are overlaps).) */
+    elementsSortedBySeqIdBegin: Mapping<ChainIndex,
+        Sorting<ElementIndex, number> & {
+            /** Non-decreasing upper bound for `seq_id_end` values of elements as listed in `keys` (`seq_id_end.value(keys[i]) <= endUpperBounds[i]`) */
+            endUpperBounds: SortedArray
+        }>,
+}
+
+export const CoarseIndicesAndSortings = {
+    /** Get `CoarseIndicesAndSortings` for spheres in a coarse model (use a cached value or create if not available yet) */
+    getForSpheres(model: Model): CoarseIndicesAndSortings {
+        return model._dynamicPropertyData['spheres-indices-and-sortings'] ??= CoarseIndicesAndSortings.create(model.coarseHierarchy.spheres);
+    },
+    /** Get `CoarseIndicesAndSortings` for gaussians in a coarse model (use a cached value or create if not available yet) */
+    getForGaussians(model: Model): CoarseIndicesAndSortings {
+        return model._dynamicPropertyData['gaussians-indices-and-sortings'] ??= CoarseIndicesAndSortings.create(model.coarseHierarchy.gaussians);
+    },
+
+    /** Create `CoarseIndicesAndSortings` for a coarse elements hierarchy */
+    create(coarseElements: CoarseElements): CoarseIndicesAndSortings {
+        const { entity_id, asym_id, seq_id_begin, seq_id_end, chainElementSegments } = coarseElements;
+        const { Present } = Column.ValueKind;
+        const nChains = Math.max(chainElementSegments.count, 0); // chainElementSegments.count is -1 when there are no coarse elements
+
+        const chainsByEntityId = new MultiMap<string, ChainIndex>();
+        const chainsByAsymId = new MultiMap<string, ChainIndex>();
+        const elementsSortedBySeqIdBegin = new Map<ChainIndex, Sorting<ElementIndex, number> & { endUpperBounds: SortedArray }>();
+        const chains = {
+            count: nChains,
+            label_entity_id: new Array<string>(nChains),
+            label_asym_id: new Array<string>(nChains),
+        };
+
+        for (let iChain = 0 as ChainIndex; iChain < nChains; iChain++) {
+            const iElemFrom = chainElementSegments.offsets[iChain];
+            const iElemTo = chainElementSegments.offsets[iChain + 1];
+            const entityId = entity_id.value(iElemFrom);
+            const asymId = asym_id.value(iElemFrom);
+            chains.label_entity_id[iChain] = entityId;
+            chains.label_asym_id[iChain] = asymId;
+            chainsByEntityId.add(entityId, iChain);
+            chainsByAsymId.add(asymId, iChain);
+
+            const elementsWithSeqIds = filterInPlace(range(iElemFrom, iElemTo) as ElementIndex[], iElem => seq_id_begin.valueKind(iElem) === Present && seq_id_end.valueKind(iElem) === Present);
+            const sorting = Sorting.create(elementsWithSeqIds, seq_id_begin.value);
+            const endBounds = sorting.keys.map(seq_id_end.value);
+            // Ensure non-decreasing endBounds:
+            for (let i = 1; i < endBounds.length; i++) {
+                if (endBounds[i - 1] > endBounds[i]) {
+                    endBounds[i] = endBounds[i - 1];
+                }
+            }
+            elementsSortedBySeqIdBegin.set(iChain, { ...sorting, endUpperBounds: SortedArray.ofSortedArray(endBounds) });
+        }
+
+        return { chains, chainsByEntityId, chainsByAsymId, elementsSortedBySeqIdBegin };
     },
 };
 
