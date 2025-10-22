@@ -69,11 +69,13 @@ export const ElementRanges = {
     },
 
     /** Compute the set union of multiple `ElementRanges` objects (as sets of elements) */
-    union(ranges: ElementRanges[]): ElementRanges {
+    union(ranges: (ElementRanges | undefined)[]): ElementRanges {
         const concat = ElementRanges.empty();
         for (const r of ranges) {
-            arrayExtend(concat.from, r.from);
-            arrayExtend(concat.to, r.to);
+            if (r) {
+                arrayExtend(concat.from, r.from);
+                arrayExtend(concat.to, r.to);
+            }
         }
         const indices = range(concat.from.length).sort((i, j) => concat.from[i] - concat.from[j]); // sort by start of range
         const result = ElementRanges.empty();

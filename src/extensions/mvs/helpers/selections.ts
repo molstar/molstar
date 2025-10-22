@@ -23,12 +23,12 @@ const EmptyArray: readonly any[] = [];
 // ATOMIC SELECTIONS
 
 /** Return atom ranges in `model` which satisfy criteria given by `row` */
-export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: IndicesAndSortings): ElementRanges {
-    // TODO: allow returning undefined, return early if nAtoms===0
-    if (isDefined(row.instance_id) && row.instance_id !== instanceId) return ElementRanges.empty();
+export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: IndicesAndSortings): ElementRanges | undefined {
+    if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
 
     const h = model.atomicHierarchy;
     const nAtoms = h.atoms._rowCount;
+    if (nAtoms === 0) return undefined;
 
     const hasAtomIds = isAnyDefined(row.atom_id, row.atom_index);
     const hasAtomFilter = isAnyDefined(row.label_atom_id, row.auth_atom_id, row.type_symbol)
@@ -41,7 +41,7 @@ export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanc
 
     if (hasAtomIds) {
         const theAtom = getTheAtomForRow(model, row, indices);
-        return theAtom !== undefined ? ElementRanges.single(theAtom, theAtom + 1 as ElementIndex) : ElementRanges.empty();
+        return theAtom !== undefined ? ElementRanges.single(theAtom, theAtom + 1 as ElementIndex) : undefined;
     }
 
     if (!hasChainFilter && !hasResidueFilter && !hasAtomFilter) {
