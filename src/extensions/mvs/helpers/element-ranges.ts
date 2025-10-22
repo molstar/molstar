@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -9,35 +9,35 @@ import { ElementIndex } from '../../../mol-model/structure';
 import { arrayExtend, range } from '../../../mol-util/array';
 
 
-/** Represents a collection of disjoint atom ranges in a model.
- * The number of ranges is `AtomRanges.count(ranges)`,
- * the i-th range covers atoms `[ranges.from[i], ranges.to[i])`. */
-export interface AtomRanges {
+/** Represents a collection of disjoint elements ranges in a model (atoms, spheres, or gaussians).
+ * The number of ranges is `ElementRanges.count(ranges)`,
+ * the i-th range covers elements `[ranges.from[i], ranges.to[i])`. */
+export interface ElementRanges {
     from: ElementIndex[],
     to: ElementIndex[],
 }
 
-export const AtomRanges = {
-    /** Return the number of disjoined ranges in a `AtomRanges` object */
-    count(ranges: AtomRanges): number {
+export const ElementRanges = {
+    /** Return the number of disjoined ranges in a `ElementRanges` object */
+    count(ranges: ElementRanges): number {
         return ranges.from.length;
     },
 
-    /** Create new `AtomRanges` without any atoms */
-    empty(): AtomRanges {
+    /** Create new `ElementRanges` without any elements */
+    empty(): ElementRanges {
         return { from: [], to: [] };
     },
 
-    /** Create new `AtomRanges` containing a single range of atoms `[from, to)` */
-    single(from: ElementIndex, to: ElementIndex): AtomRanges {
+    /** Create new `ElementRanges` containing a single range of elements `[from, to)` */
+    single(from: ElementIndex, to: ElementIndex): ElementRanges {
         return { from: [from], to: [to] };
     },
 
-    /** Add a range of atoms `[from, to)` to existing `AtomRanges` and return the modified original.
+    /** Add a range of elements `[from, to)` to existing `ElementRanges` and return the modified original.
      * The added range must start after the end of the last existing range
-     * (if it starts just on the next atom, these two ranges will get merged). */
-    add(ranges: AtomRanges, from: ElementIndex, to: ElementIndex): AtomRanges {
-        const n = AtomRanges.count(ranges);
+     * (if it starts just on the next element, these two ranges will get merged). */
+    add(ranges: ElementRanges, from: ElementIndex, to: ElementIndex): ElementRanges {
+        const n = ElementRanges.count(ranges);
         if (n > 0) {
             const lastTo = ranges.to[n - 1];
             if (from < lastTo) throw new Error('Overlapping ranges not allowed');
@@ -55,28 +55,28 @@ export const AtomRanges = {
     },
 
     /** Apply function `func` to each range in `ranges` */
-    foreach(ranges: AtomRanges, func: (from: ElementIndex, to: ElementIndex) => any) {
-        const n = AtomRanges.count(ranges);
+    foreach(ranges: ElementRanges, func: (from: ElementIndex, to: ElementIndex) => any) {
+        const n = ElementRanges.count(ranges);
         for (let i = 0; i < n; i++) func(ranges.from[i], ranges.to[i]);
     },
 
     /** Apply function `func` to each range in `ranges` and return an array with results */
-    map<T>(ranges: AtomRanges, func: (from: ElementIndex, to: ElementIndex) => T): T[] {
-        const n = AtomRanges.count(ranges);
+    map<T>(ranges: ElementRanges, func: (from: ElementIndex, to: ElementIndex) => T): T[] {
+        const n = ElementRanges.count(ranges);
         const result: T[] = new Array(n);
         for (let i = 0; i < n; i++) result[i] = func(ranges.from[i], ranges.to[i]);
         return result;
     },
 
-    /** Compute the set union of multiple `AtomRanges` objects (as sets of atoms) */
-    union(ranges: AtomRanges[]): AtomRanges {
-        const concat = AtomRanges.empty();
+    /** Compute the set union of multiple `ElementRanges` objects (as sets of elements) */
+    union(ranges: ElementRanges[]): ElementRanges {
+        const concat = ElementRanges.empty();
         for (const r of ranges) {
             arrayExtend(concat.from, r.from);
             arrayExtend(concat.to, r.to);
         }
         const indices = range(concat.from.length).sort((i, j) => concat.from[i] - concat.from[j]); // sort by start of range
-        const result = AtomRanges.empty();
+        const result = ElementRanges.empty();
         let last = -1;
         for (const i of indices) {
             const from = concat.from[i];
@@ -94,26 +94,26 @@ export const AtomRanges = {
         return result;
     },
 
-    /** Return a sorted subset of `atoms` which lie in any of `ranges` (i.e. set intersection of `atoms` and `ranges`).
+    /** Return a sorted subset of `elements` which lie in any of `ranges` (i.e. set intersection of `elements` and `ranges`).
      * If `out` is provided, use it to store the result (clear any old contents).
-     * If `outFirstAtomIndex` is provided, fill `outFirstAtomIndex.value` with the index of the first selected atom (if any). */
-    selectAtomsInRanges(atoms: SortedArray<ElementIndex>, ranges: AtomRanges, out?: ElementIndex[], outFirstAtomIndex: { value?: number } = {}): ElementIndex[] {
+     * If `outFirstElementIndex` is provided, fill `outFirstElementIndex.value` with the index of the first selected element (if any). */
+    selectElementsInRanges(elements: SortedArray<ElementIndex>, ranges: ElementRanges, out?: ElementIndex[], outFirstElementIndex: { value?: number } = {}): ElementIndex[] {
         out ??= [];
         out.length = 0;
-        outFirstAtomIndex.value = undefined;
+        outFirstElementIndex.value = undefined;
 
-        const nAtoms = atoms.length;
-        const nRanges = AtomRanges.count(ranges);
-        if (nAtoms <= nRanges) {
-            // Implementation 1 (more efficient when there are fewer atoms)
-            let iRange = SortedArray.findPredecessorIndex(SortedArray.ofSortedArray(ranges.to), atoms[0] + 1);
-            for (let iAtom = 0; iAtom < nAtoms; iAtom++) {
-                const a = atoms[iAtom];
+        const nElements = elements.length;
+        const nRanges = ElementRanges.count(ranges);
+        if (nElements <= nRanges) {
+            // Implementation 1 (more efficient when there are fewer elements)
+            let iRange = SortedArray.findPredecessorIndex(SortedArray.ofSortedArray(ranges.to), elements[0] + 1);
+            for (let iElem = 0; iElem < nElements; iElem++) {
+                const a = elements[iElem];
                 while (iRange < nRanges && ranges.to[iRange] <= a) iRange++;
                 const qualifies = iRange < nRanges && ranges.from[iRange] <= a;
                 if (qualifies) {
                     out.push(a);
-                    outFirstAtomIndex.value ??= iAtom;
+                    outFirstElementIndex.value ??= iElem;
                 }
             }
         } else {
@@ -121,11 +121,11 @@ export const AtomRanges = {
             for (let iRange = 0; iRange < nRanges; iRange++) {
                 const from = ranges.from[iRange];
                 const to = ranges.to[iRange];
-                for (let iAtom = SortedArray.findPredecessorIndex(atoms, from); iAtom < nAtoms; iAtom++) {
-                    const a = atoms[iAtom];
+                for (let iElem = SortedArray.findPredecessorIndex(elements, from); iElem < nElements; iElem++) {
+                    const a = elements[iElem];
                     if (a < to) {
                         out.push(a);
-                        outFirstAtomIndex.value ??= iAtom;
+                        outFirstElementIndex.value ??= iElem;
                     } else {
                         break;
                     }

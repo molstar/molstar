@@ -9,7 +9,7 @@ import { BoundaryHelper } from '../../../mol-math/geometry/boundary-helper';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { ElementIndex, Model, Structure, StructureElement, StructureProperties, Unit } from '../../../mol-model/structure';
 import { arrayExtend } from '../../../mol-util/array';
-import { AtomRanges } from './atom-ranges';
+import { ElementRanges } from './element-ranges';
 import { IndicesAndSortings } from './indexing';
 import { MVSAnnotationRow } from './schemas';
 import { getAtomRangesForRows } from './selections';
@@ -36,14 +36,14 @@ const outFirstAtomIndex: { value?: number } = {};
 
 /** Helper for caching atom ranges qualifying to a group of annotation rows, per `Unit`. */
 class AtomRangesCache {
-    private readonly cache: { [key: string]: AtomRanges } = {};
+    private readonly cache: { [key: string]: ElementRanges } = {};
     private readonly hasOperators: boolean;
 
     constructor(private readonly rows: MVSAnnotationRow[]) {
         this.hasOperators = rows.some(row => isDefined(row.instance_id));
     }
 
-    get(unit: Unit): AtomRanges {
+    get(unit: Unit): ElementRanges {
         const instanceId = unit.conformation.operator.instanceId;
         const key = this.hasOperators ? `${unit.model.id}:${instanceId}` : unit.model.id;
         return this.cache[key] ??= getAtomRangesForRows(this.rows, unit.model, instanceId, IndicesAndSortings.get(unit.model));
@@ -67,7 +67,7 @@ export function textPropsForSelection(structure: Structure, sizeFunction: (locat
         if (onlyInModel && unit.model.id !== onlyInModel.id) continue;
         const ranges = atomRangesCache.get(unit);
         loc.unit = unit;
-        AtomRanges.selectAtomsInRanges(unit.elements, ranges, outAtoms, outFirstAtomIndex);
+        ElementRanges.selectElementsInRanges(unit.elements, ranges, outAtoms, outFirstAtomIndex);
         for (const atom of outAtoms) {
             loc.element = atom;
             unit.conformation.position(atom, tmpVec);

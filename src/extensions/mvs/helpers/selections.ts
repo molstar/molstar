@@ -11,7 +11,7 @@ import { ChainIndex, ElementIndex, Model, ResidueIndex, StructureElement } from 
 import { CoarseElements } from '../../../mol-model/structure/model/properties/coarse';
 import { Expression } from '../../../mol-script/language/expression';
 import { arrayExtend, filterInPlace, range, sortIfNeeded } from '../../../mol-util/array';
-import { AtomRanges } from './atom-ranges';
+import { ElementRanges } from './element-ranges';
 import { CoarseIndicesAndSortings, IndicesAndSortings, Sorting } from './indexing';
 import { MVSAnnotationRow } from './schemas';
 import { isAnyDefined, isDefined } from './utils';
@@ -23,9 +23,9 @@ const EmptyArray: readonly any[] = [];
 // ATOMIC SELECTIONS
 
 /** Return atom ranges in `model` which satisfy criteria given by `row` */
-export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: IndicesAndSortings): AtomRanges {
+export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: IndicesAndSortings): ElementRanges {
     // TODO: allow returning undefined, return early if nAtoms===0
-    if (isDefined(row.instance_id) && row.instance_id !== instanceId) return AtomRanges.empty();
+    if (isDefined(row.instance_id) && row.instance_id !== instanceId) return ElementRanges.empty();
 
     const h = model.atomicHierarchy;
     const nAtoms = h.atoms._rowCount;
@@ -41,19 +41,19 @@ export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanc
 
     if (hasAtomIds) {
         const theAtom = getTheAtomForRow(model, row, indices);
-        return theAtom !== undefined ? AtomRanges.single(theAtom, theAtom + 1 as ElementIndex) : AtomRanges.empty();
+        return theAtom !== undefined ? ElementRanges.single(theAtom, theAtom + 1 as ElementIndex) : ElementRanges.empty();
     }
 
     if (!hasChainFilter && !hasResidueFilter && !hasAtomFilter) {
-        return AtomRanges.single(0 as ElementIndex, nAtoms as ElementIndex);
+        return ElementRanges.single(0 as ElementIndex, nAtoms as ElementIndex);
     }
 
     const qualifyingChains = getQualifyingChains(model, row, indices);
     if (!hasResidueFilter && !hasAtomFilter) {
         const chainOffsets = h.chainAtomSegments.offsets;
-        const ranges = AtomRanges.empty();
+        const ranges = ElementRanges.empty();
         for (const iChain of qualifyingChains) {
-            AtomRanges.add(ranges, chainOffsets[iChain], chainOffsets[iChain + 1]);
+            ElementRanges.add(ranges, chainOffsets[iChain], chainOffsets[iChain + 1]);
         }
         return ranges;
     }
@@ -61,24 +61,24 @@ export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanc
     const qualifyingResidues = getQualifyingResidues(model, row, indices, qualifyingChains);
     if (!hasAtomFilter) {
         const residueOffsets = h.residueAtomSegments.offsets;
-        const ranges = AtomRanges.empty();
+        const ranges = ElementRanges.empty();
         for (const iRes of qualifyingResidues) {
-            AtomRanges.add(ranges, residueOffsets[iRes], residueOffsets[iRes + 1]);
+            ElementRanges.add(ranges, residueOffsets[iRes], residueOffsets[iRes + 1]);
         }
         return ranges;
     }
 
     const qualifyingAtoms = getQualifyingAtoms(model, row, indices, qualifyingResidues);
-    const ranges = AtomRanges.empty();
+    const ranges = ElementRanges.empty();
     for (const iAtom of qualifyingAtoms) {
-        AtomRanges.add(ranges, iAtom, iAtom + 1 as ElementIndex);
+        ElementRanges.add(ranges, iAtom, iAtom + 1 as ElementIndex);
     }
     return ranges;
 }
 
 /** Return atom ranges in `model` which satisfy criteria given by any of `rows` (atoms that satisfy more rows are still included only once) */
-export function getAtomRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: IndicesAndSortings): AtomRanges {
-    return AtomRanges.union(rows.map(row => getAtomRangesForRow(row, model, instanceId, indices)));
+export function getAtomRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: IndicesAndSortings): ElementRanges {
+    return ElementRanges.union(rows.map(row => getAtomRangesForRow(row, model, instanceId, indices)));
 }
 
 
@@ -308,21 +308,21 @@ function matchesRange<T>(requiredMin: T | undefined | null, requiredMax: T | und
 // COARSE SELECTIONS
 
 /** Return sphere ranges in `model` which satisfy criteria given by `row` */
-export function getSphereRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: CoarseIndicesAndSortings): AtomRanges | undefined {
+export function getSphereRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: CoarseIndicesAndSortings): ElementRanges | undefined {
     if (!model.coarseHierarchy.isDefined) return undefined;
     if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
     return getCoarseElementRangesForRow(row, model.coarseHierarchy.spheres, indices);
 }
 
 /** Return gaussian ranges in `model` which satisfy criteria given by `row` */
-export function getGaussianRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: CoarseIndicesAndSortings): AtomRanges | undefined {
+export function getGaussianRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: CoarseIndicesAndSortings): ElementRanges | undefined {
     if (!model.coarseHierarchy.isDefined) return undefined;
     if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
     return getCoarseElementRangesForRow(row, model.coarseHierarchy.gaussians, indices);
 }
 
 /** Return ranges of coarse elements (spheres or gaussians) which satisfy criteria given by `row` */
-export function getCoarseElementRangesForRow(row: MVSAnnotationRow, coarseElements: CoarseElements, indices: CoarseIndicesAndSortings): AtomRanges | undefined {
+export function getCoarseElementRangesForRow(row: MVSAnnotationRow, coarseElements: CoarseElements, indices: CoarseIndicesAndSortings): ElementRanges | undefined {
     const nElements = coarseElements.count;
     if (nElements === 0) return undefined;
 
@@ -339,23 +339,23 @@ export function getCoarseElementRangesForRow(row: MVSAnnotationRow, coarseElemen
     }
 
     if (!hasChainFilter && !hasResidueFilter) {
-        return AtomRanges.single(0 as ElementIndex, nElements as ElementIndex);
+        return ElementRanges.single(0 as ElementIndex, nElements as ElementIndex);
     }
 
     const qualifyingChains = getQualifyingCoarseChains(coarseElements, row, indices);
     if (!hasResidueFilter) {
         const chainOffsets = coarseElements.chainElementSegments.offsets;
-        const ranges = AtomRanges.empty();
+        const ranges = ElementRanges.empty();
         for (const iChain of qualifyingChains) {
-            AtomRanges.add(ranges, chainOffsets[iChain], chainOffsets[iChain + 1]);
+            ElementRanges.add(ranges, chainOffsets[iChain], chainOffsets[iChain + 1]);
         }
         return ranges;
     }
 
     const qualifyingElements = getQualifyingCoarseElements(coarseElements, row, indices, qualifyingChains);
-    const ranges = AtomRanges.empty();
+    const ranges = ElementRanges.empty();
     for (const iElem of qualifyingElements) {
-        AtomRanges.add(ranges, iElem, iElem + 1 as ElementIndex);
+        ElementRanges.add(ranges, iElem, iElem + 1 as ElementIndex);
     }
     return ranges;
 }

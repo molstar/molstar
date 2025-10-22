@@ -18,7 +18,7 @@ import { Jsonable, canonicalJsonString } from '../../../mol-util/json';
 import { objectOfArraysToArrayOfObjects, pickObjectKeysWithRemapping, promiseAllObj } from '../../../mol-util/object';
 import { Choice } from '../../../mol-util/param-choice';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { AtomRanges } from '../helpers/atom-ranges';
+import { ElementRanges } from '../helpers/element-ranges';
 import { CoarseIndicesAndSortings, IndicesAndSortings } from '../helpers/indexing';
 import { MaybeStringParamDefinition } from '../helpers/param-definition';
 import { MVSAnnotationRow, MVSAnnotationSchema, getCifAnnotationSchema } from '../helpers/schemas';
@@ -463,9 +463,9 @@ function annotationSourceFromSpec(s: MVSAnnotationSpec): MVSAnnotationSource {
 }
 
 /** In `array`, set value `fillValue` to all positions described by `fillRanges`. In case `array` is `null`, initialize it with length `n` prefilled with -1. */
-function fillValueOnRanges(array: IndexedElements, n: number, fillRanges: AtomRanges | undefined, fillValue: number): IndexedElements {
-    if (!fillRanges || AtomRanges.count(fillRanges) === 0) return array;
+function fillValueOnRanges(array: IndexedElements, n: number, fillRanges: ElementRanges | undefined, fillValue: number): IndexedElements {
+    if (!fillRanges || ElementRanges.count(fillRanges) === 0) return array;
     const out = array ?? Array(n).fill(-1);
-    AtomRanges.foreach(fillRanges, (from, to) => out.fill(fillValue, from, to));
+    ElementRanges.foreach(fillRanges, (from, to) => out.fill(fillValue, from, to));
     return out;
 }
