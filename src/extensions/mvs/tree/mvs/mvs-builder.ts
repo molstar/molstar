@@ -93,7 +93,7 @@ export class Root extends _Base<'root'> implements FocusMixin, PrimitivesMixin {
     }
     focus = bindMethod(this, FocusMixinImpl, 'focus');
     primitives = bindMethod(this, PrimitivesMixinImpl, 'primitives');
-    primitives_from_uri = bindMethod(this, PrimitivesMixinImpl, 'primitives_from_uri');
+    primitivesFromUri = bindMethod(this, PrimitivesMixinImpl, 'primitivesFromUri');
 
     animation(params: MVSAnimationNodeParams<'animation'> & CustomAndRef = {}): Animation {
         this._animation ??= new Animation(params);
@@ -244,7 +244,7 @@ export class Structure extends _Base<'structure'> implements PrimitivesMixin, Tr
     transform = bindMethod(this, TransformMixinImpl, 'transform');
     instance = bindMethod(this, TransformMixinImpl, 'instance');
     primitives = bindMethod(this, PrimitivesMixinImpl, 'primitives');
-    primitives_from_uri = bindMethod(this, PrimitivesMixinImpl, 'primitives_from_uri');
+    primitivesFromUri = bindMethod(this, PrimitivesMixinImpl, 'primitivesFromUri');
 }
 
 
@@ -442,13 +442,13 @@ interface PrimitivesMixin {
     /** Allows the definition of a (group of) geometric primitives. You can add any number of primitives and then assign shared options (color, opacity etc.). */
     primitives(params: MVSNodeParams<'primitives'> & CustomAndRef): Primitives,
     /** Allows the definition of a (group of) geometric primitives provided dynamically. */
-    primitives_from_uri(params: MVSNodeParams<'primitives_from_uri'> & CustomAndRef): PrimitivesFromUri,
+    primitivesFromUri(params: MVSNodeParams<'primitives_from_uri'> & CustomAndRef): PrimitivesFromUri,
 };
 class PrimitivesMixinImpl extends _Base<MVSKind> implements PrimitivesMixin {
     primitives(params: MVSNodeParams<'primitives'> & CustomAndRef = {}): Primitives {
         return new Primitives(this._root, this.addChild('primitives', params));
     }
-    primitives_from_uri(params: MVSNodeParams<'primitives_from_uri'> & CustomAndRef): PrimitivesFromUri {
+    primitivesFromUri(params: MVSNodeParams<'primitives_from_uri'> & CustomAndRef): PrimitivesFromUri {
         return new PrimitivesFromUri(this._root, this.addChild('primitives_from_uri', params));
     }
 };
