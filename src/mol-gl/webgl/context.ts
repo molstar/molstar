@@ -159,8 +159,12 @@ function bindDrawingBuffer(gl: GLRenderingContext, xrLayer?: XRWebGLLayer) {
     }
 }
 
-function getDrawingBufferSize(gl: GLRenderingContext, xrLayer?: XRWebGLLayer) {
-    const width = xrLayer?.framebufferWidth ?? gl.drawingBufferWidth;
+function getDrawingBufferSize(gl: GLRenderingContext, xrLayer?: XRWebGLLayer, xrInteractionMode?: XRInteractionMode) {
+    let width = xrLayer?.framebufferWidth ?? gl.drawingBufferWidth;
+    if (xrInteractionMode === 'screen-space') {
+        // workaround so XR with a single view behaves simlar to two views
+        width *= 2;
+    }
     const height = xrLayer?.framebufferHeight ?? gl.drawingBufferHeight;
     return { width, height };
 }
@@ -452,8 +456,8 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
 
                 getByteCount: () => 0,
 
-                getWidth: () => getDrawingBufferSize(gl, xr.layer).width,
-                getHeight: () => getDrawingBufferSize(gl, xr.layer).height,
+                getWidth: () => getDrawingBufferSize(gl, xr.layer, xr.session?.interactionMode).width,
+                getHeight: () => getDrawingBufferSize(gl, xr.layer, xr.session?.interactionMode).height,
                 bind: () => {
                     bindDrawingBuffer(gl, xr.layer);
                 },
@@ -463,7 +467,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             };
         },
         bindDrawingBuffer: () => bindDrawingBuffer(gl, xr.layer),
-        getDrawingBufferSize: () => getDrawingBufferSize(gl, xr.layer),
+        getDrawingBufferSize: () => getDrawingBufferSize(gl, xr.layer, xr.session?.interactionMode),
         readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array | Int32Array) => {
             readPixels(gl, x, y, width, height, buffer);
         },

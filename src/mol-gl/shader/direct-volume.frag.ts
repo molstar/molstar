@@ -242,7 +242,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             break;
 
         #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-            vec3 vModelPosition = v3m4(unitPos * uGridDim, modelTransform);
+            vec3 modelPosition = v3m4(unitPos * uGridDim, modelTransform);
             if (clipTest(modelPosition)) {
                 prevValue = value;
                 pos += step;

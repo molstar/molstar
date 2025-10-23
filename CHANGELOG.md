@@ -6,7 +6,11 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - Get bond orders from non-standard CONECT records in PDB files
 - Remove outdated `gl_FrontFacing` workaround for buggy drivers
-- MolViewSpec extension:
+- Fix clip objects for deirect-volume rendering
+- Support "magic window" style AR (via WebXR)
+- Fix `PluginState.getStateTransitionFrameIndex`
+- MolViewSpec
+  - Add support for DX map format
   - Better support for coarse structures in MVS:
     - Support for MVS annotations on coarse structures (color_from_*, tooltip_from_*)
     - Support for MVS labels on coarse structures (label, label_from_*)

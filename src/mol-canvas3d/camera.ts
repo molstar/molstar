@@ -34,6 +34,8 @@ interface ICamera {
     readonly forceFull: boolean;
     readonly scale: number;
     readonly minTargetDistance: number;
+
+    readonly disabled: boolean;
 }
 
 const tmpClip = Vec4();
@@ -50,6 +52,8 @@ export class Camera implements ICamera {
     readonly viewport: Viewport;
     readonly state: Readonly<Camera.Snapshot> = Camera.createDefaultSnapshot();
     readonly viewOffset = Camera.ViewOffset();
+
+    readonly disabled = false as const;
 
     near = 1;
     far = 10000;
@@ -288,10 +292,11 @@ export namespace Camera {
         const r = Math.max(radius, 0.01);
         const aspect = width / height;
         const aspectFactor = (height < width ? 1 : aspect);
-        if (mode === 'orthographic')
+        if (mode === 'orthographic') {
             return Math.abs((r / aspectFactor) / Math.tan(fov / 2));
-        else
+        } else {
             return Math.abs((r / aspectFactor) / Math.sin(fov / 2));
+        }
     }
 
     export function createDefaultSnapshot(): Snapshot {

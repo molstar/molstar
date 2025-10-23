@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -37,6 +37,14 @@ namespace Vec2 {
         out[0] = a[0];
         out[1] = a[1];
         return out;
+    }
+
+    export function fromObj(v: { x: number, y: number }): Vec2 {
+        return create(v.x, v.y);
+    }
+
+    export function toObj(v: Vec2) {
+        return { x: v[0], y: v[1] };
     }
 
     export function create(x: number, y: number) {
