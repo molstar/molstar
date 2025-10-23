@@ -19,7 +19,7 @@ import { objectOfArraysToArrayOfObjects, pickObjectKeysWithRemapping, promiseAll
 import { Choice } from '../../../mol-util/param-choice';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { ElementRanges } from '../helpers/element-ranges';
-import { JointIndicesAndSortings } from '../helpers/indexing';
+import { IndicesAndSortings } from '../helpers/indexing';
 import { MaybeStringParamDefinition } from '../helpers/param-definition';
 import { MVSAnnotationRow, MVSAnnotationSchema, getCifAnnotationSchema } from '../helpers/schemas';
 import { getAtomRangesForRow, getGaussianRangesForRow, getSphereRangesForRow } from '../helpers/selections';
@@ -249,7 +249,7 @@ export class MVSAnnotation {
 
     /** Create `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` */
     private getRowForEachAtom(model: Model, instanceId: string): IndexedModel {
-        const indices = JointIndicesAndSortings.get(model);
+        const indices = IndicesAndSortings.get(model);
         const nAtoms = model.atomicHierarchy.atoms._rowCount;
         const nSpheres = model.coarseHierarchy.spheres.count;
         const nGaussians = model.coarseHierarchy.gaussians.count;

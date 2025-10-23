@@ -12,20 +12,20 @@ import { filterInPlace, range, sortIfNeeded } from '../../../mol-util/array';
 import { Mapping, MultiMap, NumberMap } from './utils';
 
 
-export interface JointIndicesAndSortings {
-    atomic: AtomicIndicesAndSortings,
-    spheres: CoarseIndicesAndSortings,
-    gaussians: CoarseIndicesAndSortings,
+export interface IndicesAndSortings {
+    atomic?: AtomicIndicesAndSortings,
+    spheres?: CoarseIndicesAndSortings,
+    gaussians?: CoarseIndicesAndSortings,
 }
 
-export const JointIndicesAndSortings = {
-    /** Get `JointIndicesAndSortings` for a model (use a cached value or create if not available yet) */
-    get(model: Model): JointIndicesAndSortings {
-        return model._dynamicPropertyData['joint-indices-and-sortings'] ??= this.create(model);
+export const IndicesAndSortings = {
+    /** Get `IndicesAndSortings` for a model (use a cached value or create if not available yet) */
+    get(model: Model): IndicesAndSortings {
+        return model._dynamicPropertyData['indices-and-sortings'] ??= this.create(model);
     },
 
-    /** Create `JointIndicesAndSortings` for a model */
-    create(model: Model): JointIndicesAndSortings {
+    /** Create `IndicesAndSortings` for a model */
+    create(model: Model): IndicesAndSortings {
         return {
             atomic: createAtomicIndicesAndSortings(model),
             spheres: createCoarseIndicesAndSortings(model.coarseHierarchy.spheres),
@@ -54,9 +54,11 @@ export interface AtomicIndicesAndSortings {
 }
 
 /** Create `AtomicIndicesAndSortings` for a model */
-function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings {
+function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings | undefined {
     const h = model.atomicHierarchy;
     const nAtoms = h.atoms._rowCount;
+    if (nAtoms === 0) return undefined;
+
     const nChains = h.chains._rowCount;
     const { label_entity_id, label_asym_id, auth_asym_id } = h.chains;
     const { label_seq_id, auth_seq_id, pdbx_PDB_ins_code } = h.residues;
@@ -161,7 +163,8 @@ export interface CoarseIndicesAndSortings {
 }
 
 /** Create `CoarseIndicesAndSortings` for a coarse elements hierarchy */
-function createCoarseIndicesAndSortings(coarseElements: CoarseElements): CoarseIndicesAndSortings {
+function createCoarseIndicesAndSortings(coarseElements: CoarseElements): CoarseIndicesAndSortings | undefined {
+    if (coarseElements.count === 0) return undefined;
     const { entity_id, asym_id, seq_id_begin, seq_id_end, chainElementSegments } = coarseElements;
     const { Present } = Column.ValueKind;
     const nChains = Math.max(chainElementSegments.count, 0); // chainElementSegments.count is -1 when there are no coarse elements

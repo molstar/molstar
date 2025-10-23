@@ -12,7 +12,7 @@ import { CoarseElements } from '../../../mol-model/structure/model/properties/co
 import { Expression } from '../../../mol-script/language/expression';
 import { arrayExtend, filterInPlace, range, sortIfNeeded } from '../../../mol-util/array';
 import { ElementRanges } from './element-ranges';
-import { AtomicIndicesAndSortings, CoarseIndicesAndSortings, JointIndicesAndSortings, Sorting } from './indexing';
+import { AtomicIndicesAndSortings, CoarseIndicesAndSortings, IndicesAndSortings, Sorting } from './indexing';
 import { MVSAnnotationRow } from './schemas';
 import { isAnyDefined, isDefined } from './utils';
 
@@ -23,7 +23,8 @@ const EmptyArray: readonly any[] = [];
 // ATOMIC SELECTIONS
 
 /** Return atom ranges in `model` which satisfy criteria given by `row` */
-export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: JointIndicesAndSortings): ElementRanges | undefined {
+export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: IndicesAndSortings): ElementRanges | undefined {
+    if (!indices.atomic) return undefined;
     if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
 
     const atomicIndices = indices.atomic;
@@ -78,7 +79,7 @@ export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanc
 }
 
 /** Return atom ranges in `model` which satisfy criteria given by any of `rows` (atoms that satisfy more rows are still included only once) */
-export function getAtomRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: JointIndicesAndSortings): ElementRanges {
+export function getAtomRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: IndicesAndSortings): ElementRanges {
     return ElementRanges.union(rows.map(row => getAtomRangesForRow(row, model, instanceId, indices)));
 }
 
@@ -309,26 +310,26 @@ function matchesRange<T>(requiredMin: T | undefined | null, requiredMax: T | und
 // COARSE SELECTIONS
 
 /** Return sphere ranges in `model` which satisfy criteria given by `row` */
-export function getSphereRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: JointIndicesAndSortings): ElementRanges | undefined {
-    if (!model.coarseHierarchy.isDefined) return undefined;
+export function getSphereRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: IndicesAndSortings): ElementRanges | undefined {
+    if (!indices.spheres) return undefined;
     if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
     return getCoarseElementRangesForRow(row, model.coarseHierarchy.spheres, indices.spheres);
 }
 
 /** Return sphere ranges in `model` which satisfy criteria given by any of `rows` (spheres that satisfy more rows are still included only once) */
-export function getSphereRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: JointIndicesAndSortings): ElementRanges {
+export function getSphereRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: IndicesAndSortings): ElementRanges {
     return ElementRanges.union(rows.map(row => getSphereRangesForRow(row, model, instanceId, indices)));
 }
 
 /** Return gaussian ranges in `model` which satisfy criteria given by `row` */
-export function getGaussianRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: JointIndicesAndSortings): ElementRanges | undefined {
-    if (!model.coarseHierarchy.isDefined) return undefined;
+export function getGaussianRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: IndicesAndSortings): ElementRanges | undefined {
+    if (!indices.gaussians) return undefined;
     if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
     return getCoarseElementRangesForRow(row, model.coarseHierarchy.gaussians, indices.gaussians);
 }
 
 /** Return gaussian ranges in `model` which satisfy criteria given by any of `rows` (gaussians that satisfy more rows are still included only once) */
-export function getGaussianRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: JointIndicesAndSortings): ElementRanges {
+export function getGaussianRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: IndicesAndSortings): ElementRanges {
     return ElementRanges.union(rows.map(row => getGaussianRangesForRow(row, model, instanceId, indices)));
 }
 

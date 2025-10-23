@@ -11,7 +11,7 @@ import { ElementIndex, Model, Structure, StructureElement, StructureProperties, 
 import { getPhysicalRadius } from '../../../mol-theme/size/physical';
 import { arrayExtend } from '../../../mol-util/array';
 import { ElementRanges } from './element-ranges';
-import { JointIndicesAndSortings } from './indexing';
+import { IndicesAndSortings } from './indexing';
 import { MVSAnnotationRow } from './schemas';
 import { getAtomRangesForRows, getGaussianRangesForRows, getSphereRangesForRows } from './selections';
 import { isDefined } from './utils';
@@ -51,7 +51,7 @@ class ElementRangesCache {
     }
     private compute(unit: Unit): ElementRanges {
         const instanceId = unit.conformation.operator.instanceId;
-        const indices = JointIndicesAndSortings.get(unit.model);
+        const indices = IndicesAndSortings.get(unit.model);
         switch (unit.kind) {
             case Unit.Kind.Atomic:
                 return getAtomRangesForRows(this.rows, unit.model, instanceId, indices);
