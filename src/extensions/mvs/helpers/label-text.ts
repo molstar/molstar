@@ -11,7 +11,7 @@ import { ElementIndex, Model, Structure, StructureElement, StructureProperties, 
 import { getPhysicalRadius } from '../../../mol-theme/size/physical';
 import { arrayExtend } from '../../../mol-util/array';
 import { ElementRanges } from './element-ranges';
-import { CoarseIndicesAndSortings, IndicesAndSortings } from './indexing';
+import { JointIndicesAndSortings } from './indexing';
 import { MVSAnnotationRow } from './schemas';
 import { getAtomRangesForRows, getGaussianRangesForRows, getSphereRangesForRows } from './selections';
 import { isDefined } from './utils';
@@ -46,18 +46,19 @@ class ElementRangesCache {
 
     get(unit: Unit): ElementRanges {
         const instanceId = unit.conformation.operator.instanceId;
-        const key = this.hasOperators ? `${unit.model.id}:${instanceId}` : unit.model.id;
+        const key = `${unit.model.id}:${unit.kind}:${this.hasOperators ? instanceId : '*'}`;
         return this.cache[key] ??= this.compute(unit);
     }
     private compute(unit: Unit): ElementRanges {
         const instanceId = unit.conformation.operator.instanceId;
+        const indices = JointIndicesAndSortings.get(unit.model);
         switch (unit.kind) {
             case Unit.Kind.Atomic:
-                return getAtomRangesForRows(this.rows, unit.model, instanceId, IndicesAndSortings.get(unit.model));
+                return getAtomRangesForRows(this.rows, unit.model, instanceId, indices);
             case Unit.Kind.Spheres:
-                return getSphereRangesForRows(this.rows, unit.model, instanceId, CoarseIndicesAndSortings.getForSpheres(unit.model));
+                return getSphereRangesForRows(this.rows, unit.model, instanceId, indices);
             case Unit.Kind.Gaussians:
-                return getGaussianRangesForRows(this.rows, unit.model, instanceId, CoarseIndicesAndSortings.getForGaussians(unit.model));
+                return getGaussianRangesForRows(this.rows, unit.model, instanceId, indices);
         }
     }
 }

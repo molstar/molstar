@@ -12,8 +12,31 @@ import { filterInPlace, range, sortIfNeeded } from '../../../mol-util/array';
 import { Mapping, MultiMap, NumberMap } from './utils';
 
 
+export interface JointIndicesAndSortings {
+    atomic: AtomicIndicesAndSortings,
+    spheres: CoarseIndicesAndSortings,
+    gaussians: CoarseIndicesAndSortings,
+}
+
+export const JointIndicesAndSortings = {
+    /** Get `JointIndicesAndSortings` for a model (use a cached value or create if not available yet) */
+    get(model: Model): JointIndicesAndSortings {
+        return model._dynamicPropertyData['joint-indices-and-sortings'] ??= this.create(model);
+    },
+
+    /** Create `JointIndicesAndSortings` for a model */
+    create(model: Model): JointIndicesAndSortings {
+        return {
+            atomic: createAtomicIndicesAndSortings(model),
+            spheres: createCoarseIndicesAndSortings(model.coarseHierarchy.spheres),
+            gaussians: createCoarseIndicesAndSortings(model.coarseHierarchy.gaussians),
+        };
+    },
+};
+
+
 /** Auxiliary data structure for efficiently finding chains/residues/atoms in an atomic model by their properties */
-export interface IndicesAndSortings {
+export interface AtomicIndicesAndSortings {
     chainsByLabelEntityId: Mapping<string, readonly ChainIndex[]>,
     chainsByLabelAsymId: Mapping<string, readonly ChainIndex[]>,
     chainsByAuthAsymId: Mapping<string, readonly ChainIndex[]>,
@@ -30,92 +53,85 @@ export interface IndicesAndSortings {
     atomsByIndex: Mapping<number, ElementIndex>,
 }
 
-export const IndicesAndSortings = {
-    /** Get `IndicesAndSortings` for a model (use a cached value or create if not available yet) */
-    get(model: Model): IndicesAndSortings {
-        return model._dynamicPropertyData['indices-and-sortings'] ??= IndicesAndSortings.create(model);
-    },
+/** Create `AtomicIndicesAndSortings` for a model */
+function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings {
+    const h = model.atomicHierarchy;
+    const nAtoms = h.atoms._rowCount;
+    const nChains = h.chains._rowCount;
+    const { label_entity_id, label_asym_id, auth_asym_id } = h.chains;
+    const { label_seq_id, auth_seq_id, pdbx_PDB_ins_code } = h.residues;
+    const { label_comp_id, auth_comp_id } = h.atoms;
+    const { Present } = Column.ValueKind;
 
-    /** Create `IndicesAndSortings` for a model */
-    create(model: Model): IndicesAndSortings {
-        const h = model.atomicHierarchy;
-        const nAtoms = h.atoms._rowCount;
-        const nChains = h.chains._rowCount;
-        const { label_entity_id, label_asym_id, auth_asym_id } = h.chains;
-        const { label_seq_id, auth_seq_id, pdbx_PDB_ins_code } = h.residues;
-        const { label_comp_id, auth_comp_id } = h.atoms;
-        const { Present } = Column.ValueKind;
+    const chainsByLabelEntityId = new MultiMap<string, ChainIndex>();
+    const chainsByLabelAsymId = new MultiMap<string, ChainIndex>();
+    const chainsByAuthAsymId = new MultiMap<string, ChainIndex>();
+    const residuesSortedByLabelSeqId = new Map<ChainIndex, Sorting<ResidueIndex, number>>();
+    const residuesSortedByAuthSeqId = new Map<ChainIndex, Sorting<ResidueIndex, number>>();
+    const residuesByInsCode = new Map<ChainIndex, MultiMap<string, ResidueIndex>>();
+    const residuesByLabelCompId = new Map<ChainIndex, MultiMap<string, ResidueIndex>>();
+    let residuesByLabelCompIdIsPure = true;
+    const residuesByAuthCompId = new Map<ChainIndex, MultiMap<string, ResidueIndex>>();
+    let residuesByAuthCompIdIsPure = true;
+    const atomsById = new NumberMap<number, ElementIndex>(nAtoms + 1);
+    const atomsByIndex = new NumberMap<number, ElementIndex>(nAtoms);
 
-        const chainsByLabelEntityId = new MultiMap<string, ChainIndex>();
-        const chainsByLabelAsymId = new MultiMap<string, ChainIndex>();
-        const chainsByAuthAsymId = new MultiMap<string, ChainIndex>();
-        const residuesSortedByLabelSeqId = new Map<ChainIndex, Sorting<ResidueIndex, number>>();
-        const residuesSortedByAuthSeqId = new Map<ChainIndex, Sorting<ResidueIndex, number>>();
-        const residuesByInsCode = new Map<ChainIndex, MultiMap<string, ResidueIndex>>();
-        const residuesByLabelCompId = new Map<ChainIndex, MultiMap<string, ResidueIndex>>();
-        let residuesByLabelCompIdIsPure = true;
-        const residuesByAuthCompId = new Map<ChainIndex, MultiMap<string, ResidueIndex>>();
-        let residuesByAuthCompIdIsPure = true;
-        const atomsById = new NumberMap<number, ElementIndex>(nAtoms + 1);
-        const atomsByIndex = new NumberMap<number, ElementIndex>(nAtoms);
+    const _labelCompIdSet = new Set<string>();
+    const _authCompIdSet = new Set<string>();
 
-        const _labelCompIdSet = new Set<string>();
-        const _authCompIdSet = new Set<string>();
+    for (let iChain = 0 as ChainIndex; iChain < nChains; iChain++) {
+        chainsByLabelEntityId.add(label_entity_id.value(iChain), iChain);
+        chainsByLabelAsymId.add(label_asym_id.value(iChain), iChain);
+        chainsByAuthAsymId.add(auth_asym_id.value(iChain), iChain);
 
-        for (let iChain = 0 as ChainIndex; iChain < nChains; iChain++) {
-            chainsByLabelEntityId.add(label_entity_id.value(iChain), iChain);
-            chainsByLabelAsymId.add(label_asym_id.value(iChain), iChain);
-            chainsByAuthAsymId.add(auth_asym_id.value(iChain), iChain);
+        const iResFrom = h.residueAtomSegments.index[h.chainAtomSegments.offsets[iChain]];
+        const iResTo = h.residueAtomSegments.index[h.chainAtomSegments.offsets[iChain + 1] - 1] + 1;
 
-            const iResFrom = h.residueAtomSegments.index[h.chainAtomSegments.offsets[iChain]];
-            const iResTo = h.residueAtomSegments.index[h.chainAtomSegments.offsets[iChain + 1] - 1] + 1;
+        const residuesWithLabelSeqId = filterInPlace(range(iResFrom, iResTo) as ResidueIndex[], iRes => label_seq_id.valueKind(iRes) === Present);
+        residuesSortedByLabelSeqId.set(iChain, Sorting.create(residuesWithLabelSeqId, label_seq_id.value));
 
-            const residuesWithLabelSeqId = filterInPlace(range(iResFrom, iResTo) as ResidueIndex[], iRes => label_seq_id.valueKind(iRes) === Present);
-            residuesSortedByLabelSeqId.set(iChain, Sorting.create(residuesWithLabelSeqId, label_seq_id.value));
+        const residuesWithAuthSeqId = filterInPlace(range(iResFrom, iResTo) as ResidueIndex[], iRes => auth_seq_id.valueKind(iRes) === Present);
+        residuesSortedByAuthSeqId.set(iChain, Sorting.create(residuesWithAuthSeqId, auth_seq_id.value));
 
-            const residuesWithAuthSeqId = filterInPlace(range(iResFrom, iResTo) as ResidueIndex[], iRes => auth_seq_id.valueKind(iRes) === Present);
-            residuesSortedByAuthSeqId.set(iChain, Sorting.create(residuesWithAuthSeqId, auth_seq_id.value));
-
-            const residuesHereByInsCode = new MultiMap<string, ResidueIndex>();
-            const residuesHereByLabelCompId = new MultiMap<string, ResidueIndex>();
-            const residuesHereByAuthCompId = new MultiMap<string, ResidueIndex>();
-            for (let iRes = iResFrom; iRes < iResTo; iRes++) {
-                if (pdbx_PDB_ins_code.valueKind(iRes) === Present) {
-                    residuesHereByInsCode.add(pdbx_PDB_ins_code.value(iRes), iRes);
-                }
-                const iAtomFrom = h.residueAtomSegments.offsets[iRes];
-                const iAtomTo = h.residueAtomSegments.offsets[iRes + 1];
-                for (let iAtom = iAtomFrom; iAtom < iAtomTo; iAtom++) {
-                    _labelCompIdSet.add(label_comp_id.value(iAtom));
-                    _authCompIdSet.add(auth_comp_id.value(iAtom));
-                }
-                if (_labelCompIdSet.size > 1) residuesByLabelCompIdIsPure = false;
-                if (_authCompIdSet.size > 1) residuesByAuthCompIdIsPure = false;
-                for (const labelCompId of _labelCompIdSet) residuesHereByLabelCompId.add(labelCompId, iRes);
-                for (const authCompId of _authCompIdSet) residuesHereByAuthCompId.add(authCompId, iRes);
-                _labelCompIdSet.clear();
-                _authCompIdSet.clear();
+        const residuesHereByInsCode = new MultiMap<string, ResidueIndex>();
+        const residuesHereByLabelCompId = new MultiMap<string, ResidueIndex>();
+        const residuesHereByAuthCompId = new MultiMap<string, ResidueIndex>();
+        for (let iRes = iResFrom; iRes < iResTo; iRes++) {
+            if (pdbx_PDB_ins_code.valueKind(iRes) === Present) {
+                residuesHereByInsCode.add(pdbx_PDB_ins_code.value(iRes), iRes);
             }
-            residuesByInsCode.set(iChain, residuesHereByInsCode);
-            residuesByLabelCompId.set(iChain, residuesHereByLabelCompId);
-            residuesByAuthCompId.set(iChain, residuesHereByAuthCompId);
+            const iAtomFrom = h.residueAtomSegments.offsets[iRes];
+            const iAtomTo = h.residueAtomSegments.offsets[iRes + 1];
+            for (let iAtom = iAtomFrom; iAtom < iAtomTo; iAtom++) {
+                _labelCompIdSet.add(label_comp_id.value(iAtom));
+                _authCompIdSet.add(auth_comp_id.value(iAtom));
+            }
+            if (_labelCompIdSet.size > 1) residuesByLabelCompIdIsPure = false;
+            if (_authCompIdSet.size > 1) residuesByAuthCompIdIsPure = false;
+            for (const labelCompId of _labelCompIdSet) residuesHereByLabelCompId.add(labelCompId, iRes);
+            for (const authCompId of _authCompIdSet) residuesHereByAuthCompId.add(authCompId, iRes);
+            _labelCompIdSet.clear();
+            _authCompIdSet.clear();
         }
+        residuesByInsCode.set(iChain, residuesHereByInsCode);
+        residuesByLabelCompId.set(iChain, residuesHereByLabelCompId);
+        residuesByAuthCompId.set(iChain, residuesHereByAuthCompId);
+    }
 
-        const atomId = model.atomicConformation.atomId.value;
-        const atomIndex = h.atomSourceIndex.value;
-        for (let iAtom = 0 as ElementIndex; iAtom < nAtoms; iAtom++) {
-            atomsById.set(atomId(iAtom), iAtom);
-            atomsByIndex.set(atomIndex(iAtom), iAtom);
-        }
+    const atomId = model.atomicConformation.atomId.value;
+    const atomIndex = h.atomSourceIndex.value;
+    for (let iAtom = 0 as ElementIndex; iAtom < nAtoms; iAtom++) {
+        atomsById.set(atomId(iAtom), iAtom);
+        atomsByIndex.set(atomIndex(iAtom), iAtom);
+    }
 
-        return {
-            chainsByLabelEntityId, chainsByLabelAsymId, chainsByAuthAsymId,
-            residuesSortedByLabelSeqId, residuesSortedByAuthSeqId, residuesByInsCode,
-            residuesByLabelCompId, residuesByLabelCompIdIsPure, residuesByAuthCompId, residuesByAuthCompIdIsPure,
-            atomsById, atomsByIndex,
-        };
-    },
-};
+    return {
+        chainsByLabelEntityId, chainsByLabelAsymId, chainsByAuthAsymId,
+        residuesSortedByLabelSeqId, residuesSortedByAuthSeqId, residuesByInsCode,
+        residuesByLabelCompId, residuesByLabelCompIdIsPure, residuesByAuthCompId, residuesByAuthCompIdIsPure,
+        atomsById, atomsByIndex,
+    };
+}
 
 
 /** Auxiliary data structure for efficiently finding chains/elements in a coarse model by their properties */
@@ -144,56 +160,45 @@ export interface CoarseIndicesAndSortings {
         }>,
 }
 
-export const CoarseIndicesAndSortings = {
-    /** Get `CoarseIndicesAndSortings` for spheres in a coarse model (use a cached value or create if not available yet) */
-    getForSpheres(model: Model): CoarseIndicesAndSortings {
-        return model._dynamicPropertyData['spheres-indices-and-sortings'] ??= CoarseIndicesAndSortings.create(model.coarseHierarchy.spheres);
-    },
-    /** Get `CoarseIndicesAndSortings` for gaussians in a coarse model (use a cached value or create if not available yet) */
-    getForGaussians(model: Model): CoarseIndicesAndSortings {
-        return model._dynamicPropertyData['gaussians-indices-and-sortings'] ??= CoarseIndicesAndSortings.create(model.coarseHierarchy.gaussians);
-    },
+/** Create `CoarseIndicesAndSortings` for a coarse elements hierarchy */
+function createCoarseIndicesAndSortings(coarseElements: CoarseElements): CoarseIndicesAndSortings {
+    const { entity_id, asym_id, seq_id_begin, seq_id_end, chainElementSegments } = coarseElements;
+    const { Present } = Column.ValueKind;
+    const nChains = Math.max(chainElementSegments.count, 0); // chainElementSegments.count is -1 when there are no coarse elements
 
-    /** Create `CoarseIndicesAndSortings` for a coarse elements hierarchy */
-    create(coarseElements: CoarseElements): CoarseIndicesAndSortings {
-        const { entity_id, asym_id, seq_id_begin, seq_id_end, chainElementSegments } = coarseElements;
-        const { Present } = Column.ValueKind;
-        const nChains = Math.max(chainElementSegments.count, 0); // chainElementSegments.count is -1 when there are no coarse elements
+    const chainsByEntityId = new MultiMap<string, ChainIndex>();
+    const chainsByAsymId = new MultiMap<string, ChainIndex>();
+    const elementsSortedBySeqIdBegin = new Map<ChainIndex, Sorting<ElementIndex, number> & { endUpperBounds: SortedArray }>();
+    const chains = {
+        count: nChains,
+        label_entity_id: new Array<string>(nChains),
+        label_asym_id: new Array<string>(nChains),
+    };
 
-        const chainsByEntityId = new MultiMap<string, ChainIndex>();
-        const chainsByAsymId = new MultiMap<string, ChainIndex>();
-        const elementsSortedBySeqIdBegin = new Map<ChainIndex, Sorting<ElementIndex, number> & { endUpperBounds: SortedArray }>();
-        const chains = {
-            count: nChains,
-            label_entity_id: new Array<string>(nChains),
-            label_asym_id: new Array<string>(nChains),
-        };
+    for (let iChain = 0 as ChainIndex; iChain < nChains; iChain++) {
+        const iElemFrom = chainElementSegments.offsets[iChain];
+        const iElemTo = chainElementSegments.offsets[iChain + 1];
+        const entityId = entity_id.value(iElemFrom);
+        const asymId = asym_id.value(iElemFrom);
+        chains.label_entity_id[iChain] = entityId;
+        chains.label_asym_id[iChain] = asymId;
+        chainsByEntityId.add(entityId, iChain);
+        chainsByAsymId.add(asymId, iChain);
 
-        for (let iChain = 0 as ChainIndex; iChain < nChains; iChain++) {
-            const iElemFrom = chainElementSegments.offsets[iChain];
-            const iElemTo = chainElementSegments.offsets[iChain + 1];
-            const entityId = entity_id.value(iElemFrom);
-            const asymId = asym_id.value(iElemFrom);
-            chains.label_entity_id[iChain] = entityId;
-            chains.label_asym_id[iChain] = asymId;
-            chainsByEntityId.add(entityId, iChain);
-            chainsByAsymId.add(asymId, iChain);
-
-            const elementsWithSeqIds = filterInPlace(range(iElemFrom, iElemTo) as ElementIndex[], iElem => seq_id_begin.valueKind(iElem) === Present && seq_id_end.valueKind(iElem) === Present);
-            const sorting = Sorting.create(elementsWithSeqIds, seq_id_begin.value);
-            const endBounds = sorting.keys.map(seq_id_end.value);
-            // Ensure non-decreasing endBounds:
-            for (let i = 1; i < endBounds.length; i++) {
-                if (endBounds[i - 1] > endBounds[i]) {
-                    endBounds[i] = endBounds[i - 1];
-                }
+        const elementsWithSeqIds = filterInPlace(range(iElemFrom, iElemTo) as ElementIndex[], iElem => seq_id_begin.valueKind(iElem) === Present && seq_id_end.valueKind(iElem) === Present);
+        const sorting = Sorting.create(elementsWithSeqIds, seq_id_begin.value);
+        const endBounds = sorting.keys.map(seq_id_end.value);
+        // Ensure non-decreasing endBounds:
+        for (let i = 1; i < endBounds.length; i++) {
+            if (endBounds[i - 1] > endBounds[i]) {
+                endBounds[i] = endBounds[i - 1];
             }
-            elementsSortedBySeqIdBegin.set(iChain, { ...sorting, endUpperBounds: SortedArray.ofSortedArray(endBounds) });
         }
+        elementsSortedBySeqIdBegin.set(iChain, { ...sorting, endUpperBounds: SortedArray.ofSortedArray(endBounds) });
+    }
 
-        return { chains, chainsByEntityId, chainsByAsymId, elementsSortedBySeqIdBegin };
-    },
-};
+    return { chains, chainsByEntityId, chainsByAsymId, elementsSortedBySeqIdBegin };
+}
 
 
 /** Represents a set of things (keys) of type `K`, sorted by some property (value) of type `V` */

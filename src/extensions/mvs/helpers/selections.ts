@@ -12,7 +12,7 @@ import { CoarseElements } from '../../../mol-model/structure/model/properties/co
 import { Expression } from '../../../mol-script/language/expression';
 import { arrayExtend, filterInPlace, range, sortIfNeeded } from '../../../mol-util/array';
 import { ElementRanges } from './element-ranges';
-import { CoarseIndicesAndSortings, IndicesAndSortings, Sorting } from './indexing';
+import { AtomicIndicesAndSortings, CoarseIndicesAndSortings, JointIndicesAndSortings, Sorting } from './indexing';
 import { MVSAnnotationRow } from './schemas';
 import { isAnyDefined, isDefined } from './utils';
 
@@ -23,24 +23,25 @@ const EmptyArray: readonly any[] = [];
 // ATOMIC SELECTIONS
 
 /** Return atom ranges in `model` which satisfy criteria given by `row` */
-export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: IndicesAndSortings): ElementRanges | undefined {
+export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: JointIndicesAndSortings): ElementRanges | undefined {
     if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
 
+    const atomicIndices = indices.atomic;
     const h = model.atomicHierarchy;
     const nAtoms = h.atoms._rowCount;
     if (nAtoms === 0) return undefined;
 
     const hasAtomIds = isAnyDefined(row.atom_id, row.atom_index);
     const hasAtomFilter = isAnyDefined(row.label_atom_id, row.auth_atom_id, row.type_symbol)
-        || isDefined(row.label_comp_id) && !indices.residuesByLabelCompIdIsPure
-        || isDefined(row.auth_comp_id) && !indices.residuesByAuthCompIdIsPure;
+        || isDefined(row.label_comp_id) && !atomicIndices.residuesByLabelCompIdIsPure
+        || isDefined(row.auth_comp_id) && !atomicIndices.residuesByAuthCompIdIsPure;
     const hasResidueFilter = isAnyDefined(row.label_seq_id, row.auth_seq_id, row.pdbx_PDB_ins_code,
         row.beg_label_seq_id, row.end_label_seq_id, row.beg_auth_seq_id, row.end_auth_seq_id,
         row.label_comp_id, row.auth_comp_id);
     const hasChainFilter = isAnyDefined(row.label_asym_id, row.auth_asym_id, row.label_entity_id);
 
     if (hasAtomIds) {
-        const theAtom = getTheAtomForRow(model, row, indices);
+        const theAtom = getTheAtomForRow(model, row, atomicIndices);
         return theAtom !== undefined ? ElementRanges.single(theAtom, theAtom + 1 as ElementIndex) : undefined;
     }
 
@@ -48,7 +49,7 @@ export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanc
         return ElementRanges.single(0 as ElementIndex, nAtoms as ElementIndex);
     }
 
-    const qualifyingChains = getQualifyingChains(model, row, indices);
+    const qualifyingChains = getQualifyingChains(model, row, atomicIndices);
     if (!hasResidueFilter && !hasAtomFilter) {
         const chainOffsets = h.chainAtomSegments.offsets;
         const ranges = ElementRanges.empty();
@@ -58,7 +59,7 @@ export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanc
         return ranges;
     }
 
-    const qualifyingResidues = getQualifyingResidues(model, row, indices, qualifyingChains);
+    const qualifyingResidues = getQualifyingResidues(model, row, atomicIndices, qualifyingChains);
     if (!hasAtomFilter) {
         const residueOffsets = h.residueAtomSegments.offsets;
         const ranges = ElementRanges.empty();
@@ -68,7 +69,7 @@ export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanc
         return ranges;
     }
 
-    const qualifyingAtoms = getQualifyingAtoms(model, row, indices, qualifyingResidues);
+    const qualifyingAtoms = getQualifyingAtoms(model, row, atomicIndices, qualifyingResidues);
     const ranges = ElementRanges.empty();
     for (const iAtom of qualifyingAtoms) {
         ElementRanges.add(ranges, iAtom, iAtom + 1 as ElementIndex);
@@ -77,13 +78,13 @@ export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanc
 }
 
 /** Return atom ranges in `model` which satisfy criteria given by any of `rows` (atoms that satisfy more rows are still included only once) */
-export function getAtomRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: IndicesAndSortings): ElementRanges {
+export function getAtomRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: JointIndicesAndSortings): ElementRanges {
     return ElementRanges.union(rows.map(row => getAtomRangesForRow(row, model, instanceId, indices)));
 }
 
 
 /** Return an array of chain indexes which satisfy criteria given by `row` */
-function getQualifyingChains(model: Model, row: MVSAnnotationRow, indices: IndicesAndSortings): readonly ChainIndex[] {
+function getQualifyingChains(model: Model, row: MVSAnnotationRow, indices: AtomicIndicesAndSortings): readonly ChainIndex[] {
     const { auth_asym_id, label_entity_id, _rowCount: nChains } = model.atomicHierarchy.chains;
     let result: readonly ChainIndex[] | undefined = undefined;
     if (isDefined(row.label_asym_id)) {
@@ -108,7 +109,7 @@ function getQualifyingChains(model: Model, row: MVSAnnotationRow, indices: Indic
 }
 
 /** Return an array of residue indexes which satisfy criteria given by `row` */
-function getQualifyingResidues(model: Model, row: MVSAnnotationRow, indices: IndicesAndSortings, fromChains: readonly ChainIndex[]): ResidueIndex[] {
+function getQualifyingResidues(model: Model, row: MVSAnnotationRow, indices: AtomicIndicesAndSortings, fromChains: readonly ChainIndex[]): ResidueIndex[] {
     const { label_seq_id, auth_seq_id, pdbx_PDB_ins_code } = model.atomicHierarchy.residues;
     const { label_comp_id, auth_comp_id } = model.atomicHierarchy.atoms;
     const { residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
@@ -202,7 +203,7 @@ function getQualifyingResidues(model: Model, row: MVSAnnotationRow, indices: Ind
 }
 
 /** Return an array of atom indexes which satisfy criteria given by `row` */
-function getQualifyingAtoms(model: Model, row: MVSAnnotationRow, indices: IndicesAndSortings, fromResidues: readonly ResidueIndex[]): ElementIndex[] {
+function getQualifyingAtoms(model: Model, row: MVSAnnotationRow, indices: AtomicIndicesAndSortings, fromResidues: readonly ResidueIndex[]): ElementIndex[] {
     const { label_atom_id, auth_atom_id, type_symbol, label_comp_id, auth_comp_id } = model.atomicHierarchy.atoms;
     const residueAtomSegments_offsets = model.atomicHierarchy.residueAtomSegments.offsets;
     const result: ElementIndex[] = [];
@@ -230,7 +231,7 @@ function getQualifyingAtoms(model: Model, row: MVSAnnotationRow, indices: Indice
 
 /** Return index of atom in `model` which satistfies criteria given by `row`, if any.
  * Only works when `row.atom_id` and/or `row.atom_index` is defined (otherwise use `getAtomRangesForRow`). */
-function getTheAtomForRow(model: Model, row: MVSAnnotationRow, indices: IndicesAndSortings): ElementIndex | undefined {
+function getTheAtomForRow(model: Model, row: MVSAnnotationRow, indices: AtomicIndicesAndSortings): ElementIndex | undefined {
     let iAtom: ElementIndex | undefined = undefined;
     if (!isDefined(row.atom_id) && !isDefined(row.atom_index)) throw new Error('ArgumentError: at least one of row.atom_id, row.atom_index must be defined.');
     if (isDefined(row.atom_id) && isDefined(row.atom_index)) {
@@ -308,26 +309,26 @@ function matchesRange<T>(requiredMin: T | undefined | null, requiredMax: T | und
 // COARSE SELECTIONS
 
 /** Return sphere ranges in `model` which satisfy criteria given by `row` */
-export function getSphereRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: CoarseIndicesAndSortings): ElementRanges | undefined {
+export function getSphereRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: JointIndicesAndSortings): ElementRanges | undefined {
     if (!model.coarseHierarchy.isDefined) return undefined;
     if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
-    return getCoarseElementRangesForRow(row, model.coarseHierarchy.spheres, indices);
+    return getCoarseElementRangesForRow(row, model.coarseHierarchy.spheres, indices.spheres);
 }
 
 /** Return sphere ranges in `model` which satisfy criteria given by any of `rows` (spheres that satisfy more rows are still included only once) */
-export function getSphereRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: CoarseIndicesAndSortings): ElementRanges {
+export function getSphereRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: JointIndicesAndSortings): ElementRanges {
     return ElementRanges.union(rows.map(row => getSphereRangesForRow(row, model, instanceId, indices)));
 }
 
 /** Return gaussian ranges in `model` which satisfy criteria given by `row` */
-export function getGaussianRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: CoarseIndicesAndSortings): ElementRanges | undefined {
+export function getGaussianRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: JointIndicesAndSortings): ElementRanges | undefined {
     if (!model.coarseHierarchy.isDefined) return undefined;
     if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
-    return getCoarseElementRangesForRow(row, model.coarseHierarchy.gaussians, indices);
+    return getCoarseElementRangesForRow(row, model.coarseHierarchy.gaussians, indices.gaussians);
 }
 
 /** Return gaussian ranges in `model` which satisfy criteria given by any of `rows` (gaussians that satisfy more rows are still included only once) */
-export function getGaussianRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: CoarseIndicesAndSortings): ElementRanges {
+export function getGaussianRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: JointIndicesAndSortings): ElementRanges {
     return ElementRanges.union(rows.map(row => getGaussianRangesForRow(row, model, instanceId, indices)));
 }
 

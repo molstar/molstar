@@ -19,7 +19,7 @@ import { objectOfArraysToArrayOfObjects, pickObjectKeysWithRemapping, promiseAll
 import { Choice } from '../../../mol-util/param-choice';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { ElementRanges } from '../helpers/element-ranges';
-import { CoarseIndicesAndSortings, IndicesAndSortings } from '../helpers/indexing';
+import { JointIndicesAndSortings } from '../helpers/indexing';
 import { MaybeStringParamDefinition } from '../helpers/param-definition';
 import { MVSAnnotationRow, MVSAnnotationSchema, getCifAnnotationSchema } from '../helpers/schemas';
 import { getAtomRangesForRow, getGaussianRangesForRow, getSphereRangesForRow } from '../helpers/selections';
@@ -249,9 +249,7 @@ export class MVSAnnotation {
 
     /** Create `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` */
     private getRowForEachAtom(model: Model, instanceId: string): IndexedModel {
-        const atomIndices = IndicesAndSortings.get(model);
-        const sphereIndices = CoarseIndicesAndSortings.getForSpheres(model);
-        const gaussianIndices = CoarseIndicesAndSortings.getForGaussians(model);
+        const indices = JointIndicesAndSortings.get(model);
         const nAtoms = model.atomicHierarchy.atoms._rowCount;
         const nSpheres = model.coarseHierarchy.spheres.count;
         const nGaussians = model.coarseHierarchy.gaussians.count;
@@ -261,11 +259,11 @@ export class MVSAnnotation {
         const rows = this.getRows();
         for (let iRow = 0, nRows = rows.length; iRow < nRows; iRow++) {
             const row = rows[iRow];
-            const atomRanges = getAtomRangesForRow(row, model, instanceId, atomIndices);
+            const atomRanges = getAtomRangesForRow(row, model, instanceId, indices);
             indexedAtoms = fillValueOnRanges(indexedAtoms, nAtoms, atomRanges, iRow);
-            const sphereRanges = getSphereRangesForRow(row, model, instanceId, sphereIndices);
+            const sphereRanges = getSphereRangesForRow(row, model, instanceId, indices);
             indexedSpheres = fillValueOnRanges(indexedSpheres, nSpheres, sphereRanges, iRow);
-            const gaussianRanges = getGaussianRangesForRow(row, model, instanceId, gaussianIndices);
+            const gaussianRanges = getGaussianRangesForRow(row, model, instanceId, indices);
             indexedGaussians = fillValueOnRanges(indexedGaussians, nGaussians, gaussianRanges, iRow);
         }
         return { atoms: indexedAtoms, spheres: indexedSpheres, gaussians: indexedGaussians };
