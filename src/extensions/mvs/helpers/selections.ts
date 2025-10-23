@@ -314,11 +314,21 @@ export function getSphereRangesForRow(row: MVSAnnotationRow, model: Model, insta
     return getCoarseElementRangesForRow(row, model.coarseHierarchy.spheres, indices);
 }
 
+/** Return sphere ranges in `model` which satisfy criteria given by any of `rows` (spheres that satisfy more rows are still included only once) */
+export function getSphereRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: CoarseIndicesAndSortings): ElementRanges {
+    return ElementRanges.union(rows.map(row => getSphereRangesForRow(row, model, instanceId, indices)));
+}
+
 /** Return gaussian ranges in `model` which satisfy criteria given by `row` */
 export function getGaussianRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: CoarseIndicesAndSortings): ElementRanges | undefined {
     if (!model.coarseHierarchy.isDefined) return undefined;
     if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
     return getCoarseElementRangesForRow(row, model.coarseHierarchy.gaussians, indices);
+}
+
+/** Return gaussian ranges in `model` which satisfy criteria given by any of `rows` (gaussians that satisfy more rows are still included only once) */
+export function getGaussianRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: CoarseIndicesAndSortings): ElementRanges {
+    return ElementRanges.union(rows.map(row => getGaussianRangesForRow(row, model, instanceId, indices)));
 }
 
 /** Return ranges of coarse elements (spheres or gaussians) which satisfy criteria given by `row` */
