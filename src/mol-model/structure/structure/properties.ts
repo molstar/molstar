@@ -107,6 +107,7 @@ const residue = {
         return secStruc ? secStruc.key[secStruc.getIndex(l.unit.residueIndex[l.element])] : -1;
     }),
     chem_comp_type: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.chemicalComponentMap.get(compId(l))!.type),
+    residueSourceIndex: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residueSourceIndex.value(l.unit.residueIndex[l.element])),
 };
 
 const chain = {

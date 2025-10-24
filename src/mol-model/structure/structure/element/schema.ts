@@ -20,15 +20,16 @@ export interface SchemaItem {
     label_entity_id?: string,
     label_asym_id?: string,
     auth_asym_id?: string,
-    label_seq_id?: number
-    auth_seq_id?: number
+    label_seq_id?: number,
+    auth_seq_id?: number,
+    residue_index?: number,
     label_comp_id?: string,
     auth_comp_id?: string,
     pdbx_PDB_ins_code?: string,
-    beg_label_seq_id?: number
-    end_label_seq_id?: number
-    beg_auth_seq_id?: number
-    end_auth_seq_id?: number
+    beg_label_seq_id?: number,
+    end_label_seq_id?: number,
+    beg_auth_seq_id?: number,
+    end_auth_seq_id?: number,
     label_atom_id?: string,
     auth_atom_id?: string,
     type_symbol?: string,
@@ -87,6 +88,7 @@ function schemaItemToExpression(item: SchemaItem): Expression {
         residueTests.push(ihm.hasSeqId({ 0: item.label_seq_id }));
     }
     if (isDefined(item.auth_seq_id)) residueTests.push(eq([macromolecular.auth_seq_id(), item.auth_seq_id]));
+    if (isDefined(item.residue_index)) residueTests.push(eq([macromolecular.residueSourceIndex(), item.residue_index]));
     if (isDefined(item.pdbx_PDB_ins_code)) residueTests.push(eq([macromolecular.pdbx_PDB_ins_code(), item.pdbx_PDB_ins_code]));
 
     if (isDefined(item.beg_label_seq_id) || isDefined(item.end_label_seq_id)) {
