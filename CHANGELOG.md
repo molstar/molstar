@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix clip objects for deirect-volume rendering
 - Support "magic window" style AR (via WebXR)
 - Fix `PluginState.getStateTransitionFrameIndex`
+- Update `GlycamSaccharideNames` and `Monosaccharides` in `carbohydrates/constants.ts`
 - MolViewSpec
   - Add support for DX map format
 
