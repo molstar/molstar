@@ -125,6 +125,7 @@ const Monosaccharides: SaccharideComponent[] = [
     { abbr: 'AllN', name: 'Allosamine', color: SaccharideColors.Purple, type: SaccharideType.Hexosamine },
     { abbr: 'TalN', name: 'Talosamine', color: SaccharideColors.LightBlue, type: SaccharideType.Hexosamine },
     { abbr: 'IdoN', name: 'Idosamine', color: SaccharideColors.Brown, type: SaccharideType.Hexosamine },
+    { abbr: 'GlcNS', name: 'N-sulfo Glucosamine', color: SaccharideColors.Blue, type: SaccharideType.Hexosamine },
 
     { abbr: 'GlcA', name: 'Glucuronic Acid', color: SaccharideColors.Blue, type: SaccharideType.Hexuronate },
     { abbr: 'ManA', name: 'Mannuronic Acid', color: SaccharideColors.Green, type: SaccharideType.Hexuronate },
@@ -147,6 +148,7 @@ const Monosaccharides: SaccharideComponent[] = [
     { abbr: '6dAltNAc', name: 'N-Acetyl 6-Deoxy Altrosamine', color: SaccharideColors.Pink, type: SaccharideType.DeoxyhexNAc },
     { abbr: '6dTalNAc', name: 'N-Acetyl 6-Deoxy Talosamine', color: SaccharideColors.LightBlue, type: SaccharideType.DeoxyhexNAc },
     { abbr: 'FucNAc', name: 'N-Acetyl Fucosamine', color: SaccharideColors.Red, type: SaccharideType.DeoxyhexNAc },
+    { abbr: 'AAT', name: 'AAT', color: SaccharideColors.Red, type: SaccharideType.DeoxyhexNAc },
 
     { abbr: 'Oli', name: 'Olivose', color: SaccharideColors.Blue, type: SaccharideType.DiDeoxyhexose },
     { abbr: 'Tyv', name: 'Tyvelose', color: SaccharideColors.Green, type: SaccharideType.DiDeoxyhexose },
@@ -179,6 +181,8 @@ const Monosaccharides: SaccharideComponent[] = [
     { abbr: 'MurNAc', name: 'N-Acetyl Muramic Acid', color: SaccharideColors.Purple, type: SaccharideType.Unknown },
     { abbr: 'MurNGc', name: 'N-Glycolyl Muramic Acid', color: SaccharideColors.LightBlue, type: SaccharideType.Unknown },
     { abbr: 'Mur', name: 'Muramic Acid', color: SaccharideColors.Brown, type: SaccharideType.Unknown },
+    { abbr: 'K3O', name: 'D-glycero-a-D-talo-oct-2-Ulosonic Acid', color: SaccharideColors.Red, type: SaccharideType.Unknown },
+    { abbr: 'dUA', name: '4-deoxy-4,5-didehydro iduronic acid', color: SaccharideColors.Secondary, type: SaccharideType.Unknown },
 
     { abbr: 'Api', name: 'Apicose', color: SaccharideColors.Green, type: SaccharideType.Assigned },
     { abbr: 'Fru', name: 'Fructose', color: SaccharideColors.Green, type: SaccharideType.Assigned },
