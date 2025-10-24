@@ -12,6 +12,13 @@ Note that since we don't clearly distinguish between a public and private interf
 - Update `GlycamSaccharideNames` and `Monosaccharides` in `carbohydrates/constants.ts`
 - MolViewSpec
   - Add support for DX map format
+  - Better support for coarse structures in MVS:
+    - Support for MVS annotations on coarse structures (color_from_*, tooltip_from_*)
+    - Support for MVS labels on coarse structures (label, label_from_*)
+    - (Other things already worked on coarse structures before: tooltip, color,component, primitives, component_from_*, primitives_from_*)
+  - Tidy up MVS builder:
+    - Add `sphere` and `angle` methods
+    - [Breaking] Rename builder method primitives_from_uri -> primitivesFromUri
 
 ## [v5.0.0] - 2025-09-28
 - [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
