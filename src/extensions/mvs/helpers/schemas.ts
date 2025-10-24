@@ -65,7 +65,8 @@ const AllAtomicCifAnnotationSchema = {
     end_auth_seq_id: int,
     label_comp_id: str,
     auth_comp_id: str,
-    // residue_index: int, // 0-based residue index in the source file // TODO this is defined in Python builder but not supported by Molstar yet
+    /** 0-based residue index in the source file */
+    residue_index: int,
 
     /** Atom name like 'CA', 'N', 'O'... */
     label_atom_id: str,
@@ -89,11 +90,11 @@ const FieldsForSchemas = {
     entity: ['group_id', 'label_entity_id'],
     chain: ['group_id', 'label_entity_id', 'label_asym_id'],
     auth_chain: ['group_id', 'auth_asym_id'],
-    residue: ['group_id', 'label_entity_id', 'label_asym_id', 'label_seq_id'],
-    auth_residue: ['group_id', 'auth_asym_id', 'auth_seq_id', 'pdbx_PDB_ins_code'],
+    residue: ['group_id', 'label_entity_id', 'label_asym_id', 'label_seq_id', 'residue_index'],
+    auth_residue: ['group_id', 'auth_asym_id', 'auth_seq_id', 'pdbx_PDB_ins_code', 'residue_index'],
     residue_range: ['group_id', 'label_entity_id', 'label_asym_id', 'beg_label_seq_id', 'end_label_seq_id'],
     auth_residue_range: ['group_id', 'auth_asym_id', 'beg_auth_seq_id', 'end_auth_seq_id'],
-    atom: ['group_id', 'label_entity_id', 'label_asym_id', 'label_seq_id', 'label_atom_id', 'type_symbol', 'atom_id', 'atom_index'],
-    auth_atom: ['group_id', 'auth_asym_id', 'auth_seq_id', 'pdbx_PDB_ins_code', 'auth_atom_id', 'type_symbol', 'atom_id', 'atom_index'],
+    atom: ['group_id', 'label_entity_id', 'label_asym_id', 'label_seq_id', 'residue_index', 'label_atom_id', 'type_symbol', 'atom_id', 'atom_index'],
+    auth_atom: ['group_id', 'auth_asym_id', 'auth_seq_id', 'pdbx_PDB_ins_code', 'residue_index', 'auth_atom_id', 'type_symbol', 'atom_id', 'atom_index'],
     all_atomic: Object.keys(AllAtomicCifAnnotationSchema) as (keyof typeof AllAtomicCifAnnotationSchema)[],
 } satisfies { [schema in MVSAnnotationSchema]: (keyof typeof AllAtomicCifAnnotationSchema)[] };

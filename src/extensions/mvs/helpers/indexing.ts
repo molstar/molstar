@@ -42,6 +42,7 @@ export interface AtomicIndicesAndSortings {
     chainsByAuthAsymId: Mapping<string, readonly ChainIndex[]>,
     residuesSortedByLabelSeqId: Mapping<ChainIndex, Sorting<ResidueIndex, number>>,
     residuesSortedByAuthSeqId: Mapping<ChainIndex, Sorting<ResidueIndex, number>>,
+    residuesSortedBySourceIndex: Mapping<ChainIndex, Sorting<ResidueIndex, number>>,
     residuesByInsCode: Mapping<ChainIndex, Mapping<string, readonly ResidueIndex[]>>,
     residuesByLabelCompId: Mapping<ChainIndex, Mapping<string, readonly ResidueIndex[]>>,
     /** Indicates if each residue is listed only once in `residuesByLabelCompId` (i.e. if each residue has only one label_comp_id) */
@@ -50,7 +51,7 @@ export interface AtomicIndicesAndSortings {
     /** Indicates if each residue is listed only once in `residuesByAuthCompId` (i.e. if each residue has only one auth_comp_id) */
     residuesByAuthCompIdIsPure: boolean,
     atomsById: Mapping<number, ElementIndex>,
-    atomsByIndex: Mapping<number, ElementIndex>,
+    atomsBySourceIndex: Mapping<number, ElementIndex>,
 }
 
 /** Create `AtomicIndicesAndSortings` for a model */
@@ -70,13 +71,14 @@ function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings 
     const chainsByAuthAsymId = new MultiMap<string, ChainIndex>();
     const residuesSortedByLabelSeqId = new Map<ChainIndex, Sorting<ResidueIndex, number>>();
     const residuesSortedByAuthSeqId = new Map<ChainIndex, Sorting<ResidueIndex, number>>();
+    const residuesSortedBySourceIndex = new Map<ChainIndex, Sorting<ResidueIndex, number>>();
     const residuesByInsCode = new Map<ChainIndex, MultiMap<string, ResidueIndex>>();
     const residuesByLabelCompId = new Map<ChainIndex, MultiMap<string, ResidueIndex>>();
     let residuesByLabelCompIdIsPure = true;
     const residuesByAuthCompId = new Map<ChainIndex, MultiMap<string, ResidueIndex>>();
     let residuesByAuthCompIdIsPure = true;
     const atomsById = new NumberMap<number, ElementIndex>(nAtoms + 1);
-    const atomsByIndex = new NumberMap<number, ElementIndex>(nAtoms);
+    const atomsBySourceIndex = new NumberMap<number, ElementIndex>(nAtoms);
 
     const _labelCompIdSet = new Set<string>();
     const _authCompIdSet = new Set<string>();
@@ -94,6 +96,9 @@ function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings 
 
         const residuesWithAuthSeqId = filterInPlace(range(iResFrom, iResTo) as ResidueIndex[], iRes => auth_seq_id.valueKind(iRes) === Present);
         residuesSortedByAuthSeqId.set(iChain, Sorting.create(residuesWithAuthSeqId, auth_seq_id.value));
+
+        const residuesWithSourceIndex = range(iResFrom, iResTo) as ResidueIndex[];
+        residuesSortedBySourceIndex.set(iChain, Sorting.create(residuesWithSourceIndex, h.residueSourceIndex.value));
 
         const residuesHereByInsCode = new MultiMap<string, ResidueIndex>();
         const residuesHereByLabelCompId = new MultiMap<string, ResidueIndex>();
@@ -124,14 +129,14 @@ function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings 
     const atomIndex = h.atomSourceIndex.value;
     for (let iAtom = 0 as ElementIndex; iAtom < nAtoms; iAtom++) {
         atomsById.set(atomId(iAtom), iAtom);
-        atomsByIndex.set(atomIndex(iAtom), iAtom);
+        atomsBySourceIndex.set(atomIndex(iAtom), iAtom);
     }
 
     return {
         chainsByLabelEntityId, chainsByLabelAsymId, chainsByAuthAsymId,
-        residuesSortedByLabelSeqId, residuesSortedByAuthSeqId, residuesByInsCode,
+        residuesSortedByLabelSeqId, residuesSortedByAuthSeqId, residuesSortedBySourceIndex, residuesByInsCode,
         residuesByLabelCompId, residuesByLabelCompIdIsPure, residuesByAuthCompId, residuesByAuthCompIdIsPure,
-        atomsById, atomsByIndex,
+        atomsById, atomsBySourceIndex,
     };
 }
 
