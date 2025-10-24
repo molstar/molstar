@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -57,7 +57,7 @@ function createLabelText(ctx: VisualContext, structure: Structure, theme: Theme,
         const labelText = annotation!.getValueForRow(iFirstRowInGroup, props.fieldName);
         if (!labelText) continue;
         const rowsInGroup = grouped.slice(offsets[iGroup], offsets[iGroup + 1]).map(j => rows[j]);
-        const p = textPropsForSelection(structure, theme.size.size, rowsInGroup, model);
+        const p = textPropsForSelection(structure, rowsInGroup, model);
         if (!p) continue;
         builder.add(labelText, p.center[0], p.center[1], p.center[2], p.depth, p.scale, p.group);
     }
