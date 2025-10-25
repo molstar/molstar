@@ -10,7 +10,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support "magic window" style AR (via WebXR)
 - Fix `PluginState.getStateTransitionFrameIndex`
 - Update `GlycamSaccharideNames` and `Monosaccharides` in `carbohydrates/constants.ts`
+- Support custom ref resolvers in `State` 
 - MolViewSpec
+  - Support accessing Mol* State nodes by MVS-provided ref
   - Add support for DX map format
   - Better support for coarse structures in MVS:
     - Support for MVS annotations on coarse structures (color_from_*, tooltip_from_*)
