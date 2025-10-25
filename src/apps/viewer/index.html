@@ -66,14 +66,15 @@
             var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
             var illumination = getParam('illumination', '[^&]+').trim() === '1';
             var resolutionMode = getParam('resolution-mode', '[^&]+').trim().toLowerCase();
-            var expandToFullscreen = getParam('expand-to-fullscreen', '[^&]+').trim() === '1';
+            var viewportShowToggleFullscreen = getParam('show-toggle-fullscreen', '[^&]+').trim() === '1';
 
             // console.log('Available extensions: ', Object.keys(molstar.ExtensionMap));
 
             molstar.Viewer.create('app', {
                 disabledExtensions: [], // anything from Object.keys(molstar.ExtensionMap)
                 layoutShowControls: !hideControls,
-                viewportShowExpand: expandToFullscreen,
+                viewportShowExpand: false,
+                viewportShowToggleFullscreen: viewportShowToggleFullscreen,
                 collapseLeftPanel: collapseLeftPanel,
                 pdbProvider: pdbProvider || 'pdbe',
                 emdbProvider: emdbProvider || 'pdbe',
@@ -89,7 +90,6 @@
                 powerPreference: powerPreference || 'high-performance',
                 illumination: illumination,
                 resolutionMode: resolutionMode || 'auto',
-                expandToFullscreen: expandToFullscreen
             }).then(viewer => {
                 var snapshotId = getParam('snapshot-id', '[^&]+').trim();
                 if (snapshotId) viewer.setRemoteSnapshot(snapshotId);

@@ -6,13 +6,13 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - Get bond orders from non-standard CONECT records in PDB files
 - Remove outdated `gl_FrontFacing` workaround for buggy drivers
-- Fix clip objects for deirect-volume rendering
+- Fix clip objects for direct-volume rendering
 - Support "magic window" style AR (via WebXR)
 - Fix `PluginState.getStateTransitionFrameIndex`
 - Update `GlycamSaccharideNames` and `Monosaccharides` in `carbohydrates/constants.ts`
 - Support custom ref resolvers in `State` 
-- Add `PluginConfig.General.ExpandToFullscreen` option that uses the full-screen mode when the plugin is expanded
-  - Change default `DefaultViewerOptions.layoutIsExpanded` to `false`
+- Add full-screen mode support to layout manager
+  - Add `show-toggle-fullscreen` URL param option to Viewer app
 - MolViewSpec
   - Support accessing Mol* State nodes by MVS-provided ref
   - Add support for DX map format

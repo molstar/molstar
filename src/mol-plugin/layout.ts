@@ -72,6 +72,13 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
         this.updateState(state);
         if (this.root && typeof state.isExpanded === 'boolean' && state.isExpanded !== prevExpanded) this.handleExpand();
 
+        if (this.state.expandToFullscreen) {
+            const body = document.getElementsByTagName('body')[0];
+            if (body) this.tryRequestFullscreen(body);
+        } else if (document.fullscreenElement) {
+            this.tryExitFullscreen();
+        }
+
         this.events.updated.next(void 0);
     }
 
@@ -95,8 +102,19 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
     }
 
     private async tryRequestFullscreen(body: HTMLElement) {
+        if (document.fullscreenElement) return;
         try {
             await body.requestFullscreen();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    private async tryExitFullscreen() {
+        if (!document.fullscreenElement) return;
+
+        try {
+            await document.exitFullscreen();
         } catch (e) {
             console.error(e);
         }
@@ -126,10 +144,6 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
                 }
 
                 if (!hasExp) head.appendChild(this.expandedViewport);
-
-                if (this.state.expandToFullscreen) {
-                    this.tryRequestFullscreen(body);
-                }
 
                 const s = body.style;
 
@@ -219,7 +233,7 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
     private fullscreenChangeHandler = () => {
         // In case the user exits fullscreen mode by pressing ESC, treat it as an expand toggle
         if (!document.fullscreenElement) {
-            this.updateProps({ isExpanded: false });
+            this.updateProps({ expandToFullscreen: false });
         }
     };
 
@@ -230,15 +244,10 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
     }
 
     constructor(private context: PluginContext) {
-        const config = new PluginConfigManager(context.spec.config);
-        const expandToFullscreen = config.get(PluginConfig.General.ExpandToFullscreen) ?? false;
+        super({ ...PD.getDefaultValues(PluginLayoutStateParams), ...(context.spec.layout && context.spec.layout.initial) });
 
-        super({ ...PD.getDefaultValues(PluginLayoutStateParams), ...(context.spec.layout && context.spec.layout.initial), expandToFullscreen });
-
-        if (expandToFullscreen) {
-            document.addEventListener('fullscreenchange', this.fullscreenChangeHandler);
-            document.addEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
-        }
+        document.addEventListener('fullscreenchange', this.fullscreenChangeHandler);
+        document.addEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
 
         PluginCommands.Layout.Update.subscribe(context, e => this.updateProps(e.state));
 

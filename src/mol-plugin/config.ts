@@ -37,7 +37,6 @@ export const PluginConfig = {
         AllowMajorPerformanceCaveat: item('plugin-config.allow-major-performance-caveat', false),
         PowerPreference: item<WebGLContextAttributes['powerPreference']>('plugin-config.power-preference', 'high-performance'),
         ResolutionMode: item<'auto' | 'scaled' | 'native'>('plugin-config.resolution-mode', 'auto'),
-        ExpandToFullscreen: item('plugin-config.expand-to-fullscreen', false),
     },
     State: {
         DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),
@@ -55,6 +54,7 @@ export const PluginConfig = {
     Viewport: {
         ShowReset: item('viewer.show-reset-button', true),
         ShowExpand: item('viewer.show-expand-button', true),
+        ShowToggleFullscreen: item('viewer.show-toggle-fullscreen-button', true),
         ShowControls: item('viewer.show-controls-button', true),
         ShowSettings: item('viewer.show-settings-button', true),
         ShowSelectionMode: item('viewer.show-selection-model-button', true),
