@@ -347,8 +347,6 @@ class State {
         const oldTree = this._tree;
         this._tree = _tree;
 
-        const cells = this.cells;
-
         const ctx: UpdateContext = {
             parent: this,
             editInfo: StateBuilder.is(tree) ? tree.editInfo : void 0,
@@ -369,7 +367,7 @@ class State {
             wasAborted: false,
             newCurrent: void 0,
 
-            getCellData: ref => cells.get(ref)!.obj?.data
+            getCellData: this.tryGetCellData,
         };
 
         this.errorFree = true;
