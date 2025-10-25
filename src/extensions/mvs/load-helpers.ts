@@ -494,8 +494,16 @@ function hasMolStarUseDefaultColoring(node: MolstarNode): boolean {
     return 'molstar_use_default_coloring' in node.custom || 'molstar_color_theme_name' in node.custom;
 }
 
+function customColoring(custom: any) {
+    if (custom?.molstar_use_default_coloring) return undefined;
+    return {
+        name: custom?.molstar_color_theme_name ?? undefined,
+        params: custom?.molstar_color_theme_params ?? {},
+    };
+}
+
 /** Create value for `colorTheme` prop for `StructureRepresentation3D` transformer from a representation node based on color* nodes in its subtree. */
-export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri' | 'color_from_source' | 'representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] | undefined {
+export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri' | 'color_from_source' | 'representation' | 'volume'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] | undefined {
     if (node?.kind === 'representation') {
         const children = getChildren(node).filter(c => c.kind === 'color' || c.kind === 'color_from_uri' || c.kind === 'color_from_source') as MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>[];
         if (children.length === 0) {
@@ -504,12 +512,7 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
                 params: { value: decodeColor(DefaultColor) },
             };
         } else if (children.length === 1 && hasMolStarUseDefaultColoring(children[0])) {
-            if (children[0].custom?.molstar_use_default_coloring) return undefined;
-            const custom = children[0].custom;
-            return {
-                name: custom?.molstar_color_theme_name ?? undefined,
-                params: custom?.molstar_color_theme_params ?? {},
-            };
+            return customColoring(children[0].custom);
         } else if (children.length === 1 && appliesColorToWholeRepr(children[0])) {
             return colorThemeForNode(children[0], context);
         } else {
@@ -527,6 +530,10 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
         }
     }
     if (node?.kind === 'color') {
+        if (hasMolStarUseDefaultColoring(node)) {
+            return customColoring(node.custom);
+        }
+
         return {
             name: 'uniform',
             params: { value: decodeColor(node.params.color) },
