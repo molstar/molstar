@@ -3,7 +3,6 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Viewport } from '../../mol-canvas3d/camera/util';
@@ -172,18 +171,17 @@ export class ViewportScreenshotHelper extends PluginComponent {
     private createPass(isPreview: boolean) {
         const c = this.plugin.canvas3d!;
         const { colorBufferFloat, textureFloat } = c.webgl.extensions;
-        const props = c.props;
         return c.getImagePass({
             transparentBackground: this.values.transparent,
             cameraHelper: { axes: this.values.axes },
             multiSample: {
-                ...props.multiSample,
+                ...c.props.multiSample,
                 mode: isPreview ? 'off' : 'on',
                 sampleLevel: colorBufferFloat && textureFloat ? 4 : 2,
                 reuseOcclusion: false,
             },
             postprocessing: this.getPostprocessingProps(),
-            marking: { ...props.marking },
+            marking: { ...c.props.marking },
             illumination: this.getIlluminationProps(isPreview),
         });
     }
@@ -196,12 +194,12 @@ export class ViewportScreenshotHelper extends PluginComponent {
     private _imagePass: ImagePass;
     get imagePass() {
         if (this._imagePass) {
-            const canvasProps = this.plugin.canvas3d!.props;
+            const c = this.plugin.canvas3d!;
             this._imagePass.setProps({
                 cameraHelper: { axes: this.values.axes },
                 transparentBackground: this.values.transparent,
                 postprocessing: this.getPostprocessingProps(),
-                marking: { ...canvasProps.marking },
+                marking: { ...c.props.marking },
                 illumination: this.getIlluminationProps(false),
             });
             return this._imagePass;
