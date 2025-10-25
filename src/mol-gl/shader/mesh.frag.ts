@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,26 +21,22 @@ void main() {
     #include fade_lod
     #include clip_pixel
 
-    // Workaround for buggy gl_FrontFacing (e.g. on some integrated Intel GPUs)
-    vec3 fdx = dFdx(vViewPosition);
-    vec3 fdy = dFdy(vViewPosition);
-    vec3 faceNormal = normalize(cross(fdx,fdy));
-    bool frontFacing = dot(vNormal, faceNormal) > 0.0;
-
     #if defined(dFlipSided)
-        interior = frontFacing;
+        interior = gl_FrontFacing;
     #else
-        interior = !frontFacing;
+        interior = !gl_FrontFacing;
     #endif
 
     float fragmentDepth = gl_FragCoord.z;
 
     #ifdef dNeedsNormal
         #if defined(dFlatShaded)
-            vec3 normal = -faceNormal;
+            vec3 fdx = dFdx(vViewPosition);
+            vec3 fdy = dFdy(vViewPosition);
+            vec3 normal = -normalize(cross(fdx,fdy));
         #else
             vec3 normal = -normalize(vNormal);
-            if (uDoubleSided) normal *= float(frontFacing) * 2.0 - 1.0;
+            if (uDoubleSided) normal *= float(gl_FrontFacing) * 2.0 - 1.0;
         #endif
     #endif
 

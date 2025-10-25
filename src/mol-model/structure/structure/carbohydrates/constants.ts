@@ -21,7 +21,7 @@ export enum SaccharideShape {
 
 export const SaccharideColors = ColorMap({
     Blue: 0x0090bc,
-    Green:	0x00a651,
+    Green: 0x00a651,
     Yellow: 0xffd400,
     Orange: 0xf47920,
     Pink: 0xf69ea1,
@@ -125,6 +125,7 @@ const Monosaccharides: SaccharideComponent[] = [
     { abbr: 'AllN', name: 'Allosamine', color: SaccharideColors.Purple, type: SaccharideType.Hexosamine },
     { abbr: 'TalN', name: 'Talosamine', color: SaccharideColors.LightBlue, type: SaccharideType.Hexosamine },
     { abbr: 'IdoN', name: 'Idosamine', color: SaccharideColors.Brown, type: SaccharideType.Hexosamine },
+    { abbr: 'GlcNS', name: 'N-sulfo Glucosamine', color: SaccharideColors.Blue, type: SaccharideType.Hexosamine },
 
     { abbr: 'GlcA', name: 'Glucuronic Acid', color: SaccharideColors.Blue, type: SaccharideType.Hexuronate },
     { abbr: 'ManA', name: 'Mannuronic Acid', color: SaccharideColors.Green, type: SaccharideType.Hexuronate },
@@ -147,6 +148,7 @@ const Monosaccharides: SaccharideComponent[] = [
     { abbr: '6dAltNAc', name: 'N-Acetyl 6-Deoxy Altrosamine', color: SaccharideColors.Pink, type: SaccharideType.DeoxyhexNAc },
     { abbr: '6dTalNAc', name: 'N-Acetyl 6-Deoxy Talosamine', color: SaccharideColors.LightBlue, type: SaccharideType.DeoxyhexNAc },
     { abbr: 'FucNAc', name: 'N-Acetyl Fucosamine', color: SaccharideColors.Red, type: SaccharideType.DeoxyhexNAc },
+    { abbr: 'AAT', name: 'AAT', color: SaccharideColors.Red, type: SaccharideType.DeoxyhexNAc },
 
     { abbr: 'Oli', name: 'Olivose', color: SaccharideColors.Blue, type: SaccharideType.DiDeoxyhexose },
     { abbr: 'Tyv', name: 'Tyvelose', color: SaccharideColors.Green, type: SaccharideType.DiDeoxyhexose },
@@ -179,6 +181,8 @@ const Monosaccharides: SaccharideComponent[] = [
     { abbr: 'MurNAc', name: 'N-Acetyl Muramic Acid', color: SaccharideColors.Purple, type: SaccharideType.Unknown },
     { abbr: 'MurNGc', name: 'N-Glycolyl Muramic Acid', color: SaccharideColors.LightBlue, type: SaccharideType.Unknown },
     { abbr: 'Mur', name: 'Muramic Acid', color: SaccharideColors.Brown, type: SaccharideType.Unknown },
+    { abbr: 'K3O', name: 'D-glycero-a-D-talo-oct-2-Ulosonic Acid', color: SaccharideColors.Red, type: SaccharideType.Unknown },
+    { abbr: 'dUA', name: '4-deoxy-4,5-didehydro iduronic acid', color: SaccharideColors.Secondary, type: SaccharideType.Unknown },
 
     { abbr: 'Api', name: 'Apicose', color: SaccharideColors.Green, type: SaccharideType.Assigned },
     { abbr: 'Fru', name: 'Fructose', color: SaccharideColors.Green, type: SaccharideType.Assigned },
@@ -335,8 +339,8 @@ const CharmmSaccharideNames: { [k: string]: string[] } = {
 const GlycamSaccharideNames: { [k: string]: string[] } = {
     Glc: ['0GA', '0GB', '1GA', '1GB', '2GA', '2GB', '3GA', '3GB', '4GA', '4GB', '6GA', '6GB', 'ZGA', 'ZGB', 'YGA', 'YGB', 'XGA', 'XGB', 'WGA', 'WGB', 'VGA', 'VGB', 'UGA', 'UGB', 'TGA', 'TGB', 'SGA', 'SGB', 'RGA', 'RGB', 'QGA', 'QGB', 'PGA', 'PGB', '0gA', '0gB', '1gA', '1gB', '2gA', '2gB', '3gA', '3gB', '4gA', '4gB', '6gA', '6gB', 'ZgA', 'ZgB', 'YgA', 'YgB', 'XgA', 'XgB', 'WgA', 'WgB', 'VgA', 'VgB', 'UgA', 'UgB', 'TgA', 'TgB', 'SgA', 'SgB', 'RgA', 'RgB', 'QgA', 'QgB', 'PgA', 'PgB'],
     GlcNAc: ['0YA', '0YB', '1YA', '1YB', '3YA', '3YB', '4YA', '4YB', '6YA', '6YB', 'WYA', 'WYB', 'VYA', 'VYB', 'UYA', 'UYB', 'QYA', 'QYB', '0yA', '0yB', '1yA', '1yB', '3yA', '3yB', '4yA', '4yB', '6yA', '6yB', 'WyA', 'WyB', 'VyA', 'VyB', 'UyA', 'UyB', 'QyA', 'QyB', '0YS', '0Ys', '3YS', '3Ys', '4YS', '4Ys', '6YS', '6Ys', 'QYS', 'QYs', 'UYS', 'UYs', 'VYS', 'VYs', 'WYS', 'WYs', '0yS', '0ys', '3yS', '3ys', '4yS', '4ys'],
-    GlcA: ['0ZA', '0ZB', '1ZA', '1ZB', '2ZA', '2ZB', '3ZA', '3ZB', '4ZA', '4ZB', 'ZZA', 'ZZB', 'YZA', 'YZB', 'WZA', 'WZB', 'TZA', 'TZB', '0zA', '0zB', '1zA', '1zB', '2zA', '2zB', '3zA', '3zB', '4zA', '4zB', 'ZzA', 'ZzB', 'YzA', 'YzB', 'WzA', 'WzB', 'TzA', 'TzB', '0ZBP'],
-    GlcN: ['0YN', '3YN', '4YN', '6YN', 'WYN', 'VYN', 'UYN', 'QYN', '3Yn', '4Yn', 'WYn', '0Yn', '0YP', '3YP', '4YP', '6YP', 'WYP', 'VYP', 'UYP', 'QYP', '0Yp', '3Yp', '4Yp', 'WYp'],
+    GlcA: ['0ZA', '0ZB', '1ZA', '1ZB', '2ZA', '2ZB', '3ZA', '3ZB', '4ZA', '4ZB', 'ZZA', 'ZZB', 'YZA', 'YZB', 'WZA', 'WZB', 'TZA', 'TZB', '0zA', '0zB', '1zA', '1zB', '2zA', '2zB', '3zA', '3zB', '4zA', '4zB', 'ZzA', 'ZzB', 'YzA', 'YzB', 'WzA', 'WzB', 'TzA', 'TzB', 'TZBP', 'WZBP', 'YZBP', '4ZBP', 'ZZBP', '3ZBP', '2ZBP', '1ZBP', '0ZBP', '0ZF', '1ZF', '4ZF', '0Zf', '1Zf', '4Zf'],
+    GlcN: ['0YN', '3YN', '4YN', '6YN', 'WYN', 'VYN', 'UYN', 'QYN', '3Yn', '4Yn', 'WYn', '0Yn', '0YP', '3YP', '4YP', '6YP', 'WYP', 'VYP', 'UYP', 'QYP', '0Yp', '3Yp', '4Yp', 'WYp', 'QYN', 'WYN', 'VYN', '3YN', 'UYN', '4YN', '6YN', '1YN', '0YN', 'QYn', 'VYn', 'WYn', '3Yn', 'UYn', '6Yn', '4Yn', '1Yn', '0Yn', 'QYNP', 'WYNP', 'VYNP', '3YNP', 'UYNP', '4YNP', '6YNP', '1YNP', '0YNP', 'QYnP', 'UYnP', 'VYnP', '6YnP', 'WYnP', '4YnP', '3YnP', '1YnP', '0YnP'],
     Man: ['0MA', '0MB', '1MA', '1MB', '2MA', '2MB', '3MA', '3MB', '4MA', '4MB', '6MA', '6MB', 'ZMA', 'ZMB', 'YMA', 'YMB', 'XMA', 'XMB', 'WMA', 'WMB', 'VMA', 'VMB', 'UMA', 'UMB', 'TMA', 'TMB', 'SMA', 'SMB', 'RMA', 'RMB', 'QMA', 'QMB', 'PMA', 'PMB', '0mA', '0mB', '1mA', '1mB', '2mA', '2mB', '3mA', '3mB', '4mA', '4mB', '6mA', '6mB', 'ZmA', 'ZmB', 'YmA', 'YmB', 'XmA', 'XmB', 'WmA', 'WmB', 'VmA', 'VmB', 'UmA', 'UmB', 'TmA', 'TmB', 'SmA', 'SmB', 'RmA', 'RmB', 'QmA', 'QmB', 'PmA', 'PmB'],
     ManNAc: ['0WA', '0WB', '1WA', '1WB', '3WA', '3WB', '4WA', '4WB', '6WA', '6WB', 'WWA', 'WWB', 'VWA', 'VWB', 'UWA', 'UWB', 'QWA', 'QWB', '0wA', '0wB', '1wA', '1wB', '3wA', '3wB', '4wA', '4wB', '6wA', '6wB', 'WwA', 'WwB', 'VwA', 'VwB', 'UwA', 'UwB', 'QwA', 'QwB'],
     Ara: ['0AA', '0AB', '1AA', '1AB', '2AA', '2AB', '3AA', '3AB', '4AA', '4AB', 'ZAA', 'ZAB', 'YAA', 'YAB', 'WAA', 'WAB', 'TAA', 'TAB', '0AD', '0AU', '1AD', '1AU', '2AD', '2AU', '3AD', '3AU', '5AD', '5AU', 'ZAD', 'ZAU', '0aA', '0aB', '1aA', '1aB', '2aA', '2aB', '3aA', '3aB', '4aA', '4aB', 'ZaA', 'ZaB', 'YaA', 'YaB', 'WaA', 'WaB', 'TaA', 'TaB', '0aD', '0aU', '1aD', '1aU', '2aD', '2aU', '3aD', '3aU', '5aD', '5aU', 'ZaD', 'ZaU'],
@@ -361,11 +365,25 @@ const GlycamSaccharideNames: { [k: string]: string[] } = {
     Psi: ['0PA', '0PB', '1PA', '1PB', '2PA', '2PB', '3PA', '3PB', '4PA', '4PB', '5PA', '5PB', 'WPA', 'WPB', '0PD', '0PU', '1PD', '1PU', '2PD', '2PU', '3PD', '3PU', '4PD', '4PU', '6PD', '6PU', 'WPD', 'WPU', 'VPD', 'VPU', 'UPD', 'UPU', 'QPD', 'QPU', '0pA', '0pB', '1pA', '1pB', '2pA', '2pB', '3pA', '3pB', '4pA', '4pB', '5pA', '5pB', 'WpA', 'WpB', '0pD', '0pU', '1pD', '1pU', '2pD', '2pU', '3pD', '3pU', '4pD', '4pU', '6pD', '6pU', 'WpD', 'WpU', 'VpD', 'VpU', 'UpD', 'UpU', 'QpD', 'QpU'],
     Neu5Ac: ['0SA', '0SB', '4SA', '4SB', '7SA', '7SB', '8SA', '8SB', '9SA', '9SB', 'ASA', 'ASB', 'BSA', 'BSB', 'CSA', 'CSB', 'DSA', 'DSB', 'ESA', 'ESB', 'FSA', 'FSB', 'GSA', 'GSB', 'HSA', 'HSB', 'ISA', 'ISB', 'JSA', 'JSB', 'KSA', 'KSB', '0sA', '0sB', '4sA', '4sB', '7sA', '7sB', '8sA', '8sB', '9sA', '9sB', 'AsA', 'AsB', 'BsA', 'BsB', 'CsA', 'CsB', 'DsA', 'DsB', 'EsA', 'EsB', 'FsA', 'FsB', 'GsA', 'GsB', 'HsA', 'HsB', 'IsA', 'IsB', 'JsA', 'JsB', 'KsA', 'KsB'],
     Neu5Gc: ['0GL', '4GL', '7GL', '8GL', '9GL', 'CGL', 'DGL', 'EGL', 'FGL', 'GGL', 'HGL', 'IGL', 'JGL', 'KGL', '0gL', '4gL', '7gL', '8gL', '9gL', 'AgL', 'BgL', 'CgL', 'DgL', 'EgL', 'FgL', 'GgL', 'HgL', 'IgL', 'JgL', 'KgL'],
-    Tyv: ['0TV', '0Tv', '1TV', '1Tv', '2TV', '2Tv', '4TV', '4Tv', 'YTV', 'YTv', '0tV', '0tv', '1tV', '1tv', '2tV', '2tv', '4tV', '4tv', 'YtV', 'Ytv'],
-    Abe: ['0AE', '2AE', '4AE', 'YGa', '0AF', '2AF', '4AF', 'YAF'],
-    Bac: ['0BC', '3BC', '0bC', '3bC'],
+    Tyv: ['YTV', '4TV', '2TV', '1TV', '0TV', 'YTv', '4Tv', '2Tv', '1Tv', '0Tv'],
+    Abe: ['YAE', '2AE', '4AE', '1AE', '0AE', 'YAe', '4Ae', '2Ae', '1Ae', '0Ae'],
+    Bac: ['0BC', '1BC', '3BC', '0bC', '1bC', '3bC'],
     Kdn: ['0KN', '4KN', '5KN', '7KN', '8KN', '9KN', 'AKN', 'BKN', 'CKN', 'DKN', 'EKN', 'FKN', 'GKN', 'HKN', 'IKN', 'JKN', 'KKN', 'LKN', 'MKN', 'NKN', 'OKN', 'PKN', 'QKN', 'RKN', 'SKN', 'TKN', 'UKN', 'VKN', 'WKN', 'XKN', 'YKN', '0Kn', '4Kn', '5Kn', '7Kn', '8Kn', '9Kn', 'AKn', 'BKn', 'CKn', 'DKn', 'EKn', 'FKn', 'GKn', 'HKn', 'IKn', 'JKn', 'KKn', 'LKn', 'MKn', 'NKn', 'OKn', 'PKn', 'QKn', 'RKn', 'SKn', 'TKn', 'UKn', 'VKn', 'WKn', 'XKn', 'YKn'],
     Kdo: ['0KO', '4KO', '5KO', '7KO', '8KO', 'AKO', 'BKO', 'CKO', 'DKO', 'EKO', 'FKO', 'GKO', 'HKO', 'IKO', 'JKO', 'KKO', '0Ko', '4Ko', '5Ko', '7Ko', '8Ko', 'AKo', 'BKo', 'CKo', 'DKo', 'EKo', 'FKo', 'GKo', 'HKo', 'IKo', 'JKo', 'KKo'],
+    QuiNAc: ['0QF', '1QF', '3QF', '0Qf', '1Qf', '3Qf'],
+    AAT: ['0FC', '1FC', '3FC', '0Fc', '1Fc', '3Fc'],
+    Ara4N: ['ZaN', '3aN', '2aN', '1aN', '0aN', 'Zan', '3an', '2an', '1an', '0an'],
+    Aci: ['JeC', '8eC', '4eC', '2eC', '0eC', 'Jec', '8ec', '4ec', '2ec', '0ec'],
+    Leg: ['JLG', '8LG', '4LG', '2LG', '0LG', 'JLg', '8Lg', '4Lg', '2Lg', '0Lg'],
+    Pse: ['JmP', '8mP', '4mP', '2mP', '0mP', 'Jmp', '8mp', '4mp', '2mp', '0mp'],
+    Fus: ['EgF', 'HgF', 'JgF', '8gF', 'KgF', '7gF', '4gF', '2gF', '0gF', 'Egf', 'Hgf', 'Jgf', '8gf', 'Kgf', '7gf', '4gf', '2gf', '0gf'],
+    DDmanpHep: ['ODH', 'NDH', 'LDH', 'MDH', 'KDH', '7DH', 'PDH', 'SDH', 'RDH', 'XDH', 'QDH', 'VDH', 'UDH', '6DH', 'TDH', 'ZDH', 'YDH', '2DH', 'WDH', '3DH', '4DH', '1DH', 'ODh', 'NDh', 'LDh', 'MDh', 'KDh', '7Dh', 'PDh', 'SDh', 'RDh', 'XDh', 'QDh', 'VDh', 'UDh', '6Dh', 'TDh', 'ZDh', 'YDh', '2Dh', 'WDh', '3Dh', '4Dh', '1Dh'],
+    LDmanpHep: ['OLH', 'NLH', 'LLH', 'MLH', 'KLH', '7LH', 'PLH', 'SLH', 'RLH', 'XLH', 'QLH', 'VLH', 'ULH', '6LH', 'TLH', 'ZLH', 'YLH', '2LH', 'WLH', '3LH', '4LH', '1LH', 'OLh', 'NLh', 'LLh', 'MLh', 'KLh', '7Lh', 'PLh', 'SLh', 'RLh', 'XLh', 'QLh', 'VLh', 'ULh', '6Lh', 'TLh', 'ZLh', 'YLh', '2Lh', 'WLh', '3Lh', '4Lh', '1Lh'],
+    K3O: ['dKX', 'EKX', 'hKX', 'HKX', 'jKX', 'JKX', 'pKX', '8KX', 'MKX', 'kKX', 'KKX', 'qKX', '7KX', 'xKX', 'WKX', 'tKX', '3KX', 'sKX', '4KX', '5KX', '2KX', '0KX', 'dKx', 'EKx', 'hKx', 'HKx', 'jKx', 'JKx', 'pKx', '8Kx', 'MKx', 'kKx', 'KKx', 'qKx', '7Kx', 'xKx', 'WKx', 'tKx', '3Kx', 'sKx', '4Kx', '5Kx', '2Kx', '0Kx'],
+    MurNAc: ['UMR', '4MR', '6MR', '1MR', '0MR', 'UMr', '4Mr', '6Mr', '1Mr', '0Mr'],
+    Oli: ['WdR', '4dR', '3dR', '1dR', '0dR'],
+    dUA: ['Z45', '345', '245', '145', '045'],
+    GlcNS: ['QYS', 'UYS', 'VYS', '6YS', 'WYS', '4YS', '3YS', '1YS', '0YS', 'QYs', 'UYs', 'VYs', '6Ys', 'WYs', '4Ys', '3Ys', '1Ys', '0Ys', 'QyS', 'UyS', 'VyS', '6yS', 'WyS', '4yS', '3yS', '1yS', '0yS', 'Qys', 'Uys', 'Vys', '6ys', 'Wys', '4ys', '3ys', '1ys', '0ys'],
 };
 
 const DefaultSaccharideCompIdMap = (function () {

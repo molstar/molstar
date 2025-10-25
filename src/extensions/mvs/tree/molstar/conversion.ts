@@ -30,6 +30,8 @@ export const ParseFormatMvsToMolstar = {
     xtc: { format: 'xtc', is_binary: true },
     // maps
     map: { format: 'map', is_binary: true },
+    dx: { format: 'dx', is_binary: false },
+    dxbin: { format: 'dxbin', is_binary: true },
 } satisfies { [p in ParseFormatT]: { format: MolstarParseFormatT, is_binary: boolean } };
 
 /** Conversion rules for conversion from `MVSTree` (with all parameter values) to `MolstarTree` */
@@ -124,6 +126,8 @@ const StructureFormatExtensions: Record<ParseFormatT, (FileExtension | '*')[]> =
     xtc: ['.xtc'],
     // volumes
     map: ['.map', '.ccp4', '.mrc', '.mrcs'],
+    dx: ['.dx'],
+    dxbin: ['.dxbin'],
 };
 
 /** Run some sanity check on a MVSTree. Return a list of potential problems (`undefined` if there are none) */

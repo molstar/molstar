@@ -27,6 +27,8 @@ export const ParseFormatT = literal(
     'xtc',
     // volumes
     'map',
+    'dx',
+    'dxbin',
 );
 export type ParseFormatT = ValueFor<typeof ParseFormatT>
 
@@ -45,7 +47,9 @@ export const MolstarParseFormatT = literal(
     // coordinates
     'xtc',
     // volumes
-    'map'
+    'map',
+    'dx',
+    'dxbin',
 );
 export type MolstarParseFormatT = ValueFor<typeof MolstarParseFormatT>
 
@@ -69,7 +73,8 @@ export const ComponentExpressionT = partial({
     end_auth_seq_id: int,
     label_comp_id: str,
     auth_comp_id: str,
-    // residue_index: int, // 0-based residue index in the source file // TODO this is defined in Python builder but not supported by Molstar yet
+    /** 0-based residue index in the source file */
+    residue_index: int, // TODO this is defined in Python builder but not supported by Molstar yet
     label_atom_id: str,
     auth_atom_id: str,
     type_symbol: str,

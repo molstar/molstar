@@ -8,10 +8,10 @@
 
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { Download, ParseCif, ParseCcp4 } from '../../mol-plugin-state/transforms/data';
+import { Download, ParseCif, ParseCcp4, ParseDx } from '../../mol-plugin-state/transforms/data';
 import { CoordinatesFromLammpstraj, CoordinatesFromXtc, CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromGRO, TrajectoryFromLammpsTrajData, TrajectoryFromMmCif, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
-import { VolumeFromCcp4, VolumeFromDensityServerCif } from '../../mol-plugin-state/transforms/volume';
+import { VolumeFromCcp4, VolumeFromDensityServerCif, VolumeFromDx } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginState } from '../../mol-plugin/state';
@@ -248,6 +248,9 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
                 return updateParent;
             case 'map':
                 return UpdateTarget.apply(updateParent, ParseCcp4, {});
+            case 'dx':
+            case 'dxbin':
+                return UpdateTarget.apply(updateParent, ParseDx, {});
             default:
                 console.error(`Unknown format in "parse" node: "${format}"`);
                 return undefined;
@@ -381,6 +384,8 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         let volume: UpdateTarget;
         if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Ccp4)) {
             volume = UpdateTarget.apply(updateParent, VolumeFromCcp4, {});
+        } else if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Dx)) {
+            volume = UpdateTarget.apply(updateParent, VolumeFromDx, {});
         } else if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Cif)) {
             volume = UpdateTarget.apply(updateParent, VolumeFromDensityServerCif, { blockHeader: node.params.channel_id || undefined });
         } else {
