@@ -70,6 +70,7 @@ interface Scene extends Object3D {
     readonly renderables: ReadonlyArray<GraphicsRenderable>
     readonly boundingSphere: Sphere3D
     readonly boundingSphereVisible: Sphere3D
+    readonly transparency: Transparency
 
     readonly primitives: Scene.Group
     readonly volumes: Scene.Group
@@ -382,6 +383,9 @@ namespace Scene {
                     boundingSphereVisibleDirty = false;
                 }
                 return boundingSphereVisible;
+            },
+            get transparency() {
+                return transparency;
             },
             get markerAverage() {
                 if (markerAverageDirty) {

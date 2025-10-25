@@ -1359,7 +1359,7 @@ namespace Canvas3D {
                 }
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {
-                return new ImagePass(webgl, assetManager, renderer, scene, camera, helper, passes.draw.transparency, props);
+                return new ImagePass(webgl, assetManager, renderer, scene, camera, helper, props);
             },
             getRenderObjects(): GraphicsRenderObject[] {
                 const renderObjects: GraphicsRenderObject[] = [];

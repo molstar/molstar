@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Handle transparency updates on ImagePass
 
 ## [v5.1.0] - 2025-10-25
 - Fix createColorScaleByType when offsets are available
@@ -13,7 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support "magic window" style AR (via WebXR)
 - Fix `PluginState.getStateTransitionFrameIndex`
 - Update `GlycamSaccharideNames` and `Monosaccharides` in `carbohydrates/constants.ts`
-- Support custom ref resolvers in `State` 
+- Support custom ref resolvers in `State`
 - Add full-screen mode support to layout manager
   - Add `show-toggle-fullscreen` URL param option to Viewer app
 - MolViewSpec

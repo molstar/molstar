@@ -2,6 +2,7 @@
  * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
@@ -57,10 +58,10 @@ export class ImagePass {
     get width() { return this._width; }
     get height() { return this._height; }
 
-    constructor(private webgl: WebGLContext, assetManager: AssetManager, private renderer: Renderer, private scene: Scene, private camera: Camera, helper: Helper, transparency: 'wboit' | 'dpoit' | 'blended', props: Partial<ImageProps>) {
+    constructor(private webgl: WebGLContext, assetManager: AssetManager, private renderer: Renderer, private scene: Scene, private camera: Camera, helper: Helper, props: Partial<ImageProps>) {
         this.props = { ...PD.getDefaultValues(ImageParams), ...props };
 
-        this.drawPass = new DrawPass(webgl, assetManager, 128, 128, transparency);
+        this.drawPass = new DrawPass(webgl, assetManager, 128, 128, scene.transparency);
         this.illuminationPass = new IlluminationPass(webgl, this.drawPass);
         this.multiSamplePass = new MultiSamplePass(webgl, this.drawPass);
         this.multiSampleHelper = new MultiSampleHelper(this.multiSamplePass);
@@ -104,6 +105,7 @@ export class ImagePass {
     }
 
     async render(runtime: RuntimeContext) {
+        this.drawPass.setTransparency(this.scene.transparency);
         ShaderManager.ensureRequired(this.webgl, this.scene, this.props);
         Camera.copySnapshot(this._camera.state, this.camera.state);
         Viewport.set(this._camera.viewport, 0, 0, this._width, this._height);

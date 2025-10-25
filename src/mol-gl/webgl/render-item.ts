@@ -108,9 +108,9 @@ function resetValueChanges(valueChanges: ValueChanges) {
 
 //
 
-export type Transparency = 'blended' | 'wboit' | 'dpoit' | undefined
+export type Transparency = 'blended' | 'wboit' | 'dpoit'
 
-function getRenderVariant(variant: string, transparency: Transparency): string {
+function getRenderVariant(variant: string, transparency: Transparency | undefined): string {
     if (variant === 'color') {
         switch (transparency) {
             case 'blended': return 'colorBlended';
@@ -136,7 +136,7 @@ export function createComputeRenderItem(ctx: WebGLContext, drawMode: DrawMode, s
  *
  * - assumes that `values.drawCount` and `values.instanceCount` exist
  */
-export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number, renderVariants: T[], transparency: Transparency): RenderItem<T> {
+export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number, renderVariants: T[], transparency: Transparency | undefined): RenderItem<T> {
     const id = getNextRenderItemId();
     const { stats, state, resources } = ctx;
     const { instancedArrays, vertexArrayObject, multiDrawInstancedBaseVertexBaseInstance, drawInstancedBaseVertexBaseInstance } = ctx.extensions;
