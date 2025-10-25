@@ -1,14 +1,16 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Lukáš Polák <admin@lukaspolak.cz>
  */
 
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { StatefulPluginComponent } from '../mol-plugin-state/component';
 import { PluginCommands } from './commands';
 import { PluginContext } from './context';
+import { PluginConfig, PluginConfigManager } from './config';
 
 const regionStateOptions = [
     ['full', 'Full'],
@@ -29,7 +31,8 @@ export const PluginLayoutStateParams = {
         right: PD.Select('full', simpleRegionStateOptions),
         bottom: PD.Select('full', simpleRegionStateOptions),
     }),
-    controlsDisplay: PD.Value<PluginLayoutControlsDisplay>('outside', { isHidden: true })
+    controlsDisplay: PD.Value<PluginLayoutControlsDisplay>('outside', { isHidden: true }),
+    expandToFullscreen: PD.Boolean(false)
 };
 export type PluginLayoutStateProps = PD.Values<typeof PluginLayoutStateParams>
 
@@ -116,6 +119,9 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
 
                 if (!hasExp) head.appendChild(this.expandedViewport);
 
+                if (this.state.expandToFullscreen) {
+                    body.requestFullscreen();
+                }
 
                 const s = body.style;
 
@@ -156,6 +162,10 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
                         head.removeChild(this.expandedViewport);
                         break;
                     }
+                }
+
+                if (this.state.expandToFullscreen && document.fullscreenElement) {
+                    document.exitFullscreen();
                 }
 
                 if (this.rootState) {
@@ -199,7 +209,22 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
     }
 
     constructor(private context: PluginContext) {
-        super({ ...PD.getDefaultValues(PluginLayoutStateParams), ...(context.spec.layout && context.spec.layout.initial) });
+        const config = new PluginConfigManager(context.spec.config);
+        const expandToFullscreen = config.get(PluginConfig.General.ExpandToFullscreen) ?? false;
+
+        super({ ...PD.getDefaultValues(PluginLayoutStateParams), ...(context.spec.layout && context.spec.layout.initial), expandToFullscreen });
+
+        if (expandToFullscreen) {
+            const fullscreenChangeHandler = () => {
+                // In case the user exits fullscreen mode by pressing ESC, treat it as an expand toggle
+                if (!document.fullscreenElement) {
+                    this.updateProps({ isExpanded: false });
+                }
+            };
+
+            document.addEventListener('fullscreenchange', fullscreenChangeHandler);
+            document.addEventListener('webkitfullscreenchange', fullscreenChangeHandler);
+        }
 
         PluginCommands.Layout.Update.subscribe(context, e => this.updateProps(e.state));
 

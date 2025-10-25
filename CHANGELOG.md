@@ -22,6 +22,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add `sphere` and `angle` methods
     - [Breaking] Rename builder method primitives_from_uri -> primitivesFromUri
 
+- Add `PluginConfig.General.ExpandToFullscreen` to enable fullscreen instead of just expanding the viewer
+
 ## [v5.0.0] - 2025-09-28
 - [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
 - [Breaking] `Box3D.nearestIntersectionWithRay` -> `Ray3D.intersectBox3D`
