@@ -185,7 +185,6 @@ export class ViewportScreenshotHelper extends PluginComponent {
             postprocessing: this.getPostprocessingProps(),
             marking: { ...props.marking },
             illumination: this.getIlluminationProps(isPreview),
-            transparency: c.getTransparency()
         });
     }
 
@@ -204,7 +203,6 @@ export class ViewportScreenshotHelper extends PluginComponent {
                 postprocessing: this.getPostprocessingProps(),
                 marking: { ...canvasProps.marking },
                 illumination: this.getIlluminationProps(false),
-                transparency: this.plugin.canvas3d!.getTransparency()
             });
             return this._imagePass;
         }
@@ -329,7 +327,6 @@ export class ViewportScreenshotHelper extends PluginComponent {
             transparentBackground: this.values.transparent,
             postprocessing: canvasProps.postprocessing,
             marking: canvasProps.marking,
-            transparency: this.plugin.canvas3d!.getTransparency()
         });
         const imageData = await this.previewPass.getImageData(ctx, w, h);
         const canvas = this.previewCanvas;

@@ -36,7 +36,6 @@ export const ImageParams = {
 
     cameraHelper: PD.Group(CameraHelperParams),
     renderer: PD.Group(RendererParams),
-    transparency: PD.Select('blended', PD.arrayToOptions(['blended', 'wboit', 'dpoit'] as const))
 };
 export type ImageProps = PD.Values<typeof ImageParams>
 
@@ -62,7 +61,7 @@ export class ImagePass {
     constructor(private webgl: WebGLContext, assetManager: AssetManager, private renderer: Renderer, private scene: Scene, private camera: Camera, helper: Helper, props: Partial<ImageProps>) {
         this.props = { ...PD.getDefaultValues(ImageParams), ...props };
 
-        this.drawPass = new DrawPass(webgl, assetManager, 128, 128, this.props.transparency);
+        this.drawPass = new DrawPass(webgl, assetManager, 128, 128, scene.transparency);
         this.illuminationPass = new IlluminationPass(webgl, this.drawPass);
         this.multiSamplePass = new MultiSamplePass(webgl, this.drawPass);
         this.multiSampleHelper = new MultiSampleHelper(this.multiSamplePass);
@@ -102,11 +101,11 @@ export class ImagePass {
 
     setProps(props: Partial<ImageProps> = {}) {
         Object.assign(this.props, props);
-        if (props.transparency) this.drawPass.setTransparency(props.transparency);
         if (props.cameraHelper) this.helper.camera.setProps(props.cameraHelper);
     }
 
     async render(runtime: RuntimeContext) {
+        this.drawPass.setTransparency(this.scene.transparency);
         ShaderManager.ensureRequired(this.webgl, this.scene, this.props);
         Camera.copySnapshot(this._camera.state, this.camera.state);
         Viewport.set(this._camera.viewport, 0, 0, this._width, this._height);

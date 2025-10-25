@@ -374,7 +374,6 @@ interface Canvas3D {
     readonly boundingSphereVisible: Readonly<Sphere3D>
     setProps(props: PartialCanvas3DProps | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void), doNotRequestDraw?: boolean /* = false */): void
     getImagePass(props: Partial<ImageProps>): ImagePass
-    getTransparency(): 'blended' | 'wboit' | 'dpoit'
     getRenderObjects(): GraphicsRenderObject[]
 
     /** Returns a copy of the current Canvas3D instance props */
@@ -1361,9 +1360,6 @@ namespace Canvas3D {
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {
                 return new ImagePass(webgl, assetManager, renderer, scene, camera, helper, props);
-            },
-            getTransparency: () => {
-                return passes.draw.transparency;
             },
             getRenderObjects(): GraphicsRenderObject[] {
                 const renderObjects: GraphicsRenderObject[] = [];
