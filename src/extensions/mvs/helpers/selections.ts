@@ -38,7 +38,7 @@ export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanc
         || isDefined(row.auth_comp_id) && !atomicIndices.residuesByAuthCompIdIsPure;
     const hasResidueFilter = isAnyDefined(row.label_seq_id, row.auth_seq_id, row.pdbx_PDB_ins_code,
         row.beg_label_seq_id, row.end_label_seq_id, row.beg_auth_seq_id, row.end_auth_seq_id,
-        row.label_comp_id, row.auth_comp_id);
+        row.label_comp_id, row.auth_comp_id, row.residue_index);
     const hasChainFilter = isAnyDefined(row.label_asym_id, row.auth_asym_id, row.label_entity_id);
 
     if (hasAtomIds) {
@@ -113,7 +113,7 @@ function getQualifyingChains(model: Model, row: MVSAnnotationRow, indices: Atomi
 function getQualifyingResidues(model: Model, row: MVSAnnotationRow, indices: AtomicIndicesAndSortings, fromChains: readonly ChainIndex[]): ResidueIndex[] {
     const { label_seq_id, auth_seq_id, pdbx_PDB_ins_code } = model.atomicHierarchy.residues;
     const { label_comp_id, auth_comp_id } = model.atomicHierarchy.atoms;
-    const { residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
+    const { residueAtomSegments, chainAtomSegments, residueSourceIndex } = model.atomicHierarchy;
     const { Present } = Column.ValueKind;
     const result: ResidueIndex[] = [];
     for (const iChain of fromChains) {
@@ -128,6 +128,14 @@ function getQualifyingResidues(model: Model, row: MVSAnnotationRow, indices: Ato
             } else {
                 const sorting = indices.residuesSortedByAuthSeqId.get(iChain)!;
                 residuesHere = Sorting.getKeysWithValue(sorting, row.auth_seq_id);
+            }
+        }
+        if (isDefined(row.residue_index)) {
+            if (residuesHere) {
+                residuesHere = residuesHere.filter(i => residueSourceIndex.value(i) === row.residue_index);
+            } else {
+                const sorting = indices.residuesSortedBySourceIndex.get(iChain)!;
+                residuesHere = Sorting.getKeysWithValue(sorting, row.residue_index);
             }
         }
         if (isDefined(row.pdbx_PDB_ins_code)) {
@@ -237,7 +245,7 @@ function getTheAtomForRow(model: Model, row: MVSAnnotationRow, indices: AtomicIn
     if (!isDefined(row.atom_id) && !isDefined(row.atom_index)) throw new Error('ArgumentError: at least one of row.atom_id, row.atom_index must be defined.');
     if (isDefined(row.atom_id) && isDefined(row.atom_index)) {
         const a1 = indices.atomsById.get(row.atom_id);
-        const a2 = indices.atomsByIndex.get(row.atom_index);
+        const a2 = indices.atomsBySourceIndex.get(row.atom_index);
         if (a1 !== a2) return undefined;
         iAtom = a1;
     }
@@ -245,7 +253,7 @@ function getTheAtomForRow(model: Model, row: MVSAnnotationRow, indices: AtomicIn
         iAtom = indices.atomsById.get(row.atom_id);
     }
     if (isDefined(row.atom_index)) {
-        iAtom = indices.atomsByIndex.get(row.atom_index);
+        iAtom = indices.atomsBySourceIndex.get(row.atom_index);
     }
     if (iAtom === undefined) return undefined;
     if (!atomQualifies(model, iAtom, row)) return undefined;
@@ -268,11 +276,13 @@ export function atomQualifies(model: Model, iAtom: ElementIndex, row: MVSAnnotat
     const label_seq_id = (h.residues.label_seq_id.valueKind(iRes) === Column.ValueKind.Present) ? h.residues.label_seq_id.value(iRes) : undefined;
     const auth_seq_id = (h.residues.auth_seq_id.valueKind(iRes) === Column.ValueKind.Present) ? h.residues.auth_seq_id.value(iRes) : undefined;
     const pdbx_PDB_ins_code = h.residues.pdbx_PDB_ins_code.value(iRes);
+    const residue_index = h.residueSourceIndex.value(iRes);
     if (!matches(row.label_seq_id, label_seq_id)) return false;
     if (!matches(row.auth_seq_id, auth_seq_id)) return false;
     if (!matches(row.pdbx_PDB_ins_code, pdbx_PDB_ins_code)) return false;
     if (!matchesRange(row.beg_label_seq_id, row.end_label_seq_id, label_seq_id)) return false;
     if (!matchesRange(row.beg_auth_seq_id, row.end_auth_seq_id, auth_seq_id)) return false;
+    if (!matches(row.residue_index, residue_index)) return false;
 
     const label_comp_id = h.atoms.label_comp_id.value(iAtom);
     const auth_comp_id = h.atoms.auth_comp_id.value(iAtom);
@@ -342,7 +352,7 @@ export function getCoarseElementRangesForRow(row: MVSAnnotationRow, coarseElemen
     const hasChainFilter = isAnyDefined(row.label_asym_id, row.label_entity_id);
     const hasInvalidFilter = isAnyDefined(
         row.auth_asym_id,
-        row.auth_seq_id, row.pdbx_PDB_ins_code, row.beg_auth_seq_id, row.end_auth_seq_id, row.label_comp_id, row.auth_comp_id,
+        row.auth_seq_id, row.pdbx_PDB_ins_code, row.beg_auth_seq_id, row.end_auth_seq_id, row.label_comp_id, row.auth_comp_id, row.residue_index,
         row.label_atom_id, row.auth_atom_id, row.type_symbol, row.atom_id, row.atom_index);
 
     if (hasInvalidFilter) {
@@ -416,7 +426,7 @@ function getQualifyingCoarseElements(coarseElements: CoarseElements, row: MVSAnn
 let coarseSelectorWarningPrinted = false;
 function printCoarseSelectorWarning() {
     if (!coarseSelectorWarningPrinted) {
-        console.warn('Using unsupported selector fields (auth_asym_id, auth_seq_id, pdbx_PDB_ins_code, beg_auth_seq_id, end_auth_seq_id, label_comp_id, auth_comp_id, label_atom_id, auth_atom_id, type_symbol, atom_id, atom_index) on a coarse structure. The resulting selection will be empty.');
+        console.warn('Using unsupported selector fields (auth_asym_id, auth_seq_id, pdbx_PDB_ins_code, beg_auth_seq_id, end_auth_seq_id, label_comp_id, auth_comp_id, residue_index, label_atom_id, auth_atom_id, type_symbol, atom_id, atom_index) on a coarse structure. The resulting selection will be empty.');
         coarseSelectorWarningPrinted = true;
     }
 }

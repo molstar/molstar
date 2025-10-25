@@ -18,6 +18,7 @@ import { Entities } from '../../../mol-model/structure/model/properties/common';
 import { getAtomicDerivedData } from '../../../mol-model/structure/model/properties/utils/atomic-derived';
 import { getAtomicIndex } from '../../../mol-model/structure/model/properties/utils/atomic-index';
 import { ElementSymbol } from '../../../mol-model/structure/model/types';
+import { range } from '../../../mol-util/array';
 import { UUID } from '../../../mol-util/uuid';
 import { ModelFormat } from '../../format';
 import { MmcifFormat } from '../mmcif';
@@ -78,7 +79,29 @@ function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, o
     Table.columnToArray(residues, 'label_seq_id', Int32Array);
     Table.columnToArray(residues, 'auth_seq_id', Int32Array);
 
-    return { atoms, residues, chains, atomSourceIndex: sourceIndex };
+    const residueSourceIndex = getResidueSourceIndex(sourceIndex, offsets.residues.length, offsets.residues);
+
+    return { atoms, residues, chains, atomSourceIndex: sourceIndex, residueSourceIndex };
+}
+
+function getResidueSourceIndex(atomSourceIndex: Column<number>, nResidues: number, residueOffsets: ArrayLike<number>): Column<number> {
+    const residueSourceIndex = new Uint32Array(nResidues); // Source index of the first atom of each residue
+    for (let iRes = 0; iRes < nResidues; iRes++) {
+        const fromAtom = residueOffsets[iRes];
+        const toAtom = (iRes + 1 < nResidues) ? residueOffsets[iRes + 1] : atomSourceIndex.rowCount;
+        let firstSrcIdx = atomSourceIndex.value(fromAtom);
+        for (let iAtom = fromAtom + 1; iAtom < toAtom; iAtom++) {
+            const srcIdx = atomSourceIndex.value(iAtom);
+            if (srcIdx < firstSrcIdx) firstSrcIdx = srcIdx;
+        }
+        residueSourceIndex[iRes] = firstSrcIdx;
+    }
+    const sortedResidues = range(nResidues).sort((ia, ib) => residueSourceIndex[ia] - residueSourceIndex[ib]);
+    // Reusing `residueSourceIndex` array for source index of the residue:
+    for (let i = 0; i < nResidues; i++) {
+        residueSourceIndex[sortedResidues[i]] = i;
+    }
+    return Column.ofIntArray(residueSourceIndex);
 }
 
 function getConformation(atom_site: AtomSite): AtomicConformation {
