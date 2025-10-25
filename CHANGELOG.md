@@ -6,11 +6,13 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - Get bond orders from non-standard CONECT records in PDB files
 - Remove outdated `gl_FrontFacing` workaround for buggy drivers
-- Fix clip objects for deirect-volume rendering
+- Fix clip objects for direct-volume rendering
 - Support "magic window" style AR (via WebXR)
 - Fix `PluginState.getStateTransitionFrameIndex`
 - Update `GlycamSaccharideNames` and `Monosaccharides` in `carbohydrates/constants.ts`
 - Support custom ref resolvers in `State` 
+- Add full-screen mode support to layout manager
+  - Add `show-toggle-fullscreen` URL param option to Viewer app
 - MolViewSpec
   - Support accessing Mol* State nodes by MVS-provided ref
   - Add support for DX map format
@@ -21,8 +23,6 @@ Note that since we don't clearly distinguish between a public and private interf
   - Tidy up MVS builder:
     - Add `sphere` and `angle` methods
     - [Breaking] Rename builder method primitives_from_uri -> primitivesFromUri
-
-- Add `PluginConfig.General.ExpandToFullscreen` to enable fullscreen instead of just expanding the viewer
 
 ## [v5.0.0] - 2025-09-28
 - [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
