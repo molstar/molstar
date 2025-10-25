@@ -10,7 +10,6 @@ import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { StatefulPluginComponent } from '../mol-plugin-state/component';
 import { PluginCommands } from './commands';
 import { PluginContext } from './context';
-import { PluginConfig, PluginConfigManager } from './config';
 
 const regionStateOptions = [
     ['full', 'Full'],
