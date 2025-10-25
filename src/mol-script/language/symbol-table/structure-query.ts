@@ -309,6 +309,7 @@ const atomProperty = {
         auth_comp_id: atomProp(Type.Str),
         auth_asym_id: atomProp(Type.Str),
         auth_seq_id: atomProp(Type.Num),
+        residueSourceIndex: atomProp(Type.Num),
 
         pdbx_PDB_ins_code: atomProp(Type.Str),
         pdbx_formal_charge: atomProp(Type.Num),

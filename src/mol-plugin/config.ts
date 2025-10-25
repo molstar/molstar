@@ -54,6 +54,7 @@ export const PluginConfig = {
     Viewport: {
         ShowReset: item('viewer.show-reset-button', true),
         ShowExpand: item('viewer.show-expand-button', true),
+        ShowToggleFullscreen: item('viewer.show-toggle-fullscreen-button', true),
         ShowControls: item('viewer.show-controls-button', true),
         ShowSettings: item('viewer.show-settings-button', true),
         ShowSelectionMode: item('viewer.show-selection-model-button', true),

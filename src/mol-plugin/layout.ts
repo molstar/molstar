@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Lukáš Polák <admin@lukaspolak.cz>
  */
 
 import { ParamDefinition as PD } from '../mol-util/param-definition';
@@ -29,7 +30,8 @@ export const PluginLayoutStateParams = {
         right: PD.Select('full', simpleRegionStateOptions),
         bottom: PD.Select('full', simpleRegionStateOptions),
     }),
-    controlsDisplay: PD.Value<PluginLayoutControlsDisplay>('outside', { isHidden: true })
+    controlsDisplay: PD.Value<PluginLayoutControlsDisplay>('outside', { isHidden: true }),
+    expandToFullscreen: PD.Boolean(false)
 };
 export type PluginLayoutStateProps = PD.Values<typeof PluginLayoutStateParams>
 
@@ -69,6 +71,13 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
         this.updateState(state);
         if (this.root && typeof state.isExpanded === 'boolean' && state.isExpanded !== prevExpanded) this.handleExpand();
 
+        if (this.state.expandToFullscreen) {
+            const body = document.getElementsByTagName('body')[0];
+            if (body) this.tryRequestFullscreen(body);
+        } else if (document.fullscreenElement) {
+            this.tryExitFullscreen();
+        }
+
         this.events.updated.next(void 0);
     }
 
@@ -89,6 +98,25 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
         if ((document as any).scrollingElement) return (document as any).scrollingElement;
         if (document.documentElement) return document.documentElement;
         return document.body;
+    }
+
+    private async tryRequestFullscreen(body: HTMLElement) {
+        if (document.fullscreenElement) return;
+        try {
+            await body.requestFullscreen();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    private async tryExitFullscreen() {
+        if (!document.fullscreenElement) return;
+
+        try {
+            await document.exitFullscreen();
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     private handleExpand() {
@@ -115,7 +143,6 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
                 }
 
                 if (!hasExp) head.appendChild(this.expandedViewport);
-
 
                 const s = body.style;
 
@@ -158,6 +185,10 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
                     }
                 }
 
+                if (this.state.expandToFullscreen && document.fullscreenElement) {
+                    document.exitFullscreen();
+                }
+
                 if (this.rootState) {
                     const t = this.rootState;
                     for (const v of t.viewports) {
@@ -198,8 +229,24 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
         }
     }
 
+    private fullscreenChangeHandler = () => {
+        // In case the user exits fullscreen mode by pressing ESC, treat it as an expand toggle
+        if (!document.fullscreenElement) {
+            this.updateProps({ expandToFullscreen: false });
+        }
+    };
+
+    dispose(): void {
+        super.dispose();
+        document.removeEventListener('fullscreenchange', this.fullscreenChangeHandler);
+        document.removeEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
+    }
+
     constructor(private context: PluginContext) {
         super({ ...PD.getDefaultValues(PluginLayoutStateParams), ...(context.spec.layout && context.spec.layout.initial) });
+
+        document.addEventListener('fullscreenchange', this.fullscreenChangeHandler);
+        document.addEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
 
         PluginCommands.Layout.Update.subscribe(context, e => this.updateProps(e.state));
 

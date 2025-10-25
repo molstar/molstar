@@ -69,9 +69,25 @@ class State {
     readonly cells: State.Cells = new Map();
     private spine = new StateTreeSpine.Impl(this.cells);
 
+    private refResolvers: [name: string, resolver: (state: State, ref: StateTransform.Ref) => StateObject | undefined][] = [];
+
+    registerRefResolver(name: string, resolver: (state: State, ref: StateTransform.Ref) => StateObject | undefined) {
+        this.refResolvers.push([name, resolver]);
+    }
+
+    removeRefResolver(name: string) {
+        this.refResolvers = this.refResolvers.filter(r => r[0] !== name);
+    }
+
     tryGetCellData = <T extends StateObject>(ref: StateTransform.Ref) => {
-        const ret = this.cells.get(ref)?.obj?.data;
-        if (ret === undefined) throw new Error(`Cell '${ref}' data undefined.`);
+        let ret = this.cells.get(ref)?.obj?.data;
+        if (ret === undefined) {
+            for (const [, resolver] of this.refResolvers) {
+                ret = resolver(this, ref);
+                if (ret !== undefined) break;
+            }
+            if (ret === undefined) throw new Error(`Cell '${ref}' data undefined.`);
+        }
         return ret as T extends StateObject<infer D> ? D : never;
     };
 
@@ -331,8 +347,6 @@ class State {
         const oldTree = this._tree;
         this._tree = _tree;
 
-        const cells = this.cells;
-
         const ctx: UpdateContext = {
             parent: this,
             editInfo: StateBuilder.is(tree) ? tree.editInfo : void 0,
@@ -353,7 +367,7 @@ class State {
             wasAborted: false,
             newCurrent: void 0,
 
-            getCellData: ref => cells.get(ref)!.obj?.data
+            getCellData: this.tryGetCellData,
         };
 
         this.errorFree = true;

@@ -365,6 +365,7 @@ const symbols = [
     D(MolScript.structureQuery.atomProperty.macromolecular.secondaryStructureKey, atomProp(StructureProperties.residue.secondary_structure_key)),
     D(MolScript.structureQuery.atomProperty.macromolecular.secondaryStructureFlags, atomProp(StructureProperties.residue.secondary_structure_type)),
     D(MolScript.structureQuery.atomProperty.macromolecular.chemCompType, atomProp(StructureProperties.residue.chem_comp_type)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.residueSourceIndex, atomProp(StructureProperties.residue.residueSourceIndex)),
 
     D(MolScript.structureQuery.atomProperty.ihm.hasSeqId, function structureQuery_atomProperty_ihm_hasSeqId(ctx, xs) {
         const current = ctx.element;

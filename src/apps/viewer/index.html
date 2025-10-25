@@ -28,10 +28,10 @@
             }
             #app {
                 position: absolute;
-                left: 100px;
-                top: 100px;
-                width: 800px;
-                height: 600px;
+                left: 0;
+                top: 0;
+                right: 0;
+                bottom: 0;
             }
         </style>
         <link rel="stylesheet" type="text/css" href="molstar.css" />
@@ -66,6 +66,7 @@
             var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
             var illumination = getParam('illumination', '[^&]+').trim() === '1';
             var resolutionMode = getParam('resolution-mode', '[^&]+').trim().toLowerCase();
+            var viewportShowToggleFullscreen = getParam('show-toggle-fullscreen', '[^&]+').trim() === '1';
 
             // console.log('Available extensions: ', Object.keys(molstar.ExtensionMap));
 
@@ -73,6 +74,7 @@
                 disabledExtensions: [], // anything from Object.keys(molstar.ExtensionMap)
                 layoutShowControls: !hideControls,
                 viewportShowExpand: false,
+                viewportShowToggleFullscreen: viewportShowToggleFullscreen,
                 collapseLeftPanel: collapseLeftPanel,
                 pdbProvider: pdbProvider || 'pdbe',
                 emdbProvider: emdbProvider || 'pdbe',
@@ -87,7 +89,7 @@
                 allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
                 powerPreference: powerPreference || 'high-performance',
                 illumination: illumination,
-                resolutionMode: resolutionMode || 'auto'
+                resolutionMode: resolutionMode || 'auto',
             }).then(viewer => {
                 var snapshotId = getParam('snapshot-id', '[^&]+').trim();
                 if (snapshotId) viewer.setRemoteSnapshot(snapshotId);

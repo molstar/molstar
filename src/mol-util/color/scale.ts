@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Lukáš Polák <admin@lukaspolak.cz>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Color, ColorListEntry } from './color';
@@ -72,11 +73,11 @@ export namespace ColorScale {
 
             const src = sorted.map(c => c[0]);
             const off = SortedArray.ofSortedArray(sorted.map(c => c[1]));
-            const max = src.length - 1;
+            const maxId = src.length - 1;
 
             switch (type) {
-                case 'continuous': color = (value: number) => valueToColorWithOffsets(value, src, off, min, max, diff); break;
-                case 'discrete': color = (value: number) => valueToDiscreteColorWithOffsets(value, src, off, min, max, diff); break;
+                case 'continuous': color = (value: number) => valueToColorWithOffsets(value, src, off, min, maxId, diff); break;
+                case 'discrete': color = (value: number) => valueToDiscreteColorWithOffsets(value, src, off, min, maxId, diff); break;
             }
         } else {
             switch (type) {
@@ -97,14 +98,14 @@ export namespace ColorScale {
         };
     }
 
-    function valueToColorWithOffsets(value: number, src: Color[], off: SortedArray<number>, min: number, max: number, diff: number) {
+    function valueToColorWithOffsets(value: number, src: Color[], off: SortedArray<number>, min: number, maxId: number, diff: number) {
         const t = clamp((value - min) / diff, 0, 1);
         const i = SortedArray.findPredecessorIndex(off, t);
 
         if (i === 0) {
-            return src[min];
-        } else if (i > max) {
-            return src[max];
+            return src[0];
+        } else if (i > maxId) {
+            return src[maxId];
         }
 
         const o1 = off[i - 1], o2 = off[i];
@@ -121,7 +122,7 @@ export namespace ColorScale {
         return Color.interpolate(c1, c2, t - tf);
     }
 
-    function valueToDiscreteColorWithOffsets(value: number, src: Color[], off: SortedArray<number>, min: number, max: number, diff: number) {
+    function valueToDiscreteColorWithOffsets(value: number, src: Color[], off: SortedArray<number>, min: number, maxId: number, diff: number) {
         if (src.length === 0) {
             return Color.fromRgb(0, 0, 0);
         }
@@ -130,9 +131,9 @@ export namespace ColorScale {
         const i = SortedArray.findPredecessorIndex(off, t);
 
         if (i === 0) {
-            return src[min] as Color;
-        } else if (i > max) {
-            return src[max] as Color;
+            return src[0] as Color;
+        } else if (i > maxId) {
+            return src[maxId] as Color;
         }
 
         return src[i] as Color;
