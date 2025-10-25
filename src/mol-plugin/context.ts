@@ -384,6 +384,7 @@ export class PluginContext {
         }
         this.subs = [];
 
+        this.layout.dispose();
         this.managers.markdownExtensions.audio.dispose();
         this.animationLoop.stop();
         this.commands.dispose();

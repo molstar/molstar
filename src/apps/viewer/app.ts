@@ -90,7 +90,7 @@ const DefaultViewerOptions = {
     customFormats: CustomFormats as [string, DataFormatProvider][],
     extensions: ObjectKeys(ExtensionMap),
     disabledExtensions: [] as string[],
-    layoutIsExpanded: true,
+    layoutIsExpanded: false,
     layoutShowControls: true,
     layoutShowRemoteState: true,
     layoutControlsDisplay: 'reactive' as PluginLayoutControlsDisplay,

@@ -11,6 +11,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `PluginState.getStateTransitionFrameIndex`
 - Update `GlycamSaccharideNames` and `Monosaccharides` in `carbohydrates/constants.ts`
 - Support custom ref resolvers in `State` 
+- Add `PluginConfig.General.ExpandToFullscreen` option that uses the full-screen mode when the plugin is expanded
+  - Change default `DefaultViewerOptions.layoutIsExpanded` to `false`
 - MolViewSpec
   - Support accessing Mol* State nodes by MVS-provided ref
   - Add support for DX map format
@@ -21,8 +23,6 @@ Note that since we don't clearly distinguish between a public and private interf
   - Tidy up MVS builder:
     - Add `sphere` and `angle` methods
     - [Breaking] Rename builder method primitives_from_uri -> primitivesFromUri
-
-- Add `PluginConfig.General.ExpandToFullscreen` to enable fullscreen instead of just expanding the viewer
 
 ## [v5.0.0] - 2025-09-28
 - [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')

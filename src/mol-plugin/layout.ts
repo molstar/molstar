@@ -94,6 +94,14 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
         return document.body;
     }
 
+    private async tryRequestFullscreen(body: HTMLElement) {
+        try {
+            await body.requestFullscreen();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
     private handleExpand() {
         try {
             const body = document.getElementsByTagName('body')[0];
@@ -120,7 +128,7 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
                 if (!hasExp) head.appendChild(this.expandedViewport);
 
                 if (this.state.expandToFullscreen) {
-                    body.requestFullscreen();
+                    this.tryRequestFullscreen(body);
                 }
 
                 const s = body.style;
@@ -208,6 +216,19 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
         }
     }
 
+    private fullscreenChangeHandler = () => {
+        // In case the user exits fullscreen mode by pressing ESC, treat it as an expand toggle
+        if (!document.fullscreenElement) {
+            this.updateProps({ isExpanded: false });
+        }
+    };
+
+    dispose(): void {
+        super.dispose();
+        document.removeEventListener('fullscreenchange', this.fullscreenChangeHandler);
+        document.removeEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
+    }
+
     constructor(private context: PluginContext) {
         const config = new PluginConfigManager(context.spec.config);
         const expandToFullscreen = config.get(PluginConfig.General.ExpandToFullscreen) ?? false;
@@ -215,15 +236,8 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
         super({ ...PD.getDefaultValues(PluginLayoutStateParams), ...(context.spec.layout && context.spec.layout.initial), expandToFullscreen });
 
         if (expandToFullscreen) {
-            const fullscreenChangeHandler = () => {
-                // In case the user exits fullscreen mode by pressing ESC, treat it as an expand toggle
-                if (!document.fullscreenElement) {
-                    this.updateProps({ isExpanded: false });
-                }
-            };
-
-            document.addEventListener('fullscreenchange', fullscreenChangeHandler);
-            document.addEventListener('webkitfullscreenchange', fullscreenChangeHandler);
+            document.addEventListener('fullscreenchange', this.fullscreenChangeHandler);
+            document.addEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
         }
 
         PluginCommands.Layout.Update.subscribe(context, e => this.updateProps(e.state));
