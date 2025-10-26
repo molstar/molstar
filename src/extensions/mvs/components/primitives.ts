@@ -33,6 +33,7 @@ import { Task } from '../../../mol-task';
 import { round } from '../../../mol-util';
 import { range } from '../../../mol-util/array';
 import { Asset } from '../../../mol-util/assets';
+import { Clip } from '../../../mol-util/clip';
 import { Color } from '../../../mol-util/color';
 import { MarkerActions } from '../../../mol-util/marker-action';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -141,7 +142,8 @@ export const MVSBuildPrimitiveShape = MVSTransform({
     from: MVSPrimitivesData,
     to: SO.Shape.Provider,
     params: {
-        kind: PD.Text<'mesh' | 'labels' | 'lines'>('mesh')
+        kind: PD.Text<'mesh' | 'labels' | 'lines'>('mesh'),
+        clip: PD.Value<Clip.Props | undefined>(undefined, { isHidden: true })
     }
 })({
     apply({ a, params, dependencies }) {
@@ -160,7 +162,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
                 label,
                 data: context,
                 params: {
-                    ...PD.withDefaults(Mesh.Params, { alpha: a.data.options?.opacity ?? 1, ...customMeshParams }),
+                    ...PD.withDefaults(Mesh.Params, { alpha: a.data.options?.opacity ?? 1, clip: params.clip, ...customMeshParams }),
                     ...snapshotKey,
                     ...markdownCommands,
                 },
@@ -184,6 +186,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
                         tetherLength: options?.label_tether_length ?? 1,
                         background: isDefined(bgColor),
                         backgroundColor: isDefined(bgColor) ? decodeColor(bgColor) : undefined,
+                        clip: params.clip,
                         ...customLabelParams,
                     }),
                     ...snapshotKey,
@@ -200,7 +203,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
                 label,
                 data: context,
                 params: {
-                    ...PD.withDefaults(Lines.Params, { alpha: a.data.options?.opacity ?? 1, ...customLineParams }),
+                    ...PD.withDefaults(Lines.Params, { alpha: a.data.options?.opacity ?? 1, clip: params.clip, ...customLineParams }),
                     ...snapshotKey,
                     ...markdownCommands,
                 },

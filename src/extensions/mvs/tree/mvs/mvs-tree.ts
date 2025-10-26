@@ -226,7 +226,7 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to apply clipping to a visual representation. */
         clip: {
             description: 'This node instructs to apply clipping to a visual representation.',
-            parent: ['representation', 'volume_representation'],
+            parent: ['representation', 'volume_representation', 'primitives', 'primitives_from_uri'],
             params: MVSClipParams,
         },
         /** This node instructs to apply opacity/transparency to a visual representation. */
