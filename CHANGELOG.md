@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Handle transparency updates on ImagePass
+- MolViewSpec
+  - Fix tooltips persisting across snapshots
 
 ## [v5.1.0] - 2025-10-25
 - Fix createColorScaleByType when offsets are available
