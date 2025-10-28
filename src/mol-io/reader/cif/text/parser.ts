@@ -109,7 +109,7 @@ function eatEscaped(state: TokenizerState, esc: number) {
                     ++state.position;
                     return;
                 default:
-                    if (next === void 0) { // = "end of stream"
+                    if (!Number.isFinite(next)) { // = "end of stream"
                         // get rid of the quotes.
                         state.tokenStart++;
                         state.tokenEnd = state.position;
