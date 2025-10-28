@@ -377,6 +377,7 @@ function getRowsFromCif(data: CifCategory, schema: MVSAnnotationSchema, fieldRem
         const columnArray = getArrayFromCifCategory(data, srcKey, cifSchema[key]); // Avoiding `column.toArray` as it replaces . and ? fields by 0 or ''
         if (columnArray) columns[key] = columnArray;
     }
+    if (Object.keys(columns).length === 0) return new Array(data.rowCount).fill({});
     return objectOfArraysToArrayOfObjects(columns);
 }
 
