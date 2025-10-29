@@ -573,8 +573,8 @@ export namespace Vec3 {
         const a0 = a[0], a1 = a[1], a2 = a[2];
         const b0 = b[0], b1 = b[1], b2 = b[2];
         return (Math.abs(a0 - b0) <= EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-                Math.abs(a1 - b1) <= EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-                Math.abs(a2 - b2) <= EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)));
+            Math.abs(a1 - b1) <= EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+            Math.abs(a2 - b2) <= EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)));
     }
 
     const rotTemp = zero();
@@ -620,8 +620,28 @@ export namespace Vec3 {
     }
 
     /** Get a vector that is similar to `b` but orthogonal to `a` */
-    export function orthogonalize(out: Vec3, a: Vec3, b: Vec3) {
-        return normalize(out, cross(out, cross(out, a, b), a));
+    export function orthogonalize(out: Vec3, a: Vec3, b: Vec3): Vec3 {
+        // Regular case (`b` not parallel to `a`)
+        normalize(out, cross(out, cross(out, a, b), a));
+        if (!Vec3.isZero(out)) return out;
+
+        // `b` was parallel to `a`, try orthogonalize(a, X)
+        out[0] = 1; out[1] = 0; out[2] = 0;
+        normalize(out, cross(out, cross(out, a, out), a));
+        if (!Vec3.isZero(out)) return out;
+
+        // `X` was parallel to `a`, try orthogonalize(a, Y)
+        out[0] = 0; out[1] = 1; out[2] = 0;
+        normalize(out, cross(out, cross(out, a, out), a));
+        if (!Vec3.isZero(out)) return out;
+
+        // `a` was zero, return normalized `b`
+        normalize(out, b);
+        if (!Vec3.isZero(out)) return out;
+
+        // `b` was zero, return whatever
+        out[0] = 1; out[1] = 0; out[2] = 0;
+        return out;
     }
 
     /**
