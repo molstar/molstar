@@ -3,12 +3,14 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator';
 import { Model } from '../model';
 import { GridLookup3D, Lookup3D, Spacegroup } from '../../../mol-math/geometry';
 import { IntraUnitBonds, computeIntraUnitBonds } from './unit/bonds';
+import { VdwRadius } from '../model/properties/atomic';
 import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } from '../model/properties/coarse';
 import { BitFlags } from '../../../mol-util';
 import { UnitRings } from './unit/rings';
@@ -46,7 +48,7 @@ namespace Unit {
 
     export function create<K extends Kind>(id: number, invariantId: number, chainGroupId: number, traits: Traits, kind: Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set, props?: K extends Kind.Atomic ? AtomicProperties : CoarseProperties): Unit {
         switch (kind) {
-            case Kind.Atomic: return new Atomic(id, invariantId, chainGroupId, traits, model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation), props ?? AtomicProperties());
+            case Kind.Atomic: return new Atomic(id, invariantId, chainGroupId, traits, model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation, getAtomicRadiusFunc(model)), props ?? AtomicProperties());
             case Kind.Spheres: return createCoarse(id, invariantId, chainGroupId, traits, model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres, getSphereRadiusFunc(model)), props ?? CoarseProperties());
             case Kind.Gaussians: return createCoarse(id, invariantId, chainGroupId, traits, model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians, getGaussianRadiusFunc(model)), props ?? CoarseProperties());
         }
@@ -182,6 +184,11 @@ namespace Unit {
         return {};
     }
 
+    function getAtomicRadiusFunc(model: Model) {
+        const type_symbol = model.atomicHierarchy.atoms.type_symbol.value;
+        return (i: ElementIndex) => VdwRadius(type_symbol(i));
+    }
+
     function getSphereRadiusFunc(model: Model) {
         const r = model.coarseConformation.spheres.radius;
         return (i: ElementIndex) => r[i];
@@ -270,7 +277,7 @@ namespace Unit {
             }
 
             const conformation = (this.model.atomicConformation !== model.atomicConformation || operator !== this.conformation.operator)
-                ? SymmetryOperator.createMapping<ElementIndex>(operator, model.atomicConformation)
+                ? SymmetryOperator.createMapping<ElementIndex>(operator, model.atomicConformation, getAtomicRadiusFunc(model))
                 : this.conformation;
             return new Atomic(this.id, this.invariantId, this.chainGroupId, this.traits, model, this.elements, conformation, props);
         }
@@ -278,9 +285,10 @@ namespace Unit {
         get boundary() {
             if (this.props.boundary) return this.props.boundary;
             const { x, y, z } = this.model.atomicConformation;
+            const radius = Model.getAtomicRadii(this.model);
             this.props.boundary = Traits.is(this.traits, Trait.FastBoundary)
-                ? getFastBoundary({ x, y, z, indices: this.elements })
-                : getBoundary({ x, y, z, indices: this.elements });
+                ? getFastBoundary({ x, y, z, radius, indices: this.elements })
+                : getBoundary({ x, y, z, radius, indices: this.elements });
             return this.props.boundary;
         }
 
@@ -456,11 +464,11 @@ namespace Unit {
 
         get boundary() {
             if (this.props.boundary) return this.props.boundary;
-            // TODO: support sphere radius?
             const { x, y, z } = this.getCoarseConformation();
+            const radius = this.getCoarseRadii();
             this.props.boundary = Traits.is(this.traits, Trait.FastBoundary)
-                ? getFastBoundary({ x, y, z, indices: this.elements })
-                : getBoundary({ x, y, z, indices: this.elements });
+                ? getFastBoundary({ x, y, z, radius, indices: this.elements })
+                : getBoundary({ x, y, z, radius, indices: this.elements });
             return this.props.boundary;
         }
 
@@ -493,6 +501,9 @@ namespace Unit {
         private getCoarseConformation() {
             return getCoarseConformation(this.kind, this.model);
         }
+        private getCoarseRadii() {
+            return getCoarseRadii(this.kind, this.model);
+        }
 
         constructor(id: number, invariantId: number, chainGroupId: number, traits: Traits, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: CoarseProperties) {
             this.kind = kind;
@@ -512,6 +523,9 @@ namespace Unit {
 
     function getCoarseConformation(kind: Kind, model: Model) {
         return kind === Kind.Spheres ? model.coarseConformation.spheres : model.coarseConformation.gaussians;
+    }
+    function getCoarseRadii(kind: Kind, model: Model) {
+        return kind === Kind.Spheres ? model.coarseConformation.spheres.radius : undefined; // Zero radius for gaussians
     }
 
     interface CoarseProperties extends BaseProperties { }
