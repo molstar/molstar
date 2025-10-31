@@ -226,7 +226,7 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to apply clipping to a visual representation. */
         clip: {
             description: 'This node instructs to apply clipping to a visual representation.',
-            parent: ['representation', 'volume_representation'],
+            parent: ['representation', 'volume_representation', 'primitives', 'primitives_from_uri'],
             params: MVSClipParams,
         },
         /** This node instructs to apply opacity/transparency to a visual representation. */
@@ -324,6 +324,8 @@ export const MVSTreeSchema = TreeSchema({
                 position: RequiredField(Vector3, 'Coordinates of the camera.'),
                 /** Vector which will be aligned with the screen Y axis. */
                 up: OptionalField(Vector3, [0, 1, 0], 'Vector which will be aligned with the screen Y axis.'),
+                /** Near clipping plane distance from the position. */
+                near: OptionalField(nullable(float), null, 'Near clipping plane distance from the position.'),
             }),
         },
         /** This node sets canvas properties. */

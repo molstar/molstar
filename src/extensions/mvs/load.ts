@@ -17,6 +17,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { PluginState } from '../../mol-plugin/state';
 import { StateObjectSelector, StateTree } from '../../mol-state';
 import { RuntimeContext, Task } from '../../mol-task';
+import { Clip } from '../../mol-util/clip';
 import { MolViewSpec } from './behavior';
 import { createPluginStateSnapshotCamera, modifyCanvasProps, resetCanvasProps } from './camera';
 import { MVSAnnotationsProvider } from './components/annotation-prop';
@@ -31,7 +32,7 @@ import { generateStateTransition } from './helpers/animation';
 import { IsHiddenCustomStateExtension } from './load-extensions/is-hidden-custom-state';
 import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
 import { LoadingActions, LoadingExtension, loadTreeVirtual, UpdateTarget } from './load-generic';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformAndInstantiateStructure, transformAndInstantiateVolume, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, clippingForNode, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformAndInstantiateStructure, transformAndInstantiateVolume, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
 import { MVSData, MVSData_States, Snapshot, SnapshotMetadata } from './mvs-data';
 import { MVSAnimationNode, MVSAnimationSchema } from './tree/animation/animation-tree';
 import { validateTree } from './tree/generic/tree-validation';
@@ -424,21 +425,23 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     },
     primitives(updateParent: UpdateTarget, tree: MolstarSubtree<'primitives'>, context: MolstarLoadingContext): UpdateTarget {
         const refs = getPrimitiveStructureRefs(tree);
+        const clip = clippingForNode(tree);
         const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { node: tree as any });
-        return applyPrimitiveVisuals(data, refs);
+        return applyPrimitiveVisuals(data, refs, clip);
     },
     primitives_from_uri(updateParent: UpdateTarget, tree: MolstarNode<'primitives_from_uri'>, context: MolstarLoadingContext): UpdateTarget {
         const data = UpdateTarget.apply(updateParent, MVSDownloadPrimitiveData, { uri: tree.params.uri, format: tree.params.format });
-        return applyPrimitiveVisuals(data, new Set(tree.params.references));
+        const clip = clippingForNode(tree);
+        return applyPrimitiveVisuals(data, new Set(tree.params.references), clip);
     },
 };
 
-function applyPrimitiveVisuals(data: UpdateTarget, refs: Set<string>) {
-    const mesh = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh' }, { state: { isGhost: true } }), refs);
+function applyPrimitiveVisuals(data: UpdateTarget, refs: Set<string>, clip: Clip.Props | undefined) {
+    const mesh = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh', clip }, { state: { isGhost: true } }), refs);
     UpdateTarget.apply(mesh, MVSShapeRepresentation3D);
-    const labels = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels' }, { state: { isGhost: true } }), refs);
+    const labels = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels', clip }, { state: { isGhost: true } }), refs);
     UpdateTarget.apply(labels, MVSShapeRepresentation3D);
-    const lines = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'lines' }, { state: { isGhost: true } }), refs);
+    const lines = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'lines', clip }, { state: { isGhost: true } }), refs);
     UpdateTarget.apply(lines, MVSShapeRepresentation3D);
     return data;
 }

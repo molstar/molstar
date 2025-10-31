@@ -11,6 +11,10 @@ Note that since we don't clearly distinguish between a public and private interf
   - Fix CIF annotations with no selector columns being ignored
   - Fix trackpad lock when camera up parallel to direction
 
+- MolViewSpec
+  - Add clipping support for primitives
+  - Support near camera distance
+
 ## [v5.1.0] - 2025-10-25
 - Fix createColorScaleByType when offsets are available
 - Get bond orders from non-standard CONECT records in PDB files

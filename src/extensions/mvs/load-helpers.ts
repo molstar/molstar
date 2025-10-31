@@ -479,7 +479,7 @@ function getClipObject(node: MolstarNode<'clip'>): Clip.Props['objects'][number]
     }
 }
 
-export function clippingForNode(node: MolstarSubtree<'representation' | 'volume_representation'>): Clip.Props | undefined {
+export function clippingForNode(node: MolstarSubtree<'representation' | 'volume_representation' | 'primitives' | 'primitives_from_uri'>): Clip.Props | undefined {
     const children = getChildren(node).filter(c => c.kind === 'clip');
     if (!children.length) return;
 
