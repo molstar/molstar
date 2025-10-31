@@ -8,7 +8,7 @@
 
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { Download, ParseCif, ParseCcp4, ParseDx } from '../../mol-plugin-state/transforms/data';
+import { Download, ParseCcp4, ParseCif, ParseDx } from '../../mol-plugin-state/transforms/data';
 import { CoordinatesFromLammpstraj, CoordinatesFromXtc, CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromGRO, TrajectoryFromLammpsTrajData, TrajectoryFromMmCif, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { VolumeFromCcp4, VolumeFromDensityServerCif, VolumeFromDx } from '../../mol-plugin-state/transforms/volume';
@@ -325,18 +325,16 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         const transformed = transformAndInstantiateStructure(struct, node);
         const annotationTooltips = collectAnnotationTooltips(node, context);
         const inlineTooltips = collectInlineTooltips(node, context);
-        if (annotationTooltips.length + inlineTooltips.length > 0) {
-            UpdateTarget.apply(struct, CustomStructureProperties, {
-                properties: {
-                    [MVSAnnotationTooltipsProvider.descriptor.name]: { tooltips: annotationTooltips },
-                    [CustomTooltipsProvider.descriptor.name]: { tooltips: inlineTooltips },
-                },
-                autoAttach: [
-                    MVSAnnotationTooltipsProvider.descriptor.name,
-                    CustomTooltipsProvider.descriptor.name,
-                ],
-            });
-        }
+        UpdateTarget.apply(struct, CustomStructureProperties, {
+            properties: {
+                [MVSAnnotationTooltipsProvider.descriptor.name]: { tooltips: annotationTooltips },
+                [CustomTooltipsProvider.descriptor.name]: { tooltips: inlineTooltips },
+            },
+            autoAttach: [
+                MVSAnnotationTooltipsProvider.descriptor.name,
+                CustomTooltipsProvider.descriptor.name,
+            ],
+        }); // CustomStructureProperties must be applied even when `annotationTooltips` and `inlineTooltips` are empty, otherwise tooltips would persists across MVS snapshots
         const inlineLabels = collectInlineLabels(node, context);
         if (inlineLabels.length > 0) {
             const nearestReprNode = context.nearestReprMap?.get(node);

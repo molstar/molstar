@@ -6,6 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - Handle transparency updates on ImagePass
 - Fix CIF parser edge case when the last token is escaped
+- MolViewSpec
+  - Fix tooltips persisting across snapshots
+  - Fix CIF annotations with no selector columns being ignored
+  - Fix trackpad lock when camera up parallel to direction
 
 ## [v5.1.0] - 2025-10-25
 - Fix createColorScaleByType when offsets are available
