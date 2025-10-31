@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Handle transparency updates on ImagePass
+- Fix CIF parser edge case when the last token is escaped
 - MolViewSpec
   - Fix tooltips persisting across snapshots
   - Fix CIF annotations with no selector columns being ignored
