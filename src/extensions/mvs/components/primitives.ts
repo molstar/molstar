@@ -41,6 +41,7 @@ import { capitalize } from '../../../mol-util/string';
 import { rowsToExpression, rowToExpression } from '../helpers/selections';
 import { collectMVSReferences, decodeColor, isDefined } from '../helpers/utils';
 import { addParamDefaults } from '../tree/generic/params-schema';
+import { treeValidationIssues } from '../tree/generic/tree-validation';
 import { MolstarNode, MolstarNodeParams, MolstarSubtree } from '../tree/molstar/molstar-tree';
 import { MVSNode, MVSTreeSchema } from '../tree/mvs/mvs-tree';
 import { isComponentExpression, isPrimitiveComponentExpressions, isVector3, PrimitivePositionT } from '../tree/mvs/param-types';
@@ -82,15 +83,35 @@ export const MVSDownloadPrimitiveData = MVSTransform({
             const url = Asset.getUrlAsset(plugin.managers.asset, params.uri);
             const asset = await plugin.managers.asset.resolve(url, 'string').runInContext(ctx);
             const node = JSON.parse(StringLike.toString(asset.data)) as MolstarSubtree<'primitives'>;
+            const validationIssues = treeValidationIssues(MVSTreeSchema, node, { anyRoot: true });
+            if (validationIssues) {
+                throw new Error(`Invalid primitive data from ${params.uri}:\n${validationIssues.join('\n')}`);
+            }
+            if (node.kind !== 'primitives') {
+                throw new Error(`Expected primitives node from ${params.uri}, got ${node.kind}`);
+            }
+            const nodeWithDefaults: MolstarSubtree<'primitives'> = {
+                ...node,
+                params: addParamDefaults(MVSTreeSchema.nodes.primitives.params, node.params || {}),
+                children: node.children?.map((child: any) => {
+                    if (child.kind === 'primitive') {
+                        return {
+                            ...child,
+                            params: addParamDefaults(MVSTreeSchema.nodes.primitive.params, child.params || {})
+                        };
+                    }
+                    return child;
+                })
+            };
             (cache as any).asset = asset;
             return new MVSPrimitivesData({
-                node,
+                node: nodeWithDefaults,
                 defaultStructure: SO.Molecule.Structure.is(a) ? a.data : undefined,
                 structureRefs: {},
-                primitives: getPrimitives(node),
-                options: { ...node.params },
+                primitives: getPrimitives(nodeWithDefaults),
+                options: { ...nodeWithDefaults.params },
                 positionCache: new Map(),
-                instances: getInstances(node.params),
+                instances: getInstances(nodeWithDefaults.params),
             }, { label: 'Primitive Data' });
         });
     },
