@@ -12,7 +12,7 @@ import { useBehavior } from '../../../mol-plugin-ui/hooks/use-behavior';
 import { createRoot } from 'react-dom/client';
 import { PluginStateSnapshotManager } from '../../../mol-plugin-state/manager/snapshots';
 import { PluginReactContext } from '../../../mol-plugin-ui/base';
-import { CSSProperties } from 'react';
+import { CSSProperties, useEffect, useState } from 'react';
 import { Markdown } from '../../../mol-plugin-ui/controls/markdown';
 
 export class MVSStoriesSnapshotMarkdownModel extends PluginComponent {
@@ -70,6 +70,28 @@ export class MVSStoriesSnapshotMarkdownModel extends PluginComponent {
     }
 }
 
+function Loading() {
+    return <div>
+        <div style={{ marginBottom: 16 }}><i>Loading times may vary depending on the story size, your internet connection, and device performance</i></div>
+        <div>Fetching data<Dots /></div>
+        <div>Generating animations<Dots /></div>
+        <div>Preparing visuals<Dots /></div>
+    </div>;
+}
+
+function Dots() {
+    const [dots, setDots] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setDots(d => (d + 1) % 4);
+        }, Math.random() * 500 + 300);
+        return () => clearInterval(interval);
+    }, []);
+
+    return <span>{'.'.repeat(dots)}</span>;
+}
+
 export function MVSStoriesSnapshotMarkdownUI({ model }: { model: MVSStoriesSnapshotMarkdownModel }) {
     const state = useBehavior(model.state);
     const isLoading = useBehavior(model.context.state.isLoading);
@@ -79,7 +101,8 @@ export function MVSStoriesSnapshotMarkdownUI({ model }: { model: MVSStoriesSnaps
 
     if (isLoading) {
         return <div style={style} className={className}>
-            <i>Loading...</i>
+            <h3>The story will be ready momentarily</h3>
+            <Loading />
         </div>;
     }
 

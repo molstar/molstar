@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Update loading message in MVS Stories Viewer
+
 ## [v5.2.0] - 2025-10-31
 - Handle transparency updates on ImagePass
 - Fix CIF parser edge case when the last token is escaped
