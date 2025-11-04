@@ -124,6 +124,9 @@ export const DefaultCanvas3DAttribs = {
     xr: DefaultXRManagerAttribs,
 };
 export type Canvas3DAttribs = typeof DefaultCanvas3DAttribs
+export type PartialCanvas3DAttribs = {
+    [K in keyof Canvas3DAttribs]?: Canvas3DAttribs[K] extends { name: string, params: any } ? Canvas3DAttribs[K] : Partial<Canvas3DAttribs[K]>
+}
 
 export { Canvas3DContext };
 
@@ -373,6 +376,7 @@ interface Canvas3D {
     readonly boundingSphere: Readonly<Sphere3D>
     readonly boundingSphereVisible: Readonly<Sphere3D>
     setProps(props: PartialCanvas3DProps | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void), doNotRequestDraw?: boolean /* = false */): void
+    setAttribs(attribs: PartialCanvas3DAttribs): void
     getImagePass(props: Partial<ImageProps>): ImagePass
     getRenderObjects(): GraphicsRenderObject[]
 
@@ -515,7 +519,7 @@ namespace Canvas3D {
             }
         }
 
-        const xrManager = new XRManager(webgl, input, scene, camera, stereoCamera, helper.pointer, interactionHelper);
+        const xrManager = new XRManager(webgl, input, scene, camera, stereoCamera, helper.pointer, interactionHelper, p.xr, a.xr);
 
         const xr = {
             request: async () => {
@@ -1358,6 +1362,10 @@ namespace Canvas3D {
                     requestDraw();
                 }
             },
+            setAttribs: (attribs: PartialCanvas3DAttribs) => {
+                if (attribs.trackball) controls.setAttribs(attribs.trackball);
+                if (attribs.xr) xrManager.setAttribs(attribs.xr);
+            },
             getImagePass: (props: Partial<ImageProps> = {}) => {
                 return new ImagePass(webgl, assetManager, renderer, scene, camera, helper, props);
             },
@@ -1371,7 +1379,10 @@ namespace Canvas3D {
                 return getProps();
             },
             get attribs() {
-                return a;
+                return {
+                    trackball: controls.attribs,
+                    xr: xrManager.attribs,
+                };
             },
             get input() {
                 return input;

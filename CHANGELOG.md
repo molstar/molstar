@@ -4,8 +4,8 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
-
 - Update loading message in MVS Stories Viewer
+- Add `Canvas3D.setAttribs`
 
 ## [v5.2.0] - 2025-10-31
 - Handle transparency updates on ImagePass
@@ -17,7 +17,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add clipping support for primitives
   - Support near camera distance
 
-## [v5.1.0] - 2025-10-25
+## [v5.1.2] - 2025-10-25
 - Fix createColorScaleByType when offsets are available
 - Get bond orders from non-standard CONECT records in PDB files
 - Remove outdated `gl_FrontFacing` workaround for buggy drivers
