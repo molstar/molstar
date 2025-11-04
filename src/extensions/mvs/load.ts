@@ -8,8 +8,8 @@
 
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { Download, ParseCcp4, ParseCif, ParseDx } from '../../mol-plugin-state/transforms/data';
-import { CoordinatesFromLammpstraj, CoordinatesFromXtc, CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromGRO, TrajectoryFromLammpsTrajData, TrajectoryFromMmCif, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../mol-plugin-state/transforms/model';
+import { Download, ParseCcp4, ParseCif, ParseDx, ParsePrmtop, ParsePsf, ParseTop } from '../../mol-plugin-state/transforms/data';
+import { CoordinatesFromLammpstraj, CoordinatesFromXtc, CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TopologyFromPrmtop, TopologyFromPsf, TopologyFromTop, TrajectoryFromGRO, TrajectoryFromLammpsTrajData, TrajectoryFromMmCif, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { VolumeFromCcp4, VolumeFromDensityServerCif, VolumeFromDx } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -247,6 +247,12 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             case 'xtc':
             case 'lammpstrj':
                 return updateParent;
+            case 'psf':
+                return UpdateTarget.apply(updateParent, ParsePsf, {});
+            case 'prmtop':
+                return UpdateTarget.apply(updateParent, ParsePrmtop, {});
+            case 'top':
+                return UpdateTarget.apply(updateParent, TopologyFromTop, {});
             case 'map':
                 return UpdateTarget.apply(updateParent, ParseCcp4, {});
             case 'dx':
@@ -299,6 +305,28 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     },
     trajectory_with_coordinates(updateParent: UpdateTarget, node: MolstarNode<'trajectory_with_coordinates'>): UpdateTarget | undefined {
         const result = UpdateTarget.apply(updateParent, MVSTrajectoryWithCoordinates, {
+            coordinatesRef: node.params.coordinates_ref,
+        });
+        return UpdateTarget.setMvsDependencies(result, [node.params.coordinates_ref]);
+    },
+    topology_with_coordinates(updateParent: UpdateTarget, node: MolstarNode<'topology_with_coordinates'>): UpdateTarget | undefined {
+        let parsed: UpdateTarget;
+        const format = node.params.format;
+        switch (format) {
+            case 'psf':
+                parsed = UpdateTarget.apply(updateParent, TopologyFromPsf, {});
+                break;
+            case 'prmtop':
+                parsed = UpdateTarget.apply(updateParent, TopologyFromPrmtop, {});
+                break;
+            case 'top':
+                parsed = updateParent;
+                break;
+            default:
+                console.error(`Unknown format in "topology_with_coordinates" node: "${format}"`);
+                return undefined;
+        }
+        const result = UpdateTarget.apply(parsed, MVSTrajectoryWithCoordinates, {
             coordinatesRef: node.params.coordinates_ref,
         });
         return UpdateTarget.setMvsDependencies(result, [node.params.coordinates_ref]);

@@ -55,6 +55,14 @@ export const MolstarTreeSchema = TreeSchema({
                 coordinates_ref: RequiredField(str, 'Coordinates reference'),
             }),
         },
+        topology_with_coordinates: {
+            description: 'Auxiliary node corresponding to assigning a separate coordinates to a topology.',
+            parent: ['parse'],
+            params: SimpleParamsSchema({
+                format: RequiredField(MolstarParseFormatT, 'File format'),
+                coordinates_ref: RequiredField(str, 'Coordinates reference'),
+            }),
+        },
         /** Auxiliary node corresponding to Molstar's ModelFromTrajectory. */
         model: {
             description: "Auxiliary node corresponding to Molstar's ModelFromTrajectory.",
