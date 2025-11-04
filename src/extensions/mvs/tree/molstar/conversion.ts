@@ -28,6 +28,9 @@ export const ParseFormatMvsToMolstar = {
     lammpstrj: { format: 'lammpstrj', is_binary: false },
     // coordinates
     xtc: { format: 'xtc', is_binary: true },
+    nctraj: { format: 'nctraj', is_binary: true },
+    dcd: { format: 'dcd', is_binary: true },
+    trr: { format: 'trr', is_binary: true },
     // topology
     psf: { format: 'psf', is_binary: false },
     prmtop: { format: 'prmtop', is_binary: false },
@@ -142,6 +145,9 @@ const StructureFormatExtensions: Record<ParseFormatT, (FileExtension | '*')[]> =
     lammpstrj: ['.lammpstrj'],
     // coordinates
     xtc: ['.xtc'],
+    nctraj: ['.nc', '.nctraj'],
+    dcd: ['.dcd'],
+    trr: ['.trr'],
     // topology
     psf: ['.psf'],
     prmtop: ['.prmtop', '.parm7'],

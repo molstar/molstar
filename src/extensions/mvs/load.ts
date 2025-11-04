@@ -9,7 +9,7 @@
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { Download, ParseCcp4, ParseCif, ParseDx, ParsePrmtop, ParsePsf, ParseTop } from '../../mol-plugin-state/transforms/data';
-import { CoordinatesFromLammpstraj, CoordinatesFromXtc, CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TopologyFromPrmtop, TopologyFromPsf, TopologyFromTop, TrajectoryFromGRO, TrajectoryFromLammpsTrajData, TrajectoryFromMmCif, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../mol-plugin-state/transforms/model';
+import { CoordinatesFromDcd, CoordinatesFromLammpstraj, CoordinatesFromNctraj, CoordinatesFromTrr, CoordinatesFromXtc, CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TopologyFromPrmtop, TopologyFromPsf, TopologyFromTop, TrajectoryFromGRO, TrajectoryFromLammpsTrajData, TrajectoryFromMmCif, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { VolumeFromCcp4, VolumeFromDensityServerCif, VolumeFromDx } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -246,6 +246,9 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             case 'mol2':
             case 'xtc':
             case 'lammpstrj':
+            case 'dcd':
+            case 'nctraj':
+            case 'trr':
                 return updateParent;
             case 'psf':
                 return UpdateTarget.apply(updateParent, ParsePsf, {});
@@ -266,6 +269,12 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     coordinates(updateParent: UpdateTarget, node: MolstarNode<'coordinates'>): UpdateTarget | undefined {
         const format = node.params.format;
         switch (format) {
+            case 'nctraj':
+                return UpdateTarget.apply(updateParent, CoordinatesFromNctraj);
+            case 'dcd':
+                return UpdateTarget.apply(updateParent, CoordinatesFromDcd);
+            case 'trr':
+                return UpdateTarget.apply(updateParent, CoordinatesFromTrr);
             case 'xtc':
                 return UpdateTarget.apply(updateParent, CoordinatesFromXtc);
             case 'lammpstrj':
