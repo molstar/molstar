@@ -419,7 +419,7 @@ function getQualifyingCoarseElements(coarseElements: CoarseElements, row: MVSAnn
         // This implementation can yield some elements even when queryStart>queryEnd (e.g. { beg_label_seq_id: 70, end_label_seq_id: 58, label_seq_id: 60 } -> sphere 51-100 qualifies ).
         // This is on purpose, to have the same behavior as MolScript.
     }
-    sortIfNeeded(result, iElem => iElem);
+    sortIfNeeded(result, (a, b) => a - b);
     return result;
 }
 
