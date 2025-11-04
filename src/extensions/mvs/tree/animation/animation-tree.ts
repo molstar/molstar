@@ -9,7 +9,15 @@ import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema'
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema } from '../generic/tree-schema';
 import { ColorT, ContinuousPalette, DiscretePalette, Matrix, Vector3 } from '../mvs/param-types';
 
-const Easing = literal(
+type Easing =
+    | 'linear'
+    | 'bounce-in' | 'bounce-out' | 'bounce-in-out'
+    | 'circle-in' | 'circle-out' | 'circle-in-out'
+    | 'cubic-in' | 'cubic-out' | 'cubic-in-out'
+    | 'exp-in' | 'exp-out' | 'exp-in-out'
+    | 'quad-in' | 'quad-out' | 'quad-in-out'
+    | 'sin-in' | 'sin-out' | 'sin-in-out'
+const Easing = literal<Easing>(
     'linear',
     'bounce-in', 'bounce-out', 'bounce-in-out',
     'circle-in', 'circle-out', 'circle-in-out',
