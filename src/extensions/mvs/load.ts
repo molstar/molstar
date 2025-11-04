@@ -252,7 +252,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             case 'prmtop':
                 return UpdateTarget.apply(updateParent, ParsePrmtop, {});
             case 'top':
-                return UpdateTarget.apply(updateParent, TopologyFromTop, {});
+                return UpdateTarget.apply(updateParent, ParseTop, {});
             case 'map':
                 return UpdateTarget.apply(updateParent, ParseCcp4, {});
             case 'dx':
@@ -320,7 +320,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
                 parsed = UpdateTarget.apply(updateParent, TopologyFromPrmtop, {});
                 break;
             case 'top':
-                parsed = updateParent;
+                parsed = UpdateTarget.apply(updateParent, TopologyFromTop, {});
                 break;
             default:
                 console.error(`Unknown format in "topology_with_coordinates" node: "${format}"`);
