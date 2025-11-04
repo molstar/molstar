@@ -208,6 +208,7 @@ function getQualifyingResidues(model: Model, row: MVSAnnotationRow, indices: Ato
         }
         arrayExtend(result, residuesHere);
     }
+    sortIfNeeded(result, (a, b) => a - b);
     return result;
 }
 
