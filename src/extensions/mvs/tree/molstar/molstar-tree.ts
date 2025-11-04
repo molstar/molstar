@@ -66,7 +66,7 @@ export const MolstarTreeSchema = TreeSchema({
         /** Auxiliary node corresponding to Molstar's ModelFromTrajectory. */
         model: {
             description: "Auxiliary node corresponding to Molstar's ModelFromTrajectory.",
-            parent: ['trajectory', 'trajectory_with_coordinates'],
+            parent: ['trajectory', 'trajectory_with_coordinates', 'topology_with_coordinates'],
             params: SimpleParamsSchema(
                 pickObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['model_index'] as const)
             ),
