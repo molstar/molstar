@@ -6,6 +6,9 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - Update loading message in MVS Stories Viewer
 - Add `Canvas3D.setAttribs`
+- MolViewSpec
+  - Add support for "topology" formats (TOP, PRMTOP, PSF)
+  - Add support for additional "coordiates" formats (NCTRAJ, DCD, TRR)
 
 ## [v5.2.0] - 2025-10-31
 - Handle transparency updates on ImagePass
