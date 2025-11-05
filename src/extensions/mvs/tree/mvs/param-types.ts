@@ -14,7 +14,9 @@ export type ParseFormatT =
     // trajectory
     | 'mmcif' | 'bcif' | 'pdb' | 'pdbqt' | 'gro' | 'xyz' | 'mol' | 'sdf' | 'mol2' | 'lammpstrj'
     // coordinates
-    | 'xtc'
+    | 'xtc' | 'nctraj' | 'dcd' | 'trr'
+    // topology
+    | 'psf' | 'prmtop' | 'top'
     // volumes
     | 'map' | 'dx' | 'dxbin'
 export const ParseFormatT = literal<ParseFormatT>(
@@ -49,7 +51,9 @@ export type MolstarParseFormatT =
     // trajectory
     | 'cif' | 'pdb' | 'pdbqt' | 'gro' | 'xyz' | 'mol' | 'sdf' | 'mol2' | 'lammpstrj'
     // coordinates
-    | 'xtc'
+    | 'xtc' | 'nctraj' | 'dcd' | 'trr'
+    // topology
+    | 'psf' | 'prmtop' | 'top'
     // volumes
     | 'map' | 'dx' | 'dxbin'
 export const MolstarParseFormatT = literal<MolstarParseFormatT>(
