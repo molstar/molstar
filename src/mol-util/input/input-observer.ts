@@ -1259,8 +1259,8 @@ export function normalizeWheel(event: any) {
     }
 
     // Fall-back if spin cannot be determined
-    if (dx && !spinX) { spinX = (dx < 1) ? -1 : 1; }
-    if (dy && !spinY) { spinY = (dy < 1) ? -1 : 1; }
+    if (dx && !spinX) { spinX = (dx < 0) ? -1 : 1; }
+    if (dy && !spinY) { spinY = (dy < 0) ? -1 : 1; }
 
     return { spinX, spinY, dx, dy, dz };
 }
