@@ -31,6 +31,13 @@ export const ParseFormatT = literal<ParseFormatT>(
     'lammpstrj', // + coordinates
     // coordinates
     'xtc',
+    'nctraj',
+    'dcd',
+    'trr',
+    // topology
+    'psf',
+    'prmtop',
+    'top',
     // volumes
     'map',
     'dx',
@@ -58,6 +65,13 @@ export const MolstarParseFormatT = literal<MolstarParseFormatT>(
     'lammpstrj',
     // coordinates
     'xtc',
+    'nctraj',
+    'dcd',
+    'trr',
+    // topology
+    'psf',
+    'prmtop',
+    'top',
     // volumes
     'map',
     'dx',
