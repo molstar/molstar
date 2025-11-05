@@ -90,9 +90,14 @@ export class XRManager {
     private hit: Vec3 | undefined = undefined;
 
     readonly props: XRManagerProps;
+    readonly attribs: XRManagerAttribs;
 
     setProps(props: Partial<XRManagerProps>) {
         Object.assign(this.props, props);
+    }
+
+    setAttribs(attribs: Partial<XRManagerAttribs>) {
+        Object.assign(this.attribs, attribs);
     }
 
     private intersect(camera: ICamera, view: Mat4, plane: Plane3D, targetRayPose: XRPose): { point: Vec3, screen: Vec2 } | undefined {
@@ -310,6 +315,7 @@ export class XRManager {
 
     constructor(private webgl: WebGLContext, private input: InputObserver, private scene: Scene, private camera: Camera, private stereoCamera: StereoCamera, private pointerHelper: PointerHelper, private interactionHelper: Canvas3dInteractionHelper, props: Partial<XRManagerProps> = {}, attribs: Partial<XRManagerAttribs> = {}) {
         this.props = { ...PD.getDefaultValues(XRManagerParams), ...props };
+        this.attribs = { ...DefaultXRManagerAttribs, ...attribs };
 
         this.hoverSub = this.interactionHelper.events.hover.subscribe(({ position }) => {
             this.hit = position;
@@ -323,9 +329,9 @@ export class XRManager {
         this.checkSupported();
         navigator.xr?.addEventListener('devicechange', this.checkSupported);
 
-        const b = { ...DefaultXRManagerBindings, ...attribs.bindings };
-
         this.keyUpSub = input.keyUp.subscribe(({ code, modifiers, key }) => {
+            const b = this.attribs.bindings;
+
             if (Binding.matchKey(b.exit, code, modifiers, key)) {
                 this.end();
             }
@@ -336,6 +342,8 @@ export class XRManager {
         });
 
         this.gestureSub = input.gesture.subscribe(({ scale, button, modifiers }) => {
+            const b = this.attribs.bindings;
+
             if (Binding.match(b.gestureScale, button, modifiers)) {
                 this.setScaleFactor(scale);
             }

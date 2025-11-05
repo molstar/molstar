@@ -6,6 +6,14 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - MolViewSpec
     - Fix adding default param values to primitives for primitives_from_uri
+- Update loading message in MVS Stories Viewer
+- Add `Canvas3D.setAttribs`
+- Fix `normalizeWheel` "spin" calculation fallback
+- MolViewSpec
+  - Add support for "topology" formats (TOP, PRMTOP, PSF)
+  - Add support for additional "coordiates" formats (NCTRAJ, DCD, TRR)
+  - Fix coarse structure selection
+  - Fix missing default param values in `primitives_from_uri`
 
 ## [v5.2.0] - 2025-10-31
 - Handle transparency updates on ImagePass
@@ -17,7 +25,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add clipping support for primitives
   - Support near camera distance
 
-## [v5.1.0] - 2025-10-25
+## [v5.1.2] - 2025-10-25
 - Fix createColorScaleByType when offsets are available
 - Get bond orders from non-standard CONECT records in PDB files
 - Remove outdated `gl_FrontFacing` workaround for buggy drivers
