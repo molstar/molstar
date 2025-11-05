@@ -245,7 +245,7 @@ export type ColorDictNameT = 'ElementSymbol' | 'ResidueName' | 'ResiduePropertie
 export const ColorDictNameT = literal<ColorDictNameT>('ElementSymbol', 'ResidueName', 'ResidueProperties', 'SecondaryStructure');
 
 
-export const CategoricalPalette = object(
+const _CategoricalPalette = object(
     {
         kind: literal('categorical'),
     },
@@ -269,7 +269,8 @@ export const CategoricalPalette = object(
         missing_color: nullable(ColorT),
     }
 );
-export type CategoricalPalette = ValueFor<typeof CategoricalPalette>;
+export interface CategoricalPalette extends ValueFor<typeof _CategoricalPalette> { }
+export const CategoricalPalette: iots.Type<CategoricalPalette> = _CategoricalPalette;
 
 export const CategoricalPaletteDefaults: Required<CategoricalPalette> = {
     kind: 'categorical',
@@ -282,7 +283,7 @@ export const CategoricalPaletteDefaults: Required<CategoricalPalette> = {
 };
 
 
-export const DiscretePalette = object(
+const _DiscretePalette = object(
     {
         kind: literal('discrete'),
     },
@@ -308,7 +309,8 @@ export const DiscretePalette = object(
         value_domain: tuple([nullable(float), nullable(float)]),
     }
 );
-export type DiscretePalette = ValueFor<typeof DiscretePalette>;
+export interface DiscretePalette extends ValueFor<typeof _DiscretePalette> { }
+export const DiscretePalette: iots.Type<DiscretePalette> = _DiscretePalette;
 
 export const DiscretePaletteDefaults: Required<DiscretePalette> = {
     kind: 'discrete',
@@ -319,10 +321,9 @@ export const DiscretePaletteDefaults: Required<DiscretePalette> = {
 };
 
 
-export const ContinuousPalette = object(
+const _ContinuousPalette = object(
     {
         kind: literal('continuous'),
-
     },
     // Optionals:
     {
@@ -346,7 +347,8 @@ export const ContinuousPalette = object(
         overflow_color: nullable(union(literal('auto'), ColorT)),
     }
 );
-export type ContinuousPalette = ValueFor<typeof ContinuousPalette>;
+export interface ContinuousPalette extends ValueFor<typeof _ContinuousPalette> { }
+export const ContinuousPalette: iots.Type<ContinuousPalette> = _ContinuousPalette;
 
 export const ContinuousPaletteDefaults: Required<ContinuousPalette> = {
     kind: 'continuous',
