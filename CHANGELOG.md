@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix ugly camera clipping in snapshot transitions
+
 ## [v5.3.0] - 2025-11-5
 - Update loading message in MVS Stories Viewer
 - Add `Canvas3D.setAttribs`
