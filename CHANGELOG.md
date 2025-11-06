@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Update loading message in MVS Stories Viewer
 - Add `Canvas3D.setAttribs`
 - Fix `normalizeWheel` "spin" calculation fallback
+- Fix ugly camera clipping in snapshot transitions
 - MolViewSpec
   - Add support for "topology" formats (TOP, PRMTOP, PSF)
   - Add support for additional "coordiates" formats (NCTRAJ, DCD, TRR)
