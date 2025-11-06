@@ -14,6 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add support for additional "coordiates" formats (NCTRAJ, DCD, TRR)
   - Fix coarse structure selection
   - Fix missing default param values in `primitives_from_uri`
+  - Fix all-selector color not applying on substructure
 
 ## [v5.2.0] - 2025-10-31
 - Handle transparency updates on ImagePass
