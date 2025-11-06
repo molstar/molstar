@@ -2,6 +2,7 @@
  * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -333,5 +334,5 @@ function getPadding(mappings: Float32Array, depths: Float32Array, charCount: num
         const d = Math.abs(depths[i]);
         if (d > maxDepth) maxDepth = d;
     }
-    return scale * Math.max(maxDepth, maxOffset);
+    return Math.max(maxDepth, scale * maxOffset);
 }
