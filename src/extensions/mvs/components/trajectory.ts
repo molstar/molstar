@@ -14,7 +14,7 @@ import { MVSTransform } from './annotation-structure-component';
 export const MVSTrajectoryWithCoordinates = MVSTransform({
     name: 'trajectory-with-coordinates',
     display: { name: 'Trajectory with Coordinates', description: 'Create a trajectory from existing model and the provided coordinates.' },
-    from: PluginStateObject.Molecule.Model,
+    from: [PluginStateObject.Molecule.Model, PluginStateObject.Molecule.Topology],
     to: PluginStateObject.Molecule.Trajectory,
     params: {
         coordinatesRef: ParamDefinition.Text('', { isHidden: true }),

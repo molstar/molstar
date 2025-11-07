@@ -4,14 +4,31 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
-- Handle transparency updates on ImagePass
+- Fix ugly camera clipping in snapshot transitions
 - Structure bounding sphere includes atom VDW radii / coarse sphere radii
 - Relax camera limits to allow focusing any selection with >1 atom
+
+## [v5.3.0] - 2025-11-5
+- Update loading message in MVS Stories Viewer
+- Add `Canvas3D.setAttribs`
+- Fix `normalizeWheel` "spin" calculation fallback
+- MolViewSpec
+  - Add support for "topology" formats (TOP, PRMTOP, PSF)
+  - Add support for additional "coordiates" formats (NCTRAJ, DCD, TRR)
+  - Fix coarse structure selection
+  - Fix missing default param values in `primitives_from_uri`
+
+## [v5.2.0] - 2025-10-31
+- Handle transparency updates on ImagePass
+- Fix CIF parser edge case when the last token is escaped
 - MolViewSpec
   - Fix tooltips persisting across snapshots
   - Fix CIF annotations with no selector columns being ignored
+  - Fix trackpad lock when camera up parallel to direction
+  - Add clipping support for primitives
+  - Support near camera distance
 
-## [v5.1.0] - 2025-10-25
+## [v5.1.2] - 2025-10-25
 - Fix createColorScaleByType when offsets are available
 - Get bond orders from non-standard CONECT records in PDB files
 - Remove outdated `gl_FrontFacing` workaround for buggy drivers

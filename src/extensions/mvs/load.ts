@@ -8,8 +8,8 @@
 
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { Download, ParseCcp4, ParseCif, ParseDx } from '../../mol-plugin-state/transforms/data';
-import { CoordinatesFromLammpstraj, CoordinatesFromXtc, CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromGRO, TrajectoryFromLammpsTrajData, TrajectoryFromMmCif, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../mol-plugin-state/transforms/model';
+import { Download, ParseCcp4, ParseCif, ParseDx, ParsePrmtop, ParsePsf, ParseTop } from '../../mol-plugin-state/transforms/data';
+import { CoordinatesFromDcd, CoordinatesFromLammpstraj, CoordinatesFromNctraj, CoordinatesFromTrr, CoordinatesFromXtc, CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TopologyFromPrmtop, TopologyFromPsf, TopologyFromTop, TrajectoryFromGRO, TrajectoryFromLammpsTrajData, TrajectoryFromMmCif, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { VolumeFromCcp4, VolumeFromDensityServerCif, VolumeFromDx } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -17,6 +17,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { PluginState } from '../../mol-plugin/state';
 import { StateObjectSelector, StateTree } from '../../mol-state';
 import { RuntimeContext, Task } from '../../mol-task';
+import { Clip } from '../../mol-util/clip';
 import { MolViewSpec } from './behavior';
 import { createPluginStateSnapshotCamera, modifyCanvasProps, resetCanvasProps } from './camera';
 import { MVSAnnotationsProvider } from './components/annotation-prop';
@@ -31,7 +32,7 @@ import { generateStateTransition } from './helpers/animation';
 import { IsHiddenCustomStateExtension } from './load-extensions/is-hidden-custom-state';
 import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
 import { LoadingActions, LoadingExtension, loadTreeVirtual, UpdateTarget } from './load-generic';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformAndInstantiateStructure, transformAndInstantiateVolume, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, clippingForNode, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformAndInstantiateStructure, transformAndInstantiateVolume, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
 import { MVSData, MVSData_States, Snapshot, SnapshotMetadata } from './mvs-data';
 import { MVSAnimationNode, MVSAnimationSchema } from './tree/animation/animation-tree';
 import { validateTree } from './tree/generic/tree-validation';
@@ -245,7 +246,16 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             case 'mol2':
             case 'xtc':
             case 'lammpstrj':
+            case 'dcd':
+            case 'nctraj':
+            case 'trr':
                 return updateParent;
+            case 'psf':
+                return UpdateTarget.apply(updateParent, ParsePsf, {});
+            case 'prmtop':
+                return UpdateTarget.apply(updateParent, ParsePrmtop, {});
+            case 'top':
+                return UpdateTarget.apply(updateParent, ParseTop, {});
             case 'map':
                 return UpdateTarget.apply(updateParent, ParseCcp4, {});
             case 'dx':
@@ -259,6 +269,12 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     coordinates(updateParent: UpdateTarget, node: MolstarNode<'coordinates'>): UpdateTarget | undefined {
         const format = node.params.format;
         switch (format) {
+            case 'nctraj':
+                return UpdateTarget.apply(updateParent, CoordinatesFromNctraj);
+            case 'dcd':
+                return UpdateTarget.apply(updateParent, CoordinatesFromDcd);
+            case 'trr':
+                return UpdateTarget.apply(updateParent, CoordinatesFromTrr);
             case 'xtc':
                 return UpdateTarget.apply(updateParent, CoordinatesFromXtc);
             case 'lammpstrj':
@@ -298,6 +314,28 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     },
     trajectory_with_coordinates(updateParent: UpdateTarget, node: MolstarNode<'trajectory_with_coordinates'>): UpdateTarget | undefined {
         const result = UpdateTarget.apply(updateParent, MVSTrajectoryWithCoordinates, {
+            coordinatesRef: node.params.coordinates_ref,
+        });
+        return UpdateTarget.setMvsDependencies(result, [node.params.coordinates_ref]);
+    },
+    topology_with_coordinates(updateParent: UpdateTarget, node: MolstarNode<'topology_with_coordinates'>): UpdateTarget | undefined {
+        let parsed: UpdateTarget;
+        const format = node.params.format;
+        switch (format) {
+            case 'psf':
+                parsed = UpdateTarget.apply(updateParent, TopologyFromPsf, {});
+                break;
+            case 'prmtop':
+                parsed = UpdateTarget.apply(updateParent, TopologyFromPrmtop, {});
+                break;
+            case 'top':
+                parsed = UpdateTarget.apply(updateParent, TopologyFromTop, {});
+                break;
+            default:
+                console.error(`Unknown format in "topology_with_coordinates" node: "${format}"`);
+                return undefined;
+        }
+        const result = UpdateTarget.apply(parsed, MVSTrajectoryWithCoordinates, {
             coordinatesRef: node.params.coordinates_ref,
         });
         return UpdateTarget.setMvsDependencies(result, [node.params.coordinates_ref]);
@@ -424,21 +462,23 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     },
     primitives(updateParent: UpdateTarget, tree: MolstarSubtree<'primitives'>, context: MolstarLoadingContext): UpdateTarget {
         const refs = getPrimitiveStructureRefs(tree);
+        const clip = clippingForNode(tree);
         const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { node: tree as any });
-        return applyPrimitiveVisuals(data, refs);
+        return applyPrimitiveVisuals(data, refs, clip);
     },
     primitives_from_uri(updateParent: UpdateTarget, tree: MolstarNode<'primitives_from_uri'>, context: MolstarLoadingContext): UpdateTarget {
         const data = UpdateTarget.apply(updateParent, MVSDownloadPrimitiveData, { uri: tree.params.uri, format: tree.params.format });
-        return applyPrimitiveVisuals(data, new Set(tree.params.references));
+        const clip = clippingForNode(tree);
+        return applyPrimitiveVisuals(data, new Set(tree.params.references), clip);
     },
 };
 
-function applyPrimitiveVisuals(data: UpdateTarget, refs: Set<string>) {
-    const mesh = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh' }, { state: { isGhost: true } }), refs);
+function applyPrimitiveVisuals(data: UpdateTarget, refs: Set<string>, clip: Clip.Props | undefined) {
+    const mesh = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh', clip }, { state: { isGhost: true } }), refs);
     UpdateTarget.apply(mesh, MVSShapeRepresentation3D);
-    const labels = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels' }, { state: { isGhost: true } }), refs);
+    const labels = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels', clip }, { state: { isGhost: true } }), refs);
     UpdateTarget.apply(labels, MVSShapeRepresentation3D);
-    const lines = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'lines' }, { state: { isGhost: true } }), refs);
+    const lines = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'lines', clip }, { state: { isGhost: true } }), refs);
     UpdateTarget.apply(lines, MVSShapeRepresentation3D);
     return data;
 }

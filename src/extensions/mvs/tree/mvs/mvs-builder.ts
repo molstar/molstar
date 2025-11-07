@@ -403,12 +403,24 @@ export class Primitives extends _Base<'primitives'> implements FocusMixin {
         return this;
     }
     focus = bindMethod(this, FocusMixinImpl, 'focus');
+
+    /** Add a 'clip' node and return builder pointing back to the representation node. 'clip' node instructs to apply clipping to a visual representation. */
+    clip(params: MVSNodeParams<'clip'> & CustomAndRef): Primitives {
+        this.addChild('clip', params);
+        return this;
+    }
 }
 
 
 /** MVS builder pointing to a 'primitives_from_uri' node */
 class PrimitivesFromUri extends _Base<'primitives_from_uri'> implements FocusMixin {
     focus = bindMethod(this, FocusMixinImpl, 'focus');
+
+    /** Add a 'clip' node and return builder pointing back to the representation node. 'clip' node instructs to apply clipping to a visual representation. */
+    clip(params: MVSNodeParams<'clip'> & CustomAndRef): PrimitivesFromUri {
+        this.addChild('clip', params);
+        return this;
+    }
 }
 
 

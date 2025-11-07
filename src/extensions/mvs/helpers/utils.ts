@@ -8,7 +8,6 @@
 import { hashString } from '../../../mol-data/util';
 import { StateObject } from '../../../mol-state';
 import { Color } from '../../../mol-util/color';
-import { ColorNames } from '../../../mol-util/color/names';
 import { decodeColor as _decodeColor } from '../../../mol-util/color/utils';
 
 
@@ -106,29 +105,6 @@ export function decodeColor(colorString: string | number | undefined | null): Co
     }
     return _decodeColor(colorString);
 }
-
-/** Regular expression matching a hexadecimal color string, e.g. '#FF1100' or '#f10' */
-const hexColorRegex = /^#([0-9A-F]{3}){1,2}$/i;
-
-/** Hexadecimal color string, e.g. '#FF1100' (the type matches more than just valid HexColor strings) */
-export type HexColor = `#${string}`
-
-export const HexColor = {
-    /** Decide if a string is a valid hexadecimal color string (6-digit or 3-digit, e.g. '#FF1100' or '#f10') */
-    is(str: any): str is HexColor {
-        return typeof str === 'string' && hexColorRegex.test(str);
-    },
-};
-
-/** Named color string, e.g. 'red' */
-export type ColorName = keyof ColorNames
-
-export const ColorName = {
-    /** Decide if a string is a valid named color string */
-    is(str: any): str is ColorName {
-        return str in ColorNames;
-    },
-};
 
 export function collectMVSReferences<T extends StateObject.Ctor>(type: T[], dependencies: Record<string, StateObject>): Record<string, StateObject.From<T>['data']> {
     const ret: any = {};
