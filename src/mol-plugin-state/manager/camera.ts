@@ -25,7 +25,7 @@ import { changeCameraRotation, structureLayingTransform } from './focus-camera/o
 
 // TODO: make this customizable somewhere?
 const DefaultCameraFocusOptions = {
-    minRadius: 5,
+    minRadius: 1,
     extraRadius: 4,
     durationMs: 250,
 };

@@ -33,7 +33,7 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
 const DefaultFocusOptions = {
-    minRadius: 5,
+    minRadius: 1,
     extraRadius: 0,
 };
 const DefaultCanvasBackgroundColor = ColorNames.white;

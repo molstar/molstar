@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Handle transparency updates on ImagePass
+- Structure bounding sphere includes atom VDW radii / coarse sphere radii
+- Relax camera limits to allow focusing any selection with >1 atom
 - MolViewSpec
   - Fix tooltips persisting across snapshots
   - Fix CIF annotations with no selector columns being ignored
