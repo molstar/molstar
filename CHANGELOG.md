@@ -7,12 +7,12 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix ugly camera clipping in snapshot transitions
 - Add viewport button to toggle illumination mode
+- Fix bounding sphere computation for 3D text
 
 ## [v5.3.0] - 2025-11-5
 - Update loading message in MVS Stories Viewer
 - Add `Canvas3D.setAttribs`
 - Fix `normalizeWheel` "spin" calculation fallback
-- Fix bounding sphere computation for 3D text
 - MolViewSpec
   - Add support for "topology" formats (TOP, PRMTOP, PSF)
   - Add support for additional "coordiates" formats (NCTRAJ, DCD, TRR)
