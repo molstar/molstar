@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -14,7 +14,7 @@ import { PluginConfig } from '../mol-plugin/config';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { PluginUIComponent } from './base';
 import { Button, ControlGroup, IconButton } from './controls/common';
-import { AspectRatioSvg, AutorenewSvg, BuildOutlinedSvg, CameraOutlinedSvg, CloseSvg, FullscreenSvg, HeadsetVRSvg, TuneSvg } from './controls/icons';
+import { AspectRatioSvg, AutorenewSvg, BuildOutlinedSvg, CameraOutlinedSvg, CloseSvg, FullscreenSvg, HeadsetVRSvg, LightModeSvg, TuneSvg } from './controls/icons';
 import { ToggleSelectionModeButton } from './structure/selection';
 import { ViewportCanvas } from './viewport/canvas';
 import { DownloadScreenshotControls } from './viewport/screenshot';
@@ -83,6 +83,19 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 this.plugin.canvas3d.xr.request();
             }
         }
+    };
+
+    toggleIllumination = () => {
+        if (!this.plugin.canvas3d) return;
+
+        PluginCommands.Canvas3D.SetSettings(this.plugin, {
+            settings: {
+                illumination: {
+                    ...this.plugin.canvas3d.props.illumination,
+                    enabled: !this.plugin.canvas3d.props.illumination.enabled
+                }
+            }
+        });
     };
 
     setSettings = (p: { param: PD.Base<any>, name: string, value: any }) => {
@@ -178,6 +191,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                         && this.plugin.config.get(PluginConfig.Viewport.ShowToggleFullscreen)
                         && this.icon(AspectRatioSvg, this.toggleFullscreen, 'Toggle Full Screen', this.plugin.layout.state.expandToFullscreen)}
                     {this.plugin.config.get(PluginConfig.Viewport.ShowSettings) && this.icon(TuneSvg, this.toggleSettingsExpanded, 'Settings / Controls Info', this.state.isSettingsExpanded)}
+                    {this.plugin.config.get(PluginConfig.Viewport.ShowIllumination) && this.icon(LightModeSvg, this.toggleIllumination, 'Illumination', this.plugin.canvas3d?.props.illumination.enabled || false)}
                     {xr && this.icon(HeadsetVRSvg, this.toggleXR, xrTitle, xrIsPresenting, !xrIsSupported)}
                 </div>
                 {this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode) && <div>
