@@ -9,18 +9,16 @@ import { PluginState } from '../../../mol-plugin/state';
 import { PluginStateSnapshotManager } from '../../manager/snapshots';
 import { PluginStateAnimation } from '../model';
 
+
 async function setPartialSnapshot(plugin: PluginContext, entry: Partial<PluginStateSnapshotManager.Entry['snapshot']>, first = false) {
     if (entry.data) {
         await plugin.runTask(plugin.state.data.setSnapshot(entry.data));
         // update the canvas3d trackball with the snapshot
-        if (entry.canvas3d?.props?.trackball) {
-            plugin.canvas3d?.setProps({
-                trackball: entry.canvas3d?.props?.trackball
-            });
-        }
-
     }
 
+    if (entry.canvas3d?.props) {
+        plugin.canvas3d?.setProps(entry.canvas3d.props);
+    }
     if (entry.camera?.current) {
         plugin.canvas3d?.requestCameraReset({
             snapshot: entry.camera.current,
