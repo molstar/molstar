@@ -5,8 +5,13 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Fix ugly camera clipping in snapshot transitions
+- Add viewport button to toggle illumination mode
+- Fix bounding sphere computation for 3D text
 - Structure bounding sphere includes atom VDW radii / coarse sphere radii
 - Relax camera limits to allow focusing any selection with >1 atom
+- MolViewSpec
+  - Fix `appendSnapshots` when loading MVSX
+  - Fix all-selector color not applying on substructure
 
 ## [v5.3.0] - 2025-11-5
 - Update loading message in MVS Stories Viewer

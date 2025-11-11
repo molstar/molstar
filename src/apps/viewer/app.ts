@@ -531,7 +531,7 @@ export class Viewer {
         } else if (format === 'mvsx') {
             const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'binary' }));
             await this.plugin.runTask(Task.create('Load MVSX file', async ctx => {
-                const parsed = await loadMVSX(this.plugin, ctx, data);
+                const parsed = await loadMVSX(this.plugin, ctx, data, { doNotClearAssets: options?.appendSnapshots });
                 await loadMVS(this.plugin, parsed.mvsData, { sanityChecks: true, sourceUrl: parsed.sourceUrl, ...options });
             }));
         } else {

@@ -77,7 +77,9 @@ export function createValueSize(value: number, sizeData?: SizeData): SizeData {
 
 /** Creates size uniform */
 export function createUniformSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
-    return createValueSize(sizeFn(NullLocation), sizeData);
+    locationIt.reset();
+    const location = locationIt.hasNext ? locationIt.move().location : NullLocation;
+    return createValueSize(sizeFn(location), sizeData);
 }
 
 export function createTextureSize(sizes: TextureImage<Uint8Array>, type: SizeType, sizeData?: SizeData): SizeData {

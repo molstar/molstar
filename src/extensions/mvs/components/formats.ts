@@ -112,11 +112,18 @@ export const MVSXFormatProvider: DataFormatProvider<{}, StateObjectRef<Mvs>, any
  * add all contained files to `plugin`'s asset manager,
  * and parse the main file in the archive as MVSJ.
  * Return parsed MVS data and `sourceUrl` for resolution of relative URIs.  */
-export async function loadMVSX(plugin: PluginContext, runtimeCtx: RuntimeContext, data: Uint8Array<ArrayBuffer>, mainFilePath: string = 'index.mvsj'): Promise<{ mvsData: MVSData, sourceUrl: string }> {
+export async function loadMVSX(plugin: PluginContext, runtimeCtx: RuntimeContext, data: Uint8Array<ArrayBuffer>, mainFilePathOrOptions?: string | { mainFilePath?: string, doNotClearAssets?: boolean }): Promise<{ mvsData: MVSData, sourceUrl: string }> {
+    // TODO: on next major version, streamline mainFilePathOrOptions
+    if (typeof mainFilePathOrOptions === 'string') {
+        mainFilePathOrOptions = { mainFilePath: mainFilePathOrOptions };
+    }
+    const mainFilePath = mainFilePathOrOptions?.mainFilePath ?? 'index.mvsj';
+    const doNotClearAssets = mainFilePathOrOptions?.doNotClearAssets ?? false;
+
     // Ensure at most one generation of MVSX file assets exists in the asset manager.
     // Hopefully, this is a reasonable compromise to ensure MVSX files work in multi-snapshot
     // states.
-    clearMVSXFileAssets(plugin);
+    if (!doNotClearAssets) clearMVSXFileAssets(plugin);
 
     const archiveId = `ni,MurmurHash3_128;${murmurHash3_128_fromBytes(data, 42)}`;
     let files: { [path: string]: Uint8Array<ArrayBuffer> };
@@ -160,7 +167,7 @@ export async function loadMVSData(plugin: PluginContext, data: MVSData | StringL
             throw new Error("loadMvsData: if `format` is 'mvsx', then `data` must be a Uint8Array or a base64-encoded string prefixed with 'base64,'.");
         }
         await plugin.runTask(Task.create('Load MVSX file', async ctx => {
-            const parsed = await loadMVSX(plugin, ctx, data as Uint8Array<ArrayBuffer>);
+            const parsed = await loadMVSX(plugin, ctx, data as Uint8Array<ArrayBuffer>, { doNotClearAssets: options?.appendSnapshots });
             await loadMVS(plugin, parsed.mvsData, { sanityChecks: true, ...options, sourceUrl: parsed.sourceUrl });
         }));
     } else {
