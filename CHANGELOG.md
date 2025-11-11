@@ -10,6 +10,8 @@ Note that since we don't clearly distinguish between a public and private interf
   - Fix `appendSnapshots` when loading MVSX
 - Add viewport button to toggle illumination mode
 - Fix bounding sphere computation for 3D text
+- MolViewSpec
+  - Fix all-selector color not applying on substructure
 
 ## [v5.3.0] - 2025-11-5
 - Update loading message in MVS Stories Viewer
