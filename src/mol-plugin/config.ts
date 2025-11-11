@@ -61,6 +61,7 @@ export const PluginConfig = {
         ShowAnimation: item('viewer.show-animation-button', true),
         ShowTrajectoryControls: item('viewer.show-trajectory-controls', true),
         ShowScreenshotControls: item('viewer.show-screenshot-controls', true),
+        ShowIllumination: item('viewer.show-illumination-button', true),
         ShowXR: item<'auto' | 'always' | 'never'>('viewer.show-xr', 'always'),
     },
     Download: {
