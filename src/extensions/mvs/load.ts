@@ -464,12 +464,15 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         const refs = getPrimitiveStructureRefs(tree);
         const clip = clippingForNode(tree);
         const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { node: tree as any });
+        UpdateTarget.setMvsDependencies(data, refs); // MVSInlinePrimitiveData must depend on `refs` because it caches positions
         return applyPrimitiveVisuals(data, refs, clip);
     },
     primitives_from_uri(updateParent: UpdateTarget, tree: MolstarNode<'primitives_from_uri'>, context: MolstarLoadingContext): UpdateTarget {
-        const data = UpdateTarget.apply(updateParent, MVSDownloadPrimitiveData, { uri: tree.params.uri, format: tree.params.format });
+        const refs = new Set(tree.params.references);
         const clip = clippingForNode(tree);
-        return applyPrimitiveVisuals(data, new Set(tree.params.references), clip);
+        const data = UpdateTarget.apply(updateParent, MVSDownloadPrimitiveData, { uri: tree.params.uri, format: tree.params.format });
+        UpdateTarget.setMvsDependencies(data, refs); // MVSInlinePrimitiveData must depend on `refs` because it caches positions
+        return applyPrimitiveVisuals(data, refs, clip);
     },
 };
 

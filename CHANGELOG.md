@@ -6,12 +6,13 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix ugly camera clipping in snapshot transitions
-- MolViewSpec
-  - Fix `appendSnapshots` when loading MVSX
 - Add viewport button to toggle illumination mode
 - Fix bounding sphere computation for 3D text
 - MolViewSpec
+  - Fix `appendSnapshots` when loading MVSX
   - Fix all-selector color not applying on substructure
+  - Fix primitives in root not being transformed with reference structure
+  - Color themes do not prefer smoothing (improves performance in animations)
   - Allow canvas background interpolation
 
 ## [v5.3.0] - 2025-11-5

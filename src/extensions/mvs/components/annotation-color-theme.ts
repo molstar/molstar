@@ -117,7 +117,7 @@ export function MVSAnnotationColorTheme(ctx: ThemeDataContext, props: MVSAnnotat
     return {
         factory: MVSAnnotationColorTheme,
         granularity: 'groupInstance',
-        preferSmoothing: true,
+        preferSmoothing: false,
         color: color,
         props: props,
         description: 'Assigns colors based on custom MolViewSpec annotation data.',
