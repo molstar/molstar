@@ -4,23 +4,30 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Canvas3DParams } from '../../../mol-canvas3d/canvas3d';
 import { PluginContext } from '../../../mol-plugin/context';
 import { PluginState } from '../../../mol-plugin/state';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateSnapshotManager } from '../../manager/snapshots';
 import { PluginStateAnimation } from '../model';
+
 
 async function setPartialSnapshot(plugin: PluginContext, entry: Partial<PluginStateSnapshotManager.Entry['snapshot']>, first = false) {
     if (entry.data) {
         await plugin.runTask(plugin.state.data.setSnapshot(entry.data));
         // update the canvas3d trackball with the snapshot
-        if (entry.canvas3d?.props?.trackball) {
-            plugin.canvas3d?.setProps({
-                trackball: entry.canvas3d?.props?.trackball
-            });
-        }
-
     }
 
+    if (entry.canvas3d?.props) {
+        const settings = PD.normalizeParams(Canvas3DParams, entry.canvas3d.props, 'children');
+        if (entry.camera?.current || entry.camera?.focus) {
+            // Avoid multiple camera transitions (creates ugly cases when camera in old and new snapshot is the same)
+            settings.camera = undefined;
+            settings.cameraClipping = undefined;
+            settings.cameraFog = undefined;
+        }
+        plugin.canvas3d?.setProps(settings);
+    }
     if (entry.camera?.current) {
         plugin.canvas3d?.requestCameraReset({
             snapshot: entry.camera.current,
