@@ -15,6 +15,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Color themes do not prefer smoothing (improves performance in animations)
   - Allow canvas background interpolation
 - Fix `direct-volume` not drawn in illumination mode
+- Fix default trackball animated spin speed
 
 ## [v5.3.0] - 2025-11-5
 - Update loading message in MVS Stories Viewer
