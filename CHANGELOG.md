@@ -14,6 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Fix primitives in root not being transformed with reference structure
   - Color themes do not prefer smoothing (improves performance in animations)
   - Allow canvas background interpolation
+- Fix `direct-volume` not drawn in illumination mode
 
 ## [v5.3.0] - 2025-11-5
 - Update loading message in MVS Stories Viewer

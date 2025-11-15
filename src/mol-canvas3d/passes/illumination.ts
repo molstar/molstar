@@ -163,7 +163,7 @@ export class IlluminationPass {
         const { gl, state } = this.webgl;
 
         const markingEnabled = MarkingPass.isEnabled(props.marking);
-        const hasTransparent = scene.opacityAverage < 1;
+        const hasTransparent = scene.opacityAverage < 1 || scene.volumes.renderables.length > 0;
         const hasMarking = markingEnabled && scene.markerAverage > 0;
 
         this.transparentTarget.bind();
@@ -347,7 +347,7 @@ export class IlluminationPass {
         const dofEnabled = DofPass.isEnabled(props.postprocessing);
 
         const markingEnabled = MarkingPass.isEnabled(props.marking);
-        const hasTransparent = scene.opacityAverage < 1;
+        const hasTransparent = scene.opacityAverage < 1 || scene.volumes.renderables.length > 0;
         const hasMarking = markingEnabled && scene.markerAverage > 0;
 
         let needsUpdateCompose = false;
