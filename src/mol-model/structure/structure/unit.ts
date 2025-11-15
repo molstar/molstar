@@ -501,6 +501,7 @@ namespace Unit {
         private getCoarseConformation() {
             return getCoarseConformation(this.kind, this.model);
         }
+
         private getCoarseRadii() {
             return getCoarseRadii(this.kind, this.model);
         }
@@ -524,6 +525,7 @@ namespace Unit {
     function getCoarseConformation(kind: Kind, model: Model) {
         return kind === Kind.Spheres ? model.coarseConformation.spheres : model.coarseConformation.gaussians;
     }
+
     function getCoarseRadii(kind: Kind, model: Model) {
         return kind === Kind.Spheres ? model.coarseConformation.spheres.radius : undefined; // Zero radius for gaussians
     }
