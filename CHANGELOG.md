@@ -12,6 +12,12 @@ Note that since we don't clearly distinguish between a public and private interf
 - MolViewSpec
   - Fix `appendSnapshots` when loading MVSX
   - Fix all-selector color not applying on substructure
+  - Fix primitives in root not being transformed with reference structure
+  - Color themes do not prefer smoothing (improves performance in animations)
+  - Allow canvas background interpolation
+- Fix `direct-volume` not drawn in illumination mode
+- Fix default trackball animated spin speed
+- Use `PluginCommands` to set canvas3d props in camera behavior
 
 ## [v5.3.0] - 2025-11-5
 - Update loading message in MVS Stories Viewer

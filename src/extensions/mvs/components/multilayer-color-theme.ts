@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -72,7 +72,7 @@ export const DefaultMultilayerColorThemeProps: MultilayerColorThemeProps = { lay
  * If a nested theme provider has `ensureCustomProperties` methods, these will not be called automatically
  * (the caller must ensure that any required custom properties be attached). */
 function makeMultilayerColorTheme(ctx: ThemeDataContext, props: MultilayerColorThemeProps, colorThemeRegistry: ColorTheme.Registry): ColorTheme<MultilayerColorThemeParams> {
-    const { colorLayers, granularity } = makeLayers(ctx, props, colorThemeRegistry);
+    const { colorLayers, granularity, preferSmoothing } = makeLayers(ctx, props, colorThemeRegistry);
 
     function structureElementColor(loc: StructureElement.Location, isSecondary: boolean): Color {
         for (const layer of colorLayers) {
@@ -101,7 +101,7 @@ function makeMultilayerColorTheme(ctx: ThemeDataContext, props: MultilayerColorT
     return {
         factory: (ctx_, props_) => makeMultilayerColorTheme(ctx_, props_, colorThemeRegistry),
         granularity,
-        preferSmoothing: true,
+        preferSmoothing,
         color: color,
         props: props,
         description: 'Combines colors from multiple color themes.',
@@ -136,6 +136,7 @@ interface ColorLayer {
 function makeLayers(ctx: ThemeDataContext, props: MultilayerColorThemeProps, colorThemeRegistry: ColorTheme.Registry) {
     const colorLayers: ColorLayer[] = [];
     let granularityFlags = 0;
+    let preferSmoothing = false;
     for (let i = props.layers.length - 1; i >= 0; i--) { // iterate from the end to get top layer first, bottom layer last
         const layer = props.layers[i];
         const themeProvider = colorThemeRegistry.get(layer.theme.name);
@@ -175,8 +176,9 @@ function makeLayers(ctx: ThemeDataContext, props: MultilayerColorThemeProps, col
             default:
                 console.warn(`Skipping color theme '${layer.theme.name}', cannot process granularity '${theme.granularity}'`);
         }
+        if (theme.preferSmoothing) preferSmoothing = true;
     }
-    return { colorLayers, granularity: granularityNameFromFlags(granularityFlags) };
+    return { colorLayers, granularity: granularityNameFromFlags(granularityFlags), preferSmoothing };
 }
 
 
