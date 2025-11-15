@@ -190,13 +190,21 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                 if (Binding.matchKey(b.keySpinAnimation, code, modifiers, key)) {
                     const name = tp.animate.name !== 'spin' ? 'spin' : 'off';
                     if (name === 'off') {
-                        this.ctx.canvas3d.setProps({
-                            trackball: { animate: { name, params: {} } }
+                        PluginCommands.Canvas3D.SetSettings(this.ctx, {
+                            settings: {
+                                trackball: {
+                                    ...tp,
+                                    animate: { name, params: {} }
+                                }
+                            }
                         });
                     } else {
-                        this.ctx.canvas3d.setProps({
-                            trackball: { animate: {
-                                name, params: { speed: 1 } }
+                        PluginCommands.Canvas3D.SetSettings(this.ctx, {
+                            settings: {
+                                trackball: {
+                                    ...tp,
+                                    animate: { name, params: { speed: 0.1 } }
+                                }
                             }
                         });
                     }
@@ -205,13 +213,21 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                 if (Binding.matchKey(b.keyRockAnimation, code, modifiers, key)) {
                     const name = tp.animate.name !== 'rock' ? 'rock' : 'off';
                     if (name === 'off') {
-                        this.ctx.canvas3d.setProps({
-                            trackball: { animate: { name, params: {} } }
+                        PluginCommands.Canvas3D.SetSettings(this.ctx, {
+                            settings: {
+                                trackball: {
+                                    ...tp,
+                                    animate: { name, params: {} }
+                                }
+                            }
                         });
                     } else {
-                        this.ctx.canvas3d.setProps({
-                            trackball: { animate: {
-                                name, params: { speed: 0.3, angle: 10 } }
+                        PluginCommands.Canvas3D.SetSettings(this.ctx, {
+                            settings: {
+                                trackball: {
+                                    ...tp,
+                                    animate: { name, params: { speed: 0.3, angle: 10 } }
+                                }
                             }
                         });
                     }
@@ -220,8 +236,13 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                 if (Binding.matchKey(b.keyToggleFlyMode, code, modifiers, key)) {
                     const flyMode = !tp.flyMode;
 
-                    this.ctx.canvas3d.setProps({
-                        trackball: { flyMode }
+                    PluginCommands.Canvas3D.SetSettings(this.ctx, {
+                        settings: {
+                            trackball: {
+                                ...tp,
+                                flyMode
+                            }
+                        }
                     });
 
                     if (this.ctx.canvas3dContext?.canvas) {
@@ -234,10 +255,12 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                 }
 
                 if (Binding.matchKey(b.keyGlobalIllumination, code, modifiers, key)) {
-                    this.ctx.canvas3d.setProps({
-                        illumination: {
-                            ...ip,
-                            enabled: !ip.enabled,
+                    PluginCommands.Canvas3D.SetSettings(this.ctx, {
+                        settings: {
+                            illumination: {
+                                ...ip,
+                                enabled: !ip.enabled
+                            }
                         }
                     });
                 }

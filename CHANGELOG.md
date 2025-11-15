@@ -16,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Allow canvas background interpolation
 - Fix `direct-volume` not drawn in illumination mode
 - Fix default trackball animated spin speed
+- Use `PluginCommands` to set canvas3d props in camera behavior
 
 ## [v5.3.0] - 2025-11-5
 - Update loading message in MVS Stories Viewer
