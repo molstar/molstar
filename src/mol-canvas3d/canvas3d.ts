@@ -75,7 +75,7 @@ export const Canvas3DParams = {
     cameraClipping: PD.Group({
         radius: PD.Numeric(100, { min: 0, max: 99, step: 1 }, { label: 'Clipping', description: 'How much of the scene to show.' }),
         far: PD.Boolean(true, { description: 'Hide scene in the distance' }),
-        minNear: PD.Numeric(5, { min: 0.1, max: 100, step: 0.1 }, { description: 'Note, may cause performance issues rendering impostors when set too small and cause issues with outline rendering when too close to 0.' }),
+        minNear: PD.Numeric(1, { min: 0.1, max: 100, step: 0.1 }, { description: 'Minimal allowed distance of near clipping plane from the camera. Note, may cause performance issues rendering impostors when set too small and cause issues with outline rendering when too close to 0.' }),
     }, { pivot: 'radius' }),
     viewport: PD.MappedStatic('canvas', {
         canvas: PD.Group({}),

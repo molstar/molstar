@@ -1,13 +1,14 @@
 /**
- * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { UUID } from '../../../mol-util/uuid';
 import { StructureSequence } from './properties/sequence';
-import { AtomicHierarchy, AtomicConformation, AtomicRanges } from './properties/atomic';
+import { AtomicHierarchy, AtomicConformation, AtomicRanges, VdwRadius } from './properties/atomic';
 import { CoarseHierarchy, CoarseConformation } from './properties/coarse';
 import { Entities, ChemicalComponentMap, MissingResidues, StructAsymMap } from './properties/common';
 import { CustomProperties } from '../../custom-property';
@@ -182,6 +183,20 @@ export namespace Model {
         const center = calcModelCenter(model.atomicConformation, model.coarseConformation);
         model._dynamicPropertyData[CenterProp] = center;
         return center;
+    }
+
+    const AtomicRadiiProp = '__AtomicRadii__';
+    /** Get array of atomic radii for all atoms in the model (cached). */
+    export function getAtomicRadii(model: Model): Float32Array {
+        if (model._dynamicPropertyData[AtomicRadiiProp]) return model._dynamicPropertyData[AtomicRadiiProp];
+        const nAtoms = model.atomicHierarchy.atoms._rowCount;
+        const type_symbol = model.atomicHierarchy.atoms.type_symbol.value;
+        const radii = new Float32Array(nAtoms);
+        for (let i = 0; i < nAtoms; i++) {
+            radii[i] = VdwRadius(type_symbol(i));
+        }
+        model._dynamicPropertyData[AtomicRadiiProp] = radii;
+        return radii;
     }
 
     function invertIndex(xs: Column<number>) {
