@@ -5,7 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-## [v5.4.0] - 2025-11-16
+## [v5.4.1] - 2025-11-16
 - Fix ugly camera clipping in snapshot transitions
 - Add viewport button to toggle illumination mode
 - Fix bounding sphere computation for 3D text
