@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Volume } from '../../mol-model/volume';
+import { Grid, Volume } from '../../mol-model/volume';
 import { Loci } from '../../mol-model/loci';
 import { Interval, OrderedSet, SortedArray } from '../../mol-data/int';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
@@ -15,6 +15,7 @@ import { Box3D } from '../../mol-math/geometry';
 import { toHalfFloat } from '../../mol-util/number-conversion';
 import { clamp } from '../../mol-math/interpolate';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
+import { Tensor } from '../../mol-math/linear-algebra/tensor';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3set = Vec3.set;
@@ -350,4 +351,47 @@ export function createSegmentTexture2d(volume: Volume, set: number[], bbox: Box3
     }
 
     return textureImage;
+}
+
+/**
+ * Create a new volume that is wrapped by one cell in all dimensions.
+ * Reuses the original volume grid data with new data accessors.
+ */
+export function createWrappedVolume(volume: Volume): Volume {
+    const { grid } = volume;
+    const { space } = grid.cells;
+    const [xn, yn, zn] = space.dimensions as Vec3;
+
+    const _dimensions = Vec3.create(xn + 1, yn + 1, zn + 1);
+
+    const _get = (data: Tensor.Data, x: number, y: number, z: number) => space.get(data, x % xn, y % yn, z % zn);
+    const _set = (data: Tensor.Data, x: number, y: number, z: number, d: number) => space.set(data, x % xn, y % yn, z % zn, d);
+    const _add = (data: Tensor.Data, x: number, y: number, z: number, d: number) => space.add(data, x % xn, y % yn, z % zn, d);
+    const _dataOffset = (x: number, y: number, z: number) => space.dataOffset(x % xn, y % yn, z % zn);
+
+    const _space: Tensor.Space = {
+        ...space,
+        dimensions: _dimensions,
+        get: _get,
+        set: _set,
+        add: _add,
+        dataOffset: _dataOffset,
+    };
+
+    const matrix = Grid.getGridToCartesianTransform(volume.grid);
+    const _transform: Grid.Transform = { kind: 'matrix', matrix };
+
+    const _grid: Grid = {
+        ...grid,
+        transform: _transform,
+        cells: {
+            ...grid.cells,
+            space: _space
+        }
+    };
+
+    return {
+        ...volume,
+        grid: _grid
+    };
 }

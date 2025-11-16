@@ -22,6 +22,7 @@ uniform bool uInvert;
 
 uniform vec3 uGridDim;
 uniform vec3 uGridTexDim;
+uniform vec3 uGridDataDim;
 uniform mat4 uGridTransform;
 uniform mat3 uGridTransformAdjoint;
 
@@ -93,20 +94,19 @@ vec4 baseVoxel(vec2 pos) {
 }
 
 vec4 getGroup(const in vec3 p) {
-    vec3 gridDim = uGridDim - vec3(1.0, 1.0, 0.0); // remove xy padding
     // note that we swap x and z because the texture is flipped around y
     #if defined(dAxisOrder_012)
-        float group = p.z + p.y * gridDim.z + p.x * gridDim.z * gridDim.y; // 210
+        float group = p.z + p.y * uGridDataDim.z + p.x * uGridDataDim.z * uGridDataDim.y; // 210
     #elif defined(dAxisOrder_021)
-        float group = p.y + p.z * gridDim.y + p.x * gridDim.y * gridDim.z; // 120
+        float group = p.y + p.z * uGridDataDim.y + p.x * uGridDataDim.y * uGridDataDim.z; // 120
     #elif defined(dAxisOrder_102)
-        float group = p.z + p.x * gridDim.z + p.y * gridDim.z * gridDim.x; // 201
+        float group = p.z + p.x * uGridDataDim.z + p.y * uGridDataDim.z * uGridDataDim.x; // 201
     #elif defined(dAxisOrder_120)
-        float group = p.x + p.z * gridDim.x + p.y * gridDim.x * gridDim.z; // 021
+        float group = p.x + p.z * uGridDataDim.x + p.y * uGridDataDim.x * uGridDataDim.z; // 021
     #elif defined(dAxisOrder_201)
-        float group = p.y + p.x * gridDim.y + p.z * gridDim.y * gridDim.x; // 102
+        float group = p.y + p.x * uGridDataDim.y + p.z * uGridDataDim.y * uGridDataDim.x; // 102
     #elif defined(dAxisOrder_210)
-        float group = p.x + p.y * gridDim.x + p.z * gridDim.x * gridDim.y; // 012
+        float group = p.x + p.y * uGridDataDim.x + p.z * uGridDataDim.x * uGridDataDim.y; // 012
     #endif
     return vec4(group > 16777215.5 ? vec3(1.0) : packIntToRGB(group), 1.0);
 }
