@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.406, IHM 1.28, MA 1.4.7.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.407, IHM 1.28, MA 1.4.8.
  *
  * @author molstar/ciftools package
  */
@@ -5078,7 +5078,7 @@ export const mmCIF_Schema = {
         /**
          * The type of data held in the dataset.
          */
-        content_type: Aliased<'target' | 'template structure' | 'polymeric template library' | 'spatial restraints' | 'target-template alignment' | 'coevolution MSA' | 'model coordinates' | 'input structure' | 'reference database' | 'other'>(str),
+        content_type: Aliased<'target' | 'template structure' | 'polymeric template library' | 'spatial restraints' | 'target-template alignment' | 'coevolution MSA' | 'model coordinates' | 'input structure' | 'reference database' | 'intermediate backbone' | 'intermediate sequence' | 'model quality assessment scores' | 'energy estimate' | 'experimental validation' | 'other'>(str),
         /**
          * Details for other content types.
          */
@@ -5131,7 +5131,7 @@ export const mmCIF_Schema = {
         /**
          * The mode of calculation of the QA metric.
          */
-        mode: Aliased<'local' | 'global' | 'local-pairwise' | 'per-feature' | 'per-feature-pair'>(str),
+        mode: Aliased<'local' | 'global' | 'local-pairwise' | 'per-feature' | 'per-feature-pair' | 'dihedral'>(str),
         /**
          * Identifier to the set of software used to calculate the QA metric.
          * This data item is a pointer to the _ma_software_group.group_id in the

@@ -40,7 +40,7 @@ export const CifCore_Schema = {
          * in exceptional circumstances (Brock, 2025) may be reported as
          * non-integral.
          *
-         * Reference: Brock, C. P. (2025). Acta Cryst. A81, nnn-nnn.
+         * Reference: Brock, C. P. (2025). Acta Cryst. A81, 405-408.
          */
         formula_units_z: float,
         /**
@@ -336,7 +336,12 @@ export const CifCore_Schema = {
          */
         site_symmetry_2: str,
         /**
-         * Bond valence calculated from the bond distance.
+         * Valence assigned to the bond between the sites identified by
+         * _geom_bond.id calculated according to the bond-valence model
+         * (Brown, 2002) from the bond distance.
+         *
+         * Ref: Brown, I. D. (2002). The Chemical Bond in Inorganic Chemistry:
+         * the Bond-Valence Model, eq. (3.1). Oxford: Oxford University Press.
          */
         valence: float,
     },
