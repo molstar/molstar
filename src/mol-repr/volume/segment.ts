@@ -222,6 +222,7 @@ function getSegmentTexture(volume: Volume, segment: Volume.SegmentIndex, webgl: 
     const gridDimension = Box3D.size(Vec3(), bbox);
     const { width, height, powerOfTwoSize: texDim } = getVolumeTexture2dLayout(gridDimension, Padding);
     const gridTexDim = Vec3.create(width, height, 0);
+    const gridDataDim = Vec3.clone(gridDimension);
     const gridTexScale = Vec2.create(width / texDim, height / texDim);
     // console.log({ texDim, width, height, gridDimension });
 
@@ -247,6 +248,7 @@ function getSegmentTexture(volume: Volume, segment: Volume.SegmentIndex, webgl: 
         transform,
         gridDimension,
         gridTexDim,
+        gridDataDim,
         gridTexScale
     };
 }
@@ -258,11 +260,11 @@ async function createVolumeSegmentTextureMesh(ctx: VisualContext, volume: Volume
         return TextureMesh.createEmpty(textureMesh);
     }
 
-    const { texture, gridDimension, gridTexDim, gridTexScale, transform } = getSegmentTexture(volume, segment, ctx.webgl);
+    const { texture, gridDimension, gridTexDim, gridDataDim, gridTexScale, transform } = getSegmentTexture(volume, segment, ctx.webgl);
 
     const axisOrder = volume.grid.cells.space.axisOrderSlowToFast as Vec3;
     const buffer = textureMesh?.doubleBuffer.get();
-    const gv = extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, 0.5, false, false, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
+    const gv = extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridDataDim, gridTexScale, transform, 0.5, false, false, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
 
     const groupCount = volume.grid.cells.data.length;
     const instances = Interval.ofLength(volume.instances.length as Volume.InstanceIndex);

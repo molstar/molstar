@@ -247,7 +247,7 @@ function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, struct
         const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
 
         const buffer = textureMesh?.doubleBuffer.get();
-        const gv = extractIsosurface(webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
+        const gv = extractIsosurface(webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridDataDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
         if (isTimingMode) webgl.timer.markEnd('createGaussianSurfaceTextureMesh');
 
         const boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, densityTextureData.maxRadius);
@@ -333,7 +333,7 @@ function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, structure
         const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
 
         const buffer = textureMesh?.doubleBuffer.get();
-        const gv = extractIsosurface(webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
+        const gv = extractIsosurface(webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridDataDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
         if (isTimingMode) webgl.timer.markEnd('createStructureGaussianSurfaceTextureMesh');
 
         const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, densityTextureData.maxRadius);

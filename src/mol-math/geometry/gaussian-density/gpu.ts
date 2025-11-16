@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
@@ -99,8 +99,8 @@ export function GaussianDensityTexture3d(webgl: WebGLContext, position: Position
     return finalizeGaussianDensityTexture(data);
 }
 
-function finalizeGaussianDensityTexture({ texture, scale, bbox, gridDim, gridTexDim, gridTexScale, radiusFactor, resolution, maxRadius }: _GaussianDensityTextureData): GaussianDensityTextureData {
-    return { transform: getTransform(scale, bbox), texture, bbox, gridDim, gridTexDim, gridTexScale, radiusFactor, resolution, maxRadius };
+function finalizeGaussianDensityTexture({ texture, scale, bbox, gridDim, gridTexDim, gridDataDim, gridTexScale, radiusFactor, resolution, maxRadius }: _GaussianDensityTextureData): GaussianDensityTextureData {
+    return { transform: getTransform(scale, bbox), texture, bbox, gridDim, gridTexDim, gridDataDim, gridTexScale, radiusFactor, resolution, maxRadius };
 }
 
 function getTransform(scale: Vec3, bbox: Box3D) {
@@ -118,6 +118,7 @@ type _GaussianDensityTextureData = {
     bbox: Box3D,
     gridDim: Vec3,
     gridTexDim: Vec3
+    gridDataDim: Vec3
     gridTexScale: Vec2
     radiusFactor: number
     resolution: number
@@ -206,7 +207,7 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
 
     // printTextureImage(readTexture(webgl, minDistTex), { scale: 0.75 });
 
-    return { texture, scale, bbox: expandedBox, gridDim: dim, gridTexDim, gridTexScale, radiusFactor, resolution, maxRadius };
+    return { texture, scale, bbox: expandedBox, gridDim: dim, gridTexDim, gridDataDim: dim, gridTexScale, radiusFactor, resolution, maxRadius };
 }
 
 function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture): _GaussianDensityTextureData {
@@ -262,7 +263,7 @@ function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionDat
     setupGroupIdRendering(webgl, renderable);
     render(texture, false);
 
-    return { texture, scale, bbox: expandedBox, gridDim: dim, gridTexDim: dim, gridTexScale, radiusFactor, resolution, maxRadius };
+    return { texture, scale, bbox: expandedBox, gridDim: dim, gridTexDim: dim, gridDataDim: dim, gridTexScale, radiusFactor, resolution, maxRadius };
 }
 
 //

@@ -52,6 +52,10 @@ export namespace Vec3 {
         return _isFinite(a[0]) && _isFinite(a[1]) && _isFinite(a[2]);
     }
 
+    export function isInteger(a: Vec3): boolean {
+        return Number.isInteger(a[0]) && Number.isInteger(a[1]) && Number.isInteger(a[2]);
+    }
+
     export function hasNaN(a: Vec3) {
         return isNaN(a[0]) || isNaN(a[1]) || isNaN(a[2]);
     }

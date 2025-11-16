@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as fs from 'fs';
@@ -38,7 +39,7 @@ function print(volume: Volume) {
 }
 
 async function doMesh(volume: Volume, filename: string) {
-    const mesh = await Task.create('', runtime => createVolumeIsosurfaceMesh({ runtime }, volume, -1, Theme.createEmpty(), { isoValue: Volume.IsoValue.absolute(1.5) })).run();
+    const mesh = await Task.create('', runtime => createVolumeIsosurfaceMesh({ runtime }, volume, -1, Theme.createEmpty(), { isoValue: Volume.IsoValue.absolute(1.5), wrap: 'auto' })).run();
     console.log({ vc: mesh.vertexCount, tc: mesh.triangleCount });
 
     // Export the mesh in OBJ format.
