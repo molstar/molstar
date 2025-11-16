@@ -356,18 +356,20 @@ export function createSegmentTexture2d(volume: Volume, set: number[], bbox: Box3
 /**
  * Create a new volume that is wrapped by one cell in all dimensions.
  * Reuses the original volume grid data with new data accessors.
+ * Only intended for isosurface construction.
  */
 export function createWrappedVolume(volume: Volume): Volume {
     const { grid } = volume;
     const { space } = grid.cells;
+    const { get, set, add, dataOffset } = space;
     const [xn, yn, zn] = space.dimensions as Vec3;
 
     const _dimensions = Vec3.create(xn + 1, yn + 1, zn + 1);
 
-    const _get = (data: Tensor.Data, x: number, y: number, z: number) => space.get(data, x % xn, y % yn, z % zn);
-    const _set = (data: Tensor.Data, x: number, y: number, z: number, d: number) => space.set(data, x % xn, y % yn, z % zn, d);
-    const _add = (data: Tensor.Data, x: number, y: number, z: number, d: number) => space.add(data, x % xn, y % yn, z % zn, d);
-    const _dataOffset = (x: number, y: number, z: number) => space.dataOffset(x % xn, y % yn, z % zn);
+    const _get = (data: Tensor.Data, x: number, y: number, z: number) => get(data, x % xn, y % yn, z % zn);
+    const _set = (data: Tensor.Data, x: number, y: number, z: number, d: number) => set(data, x % xn, y % yn, z % zn, d);
+    const _add = (data: Tensor.Data, x: number, y: number, z: number, d: number) => add(data, x % xn, y % yn, z % zn, d);
+    const _dataOffset = (x: number, y: number, z: number) => dataOffset(x % xn, y % yn, z % zn);
 
     const _space: Tensor.Space = {
         ...space,
