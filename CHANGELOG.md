@@ -22,6 +22,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add `Volume.periodicity`
   - Wrap isosurfaces for periodic volumes
   - Fix dimensions for slices
+- Add support for Input Method Editor (IME) to text params input
 
 ## [v5.3.0] - 2025-11-5
 - Update loading message in MVS Stories Viewer
