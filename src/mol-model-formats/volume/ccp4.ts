@@ -75,10 +75,10 @@ export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, of
             transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3(), origin_frac, dimensions_frac)) },
             cells: data,
             stats: {
-                min: (isNaN(header.AMIN) || calcStats) ? arrayMin(values) : header.AMIN,
-                max: (isNaN(header.AMAX) || calcStats) ? arrayMax(values) : header.AMAX,
-                mean: (isNaN(header.AMEAN) || calcStats) ? arrayMean(values) : header.AMEAN,
-                sigma: (isNaN(header.ARMS) || header.ARMS === 0) ? arrayRms(values) : header.ARMS
+                min: (Number.isNaN(header.AMIN) || calcStats) ? arrayMin(values) : header.AMIN,
+                max: (Number.isNaN(header.AMAX) || calcStats) ? arrayMax(values) : header.AMAX,
+                mean: (Number.isNaN(header.AMEAN) || calcStats) ? arrayMean(values) : header.AMEAN,
+                sigma: (Number.isNaN(header.ARMS) || header.ARMS === 0) ? arrayRms(values) : header.ARMS
             },
         };
 
