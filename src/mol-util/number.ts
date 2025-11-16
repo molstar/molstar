@@ -52,7 +52,7 @@ export function getArrayDigitCount(xs: ArrayLike<number>, maxDigits: number, del
 export function isInteger(s: string) {
     s = s.trim();
     const n = parseInt(s, 10);
-    return isNaN(n) ? false : n.toString() === s;
+    return Number.isNaN(n) ? false : n.toString() === s;
 }
 
 export function getPrecision(v: number) {

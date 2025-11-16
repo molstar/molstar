@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Volume } from '../../mol-model/volume';
+import { Grid, Volume } from '../../mol-model/volume';
 import { Task } from '../../mol-task';
 import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
 import { Mat4, Tensor, Vec3 } from '../../mol-math/linear-algebra';
@@ -71,19 +71,22 @@ export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, of
         // always calculate stats when all stats related values are zero
         const calcStats = header.AMIN === 0 && header.AMAX === 0 && header.AMEAN === 0 && header.ARMS === 0;
 
+        const volgrid: Grid = {
+            transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3(), origin_frac, dimensions_frac)) },
+            cells: data,
+            stats: {
+                min: (Number.isNaN(header.AMIN) || calcStats) ? arrayMin(values) : header.AMIN,
+                max: (Number.isNaN(header.AMAX) || calcStats) ? arrayMax(values) : header.AMAX,
+                mean: (Number.isNaN(header.AMEAN) || calcStats) ? arrayMean(values) : header.AMEAN,
+                sigma: (Number.isNaN(header.ARMS) || header.ARMS === 0) ? arrayRms(values) : header.ARMS
+            },
+        };
+
         return {
             label: params?.label,
             entryId: params?.entryId,
-            grid: {
-                transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)) },
-                cells: data,
-                stats: {
-                    min: (isNaN(header.AMIN) || calcStats) ? arrayMin(values) : header.AMIN,
-                    max: (isNaN(header.AMAX) || calcStats) ? arrayMax(values) : header.AMAX,
-                    mean: (isNaN(header.AMEAN) || calcStats) ? arrayMean(values) : header.AMEAN,
-                    sigma: (isNaN(header.ARMS) || header.ARMS === 0) ? arrayRms(values) : header.ARMS
-                },
-            },
+            periodicity: Vec3.isInteger(dimensions_frac) ? 'xyz' : 'none',
+            grid: volgrid,
             instances: [{ transform: Mat4.identity() }],
             sourceData: Ccp4Format.create(source),
             customProperties: new CustomProperties(),

@@ -36,6 +36,7 @@ export function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3, la
         return {
             label: params?.label,
             entryId: params?.entryId,
+            periodicity: Vec3.isInteger(dimensions_frac) ? 'xyz' : 'none',
             grid: {
                 transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)) },
                 cells: data,
