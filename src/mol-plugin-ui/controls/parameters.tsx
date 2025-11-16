@@ -427,10 +427,10 @@ function TextCtrl({ props, placeholder, update }: { props: ParamProps<PD.Text>, 
     };
     const onCompositionEnd = (e: React.CompositionEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setComposition(false);
-        const target = e.target as EventTarget & (HTMLInputElement | HTMLTextAreaElement)
+        const target = e.target as EventTarget & (HTMLInputElement | HTMLTextAreaElement);
         if (props.param.disableInteractiveUpdates) setValue(target.value);
         else update(target.value);
-    }
+    };
     const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (props.param.disableInteractiveUpdates) update(e.target.value);
     };
