@@ -111,7 +111,7 @@ namespace Mat4 {
     }
 
     export function hasNaN(m: Mat4) {
-        for (let i = 0; i < 16; i++) if (isNaN(m[i])) return true;
+        for (let i = 0; i < 16; i++) if (Number.isNaN(m[i])) return true;
         return false;
     }
 

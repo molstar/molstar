@@ -151,7 +151,7 @@ namespace Mat3 {
     }
 
     export function hasNaN(m: Mat3) {
-        for (let i = 0; i < 9; i++) if (isNaN(m[i])) return true;
+        for (let i = 0; i < 9; i++) if (Number.isNaN(m[i])) return true;
         return false;
     }
 

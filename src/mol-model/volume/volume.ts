@@ -26,6 +26,7 @@ export interface Volume {
         transform: Mat4
     }>
     readonly sourceData: ModelFormat
+    readonly periodicity?: 'none' | 'xyz'
 
     // TODO use...
     customProperties: CustomProperties

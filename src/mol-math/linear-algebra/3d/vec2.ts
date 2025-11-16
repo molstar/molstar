@@ -55,7 +55,7 @@ namespace Vec2 {
     }
 
     export function hasNaN(a: Vec2) {
-        return isNaN(a[0]) || isNaN(a[1]);
+        return Number.isNaN(a[0]) || Number.isNaN(a[1]);
     }
 
     export function toArray<T extends NumberArray>(a: Vec2, out: T, offset: number) {
