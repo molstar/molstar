@@ -57,7 +57,7 @@ export namespace Vec3 {
     }
 
     export function hasNaN(a: Vec3) {
-        return isNaN(a[0]) || isNaN(a[1]) || isNaN(a[2]);
+        return Number.isNaN(a[0]) || Number.isNaN(a[1]) || Number.isNaN(a[2]);
     }
 
     export function setNaN(out: Vec3) {
