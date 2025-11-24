@@ -9,7 +9,7 @@ import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem, Transparency } from '../webgl/render-item';
 import { AttributeSpec, Values, GlobalUniformSchema, InternalSchema, TextureSpec, ElementsSpec, DefineSpec, InternalValues, BaseSchema, UniformSpec, GlobalTextureSchema, GlobalDefineValues, GlobalDefines, GlobalDefineSchema } from './schema';
 import { ImageShaderCode } from '../shader-code';
-import { ValueCell } from '../../mol-util';
+import { ValueCell } from '../../mol-util/value-cell';
 import { InterpolationTypeNames } from '../../mol-geo/geometry/image/image';
 
 export const ImageSchema = {

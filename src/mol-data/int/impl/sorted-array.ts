@@ -5,7 +5,9 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { sortArray, hash3, hash4, createRangeArray } from '../../util';
+import { createRangeArray } from '../../util/array';
+import { hash3, hash4 } from '../../util/hash-functions';
+import { sortArray } from '../../util/sort';
 import { Interval } from '../interval';
 
 type Nums = ArrayLike<number>

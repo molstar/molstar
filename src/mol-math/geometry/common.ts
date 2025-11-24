@@ -5,8 +5,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { OrderedSet } from '../../mol-data/int';
-import { Mat4, Tensor, Vec3, Vec2 } from '../linear-algebra';
+import { OrderedSet } from '../../mol-data/int/ordered-set';
+import { Mat4 } from '../linear-algebra/3d/mat4';
+import { Vec3 } from '../linear-algebra/3d/vec3';
+import { Tensor } from '../linear-algebra/tensor';
 import { Box3D } from './primitives/box3d';
 import { Texture } from '../../mol-gl/webgl/texture';
 

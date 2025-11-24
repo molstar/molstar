@@ -7,7 +7,7 @@
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
 import { StructureElement, Bond } from '../../mol-model/structure';
-import { OrderedSet } from '../../mol-data/int';
+import { OrderedSet } from '../../mol-data/int/ordered-set';
 import type { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';

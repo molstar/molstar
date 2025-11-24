@@ -6,7 +6,6 @@
 
 import { Grid, Volume } from '../../mol-model/volume';
 import { Loci } from '../../mol-model/loci';
-import { Interval, OrderedSet, SortedArray } from '../../mol-data/int';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { packIntToRGBArray } from '../../mol-util/number-packing';
@@ -16,6 +15,9 @@ import { toHalfFloat } from '../../mol-util/number-conversion';
 import { clamp } from '../../mol-math/interpolate';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Tensor } from '../../mol-math/linear-algebra/tensor';
+import { Interval } from '../../mol-data/int/interval';
+import { SortedArray } from '../../mol-data/int/sorted-array';
+import { OrderedSet } from '../../mol-data/int/ordered-set';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3set = Vec3.set;

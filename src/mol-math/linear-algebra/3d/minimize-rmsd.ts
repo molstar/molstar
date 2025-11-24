@@ -7,9 +7,9 @@
 import { Mat4 } from './mat4';
 import { Vec3 } from './vec3';
 import { EVD } from '../matrix/evd';
-import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
 import { Matrix } from '../matrix/matrix';
 import { Sphere3D } from '../../geometry/primitives/sphere3d';
+import { CentroidHelper } from '../../geometry/centroid-helper';
 
 export { MinimizeRmsd };
 namespace MinimizeRmsd {

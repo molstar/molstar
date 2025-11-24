@@ -4,7 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { OrderedSet, Interval } from '../mol-data/int';
+import { Interval } from '../mol-data/int/interval';
+import { OrderedSet } from '../mol-data/int/ordered-set';
 import { BitFlags } from './bit-flags';
 import { assertUnreachable } from './type-helpers';
 

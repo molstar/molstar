@@ -13,7 +13,7 @@ import { ThemeDataContext } from '../theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { ColorThemeCategory } from './categories';
-import { hashFnv32a } from '../../mol-data/util';
+import { hashFnv32a } from '../../mol-data/util/hash-functions';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Gives every model (frame) a unique color based on the index in its trajectory.';

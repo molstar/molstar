@@ -3,7 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
-import { Segmentation } from '../../../../../mol-data/int';
+import { Segmentation } from '../../../../../mol-data/int/segmentation';
 import { SortedRanges } from '../../../../../mol-data/int/sorted-ranges';
 import { ElementIndex, ResidueIndex, Unit } from '../../../../../mol-model/structure';
 import { MoleculeType } from '../../../../../mol-model/structure/model/types';

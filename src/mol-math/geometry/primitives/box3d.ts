@@ -6,7 +6,7 @@
  */
 
 import { PositionData } from '../common';
-import { OrderedSet } from '../../../mol-data/int';
+import { OrderedSet } from '../../../mol-data/int/ordered-set';
 import { Sphere3D } from './sphere3d';
 import { Vec3 } from '../../linear-algebra/3d/vec3';
 import { Mat4 } from '../../linear-algebra/3d/mat4';

@@ -17,7 +17,6 @@ import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
-import { Interval, OrderedSet } from '../../mol-data/int';
 import { Tensor, Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { fillSerial } from '../../mol-util/array';
 import { createVolumeCellLocationIterator, createVolumeTexture2d, createWrappedVolume, eachVolumeLoci, getVolumeTexture2dLayout } from './util';
@@ -28,6 +27,8 @@ import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 import { Texture } from '../../mol-gl/webgl/texture';
 import { BaseGeometry } from '../../mol-geo/geometry/base';
 import { ValueCell } from '../../mol-util/value-cell';
+import { Interval } from '../../mol-data/int/interval';
+import { OrderedSet } from '../../mol-data/int/ordered-set';
 
 export const VolumeIsosurfaceParams = {
     isoValue: Volume.IsoValueParam,

@@ -9,9 +9,12 @@
 
 import { Subject, Observable } from 'rxjs';
 import { Viewport } from '../../mol-canvas3d/camera/util';
-import { Vec2, EPSILON, Vec3 } from '../../mol-math/linear-algebra';
-import { BitFlags, noop } from '../../mol-util';
 import { Ray3D } from '../../mol-math/geometry/primitives/ray3d';
+import { Vec2 } from '../../mol-math/linear-algebra/3d/vec2';
+import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
+import { EPSILON } from '../../mol-math/linear-algebra/3d/common';
+import { BitFlags } from '../bit-flags';
+import { noop } from '../index';
 
 export function getButtons(event: MouseEvent | Touch) {
     if (typeof event === 'object') {

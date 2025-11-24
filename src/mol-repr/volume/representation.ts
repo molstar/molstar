@@ -14,7 +14,6 @@ import { createTransform, TransformData } from '../../mol-geo/geometry/transform
 import { createRenderObject, getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci, isEmptyLoci } from '../../mol-model/loci';
-import { Interval, OrderedSet } from '../../mol-data/int';
 import { getQualityProps, LocationCallback, VisualUpdateState } from '../util';
 import { ColorTheme } from '../../mol-theme/color';
 import { ValueCell } from '../../mol-util';
@@ -37,6 +36,8 @@ import { createMarkers } from '../../mol-geo/geometry/marker-data';
 import { Emissive } from '../../mol-theme/emissive';
 import { SizeTheme } from '../../mol-theme/size';
 import { Sphere3D } from '../../mol-math/geometry/primitives/sphere3d';
+import { Interval } from '../../mol-data/int/interval';
+import { OrderedSet } from '../../mol-data/int/ordered-set';
 
 export type VolumeKey = { volume: Volume, key: number }
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeKey, P> { }

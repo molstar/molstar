@@ -5,7 +5,8 @@
  */
 
 import { clamp } from '../mol-math/interpolate';
-import { Vec3, Vec4 } from '../mol-math/linear-algebra';
+import { Vec3 } from '../mol-math/linear-algebra/3d/vec3';
+import { Vec4 } from '../mol-math/linear-algebra/3d/vec4';
 import { NumberArray } from './type-helpers';
 
 /** encode positive integer as rgb byte triplet into array at offset */

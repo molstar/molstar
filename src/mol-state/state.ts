@@ -21,7 +21,7 @@ import { ParamDefinition } from '../mol-util/param-definition';
 import { StateTreeSpine } from './tree/spine';
 import { AsyncQueue } from '../mol-util/async-queue';
 import { arraySetAdd, arraySetRemove } from '../mol-util/array';
-import { UniqueArray } from '../mol-data/generic';
+import { UniqueArray } from '../mol-data/generic/unique-array';
 import { assignIfUndefined } from '../mol-util/object';
 
 export { State };

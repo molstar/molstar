@@ -12,7 +12,7 @@ import { ElementSymbol, BondType, SecondaryStructureType } from '../../../mol-mo
 import { SetUtils } from '../../../mol-util/set';
 import { upperCaseAny } from '../../../mol-util/string';
 import { VdwRadius, AtomWeight, AtomNumber } from '../../../mol-model/structure/model/properties/atomic';
-import { cantorPairing, invertCantorPairing, sortedCantorPairing } from '../../../mol-data/util';
+import { cantorPairing, invertCantorPairing, sortedCantorPairing } from '../../../mol-data/util/hash-functions';
 import { bundleElementImpl, bundleGenerator } from '../../../mol-model/structure/query/queries/internal';
 import { arrayEqual } from '../../../mol-util/array';
 

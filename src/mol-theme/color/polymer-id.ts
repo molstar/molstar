@@ -13,7 +13,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPalette, getPaletteParams } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
-import { Segmentation } from '../../mol-data/int';
+import { Segmentation } from '../../mol-data/int/segmentation';
 import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
 import { ColorThemeCategory } from './categories';
 

@@ -6,8 +6,8 @@
  */
 
 import * as ColumnHelpers from './column-helpers';
-import { Tensor as Tensors } from '../../mol-math/linear-algebra';
-import { Tokens } from '../../mol-io/reader/common/text/tokenizer';
+import { Tensor as Tensors } from '../../mol-math/linear-algebra/tensor';
+import type { Tokens } from '../../mol-io/reader/common/text/tokenizer';
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../../mol-io/reader/common/text/number-parser';
 
 interface Column<T> {
