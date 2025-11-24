@@ -10,7 +10,6 @@ import { Mat4 } from '../linear-algebra/3d/mat4';
 import { Vec3 } from '../linear-algebra/3d/vec3';
 import { Tensor } from '../linear-algebra/tensor';
 import { Box3D } from './primitives/box3d';
-import { Texture } from '../../mol-gl/webgl/texture';
 
 export interface PositionData {
     x: ArrayLike<number>,
@@ -30,16 +29,6 @@ export type DensityData = {
     idField: Tensor,
     resolution: number,
     maxRadius: number,
-}
-
-export type DensityTextureData = {
-    transform: Mat4,
-    texture: Texture,
-    bbox: Box3D,
-    gridDim: Vec3,
-    gridTexDim: Vec3
-    gridDataDim: Vec3
-    gridTexScale: Vec2
 }
 
 export interface RegularGrid3d {
