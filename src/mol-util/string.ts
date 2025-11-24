@@ -5,9 +5,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StringLike } from '../mol-io/common/string-like';
-
-
 const reLine = /^/mg;
 export function indentString(str: string, count: number, indent: string) {
     return count === 0 ? str : str.replace(reLine, indent.repeat(count));
@@ -57,7 +54,7 @@ export function stringToWords(str: string) {
     return capitalize(splitCamelCase(splitSnakeCase(splitKebabCase(str))));
 }
 
-export function substringStartsWith(str: StringLike, start: number, end: number, target: string) {
+export function substringStartsWith(str: string, start: number, end: number, target: string) {
     const len = target.length;
     if (len > end - start) return false;
     for (let i = 0; i < len; i++) {
