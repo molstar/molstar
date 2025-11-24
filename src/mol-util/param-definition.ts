@@ -11,7 +11,7 @@ import { Vec2 as Vec2Data } from '../mol-math/linear-algebra/3d/vec2';
 import { Vec3 as Vec3Data } from '../mol-math/linear-algebra/3d/vec3';
 import { Mat4 as Mat4Data } from '../mol-math/linear-algebra/3d/mat4';
 import { deepClone } from './object';
-import { Script as ScriptData } from '../mol-script/script';
+import { Script as ScriptData } from '../mol-script/types';
 import { Legend } from './legend';
 import { stringToWords } from './string';
 import { getColorListFromName, ColorListName } from './color/lists';
