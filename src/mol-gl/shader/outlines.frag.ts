@@ -48,7 +48,7 @@ vec2 getDepthTransparentWithAlpha(const in vec2 coords) {
 }
 
 bool isBackground(const in float depth) {
-    return depth > 0.9999;
+    return depth == 1.0;
 }
 
 float getPixelSize(const in vec2 coords, const in float depth) {
@@ -108,7 +108,7 @@ void main(void) {
         transparentOutlineFlag = 0.0;
         bestTransparentAlpha = 0.0;
     }
-    
+        
     vec2 depthPacked; // Pack depth in G/B channels    
     float outlineTypeFlag = 0.0;
     if (opaqueOutlineFlag > 0.0 && transparentOutlineFlag > 0.0) {
