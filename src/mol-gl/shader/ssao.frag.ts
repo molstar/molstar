@@ -236,7 +236,7 @@ void main(void) {
                     float sampleDepth = getMappedDepth(offset.xy, selfCoords);
                     float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
 
-                        sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l];
+                    sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l];
                 #ifdef dIllumination
                     }
                 #endif
@@ -244,7 +244,7 @@ void main(void) {
                     vec2 sampleDepthWithAlpha = getMappedDepthTransparentWithAlpha(offset.xy, selfCoords);
                     if (!isBackground(sampleDepthWithAlpha.x)) {
                         float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
-                            sampleOcc = max(sampleOcc, step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l] * sampleDepthWithAlpha.y);
+                        sampleOcc = max(sampleOcc, step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l] * sampleDepthWithAlpha.y);
                     }
                 #endif
 
@@ -269,7 +269,7 @@ void main(void) {
                     float sampleDepth = getDepth(offset.xy, 0);
                     float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
 
-                        sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
+                    sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
             #ifdef dIllumination
                 }
             #endif
@@ -277,7 +277,7 @@ void main(void) {
                 vec2 sampleDepthWithAlpha = getDepthTransparentWithAlpha(offset.xy);
                 if (!isBackground(sampleDepthWithAlpha.x)) {
                     float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
-                        sampleOcc = max(sampleOcc, step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ)) * sampleDepthWithAlpha.y);
+                    sampleOcc = max(sampleOcc, step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ)) * sampleDepthWithAlpha.y);
                 }
             #endif
             
