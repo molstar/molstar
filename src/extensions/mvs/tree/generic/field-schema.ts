@@ -145,6 +145,7 @@ export type ValueFor<F extends Field | iots.Any> = F extends Field<infer V> ? V 
 /** Return `undefined` if `value` has correct type for `field`, regardsless of if required or optional.
  * Return description of validation issues, if `value` has wrong type. */
 export function fieldValidationIssues<F extends Field>(field: F, value: any): string[] | undefined {
+    if (value === undefined && !field.required) return undefined; // Value undefined treated as if field not even present (unlike null)
     const validation = field.type.decode(value);
     if (validation._tag === 'Right') {
         return undefined;

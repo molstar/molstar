@@ -28,7 +28,7 @@ const ValidationColorTable: [string, Color][] = [
     ['One Issue', ValidationColors[2]],
     ['Two Issues', ValidationColors[3]],
     ['Three Or More Issues', ValidationColors[4]],
-    ['Not Applicable', ValidationColors[9]]
+    ['Not Applicable', ValidationColors[0]],
 ];
 
 export const StructureQualityReportColorThemeParams = {

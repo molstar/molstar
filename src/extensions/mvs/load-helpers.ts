@@ -376,7 +376,8 @@ function representationPropsBase(node: MolstarSubtree<'representation'>): Partia
             };
         case 'ball_and_stick':
             return {
-                type: { name: 'ball-and-stick', params: { sizeFactor: (params.size_factor ?? 1) * 0.5, sizeAspectRatio: 0.5, alpha, ignoreHydrogens: params.ignore_hydrogens } },
+                type: { name: 'ball-and-stick', params: { sizeFactor: 0.5, sizeAspectRatio: 0.5, alpha, ignoreHydrogens: params.ignore_hydrogens } },
+                sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
             };
         case 'line':
             return {
@@ -390,7 +391,8 @@ function representationPropsBase(node: MolstarSubtree<'representation'>): Partia
             };
         case 'carbohydrate':
             return {
-                type: { name: 'carbohydrate', params: { alpha, sizeFactor: params.size_factor ?? 1 } },
+                type: { name: 'carbohydrate', params: { alpha, sizeFactor: 1.75 } },
+                sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
             };
         case 'surface': {
             return {
