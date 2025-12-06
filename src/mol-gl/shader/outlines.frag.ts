@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -108,8 +108,8 @@ void main(void) {
         transparentOutlineFlag = 0.0;
         bestTransparentAlpha = 0.0;
     }
-        
-    vec2 depthPacked; // Pack depth in G/B channels    
+
+    vec2 depthPacked; // Pack depth in G/B channels
     float outlineTypeFlag = 0.0;
     if (opaqueOutlineFlag > 0.0 && transparentOutlineFlag > 0.0) {
         outlineTypeFlag = 0.75; // Both
@@ -121,7 +121,7 @@ void main(void) {
         outlineTypeFlag = 0.25; // Opaque only
         depthPacked = packUnitIntervalToRG(bestOpaqueDepth);
     }
-    
+
     float alpha = clamp(bestTransparentAlpha, 0.0, 0.5) * 2.0; // limiting to range [0.0, 0.5] to improve alpha precision since we don't need a wider range
     float packedFlagWithAlpha = pack2x4(vec2(outlineTypeFlag, alpha)); // pack outlineType with alpha
     gl_FragColor = vec4(packedFlagWithAlpha, depthPacked.x, depthPacked.y, bestTransparentDepth);

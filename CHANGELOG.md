@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
-- Postprocessing improvements
+- Fix postprocessing issues with SSAO and outlines for large structures (#1387)
 
 ## [v5.4.1] - 2025-11-16
 - Fix ugly camera clipping in snapshot transitions
