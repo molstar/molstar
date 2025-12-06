@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 export const ssaoBlur_frag = `
@@ -36,8 +37,7 @@ float getViewZ(const in float depth) {
 }
 
 bool isBackground(const in float depth) {
-    // checking for 1.0 is not enough, because of precision issues
-    return depth >= 0.999;
+    return depth == 1.0;
 }
 
 bool isNearClip(const in float depth) {
@@ -78,8 +78,9 @@ void main(void) {
 
     float sum = 0.0;
     float kernelSum = 0.0;
+    int halfKernelSize = dOcclusionKernelSize / 2;
     // only if kernelSize is odd
-    for (int i = -dOcclusionKernelSize / 2; i <= dOcclusionKernelSize / 2; i++) {
+    for (int i = -halfKernelSize; i <= halfKernelSize; i++) {
         if (abs(float(i)) > 1.0 && abs(float(i)) * pixelSize > 0.8) continue;
 
         vec2 sampleCoords = coords + float(i) * offset;
