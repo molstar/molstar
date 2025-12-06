@@ -11,6 +11,7 @@ import { Box3D, SpacegroupCell } from '../mol-math/geometry';
 import { ModelSymmetry } from '../mol-model-formats/structure/property/symmetry';
 import { Volume } from '../mol-model/volume';
 import { Location } from '../mol-model/location';
+import { isStandaloneHmd } from '../mol-util/browser';
 
 export interface VisualUpdateState {
     updateTransform: boolean
@@ -76,6 +77,28 @@ export const DefaultQualityThresholds = {
 };
 export type QualityThresholds = typeof DefaultQualityThresholds
 
+enum QualityLevel {
+    Lowest,
+    Lower,
+    Low,
+    Medium,
+    High,
+    Higher,
+    Highest
+}
+
+function visualQualityToLevel(quality: Exclude<VisualQuality, 'auto' | 'custom'>): QualityLevel {
+    switch (quality) {
+        case 'lowest': return QualityLevel.Lowest;
+        case 'lower': return QualityLevel.Lower;
+        case 'low': return QualityLevel.Low;
+        case 'medium': return QualityLevel.Medium;
+        case 'high': return QualityLevel.High;
+        case 'higher': return QualityLevel.Higher;
+        case 'highest': return QualityLevel.Highest;
+    }
+}
+
 export function getStructureQuality(structure: Structure, tresholds: Partial<QualityThresholds> = {}): VisualQuality {
     const t = { ...DefaultQualityThresholds, ...tresholds };
     let score = structure.elementCount * t.elementCountFactor;
@@ -132,73 +155,77 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
         }
     }
 
-    switch (quality) {
-        case 'highest':
-            detail = 3;
-            radialSegments = 36;
-            linearSegments = 18;
-            resolution = 0.1;
-            imageResolution = 0.01;
-            probePositions = 72;
-            doubleSided = true;
-            break;
-        case 'higher':
-            detail = 3;
-            radialSegments = 28;
-            linearSegments = 14;
-            resolution = 0.3;
-            imageResolution = 0.05;
-            probePositions = 48;
-            doubleSided = true;
-            break;
-        case 'high':
-            detail = 2;
-            radialSegments = 20;
-            linearSegments = 10;
-            resolution = 0.5;
-            imageResolution = 0.1;
-            probePositions = 36;
-            doubleSided = true;
-            break;
-        case 'medium':
-            detail = 1;
-            radialSegments = 12;
-            linearSegments = 8;
-            resolution = 0.8;
-            imageResolution = 0.2;
-            probePositions = 24;
-            doubleSided = true;
-            break;
-        case 'low':
-            detail = 0;
-            radialSegments = 8;
-            linearSegments = 3;
-            resolution = 1.3;
-            imageResolution = 0.4;
-            probePositions = 24;
-            doubleSided = false;
-            break;
-        case 'lower':
-            detail = 0;
-            radialSegments = 4;
-            linearSegments = 2;
-            resolution = 3;
-            imageResolution = 0.7;
-            probePositions = 12;
-            doubleSided = false;
-            break;
-        case 'lowest':
-            detail = 0;
-            radialSegments = 2;
-            linearSegments = 1;
-            resolution = 8;
-            imageResolution = 1;
-            probePositions = 12;
-            doubleSided = false;
-            break;
-        case 'custom':
-            // use defaults or given props as set above
-            break;
+    if (quality !== 'custom' && quality !== 'auto') {
+        let level = visualQualityToLevel(quality);
+        if (isStandaloneHmd()) {
+            level = Math.max(level - 1, QualityLevel.Lowest);
+        }
+
+        switch (level) {
+            case QualityLevel.Highest:
+                detail = 3;
+                radialSegments = 36;
+                linearSegments = 18;
+                resolution = 0.1;
+                imageResolution = 0.01;
+                probePositions = 72;
+                doubleSided = true;
+                break;
+            case QualityLevel.Higher:
+                detail = 3;
+                radialSegments = 28;
+                linearSegments = 14;
+                resolution = 0.3;
+                imageResolution = 0.05;
+                probePositions = 48;
+                doubleSided = true;
+                break;
+            case QualityLevel.High:
+                detail = 2;
+                radialSegments = 20;
+                linearSegments = 10;
+                resolution = 0.5;
+                imageResolution = 0.1;
+                probePositions = 36;
+                doubleSided = true;
+                break;
+            case QualityLevel.Medium:
+                detail = 1;
+                radialSegments = 12;
+                linearSegments = 8;
+                resolution = 0.8;
+                imageResolution = 0.2;
+                probePositions = 24;
+                doubleSided = true;
+                break;
+            case QualityLevel.Low:
+                detail = 0;
+                radialSegments = 8;
+                linearSegments = 3;
+                resolution = 1.3;
+                imageResolution = 0.4;
+                probePositions = 24;
+                doubleSided = false;
+                break;
+            case QualityLevel.Lower:
+                detail = 0;
+                radialSegments = 4;
+                linearSegments = 2;
+                resolution = 3;
+                imageResolution = 0.7;
+                probePositions = 12;
+                doubleSided = false;
+                break;
+            case QualityLevel.Lowest:
+                detail = 0;
+                radialSegments = 2;
+                linearSegments = 1;
+                resolution = 8;
+                imageResolution = 1;
+                probePositions = 12;
+                doubleSided = false;
+                break;
+        }
     }
 
     // max resolution based on volume (for 'auto' quality)

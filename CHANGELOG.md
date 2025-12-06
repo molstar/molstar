@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Fix postprocessing issues with SSAO and outlines for large structures (#1387)
+- Reduce automatic quality on standalone HMD devices
 
 ## [v5.4.1] - 2025-11-16
 - Fix ugly camera clipping in snapshot transitions

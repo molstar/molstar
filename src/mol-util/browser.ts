@@ -23,3 +23,11 @@ export function is_iOS() {
     const isTouchScreen = navigator.maxTouchPoints >= 4; // true for iOS 13 (and hopefully beyond)
     return !(window as any).MSStream && (isIOS || (isAppleDevice && isTouchScreen));
 }
+
+export function isStandaloneHmd() {
+    if (typeof navigator === 'undefined') return false;
+    if (!('xr' in navigator)) return false;
+
+    const ua = navigator.userAgent || '';
+    return /OculusBrowser\//.test(ua) || /PicoBrowser\//.test(ua);
+}
