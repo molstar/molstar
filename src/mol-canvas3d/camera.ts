@@ -5,13 +5,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mat4, Vec3, Vec4, EPSILON } from '../mol-math/linear-algebra';
 import { Viewport, cameraProject, cameraUnproject } from './camera/util';
 import { CameraTransitionManager } from './camera/transition';
 import { BehaviorSubject } from 'rxjs';
 import { Scene } from '../mol-gl/scene';
 import { assertUnreachable } from '../mol-util/type-helpers';
 import { Ray3D } from '../mol-math/geometry/primitives/ray3d';
+import { Mat4 } from '../mol-math/linear-algebra/3d/mat4';
+import { Vec4 } from '../mol-math/linear-algebra/3d/vec4';
+import { Vec3 } from '../mol-math/linear-algebra/3d/vec3';
+import { EPSILON } from '../mol-math/linear-algebra/3d/common';
 
 export type { ICamera };
 

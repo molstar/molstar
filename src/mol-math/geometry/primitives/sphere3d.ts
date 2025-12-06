@@ -5,13 +5,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3, Mat4, EPSILON } from '../../linear-algebra';
 import { PositionData } from '../common';
-import { OrderedSet } from '../../../mol-data/int';
+import { OrderedSet } from '../../../mol-data/int/ordered-set';
 import { NumberArray, PickRequired } from '../../../mol-util/type-helpers';
 import { Box3D } from './box3d';
 import { Axes3D } from './axes3d';
 import { PrincipalAxes } from '../../linear-algebra/matrix/principal-axes';
+import { Vec3 } from '../../linear-algebra/3d/vec3';
+import { Mat4 } from '../../linear-algebra/3d/mat4';
+import { EPSILON } from '../../linear-algebra/3d/common';
 
 interface Sphere3D {
     center: Vec3,

@@ -19,8 +19,9 @@
 
 import { Mat4 } from './mat4';
 import { NumberArray } from '../../../mol-util/type-helpers';
-import { Sphere3D } from '../../geometry/primitives/sphere3d';
 import { EPSILON } from './common';
+
+type SphereLike = { center: number[], radius: number };
 
 interface Vec4 extends Array<number> { [d: number]: number, '@type': 'vec4', length: 4 }
 
@@ -54,7 +55,7 @@ namespace Vec4 {
         return out;
     }
 
-    export function fromSphere(out: Vec4, sphere: Sphere3D) {
+    export function fromSphere(out: Vec4, sphere: SphereLike) {
         out[0] = sphere.center[0];
         out[1] = sphere.center[1];
         out[2] = sphere.center[2];
@@ -62,7 +63,7 @@ namespace Vec4 {
         return out;
     }
 
-    export function ofSphere(sphere: Sphere3D) {
+    export function ofSphere(sphere: SphereLike) {
         return fromSphere(zero(), sphere);
     }
 

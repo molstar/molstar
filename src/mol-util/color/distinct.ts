@@ -10,9 +10,9 @@
 
 import { Lab } from './spaces/lab';
 import { Hcl } from './spaces/hcl';
-import { deepClone } from '../../mol-util/object';
-import { deepEqual } from '../../mol-util';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { deepClone } from '../object';
+import { deepEqual } from '../index';
+import { ParamDefinition as PD } from '../param-definition';
 import { ColorNames } from './names';
 import { Color } from './color';
 

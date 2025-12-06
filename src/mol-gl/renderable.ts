@@ -7,12 +7,12 @@
 import { Program } from './webgl/program';
 import { RenderableValues, Values, RenderableSchema, BaseValues } from './renderable/schema';
 import { GraphicsRenderItem, ComputeRenderItem, GraphicsRenderVariant, MultiDrawBaseData, Transparency } from './webgl/render-item';
-import { ValueCell } from '../mol-util';
+import { ValueCell } from '../mol-util/value-cell';
 import { idFactory } from '../mol-util/id-factory';
 import { clamp } from '../mol-math/interpolate';
 import { Frustum3D } from '../mol-math/geometry/primitives/frustum3d';
 import { Plane3D } from '../mol-math/geometry/primitives/plane3d';
-import { Sphere3D } from '../mol-math/geometry';
+import { Sphere3D } from '../mol-math/geometry/primitives/sphere3d';
 import { Vec4 } from '../mol-math/linear-algebra/3d/vec4';
 import { WebGLStats } from './webgl/context';
 import { isTimingMode } from '../mol-util/debug';

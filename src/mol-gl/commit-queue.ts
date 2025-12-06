@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { LinkedList } from '../mol-data/generic';
+import { LinkedList } from '../mol-data/generic/linked-list';
 import { GraphicsRenderObject } from './render-object';
 
 type N = LinkedList.Node<GraphicsRenderObject>

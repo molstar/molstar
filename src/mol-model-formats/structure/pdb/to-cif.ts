@@ -6,7 +6,6 @@
  * @author Yana Rose <yana.v.rose@gmail.com>
  */
 
-import { substringStartsWith } from '../../../mol-util/string';
 import { CifCategory, CifField, CifFrame } from '../../../mol-io/reader/cif';
 import { Tokenizer } from '../../../mol-io/reader/common/text/tokenizer';
 import { PdbFile } from '../../../mol-io/reader/pdb/schema';
@@ -23,6 +22,16 @@ import { parseConect } from './conect';
 import { isDebugMode } from '../../../mol-util/debug';
 import { PdbHeaderData, addHeader } from './header';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
+import { StringLike } from '../../../mol-io/common/string-like';
+
+function substringStartsWith(str: StringLike, start: number, end: number, target: string) {
+    const len = target.length;
+    if (len > end - start) return false;
+    for (let i = 0; i < len; i++) {
+        if (str.charCodeAt(start + i) !== target.charCodeAt(i)) return false;
+    }
+    return true;
+}
 
 export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     const { lines } = pdb;

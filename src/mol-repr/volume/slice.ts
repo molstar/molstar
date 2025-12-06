@@ -15,7 +15,6 @@ import { RepresentationContext, RepresentationParamsGetter } from '../representa
 import { VisualContext } from '../visual';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
-import { Interval, OrderedSet, SortedArray } from '../../mol-data/int';
 import { transformPositionArray } from '../../mol-geo/util';
 import { Color } from '../../mol-util/color';
 import { ColorTheme } from '../../mol-theme/color';
@@ -27,6 +26,9 @@ import { degToRad } from '../../mol-math/misc';
 import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 import { clamp, normalize } from '../../mol-math/interpolate';
 import { assertUnreachable } from '../../mol-util/type-helpers';
+import { OrderedSet } from '../../mol-data/int/ordered-set';
+import { SortedArray } from '../../mol-data/int/sorted-array';
+import { Interval } from '../../mol-data/int/interval';
 
 export const SliceParams = {
     ...Image.Params,

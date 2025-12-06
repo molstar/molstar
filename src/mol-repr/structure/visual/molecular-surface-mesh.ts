@@ -21,13 +21,19 @@ import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { Texture } from '../../../mol-gl/webgl/texture';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { applyMeshColorSmoothing } from '../../../mol-geo/geometry/mesh/color-smoothing';
-import { ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
+import { BaseGeometry, ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
 import { ValueCell } from '../../../mol-util';
 import { ComplexMeshVisual, ComplexVisual } from '../complex-visual';
 
+const CommonMolecularSurfaceCalculationParams = {
+    ...MolecularSurfaceCalculationParams,
+    resolution: { ...MolecularSurfaceCalculationParams.resolution, ...BaseGeometry.CustomQualityParamInfo },
+    probePositions: { ...MolecularSurfaceCalculationParams.probePositions, ...BaseGeometry.CustomQualityParamInfo },
+};
+
 export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,
-    ...MolecularSurfaceCalculationParams,
+    ...CommonMolecularSurfaceCalculationParams,
     ...CommonSurfaceParams,
     ...ColorSmoothingParams,
 };

@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { UniqueArray } from '../../../mol-data/generic';
+import { UniqueArray } from '../../../mol-data/generic/unique-array';
 import { Expression } from '../../language/expression';
 import { Argument, MSymbol, Arguments } from '../../language/symbol';
 import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';

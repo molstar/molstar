@@ -5,8 +5,9 @@
  */
 
 import { Camera } from '../camera';
-import { Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { lerp } from '../../mol-math/interpolate';
+import { Quat } from '../../mol-math/linear-algebra/3d/quat';
+import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 
 export { CameraTransitionManager };
 

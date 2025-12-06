@@ -11,7 +11,7 @@ import { getColorListFromName, ColorListName } from './lists';
 import { defaults } from '../../mol-util';
 import { NumberArray } from '../../mol-util/type-helpers';
 import { ScaleLegend } from '../legend';
-import { SortedArray } from '../../mol-data/int';
+import { SortedArray } from '../../mol-data/int/sorted-array';
 import { clamp } from '../../mol-math/interpolate';
 
 export interface ColorScale {

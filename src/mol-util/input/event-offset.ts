@@ -9,7 +9,7 @@
  * copyright (c) 2014 Matt DesLauriers. MIT License
  */
 
-import { Vec2 } from '../../mol-math/linear-algebra';
+import { Vec2 } from '../../mol-math/linear-algebra/3d/vec2';
 
 const rootPosition = { left: 0, top: 0 };
 

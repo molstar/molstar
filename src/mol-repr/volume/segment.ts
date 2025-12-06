@@ -16,7 +16,6 @@ import { VisualUpdateState } from '../util';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
-import { Interval, OrderedSet, SortedArray } from '../../mol-data/int';
 import { Mat4, Tensor, Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { fillSerial } from '../../mol-util/array';
 import { createSegmentTexture2d, eachVolumeLoci, getVolumeTexture2dLayout } from './util';
@@ -26,6 +25,9 @@ import { BaseGeometry } from '../../mol-geo/geometry/base';
 import { ValueCell } from '../../mol-util/value-cell';
 import { extractIsosurface } from '../../mol-gl/compute/marching-cubes/isosurface';
 import { Box3D } from '../../mol-math/geometry/primitives/box3d';
+import { SortedArray } from '../../mol-data/int/sorted-array';
+import { Interval } from '../../mol-data/int/interval';
+import { OrderedSet } from '../../mol-data/int/ordered-set';
 
 export const VolumeSegmentParams = {
     segments: PD.Converted(

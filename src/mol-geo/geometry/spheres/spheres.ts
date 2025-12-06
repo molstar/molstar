@@ -8,7 +8,7 @@ import { ValueCell } from '../../../mol-util';
 import { GeometryUtils } from '../geometry';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { TransformData } from '../transform-data';
-import { LocationIterator, PositionLocation } from '../../../mol-geo/util/location-iterator';
+import { LocationIterator, PositionLocation } from '../../util/location-iterator';
 import { Theme } from '../../../mol-theme/theme';
 import { SpheresValues } from '../../../mol-gl/renderable/spheres';
 import { createColors } from '../color-data';

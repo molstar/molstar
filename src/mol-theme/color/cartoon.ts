@@ -23,7 +23,7 @@ import { ScaleLegend, TableLegend } from '../../mol-util/legend';
 import { SecondaryStructureColorTheme, SecondaryStructureColorThemeParams } from './secondary-structure';
 import { ElementSymbolColorTheme, ElementSymbolColorThemeParams } from './element-symbol';
 import { TrajectoryIndexColorTheme, TrajectoryIndexColorThemeParams } from './trajectory-index';
-import { hash2 } from '../../mol-data/util';
+import { hash2 } from '../../mol-data/util/hash-functions';
 import { HydrophobicityColorTheme, HydrophobicityColorThemeParams } from './hydrophobicity';
 import { UncertaintyColorTheme, UncertaintyColorThemeParams } from './uncertainty';
 import { OccupancyColorTheme, OccupancyColorThemeParams } from './occupancy';
