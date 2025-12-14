@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Fix molecular-surface "auto" quality params not hidden
 
 ## [v5.4.2] - 2025-12-07
 - Fix postprocessing issues with SSAO and outlines for large structures (#1387)

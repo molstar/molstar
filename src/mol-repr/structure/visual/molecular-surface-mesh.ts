@@ -6,12 +6,11 @@
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
-import { MolecularSurfaceCalculationParams } from '../../../mol-math/geometry/molecular-surface';
 import { VisualContext } from '../../visual';
 import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
-import { computeStructureMolecularSurface, computeUnitMolecularSurface } from './util/molecular-surface';
+import { CommonMolecularSurfaceCalculationParams, computeStructureMolecularSurface, computeUnitMolecularSurface } from './util/molecular-surface';
 import { computeMarchingCubesMesh } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { ElementIterator, getElementLoci, eachElement, getSerialElementLoci, eachSerialElement } from './util/element';
 import { VisualUpdateState } from '../../util';
@@ -21,15 +20,9 @@ import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { Texture } from '../../../mol-gl/webgl/texture';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { applyMeshColorSmoothing } from '../../../mol-geo/geometry/mesh/color-smoothing';
-import { BaseGeometry, ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
+import { ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
 import { ValueCell } from '../../../mol-util';
 import { ComplexMeshVisual, ComplexVisual } from '../complex-visual';
-
-const CommonMolecularSurfaceCalculationParams = {
-    ...MolecularSurfaceCalculationParams,
-    resolution: { ...MolecularSurfaceCalculationParams.resolution, ...BaseGeometry.CustomQualityParamInfo },
-    probePositions: { ...MolecularSurfaceCalculationParams.probePositions, ...BaseGeometry.CustomQualityParamInfo },
-};
 
 export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,
