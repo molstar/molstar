@@ -119,11 +119,12 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
             const vx = px[j], vy = py[j], vz = pz[j];
             const rad = radius[j];
             const rSq = rad * rad;
+            const extended = ngPoints > 0;
 
             lookup3d.find(vx, vy, vz, rad);
 
             // Number of grid points, round this up...
-            const ng = Math.ceil(rad * scaleFactor);
+            const ng = Math.ceil(rad * scaleFactor) + ngPoints;
 
             // Center of the atom, mapped to grid points (take floor)
             const iax = Math.floor(scaleFactor * (vx - minX));
@@ -153,11 +154,8 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
                         const dz = gridz[zi] - vz;
                         const dSq = dxySq + dz * dz;
 
-                        if (dSq < rSq) {
+                        if (extended || dSq < rSq) {
                             const idx = zi + xyIdx;
-
-                            // if unvisited, make positive
-                            if (data[idx] < 0.0) data[idx] *= -1;
 
                             // Project on to the surface of the sphere
                             // sp is the projected point ( dx, dy, dz ) * ( ra / d )
@@ -167,12 +165,22 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
                             const spy = dy * ap + vy;
                             const spz = dz * ap + vz;
 
-                            if (obscured(spx, spy, spz, j, -1) === -1) {
-                                const dd = rad - d;
-                                if (dd < data[idx]) {
-                                    data[idx] = dd;
-                                    idData[idx] = id[i];
+                            const obs = obscured(spx, spy, spz, j, -1);
+
+                            if (dSq < rSq) {
+                                // if unvisited, make positive
+                                if (data[idx] < 0.0) data[idx] *= -1;
+
+                                if (obs === -1) {
+                                    const dd = rad - d;
+                                    if (dd < data[idx]) {
+                                        data[idx] = dd;
+                                        idData[idx] = id[i];
+                                    }
                                 }
+                            } else if (extended && obs === -1) {
+                                const dd = rad - d;
+                                if (dd > data[idx]) data[idx] = dd;
                             }
                         }
                     }
@@ -318,7 +326,8 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
     // console.time('MolecularSurface createState')
     const { resolution, probeRadius, probePositions } = props;
     const scaleFactor = 1 / resolution;
-    const ngTorus = Math.max(5, 2 + Math.floor(probeRadius * scaleFactor));
+    const ngTorus = 2 + Math.floor(probeRadius * scaleFactor);
+    const ngPoints = probeRadius < (resolution * 2) ? 1 : 0;
 
     const cellSize = Vec3.create(maxRadius, maxRadius, maxRadius);
     Vec3.scale(cellSize, cellSize, 2);
