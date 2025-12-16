@@ -33,6 +33,7 @@ nav:
     - Examples: plugin/examples.md
     - Custom Library: 'plugin/custom-library.md'
     - Selections: 'plugin/selections.md'
+    - Superposition: 'plugin/superposition.md'
     - Viewer State: 'plugin/viewer-state.md'
     - Data State: 'plugin/data-state.md'
     - File Formats: 'plugin/file-formats.md'

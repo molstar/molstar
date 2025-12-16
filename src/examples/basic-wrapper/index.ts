@@ -21,7 +21,8 @@ import { StripedResidues } from './coloring';
 import { CustomToastMessage } from './controls';
 import { CustomColorThemeProvider } from './custom-theme';
 import './index.html';
-import { buildStaticSuperposition, dynamicSuperpositionTest, StaticSuperpositionTestData } from './superposition';
+import './tm-align.html';
+import { buildStaticSuperposition, dynamicSuperpositionTest, StaticSuperpositionTestData, tmAlignStructures, loadStructuresNoAlignment, sequenceAlignStructures } from './superposition';
 import '../../mol-plugin-ui/skin/light.scss';
 
 type LoadParams = { url: string, format?: BuiltInTrajectoryFormat, isBinary?: boolean, assemblyId?: string }
@@ -190,6 +191,45 @@ class BasicWrapper {
             PluginCommands.Toast.Hide(this.plugin, { key: 'toast-2' });
         }
     };
+
+    /**
+     * Run TM-align on two structures
+     * @param pdbId1 - PDB ID of first structure (reference)
+     * @param chain1 - Chain ID of first structure
+     * @param pdbId2 - PDB ID of second structure (mobile)
+     * @param chain2 - Chain ID of second structure
+     * @param color1 - Optional color for first structure (hex, default blue)
+     * @param color2 - Optional color for second structure (hex, default red)
+     */
+    tmAlign(pdbId1: string, chain1: string, pdbId2: string, chain2: string, color1?: number, color2?: number) {
+        return tmAlignStructures(this.plugin, pdbId1, chain1, pdbId2, chain2, color1, color2);
+    }
+
+    /**
+     * Load two structures without alignment
+     * @param pdbId1 - PDB ID of first structure
+     * @param chain1 - Chain ID of first structure
+     * @param pdbId2 - PDB ID of second structure
+     * @param chain2 - Chain ID of second structure
+     * @param color1 - Optional color for first structure (hex, default blue)
+     * @param color2 - Optional color for second structure (hex, default red)
+     */
+    loadStructures(pdbId1: string, chain1: string, pdbId2: string, chain2: string, color1?: number, color2?: number) {
+        return loadStructuresNoAlignment(this.plugin, pdbId1, chain1, pdbId2, chain2, color1, color2);
+    }
+
+    /**
+     * Align two structures using sequence alignment
+     * @param pdbId1 - PDB ID of first structure (reference)
+     * @param chain1 - Chain ID of first structure
+     * @param pdbId2 - PDB ID of second structure (mobile)
+     * @param chain2 - Chain ID of second structure
+     * @param color1 - Optional color for first structure (hex, default blue)
+     * @param color2 - Optional color for second structure (hex, default red)
+     */
+    sequenceAlign(pdbId1: string, chain1: string, pdbId2: string, chain2: string, color1?: number, color2?: number) {
+        return sequenceAlignStructures(this.plugin, pdbId1, chain1, pdbId2, chain2, color1, color2);
+    }
 }
 
 (window as any).BasicMolStarWrapper = new BasicWrapper();

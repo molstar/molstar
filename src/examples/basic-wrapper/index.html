@@ -40,6 +40,58 @@
                 width: 100%;
                 display: block;
             }
+
+            #alignment-panel {
+                position: absolute;
+                left: 160px;
+                top: 720px;
+                width: 800px;
+                max-height: 300px;
+                overflow: auto;
+                border: 1px solid #ccc;
+                background: #fff;
+                padding: 10px;
+                display: none;
+            }
+
+            #alignment-panel.visible {
+                display: block;
+            }
+
+            #alignment-panel h4 {
+                margin: 0 0 10px 0;
+                padding-bottom: 5px;
+                border-bottom: 1px solid #eee;
+            }
+
+            #alignment-stats {
+                font-family: monospace;
+                font-size: 12px;
+                margin-bottom: 10px;
+                padding: 8px;
+                background: #f5f5f5;
+                border-radius: 4px;
+            }
+
+            #alignment-content {
+                font-family: 'Courier New', monospace;
+                font-size: 11px;
+                white-space: pre;
+                overflow-x: auto;
+            }
+
+            .legend {
+                margin-top: 10px;
+                font-size: 11px;
+                color: #666;
+            }
+
+            .legend span {
+                margin-right: 15px;
+            }
+
+            .legend .blue { color: #3498db; font-weight: bold; }
+            .legend .red { color: #e74c3c; font-weight: bold; }
         </style>
         <link rel="stylesheet" type="text/css" href="molstar.css" />
         <script type="text/javascript" src="./index.js"></script>
@@ -55,6 +107,18 @@
             </select>
         </div>
         <div id="app"></div>
+        <div id="alignment-panel">
+            <h4>TM-align Structural Alignment</h4>
+            <div id="alignment-stats"></div>
+            <div id="alignment-content"></div>
+            <div class="legend">
+                <span><span class="blue">■</span> 6F34</span>
+                <span><span class="red">■</span> 2A65</span>
+                <span>| = identical</span>
+                <span>: = aligned</span>
+                <span>- = gap</span>
+            </div>
+        </div>
         <script>
             function $(id) { return document.getElementById(id); }
 
@@ -109,6 +173,22 @@
 
             addControl('Static Superposition', () => BasicMolStarWrapper.tests.staticSuperposition());
             addControl('Dynamic Superposition', () => BasicMolStarWrapper.tests.dynamicSuperposition());
+            addControl('TM-align (6F34/2A65)', async () => {
+                $('alignment-panel').classList.remove('visible');
+                $('alignment-stats').innerHTML = 'Running TM-align...';
+                $('alignment-content').innerHTML = '';
+                $('alignment-panel').classList.add('visible');
+
+                const result = await BasicMolStarWrapper.tests.tmAlignSuperposition();
+                if (result) {
+                    $('alignment-stats').innerHTML =
+                        '<strong>TM-score (6F34):</strong> ' + result.tmScoreA.toFixed(5) + ' (ref: 0.67445) | ' +
+                        '<strong>TM-score (2A65):</strong> ' + result.tmScoreB.toFixed(5) + ' (ref: 0.73867) | ' +
+                        '<strong>RMSD:</strong> ' + result.rmsd.toFixed(2) + ' Å (ref: 4.35) | ' +
+                        '<strong>Aligned:</strong> ' + result.alignedLength + ' residues (ref: 423)';
+                    $('alignment-content').innerHTML = result.alignmentHtml;
+                }
+            });
             addControl('Validation Tooltip', () => BasicMolStarWrapper.tests.toggleValidationTooltip());
 
             addControl('Show Toasts', () => BasicMolStarWrapper.tests.showToasts());

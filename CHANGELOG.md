@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Add TM-align structure-based protein alignment algorithm
+    - New `TMAlign` namespace in `mol-math/linear-algebra/3d/tm-align.ts`
+    - New `tmAlign` function in `mol-model/structure/structure/util/tm-align.ts`
+    - Returns TM-score, RMSD, alignment mapping, and transformation matrix
 - Molecular Surface
     - Fix "auto" quality params not hidden
     - Fix calculation when probe diameter is smaller then resolution
