@@ -7,15 +7,15 @@
 import { TMAlign } from '../3d/tm-align';
 import { Vec3 } from '../3d/vec3';
 
-// Reference data from US-align for 2LZM vs 1LYZ
-const REFERENCE_2LZM_1LYZ = {
-    structure1Length: 164,
-    structure2Length: 129,
-    alignedLength: 90,
-    rmsd: 4.37,
-    tmScore1: 0.36970, // normalized by structure 1 (2LZM)
-    tmScore2: 0.44235, // normalized by structure 2 (1LYZ)
-    sequenceIdentity: 0.111
+// Reference data from US-align for 6F34 vs 3TT3 chain A
+const REFERENCE_6F34_3TT3 = {
+    structure1Length: 458,
+    structure2Length: 501,
+    alignedLength: 409,
+    rmsd: 4.10,
+    tmScore1: 0.72566, // normalized by structure 1 (6F34)
+    tmScore2: 0.67133, // normalized by structure 2 (3TT3)
+    sequenceIdentity: 0.147
 };
 
 describe('TMAlign', () => {
@@ -47,9 +47,9 @@ describe('TMAlign', () => {
         });
 
         it('matches reference d0 values', () => {
-            // From reference: L=164, d0=4.77; L=129, d0=4.21
-            expect(TMAlign.calculateD0(164)).toBeCloseTo(4.77, 1);
-            expect(TMAlign.calculateD0(129)).toBeCloseTo(4.21, 1);
+            // From reference: L=458, d0=7.65; L=501, d0=7.95
+            expect(TMAlign.calculateD0(458)).toBeCloseTo(7.65, 1);
+            expect(TMAlign.calculateD0(501)).toBeCloseTo(7.95, 1);
         });
     });
 
@@ -279,32 +279,30 @@ describe('TMAlign', () => {
         });
     });
 
-    describe('Reference comparison (2LZM vs 1LYZ expected ranges)', () => {
+    describe('Reference comparison (6F34 vs 3TT3 chain A expected ranges)', () => {
         // These tests verify that our implementation produces results
         // in the expected ballpark for known protein pairs
         // Exact values may differ due to algorithm implementation details
 
         it('d0 calculation matches reference implementation', () => {
             // Reference values from US-align output
-            const d0_164 = TMAlign.calculateD0(REFERENCE_2LZM_1LYZ.structure1Length);
-            const d0_129 = TMAlign.calculateD0(REFERENCE_2LZM_1LYZ.structure2Length);
+            const d0_458 = TMAlign.calculateD0(REFERENCE_6F34_3TT3.structure1Length);
+            const d0_501 = TMAlign.calculateD0(REFERENCE_6F34_3TT3.structure2Length);
 
             // Should be within 5% of reference values
-            expect(d0_164).toBeCloseTo(4.77, 0);
-            expect(d0_129).toBeCloseTo(4.21, 0);
+            expect(d0_458).toBeCloseTo(7.65, 0);
+            expect(d0_501).toBeCloseTo(7.95, 0);
         });
 
         it('TM-score interpretation thresholds', () => {
             // According to TM-align literature:
             // TM-score > 0.5: same fold
             // TM-score > 0.17: statistically significant
-            // 2LZM vs 1LYZ: TM-scores ~0.37 and ~0.44 indicate related but different folds
+            // 6F34 vs 3TT3: TM-scores ~0.73 and ~0.67 indicate same fold
 
-            // The reference TM-scores are in the "twilight zone"
-            expect(REFERENCE_2LZM_1LYZ.tmScore1).toBeGreaterThan(0.17); // significant
-            expect(REFERENCE_2LZM_1LYZ.tmScore1).toBeLessThan(0.5); // not same fold
-            expect(REFERENCE_2LZM_1LYZ.tmScore2).toBeGreaterThan(0.17);
-            expect(REFERENCE_2LZM_1LYZ.tmScore2).toBeLessThan(0.5);
+            // The reference TM-scores indicate same fold
+            expect(REFERENCE_6F34_3TT3.tmScore1).toBeGreaterThan(0.5); // same fold
+            expect(REFERENCE_6F34_3TT3.tmScore2).toBeGreaterThan(0.5); // same fold
         });
     });
 });
