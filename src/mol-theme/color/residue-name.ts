@@ -63,6 +63,56 @@ export const ResidueNameColors = ColorMap({
 });
 export type ResidueNameColors = typeof ResidueNameColors
 
+// Colors for charged residues
+export const ChargedResidueColors = ColorMap({
+    // standard amino acids (charged)
+    'ARG': 0x0000FF,
+    'ASP': 0xFF0000,
+    'GLU': 0xFF0000,
+    'HIS': 0x33C3F9,
+    'LYS': 0x0000FF,
+
+    // standard amino acids (uncharged)
+    'ALA': 0xFFFFFF,
+    'ASN': 0xFFFFFF,
+    'CYS': 0xFFFFFF,
+    'GLN': 0xFFFFFF,
+    'GLY': 0xFFFFFF,
+    'ILE': 0xFFFFFF,
+    'LEU': 0xFFFFFF,
+    'MET': 0xFFFFFF,
+    'PHE': 0xFFFFFF,
+    'PRO': 0xFFFFFF,
+    'SER': 0xFFFFFF,
+    'THR': 0xFFFFFF,
+    'TRP': 0xFFFFFF,
+    'TYR': 0xFFFFFF,
+    'VAL': 0xFFFFFF,
+
+    // rna bases
+    'A': 0xFFFFFF,
+    'G': 0xFFFFFF,
+    'I': 0xFFFFFF,
+    'C': 0xFFFFFF,
+    'T': 0xFFFFFF,
+    'U': 0xFFFFFF,
+
+    // dna bases
+    'DA': 0xFFFFFF,
+    'DG': 0xFFFFFF,
+    'DI': 0xFFFFFF,
+    'DC': 0xFFFFFF,
+    'DT': 0xFFFFFF,
+    'DU': 0xFFFFFF,
+
+    // peptide bases
+    'APN': 0xFFFFFF,
+    'GPN': 0xFFFFFF,
+    'CPN': 0xFFFFFF,
+    'TPN': 0xFFFFFF,
+});
+export type ChargedResidueColors = typeof ChargedResidueColors
+
 const DefaultResidueNameColor = Color(0xFF00FF);
 const Description = 'Assigns a color to every residue according to its name.';
 
@@ -71,7 +121,8 @@ export const ResidueNameColorThemeParams = {
     lightness: PD.Numeric(1, { min: -6, max: 6, step: 0.1 }),
     colors: PD.MappedStatic('default', {
         'default': PD.EmptyGroup(),
-        'custom': PD.Group(getColorMapParams(ResidueNameColors))
+        'custom': PD.Group(getColorMapParams(ResidueNameColors)),
+        'residue-charge': PD.Group(getColorMapParams(ChargedResidueColors))
     })
 };
 export type ResidueNameColorThemeParams = typeof ResidueNameColorThemeParams
