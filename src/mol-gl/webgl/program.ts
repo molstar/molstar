@@ -235,7 +235,7 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
 
         use: () => {
             // console.log('use', programId)
-            if (isDebugMode && !finalized) throw new Error('program not finalized');
+            if (isDebugMode && !finalized) throw new Error(`program not finalized: ${variant}`);
             state.currentProgramId = programId;
             gl.useProgram(program);
         },
