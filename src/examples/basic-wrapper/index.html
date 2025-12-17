@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <title>Mol* Plugin Wrapper</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            #app {
+                position: absolute;
+                left: 160px;
+                top: 100px;
+                width: 600px;
+                height: 600px;
+                border: 1px solid #ccc;
+            }
+
+            #controls {
+                position: absolute;
+                width: 130px;
+                top: 10px;
+                left: 10px;
+            }
+
+            #controls > button {
+                display: block;
+                width: 100%;
+                text-align: left;
+            }
+
+            #controls > hr {
+                margin: 5px 0;
+            }
+
+            #controls > input, #controls > select {
+                width: 100%;
+                display: block;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
+        <script type="text/javascript" src="./index.js"></script>
+    </head>
+    <body>
+        <div id='controls'>
+            <h3>Source</h3>
+            <input type='text' id='url' placeholder='url' />
+            <input type='text' id='assemblyId' placeholder='assembly id' />
+            <select id='format'>
+                <option value='mmcif' selected>mmCIF</option>
+                <option value='pdb'>PDB</option>
+            </select>
+        </div>
+        <div id="app"></div>
+        <script>
+            function $(id) { return document.getElementById(id); }
+
+            var pdbId = '1grm', assemblyId= '1';
+            var url = 'https://www.ebi.ac.uk/pdbe/static/entry/' + pdbId + '_updated.cif';
+            var format = 'mmcif';
+
+            $('url').value = url;
+            $('url').onchange = function (e) { url = e.target.value; }
+            $('assemblyId').value = assemblyId;
+            $('assemblyId').onchange = function (e) { assemblyId = e.target.value; }
+            $('format').value = format;
+            $('format').onchange = function (e) { format = e.target.value; }
+
+            BasicMolStarWrapper.init('app' /** or document.getElementById('app') */).then(() => {
+                BasicMolStarWrapper.setBackground(0xffffff);
+            });
+
+            addControl('Load Asym Unit', () => BasicMolStarWrapper.load({ url: url, format: format }));
+            addControl('Load Assembly', () => BasicMolStarWrapper.load({ url: url, format: format, assemblyId: assemblyId }));
+
+            addSeparator();
+
+            addHeader('Camera');
+            addControl('Toggle Spin', () => BasicMolStarWrapper.toggleSpin());
+
+            addSeparator();
+
+            addHeader('Animation');
+
+            // adjust this number to make the animation faster or slower
+            // requires to "restart" the animation if changed
+            BasicMolStarWrapper.animate.modelIndex.targetFps = 30;
+
+            addControl('Play To End', () => BasicMolStarWrapper.animate.modelIndex.onceForward());
+            addControl('Play To Start', () => BasicMolStarWrapper.animate.modelIndex.onceBackward());
+            addControl('Play Palindrome', () => BasicMolStarWrapper.animate.modelIndex.palindrome());
+            addControl('Play Loop', () => BasicMolStarWrapper.animate.modelIndex.loop());
+            addControl('Stop', () => BasicMolStarWrapper.animate.modelIndex.stop());
+
+            addHeader('Misc');
+
+            addControl('Apply Stripes', () => BasicMolStarWrapper.coloring.applyStripes());
+            addControl('Apply Custom Theme', () => BasicMolStarWrapper.coloring.applyCustomTheme());
+            addControl('Default Coloring', () => BasicMolStarWrapper.coloring.applyDefault());
+
+            addHeader('Interactivity');
+            addControl('Highlight seq_id=7', () => BasicMolStarWrapper.interactivity.highlightOn());
+            addControl('Clear Highlight', () => BasicMolStarWrapper.interactivity.clearHighlight());
+
+            addHeader('Tests');
+
+            addControl('Static Superposition', () => BasicMolStarWrapper.tests.staticSuperposition());
+            addControl('Dynamic Superposition', () => BasicMolStarWrapper.tests.dynamicSuperposition());
+            addControl('Validation Tooltip', () => BasicMolStarWrapper.tests.toggleValidationTooltip());
+
+            addControl('Show Toasts', () => BasicMolStarWrapper.tests.showToasts());
+            addControl('Hide Toasts', () => BasicMolStarWrapper.tests.hideToasts());
+
+            ////////////////////////////////////////////////////////
+
+            function addControl(label, action) {
+                var btn = document.createElement('button');
+                btn.onclick = action;
+                btn.innerText = label;
+                $('controls').appendChild(btn);
+            }
+
+            function addSeparator() {
+                var hr = document.createElement('hr');
+                $('controls').appendChild(hr);
+            }
+
+            function addHeader(header) {
+                var h = document.createElement('h3');
+                h.innerText = header;
+                $('controls').appendChild(h);
+            }
+        </script>
+    </body>
+</html>
