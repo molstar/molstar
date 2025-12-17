@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix webgl1 shader syntax
 - Fix program not compiled for sync picking
 - Fix missing `gl.flush` for async picking (needed for Safari)
+- Add residue charge color palette
 
 ## [v5.4.2] - 2025-12-07
 - Fix postprocessing issues with SSAO and outlines for large structures (#1387)

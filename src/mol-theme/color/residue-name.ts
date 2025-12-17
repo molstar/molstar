@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Lukáš Polák <admin@lukaspolak.cz>
  */
 
 import { Color, ColorMap } from '../../mol-util/color';
