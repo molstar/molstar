@@ -78,7 +78,7 @@ void main(void) {
 
     float sum = 0.0;
     float kernelSum = 0.0;
-    int halfKernelSize = dOcclusionKernelSize / 2;
+    const int halfKernelSize = dOcclusionKernelSize / 2;
     // only if kernelSize is odd
     for (int i = -halfKernelSize; i <= halfKernelSize; i++) {
         if (abs(float(i)) > 1.0 && abs(float(i)) * pixelSize > 0.8) continue;
