@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * @author Mol* Contributors
+ * @author Diego del Alamo <diego.delalamo@gmail.com>
  *
  * Structure-level TM-align wrapper
  */
