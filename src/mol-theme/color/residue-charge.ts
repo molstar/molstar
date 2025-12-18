@@ -73,11 +73,12 @@ const DefaultResidueChargeColor = Color(0xFF00FF);
 const Description = 'Assigns a color to every residue based on its charge state.';
 
 export const ResidueChargeColorThemeParams = {
-    saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
-    lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
-    colors: PD.MappedStatic('default', {
-        'default': PD.EmptyGroup(),
-        'custom': PD.Group(getColorMapParams(ChargedResidueColors)),
+    method: PD.MappedStatic('by-name', {
+        'by-name': PD.Group({
+            saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
+            lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
+            colors: PD.Optional(PD.Group(getColorMapParams(ChargedResidueColors)))
+        }, { isFlat: true })
     })
 };
 export type ResidueChargeColorThemeParams = typeof ResidueChargeColorThemeParams;
@@ -105,7 +106,8 @@ export function residueChargeColor(colorMap: ChargedResidueColors, residueName: 
 }
 
 export function ResidueChargeColorTheme(ctx: ThemeDataContext, props: PD.Values<ResidueChargeColorThemeParams>): ColorTheme<ResidueChargeColorThemeParams> {
-    const colorMap = getAdjustedColorMap(props.colors.name === 'default' ? ChargedResidueColors : props.colors.params, props.saturation, props.lightness);
+    const { saturation, lightness, colors } = props.method.params;
+    const colorMap = getAdjustedColorMap(colors ?? ChargedResidueColors, saturation, lightness);
 
     function color(location: Location): Color {
         if (StructureElement.Location.is(location)) {
