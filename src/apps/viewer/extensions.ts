@@ -18,6 +18,7 @@ import { wwPDBStructConnExtensionFunctions } from '../../extensions/wwpdb/struct
 import { ZenodoImport } from '../../extensions/zenodo';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { MVSData } from '../../extensions/mvs/mvs-data';
+import * as MVSUtil from '../../extensions/mvs/util';
 
 export const ExtensionMap = {
     // Mol* built-in extensions
@@ -43,7 +44,14 @@ export const ExtensionMap = {
 
 export const PluginExtensions = {
     wwPDBStructConn: wwPDBStructConnExtensionFunctions,
-    mvs: { MVSData, loadMVS, loadMVSData },
+    mvs: {
+        MVSData,
+        loadMVS,
+        loadMVSData,
+        util: {
+            ...MVSUtil
+        }
+    },
     modelArchive: {
         qualityAssessment: {
             config: MAQualityAssessmentConfig

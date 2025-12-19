@@ -38,6 +38,7 @@ import { createPluginUI } from '../../mol-plugin-ui';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { renderReact18 } from '../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
+import { PluginBehaviors } from '../../mol-plugin/behavior';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig, PluginConfigItem } from '../../mol-plugin/config';
 import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
@@ -92,6 +93,8 @@ const DefaultViewerOptions = {
     viewportShowSelectionMode: PluginConfig.Viewport.ShowSelectionMode.defaultValue,
     viewportShowAnimation: PluginConfig.Viewport.ShowAnimation.defaultValue,
     viewportShowTrajectoryControls: PluginConfig.Viewport.ShowTrajectoryControls.defaultValue,
+    viewportFocusBehavior: 'default' as 'default' | 'disabled',
+
     pluginStateServer: PluginConfig.State.DefaultServer.defaultValue,
     volumeStreamingServer: PluginConfig.VolumeStreaming.DefaultServer.defaultValue,
     volumeStreamingDisabled: !PluginConfig.VolumeStreaming.Enabled.defaultValue,
@@ -126,11 +129,19 @@ export class Viewer {
         const defaultSpec = DefaultPluginUISpec();
 
         const disabledExtension = new Set(o.disabledExtensions ?? []);
+        let baseBehaviors = defaultSpec.behaviors;
+
+        if (o.viewportFocusBehavior === 'disabled') {
+            baseBehaviors = baseBehaviors.filter(b =>
+                b.transformer !== PluginBehaviors.Camera.FocusLoci
+                && b.transformer !== PluginBehaviors.Representation.FocusLoci
+            );
+        }
 
         const spec: PluginUISpec = {
             actions: defaultSpec.actions,
             behaviors: [
-                ...defaultSpec.behaviors,
+                ...baseBehaviors,
                 ...o.extensions.filter(e => !disabledExtension.has(e)).map(e => ExtensionMap[e]),
             ],
             animations: [...defaultSpec.animations || []],
