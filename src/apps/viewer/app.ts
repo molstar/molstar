@@ -9,14 +9,12 @@
 
 import { AssemblySymmetryConfig } from '../../extensions/assembly-symmetry';
 import { G3dProvider } from '../../extensions/g3d/format';
-import { MAQualityAssessmentConfig, QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
+import { QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
 import { QualityAssessment } from '../../extensions/model-archive/quality-assessment/prop';
-import { MolViewSpec } from '../../extensions/mvs/behavior';
 import { loadMVSData, loadMVSX } from '../../extensions/mvs/components/formats';
 import { loadMVS, MolstarLoadingExtension } from '../../extensions/mvs/load';
 import { MVSData } from '../../extensions/mvs/mvs-data';
 import { SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider } from '../../extensions/sb-ncbr';
-import { wwPDBStructConnExtensionFunctions } from '../../extensions/wwpdb/struct-conn';
 import { StringLike } from '../../mol-io/common/string-like';
 import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
 import { Volume } from '../../mol-model/volume';
@@ -42,7 +40,6 @@ import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig, PluginConfigItem } from '../../mol-plugin/config';
 import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
-import { PluginSpec } from '../../mol-plugin/spec';
 import { PluginState } from '../../mol-plugin/state';
 import { StateObjectRef, StateObjectSelector } from '../../mol-state';
 import { Task } from '../../mol-task';
@@ -50,15 +47,10 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import { DefaultExtensions } from './extensions';
+import { ExtensionMap } from './extensions';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { consoleStats, isDebugMode, isProductionMode, isTimingMode, setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
-
-export const ExtensionMap = {
-    ...DefaultExtensions,
-    'mvs': PluginSpec.Behavior(MolViewSpec),
-}
 
 const CustomFormats = [
     ['g3d', G3dProvider] as const
@@ -66,7 +58,7 @@ const CustomFormats = [
 
 const DefaultViewerOptions = {
     customFormats: CustomFormats as [string, DataFormatProvider][],
-    extensions: ObjectKeys(DefaultExtensions),
+    extensions: ObjectKeys(ExtensionMap),
     disabledExtensions: [] as string[],
     layoutIsExpanded: true,
     layoutShowControls: true,
@@ -135,7 +127,7 @@ export class Viewer {
             actions: defaultSpec.actions,
             behaviors: [
                 ...defaultSpec.behaviors,
-                ...o.extensions.filter(e => !disabledExtension.has(e)).map(e => DefaultExtensions[e]),
+                ...o.extensions.filter(e => !disabledExtension.has(e)).map(e => ExtensionMap[e]),
             ],
             animations: [...defaultSpec.animations || []],
             customParamEditors: defaultSpec.customParamEditors,
@@ -614,13 +606,3 @@ export const ViewerAutoPreset = StructureRepresentationPresetProvider({
         }
     }
 });
-
-export const PluginExtensions = {
-    wwPDBStructConn: wwPDBStructConnExtensionFunctions,
-    mvs: { MVSData, loadMVS, loadMVSData },
-    modelArchive: {
-        qualityAssessment: {
-            config: MAQualityAssessmentConfig
-        }
-    }
-};

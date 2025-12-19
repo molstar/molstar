@@ -4,18 +4,24 @@ import { Backgrounds } from '../../extensions/backgrounds';
 import { DnatcoNtCs } from '../../extensions/dnatco';
 import { G3DFormat } from '../../extensions/g3d/format';
 import { GeometryExport } from '../../extensions/geo-export';
-import { MAQualityAssessment } from '../../extensions/model-archive/quality-assessment/behavior';
+import { MAQualityAssessment, MAQualityAssessmentConfig } from '../../extensions/model-archive/quality-assessment/behavior';
 import { ModelExport } from '../../extensions/model-export';
 import { Mp4Export } from '../../extensions/mp4-export';
+import { loadMVS } from '../../extensions/mvs';
+import { MolViewSpec } from '../../extensions/mvs/behavior';
+import { loadMVSData } from '../../extensions/mvs/components/formats';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBValidationReport } from '../../extensions/rcsb';
 import { SbNcbrPartialCharges, SbNcbrTunnels } from '../../extensions/sb-ncbr';
 import { wwPDBChemicalComponentDictionary } from '../../extensions/wwpdb/ccd/behavior';
+import { wwPDBStructConnExtensionFunctions } from '../../extensions/wwpdb/struct-conn';
 import { ZenodoImport } from '../../extensions/zenodo';
 import { PluginSpec } from '../../mol-plugin/spec';
+import { MVSData } from '../../extensions/mvs/mvs-data';
 
-export const DefaultExtensions = {
+export const ExtensionMap = {
     // Mol* built-in extensions
+    'mvs': PluginSpec.Behavior(MolViewSpec),
     'backgrounds': PluginSpec.Behavior(Backgrounds),
     'model-export': PluginSpec.Behavior(ModelExport),
     'mp4-export': PluginSpec.Behavior(Mp4Export),
@@ -33,4 +39,14 @@ export const DefaultExtensions = {
     'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
     'sb-ncbr-partial-charges': PluginSpec.Behavior(SbNcbrPartialCharges),
     'tunnels': PluginSpec.Behavior(SbNcbrTunnels),
+};
+
+export const PluginExtensions = {
+    wwPDBStructConn: wwPDBStructConnExtensionFunctions,
+    mvs: { MVSData, loadMVS, loadMVSData },
+    modelArchive: {
+        qualityAssessment: {
+            config: MAQualityAssessmentConfig
+        }
+    }
 };
