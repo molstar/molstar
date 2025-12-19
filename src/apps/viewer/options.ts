@@ -52,6 +52,7 @@ export const DefaultViewerOptions = {
     viewportShowAnimation: PluginConfig.Viewport.ShowAnimation.defaultValue,
     viewportShowTrajectoryControls: PluginConfig.Viewport.ShowTrajectoryControls.defaultValue,
     viewportFocusBehavior: 'default' as 'default' | 'disabled',
+    viewportBackgroundColor: undefined as string | undefined,
 
     pluginStateServer: PluginConfig.State.DefaultServer.defaultValue,
     volumeStreamingServer: PluginConfig.VolumeStreaming.DefaultServer.defaultValue,

@@ -51,6 +51,7 @@ export { consoleStats, isDebugMode, isProductionMode, isTimingMode, setDebugMode
 
 import '../../mol-util/polyfill';
 import { ViewerAutoPreset } from './presets';
+import { decodeColor } from '../../mol-util/color/utils';
 
 export class Viewer {
     private _events = new PluginComponent();
@@ -160,7 +161,14 @@ export class Viewer {
                 plugin.builders.structure.representation.registerPreset(ViewerAutoPreset);
             }
         });
+
         plugin.canvas3d?.setProps({ illumination: { enabled: o.illumination } });
+        if (o.viewportBackgroundColor) {
+            const backgroundColor = decodeColor(o.viewportBackgroundColor);
+            if (typeof backgroundColor === 'number') {
+                plugin.canvas3d?.setProps({ renderer: { backgroundColor } });
+            }
+        }
         return new Viewer(plugin);
     }
 

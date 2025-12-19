@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import './mvs.html';
 import './embedded.html';
 import './favicon.ico';
 import './index.html';

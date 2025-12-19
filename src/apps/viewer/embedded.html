@@ -18,24 +18,8 @@
     </head>
     <body>
         <div id="app"></div>
-        <div style="position: absolute; left: 10px; top: 10px; z-index: 10; background: white; padding: 5px; border: 1px solid black;">
-            <button onclick="selectResidues()">Select Residues 10-50</button>
-            <button onclick="clearSelection()">Clear Selection</button>
-            <div id="selection-info"></div>
-        </div>
         <script type="text/javascript" src="./molstar.js"></script>
         <script type="text/javascript">
-            function selectResidues() {
-                viewer.structureInteraction({
-                    elements: { beg_auth_seq_id: 10, end_auth_seq_id: 50 },
-                    action: 'select',
-                });
-            }
-
-            function clearSelection() {
-                viewer.structureInteraction({ action: 'select' });
-            }
-
             molstar.Viewer.create('app', {
                 layoutIsExpanded: true,
                 layoutShowControls: false,
@@ -52,78 +36,8 @@
                 pdbProvider: 'rcsb',
                 emdbProvider: 'rcsb',
             }).then(viewer => {
-                window.viewer = viewer;
-
-                // Build MVS state
-                const builder = molstar.lib.extensions.mvs.createBuilder();
-                const structure = builder
-                    .download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/1cbs.bcif' })
-                    .parse({ format: 'bcif' })
-                    .modelStructure({});
-                structure
-                    .component({ selector: 'polymer' })
-                    .representation({ type: 'cartoon' })
-                    .color({ color: 'green' });
-                structure
-                    .component({ selector: 'ligand' })
-                    .representation({ type: 'ball_and_stick' })
-                    .color({ color: '#cc3399' });
-
-                structure.primitives()
-                    .sphere({
-                        center: { label_comp_id: 'REA' },
-                        radius: 3,
-                        custom: { action: 'Action 1' },
-                    })
-                    .label({
-                        text: '1',
-                        position: { label_comp_id: 'REA' },
-                        label_size: 2.5,
-                        label_color: 'blue',
-                    });
-
-                structure.primitives()
-                    .sphere({
-                        center: { label_seq_id: 2 },
-                        radius: 3,
-                        custom: { action: 'Action 2' },
-                    })
-                    .label({
-                        text: '2',
-                        position: { label_seq_id: 2 },
-                        label_size: 2.5,
-                        label_color: 'blue',
-                    });
-
-                const mvsData = builder.getState();
-
-                viewer.loadMvsData(mvsData, 'mvsj');
-
-                // Show current residue interaction
-                viewer.subscribe(viewer.plugin.behaviors.interaction.hover, e => {
-                    const infoElement = document.getElementById('selection-info');
-                    if (!infoElement) return;
-
-                    if (molstar.lib.structure.StructureElement.Loci.is(e.current.loci)) {
-                        molstar.lib.structure.StructureElement.Loci.forEachLocation(e.current.loci, location => {
-                            const props = molstar.lib.structure.StructureProperties;
-                            infoElement.innerText = `Hovered Residue: ${props.chain.label_asym_id(location)} ${props.residue.label_seq_id(location)}`;
-                        });
-                    } else {
-                        infoElement.innerText = '';
-                    }
-                });
-
-                // Show clicked primitive action
-                viewer.subscribe(viewer.plugin.behaviors.interaction.click, e => {
-                    const nodes = molstar.lib.extensions.mvs.util.tryGetPrimitivesFromLoci(e.current.loci);
-                    if (nodes?.length) {
-                        alert('Clicked on: ' + (nodes[0].custom?.action || 'unknown'));
-                    }
-                });
-
-                // viewer.loadPdb('7bv2');
-                // viewer.loadEmdb('EMD-30210', { detail: 6 });
+                viewer.loadPdb('7bv2');
+                viewer.loadEmdb('EMD-30210', { detail: 6 });
                 // viewer.loadAllModelsOrAssemblyFromUrl('https://cs.litemol.org/5ire/full', 'mmcif', false, { representationParams: { theme: { globalName: 'operator-name' } } })
                 // viewer.loadStructureFromUrl('my url', 'pdb', false, {
                 //     representationParams: {

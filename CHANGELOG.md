@@ -23,7 +23,8 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add `molstar.lib` export providing to access a wide range of functionality previously not available from the compiled bundle
   - Add `Viewer.subscribe` method that keeps track of subscribed plugin events and disposes them together with the parent viewer
   - Add `Viewer.structureInteraction` that makes it easy to highlight/select elements on the loaded structure
-  - Extend the `embedded.html` example to showcase the new functionality
+  - Add `viewportBackgroundColor` and `viewportFocusBehavior` options
+  - Add `mvs.html` example to showcase the new functionality combined with MolViewSpec
 
 ## [v5.4.2] - 2025-12-07
 - Fix postprocessing issues with SSAO and outlines for large structures (#1387)
