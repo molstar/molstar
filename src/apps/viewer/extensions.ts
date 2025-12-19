@@ -1,0 +1,36 @@
+import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
+import { AssemblySymmetry } from '../../extensions/assembly-symmetry';
+import { Backgrounds } from '../../extensions/backgrounds';
+import { DnatcoNtCs } from '../../extensions/dnatco';
+import { G3DFormat } from '../../extensions/g3d/format';
+import { GeometryExport } from '../../extensions/geo-export';
+import { MAQualityAssessment } from '../../extensions/model-archive/quality-assessment/behavior';
+import { ModelExport } from '../../extensions/model-export';
+import { Mp4Export } from '../../extensions/mp4-export';
+import { PDBeStructureQualityReport } from '../../extensions/pdbe';
+import { RCSBValidationReport } from '../../extensions/rcsb';
+import { SbNcbrPartialCharges, SbNcbrTunnels } from '../../extensions/sb-ncbr';
+import { wwPDBChemicalComponentDictionary } from '../../extensions/wwpdb/ccd/behavior';
+import { ZenodoImport } from '../../extensions/zenodo';
+import { PluginSpec } from '../../mol-plugin/spec';
+
+export const DefaultExtensions = {
+    // Mol* built-in extensions
+    'backgrounds': PluginSpec.Behavior(Backgrounds),
+    'model-export': PluginSpec.Behavior(ModelExport),
+    'mp4-export': PluginSpec.Behavior(Mp4Export),
+    'geo-export': PluginSpec.Behavior(GeometryExport),
+    'zenodo-import': PluginSpec.Behavior(ZenodoImport),
+    'wwpdb-chemical-component-dictionary': PluginSpec.Behavior(wwPDBChemicalComponentDictionary),
+
+    // 3rd party extensions
+    'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
+    'dnatco-ntcs': PluginSpec.Behavior(DnatcoNtCs),
+    'assembly-symmetry': PluginSpec.Behavior(AssemblySymmetry),
+    'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
+    'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
+    'g3d': PluginSpec.Behavior(G3DFormat),
+    'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
+    'sb-ncbr-partial-charges': PluginSpec.Behavior(SbNcbrPartialCharges),
+    'tunnels': PluginSpec.Behavior(SbNcbrTunnels),
+};

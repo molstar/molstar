@@ -7,28 +7,20 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
-import { Backgrounds } from '../../extensions/backgrounds';
-import { DnatcoNtCs } from '../../extensions/dnatco';
-import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
-import { GeometryExport } from '../../extensions/geo-export';
-import { MAQualityAssessment, MAQualityAssessmentConfig, QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
+import { AssemblySymmetryConfig } from '../../extensions/assembly-symmetry';
+import { G3dProvider } from '../../extensions/g3d/format';
+import { MAQualityAssessmentConfig, QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
 import { QualityAssessment } from '../../extensions/model-archive/quality-assessment/prop';
-import { ModelExport } from '../../extensions/model-export';
-import { Mp4Export } from '../../extensions/mp4-export';
 import { MolViewSpec } from '../../extensions/mvs/behavior';
 import { loadMVSData, loadMVSX } from '../../extensions/mvs/components/formats';
 import { loadMVS, MolstarLoadingExtension } from '../../extensions/mvs/load';
 import { MVSData } from '../../extensions/mvs/mvs-data';
-import { PDBeStructureQualityReport } from '../../extensions/pdbe';
-import { RCSBValidationReport } from '../../extensions/rcsb';
-import { AssemblySymmetry, AssemblySymmetryConfig } from '../../extensions/assembly-symmetry';
-import { SbNcbrPartialCharges, SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider, SbNcbrTunnels } from '../../extensions/sb-ncbr';
-import { wwPDBChemicalComponentDictionary } from '../../extensions/wwpdb/ccd/behavior';
+import { SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider } from '../../extensions/sb-ncbr';
 import { wwPDBStructConnExtensionFunctions } from '../../extensions/wwpdb/struct-conn';
-import { ZenodoImport } from '../../extensions/zenodo';
+import { StringLike } from '../../mol-io/common/string-like';
 import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
 import { Volume } from '../../mol-model/volume';
+import { OpenFiles } from '../../mol-plugin-state/actions/file';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
@@ -42,8 +34,8 @@ import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { TrajectoryFromModelAndCoordinates } from '../../mol-plugin-state/transforms/model';
-import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { createPluginUI } from '../../mol-plugin-ui';
+import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { renderReact18 } from '../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -57,38 +49,23 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import { OpenFiles } from '../../mol-plugin-state/actions/file';
-import { StringLike } from '../../mol-io/common/string-like';
+import { DefaultExtensions } from './extensions';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
-export { consoleStats, setDebugMode, setProductionMode, setTimingMode, isProductionMode, isDebugMode, isTimingMode } from '../../mol-util/debug';
+export { consoleStats, isDebugMode, isProductionMode, isTimingMode, setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
+
+export const ExtensionMap = {
+    ...DefaultExtensions,
+    'mvs': PluginSpec.Behavior(MolViewSpec),
+}
 
 const CustomFormats = [
     ['g3d', G3dProvider] as const
 ];
 
-export const ExtensionMap = {
-    'backgrounds': PluginSpec.Behavior(Backgrounds),
-    'dnatco-ntcs': PluginSpec.Behavior(DnatcoNtCs),
-    'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
-    'assembly-symmetry': PluginSpec.Behavior(AssemblySymmetry),
-    'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
-    'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
-    'g3d': PluginSpec.Behavior(G3DFormat),
-    'model-export': PluginSpec.Behavior(ModelExport),
-    'mp4-export': PluginSpec.Behavior(Mp4Export),
-    'geo-export': PluginSpec.Behavior(GeometryExport),
-    'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
-    'zenodo-import': PluginSpec.Behavior(ZenodoImport),
-    'sb-ncbr-partial-charges': PluginSpec.Behavior(SbNcbrPartialCharges),
-    'wwpdb-chemical-component-dictionary': PluginSpec.Behavior(wwPDBChemicalComponentDictionary),
-    'mvs': PluginSpec.Behavior(MolViewSpec),
-    'tunnels': PluginSpec.Behavior(SbNcbrTunnels),
-};
-
 const DefaultViewerOptions = {
     customFormats: CustomFormats as [string, DataFormatProvider][],
-    extensions: ObjectKeys(ExtensionMap),
+    extensions: ObjectKeys(DefaultExtensions),
     disabledExtensions: [] as string[],
     layoutIsExpanded: true,
     layoutShowControls: true,
@@ -153,7 +130,7 @@ export class Viewer {
             actions: defaultSpec.actions,
             behaviors: [
                 ...defaultSpec.behaviors,
-                ...o.extensions.filter(e => !disabledExtension.has(e)).map(e => ExtensionMap[e]),
+                ...o.extensions.filter(e => !disabledExtension.has(e)).map(e => DefaultExtensions[e]),
             ],
             animations: [...defaultSpec.animations || []],
             customParamEditors: defaultSpec.customParamEditors,
