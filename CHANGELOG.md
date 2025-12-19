@@ -15,6 +15,15 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix program not compiled for sync picking
 - Fix missing `gl.flush` for async picking (needed for Safari)
 - Add Residue Charge color scheme (#1722)
+- Add dropdown indicator for mapped parameter definitions
+- MolViewSpec extension
+  - Add `tryGetPrimitivesFromLoci` that makes it easier to access primitive element data from hover/click interactions
+- Viewer app
+  - Move extensions to a separate file to more easily create custom builds
+  - Move viewer options config to a separate file
+  - Add `molstar.lib` export allowing to access a wide range of functionality previously not available from the compiled bundle
+  - Add `Viewer.subscribe` method that keeps track of subscribed plugin events and disposes them together with the parent viewer
+  - Add `Viewer.structureInteraction` that makes it easy to highlight/select elements on the loaded structure
 
 ## [v5.4.2] - 2025-12-07
 - Fix postprocessing issues with SSAO and outlines for large structures (#1387)

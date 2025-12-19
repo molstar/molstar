@@ -526,7 +526,7 @@ export class SelectControl extends React.PureComponent<ParamProps<PD.Select<stri
             : void 0;
 
         return <ToggleButton disabled={this.props.isDisabled} style={{ textAlign, overflow: 'hidden', textOverflow: 'ellipsis' }}
-            label={label} title={label as string} icon={icon} toggle={toggle} isSelected={this.state.showOptions} />;
+            label={label} title={label as string} icon={icon} toggle={toggle} isSelected={this.state.showOptions} className='msp-select-toggle' />;
     }
 
     renderAddOn() {
