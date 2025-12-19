@@ -15,7 +15,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix program not compiled for sync picking
 - Fix missing `gl.flush` for async picking (needed for Safari)
 - Add Residue Charge color scheme (#1722)
-- Add dropdown indicator for mapped parameter definitions
+- Add dropdown indicator for mapped parameter definitions and adjust "more options" icon
 - MolViewSpec extension
   - Add `tryGetPrimitivesFromLoci` that makes it easier to access primitive element data from hover/click interactions
 - Viewer app

@@ -25,7 +25,7 @@ import { PluginUIContext } from '../context';
 import { ActionMenu } from './action-menu';
 import { ColorOptions, ColorValueOption, CombinedColorControl } from './color';
 import { Button, ControlGroup, ControlRow, ExpandGroup, IconButton, TextInput, ToggleButton } from './common';
-import { ArrowDownwardSvg, ArrowDropDownSvg, ArrowRightSvg, ArrowUpwardSvg, BookmarksOutlinedSvg, CheckSvg, ClearSvg, DeleteOutlinedSvg, HelpOutlineSvg, Icon, MoreHorizSvg, WarningSvg } from './icons';
+import { ArrowDownwardSvg, ArrowDropDownSvg, ArrowRightSvg, ArrowUpwardSvg, BookmarksOutlinedSvg, CheckSvg, ClearSvg, DeleteOutlinedSvg, HelpOutlineSvg, Icon, TuneSvg, WarningSvg } from './icons';
 import { legendFor } from './legend';
 import { LineGraphComponent } from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
@@ -1192,7 +1192,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
         if (!this.state.isExpanded) {
             return <div className='msp-mapped-parameter-group'>
                 {ctrl}
-                <IconButton svg={MoreHorizSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} />
+                <IconButton svg={TuneSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} style={{ opacity: 0.7 }} />
             </div>;
         }
 
@@ -1203,7 +1203,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
 
         return <div className='msp-mapped-parameter-group'>
             {ctrl}
-            <IconButton svg={MoreHorizSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} />
+            <IconButton svg={TuneSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} />
             <div className='msp-control-offset'>
                 {this.pivotedPresets()}
                 <ParameterControls params={filtered} onEnter={this.props.onEnter} values={this.props.value} onChange={this.onChangeParam} isDisabled={this.props.isDisabled} />
@@ -1312,7 +1312,7 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
             if (!this.areParamsEmpty(param.params)) {
                 return <div className='msp-mapped-parameter-group'>
                     {Select}
-                    <IconButton svg={MoreHorizSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`${label} Properties`} />
+                    <IconButton svg={TuneSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`${label} Properties`} style={{ opacity: this.state.isExpanded ? undefined : 0.7 }} />
                     {this.state.isExpanded && <GroupControl inMapped param={param} value={value.params} name={value.name} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />}
                 </div>;
             }
