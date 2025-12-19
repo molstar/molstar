@@ -25,6 +25,7 @@ import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/a
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
+import { PluginComponent } from '../../mol-plugin-state/component';
 import { BuiltInCoordinatesFormat } from '../../mol-plugin-state/formats/coordinates';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 import { BuiltInTopologyFormat } from '../../mol-plugin-state/formats/topology';
@@ -110,7 +111,11 @@ const DefaultViewerOptions = {
 type ViewerOptions = typeof DefaultViewerOptions;
 
 export class Viewer {
-    constructor(public plugin: PluginUIContext) {
+    private _events = new PluginComponent();
+    public readonly plugin: PluginUIContext;
+
+    constructor(plugin: PluginUIContext) {
+        this.plugin = plugin;
     }
 
     static async create(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
@@ -208,6 +213,12 @@ export class Viewer {
         plugin.canvas3d?.setProps({ illumination: { enabled: o.illumination } });
         return new Viewer(plugin);
     }
+
+    /**
+     * Allows subscribing to rxjs observables in the context of the viewer.
+     * All subscriptions will be disposed of when the viewer is destroyed.
+     */
+    subscribe = this._events.subscribe.bind(this._events);
 
     setRemoteSnapshot(id: string) {
         const url = `${this.plugin.config.get(PluginConfig.State.CurrentServer)}/get/${id}`;
@@ -545,6 +556,7 @@ export class Viewer {
     }
 
     dispose() {
+        this._events.dispose();
         this.plugin.dispose();
     }
 }
