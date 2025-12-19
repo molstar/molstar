@@ -20,6 +20,7 @@ There are 4 basic ways of instantiating the Mol* plugin.
 - See [options.ts](https://github.com/molstar/molstar/blob/master/src/apps/viewer/options.ts) for available plugin options
 - See [embedded.html](https://github.com/molstar/molstar/blob/master/src/apps/viewer/embedded.html) and [mvs.html](https://github.com/molstar/molstar/blob/master/src/apps/viewer/mvs.html) for example usage
 - Importing `molstar.js` will expose `molstar.lib` namespace that allow accessing various functionality without a bundler such as WebPack or esbuild. See the `mvs` example above for basic usage.
+- Alternative color themes can be used by importing `theme/dark.css` (or `light/blue`) instead of `molstar.css`
 
 ### molstar.js and molstar.css sources
 

@@ -23,12 +23,12 @@
                 left: 10px;
                 top: 10px;
                 z-index: 10;
-                background-color: white;
+                background-color: black;
                 padding: 10px;
-                border: 1px solid gray;
+                color: white;
             }
         </style>
-        <link rel="stylesheet" type="text/css" href="molstar.css" />
+        <link rel="stylesheet" type="text/css" href="theme/dark.css" />
     </head>
     <body>
         <div id="app"></div>
@@ -37,7 +37,7 @@
             <button onclick="clearSelection()">Clear Selection</button>
             <div id="selection-info"></div>
         </div>
-        <script type="text/javascript" src="./molstar.js"></script>
+        <script type="text/javascript" src="molstar.js"></script>
         <script type="text/javascript">
             function selectResidues() {
                 viewer.structureInteraction({
@@ -62,7 +62,7 @@
                 viewportShowSelectionMode: false,
                 viewportShowAnimation: false,
                 viewportFocusBehavior: 'disabled',
-                viewportBackgroundColor: 'lightgray',
+                viewportBackgroundColor: 'black',
 
                 pdbProvider: 'rcsb',
                 emdbProvider: 'rcsb',
@@ -85,7 +85,7 @@
                     .color({ color: '#cc3399' });
 
                 builder.canvas({
-                    background_color: "lightgray",
+                    background_color: "black",
                 })
 
                 structure.primitives()
