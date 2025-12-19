@@ -18,6 +18,11 @@
     </head>
     <body>
         <div id="app"></div>
+        <div style="position: absolute; left: 10px; top: 10px; z-index: 10; background: white; padding: 5px; border: 1px solid black;">
+            <button onclick="selectResidues()">Select Residues 10-50</button>
+            <button onclick="clearSelection()">Clear Selection</button>
+            <div id="selection-info"></div>
+        </div>
         <script type="text/javascript" src="./molstar.js"></script>
         <script type="text/javascript">
             molstar.Viewer.create('app', {
@@ -35,8 +40,25 @@
                 pdbProvider: 'rcsb',
                 emdbProvider: 'rcsb',
             }).then(viewer => {
+                window.viewer = viewer;
+
                 viewer.loadPdb('7bv2');
-                viewer.loadEmdb('EMD-30210', { detail: 6 });
+
+                viewer.subscribe(viewer.plugin.behaviors.interaction.hover, e => {
+                    const infoElement = document.getElementById('selection-info');
+                    if (!infoElement) return;
+
+                    if (molstar.lib.structure.StructureElement.Loci.is(e.current.loci)) {
+                        molstar.lib.structure.StructureElement.Loci.forEachLocation(e.current.loci, location => {
+                            const props = molstar.lib.structure.StructureProperties;
+                            infoElement.innerText = `Hovered Residue: ${props.chain.label_asym_id(location)} ${props.residue.label_seq_id(location)}`;
+                        });
+                    } else {
+                        infoElement.innerText = '';
+                    }
+                });
+
+                // viewer.loadEmdb('EMD-30210', { detail: 6 });
                 // viewer.loadAllModelsOrAssemblyFromUrl('https://cs.litemol.org/5ire/full', 'mmcif', false, { representationParams: { theme: { globalName: 'operator-name' } } })
                 // viewer.loadStructureFromUrl('my url', 'pdb', false, {
                 //     representationParams: {
@@ -48,6 +70,17 @@
                 //     label: 'my structure'
                 // });
             });
+
+            function selectResidues() {
+                viewer.structureInteraction({
+                    elements: { beg_auth_seq_id: 10, end_auth_seq_id: 50 },
+                    action: 'select',
+                });
+            }
+
+            function clearSelection() {
+                viewer.structureInteraction({ action: 'select' });
+            }
         </script>
     </body>
 </html>

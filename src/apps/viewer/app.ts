@@ -16,6 +16,7 @@ import { loadMVS, MolstarLoadingExtension } from '../../extensions/mvs/load';
 import { MVSData } from '../../extensions/mvs/mvs-data';
 import { SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider } from '../../extensions/sb-ncbr';
 import { StringLike } from '../../mol-io/common/string-like';
+import { StructureElement, StructureSelection } from '../../mol-model/structure';
 import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
 import { Volume } from '../../mol-model/volume';
 import { OpenFiles } from '../../mol-plugin-state/actions/file';
@@ -41,6 +42,9 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig, PluginConfigItem } from '../../mol-plugin/config';
 import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { PluginState } from '../../mol-plugin/state';
+import { MolScriptBuilder } from '../../mol-script/language/builder';
+import { Expression } from '../../mol-script/language/expression';
+import { Script } from '../../mol-script/script';
 import { StateObjectRef, StateObjectSelector } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { Asset } from '../../mol-util/assets';
@@ -545,6 +549,46 @@ export class Viewer {
 
     handleResize() {
         this.plugin.layout.events.updated.next(void 0);
+    }
+
+    /**
+     * Triggers structure element selection or highlighting based on the provided
+     * MolScript expression or StructureElement schema.
+     *
+     * If neither `expression` nor `elements` are provided, all selections/highlights
+     * will be cleared based on the specified `action`.
+     */
+    structureInteraction({ expression, elements, action, applyGranularity = false }: {
+        expression?: (queryBuilder: typeof MolScriptBuilder) => Expression,
+        elements?: StructureElement.Schema,
+        action: 'highlight' | 'select',
+        applyGranularity?: boolean
+    }) {
+        const plugin = this.plugin;
+
+        if (!expression && !elements) {
+            if (action === 'select') {
+                plugin.managers.interactivity.lociSelects.deselectAll();
+            } else if (action === 'highlight') {
+                plugin.managers.interactivity.lociHighlights.clearHighlights();
+            }
+            return;
+        }
+
+        const structures = this.plugin.state.data.selectQ(Q => Q.rootsOfType(PluginStateObject.Molecule.Structure));
+        for (const s of structures) {
+            if (!s.obj?.data) continue;
+
+            const loci = expression
+                ? StructureSelection.toLociWithSourceUnits(Script.getStructureSelection(expression, s.obj.data))
+                : StructureElement.Schema.toLoci(s.obj.data, elements!);
+
+            if (action === 'select') {
+                plugin.managers.interactivity.lociSelects.select({ loci }, applyGranularity);
+            } else if (action === 'highlight') {
+                plugin.managers.interactivity.lociHighlights.highlight({ loci }, applyGranularity);
+            }
+        }
     }
 
     dispose() {
