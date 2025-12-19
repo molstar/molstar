@@ -20,7 +20,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add `tryGetPrimitivesFromLoci` that makes it easier to access primitive element data from hover/click interactions
 - Viewer app
   - Move viewer extensions, options, and presets to a separate file
-  - Add `molstar.lib` export providing to access a wide range of functionality previously not available from the compiled bundle
+  - Add `molstar.lib` export providing access to a wide range of functionality previously not available from the compiled bundle
   - Add `Viewer.subscribe` method that keeps track of subscribed plugin events and disposes them together with the parent viewer
   - Add `Viewer.structureInteraction` that makes it easy to highlight/select elements on the loaded structure
   - Add `viewportBackgroundColor` and `viewportFocusBehavior` options
