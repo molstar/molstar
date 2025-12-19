@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
+ */
+
 import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
 import { AssemblySymmetry } from '../../extensions/assembly-symmetry';
 import { Backgrounds } from '../../extensions/backgrounds';
@@ -36,7 +44,7 @@ export const ExtensionMap = {
     'assembly-symmetry': PluginSpec.Behavior(AssemblySymmetry),
     'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
     'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
-    'g3d': PluginSpec.Behavior(G3DFormat),
+    'g3d': PluginSpec.Behavior(G3DFormat), // TODO: consider removing this for Mol* 6.0
     'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
     'sb-ncbr-partial-charges': PluginSpec.Behavior(SbNcbrPartialCharges),
     'tunnels': PluginSpec.Behavior(SbNcbrTunnels),
@@ -46,6 +54,7 @@ export const PluginExtensions = {
     wwPDBStructConn: wwPDBStructConnExtensionFunctions,
     mvs: {
         MVSData,
+        createBuilder: MVSData.createBuilder,
         loadMVS,
         loadMVSData,
         util: {

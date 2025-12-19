@@ -8,25 +8,19 @@
  */
 
 import { AssemblySymmetryConfig } from '../../extensions/assembly-symmetry';
-import { G3dProvider } from '../../extensions/g3d/format';
-import { QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
-import { QualityAssessment } from '../../extensions/model-archive/quality-assessment/prop';
 import { loadMVSData, loadMVSX } from '../../extensions/mvs/components/formats';
 import { loadMVS, MolstarLoadingExtension } from '../../extensions/mvs/load';
 import { MVSData } from '../../extensions/mvs/mvs-data';
-import { SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider } from '../../extensions/sb-ncbr';
 import { StringLike } from '../../mol-io/common/string-like';
 import { StructureElement, StructureSelection } from '../../mol-model/structure';
-import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
 import { Volume } from '../../mol-model/volume';
 import { OpenFiles } from '../../mol-plugin-state/actions/file';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
-import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
+import { StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
 import { PluginComponent } from '../../mol-plugin-state/component';
 import { BuiltInCoordinatesFormat } from '../../mol-plugin-state/formats/coordinates';
-import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 import { BuiltInTopologyFormat } from '../../mol-plugin-state/formats/topology';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { BuildInVolumeFormat } from '../../mol-plugin-state/formats/volume';
@@ -40,74 +34,23 @@ import { renderReact18 } from '../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginBehaviors } from '../../mol-plugin/behavior';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { PluginConfig, PluginConfigItem } from '../../mol-plugin/config';
-import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
+import { PluginConfig } from '../../mol-plugin/config';
 import { PluginState } from '../../mol-plugin/state';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
 import { Expression } from '../../mol-script/language/expression';
 import { Script } from '../../mol-script/script';
-import { StateObjectRef, StateObjectSelector } from '../../mol-state';
+import { StateObjectSelector } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
-import '../../mol-util/polyfill';
-import { ObjectKeys } from '../../mol-util/type-helpers';
 import { ExtensionMap } from './extensions';
+import { DefaultViewerOptions, ViewerOptions } from './options';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { consoleStats, isDebugMode, isProductionMode, isTimingMode, setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
 
-const CustomFormats = [
-    ['g3d', G3dProvider] as const
-];
-
-const DefaultViewerOptions = {
-    customFormats: CustomFormats as [string, DataFormatProvider][],
-    extensions: ObjectKeys(ExtensionMap),
-    disabledExtensions: [] as string[],
-    layoutIsExpanded: true,
-    layoutShowControls: true,
-    layoutShowRemoteState: true,
-    layoutControlsDisplay: 'reactive' as PluginLayoutControlsDisplay,
-    layoutShowSequence: true,
-    layoutShowLog: true,
-    layoutShowLeftPanel: true,
-    collapseLeftPanel: false,
-    collapseRightPanel: false,
-    disableAntialiasing: PluginConfig.General.DisableAntialiasing.defaultValue,
-    pixelScale: PluginConfig.General.PixelScale.defaultValue,
-    pickScale: PluginConfig.General.PickScale.defaultValue,
-    transparency: PluginConfig.General.Transparency.defaultValue,
-    preferWebgl1: PluginConfig.General.PreferWebGl1.defaultValue,
-    allowMajorPerformanceCaveat: PluginConfig.General.AllowMajorPerformanceCaveat.defaultValue,
-    powerPreference: PluginConfig.General.PowerPreference.defaultValue,
-    resolutionMode: PluginConfig.General.ResolutionMode.defaultValue,
-    illumination: false,
-
-    viewportShowReset: PluginConfig.Viewport.ShowReset.defaultValue,
-    viewportShowScreenshotControls: PluginConfig.Viewport.ShowScreenshotControls.defaultValue,
-    viewportShowControls: PluginConfig.Viewport.ShowControls.defaultValue,
-    viewportShowExpand: PluginConfig.Viewport.ShowExpand.defaultValue,
-    viewportShowToggleFullscreen: PluginConfig.Viewport.ShowToggleFullscreen.defaultValue,
-    viewportShowSettings: PluginConfig.Viewport.ShowSettings.defaultValue,
-    viewportShowSelectionMode: PluginConfig.Viewport.ShowSelectionMode.defaultValue,
-    viewportShowAnimation: PluginConfig.Viewport.ShowAnimation.defaultValue,
-    viewportShowTrajectoryControls: PluginConfig.Viewport.ShowTrajectoryControls.defaultValue,
-    viewportFocusBehavior: 'default' as 'default' | 'disabled',
-
-    pluginStateServer: PluginConfig.State.DefaultServer.defaultValue,
-    volumeStreamingServer: PluginConfig.VolumeStreaming.DefaultServer.defaultValue,
-    volumeStreamingDisabled: !PluginConfig.VolumeStreaming.Enabled.defaultValue,
-    pdbProvider: PluginConfig.Download.DefaultPdbProvider.defaultValue,
-    emdbProvider: PluginConfig.Download.DefaultEmdbProvider.defaultValue,
-    saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
-    rcsbAssemblySymmetryDefaultServerType: AssemblySymmetryConfig.DefaultServerType.defaultValue,
-    rcsbAssemblySymmetryDefaultServerUrl: AssemblySymmetryConfig.DefaultServerUrl.defaultValue,
-    rcsbAssemblySymmetryApplyColors: AssemblySymmetryConfig.ApplyColors.defaultValue,
-
-    config: [] as [PluginConfigItem, any][],
-};
-type ViewerOptions = typeof DefaultViewerOptions;
+import '../../mol-util/polyfill';
+import { ViewerAutoPreset } from './presets';
 
 export class Viewer {
     private _events = new PluginComponent();
@@ -631,33 +574,3 @@ export interface LoadTrajectoryParams {
     coordinatesLabel?: string,
     preset?: keyof PresetTrajectoryHierarchy
 }
-
-export const ViewerAutoPreset = StructureRepresentationPresetProvider({
-    id: 'preset-structure-representation-viewer-auto',
-    display: {
-        name: 'Automatic (w/ Annotation)', group: 'Annotation',
-        description: 'Show standard automatic representation but colored by quality assessment (if available in the model).'
-    },
-    isApplicable(a) {
-        return (
-            !!a.data.models.some(m => QualityAssessment.isApplicable(m, 'pLDDT')) ||
-            !!a.data.models.some(m => QualityAssessment.isApplicable(m, 'qmean'))
-        );
-    },
-    params: () => StructureRepresentationPresetProvider.CommonParams,
-    async apply(ref, params, plugin) {
-        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
-        const structure = structureCell?.obj?.data;
-        if (!structureCell || !structure) return {};
-
-        if (!!structure.models.some(m => QualityAssessment.isApplicable(m, 'pLDDT'))) {
-            return await QualityAssessmentPLDDTPreset.apply(ref, params, plugin);
-        } else if (!!structure.models.some(m => QualityAssessment.isApplicable(m, 'qmean'))) {
-            return await QualityAssessmentQmeanPreset.apply(ref, params, plugin);
-        } else if (!!structure.models.some(m => SbNcbrPartialChargesPropertyProvider.isApplicable(m))) {
-            return await SbNcbrPartialChargesPreset.apply(ref, params, plugin);
-        } else {
-            return await PresetStructureRepresentations.auto.apply(ref, params, plugin);
-        }
-    }
-});

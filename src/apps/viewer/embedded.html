@@ -52,10 +52,10 @@
                 pdbProvider: 'rcsb',
                 emdbProvider: 'rcsb',
             }).then(viewer => {
-                // TODO: once new version is deployed, add this example to the docs as it requires pulling the script from jsdelivr
                 window.viewer = viewer;
 
-                const builder = molstar.PluginExtensions.mvs.MVSData.createBuilder();
+                // Build MVS state
+                const builder = molstar.lib.extensions.mvs.createBuilder();
                 const structure = builder
                     .download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/1cbs.bcif' })
                     .parse({ format: 'bcif' })
@@ -73,7 +73,7 @@
                     .sphere({
                         center: { label_comp_id: 'REA' },
                         radius: 3,
-                        custom: { action: '1' },
+                        custom: { action: 'Action 1' },
                     })
                     .label({
                         text: '1',
@@ -86,7 +86,7 @@
                     .sphere({
                         center: { label_seq_id: 2 },
                         radius: 3,
-                        custom: { action: '2' },
+                        custom: { action: 'Action 2' },
                     })
                     .label({
                         text: '2',
@@ -99,6 +99,7 @@
 
                 viewer.loadMvsData(mvsData, 'mvsj');
 
+                // Show current residue interaction
                 viewer.subscribe(viewer.plugin.behaviors.interaction.hover, e => {
                     const infoElement = document.getElementById('selection-info');
                     if (!infoElement) return;
@@ -113,8 +114,9 @@
                     }
                 });
 
+                // Show clicked primitive action
                 viewer.subscribe(viewer.plugin.behaviors.interaction.click, e => {
-                    const nodes = molstar.PluginExtensions.mvs.util.tryGetPrimitivesFromLoci(e.current.loci);
+                    const nodes = molstar.lib.extensions.mvs.util.tryGetPrimitivesFromLoci(e.current.loci);
                     if (nodes?.length) {
                         alert('Clicked on: ' + (nodes[0].custom?.action || 'unknown'));
                     }
