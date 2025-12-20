@@ -21,11 +21,7 @@ void main() {
     #include fade_lod
     #include clip_pixel
 
-    #if defined(dFlipSided)
-        interior = gl_FrontFacing;
-    #else
-        interior = !gl_FrontFacing;
-    #endif
+    interior = !gl_FrontFacing;
 
     float fragmentDepth = gl_FragCoord.z;
 
@@ -37,6 +33,10 @@ void main() {
         #else
             vec3 normal = -normalize(vNormal);
             if (uDoubleSided) normal *= float(gl_FrontFacing) * 2.0 - 1.0;
+        #endif
+
+        #if defined(dFlipSided)
+            normal *= -1.0;
         #endif
     #endif
 
