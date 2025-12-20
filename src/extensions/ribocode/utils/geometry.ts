@@ -68,9 +68,9 @@ export function computeBigMean(x: number[]) : number {
  * @returns An object containing the rotated coordinates {xR, yR, zR}.
  */
 export function getRotatedCoordinates(rotmat: number[], x: number[], y: number[], z: number[]): { xR: number[]; yR: number[]; zR: number[] } {
-    let xR: number[] = [];
-    let yR: number[] = [];
-    let zR: number[] = [];
+    const xR: number[] = [];
+    const yR: number[] = [];
+    const zR: number[] = [];
     for (let i = 0; i < x.length; i++) {
         xR[i] = rotmat[0] * x[i] + rotmat[1] * y[i] + rotmat[2] * z[i];
         yR[i] = rotmat[3] * x[i] + rotmat[4] * y[i] + rotmat[5] * z[i];
@@ -88,9 +88,9 @@ export function getRotatedCoordinates(rotmat: number[], x: number[], y: number[]
  * @returns An object containing the rotated coordinates {xR, yR, zR}.
  */
 export function getBigRotatedCoordinates(rotmat: number[], x: number[], y: number[], z: number[]): { xR: number[]; yR: number[]; zR: number[] } {
-    let xR: number[] = [];
-    let yR: number[] = [];
-    let zR: number[] = [];
+    const xR: number[] = [];
+    const yR: number[] = [];
+    const zR: number[] = [];
     for (let i = 0; i < x.length; i++) {
         xR.push(new Big(rotmat[0]).times(x[i])
             .plus(new Big(rotmat[1]).times(y[i]))
@@ -128,17 +128,17 @@ export function alignDataset(
     z: number[]
 ): { alignedX: number[]; alignedY: number[]; alignedZ: number[] } {
     const nAtomsNew = newX.length;
-    //const nAtoms = x.length;
+    // const nAtoms = x.length;
     // Get indices of selected atoms
     const newSIndices: number[] = [];
     let newCount: number = 0;
     // Change this to the desired atom types for alignment
     const selectedAtomTypes = { 'P': true };
-    //const selectedAtomTypes = { 'P': true, 'S': true };
+    // const selectedAtomTypes = { 'P': true, 'S': true };
     for (let i = 0; i < symbol_type.length; i++) {
         if (selectedAtomTypes.hasOwnProperty(symbol_type[i])) {
             newSIndices.push(i);
-            //console.log(`Selected atom found at index ${i}`);
+            // console.log(`Selected atom found at index ${i}`);
             newCount++;
         }
     }
@@ -148,7 +148,7 @@ export function alignDataset(
     for (let i = 0; i < type.length; i++) {
         if (selectedAtomTypes.hasOwnProperty(type[i])) {
             sIndices.push(i);
-            //console.log(`Selected atom found at index ${i}`);
+            // console.log(`Selected atom found at index ${i}`);
             count++;
         }
     }
@@ -194,7 +194,7 @@ export function alignDataset(
             //     filteredZS.push(newZS[idx]);
             // }
             // console.log(`Filtered selected types of atoms to ${filteredXS.length} for alignment.`);
-            
+
             // Simply select the first count atoms.
             for (let i = 0; i < count; i++) {
                 filteredXS.push(newXS[i]);
@@ -220,7 +220,7 @@ export function alignDataset(
                 yS[i] -= ySMean;
                 zS[i] -= zSMean;
             }
-            console.log(`Recentralised ${xS.length} atoms for alignment.`); 
+            console.log(`Recentralised ${xS.length} atoms for alignment.`);
             // 6. Create new aligned coordinates arrays.
             const qcprot = new QCProt(filteredXS, filteredYS, filteredZS, xS, yS, zS);
             // Recentre new coordinates.
@@ -257,7 +257,7 @@ export function alignDataset(
             //     filteredZS.push(zS[idx]);
             // }
             // console.log(`Filtered selected types of atoms to ${filteredXS.length} for alignment.`);
-            
+
             // Simply select the first newCount atoms.
             for (let i = 0; i < newCount; i++) {
                 filteredXS.push(xS[i]);
@@ -292,7 +292,7 @@ export function alignDataset(
                 newY[i] += newYPMean;
                 newZ[i] += newZPMean;
             }
-            //const aligned = getBigRotatedCoordinates(qcprot.rotmat, newX, newY, newZ);
+            // const aligned = getBigRotatedCoordinates(qcprot.rotmat, newX, newY, newZ);
             const aligned = getRotatedCoordinates(qcprot.rotmat, newX, newY, newZ);
             // Recentre new coordinates.
             for (let i = 0; i < nAtomsNew; i++) {

@@ -2,9 +2,9 @@
  * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Andy Turner <agdturner@gmail.com>
- * 
+ *
  * QCProt: Quaternion-based characteristic polynomial
- * 
+ *
  * This code is based on
  * https://web.archive.org/web/20240203104803/https://theobald.brandeis.edu/qcp/main.c
  * Douglas L. Theobald (2005) "Rapid calculation of RMSD using a
@@ -83,33 +83,33 @@ export class QCProt {
         this.y = y;
         this.z = z;
         this.len = newX.length;
-        //console.log('newX.length:', newX.length);
-        //console.log('newY.length:', newY.length);
-        //console.log('newZ.length:', newZ.length);
-        //console.log('x.length:', x.length);
-        //console.log('y.length:', y.length);
-        //console.log('z.length:', z.length);
+        // console.log('newX.length:', newX.length);
+        // console.log('newY.length:', newY.length);
+        // console.log('newZ.length:', newZ.length);
+        // console.log('x.length:', x.length);
+        // console.log('y.length:', y.length);
+        // console.log('z.length:', z.length);
         if (this.len !== newY.length || this.len !== newZ.length ||
-            this.len !== x.length || this.len !== y.length || 
+            this.len !== x.length || this.len !== y.length ||
             this.len !== z.length) {
             throw new Error('Coordinate arrays must have the same length');
         }
-        let A: number[] = [];
-        let E0: number = this.innerProduct(A);
+        const A: number[] = [];
+        const E0: number = this.innerProduct(A);
         this.fastCalcRMSDAndRotation(A, E0, -1);
     }
 
     getRotatedCoordinates(): { xR: number[]; yR: number[]; zR: number[] } {
-        let xR: number[] = [];
-        let yR: number[] = [];
-        let zR: number[] = [];
+        const xR: number[] = [];
+        const yR: number[] = [];
+        const zR: number[] = [];
         for (let i = 0; i < this.len; i++) {
-            let x = this.newX[i];
-            let y = this.newY[i];
-            let z = this.newZ[i];
-            let xRot = this.rotmat[0] * x + this.rotmat[1] * y + this.rotmat[2] * z;
-            let yRot = this.rotmat[3] * x + this.rotmat[4] * y + this.rotmat[5] * z;
-            let zRot = this.rotmat[6] * x + this.rotmat[7] * y + this.rotmat[8] * z;
+            const x = this.newX[i];
+            const y = this.newY[i];
+            const z = this.newZ[i];
+            const xRot = this.rotmat[0] * x + this.rotmat[1] * y + this.rotmat[2] * z;
+            const yRot = this.rotmat[3] * x + this.rotmat[4] * y + this.rotmat[5] * z;
+            const zRot = this.rotmat[6] * x + this.rotmat[7] * y + this.rotmat[8] * z;
             xR.push(xRot);
             yR.push(yRot);
             zR.push(zRot);
@@ -120,10 +120,10 @@ export class QCProt {
         let wsum = 0.0;
         for (let i = 0; i < this.len; i++) {
             wsum += this.weight![i];
-            let dx = this.x[i] - xR[i];
-            let dy = this.y[i] - yR[i];
-            let dz = this.z[i] - zR[i];
-            let dist = dx * dx + dy * dy + dz * dz;
+            const dx = this.x[i] - xR[i];
+            const dy = this.y[i] - yR[i];
+            const dz = this.z[i] - zR[i];
+            const dist = dx * dx + dy * dy + dz * dz;
             swdist += this.weight![i] * dist;
             sdist += dist;
         }
@@ -133,36 +133,7 @@ export class QCProt {
     }
 
     fastCalcRMSDAndRotation(A : number[], E0 : number, minScore: number): number {
-        let Sxx: number;
-        let Sxy: number;
-        let Sxz: number;
-        let Syx: number;
-        let Syy: number;
-        let Syz: number;
-        let Szx: number;
-        let Szy: number;
-        let Szz: number;
-        let Szz2: number;
-        let Syy2: number;
-        let Sxx2: number;
-        let Sxy2: number;
-        let Syz2: number;
-        let Sxz2: number;
-        let Syx2: number;
-        let Szy2: number;
-        let Szx2: number;
-        let SyzSzymSyySzz2: number;
-        let Sxx2Syy2Szz2Syz2Szy2: number;
-        let Sxy2Sxz2Syx2Szx2: number;
-        let SxzpSzx: number;
-        let SyzpSzy: number;
-        let SxypSyx: number;
-        let SyzmSzy: number;
-        let SxzmSzx: number;
-        let SxymSyx: number;
-        let SxxpSyy: number;
-        let SxxmSyy: number;
-        let C: number[] = [];
+        const C: number[] = [];
         let i: number;
         let mxEigenV: number;
         let oldg: number;
@@ -170,79 +141,46 @@ export class QCProt {
         let a: number;
         let delta: number;
         let qsqr: number;
-        let normq: number;
-        let a11: number;
-        let a12: number;
-        let a13: number;
-        let a14: number;
-        let a21: number;
-        let a22: number;
-        let a23: number;
-        let a24: number;
-        let a31: number;
-        let a32: number;
-        let a33: number;
-        let a34: number;
-        let a41: number;
-        let a42: number;
-        let a43: number;
-        let a44: number;
-        let a2: number;
-        let x2: number;
-        let y2: number;
-        let z2: number;
-        let xy: number;
-        let az: number;
-        let zx: number;
-        let ay: number;
-        let yz: number;
-        let ax: number;
-        let a3344_4334: number;
-        let a3244_4234: number;
-        let a3243_4233: number;
-        let a3143_4133: number;
-        let a3144_4134: number;
-        let a3142_4132: number;
-        let evecprec: number = 1.0e-6;
-        let evalprec: number = 1.0e-11;
-        
-        Sxx = A[0];
-        Sxy = A[1];
-        Sxz = A[2];
-        Syx = A[3];
-        Syy = A[4];
-        Syz = A[5];
-        Szx = A[6];
-        Szy = A[7];
-        Szz = A[8];
+        const evecprec: number = 1.0e-6;
+        const evalprec: number = 1.0e-11;
 
-        Sxx2 = Sxx * Sxx;
-        Syy2 = Syy * Syy;
-        Szz2 = Szz * Szz;
+        const Sxx: number = A[0];
+        const Sxy: number = A[1];
+        const Sxz: number = A[2];
+        const Syx: number = A[3];
+        const Syy: number = A[4];
+        const Syz: number = A[5];
+        const Szx: number = A[6];
+        const Szy: number = A[7];
+        const Szz: number = A[8];
 
-        Sxy2 = Sxy * Sxy;
-        Syz2 = Syz * Syz;
-        Sxz2 = Sxz * Sxz;
+        const Sxx2: number = Sxx * Sxx;
+        const Syy2: number = Syy * Syy;
+        const Szz2: number = Szz * Szz;
 
-        Syx2 = Syx * Syx;
-        Szy2 = Szy * Szy;
-        Szx2 = Szx * Szx;
+        const Sxy2: number = Sxy * Sxy;
+        const Syz2: number = Syz * Syz;
+        const Sxz2: number = Sxz * Sxz;
 
-        SyzSzymSyySzz2 = 2.0 * (Syz * Szy - Syy * Szz);
-        Sxx2Syy2Szz2Syz2Szy2 = Syy2 + Szz2 - Sxx2 + Syz2 + Szy2;
+        const Syx2: number = Syx * Syx;
+        const Szy2: number = Szy * Szy;
+        const Szx2: number = Szx * Szx;
+
+        const SyzSzymSyySzz2: number = 2.0 * (Syz * Szy - Syy * Szz);
+        const Sxx2Syy2Szz2Syz2Szy2: number = Syy2 + Szz2 - Sxx2 + Syz2 + Szy2;
 
         C[2] = -2.0 * (Sxx2 + Syy2 + Szz2 + Sxy2 + Syx2 + Sxz2 + Szx2 + Syz2 + Szy2);
         C[1] = 8.0 * (Sxx * Syz * Szy + Syy * Szx * Sxz + Szz * Sxy * Syx - Sxx * Syy * Szz - Syz * Szx * Sxy - Szy * Syx * Sxz);
 
-        SxzpSzx = Sxz + Szx;
-        SyzpSzy = Syz + Szy;
-        SxypSyx = Sxy + Syx;
-        SyzmSzy = Syz - Szy;
-        SxzmSzx = Sxz - Szx;
-        SxymSyx = Sxy - Syx;
-        SxxpSyy = Sxx + Syy;
-        SxxmSyy = Sxx - Syy;
-        Sxy2Sxz2Syx2Szx2 = Sxy2 + Sxz2 - Syx2 - Szx2;
+        const SxzpSzx: number = Sxz + Szx;
+        const SyzpSzy: number = Syz + Szy;
+        const SxypSyx: number = Sxy + Syx;
+        const SyzmSzy: number = Syz - Szy;
+        const SxzmSzx: number = Sxz - Szx;
+        const SxymSyx: number = Sxy - Syx;
+        const SxxpSyy: number = Sxx + Syy;
+        const SxxmSyy: number = Sxx - Syy;
+        const Sxy2Sxz2Syx2Szx2: number = Sxy2 + Sxz2 - Syx2 - Szx2;
 
         C[0] = Sxy2Sxz2Syx2Szx2 * Sxy2Sxz2Syx2Szx2
                 + (Sxx2Syy2Szz2Syz2Szy2 + SyzSzymSyySzz2) * (Sxx2Syy2Szz2Syz2Szy2 - SyzSzymSyySzz2)
@@ -253,15 +191,14 @@ export class QCProt {
 
         /* Newton-Raphson */
         mxEigenV = E0;
+        // The limit of 50 iterations is perhaps not large enough!
         for (i = 0; i < 50; i++) {
             oldg = mxEigenV;
-            x2 = mxEigenV * mxEigenV;
+            const x2 = mxEigenV * mxEigenV;
             b = (x2 + C[2]) * mxEigenV;
             a = b + C[1];
             delta = ((a * mxEigenV + C[0]) / (2.0 * x2 * mxEigenV + b + a));
             mxEigenV -= delta;
-            //rmsd = Math.sqrt(Math.abs(2d * (E0 - mxEigenV) / len));
-            //System.out.println("Iteration " + i + " rmsd " + rmsd);
             if (Math.abs(mxEigenV - oldg) < Math.abs(evalprec * mxEigenV)) {
                 break;
             }
@@ -270,38 +207,37 @@ export class QCProt {
         if (i == 50) {
             console.log("More than " + i + " iterations needed!");
         }
-        /* the Math.abs() is to guard against extremely small, but *negative* numbers due to floating point error */
+        /* The Math.abs() is to guard against extremely small, but *negative* numbers due to floating point error */
         let score: number = Math.sqrt(Math.abs(2.0 * (E0 - mxEigenV) / this.len));
 
-        //System.out.println("rmsd " + rmsd);
         if (minScore > 0) {
             if (score < minScore) {
                 return -1; // Don't bother with rotation.
             }
         }
 
-        a11 = SxxpSyy + Szz - mxEigenV;
-        a12 = SyzmSzy;
-        a13 = -SxzmSzx;
-        a14 = SxymSyx;
-        a21 = SyzmSzy;
-        a22 = SxxmSyy - Szz - mxEigenV;
-        a23 = SxypSyx;
-        a24 = SxzpSzx;
-        a31 = a13;
-        a32 = a23;
-        a33 = Syy - Sxx - Szz - mxEigenV;
-        a34 = SyzpSzy;
-        a41 = a14;
-        a42 = a24;
-        a43 = a34;
-        a44 = Szz - SxxpSyy - mxEigenV;
-        a3344_4334 = a33 * a44 - a43 * a34;
-        a3244_4234 = a32 * a44 - a42 * a34;
-        a3243_4233 = a32 * a43 - a42 * a33;
-        a3143_4133 = a31 * a43 - a41 * a33;
-        a3144_4134 = a31 * a44 - a41 * a34;
-        a3142_4132 = a31 * a42 - a41 * a32;
+        const a11 = SxxpSyy + Szz - mxEigenV;
+        const a12 = SyzmSzy;
+        const a13 = -SxzmSzx;
+        const a14 = SxymSyx;
+        const a21 = SyzmSzy;
+        const a22 = SxxmSyy - Szz - mxEigenV;
+        const a23 = SxypSyx;
+        const a24 = SxzpSzx;
+        const a31 = a13;
+        const a32 = a23;
+        const a33 = Syy - Sxx - Szz - mxEigenV;
+        const a34 = SyzpSzy;
+        const a41 = a14;
+        const a42 = a24;
+        const a43 = a34;
+        const a44 = Szz - SxxpSyy - mxEigenV;
+        const a3344_4334 = a33 * a44 - a43 * a34;
+        const a3244_4234 = a32 * a44 - a42 * a34;
+        const a3243_4233 = a32 * a43 - a42 * a33;
+        const a3143_4133 = a31 * a43 - a41 * a33;
+        const a3144_4134 = a31 * a44 - a41 * a34;
+        const a3142_4132 = a31 * a42 - a41 * a32;
         this.q1 = a22 * a3344_4334 - a23 * a3244_4234 + a24 * a3243_4233;
         this.q2 = -a21 * a3344_4334 + a23 * a3144_4134 - a24 * a3143_4133;
         this.q3 = a21 * a3244_4234 - a22 * a3144_4134 + a24 * a3142_4132;
@@ -323,9 +259,12 @@ export class QCProt {
             qsqr = this.q1 * this.q1 + this.q2 * this.q2 + this.q3 * this.q3 + this.q4 * this.q4;
 
             if (qsqr < evecprec) {
-                let a1324_1423 = a13 * a24 - a14 * a23, a1224_1422 = a12 * a24 - a14 * a22;
-                let a1223_1322 = a12 * a23 - a13 * a22, a1124_1421 = a11 * a24 - a14 * a21;
-                let a1123_1321 = a11 * a23 - a13 * a21, a1122_1221 = a11 * a22 - a12 * a21;
+                const a1324_1423 = a13 * a24 - a14 * a23;
+                const a1224_1422 = a12 * a24 - a14 * a22;
+                const a1223_1322 = a12 * a23 - a13 * a22;
+                const a1124_1421 = a11 * a24 - a14 * a21;
+                const a1123_1321 = a11 * a23 - a13 * a21;
+                const a1122_1221 = a11 * a22 - a12 * a21;
 
                 this.q1 = a42 * a1324_1423 - a43 * a1224_1422 + a44 * a1223_1322;
                 this.q2 = -a41 * a1324_1423 + a43 * a1124_1421 - a44 * a1123_1321;
@@ -351,23 +290,23 @@ export class QCProt {
             }
         }
 
-        normq = Math.sqrt(qsqr);
+        const normq = Math.sqrt(qsqr);
         this.q1 /= normq;
         this.q2 /= normq;
         this.q3 /= normq;
         this.q4 /= normq;
 
-        a2 = this.q1 * this.q1;
-        x2 = this.q2 * this.q2;
-        y2 = this.q3 * this.q3;
-        z2 = this.q4 * this.q4;
+        const a2 = this.q1 * this.q1;
+        const x2 = this.q2 * this.q2;
+        const y2 = this.q3 * this.q3;
+        const z2 = this.q4 * this.q4;
 
-        xy = this.q2 * this.q3;
-        az = this.q1 * this.q4;
-        zx = this.q4 * this.q2;
-        ay = this.q1 * this.q3;
-        yz = this.q3 * this.q4;
-        ax = this.q1 * this.q2;
+        const xy = this.q2 * this.q3;
+        const az = this.q1 * this.q4;
+        const zx = this.q4 * this.q2;
+        const ay = this.q1 * this.q3;
+        const yz = this.q3 * this.q4;
+        const ax = this.q1 * this.q2;
 
         this.rotmat[0] = a2 + x2 - y2 - z2;
         this.rotmat[1] = 2 * (xy + az);
@@ -389,12 +328,12 @@ export class QCProt {
         let y2: number;
         let z1: number;
         let z2: number;
-        let fx1: number[] = this.x;
-        let fy1: number[] = this.y;
-        let fz1: number[] = this.z;
-        let fx2: number[] = this.newX;
-        let fy2: number[] = this.newY;
-        let fz2: number[] = this.newZ;
+        const fx1: number[] = this.x;
+        const fy1: number[] = this.y;
+        const fz1: number[] = this.z;
+        const fx2: number[] = this.newX;
+        const fy2: number[] = this.newY;
+        const fz2: number[] = this.newZ;
         let G1 = 0.0;
         let G2 = 0.0;
         A[0] = 0.0;

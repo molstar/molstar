@@ -57,7 +57,7 @@ export async function loadMoleculeFileToViewer(
             plugin: PluginContext,
             data: StateObjectRef<PluginStateObject.Data.String | PluginStateObject.Data.Binary>,
             params: RibocodeMmcifParseParams | undefined
-        ) => RibocodeMmcifProvider.parse(plugin, data, 
+        ) => RibocodeMmcifProvider.parse(plugin, data,
             { ...params, centraliseCoordinates: centralise, alignmentData: alignment })
     };
     const trajectory = await plugin.builders.structure.parseTrajectory(data.data, myProvider);
@@ -86,7 +86,7 @@ export async function loadMoleculeFileToViewer(
     }
     console.log('Model properties from presetResult:', modelProperties);
     // Check unitcell.
-    const unitcell = presetResult.unitcell; 
+    const unitcell = presetResult.unitcell;
     if (!unitcell) {
         console.warn('No unitcell found in presetResult.');
     }
@@ -128,7 +128,7 @@ export async function loadMoleculeFileToViewer(
     } else {
         console.log('polymer representation created:', polymer);
     }
-    // Get alignment data if requested.    
+    // Get alignment data if requested.
     let alignmentData;
     if (doGetAlignmentData) {
         alignmentData = await getAlignmentData(plugin, trajectory);
@@ -136,19 +136,19 @@ export async function loadMoleculeFileToViewer(
     const name: string = presetResult?.model.data?.label.toLocaleUpperCase() || file.name;
     const label: string = name.split(' ')[0];
     console.log('Molecule loaded:', label, name, file.name);
-    return {label: label, name: name, filename: file.name, presetResult: presetResult, alignmentData: alignmentData};
+    return { label: label, name: name, filename: file.name, presetResult: presetResult, alignmentData: alignmentData };
 }
 
 /**
- * Gets alignment data for a molecule. This currently includes the type and location
- *  of all atoms in the structure.
+ * Gets alignment data for a molecule including the type and location
+ * of all atoms in the structure.
  * @param plugin The PluginUIContext instance.
  * @param trajectory The trajectory StateObjectRef.
- * @returns A promise that resolves to an object containing arrays of x, y, z coordinates and atom types.
+ * @returns A promise that resolves to an object containing arrays of
+ * x, y, z coordinates and atom types.
  */
 export async function getAlignmentData(plugin: PluginUIContext, trajectory: any) {
     console.log('Extracting alignment data');
-    //let id : string[] = [];
     let x : Vec3[] = [];
     let y : Vec3[] = [];
     let z : Vec3[] = [];
@@ -157,9 +157,6 @@ export async function getAlignmentData(plugin: PluginUIContext, trajectory: any)
     if (trajCell?.obj?.data) {
         const frame = trajCell.obj.data.frames[0];
         console.log('Frame data:', frame);
-        // if (frame?.atomicHierarchy?.atoms?.id?.__array) {
-        //     id = frame.atomicHierarchy.atoms.id.__array as string[];
-        // }
         if (frame?.atomicConformation?.x) {
             x = Array.from(frame.atomicConformation.x);
         }
@@ -173,8 +170,7 @@ export async function getAlignmentData(plugin: PluginUIContext, trajectory: any)
             type = frame.atomicHierarchy.atoms.type_symbol.__array as string[];
         }        
     }
-    //console.log('Alignment data extracted:', id.length, x.length, y.length, z.length, type.length);
-    //return {id, x, y, z, type};
+    // console.log('Alignment data extracted:', id.length, x.length, y.length, z.length, type.length);
     console.log('Alignment data extracted:', x.length, y.length, z.length, type.length);
-    return {x, y, z, type};
+    return { x, y, z, type };
 }
