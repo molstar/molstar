@@ -168,7 +168,7 @@ export async function getAlignmentData(plugin: PluginUIContext, trajectory: any)
         }
         if (frame?.atomicHierarchy?.atoms?.type_symbol?.__array) {
             type = frame.atomicHierarchy.atoms.type_symbol.__array as string[];
-        }        
+        }
     }
     // console.log('Alignment data extracted:', id.length, x.length, y.length, z.length, type.length);
     console.log('Alignment data extracted:', x.length, y.length, z.length, type.length);
