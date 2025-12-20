@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Andy Turner <agdturner@gmail.com>
+ */
 //import { Viewer } from '../../../apps/viewer';
 import { Asset } from '../../mol-util/assets';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
