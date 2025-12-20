@@ -3,17 +3,13 @@
  *
  * @author Andy Turner <agdturner@gmail.com>
  */
-//import { Viewer } from '../../../apps/viewer';
 import { Asset } from '../../mol-util/assets';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { RibocodeMmcifParseParams, RibocodeMmcifProvider } from './mol-plugin-state/formats/trajectory';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-//import { StateObjectSelector } from 'molstar/lib/mol-state'; 
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectRef } from '../../mol-state';
 import { Vec3 } from '../../mol-math/linear-algebra';
-//import { PresetStructureRepresentations } from '../../mol-plugin-state/builder/structure/representation-preset';
-//import { ElementSymbol } from '../../../mol-model/structure/model/types';
 
 // Type representing the result of applying a structure preset.
 export type PresetResult = Awaited<
@@ -65,10 +61,10 @@ export async function loadMoleculeFileToViewer(
             { ...params, centraliseCoordinates: centralise, alignmentData: alignment })
     };
     const trajectory = await plugin.builders.structure.parseTrajectory(data.data, myProvider);
-    //const model = await plugin.builders.structure.createModel(trajectory);
-    //const structure = await plugin.builders.structure.createStructure(model);
-    //await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
-    ////return {structure};
+    if (!trajectory) {
+        console.error('Failed to parse trajectory from file:', file.name);
+        return;
+    }
     const presetResult = await plugin.builders.structure.hierarchy.applyPreset(
         trajectory, 'default');
     if (!presetResult) {
