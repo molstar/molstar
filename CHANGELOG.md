@@ -15,6 +15,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix program not compiled for sync picking
 - Fix missing `gl.flush` for async picking (needed for Safari)
 - Add Residue Charge color scheme (#1722)
+- Added an extension for the ribocode project
+    - Including geometry that may be generally useful for aligning molecules
+    - This includes a dependency on big.js used for precision
 
 ## [v5.4.2] - 2025-12-07
 - Fix postprocessing issues with SSAO and outlines for large structures (#1387)
