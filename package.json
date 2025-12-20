@@ -165,6 +165,7 @@
     "@types/node-fetch": "^2.6.13",
     "@types/swagger-ui-dist": "3.30.6",
     "argparse": "^2.0.1",
+    "big.js": "^7.0.1",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "express": "^5.2.1",
