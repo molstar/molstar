@@ -4,7 +4,6 @@ import { guessCifVariant } from '../../../../mol-plugin-state/formats/provider';
 import { StateObjectRef } from '../../../../mol-state';
 import { PluginStateObject } from '../../../../mol-plugin-state/objects';
 import { PluginContext } from '../../../../mol-plugin/context';
-//import { Vec3 } from '../../mol-math/linear-algebra';
 import { computeBigMean, alignDataset } from '../../utils/geometry';
 
 /**
@@ -37,7 +36,6 @@ export interface RibocodeMmcifParseParams {
  * @description A TrajectoryFormatProvider for mmCIF files with Ribocode extensions.
  */
 export const RibocodeMmcifProvider: TrajectoryFormatProvider<RibocodeMmcifParseParams> = {
-    //export const MmcifProvider: MmcifParseParams = {
     label: 'mmCIF',
     description: 'mmCIF',
     category: TrajectoryFormatCategory,
@@ -49,7 +47,6 @@ export const RibocodeMmcifProvider: TrajectoryFormatProvider<RibocodeMmcifParseP
         if (info.ext === 'cif' || info.ext === 'bcif') return guessCifVariant(info, data) === -1;
         return false;
     },
-    //parse: async (plugin, data, params) => {
     parse: async (plugin, data, params?: RibocodeMmcifParseParams) => {
         console.log('MmcifProvider.parse called');
         const state = plugin.state.data;
@@ -65,10 +62,10 @@ export const RibocodeMmcifProvider: TrajectoryFormatProvider<RibocodeMmcifParseP
             // Step 1: Get the cell from the state using trajectory.ref
             const trajCell = plugin.state.data.cells.get(trajectory.ref);
             // Step 2: Inspect the cell and its data
-            //console.log('trajCell:', trajCell);
-            //console.log('trajCell.obj:', trajCell?.obj);
+            // console.log('trajCell:', trajCell);
+            // console.log('trajCell.obj:', trajCell?.obj);
             if (trajCell?.obj?.data) {
-                //console.log('trajCell.obj.data:', trajCell?.obj?.data);
+                // console.log('trajCell.obj.data:', trajCell?.obj?.data);
                 // Inspect the first frame and representative
                 const nframes = trajCell.obj.data.frames.length;
                 if (nframes === 0) {
@@ -77,18 +74,18 @@ export const RibocodeMmcifProvider: TrajectoryFormatProvider<RibocodeMmcifParseP
                 } else if (nframes > 1) {
                     console.warn(`Multiple frames (${nframes}) found in trajectory data. Centralisation/alignment will be applied only to the first frame.`);
                 }
-                //console.log('Representative:', trajCell.obj.data.representative);
+                // console.log('Representative:', trajCell.obj.data.representative);
                 const frame = trajCell.obj.data.frames[0];
                 if (frame) {
-                    //console.log('Frame data:', frame);
+                    // console.log('Frame data:', frame);
                     if (frame.atomicConformation && frame.atomicHierarchy) {
-                        //console.log('atomicConformation:', frame.atomicConformation);
+                        // console.log('atomicConformation:', frame.atomicConformation);
                         const x: number[] = Array.from(frame.atomicConformation.x);
                         const y: number[] = Array.from(frame.atomicConformation.y);
                         const z: number[] = Array.from(frame.atomicConformation.z);
-                        //console.log('atomicHierarchy:', frame.atomicHierarchy);
+                        // console.log('atomicHierarchy:', frame.atomicHierarchy);
                         const type_symbol = frame.atomicHierarchy.atoms.type_symbol.__array;
-                        //console.log('Atom coordinates and type:', { x, y, z, type_symbol });
+                        // console.log('Atom coordinates and type:', { x, y, z, type_symbol });
 
                         // Count of all different atom types
                         const atomTypeCounts: { [key: string]: number } = {};
@@ -121,7 +118,7 @@ export const RibocodeMmcifProvider: TrajectoryFormatProvider<RibocodeMmcifParseP
                         }
                         if (params?.alignmentData) {
                             // Use alignmentData to align the new coordinates
-                            //console.log('Alignment data provided:', params.alignmentData);
+                            // console.log('Alignment data provided:', params.alignmentData);
                             const alignedCoordinates = alignDataset( type_symbol,
                                 newX, newY, newZ,
                                 params.alignmentData.type, params.alignmentData.x, params.alignmentData.y, params.alignmentData.z);
