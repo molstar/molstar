@@ -119,7 +119,7 @@ export const RibocodeMmcifProvider: TrajectoryFormatProvider<RibocodeMmcifParseP
                         if (params?.alignmentData) {
                             // Use alignmentData to align the new coordinates
                             // console.log('Alignment data provided:', params.alignmentData);
-                            const alignedCoordinates = alignDataset( type_symbol,
+                            const alignedCoordinates = alignDataset(type_symbol,
                                 newX, newY, newZ,
                                 params.alignmentData.type, params.alignmentData.x, params.alignmentData.y, params.alignmentData.z);
                             // Update newX, newY, newZ with aligned coordinates

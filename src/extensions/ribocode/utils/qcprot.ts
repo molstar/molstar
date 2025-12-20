@@ -204,11 +204,11 @@ export class QCProt {
             }
         }
 
-        if (i == 50) {
-            console.log("More than " + i + " iterations needed!");
+        if (i === 50) {
+            console.log('More than ' + i + ' iterations needed!');
         }
         /* The Math.abs() is to guard against extremely small, but *negative* numbers due to floating point error */
-        let score: number = Math.sqrt(Math.abs(2.0 * (E0 - mxEigenV) / this.len));
+        const score: number = Math.sqrt(Math.abs(2.0 * (E0 - mxEigenV) / this.len));
 
         if (minScore > 0) {
             if (score < minScore) {
