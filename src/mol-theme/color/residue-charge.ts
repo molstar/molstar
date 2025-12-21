@@ -16,10 +16,7 @@ import { getAdjustedColorMap } from '../../mol-util/color/color';
 import { getColorMapParams } from '../../mol-util/color/params';
 import { ColorThemeCategory } from './categories';
 
-// Colors for charged residues
-// Relevant sources:
-// - https://www.rbvi.ucsf.edu/chimerax/data/electrostatics-apr2021/crm1.html
-// - https://doi.org/10.3389/fmolb.2015.00056
+// Colors for charged residues (by-name)
 export const ChargedResidueColors = ColorMap({
     // standard amino acids (charged)
     'ARG': 0x0000FF,
@@ -44,6 +41,30 @@ export const ChargedResidueColors = ColorMap({
     'TRP': 0xFFFFFF,
     'TYR': 0xFFFFFF,
     'VAL': 0xFFFFFF,
+
+    // common from CCD
+    'MSE': 0xFFFFFF,
+    'SEP': 0xFFFFFF,
+    'TPO': 0xFFFFFF,
+    'PTR': 0xFFFFFF,
+    'PCA': 0xFFFFFF,
+    'HYP': 0xFFFFFF,
+
+    // charmm ff
+    'HSD': 0xFFFFFF,
+    'HSE': 0xFFFFFF,
+    'HSP': 0x0000FF,
+    'LSN': 0xFFFFFF,
+    'ASPP': 0xFFFFFF,
+    'GLUP': 0xFFFFFF,
+
+    // amber ff
+    'HID': 0xFFFFFF,
+    'HIE': 0xFFFFFF,
+    'HIP': 0x0000FF,
+    'LYN': 0xFFFFFF,
+    'ASH': 0xFFFFFF,
+    'GLH': 0xFFFFFF,
 
     // rna bases
     'A': 0xFFFFFF,
