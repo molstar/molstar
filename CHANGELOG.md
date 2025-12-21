@@ -26,6 +26,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add `viewportBackgroundColor` and `viewportFocusBehavior` options
   - Add `mvs.html` example to showcase the new functionality combined with MolViewSpec
   - Add dark and blue color theme support (import `theme/dark.css` or `theme/blue.css` instead of the default `molstar.css`)
+- Fix `flipSided` for meshes
 
 ## [v5.4.2] - 2025-12-07
 - Fix postprocessing issues with SSAO and outlines for large structures (#1387)
