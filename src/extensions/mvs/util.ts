@@ -60,5 +60,5 @@ export function tryGetPrimitivesFromLoci(loci: Loci | undefined): MVSNode<'primi
 // Retrieves the MVS snapshot associated with the current snapshot of the plugin
 // This will only work if the current state was created from an MVS snapshot
 export function getCurrentMVSSnapshot(plugin: PluginContext): Snapshot | undefined {
-    return plugin.managers.snapshot.current?._transient_data?.sourceMvsSnapshot;
+    return plugin.managers.snapshot.current?._transientData?.sourceMvsSnapshot;
 }

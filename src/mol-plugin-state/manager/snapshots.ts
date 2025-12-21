@@ -267,12 +267,12 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
 
         const entries = this.state.entries.valueSeq().toArray();
         for (let i = 0; i < entries.length; i++) {
-            if (!entries[i]._transient_data) continue;
+            if (!entries[i]._transientData) continue;
 
             // Clone the entry to avoid modifying the original
             entries[i] = { ...entries[i] };
             // Remove any transient data before serialization
-            delete entries[i]._transient_data;
+            delete entries[i]._transientData;
         }
 
         return {
@@ -470,8 +470,8 @@ namespace PluginStateSnapshotManager {
     export interface Entry extends EntryParams {
         timestamp: number,
         snapshot: PluginState.Snapshot,
-        // Extra data that is not serialized
-        _transient_data?: any
+        /** Extra data that is not serialized */
+        _transientData?: any
     }
 
     export function Entry(snapshot: PluginState.Snapshot, params: EntryParams): Entry {
