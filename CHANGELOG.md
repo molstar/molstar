@@ -22,7 +22,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Move viewer extensions, options, and presets to a separate file
   - Add `molstar.lib` export providing access to a wide range of functionality previously not available from the compiled bundle
   - Add `Viewer.subscribe` method that keeps track of subscribed plugin events and disposes them together with the parent viewer
-  - Add `Viewer.structureInteraction` that makes it easy to highlight/select elements on the loaded structure
+  - Add `Viewer.structureInteractivity` that makes it easy to highlight/select elements on the loaded structure
   - Add `viewportBackgroundColor` and `viewportFocusBehavior` options
   - Add `mvs.html` example to showcase the new functionality combined with MolViewSpec
   - Add dark and blue color theme support (import `theme/dark.css` or `theme/blue.css` instead of the default `molstar.css`)

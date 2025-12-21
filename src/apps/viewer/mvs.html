@@ -4,7 +4,7 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
         <link rel="icon" href="./favicon.ico" type="image/x-icon">
-        <title>Embedded Mol* Viewer</title>
+        <title>Mol* Viewer MolViewSpec Example</title>
         <style>
             #app {
                 position: absolute;
@@ -40,14 +40,14 @@
         <script type="text/javascript" src="molstar.js"></script>
         <script type="text/javascript">
             function selectResidues() {
-                viewer.structureInteraction({
+                viewer.structureInteractivity({
                     elements: { beg_auth_seq_id: 10, end_auth_seq_id: 50 },
                     action: 'select',
                 });
             }
 
             function clearSelection() {
-                viewer.structureInteraction({ action: 'select' });
+                viewer.structureInteractivity({ action: 'select' });
             }
 
             molstar.Viewer.create('app', {
@@ -67,6 +67,7 @@
                 pdbProvider: 'rcsb',
                 emdbProvider: 'rcsb',
             }).then(viewer => {
+                // Make the viewer accessible globally for the demo buttons
                 window.viewer = viewer;
 
                 // Build MVS state

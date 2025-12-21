@@ -12,7 +12,7 @@ import { loadMVSData, loadMVSX } from '../../extensions/mvs/components/formats';
 import { loadMVS, MolstarLoadingExtension } from '../../extensions/mvs/load';
 import { MVSData } from '../../extensions/mvs/mvs-data';
 import { StringLike } from '../../mol-io/common/string-like';
-import { StructureElement, StructureSelection } from '../../mol-model/structure';
+import { Structure, StructureElement, StructureSelection } from '../../mol-model/structure';
 import { Volume } from '../../mol-model/volume';
 import { OpenFiles } from '../../mol-plugin-state/actions/file';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
@@ -520,11 +520,12 @@ export class Viewer {
      * If neither `expression` nor `elements` are provided, all selections/highlights
      * will be cleared based on the specified `action`.
      */
-    structureInteraction({ expression, elements, action, applyGranularity = false }: {
+    structureInteractivity({ expression, elements, action, applyGranularity = false, filterStructure }: {
         expression?: (queryBuilder: typeof MolScriptBuilder) => Expression,
         elements?: StructureElement.Schema,
         action: 'highlight' | 'select',
-        applyGranularity?: boolean
+        applyGranularity?: boolean,
+        filterStructure?: (structure: Structure) => boolean
     }) {
         const plugin = this.plugin;
 
@@ -540,6 +541,8 @@ export class Viewer {
         const structures = this.plugin.state.data.selectQ(Q => Q.rootsOfType(PluginStateObject.Molecule.Structure));
         for (const s of structures) {
             if (!s.obj?.data) continue;
+
+            if (filterStructure && !filterStructure(s.obj.data)) continue;
 
             const loci = expression
                 ? StructureSelection.toLociWithSourceUnits(Script.getStructureSelection(expression, s.obj.data))
