@@ -77,7 +77,10 @@ export const ResidueChargeColorThemeParams = {
         'by-name': PD.Group({
             saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
             lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
-            colors: PD.Optional(PD.Group(getColorMapParams(ChargedResidueColors)))
+            colors: PD.MappedStatic('default', {
+                'default': PD.EmptyGroup(),
+                'custom': PD.Group(getColorMapParams(ChargedResidueColors)),
+            })
         }, { isFlat: true })
     })
 };
@@ -100,14 +103,14 @@ function getCoarseCompId(unit: Unit.Spheres | Unit.Gaussians, element: ElementIn
     }
 }
 
-export function residueChargeColor(colorMap: ChargedResidueColors, residueName: string): Color {
-    const c = colorMap[residueName as keyof ChargedResidueColors];
+export function residueChargeColor(colorMap: ColorMap<Record<string, Color>>, residueName: string): Color {
+    const c = colorMap[residueName];
     return c === undefined ? DefaultResidueChargeColor : c;
 }
 
 export function ResidueChargeColorTheme(ctx: ThemeDataContext, props: PD.Values<ResidueChargeColorThemeParams>): ColorTheme<ResidueChargeColorThemeParams> {
     const { saturation, lightness, colors } = props.method.params;
-    const colorMap = getAdjustedColorMap(colors ?? ChargedResidueColors, saturation, lightness);
+    const colorMap = getAdjustedColorMap(props.method.params.colors.name === 'default' ? ChargedResidueColors : colors.params, saturation, lightness);
 
     function color(location: Location): Color {
         if (StructureElement.Location.is(location)) {
