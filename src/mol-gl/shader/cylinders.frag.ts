@@ -23,6 +23,9 @@ uniform vec3 uCameraDir;
 uniform vec3 uCameraPosition;
 uniform mat4 uInvView;
 
+uniform vec4 uInteriorColor;
+uniform vec4 uInteriorSubstance;
+
 #include common
 #include common_frag_params
 #include color_frag_params
@@ -274,8 +277,8 @@ void main() {
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
-        #include apply_light_color
         #include apply_interior_color
+        #include apply_light_color
         #include apply_marker_color
 
         #if defined(dRenderVariant_color)

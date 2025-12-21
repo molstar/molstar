@@ -19,6 +19,9 @@ precision highp int;
 uniform mat4 uInvView;
 uniform float uAlphaThickness;
 
+uniform vec4 uInteriorColor;
+uniform vec4 uInteriorSubstance;
+
 varying float vRadius;
 varying vec3 vPoint;
 varying vec3 vPointViewPosition;
@@ -147,8 +150,8 @@ void main(void){
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
-        #include apply_light_color
         #include apply_interior_color
+        #include apply_light_color
         #include apply_marker_color
 
         #if defined(dRenderVariant_color)

@@ -16,6 +16,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix missing `gl.flush` for async picking (needed for Safari)
 - Add Residue Charge color scheme (#1722)
 - Fix `flipSided` for meshes
+- [Breaking] Interior coloring
+    - Remove global `interiorDarkening`, `interiorColorFlag`, `interiorColor`
+    - Add per-geometry `interiorColor`, `interiorSubstance`
 
 ## [v5.4.2] - 2025-12-07
 - Fix postprocessing issues with SSAO and outlines for large structures (#1387)
