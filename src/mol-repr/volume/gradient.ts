@@ -31,7 +31,7 @@ import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { sphereVertexCount } from '../../mol-geo/primitive/sphere';
 import { addCylinder, BasicCylinderProps } from '../../mol-geo/geometry/mesh/builder/cylinder';
-import { collectStreamlines, filterStreamlines, formatStreamlines, GridInfo, StreamlineMode, StreamlineParams, StreamlineSet } from '../../mol-math/volume/streamlines';
+import { collectStreamlines, filterStreamlines, GridInfo, StreamlineMode, StreamlineParams, StreamlineSet } from '../../mol-math/volume/streamlines';
 import { Sphere3D } from '../../mol-math/geometry';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 
@@ -52,7 +52,7 @@ export const VolumeGradientParams = {
     geomStride: PD.Numeric(1, { min: 1, max: 10, step: 1 }, { description: 'Emit every Nth segment to geometry.' }),
     filter: PD.Group({
         filter_type: PD.Select('none', PD.arrayToOptions(['none', 'keep-points', 'keep-lines-nearby'] as const), { description: 'Filter type.' }),
-        filter_center: PD.Vec3(Vec3.create(0, 0, 0), { description: 'Center (Å) of the filter sphere.' }),
+        filter_center: PD.Vec3(Vec3.create(0, 0, 0), undefined, { description: 'Center (Å) of the filter sphere.' }),
         filter_radius: PD.Numeric(10, { min: 0, max: 100, step: 1 }, { description: 'Radius (Å) of the filter sphere.' }),
     }, { isFlat: true, description: 'Filter streamlines by their position relative to a sphere.' })
 };
@@ -210,8 +210,8 @@ const COMMON_KEYS: (keyof PD.Values<VolumeGradientParams>)[] = [
 ];
 
 // Mesh lines has one extra prop to watch:
-const MESH_EXTRA: (keyof PD.Values<VolumeGradientParams>)[] = ['detail'];
-const CYLINDERS_EXTRA: (keyof PD.Values<VolumeGradientParams>)[] = ['detail', 'radius'];
+const MESH_EXTRA: (keyof PD.Values<VolumeGradientParams> | 'detail')[] = ['detail'];
+const CYLINDERS_EXTRA: (keyof PD.Values<VolumeGradientParams> | 'detail' | 'radius')[] = ['detail', 'radius'];
 
 // Any change to the watched props triggers a geometry rebuild
 function makeSetUpdateState<P extends object>(keys: (keyof P)[]) {
@@ -520,7 +520,7 @@ function getGradientLoci(pickingId: PickingId, volume: Volume, _key: number, pro
 
         // Use the elements array structure you defined
         const streamlineIndex = groupId as number;
-        const lines = OrderedSet.ofSingleton(streamlineIndex as Volume.StreamIndex);
+        const lines = OrderedSet.ofSingleton(streamlineIndex as Volume.StreamlineIndex);
         return Volume.Streamline.Loci(volume, [{ lines, instances }]);
     }
     return EmptyLoci;

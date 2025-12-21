@@ -54,7 +54,7 @@ export namespace Volume {
     export type CellIndex = { readonly '@type': 'cell-index' } & number
     export type InstanceIndex = { readonly '@type': 'instance-index' } & number
     export type SegmentIndex = { readonly '@type': 'segment-index' } & number
-    export type StreamIndex = { readonly '@type': 'stream-index' } & number
+    export type StreamlineIndex = { readonly '@type': 'streamline-index' } & number
 
     export type IsoValue = IsoValue.Absolute | IsoValue.Relative
 
@@ -421,7 +421,7 @@ export namespace Volume {
             readonly kind: 'streamline-loci',
             readonly volume: Volume,
             readonly elements: ReadonlyArray<{
-                readonly lines: OrderedSet<StreamIndex>,
+                readonly lines: OrderedSet<StreamlineIndex>,
                 readonly instances: OrderedSet<InstanceIndex>
             }>
         }
@@ -453,7 +453,7 @@ export namespace Volume {
             streamlineId: any,
             instance: any
         }
-        export function Location(volume?: Volume, streamlineId?: StreamIndex, instance?: InstanceIndex): Location {
+        export function Location(volume?: Volume, streamlineId?: StreamlineIndex, instance?: InstanceIndex): Location {
             return {
                 kind: 'streamline-location',
                 volume: volume as any,
