@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <link rel="icon" href="./favicon.ico" type="image/x-icon">
+        <title>Mol* Viewer MolViewSpec Example</title>
+        <style>
+            body {
+                background: #111318;
+            }
+
+            #app {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+            }
+
+            #controls {
+                position: absolute;
+                display: flex;
+                align-items: center;
+                font-family: sans-serif;
+                gap: 8px;
+                left: 10px;
+                top: 10px;
+                z-index: 10;
+                background-color: #111318;
+                padding: 10px;
+                color: white;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="theme/dark.css" />
+    </head>
+    <body>
+        <div id="app"></div>
+        <div id="controls">
+            <button onclick="selectResidues()">Select Residues 10-50</button>
+            <button onclick="clearSelection()">Clear Selection</button>
+            <div id="selection-info"></div>
+        </div>
+        <script type="text/javascript" src="molstar.js"></script>
+        <script type="text/javascript">
+            function selectResidues() {
+                viewer.structureInteractivity({
+                    elements: { beg_auth_seq_id: 10, end_auth_seq_id: 50 },
+                    action: 'select',
+                });
+            }
+
+            function clearSelection() {
+                viewer.structureInteractivity({ action: 'select' });
+            }
+
+            molstar.Viewer.create('app', {
+                layoutIsExpanded: true,
+                layoutShowControls: false,
+                layoutShowRemoteState: false,
+                layoutShowSequence: true,
+                layoutShowLog: false,
+                layoutShowLeftPanel: true,
+
+                viewportShowExpand: true,
+                viewportShowSelectionMode: false,
+                viewportShowAnimation: false,
+                viewportFocusBehavior: 'disabled',
+                viewportBackgroundColor: 'black',
+
+                pdbProvider: 'rcsb',
+                emdbProvider: 'rcsb',
+            }).then(viewer => {
+                // Make the viewer accessible globally for the demo buttons
+                window.viewer = viewer;
+
+                // Build MVS state
+                const builder = molstar.lib.extensions.mvs.createBuilder();
+                const structure = builder
+                    .download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/1cbs.bcif' })
+                    .parse({ format: 'bcif' })
+                    .modelStructure({});
+                structure
+                    .component({ selector: 'polymer' })
+                    .representation({ type: 'cartoon' })
+                    .color({ color: 'green' });
+                structure
+                    .component({ selector: 'ligand' })
+                    .representation({ type: 'ball_and_stick' })
+                    .color({ color: '#cc3399' });
+
+                // Extra data can be passed to the MVS snapshot via custom state
+                // and later accessed it using getCurrentMVSSnapshot() (see hover handler below)
+                // Each node can have custom data as well, but generally could be harder to access
+                // This example is a little contrived to demonstrate the concept
+                builder.extendRootCustomState({
+                    extraResidueAnnotations: {
+                        'REA': 'Ligand'
+                    }
+                })
+
+                builder.canvas({
+                    background_color: "#111318",
+                })
+
+                structure.primitives()
+                    .sphere({
+                        center: { label_comp_id: 'REA' },
+                        radius: 3,
+                        custom: { action: 'Action 1' },
+                    })
+                    .label({
+                        text: '1',
+                        position: { label_comp_id: 'REA' },
+                        label_size: 2.5,
+                        label_color: 'blue',
+                    });
+
+                structure.primitives()
+                    .sphere({
+                        center: { label_seq_id: 2 },
+                        radius: 3,
+                        custom: { action: 'Action 2' },
+                    })
+                    .label({
+                        text: '2',
+                        position: { label_seq_id: 2 },
+                        label_size: 2.5,
+                        label_color: 'blue',
+                    });
+
+                const mvsData = builder.getState();
+
+                viewer.loadMvsData(mvsData, 'mvsj');
+
+                // Show current residue interaction
+                viewer.subscribe(viewer.plugin.behaviors.interaction.hover, e => {
+                    const infoElement = document.getElementById('selection-info');
+                    if (!infoElement) return;
+
+                    if (molstar.lib.structure.StructureElement.Loci.is(e.current.loci)) {
+                        molstar.lib.structure.StructureElement.Loci.forEachLocation(e.current.loci, location => {
+                            const props = molstar.lib.structure.StructureProperties;
+                            let label = `Hovered Residue: ${props.chain.label_asym_id(location)} ${props.residue.label_seq_id(location)}`;
+                            
+                            const compId = props.residue.label_comp_id(location);
+                            const snapshot = molstar.lib.extensions.mvs.util.getCurrentMVSSnapshot(viewer.plugin);
+                            if (snapshot && snapshot.root.custom && snapshot.root.custom.extraResidueAnnotations) {
+                                const extra = snapshot.root.custom.extraResidueAnnotations[compId];
+                                if (extra) label += ` (${extra})`;
+                            }
+
+                            infoElement.innerText = label;
+                        });
+                    } else {
+                        infoElement.innerText = '';
+                    }
+                });
+
+                // Show clicked primitive action
+                viewer.subscribe(viewer.plugin.behaviors.interaction.click, e => {
+                    const nodes = molstar.lib.extensions.mvs.util.tryGetPrimitivesFromLoci(e.current.loci);
+                    if (nodes?.length) {
+                        alert('Clicked on: ' + (nodes[0].custom?.action || 'unknown'));
+                    }
+                });
+            });
+        </script>
+    </body>
+</html>

@@ -88,6 +88,8 @@ const residue = {
     key: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.residueIndex[l.element]),
 
     group_PDB: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.group_PDB.value(l.unit.residueIndex[l.element])),
+    label_comp_id: p(compId),
+    auth_comp_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.auth_comp_id.value(l.element)),
     label_seq_id: p(seqId),
     auth_seq_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.element])),
     pdbx_PDB_ins_code: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.pdbx_PDB_ins_code.value(l.unit.residueIndex[l.element])),

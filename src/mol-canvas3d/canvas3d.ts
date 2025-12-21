@@ -96,6 +96,7 @@ export const Canvas3DParams = {
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
     sceneRadiusFactor: PD.Numeric(1, { min: 1, max: 10, step: 0.1 }),
     transparentBackground: PD.Boolean(false),
+    checkeredTransparentBackground: PD.Boolean(false),
     dpoitIterations: PD.Numeric(2, { min: 1, max: 10, step: 1 }),
     pickPadding: PD.Numeric(3, { min: 0, max: 10, step: 1 }, { description: 'Extra pixels to around target to check in case target is empty.' }),
     userInteractionReleaseMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time before the user is not considered interacting anymore.' }),
@@ -405,6 +406,22 @@ const cancelAnimationFrame = typeof window !== 'undefined'
     ? window.cancelAnimationFrame
     : (handle: number) => clearImmediate(handle as unknown as NodeJS.Immediate);
 
+function syncCanvasBackground(canvas: HTMLCanvasElement, canvasProps: Canvas3DProps) {
+    if (canvasProps.transparentBackground && canvasProps.checkeredTransparentBackground) {
+        Object.assign(canvas.style, {
+            'background-image': 'linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey), linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey)',
+            'background-size': '60px 60px',
+            'background-position': '0 0, 30px 30px'
+        });
+    } else {
+        Object.assign(canvas.style, {
+            'background-image': '',
+            'background-size': '',
+            'background-position': ''
+        });
+    }
+}
+
 namespace Canvas3D {
     export interface HoverEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
@@ -435,6 +452,7 @@ namespace Canvas3D {
         let forceNextRender = false;
         let currentTime = 0;
 
+        syncCanvasBackground(canvas!, p);
         updateViewport();
         const scene = Scene.create(webgl, passes.draw.transparency, {
             dColorMarker: p.renderer.colorMarker,
@@ -1061,6 +1079,7 @@ namespace Canvas3D {
                 cameraResetDurationMs: p.cameraResetDurationMs,
                 sceneRadiusFactor: p.sceneRadiusFactor,
                 transparentBackground: p.transparentBackground,
+                checkeredTransparentBackground: p.checkeredTransparentBackground,
                 dpoitIterations: p.dpoitIterations,
                 pickPadding: p.pickPadding,
                 userInteractionReleaseMs: p.userInteractionReleaseMs,
@@ -1311,6 +1330,7 @@ namespace Canvas3D {
                 }
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs;
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground;
+                if (props.checkeredTransparentBackground !== undefined) p.checkeredTransparentBackground = props.checkeredTransparentBackground;
                 if (props.dpoitIterations !== undefined) p.dpoitIterations = props.dpoitIterations;
                 if (props.pickPadding !== undefined) {
                     p.pickPadding = props.pickPadding;
@@ -1355,6 +1375,12 @@ namespace Canvas3D {
 
                 if (cameraState.mode === 'orthographic') {
                     p.camera.stereo.name = 'off';
+                }
+
+                if ('transparentBackground' in props
+                    || 'checkeredTransparentBackground' in props
+                    || (props.renderer && 'backgroundColor' in props.renderer)) {
+                    syncCanvasBackground(canvas!, p);
                 }
 
                 shaderManager.updateRequired(p);

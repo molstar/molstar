@@ -16,10 +16,7 @@ import { getAdjustedColorMap } from '../../mol-util/color/color';
 import { getColorMapParams } from '../../mol-util/color/params';
 import { ColorThemeCategory } from './categories';
 
-// Colors for charged residues
-// Relevant sources:
-// - https://www.rbvi.ucsf.edu/chimerax/data/electrostatics-apr2021/crm1.html
-// - https://doi.org/10.3389/fmolb.2015.00056
+// Colors for charged residues (by-name)
 export const ChargedResidueColors = ColorMap({
     // standard amino acids (charged)
     'ARG': 0x0000FF,
@@ -44,6 +41,30 @@ export const ChargedResidueColors = ColorMap({
     'TRP': 0xFFFFFF,
     'TYR': 0xFFFFFF,
     'VAL': 0xFFFFFF,
+
+    // common from CCD
+    'MSE': 0xFFFFFF,
+    'SEP': 0xFFFFFF,
+    'TPO': 0xFFFFFF,
+    'PTR': 0xFFFFFF,
+    'PCA': 0xFFFFFF,
+    'HYP': 0xFFFFFF,
+
+    // charmm ff
+    'HSD': 0xFFFFFF,
+    'HSE': 0xFFFFFF,
+    'HSP': 0x0000FF,
+    'LSN': 0xFFFFFF,
+    'ASPP': 0xFFFFFF,
+    'GLUP': 0xFFFFFF,
+
+    // amber ff
+    'HID': 0xFFFFFF,
+    'HIE': 0xFFFFFF,
+    'HIP': 0x0000FF,
+    'LYN': 0xFFFFFF,
+    'ASH': 0xFFFFFF,
+    'GLH': 0xFFFFFF,
 
     // rna bases
     'A': 0xFFFFFF,
@@ -77,7 +98,10 @@ export const ResidueChargeColorThemeParams = {
         'by-name': PD.Group({
             saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
             lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
-            colors: PD.Optional(PD.Group(getColorMapParams(ChargedResidueColors)))
+            colors: PD.MappedStatic('default', {
+                'default': PD.EmptyGroup(),
+                'custom': PD.Group(getColorMapParams(ChargedResidueColors)),
+            })
         }, { isFlat: true })
     })
 };
@@ -100,14 +124,14 @@ function getCoarseCompId(unit: Unit.Spheres | Unit.Gaussians, element: ElementIn
     }
 }
 
-export function residueChargeColor(colorMap: ChargedResidueColors, residueName: string): Color {
-    const c = colorMap[residueName as keyof ChargedResidueColors];
+export function residueChargeColor(colorMap: ColorMap<Record<string, Color>>, residueName: string): Color {
+    const c = colorMap[residueName];
     return c === undefined ? DefaultResidueChargeColor : c;
 }
 
 export function ResidueChargeColorTheme(ctx: ThemeDataContext, props: PD.Values<ResidueChargeColorThemeParams>): ColorTheme<ResidueChargeColorThemeParams> {
     const { saturation, lightness, colors } = props.method.params;
-    const colorMap = getAdjustedColorMap(colors ?? ChargedResidueColors, saturation, lightness);
+    const colorMap = getAdjustedColorMap(props.method.params.colors.name === 'default' ? ChargedResidueColors : colors.params, saturation, lightness);
 
     function color(location: Location): Color {
         if (StructureElement.Location.is(location)) {

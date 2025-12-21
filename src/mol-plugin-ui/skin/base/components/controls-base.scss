@@ -286,6 +286,27 @@
         color: $msp-btn-commit-on-hover-font-color;
     }
 
+    .msp-select-toggle::after {
+        content: "";
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 7px solid $hover-font-color;
+
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .msp-select-toggle:hover::after {
+        opacity: 1;
+    }
+
     .msp-btn-action {
         height: $row-height;
         line-height: $row-height;
