@@ -31,7 +31,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `label/auth_comp_id` to `StructureProperties.residue`
   - Previously, this has been only been present on `.atom` (since residue name can alter on per-atom basis), but this has been a bit confusing for the general use-case
 - Move canvas "checked background" logic to `canvas3d.ts` and only apply it when `transparentBackground` is on
-  - This prevents an ugly flicked during plugin initialization
+  - This prevents ugly flickering during plugin initialization
 
 ## [v5.4.2] - 2025-12-07
 - Fix postprocessing issues with SSAO and outlines for large structures (#1387)
