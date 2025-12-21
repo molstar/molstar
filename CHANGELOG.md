@@ -18,6 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add dropdown indicator for mapped parameter definitions and adjust "more options" icon
 - MolViewSpec extension
   - Add `tryGetPrimitivesFromLoci` that makes it easier to access primitive element data from hover/click interactions
+  - Add `getCurrentMVSSnapshot` to obtain source data for the currently displayed snapshot
 - Viewer app
   - Move viewer extensions, options, and presets to a separate file
   - Add `molstar.lib` export providing access to a wide range of functionality previously not available from the compiled bundle
@@ -27,6 +28,8 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add `mvs.html` example to showcase the new functionality combined with MolViewSpec
   - Add dark and blue color theme support (import `theme/dark.css` or `theme/blue.css` instead of the default `molstar.css`)
 - Fix `flipSided` for meshes
+- Add `label/auth_comp_id` to `StructureProperties.residue`
+  - Previously, this has been only been present on `.atom` (since residue name can alter on per-atom basis), but this has been a bit confusing for the general use-case
 
 ## [v5.4.2] - 2025-12-07
 - Fix postprocessing issues with SSAO and outlines for large structures (#1387)

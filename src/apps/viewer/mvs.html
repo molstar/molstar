@@ -85,6 +85,16 @@
                     .representation({ type: 'ball_and_stick' })
                     .color({ color: '#cc3399' });
 
+                // Extra data can be passed to the MVS snapshot via custom state
+                // and later accessed it using getCurrentMVSSnapshot() (see hover handler below)
+                // Each node can have custom data as well, but generally could be harder to access
+                // This example is a little contrived to demonstrate the concept
+                builder.extendRootCustomState({
+                    extraResidueAnnotations: {
+                        'REA': 'Ligand'
+                    }
+                })
+
                 builder.canvas({
                     background_color: "black",
                 })
@@ -127,7 +137,16 @@
                     if (molstar.lib.structure.StructureElement.Loci.is(e.current.loci)) {
                         molstar.lib.structure.StructureElement.Loci.forEachLocation(e.current.loci, location => {
                             const props = molstar.lib.structure.StructureProperties;
-                            infoElement.innerText = `Hovered Residue: ${props.chain.label_asym_id(location)} ${props.residue.label_seq_id(location)}`;
+                            let label = `Hovered Residue: ${props.chain.label_asym_id(location)} ${props.residue.label_seq_id(location)}`;
+                            
+                            const compId = props.residue.label_comp_id(location);
+                            const snapshot = molstar.lib.extensions.mvs.util.getCurrentMVSSnapshot(viewer.plugin);
+                            if (snapshot && snapshot.root.custom && snapshot.root.custom.extraResidueAnnotations) {
+                                const extra = snapshot.root.custom.extraResidueAnnotations[compId];
+                                if (extra) label += ` (${extra})`;
+                            }
+
+                            infoElement.innerText = label;
                         });
                     } else {
                         infoElement.innerText = '';

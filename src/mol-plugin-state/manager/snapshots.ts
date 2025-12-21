@@ -265,6 +265,16 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
     async getStateSnapshot(options?: { name?: string, description?: string, playOnLoad?: boolean, params?: PluginState.SnapshotParams }): Promise<PluginStateSnapshotManager.StateSnapshot> {
         await this.syncCurrent(options);
 
+        const entries = this.state.entries.valueSeq().toArray();
+        for (let i = 0; i < entries.length; i++) {
+            if (!entries[i]._transient_data) continue;
+
+            // Clone the entry to avoid modifying the original
+            entries[i] = { ...entries[i] };
+            // Remove any transient data before serialization
+            delete entries[i]._transient_data;
+        }
+
         return {
             timestamp: +new Date(),
             version: PLUGIN_VERSION,
@@ -275,7 +285,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
                 isPlaying: !!(options && options.playOnLoad),
                 nextSnapshotDelayInMs: this.state.nextSnapshotDelayInMs
             },
-            entries: this.state.entries.valueSeq().toArray()
+            entries,
         };
     }
 
@@ -459,7 +469,9 @@ namespace PluginStateSnapshotManager {
 
     export interface Entry extends EntryParams {
         timestamp: number,
-        snapshot: PluginState.Snapshot
+        snapshot: PluginState.Snapshot,
+        // Extra data that is not serialized
+        _transient_data?: any
     }
 
     export function Entry(snapshot: PluginState.Snapshot, params: EntryParams): Entry {
