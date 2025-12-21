@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-25 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -19,6 +19,10 @@ export class PluginContainer {
         this.parent.parentElement?.removeChild(this.parent);
     }
 
+    /**
+     * options.checkeredCanvasBackground has no effect. Use canvas3d.checkeredTransparentBackground instead.
+     * TODO: remove in v6
+     */
     constructor(public options?: { checkeredCanvasBackground?: boolean, canvas?: HTMLCanvasElement }) {
         const parent = document.createElement('div');
         Object.assign(parent.style, {
@@ -36,13 +40,6 @@ export class PluginContainer {
         let canvas = options?.canvas;
         if (!canvas) {
             canvas = document.createElement('canvas');
-            if (options?.checkeredCanvasBackground) {
-                Object.assign(canvas.style, {
-                    'background-image': 'linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey), linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey)',
-                    'background-size': '60px 60px',
-                    'background-position': '0 0, 30px 30px'
-                });
-            }
             parent.appendChild(canvas);
         }
 

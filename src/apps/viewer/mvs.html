@@ -6,12 +6,16 @@
         <link rel="icon" href="./favicon.ico" type="image/x-icon">
         <title>Mol* Viewer MolViewSpec Example</title>
         <style>
+            body {
+                background: #111318;
+            }
+
             #app {
                 position: absolute;
-                left: 100px;
-                top: 100px;
-                width: 800px;
-                height: 600px;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
             }
 
             #controls {
@@ -23,7 +27,7 @@
                 left: 10px;
                 top: 10px;
                 z-index: 10;
-                background-color: black;
+                background-color: #111318;
                 padding: 10px;
                 color: white;
             }
@@ -96,7 +100,7 @@
                 })
 
                 builder.canvas({
-                    background_color: "black",
+                    background_color: "#111318",
                 })
 
                 structure.primitives()
