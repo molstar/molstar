@@ -83,6 +83,9 @@ export class Viewer {
         }
 
         const spec: PluginUISpec = {
+            canvas3d: {
+                ...defaultSpec.canvas3d,
+            },
             actions: defaultSpec.actions,
             behaviors: [
                 ...baseBehaviors,

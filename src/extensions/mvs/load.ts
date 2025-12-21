@@ -95,7 +95,10 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
                 options
             );
             await assignStateTransition(ctx, plugin, entry, snapshot, options, i, multiData.snapshots.length);
-            entries.push(entry);
+            entries.push({
+                ...entry,
+                _transientData: { sourceMvsSnapshot: snapshot }
+            });
 
             if (ctx.shouldUpdate) {
                 await ctx.update({ message: 'Loading MVS...', current: i, max: multiData.snapshots.length });

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -245,6 +245,9 @@ export class PluginContext {
         });
         if (!this._initViewer(container.canvas, container.parent, options?.canvas3dContext)) {
             return false;
+        }
+        if (options?.checkeredCanvasBackground) {
+            this.canvas3d?.setProps({ checkeredTransparentBackground: true });
         }
         this.container = container;
         return true;

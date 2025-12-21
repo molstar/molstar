@@ -10,6 +10,7 @@ import { ShapeGroup } from '../../mol-model/shape';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector, StateTree } from '../../mol-state';
 import type { MVSPrimitiveShapeSourceData } from './components/primitives';
+import type { Snapshot } from './mvs-data';
 import type { MVSNode } from './tree/mvs/mvs-tree';
 
 
@@ -54,4 +55,10 @@ export function tryGetPrimitivesFromLoci(loci: Loci | undefined): MVSNode<'primi
         });
     }
     return nodes.length > 0 ? nodes : undefined;
+}
+
+// Retrieves the MVS snapshot associated with the current snapshot of the plugin
+// This will only work if the current state was created from an MVS snapshot
+export function getCurrentMVSSnapshot(plugin: PluginContext): Snapshot | undefined {
+    return plugin.managers.snapshot.current?._transientData?.sourceMvsSnapshot;
 }
