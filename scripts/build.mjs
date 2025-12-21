@@ -13,7 +13,7 @@ import * as os from 'os';
 
 const Apps = [
     // Apps
-    { kind: 'app', name: 'viewer' },
+    { kind: 'app', name: 'viewer', themes: ['light', 'dark', 'blue'] },
     { kind: 'app', name: 'docking-viewer' },
     { kind: 'app', name: 'mesoscale-explorer' },
     { kind: 'app', name: 'mvs-stories', globalName: 'mvsStories', filename: 'mvs-stories.js' },
@@ -132,7 +132,6 @@ function getPaths(app) {
 async function createBundle(app) {
     const { name, kind } = app;
     const { prefix, entry, outfile } = getPaths(app);
-    const NODE_ENV_PRD = isProduction || process.env.NODE_ENV === 'production';
 
     const ctx = await esbuild.context({
         entryPoints: [entry],
@@ -165,6 +164,41 @@ async function createBundle(app) {
             'process.env.DEBUG': JSON.stringify(process.env.DEBUG || false),
             __MOLSTAR_PLUGIN_VERSION__: JSON.stringify(VERSION),
             __MOLSTAR_BUILD_TIMESTAMP__: `${TIMESTAMP}`,
+        },
+    });
+
+    await ctx.rebuild();
+
+    if (!isProduction) await ctx.watch();
+}
+
+async function createTheme(appName, themeName) {
+    // const { prefix, entry, outfile } = getPaths(app);
+
+    const ctx = await esbuild.context({
+        entryPoints: [resolveEntryPath(`./src/apps/${appName}/theme/${themeName}.ts`)],
+        tsconfig: './tsconfig.json',
+        bundle: true,
+        minify: isProduction,
+        minifyIdentifiers: false,
+        sourcemap: false,
+        outfile: `./build/${appName}/theme/${themeName}.js`,
+        plugins: [
+            // fileLoaderPlugin({ out: prefix }),
+            sassPlugin({
+                type: 'css',
+                silenceDeprecations: ['import'],
+                logger: {
+                    warn: (msg) => console.warn(msg),
+                    debug: () => { },
+                }
+            }),
+        ],
+        color: true,
+        logLevel: 'info',
+        define: {
+            'process.env.NODE_ENV': JSON.stringify(NODE_ENV_PRD ? 'production' : 'development'),
+            'process.env.DEBUG': JSON.stringify(process.env.DEBUG || false),
         },
     });
 
@@ -230,6 +264,7 @@ const args = argParser.parse_args();
 const isProduction = !!args.prd;
 const includeSourceMap = !args.no_src_map;
 
+const NODE_ENV_PRD = isProduction || process.env.NODE_ENV === 'production';
 const VERSION = isProduction ? JSON.parse(fs.readFileSync('./package.json', 'utf8')).version : '(dev build)';
 const TIMESTAMP = Date.now();
 
@@ -261,7 +296,14 @@ async function main() {
     const promises = [];
     console.log(isProduction ? 'Building apps...' : 'Initial build...');
 
-    for (const app of apps) promises.push(createBundle(app));
+    for (const app of apps) {
+        promises.push(createBundle(app));
+        if (app.themes) {
+            for (const theme of app.themes) {
+                promises.push(createTheme(app.name, theme));
+            }
+        }
+    }
     for (const example of examples) promises.push(createBundle(example));
     for (const browserTest of browserTests) promises.push(createBundle(browserTest));
 
