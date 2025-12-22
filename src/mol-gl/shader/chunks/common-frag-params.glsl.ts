@@ -72,9 +72,6 @@ uniform float uPickingAlphaThreshold;
 uniform bool uTransparentBackground;
 
 uniform bool uDoubleSided;
-uniform float uInteriorDarkening;
-uniform bool uInteriorColorFlag;
-uniform vec3 uInteriorColor;
 bool interior;
 
 uniform float uXrayEdgeFalloff;

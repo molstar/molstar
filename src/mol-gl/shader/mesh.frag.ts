@@ -17,6 +17,9 @@ precision highp int;
 #include normal_frag_params
 #include common_clip
 
+uniform vec4 uInteriorColor;
+uniform vec4 uInteriorSubstance;
+
 void main() {
     #include fade_lod
     #include clip_pixel
@@ -60,8 +63,8 @@ void main() {
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
-        #include apply_light_color
         #include apply_interior_color
+        #include apply_light_color
         #include apply_marker_color
 
         #if defined(dRenderVariant_color)

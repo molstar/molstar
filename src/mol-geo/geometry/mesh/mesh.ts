@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -29,6 +29,7 @@ import { arraySetAdd } from '../../../mol-util/array';
 import { degToRad } from '../../../mol-math/misc';
 import { createEmptySubstance } from '../substance-data';
 import { createEmptyEmissive } from '../emissive-data';
+import { getInteriorColor, getInteriorParam, getInteriorSubstance } from '../interior';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -633,6 +634,7 @@ export namespace Mesh {
         transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque'] as const), BaseGeometry.ShadingCategory),
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
         bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
+        interior: getInteriorParam(),
     };
     export type Params = typeof Params
 
@@ -719,6 +721,8 @@ export namespace Mesh {
             dTransparentBackfaces: ValueCell.create(props.transparentBackfaces),
             uBumpFrequency: ValueCell.create(props.bumpFrequency),
             uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
+            uInteriorColor: ValueCell.create(getInteriorColor(props.interior, Vec4())),
+            uInteriorSubstance: ValueCell.create(getInteriorSubstance(props.interior, Vec4())),
 
             meta: ValueCell.create(mesh.meta),
         };
@@ -741,6 +745,8 @@ export namespace Mesh {
         ValueCell.updateIfChanged(values.dTransparentBackfaces, props.transparentBackfaces);
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
         ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
+        ValueCell.update(values.uInteriorColor, getInteriorColor(props.interior, values.uInteriorColor.ref.value));
+        ValueCell.update(values.uInteriorSubstance, getInteriorSubstance(props.interior, values.uInteriorSubstance.ref.value));
     }
 
     function updateBoundingSphere(values: MeshValues, mesh: Mesh) {

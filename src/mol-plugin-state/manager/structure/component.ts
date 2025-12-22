@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -15,7 +15,7 @@ import { StateBuilder, StateObjectRef, StateTransformer } from '../../../mol-sta
 import { Task } from '../../../mol-task';
 import { ColorTheme } from '../../../mol-theme/color';
 import { SizeTheme } from '../../../mol-theme/size';
-import { shallowEqual, UUID } from '../../../mol-util';
+import { UUID } from '../../../mol-util';
 import { ColorNames } from '../../../mol-util/color/names';
 import { objectForEach } from '../../../mol-util/object';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -35,6 +35,7 @@ import { setStructureSubstance } from '../../helpers/structure-substance';
 import { Material } from '../../../mol-util/material';
 import { Clip } from '../../../mol-util/clip';
 import { setStructureEmissive } from '../../helpers/structure-emissive';
+import { areInteriorPropsEquals, getInteriorParam } from '../../../mol-geo/geometry/interior';
 
 export { StructureComponentManager };
 
@@ -82,20 +83,21 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                 p.ignoreLight = options.ignoreLight;
                 p.material = options.materialStyle;
                 p.clip = options.clipObjects;
+                p.interior = options.interior;
             });
             if (interactionChanged) await this.updateInterationProps();
         });
     }
 
     private updateReprParams(update: StateBuilder.Root, component: StructureComponentRef) {
-        const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip } = this.state.options;
+        const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip, interior } = this.state.options;
         const ignoreHydrogens = hydrogens !== 'all';
         const ignoreHydrogensVariant = hydrogens === 'only-polar' ? 'non-polar' : 'all';
         for (const r of component.representations) {
             if (r.cell.transform.transformer !== StructureRepresentation3D) continue;
 
             const params = r.cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
-            if (!!params.type.params.ignoreHydrogens !== ignoreHydrogens || params.type.params.ignoreHydrogensVariant !== ignoreHydrogensVariant || params.type.params.quality !== quality || params.type.params.ignoreLight !== ignoreLight || !shallowEqual(params.type.params.material, material) || !PD.areEqual(Clip.Params, params.type.params.clip, clip)) {
+            if (!!params.type.params.ignoreHydrogens !== ignoreHydrogens || params.type.params.ignoreHydrogensVariant !== ignoreHydrogensVariant || params.type.params.quality !== quality || params.type.params.ignoreLight !== ignoreLight || !Material.areEqual(params.type.params.material, material) || !PD.areEqual(Clip.Params, params.type.params.clip, clip) || !areInteriorPropsEquals(params.type.params.interior, interior)) {
                 update.to(r.cell).update(old => {
                     old.type.params.ignoreHydrogens = ignoreHydrogens;
                     old.type.params.ignoreHydrogensVariant = ignoreHydrogensVariant;
@@ -103,6 +105,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                     old.type.params.ignoreLight = ignoreLight;
                     old.type.params.material = material;
                     old.type.params.clip = clip;
+                    old.type.params.interior = interior;
                 });
             }
         }
@@ -321,10 +324,10 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
     addRepresentation(components: ReadonlyArray<StructureComponentRef>, type: string) {
         if (components.length === 0) return;
 
-        const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip } = this.state.options;
+        const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip, interior } = this.state.options;
         const ignoreHydrogens = hydrogens !== 'all';
         const ignoreHydrogensVariant = hydrogens === 'only-polar' ? 'non-polar' : 'all';
-        const typeParams = { ignoreHydrogens, ignoreHydrogensVariant, quality, ignoreLight, material, clip };
+        const typeParams = { ignoreHydrogens, ignoreHydrogensVariant, quality, ignoreLight, material, clip, interior };
 
         return this.plugin.dataTransaction(async () => {
             for (const component of components) {
@@ -359,10 +362,10 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             const xs = structures || this.currentStructures;
             if (xs.length === 0) return;
 
-            const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip } = this.state.options;
+            const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip, interior } = this.state.options;
             const ignoreHydrogens = hydrogens !== 'all';
             const ignoreHydrogensVariant = hydrogens === 'only-polar' ? 'non-polar' : 'all';
-            const typeParams = { ignoreHydrogens, ignoreHydrogensVariant, quality, ignoreLight, material, clip };
+            const typeParams = { ignoreHydrogens, ignoreHydrogensVariant, quality, ignoreLight, material, clip, interior };
 
             const componentKey = UUID.create22();
             for (const s of xs) {
@@ -483,6 +486,7 @@ namespace StructureComponentManager {
         materialStyle: Material.getParam(),
         clipObjects: PD.Group(Clip.Params),
         interactions: PD.Group(InteractionsProvider.defaultParams, { label: 'Non-covalent Interactions' }),
+        interior: getInteriorParam(),
     };
     export type Options = PD.Values<typeof OptionsParams>
 

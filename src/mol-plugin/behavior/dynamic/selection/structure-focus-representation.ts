@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -20,6 +20,7 @@ import { PluginCommands } from '../../../commands';
 import { PluginContext } from '../../../context';
 import { Material } from '../../../../mol-util/material';
 import { Clip } from '../../../../mol-util/clip';
+import { getInteriorParam } from '../../../../mol-geo/geometry/interior';
 
 const StructureFocusRepresentationParams = (plugin: PluginContext) => {
     const reprParams = StateTransforms.Representation.StructureRepresentation3D.definition.params!(void 0, plugin) as PD.Params;
@@ -56,6 +57,7 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
         ignoreLight: PD.Boolean(false),
         material: Material.getParam(),
         clip: PD.Group(Clip.Params),
+        interior: getInteriorParam(),
     };
 };
 
@@ -81,7 +83,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
             ...reprParams,
             type: {
                 name: reprParams.type.name,
-                params: { ...reprParams.type.params, ignoreHydrogens: this.params.ignoreHydrogens, ignoreHydrogensVariant: this.params.ignoreHydrogensVariant, ignoreLight: this.params.ignoreLight, material: this.params.material, clip: this.params.clip }
+                params: { ...reprParams.type.params, ignoreHydrogens: this.params.ignoreHydrogens, ignoreHydrogensVariant: this.params.ignoreHydrogensVariant, ignoreLight: this.params.ignoreLight, material: this.params.material, clip: this.params.clip, interior: this.params.interior }
             }
         };
     }

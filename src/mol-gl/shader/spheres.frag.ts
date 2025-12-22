@@ -19,6 +19,9 @@ precision highp int;
 uniform mat4 uInvView;
 uniform float uAlphaThickness;
 
+uniform vec4 uInteriorColor;
+uniform vec4 uInteriorSubstance;
+
 varying float vRadius;
 varying vec3 vPoint;
 varying vec3 vPointViewPosition;
@@ -73,6 +76,11 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
                 if (!objectClipped) {
                     fragmentDepth = 0.0 + (0.0000001 / vRadius);
                     cameraNormal = -mix(normalize(vPoint), vec3(0.0, 0.0, -1.0), uIsOrtho);
+
+                    // intersection of ray with near plane
+                    float nearT = - (uNear + dot(rayOrigin, vec3(0.0, 0.0, 1.0))) / dot(rayDirection, vec3(0.0, 0.0, 1.0));
+                    cameraPos = rayDirection * nearT + rayOrigin;
+                    modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
                 }
             #endif
             return true;
@@ -147,8 +155,8 @@ void main(void){
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
-        #include apply_light_color
         #include apply_interior_color
+        #include apply_light_color
         #include apply_marker_color
 
         #if defined(dRenderVariant_color)

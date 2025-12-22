@@ -28,6 +28,9 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add `mvs.html` example to showcase the new functionality combined with MolViewSpec
   - Add dark and blue color theme support (import `theme/dark.css` or `theme/blue.css` instead of the default `molstar.css`)
 - Fix `flipSided` for meshes
+- [Breaking] Interior coloring
+    - Remove global `interiorDarkening`, `interiorColorFlag`, `interiorColor`
+    - Add per-geometry `interiorColor`, `interiorSubstance`
 - Add `label/auth_comp_id` to `StructureProperties.residue`
   - Previously, this has been only been present on `.atom` (since residue name can alter on per-atom basis), but this has been a bit confusing for the general use-case
 - Move canvas "checkered background" logic to `canvas3d.ts` and only apply it when `transparentBackground` is on

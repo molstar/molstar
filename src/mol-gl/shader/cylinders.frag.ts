@@ -23,6 +23,9 @@ uniform vec3 uCameraDir;
 uniform vec3 uCameraPosition;
 uniform mat4 uInvView;
 
+uniform vec4 uInteriorColor;
+uniform vec4 uInteriorSubstance;
+
 #include common
 #include common_frag_params
 #include color_frag_params
@@ -177,6 +180,13 @@ bool CylinderImpostor(
                     if (!objectClipped) {
                         fragmentDepth = 0.0 + (0.0000002 / vSize);
                         cameraNormal = -rayDir;
+
+                        // intersection of ray in model space with near plane in camera space
+                        vec3 cameraRayOrigin = (uView * vec4(rayOrigin, 1.0)).xyz;
+                        vec3 cameraRayDir = (uView * vec4(rayDir, 0.0)).xyz;
+                        float nearT = - (uNear + cameraRayOrigin.z) / cameraRayDir.z;
+                        viewPosition = cameraRayOrigin + nearT * cameraRayDir;
+                        modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
                     }
                 #endif
                 return true;
@@ -197,6 +207,13 @@ bool CylinderImpostor(
                         if (!objectClipped) {
                             fragmentDepth = 0.0 + (0.0000002 / vSize);
                             cameraNormal = -rayDir;
+
+                            // intersection of ray in model space with near plane in camera space
+                            vec3 cameraRayOrigin = (uView * vec4(rayOrigin, 1.0)).xyz;
+                            vec3 cameraRayDir = (uView * vec4(rayDir, 0.0)).xyz;
+                            float nearT = - (uNear + cameraRayOrigin.z) / cameraRayDir.z;
+                            viewPosition = cameraRayOrigin + nearT * cameraRayDir;
+                            modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
                         }
                     #endif
                     return true;
@@ -216,6 +233,13 @@ bool CylinderImpostor(
                         if (!objectClipped) {
                             fragmentDepth = 0.0 + (0.0000002 / vSize);
                             cameraNormal = -rayDir;
+
+                            // intersection of ray in model space with near plane in camera space
+                            vec3 cameraRayOrigin = (uView * vec4(rayOrigin, 1.0)).xyz;
+                            vec3 cameraRayDir = (uView * vec4(rayDir, 0.0)).xyz;
+                            float nearT = - (uNear + cameraRayOrigin.z) / cameraRayDir.z;
+                            viewPosition = cameraRayOrigin + nearT * cameraRayDir;
+                            modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
                         }
                     #endif
                     return true;
@@ -274,8 +298,8 @@ void main() {
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
-        #include apply_light_color
         #include apply_interior_color
+        #include apply_light_color
         #include apply_marker_color
 
         #if defined(dRenderVariant_color)
