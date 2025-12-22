@@ -46,7 +46,7 @@ export function arrayMapAdd<K, V>(map: Map<K, V[]>, key: K, value: V) {
     }
 }
 
-export class MapWithCollisions<K, V> {
+export class HashMap<K, V> {
     private buckets = new Map<number, Array<{ key: K, value: V }>>();
 
     set(key: K, value: V): void {

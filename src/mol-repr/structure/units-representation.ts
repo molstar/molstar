@@ -28,10 +28,10 @@ import { StructureGroup } from './visual/util/common';
 import { Substance } from '../../mol-theme/substance';
 import { LocationCallback } from '../util';
 import { Emissive } from '../../mol-theme/emissive';
-import { MapWithCollisions } from '../../mol-util/map';
+import { HashMap } from '../../mol-util/map';
 
 function createVisualsMap<P extends StructureParams>() {
-    return new MapWithCollisions<Unit.SymmetryGroup, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>(group => group.hashCode, Unit.SymmetryGroup.areInvariantElementsEqual);
+    return new HashMap<Unit.SymmetryGroup, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>(group => group.hashCode, Unit.SymmetryGroup.areInvariantElementsEqual);
 }
 
 
