@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+
+## [v5.5.0] - 2025-12-22
+- Viewer app
+  - Move viewer extensions, options, and presets to a separate file
+  - Add `molstar.lib` export providing access to a wide range of functionality previously not available from the compiled bundle
+  - Add `Viewer.subscribe` method that keeps track of subscribed plugin events and disposes them together with the parent viewer
+  - Add `Viewer.structureInteractivity` that makes it easy to highlight/select elements on the loaded structure
+  - Add `viewportBackgroundColor` and `viewportFocusBehavior` options
+  - Add `mvs.html` example to showcase the new functionality combined with MolViewSpec
+  - Add dark and blue color theme support (import `theme/dark.css` or `theme/blue.css` instead of the default `molstar.css`)
+- MolViewSpec extension
+  - Add `tryGetPrimitivesFromLoci` that makes it easier to access primitive element data from hover/click interactions
+  - Add `getCurrentMVSSnapshot` to obtain source data for the currently displayed snapshot
 - Add TM-align structure-based protein alignment algorithm
     - New `TMAlign` namespace in `mol-math/linear-algebra/3d/tm-align.ts`
     - New `tmAlign` function in `mol-model/structure/structure/util/tm-align.ts`
@@ -16,17 +29,6 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix missing `gl.flush` for async picking (needed for Safari)
 - Add Residue Charge color scheme (#1722)
 - Add dropdown indicator for mapped parameter definitions and adjust "more options" icon
-- MolViewSpec extension
-  - Add `tryGetPrimitivesFromLoci` that makes it easier to access primitive element data from hover/click interactions
-  - Add `getCurrentMVSSnapshot` to obtain source data for the currently displayed snapshot
-- Viewer app
-  - Move viewer extensions, options, and presets to a separate file
-  - Add `molstar.lib` export providing access to a wide range of functionality previously not available from the compiled bundle
-  - Add `Viewer.subscribe` method that keeps track of subscribed plugin events and disposes them together with the parent viewer
-  - Add `Viewer.structureInteractivity` that makes it easy to highlight/select elements on the loaded structure
-  - Add `viewportBackgroundColor` and `viewportFocusBehavior` options
-  - Add `mvs.html` example to showcase the new functionality combined with MolViewSpec
-  - Add dark and blue color theme support (import `theme/dark.css` or `theme/blue.css` instead of the default `molstar.css`)
 - Fix `flipSided` for meshes
 - [Breaking] Interior coloring
     - Remove global `interiorDarkening`, `interiorColorFlag`, `interiorColor`
