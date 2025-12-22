@@ -180,6 +180,13 @@ bool CylinderImpostor(
                     if (!objectClipped) {
                         fragmentDepth = 0.0 + (0.0000002 / vSize);
                         cameraNormal = -rayDir;
+
+                        // intersection of ray in model space with near plane in camera space
+                        vec3 cameraRayOrigin = (uView * vec4(rayOrigin, 1.0)).xyz;
+                        vec3 cameraRayDir = (uView * vec4(rayDir, 0.0)).xyz;
+                        float nearT = - (uNear + cameraRayOrigin.z) / cameraRayDir.z;
+                        viewPosition = cameraRayOrigin + nearT * cameraRayDir;
+                        modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
                     }
                 #endif
                 return true;
@@ -200,6 +207,13 @@ bool CylinderImpostor(
                         if (!objectClipped) {
                             fragmentDepth = 0.0 + (0.0000002 / vSize);
                             cameraNormal = -rayDir;
+
+                            // intersection of ray in model space with near plane in camera space
+                            vec3 cameraRayOrigin = (uView * vec4(rayOrigin, 1.0)).xyz;
+                            vec3 cameraRayDir = (uView * vec4(rayDir, 0.0)).xyz;
+                            float nearT = - (uNear + cameraRayOrigin.z) / cameraRayDir.z;
+                            viewPosition = cameraRayOrigin + nearT * cameraRayDir;
+                            modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
                         }
                     #endif
                     return true;
@@ -219,6 +233,13 @@ bool CylinderImpostor(
                         if (!objectClipped) {
                             fragmentDepth = 0.0 + (0.0000002 / vSize);
                             cameraNormal = -rayDir;
+
+                            // intersection of ray in model space with near plane in camera space
+                            vec3 cameraRayOrigin = (uView * vec4(rayOrigin, 1.0)).xyz;
+                            vec3 cameraRayDir = (uView * vec4(rayDir, 0.0)).xyz;
+                            float nearT = - (uNear + cameraRayOrigin.z) / cameraRayDir.z;
+                            viewPosition = cameraRayOrigin + nearT * cameraRayDir;
+                            modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
                         }
                     #endif
                     return true;

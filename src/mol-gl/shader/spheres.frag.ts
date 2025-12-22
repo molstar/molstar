@@ -76,6 +76,11 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
                 if (!objectClipped) {
                     fragmentDepth = 0.0 + (0.0000001 / vRadius);
                     cameraNormal = -mix(normalize(vPoint), vec3(0.0, 0.0, -1.0), uIsOrtho);
+
+                    // intersection of ray with near plane
+                    float nearT = - (uNear + dot(rayOrigin, vec3(0.0, 0.0, 1.0))) / dot(rayDirection, vec3(0.0, 0.0, 1.0));
+                    cameraPos = rayDirection * nearT + rayOrigin;
+                    modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
                 }
             #endif
             return true;
