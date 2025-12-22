@@ -45,7 +45,6 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     const renderObjects: GraphicsRenderObject[] = [];
     const geometryState = new Representation.GeometryState();
     const _state = StructureRepresentationStateBuilder.create();
-    // let visuals = new Map<Unit.SymmetryGroup, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>();
     let visuals = createVisualsMap<P>();
 
     let _structure: Structure;
