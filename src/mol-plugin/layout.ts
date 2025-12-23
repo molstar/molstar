@@ -72,8 +72,7 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
         if (this.root && typeof state.isExpanded === 'boolean' && state.isExpanded !== prevExpanded) this.handleExpand();
 
         if (this.state.expandToFullscreen) {
-            const body = document.getElementsByTagName('body')[0];
-            if (body) this.tryRequestFullscreen(body);
+            if (this.root) this.tryRequestFullscreen(this.root);
         } else if (document.fullscreenElement) {
             this.tryExitFullscreen();
         }
@@ -100,10 +99,10 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
         return document.body;
     }
 
-    private async tryRequestFullscreen(body: HTMLElement) {
+    private async tryRequestFullscreen(element: HTMLElement) {
         if (document.fullscreenElement) return;
         try {
-            await body.requestFullscreen();
+            await element.requestFullscreen();
         } catch (e) {
             console.error(e);
         }
