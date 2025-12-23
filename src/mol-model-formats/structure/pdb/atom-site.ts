@@ -109,9 +109,9 @@ export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsy
 
     let currModelNum = pdbx_PDB_model_num.str(0);
     let currAsymId = auth_asym_id.str(0);
-    let currSeqId = hasInsCode ? 0 : auth_seq_id.int(0);
+    let currSeqId = auth_seq_id.int(0);
     let currInsCode = pdbx_PDB_ins_code.str(0);
-    let currLabelSeqId = currSeqId;
+    let currLabelSeqId = hasInsCode ? 1 : currSeqId;
 
     const asymIdCounts = new Map<string, number>();
     const atomIdCounts = new Map<string, number>();
@@ -135,13 +135,13 @@ export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsy
             currAsymId = asymId;
             currSeqId = seqId;
             currInsCode = insCode;
-            currLabelSeqId = hasInsCode ? 0 :currSeqId;
+            currLabelSeqId = hasInsCode ? 1 :currSeqId;
         } else if (currAsymId !== asymId) {
             atomIdCounts.clear();
             currAsymId = asymId;
             currSeqId = seqId;
             currInsCode = insCode;
-            currLabelSeqId = hasInsCode ? 0 : currSeqId;
+            currLabelSeqId = hasInsCode ? 1 : currSeqId;
         } else if (currSeqId !== seqId) {
             atomIdCounts.clear();
             if (currSeqId === currLabelSeqId && !hasInsCode) {
