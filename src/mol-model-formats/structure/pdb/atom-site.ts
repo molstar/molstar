@@ -135,7 +135,7 @@ export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsy
             currAsymId = asymId;
             currSeqId = seqId;
             currInsCode = insCode;
-            currLabelSeqId = hasInsCode ? 1 :currSeqId;
+            currLabelSeqId = hasInsCode ? 1 : currSeqId;
         } else if (currAsymId !== asymId) {
             atomIdCounts.clear();
             currAsymId = asymId;
