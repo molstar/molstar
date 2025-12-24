@@ -37,17 +37,25 @@
     <body>
         <div id="app"></div>
         <div id="controls">
-            <button onclick="selectResidues()">Select Residues 10-50</button>
-            <button onclick="clearSelection()">Clear Selection</button>
+            <button onmouseenter="interactivy('highlight')" onmouseleave="interactivy('clear-highlight')" onclick="interactivy('select')">Select Residues 45-50</button>
+            <button onmouseenter="interactivy('highlight')" onmouseleave="interactivy('clear-highlight')" onclick="interactivy('focus')">Focus</button>
+            <button onclick="interactivy('clear-select')">Clear Selection</button>
             <div id="selection-info"></div>
         </div>
         <script type="text/javascript" src="molstar.js"></script>
         <script type="text/javascript">
-            function selectResidues() {
-                viewer.structureInteractivity({
-                    elements: { beg_auth_seq_id: 10, end_auth_seq_id: 50 },
-                    action: 'select',
-                });
+            function interactivy(action) {
+                if (action === 'clear-highlight') {
+                    viewer.structureInteractivity({ action: 'highlight' });
+                } else if (action === 'clear-select') {
+                    viewer.structureInteractivity({ action: 'select' });
+                } else if (action === 'highlight' || action === 'select' || action === 'focus') {
+                    viewer.structureInteractivity({
+                        elements: { beg_auth_seq_id: 45, end_auth_seq_id: 50 },
+                        action,
+                        focusOptions: { extraRadius: 3 }
+                    });
+                }
             }
 
             function clearSelection() {
@@ -64,9 +72,10 @@
 
                 viewportShowExpand: true,
                 viewportShowSelectionMode: false,
+                viewportShowControls: false,
                 viewportShowAnimation: false,
-                viewportFocusBehavior: 'disabled',
-                viewportBackgroundColor: 'black',
+                viewportFocusBehavior: 'secondary-zoom',
+                viewportBackgroundColor: '#111318',
 
                 pdbProvider: 'rcsb',
                 emdbProvider: 'rcsb',
