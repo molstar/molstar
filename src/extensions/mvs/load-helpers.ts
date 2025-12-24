@@ -522,7 +522,7 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
                 c => {
                     const theme = colorThemeForNode(c, context);
                     if (!theme) return undefined;
-                    return { theme, selection: componentPropsFromSelector(c.kind === 'color' ? c.params.selector : undefined) };
+                    return { theme, selection: componentPropsFromSelector(c.params.selector) };
                 }
             ).filter(t => !!t);
             return {
@@ -557,11 +557,7 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
 }
 
 function appliesColorToWholeRepr(node: MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>): boolean {
-    if (node.kind === 'color') {
-        return !isDefined(node.params.selector) || node.params.selector === 'all';
-    } else {
-        return true;
-    }
+    return !isDefined(node.params.selector) || node.params.selector === 'all';
 }
 
 const FALLBACK_COLOR = decodeColor(DefaultColor)!;

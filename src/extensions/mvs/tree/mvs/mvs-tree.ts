@@ -208,6 +208,8 @@ export const MVSTreeSchema = TreeSchema({
                 field_name: OptionalField(str, 'color', 'Name of the column in CIF or field name (key) in JSON that contains the color.'),
                 /** Customize mapping of annotation values to colors. */
                 palette: OptionalField(nullable(Palette), null, 'Customize mapping of annotation values to colors.'),
+                /** Defines to what part of the representation this coloring should be applied. */
+                selector: OptionalField(union(ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)), 'all', 'Defines to what part of the representation this coloring should be applied.'),
             }),
         },
         /** This node instructs to apply colors to a visual representation. The colors are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file. */
@@ -220,6 +222,8 @@ export const MVSTreeSchema = TreeSchema({
                 field_name: OptionalField(str, 'color', 'Name of the column in CIF or field name (key) in JSON that contains the color.'),
                 /** Customize mapping of annotation values to colors. */
                 palette: OptionalField(nullable(Palette), null, 'Customize mapping of annotation values to colors.'),
+                /** Defines to what part of the representation this coloring should be applied. */
+                selector: OptionalField(union(ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)), 'all', 'Defines to what part of the representation this coloring should be applied.'),
             }),
         },
         /** This node instructs to apply clipping to a visual representation. */

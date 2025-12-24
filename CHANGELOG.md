@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- MolViewSpec
+  - Validation treats undefined same as missing value
+  - Increase default size of carbohydrate representation
+  - color_from_uri and color_from_source take selector parameter
 
 ## [v5.5.0] - 2025-12-22
 - Viewer app
