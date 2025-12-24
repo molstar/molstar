@@ -61,6 +61,7 @@ export const ParseMVSX = MVSTransform({
 export const LoadMvsDataParams = {
     appendSnapshots: PD.Boolean(false, { description: 'If true, add snapshots from MVS into current snapshot list; if false, replace the snapshot list.' }),
     keepCamera: PD.Boolean(false, { description: 'If true, any camera positioning from the MVS state will be ignored and the current camera position will be kept.' }),
+    keepCameraOrientation: PD.Boolean(false, { description: 'If true, any camera orientation from the MVS state will be ignored and the current camera orientation will be kept (camera target position will be loaded from MVS). keepCamera option overrides this.' }),
     applyExtensions: PD.Boolean(true, { description: 'If true, apply builtin MVS-loading extensions (not a part of standard MVS specification).' }),
 };
 
@@ -71,7 +72,7 @@ export const LoadMvsData = StateAction.build({
     params: LoadMvsDataParams,
 })(({ a, params }, plugin: PluginContext) => Task.create('Load MVS Data', async () => {
     const { mvsData, sourceUrl } = a.data;
-    await loadMVS(plugin, mvsData, { appendSnapshots: params.appendSnapshots, keepCamera: params.keepCamera, sourceUrl: sourceUrl, extensions: params.applyExtensions ? undefined : [] });
+    await loadMVS(plugin, mvsData, { appendSnapshots: params.appendSnapshots, keepCamera: params.keepCamera, keepCameraOrientation: params.keepCameraOrientation, sourceUrl: sourceUrl, extensions: params.applyExtensions ? undefined : [] });
 }));
 
 
