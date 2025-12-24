@@ -6,7 +6,7 @@
  */
 
 import { Camera } from '../../mol-canvas3d/camera';
-import { CameraFogParams, Canvas3DParams, Canvas3DProps, DefaultCanvas3DParams } from '../../mol-canvas3d/canvas3d';
+import { CameraFogParams, Canvas3DProps, DefaultCanvas3DParams } from '../../mol-canvas3d/canvas3d';
 import { TrackballControlsParams } from '../../mol-canvas3d/controls/trackball';
 import { BackgroundParams } from '../../mol-canvas3d/passes/background';
 import { BloomParams } from '../../mol-canvas3d/passes/bloom';
@@ -15,7 +15,7 @@ import { OutlineParams } from '../../mol-canvas3d/passes/outline';
 import { ShadowParams } from '../../mol-canvas3d/passes/shadow';
 import { SsaoParams } from '../../mol-canvas3d/passes/ssao';
 import { Vec3 } from '../../mol-math/linear-algebra';
-import { getFocusSnapshot, getPluginBoundingSphere } from '../../mol-plugin-state/manager/focus-camera/focus-object';
+import { getPluginBoundingSphere } from '../../mol-plugin-state/manager/focus-camera/focus-object';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginState } from '../../mol-plugin/state';
@@ -32,10 +32,6 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 import { Vector3 } from './tree/mvs/param-types';
 
 
-const DefaultFocusOptions = {
-    minRadius: 1,
-    extraRadius: 0,
-};
 const DefaultCanvasBackgroundColor = ColorNames.white;
 
 
@@ -74,18 +70,6 @@ export function cameraParamsToCameraSnapshot(plugin: PluginContext, params: Mols
     return snapshot;
 }
 
-/** Focus the camera on the bounding sphere of a (sub)structure (or on the whole scene if `structureNodeSelector` is undefined).
-  * Orient the camera based on a focus node params. **/
-export async function setFocus(plugin: PluginContext, focuses: { target: StateObjectSelector, params: MolstarNodeParams<'focus'> }[]) {
-    const snapshot = getFocusSnapshot(plugin, {
-        ...snapshotFocusInfoFromMvsFocuses(focuses, false),
-        minRadius: DefaultFocusOptions.minRadius,
-    });
-    if (!snapshot) return;
-    resetSceneRadiusFactor(plugin);
-    await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
-}
-
 function snapshotFocusInfoFromMvsFocuses(focuses: { target: StateObjectSelector | undefined, params: MolstarNodeParams<'focus'> & { center?: Vector3 } }[], ignoreOrientation: boolean): PluginState.SnapshotFocusInfo {
     const lastFocus = (focuses.length > 0) ? focuses[focuses.length - 1] : undefined;
     const direction = lastFocus?.params.direction ?? MVSTreeSchema.nodes.focus.params.fields.direction.default;
@@ -109,12 +93,6 @@ function adjustSceneRadiusFactor(plugin: PluginContext, cameraTarget: Vec3 | und
     const boundingSphere = getPluginBoundingSphere(plugin);
     const offset = Vec3.distance(cameraTarget, boundingSphere.center);
     const sceneRadiusFactor = boundingSphere.radius > 0 ? ((boundingSphere.radius + offset) / boundingSphere.radius) : 1;
-    plugin.canvas3d?.setProps({ sceneRadiusFactor });
-}
-
-/** Reset `sceneRadiusFactor` property to the default value */
-function resetSceneRadiusFactor(plugin: PluginContext) {
-    const sceneRadiusFactor = Canvas3DParams.sceneRadiusFactor.defaultValue;
     plugin.canvas3d?.setProps({ sceneRadiusFactor });
 }
 
