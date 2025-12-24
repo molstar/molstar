@@ -15,7 +15,6 @@ import { Asset, AssetManager } from './assets';
 import { RUNNING_IN_NODEJS } from './nodejs-shims';
 import { ungzip, unzip } from './zip/zip';
 
-
 export enum DataCompressionMethod {
     None,
     Gzip,

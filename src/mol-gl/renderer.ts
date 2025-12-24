@@ -95,10 +95,6 @@ export const RendererParams = {
 
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
 
-    interiorDarkening: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
-    interiorColorFlag: PD.Boolean(true, { label: 'Use Interior Color' }),
-    interiorColor: PD.Color(Color.fromNormalizedRgb(0.3, 0.3, 0.3)),
-
     colorMarker: PD.Boolean(true, { description: 'Enable color marker' }),
     highlightColor: PD.Color(Color.fromNormalizedRgb(1.0, 0.4, 0.6)),
     selectColor: PD.Color(Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
@@ -268,10 +264,6 @@ namespace Renderer {
             uAmbientColor: ValueCell.create(ambientColor),
 
             uPickingAlphaThreshold: ValueCell.create(p.pickingAlphaThreshold),
-
-            uInteriorDarkening: ValueCell.create(p.interiorDarkening),
-            uInteriorColorFlag: ValueCell.create(p.interiorColorFlag),
-            uInteriorColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.interiorColor)),
 
             uHighlightColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.highlightColor)),
             uSelectColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.selectColor)),
@@ -847,19 +839,6 @@ namespace Renderer {
                 if (props.pickingAlphaThreshold !== undefined && props.pickingAlphaThreshold !== p.pickingAlphaThreshold) {
                     p.pickingAlphaThreshold = props.pickingAlphaThreshold;
                     ValueCell.update(globalUniforms.uPickingAlphaThreshold, p.pickingAlphaThreshold);
-                }
-
-                if (props.interiorDarkening !== undefined && props.interiorDarkening !== p.interiorDarkening) {
-                    p.interiorDarkening = props.interiorDarkening;
-                    ValueCell.update(globalUniforms.uInteriorDarkening, p.interiorDarkening);
-                }
-                if (props.interiorColorFlag !== undefined && props.interiorColorFlag !== p.interiorColorFlag) {
-                    p.interiorColorFlag = props.interiorColorFlag;
-                    ValueCell.update(globalUniforms.uInteriorColorFlag, p.interiorColorFlag);
-                }
-                if (props.interiorColor !== undefined && props.interiorColor !== p.interiorColor) {
-                    p.interiorColor = props.interiorColor;
-                    ValueCell.update(globalUniforms.uInteriorColor, Color.toVec3Normalized(globalUniforms.uInteriorColor.ref.value, p.interiorColor));
                 }
 
                 if (props.colorMarker !== undefined && props.colorMarker !== p.colorMarker) {

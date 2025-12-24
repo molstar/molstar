@@ -8,7 +8,7 @@
 import { ValueCell } from '../../../mol-util';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { LocationIterator, PositionLocation } from '../../../mol-geo/util/location-iterator';
+import { LocationIterator, PositionLocation } from '../../util/location-iterator';
 import { TransformData } from '../transform-data';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
@@ -28,6 +28,7 @@ import { createEmptySubstance } from '../substance-data';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { createEmptyEmissive } from '../emissive-data';
+import { getInteriorColor, getInteriorParam, getInteriorSubstance } from '../interior';
 
 export interface TextureMesh {
     readonly kind: 'texture-mesh',
@@ -128,6 +129,7 @@ export namespace TextureMesh {
         transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque'] as const), BaseGeometry.ShadingCategory),
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
         bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
+        interior: getInteriorParam(),
     };
     export type Params = typeof Params
 
@@ -244,6 +246,8 @@ export namespace TextureMesh {
             dTransparentBackfaces: ValueCell.create(props.transparentBackfaces),
             uBumpFrequency: ValueCell.create(props.bumpFrequency),
             uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
+            uInteriorColor: ValueCell.create(getInteriorColor(props.interior, Vec4())),
+            uInteriorSubstance: ValueCell.create(getInteriorSubstance(props.interior, Vec4())),
 
             meta: ValueCell.create(textureMesh.meta),
         };
@@ -266,6 +270,8 @@ export namespace TextureMesh {
         ValueCell.updateIfChanged(values.dTransparentBackfaces, props.transparentBackfaces);
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
         ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
+        ValueCell.update(values.uInteriorColor, getInteriorColor(props.interior, values.uInteriorColor.ref.value));
+        ValueCell.update(values.uInteriorSubstance, getInteriorSubstance(props.interior, values.uInteriorSubstance.ref.value));
     }
 
     function updateBoundingSphere(values: TextureMeshValues, textureMesh: TextureMesh) {

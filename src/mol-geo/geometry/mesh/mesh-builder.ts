@@ -8,7 +8,7 @@ import { Vec3, Mat4, Mat3 } from '../../../mol-math/linear-algebra';
 import { ChunkedArray } from '../../../mol-data/util';
 import { Mesh } from './mesh';
 import { Primitive } from '../../primitive/primitive';
-import { Cage } from '../../../mol-geo/primitive/cage';
+import { Cage } from '../../primitive/cage';
 import { addSphere } from './builder/sphere';
 import { addCylinder } from './builder/cylinder';
 

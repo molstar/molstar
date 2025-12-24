@@ -8,7 +8,7 @@
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { ValueCell } from '../../../mol-util';
 import { GeometryUtils } from '../geometry';
-import { LocationIterator, PositionLocation } from '../../../mol-geo/util/location-iterator';
+import { LocationIterator, PositionLocation } from '../../util/location-iterator';
 import { TransformData } from '../transform-data';
 import { Theme } from '../../../mol-theme/theme';
 import { createColors } from '../color-data';

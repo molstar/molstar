@@ -18,7 +18,7 @@ import { calculateTransformBoundingSphere } from '../mol-gl/renderable/util';
 import { ValueCell } from '../mol-util';
 import { Overpaint } from '../mol-theme/overpaint';
 import { createOverpaint, clearOverpaint, applyOverpaintColor } from '../mol-geo/geometry/overpaint-data';
-import { Interval } from '../mol-data/int';
+import { Interval } from '../mol-data/int/interval';
 import { Transparency } from '../mol-theme/transparency';
 import { createTransparency, clearTransparency, applyTransparencyValue, getTransparencyAverage, getTransparencyMin } from '../mol-geo/geometry/transparency-data';
 import { Clipping } from '../mol-theme/clipping';

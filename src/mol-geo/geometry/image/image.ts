@@ -5,7 +5,7 @@
  */
 
 import { hashFnv32a } from '../../../mol-data/util';
-import { LocationIterator } from '../../../mol-geo/util/location-iterator';
+import { LocationIterator } from '../../util/location-iterator';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { calculateTransformBoundingSphere, createTextureImage, TextureImage } from '../../../mol-gl/renderable/util';
 import { Sphere3D } from '../../../mol-math/geometry';

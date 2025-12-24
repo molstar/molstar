@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -54,13 +54,13 @@ float getDepthTransparent(const in vec2 coords) {
 }
 
 bool isBackground(const in float depth) {
-    return depth > 0.9999; // handle depth packing precision issues
+    return depth == 1.0;
 }
 
 int squaredOutlineScale = dOutlineScale * dOutlineScale;
 void getOutline(const in vec2 coords, out bool hasOpaque, out bool hasTransparent, out float opaqueDepth, out float transparentDepth, out float alpha) {
     vec2 invTexSize = 1.0 / uTexSize;
-    
+
     hasOpaque = false;
     hasTransparent = false;
     opaqueDepth = 1.0;
@@ -81,14 +81,14 @@ void getOutline(const in vec2 coords, out bool hasOpaque, out bool hasTransparen
 
             float sampleFlag = sampleFlagWithAlpha.x;
             float sampleAlpha = clamp(sampleFlagWithAlpha.y * 0.5, 0.01, 1.0);
-            
+
             if ((sampleFlag > 0.20 && sampleFlag < 0.30) || (sampleFlag > 0.70 && sampleFlag < 0.80)) { // transparent || both
                 if (sampleOpaqueDepth < opaqueDepth) {
                     hasOpaque = true;
                     opaqueDepth = sampleOpaqueDepth;
                 }
             }
-            
+
             if ((((sampleFlag > 0.45 && sampleFlag < 0.55) || (sampleFlag > 0.70 && sampleFlag < 0.80))) && sampleTransparentDepth < transparentDepth) { // transparent || both
                 hasTransparent = true;
                 transparentDepth = sampleTransparentDepth;
@@ -184,15 +184,15 @@ void main(void) {
         if (hasOpaque) {
             float viewDist = abs(getViewZ(outlineOpaqueDepth));
             float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
-            if (!uTransparentBackground) {                    
+            if (!uTransparentBackground) {
                 color.rgb = mix(uOutlineColor, uFogColor, fogFactor);
             } else {
                 color.a = 1.0 - fogFactor;
                 color.rgb = mix(uOutlineColor, vec3(0.0), fogFactor);
             }
-        }  
+        }
 
-        #ifdef dBlendTransparency            
+        #ifdef dBlendTransparency
             if (hasTransparent) {
                 if (hasOpaque && outlineOpaqueDepth < outlineTransparentDepth) {
                     blendTransparency = false;

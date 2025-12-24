@@ -6,12 +6,11 @@
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
-import { MolecularSurfaceCalculationParams } from '../../../mol-math/geometry/molecular-surface';
 import { VisualContext } from '../../visual';
 import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
-import { computeStructureMolecularSurface, computeUnitMolecularSurface } from './util/molecular-surface';
+import { CommonMolecularSurfaceCalculationParams, computeStructureMolecularSurface, computeUnitMolecularSurface } from './util/molecular-surface';
 import { computeMarchingCubesMesh } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { ElementIterator, getElementLoci, eachElement, getSerialElementLoci, eachSerialElement } from './util/element';
 import { VisualUpdateState } from '../../util';
@@ -27,7 +26,7 @@ import { ComplexMeshVisual, ComplexVisual } from '../complex-visual';
 
 export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,
-    ...MolecularSurfaceCalculationParams,
+    ...CommonMolecularSurfaceCalculationParams,
     ...CommonSurfaceParams,
     ...ColorSmoothingParams,
 };

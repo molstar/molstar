@@ -4,8 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { Interval } from '../int/interval';
+import { OrderedSet } from '../int/ordered-set';
+import { Segmentation } from '../int/segmentation';
 import { Iterator } from '../iterator';
-import { OrderedSet, Interval, Segmentation } from '../int';
 
 /** Emits a segment of length one for each element in the interval that is also in the set */
 export class IntervalIterator<I extends number = number> implements Iterator<Segmentation.Segment<I>> {

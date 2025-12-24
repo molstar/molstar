@@ -67,6 +67,12 @@ export function getPrimitiveStructureRefs(primitives: MolstarSubtree<'primitives
 export class MVSPrimitivesData extends SO.Create<PrimitiveBuilderContext>({ name: 'Primitive Data', typeClass: 'Object' }) { }
 export class MVSPrimitiveShapes extends SO.Create<{ mesh?: Shape<Mesh>, labels?: Shape<Text> }>({ name: 'Primitive Shapes', typeClass: 'Object' }) { }
 
+export interface MVSPrimitiveShapeSourceData {
+    kind: 'mvs-primitives',
+    node: MVSNode<'primitives'>,
+    groupToNode: Map<number, MVSNode<'primitive'>>,
+}
+
 export type MVSDownloadPrimitiveData = typeof MVSDownloadPrimitiveData
 export const MVSDownloadPrimitiveData = MVSTransform({
     name: 'mvs-download-primitive-data',
@@ -605,7 +611,7 @@ function buildPrimitiveMesh(context: PrimitiveBuilderContext, prev?: Mesh): Shap
             kind: 'mvs-primitives',
             node: context.node,
             groupToNode: state.groups.groupToNodeMap,
-        },
+        } satisfies MVSPrimitiveShapeSourceData,
         MeshBuilder.getMesh(meshBuilder),
         (g) => colors.get(g) as Color ?? color,
         (g) => 1,
@@ -638,7 +644,7 @@ function buildPrimitiveLines(context: PrimitiveBuilderContext, prev?: Lines): Sh
             kind: 'mvs-primitives',
             node: context.node,
             groupToNode: state.groups.groupToNodeMap,
-        },
+        } satisfies MVSPrimitiveShapeSourceData,
         linesBuilder.getLines(),
         (g) => colors.get(g) as Color ?? color,
         (g) => sizes.get(g) ?? 1,
@@ -673,7 +679,7 @@ function buildPrimitiveLabels(context: PrimitiveBuilderContext, prev: Text | und
             kind: 'mvs-primitives',
             node: context.node,
             groupToNode: state.groups.groupToNodeMap,
-        },
+        } satisfies MVSPrimitiveShapeSourceData,
         labelsBuilder.getText(),
         (g) => colors.get(g) as Color ?? color,
         (g) => sizes.get(g) ?? 1,

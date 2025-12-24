@@ -6,7 +6,6 @@
  */
 
 import { Unit, StructureElement, ElementIndex, ResidueIndex, Structure } from '../../../../../mol-model/structure';
-import { Segmentation, SortedArray } from '../../../../../mol-data/int';
 import { MoleculeType, SecondaryStructureType } from '../../../../../mol-model/structure/model/types';
 import { Iterator } from '../../../../../mol-data/iterator';
 import { Vec3 } from '../../../../../mol-math/linear-algebra';
@@ -17,6 +16,8 @@ import { AtomicConformation } from '../../../../../mol-model/structure/model/pro
 import { SecondaryStructureProvider } from '../../../../../mol-model-props/computed/secondary-structure';
 import { HelixOrientationProvider } from '../../../../../mol-model-props/computed/helix-orientation';
 import { SecondaryStructure } from '../../../../../mol-model/structure/model/properties/secondary-structure';
+import { Segmentation } from '../../../../../mol-data/int/segmentation';
+import { SortedArray } from '../../../../../mol-data/int/sorted-array';
 
 function isHelixSS(ss: SecondaryStructureType.Flag) {
     return SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Helix);

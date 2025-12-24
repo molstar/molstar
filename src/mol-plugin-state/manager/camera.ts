@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -25,7 +25,7 @@ import { changeCameraRotation, structureLayingTransform } from './focus-camera/o
 
 // TODO: make this customizable somewhere?
 const DefaultCameraFocusOptions = {
-    minRadius: 5,
+    minRadius: 1,
     extraRadius: 4,
     durationMs: 250,
 };

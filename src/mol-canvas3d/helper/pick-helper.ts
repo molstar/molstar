@@ -154,6 +154,7 @@ export class PickHelper {
 
         if (this.dirty) {
             if (isTimingMode) this.webgl.timer.mark('PickHelper.identify');
+            this.webgl.resources.finalizePrograms(['pick'], true);
             this.render(camera);
             this.buffers.read();
             if (isTimingMode) this.webgl.timer.markEnd('PickHelper.identify');

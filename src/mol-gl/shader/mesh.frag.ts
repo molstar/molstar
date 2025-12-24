@@ -17,15 +17,14 @@ precision highp int;
 #include normal_frag_params
 #include common_clip
 
+uniform vec4 uInteriorColor;
+uniform vec4 uInteriorSubstance;
+
 void main() {
     #include fade_lod
     #include clip_pixel
 
-    #if defined(dFlipSided)
-        interior = gl_FrontFacing;
-    #else
-        interior = !gl_FrontFacing;
-    #endif
+    interior = !gl_FrontFacing;
 
     float fragmentDepth = gl_FragCoord.z;
 
@@ -37,6 +36,10 @@ void main() {
         #else
             vec3 normal = -normalize(vNormal);
             if (uDoubleSided) normal *= float(gl_FrontFacing) * 2.0 - 1.0;
+        #endif
+
+        #if defined(dFlipSided)
+            normal *= -1.0;
         #endif
     #endif
 
@@ -60,8 +63,8 @@ void main() {
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
-        #include apply_light_color
         #include apply_interior_color
+        #include apply_light_color
         #include apply_marker_color
 
         #if defined(dRenderVariant_color)

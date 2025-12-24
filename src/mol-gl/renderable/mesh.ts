@@ -27,6 +27,8 @@ export const MeshSchema = {
     dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
     uBumpFrequency: UniformSpec('f', 'material'),
     uBumpAmplitude: UniformSpec('f', 'material'),
+    uInteriorColor: UniformSpec('v4'),
+    uInteriorSubstance: UniformSpec('v4'),
     meta: ValueSpec('unknown')
 } as const;
 export type MeshSchema = typeof MeshSchema

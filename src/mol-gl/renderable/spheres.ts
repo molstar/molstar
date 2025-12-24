@@ -30,6 +30,8 @@ export const SpheresSchema = {
     uAlphaThickness: UniformSpec('f'),
     uBumpFrequency: UniformSpec('f', 'material'),
     uBumpAmplitude: UniformSpec('f', 'material'),
+    uInteriorColor: UniformSpec('v4'),
+    uInteriorSubstance: UniformSpec('v4'),
 
     lodLevels: ValueSpec('unknown'),
     centerBuffer: ValueSpec('float32'),

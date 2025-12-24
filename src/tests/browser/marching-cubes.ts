@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -85,7 +85,7 @@ async function init() {
     console.timeEnd('gpu mc pyramid');
 
     console.time('gpu mc vert');
-    const gv = createIsosurfaceBuffers(webgl, activeVoxelsTex, densityTextureData.texture, compacted, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.transform, isoValue, false, true, Vec3.create(0, 1, 2), true);
+    const gv = createIsosurfaceBuffers(webgl, activeVoxelsTex, densityTextureData.texture, compacted, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridDataDim, densityTextureData.transform, isoValue, false, true, Vec3.create(0, 1, 2), true);
     webgl.waitForGpuCommandsCompleteSync();
     console.timeEnd('gpu mc vert');
     console.timeEnd('gpu mc');

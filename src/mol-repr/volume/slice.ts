@@ -15,7 +15,6 @@ import { RepresentationContext, RepresentationParamsGetter } from '../representa
 import { VisualContext } from '../visual';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
-import { Interval, OrderedSet, SortedArray } from '../../mol-data/int';
 import { transformPositionArray } from '../../mol-geo/util';
 import { Color } from '../../mol-util/color';
 import { ColorTheme } from '../../mol-theme/color';
@@ -27,6 +26,9 @@ import { degToRad } from '../../mol-math/misc';
 import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 import { clamp, normalize } from '../../mol-math/interpolate';
 import { assertUnreachable } from '../../mol-util/type-helpers';
+import { OrderedSet } from '../../mol-data/int/ordered-set';
+import { SortedArray } from '../../mol-data/int/sorted-array';
+import { Interval } from '../../mol-data/int/interval';
 
 export const SliceParams = {
     ...Image.Params,
@@ -92,9 +94,9 @@ function getFrame(volume: Volume, props: SliceProps) {
     const cartnToGrid = Mat4.invert(Mat4(), gridToCartn);
     const [nx, ny, nz] = volume.grid.cells.space.dimensions;
 
-    const a = nx - 1;
-    const b = ny - 1;
-    const c = nz - 1;
+    const a = nx;
+    const b = ny;
+    const c = nz;
 
     const dirA = Vec3.create(a, 0, 0);
     const dirB = Vec3.create(0, b, 0);
@@ -287,9 +289,9 @@ async function createPlaneImage(ctx: VisualContext, volume: Volume, key: number,
     const cartnToGrid = Mat4.invert(Mat4(), gridToCartn);
     const [mx, my, mz] = volume.grid.cells.space.dimensions;
 
-    const a = mx - 1;
-    const b = my - 1;
-    const c = mz - 1;
+    const a = mx;
+    const b = my;
+    const c = mz;
 
     const resolution = Math.max(a, b, c) / Math.max(mx, my, mz);
     const scaleFactor = 1 / resolution;
@@ -399,32 +401,32 @@ function getSliceInfo(grid: Grid, props: SliceProps) {
     let [nx, ny, nz] = space.dimensions;
 
     if (dim === 'x') {
-        x = index, y = ny - 1, z = nz - 1;
+        x = index, y = ny, z = nz;
         width = nz, height = ny;
         x0 = x, nx = x0 + 1;
     } else if (dim === 'y') {
-        x = nx - 1, y = index, z = nz - 1;
+        x = nx, y = index, z = nz;
         width = nz, height = nx;
         y0 = y, ny = y0 + 1;
     } else if (dim === 'z') {
-        x = nx - 1, y = ny - 1, z = index;
+        x = nx, y = ny, z = index;
         width = nx, height = ny;
         z0 = z, nz = z0 + 1;
     } else if (dim === 'relativeX') {
         x = getRelativeIndex(nx, index);
-        y = ny - 1;
-        z = nz - 1;
+        y = ny;
+        z = nz;
         width = nz, height = ny;
         x0 = x, nx = x0 + 1;
     } else if (dim === 'relativeY') {
-        x = nx - 1;
+        x = nx;
         y = getRelativeIndex(ny, index);
-        z = nz - 1;
+        z = nz;
         width = nz, height = nx;
         y0 = y, ny = y0 + 1;
     } else /* if (dim === 'relativeZ') */ {
-        x = nx - 1;
-        y = ny - 1;
+        x = nx;
+        y = ny;
         z = getRelativeIndex(nz, index);
         width = nx, height = ny;
         z0 = z, nz = z0 + 1;

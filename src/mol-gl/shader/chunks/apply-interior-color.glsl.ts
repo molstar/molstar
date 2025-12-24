@@ -1,13 +1,14 @@
 export const apply_interior_color = `
 if (interior) {
-    if (uInteriorColorFlag) {
-        gl_FragColor.rgb = uInteriorColor;
-    } else {
-        gl_FragColor.rgb *= 1.0 - uInteriorDarkening;
-    }
+    material.rgb = mix(material.rgb, uInteriorColor.rgb, uInteriorColor.a);
+
+    float isf = clamp(uInteriorSubstance.a, 0.0, 0.99); // clamp to avoid artifacts
+    metalness = mix(metalness, uInteriorSubstance.r, isf);
+    roughness = mix(roughness, uInteriorSubstance.g, isf);
+    bumpiness = mix(bumpiness, uInteriorSubstance.b, isf);
 
     #ifdef dTransparentBackfaces_opaque
-        gl_FragColor.a = 1.0;
+        material.a = 1.0;
     #endif
 }
 `;

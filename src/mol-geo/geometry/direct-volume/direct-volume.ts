@@ -5,7 +5,7 @@
  */
 
 import { hashFnv32a } from '../../../mol-data/util';
-import { LocationIterator, PositionLocation } from '../../../mol-geo/util/location-iterator';
+import { LocationIterator, PositionLocation } from '../../util/location-iterator';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { DirectVolumeValues } from '../../../mol-gl/renderable/direct-volume';
 import { calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';

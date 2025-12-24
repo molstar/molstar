@@ -25,7 +25,7 @@ import { PluginUIContext } from '../context';
 import { ActionMenu } from './action-menu';
 import { ColorOptions, ColorValueOption, CombinedColorControl } from './color';
 import { Button, ControlGroup, ControlRow, ExpandGroup, IconButton, TextInput, ToggleButton } from './common';
-import { ArrowDownwardSvg, ArrowDropDownSvg, ArrowRightSvg, ArrowUpwardSvg, BookmarksOutlinedSvg, CheckSvg, ClearSvg, DeleteOutlinedSvg, HelpOutlineSvg, Icon, MoreHorizSvg, WarningSvg } from './icons';
+import { ArrowDownwardSvg, ArrowDropDownSvg, ArrowRightSvg, ArrowUpwardSvg, BookmarksOutlinedSvg, CheckSvg, ClearSvg, DeleteOutlinedSvg, HelpOutlineSvg, Icon, TuneSvg, WarningSvg } from './icons';
 import { legendFor } from './legend';
 import { LineGraphComponent } from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
@@ -418,11 +418,18 @@ export class TextControl extends SimpleParam<PD.Text> {
 
 function TextCtrl({ props, placeholder, update }: { props: ParamProps<PD.Text>, placeholder: string, update: (v: string) => any }) {
     const [value, setValue] = React.useState(props.value);
+    const [composition, setComposition] = React.useState(false);
     React.useEffect(() => setValue(props.value), [props.value]);
 
     const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        if (props.param.disableInteractiveUpdates) setValue(e.target.value);
+        if (composition || props.param.disableInteractiveUpdates) setValue(e.target.value);
         else update(e.target.value);
+    };
+    const onCompositionEnd = (e: React.CompositionEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setComposition(false);
+        const target = e.target as EventTarget & (HTMLInputElement | HTMLTextAreaElement);
+        if (props.param.disableInteractiveUpdates) setValue(target.value);
+        else update(target.value);
     };
     const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (props.param.disableInteractiveUpdates) update(e.target.value);
@@ -443,13 +450,15 @@ function TextCtrl({ props, placeholder, update }: { props: ParamProps<PD.Text>, 
         return <div className='msp-control-text-area-wrapper'>
             <textarea
                 value={value ?? ''} placeholder={placeholder} disabled={props.isDisabled}
-                onChange={onChange} onBlur={onBlur} onKeyDown={onKeyDown}
+            onChange={onChange} onBlur={onBlur} onKeyDown={onKeyDown}
+              onCompositionStart={() => setComposition(true)} onCompositionEnd={onCompositionEnd}
             />
         </div>;
     } else {
         return <input type='text'
             value={value ?? ''} placeholder={placeholder} disabled={props.isDisabled}
-            onChange={onChange} onBlur={onBlur} onKeyDown={onKeyDown}
+          onChange={onChange} onBlur={onBlur} onKeyDown={onKeyDown}
+          onCompositionStart={() => setComposition(true)} onCompositionEnd={onCompositionEnd}
         />;
     }
 }
@@ -517,7 +526,7 @@ export class SelectControl extends React.PureComponent<ParamProps<PD.Select<stri
             : void 0;
 
         return <ToggleButton disabled={this.props.isDisabled} style={{ textAlign, overflow: 'hidden', textOverflow: 'ellipsis' }}
-            label={label} title={label as string} icon={icon} toggle={toggle} isSelected={this.state.showOptions} />;
+            label={label} title={label as string} icon={icon} toggle={toggle} isSelected={this.state.showOptions} className='msp-select-toggle' />;
     }
 
     renderAddOn() {
@@ -1183,7 +1192,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
         if (!this.state.isExpanded) {
             return <div className='msp-mapped-parameter-group'>
                 {ctrl}
-                <IconButton svg={MoreHorizSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} />
+                <IconButton svg={TuneSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} style={{ opacity: 0.7 }} />
             </div>;
         }
 
@@ -1194,7 +1203,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
 
         return <div className='msp-mapped-parameter-group'>
             {ctrl}
-            <IconButton svg={MoreHorizSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} />
+            <IconButton svg={TuneSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} />
             <div className='msp-control-offset'>
                 {this.pivotedPresets()}
                 <ParameterControls params={filtered} onEnter={this.props.onEnter} values={this.props.value} onChange={this.onChangeParam} isDisabled={this.props.isDisabled} />
@@ -1303,7 +1312,7 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
             if (!this.areParamsEmpty(param.params)) {
                 return <div className='msp-mapped-parameter-group'>
                     {Select}
-                    <IconButton svg={MoreHorizSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`${label} Properties`} />
+                    <IconButton svg={TuneSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`${label} Properties`} style={{ opacity: this.state.isExpanded ? undefined : 0.7 }} />
                     {this.state.isExpanded && <GroupControl inMapped param={param} value={value.params} name={value.name} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />}
                 </div>;
             }

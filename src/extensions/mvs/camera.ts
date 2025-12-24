@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -33,7 +33,7 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
 const DefaultFocusOptions = {
-    minRadius: 5,
+    minRadius: 1,
     extraRadius: 0,
 };
 const DefaultCanvasBackgroundColor = ColorNames.white;

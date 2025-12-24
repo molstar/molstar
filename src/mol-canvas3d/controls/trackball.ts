@@ -75,7 +75,7 @@ export const TrackballControlsParams = {
     animate: PD.MappedStatic('off', {
         off: PD.EmptyGroup(),
         spin: PD.Group({
-            speed: PD.Numeric(0.3, { min: -5, max: 5, step: 0.1 }, { description: 'Number of rotations per second' }),
+            speed: PD.Numeric(0.1, { min: -2, max: 2, step: 0.01 }, { description: 'Number of rotations per second' }),
         }, { description: 'Spin the 3D scene around the x-axis in view space' }),
         rock: PD.Group({
             speed: PD.Numeric(0.3, { min: -5, max: 5, step: 0.1 }, { description: 'Number of oscilations per second' }),

@@ -15,10 +15,24 @@ There are 4 basic ways of instantiating the Mol* plugin.
 
 ## ``Viewer`` wrapper
 
-- The most basic usage is to use the ``Viewer`` wrapper. This is best suited for use cases that do not require much custom behavior and are mostly about just displaying a structure.
-- See ``Viewer`` class is defined in [src/apps/viewer/app.ts](https://github.com/molstar/molstar/blob/master/src/apps/viewer/app.ts) for available methods and options.
+- The most basic usage is to use the ``Viewer`` wrapper. This is best suited for use cases that do not require custom behavior and are mostly about just displaying a structure.
+- See ``Viewer`` class is defined in [src/apps/viewer/app.ts](https://github.com/molstar/molstar/blob/master/src/apps/viewer/app.ts) for available methods
+- See [options.ts](https://github.com/molstar/molstar/blob/master/src/apps/viewer/options.ts) for available plugin options
+- See [embedded.html](https://github.com/molstar/molstar/blob/master/src/apps/viewer/embedded.html) and [mvs.html](https://github.com/molstar/molstar/blob/master/src/apps/viewer/mvs.html) for example usage
+- Importing `molstar.js` will expose `molstar.lib` namespace that allow accessing various functionality without a bundler such as WebPack or esbuild. See the `mvs` example above for basic usage.
+- Alternative color themes can be used by importing `theme/dark.css` (or `light/blue`) instead of `molstar.css`
 
-Example usage without using WebPack:
+### molstar.js and molstar.css sources
+
+- Download `molstar` NPM package and use the files from `build/viewer` diractory
+- Use `jsdelivr` CDN
+  - `<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/molstar@latest/build/viewer/molstar.js" />`
+  - `<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/molstar@latest/build/viewer/molstar.css" />`
+  - `@latest` can be replaced by a specific Mol* version, e.g., `@5.4.2`
+- Clone & build the GitHub repository
+  - This option allows for quite straightforward extension customization, e.g., not including movie export, which reduces the bundle size by ~0.5MB
+
+### Example
 
 ```HTML
 <style>
@@ -35,7 +49,7 @@ Example usage without using WebPack:
     - the folder build/viewer after cloning and building the molstar package 
     - from the build/viewer folder in the Mol* NPM package
 -->
-<link rel="stylesheet" type="text/css" href="molstar.css" />
+<link rel="stylesheet" type="text/css" href="./molstar.css" />
 <script type="text/javascript" src="./molstar.js"></script>
 
 <div id="app"></div>
@@ -62,13 +76,15 @@ Example usage without using WebPack:
 </script>
 ```
 
-When using WebPack (or possibly other build tool) with the Mol* NPM package installed, the viewer class can be imported using 
+### Using WebPack/esbuild/...
+
+When using WebPack (or other bundler) with the Mol* NPM package installed, the viewer class can be imported using 
 
 ```ts
-import { Viewer } from 'molstar/build/viewer/molstar'
+import { Viewer } from 'molstar/lib/apps/viewer/app'
 
 function initViewer(target: string | HTMLElement) {
-    return new Viewer(target, { /* options */})
+    return Viewer.create(target, { /* options */}) // returns a Promise
 }
 ```
 
@@ -139,6 +155,8 @@ export function MolStarWrapper() {
   // In debug mode of react's strict mode, this code will
   // be called twice in a row, which might result in unexpected behavior.
   useEffect(() => {
+    // By default, react will call each useEffect twice if using Strict mode in
+    // debug build, it is recommended to disable strict mode for this reason if possible
     async function init() {
         window.molstar = await createPluginUI({
           target: parent.current as HTMLDivElement,

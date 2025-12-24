@@ -7,34 +7,20 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
-import { Backgrounds } from '../../extensions/backgrounds';
-import { DnatcoNtCs } from '../../extensions/dnatco';
-import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
-import { GeometryExport } from '../../extensions/geo-export';
-import { MAQualityAssessment, MAQualityAssessmentConfig, QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
-import { QualityAssessment } from '../../extensions/model-archive/quality-assessment/prop';
-import { ModelExport } from '../../extensions/model-export';
-import { Mp4Export } from '../../extensions/mp4-export';
-import { MolViewSpec } from '../../extensions/mvs/behavior';
+import { AssemblySymmetryConfig } from '../../extensions/assembly-symmetry';
 import { loadMVSData, loadMVSX } from '../../extensions/mvs/components/formats';
 import { loadMVS, MolstarLoadingExtension } from '../../extensions/mvs/load';
 import { MVSData } from '../../extensions/mvs/mvs-data';
-import { PDBeStructureQualityReport } from '../../extensions/pdbe';
-import { RCSBValidationReport } from '../../extensions/rcsb';
-import { AssemblySymmetry, AssemblySymmetryConfig } from '../../extensions/assembly-symmetry';
-import { SbNcbrPartialCharges, SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider, SbNcbrTunnels } from '../../extensions/sb-ncbr';
-import { wwPDBChemicalComponentDictionary } from '../../extensions/wwpdb/ccd/behavior';
-import { wwPDBStructConnExtensionFunctions } from '../../extensions/wwpdb/struct-conn';
-import { ZenodoImport } from '../../extensions/zenodo';
-import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
+import { StringLike } from '../../mol-io/common/string-like';
+import { Structure, StructureElement, StructureSelection } from '../../mol-model/structure';
 import { Volume } from '../../mol-model/volume';
+import { OpenFiles } from '../../mol-plugin-state/actions/file';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
-import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
+import { StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
+import { PluginComponent } from '../../mol-plugin-state/component';
 import { BuiltInCoordinatesFormat } from '../../mol-plugin-state/formats/coordinates';
-import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 import { BuiltInTopologyFormat } from '../../mol-plugin-state/formats/topology';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { BuildInVolumeFormat } from '../../mol-plugin-state/formats/volume';
@@ -42,98 +28,37 @@ import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { TrajectoryFromModelAndCoordinates } from '../../mol-plugin-state/transforms/model';
-import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { createPluginUI } from '../../mol-plugin-ui';
+import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { renderReact18 } from '../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
+import { PluginBehaviors } from '../../mol-plugin/behavior';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { PluginConfig, PluginConfigItem } from '../../mol-plugin/config';
-import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
-import { PluginSpec } from '../../mol-plugin/spec';
+import { PluginConfig } from '../../mol-plugin/config';
 import { PluginState } from '../../mol-plugin/state';
-import { StateObjectRef, StateObjectSelector } from '../../mol-state';
+import { MolScriptBuilder } from '../../mol-script/language/builder';
+import { Expression } from '../../mol-script/language/expression';
+import { Script } from '../../mol-script/script';
+import { StateObjectSelector } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
-import '../../mol-util/polyfill';
-import { ObjectKeys } from '../../mol-util/type-helpers';
-import { OpenFiles } from '../../mol-plugin-state/actions/file';
-import { StringLike } from '../../mol-io/common/string-like';
+import { ExtensionMap } from './extensions';
+import { DefaultViewerOptions, ViewerOptions } from './options';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
-export { consoleStats, setDebugMode, setProductionMode, setTimingMode, isProductionMode, isDebugMode, isTimingMode } from '../../mol-util/debug';
+export { consoleStats, isDebugMode, isProductionMode, isTimingMode, setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
 
-const CustomFormats = [
-    ['g3d', G3dProvider] as const
-];
-
-export const ExtensionMap = {
-    'backgrounds': PluginSpec.Behavior(Backgrounds),
-    'dnatco-ntcs': PluginSpec.Behavior(DnatcoNtCs),
-    'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
-    'assembly-symmetry': PluginSpec.Behavior(AssemblySymmetry),
-    'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
-    'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
-    'g3d': PluginSpec.Behavior(G3DFormat),
-    'model-export': PluginSpec.Behavior(ModelExport),
-    'mp4-export': PluginSpec.Behavior(Mp4Export),
-    'geo-export': PluginSpec.Behavior(GeometryExport),
-    'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
-    'zenodo-import': PluginSpec.Behavior(ZenodoImport),
-    'sb-ncbr-partial-charges': PluginSpec.Behavior(SbNcbrPartialCharges),
-    'wwpdb-chemical-component-dictionary': PluginSpec.Behavior(wwPDBChemicalComponentDictionary),
-    'mvs': PluginSpec.Behavior(MolViewSpec),
-    'tunnels': PluginSpec.Behavior(SbNcbrTunnels),
-};
-
-const DefaultViewerOptions = {
-    customFormats: CustomFormats as [string, DataFormatProvider][],
-    extensions: ObjectKeys(ExtensionMap),
-    disabledExtensions: [] as string[],
-    layoutIsExpanded: true,
-    layoutShowControls: true,
-    layoutShowRemoteState: true,
-    layoutControlsDisplay: 'reactive' as PluginLayoutControlsDisplay,
-    layoutShowSequence: true,
-    layoutShowLog: true,
-    layoutShowLeftPanel: true,
-    collapseLeftPanel: false,
-    collapseRightPanel: false,
-    disableAntialiasing: PluginConfig.General.DisableAntialiasing.defaultValue,
-    pixelScale: PluginConfig.General.PixelScale.defaultValue,
-    pickScale: PluginConfig.General.PickScale.defaultValue,
-    transparency: PluginConfig.General.Transparency.defaultValue,
-    preferWebgl1: PluginConfig.General.PreferWebGl1.defaultValue,
-    allowMajorPerformanceCaveat: PluginConfig.General.AllowMajorPerformanceCaveat.defaultValue,
-    powerPreference: PluginConfig.General.PowerPreference.defaultValue,
-    resolutionMode: PluginConfig.General.ResolutionMode.defaultValue,
-    illumination: false,
-
-    viewportShowReset: PluginConfig.Viewport.ShowReset.defaultValue,
-    viewportShowScreenshotControls: PluginConfig.Viewport.ShowScreenshotControls.defaultValue,
-    viewportShowControls: PluginConfig.Viewport.ShowControls.defaultValue,
-    viewportShowExpand: PluginConfig.Viewport.ShowExpand.defaultValue,
-    viewportShowToggleFullscreen: PluginConfig.Viewport.ShowToggleFullscreen.defaultValue,
-    viewportShowSettings: PluginConfig.Viewport.ShowSettings.defaultValue,
-    viewportShowSelectionMode: PluginConfig.Viewport.ShowSelectionMode.defaultValue,
-    viewportShowAnimation: PluginConfig.Viewport.ShowAnimation.defaultValue,
-    viewportShowTrajectoryControls: PluginConfig.Viewport.ShowTrajectoryControls.defaultValue,
-    pluginStateServer: PluginConfig.State.DefaultServer.defaultValue,
-    volumeStreamingServer: PluginConfig.VolumeStreaming.DefaultServer.defaultValue,
-    volumeStreamingDisabled: !PluginConfig.VolumeStreaming.Enabled.defaultValue,
-    pdbProvider: PluginConfig.Download.DefaultPdbProvider.defaultValue,
-    emdbProvider: PluginConfig.Download.DefaultEmdbProvider.defaultValue,
-    saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
-    rcsbAssemblySymmetryDefaultServerType: AssemblySymmetryConfig.DefaultServerType.defaultValue,
-    rcsbAssemblySymmetryDefaultServerUrl: AssemblySymmetryConfig.DefaultServerUrl.defaultValue,
-    rcsbAssemblySymmetryApplyColors: AssemblySymmetryConfig.ApplyColors.defaultValue,
-
-    config: [] as [PluginConfigItem, any][],
-};
-type ViewerOptions = typeof DefaultViewerOptions;
+import '../../mol-util/polyfill';
+import { ViewerAutoPreset } from './presets';
+import { decodeColor } from '../../mol-util/color/utils';
 
 export class Viewer {
-    constructor(public plugin: PluginUIContext) {
+    private _events = new PluginComponent();
+    public readonly plugin: PluginUIContext;
+
+    constructor(plugin: PluginUIContext) {
+        this.plugin = plugin;
     }
 
     static async create(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
@@ -148,11 +73,22 @@ export class Viewer {
         const defaultSpec = DefaultPluginUISpec();
 
         const disabledExtension = new Set(o.disabledExtensions ?? []);
+        let baseBehaviors = defaultSpec.behaviors;
+
+        if (o.viewportFocusBehavior === 'disabled') {
+            baseBehaviors = baseBehaviors.filter(b =>
+                b.transformer !== PluginBehaviors.Camera.FocusLoci
+                && b.transformer !== PluginBehaviors.Representation.FocusLoci
+            );
+        }
 
         const spec: PluginUISpec = {
+            canvas3d: {
+                ...defaultSpec.canvas3d,
+            },
             actions: defaultSpec.actions,
             behaviors: [
-                ...defaultSpec.behaviors,
+                ...baseBehaviors,
                 ...o.extensions.filter(e => !disabledExtension.has(e)).map(e => ExtensionMap[e]),
             ],
             animations: [...defaultSpec.animations || []],
@@ -228,9 +164,22 @@ export class Viewer {
                 plugin.builders.structure.representation.registerPreset(ViewerAutoPreset);
             }
         });
+
         plugin.canvas3d?.setProps({ illumination: { enabled: o.illumination } });
+        if (o.viewportBackgroundColor) {
+            const backgroundColor = decodeColor(o.viewportBackgroundColor);
+            if (typeof backgroundColor === 'number') {
+                plugin.canvas3d?.setProps({ renderer: { backgroundColor } });
+            }
+        }
         return new Viewer(plugin);
     }
+
+    /**
+     * Allows subscribing to rxjs observables in the context of the viewer.
+     * All subscriptions will be disposed of when the viewer is destroyed.
+     */
+    subscribe = this._events.subscribe.bind(this._events);
 
     setRemoteSnapshot(id: string) {
         const url = `${this.plugin.config.get(PluginConfig.State.CurrentServer)}/get/${id}`;
@@ -567,7 +516,51 @@ export class Viewer {
         this.plugin.layout.events.updated.next(void 0);
     }
 
+    /**
+     * Triggers structure element selection or highlighting based on the provided
+     * MolScript expression or StructureElement schema.
+     *
+     * If neither `expression` nor `elements` are provided, all selections/highlights
+     * will be cleared based on the specified `action`.
+     */
+    structureInteractivity({ expression, elements, action, applyGranularity = false, filterStructure }: {
+        expression?: (queryBuilder: typeof MolScriptBuilder) => Expression,
+        elements?: StructureElement.Schema,
+        action: 'highlight' | 'select',
+        applyGranularity?: boolean,
+        filterStructure?: (structure: Structure) => boolean
+    }) {
+        const plugin = this.plugin;
+
+        if (!expression && !elements) {
+            if (action === 'select') {
+                plugin.managers.interactivity.lociSelects.deselectAll();
+            } else if (action === 'highlight') {
+                plugin.managers.interactivity.lociHighlights.clearHighlights();
+            }
+            return;
+        }
+
+        const structures = this.plugin.state.data.selectQ(Q => Q.rootsOfType(PluginStateObject.Molecule.Structure));
+        for (const s of structures) {
+            if (!s.obj?.data) continue;
+
+            if (filterStructure && !filterStructure(s.obj.data)) continue;
+
+            const loci = expression
+                ? StructureSelection.toLociWithSourceUnits(Script.getStructureSelection(expression, s.obj.data))
+                : StructureElement.Schema.toLoci(s.obj.data, elements!);
+
+            if (action === 'select') {
+                plugin.managers.interactivity.lociSelects.select({ loci }, applyGranularity);
+            } else if (action === 'highlight') {
+                plugin.managers.interactivity.lociHighlights.highlight({ loci }, applyGranularity);
+            }
+        }
+    }
+
     dispose() {
+        this._events.dispose();
         this.plugin.dispose();
     }
 }
@@ -595,43 +588,3 @@ export interface LoadTrajectoryParams {
     coordinatesLabel?: string,
     preset?: keyof PresetTrajectoryHierarchy
 }
-
-export const ViewerAutoPreset = StructureRepresentationPresetProvider({
-    id: 'preset-structure-representation-viewer-auto',
-    display: {
-        name: 'Automatic (w/ Annotation)', group: 'Annotation',
-        description: 'Show standard automatic representation but colored by quality assessment (if available in the model).'
-    },
-    isApplicable(a) {
-        return (
-            !!a.data.models.some(m => QualityAssessment.isApplicable(m, 'pLDDT')) ||
-            !!a.data.models.some(m => QualityAssessment.isApplicable(m, 'qmean'))
-        );
-    },
-    params: () => StructureRepresentationPresetProvider.CommonParams,
-    async apply(ref, params, plugin) {
-        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
-        const structure = structureCell?.obj?.data;
-        if (!structureCell || !structure) return {};
-
-        if (!!structure.models.some(m => QualityAssessment.isApplicable(m, 'pLDDT'))) {
-            return await QualityAssessmentPLDDTPreset.apply(ref, params, plugin);
-        } else if (!!structure.models.some(m => QualityAssessment.isApplicable(m, 'qmean'))) {
-            return await QualityAssessmentQmeanPreset.apply(ref, params, plugin);
-        } else if (!!structure.models.some(m => SbNcbrPartialChargesPropertyProvider.isApplicable(m))) {
-            return await SbNcbrPartialChargesPreset.apply(ref, params, plugin);
-        } else {
-            return await PresetStructureRepresentations.auto.apply(ref, params, plugin);
-        }
-    }
-});
-
-export const PluginExtensions = {
-    wwPDBStructConn: wwPDBStructConnExtensionFunctions,
-    mvs: { MVSData, loadMVS, loadMVSData },
-    modelArchive: {
-        qualityAssessment: {
-            config: MAQualityAssessmentConfig
-        }
-    }
-};
