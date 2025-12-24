@@ -19,7 +19,7 @@ import { getPluginBoundingSphere } from '../../mol-plugin-state/manager/focus-ca
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginState } from '../../mol-plugin/state';
-import { StateObjectSelector } from '../../mol-state';
+import { StateObjectSelector, StateTransform } from '../../mol-state';
 import { fovAdjustedPosition } from '../../mol-util/camera';
 import { ColorNames } from '../../mol-util/color/names';
 import { deepClone } from '../../mol-util/object';
@@ -76,7 +76,7 @@ function snapshotFocusInfoFromMvsFocuses(focuses: { target: StateObjectSelector 
     const up = lastFocus?.params.up ?? MVSTreeSchema.nodes.focus.params.fields.up.default;
     return {
         targets: focuses.map<PluginState.SnapshotFocusTargetInfo>(f => ({
-            targetRef: f.target?.ref === '-=root=-' ? undefined : f.target?.ref, // need to treat root separately so it does not include invisible structure parts etc.
+            targetRef: f.target?.ref === StateTransform.RootRef ? undefined : f.target?.ref, // need to treat root separately so it does not include invisible structure parts etc.
             center: f.params.center ? Vec3.create(...f.params.center) : undefined,
             radius: f.params.radius ?? undefined,
             radiusFactor: f.params.radius_factor,
