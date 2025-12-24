@@ -11,6 +11,7 @@ import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { StateAction } from './action';
 import { capitalize } from '../mol-util/string';
 import { StateTreeSpine } from './tree/spine';
+import { isProductionMode } from '../mol-util/debug';
 
 export { Transformer as StateTransformer };
 
@@ -142,7 +143,14 @@ namespace Transformer {
     function _index(tr: Transformer) {
         for (const t of tr.definition.from) {
             if (fromTypeIndex.has(t.type)) {
-                fromTypeIndex.get(t.type)!.push(tr);
+                const xs = fromTypeIndex.get(t.type)!;
+                for (let i = 0; i < xs.length; i++) {
+                    if (xs[i].id === tr.id) {
+                        xs[i] = tr;
+                        return;
+                    }
+                }
+                xs.push(tr);
             } else {
                 fromTypeIndex.set(t.type, [tr]);
             }
@@ -170,7 +178,13 @@ namespace Transformer {
         const id = `${namespace}.${name}` as Id;
 
         if (registry.has(id)) {
-            console.warn(`A transform with id '${name}' is already registered. Please pick a unique identifier for your transforms and/or register them only once. This is to ensure that transforms can be serialized and replayed.`);
+            if (registry.get(id)!.definition === definition) {
+                return registry.get(id)!;
+            }
+
+            if (!isProductionMode) {
+                console.warn(`A transform with id '${name}' is already registered. Please pick a unique identifier for your transforms and/or register them only once. This is to ensure that transforms can be serialized and replayed.`);
+            }
         }
 
         const t: Transformer<A, B, P> = {
