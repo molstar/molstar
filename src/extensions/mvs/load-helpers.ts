@@ -376,7 +376,8 @@ function representationPropsBase(node: MolstarSubtree<'representation'>): Partia
             };
         case 'ball_and_stick':
             return {
-                type: { name: 'ball-and-stick', params: { sizeFactor: (params.size_factor ?? 1) * 0.5, sizeAspectRatio: 0.5, alpha, ignoreHydrogens: params.ignore_hydrogens } },
+                type: { name: 'ball-and-stick', params: { sizeFactor: 0.5, sizeAspectRatio: 0.5, alpha, ignoreHydrogens: params.ignore_hydrogens } },
+                sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
             };
         case 'line':
             return {
@@ -390,7 +391,8 @@ function representationPropsBase(node: MolstarSubtree<'representation'>): Partia
             };
         case 'carbohydrate':
             return {
-                type: { name: 'carbohydrate', params: { alpha, sizeFactor: params.size_factor ?? 1 } },
+                type: { name: 'carbohydrate', params: { alpha, sizeFactor: 1.75 } },
+                sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
             };
         case 'surface': {
             return {
@@ -520,7 +522,7 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
                 c => {
                     const theme = colorThemeForNode(c, context);
                     if (!theme) return undefined;
-                    return { theme, selection: componentPropsFromSelector(c.kind === 'color' ? c.params.selector : undefined) };
+                    return { theme, selection: componentPropsFromSelector(c.params.selector) };
                 }
             ).filter(t => !!t);
             return {
@@ -555,11 +557,7 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
 }
 
 function appliesColorToWholeRepr(node: MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>): boolean {
-    if (node.kind === 'color') {
-        return !isDefined(node.params.selector) || node.params.selector === 'all';
-    } else {
-        return true;
-    }
+    return !isDefined(node.params.selector) || node.params.selector === 'all';
 }
 
 const FALLBACK_COLOR = decodeColor(DefaultColor)!;

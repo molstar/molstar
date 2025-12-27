@@ -472,7 +472,7 @@ export class Viewer {
         return { model, coords, preset };
     }
 
-    async loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+    async loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, keepCameraOrientation?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
         if (format === 'mvsj') {
             const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'string' }));
             const mvsData = MVSData.fromMVSJ(StringLike.toString(data));
@@ -491,7 +491,7 @@ export class Viewer {
     /** Load MolViewSpec from `data`.
      * If `format` is 'mvsj', `data` must be a string or a Uint8Array containing a UTF8-encoded string.
      * If `format` is 'mvsx', `data` must be a Uint8Array or a string containing base64-encoded binary data prefixed with 'base64,'. */
-    loadMvsData(data: string | Uint8Array<ArrayBuffer>, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+    loadMvsData(data: string | Uint8Array<ArrayBuffer>, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, keepCameraOrientation?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
         return loadMVSData(this.plugin, data, format, options);
     }
 

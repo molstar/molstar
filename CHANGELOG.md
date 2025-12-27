@@ -7,6 +7,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `label_seq_id` assignment in PDB parser to use 1-based linear indexing (#1730) if:
   - when insertion codes are present
   - `SEQRES` records are present
+- MolViewSpec
+  - Validation treats `undefined` same as missing value
+  - Increase default size of `carbohydrate` representation
+  - `color_from_uri` and `color_from_source` take `selector` parameter
+  - Add `keepCameraOrientation` option for loading functions
 
 ## [v5.5.0] - 2025-12-22
 - Viewer app
