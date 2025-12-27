@@ -26,7 +26,7 @@ import { Texture } from '../../../mol-gl/webgl/texture';
 import { applyMeshColorSmoothing } from '../../../mol-geo/geometry/mesh/color-smoothing';
 import { applyTextureMeshColorSmoothing } from '../../../mol-geo/geometry/texture-mesh/color-smoothing';
 import { ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
-import { Vec3 } from '../../../mol-math/linear-algebra';
+import { Tensor, Vec3 } from '../../../mol-math/linear-algebra';
 import { isTimingMode } from '../../../mol-util/debug';
 import { ValueCell } from '../../../mol-util/value-cell';
 
@@ -67,14 +67,14 @@ function suitableForGpu(structure: Structure, props: PD.Values<SharedParams>, we
 }
 
 export function GaussianSurfaceVisual(materialId: number, structure: Structure, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) {
-    if (!props.includeParent && props.tryUseGpu && webgl && gpuSupport(webgl) && suitableForGpu(structure, props, webgl)) {
+    if (!props.includeParent && props.floodfill === 'off' && props.tryUseGpu && webgl && gpuSupport(webgl) && suitableForGpu(structure, props, webgl)) {
         return GaussianSurfaceTextureMeshVisual(materialId);
     }
     return GaussianSurfaceMeshVisual(materialId);
 }
 
 export function StructureGaussianSurfaceVisual(materialId: number, structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) {
-    if (!props.includeParent && props.tryUseGpu && webgl && gpuSupport(webgl) && suitableForGpu(structure, props, webgl)) {
+    if (!props.includeParent && props.floodfill === 'off' && props.tryUseGpu && webgl && gpuSupport(webgl) && suitableForGpu(structure, props, webgl)) {
         return StructureGaussianSurfaceTextureMeshVisual(materialId);
     }
     return StructureGaussianSurfaceMeshVisual(materialId);
@@ -91,9 +91,10 @@ async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structu
     const { smoothness } = props;
     const { transform, field, idField, radiusFactor, resolution, maxRadius } = await computeUnitGaussianDensity(structure, unit, theme.size, props).runInContext(ctx.runtime);
 
+    const isoLevel = Math.exp(-smoothness) / radiusFactor;
     const params = {
-        isoLevel: Math.exp(-smoothness) / radiusFactor,
-        scalarField: field,
+        isoLevel,
+        scalarField: props.floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, props.floodfill) : field,
         idField
     };
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
@@ -133,7 +134,8 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
                 newProps.traceOnly !== currentProps.traceOnly ||
-                newProps.includeParent !== currentProps.includeParent
+                newProps.includeParent !== currentProps.includeParent ||
+                newProps.floodfill !== currentProps.floodfill
             );
 
             if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
@@ -166,9 +168,10 @@ async function createStructureGaussianSurfaceMesh(ctx: VisualContext, structure:
     const { smoothness } = props;
     const { transform, field, idField, radiusFactor, resolution, maxRadius } = await computeStructureGaussianDensity(structure, theme.size, props).runInContext(ctx.runtime);
 
+    const isoLevel = Math.exp(-smoothness) / radiusFactor;
     const params = {
-        isoLevel: Math.exp(-smoothness) / radiusFactor,
-        scalarField: field,
+        isoLevel,
+        scalarField: props.floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, props.floodfill) : field,
         idField
     };
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
@@ -208,7 +211,8 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
                 newProps.traceOnly !== currentProps.traceOnly ||
-                newProps.includeParent !== currentProps.includeParent
+                newProps.includeParent !== currentProps.includeParent ||
+                newProps.floodfill !== currentProps.floodfill
             );
 
             if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
@@ -304,7 +308,7 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
             }
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
-            return props.includeParent || !props.tryUseGpu || !webgl || !suitableForGpu(structureGroup.structure, props, webgl);
+            return props.includeParent || props.floodfill !== 'off' || !props.tryUseGpu || !webgl || !suitableForGpu(structureGroup.structure, props, webgl);
         },
         processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
@@ -392,7 +396,7 @@ export function StructureGaussianSurfaceTextureMeshVisual(materialId: number): C
             }
         },
         mustRecreate: (structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
-            return props.includeParent || !props.tryUseGpu || !webgl || !suitableForGpu(structure, props, webgl);
+            return props.includeParent || props.floodfill !== 'off' || !props.tryUseGpu || !webgl || !suitableForGpu(structure, props, webgl);
         },
         processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
