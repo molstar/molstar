@@ -9,6 +9,10 @@ Note that since we don't clearly distinguish between a public and private interf
   - Increase default size of `carbohydrate` representation
   - `color_from_uri` and `color_from_source` take `selector` parameter
   - Add `keepCameraOrientation` option for loading functions
+- Tweak Gaussian Density smoothness default range (less artefacts)
+- Support `includeParent` for Gaussian Surface (disables GPU support)
+- Support floodfill before surface extraction (`off`, `interior`, `exterior`)
+    - For Isosurface, Molecular Surface, Gaussian Surface
 
 ## [v5.5.0] - 2025-12-22
 - Viewer app
