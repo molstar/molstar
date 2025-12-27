@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
-- Fix `label_seq_id` assignment in PDB parser when insertion codes are present (#1730)
+- Fix `label_seq_id` assignment in PDB parser to use 1-based linear indexing (#1730) if:
+  - when insertion codes are present
+  - `SEQRES` records are present
 
 ## [v5.5.0] - 2025-12-22
 - Viewer app
