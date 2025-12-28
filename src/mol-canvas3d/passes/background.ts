@@ -121,8 +121,6 @@ export class BackgroundPass {
     private readonly position = Vec3();
     private readonly dir = Vec3();
 
-    readonly texture: Texture;
-
     constructor(private readonly webgl: WebGLContext, private readonly assetManager: AssetManager, width: number, height: number) {
         this.renderable = getBackgroundRenderable(webgl, width, height);
     }

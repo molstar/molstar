@@ -6,7 +6,7 @@
 
 import { StateTransformer } from './transformer';
 import { UUID } from '../mol-util';
-import { hashMurmur128o } from '../mol-data/util';
+import { hashMurmur128o } from '../mol-data/util/hash-functions';
 
 export { Transform as StateTransform };
 

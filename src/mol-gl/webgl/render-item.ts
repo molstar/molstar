@@ -58,6 +58,7 @@ export type MultiDrawBaseData = {
 export interface RenderItem<T extends string> {
     readonly id: number
     readonly materialId: number
+    getByteCount(): number
     getProgram: (variant: T) => Program
     setTransparency: (transparency: Transparency) => void
 
@@ -75,6 +76,8 @@ export const GraphicsRenderVariants = Object.keys(GraphicsRenderVariant) as Grap
 const ComputeRenderVariant = { compute: '' };
 export type ComputeRenderVariant = keyof typeof ComputeRenderVariant
 export const ComputeRenderVariants = Object.keys(ComputeRenderVariant) as ComputeRenderVariant[];
+
+export type ProgramVariant = GraphicsRenderVariant | ComputeRenderVariant
 
 function createProgramVariant(ctx: WebGLContext, variant: string, defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) {
     defineValues = { ...defineValues, dRenderVariant: ValueCell.create(variant) };
@@ -105,9 +108,9 @@ function resetValueChanges(valueChanges: ValueChanges) {
 
 //
 
-export type Transparency = 'blended' | 'wboit' | 'dpoit' | undefined
+export type Transparency = 'blended' | 'wboit' | 'dpoit'
 
-function getRenderVariant(variant: string, transparency: Transparency): string {
+function getRenderVariant(variant: string, transparency: Transparency | undefined): string {
     if (variant === 'color') {
         switch (transparency) {
             case 'blended': return 'colorBlended';
@@ -133,7 +136,7 @@ export function createComputeRenderItem(ctx: WebGLContext, drawMode: DrawMode, s
  *
  * - assumes that `values.drawCount` and `values.instanceCount` exist
  */
-export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number, renderVariants: T[], transparency: Transparency): RenderItem<T> {
+export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number, renderVariants: T[], transparency: Transparency | undefined): RenderItem<T> {
     const id = getNextRenderItemId();
     const { stats, state, resources } = ctx;
     const { instancedArrays, vertexArrayObject, multiDrawInstancedBaseVertexBaseInstance, drawInstancedBaseVertexBaseInstance } = ctx.extensions;
@@ -203,6 +206,20 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
     return {
         id,
         materialId,
+        getByteCount() {
+            let count = 0;
+            for (let i = 0, il = attributeBuffers.length; i < il; ++i) {
+                count += attributeBuffers[i][1].getByteCount();
+            }
+            if (elementsBuffer) count += elementsBuffer.getByteCount();
+            for (let i = 0, il = textures.length; i < il; ++i) {
+                count += textures[i][1].getByteCount();
+            }
+            for (let i = 0, il = materialTextures.length; i < il; ++i) {
+                count += materialTextures[i][1].getByteCount();
+            }
+            return count;
+        },
         getProgram: (variant: T) => programs[variant],
         setTransparency: (value: Transparency) => {
             if (value === transparency) return;

@@ -12,7 +12,7 @@ import { LociLabelProvider } from '../../mol-plugin-state/manager/loci-label';
 import { PluginBehavior } from '../../mol-plugin/behavior/behavior';
 import { PluginContext } from '../../mol-plugin/context';
 import { StructureRepresentationProvider } from '../../mol-repr/structure/representation';
-import { StateAction, StateObjectCell, StateTree } from '../../mol-state';
+import { StateAction, StateObject, StateObjectCell, StateTree } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ColorTheme } from '../../mol-theme/color';
 import { fileToDataUri } from '../../mol-util/file';
@@ -111,6 +111,19 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
                 this.ctx.state.data.actions.add(action);
             }
 
+            this.ctx.state.data.registerRefResolver('mvs', (state, ref) => {
+                const tagSearch = StateTree.doPreOrder(state.tree, state.tree.root, { ref, ret: undefined as StateObject | undefined }, (n, _, s) => {
+                    if (!n.tags) return;
+                    for (const t of n.tags) {
+                        if (t.startsWith('mvs-ref:') && t.substring(8) === ref) {
+                            s.ret = state.cells.get(n.ref)?.obj?.data;
+                            return false;
+                        }
+                    }
+                });
+                return tagSearch.ret;
+            });
+
             this.ctx.managers.markdownExtensions.registerRefResolver('mvs', (plugin, refs) => {
                 const mvsRefs = new Set(refs.map(ref => `mvs-ref:${ref}`));
                 return StateTree.doPreOrder(
@@ -180,6 +193,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
             for (const action of this.registrables.actions ?? []) {
                 this.ctx.state.data.actions.remove(action);
             }
+            this.ctx.state.data.removeRefResolver('mvs');
             this.ctx.managers.markdownExtensions.removeRefResolver('mvs');
         }
     },

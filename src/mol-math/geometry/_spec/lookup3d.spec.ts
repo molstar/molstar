@@ -6,8 +6,8 @@
  */
 
 import { GridLookup3D } from '../../geometry';
-import { sortArray } from '../../../mol-data/util';
-import { OrderedSet } from '../../../mol-data/int';
+import { sortArray } from '../../../mol-data/util/sort';
+import { OrderedSet } from '../../../mol-data/int/ordered-set';
 import { getBoundary } from '../boundary';
 
 const xs = [0, 0, 1];

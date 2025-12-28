@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Yakov Pechersky <ffxen158@gmail.com>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { CifCategory, CifField } from '../../../mol-io/reader/cif';
@@ -19,6 +20,7 @@ export function parseConect(lines: Tokens, lineStart: number, lineEnd: number, s
 
     const id: string[] = [];
     const conn_type_id: string[] = [];
+    const bondOrder: number[] = [];
 
     const ptnr1_label_asym_id: string[] = [];
     const ptnr1_label_seq_id: number[] = [];
@@ -37,14 +39,20 @@ export function parseConect(lines: Tokens, lineStart: number, lineEnd: number, s
     const pos = [11, 16, 21, 26];
 
     let k = 1;
+    let currentIdxA = -1;
+    let bondIndex: {[k: number]: number} = {};
+    let hasMultipleBonds = false;
 
     for (let i = lineStart; i < lineEnd; i++) {
         const line = getLine(i);
         const idxA = idMap[parseInt(line.substr(6, 5))];
 
-        const bondIndex: {[k: number]: number} = {};
-
         if (idxA === undefined) continue;
+
+        if (currentIdxA !== idxA) {
+            currentIdxA = idxA;
+            bondIndex = {};
+        }
 
         for (let j = 0; j < 4; ++j) {
             const idB = parseInt(line.substr(pos[j], 5));
@@ -54,12 +62,18 @@ export function parseConect(lines: Tokens, lineStart: number, lineEnd: number, s
             if (idxB === undefined) continue;
             if (idxA > idxB) continue;
 
-            // TODO: interpret records where a 'idxB' atom is given multiple times
+            // Records where a 'idxB' atom is given multiple times are interpreted
             // as double/triple bonds, e.g. CONECT 1529 1528 1528 is a double bond
-            if (bondIndex[idxB] !== undefined) continue;
+            if (bondIndex[idxB] !== undefined) {
+                bondOrder[bondIndex[idxB]] += 1;
+                hasMultipleBonds = true;
+                continue;
+            }
+            bondIndex[idxB] = k - 1;
 
             id.push(`covale${k}`);
             conn_type_id.push('covale');
+            bondOrder.push(1);
 
             ptnr1_label_asym_id.push(sites.label_asym_id!.str(idxA));
             ptnr1_label_seq_id.push(sites.label_seq_id!.int(idxA));
@@ -97,6 +111,11 @@ export function parseConect(lines: Tokens, lineStart: number, lineEnd: number, s
         pdbx_ptnr2_label_alt_id: CifField.ofStrings(ptnr2_label_alt_id),
         pdbx_ptnr2_PDB_ins_code: CifField.ofStrings(ptnr2_PDB_ins_code),
     };
+
+    if (hasMultipleBonds) {
+        const valueOrder = ['sing', 'doub', 'trpl', 'quad'];
+        struct_conn.pdbx_value_order = CifField.ofStrings(bondOrder.map(bo => valueOrder[bo - 1] || 'sing'));
+    }
 
     return CifCategory.ofFields('struct_conn', struct_conn);
 }

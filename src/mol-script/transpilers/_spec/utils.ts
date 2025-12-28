@@ -19,7 +19,7 @@ export function testKeywords(keywords: KeywordDict, transpiler: Transpiler) {
             } else {
                 const transpile = () => transpiler(name);
                 expect(transpile).toThrow();
-                expect(transpile).not.toThrowError(RangeError);
+                expect(transpile).not.toThrow(RangeError);
             }
         });
     }
@@ -35,7 +35,7 @@ export function testProperties(properties: PropertyDict, transpiler: Transpiler)
                 } else {
                     const transpile = () => transpiler(example);
                     expect(transpile).toThrow();
-                    expect(transpile).not.toThrowError(RangeError);
+                    expect(transpile).not.toThrow(RangeError);
                 }
             });
         });
@@ -56,7 +56,7 @@ export function testOperators(operators: OperatorList, transpiler: Transpiler) {
                 } else {
                     const transpile = () => transpiler(example);
                     expect(transpile).toThrow();
-                    expect(transpile).not.toThrowError(RangeError);
+                    expect(transpile).not.toThrow(RangeError);
                 }
             });
         });

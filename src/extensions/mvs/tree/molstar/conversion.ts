@@ -28,9 +28,21 @@ export const ParseFormatMvsToMolstar = {
     lammpstrj: { format: 'lammpstrj', is_binary: false },
     // coordinates
     xtc: { format: 'xtc', is_binary: true },
+    nctraj: { format: 'nctraj', is_binary: true },
+    dcd: { format: 'dcd', is_binary: true },
+    trr: { format: 'trr', is_binary: true },
+    // topology
+    psf: { format: 'psf', is_binary: false },
+    prmtop: { format: 'prmtop', is_binary: false },
+    top: { format: 'top', is_binary: false },
     // maps
     map: { format: 'map', is_binary: true },
+    dx: { format: 'dx', is_binary: false },
+    dxbin: { format: 'dxbin', is_binary: true },
 } satisfies { [p in ParseFormatT]: { format: MolstarParseFormatT, is_binary: boolean } };
+
+
+const TopologyFormats = new Set<ParseFormatT>(['psf', 'prmtop', 'top']);
 
 /** Conversion rules for conversion from `MVSTree` (with all parameter values) to `MolstarTree` */
 const mvsToMolstarConversionRules: ConversionRules<FullMVSTree, MolstarTree> = {
@@ -66,7 +78,18 @@ const mvsToMolstarConversionRules: ConversionRules<FullMVSTree, MolstarTree> = {
         if (parent?.kind !== 'parse') throw new Error(`Parent of "structure" must be "parse", not "${parent?.kind}".`);
         const { format } = ParseFormatMvsToMolstar[parent.params.format];
 
-        if (node.params.coordinates_ref) {
+        if (TopologyFormats.has(parent.params.format)) {
+            if (!node.params.coordinates_ref) {
+                throw new Error(`"structure" node with topology format "${parent.params.format}" must have "coordinates_ref" parameter.`);
+            }
+            return {
+                subtree: [
+                    { kind: 'topology_with_coordinates', params: { format, coordinates_ref: node.params.coordinates_ref } },
+                    { kind: 'model', params: pickObjectKeys(node.params, ['model_index']) },
+                    { kind: 'structure', params: omitObjectKeys(node.params, ['block_header', 'block_index', 'model_index', 'coordinates_ref']), custom: node.custom, ref: node.ref },
+                ] satisfies MolstarNode[]
+            };
+        } else if (node.params.coordinates_ref) {
             return {
                 subtree: [
                     { kind: 'trajectory', params: { format, ...pickObjectKeys(node.params, ['block_header', 'block_index']) } },
@@ -122,8 +145,17 @@ const StructureFormatExtensions: Record<ParseFormatT, (FileExtension | '*')[]> =
     lammpstrj: ['.lammpstrj'],
     // coordinates
     xtc: ['.xtc'],
+    nctraj: ['.nc', '.nctraj'],
+    dcd: ['.dcd'],
+    trr: ['.trr'],
+    // topology
+    psf: ['.psf'],
+    prmtop: ['.prmtop', '.parm7'],
+    top: ['.top'],
     // volumes
     map: ['.map', '.ccp4', '.mrc', '.mrcs'],
+    dx: ['.dx'],
+    dxbin: ['.dxbin'],
 };
 
 /** Run some sanity check on a MVSTree. Return a list of potential problems (`undefined` if there are none) */

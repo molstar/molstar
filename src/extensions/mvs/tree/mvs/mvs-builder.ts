@@ -7,9 +7,10 @@
 
 import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
 import { GlobalMetadata, MVSData_State, Snapshot, SnapshotMetadata } from '../../mvs-data';
-import { CustomProps } from '../generic/tree-schema';
 import { MVSAnimationNodeParams, MVSAnimationSubtree } from '../animation/animation-tree';
+import { CustomProps } from '../generic/tree-schema';
 import { MVSKind, MVSNode, MVSNodeParams, MVSSubtree } from './mvs-tree';
+import { ColorT, PrimitivePositionT } from './param-types';
 
 
 /** Create a new MolViewSpec builder containing only a root node. Example of MVS builder usage:
@@ -92,7 +93,7 @@ export class Root extends _Base<'root'> implements FocusMixin, PrimitivesMixin {
     }
     focus = bindMethod(this, FocusMixinImpl, 'focus');
     primitives = bindMethod(this, PrimitivesMixinImpl, 'primitives');
-    primitives_from_uri = bindMethod(this, PrimitivesMixinImpl, 'primitives_from_uri');
+    primitivesFromUri = bindMethod(this, PrimitivesMixinImpl, 'primitivesFromUri');
 
     animation(params: MVSAnimationNodeParams<'animation'> & CustomAndRef = {}): Animation {
         this._animation ??= new Animation(params);
@@ -243,7 +244,7 @@ export class Structure extends _Base<'structure'> implements PrimitivesMixin, Tr
     transform = bindMethod(this, TransformMixinImpl, 'transform');
     instance = bindMethod(this, TransformMixinImpl, 'instance');
     primitives = bindMethod(this, PrimitivesMixinImpl, 'primitives');
-    primitives_from_uri = bindMethod(this, PrimitivesMixinImpl, 'primitives_from_uri');
+    primitivesFromUri = bindMethod(this, PrimitivesMixinImpl, 'primitivesFromUri');
 }
 
 
@@ -365,6 +366,11 @@ export class Primitives extends _Base<'primitives'> implements FocusMixin {
         this.addChild('primitive', { kind: 'distance_measurement', ...params });
         return this;
     }
+    /** Defines an angle between vectors (b - a) and (c - b). */
+    angle(params: MVSPrimitiveSubparams<'angle_measurement'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'angle_measurement', ...params });
+        return this;
+    }
     /** Defines a label. */
     label(params: MVSPrimitiveSubparams<'label'> & CustomAndRef): Primitives {
         this.addChild('primitive', { kind: 'label', ...params });
@@ -375,8 +381,19 @@ export class Primitives extends _Base<'primitives'> implements FocusMixin {
         this.addChild('primitive', { kind: 'ellipse', ...params });
         return this;
     }
-    /** Defines an ellipsoid */
+    /** Defines an ellipsoid. */
     ellipsoid(params: MVSPrimitiveSubparams<'ellipsoid'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'ellipsoid', ...params });
+        return this;
+    }
+    /** Defines a sphere (a special case of ellipsoid). */
+    sphere(params: {
+        center: PrimitivePositionT,
+        radius?: number | null,
+        radius_extent?: number | null,
+        color?: ColorT | null,
+        tooltip?: string | null,
+    } & CustomAndRef): Primitives {
         this.addChild('primitive', { kind: 'ellipsoid', ...params });
         return this;
     }
@@ -386,12 +403,24 @@ export class Primitives extends _Base<'primitives'> implements FocusMixin {
         return this;
     }
     focus = bindMethod(this, FocusMixinImpl, 'focus');
+
+    /** Add a 'clip' node and return builder pointing back to the representation node. 'clip' node instructs to apply clipping to a visual representation. */
+    clip(params: MVSNodeParams<'clip'> & CustomAndRef): Primitives {
+        this.addChild('clip', params);
+        return this;
+    }
 }
 
 
 /** MVS builder pointing to a 'primitives_from_uri' node */
 class PrimitivesFromUri extends _Base<'primitives_from_uri'> implements FocusMixin {
     focus = bindMethod(this, FocusMixinImpl, 'focus');
+
+    /** Add a 'clip' node and return builder pointing back to the representation node. 'clip' node instructs to apply clipping to a visual representation. */
+    clip(params: MVSNodeParams<'clip'> & CustomAndRef): PrimitivesFromUri {
+        this.addChild('clip', params);
+        return this;
+    }
 }
 
 
@@ -425,13 +454,13 @@ interface PrimitivesMixin {
     /** Allows the definition of a (group of) geometric primitives. You can add any number of primitives and then assign shared options (color, opacity etc.). */
     primitives(params: MVSNodeParams<'primitives'> & CustomAndRef): Primitives,
     /** Allows the definition of a (group of) geometric primitives provided dynamically. */
-    primitives_from_uri(params: MVSNodeParams<'primitives_from_uri'> & CustomAndRef): PrimitivesFromUri,
+    primitivesFromUri(params: MVSNodeParams<'primitives_from_uri'> & CustomAndRef): PrimitivesFromUri,
 };
 class PrimitivesMixinImpl extends _Base<MVSKind> implements PrimitivesMixin {
     primitives(params: MVSNodeParams<'primitives'> & CustomAndRef = {}): Primitives {
         return new Primitives(this._root, this.addChild('primitives', params));
     }
-    primitives_from_uri(params: MVSNodeParams<'primitives_from_uri'> & CustomAndRef): PrimitivesFromUri {
+    primitivesFromUri(params: MVSNodeParams<'primitives_from_uri'> & CustomAndRef): PrimitivesFromUri {
         return new PrimitivesFromUri(this._root, this.addChild('primitives_from_uri', params));
     }
 };

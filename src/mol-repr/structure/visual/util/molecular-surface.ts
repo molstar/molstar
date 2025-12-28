@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,10 +8,17 @@ import { Unit, Structure } from '../../../../mol-model/structure';
 import { Task, RuntimeContext } from '../../../../mol-task';
 import { getUnitConformationAndRadius, CommonSurfaceProps, ensureReasonableResolution, getStructureConformationAndRadius } from './common';
 import { PositionData, DensityData, Box3D } from '../../../../mol-math/geometry';
-import { MolecularSurfaceCalculationProps, calcMolecularSurface } from '../../../../mol-math/geometry/molecular-surface';
+import { MolecularSurfaceCalculationParams, MolecularSurfaceCalculationProps, calcMolecularSurface } from '../../../../mol-math/geometry/molecular-surface';
 import { OrderedSet } from '../../../../mol-data/int';
 import { Boundary } from '../../../../mol-math/geometry/boundary';
 import { SizeTheme } from '../../../../mol-theme/size';
+import { BaseGeometry } from '../../../../mol-geo/geometry/base';
+
+export const CommonMolecularSurfaceCalculationParams = {
+    ...MolecularSurfaceCalculationParams,
+    resolution: { ...MolecularSurfaceCalculationParams.resolution, ...BaseGeometry.CustomQualityParamInfo },
+    probePositions: { ...MolecularSurfaceCalculationParams.probePositions, ...BaseGeometry.CustomQualityParamInfo },
+};
 
 export type MolecularSurfaceProps = MolecularSurfaceCalculationProps & CommonSurfaceProps
 

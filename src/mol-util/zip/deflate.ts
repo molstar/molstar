@@ -116,7 +116,7 @@ const Opts = [
     /* 9 */ [32, 258, 258, 4096, 1] /* max compression */
 ] as const;
 
-export async function _deflateRaw(runtime: RuntimeContext, data: Uint8Array, out: Uint8Array, opos: number, lvl: number): Promise<number> {
+export async function _deflateRaw(runtime: RuntimeContext, data: Uint8Array<ArrayBuffer>, out: Uint8Array, opos: number, lvl: number): Promise<number> {
     if (checkCompressionStreamSupport('deflate-raw')) {
         const cs = new CompressionStream('deflate-raw');
         const blob = new Blob([data]);

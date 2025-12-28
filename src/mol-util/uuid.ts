@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { now } from '../mol-util/now';
+import { now } from './now';
 
 /** A UUID, either standard 36 characters or 22 characters base64 encoded. */
 type UUID = string & { '@type': 'uuid' }

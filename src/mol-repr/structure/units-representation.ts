@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -28,6 +28,12 @@ import { StructureGroup } from './visual/util/common';
 import { Substance } from '../../mol-theme/substance';
 import { LocationCallback } from '../util';
 import { Emissive } from '../../mol-theme/emissive';
+import { HashMap } from '../../mol-util/map';
+
+function createVisualsMap<P extends StructureParams>() {
+    return new HashMap<Unit.SymmetryGroup, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>(group => group.hashCode, Unit.SymmetryGroup.areInvariantElementsEqual);
+}
+
 
 export interface UnitsVisual<P extends StructureParams> extends Visual<StructureGroup, P> { }
 
@@ -39,7 +45,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     const renderObjects: GraphicsRenderObject[] = [];
     const geometryState = new Representation.GeometryState();
     const _state = StructureRepresentationStateBuilder.create();
-    let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>();
+    let visuals = createVisualsMap<P>();
 
     let _structure: Structure;
     let _groups: ReadonlyArray<Unit.SymmetryGroup>;
@@ -67,7 +73,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                     const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure });
                     if (promise) await promise;
                     setVisualState(visual, group, _state); // current state for new visual
-                    visuals.set(group.hashCode, { visual, group });
+                    visuals.set(group, { visual, group });
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length });
                 }
             } else if (structure && (!Structure.areUnitIdsAndIndicesEqual(structure, _structure) || structure.child !== _structure.child)) {
@@ -77,10 +83,10 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                 _groups = structure.unitSymmetryGroups;
                 // const newGroups: Unit.SymmetryGroup[] = []
                 const oldVisuals = visuals;
-                visuals = new Map();
+                visuals = createVisualsMap<P>();
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
-                    const visualGroup = oldVisuals.get(group.hashCode);
+                    const visualGroup = oldVisuals.get(group);
                     if (visualGroup) {
                         // console.log(label, 'found visualGroup to reuse');
                         // console.log('old', visualGroup.group)
@@ -96,8 +102,8 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                             const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure });
                             if (promise) await promise;
                         }
-                        visuals.set(group.hashCode, { visual, group });
-                        oldVisuals.delete(group.hashCode);
+                        visuals.set(group, { visual, group });
+                        oldVisuals.delete(group);
 
                         // Remove highlight
                         // TODO: remove selection too??
@@ -112,7 +118,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                         const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure });
                         if (promise) await promise;
                         setVisualState(visual, group, _state); // current state for new visual
-                        visuals.set(group.hashCode, { visual, group });
+                        visuals.set(group, { visual, group });
                     }
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length });
                 }
@@ -130,7 +136,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                 // console.log('old', _structure.unitSymmetryGroups)
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
-                    const visualGroup = visuals.get(group.hashCode);
+                    const visualGroup = visuals.get(group);
                     if (visualGroup) {
                         let { visual } = visualGroup;
                         if (visual.mustRecreate?.({ group, structure }, _props, ctx.webgl)) {

@@ -120,8 +120,6 @@ export namespace BaseGeometry {
             uBumpiness: ValueCell.create(props.material.bumpiness),
             uEmissive: ValueCell.create(props.emissive),
             uDensity: ValueCell.create(props.density),
-            dLightCount: ValueCell.create(1),
-            dColorMarker: ValueCell.create(true),
 
             dClipObjectCount: ValueCell.create(clip.objects.count),
             dClipVariant: ValueCell.create(clip.variant),

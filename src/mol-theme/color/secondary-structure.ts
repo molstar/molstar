@@ -17,7 +17,7 @@ import { SecondaryStructureProvider, SecondaryStructureValue } from '../../mol-m
 import { getAdjustedColorMap } from '../../mol-util/color/color';
 import { getColorMapParams } from '../../mol-util/color/params';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
-import { hash2 } from '../../mol-data/util';
+import { hash2 } from '../../mol-data/util/hash-functions';
 import { ColorThemeCategory } from './categories';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (shapely)

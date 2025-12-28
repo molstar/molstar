@@ -101,7 +101,7 @@ export const DownloadFile = StateAction.build({
                 //       would need support for extracting individual files from zip
                 const data = await plugin.builders.data.download({ url: params.url, isBinary: true });
                 if (params.format === 'zip') {
-                    const zippedFiles = await unzip(taskCtx, (data.obj?.data as Uint8Array).buffer);
+                    const zippedFiles = await unzip(taskCtx, (data.obj?.data as Uint8Array<ArrayBuffer>).buffer);
                     for (const [fn, filedata] of Object.entries(zippedFiles)) {
                         if (!(filedata instanceof Uint8Array) || filedata.length === 0) continue;
 
@@ -112,7 +112,7 @@ export const DownloadFile = StateAction.build({
                 } else {
                     const url = Asset.getUrl(params.url);
                     const fileName = getFileNameInfo(url).name;
-                    await processFile(Asset.File(new File([data.obj?.data as Uint8Array], fileName)), plugin, 'auto', params.visuals);
+                    await processFile(Asset.File(new File([data.obj?.data as Uint8Array<ArrayBuffer>], fileName)), plugin, 'auto', params.visuals);
                 }
             } else {
                 const provider = plugin.dataFormats.get(params.format);

@@ -15,7 +15,7 @@ import { Mp4AnimationParams, Mp4Controls } from './controls';
 
 interface State {
     busy?: boolean,
-    data?: { movie: Uint8Array, filename: string };
+    data?: { movie: Uint8Array<ArrayBuffer>, filename: string };
 }
 
 export class Mp4EncoderUI extends CollapsableControls<{}, State> {

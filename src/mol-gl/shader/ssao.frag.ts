@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -64,7 +64,7 @@ vec2 getNoiseVec2(const in vec2 coords) {
 }
 
 bool isBackground(const in float depth) {
-    return depth > 0.999; // handle precision issues with packed depth
+    return depth == 1.0;
 }
 
 float getDepth(const in vec2 coords, const in int transparentFlag) {

@@ -11,6 +11,7 @@ import { SIFTSMapping } from '../../mol-model-props/sequence/sifts-mapping';
 import { QueryContext, Structure, StructureElement, StructureProperties, StructureSelection } from '../../mol-model/structure';
 import { alignAndSuperpose, superpose } from '../../mol-model/structure/structure/util/superposition';
 import { alignAndSuperposeWithSIFTSMapping } from '../../mol-model/structure/structure/util/superposition-sifts-mapping';
+import { tmAlign } from '../../mol-model/structure/structure/util/tm-align';
 import { StructureSelectionQueries } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { StructureSelectionHistoryEntry } from '../../mol-plugin-state/manager/structure/selection';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
@@ -61,7 +62,7 @@ const SuperpositionTag = 'SuperpositionTransform';
 
 type SuperpositionControlsState = {
     isBusy: boolean,
-    action?: 'byChains' | 'byAtoms' | 'options',
+    action?: 'byChains' | 'byAtoms' | 'byTMAlign' | 'options',
     canUseDb?: boolean,
     options: StructureSuperpositionOptions
 }
@@ -222,6 +223,32 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         }
     };
 
+    superposeTMAlign = async () => {
+        const { query } = this.state.options.traceOnly ? StructureSelectionQueries.trace : StructureSelectionQueries.polymer;
+        const entries = this.chainEntries;
+
+        const locis = entries.map(e => {
+            const s = StructureElement.Loci.toStructure(e.loci);
+            const loci = StructureSelection.toLociWithSourceUnits(query(new QueryContext(s)));
+            return StructureElement.Loci.remap(loci, this.getRootStructure(e.loci.structure));
+        });
+
+        const pivot = this.plugin.managers.structure.hierarchy.findStructure(locis[0]?.structure);
+        const coordinateSystem = pivot?.transform?.cell.obj?.data.coordinateSystem;
+
+        const eA = entries[0];
+        for (let i = 1, il = locis.length; i < il; ++i) {
+            const eB = entries[i];
+            const result = tmAlign(locis[0], locis[i]);
+            const { bTransform, tmScoreA, tmScoreB, rmsd, alignedLength } = result;
+            await this.transform(eB.cell, bTransform, coordinateSystem);
+            const labelA = stripTags(eA.label);
+            const labelB = stripTags(eB.label);
+            this.plugin.log.info(`TM-align [${labelA}] and [${labelB}]: TM-score=${tmScoreA.toFixed(4)}/${tmScoreB.toFixed(4)}, RMSD=${rmsd.toFixed(2)} Å, aligned ${alignedLength} residues.`);
+        }
+        await this.cameraReset();
+    };
+
     async cameraReset() {
         await new Promise(res => requestAnimationFrame(res));
         PluginCommands.Camera.Reset(this.plugin);
@@ -229,6 +256,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
 
     toggleByChains = () => this.setState({ action: this.state.action === 'byChains' ? void 0 : 'byChains' });
     toggleByAtoms = () => this.setState({ action: this.state.action === 'byAtoms' ? void 0 : 'byAtoms' });
+    toggleByTMAlign = () => this.setState({ action: this.state.action === 'byTMAlign' ? void 0 : 'byTMAlign' });
     toggleOptions = () => this.setState({ action: this.state.action === 'options' ? void 0 : 'options' });
 
     highlight(loci: StructureElement.Loci) {
@@ -361,6 +389,21 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         </>;
     }
 
+    addByTMAlign() {
+        const entries = this.chainEntries;
+        return <>
+            {entries.length > 0 && <div className='msp-control-offset'>
+                {entries.map((e, i) => this.lociEntry(e, i))}
+            </div>}
+            {entries.length < 2 && <div className='msp-control-offset msp-help-text'>
+                <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />Add 2 or more selections{this.toggleHint()} from separate structures. Selections must be limited to single polymer chains. TM-align performs structure-based alignment independent of sequence.</div>
+            </div>}
+            {entries.length > 1 && <Button title='Superpose structures using TM-align (structure-based alignment).' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeTMAlign} style={{ marginTop: '1px' }}>
+                TM-align Superpose
+            </Button>}
+        </>;
+    }
+
     superposeByDbMapping() {
         return <>
             <Button icon={SuperposeChainsSvg} title='Superpose structures using intersection of residues from SIFTS UNIPROT mapping.' className='msp-btn msp-btn-block' onClick={this.superposeDb} style={{ marginTop: '1px' }} disabled={this.state.isBusy}>
@@ -378,11 +421,13 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
             <div className='msp-flex-row'>
                 <ToggleButton icon={SuperposeChainsSvg} label='Chains' toggle={this.toggleByChains} isSelected={this.state.action === 'byChains'} disabled={this.state.isBusy} />
                 <ToggleButton icon={SuperposeAtomsSvg} label='Atoms' toggle={this.toggleByAtoms} isSelected={this.state.action === 'byAtoms'} disabled={this.state.isBusy} />
+                <ToggleButton icon={SuperposeChainsSvg} label='TM-align' toggle={this.toggleByTMAlign} isSelected={this.state.action === 'byTMAlign'} disabled={this.state.isBusy} />
                 {this.state.canUseDb && this.superposeByDbMapping()}
                 <ToggleButton icon={TuneSvg} label='' title='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isBusy} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             {this.state.action === 'byChains' && this.addByChains()}
             {this.state.action === 'byAtoms' && this.addByAtoms()}
+            {this.state.action === 'byTMAlign' && this.addByTMAlign()}
             {this.state.action === 'options' && <div className='msp-control-offset'>
                 <ParameterControls params={StructureSuperpositionParams} values={this.state.options} onChangeValues={this.setOptions} isDisabled={this.state.isBusy} />
             </div>}

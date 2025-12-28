@@ -80,14 +80,12 @@ function getLevels(props: { radius: number, bias: number }[], scale: number, lev
 
 export class SsaoPass {
     static isEnabled(props: PostprocessingProps) {
-        return props.occlusion.name !== 'off';
+        return props.enabled && props.occlusion.name !== 'off';
     }
 
     static isTransparentEnabled(scene: Scene, props: SsaoProps) {
         return scene.opacityAverage < 1 && scene.transparencyMin < props.transparentThreshold;
     }
-
-    readonly target: RenderTarget;
 
     private readonly framebuffer: Framebuffer;
     private readonly blurFirstPassFramebuffer: Framebuffer;
@@ -134,6 +132,7 @@ export class SsaoPass {
         return Math.min(1, 1 / this.webgl.pixelRatio) * resolutionScale;
     }
 
+    private levelsCameraScale = -1;
     private levels: { radius: number, bias: number }[];
 
     private getDepthTexture() {
@@ -211,6 +210,20 @@ export class SsaoPass {
         this.renderable = getSsaoRenderable(webgl, depthTexture, this.depthHalfTargetOpaque.texture, this.depthQuarterTargetOpaque.texture, transparentDepthTexture, this.depthHalfTargetTransparent.texture, this.depthQuarterTargetTransparent.texture);
         this.blurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTransparentTexture, 'horizontal');
         this.blurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.depthBlurProxyTexture, 'vertical');
+    }
+
+    getByteCount() {
+        return (
+            this.downsampledDepthTargetOpaque.getByteCount() +
+            this.depthHalfTargetOpaque.getByteCount() +
+            this.depthQuarterTargetOpaque.getByteCount() +
+            this.downsampledDepthTargetTransparent.getByteCount() +
+            this.depthHalfTargetTransparent.getByteCount() +
+            this.depthQuarterTargetTransparent.getByteCount() +
+            this.ssaoDepthTexture.getByteCount() +
+            this.ssaoDepthTransparentTexture.getByteCount() +
+            this.depthBlurProxyTexture.getByteCount()
+        );
     }
 
     setSize(width: number, height: number) {
@@ -305,8 +318,8 @@ export class SsaoPass {
         ValueCell.update(this.blurFirstPassRenderable.values.uInvProjection, invProjection);
         ValueCell.update(this.blurSecondPassRenderable.values.uInvProjection, invProjection);
 
-        ValueCell.update(this.blurFirstPassRenderable.values.uBlurDepthBias, props.blurDepthBias * camera.state.scale);
-        ValueCell.update(this.blurSecondPassRenderable.values.uBlurDepthBias, props.blurDepthBias * camera.state.scale);
+        ValueCell.update(this.blurFirstPassRenderable.values.uBlurDepthBias, props.blurDepthBias * camera.scale);
+        ValueCell.update(this.blurSecondPassRenderable.values.uBlurDepthBias, props.blurDepthBias * camera.scale);
 
         if (this.blurFirstPassRenderable.values.dOrthographic.ref.value !== orthographic) {
             needsUpdateSsaoBlur = true;
@@ -344,11 +357,12 @@ export class SsaoPass {
 
         if (props.multiScale.name === 'on') {
             const mp = props.multiScale.params;
-            if (!deepEqual(this.levels, mp.levels)) {
+            if (this.levelsCameraScale !== camera.scale || !deepEqual(this.levels, mp.levels)) {
                 needsUpdateSsao = true;
 
+                this.levelsCameraScale = camera.scale;
                 this.levels = mp.levels;
-                const levels = getLevels(mp.levels, camera.state.scale);
+                const levels = getLevels(mp.levels, camera.scale);
                 ValueCell.updateIfChanged(this.renderable.values.dLevels, levels.count);
 
                 ValueCell.update(this.renderable.values.uLevelRadius, levels.radius);
@@ -357,7 +371,7 @@ export class SsaoPass {
             ValueCell.updateIfChanged(this.renderable.values.uNearThreshold, mp.nearThreshold);
             ValueCell.updateIfChanged(this.renderable.values.uFarThreshold, mp.farThreshold);
         } else {
-            ValueCell.updateIfChanged(this.renderable.values.uRadius, Math.pow(2, props.radius) * camera.state.scale);
+            ValueCell.updateIfChanged(this.renderable.values.uRadius, Math.pow(2, props.radius) * camera.scale);
         }
         ValueCell.updateIfChanged(this.renderable.values.uBias, props.bias);
 

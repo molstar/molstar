@@ -45,3 +45,76 @@ export function arrayMapAdd<K, V>(map: Map<K, V[]>, key: K, value: V) {
         map.set(key, [value]);
     }
 }
+
+export class HashMap<K, V> {
+    private buckets = new Map<number, Array<{ key: K, value: V }>>();
+
+    set(key: K, value: V): void {
+        const hashCode = this.hashCode(key);
+        let bucket = this.buckets.get(hashCode);
+
+        if (!bucket) {
+            bucket = [];
+            this.buckets.set(hashCode, bucket);
+        }
+
+        for (let i = 0; i < bucket.length; i++) {
+            if (this.areEqual(bucket[i].key, key)) {
+                bucket[i].value = value;
+                return;
+            }
+        }
+        bucket.push({ key, value });
+    }
+
+    get(key: K): V | undefined {
+        const hashCode = this.hashCode(key);
+        const bucket = this.buckets.get(hashCode);
+
+        if (!bucket) {
+            return undefined;
+        }
+
+        for (const entry of bucket) {
+            if (this.areEqual(entry.key, key)) {
+                return entry.value;
+            }
+        }
+
+        return undefined;
+    }
+
+    delete(key: K): boolean {
+        const hashCode = this.hashCode(key);
+        const bucket = this.buckets.get(hashCode);
+        if (!bucket) {
+            return false;
+        }
+        for (let i = 0; i < bucket.length; i++) {
+            if (this.areEqual(bucket[i].key, key)) {
+                bucket.splice(i, 1);
+                if (bucket.length === 0) {
+                    this.buckets.delete(hashCode);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    forEach(cb: (value: V, key: K) => void): void {
+        for (const bucket of this.buckets.values()) {
+            for (const entry of bucket) {
+                cb(entry.value, entry.key);
+            }
+        }
+    }
+
+    clear(): void {
+        this.buckets.clear();
+    }
+
+    constructor(private hashCode: (key: K) => number, private areEqual: (a: K, b: K) => boolean) {
+
+    }
+}

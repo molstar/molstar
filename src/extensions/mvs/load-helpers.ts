@@ -219,7 +219,7 @@ export function collectInlineTooltips(tree: MolstarSubtree<'structure'>, context
                         text: node.params.text,
                         selector: {
                             name: 'annotation',
-                            params: { annotationId: p.annotationId, fieldName: p.fieldName, fieldValues: p.fieldValues },
+                            params: { annotationId: p.annotationId, fieldName: p.fieldName, fieldValues: p.fieldValues, label: p.label || 'Annotation' },
                         },
                     });
                 }
@@ -253,7 +253,7 @@ export function collectInlineLabels(tree: MolstarSubtree<'structure'>, context: 
                             params: {
                                 selector: {
                                     name: 'annotation',
-                                    params: { annotationId: p.annotationId, fieldName: p.fieldName, fieldValues: p.fieldValues },
+                                    params: { annotationId: p.annotationId, fieldName: p.fieldName, fieldValues: p.fieldValues, label: p.label || 'Annotation' },
                                 },
                             },
                         },
@@ -376,7 +376,8 @@ function representationPropsBase(node: MolstarSubtree<'representation'>): Partia
             };
         case 'ball_and_stick':
             return {
-                type: { name: 'ball-and-stick', params: { sizeFactor: (params.size_factor ?? 1) * 0.5, sizeAspectRatio: 0.5, alpha, ignoreHydrogens: params.ignore_hydrogens } },
+                type: { name: 'ball-and-stick', params: { sizeFactor: 0.5, sizeAspectRatio: 0.5, alpha, ignoreHydrogens: params.ignore_hydrogens } },
+                sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
             };
         case 'line':
             return {
@@ -390,7 +391,8 @@ function representationPropsBase(node: MolstarSubtree<'representation'>): Partia
             };
         case 'carbohydrate':
             return {
-                type: { name: 'carbohydrate', params: { alpha, sizeFactor: params.size_factor ?? 1 } },
+                type: { name: 'carbohydrate', params: { alpha, sizeFactor: 1.75 } },
+                sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
             };
         case 'surface': {
             return {
@@ -479,7 +481,7 @@ function getClipObject(node: MolstarNode<'clip'>): Clip.Props['objects'][number]
     }
 }
 
-export function clippingForNode(node: MolstarSubtree<'representation' | 'volume_representation'>): Clip.Props | undefined {
+export function clippingForNode(node: MolstarSubtree<'representation' | 'volume_representation' | 'primitives' | 'primitives_from_uri'>): Clip.Props | undefined {
     const children = getChildren(node).filter(c => c.kind === 'clip');
     if (!children.length) return;
 
@@ -494,8 +496,16 @@ function hasMolStarUseDefaultColoring(node: MolstarNode): boolean {
     return 'molstar_use_default_coloring' in node.custom || 'molstar_color_theme_name' in node.custom;
 }
 
+function customColoring(custom: any) {
+    if (custom?.molstar_use_default_coloring) return undefined;
+    return {
+        name: custom?.molstar_color_theme_name ?? undefined,
+        params: custom?.molstar_color_theme_params ?? {},
+    };
+}
+
 /** Create value for `colorTheme` prop for `StructureRepresentation3D` transformer from a representation node based on color* nodes in its subtree. */
-export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri' | 'color_from_source' | 'representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] | undefined {
+export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri' | 'color_from_source' | 'representation' | 'volume'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] | undefined {
     if (node?.kind === 'representation') {
         const children = getChildren(node).filter(c => c.kind === 'color' || c.kind === 'color_from_uri' || c.kind === 'color_from_source') as MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>[];
         if (children.length === 0) {
@@ -504,12 +514,7 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
                 params: { value: decodeColor(DefaultColor) },
             };
         } else if (children.length === 1 && hasMolStarUseDefaultColoring(children[0])) {
-            if (children[0].custom?.molstar_use_default_coloring) return undefined;
-            const custom = children[0].custom;
-            return {
-                name: custom?.molstar_color_theme_name ?? undefined,
-                params: custom?.molstar_color_theme_params ?? {},
-            };
+            return customColoring(children[0].custom);
         } else if (children.length === 1 && appliesColorToWholeRepr(children[0])) {
             return colorThemeForNode(children[0], context);
         } else {
@@ -517,7 +522,7 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
                 c => {
                     const theme = colorThemeForNode(c, context);
                     if (!theme) return undefined;
-                    return { theme, selection: componentPropsFromSelector(c.kind === 'color' ? c.params.selector : undefined) };
+                    return { theme, selection: componentPropsFromSelector(c.params.selector) };
                 }
             ).filter(t => !!t);
             return {
@@ -527,6 +532,10 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
         }
     }
     if (node?.kind === 'color') {
+        if (hasMolStarUseDefaultColoring(node)) {
+            return customColoring(node.custom);
+        }
+
         return {
             name: 'uniform',
             params: { value: decodeColor(node.params.color) },
@@ -548,11 +557,7 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
 }
 
 function appliesColorToWholeRepr(node: MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>): boolean {
-    if (node.kind === 'color') {
-        return !isDefined(node.params.selector) || node.params.selector === 'all';
-    } else {
-        return true;
-    }
+    return !isDefined(node.params.selector) || node.params.selector === 'all';
 }
 
 const FALLBACK_COLOR = decodeColor(DefaultColor)!;

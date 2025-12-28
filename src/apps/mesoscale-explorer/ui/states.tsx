@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -46,8 +46,6 @@ function adjustPluginProps(ctx: PluginContext) {
             dimColor: Color(0xffffff),
             dimStrength: 1,
             markerPriority: 2,
-            interiorColorFlag: false,
-            interiorDarkening: 0.15,
             exposure: 1.1,
             xrayEdgeFalloff: 3,
         },

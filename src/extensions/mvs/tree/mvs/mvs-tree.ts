@@ -8,10 +8,12 @@
 import { bool, dict, float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/field-schema';
 import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
-import { MVSClipParams, MVSRepresentationParams, MVSVolumeRepresentationParams } from './mvs-tree-representations';
 import { MVSPrimitiveParams } from './mvs-tree-primitives';
-import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, Palette, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
+import { MVSClipParams, MVSRepresentationParams, MVSVolumeRepresentationParams } from './mvs-tree-representations';
+import { ColorT, ComponentExpressionT, ComponentSelectorT, LabelAttachments, Matrix, Palette, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
+
+const SelectorT = union(ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT));
 
 const _DataFromUriParams = {
     /** URL of the annotation resource. */
@@ -49,8 +51,6 @@ const _DataFromSourceParams = {
 
 /** Color to be used e.g. for representations without 'color' node */
 export const DefaultColor = 'white';
-
-const LabelAttachments = literal('bottom-left', 'bottom-center', 'bottom-right', 'middle-left', 'middle-center', 'middle-right', 'top-left', 'top-center', 'top-right');
 
 const TransformParams = SimpleParamsSchema({
     /** Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation). */
@@ -141,7 +141,7 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['structure'],
             params: SimpleParamsSchema({
                 /** Defines what part of the parent structure should be included in this component. */
-                selector: RequiredField(union(ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)), 'Defines what part of the parent structure should be included in this component.'),
+                selector: RequiredField(SelectorT, 'Defines what part of the parent structure should be included in this component.'),
             }),
         },
         /** This node instructs to create a component defined by an external annotation resource. */
@@ -179,6 +179,7 @@ export const MVSTreeSchema = TreeSchema({
             description: 'This node instructs to create a volume from a parsed data resource. "Volume" refers to an internal representation of volumetric data without any visual representation.',
             parent: ['parse'],
             params: SimpleParamsSchema({
+                /** Channel identifier (only applies when the input data contain multiple channels). */
                 channel_id: OptionalField(nullable(str), null, 'Channel identifier (only applies when the input data contain multiple channels).'),
             }),
         },
@@ -196,7 +197,7 @@ export const MVSTreeSchema = TreeSchema({
                 /** Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
                 color: OptionalField(ColorT, DefaultColor, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
                 /** Defines to what part of the representation this color should be applied. */
-                selector: OptionalField(union(ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)), 'all', 'Defines to what part of the representation this color should be applied.'),
+                selector: OptionalField(SelectorT, 'all', 'Defines to what part of the representation this color should be applied.'),
             }),
         },
         /** This node instructs to apply colors to a visual representation. The colors are defined by an external annotation resource. */
@@ -209,6 +210,8 @@ export const MVSTreeSchema = TreeSchema({
                 field_name: OptionalField(str, 'color', 'Name of the column in CIF or field name (key) in JSON that contains the color.'),
                 /** Customize mapping of annotation values to colors. */
                 palette: OptionalField(nullable(Palette), null, 'Customize mapping of annotation values to colors.'),
+                /** Defines to what part of the representation this coloring should be applied. */
+                selector: OptionalField(SelectorT, 'all', 'Defines to what part of the representation this coloring should be applied.'),
             }),
         },
         /** This node instructs to apply colors to a visual representation. The colors are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file. */
@@ -221,12 +224,14 @@ export const MVSTreeSchema = TreeSchema({
                 field_name: OptionalField(str, 'color', 'Name of the column in CIF or field name (key) in JSON that contains the color.'),
                 /** Customize mapping of annotation values to colors. */
                 palette: OptionalField(nullable(Palette), null, 'Customize mapping of annotation values to colors.'),
+                /** Defines to what part of the representation this coloring should be applied. */
+                selector: OptionalField(SelectorT, 'all', 'Defines to what part of the representation this coloring should be applied.'),
             }),
         },
         /** This node instructs to apply clipping to a visual representation. */
         clip: {
             description: 'This node instructs to apply clipping to a visual representation.',
-            parent: ['representation', 'volume_representation'],
+            parent: ['representation', 'volume_representation', 'primitives', 'primitives_from_uri'],
             params: MVSClipParams,
         },
         /** This node instructs to apply opacity/transparency to a visual representation. */
@@ -324,6 +329,8 @@ export const MVSTreeSchema = TreeSchema({
                 position: RequiredField(Vector3, 'Coordinates of the camera.'),
                 /** Vector which will be aligned with the screen Y axis. */
                 up: OptionalField(Vector3, [0, 1, 0], 'Vector which will be aligned with the screen Y axis.'),
+                /** Near clipping plane distance from the position. */
+                near: OptionalField(nullable(float), null, 'Near clipping plane distance from the position.'),
             }),
         },
         /** This node sets canvas properties. */

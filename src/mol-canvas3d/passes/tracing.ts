@@ -126,6 +126,18 @@ export class TracingPass {
         this.accumulateRenderable = getAccumulateRenderable(webgl, this.holdTarget.texture);
     }
 
+    getByteCount() {
+        return (
+            this.thicknessTarget.getByteCount() +
+            this.holdTarget.getByteCount() +
+            this.accumulateTarget.getByteCount() +
+            this.composeTarget.getByteCount() +
+            this.colorTextureOpaque.getByteCount() +
+            this.normalTextureOpaque.getByteCount() +
+            this.shadedTextureOpaque.getByteCount()
+        );
+    }
+
     private renderInput(renderer: Renderer, camera: ICamera, scene: Scene, props: TracingProps) {
         if (isTimingMode) this.webgl.timer.mark('TracePass.renderInput');
         const { gl, state } = this.webgl;

@@ -5,8 +5,9 @@
  */
 
 import { Mat4 } from '../../mol-math/linear-algebra';
-import { QueryContext, StructureSelection } from '../../mol-model/structure';
-import { superpose } from '../../mol-model/structure/structure/util/superposition';
+import { QueryContext, StructureSelection, StructureElement } from '../../mol-model/structure';
+import { superpose, alignAndSuperpose } from '../../mol-model/structure/structure/util/superposition';
+import { tmAlign } from '../../mol-model/structure/structure/util/tm-align';
 import { PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
@@ -116,4 +117,217 @@ function transform(plugin: PluginContext, s: StateObjectRef<PSO.Molecule.Structu
     const b = plugin.state.data.build().to(s)
         .insert(StateTransforms.Model.TransformStructureConformation, { transform: { name: 'matrix', params: { data: matrix, transpose: false } } });
     return plugin.runTask(plugin.state.data.updateTree(b));
+}
+
+export interface TMAlignResult {
+    tmScoreA: number;
+    tmScoreB: number;
+    rmsd: number;
+    alignedLength: number;
+}
+
+/**
+ * TM-align superposition: aligns two structures using TM-align algorithm
+ * @param plugin - Mol* plugin context
+ * @param pdbId1 - PDB ID of first structure (reference)
+ * @param chain1 - Chain ID of first structure
+ * @param pdbId2 - PDB ID of second structure (mobile)
+ * @param chain2 - Chain ID of second structure
+ * @param color1 - Optional color for first structure (hex, default blue)
+ * @param color2 - Optional color for second structure (hex, default red)
+ */
+export async function tmAlignStructures(
+    plugin: PluginContext,
+    pdbId1: string,
+    chain1: string,
+    pdbId2: string,
+    chain2: string,
+    color1: number = 0x3498db,
+    color2: number = 0xe74c3c
+): Promise<TMAlignResult | undefined> {
+    await plugin.clear();
+
+    const url1 = `https://files.rcsb.org/download/${pdbId1}.pdb`;
+    const url2 = `https://files.rcsb.org/download/${pdbId2}.pdb`;
+    const label1 = `${pdbId1} Chain ${chain1}`;
+    const label2 = `${pdbId2} Chain ${chain2}`;
+
+    // Load structures
+    const struct1 = await loadStructure(plugin, url1, 'pdb');
+    const struct2 = await loadStructure(plugin, url2, 'pdb');
+
+    // Build query for C-alpha atoms from specified chains
+    const caQuery1 = compile<StructureSelection>(MS.struct.generator.atomGroups({
+        'chain-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.auth_asym_id(), chain1]),
+        'atom-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_atom_id(), 'CA'])
+    }));
+    const caQuery2 = compile<StructureSelection>(MS.struct.generator.atomGroups({
+        'chain-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.auth_asym_id(), chain2]),
+        'atom-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_atom_id(), 'CA'])
+    }));
+
+    const structure1Data = struct1.structure.cell?.obj?.data;
+    const structure2Data = struct2.structure.cell?.obj?.data;
+
+    if (!structure1Data || !structure2Data) {
+        console.error('Failed to load structures');
+        return undefined;
+    }
+
+    const sel1 = StructureSelection.toLociWithCurrentUnits(caQuery1(new QueryContext(structure1Data)));
+    const sel2 = StructureSelection.toLociWithCurrentUnits(caQuery2(new QueryContext(structure2Data)));
+
+    const loci1 = StructureElement.Loci.is(sel1) ? sel1 : StructureElement.Loci.none(structure1Data);
+    const loci2 = StructureElement.Loci.is(sel2) ? sel2 : StructureElement.Loci.none(structure2Data);
+
+    if (StructureElement.Loci.size(loci1) === 0 || StructureElement.Loci.size(loci2) === 0) {
+        console.error('Empty selection - cannot run TM-align');
+        // Still show the structures without alignment
+        await addChainRepresentation(plugin, struct1.structure, chain1, label1, color1);
+        await addChainRepresentation(plugin, struct2.structure, chain2, label2, color2);
+        return undefined;
+    }
+
+    // Run TM-align
+    const result = tmAlign(loci1, loci2);
+
+    console.log('TM-score (structure 1):', result.tmScoreA.toFixed(5));
+    console.log('TM-score (structure 2):', result.tmScoreB.toFixed(5));
+    console.log('RMSD:', result.rmsd.toFixed(2), 'A');
+    console.log('Aligned residues:', result.alignedLength);
+
+    // Apply the transformation to superimpose structure 2 onto structure 1
+    await transform(plugin, struct2.structure, result.bTransform);
+
+    // Add cartoon representations
+    await addChainRepresentation(plugin, struct1.structure, chain1, label1, color1);
+    await addChainRepresentation(plugin, struct2.structure, chain2, label2, color2);
+
+    return {
+        tmScoreA: result.tmScoreA,
+        tmScoreB: result.tmScoreB,
+        rmsd: result.rmsd,
+        alignedLength: result.alignedLength
+    };
+}
+
+async function addChainRepresentation(
+    plugin: PluginContext,
+    structure: StateObjectRef<PSO.Molecule.Structure>,
+    chain: string,
+    label: string,
+    color: number
+) {
+    const component = await plugin.builders.structure.tryCreateComponentFromExpression(
+        structure,
+        chainSelection(chain),
+        label
+    );
+    if (component) {
+        await plugin.builders.structure.representation.addRepresentation(component, {
+            type: 'cartoon',
+            color: 'uniform',
+            colorParams: { value: color }
+        });
+    }
+}
+
+/**
+ * Load and display two structures without any alignment
+ * @param plugin - Mol* plugin context
+ * @param pdbId1 - PDB ID of first structure
+ * @param chain1 - Chain ID of first structure
+ * @param pdbId2 - PDB ID of second structure
+ * @param chain2 - Chain ID of second structure
+ * @param color1 - Optional color for first structure (hex, default blue)
+ * @param color2 - Optional color for second structure (hex, default red)
+ */
+export async function loadStructuresNoAlignment(
+    plugin: PluginContext,
+    pdbId1: string,
+    chain1: string,
+    pdbId2: string,
+    chain2: string,
+    color1: number = 0x3498db,
+    color2: number = 0xe74c3c
+): Promise<void> {
+    await plugin.clear();
+
+    const url1 = `https://files.rcsb.org/download/${pdbId1}.pdb`;
+    const url2 = `https://files.rcsb.org/download/${pdbId2}.pdb`;
+    const label1 = `${pdbId1} Chain ${chain1}`;
+    const label2 = `${pdbId2} Chain ${chain2}`;
+
+    const struct1 = await loadStructure(plugin, url1, 'pdb');
+    const struct2 = await loadStructure(plugin, url2, 'pdb');
+
+    await addChainRepresentation(plugin, struct1.structure, chain1, label1, color1);
+    await addChainRepresentation(plugin, struct2.structure, chain2, label2, color2);
+
+    console.log('Loaded structures - NO ALIGNMENT');
+}
+
+/**
+ * Sequence-based superposition: aligns two structures using sequence alignment + RMSD minimization
+ * @param plugin - Mol* plugin context
+ * @param pdbId1 - PDB ID of first structure (reference)
+ * @param chain1 - Chain ID of first structure
+ * @param pdbId2 - PDB ID of second structure (mobile)
+ * @param chain2 - Chain ID of second structure
+ * @param color1 - Optional color for first structure (hex, default blue)
+ * @param color2 - Optional color for second structure (hex, default red)
+ */
+export async function sequenceAlignStructures(
+    plugin: PluginContext,
+    pdbId1: string,
+    chain1: string,
+    pdbId2: string,
+    chain2: string,
+    color1: number = 0x3498db,
+    color2: number = 0xe74c3c
+): Promise<{ rmsd: number }> {
+    await plugin.clear();
+
+    const url1 = `https://files.rcsb.org/download/${pdbId1}.pdb`;
+    const url2 = `https://files.rcsb.org/download/${pdbId2}.pdb`;
+    const label1 = `${pdbId1} Chain ${chain1}`;
+    const label2 = `${pdbId2} Chain ${chain2}`;
+
+    const struct1 = await loadStructure(plugin, url1, 'pdb');
+    const struct2 = await loadStructure(plugin, url2, 'pdb');
+
+    // Build queries for C-alpha atoms from specified chains
+    const caQuery1 = compile<StructureSelection>(MS.struct.generator.atomGroups({
+        'chain-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.auth_asym_id(), chain1]),
+        'atom-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_atom_id(), 'CA'])
+    }));
+    const caQuery2 = compile<StructureSelection>(MS.struct.generator.atomGroups({
+        'chain-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.auth_asym_id(), chain2]),
+        'atom-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_atom_id(), 'CA'])
+    }));
+
+    const structure1Data = struct1.structure.cell?.obj?.data;
+    const structure2Data = struct2.structure.cell?.obj?.data;
+
+    if (!structure1Data || !structure2Data) {
+        console.error('Failed to load structures');
+        return { rmsd: 0 };
+    }
+
+    const sel1 = StructureSelection.toLociWithCurrentUnits(caQuery1(new QueryContext(structure1Data)));
+    const sel2 = StructureSelection.toLociWithCurrentUnits(caQuery2(new QueryContext(structure2Data)));
+
+    // Run sequence alignment + superposition
+    const transforms = alignAndSuperpose([sel1, sel2]);
+
+    // Apply the transformation to superimpose structure 2 onto structure 1
+    await transform(plugin, struct2.structure, transforms[0].bTransform);
+
+    // Add cartoon representations
+    await addChainRepresentation(plugin, struct1.structure, chain1, label1, color1);
+    await addChainRepresentation(plugin, struct2.structure, chain2, label2, color2);
+
+    console.log('RMSD:', transforms[0].rmsd.toFixed(2), 'A');
+
+    return { rmsd: transforms[0].rmsd };
 }

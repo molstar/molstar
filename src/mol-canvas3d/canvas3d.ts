@@ -46,9 +46,13 @@ import { deepClone } from '../mol-util/object';
 import { HiZParams, HiZPass } from './passes/hi-z';
 import { IlluminationParams } from './passes/illumination';
 import { isMobileBrowser } from '../mol-util/browser';
+import { PointerHelperParams } from './helper/pointer-helper';
+import { DefaultXRManagerAttribs, XRManager, XRManagerParams } from './helper/xr-manager';
 import { Ray3D } from '../mol-math/geometry/primitives/ray3d';
 import { RayHelper } from './helper/ray-helper';
 import { produce } from '../mol-util/produce';
+import { ShaderManager } from './helper/shader-manager';
+import { toFixed } from '../mol-util/number';
 
 export const CameraFogParams = {
     intensity: PD.Numeric(15, { min: 1, max: 100, step: 1 }),
@@ -62,7 +66,6 @@ export const Canvas3DParams = {
             off: PD.Group({})
         }, { cycle: true, hideIf: p => p?.mode !== 'perspective' }),
         fov: PD.Numeric(45, { min: 10, max: 130, step: 1 }, { label: 'Field of View' }),
-        scale: PD.Numeric(1, { min: 0.001, max: 1, step: 0.001 }, { label: 'Scene scale' }),
         manualReset: PD.Boolean(false, { isHidden: true }),
     }, { pivot: 'mode' }),
     cameraFog: PD.MappedStatic('on', {
@@ -72,7 +75,7 @@ export const Canvas3DParams = {
     cameraClipping: PD.Group({
         radius: PD.Numeric(100, { min: 0, max: 99, step: 1 }, { label: 'Clipping', description: 'How much of the scene to show.' }),
         far: PD.Boolean(true, { description: 'Hide scene in the distance' }),
-        minNear: PD.Numeric(5, { min: 0.1, max: 100, step: 0.1 }, { description: 'Note, may cause performance issues rendering impostors when set too small and cause issues with outline rendering when too close to 0.' }),
+        minNear: PD.Numeric(1, { min: 0.1, max: 100, step: 0.1 }, { description: 'Minimal allowed distance of near clipping plane from the camera. Note, may cause performance issues rendering impostors when set too small and cause issues with outline rendering when too close to 0.' }),
     }, { pivot: 'radius' }),
     viewport: PD.MappedStatic('canvas', {
         canvas: PD.Group({}),
@@ -93,6 +96,7 @@ export const Canvas3DParams = {
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
     sceneRadiusFactor: PD.Numeric(1, { min: 1, max: 10, step: 0.1 }),
     transparentBackground: PD.Boolean(false),
+    checkeredTransparentBackground: PD.Boolean(false),
     dpoitIterations: PD.Numeric(2, { min: 1, max: 10, step: 1 }),
     pickPadding: PD.Numeric(3, { min: 0, max: 10, step: 1 }, { description: 'Extra pixels to around target to check in case target is empty.' }),
     userInteractionReleaseMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time before the user is not considered interacting anymore.' }),
@@ -107,6 +111,8 @@ export const Canvas3DParams = {
     interaction: PD.Group(Canvas3dInteractionHelperParams),
     debug: PD.Group(DebugHelperParams),
     handle: PD.Group(HandleHelperParams),
+    pointer: PD.Group(PointerHelperParams),
+    xr: PD.Group(XRManagerParams, { label: 'XR' }),
 };
 export const DefaultCanvas3DParams = PD.getDefaultValues(Canvas3DParams);
 export type Canvas3DProps = PD.Values<typeof Canvas3DParams>
@@ -116,8 +122,12 @@ export type PartialCanvas3DProps = {
 
 export const DefaultCanvas3DAttribs = {
     trackball: DefaultTrackballControlsAttribs,
+    xr: DefaultXRManagerAttribs,
 };
 export type Canvas3DAttribs = typeof DefaultCanvas3DAttribs
+export type PartialCanvas3DAttribs = {
+    [K in keyof Canvas3DAttribs]?: Canvas3DAttribs[K] extends { name: string, params: any } ? Canvas3DAttribs[K] : Partial<Canvas3DAttribs[K]>
+}
 
 export { Canvas3DContext };
 
@@ -302,6 +312,9 @@ namespace Canvas3DContext {
                 canvas.removeEventListener('webglcontextlost', handleWebglContextLost, false);
                 canvas.removeEventListener('webglcontextrestored', handlewWebglContextRestored, false);
                 webgl.destroy(options);
+
+                contextLost.complete();
+                changed.complete();
             }
         };
     }
@@ -322,7 +335,7 @@ interface Canvas3D {
      * Function for external "animation" control
      * Calls commit.
      */
-    tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean, updateControls?: boolean }): void
+    tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean, updateControls?: boolean, xrFrame?: XRFrame }): void
     update(repr?: Representation.Any, keepBoundingSphere?: boolean): void
     clear(): void
     syncVisibility(): void
@@ -339,6 +352,10 @@ interface Canvas3D {
     pause(noDraw?: boolean): void
     /** Sets drawPaused = false without starting the built in animation loop */
     resume(): void
+
+    requestAnimationFrame(callback: FrameRequestCallback | XRFrameRequestCallback): number
+    cancelAnimationFrame(handle: number): void
+
     identify(target: Vec2 | Ray3D): PickData | undefined
     asyncIdentify(target: Vec2 | Ray3D): AsyncPickData | undefined
     mark(loci: Representation.Loci, action: MarkerAction): void
@@ -360,6 +377,7 @@ interface Canvas3D {
     readonly boundingSphere: Readonly<Sphere3D>
     readonly boundingSphereVisible: Readonly<Sphere3D>
     setProps(props: PartialCanvas3DProps | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void), doNotRequestDraw?: boolean /* = false */): void
+    setAttribs(attribs: PartialCanvas3DAttribs): void
     getImagePass(props: Partial<ImageProps>): ImagePass
     getRenderObjects(): GraphicsRenderObject[]
 
@@ -370,6 +388,14 @@ interface Canvas3D {
     readonly stats: RendererStats
     readonly interaction: Canvas3dInteractionHelper['events']
 
+    readonly xr: {
+        request(): Promise<void>
+        end(): Promise<void>
+        readonly isSupported: BehaviorSubject<boolean>
+        readonly isPresenting: BehaviorSubject<boolean>
+        readonly requestFailed: Subject<string>
+    }
+
     dispose(): void
 }
 
@@ -379,6 +405,22 @@ const requestAnimationFrame = typeof window !== 'undefined'
 const cancelAnimationFrame = typeof window !== 'undefined'
     ? window.cancelAnimationFrame
     : (handle: number) => clearImmediate(handle as unknown as NodeJS.Immediate);
+
+function syncCanvasBackground(canvas: HTMLCanvasElement, canvasProps: Canvas3DProps) {
+    if (canvasProps.transparentBackground && canvasProps.checkeredTransparentBackground) {
+        Object.assign(canvas.style, {
+            'background-image': 'linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey), linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey)',
+            'background-size': '60px 60px',
+            'background-position': '0 0, 30px 30px'
+        });
+    } else {
+        Object.assign(canvas.style, {
+            'background-image': '',
+            'background-size': '',
+            'background-position': ''
+        });
+    }
+}
 
 namespace Canvas3D {
     export interface HoverEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
@@ -410,8 +452,12 @@ namespace Canvas3D {
         let forceNextRender = false;
         let currentTime = 0;
 
+        syncCanvasBackground(canvas!, p);
         updateViewport();
-        const scene = Scene.create(webgl, passes.draw.transparency);
+        const scene = Scene.create(webgl, passes.draw.transparency, {
+            dColorMarker: p.renderer.colorMarker,
+            dLightCount: p.renderer.light?.length,
+        });
 
         function getSceneRadius() {
             return scene.boundingSphere.radius * p.sceneRadiusFactor;
@@ -424,7 +470,6 @@ namespace Canvas3D {
             clipFar: p.cameraClipping.far,
             minNear: p.cameraClipping.minNear,
             fov: degToRad(p.camera.fov),
-            scale: p.camera.scale,
         }, { x, y, width, height });
         const stereoCamera = new StereoCamera(camera, p.camera.stereo.params);
 
@@ -434,6 +479,9 @@ namespace Canvas3D {
 
         const renderer = Renderer.create(webgl, p.renderer);
         renderer.setOcclusionTest(hiZ.isOccluded);
+
+        const shaderManager = new ShaderManager(webgl, scene);
+        shaderManager.updateRequired(p);
 
         const pickOptions = {
             pickPadding: p.pickPadding,
@@ -452,6 +500,85 @@ namespace Canvas3D {
         let nextCameraResetDuration: number | undefined = void 0;
         let nextCameraResetSnapshot: Camera.SnapshotProvider | undefined = void 0;
         let resizeRequested = false;
+
+        //
+
+        function getNonXRProps() {
+            return {
+                transparency: ctx.props.transparency,
+                transparentBackground: p.transparentBackground,
+                hiZ: hiZ.props.enabled,
+                postprocessing: p.postprocessing.enabled,
+                axes: deepClone(helper.camera.props.axes),
+            };
+        }
+        const nonXRProps = getNonXRProps();
+
+        function saveNonXRProps() {
+            Object.assign(nonXRProps, getNonXRProps());
+        }
+
+        function loadNonXRProps() {
+            p.postprocessing.enabled = nonXRProps.postprocessing;
+            p.transparentBackground = nonXRProps.transparentBackground;
+            ctx.setProps({ transparency: nonXRProps.transparency });
+            hiZ.setProps({ enabled: nonXRProps.hiZ });
+            helper.camera.setProps({ axes: nonXRProps.axes });
+        }
+
+        function setXRProps() {
+            p.postprocessing.enabled = !xrManager.props.disablePostprocessing;
+            ctx.setProps({ transparency: 'blended' });
+            hiZ.setProps({ enabled: false });
+            helper.camera.setProps({ axes: { name: 'off', params: {} } });
+
+            if (xrManager.session?.environmentBlendMode === 'alpha-blend') {
+                p.transparentBackground = xrPassthrough;
+            }
+        }
+
+        const xrManager = new XRManager(webgl, input, scene, camera, stereoCamera, helper.pointer, interactionHelper, p.xr, a.xr);
+
+        const xr = {
+            request: async () => {
+                try {
+                    await xrManager.request();
+                } catch (e) {
+                    console.error(e);
+                    xr.requestFailed.next(e);
+                }
+            },
+            end: () => xrManager.end(),
+            isSupported: new BehaviorSubject(false),
+            isPresenting: new BehaviorSubject(false),
+            requestFailed: new Subject<string>(),
+        };
+
+        let xrPassthrough = false;
+
+        const xrSubs = [
+            xrManager.isSupported.subscribe(e => xr.isSupported.next(e)),
+            xrManager.togglePassthrough.subscribe(() => {
+                if (xrManager.session?.environmentBlendMode === 'alpha-blend') {
+                    xrPassthrough = !p.transparentBackground;
+                }
+            }),
+            xrManager.sessionChanged.subscribe(() => {
+                fenceSync = null;
+                resizeRequested = true;
+                if (xrManager.session) {
+                    saveNonXRProps();
+                    xrPassthrough = xrManager.session?.environmentBlendMode === 'alpha-blend';
+                    setXRProps();
+                } else {
+                    loadNonXRProps();
+                }
+                resume();
+                xr.isPresenting.next(!!xrManager.session);
+            }),
+        ];
+
+        //
 
         let notifyDidDraw = true;
 
@@ -498,6 +625,9 @@ namespace Canvas3D {
                 helper.handle.scene.update(void 0, true);
                 helper.camera.scene.update(void 0, true);
 
+                shaderManager.updateRequired(p);
+                shaderManager.finalizeRequired(true);
+
                 interactionEvent.next();
             }
             return changed;
@@ -518,8 +648,9 @@ namespace Canvas3D {
 
         let fenceSync: WebGLSync | null = null;
 
-        function render(force: boolean) {
+        function render(force: boolean, xrFrame?: XRFrame) {
             if (webgl.isContextLost) return false;
+            if (webgl.xr.session && !xrFrame) return false;
 
             let resized = false;
             if (resizeRequested) {
@@ -533,7 +664,7 @@ namespace Canvas3D {
                 y > drs.height || y + height < 0
             ) return false;
 
-            if (fenceSync !== null) {
+            if (fenceSync !== null && !xrFrame) {
                 if (webgl.checkSyncStatus(fenceSync)) {
                     fenceSync = null;
                 } else {
@@ -541,22 +672,29 @@ namespace Canvas3D {
                 }
             }
 
+            if (xrFrame) {
+                setXRProps();
+                p.transparentBackground = xrPassthrough;
+            }
+
             const markingUpdated = resolveMarking() && (renderer.props.colorMarker || p.marking.enabled);
 
             let didRender = false;
             controls.update(currentTime);
             const cameraChanged = camera.update();
+            const xrChanged = xrManager.update(xrFrame);
+            if (!xrChanged && xrFrame) return false;
 
-            const shouldRender = force || cameraChanged || resized || forceNextRender;
+            const shouldRender = force || cameraChanged || resized || forceNextRender || xrChanged;
             forceNextRender = false;
 
-            if (passes.illumination.supported && p.illumination.enabled) {
+            if (passes.illumination.supported && p.illumination.enabled && !xrFrame) {
                 if (shouldRender || markingUpdated) {
                     renderer.setOcclusionTest(null);
                     passes.illumination.restart();
                 }
 
-                if (passes.illumination.shouldRender(p)
+                if (passes.illumination.shouldRender(p.illumination)
                     && ((!isActivelyInteracting && scene.count > 0) || passes.illumination.iteration === 0 || p.userInteractionReleaseMs === 0)
                 ) {
                     if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
@@ -569,20 +707,20 @@ namespace Canvas3D {
                     didRender = true;
                 }
             } else {
-                const multiSampleChanged = multiSampleHelper.update(markingUpdated || shouldRender, p.multiSample);
+                const multiSampleChanged = multiSampleHelper.update(markingUpdated || shouldRender, p.multiSample) && !xrFrame;
 
                 if (shouldRender || multiSampleChanged || markingUpdated) {
                     renderer.setOcclusionTest(hiZ.isOccluded);
 
                     let cam: Camera | StereoCamera = camera;
-                    if (p.camera.stereo.name === 'on') {
-                        stereoCamera.update();
+                    if (p.camera.stereo.name === 'on' || xrChanged) {
+                        if (!xrChanged) stereoCamera.update();
                         cam = stereoCamera;
                     }
 
                     if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
                     const ctx = { renderer, camera: cam, scene, helper };
-                    if (MultiSamplePass.isEnabled(p.multiSample)) {
+                    if (MultiSamplePass.isEnabled(p.multiSample) && !xrFrame) {
                         const forceOn = p.multiSample.reduceFlicker && !cameraChanged && markingUpdated && !controls.isAnimating;
                         multiSampleHelper.render(ctx, p, true, forceOn);
                     } else {
@@ -597,7 +735,7 @@ namespace Canvas3D {
                 }
             }
 
-            if (didRender) {
+            if (didRender && !xrFrame) {
                 fenceSync = webgl.getFenceSync();
             }
 
@@ -608,9 +746,13 @@ namespace Canvas3D {
         let drawPaused = false;
         let isContextLost = false;
 
-        function draw(options?: { force?: boolean }) {
+        function draw(options?: { force?: boolean, isSynchronous?: boolean, xrFrame?: XRFrame }) {
             if (drawPaused || isContextLost) return;
-            if (render(!!options?.force) && notifyDidDraw) {
+            if (!shaderManager.finalizeRequired(options?.isSynchronous)) {
+                forceNextRender = true;
+                return;
+            }
+            if (render(!!options?.force, options?.xrFrame) && notifyDidDraw) {
                 didDraw.next(now() - startTime as now.Timestamp);
             }
         }
@@ -621,8 +763,9 @@ namespace Canvas3D {
 
         let animationFrameHandle = 0;
 
-        function tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean, updateControls?: boolean }) {
+        function tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean, updateControls?: boolean, xrFrame?: XRFrame }) {
             if (isContextLost) return;
+            if (webgl.xr.session && !options?.xrFrame) return;
 
             currentTime = t;
             commit(options?.isSynchronous);
@@ -639,15 +782,31 @@ namespace Canvas3D {
                 return;
             }
 
-            draw();
+            draw({ isSynchronous: options?.isSynchronous, xrFrame: options?.xrFrame });
             if (!camera.transition.inTransition && !webgl.isContextLost) {
                 interactionHelper.tick(currentTime);
             }
         }
 
-        function _animate() {
-            tick(now());
-            animationFrameHandle = requestAnimationFrame(_animate);
+        let animationFrameCB: FrameRequestCallback | XRFrameRequestCallback | undefined = undefined;
+
+        function _requestAnimationFrame(callback: FrameRequestCallback | XRFrameRequestCallback): number {
+            animationFrameCB = callback;
+            return webgl.xr.session
+                ? webgl.xr.session.requestAnimationFrame(callback)
+                : requestAnimationFrame(callback as FrameRequestCallback);
+        }
+
+        function _cancelAnimationFrame(handle: number): void {
+            animationFrameCB = undefined;
+            webgl.xr.session
+                ? webgl.xr.session.cancelAnimationFrame(handle)
+                : cancelAnimationFrame(handle);
+        }
+
+        function _animate(_timestamp: number, xrFrame?: XRFrame) {
+            tick(now(), { xrFrame });
+            animationFrameHandle = _requestAnimationFrame(_animate);
         }
 
         function resetTime(t: now.Timestamp) {
@@ -658,17 +817,25 @@ namespace Canvas3D {
         function animate() {
             drawPaused = false;
             controls.start(now());
-            if (animationFrameHandle === 0) _animate();
+            if (animationFrameHandle === 0) _animate(0);
         }
 
         function pause(noDraw = false) {
             drawPaused = noDraw;
-            cancelAnimationFrame(animationFrameHandle);
-            animationFrameHandle = 0;
+            if (animationFrameHandle !== 0) {
+                _cancelAnimationFrame(animationFrameHandle);
+                animationFrameHandle = 0;
+            }
+        }
+
+        function resume() {
+            drawPaused = false;
+            if (animationFrameCB) _requestAnimationFrame(animationFrameCB);
         }
 
         function identify(target: Vec2 | Ray3D): PickData | undefined {
             if (webgl.isContextLost) return undefined;
+            shaderManager.finalize(['pick'], true);
 
             if ('origin' in target) {
                 return rayHelper.identify(target, camera);
@@ -680,6 +847,7 @@ namespace Canvas3D {
 
         function asyncIdentify(target: Vec2 | Ray3D): AsyncPickData | undefined {
             if (webgl.isContextLost) return undefined;
+            shaderManager.finalize(['pick'], true);
 
             if ('origin' in target) {
                 return rayHelper.asyncIdentify(target, camera);
@@ -691,6 +859,7 @@ namespace Canvas3D {
 
         function commit(isSynchronous: boolean = false) {
             const allCommited = commitScene(isSynchronous);
+            shaderManager.updateRequired(p);
             // Only reset the camera after the full scene has been commited.
             if (allCommited) {
                 resolveCameraReset();
@@ -705,6 +874,10 @@ namespace Canvas3D {
 
         function resolveCameraReset() {
             if (!cameraResetRequested) return;
+
+            if (!xr.isPresenting.value) {
+                xrManager.resetScale();
+            }
 
             const boundingSphere = scene.boundingSphereVisible;
             const { center, radius } = boundingSphere;
@@ -792,25 +965,42 @@ namespace Canvas3D {
                 instanceCount: r.values.instanceCount.ref.value,
                 materialId: r.materialId,
                 renderItemId: r.id,
+                geometryType: r.values.dGeometryType.ref.value,
+                'byteCount [MiB]': toFixed(r.getByteCount() / 1024 / 1024, 3),
             }));
 
             console.groupCollapsed(`${items.length} RenderItems`);
 
-            if (items.length < 50) {
+            if (items.length <= 64) {
                 console.table(items);
             } else {
                 console.log(items);
             }
             console.log(JSON.stringify(webgl.stats, undefined, 4));
 
-            const { texture, attribute, elements } = webgl.resources.getByteCounts();
+            const { texture, cubeTexture, attribute, elements, pixelPack, renderbuffer } = webgl.resources.getByteCounts();
             console.log(JSON.stringify({
                 texture: `${(texture / 1024 / 1024).toFixed(3)} MiB`,
+                cubeTexture: `${(cubeTexture / 1024 / 1024).toFixed(3)} MiB`,
                 attribute: `${(attribute / 1024 / 1024).toFixed(3)} MiB`,
                 elements: `${(elements / 1024 / 1024).toFixed(3)} MiB`,
+                pixelPack: `${(pixelPack / 1024 / 1024).toFixed(3)} MiB`,
+                renderbuffer: `${(renderbuffer / 1024 / 1024).toFixed(3)} MiB`,
             }, undefined, 4));
 
-            console.log(JSON.stringify(webgl.timer.formatedStats(), undefined, 4));
+            console.log(JSON.stringify({
+                renderables: `${(scene.renderables.reduce((sum, r) => sum + r.getByteCount(), 0) / 1024 / 1024).toFixed(3)} MiB`,
+                passes: {
+                    draw: `${(passes.draw.getByteCount() / 1024 / 1024).toFixed(3)} MiB`,
+                    illumination: `${(passes.illumination.getByteCount() / 1024 / 1024).toFixed(3)} MiB`,
+                    pick: `${(passes.pick.getByteCount() / 1024 / 1024).toFixed(3)} MiB`,
+                    hiZ: `${(hiZ.getByteCount() / 1024 / 1024).toFixed(3)} MiB`,
+                }
+            }, undefined, 4));
+
+            if (isTimingMode) {
+                console.log(JSON.stringify(webgl.timer.formatedStats(), undefined, 4));
+            }
 
             console.groupEnd();
         }
@@ -876,16 +1066,20 @@ namespace Canvas3D {
                     helper: { ...helper.camera.props },
                     stereo: { ...p.camera.stereo },
                     fov: Math.round(radToDeg(camera.state.fov)),
-                    scale: camera.state.scale,
                     manualReset: !!p.camera.manualReset
                 },
                 cameraFog: camera.state.fog > 0
                     ? { name: 'on' as const, params: { intensity: camera.state.fog } }
                     : { name: 'off' as const, params: {} },
-                cameraClipping: { far: camera.state.clipFar, radius, minNear: camera.state.minNear },
+                cameraClipping: {
+                    far: camera.state.clipFar,
+                    radius,
+                    minNear: camera.state.minNear,
+                },
                 cameraResetDurationMs: p.cameraResetDurationMs,
                 sceneRadiusFactor: p.sceneRadiusFactor,
                 transparentBackground: p.transparentBackground,
+                checkeredTransparentBackground: p.checkeredTransparentBackground,
                 dpoitIterations: p.dpoitIterations,
                 pickPadding: p.pickPadding,
                 userInteractionReleaseMs: p.userInteractionReleaseMs,
@@ -901,6 +1095,8 @@ namespace Canvas3D {
                 interaction: { ...interactionHelper.props },
                 debug: { ...helper.debug.props },
                 handle: { ...helper.handle.props },
+                pointer: { ...helper.pointer.props },
+                xr: { ...xrManager.props },
             };
         }
 
@@ -951,7 +1147,7 @@ namespace Canvas3D {
         // Monitor user interactions
         let isDragging = false;
         let isActivelyInteracting = false;
-        let interactionSubs = [
+        const interactionSubs = [
             input.drag.subscribe(() => {
                 isDragging = true;
             }),
@@ -1058,7 +1254,11 @@ namespace Canvas3D {
             animate,
             resetTime,
             pause,
-            resume: () => { drawPaused = false; },
+            resume,
+
+            requestAnimationFrame: _requestAnimationFrame,
+            cancelAnimationFrame: _cancelAnimationFrame,
+
             identify,
             asyncIdentify,
             mark,
@@ -1101,9 +1301,6 @@ namespace Canvas3D {
                 if (props.camera && props.camera.fov !== undefined && props.camera.fov !== oldFov) {
                     cameraState.fov = degToRad(props.camera.fov);
                 }
-                if (props.camera && props.camera.scale !== undefined && props.camera.scale !== cameraState.scale) {
-                    cameraState.scale = props.camera.scale;
-                }
                 if (props.cameraFog !== undefined && props.cameraFog.params) {
                     const newFog = props.cameraFog.name === 'on' ? props.cameraFog.params.intensity : 0;
                     if (newFog !== camera.state.fog) cameraState.fog = newFog;
@@ -1133,6 +1330,7 @@ namespace Canvas3D {
                 }
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs;
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground;
+                if (props.checkeredTransparentBackground !== undefined) p.checkeredTransparentBackground = props.checkeredTransparentBackground;
                 if (props.dpoitIterations !== undefined) p.dpoitIterations = props.dpoitIterations;
                 if (props.pickPadding !== undefined) {
                     p.pickPadding = props.pickPadding;
@@ -1161,22 +1359,41 @@ namespace Canvas3D {
                 if (props.illumination) Object.assign(p.illumination, props.illumination);
                 if (props.multiSample) Object.assign(p.multiSample, props.multiSample);
                 if (props.hiZ) hiZ.setProps(props.hiZ);
-                if (props.renderer) renderer.setProps(props.renderer);
+                if (props.renderer) {
+                    scene.setGlobals({
+                        dColorMarker: props.renderer.colorMarker ?? renderer.props.colorMarker,
+                        dLightCount: props.renderer.light?.length ?? renderer.props.light.length,
+                    });
+                    renderer.setProps(props.renderer);
+                }
                 if (props.trackball) controls.setProps(props.trackball);
                 if (props.interaction) interactionHelper.setProps(props.interaction);
                 if (props.debug) helper.debug.setProps(props.debug);
                 if (props.handle) helper.handle.setProps(props.handle);
+                if (props.pointer) helper.pointer.setProps(props.pointer);
+                if (props.xr) xrManager.setProps(props.xr);
 
                 if (cameraState.mode === 'orthographic') {
                     p.camera.stereo.name = 'off';
                 }
 
+                if ('transparentBackground' in props
+                    || 'checkeredTransparentBackground' in props
+                    || (props.renderer && 'backgroundColor' in props.renderer)) {
+                    syncCanvasBackground(canvas!, p);
+                }
+
+                shaderManager.updateRequired(p);
                 if (!doNotRequestDraw) {
                     requestDraw();
                 }
             },
+            setAttribs: (attribs: PartialCanvas3DAttribs) => {
+                if (attribs.trackball) controls.setAttribs(attribs.trackball);
+                if (attribs.xr) xrManager.setAttribs(attribs.xr);
+            },
             getImagePass: (props: Partial<ImageProps> = {}) => {
-                return new ImagePass(webgl, assetManager, renderer, scene, camera, helper, passes.draw.transparency, props);
+                return new ImagePass(webgl, assetManager, renderer, scene, camera, helper, props);
             },
             getRenderObjects(): GraphicsRenderObject[] {
                 const renderObjects: GraphicsRenderObject[] = [];
@@ -1188,7 +1405,10 @@ namespace Canvas3D {
                 return getProps();
             },
             get attribs() {
-                return a;
+                return {
+                    trackball: controls.attribs,
+                    xr: xrManager.attribs,
+                };
             },
             get input() {
                 return input;
@@ -1199,15 +1419,20 @@ namespace Canvas3D {
             get interaction() {
                 return interactionHelper.events;
             },
+            xr,
             dispose: () => {
                 contextLostSub?.unsubscribe();
                 contextRestoredSub.unsubscribe();
                 ctxChangedSub?.unsubscribe();
 
+                for (const s of xrSubs) s.unsubscribe();
+                xrSubs.length = 0;
+
                 for (const s of interactionSubs) s.unsubscribe();
-                interactionSubs = [];
+                interactionSubs.length = 0;
 
                 cancelAnimationFrame(animationFrameHandle);
+                animationFrameCB = undefined;
 
                 markBuffer = [];
 
@@ -1219,11 +1444,22 @@ namespace Canvas3D {
                 hiZ.dispose();
                 pickHelper.dispose();
                 rayHelper.dispose();
+                xrManager.dispose();
 
                 if (fenceSync !== null) {
                     webgl.deleteSync(fenceSync);
                     fenceSync = null;
                 }
+
+                reprCount.complete();
+                interactionEvent.complete();
+                didDraw.complete();
+                resized.complete();
+                commited.complete();
+                commitQueueSize.complete();
+                xr.isPresenting.complete();
+                xr.isSupported.complete();
+                xr.requestFailed.complete();
 
                 removeConsoleStatsProvider(consoleStats);
             }

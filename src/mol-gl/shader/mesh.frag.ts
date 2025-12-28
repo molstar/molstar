@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,30 +17,29 @@ precision highp int;
 #include normal_frag_params
 #include common_clip
 
+uniform vec4 uInteriorColor;
+uniform vec4 uInteriorSubstance;
+
 void main() {
     #include fade_lod
     #include clip_pixel
 
-    // Workaround for buggy gl_FrontFacing (e.g. on some integrated Intel GPUs)
-    vec3 fdx = dFdx(vViewPosition);
-    vec3 fdy = dFdy(vViewPosition);
-    vec3 faceNormal = normalize(cross(fdx,fdy));
-    bool frontFacing = dot(vNormal, faceNormal) > 0.0;
-
-    #if defined(dFlipSided)
-        interior = frontFacing;
-    #else
-        interior = !frontFacing;
-    #endif
+    interior = !gl_FrontFacing;
 
     float fragmentDepth = gl_FragCoord.z;
 
     #ifdef dNeedsNormal
         #if defined(dFlatShaded)
-            vec3 normal = -faceNormal;
+            vec3 fdx = dFdx(vViewPosition);
+            vec3 fdy = dFdy(vViewPosition);
+            vec3 normal = -normalize(cross(fdx,fdy));
         #else
             vec3 normal = -normalize(vNormal);
-            if (uDoubleSided) normal *= float(frontFacing) * 2.0 - 1.0;
+            if (uDoubleSided) normal *= float(gl_FrontFacing) * 2.0 - 1.0;
+        #endif
+
+        #if defined(dFlipSided)
+            normal *= -1.0;
         #endif
     #endif
 
@@ -64,8 +63,8 @@ void main() {
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
-        #include apply_light_color
         #include apply_interior_color
+        #include apply_light_color
         #include apply_marker_color
 
         #if defined(dRenderVariant_color)

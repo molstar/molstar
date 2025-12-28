@@ -111,7 +111,7 @@ export namespace SimpleBuffer {
         }
     }
 
-    export function flipByteOrderInPlace2(buffer: ArrayBuffer, byteOffset = 0, length?: number) {
+    export function flipByteOrderInPlace2(buffer: ArrayBufferLike, byteOffset = 0, length?: number) {
         const intView = new Int16Array(buffer, byteOffset, length);
         for (let i = 0, n = intView.length; i < n; ++i) {
             const val = intView[i];

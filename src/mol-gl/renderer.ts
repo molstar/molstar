@@ -95,10 +95,6 @@ export const RendererParams = {
 
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
 
-    interiorDarkening: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
-    interiorColorFlag: PD.Boolean(true, { label: 'Use Interior Color' }),
-    interiorColor: PD.Color(Color.fromNormalizedRgb(0.3, 0.3, 0.3)),
-
     colorMarker: PD.Boolean(true, { description: 'Enable color marker' }),
     highlightColor: PD.Color(Color.fromNormalizedRgb(1.0, 0.4, 0.6)),
     selectColor: PD.Color(Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
@@ -203,9 +199,12 @@ namespace Renderer {
         const modelViewProjection = Mat4();
         const invModelViewProjection = Mat4();
         const invHeadRotation = Mat4();
+        const modelViewEye = Mat4();
+        const invModelViewEye = Mat4();
 
         const cameraDir = Vec3();
         const cameraPosition = Vec3();
+        const cameraTarget = Vec3();
         const cameraPlane = Plane3D();
         const viewOffset = Vec2();
         const frustum = Frustum3D();
@@ -230,6 +229,10 @@ namespace Renderer {
             uInvModelViewProjection: ValueCell.create(invModelViewProjection),
             uHasHeadRotation: ValueCell.create(false),
             uInvHeadRotation: ValueCell.create(invHeadRotation),
+            uHasEyeCamera: ValueCell.create(false),
+            uModelViewEye: ValueCell.create(modelViewEye),
+            uInvModelViewEye: ValueCell.create(invModelViewEye),
+            uIsAsymmetricProjection: ValueCell.create(false),
 
             uIsOrtho: ValueCell.create(1),
             uViewOffset: ValueCell.create(viewOffset),
@@ -261,10 +264,6 @@ namespace Renderer {
             uAmbientColor: ValueCell.create(ambientColor),
 
             uPickingAlphaThreshold: ValueCell.create(p.pickingAlphaThreshold),
-
-            uInteriorDarkening: ValueCell.create(p.interiorDarkening),
-            uInteriorColorFlag: ValueCell.create(p.interiorColorFlag),
-            uInteriorColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.interiorColor)),
 
             uHighlightColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.highlightColor)),
             uSelectColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.selectColor)),
@@ -319,18 +318,15 @@ namespace Renderer {
                 } else {
                     r.uncull();
                 }
+            } else {
+                if (r.values.lodLevels) {
+                    const { center, radius } = boundingSphere;
+                    const d = Plane3D.distanceToPoint(cameraPlane, center);
+                    r.cullSimple(d, radius, modelScale);
+                } else {
+                    r.uncull();
+                }
             }
-
-            let needUpdate = false;
-            if (r.values.dLightCount.ref.value !== light.count) {
-                ValueCell.update(r.values.dLightCount, light.count);
-                needUpdate = true;
-            }
-            if (r.values.dColorMarker.ref.value !== p.colorMarker) {
-                ValueCell.update(r.values.dColorMarker, p.colorMarker);
-                needUpdate = true;
-            }
-            if (needUpdate) r.update();
 
             const program = r.getProgram(variant);
             if (state.currentProgramId !== program.id) {
@@ -405,10 +401,10 @@ namespace Renderer {
 
             ValueCell.updateIfChanged(globalUniforms.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0);
             ValueCell.update(globalUniforms.uViewOffset, camera.viewOffset.enabled ? Vec2.set(viewOffset, camera.viewOffset.offsetX * 16, camera.viewOffset.offsetY * 16) : Vec2.set(viewOffset, 0, 0));
-            ValueCell.updateIfChanged(globalUniforms.uModelScale, camera.state.scale);
+            ValueCell.updateIfChanged(globalUniforms.uModelScale, camera.scale);
 
             ValueCell.update(globalUniforms.uCameraPosition, Mat4.getTranslation(cameraPosition, invView));
-            const cameraTarget = Vec3.scale(Vec3(), camera.state.target, camera.state.scale);
+            Vec3.scale(cameraTarget, camera.state.target, camera.scale);
             Vec3.normalize(cameraDir, Vec3.sub(cameraDir, cameraTarget, cameraPosition));
             ValueCell.update(globalUniforms.uCameraDir, cameraDir);
 
@@ -429,22 +425,24 @@ namespace Renderer {
 
             const hasHeadRotation = !Mat4.isZero(camera.headRotation);
             if (hasHeadRotation) {
-                ValueCell.updateIfChanged(globalUniforms.uHasHeadRotation, hasHeadRotation);
+                ValueCell.updateIfChanged(globalUniforms.uHasHeadRotation, true);
                 ValueCell.update(globalUniforms.uInvHeadRotation, Mat4.invert(invHeadRotation, camera.headRotation));
                 ValueCell.update(globalUniforms.uLightDirection, getTransformedLightDirection(light, invHeadRotation));
             } else {
-                ValueCell.update(globalUniforms.uHasHeadRotation, false);
-                ValueCell.update(globalUniforms.uInvHeadRotation, Mat4.id);
+                ValueCell.updateIfChanged(globalUniforms.uHasHeadRotation, false);
+                ValueCell.updateIfChanged(globalUniforms.uInvHeadRotation, Mat4.id);
                 ValueCell.update(globalUniforms.uLightDirection, light.direction);
             }
+
+            ValueCell.update(globalUniforms.uIsAsymmetricProjection, camera.isAsymmetricProjection);
         };
 
         const updateInternal = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, renderMask: Mask, markingDepthTest: boolean) => {
             arrayMapUpsert(sharedTexturesList, 'tDepth', depthTexture || emptyDepthTexture);
 
-            modelScale = camera.state.scale;
+            modelScale = camera.scale;
 
-            ValueCell.update(globalUniforms.uModel, Mat4.scaleUniformly(model, group.view, camera.state.scale));
+            ValueCell.update(globalUniforms.uModel, Mat4.scaleUniformly(model, group.view, modelScale));
             ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, camera.view, model));
             ValueCell.update(globalUniforms.uInvModelView, Mat4.invert(invModelView, modelView));
             ValueCell.update(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection));
@@ -452,6 +450,17 @@ namespace Renderer {
 
             ValueCell.updateIfChanged(globalUniforms.uRenderMask, renderMask);
             ValueCell.updateIfChanged(globalUniforms.uMarkingDepthTest, markingDepthTest);
+
+            const hasEyeCamera = !Mat4.isZero(camera.viewEye);
+            if (hasEyeCamera) {
+                ValueCell.updateIfChanged(globalUniforms.uHasEyeCamera, true);
+                ValueCell.update(globalUniforms.uModelViewEye, Mat4.mul(modelViewEye, camera.viewEye, model));
+                ValueCell.update(globalUniforms.uInvModelViewEye, Mat4.invert(invModelViewEye, modelViewEye));
+            } else {
+                ValueCell.updateIfChanged(globalUniforms.uHasEyeCamera, false);
+                ValueCell.updateIfChanged(globalUniforms.uModelViewEye, Mat4.id);
+                ValueCell.updateIfChanged(globalUniforms.uInvModelViewEye, Mat4.id);
+            }
 
             state.enable(gl.SCISSOR_TEST);
             state.colorMask(true, true, true, true);
@@ -493,7 +502,7 @@ namespace Renderer {
             );
         };
 
-        const renderPick = (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, pickType: PickType) => {
+        const renderPick = (group: Scene.Group, camera: ICamera, variant: 'pick' | 'depth', pickType: PickType) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderPick');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
@@ -830,19 +839,6 @@ namespace Renderer {
                 if (props.pickingAlphaThreshold !== undefined && props.pickingAlphaThreshold !== p.pickingAlphaThreshold) {
                     p.pickingAlphaThreshold = props.pickingAlphaThreshold;
                     ValueCell.update(globalUniforms.uPickingAlphaThreshold, p.pickingAlphaThreshold);
-                }
-
-                if (props.interiorDarkening !== undefined && props.interiorDarkening !== p.interiorDarkening) {
-                    p.interiorDarkening = props.interiorDarkening;
-                    ValueCell.update(globalUniforms.uInteriorDarkening, p.interiorDarkening);
-                }
-                if (props.interiorColorFlag !== undefined && props.interiorColorFlag !== p.interiorColorFlag) {
-                    p.interiorColorFlag = props.interiorColorFlag;
-                    ValueCell.update(globalUniforms.uInteriorColorFlag, p.interiorColorFlag);
-                }
-                if (props.interiorColor !== undefined && props.interiorColor !== p.interiorColor) {
-                    p.interiorColor = props.interiorColor;
-                    ValueCell.update(globalUniforms.uInteriorColor, Color.toVec3Normalized(globalUniforms.uInteriorColor.ref.value, p.interiorColor));
                 }
 
                 if (props.colorMarker !== undefined && props.colorMarker !== p.colorMarker) {

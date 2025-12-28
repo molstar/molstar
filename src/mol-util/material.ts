@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -28,6 +28,17 @@ export namespace Material {
         array[offset + 1] = material.roughness * 255;
         array[offset + 2] = material.bumpiness * 255;
         return array;
+    }
+
+    export function toArrayNormalized<T extends NumberArray>(material: Material, array: T, offset: number) {
+        array[offset] = material.metalness;
+        array[offset + 1] = material.roughness;
+        array[offset + 2] = material.bumpiness;
+        return array;
+    }
+
+    export function areEqual(a: Material, b: Material): boolean {
+        return a.metalness === b.metalness && a.roughness === b.roughness && a.bumpiness === b.bumpiness;
     }
 
     export function toString({ metalness, roughness, bumpiness }: Material) {

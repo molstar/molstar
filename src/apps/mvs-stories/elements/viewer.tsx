@@ -66,7 +66,7 @@ export class MVSStoriesViewerModel extends PluginComponent {
                         loadedData = await loadMVSData(this.plugin, cmd.data, cmd.format ?? 'mvsj');
                     }
                     if (StringLike.is(loadedData) || loadedData instanceof Uint8Array) {
-                        this.context.state.currentStoryData.next(loadedData as string | Uint8Array);
+                        this.context.state.currentStoryData.next(loadedData as string | Uint8Array<ArrayBuffer>);
                     } else if (loadedData) {
                         this.context.state.currentStoryData.next(JSON.stringify(loadedData));
                     }

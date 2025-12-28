@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -23,7 +23,8 @@ const Key = Binding.TriggerKey;
 export const DefaultClickResetCameraOnEmpty = Binding([
     Trigger(B.Flag.Primary, M.create()),
     Trigger(B.Flag.Secondary, M.create()),
-    Trigger(B.Flag.Primary, M.create({ control: true }))
+    Trigger(B.Flag.Primary, M.create({ control: true })),
+    Trigger(B.Flag.Trigger),
 ], 'Reset camera focus', 'Click on nothing using ${triggers}');
 export const DefaultClickResetCameraOnEmptySelectMode = Binding([
     Trigger(B.Flag.Secondary, M.create()),
@@ -40,7 +41,8 @@ export const DefaultFocusLociBindings: FocusLociBindings = {
     clickCenterFocus: Binding([
         Trigger(B.Flag.Primary, M.create()),
         Trigger(B.Flag.Secondary, M.create()),
-        Trigger(B.Flag.Primary, M.create({ control: true }))
+        Trigger(B.Flag.Primary, M.create({ control: true })),
+        Trigger(B.Flag.Trigger),
     ], 'Camera center and focus', 'Click element using ${triggers}'),
     clickCenterFocusSelectMode: Binding([
         Trigger(B.Flag.Secondary, M.create()),
@@ -188,13 +190,21 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                 if (Binding.matchKey(b.keySpinAnimation, code, modifiers, key)) {
                     const name = tp.animate.name !== 'spin' ? 'spin' : 'off';
                     if (name === 'off') {
-                        this.ctx.canvas3d.setProps({
-                            trackball: { animate: { name, params: {} } }
+                        PluginCommands.Canvas3D.SetSettings(this.ctx, {
+                            settings: {
+                                trackball: {
+                                    ...tp,
+                                    animate: { name, params: {} }
+                                }
+                            }
                         });
                     } else {
-                        this.ctx.canvas3d.setProps({
-                            trackball: { animate: {
-                                name, params: { speed: 1 } }
+                        PluginCommands.Canvas3D.SetSettings(this.ctx, {
+                            settings: {
+                                trackball: {
+                                    ...tp,
+                                    animate: { name, params: { speed: 0.1 } }
+                                }
                             }
                         });
                     }
@@ -203,13 +213,21 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                 if (Binding.matchKey(b.keyRockAnimation, code, modifiers, key)) {
                     const name = tp.animate.name !== 'rock' ? 'rock' : 'off';
                     if (name === 'off') {
-                        this.ctx.canvas3d.setProps({
-                            trackball: { animate: { name, params: {} } }
+                        PluginCommands.Canvas3D.SetSettings(this.ctx, {
+                            settings: {
+                                trackball: {
+                                    ...tp,
+                                    animate: { name, params: {} }
+                                }
+                            }
                         });
                     } else {
-                        this.ctx.canvas3d.setProps({
-                            trackball: { animate: {
-                                name, params: { speed: 0.3, angle: 10 } }
+                        PluginCommands.Canvas3D.SetSettings(this.ctx, {
+                            settings: {
+                                trackball: {
+                                    ...tp,
+                                    animate: { name, params: { speed: 0.3, angle: 10 } }
+                                }
                             }
                         });
                     }
@@ -218,8 +236,13 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                 if (Binding.matchKey(b.keyToggleFlyMode, code, modifiers, key)) {
                     const flyMode = !tp.flyMode;
 
-                    this.ctx.canvas3d.setProps({
-                        trackball: { flyMode }
+                    PluginCommands.Canvas3D.SetSettings(this.ctx, {
+                        settings: {
+                            trackball: {
+                                ...tp,
+                                flyMode
+                            }
+                        }
                     });
 
                     if (this.ctx.canvas3dContext?.canvas) {
@@ -232,10 +255,12 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                 }
 
                 if (Binding.matchKey(b.keyGlobalIllumination, code, modifiers, key)) {
-                    this.ctx.canvas3d.setProps({
-                        illumination: {
-                            ...ip,
-                            enabled: !ip.enabled,
+                    PluginCommands.Canvas3D.SetSettings(this.ctx, {
+                        settings: {
+                            illumination: {
+                                ...ip,
+                                enabled: !ip.enabled
+                            }
                         }
                     });
                 }

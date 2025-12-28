@@ -21,10 +21,10 @@ export interface BinaryEncodingProvider {
     get(category: string, field: string): ArrayEncoder | undefined;
 }
 
-export class BinaryEncoder implements Encoder<Uint8Array> {
+export class BinaryEncoder implements Encoder<Uint8Array<ArrayBuffer>> {
     private data: EncodedFile;
     private dataBlocks: EncodedDataBlock[] = [];
-    private encodedData: Uint8Array;
+    private encodedData: Uint8Array<ArrayBuffer>;
     private filter: Category.Filter = Category.DefaultFilter;
     private formatter: Category.Formatter = Category.DefaultFormatter;
 

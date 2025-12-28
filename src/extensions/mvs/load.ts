@@ -8,15 +8,16 @@
 
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { Download, ParseCif, ParseCcp4 } from '../../mol-plugin-state/transforms/data';
-import { CoordinatesFromLammpstraj, CoordinatesFromXtc, CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromGRO, TrajectoryFromLammpsTrajData, TrajectoryFromMmCif, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../mol-plugin-state/transforms/model';
+import { Download, ParseCcp4, ParseCif, ParseDx, ParsePrmtop, ParsePsf, ParseTop } from '../../mol-plugin-state/transforms/data';
+import { CoordinatesFromDcd, CoordinatesFromLammpstraj, CoordinatesFromNctraj, CoordinatesFromTrr, CoordinatesFromXtc, CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TopologyFromPrmtop, TopologyFromPsf, TopologyFromTop, TrajectoryFromGRO, TrajectoryFromLammpsTrajData, TrajectoryFromMmCif, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
-import { VolumeFromCcp4, VolumeFromDensityServerCif } from '../../mol-plugin-state/transforms/volume';
+import { VolumeFromCcp4, VolumeFromDensityServerCif, VolumeFromDx } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginState } from '../../mol-plugin/state';
 import { StateObjectSelector, StateTree } from '../../mol-state';
 import { RuntimeContext, Task } from '../../mol-task';
+import { Clip } from '../../mol-util/clip';
 import { MolViewSpec } from './behavior';
 import { createPluginStateSnapshotCamera, modifyCanvasProps, resetCanvasProps } from './camera';
 import { MVSAnnotationsProvider } from './components/annotation-prop';
@@ -31,7 +32,7 @@ import { generateStateTransition } from './helpers/animation';
 import { IsHiddenCustomStateExtension } from './load-extensions/is-hidden-custom-state';
 import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
 import { LoadingActions, LoadingExtension, loadTreeVirtual, UpdateTarget } from './load-generic';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformAndInstantiateStructure, transformAndInstantiateVolume, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, clippingForNode, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformAndInstantiateStructure, transformAndInstantiateVolume, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
 import { MVSData, MVSData_States, Snapshot, SnapshotMetadata } from './mvs-data';
 import { MVSAnimationNode, MVSAnimationSchema } from './tree/animation/animation-tree';
 import { validateTree } from './tree/generic/tree-validation';
@@ -45,6 +46,8 @@ export interface MVSLoadOptions {
     appendSnapshots?: boolean,
     /** Ignore any camera positioning from the MVS state and keep the current camera position instead, ignore any camera positioning when generating snapshots. */
     keepCamera?: boolean,
+    /** Follow camera target position from the MVS state but keep the current camera direction and up. (`keepCamera` option overrides this) */
+    keepCameraOrientation?: boolean,
     /** Specifies a set of MVS-loading extensions (not a part of standard MVS specification). If undefined, apply all builtin extensions. If `[]`, do not apply builtin extensions. */
     extensions?: MolstarLoadingExtension<any>[],
     /** Run some sanity checks and print potential issues to the console. */
@@ -94,7 +97,10 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
                 options
             );
             await assignStateTransition(ctx, plugin, entry, snapshot, options, i, multiData.snapshots.length);
-            entries.push(entry);
+            entries.push({
+                ...entry,
+                _transientData: { sourceMvsSnapshot: snapshot }
+            });
 
             if (ctx.shouldUpdate) {
                 await ctx.update({ message: 'Loading MVS...', current: i, max: multiData.snapshots.length });
@@ -171,15 +177,21 @@ function molstarTreeToEntry(
     tree: MolstarTree,
     animation: MVSAnimationNode<'animation'> | undefined,
     metadata: SnapshotMetadata & { previousTransitionDurationMs?: number },
-    options: { keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }
+    options: { keepCamera?: boolean, keepCameraOrientation?: boolean, extensions?: MolstarLoadingExtension<any>[] }
 ) {
     const context = MolstarLoadingContext.create();
     const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, { replaceExisting: true, extensions: options?.extensions ?? BuiltinLoadingExtensions });
     snapshot.canvas3d = {
         props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas, animation) : undefined,
     };
-    if (!options?.keepCamera) {
-        snapshot.camera = createPluginStateSnapshotCamera(plugin, context, metadata);
+    if (options?.keepCamera) {
+        // do nothing
+    } else if (options.keepCameraOrientation) {
+        // load camera target, keep orientation
+        snapshot.camera = createPluginStateSnapshotCamera(plugin, context, { previousTransitionDurationMs: metadata.previousTransitionDurationMs, ignoreCameraOrientation: true });
+    } else {
+        // fully load camera
+        snapshot.camera = createPluginStateSnapshotCamera(plugin, context, { previousTransitionDurationMs: metadata.previousTransitionDurationMs });
     }
     snapshot.durationInMs = metadata.linger_duration_ms + (metadata.previousTransitionDurationMs ?? 0);
 
@@ -245,9 +257,21 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             case 'mol2':
             case 'xtc':
             case 'lammpstrj':
+            case 'dcd':
+            case 'nctraj':
+            case 'trr':
                 return updateParent;
+            case 'psf':
+                return UpdateTarget.apply(updateParent, ParsePsf, {});
+            case 'prmtop':
+                return UpdateTarget.apply(updateParent, ParsePrmtop, {});
+            case 'top':
+                return UpdateTarget.apply(updateParent, ParseTop, {});
             case 'map':
                 return UpdateTarget.apply(updateParent, ParseCcp4, {});
+            case 'dx':
+            case 'dxbin':
+                return UpdateTarget.apply(updateParent, ParseDx, {});
             default:
                 console.error(`Unknown format in "parse" node: "${format}"`);
                 return undefined;
@@ -256,6 +280,12 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     coordinates(updateParent: UpdateTarget, node: MolstarNode<'coordinates'>): UpdateTarget | undefined {
         const format = node.params.format;
         switch (format) {
+            case 'nctraj':
+                return UpdateTarget.apply(updateParent, CoordinatesFromNctraj);
+            case 'dcd':
+                return UpdateTarget.apply(updateParent, CoordinatesFromDcd);
+            case 'trr':
+                return UpdateTarget.apply(updateParent, CoordinatesFromTrr);
             case 'xtc':
                 return UpdateTarget.apply(updateParent, CoordinatesFromXtc);
             case 'lammpstrj':
@@ -299,6 +329,28 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         });
         return UpdateTarget.setMvsDependencies(result, [node.params.coordinates_ref]);
     },
+    topology_with_coordinates(updateParent: UpdateTarget, node: MolstarNode<'topology_with_coordinates'>): UpdateTarget | undefined {
+        let parsed: UpdateTarget;
+        const format = node.params.format;
+        switch (format) {
+            case 'psf':
+                parsed = UpdateTarget.apply(updateParent, TopologyFromPsf, {});
+                break;
+            case 'prmtop':
+                parsed = UpdateTarget.apply(updateParent, TopologyFromPrmtop, {});
+                break;
+            case 'top':
+                parsed = UpdateTarget.apply(updateParent, TopologyFromTop, {});
+                break;
+            default:
+                console.error(`Unknown format in "topology_with_coordinates" node: "${format}"`);
+                return undefined;
+        }
+        const result = UpdateTarget.apply(parsed, MVSTrajectoryWithCoordinates, {
+            coordinatesRef: node.params.coordinates_ref,
+        });
+        return UpdateTarget.setMvsDependencies(result, [node.params.coordinates_ref]);
+    },
     model(updateParent: UpdateTarget, node: MolstarSubtree<'model'>, context: MolstarLoadingContext): UpdateTarget {
         const annotations = collectAnnotationReferences(node, context);
         const model = UpdateTarget.apply(updateParent, ModelFromTrajectory, {
@@ -322,18 +374,16 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         const transformed = transformAndInstantiateStructure(struct, node);
         const annotationTooltips = collectAnnotationTooltips(node, context);
         const inlineTooltips = collectInlineTooltips(node, context);
-        if (annotationTooltips.length + inlineTooltips.length > 0) {
-            UpdateTarget.apply(struct, CustomStructureProperties, {
-                properties: {
-                    [MVSAnnotationTooltipsProvider.descriptor.name]: { tooltips: annotationTooltips },
-                    [CustomTooltipsProvider.descriptor.name]: { tooltips: inlineTooltips },
-                },
-                autoAttach: [
-                    MVSAnnotationTooltipsProvider.descriptor.name,
-                    CustomTooltipsProvider.descriptor.name,
-                ],
-            });
-        }
+        UpdateTarget.apply(struct, CustomStructureProperties, {
+            properties: {
+                [MVSAnnotationTooltipsProvider.descriptor.name]: { tooltips: annotationTooltips },
+                [CustomTooltipsProvider.descriptor.name]: { tooltips: inlineTooltips },
+            },
+            autoAttach: [
+                MVSAnnotationTooltipsProvider.descriptor.name,
+                CustomTooltipsProvider.descriptor.name,
+            ],
+        }); // CustomStructureProperties must be applied even when `annotationTooltips` and `inlineTooltips` are empty, otherwise tooltips would persists across MVS snapshots
         const inlineLabels = collectInlineLabels(node, context);
         if (inlineLabels.length > 0) {
             const nearestReprNode = context.nearestReprMap?.get(node);
@@ -381,6 +431,8 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         let volume: UpdateTarget;
         if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Ccp4)) {
             volume = UpdateTarget.apply(updateParent, VolumeFromCcp4, {});
+        } else if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Dx)) {
+            volume = UpdateTarget.apply(updateParent, VolumeFromDx, {});
         } else if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Cif)) {
             volume = UpdateTarget.apply(updateParent, VolumeFromDensityServerCif, { blockHeader: node.params.channel_id || undefined });
         } else {
@@ -421,21 +473,26 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     },
     primitives(updateParent: UpdateTarget, tree: MolstarSubtree<'primitives'>, context: MolstarLoadingContext): UpdateTarget {
         const refs = getPrimitiveStructureRefs(tree);
+        const clip = clippingForNode(tree);
         const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { node: tree as any });
-        return applyPrimitiveVisuals(data, refs);
+        UpdateTarget.setMvsDependencies(data, refs); // MVSInlinePrimitiveData must depend on `refs` because it caches positions
+        return applyPrimitiveVisuals(data, refs, clip);
     },
     primitives_from_uri(updateParent: UpdateTarget, tree: MolstarNode<'primitives_from_uri'>, context: MolstarLoadingContext): UpdateTarget {
+        const refs = new Set(tree.params.references);
+        const clip = clippingForNode(tree);
         const data = UpdateTarget.apply(updateParent, MVSDownloadPrimitiveData, { uri: tree.params.uri, format: tree.params.format });
-        return applyPrimitiveVisuals(data, new Set(tree.params.references));
+        UpdateTarget.setMvsDependencies(data, refs); // MVSInlinePrimitiveData must depend on `refs` because it caches positions
+        return applyPrimitiveVisuals(data, refs, clip);
     },
 };
 
-function applyPrimitiveVisuals(data: UpdateTarget, refs: Set<string>) {
-    const mesh = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh' }, { state: { isGhost: true } }), refs);
+function applyPrimitiveVisuals(data: UpdateTarget, refs: Set<string>, clip: Clip.Props | undefined) {
+    const mesh = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh', clip }, { state: { isGhost: true } }), refs);
     UpdateTarget.apply(mesh, MVSShapeRepresentation3D);
-    const labels = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels' }, { state: { isGhost: true } }), refs);
+    const labels = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels', clip }, { state: { isGhost: true } }), refs);
     UpdateTarget.apply(labels, MVSShapeRepresentation3D);
-    const lines = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'lines' }, { state: { isGhost: true } }), refs);
+    const lines = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'lines', clip }, { state: { isGhost: true } }), refs);
     UpdateTarget.apply(lines, MVSShapeRepresentation3D);
     return data;
 }

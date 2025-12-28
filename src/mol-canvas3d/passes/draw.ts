@@ -120,6 +120,25 @@ export class DrawPass {
         this.setTransparency(transparency);
     }
 
+    getByteCount() {
+        return (
+            this.drawTarget.getByteCount() +
+            this.colorTarget.getByteCount() +
+            this.transparentColorTarget.getByteCount() +
+            this.depthTargetTransparent.getByteCount() +
+            (this.depthTargetOpaque
+                ? this.depthTargetOpaque.getByteCount()
+                : this.depthTextureOpaque.getByteCount()) +
+            this.wboit.getByteCount() +
+            this.dpoit.getByteCount() +
+            this.marking.getByteCount() +
+            this.postprocessing.getByteCount() +
+            this.antialiasing.getByteCount() +
+            this.bloom.getByteCount() +
+            this.dof.getByteCount()
+        );
+    }
+
     reset() {
         this.wboit.reset();
         this.dpoit.reset();
@@ -374,6 +393,8 @@ export class DrawPass {
     }
 
     private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props) {
+        if (camera.disabled) return;
+
         const volumeRendering = scene.volumes.renderables.length > 0;
         const postprocessingEnabled = PostprocessingPass.isEnabled(props.postprocessing);
         const antialiasingEnabled = AntialiasingPass.isEnabled(props.postprocessing);
@@ -431,6 +452,11 @@ export class DrawPass {
         }
         if (helper.handle.isEnabled) {
             renderer.renderBlended(helper.handle.scene, camera);
+        }
+        if (helper.pointer.isEnabled) {
+            helper.pointer.setCamera(camera);
+            renderer.update(helper.pointer.camera, helper.pointer.scene);
+            renderer.renderBlended(helper.pointer.scene, helper.pointer.camera);
         }
         if (helper.camera.isEnabled) {
             helper.camera.update(camera);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -88,15 +88,20 @@ export function getPolymerElementLoci(pickingId: PickingId, structureGroup: Stru
     if (id === objectId) {
         const { structure, group } = structureGroup;
         const unit = group.units[instanceId];
-        if (Unit.isAtomic(unit)) {
-            return getResidueLoci(structure, unit, unit.polymerElements[groupId]);
+        if (groupId === PickingId.Null) {
+            const indices = OrderedSet.ofRange(0, unit.elements.length) as OrderedSet<StructureElement.UnitIndex>;
+            return StructureElement.Loci(structure.target, [{ unit, indices }]);
         } else {
-            const { elements } = unit;
-            const elementIndex = unit.polymerElements[groupId];
-            const unitIndex = OrderedSet.indexOf(elements, elementIndex) as StructureElement.UnitIndex | -1;
-            if (unitIndex !== -1) {
-                const indices = OrderedSet.ofSingleton(unitIndex);
-                return StructureElement.Loci(structure, [{ unit, indices }]);
+            if (Unit.isAtomic(unit)) {
+                return getResidueLoci(structure, unit, unit.polymerElements[groupId]);
+            } else {
+                const { elements } = unit;
+                const elementIndex = unit.polymerElements[groupId];
+                const unitIndex = OrderedSet.indexOf(elements, elementIndex) as StructureElement.UnitIndex | -1;
+                if (unitIndex !== -1) {
+                    const indices = OrderedSet.ofSingleton(unitIndex);
+                    return StructureElement.Loci(structure, [{ unit, indices }]);
+                }
             }
         }
     }

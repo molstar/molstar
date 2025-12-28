@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -35,6 +35,12 @@ function getSpacefillParams(color: Color, graphics: GraphicsMode) {
                 clipPrimitive: true,
                 approximate: gmp.approximate,
                 alphaThickness: gmp.alphaThickness,
+                interior: {
+                    color: Color.fromNormalizedRgb(0, 0, 0),
+                    colorStrength: 0.15,
+                    substance: { metalness: 0.0, roughness: 1.0, bumpiness: 0.0 },
+                    substanceStrength: 1,
+                }
             },
         },
         colorTheme: {

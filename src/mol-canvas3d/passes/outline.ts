@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -45,6 +45,10 @@ export class OutlinePass {
     constructor(private readonly webgl: WebGLContext, width: number, height: number, depthTextureTransparent: Texture, depthTextureOpaque: Texture) {
         this.target = webgl.createRenderTarget(width, height, false);
         this.renderable = getOutlinesRenderable(webgl, depthTextureOpaque, depthTextureTransparent, true);
+    }
+
+    getByteCount() {
+        return this.target.getByteCount();
     }
 
     setSize(width: number, height: number) {

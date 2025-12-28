@@ -78,7 +78,16 @@ export function nullable<V>(type: iots.Type<V>): iots.Type<V | null> {
     return union(type, iots.null);
 }
 
-/** Type definition for literal types, e.g. `literal('red', 'green', 'blue')` means 'red' or 'green' or 'blue'  */
+/** Type definition for literal types, e.g. `literal('red', 'green', 'blue')` means 'red' or 'green' or 'blue'.
+ *
+ * Example usage:
+ * ```
+ * export type MyColor = 'red' | 'green' | 'blue';
+ * export const MyColor = literal<MyColor>('red', 'green', 'blue');
+ * ```
+ *
+ * (it looks stupid to repeat the list of values but it will result in nicer type bundle (for MolViewStories))
+ */
 export function literal<V extends string | number | boolean>(...values: V[]) {
     if (values.length === 0) {
         throw new Error(`literal type must have at least one value`);
@@ -136,6 +145,7 @@ export type ValueFor<F extends Field | iots.Any> = F extends Field<infer V> ? V 
 /** Return `undefined` if `value` has correct type for `field`, regardsless of if required or optional.
  * Return description of validation issues, if `value` has wrong type. */
 export function fieldValidationIssues<F extends Field>(field: F, value: any): string[] | undefined {
+    if (value === undefined && !field.required) return undefined; // Value undefined treated as if field not even present (unlike null)
     const validation = field.type.decode(value);
     if (validation._tag === 'Right') {
         return undefined;

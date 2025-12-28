@@ -7,9 +7,9 @@
 
 import { Unit, StructureElement, StructureProperties as Props, Bond } from '../mol-model/structure';
 import { Loci } from '../mol-model/loci';
-import { OrderedSet } from '../mol-data/int';
+import { OrderedSet } from '../mol-data/int/ordered-set';
 import { capitalize, stripTags } from '../mol-util/string';
-import { Column } from '../mol-data/db';
+import { Column } from '../mol-data/db/column';
 import { Vec3 } from '../mol-math/linear-algebra';
 import { radToDeg } from '../mol-math/misc';
 import { Volume } from '../mol-model/volume';

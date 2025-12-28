@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -121,14 +121,18 @@ function CarbohydrateTerminalLinkIterator(structure: Structure): LocationIterato
 function getTerminalLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId;
     if (id === objectId) {
-        const { terminalLinks, elements } = structure.carbohydrates;
-        const l = terminalLinks[groupId];
-        const carb = elements[l.carbohydrateIndex];
+        if (groupId === PickingId.Null) {
+            return Structure.Loci(structure);
+        } else {
+            const { terminalLinks, elements } = structure.carbohydrates;
+            const l = terminalLinks[groupId];
+            const carb = elements[l.carbohydrateIndex];
 
-        return StructureElement.Loci.union(
-            getAltResidueLociFromId(structure, carb.unit, carb.residueIndex, carb.altId),
-            getAltResidueLoci(structure, l.elementUnit, l.elementUnit.elements[l.elementIndex])
-        );
+            return StructureElement.Loci.union(
+                getAltResidueLociFromId(structure, carb.unit, carb.residueIndex, carb.altId),
+                getAltResidueLoci(structure, l.elementUnit, l.elementUnit.elements[l.elementIndex])
+            );
+        }
     }
     return EmptyLoci;
 }

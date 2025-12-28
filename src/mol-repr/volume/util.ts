@@ -4,9 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Volume } from '../../mol-model/volume';
+import { Grid, Volume } from '../../mol-model/volume';
 import { Loci } from '../../mol-model/loci';
-import { Interval, OrderedSet, SortedArray } from '../../mol-data/int';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { packIntToRGBArray } from '../../mol-util/number-packing';
@@ -14,10 +13,13 @@ import { SetUtils } from '../../mol-util/set';
 import { Box3D } from '../../mol-math/geometry';
 import { toHalfFloat } from '../../mol-util/number-conversion';
 import { clamp } from '../../mol-math/interpolate';
-import { StreamlineSet } from '../../mol-math/volume/streamlines';
 
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { VolumeLinesProps, VolumeStreamlinesProp } from './gradient';
+import { Tensor } from '../../mol-math/linear-algebra/tensor';
+import { Interval } from '../../mol-data/int/interval';
+import { SortedArray } from '../../mol-data/int/sorted-array';
+import { OrderedSet } from '../../mol-data/int/ordered-set';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3set = Vec3.set;
@@ -398,4 +400,49 @@ export function createSegmentTexture2d(volume: Volume, set: number[], bbox: Box3
     }
 
     return textureImage;
+}
+
+/**
+ * Create a new volume that is wrapped by one cell in all dimensions.
+ * Reuses the original volume grid data with new data accessors.
+ * Only intended for isosurface construction.
+ */
+export function createWrappedVolume(volume: Volume): Volume {
+    const { grid } = volume;
+    const { space } = grid.cells;
+    const { get, set, add, dataOffset } = space;
+    const [xn, yn, zn] = space.dimensions as Vec3;
+
+    const _dimensions = Vec3.create(xn + 1, yn + 1, zn + 1);
+
+    const _get = (data: Tensor.Data, x: number, y: number, z: number) => get(data, x % xn, y % yn, z % zn);
+    const _set = (data: Tensor.Data, x: number, y: number, z: number, d: number) => set(data, x % xn, y % yn, z % zn, d);
+    const _add = (data: Tensor.Data, x: number, y: number, z: number, d: number) => add(data, x % xn, y % yn, z % zn, d);
+    const _dataOffset = (x: number, y: number, z: number) => dataOffset(x % xn, y % yn, z % zn);
+
+    const _space: Tensor.Space = {
+        ...space,
+        dimensions: _dimensions,
+        get: _get,
+        set: _set,
+        add: _add,
+        dataOffset: _dataOffset,
+    };
+
+    const matrix = Grid.getGridToCartesianTransform(volume.grid);
+    const _transform: Grid.Transform = { kind: 'matrix', matrix };
+
+    const _grid: Grid = {
+        ...grid,
+        transform: _transform,
+        cells: {
+            ...grid.cells,
+            space: _space
+        }
+    };
+
+    return {
+        ...volume,
+        grid: _grid
+    };
 }

@@ -1,17 +1,16 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsVisual, UnitsLinesVisual, UnitsLinesParams } from '../units-visual';
-import { MolecularSurfaceCalculationParams } from '../../../mol-math/geometry/molecular-surface';
 import { VisualContext } from '../../visual';
 import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
-import { computeUnitMolecularSurface, MolecularSurfaceProps } from './util/molecular-surface';
+import { CommonMolecularSurfaceCalculationParams, computeUnitMolecularSurface, MolecularSurfaceProps } from './util/molecular-surface';
 import { computeMarchingCubesLines } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
@@ -20,7 +19,7 @@ import { Sphere3D } from '../../../mol-math/geometry';
 
 export const MolecularSurfaceWireframeParams = {
     ...UnitsLinesParams,
-    ...MolecularSurfaceCalculationParams,
+    ...CommonMolecularSurfaceCalculationParams,
     ...CommonSurfaceParams,
     sizeFactor: PD.Numeric(1.5, { min: 0, max: 10, step: 0.1 }),
 };

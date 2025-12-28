@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
+import { Vec3 } from '../linear-algebra/3d/vec3';
 import { Sphere3D } from './primitives/sphere3d';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)

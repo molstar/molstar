@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -210,7 +210,9 @@ export function getElementLoci(pickingId: PickingId, structureGroup: StructureGr
     if (id === objectId) {
         const { structure, group } = structureGroup;
         const unit = group.units[instanceId];
-        const indices = OrderedSet.ofSingleton(groupId as StructureElement.UnitIndex);
+        const indices = groupId === PickingId.Null
+            ? OrderedSet.ofRange(0, unit.elements.length) as OrderedSet<StructureElement.UnitIndex>
+            : OrderedSet.ofSingleton(groupId as StructureElement.UnitIndex);
         return StructureElement.Loci(structure.target, [{ unit, indices }]);
     }
     return EmptyLoci;
@@ -371,12 +373,16 @@ export function eachSerialElement(loci: Loci, structure: Structure, apply: (inte
 export function getSerialElementLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId;
     if (id === objectId) {
-        const { unitIndices, cumulativeUnitElementCount } = structure.serialMapping;
-        const unitIdx = unitIndices[groupId];
-        const unit = structure.units[unitIdx];
-        const idx = groupId - cumulativeUnitElementCount[unitIdx];
-        const indices = OrderedSet.ofSingleton(idx as StructureElement.UnitIndex);
-        return StructureElement.Loci(structure, [{ unit, indices }]);
+        if (groupId === PickingId.Null) {
+            return Structure.Loci(structure);
+        } else {
+            const { unitIndices, cumulativeUnitElementCount } = structure.serialMapping;
+            const unitIdx = unitIndices[groupId];
+            const unit = structure.units[unitIdx];
+            const idx = groupId - cumulativeUnitElementCount[unitIdx];
+            const indices = OrderedSet.ofSingleton(idx as StructureElement.UnitIndex);
+            return StructureElement.Loci(structure, [{ unit, indices }]);
+        }
     }
     return EmptyLoci;
 }

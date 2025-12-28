@@ -19,6 +19,7 @@ import { MoleculeTypeColorThemeProvider } from './color/molecule-type';
 import { PolymerIdColorThemeProvider } from './color/polymer-id';
 import { PolymerIndexColorThemeProvider } from './color/polymer-index';
 import { ResidueNameColorThemeProvider } from './color/residue-name';
+import { ResidueChargeColorThemeProvider } from './color/residue-charge';
 import { SecondaryStructureColorThemeProvider } from './color/secondary-structure';
 import { SequenceIdColorThemeProvider } from './color/sequence-id';
 import { ShapeGroupColorThemeProvider } from './color/shape-group';
@@ -199,6 +200,7 @@ namespace ColorTheme {
         'partial-charge': PartialChargeColorThemeProvider,
         'polymer-id': PolymerIdColorThemeProvider,
         'polymer-index': PolymerIndexColorThemeProvider,
+        'residue-charge': ResidueChargeColorThemeProvider,
         'residue-name': ResidueNameColorThemeProvider,
         'secondary-structure': SecondaryStructureColorThemeProvider,
         'sequence-id': SequenceIdColorThemeProvider,

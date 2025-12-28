@@ -25,7 +25,7 @@ export interface Mp4EncoderParams<A extends PluginStateAnimation = PluginStateAn
     quantizationParameter?: number
 }
 
-export async function encodeMp4Animation<A extends PluginStateAnimation>(plugin: PluginContext, ctx: RuntimeContext, params: Mp4EncoderParams<A>) {
+export async function encodeMp4Animation<A extends PluginStateAnimation>(plugin: PluginContext, ctx: RuntimeContext, params: Mp4EncoderParams<A>): Promise<Uint8Array<ArrayBuffer>> {
     await ctx.update({ message: 'Initializing...', isIndeterminate: true });
 
     validateViewport(params);
@@ -88,7 +88,7 @@ export async function encodeMp4Animation<A extends PluginStateAnimation>(plugin:
         stoppedAnimation = true;
         encoder.finalize();
         finalized = true;
-        return encoder.FS.readFile(encoder.outputFilename);
+        return encoder.FS.readFile(encoder.outputFilename) as Uint8Array<ArrayBuffer>;
     } finally {
         if (finalized) encoder.delete();
         if (params.customBackground !== void 0) {

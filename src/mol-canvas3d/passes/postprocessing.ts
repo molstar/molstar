@@ -161,7 +161,7 @@ export class PostprocessingPass {
     }
 
     static isTransparentDepthRequired(scene: Scene, props: PostprocessingProps) {
-        return props.enabled && (DofPass.isEnabled(props) || OutlinePass.isEnabled(props) && PostprocessingPass.isTransparentOutlineEnabled(props) || SsaoPass.isEnabled(props) && PostprocessingPass.isTransparentSsaoEnabled(scene, props));
+        return props.enabled && (DofPass.isEnabled(props) || OutlinePass.isEnabled(props) && PostprocessingPass.isTransparentOutlineEnabled(props) || SsaoPass.isEnabled(props) && PostprocessingPass.isTransparentSsaoEnabled(scene, props)) && scene.opacityAverage < 1;
     }
 
     static isTransparentOutlineEnabled(props: PostprocessingProps) {
@@ -200,6 +200,15 @@ export class PostprocessingPass {
         this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, transparentColorTarget.texture, depthTextureOpaque, depthTextureTransparent, this.shadow.target.texture, this.outline.target.texture, this.ssao.ssaoDepthTexture, this.ssao.ssaoDepthTransparentTexture, true);
 
         this.background = new BackgroundPass(webgl, assetManager, width, height);
+    }
+
+    getByteCount() {
+        return (
+            this.target.getByteCount() +
+            this.ssao.getByteCount() +
+            this.shadow.getByteCount() +
+            this.outline.getByteCount()
+        );
     }
 
     setSize(width: number, height: number) {
@@ -372,6 +381,14 @@ export class AntialiasingPass {
         this.fxaa = new FxaaPass(webgl, this.target.texture);
         this.smaa = new SmaaPass(webgl, this.target.texture);
         this.cas = new CasPass(webgl, this.target.texture);
+    }
+
+    getByteCount() {
+        return (
+            this.target.getByteCount() +
+            this.internalTarget.getByteCount() +
+            this.smaa.getByteCount()
+        );
     }
 
     setSize(width: number, height: number) {

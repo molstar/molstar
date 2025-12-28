@@ -2,6 +2,7 @@
  * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
@@ -21,8 +22,9 @@ import { MarkingParams } from './marking';
 import { AssetManager } from '../../mol-util/assets';
 import { IlluminationParams, IlluminationPass } from './illumination';
 import { RuntimeContext } from '../../mol-task';
-import { isTimingMode } from '../../mol-util/debug';
+import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 import { printTimerResults } from '../../mol-gl/webgl/timer';
+import { ShaderManager } from '../helper/shader-manager';
 
 export const ImageParams = {
     transparentBackground: PD.Boolean(false),
@@ -56,10 +58,10 @@ export class ImagePass {
     get width() { return this._width; }
     get height() { return this._height; }
 
-    constructor(private webgl: WebGLContext, assetManager: AssetManager, private renderer: Renderer, private scene: Scene, private camera: Camera, helper: Helper, transparency: 'wboit' | 'dpoit' | 'blended', props: Partial<ImageProps>) {
+    constructor(private webgl: WebGLContext, assetManager: AssetManager, private renderer: Renderer, private scene: Scene, private camera: Camera, helper: Helper, props: Partial<ImageProps>) {
         this.props = { ...PD.getDefaultValues(ImageParams), ...props };
 
-        this.drawPass = new DrawPass(webgl, assetManager, 128, 128, transparency);
+        this.drawPass = new DrawPass(webgl, assetManager, 128, 128, scene.transparency);
         this.illuminationPass = new IlluminationPass(webgl, this.drawPass);
         this.multiSamplePass = new MultiSamplePass(webgl, this.drawPass);
         this.multiSampleHelper = new MultiSampleHelper(this.multiSamplePass);
@@ -68,9 +70,14 @@ export class ImagePass {
             camera: new CameraHelper(webgl, this.props.cameraHelper),
             debug: helper.debug,
             handle: helper.handle,
+            pointer: helper.pointer,
         };
 
         this.setSize(1024, 768);
+    }
+
+    getByteCount() {
+        return this.drawPass.getByteCount() + this.illuminationPass.getByteCount() + this.multiSamplePass.getByteCount();
     }
 
     updateBackground() {
@@ -98,15 +105,17 @@ export class ImagePass {
     }
 
     async render(runtime: RuntimeContext) {
+        this.drawPass.setTransparency(this.scene.transparency);
+        ShaderManager.ensureRequired(this.webgl, this.scene, this.props);
         Camera.copySnapshot(this._camera.state, this.camera.state);
         Viewport.set(this._camera.viewport, 0, 0, this._width, this._height);
         this._camera.update();
 
         const ctx = { renderer: this.renderer, camera: this._camera, scene: this.scene, helper: this.helper };
         if (this.illuminationPass.supported && this.props.illumination.enabled) {
-            await runtime.update({ message: 'Tracing...', current: 1, max: this.illuminationPass.getMaxIterations(this.props) });
+            await runtime.update({ message: 'Tracing...', current: 1, max: this.illuminationPass.getMaxIterations(this.props.illumination) });
             this.illuminationPass.restart(true);
-            while (this.illuminationPass.shouldRender(this.props)) {
+            while (this.illuminationPass.shouldRender(this.props.illumination)) {
                 if (isTimingMode) this.webgl.timer.mark('ImagePass.render', { captureStats: true });
                 this.illuminationPass.render(ctx, this.props, false);
                 if (isTimingMode) this.webgl.timer.markEnd('ImagePass.render');
@@ -137,13 +146,8 @@ export class ImagePass {
             }
         }
 
-        if (isTimingMode) {
-            const timerResults = this.webgl.timer.resolve();
-            if (timerResults) {
-                for (const result of timerResults) {
-                    printTimerResults([result]);
-                }
-            }
+        if (isDebugMode) {
+            console.log(`image pass byte count ${(this.getByteCount() / 1024 / 1024).toFixed(3)} MiB`);
         }
     }
 

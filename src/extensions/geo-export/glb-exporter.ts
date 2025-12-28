@@ -56,7 +56,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
     private materialMap = new Map<string, number>();
     private accessors: Record<string, any>[] = [];
     private bufferViews: Record<string, any>[] = [];
-    private binaryBuffer: ArrayBuffer[] = [];
+    private binaryBuffer: ArrayBufferLike[] = [];
     private byteOffset = 0;
     private centerTransform: Mat4;
 
@@ -72,7 +72,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
         return [min, max];
     }
 
-    private addBuffer(buffer: ArrayBuffer, componentType: number, type: string, count: number, target: number, min?: any, max?: any, normalized?: boolean) {
+    private addBuffer(buffer: ArrayBufferLike, componentType: number, type: string, count: number, target: number, min?: any, max?: any, normalized?: boolean) {
         this.binaryBuffer.push(buffer);
 
         const bufferViewOffset = this.bufferViews.length;
@@ -304,7 +304,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
             materials: this.materials
         };
 
-        const createChunk = (chunkType: number, data: ArrayBuffer[], byteLength: number, padChar: number): [ArrayBuffer[], number] => {
+        const createChunk = (chunkType: number, data: ArrayBufferLike[], byteLength: number, padChar: number): [ArrayBufferLike[], number] => {
             let padding = null;
             if (byteLength % 4 !== 0) {
                 const pad = 4 - (byteLength % 4);

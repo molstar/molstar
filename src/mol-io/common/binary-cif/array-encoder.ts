@@ -41,7 +41,7 @@ export class ArrayEncoderImpl implements ArrayEncoder {
         }
         return {
             encoding,
-            data
+            data: data as Uint8Array<ArrayBuffer>
         };
     }
 

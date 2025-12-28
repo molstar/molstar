@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -28,6 +28,7 @@ import { CylindersValues } from '../../../mol-gl/renderable/cylinders';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { createEmptySubstance } from '../substance-data';
 import { createEmptyEmissive } from '../emissive-data';
+import { getInteriorColor, getInteriorParam, getInteriorSubstance } from '../interior';
 
 export interface Cylinders {
     readonly kind: 'cylinders',
@@ -174,6 +175,7 @@ export namespace Cylinders {
         solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
         bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
+        interior: getInteriorParam(),
         colorMode: PD.Select('default', PD.arrayToOptions(['default', 'interpolate'] as const), BaseGeometry.ShadingCategory)
     };
     export type Params = typeof Params
@@ -266,6 +268,8 @@ export namespace Cylinders {
             dSolidInterior: ValueCell.create(props.solidInterior),
             uBumpFrequency: ValueCell.create(props.bumpFrequency),
             uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
+            uInteriorColor: ValueCell.create(getInteriorColor(props.interior, Vec4())),
+            uInteriorSubstance: ValueCell.create(getInteriorSubstance(props.interior, Vec4())),
             dDualColor: ValueCell.create(props.colorMode === 'interpolate'),
         };
     }
@@ -287,6 +291,8 @@ export namespace Cylinders {
         ValueCell.updateIfChanged(values.dSolidInterior, props.solidInterior);
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
         ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
+        ValueCell.update(values.uInteriorColor, getInteriorColor(props.interior, values.uInteriorColor.ref.value));
+        ValueCell.update(values.uInteriorSubstance, getInteriorSubstance(props.interior, values.uInteriorSubstance.ref.value));
         ValueCell.updateIfChanged(values.dDualColor, props.colorMode === 'interpolate');
     }
 

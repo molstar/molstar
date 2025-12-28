@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -109,7 +109,7 @@ function eatEscaped(state: TokenizerState, esc: number) {
                     ++state.position;
                     return;
                 default:
-                    if (next === void 0) { // = "end of stream"
+                    if (!Number.isFinite(next)) { // = "end of stream"
                         // get rid of the quotes.
                         state.tokenStart++;
                         state.tokenEnd = state.position;

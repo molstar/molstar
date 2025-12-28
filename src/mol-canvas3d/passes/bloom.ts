@@ -75,6 +75,16 @@ export class BloomPass {
         this.copyRenderable = createCopyRenderable(webgl, this.compositeTarget.texture);
     }
 
+    getByteCount() {
+        return (
+            this.emissiveTarget.getByteCount() +
+            this.luminosityTarget.getByteCount() +
+            this.compositeTarget.getByteCount() +
+            this.horizontalBlurTargets.reduce((sum, t) => sum + t.getByteCount(), 0) +
+            this.verticalBlurTargets.reduce((sum, t) => sum + t.getByteCount(), 0)
+        );
+    }
+
     setSize(width: number, height: number) {
         const w = this.luminosityTarget.getWidth();
         const h = this.luminosityTarget.getHeight();

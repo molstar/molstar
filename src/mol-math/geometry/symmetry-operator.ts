@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { lerp as scalar_lerp } from '../../mol-math/interpolate';
+import { lerp as scalar_lerp } from '../interpolate';
 import { Mat3 } from '../linear-algebra/3d/mat3';
 import { Mat4 } from '../linear-algebra/3d/mat4';
 import { Quat } from '../linear-algebra/3d/quat';

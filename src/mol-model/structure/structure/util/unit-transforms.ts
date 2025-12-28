@@ -16,7 +16,7 @@ export class StructureUnitTransforms {
     private groupUnitTransforms: Float32Array[] = [];
     /** maps unit.id to offset of transform in unitTransforms */
     private unitOffsetMap = IntMap.Mutable<number>();
-    private groupIndexMap = IntMap.Mutable<number>();
+    private groupIndexMap = new Map<Unit.SymmetryGroup, number>();
     private size: number;
 
     private _isIdentity: boolean | undefined = undefined;
@@ -30,7 +30,7 @@ export class StructureUnitTransforms {
         let groupOffset = 0;
         for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {
             const g = structure.unitSymmetryGroups[i];
-            this.groupIndexMap.set(g.hashCode, i);
+            this.groupIndexMap.set(g, i);
             const groupTransforms = this.unitTransforms.subarray(groupOffset, groupOffset + g.units.length * 16);
             this.groupUnitTransforms.push(groupTransforms);
             for (let j = 0, jl = g.units.length; j < jl; ++j) {
@@ -71,6 +71,6 @@ export class StructureUnitTransforms {
     }
 
     getSymmetryGroupTransforms(group: Unit.SymmetryGroup): Float32Array {
-        return this.groupUnitTransforms[this.groupIndexMap.get(group.hashCode)];
+        return this.groupUnitTransforms[this.groupIndexMap.get(group)!];
     }
 }

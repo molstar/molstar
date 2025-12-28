@@ -18,8 +18,7 @@ precision highp int;
 uniform mat4 uModelView;
 uniform mat4 uInvProjection;
 uniform float uIsOrtho;
-uniform bool uHasHeadRotation;
-uniform mat4 uInvHeadRotation;
+uniform bool uIsAsymmetricProjection;
 
 uniform vec2 uTexDim;
 uniform sampler2D tPositionGroup;
@@ -37,6 +36,8 @@ varying vec3 vPointViewPosition;
  *
  * Specialization by Arseny Kapoulkine, MIT License Copyright (c) 2018
  * https://github.com/zeux/niagara
+ *
+ * Only works for for symmetric projections.
  */
 void sphereProjection(const in vec3 p, const in float r, const in vec2 mapping) {
     vec3 pr = p * r;
@@ -52,6 +53,48 @@ void sphereProjection(const in vec3 p, const in float r, const in vec2 mapping) 
 
     gl_Position.xy = vec2(maxx + minx, maxy + miny) * -0.5;
     gl_Position.xy -= mapping * vec2(maxx - minx, maxy - miny) * 0.5;
+    gl_Position.xy *= gl_Position.w;
+}
+
+const mat4 D = mat4(
+    1.0, 0.0, 0.0, 0.0,
+    0.0, 1.0, 0.0, 0.0,
+    0.0, 0.0, 1.0, 0.0,
+    0.0, 0.0, 0.0, -1.0
+);
+
+/**
+ * Compute point size and center using the technique described in:
+ * "GPU-Based Ray-Casting of Quadratic Surfaces" http://dl.acm.org/citation.cfm?id=2386396
+ * by Christian Sigg, Tim Weyrich, Mario Botsch, Markus Gross.
+ */
+void quadraticProjection(const in vec3 position, const in float radius, const in vec2 mapping) {
+    vec2 xbc, ybc;
+
+    mat4 T = mat4(
+        radius, 0.0, 0.0, 0.0,
+        0.0, radius, 0.0, 0.0,
+        0.0, 0.0, radius, 0.0,
+        position.x, position.y, position.z, 1.0
+    );
+
+    mat4 R = transpose4(uProjection * uModelView * aTransform * T);
+    float A = dot(R[3], D * R[3]);
+    float B = -2.0 * dot(R[0], D * R[3]);
+    float C = dot(R[0], D * R[0]);
+    xbc[0] = (-B - sqrt(B * B - 4.0 * A * C)) / (2.0 * A);
+    xbc[1] = (-B + sqrt(B * B - 4.0 * A * C)) / (2.0 * A);
+    float sx = abs(xbc[0] - xbc[1]) * 0.5;
+
+    A = dot(R[3], D * R[3]);
+    B = -2.0 * dot(R[1], D * R[3]);
+    C = dot(R[1], D * R[1]);
+    ybc[0] = (-B - sqrt(B * B - 4.0 * A * C)) / (2.0 * A);
+    ybc[1] = (-B + sqrt(B * B - 4.0 * A * C)) / (2.0 * A);
+    float sy = abs(ybc[0] - ybc[1]) * 0.5;
+
+    gl_Position.xy = vec2(0.5 * (xbc.x + xbc.y), 0.5 * (ybc.x + ybc.y));
+    gl_Position.xy -= mapping * vec2(sx, sy);
     gl_Position.xy *= gl_Position.w;
 }
 
@@ -88,12 +131,16 @@ void main(void){
 
     float d;
     if (uLod.w != 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
-        d = dot(uCameraPlane.xyz, vModelPosition) + uCameraPlane.w;
-        float f = min(
-            smoothstep(uLod.x, uLod.x + uLod.z, d),
-            1.0 - smoothstep(uLod.y - uLod.z, uLod.y, d)
-        ) * uLod.w;
-        vRadius *= f;
+        if (uModelScale != 1.0) {
+            vRadius *= uLod.w;
+        } else {
+            d = (dot(uCameraPlane.xyz, vModelPosition) + uCameraPlane.w) / uModelScale;
+            float f = min(
+                smoothstep(uLod.x, uLod.x + uLod.z, d),
+                1.0 - smoothstep(uLod.y - uLod.z, uLod.y, d)
+            ) * uLod.w;
+            vRadius *= f;
+        }
     }
 
     vec4 mvPosition = uModelView * aTransform * position4;
@@ -107,10 +154,9 @@ void main(void){
             vec4 mvCorner = vec4(mvPosition.xyz, 1.0);
             mvCorner.xy += mapping * vRadius;
             gl_Position = uProjection * mvCorner;
-        } else if (uHasHeadRotation) {
-            vec4 mvCorner = vec4(mvPosition.xyz, 1.0);
-            mvCorner.xy += mapping * vRadius * 1.4;
-            gl_Position = uProjection * mvCorner;
+        } else if (uIsAsymmetricProjection) {
+            gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
+            quadraticProjection(position, vRadius / uModelScale, mapping);
         } else {
             gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
             sphereProjection(mvPosition.xyz, vRadius, mapping);
@@ -126,15 +172,17 @@ void main(void){
         gl_Position.z = (uProjection * vec4(mvPosition.xyz, 1.0)).z;
     }
 
-    if (uLod.w != 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
-        if (d < uLod.x || d > uLod.y) {
-            // move out of [ -w, +w ] to 'discard' in vert shader
-            gl_Position.z = 2.0 * gl_Position.w;
+    if (uModelScale == 1.0) {
+        if (uLod.w != 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
+            if (d < uLod.x || d > uLod.y) {
+                // move out of [ -w, +w ] to 'discard' in vert shader
+                gl_Position.z = 2.0 * gl_Position.w;
+            }
         }
     }
 
     #if defined(dClipPrimitive) && !defined(dClipVariant_instance) && dClipObjectCount != 0
-        if (clipTest(vModelPosition)) {
+        if (clipTest(vModelPosition / uModelScale)) {
             // move out of [ -w, +w ] to 'discard' in vert shader
             gl_Position.z = 2.0 * gl_Position.w;
         }

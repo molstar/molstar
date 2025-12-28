@@ -59,7 +59,7 @@ namespace Quat {
     }
 
     export function hasNaN(q: Quat) {
-        return isNaN(q[0]) || isNaN(q[1]) || isNaN(q[2]) || isNaN(q[3]);
+        return Number.isNaN(q[0]) || Number.isNaN(q[1]) || Number.isNaN(q[2]) || Number.isNaN(q[3]);
     }
 
     export function create(x: number, y: number, z: number, w: number) {

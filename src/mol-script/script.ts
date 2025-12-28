@@ -12,23 +12,24 @@ import { StructureElement, QueryContext, StructureSelection, Structure, QueryFn,
 import { compile } from './runtime/query/compiler';
 import { MolScriptBuilder } from './language/builder';
 import { assertUnreachable } from '../mol-util/type-helpers';
+import { Script } from './types';
 
-export { Script };
+export { ScriptImpl as Script };
 
-interface Script { expression: string, language: Script.Language }
+type ScriptImpl = Script
 
-function Script(expression: string, language: Script.Language): Script {
+function ScriptImpl(expression: string, language: Script['language']): Script {
     return { expression, language };
 }
 
-namespace Script {
-    export const Info = {
+namespace ScriptImpl {
+    export const Info: { [k in Script['language']]: string } = {
         'mol-script': 'Mol-Script',
         'pymol': 'PyMOL',
         'vmd': 'VMD',
         'jmol': 'Jmol',
     };
-    export type Language = keyof typeof Info;
+    export type Language = Script['language'];
 
     export function is(x: any): x is Script {
         return !!x && typeof (x as Script).expression === 'string' && !!(x as Script).language;

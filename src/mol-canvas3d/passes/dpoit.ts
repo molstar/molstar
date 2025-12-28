@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Gianluca Tomasello <giagitom@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -87,6 +87,18 @@ export class DpoitPass {
     private _supported = false;
     get supported() {
         return this._supported;
+    }
+
+    getByteCount() {
+        if (!this._supported) return 0;
+        return (
+            this.depthTextures[0].getByteCount() +
+            this.depthTextures[1].getByteCount() +
+            this.colorFrontTextures[0].getByteCount() +
+            this.colorFrontTextures[1].getByteCount() +
+            this.colorBackTextures[0].getByteCount() +
+            this.colorBackTextures[1].getByteCount()
+        );
     }
 
     bind() {

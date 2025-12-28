@@ -16,11 +16,12 @@ import { Theme, ThemeRegistryContext } from '../../mol-theme/theme';
 import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
 import { VisualUpdateState } from '../util';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
-import { Interval, OrderedSet } from '../../mol-data/int';
 import { Loci, EmptyLoci } from '../../mol-model/loci';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { createVolumeCellLocationIterator, createVolumeTexture2d, createVolumeTexture3d, eachVolumeLoci, getVolumeTexture2dLayout } from './util';
 import { Texture } from '../../mol-gl/webgl/texture';
+import { Interval } from '../../mol-data/int/interval';
+import { OrderedSet } from '../../mol-data/int/ordered-set';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D();

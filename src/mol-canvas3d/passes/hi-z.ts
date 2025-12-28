@@ -140,6 +140,15 @@ export class HiZPass {
 
     readonly props: HiZProps;
 
+    getByteCount() {
+        if (!this.supported) return 0;
+        return (
+            this.tex.getByteCount() +
+            this.buf.getByteCount() +
+            this.levelData.reduce((sum, l) => sum + l.texture.getByteCount(), 0)
+        );
+    }
+
     clear() {
         if (!this.supported) return;
 

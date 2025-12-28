@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Camera } from '../../mol-canvas3d/camera';
-import { CameraFogParams, Canvas3DParams, Canvas3DProps, DefaultCanvas3DParams } from '../../mol-canvas3d/canvas3d';
+import { CameraFogParams, Canvas3DProps, DefaultCanvas3DParams } from '../../mol-canvas3d/canvas3d';
 import { TrackballControlsParams } from '../../mol-canvas3d/controls/trackball';
 import { BackgroundParams } from '../../mol-canvas3d/passes/background';
 import { BloomParams } from '../../mol-canvas3d/passes/bloom';
@@ -15,27 +15,23 @@ import { OutlineParams } from '../../mol-canvas3d/passes/outline';
 import { ShadowParams } from '../../mol-canvas3d/passes/shadow';
 import { SsaoParams } from '../../mol-canvas3d/passes/ssao';
 import { Vec3 } from '../../mol-math/linear-algebra';
-import { getFocusSnapshot, getPluginBoundingSphere } from '../../mol-plugin-state/manager/focus-camera/focus-object';
+import { getPluginBoundingSphere } from '../../mol-plugin-state/manager/focus-camera/focus-object';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginState } from '../../mol-plugin/state';
-import { StateObjectSelector } from '../../mol-state';
+import { StateObjectSelector, StateTransform } from '../../mol-state';
 import { fovAdjustedPosition } from '../../mol-util/camera';
 import { ColorNames } from '../../mol-util/color/names';
 import { deepClone } from '../../mol-util/object';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { decodeColor } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
-import { SnapshotMetadata } from './mvs-data';
 import { MVSAnimationNode } from './tree/animation/animation-tree';
 import { MolstarNode, MolstarNodeParams } from './tree/molstar/molstar-tree';
 import { MVSTreeSchema } from './tree/mvs/mvs-tree';
+import { Vector3 } from './tree/mvs/param-types';
 
 
-const DefaultFocusOptions = {
-    minRadius: 5,
-    extraRadius: 0,
-};
 const DefaultCanvasBackgroundColor = ColorNames.white;
 
 
@@ -62,35 +58,32 @@ export function cameraParamsToCameraSnapshot(plugin: PluginContext, params: Mols
     if (plugin.canvas3d) position = fovAdjustedPosition(target, position, plugin.canvas3d.camera.state.mode, plugin.canvas3d.camera.state.fov);
     const up = Vec3.create(...params.up);
     Vec3.orthogonalize(up, Vec3.sub(_tmpVec, target, position), up);
-    const snapshot: Partial<Camera.Snapshot> = { target, position, up, radius, radiusMax: radius };
+
+    const snapshot: Partial<Camera.Snapshot> = {
+        target,
+        position,
+        up,
+        radius,
+        radiusMax: radius,
+        minNear: params.near ?? undefined,
+    };
     return snapshot;
 }
 
-/** Focus the camera on the bounding sphere of a (sub)structure (or on the whole scene if `structureNodeSelector` is undefined).
-  * Orient the camera based on a focus node params. **/
-export async function setFocus(plugin: PluginContext, focuses: { target: StateObjectSelector, params: MolstarNodeParams<'focus'> }[]) {
-    const snapshot = getFocusSnapshot(plugin, {
-        ...snapshotFocusInfoFromMvsFocuses(focuses),
-        minRadius: DefaultFocusOptions.minRadius,
-    });
-    if (!snapshot) return;
-    resetSceneRadiusFactor(plugin);
-    await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
-}
-
-function snapshotFocusInfoFromMvsFocuses(focuses: { target: StateObjectSelector, params: MolstarNodeParams<'focus'> }[]): PluginState.SnapshotFocusInfo {
+function snapshotFocusInfoFromMvsFocuses(focuses: { target: StateObjectSelector | undefined, params: MolstarNodeParams<'focus'> & { center?: Vector3 } }[], ignoreOrientation: boolean): PluginState.SnapshotFocusInfo {
     const lastFocus = (focuses.length > 0) ? focuses[focuses.length - 1] : undefined;
     const direction = lastFocus?.params.direction ?? MVSTreeSchema.nodes.focus.params.fields.direction.default;
     const up = lastFocus?.params.up ?? MVSTreeSchema.nodes.focus.params.fields.up.default;
     return {
         targets: focuses.map<PluginState.SnapshotFocusTargetInfo>(f => ({
-            targetRef: f.target.ref === '-=root=-' ? undefined : f.target.ref, // need to treat root separately so it does not include invisible structure parts etc.
+            targetRef: f.target?.ref === StateTransform.RootRef ? undefined : f.target?.ref, // need to treat root separately so it does not include invisible structure parts etc.
+            center: f.params.center ? Vec3.create(...f.params.center) : undefined,
             radius: f.params.radius ?? undefined,
             radiusFactor: f.params.radius_factor,
             extraRadius: f.params.radius_extent,
         })),
-        direction: Vec3.create(...direction),
-        up: Vec3.create(...up),
+        direction: ignoreOrientation ? undefined : Vec3.create(...direction),
+        up: ignoreOrientation ? undefined : Vec3.create(...up),
     };
 }
 
@@ -103,24 +96,34 @@ function adjustSceneRadiusFactor(plugin: PluginContext, cameraTarget: Vec3 | und
     plugin.canvas3d?.setProps({ sceneRadiusFactor });
 }
 
-/** Reset `sceneRadiusFactor` property to the default value */
-function resetSceneRadiusFactor(plugin: PluginContext) {
-    const sceneRadiusFactor = Canvas3DParams.sceneRadiusFactor.defaultValue;
-    plugin.canvas3d?.setProps({ sceneRadiusFactor });
-}
-
 /** Create object for PluginState.Snapshot.camera based on tree loading context and MVS snapshot metadata */
-export function createPluginStateSnapshotCamera(plugin: PluginContext, context: MolstarLoadingContext, metadata: SnapshotMetadata & { previousTransitionDurationMs?: number }): PluginState.Snapshot['camera'] {
+export function createPluginStateSnapshotCamera(plugin: PluginContext, context: MolstarLoadingContext, options: { previousTransitionDurationMs?: number, ignoreCameraOrientation?: boolean }): PluginState.Snapshot['camera'] {
     const camera: PluginState.Snapshot['camera'] = {
         transitionStyle: 'animate',
-        transitionDurationInMs: metadata.previousTransitionDurationMs ?? 0,
+        transitionDurationInMs: options.previousTransitionDurationMs ?? 0,
     };
     if (context.camera.cameraParams !== undefined) {
-        const currentCameraSnapshot = plugin.canvas3d!.camera.getSnapshot();
-        const cameraSnapshot = cameraParamsToCameraSnapshot(plugin, context.camera.cameraParams);
-        camera.current = { ...currentCameraSnapshot, ...cameraSnapshot };
+        const cam = context.camera.cameraParams;
+        if (options.ignoreCameraOrientation) {
+            camera.focus = snapshotFocusInfoFromMvsFocuses([{
+                target: undefined,
+                params: {
+                    center: cam.target,
+                    radius: Vec3.distance(cam.target as number[] as Vec3, cam.position as number[] as Vec3) / 2,
+                    direction: MVSTreeSchema.nodes.focus.params.fields.direction.default, // will be ignored
+                    up: MVSTreeSchema.nodes.focus.params.fields.up.default, // will be ignored
+                    radius_factor: 1, // will be ignored
+                    radius_extent: 0, // will be ignored
+                },
+            }], true);
+            // This will not work exactly when viewport height>width because of how focusing works (could be solved by adjusting radius by aspect ration, but that would mess up cropping, and wouldn't work properly when aspect ration changes after loading)
+        } else {
+            const currentCameraSnapshot = plugin.canvas3d!.camera.getSnapshot();
+            const cameraSnapshot = cameraParamsToCameraSnapshot(plugin, cam);
+            camera.current = { ...currentCameraSnapshot, ...cameraSnapshot };
+        }
     } else {
-        camera.focus = snapshotFocusInfoFromMvsFocuses(context.camera.focuses);
+        camera.focus = snapshotFocusInfoFromMvsFocuses(context.camera.focuses, options.ignoreCameraOrientation ?? false);
     }
     return camera;
 }

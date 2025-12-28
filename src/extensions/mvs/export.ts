@@ -10,9 +10,9 @@ import { MVSData } from './mvs-data';
 /**
  * Creates an MVSX zip file with from the provided data and assets
  */
-export async function createMVSX(data: MVSData, assets: { name: string, content: string | Uint8Array }[]) {
+export async function createMVSX(data: MVSData, assets: { name: string, content: string | Uint8Array<ArrayBuffer> }[]) {
     const encoder = new TextEncoder();
-    const files: Record<string, Uint8Array> = {
+    const files: Record<string, Uint8Array<ArrayBuffer>> = {
         'index.mvsj': encoder.encode(JSON.stringify(data)),
     };
     for (const asset of assets) {

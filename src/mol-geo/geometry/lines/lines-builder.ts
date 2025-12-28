@@ -8,7 +8,7 @@
 import { ChunkedArray } from '../../../mol-data/util';
 import { Lines } from './lines';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
-import { Cage } from '../../../mol-geo/primitive/cage';
+import { Cage } from '../../primitive/cage';
 
 export interface LinesBuilder {
     add(startX: number, startY: number, startZ: number, endX: number, endY: number, endZ: number, group: number): void

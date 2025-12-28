@@ -107,6 +107,11 @@ export interface AtomicData {
      * Required because of sorting of atoms.
      */
     atomSourceIndex: Column<number>,
+    /**
+     * The index of this residue in the input data (counting by the first listed atom of the residue).
+     * Required because of sorting of atoms.
+     */
+    residueSourceIndex: Column<number>,
     residues: Residues,
     chains: Chains
 }

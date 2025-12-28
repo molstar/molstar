@@ -7,15 +7,16 @@
 import { Mat4 } from './mat4';
 import { Vec3 } from './vec3';
 import { EVD } from '../matrix/evd';
-import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
 import { Matrix } from '../matrix/matrix';
 import { Sphere3D } from '../../geometry/primitives/sphere3d';
+import { CentroidHelper } from '../../geometry/centroid-helper';
 
 export { MinimizeRmsd };
 namespace MinimizeRmsd {
     export interface Result {
         bTransform: Mat4,
-        rmsd: number
+        rmsd: number,
+        nAlignedElements: number,
     }
 
     export interface Positions { x: ArrayLike<number>, y: ArrayLike<number>, z: ArrayLike<number> }
@@ -33,7 +34,7 @@ namespace MinimizeRmsd {
     }
 
     export function compute(data: Input, result?: MinimizeRmsd.Result) {
-        if (typeof result === 'undefined') result = { bTransform: Mat4.zero(), rmsd: 0.0 };
+        result ??= { bTransform: Mat4.zero(), rmsd: 0.0, nAlignedElements: 0 };
         findMinimalRmsdTransformImpl(new RmsdTransformState(data, result));
         return result;
     }
@@ -170,4 +171,5 @@ function findMinimalRmsdTransformImpl(state: RmsdTransformState): void {
     rmsd = rmsd < 0.0 ? 0.0 : Math.sqrt(rmsd / state.a.x.length);
     makeTransformMatrix(state);
     state.result.rmsd = rmsd;
+    state.result.nAlignedElements = state.a.x.length;
 }

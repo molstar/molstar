@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,7 +8,7 @@ import { ValueCell } from '../../../mol-util';
 import { GeometryUtils } from '../geometry';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { TransformData } from '../transform-data';
-import { LocationIterator, PositionLocation } from '../../../mol-geo/util/location-iterator';
+import { LocationIterator, PositionLocation } from '../../util/location-iterator';
 import { Theme } from '../../../mol-theme/theme';
 import { SpheresValues } from '../../../mol-gl/renderable/spheres';
 import { createColors } from '../color-data';
@@ -27,6 +27,7 @@ import { Vec2, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { createEmptySubstance } from '../substance-data';
 import { createEmptyEmissive } from '../emissive-data';
+import { getInteriorColor, getInteriorParam, getInteriorSubstance } from '../interior';
 
 export interface Spheres {
     readonly kind: 'spheres',
@@ -256,6 +257,7 @@ export namespace Spheres {
         alphaThickness: PD.Numeric(0, { min: 0, max: 20, step: 1 }, { ...BaseGeometry.ShadingCategory, description: 'If not zero, adjusts alpha for radius.' }),
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
         bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
+        interior: getInteriorParam(),
         lodLevels: PD.ObjectList({
             minDistance: PD.Numeric(0),
             maxDistance: PD.Numeric(0),
@@ -356,6 +358,8 @@ export namespace Spheres {
             uAlphaThickness: ValueCell.create(props.alphaThickness),
             uBumpFrequency: ValueCell.create(props.bumpFrequency),
             uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
+            uInteriorColor: ValueCell.create(getInteriorColor(props.interior, Vec4())),
+            uInteriorSubstance: ValueCell.create(getInteriorSubstance(props.interior, Vec4())),
 
             lodLevels: spheres.shaderData.lodLevels,
             centerBuffer: spheres.centerBuffer,
@@ -383,6 +387,8 @@ export namespace Spheres {
         ValueCell.updateIfChanged(values.uAlphaThickness, props.alphaThickness);
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
         ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
+        ValueCell.update(values.uInteriorColor, getInteriorColor(props.interior, values.uInteriorColor.ref.value));
+        ValueCell.update(values.uInteriorSubstance, getInteriorSubstance(props.interior, values.uInteriorSubstance.ref.value));
 
         const lodLevels = getLodLevels(values.lodLevels.ref.value as LodLevelsValue);
         if (!areLodLevelsEqual(props.lodLevels, lodLevels)) {

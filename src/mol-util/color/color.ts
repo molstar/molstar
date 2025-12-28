@@ -5,7 +5,7 @@
  */
 
 import { NumberArray } from '../../mol-util/type-helpers';
-import { Vec3 } from '../../mol-math/linear-algebra';
+import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { Hcl } from './spaces/hcl';
 import { Lab } from './spaces/lab';
 import { Hsl } from './spaces/hsl';

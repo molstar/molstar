@@ -55,6 +55,10 @@ function startServer() {
 
     initWebApi(app);
 
+    app.get('/robots.txt', function (req, res) {
+        res.type('text/plain').send(ServerConfig.robots);
+    });
+
     const port = process.env.port || ServerConfig.defaultPort;
     app.listen(port).setTimeout(ServerConfig.requestTimeoutMs);
 

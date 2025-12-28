@@ -81,6 +81,8 @@ const _ArrowUpward = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d
 export function ArrowUpwardSvg() { return _ArrowUpward; }
 const _Autorenew = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z' /></svg>;
 export function AutorenewSvg() { return _Autorenew; }
+const _AspectRatio = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d="M19 12h-2v3h-3v2h5zM7 9h3V7H5v5h2zm14-6H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m0 16.01H3V4.99h18z"></path></svg>;
+export function AspectRatioSvg() { return _AspectRatio; }
 const _BlurOn = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M6 13c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm0 4c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm0-8c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm-3 .5c-.28 0-.5.22-.5.5s.22.5.5.5.5-.22.5-.5-.22-.5-.5-.5zM6 5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm15 5.5c.28 0 .5-.22.5-.5s-.22-.5-.5-.5-.5.22-.5.5.22.5.5.5zM14 7c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zm0-3.5c.28 0 .5-.22.5-.5s-.22-.5-.5-.5-.5.22-.5.5.22.5.5.5zm-11 10c-.28 0-.5.22-.5.5s.22.5.5.5.5-.22.5-.5-.22-.5-.5-.5zm7 7c-.28 0-.5.22-.5.5s.22.5.5.5.5-.22.5-.5-.22-.5-.5-.5zm0-17c.28 0 .5-.22.5-.5s-.22-.5-.5-.5-.5.22-.5.5.22.5.5.5zM10 7c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zm0 5.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm8 .5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm0 4c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm0-8c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm0-4c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm3 8.5c-.28 0-.5.22-.5.5s.22.5.5.5.5-.22.5-.5-.22-.5-.5-.5zM14 17c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm0 3.5c-.28 0-.5.22-.5.5s.22.5.5.5.5-.22.5-.5-.22-.5-.5-.5zm-4-12c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0 8.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm4-4.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-4c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z' /></svg>;
 export function BlurOnSvg() { return _BlurOn; }
 const _BookmarksOutlined = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M15 7v12.97l-4.21-1.81-.79-.34-.79.34L5 19.97V7h10m4-6H8.99C7.89 1 7 1.9 7 3h10c1.1 0 2 .9 2 2v13l2 1V3c0-1.1-.9-2-2-2zm-4 4H5c-1.1 0-2 .9-2 2v16l7-3 7 3V7c0-1.1-.9-2-2-2z' /></svg>;
@@ -129,6 +131,8 @@ const _Extension = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='
 export function ExtensionSvg() { return _Extension; }
 const _FlipToFront = <svg width='24px' height='24px' viewBox='0 0 24 24' strokeWidth='0.1px'><path d='M3 13h2v-2H3v2zm0 4h2v-2H3v2zm2 4v-2H3c0 1.1.89 2 2 2zM3 9h2V7H3v2zm12 12h2v-2h-2v2zm4-18H9c-1.11 0-2 .9-2 2v10c0 1.1.89 2 2 2h10c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 12H9V5h10v10zm-8 6h2v-2h-2v2zm-4 0h2v-2H7v2z' /></svg>;
 export function FlipToFrontSvg() { return _FlipToFront; }
+const _FullscreenExit = <svg width='24px' height='24px' viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5zm3-8H5v2h5V5H8zm6 11h2v-3h3v-2h-5zm2-11V5h-2v5h5V8z"></path></svg>;
+export function FullscreenExitSvg() { return _FullscreenExit; }
 const _Fullscreen = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z' /></svg>;
 export function FullscreenSvg() { return _Fullscreen; }
 const _GetApp = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z' /></svg>;
@@ -191,6 +195,14 @@ const _Warning = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M1
 export function WarningSvg() { return _Warning; }
 const _ContentCut = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M 9.64 7.64 c 0.23 -0.5 0.36 -1.05 0.36 -1.64 c 0 -2.21 -1.79 -4 -4 -4 S 2 3.79 2 6 s 1.79 4 4 4 c 0.59 0 1.14 -0.13 1.64 -0.36 L 10 12 l -2.36 2.36 C 7.14 14.13 6.59 14 6 14 c -2.21 0 -4 1.79 -4 4 s 1.79 4 4 4 s 4 -1.79 4 -4 c 0 -0.59 -0.13 -1.14 -0.36 -1.64 L 12 14 l 7 7 h 3 v -1 L 9.64 7.64 Z M 6 8 c -1.1 0 -2 -0.89 -2 -2 s 0.9 -2 2 -2 s 2 0.89 2 2 s -0.9 2 -2 2 Z m 0 12 c -1.1 0 -2 -0.89 -2 -2 s 0.9 -2 2 -2 s 2 0.89 2 2 s -0.9 2 -2 2 Z m 6 -7.5 c -0.28 0 -0.5 -0.22 -0.5 -0.5 s 0.22 -0.5 0.5 -0.5 s 0.5 0.22 0.5 0.5 s -0.22 0.5 -0.5 0.5 Z M 19 3 l -6 6 l 2 2 l 7 -7 V 3 Z' /></svg>;
 export function ContentCutSvg() { return _ContentCut; }
+const _LightMode = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0 c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2 c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1 C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06 c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41 l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41 c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36 c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z' /></svg>;
+export function LightModeSvg() { return _LightMode; }
+
+// The following icons are adapted from https://icons.getbootstrap.com/ and
+// licensed with https://github.com/twbs/bootstrap/blob/main/LICENSE
+
+const _HeadsetVR = <svg width='16px' height='16px' viewBox='0 0 16 16'><path d='M8 1.248c1.857 0 3.526.641 4.65 1.794a5 5 0 0 1 2.518 1.09C13.907 1.482 11.295 0 8 0 4.75 0 2.12 1.48.844 4.122a5 5 0 0 1 2.289-1.047C4.236 1.872 5.974 1.248 8 1.248'/><path d='M12 12a4 4 0 0 1-2.786-1.13l-.002-.002a1.6 1.6 0 0 0-.276-.167A2.2 2.2 0 0 0 8 10.5c-.414 0-.729.103-.935.201a1.6 1.6 0 0 0-.277.167l-.002.002A4 4 0 1 1 4 4h8a4 4 0 0 1 0 8'/></svg>;
+export function HeadsetVRSvg() { return _HeadsetVR; }
 
 // Aliases
 

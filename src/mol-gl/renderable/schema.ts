@@ -132,6 +132,10 @@ export const GlobalUniformSchema = {
     uInvModelViewProjection: UniformSpec('m4'),
     uHasHeadRotation: UniformSpec('b'),
     uInvHeadRotation: UniformSpec('m4'),
+    uIsAsymmetricProjection: UniformSpec('b'),
+    uHasEyeCamera: UniformSpec('b'),
+    uModelViewEye: UniformSpec('m4'),
+    uInvModelViewEye: UniformSpec('m4'),
 
     uIsOrtho: UniformSpec('f'),
     uPixelRatio: UniformSpec('f'),
@@ -157,10 +161,6 @@ export const GlobalUniformSchema = {
     uAmbientColor: UniformSpec('v3'),
 
     uPickingAlphaThreshold: UniformSpec('f'),
-
-    uInteriorDarkening: UniformSpec('f'),
-    uInteriorColorFlag: UniformSpec('b'),
-    uInteriorColor: UniformSpec('v3'),
 
     uHighlightColor: UniformSpec('v3'),
     uSelectColor: UniformSpec('v3'),
@@ -193,6 +193,14 @@ export const GlobalTextureSchema = {
 } as const;
 export type GlobalTextureSchema = typeof GlobalTextureSchema
 export type GlobalTextureValues = Values<GlobalTextureSchema>
+
+export const GlobalDefineSchema = {
+    dLightCount: DefineSpec('number'),
+    dColorMarker: DefineSpec('boolean'),
+} as const;
+export type GlobalDefineSchema = typeof GlobalDefineSchema
+export type GlobalDefineValues = Values<GlobalDefineSchema>
+export type GlobalDefines = UnboxedValues<GlobalDefineSchema>
 
 export const InternalSchema = {
     uObjectId: UniformSpec('i'),
@@ -317,9 +325,6 @@ export const BaseSchema = {
     ...EmissiveSchema,
     ...SubstanceSchema,
     ...ClippingSchema,
-
-    dLightCount: DefineSpec('number'),
-    dColorMarker: DefineSpec('boolean'),
 
     dClipObjectCount: DefineSpec('number'),
     dClipVariant: DefineSpec('string', ['instance', 'pixel']),

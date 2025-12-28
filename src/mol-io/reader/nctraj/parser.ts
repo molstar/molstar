@@ -23,7 +23,7 @@ export interface NctrajFile {
 async function parseInternal(data: Uint8Array) {
     // http://ambermd.org/netcdf/nctraj.xhtml
 
-    const nc = new NetcdfReader(data);
+    const nc = new NetcdfReader(data.buffer);
 
     const f: Mutable<NctrajFile> = {
         coordinates: [],

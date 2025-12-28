@@ -28,7 +28,7 @@ export function loadFromURL(url: string, options?: { format: 'mvsx' | 'mvsj', co
     }, 0);
 }
 
-export function loadFromData(data: MVSData | string | Uint8Array, options?: { format: 'mvsx' | 'mvsj', contextName?: string }) {
+export function loadFromData(data: MVSData | string | Uint8Array<ArrayBuffer>, options?: { format: 'mvsx' | 'mvsj', contextName?: string }) {
     setTimeout(() => {
         getContext(options?.contextName).dispatch({
             kind: 'load-mvs',
