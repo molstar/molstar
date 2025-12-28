@@ -13,7 +13,9 @@ import { SetUtils } from '../../mol-util/set';
 import { Box3D } from '../../mol-math/geometry';
 import { toHalfFloat } from '../../mol-util/number-conversion';
 import { clamp } from '../../mol-math/interpolate';
+
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
+import { VolumeLinesProps, VolumeStreamlinesProp } from './gradient';
 import { Tensor } from '../../mol-math/linear-algebra/tensor';
 import { Interval } from '../../mol-data/int/interval';
 import { SortedArray } from '../../mol-data/int/sorted-array';
@@ -120,6 +122,18 @@ export function eachVolumeLoci(loci: Loci, volume: Volume, props: { isoValue?: V
                 }
             }
         }
+    } else if (Volume.Streamline.isLoci(loci)) {
+        if (!Volume.areEquivalent(loci.volume, volume)) return false;
+        for (const { lines, instances } of loci.elements) {
+            OrderedSet.forEach(lines, lineId => {
+                OrderedSet.forEach(instances, j => {
+                    // Map streamline to appropriate cell intervals
+                    // This depends on how you want to handle streamline-to-cell mapping
+                    const offset = j * cellCount;
+                    if (apply(Interval.ofSingleton(offset + lineId))) changed = true;
+                });
+            });
+        }
     }
     return changed;
 }
@@ -137,7 +151,40 @@ export function createVolumeCellLocationIterator(volume: Volume): LocationIterat
     return LocationIterator(groupCount, instanceCount, 1, getLocation);
 }
 
-//
+export function createStreamlineLocationIterator(volume: Volume, key:number, props: VolumeLinesProps): LocationIterator {
+    // Calculate total number of streamline segments/points
+    const mode: 'simple' | 'advanced' = props.algorithm === 'advanced' ? 'advanced' : 'simple';
+    const sParams = {
+        seedDensity: props.seedDensity,
+        maxSteps: props.maxSteps,
+        stepSize: props.stepSize, // Å
+        minSpeed: props.minSpeed, // 1/Å
+        minLevel: props.minLevel,
+        maxLevel: props.maxLevel,
+        mid_interpolation: props.mid_interpolation,
+        writeStride: props.writeStride,
+    };
+    const { lines: streamLines } = VolumeStreamlinesProp.get(volume, { mode: mode, streamline: sParams });
+    const groupCount = streamLines.reduce((sum, line) => sum + line.length, 0);
+    const instanceCount = volume.instances.length;
+
+    const location = Volume.Streamline.Location(volume); // You'll need to define this
+    const getLocation = (groupIndex: number, instanceIndex: number) => {
+        // Map groupIndex to specific streamline and point within that streamline
+        let currentIndex = 0;
+        for (let i = 0; i < streamLines.length; i++) {
+            if (currentIndex + streamLines[i].length > groupIndex) {
+                location.streamlineId = i;
+                // location.pointIndex = groupIndex - currentIndex;
+                location.instance = instanceIndex;
+                return location;
+            }
+            currentIndex += streamLines[i].length;
+        }
+        return location;
+    };
+    return LocationIterator(groupCount, instanceCount, 1, getLocation);
+}
 
 export function getVolumeTexture2dLayout(dim: Vec3, padding = 0) {
     const area = dim[0] * dim[1] * dim[2];

@@ -55,6 +55,7 @@ export namespace Volume {
     export type CellIndex = { readonly '@type': 'cell-index' } & number
     export type InstanceIndex = { readonly '@type': 'instance-index' } & number
     export type SegmentIndex = { readonly '@type': 'segment-index' } & number
+    export type StreamlineIndex = { readonly '@type': 'streamline-index' } & number
 
     export type IsoValue = IsoValue.Absolute | IsoValue.Relative
 
@@ -414,6 +415,57 @@ export namespace Volume {
         export function isLocation(x: any): x is Location {
             return !!x && x.kind === 'segment-location';
         }
+    }
+
+    export namespace Streamline {
+        export interface Loci {
+            readonly kind: 'streamline-loci',
+            readonly volume: Volume,
+            readonly elements: ReadonlyArray<{
+                readonly lines: OrderedSet<StreamlineIndex>,
+                readonly instances: OrderedSet<InstanceIndex>
+            }>
+        }
+        export function Loci(volume: Volume, elements: Loci['elements']): Loci {
+            return { kind: 'streamline-loci', volume, elements };
+        }
+        export function isLoci(x: any): x is Loci {
+            return !!x && x.kind === 'streamline-loci';
+        }
+        export function areLociEqual(a: Loci, b: Loci) {
+            if (a.volume !== b.volume || a.elements.length !== b.elements.length) return false;
+            for (let i = 0, il = a.elements.length; i < il; ++i) {
+                const ae = a.elements[i], be = b.elements[i];
+                if (!OrderedSet.areEqual(ae.instances, be.instances) ||
+                    !OrderedSet.areEqual(ae.lines, be.lines)) return false;
+            }
+            return true;
+        }
+        export function isLociEmpty(loci: Loci) {
+            for (const { lines, instances } of loci.elements) {
+                if (!OrderedSet.isEmpty(lines) || !OrderedSet.isEmpty(instances)) return false;
+            }
+            return true;
+        }
+
+        export interface Location {
+            readonly kind: 'streamline-location',
+            volume: any,
+            streamlineId: any,
+            instance: any
+        }
+        export function Location(volume?: Volume, streamlineId?: StreamlineIndex, instance?: InstanceIndex): Location {
+            return {
+                kind: 'streamline-location',
+                volume: volume as any,
+                streamlineId: streamlineId as any,
+                instance: instance as any
+            };
+        }
+        export function isLocation(x: any): x is Location {
+            return !!x && x.kind === 'streamline-location';
+        }
+        export function getBoundingSphere(volume: Volume, boundingSphere?: Sphere3D) { return Grid.getBoundingSphere(volume.grid, boundingSphere); }
     }
 
     export type PickingGranularity = 'volume' | 'object' | 'voxel';

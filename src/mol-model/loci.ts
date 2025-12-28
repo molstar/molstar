@@ -65,7 +65,7 @@ export function DataLoci<T = unknown, E = unknown>(tag: string, data: T, element
 
 export { Loci };
 
-type Loci = StructureElement.Loci | Structure.Loci | Bond.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci | Volume.Loci | Volume.Isosurface.Loci | Volume.Cell.Loci | Volume.Segment.Loci
+type Loci = StructureElement.Loci | Structure.Loci | Bond.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci | Volume.Loci | Volume.Isosurface.Loci | Volume.Cell.Loci | Volume.Segment.Loci | Volume.Streamline.Loci;
 
 namespace Loci {
     export interface Bundle<L extends number> { loci: FiniteArray<Loci, L> }
@@ -133,6 +133,7 @@ namespace Loci {
         if (Volume.Isosurface.isLoci(loci)) return Volume.Isosurface.isLociEmpty(loci);
         if (Volume.Cell.isLoci(loci)) return Volume.Cell.isLociEmpty(loci);
         if (Volume.Segment.isLoci(loci)) return Volume.Segment.isLociEmpty(loci);
+        if (Volume.Streamline.isLoci(loci)) return Volume.Streamline.isLociEmpty(loci);
         return false;
     }
 
@@ -174,6 +175,8 @@ namespace Loci {
             return Volume.Cell.getBoundingSphere(loci.volume, loci.elements, boundingSphere);
         } else if (loci.kind === 'segment-loci') {
             return Volume.Segment.getBoundingSphere(loci.volume, loci.elements, boundingSphere);
+        } else if (loci.kind === 'streamline-loci') {
+            return Volume.Streamline.getBoundingSphere(loci.volume, loci.elements, boundingSphere);
         }
     }
 
@@ -212,6 +215,9 @@ namespace Loci {
             // TODO
             return void 0;
         } else if (loci.kind === 'segment-loci') {
+            // TODO
+            return void 0;
+        } else if (loci.kind === 'streamline-loci') {
             // TODO
             return void 0;
         }
