@@ -46,6 +46,8 @@ export interface MVSLoadOptions {
     appendSnapshots?: boolean,
     /** Ignore any camera positioning from the MVS state and keep the current camera position instead, ignore any camera positioning when generating snapshots. */
     keepCamera?: boolean,
+    /** Follow camera target position from the MVS state but keep the current camera direction and up. (`keepCamera` option overrides this) */
+    keepCameraOrientation?: boolean,
     /** Specifies a set of MVS-loading extensions (not a part of standard MVS specification). If undefined, apply all builtin extensions. If `[]`, do not apply builtin extensions. */
     extensions?: MolstarLoadingExtension<any>[],
     /** Run some sanity checks and print potential issues to the console. */
@@ -175,15 +177,21 @@ function molstarTreeToEntry(
     tree: MolstarTree,
     animation: MVSAnimationNode<'animation'> | undefined,
     metadata: SnapshotMetadata & { previousTransitionDurationMs?: number },
-    options: { keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }
+    options: { keepCamera?: boolean, keepCameraOrientation?: boolean, extensions?: MolstarLoadingExtension<any>[] }
 ) {
     const context = MolstarLoadingContext.create();
     const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, { replaceExisting: true, extensions: options?.extensions ?? BuiltinLoadingExtensions });
     snapshot.canvas3d = {
         props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas, animation) : undefined,
     };
-    if (!options?.keepCamera) {
-        snapshot.camera = createPluginStateSnapshotCamera(plugin, context, metadata);
+    if (options?.keepCamera) {
+        // do nothing
+    } else if (options.keepCameraOrientation) {
+        // load camera target, keep orientation
+        snapshot.camera = createPluginStateSnapshotCamera(plugin, context, { previousTransitionDurationMs: metadata.previousTransitionDurationMs, ignoreCameraOrientation: true });
+    } else {
+        // fully load camera
+        snapshot.camera = createPluginStateSnapshotCamera(plugin, context, { previousTransitionDurationMs: metadata.previousTransitionDurationMs });
     }
     snapshot.durationInMs = metadata.linger_duration_ms + (metadata.previousTransitionDurationMs ?? 0);
 

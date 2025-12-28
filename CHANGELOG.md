@@ -7,6 +7,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Viewer app
   - Add `action: 'focus'` support to `Viewer.structureInteractivity`
   - Add `viewportFocusBehavior: 'secondary-zoom'`
+- MolViewSpec
+  - Validation treats `undefined` same as missing value
+  - Increase default size of `carbohydrate` representation
+  - `color_from_uri` and `color_from_source` take `selector` parameter
+  - Add `keepCameraOrientation` option for loading functions
 
 ## [v5.5.0] - 2025-12-22
 - Viewer app
