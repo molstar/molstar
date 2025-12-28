@@ -32,6 +32,15 @@ There are 4 basic ways of instantiating the Mol* plugin.
 - Clone & build the GitHub repository
   - This option allows for quite straightforward extension customization, e.g., not including movie export, which reduces the bundle size by ~0.5MB
 
+### Bundle size
+
+By default, the `Viewer` includes all the available extensions. This increases the bundle size significantly, especially by including the `mp4-export`, which is responsible for almost `0.5MB` of compressed bundle size. 
+It is quite easy to reduce this bundle size by cloning the Mol\* repository, editing [extensions.ts](https://github.com/molstar/molstar/blob/master/src/apps/viewer/options.ts) and rebuilding it with `npm run build:apps`. The new build will be available 
+in the `build/viewer` directory (the JS file you will find there is uncompressed, but your hosting setup should include automatic gzip compression, significantly reducing the size).
+
+Alternatively, you can explore building your own "viewer" using the base Mol\* library. For this, see the options below.
+
+
 ### Example
 
 ```HTML

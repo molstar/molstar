@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Viewer app
+  - Add `action: 'focus'` support to `Viewer.structureInteractivity`
+  - Add `viewportFocusBehavior: 'secondary-zoom'`
 - MolViewSpec
   - Validation treats `undefined` same as missing value
   - Increase default size of `carbohydrate` representation
