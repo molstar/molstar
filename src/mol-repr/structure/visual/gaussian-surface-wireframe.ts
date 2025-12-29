@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -40,9 +40,6 @@ export const GaussianWireframeParams = {
     ...GaussianDensityParams,
     sizeFactor: PD.Numeric(3, { min: 0, max: 10, step: 0.1 }),
     lineSizeAttenuation: PD.Boolean(false),
-    ignoreHydrogens: PD.Boolean(false),
-    ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
-    includeParent: PD.Boolean(false, { isHidden: true }),
 };
 export type GaussianWireframeParams = typeof GaussianWireframeParams
 

@@ -193,7 +193,7 @@ export const CommonSurfaceParams = {
     ignoreHydrogens: PD.Boolean(false, { description: 'Whether or not to include hydrogen atoms in the surface calculation.' }),
     ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
     traceOnly: PD.Boolean(false, { description: 'Whether or not to only use trace atoms in the surface calculation.' }),
-    includeParent: PD.Boolean(false, { description: 'Include elements of the parent structure in surface calculation to get a surface patch of the current structure.' }),
+    includeParent: PD.Boolean(false, { description: 'Include elements of the parent structure in surface calculation to get a surface patch of the current structure. Note that this disables GPU support.' }),
 };
 export const DefaultCommonSurfaceProps = PD.getDefaultValues(CommonSurfaceParams);
 export type CommonSurfaceProps = typeof DefaultCommonSurfaceProps

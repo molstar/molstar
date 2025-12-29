@@ -10,12 +10,13 @@ import { VisualContext } from '../../visual';
 import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
-import { CommonMolecularSurfaceCalculationParams, computeUnitMolecularSurface, MolecularSurfaceProps } from './util/molecular-surface';
+import { CommonMolecularSurfaceCalculationParams, computeUnitMolecularSurface } from './util/molecular-surface';
 import { computeMarchingCubesLines } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
 import { CommonSurfaceParams } from './util/common';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { Tensor } from '../../../mol-math/linear-algebra/tensor';
 
 export const MolecularSurfaceWireframeParams = {
     ...UnitsLinesParams,
@@ -24,14 +25,16 @@ export const MolecularSurfaceWireframeParams = {
     sizeFactor: PD.Numeric(1.5, { min: 0, max: 10, step: 0.1 }),
 };
 export type MolecularSurfaceWireframeParams = typeof MolecularSurfaceWireframeParams
+export type MolecularSurfaceWireframeProps = PD.Values<MolecularSurfaceWireframeParams>
 
 //
 
-async function createMolecularSurfaceWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: MolecularSurfaceProps, lines?: Lines): Promise<Lines> {
+async function createMolecularSurfaceWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: MolecularSurfaceWireframeProps, lines?: Lines): Promise<Lines> {
     const { transform, field, idField, maxRadius } = await computeUnitMolecularSurface(structure, unit, theme.size, props).runInContext(ctx.runtime);
+
     const params = {
         isoLevel: props.probeRadius,
-        scalarField: field,
+        scalarField: props.floodfill !== 'off' ? Tensor.createFloodfilled(field, props.probeRadius, props.floodfill) : field,
         idField
     };
     const wireframe = await computeMarchingCubesLines(params, lines).runAsChild(ctx.runtime);
@@ -52,12 +55,15 @@ export function MolecularSurfaceWireframeVisual(materialId: number): UnitsVisual
         getLoci: getElementLoci,
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<MolecularSurfaceWireframeParams>, currentProps: PD.Values<MolecularSurfaceWireframeParams>) => {
-            if (newProps.resolution !== currentProps.resolution) state.createGeometry = true;
-            if (newProps.probeRadius !== currentProps.probeRadius) state.createGeometry = true;
-            if (newProps.probePositions !== currentProps.probePositions) state.createGeometry = true;
-            if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
-            if (newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant) state.createGeometry = true;
-            if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
+            state.createGeometry = (
+                newProps.resolution !== currentProps.resolution ||
+                newProps.probeRadius !== currentProps.probeRadius ||
+                newProps.probePositions !== currentProps.probePositions ||
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
+                newProps.includeParent !== currentProps.includeParent ||
+                newProps.floodfill !== currentProps.floodfill
+            );
         }
     }, materialId);
 }
