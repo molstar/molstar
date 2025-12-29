@@ -345,13 +345,16 @@ export namespace Tensor {
         const visited = new Uint8Array(data.length);
         const stack: number[] = [];
         const coords = [0, 0] as number[];
-        const isBoundary = (x: number, y: number) => x === 0 || y === 0 || x === xn - 1 || y === yn - 1;
+
+        const xn1 = xn - 1;
+        const yn1 = yn - 1;
+        const isBoundary = (x: number, y: number) => x === 0 || y === 0 || x === xn1 || y === yn1;
 
         // Start flood fill from boundary pixels below threshold
         for (let y = 0; y < yn; y++) {
             for (let x = 0; x < xn; x++) {
                 const offset = o(x, y);
-                if (data[offset] < threshold && isBoundary(x, y) && !visited[offset]) {
+                if (!visited[offset] && data[offset] < threshold && isBoundary(x, y)) {
                     stack.push(offset);
                     while (stack.length > 0) {
                         const voffset = stack.pop()!;
@@ -364,25 +367,25 @@ export namespace Tensor {
                         // Check 4-connected neighbors
                         if (vx > 0) {
                             const noffset = o(vx - 1, vy);
-                            if (data[noffset] < threshold && !visited[noffset]) {
+                            if (!visited[noffset] && data[noffset] < threshold) {
                                 stack.push(noffset);
                             }
                         }
-                        if (vx < xn - 1) {
+                        if (vx < xn1) {
                             const noffset = o(vx + 1, vy);
-                            if (data[noffset] < threshold && !visited[noffset]) {
+                            if (!visited[noffset] && data[noffset] < threshold) {
                                 stack.push(noffset);
                             }
                         }
                         if (vy > 0) {
                             const noffset = o(vx, vy - 1);
-                            if (data[noffset] < threshold && !visited[noffset]) {
+                            if (!visited[noffset] && data[noffset] < threshold) {
                                 stack.push(noffset);
                             }
                         }
-                        if (vy < yn - 1) {
+                        if (vy < yn1) {
                             const noffset = o(vx, vy + 1);
-                            if (data[noffset] < threshold && !visited[noffset]) {
+                            if (!visited[noffset] && data[noffset] < threshold) {
                                 stack.push(noffset);
                             }
                         }
@@ -400,7 +403,11 @@ export namespace Tensor {
 
         const stack: number[] = [];
         const coords = [0, 0, 0] as number[]; // reused coordinates array
-        const isBoundary = (x: number, y: number, z: number) => x === 0 || y === 0 || z === 0 || x === xn - 1 || y === yn - 1 || z === zn - 1;
+
+        const xn1 = xn - 1;
+        const yn1 = yn - 1;
+        const zn1 = zn - 1;
+        const isBoundary = (x: number, y: number, z: number) => x === 0 || y === 0 || z === 0 || x === xn1 || y === yn1 || z === zn1;
 
         const { data } = tensor;
         const visited = new Uint8Array(data.length);
@@ -423,37 +430,37 @@ export namespace Tensor {
                             // check neighbors
                             if (vx > 0) {
                                 const noffset = o(vx - 1, vy, vz);
-                                if (data[noffset] < threshold && !visited[noffset]) {
+                                if (!visited[noffset] && data[noffset] < threshold) {
                                     stack.push(noffset);
                                 }
                             }
-                            if (vx < xn - 1) {
+                            if (vx < xn1) {
                                 const noffset = o(vx + 1, vy, vz);
-                                if (data[noffset] < threshold && !visited[noffset]) {
+                                if (!visited[noffset] && data[noffset] < threshold) {
                                     stack.push(noffset);
                                 }
                             }
                             if (vy > 0) {
                                 const noffset = o(vx, vy - 1, vz);
-                                if (data[noffset] < threshold && !visited[noffset]) {
+                                if (!visited[noffset] && data[noffset] < threshold) {
                                     stack.push(noffset);
                                 }
                             }
-                            if (vy < yn - 1) {
+                            if (vy < yn1) {
                                 const noffset = o(vx, vy + 1, vz);
-                                if (data[noffset] < threshold && !visited[noffset]) {
+                                if (!visited[noffset] && data[noffset] < threshold) {
                                     stack.push(noffset);
                                 }
                             }
                             if (vz > 0) {
                                 const noffset = o(vx, vy, vz - 1);
-                                if (data[noffset] < threshold && !visited[noffset]) {
+                                if (!visited[noffset] && data[noffset] < threshold) {
                                     stack.push(noffset);
                                 }
                             }
-                            if (vz < zn - 1) {
+                            if (vz < zn1) {
                                 const noffset = o(vx, vy, vz + 1);
-                                if (data[noffset] < threshold && !visited[noffset]) {
+                                if (!visited[noffset] && data[noffset] < threshold) {
                                     stack.push(noffset);
                                 }
                             }
@@ -479,30 +486,56 @@ export namespace Tensor {
         }
     }
 
+    function floodfilledGet(mode: 'inside' | 'outside', threshold: number, visited: Uint8Array, tensor: Tensor): Space['get'] {
+        const { dataOffset: o } = tensor.space;
+        const fillValue = threshold * 2;
+
+        switch (tensor.space.dimensions.length) {
+            case 1: return mode === 'outside'
+                ? (data, i) => {
+                    const v = data[i];
+                    return v < threshold && visited[i] ? fillValue : v;
+                }
+                : (data, i) => {
+                    const v = data[i];
+                    return v < threshold && !visited[i] ? fillValue : v;
+                };
+            case 2: return mode === 'outside'
+                ? (data, i, j) => {
+                    const e = o(i, j);
+                    const v = data[e];
+                    return v < threshold && visited[e] ? fillValue : v;
+                }
+                : (data, i, j) => {
+                    const e = o(i, j);
+                    const v = data[e];
+                    return v < threshold && !visited[e] ? fillValue : v;
+                };
+            case 3: return mode === 'outside'
+                ? (data, i, j, k) => {
+                    const e = o(i, j, k);
+                    const v = data[e];
+                    return v < threshold && visited[e] ? fillValue : v;
+                }
+                : (data, i, j, k) => {
+                    const e = o(i, j, k);
+                    const v = data[e];
+                    return v < threshold && !visited[e] ? fillValue : v;
+                };
+            default: throw new Error('Floodfill only implemented for rank-1, rank-2 and rank-3 tensors.');
+        }
+    }
+
     /**
      * Floodfill from boundary voxels below the given threshold.
      * Only for rank-1, rank-2, and rank-3 tensors.
      */
     export function createFloodfilled(tensor: Tensor, threshold: number, mode: 'inside' | 'outside'): Tensor {
-        const { dataOffset: o } = tensor.space;
         const visited = floodfill(tensor, threshold);
-        const fillValue = threshold * 2;
-
-        const floodfillGet = mode === 'outside'
-            ? (data: Tensor.Data, ...coords: number[]): number => {
-                const i = o(...coords);
-                const v = data[i];
-                return v < threshold && visited[i] ? fillValue : v;
-            }
-            : (data: Tensor.Data, ...coords: number[]): number => {
-                const i = o(...coords);
-                const v = data[i];
-                return v < threshold && !visited[i] ? fillValue : v;
-            };
 
         const newSpace: Tensor.Space = {
             ...tensor.space,
-            get: floodfillGet,
+            get: floodfilledGet(mode, threshold, visited, tensor)
         };
 
         return Tensor.create(newSpace, tensor.data);
