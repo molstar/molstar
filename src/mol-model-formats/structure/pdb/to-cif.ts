@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -64,6 +64,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     let modelNum = 0, modelStr = '';
     let conectRange: [number, number] | undefined = undefined;
     let hasAssemblies = false;
+    let hasSeqRes = false;
     const terIndices = new Set<number>();
 
     for (let i = 0, _i = lines.count; i < _i; i++) {
@@ -175,6 +176,8 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     }
                     helperCategories.push(parseSheet(lines, i, j));
                     i = j - 1;
+                } else if (substringStartsWith(data, s, e, 'SEQRES')) {
+                    hasSeqRes = true;
                 }
                 // TODO: SCALE record => cif.atom_sites.fract_transf_matrix, cif.atom_sites.fract_transf_vector
                 break;
@@ -220,7 +223,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
         const asymId = labelAsymIdHelper.get(i);
         atomSite.label_entity_id[i] = entityBuilder.getEntityId(compId, moleculeType, asymId);
     }
-    const atom_site = getAtomSite(atomSite, labelAsymIdHelper, { hasAssemblies });
+    const atom_site = getAtomSite(atomSite, labelAsymIdHelper, { hasAssemblies, hasSeqRes });
     if (!isPdbqt) delete atom_site.partial_charge;
 
     if (conectRange) {
