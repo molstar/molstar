@@ -27,6 +27,7 @@ import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
 import { Color } from '../../mol-util/color';
 import { isTimingMode } from '../../mol-util/debug';
 import { PostprocessingProps } from './postprocessing';
+import { PCG } from '../../mol-data/util/hash-functions';
 
 export const SsaoParams = {
     samples: PD.Numeric(32, { min: 1, max: 256, step: 1 }),
@@ -681,14 +682,15 @@ function getBlurKernel(kernelSize: number): number[] {
     return kernel;
 }
 
+const pcg = new PCG();
 const RandomHemisphereVector: Vec3[] = [];
 for (let i = 0; i < 256; i++) {
     const v = Vec3();
-    v[0] = Math.random() * 2.0 - 1.0;
-    v[1] = Math.random() * 2.0 - 1.0;
-    v[2] = Math.random();
+    v[0] = pcg.float() * 2.0 - 1.0;
+    v[1] = pcg.float() * 2.0 - 1.0;
+    v[2] = pcg.float();
     Vec3.normalize(v, v);
-    Vec3.scale(v, v, Math.random());
+    Vec3.scale(v, v, pcg.float());
     RandomHemisphereVector.push(v);
 }
 

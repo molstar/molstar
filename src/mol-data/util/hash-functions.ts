@@ -543,3 +543,37 @@ export function murmurHash3_128(key: string, seed: number): string {
         (h4 >>> 0).toString(16).padStart(8, '0')
     );
 }
+
+/**
+ * PCG pseudo-random number generator
+ * See https://www.pcg-random.org/ and https://jcgt.org/published/0009/03/02/
+ */
+export class PCG {
+    private state: number;
+
+    constructor(seed = 26699) {
+        this.state = seed >>> 0;
+    }
+
+    /**
+     * 32-bit unsigned integer
+     */
+    int(): number {
+        const oldstate = this.state;
+
+        this.state = Math.imul(this.state, 1664525) + 1013904223;
+        this.state = this.state >>> 0;
+
+        const xorshifted = ((oldstate >>> 18) ^ oldstate) >>> 5;
+        const rot = oldstate >>> 27;
+        const result = (xorshifted >>> rot) | (xorshifted << (32 - rot));
+        return result >>> 0;
+    }
+
+    /**
+     * Float in [0, 1)
+     */
+    float(): number {
+        return this.int() / 0x100000000;
+    }
+}
