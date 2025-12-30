@@ -51,7 +51,10 @@ export const DefaultViewerOptions = {
     viewportShowSelectionMode: PluginConfig.Viewport.ShowSelectionMode.defaultValue,
     viewportShowAnimation: PluginConfig.Viewport.ShowAnimation.defaultValue,
     viewportShowTrajectoryControls: PluginConfig.Viewport.ShowTrajectoryControls.defaultValue,
-    viewportFocusBehavior: 'default' as 'default' | 'disabled',
+    // default: zoom & show structure interaction
+    // secondary-zoom: zoom only, doesn't use primary mouse button
+    // disabled: no automatic zoom or interaction on focus
+    viewportFocusBehavior: 'default' as 'default' | 'secondary-zoom' | 'disabled',
     viewportBackgroundColor: undefined as string | undefined,
 
     pluginStateServer: PluginConfig.State.DefaultServer.defaultValue,

@@ -356,13 +356,12 @@ export function createSegmentTexture2d(volume: Volume, set: number[], bbox: Box3
 }
 
 /**
- * Create a new volume that is wrapped by one cell in all dimensions.
- * Reuses the original volume grid data with new data accessors.
+ * Create a new tensor that is wrapped by one cell in all dimensions.
+ * Reuses the original tensor data with new data accessors.
  * Only intended for isosurface construction.
  */
-export function createWrappedVolume(volume: Volume): Volume {
-    const { grid } = volume;
-    const { space } = grid.cells;
+export function createWrappedTensor(tensor: Tensor): Tensor {
+    const { space, data } = tensor;
     const { get, set, add, dataOffset } = space;
     const [xn, yn, zn] = space.dimensions as Vec3;
 
@@ -382,16 +381,25 @@ export function createWrappedVolume(volume: Volume): Volume {
         dataOffset: _dataOffset,
     };
 
-    const matrix = Grid.getGridToCartesianTransform(volume.grid);
-    const _transform: Grid.Transform = { kind: 'matrix', matrix };
+    return {
+        data,
+        space: _space
+    };
+}
+
+/**
+ * Create a new volume that is wrapped by one cell in all dimensions.
+ * Reuses the original volume grid data with new data accessors.
+ * Only intended for isosurface construction.
+ */
+export function createWrappedVolume(volume: Volume): Volume {
+    const { grid } = volume;
+    const matrix = Grid.getGridToCartesianTransform(grid);
 
     const _grid: Grid = {
         ...grid,
-        transform: _transform,
-        cells: {
-            ...grid.cells,
-            space: _space
-        }
+        transform: { kind: 'matrix', matrix },
+        cells: createWrappedTensor(grid.cells)
     };
 
     return {

@@ -51,6 +51,19 @@ export const DefaultFocusLociBindings: FocusLociBindings = {
     clickResetCameraOnEmpty: DefaultClickResetCameraOnEmpty,
     clickResetCameraOnEmptySelectMode: DefaultClickResetCameraOnEmptySelectMode,
 };
+export const NoPrimaryFocusLociBindings: FocusLociBindings = {
+    clickCenterFocus: Binding([
+        Trigger(B.Flag.Secondary, M.create()),
+        Trigger(B.Flag.Primary, M.create({ control: true })),
+        Trigger(B.Flag.Trigger),
+    ], 'Camera center and focus', 'Click element using ${triggers}'),
+    clickCenterFocusSelectMode: Binding([
+        Trigger(B.Flag.Secondary, M.create()),
+        Trigger(B.Flag.Primary, M.create({ control: true }))
+    ], 'Camera center and focus (Selection Mode)', 'Click element using ${triggers}'),
+    clickResetCameraOnEmpty: DefaultClickResetCameraOnEmpty,
+    clickResetCameraOnEmptySelectMode: DefaultClickResetCameraOnEmptySelectMode,
+};
 const FocusLociParams = {
     minRadius: PD.Numeric(8, { min: 1, max: 50, step: 1 }),
     extraRadius: PD.Numeric(4, { min: 1, max: 50, step: 1 }, { description: 'Value added to the bounding-sphere radius of the Loci' }),

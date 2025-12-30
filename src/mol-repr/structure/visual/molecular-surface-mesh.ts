@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -23,6 +23,7 @@ import { applyMeshColorSmoothing } from '../../../mol-geo/geometry/mesh/color-sm
 import { ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
 import { ValueCell } from '../../../mol-util';
 import { ComplexMeshVisual, ComplexVisual } from '../complex-visual';
+import { Tensor } from '../../../mol-math/linear-algebra/tensor';
 
 export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,
@@ -45,7 +46,7 @@ async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, struct
 
     const params = {
         isoLevel: props.probeRadius,
-        scalarField: field,
+        scalarField: props.floodfill !== 'off' ? Tensor.createFloodfilled(field, props.probeRadius, props.floodfill) : field,
         idField
     };
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
@@ -78,13 +79,16 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
         getLoci: getElementLoci,
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<MolecularSurfaceMeshParams>, currentProps: PD.Values<MolecularSurfaceMeshParams>) => {
-            if (newProps.resolution !== currentProps.resolution) state.createGeometry = true;
-            if (newProps.probeRadius !== currentProps.probeRadius) state.createGeometry = true;
-            if (newProps.probePositions !== currentProps.probePositions) state.createGeometry = true;
-            if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
-            if (newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant) state.createGeometry = true;
-            if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
-            if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
+            state.createGeometry = (
+                newProps.resolution !== currentProps.resolution ||
+                newProps.probeRadius !== currentProps.probeRadius ||
+                newProps.probePositions !== currentProps.probePositions ||
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
+                newProps.traceOnly !== currentProps.traceOnly ||
+                newProps.includeParent !== currentProps.includeParent ||
+                newProps.floodfill !== currentProps.floodfill
+            );
 
             if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
                 state.updateColor = true;
@@ -114,7 +118,7 @@ async function createStructureMolecularSurfaceMesh(ctx: VisualContext, structure
 
     const params = {
         isoLevel: props.probeRadius,
-        scalarField: field,
+        scalarField: props.floodfill !== 'off' ? Tensor.createFloodfilled(field, props.probeRadius, props.floodfill) : field,
         idField
     };
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
@@ -147,13 +151,16 @@ export function StructureMolecularSurfaceMeshVisual(materialId: number): Complex
         getLoci: getSerialElementLoci,
         eachLocation: eachSerialElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<MolecularSurfaceMeshParams>, currentProps: PD.Values<MolecularSurfaceMeshParams>) => {
-            if (newProps.resolution !== currentProps.resolution) state.createGeometry = true;
-            if (newProps.probeRadius !== currentProps.probeRadius) state.createGeometry = true;
-            if (newProps.probePositions !== currentProps.probePositions) state.createGeometry = true;
-            if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
-            if (newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant) state.createGeometry = true;
-            if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
-            if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
+            state.createGeometry = (
+                newProps.resolution !== currentProps.resolution ||
+                newProps.probeRadius !== currentProps.probeRadius ||
+                newProps.probePositions !== currentProps.probePositions ||
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
+                newProps.traceOnly !== currentProps.traceOnly ||
+                newProps.includeParent !== currentProps.includeParent ||
+                newProps.floodfill !== currentProps.floodfill
+            );
 
             if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
                 state.updateColor = true;

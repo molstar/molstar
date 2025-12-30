@@ -33,11 +33,11 @@ npm run build
 For a watch task to automatically rebuild the source code on changes, run
 
 ```
-npm run watch
+npm run dev
 ```
 
 or if working just with the Viewer app for better performance
 
 ```
-npm run watch-viewer
+npm run dev:viewer
 ```
