@@ -20,6 +20,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support `includeParent` for Gaussian Surface (disables GPU support)
 - Support floodfill before surface extraction (`off`, `interior`, `exterior`)
     - For Isosurface, Molecular Surface, Gaussian Surface
+- Fix `to_mmCIF` writing duplicate categories under certain conditions (#1738)
 
 ## [v5.5.0] - 2025-12-22
 - Viewer app

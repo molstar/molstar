@@ -180,9 +180,14 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: 
 }
 
 function encode_mmCIF_categories_default(encoder: CifWriter.Encoder, ctx: CifExportContext, params?: encode_mmCIF_categories_Params) {
+    const includedCategories = new Set<string>();
+
     for (const cat of Categories({
         keepAtomSiteId: params?.extensions?.molstar_bond_site || params?.doNotReindexAtomSiteId
     })) {
+        if (includedCategories.has(cat.name)) continue;
+        includedCategories.add(cat.name);
+
         if (params?.skipCategoryNames && params?.skipCategoryNames.has(cat.name)) continue;
         if (params?.includedCategoryNames && !params.includedCategoryNames.has(cat.name)) continue;
         encoder.writeCategory(cat, ctx);
@@ -201,6 +206,9 @@ function encode_mmCIF_categories_default(encoder: CifWriter.Encoder, ctx: CifExp
     const _params = params || { };
     for (const customProp of ctx.firstModel.customProperties.all) {
         for (const [cat, propCtx] of getCustomPropCategories(customProp, ctx, _params)) {
+            if (includedCategories.has(cat.name)) continue;
+            includedCategories.add(cat.name);
+
             encoder.writeCategory(cat, propCtx);
         }
     }
@@ -208,6 +216,9 @@ function encode_mmCIF_categories_default(encoder: CifWriter.Encoder, ctx: CifExp
     if (params?.customProperties) {
         for (const customProp of params?.customProperties) {
             for (const [cat, propCtx] of getCustomPropCategories(customProp, ctx, _params)) {
+                if (includedCategories.has(cat.name)) continue;
+                includedCategories.add(cat.name);
+
                 encoder.writeCategory(cat, propCtx);
             }
         }
@@ -217,6 +228,9 @@ function encode_mmCIF_categories_default(encoder: CifWriter.Encoder, ctx: CifExp
         if (!s.hasCustomProperties) continue;
         for (const customProp of s.customPropertyDescriptors.all) {
             for (const [cat, propCtx] of getCustomPropCategories(customProp, ctx, _params)) {
+                if (includedCategories.has(cat.name)) continue;
+                includedCategories.add(cat.name);
+
                 encoder.writeCategory(cat, propCtx);
             }
         }
