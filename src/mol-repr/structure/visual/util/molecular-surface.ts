@@ -13,11 +13,13 @@ import { OrderedSet } from '../../../../mol-data/int';
 import { Boundary } from '../../../../mol-math/geometry/boundary';
 import { SizeTheme } from '../../../../mol-theme/size';
 import { BaseGeometry } from '../../../../mol-geo/geometry/base';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 
 export const CommonMolecularSurfaceCalculationParams = {
     ...MolecularSurfaceCalculationParams,
     resolution: { ...MolecularSurfaceCalculationParams.resolution, ...BaseGeometry.CustomQualityParamInfo },
     probePositions: { ...MolecularSurfaceCalculationParams.probePositions, ...BaseGeometry.CustomQualityParamInfo },
+    floodfill: PD.Select('off', PD.arrayToOptions(['off', 'inside', 'outside']), { description: 'If and how to floodfill the molecular surface.' }),
 };
 
 export type MolecularSurfaceProps = MolecularSurfaceCalculationProps & CommonSurfaceProps

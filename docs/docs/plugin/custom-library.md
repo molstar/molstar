@@ -1,6 +1,6 @@
 # Building a Custom Library
 
-This page goes over creating a custom Mol\* based library usable inside a `<script>` tag in an HTML page.
+This page goes over creating a custom Mol\* based library usable inside a `<script>` tag in an HTML page using the `esbuild` tool.
 
 ## Setup
 

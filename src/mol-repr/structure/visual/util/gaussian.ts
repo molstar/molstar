@@ -18,7 +18,8 @@ import { SizeTheme } from '../../../../mol-theme/size';
 export const GaussianDensityParams = {
     resolution: PD.Numeric(1, { min: 0.1, max: 20, step: 0.1 }, { description: 'Grid resolution/cell spacing.', ...BaseGeometry.CustomQualityParamInfo }),
     radiusOffset: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, { description: 'Extra/offset radius added to the atoms/coarse elements for gaussian calculation. Useful to create coarse, low resolution surfaces.' }),
-    smoothness: PD.Numeric(1.5, { min: 0.5, max: 2.5, step: 0.1 }, { description: 'Smoothness of the gausian surface, lower is smoother.' }),
+    smoothness: PD.Numeric(1.5, { min: 1, max: 3, step: 0.1 }, { description: 'Smoothness of the gausian surface, lower is smoother.' }),
+    floodfill: PD.Select('off', PD.arrayToOptions(['off', 'inside', 'outside']), { description: 'If and how to floodfill the gaussian surface. Note that this disables GPU support.' }),
     ...CommonSurfaceParams
 };
 export const DefaultGaussianDensityProps = PD.getDefaultValues(GaussianDensityParams);

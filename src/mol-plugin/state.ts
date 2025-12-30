@@ -341,8 +341,13 @@ namespace PluginState {
     export interface SnapshotFocusTargetInfo {
         /** Reference to plugin state node to focus (undefined means focus whole scene) */
         targetRef?: StateTransform.Ref,
+        /** Overrides focus center defined by `targetRef` */
+        center?: Vec3,
+        /** Overrides focus radius defined by `targetRef` */
         radius?: number,
+        /** Multiplies focus radius defined by `targetRef` */
         radiusFactor?: number,
+        /** Adds to focus radius defined by `targetRef` */
         extraRadius?: number,
     }
 }

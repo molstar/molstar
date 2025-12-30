@@ -12,7 +12,7 @@ import { loadMVSData, loadMVSX } from '../../extensions/mvs/components/formats';
 import { loadMVS, MolstarLoadingExtension } from '../../extensions/mvs/load';
 import { MVSData } from '../../extensions/mvs/mvs-data';
 import { StringLike } from '../../mol-io/common/string-like';
-import { Structure, StructureElement, StructureSelection } from '../../mol-model/structure';
+import { Structure, StructureElement } from '../../mol-model/structure';
 import { Volume } from '../../mol-model/volume';
 import { OpenFiles } from '../../mol-plugin-state/actions/file';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
@@ -38,7 +38,6 @@ import { PluginConfig } from '../../mol-plugin/config';
 import { PluginState } from '../../mol-plugin/state';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
 import { Expression } from '../../mol-script/language/expression';
-import { Script } from '../../mol-script/script';
 import { StateObjectSelector } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { Asset } from '../../mol-util/assets';
@@ -49,9 +48,12 @@ import { DefaultViewerOptions, ViewerOptions } from './options';
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { consoleStats, isDebugMode, isProductionMode, isTimingMode, setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
 
+import { decodeColor } from '../../mol-util/color/utils';
 import '../../mol-util/polyfill';
 import { ViewerAutoPreset } from './presets';
-import { decodeColor } from '../../mol-util/color/utils';
+import { CameraFocusOptions } from '../../mol-plugin-state/manager/camera';
+import { PluginSpec } from '../../mol-plugin/spec';
+import { NoPrimaryFocusLociBindings } from '../../mol-plugin/behavior/dynamic/camera';
 
 export class Viewer {
     private _events = new PluginComponent();
@@ -80,6 +82,15 @@ export class Viewer {
                 b.transformer !== PluginBehaviors.Camera.FocusLoci
                 && b.transformer !== PluginBehaviors.Representation.FocusLoci
             );
+        } else if (o.viewportFocusBehavior === 'secondary-zoom') {
+            baseBehaviors = baseBehaviors.filter(b =>
+                b.transformer !== PluginBehaviors.Camera.FocusLoci
+                && b.transformer !== PluginBehaviors.Representation.FocusLoci
+            );
+
+            baseBehaviors.push(PluginSpec.Behavior(PluginBehaviors.Camera.FocusLoci, {
+                bindings: NoPrimaryFocusLociBindings
+            }));
         }
 
         const spec: PluginUISpec = {
@@ -472,7 +483,7 @@ export class Viewer {
         return { model, coords, preset };
     }
 
-    async loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+    async loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, keepCameraOrientation?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
         if (format === 'mvsj') {
             const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'string' }));
             const mvsData = MVSData.fromMVSJ(StringLike.toString(data));
@@ -491,7 +502,7 @@ export class Viewer {
     /** Load MolViewSpec from `data`.
      * If `format` is 'mvsj', `data` must be a string or a Uint8Array containing a UTF8-encoded string.
      * If `format` is 'mvsx', `data` must be a Uint8Array or a string containing base64-encoded binary data prefixed with 'base64,'. */
-    loadMvsData(data: string | Uint8Array<ArrayBuffer>, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+    loadMvsData(data: string | Uint8Array<ArrayBuffer>, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, keepCameraOrientation?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
         return loadMVSData(this.plugin, data, format, options);
     }
 
@@ -518,17 +529,19 @@ export class Viewer {
 
     /**
      * Triggers structure element selection or highlighting based on the provided
-     * MolScript expression or StructureElement schema.
+     * MolScript expression or StructureElement schema. Focus action will only apply to the
+     * first structure that matches the criteria.
      *
      * If neither `expression` nor `elements` are provided, all selections/highlights
      * will be cleared based on the specified `action`.
      */
-    structureInteractivity({ expression, elements, action, applyGranularity = false, filterStructure }: {
+    structureInteractivity({ expression, elements, action, applyGranularity = false, filterStructure, focusOptions }: {
         expression?: (queryBuilder: typeof MolScriptBuilder) => Expression,
         elements?: StructureElement.Schema,
-        action: 'highlight' | 'select',
+        action: 'highlight' | 'select' | 'focus',
         applyGranularity?: boolean,
-        filterStructure?: (structure: Structure) => boolean
+        filterStructure?: (structure: Structure) => boolean,
+        focusOptions?: Partial<CameraFocusOptions>
     }) {
         const plugin = this.plugin;
 
@@ -548,13 +561,16 @@ export class Viewer {
             if (filterStructure && !filterStructure(s.obj.data)) continue;
 
             const loci = expression
-                ? StructureSelection.toLociWithSourceUnits(Script.getStructureSelection(expression, s.obj.data))
-                : StructureElement.Schema.toLoci(s.obj.data, elements!);
+                ? StructureElement.Loci.fromExpression(s.obj.data, expression)
+                : StructureElement.Loci.fromSchema(s.obj.data, elements!);
 
             if (action === 'select') {
                 plugin.managers.interactivity.lociSelects.select({ loci }, applyGranularity);
             } else if (action === 'highlight') {
                 plugin.managers.interactivity.lociHighlights.highlight({ loci }, applyGranularity);
+            } else if (action === 'focus' && !StructureElement.Loci.isEmpty(loci)) {
+                plugin.managers.camera.focusLoci(loci, focusOptions);
+                return;
             }
         }
     }

@@ -23,10 +23,15 @@ import { PluginStateObject } from '../../objects';
 export function getFocusSnapshot(plugin: PluginContext, options: PluginState.SnapshotFocusInfo & { minRadius?: number }) {
     if (!plugin.canvas3d) return undefined;
     const targetSpheres = options.targets?.map(target => {
+        if (target.center !== undefined && target.radius !== undefined) {
+            // Skip bounding sphere calculation as it is overridden anyway
+            return Sphere3D.create(target.center, target.radius);
+        }
         const bounding = (target.targetRef !== undefined) ? getCellBoundingSphere(plugin, target.targetRef) : getPluginBoundingSphere(plugin);
         if (!bounding) return undefined;
+        const center = target.center ?? bounding.center;
         const radius = target.radius ?? bounding.radius * (target.radiusFactor ?? 1) + (target.extraRadius ?? 0);
-        return Sphere3D.create(bounding.center, radius);
+        return Sphere3D.create(center, radius);
     }).filter(sphere => sphere !== undefined);
     const mergedSphere = (targetSpheres && targetSpheres.length > 0) ? boundingSphereOfSpheres(targetSpheres) : getPluginBoundingSphere(plugin);
     return snapshotFromSphereAndDirections(plugin.canvas3d.camera, {
