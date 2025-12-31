@@ -683,26 +683,69 @@ function getBlurKernel(kernelSize: number): number[] {
 }
 
 const pcg = new PCG();
-const RandomHemisphereVector: Vec3[] = [];
-for (let i = 0; i < 256; i++) {
+function getRandomHemisphereVector(): Vec3 {
     const v = Vec3();
-    v[0] = pcg.float() * 2.0 - 1.0;
-    v[1] = pcg.float() * 2.0 - 1.0;
-    v[2] = pcg.float();
-    Vec3.normalize(v, v);
-    Vec3.scale(v, v, pcg.float());
-    RandomHemisphereVector.push(v);
+    while (true) {
+        const x = pcg.float() * 2 - 1;
+        const y = pcg.float() * 2 - 1;
+        if (x * x + y * y < 1) {
+            const z = 2 * Math.sqrt(1 - x * x - y * y) * (pcg.float() < 0.5 ? -1 : 1);
+            Vec3.set(v, x, y, z);
+            Vec3.normalize(v, v);
+            break;
+        }
+    }
+    if (v[2] < 0) v[2] = -v[2];
+    return v;
+}
+
+function generateBlueNoiseVectors(count: number) {
+    const vectors: Vec3[] = [getRandomHemisphereVector()];
+    const candidateCount = Math.max(10, Math.min(30, Math.floor(count / 10)));
+
+    for (let i = 1; i < count; i++) {
+        let bestCandidate: Vec3;
+        let bestDistance = -1;
+
+        for (let j = 0; j < candidateCount; j++) {
+            const candidate = getRandomHemisphereVector();
+
+            let minDistance = Infinity;
+            for (const existingVector of vectors) {
+                const distance = Vec3.distance(candidate, existingVector);
+                minDistance = Math.min(minDistance, distance);
+            }
+
+            if (minDistance > bestDistance) {
+                bestDistance = minDistance;
+                bestCandidate = candidate;
+            }
+        }
+
+        vectors.push(bestCandidate!);
+    }
+
+    return vectors;
+}
+
+let _RandomHemisphereVectors: Vec3[] | undefined = undefined;
+function getRandomHemisphereVectors(): Vec3[] {
+    if (!_RandomHemisphereVectors) {
+        _RandomHemisphereVectors = generateBlueNoiseVectors(256);
+    }
+    return _RandomHemisphereVectors;
 }
 
 function getSamples(nSamples: number): number[] {
+    const rhv = getRandomHemisphereVectors();
     const samples = [];
     for (let i = 0; i < nSamples; i++) {
         let scale = (i * i + 2.0 * i + 1) / (nSamples * nSamples);
         scale = 0.1 + scale * (1.0 - 0.1);
 
-        samples.push(RandomHemisphereVector[i][0] * scale);
-        samples.push(RandomHemisphereVector[i][1] * scale);
-        samples.push(RandomHemisphereVector[i][2] * scale);
+        samples.push(rhv[i][0] * scale);
+        samples.push(rhv[i][1] * scale);
+        samples.push(rhv[i][2] * scale);
     }
 
     return samples;
