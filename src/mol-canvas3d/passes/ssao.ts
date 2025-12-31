@@ -699,11 +699,13 @@ function getRandomHemisphereVector(): Vec3 {
     return v;
 }
 
-function generateBlueNoiseVectors(count: number) {
-    const vectors: Vec3[] = [getRandomHemisphereVector()];
+function generateBlueNoiseVectors(count: number, out: Vec3[]) {
+    if (out.length >= count) return out;
+    if (out.length === 0) out.push(getRandomHemisphereVector());
+
     const candidateCount = Math.max(10, Math.min(30, Math.floor(count / 10)));
 
-    for (let i = 1; i < count; i++) {
+    for (let i = out.length; i < count; i++) {
         let bestCandidate: Vec3;
         let bestDistance = -1;
 
@@ -711,7 +713,7 @@ function generateBlueNoiseVectors(count: number) {
             const candidate = getRandomHemisphereVector();
 
             let minDistance = Infinity;
-            for (const existingVector of vectors) {
+            for (const existingVector of out) {
                 const distance = Vec3.distance(candidate, existingVector);
                 minDistance = Math.min(minDistance, distance);
             }
@@ -722,22 +724,22 @@ function generateBlueNoiseVectors(count: number) {
             }
         }
 
-        vectors.push(bestCandidate!);
+        out.push(bestCandidate!);
     }
 
-    return vectors;
+    return out;
 }
 
-let _RandomHemisphereVectors: Vec3[] | undefined = undefined;
-function getRandomHemisphereVectors(): Vec3[] {
-    if (!_RandomHemisphereVectors) {
-        _RandomHemisphereVectors = generateBlueNoiseVectors(256);
+let _RandomHemisphereVectors: Vec3[] = [];
+function getRandomHemisphereVectors(count: number): Vec3[] {
+    if (_RandomHemisphereVectors.length < count) {
+        _RandomHemisphereVectors = generateBlueNoiseVectors(count, _RandomHemisphereVectors);
     }
     return _RandomHemisphereVectors;
 }
 
 function getSamples(nSamples: number): number[] {
-    const rhv = getRandomHemisphereVectors();
+    const rhv = getRandomHemisphereVectors(nSamples);
     const samples = [];
     for (let i = 0; i < nSamples; i++) {
         let scale = (i * i + 2.0 * i + 1) / (nSamples * nSamples);
