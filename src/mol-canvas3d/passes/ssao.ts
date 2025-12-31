@@ -692,6 +692,7 @@ function getRandomHemisphereVector(): Vec3 {
             const z = 2 * Math.sqrt(1 - x * x - y * y) * (pcg.float() < 0.5 ? -1 : 1);
             Vec3.set(v, x, y, z);
             Vec3.normalize(v, v);
+            Vec3.scale(v, v, pcg.float());
             break;
         }
     }
