@@ -18,6 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - For Isosurface, Molecular Surface, Gaussian Surface
 - Add stable random number generator (PCG)
     - ME grayscale colors; dot offset; SSAO hemisphere vectors
+    - Use blue noise for SSAO hemisphere vectors
 
 ## [v5.5.0] - 2025-12-22
 - Viewer app
