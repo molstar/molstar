@@ -25,6 +25,7 @@ import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { MesoscaleExplorerState } from '../app';
 import { saturate } from '../../../mol-math/interpolate';
 import { Material } from '../../../mol-util/material';
+import { PCG } from '../../../mol-data/util/hash-functions';
 
 function getHueRange(hue: number, variability: number) {
     let min = hue - variability;
@@ -37,10 +38,11 @@ function getHueRange(hue: number, variability: number) {
 
 function getGrayscaleColors(count: number, luminance: number, variability: number) {
     const out: Color[] = [];
+    const pcg = new PCG();
     for (let i = 0; i < count; ++ i) {
         const l = saturate(luminance / 100);
-        const v = saturate(variability / 180) * Math.random();
-        const s = Math.random() > 0.5 ? 1 : -1;
+        const v = saturate(variability / 180) * pcg.float();
+        const s = pcg.float() > 0.5 ? 1 : -1;
         const d = Math.abs(l + s * v) % 1;
         out[i] = Color.fromNormalizedRgb(d, d, d);
     }

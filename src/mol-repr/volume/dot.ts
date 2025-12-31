@@ -29,6 +29,7 @@ import { PointsBuilder } from '../../mol-geo/geometry/points/points-builder';
 import { Mat4 } from '../../mol-math/linear-algebra';
 import { Interval } from '../../mol-data/int/interval';
 import { OrderedSet } from '../../mol-data/int/ordered-set';
+import { PCG } from '../../mol-data/util/hash-functions';
 
 export const VolumeDotParams = {
     isoValue: Volume.IsoValueParam,
@@ -105,11 +106,12 @@ function getBasis(m: Mat4): Basis {
     };
 }
 
+const pcg = new PCG();
 const offset = Vec3();
 function getRandomOffsetFromBasis({ x, y, z, maxScale }: Basis): Vec3 {
-    const rx = (Math.random() - 0.5) * maxScale;
-    const ry = (Math.random() - 0.5) * maxScale;
-    const rz = (Math.random() - 0.5) * maxScale;
+    const rx = (pcg.float() - 0.5) * maxScale;
+    const ry = (pcg.float() - 0.5) * maxScale;
+    const rz = (pcg.float() - 0.5) * maxScale;
 
     Vec3.scale(offset, x, rx);
     Vec3.scaleAndAdd(offset, offset, y, ry);

@@ -234,9 +234,11 @@ void main(void) {
                     if (uTransparencyFlag == 1) {
                 #endif
                     float sampleDepth = getMappedDepth(offset.xy, selfCoords);
-                    float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
+                    if (!isBackground(sampleDepth)) {
+                        float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
 
-                    sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l];
+                        sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l];
+                    }
                 #ifdef dIllumination
                     }
                 #endif
@@ -267,9 +269,11 @@ void main(void) {
             #endif
                     // NOTE: using getMappedDepth here causes issues on some mobile devices
                     float sampleDepth = getDepth(offset.xy, 0);
-                    float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
+                    if (!isBackground(sampleDepth)) {
+                        float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
 
-                    sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
+                        sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
+                    }
             #ifdef dIllumination
                 }
             #endif
