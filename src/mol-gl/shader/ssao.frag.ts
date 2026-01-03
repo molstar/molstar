@@ -235,20 +235,19 @@ void main(void) {
                     if (uTransparencyFlag == 1) {
                 #endif
                         float sampleDepth = getMappedDepth(offset.xy, selfCoords);
-                        if (isBackground(sampleDepth)) continue;
-
-                        float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
-
-                        sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l];
+                        if (!isBackground(sampleDepth)) {
+                            float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
+                            sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l];
+                        }
                 #ifdef dIllumination
                     }
                 #endif
                 #if defined(dIncludeTransparent)
                     vec2 sampleDepthWithAlpha = getMappedDepthTransparentWithAlpha(offset.xy, selfCoords);
-                    if (isBackground(sampleDepthWithAlpha.x)) continue;
-
-                    float sampleViewZWithAlpha = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
-                    sampleOcc = max(sampleOcc, step(sampleViewPos.z + 0.025, sampleViewZWithAlpha) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZWithAlpha)) * uLevelBias[l] * sampleDepthWithAlpha.y);
+                    if (!isBackground(sampleDepthWithAlpha.x))  {
+                        float sampleViewZWithAlpha = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
+                        sampleOcc = max(sampleOcc, step(sampleViewPos.z + 0.025, sampleViewZWithAlpha) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZWithAlpha)) * uLevelBias[l] * sampleDepthWithAlpha.y);
+                    }
                 #endif
 
                 levelOcclusion += sampleOcc;
@@ -271,20 +270,19 @@ void main(void) {
             #endif
                     // NOTE: using getMappedDepth here causes issues on some mobile devices
                     float sampleDepth = getDepth(offset.xy, 0);
-                    if (isBackground(sampleDepth)) continue;
-
-                    float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
-
-                    sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
+                    if (!isBackground(sampleDepth)) {
+                        float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
+                        sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
+                    }
             #ifdef dIllumination
                 }
             #endif
             #if defined(dIncludeTransparent)
                 vec2 sampleDepthWithAlpha = getDepthTransparentWithAlpha(offset.xy);
-                if (isBackground(sampleDepthWithAlpha.x)) continue;
-
-                float sampleViewZWithAlpha = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
-                sampleOcc = max(sampleOcc, step(sampleViewPos.z + 0.025, sampleViewZWithAlpha) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZWithAlpha)) * sampleDepthWithAlpha.y);
+                if (!isBackground(sampleDepthWithAlpha.x)) {
+                    float sampleViewZWithAlpha = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
+                    sampleOcc = max(sampleOcc, step(sampleViewPos.z + 0.025, sampleViewZWithAlpha) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZWithAlpha)) * sampleDepthWithAlpha.y);
+                }
             #endif
 
             occlusion += sampleOcc;
