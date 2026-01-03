@@ -217,6 +217,7 @@ void main(void) {
             if (pixelSize * uNearThreshold > uLevelRadius[l]) continue;
             if (pixelSize * uFarThreshold < uLevelRadius[l]) continue;
 
+            float nSamples = float(dNSamples);
             float levelOcclusion = 0.0;
             for(int i = 0; i < dNSamples; i++) {
                 // get sample position:
@@ -227,7 +228,10 @@ void main(void) {
                 vec4 offset = vec4(sampleViewPos, 1.0);
                 offset = uProjection * offset;
                 offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
-                if (isOutsideBounds(offset.xy)) continue;
+                if (isOutsideBounds(offset.xy)) {
+                    nSamples -= 1.0;
+                    continue;
+                }
 
                 // get sample depth:
                 float sampleOcc = 0.0;
@@ -252,9 +256,11 @@ void main(void) {
 
                 levelOcclusion += sampleOcc;
             }
+            levelOcclusion /= nSamples;
             occlusion = max(occlusion, levelOcclusion);
         }
     #else
+        float nSamples = float(dNSamples);
         for(int i = 0; i < dNSamples; i++) {
             vec3 sampleViewPos = TBN * uSamples[i];
             sampleViewPos = selfViewPos + sampleViewPos * uRadius;
@@ -262,7 +268,10 @@ void main(void) {
             vec4 offset = vec4(sampleViewPos, 1.0);
             offset = uProjection * offset;
             offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
-            if (isOutsideBounds(offset.xy)) continue;
+            if (isOutsideBounds(offset.xy)) {
+                nSamples -= 1.0;
+                continue;
+            }
 
             float sampleOcc = 0.0;
             #ifdef dIllumination
@@ -287,8 +296,10 @@ void main(void) {
 
             occlusion += sampleOcc;
         }
+
+        occlusion /= nSamples;
     #endif
-    occlusion = 1.0 - (uBias * occlusion / float(dNSamples));
+    occlusion = 1.0 - (uBias * occlusion);
 
     vec2 packedOcclusion = packUnitIntervalToRG(clamp(occlusion, 0.01, 1.0));
 
