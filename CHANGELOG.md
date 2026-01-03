@@ -20,6 +20,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support `includeParent` for Gaussian Surface (disables GPU support)
 - Support floodfill before surface extraction (`off`, `interior`, `exterior`)
     - For Isosurface, Molecular Surface, Gaussian Surface
+- Fix `to_mmCIF` writing duplicate categories under certain conditions (#1738)
 - Add stable random number generator (PCG)
     - ME grayscale colors; dot offset; SSAO hemisphere vectors
     - Use blue noise for SSAO hemisphere vectors
