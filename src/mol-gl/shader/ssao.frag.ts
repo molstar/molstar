@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -67,27 +67,29 @@ bool isBackground(const in float depth) {
     return depth == 1.0;
 }
 
+bool isOutsideBounds(const in vec2 coords) {
+    return coords.x < uBounds.x || coords.x > uBounds.z || coords.y < uBounds.y || coords.y > uBounds.w;
+}
+
 float getDepth(const in vec2 coords, const in int transparentFlag) {
-    vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
     if (transparentFlag == 1){
         #if defined(dIncludeTransparent)
-            return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, c)).x;
+            return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords)).x;
         #else
             return 1.0;
         #endif
     } else {
         #ifdef depthTextureSupport
-            return texture2D(tDepth, c).r;
+            return texture2D(tDepth, coords).r;
         #else
-            return unpackRGBAToDepth(texture2D(tDepth, c));
+            return unpackRGBAToDepth(texture2D(tDepth, coords));
         #endif
     }
 }
 
 #if defined(dIncludeTransparent)
     vec2 getDepthTransparentWithAlpha(const in vec2 coords){
-        vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
-        return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, c));
+        return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords));
     }
 #endif
 
@@ -95,37 +97,35 @@ float getDepth(const in vec2 coords, const in int transparentFlag) {
 #define dHalfThreshold 0.05
 
 float getMappedDepth(const in vec2 coords, const in vec2 selfCoords) {
-    vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
     float d = distance(coords, selfCoords);
     #ifdef depthTextureSupport
         if (d > dQuarterThreshold) {
-            return texture2D(tDepthQuarter, c).r;
+            return texture2D(tDepthQuarter, coords).r;
         } else if (d > dHalfThreshold) {
-            return texture2D(tDepthHalf, c).r;
+            return texture2D(tDepthHalf, coords).r;
         } else {
-            return texture2D(tDepth, c).r;
+            return texture2D(tDepth, coords).r;
         }
     #else
         if (d > dQuarterThreshold) {
-            return unpackRGBAToDepth(texture2D(tDepthQuarter, c));
+            return unpackRGBAToDepth(texture2D(tDepthQuarter, coords));
         } else if (d > dHalfThreshold) {
-            return unpackRGBAToDepth(texture2D(tDepthHalf, c));
+            return unpackRGBAToDepth(texture2D(tDepthHalf, coords));
         } else {
-            return unpackRGBAToDepth(texture2D(tDepth, c));
+            return unpackRGBAToDepth(texture2D(tDepth, coords));
         }
     #endif
 }
 
 #if defined(dIncludeTransparent)
     vec2 getMappedDepthTransparentWithAlpha(const in vec2 coords, const in vec2 selfCoords) {
-        vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
         float d = distance(coords, selfCoords);
         if (d > dQuarterThreshold) {
-            return unpackRGBAToDepthWithAlpha(texture2D(tDepthQuarterTransparent, c));
+            return unpackRGBAToDepthWithAlpha(texture2D(tDepthQuarterTransparent, coords));
         } else if (d > dHalfThreshold) {
-            return unpackRGBAToDepthWithAlpha(texture2D(tDepthHalfTransparent, c));
+            return unpackRGBAToDepthWithAlpha(texture2D(tDepthHalfTransparent, coords));
         } else {
-            return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, c));
+            return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords));
         }
     }
 #endif
@@ -217,6 +217,7 @@ void main(void) {
             if (pixelSize * uNearThreshold > uLevelRadius[l]) continue;
             if (pixelSize * uFarThreshold < uLevelRadius[l]) continue;
 
+            float nSamples = float(dNSamples);
             float levelOcclusion = 0.0;
             for(int i = 0; i < dNSamples; i++) {
                 // get sample position:
@@ -227,34 +228,39 @@ void main(void) {
                 vec4 offset = vec4(sampleViewPos, 1.0);
                 offset = uProjection * offset;
                 offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
+                if (isOutsideBounds(offset.xy)) {
+                    nSamples -= 1.0;
+                    continue;
+                }
 
                 // get sample depth:
                 float sampleOcc = 0.0;
                 #ifdef dIllumination
                     if (uTransparencyFlag == 1) {
                 #endif
-                    float sampleDepth = getMappedDepth(offset.xy, selfCoords);
-                    if (!isBackground(sampleDepth)) {
-                        float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
-
-                        sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l];
-                    }
+                        float sampleDepth = getMappedDepth(offset.xy, selfCoords);
+                        if (!isBackground(sampleDepth)) {
+                            float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
+                            sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l];
+                        }
                 #ifdef dIllumination
                     }
                 #endif
                 #if defined(dIncludeTransparent)
                     vec2 sampleDepthWithAlpha = getMappedDepthTransparentWithAlpha(offset.xy, selfCoords);
-                    if (!isBackground(sampleDepthWithAlpha.x)) {
-                        float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
-                        sampleOcc = max(sampleOcc, step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l] * sampleDepthWithAlpha.y);
+                    if (!isBackground(sampleDepthWithAlpha.x))  {
+                        float sampleViewZWithAlpha = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
+                        sampleOcc = max(sampleOcc, step(sampleViewPos.z + 0.025, sampleViewZWithAlpha) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZWithAlpha)) * uLevelBias[l] * sampleDepthWithAlpha.y);
                     }
                 #endif
 
                 levelOcclusion += sampleOcc;
             }
+            levelOcclusion /= nSamples;
             occlusion = max(occlusion, levelOcclusion);
         }
     #else
+        float nSamples = float(dNSamples);
         for(int i = 0; i < dNSamples; i++) {
             vec3 sampleViewPos = TBN * uSamples[i];
             sampleViewPos = selfViewPos + sampleViewPos * uRadius;
@@ -262,6 +268,10 @@ void main(void) {
             vec4 offset = vec4(sampleViewPos, 1.0);
             offset = uProjection * offset;
             offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
+            if (isOutsideBounds(offset.xy)) {
+                nSamples -= 1.0;
+                continue;
+            }
 
             float sampleOcc = 0.0;
             #ifdef dIllumination
@@ -271,7 +281,6 @@ void main(void) {
                     float sampleDepth = getDepth(offset.xy, 0);
                     if (!isBackground(sampleDepth)) {
                         float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
-
                         sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
                     }
             #ifdef dIllumination
@@ -280,15 +289,17 @@ void main(void) {
             #if defined(dIncludeTransparent)
                 vec2 sampleDepthWithAlpha = getDepthTransparentWithAlpha(offset.xy);
                 if (!isBackground(sampleDepthWithAlpha.x)) {
-                    float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
-                    sampleOcc = max(sampleOcc, step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ)) * sampleDepthWithAlpha.y);
+                    float sampleViewZWithAlpha = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
+                    sampleOcc = max(sampleOcc, step(sampleViewPos.z + 0.025, sampleViewZWithAlpha) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZWithAlpha)) * sampleDepthWithAlpha.y);
                 }
             #endif
 
             occlusion += sampleOcc;
         }
+
+        occlusion /= nSamples;
     #endif
-    occlusion = 1.0 - (uBias * occlusion / float(dNSamples));
+    occlusion = 1.0 - (uBias * occlusion);
 
     vec2 packedOcclusion = packUnitIntervalToRG(clamp(occlusion, 0.01, 1.0));
 
