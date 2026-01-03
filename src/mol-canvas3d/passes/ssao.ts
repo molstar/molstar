@@ -27,6 +27,7 @@ import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
 import { Color } from '../../mol-util/color';
 import { isTimingMode } from '../../mol-util/debug';
 import { PostprocessingProps } from './postprocessing';
+import { PCG } from '../../mol-data/util/hash-functions';
 
 export const SsaoParams = {
     samples: PD.Numeric(32, { min: 1, max: 256, step: 1 }),
@@ -681,26 +682,73 @@ function getBlurKernel(kernelSize: number): number[] {
     return kernel;
 }
 
-const RandomHemisphereVector: Vec3[] = [];
-for (let i = 0; i < 256; i++) {
+const pcg = new PCG();
+function getRandomHemisphereVector(): Vec3 {
     const v = Vec3();
-    v[0] = Math.random() * 2.0 - 1.0;
-    v[1] = Math.random() * 2.0 - 1.0;
-    v[2] = Math.random();
-    Vec3.normalize(v, v);
-    Vec3.scale(v, v, Math.random());
-    RandomHemisphereVector.push(v);
+    while (true) {
+        const x = pcg.float() * 2 - 1;
+        const y = pcg.float() * 2 - 1;
+        if (x * x + y * y < 1) {
+            const z = 2 * Math.sqrt(1 - x * x - y * y) * (pcg.float() < 0.5 ? -1 : 1);
+            Vec3.set(v, x, y, z);
+            Vec3.normalize(v, v);
+            Vec3.scale(v, v, pcg.float());
+            break;
+        }
+    }
+    if (v[2] < 0) v[2] = -v[2];
+    return v;
+}
+
+function generateBlueNoiseVectors(count: number, out: Vec3[]) {
+    if (out.length >= count) return out;
+    if (out.length === 0) out.push(getRandomHemisphereVector());
+
+    const candidateCount = Math.max(10, Math.min(30, Math.floor(count / 10)));
+
+    for (let i = out.length; i < count; i++) {
+        let bestCandidate: Vec3;
+        let bestDistance = -1;
+
+        for (let j = 0; j < candidateCount; j++) {
+            const candidate = getRandomHemisphereVector();
+
+            let minDistance = Infinity;
+            for (const existingVector of out) {
+                const distance = Vec3.distance(candidate, existingVector);
+                minDistance = Math.min(minDistance, distance);
+            }
+
+            if (minDistance > bestDistance) {
+                bestDistance = minDistance;
+                bestCandidate = candidate;
+            }
+        }
+
+        out.push(bestCandidate!);
+    }
+
+    return out;
+}
+
+let _RandomHemisphereVectors: Vec3[] = [];
+function getRandomHemisphereVectors(count: number): Vec3[] {
+    if (_RandomHemisphereVectors.length < count) {
+        _RandomHemisphereVectors = generateBlueNoiseVectors(count, _RandomHemisphereVectors);
+    }
+    return _RandomHemisphereVectors;
 }
 
 function getSamples(nSamples: number): number[] {
+    const rhv = getRandomHemisphereVectors(nSamples);
     const samples = [];
     for (let i = 0; i < nSamples; i++) {
         let scale = (i * i + 2.0 * i + 1) / (nSamples * nSamples);
         scale = 0.1 + scale * (1.0 - 0.1);
 
-        samples.push(RandomHemisphereVector[i][0] * scale);
-        samples.push(RandomHemisphereVector[i][1] * scale);
-        samples.push(RandomHemisphereVector[i][2] * scale);
+        samples.push(rhv[i][0] * scale);
+        samples.push(rhv[i][1] * scale);
+        samples.push(rhv[i][2] * scale);
     }
 
     return samples;
