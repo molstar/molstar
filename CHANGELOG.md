@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- handle 8-character hex codes to allow in-browser color-pickers
 - Only show "already registered transformer" warnings in non-production builds
 - Fix `label_seq_id` assignment in PDB parser to use 1-based linear indexing (#1730) if:
   - when insertion codes are present
