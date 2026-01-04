@@ -1,22 +1,31 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Zachary Charlop-Powers <zach.charlop.powers@gmail.com>
  */
 
 import { Color, ColorListEntry } from './color';
 import { ColorNames } from './names';
 
-const hexColorRegex = /^#([0-9A-F]{3}){1,2}$/i;
-const rgbColorRegex = /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i;
+const hexColorRegex = /^#([0-9A-F]{3}){1,2}([0-9A-F]{2})?$/i;
+const rgbColorRegex =
+    /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i;
 
-export function decodeColor(colorString: string | undefined | null): Color | undefined {
+export function decodeColor(
+    colorString: string | undefined | null,
+): Color | undefined {
     if (colorString === undefined || colorString === null) return undefined;
     let result: Color | undefined;
     if (hexColorRegex.test(colorString)) {
         if (colorString.length === 4) {
             // convert short form to full form (#f0f -> #ff00ff)
-            colorString = `#${colorString[1]}${colorString[1]}${colorString[2]}${colorString[2]}${colorString[3]}${colorString[3]}`;
+            colorString = `#${colorString[1]}${colorString[1]}${colorString[2]}${
+                colorString[2]
+            }${colorString[3]}${colorString[3]}`;
+        } else if (colorString.length === 9) {
+            // strip alpha channel from 8-digit hex code (#rrggbbaa -> #rrggbb)
+            colorString = colorString.substring(0, 7);
         }
         result = Color.fromHexStyle(colorString);
         if (result !== undefined && !isNaN(result)) return result;
@@ -38,11 +47,50 @@ export function decodeColor(colorString: string | undefined | null): Color | und
     return undefined;
 }
 
+/**
+ * Decode color string and extract alpha channel if present.
+ * Returns both the Color and alpha value (0-1 range).
+ * Alpha defaults to 1.0 if not specified in the color string.
+ */
+export function decodeColorWithAlpha(
+    colorString: string | undefined | null,
+): { color: Color; alpha: number } | undefined {
+    if (colorString === undefined || colorString === null) return undefined;
+    let alpha = 1.0;
+
+    if (hexColorRegex.test(colorString)) {
+        let processedColorString = colorString;
+        if (colorString.length === 4) {
+            // convert short form to full form (#f0f -> #ff00ff)
+            processedColorString = `#${colorString[1]}${colorString[1]}${
+                colorString[2]
+            }${colorString[2]}${colorString[3]}${colorString[3]}`;
+        } else if (colorString.length === 9) {
+            // extract alpha channel from 8-digit hex code (#rrggbbaa)
+            const alphaHex = colorString.substring(7, 9);
+            alpha = parseInt(alphaHex, 16) / 255;
+            processedColorString = colorString.substring(0, 7);
+        }
+        const result = Color.fromHexStyle(processedColorString);
+        if (result !== undefined && !isNaN(result)) {
+            return { color: result, alpha };
+        }
+    }
+
+    // For non-hex colors, just use decodeColor and return default alpha
+    const color = decodeColor(colorString);
+    if (color !== undefined) {
+        return { color, alpha: 1.0 };
+    }
+
+    return undefined;
+}
+
 export function getColorGradientBanded(colors: ColorListEntry[]) {
     const n = colors.length;
     const styles: string[] = [];
 
-    const hasOffsets = colors.every(c => Array.isArray(c));
+    const hasOffsets = colors.every((c) => Array.isArray(c));
     if (hasOffsets) {
         const off = [...colors] as [Color, number][];
         // 0 colors present
@@ -57,16 +105,20 @@ export function getColorGradientBanded(colors: ColorListEntry[]) {
             const o = o0 + (o1 - o0) / 2;
             styles.push(
                 `${Color.toStyle(c0)} ${(100 * o).toFixed(2)}%`,
-                `${Color.toStyle(c1)} ${(100 * o).toFixed(2)}%`
+                `${Color.toStyle(c1)} ${(100 * o).toFixed(2)}%`,
             );
         }
-        styles.push(`${Color.toStyle(off[off.length - 1][0])} ${(100 * off[off.length - 1][1]).toFixed(2)}%`);
+        styles.push(
+            `${Color.toStyle(off[off.length - 1][0])} ${
+                (100 * off[off.length - 1][1]).toFixed(2)
+            }%`,
+        );
     } else {
         styles.push(`${colorEntryToStyle(colors[0])} ${100 * (1 / n)}%`);
         for (let i = 1, il = n - 1; i < il; ++i) {
             styles.push(
                 `${colorEntryToStyle(colors[i])} ${100 * (i / n)}%`,
-                `${colorEntryToStyle(colors[i])} ${100 * ((i + 1) / n)}%`
+                `${colorEntryToStyle(colors[i])} ${100 * ((i + 1) / n)}%`,
             );
         }
         styles.push(`${colorEntryToStyle(colors[n - 1])} ${100 * ((n - 1) / n)}%`);
@@ -76,17 +128,19 @@ export function getColorGradientBanded(colors: ColorListEntry[]) {
 }
 
 export function getColorGradient(colors: ColorListEntry[]) {
-    if (colors.length === 0) return 'linear-gradient(to right, #000 0%, #000 100%)';
+    if (colors.length === 0) {
+        return 'linear-gradient(to right, #000 0%, #000 100%)';
+    }
 
-    const hasOffsets = colors.every(c => Array.isArray(c));
+    const hasOffsets = colors.every((c) => Array.isArray(c));
     let styles;
 
     if (hasOffsets) {
         const off = [...colors] as [Color, number][];
         off.sort((a, b) => a[1] - b[1]);
-        styles = off.map(c => colorEntryToStyle(c, true));
+        styles = off.map((c) => colorEntryToStyle(c, true));
     } else {
-        styles = colors.map(c => colorEntryToStyle(c));
+        styles = colors.map((c) => colorEntryToStyle(c));
     }
 
     return `linear-gradient(to right, ${styles.join(', ')})`;
@@ -94,13 +148,18 @@ export function getColorGradient(colors: ColorListEntry[]) {
 
 function colorEntryToStyle(e: ColorListEntry, includeOffset = false) {
     if (Array.isArray(e)) {
-        if (includeOffset) return `${Color.toStyle(e[0])} ${(100 * e[1]).toFixed(2)}%`;
+        if (includeOffset) {
+            return `${Color.toStyle(e[0])} ${(100 * e[1]).toFixed(2)}%`;
+        }
         return Color.toStyle(e[0]);
     }
     return Color.toStyle(e);
 }
 
-export function parseColorList(input: string, separator: RegExp = /,/): ColorListEntry[] {
+export function parseColorList(
+    input: string,
+    separator: RegExp = /,/,
+): ColorListEntry[] {
     const ret: ColorListEntry[] = [];
     const trimmed = input.replace(/\s+/g, '');
     let tokenStart = 0;
