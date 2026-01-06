@@ -4,7 +4,8 @@ import { guessCifVariant } from '../../../../mol-plugin-state/formats/provider';
 import { StateObjectRef } from '../../../../mol-state';
 import { PluginStateObject } from '../../../../mol-plugin-state/objects';
 import { PluginContext } from '../../../../mol-plugin/context';
-import { computeBigMean, alignDataset } from '../../utils/geometry';
+import { computeBigCentroid, alignDataset } from '../../utils/geometry';
+import { AlignmentData } from '../../types';
 
 /**
  * Gets the default visuals for the trajectory.
@@ -21,12 +22,12 @@ function defaultVisuals(plugin: PluginContext, data: { trajectory: StateObjectRe
  * @interface RibocodeMmcifParseParams
  * @property {string | string[]} [trajectoryTags] - Tags to apply to the trajectory.
  * @property {boolean} [centraliseCoordinates] - Whether to centralise coordinates.
- * @property {any} [alignmentData] - Data for aligning the coordinates.
+ * @property {AlignmentData} [alignmentData] - Data for aligning the coordinates.
  */
 export interface RibocodeMmcifParseParams {
     trajectoryTags?: string | string[];
     centraliseCoordinates?: boolean;
-    alignmentData?: any;
+    alignmentData?: AlignmentData;
 }
 
 /**
@@ -102,31 +103,69 @@ export const RibocodeMmcifProvider: TrajectoryFormatProvider<RibocodeMmcifParseP
                         console.log('Centralising coordinates');
                         // Centralise coordinates logic
                         // 1. Compute centroid
-                        const xMean: number = computeBigMean(x);
-                        const yMean: number = computeBigMean(y);
-                        const zMean: number = computeBigMean(z);
-                        console.log('xMean:', xMean, 'yMean:', yMean, 'zMean:', zMean);
+                        const centroid = computeBigCentroid(x, y, z);
+                        console.log('Computed centroid:', centroid);
                         // 3. Calculate new coordinates
                         // Subtract centroid from each coordinate
                         for (let i = 0; i < n; i++) {
-                            newX.push(x[i] - xMean);
-                            newY.push(y[i] - yMean);
-                            newZ.push(z[i] - zMean);
+                            newX.push(x[i] - centroid[0]);
+                            newY.push(y[i] - centroid[1]);
+                            newZ.push(z[i] - centroid[2]);
                             if (i % d === 0) {
                                 console.log(`Centralised coordinates for atom ${i} ${type_symbol[i]} from (${x[i]}, ${y[i]}, ${z[i]}) to (${newX[i]}, ${newY[i]}, ${newZ[i]})`);
                             }
                         }
                         if (params?.alignmentData) {
-                            // Use alignmentData to align the new coordinates
-                            // console.log('Alignment data provided:', params.alignmentData);
-                            const alignedCoordinates = alignDataset(type_symbol,
-                                newX, newY, newZ,
-                                params.alignmentData.type, params.alignmentData.x, params.alignmentData.y, params.alignmentData.z);
-                            // Update newX, newY, newZ with aligned coordinates
-                            newX = alignedCoordinates.alignedX;
-                            newY = alignedCoordinates.alignedY;
-                            newZ = alignedCoordinates.alignedZ;
-                            console.log('Coordinates aligned using provided alignment data. ', newX.length);
+                            const ad: AlignmentData = params.alignmentData;
+                            // console.log('Alignment data provided:', ad);
+                            const centroidReference: number[] | undefined = 'centroidReference' in ad ? ad.centroidReference : undefined;
+                            const centroid: number[] | undefined = 'centroid' in ad ? ad.centroid : undefined;
+                            const rm: number[] | undefined = 'rotMat' in ad ? ad.rotMat : undefined;
+                            console.log('Applying alignment using provided AlignmentData:', ad);
+                            if (centroidReference && centroid && rm) {
+                                // // Use provided translation and rotation matrix to align the new coordinates
+                                // console.log('Applying provided translation and rotation matrix for alignment.');
+                                // for (let i = 0; i < n; i++) {
+                                //     // Centre coordinates
+                                //     const xT = newX[i] - centroid[0];
+                                //     const yT = newY[i] - centroid[1];
+                                //     const zT = newZ[i] - centroid[2];
+                                //     // Apply rotation
+                                //     const xRot = rm[0] * xT + rm[1] * yT + rm[2] * zT;
+                                //     const yRot = rm[3] * xT + rm[4] * yT + rm[5] * zT;
+                                //     const zRot = rm[6] * xT + rm[7] * yT + rm[8] * zT;
+                                //     // Translate back
+                                //     newX[i] = xRot + centroidReference[0];
+                                //     newY[i] = yRot + centroidReference[1];
+                                //     newZ[i] = zRot + centroidReference[2];
+                                // }
+                                // Use provided translation and rotation matrix to align the new coordinates
+                                console.warn('Applying translation only, rotation matrix for alignment is ignored.');
+                                console.log('Centroid to translate from:', centroid);
+                                console.log('Centroid reference to translate to:', centroidReference);
+                                for (let i = 0; i < n; i++) {
+                                    // Translate
+                                    newX[i] = newX[i] - centroid[0] + centroidReference[0];
+                                    newY[i] = newY[i] - centroid[1] + centroidReference[1];
+                                    newZ[i] = newZ[i] - centroid[2] + centroidReference[2];
+                                }
+                            } else {
+                                console.log('Applying alignment based on atom types and coordinates.');
+                                const at: string[] | undefined = 'atomType' in ad ? ad.atomType : undefined;
+                                const ax: number[] | undefined = 'x' in ad ? ad.x : undefined;
+                                const ay: number[] | undefined = 'y' in ad ? ad.y : undefined;
+                                const az: number[] | undefined = 'z' in ad ? ad.z : undefined;
+                                if (!at || !ax || !ay || !az) {
+                                    console.warn('Incomplete alignment data provided. Skipping alignment.');
+                                }
+                                const alignedCoordinates = alignDataset(type_symbol,
+                                    newX, newY, newZ, at!, ax!, ay!, az!);
+                                // Update newX, newY, newZ with aligned coordinates
+                                newX = alignedCoordinates.alignedX;
+                                newY = alignedCoordinates.alignedY;
+                                newZ = alignedCoordinates.alignedZ;
+                                console.log('Coordinates aligned using provided alignment data. ', newX.length);
+                            }
                         } else {
                             console.log('No alignment data provided.');
                         }
