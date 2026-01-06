@@ -19,7 +19,8 @@
         "jsx": "react-jsx",
         "lib": [ "ES2018", "dom", "ES2022.Object" ],
         "rootDir": "src",
-        "outDir": "lib"
+        "outDir": "lib",
+        "composite": true
     },
     "include": [ "src/**/*" ],
     "exclude": [ "src/**/_spec/*" ],
