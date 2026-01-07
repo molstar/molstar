@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Adam Midlik <midlik@gmail.com>
+ */
+
+
 /** Resolve Python-like f-string (simplified functionality: only variable names (no expressions), subset of format specification).
  * If any of the formatted values is `undefined`, return `undefined`. */
 export function resolveFString(fstring: string, valueGetter: (name: string) => string | undefined): string | undefined {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -446,45 +446,4 @@ export function rowsToExpression(rows: readonly MVSAnnotationRow[]): Expression 
     return StructureElement.Schema.toExpression({
         items: rows as StructureElement.SchemaItem[]
     });
-}
-
-/** Data structure for an array divided into contiguous groups */
-interface GroupedArray<T> {
-    /** Number of groups */
-    count: number,
-    /** Get size of i-th group as `offsets[i+1]-offsets[i]`.
-     * Get j-th element in i-th group as `grouped[offsets[i]+j]` */
-    offsets: number[],
-    /** Get j-th element in i-th group as `grouped[offsets[i]+j]` */
-    grouped: T[],
-}
-
-// TODO change `groupRows` to `GroupedArray.groupIndices`
-/** Return row indices grouped by `row.group_id`. Rows with `row.group_id===undefined` are treated as separate groups. */
-export function groupRows(rows: readonly MVSAnnotationRow[], group_by: (row: MVSAnnotationRow, index: number) => string | undefined): GroupedArray<number> {
-    let counter = 0;
-    const groupMap = new Map<string, number>();
-    const groups: number[] = [];
-    for (let i = 0; i < rows.length; i++) {
-        const groupId = group_by(rows[i], i);
-        if (!isDefined(groupId)) {
-            groups.push(counter++);
-        } else {
-            const groupIndex = groupMap.get(groupId);
-            if (groupIndex === undefined) {
-                groupMap.set(groupId, counter);
-                groups.push(counter);
-                counter++;
-            } else {
-                groups.push(groupIndex);
-            }
-        }
-    }
-    const rowIndices = range(rows.length).sort((i, j) => groups[i] - groups[j]);
-    const offsets: number[] = [];
-    for (let i = 0; i < rows.length; i++) {
-        if (i === 0 || groups[rowIndices[i]] !== groups[rowIndices[i - 1]]) offsets.push(i);
-    }
-    offsets.push(rowIndices.length);
-    return { count: offsets.length - 1, offsets, grouped: rowIndices };
 }
