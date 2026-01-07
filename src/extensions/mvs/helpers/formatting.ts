@@ -5,7 +5,7 @@
  */
 
 
-/** Resolve Python-like f-string (simplified functionality: only variable names (no expressions), subset of format specification).
+/** Resolve Python-like f-string (simplified functionality: only variable names (no expressions); supported types: `deEfF%cs`; not supported: types `bgGnoxX`, options `z` and `#`).
  * If any of the formatted values is `undefined`, return `undefined`. */
 export function resolveFString(fstring: string, valueGetter: (name: string) => string | undefined): string | undefined {
     const out: string[] = [];
