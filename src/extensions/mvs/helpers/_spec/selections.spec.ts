@@ -15,7 +15,7 @@ describe('groupRows', () => {
             { label: 'A' }, { label: 'B', group_id: 1 }, { label: 'C', group_id: 'x' }, { label: 'D', group_id: 1 },
             { label: 'E' }, { label: 'F' }, { label: 'G', group_id: 'x' }, { label: 'H', group_id: 'x' },
         ] as any as MVSAnnotationRow[];
-        const g = groupRows(rows);
+        const g = groupRows(rows, row => row.group_id);
         const groupedIndices = range(g.count).map(i => g.grouped.slice(g.offsets[i], g.offsets[i + 1]));
         const groupedRows = groupedIndices.map(group => group.map(j => rows[j]));
         expect(groupedRows).toEqual([

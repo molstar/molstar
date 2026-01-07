@@ -116,7 +116,7 @@ function formatWithoutAligning(value: string, sign: '+' | '-' | ' ' | '', groupi
     if (grouping === ',') {
         const match = out.match(/(-?\d+)(.*)/)!;
         if (match) {
-            out = match[1].replace(/\B(?=(\d{3})+(?!\d))/g, ",") + match[2];
+            out = match[1].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + match[2];
         }
     }
     if (sign === '+' && out[0] !== '-') out = '+' + out;

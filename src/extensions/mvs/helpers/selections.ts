@@ -459,19 +459,20 @@ interface GroupedArray<T> {
     grouped: T[],
 }
 
+// TODO change `groupRows` to `GroupedArray.groupIndices`
 /** Return row indices grouped by `row.group_id`. Rows with `row.group_id===undefined` are treated as separate groups. */
-export function groupRows(rows: readonly MVSAnnotationRow[]): GroupedArray<number> {
+export function groupRows(rows: readonly MVSAnnotationRow[], group_by: (row: MVSAnnotationRow, index: number) => string | undefined): GroupedArray<number> {
     let counter = 0;
     const groupMap = new Map<string, number>();
     const groups: number[] = [];
     for (let i = 0; i < rows.length; i++) {
-        const group_id = rows[i].group_id;
-        if (!isDefined(group_id)) {
+        const groupId = group_by(rows[i], i);
+        if (!isDefined(groupId)) {
             groups.push(counter++);
         } else {
-            const groupIndex = groupMap.get(group_id);
+            const groupIndex = groupMap.get(groupId);
             if (groupIndex === undefined) {
-                groupMap.set(group_id, counter);
+                groupMap.set(groupId, counter);
                 groups.push(counter);
                 counter++;
             } else {

@@ -13,13 +13,15 @@ import { ElementIterator, eachSerialElement, getSerialElementLoci } from '../../
 import { VisualUpdateState } from '../../../../mol-repr/util';
 import { VisualContext } from '../../../../mol-repr/visual';
 import { Theme } from '../../../../mol-theme/theme';
+import { arrayEqual } from '../../../../mol-util';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { omitObjectKeys } from '../../../../mol-util/object';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { resolveFString } from '../../helpers/formatting';
 import { textPropsForSelection } from '../../helpers/label-text';
+import { MVSAnnotationRow } from '../../helpers/schemas';
 import { groupRows } from '../../helpers/selections';
-import { getMVSAnnotationForStructure } from '../annotation-prop';
+import { getMVSAnnotationForStructure, MVSAnnotation } from '../annotation-prop';
 
 
 /** Parameter definition for "label-text" visual in "MVS Annotation Label" representation */
@@ -28,6 +30,7 @@ export const MVSAnnotationLabelTextParams = {
     annotationId: PD.Text('', { description: 'Reference to "Annotation" custom model property', isEssential: true }),
     fieldName: PD.Text('label', { description: 'Annotation field (column) from which to take label contents', isEssential: true }),
     textFormat: PD.Text('{}', { description: 'Formatting template for the label text. Supports simplified f-string syntax. May reference multiple annotation fields. If value in any field is not defined, label will not be displayed.', isEssential: true }),
+    groupByFields: PD.ObjectList({ fieldName: PD.Text(), }, obj => obj.fieldName, { defaultValue: [{ fieldName: 'group_id' }], description: 'Set of annotation fields for grouping annotation rows into label instances (i.e. annotation rows with the same values in all group-by fields will yield one label instance). Annotation row with undefined value in any group-by field is considered a separate label instance.', isEssential: true }),
     ...omitObjectKeys(Original.LabelTextParams, ['level', 'chainScale', 'residueScale', 'elementScale']),
     borderColor: { ...Original.LabelTextParams.borderColor, defaultValue: ColorNames.black },
 };
@@ -44,7 +47,11 @@ export function MVSAnnotationLabelTextVisual(materialId: number): ComplexVisual<
         getLoci: getSerialElementLoci,
         eachLocation: eachSerialElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<MVSAnnotationLabelTextParams>, currentProps: PD.Values<MVSAnnotationLabelTextParams>) => {
-            state.createGeometry = newProps.annotationId !== currentProps.annotationId || newProps.fieldName !== currentProps.fieldName || newProps.textFormat !== currentProps.textFormat;
+            state.createGeometry =
+                newProps.annotationId !== currentProps.annotationId
+                || newProps.fieldName !== currentProps.fieldName
+                || newProps.textFormat !== currentProps.textFormat
+                || !arrayEqual(newProps.groupByFields, currentProps.groupByFields);
         }
     }, materialId);
 }
@@ -52,7 +59,7 @@ export function MVSAnnotationLabelTextVisual(materialId: number): ComplexVisual<
 function createLabelText(ctx: VisualContext, structure: Structure, theme: Theme, props: MVSAnnotationLabelTextProps, text?: Text): Text {
     const { annotation, model } = getMVSAnnotationForStructure(structure, props.annotationId);
     const rows = annotation?.getRows() ?? [];
-    const { count, offsets, grouped } = groupRows(rows);
+    const { count, offsets, grouped } = groupRows(rows, rowGroupingFunction(annotation!, props.groupByFields.map(x => x.fieldName)));
     const builder = TextBuilder.create(props, count, count / 2, text);
     for (let iGroup = 0; iGroup < count; iGroup++) {
         const iFirstRowInGroup = grouped[offsets[iGroup]];
@@ -64,4 +71,19 @@ function createLabelText(ctx: VisualContext, structure: Structure, theme: Theme,
         builder.add(labelText, p.center[0], p.center[1], p.center[2], p.depth, p.scale, p.group);
     }
     return builder.getText();
+}
+
+function rowGroupingFunction(annotation: MVSAnnotation, groupByFields: string[]): (row: MVSAnnotationRow, i: number) => string | undefined {
+    if (groupByFields.length === 1) {
+        const groupByField = groupByFields[0];
+        return (row, i) => annotation.getValueForRow(i, groupByField);
+    }
+    if (groupByFields.length === 0) {
+        return () => '';
+    }
+    return (row, i) => {
+        const values = groupByFields.map(field => annotation.getValueForRow(i, field));
+        if (values.includes(undefined)) return undefined;
+        return values.join('\t');
+    };
 }
