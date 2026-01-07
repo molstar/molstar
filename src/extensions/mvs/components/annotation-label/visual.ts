@@ -16,6 +16,7 @@ import { Theme } from '../../../../mol-theme/theme';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { omitObjectKeys } from '../../../../mol-util/object';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { resolveFString } from '../../helpers/formatting';
 import { textPropsForSelection } from '../../helpers/label-text';
 import { groupRows } from '../../helpers/selections';
 import { getMVSAnnotationForStructure } from '../annotation-prop';
@@ -26,6 +27,7 @@ export type MVSAnnotationLabelTextParams = typeof MVSAnnotationLabelTextParams
 export const MVSAnnotationLabelTextParams = {
     annotationId: PD.Text('', { description: 'Reference to "Annotation" custom model property', isEssential: true }),
     fieldName: PD.Text('label', { description: 'Annotation field (column) from which to take label contents', isEssential: true }),
+    textFormat: PD.Text('{}', { description: 'Formatting template for the label text. Supports simplified f-string syntax. May reference multiple annotation fields. If value in any field is not defined, label will not be displayed.', isEssential: true }),
     ...omitObjectKeys(Original.LabelTextParams, ['level', 'chainScale', 'residueScale', 'elementScale']),
     borderColor: { ...Original.LabelTextParams.borderColor, defaultValue: ColorNames.black },
 };
@@ -42,7 +44,7 @@ export function MVSAnnotationLabelTextVisual(materialId: number): ComplexVisual<
         getLoci: getSerialElementLoci,
         eachLocation: eachSerialElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<MVSAnnotationLabelTextParams>, currentProps: PD.Values<MVSAnnotationLabelTextParams>) => {
-            state.createGeometry = newProps.annotationId !== currentProps.annotationId || newProps.fieldName !== currentProps.fieldName;
+            state.createGeometry = newProps.annotationId !== currentProps.annotationId || newProps.fieldName !== currentProps.fieldName || newProps.textFormat !== currentProps.textFormat;
         }
     }, materialId);
 }
@@ -54,7 +56,7 @@ function createLabelText(ctx: VisualContext, structure: Structure, theme: Theme,
     const builder = TextBuilder.create(props, count, count / 2, text);
     for (let iGroup = 0; iGroup < count; iGroup++) {
         const iFirstRowInGroup = grouped[offsets[iGroup]];
-        const labelText = annotation!.getValueForRow(iFirstRowInGroup, props.fieldName);
+        const labelText = resolveFString(props.textFormat, field => annotation!.getValueForRow(iFirstRowInGroup, field || props.fieldName));
         if (!labelText) continue;
         const rowsInGroup = grouped.slice(offsets[iGroup], offsets[iGroup + 1]).map(j => rows[j]);
         const p = textPropsForSelection(structure, rowsInGroup, model);

@@ -196,7 +196,7 @@ export function collectAnnotationTooltips(tree: MolstarSubtree<'structure'>, con
         if (node.kind === 'tooltip_from_uri' || node.kind === 'tooltip_from_source') {
             const annotationId = context.annotationMap.get(node);
             if (annotationId) {
-                annotationTooltips.push({ annotationId, fieldName: node.params.field_name });
+                annotationTooltips.push({ annotationId, fieldName: node.params.field_name, textFormat: node.params.text_format });
             };
         }
     });
@@ -340,9 +340,10 @@ export function prettyNameFromSelector(selector?: MolstarNodeParams<'component'>
 export function labelFromXProps(node: MolstarNode<'label_from_uri' | 'label_from_source'>, context: MolstarLoadingContext): Partial<StateTransformer.Params<StructureRepresentation3D>> {
     const annotationId = context.annotationMap.get(node);
     const fieldName = node.params.field_name;
+    const textFormat = node.params.text_format;
     const nearestReprNode = context.nearestReprMap?.get(node);
     return {
-        type: { name: MVSAnnotationLabelRepresentationProvider.name, params: { annotationId, fieldName } },
+        type: { name: MVSAnnotationLabelRepresentationProvider.name, params: { annotationId, fieldName, textFormat } },
         colorTheme: colorThemeForNode(nearestReprNode, context),
     };
 }

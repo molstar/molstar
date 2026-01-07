@@ -260,6 +260,8 @@ export const MVSTreeSchema = TreeSchema({
                 ..._DataFromUriParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the label text. */
                 field_name: OptionalField(str, 'label', 'Name of the column in CIF or field name (key) in JSON that contains the label text.'),
+                /** Formatting template for the label text. Supports simplified f-string syntax. */
+                text_format: OptionalField(str, '{}', 'Formatting template for the label text. Supports simplified f-string syntax.'),
             }),
         },
         /** This node instructs to add labels (textual visual representations) to parts of a structure. The labels are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file. */
@@ -270,6 +272,8 @@ export const MVSTreeSchema = TreeSchema({
                 ..._DataFromSourceParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the label text. */
                 field_name: OptionalField(str, 'label', 'Name of the column in CIF or field name (key) in JSON that contains the label text.'),
+                /** Formatting template for the label text. Supports simplified f-string syntax. */
+                text_format: OptionalField(str, '{}', 'Formatting template for the label text. Supports simplified f-string syntax.'),
             }),
         },
         /** This node instructs to add a tooltip to a component. "Tooltip" is a text which is not a part of the visualization but should be presented to the users when they interact with the component (typically, the tooltip will be shown somewhere on the screen when the user hovers over a visual representation of the component). */
@@ -289,6 +293,8 @@ export const MVSTreeSchema = TreeSchema({
                 ..._DataFromUriParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the tooltip text. */
                 field_name: OptionalField(str, 'tooltip', 'Name of the column in CIF or field name (key) in JSON that contains the tooltip text.'),
+                /** Formatting template for the tooltip text. Supports simplified f-string syntax. */
+                text_format: OptionalField(str, '{}', 'Formatting template for the tooltip text. Supports simplified f-string syntax.'),
             }),
         },
         /** This node instructs to add tooltips to parts of a structure. The tooltips are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file. */
@@ -299,6 +305,8 @@ export const MVSTreeSchema = TreeSchema({
                 ..._DataFromSourceParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the tooltip text. */
                 field_name: OptionalField(str, 'tooltip', 'Name of the column in CIF or field name (key) in JSON that contains the tooltip text.'),
+                /** Formatting template for the tooltip text. Supports simplified f-string syntax. */
+                text_format: OptionalField(str, '{}', 'Formatting template for the tooltip text. Supports simplified f-string syntax.'),
             }),
         },
         /** This node instructs to set the camera focus to a component (zoom in). */
