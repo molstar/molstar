@@ -10,8 +10,8 @@ import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 import { Loci } from '../../../mol-model/loci';
 import { Structure, StructureElement } from '../../../mol-model/structure';
 import { LociLabelProvider } from '../../../mol-plugin-state/manager/loci-label';
+import { FormatTemplate } from '../../../mol-util/formatting';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { FormatTemplate } from '../helpers/formatting';
 import { filterDefined } from '../helpers/utils';
 import { MVSAnnotationsProvider } from './annotation-prop';
 

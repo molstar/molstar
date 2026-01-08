@@ -149,7 +149,8 @@ function parseFormatSpec(formatSpec: string): FormatSpec {
 }
 
 /** Format a value a la f-string, e.g. `formatValue('1.2', '.2f')` -> `'1.20'` */
-function formatValue(value: string, formatSpec: FormatSpec): string {
+export function formatValue(value: string, formatSpec: FormatSpec | string): string {
+    if (typeof formatSpec === 'string') formatSpec = parseFormatSpec(formatSpec);
     if (formatSpec.z) throw new Error(`NotImplementedError: Formatting option "z" not supported`);
     if (formatSpec.alt) throw new Error(`NotImplementedError: Formatting option "#" not supported`);
     return alignString(
