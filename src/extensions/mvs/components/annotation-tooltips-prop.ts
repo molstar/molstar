@@ -11,7 +11,7 @@ import { Loci } from '../../../mol-model/loci';
 import { Structure, StructureElement } from '../../../mol-model/structure';
 import { LociLabelProvider } from '../../../mol-plugin-state/manager/loci-label';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { resolveFString } from '../helpers/formatting';
+import { FormatTemplate } from '../helpers/formatting';
 import { filterDefined } from '../helpers/utils';
 import { MVSAnnotationsProvider } from './annotation-prop';
 
@@ -62,7 +62,7 @@ export const MVSAnnotationTooltipsLabelProvider = {
                 if (!tooltipProps || tooltipProps.tooltips.length === 0) return undefined;
                 const annotations = MVSAnnotationsProvider.get(location.unit.model).value;
                 const texts = tooltipProps.tooltips.map(p =>
-                    resolveFString(p.textFormat, field => annotations?.getAnnotation(p.annotationId)?.getValueForLocation(location, field || p.fieldName))
+                    FormatTemplate(p.textFormat).format(field => annotations?.getAnnotation(p.annotationId)?.getValueForLocation(location, field || p.fieldName))
                 );
                 return filterDefined(texts).join(' | ');
             default:

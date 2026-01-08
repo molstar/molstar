@@ -17,7 +17,7 @@ import { arrayEqual } from '../../../../mol-util';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { omitObjectKeys } from '../../../../mol-util/object';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { resolveFString } from '../../helpers/formatting';
+import { FormatTemplate } from '../../helpers/formatting';
 import { textPropsForSelection } from '../../helpers/label-text';
 import { MVSAnnotationRow } from '../../helpers/schemas';
 import { GroupedArray } from '../../helpers/utils';
@@ -61,9 +61,10 @@ function createLabelText(ctx: VisualContext, structure: Structure, theme: Theme,
     const rows = annotation?.getRows() ?? [];
     const groups = GroupedArray.groupIndices(rows, rowGroupingFunction(annotation!, props.groupByFields.map(x => x.fieldName)));
     const builder = TextBuilder.create(props, groups.count, groups.count / 2, text);
+    const template = FormatTemplate(props.textFormat);
     for (let iGroup = 0; iGroup < groups.count; iGroup++) {
         const rowIndicesInGroup = GroupedArray.getGroup(groups, iGroup);
-        const labelText = resolveFString(props.textFormat, field => annotation!.getValueForRow(rowIndicesInGroup[0], field || props.fieldName));
+        const labelText = template.format(field => annotation!.getValueForRow(rowIndicesInGroup[0], field || props.fieldName));
         if (!labelText) continue;
         const rowsInGroup = rowIndicesInGroup.map(i => rows[i]);
         const p = textPropsForSelection(structure, rowsInGroup, model);

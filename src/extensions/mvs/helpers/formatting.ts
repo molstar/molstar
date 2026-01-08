@@ -5,73 +5,136 @@
  */
 
 
-/** Resolve Python-like f-string (simplified functionality: only variable names (no expressions); supported types: `deEfF%cs`; not supported: types `bgGnoxX`, options `z` and `#`).
- * If any of the formatted values is `undefined`, return `undefined`. */
-export function resolveFString(fstring: string, valueGetter: (name: string) => string | undefined): string | undefined {
-    const out: string[] = [];
-    /** 0 if currently not in a tag, or positive value i if current tag started at position i (excl. opening brace) */
-    let opened = 0;
+/** Formatting template created from a Python-like f-string.
+ * Supports simplified f-string functionality:
+ * - only variable names (no expressions);
+ * - supported types: `deEfF%cs`;
+ * - not supported: types `bgGnoxX`, options `z` and `#`. */
+export interface FormatTemplate {
+    /** Source f-string for this template */
+    fstring: string,
+    /** Apply format template to values obtained by calling `valueGetter` on variable names. If any of the obtained values is `undefined`, return `undefined`. */
+    format: (valueGetter: (name: string) => string | undefined) => string | undefined,
+}
+
+export function FormatTemplate(fstring: string): FormatTemplate {
+    const { n, varNames, varFormats, literals } = parseFString(fstring);
+    let _out: string[];
+    return {
+        fstring,
+        format(valueGetter) {
+            const out = _out ??= [];
+            out.length = 0;
+            for (let i = 0; i < n; i++) {
+                out.push(literals[i]);
+                const value = valueGetter(varNames[i]);
+                if (value === undefined) return undefined;
+                out.push(formatValue(value, varFormats[i]));
+            }
+            out.push(literals[n]);
+            return out.join('');
+        },
+    };
+}
+
+interface ParsedFstring {
+    /** Number of variables to be inserted in the template */
+    n: number,
+    /** Names of the n variables */
+    varNames: string[],
+    /** Formats for the n variables */
+    varFormats: FormatSpec[],
+    /** n+1 literal strings to be placed before, between, and after the variables */
+    literals: string[],
+}
+
+/** Parse Python-like f-string */
+function parseFString(fstring: string): ParsedFstring {
+    const literals: string[] = [];
+    const varNames: string[] = [];
+    const varFormats: FormatSpec[] = [];
+    /** Non-negative = where current literal started; negative = -where current tag started (excluding braces). */
+    let start = 0;
     for (let i = 0; i < fstring.length; i++) {
         const char = fstring[i];
-        if (opened) {
-            if (char === '{') {
-                throw new Error('ValueError: Invalid format template ("{" within tag)');
-            } else if (char === '}') {
-                const chunk = resolveFormatTag(fstring.slice(opened, i), valueGetter);
-                if (chunk === undefined) return undefined;
-                out.push(chunk);
-                opened = 0;
-            } else {
-                // DO NOTHING
-            }
-        } else {
+        if (start >= 0) {
+            // In literal
             if (char === '{') {
                 if (fstring[i + 1] === '{') {
-                    out.push('{');
-                    i++;
+                    i++; // skip the other {
                 } else {
-                    opened = i + 1;
+                    literals.push(fstring.slice(start, i).replace(/{{/g, '{').replace(/}}/g, '}'));
+                    start = -(i + 1); // start tag
                 }
             } else if (char === '}') {
                 if (fstring[i + 1] === '}') {
-                    out.push('}');
-                    i++;
+                    i++; // skip the other }
                 } else {
                     throw new Error('ValueError: Invalid format template (unmatched "}")');
                 }
-            } else {
-                out.push(char);
-            }
+            } // else do nothing
+        } else {
+            // In tag
+            if (char === '{') {
+                throw new Error('ValueError: Invalid format template ("{" within tag)');
+            } else if (char === '}') {
+                const [varName, formatSpec] = parseFormatTag(fstring.slice(-start, i));
+                varNames.push(varName);
+                varFormats.push(formatSpec);
+                start = i + 1; // start literal
+            } // else do nothing
         }
     }
-    if (opened) {
+    if (start < 0) {
         throw new Error('ValueError: Invalid format template (unmatched "{")');
     }
-    return out.join('');
+    literals.push(fstring.slice(start, fstring.length).replace(/{{/g, '{').replace(/}}/g, '}'));
+
+    return { n: varNames.length, varNames, varFormats, literals };
 }
 
-const FORMAT_SPEC_RE = /^(?:(?<fill>.?)(?<align>[<>=^]))?(?<sign>[-+ ]?)(?<z>z?)(?<alt>#?)(?<zeros>0?)(?<width>\d*)(?<grouping>[,_]?)\.?(?<precision>\d*)(?<type>[dfFeE%]?)$/;
+/** Parse a single f-string format tag, e.g. `age:.2f` */
+function parseFormatTag(formatTag: string): [string, FormatSpec] {
+    const [varName, formatSpec] = formatTag.split(':');
+    return [varName, parseFormatSpec(formatSpec ?? '')];
+}
+
+
 // Python 3.13: [[fill]align][sign]["z"]["#"]["0"] [width][grouping]["." precision] [type]
+const FORMAT_SPEC_RE = /^(?:(?<fill>.?)(?<align>[<>=^]))?(?<sign>[-+ ]?)(?<z>z?)(?<alt>#?)(?<zeros>0?)(?<width>\d*)(?<grouping>[,_]?)\.?(?<precision>\d*)(?<type>[bdeEfFgGnoxX%cs]?)$/;
+const FORMAT_TYPES = ['b', 'd', 'e', 'E', 'f', 'F', 'g', 'G', 'n', 'o', 'x', 'X', '%', 'c', 's'] as const;
+type FormatType = typeof FORMAT_TYPES[number]
 
-const NUM_FORMAT_TYPES = 'bdeEfFgGnoxX%';
-const STR_FORMAT_TYPES = 'cs';
-
-/** Resolve a single f-string format tag, e.g. `age:.2f` -> `1.20` */
-function resolveFormatTag(formatTag: string, valueGetter: (name: string) => string | undefined): string | undefined {
-    const [name, formatSpec] = formatTag.split(':');
-    const value = valueGetter(name);
-    if (value === undefined) return undefined;
-    if (formatSpec === undefined) return value;
-    return formatValue(value, formatSpec);
+interface FormatSpec {
+    /** Formatting type */
+    type: FormatType,
+    /** Controls adding explicit sign for non-negative numbers */
+    sign: '+' | '-' | ' ' | '',
+    /** Converts negative zeros to positive (NOT SUPPORTED) */
+    z: 'z' | '',
+    /** Use alternative form (NOT SUPPORTED) */
+    alt: '#' | '',
+    /** Sets fill char to '0' and align to '=' */
+    zeros: '0' | '',
+    /** Min required width of output string */
+    width: number,
+    /** Controls digit grouping in large numbers */
+    grouping: ',' | '_' | '',
+    /** Number of decimal digits for types eEfF% */
+    precision: number,
+    /** Fill character for padding */
+    fillChar: string,
+    /** Align direction for padding */
+    align: '<' | '>' | '=' | '^',
 }
 
-/** Format a value a la f-string, e.g. `formatValue('1.2', '.2f')` -> `'1.20'` */
-export function formatValue(value: string, formatSpec: string): string {
+/** Parse a single f-string format spec, e.g. `.2f` -> `{ type:'f', precision: 2, ... }` */
+function parseFormatSpec(formatSpec: string): FormatSpec {
     const match = formatSpec.match(FORMAT_SPEC_RE);
     if (!match || !match.groups) throw new Error(`ValueError: Invalid formatting "${formatSpec}"`);
 
-    const type = match.groups.type || 's';
-    const isNumeric = NUM_FORMAT_TYPES.includes(type);
+    const type = (match.groups.type || 's') as FormatSpec['type'];
+    const isNumeric = type !== 's' && type !== 'c';
     const sign = match.groups.sign as '+' | '-' | ' ' | '';
     const z = match.groups.z as 'z' | '';
     const alt = match.groups.alt as '#' | '';
@@ -79,19 +142,23 @@ export function formatValue(value: string, formatSpec: string): string {
     const width = Number(match.groups.width);
     const grouping = match.groups.grouping as ',' | '_' | '';
     const precision = match.groups.precision ? Number(match.groups.precision) : 6;
-    const fill = match.groups.fill || zeros || ' ';
+    const fillChar = match.groups.fill || zeros || ' ';
     const align = (match.groups.align as '<' | '>' | '=' | '^' | '') || (isNumeric ? (zeros ? '=' : '<') : '>');
 
-    if (z) throw new Error(`NotImplementedError: Formatting option "z" not supported`);
-    if (alt) throw new Error(`NotImplementedError: Formatting option "#" not supported`);
+    return { type, sign, z, alt, zeros, width, grouping, precision, fillChar, align };
+}
 
+/** Format a value a la f-string, e.g. `formatValue('1.2', '.2f')` -> `'1.20'` */
+function formatValue(value: string, formatSpec: FormatSpec): string {
+    if (formatSpec.z) throw new Error(`NotImplementedError: Formatting option "z" not supported`);
+    if (formatSpec.alt) throw new Error(`NotImplementedError: Formatting option "#" not supported`);
     return alignString(
-        formatWithoutAligning(value, sign, grouping, precision, type),
-        width, align, fill,
+        formatWithoutAligning(value, formatSpec.sign, formatSpec.grouping, formatSpec.precision, formatSpec.type),
+        formatSpec.width, formatSpec.align, formatSpec.fillChar,
     );
 }
 
-function formatWithoutAligning(value: string, sign: '+' | '-' | ' ' | '', grouping: ',' | '_' | '', precision: number, type: string): string {
+function formatWithoutAligning(value: string, sign: '+' | '-' | ' ' | '', grouping: ',' | '_' | '', precision: number, type: FormatType): string {
     let out = '';
     switch (type) {
         case 's':
@@ -114,7 +181,7 @@ function formatWithoutAligning(value: string, sign: '+' | '-' | ' ' | '', groupi
             out = `${(100 * Number(value)).toFixed(precision)}%`;
             break;
         default:
-            if (NUM_FORMAT_TYPES.includes(type) || STR_FORMAT_TYPES.includes(type)) {
+            if (FORMAT_TYPES.includes(type)) {
                 throw new Error(`NotImplementedError: Formatting code "${type}" not supported`);
             } else {
                 throw new Error(`ValueError: Invalid format code "${type}"`);
