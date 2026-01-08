@@ -95,8 +95,12 @@ function parseFString(fstring: string): ParsedFstring {
 
 /** Parse a single f-string format tag, e.g. `age:.2f` */
 function parseFormatTag(formatTag: string): [string, FormatSpec] {
-    const [varName, formatSpec] = formatTag.split(':');
-    return [varName, parseFormatSpec(formatSpec ?? '')];
+    // cannot use .split because format spec may contain ':'
+    let colonIndex = formatTag.indexOf(':');
+    if (colonIndex < 0) colonIndex = formatTag.length;
+    const varName = formatTag.slice(0, colonIndex);
+    const formatSpec = formatTag.slice(colonIndex + 1, undefined);
+    return [varName, parseFormatSpec(formatSpec)];
 }
 
 
