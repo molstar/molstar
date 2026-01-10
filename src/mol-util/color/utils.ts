@@ -7,7 +7,7 @@
 import { Color, ColorListEntry } from './color';
 import { ColorNames } from './names';
 
-const hexColorRegex = /^#([0-9A-F]{3}){1,2}$/i;
+const hexColorRegex = /^#([0-9A-F]{3}|[0-9A-F]{4}|[0-9A-F]{6}|[0-9A-F]{8})$/i;
 const rgbColorRegex = /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i;
 
 export function decodeColor(colorString: string | undefined | null): Color | undefined {
@@ -17,7 +17,14 @@ export function decodeColor(colorString: string | undefined | null): Color | und
         if (colorString.length === 4) {
             // convert short form to full form (#f0f -> #ff00ff)
             colorString = `#${colorString[1]}${colorString[1]}${colorString[2]}${colorString[2]}${colorString[3]}${colorString[3]}`;
-        }
+        } else if (colorString.length === 5) {
+      // convert short form with alpha to full form, ignoring alpha (#f0fa -> #ff00ff)
+      colorString = `#${colorString[1]}${colorString[1]}${colorString[2]}${colorString[2]}${colorString[3]}${colorString[3]}`;
+    } else if (colorString.length === 9) {
+      // strip alpha channel from 8-character hex (#ff00ffaa -> #ff00ff)
+      colorString = colorString.substring(0, 7);
+    }
+
         result = Color.fromHexStyle(colorString);
         if (result !== undefined && !isNaN(result)) return result;
     }
