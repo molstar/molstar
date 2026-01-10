@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -11,6 +11,7 @@ import { Loci } from '../../../mol-model/loci';
 import { Structure, StructureElement } from '../../../mol-model/structure';
 import { LociLabelProvider } from '../../../mol-plugin-state/manager/loci-label';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { FormatTemplate } from '../../../mol-util/string-format';
 import { filterDefined } from '../helpers/utils';
 import { MVSAnnotationsProvider } from './annotation-prop';
 
@@ -21,6 +22,7 @@ export const MVSAnnotationTooltipsParams = {
         {
             annotationId: PD.Text('', { description: 'Reference to "MVS Annotation" custom model property' }),
             fieldName: PD.Text('tooltip', { description: 'Annotation field (column) from which to take color values' }),
+            textFormat: PD.Text('{}', { description: 'Formatting template for tooltip text. Supports simplified f-string syntax. May reference multiple annotation fields. If value in any field is not defined, tooltip will not be displayed.' }),
         },
         obj => `${obj.annotationId}:${obj.fieldName}`
     ),
@@ -59,7 +61,9 @@ export const MVSAnnotationTooltipsLabelProvider = {
                 const tooltipProps = MVSAnnotationTooltipsProvider.get(location.structure).value;
                 if (!tooltipProps || tooltipProps.tooltips.length === 0) return undefined;
                 const annotations = MVSAnnotationsProvider.get(location.unit.model).value;
-                const texts = tooltipProps.tooltips.map(p => annotations?.getAnnotation(p.annotationId)?.getValueForLocation(location, p.fieldName));
+                const texts = tooltipProps.tooltips.map(p =>
+                    FormatTemplate(p.textFormat).format(field => annotations?.getAnnotation(p.annotationId)?.getValueForLocation(location, field || p.fieldName))
+                );
                 return filterDefined(texts).join(' | ');
             default:
                 return undefined;

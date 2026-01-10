@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -19,7 +19,7 @@ import { ColorListEntry } from '../../mol-util/color/color';
 import { canonicalJsonString } from '../../mol-util/json';
 import { stringToWords } from '../../mol-util/string';
 import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider, MVSCategoricalPaletteProps, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from './components/annotation-color-theme';
-import { MVSAnnotationLabelRepresentationProvider } from './components/annotation-label/representation';
+import { MVSAnnotationLabelProps, MVSAnnotationLabelRepresentationProvider } from './components/annotation-label/representation';
 import { MVSAnnotationSpec } from './components/annotation-prop';
 import { MVSAnnotationStructureComponentProps } from './components/annotation-structure-component';
 import { MVSAnnotationTooltipsProps } from './components/annotation-tooltips-prop';
@@ -196,7 +196,7 @@ export function collectAnnotationTooltips(tree: MolstarSubtree<'structure'>, con
         if (node.kind === 'tooltip_from_uri' || node.kind === 'tooltip_from_source') {
             const annotationId = context.annotationMap.get(node);
             if (annotationId) {
-                annotationTooltips.push({ annotationId, fieldName: node.params.field_name });
+                annotationTooltips.push({ annotationId, fieldName: node.params.field_name, textFormat: node.params.text_format });
             };
         }
     });
@@ -338,11 +338,13 @@ export function prettyNameFromSelector(selector?: MolstarNodeParams<'component'>
 
 /** Create props for `StructureRepresentation3D` transformer from a label_from_* node. */
 export function labelFromXProps(node: MolstarNode<'label_from_uri' | 'label_from_source'>, context: MolstarLoadingContext): Partial<StateTransformer.Params<StructureRepresentation3D>> {
-    const annotationId = context.annotationMap.get(node);
+    const annotationId = context.annotationMap.get(node)!;
     const fieldName = node.params.field_name;
+    const textFormat = node.params.text_format;
+    const groupBy = node.params.group_by_fields ?? [node.params.field_remapping.group_id ?? 'group_id'];
     const nearestReprNode = context.nearestReprMap?.get(node);
     return {
-        type: { name: MVSAnnotationLabelRepresentationProvider.name, params: { annotationId, fieldName } },
+        type: { name: MVSAnnotationLabelRepresentationProvider.name, params: { annotationId, fieldName, textFormat, groupByFields: groupBy.map(x => ({ fieldName: x })) } satisfies Partial<MVSAnnotationLabelProps> },
         colorTheme: colorThemeForNode(nearestReprNode, context),
     };
 }
