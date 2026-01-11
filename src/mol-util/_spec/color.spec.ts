@@ -1,6 +1,6 @@
 
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Zach Charlop-Powers <zach.charlop.powers@gmail.com>
  */
