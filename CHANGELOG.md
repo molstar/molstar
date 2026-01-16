@@ -28,6 +28,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - ME grayscale colors; dot offset; SSAO hemisphere vectors
     - Use blue noise for SSAO hemisphere vectors
 - Fix SSAO darkening when sampling background/offscreen pixels
+- Fix caching of `__srcIndexArray__`
 
 ## [v5.5.0] - 2025-12-22
 - Viewer app
