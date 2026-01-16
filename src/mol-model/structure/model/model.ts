@@ -136,10 +136,10 @@ export namespace Model {
         const srcIndex = model.atomicHierarchy.atomSourceIndex;
         let srcIndexArray: ArrayLike<number> | undefined = undefined;
         if ('__srcIndexArray__' in model._staticPropertyData) {
-            srcIndexArray = model._dynamicPropertyData.__srcIndexArray__;
+            srcIndexArray = model._staticPropertyData.__srcIndexArray__;
         } else {
             srcIndexArray = Column.isIdentity(srcIndex) ? void 0 : srcIndex.toArray({ array: Int32Array });
-            model._dynamicPropertyData.__srcIndexArray__ = srcIndexArray;
+            model._staticPropertyData.__srcIndexArray__ = srcIndexArray;
         }
         return srcIndexArray;
     }
