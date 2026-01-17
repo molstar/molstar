@@ -18,16 +18,28 @@ import { VisualUpdateState } from '../../util';
 import { CommonSurfaceParams } from './util/common';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Tensor } from '../../../mol-math/linear-algebra/tensor';
-import { ComplexLinesVisual, ComplexVisual } from '../complex-visual';
+import { ComplexLinesParams, ComplexLinesVisual, ComplexVisual } from '../complex-visual';
 
-export const MolecularSurfaceWireframeParams = {
-    ...UnitsLinesParams,
+const SharedParams = {
     ...CommonMolecularSurfaceCalculationParams,
     ...CommonSurfaceParams,
     sizeFactor: PD.Numeric(1.5, { min: 0, max: 10, step: 0.1 }),
 };
+type SharedParams = typeof SharedParams
+
+export const MolecularSurfaceWireframeParams = {
+    ...UnitsLinesParams,
+    ...SharedParams,
+};
 export type MolecularSurfaceWireframeParams = typeof MolecularSurfaceWireframeParams
 export type MolecularSurfaceWireframeProps = PD.Values<MolecularSurfaceWireframeParams>
+
+export const StructureMolecularSurfaceWireframeParams = {
+    ...ComplexLinesParams,
+    ...SharedParams,
+};
+export type StructureMolecularSurfaceWireframeParams = typeof StructureMolecularSurfaceWireframeParams
+export type StructureMolecularSurfaceWireframeProps = PD.Values<StructureMolecularSurfaceWireframeParams>
 
 //
 
@@ -72,7 +84,7 @@ export function MolecularSurfaceWireframeVisual(materialId: number): UnitsVisual
 
 //
 
-async function createStructureMolecularSurfaceWireframe(ctx: VisualContext, structure: Structure, theme: Theme, props: MolecularSurfaceWireframeProps, lines?: Lines): Promise<Lines> {
+async function createStructureMolecularSurfaceWireframe(ctx: VisualContext, structure: Structure, theme: Theme, props: StructureMolecularSurfaceWireframeProps, lines?: Lines): Promise<Lines> {
     const { transform, field, idField, maxRadius } = await computeStructureMolecularSurface(structure, theme.size, props).runInContext(ctx.runtime);
 
     const params = {
@@ -90,14 +102,14 @@ async function createStructureMolecularSurfaceWireframe(ctx: VisualContext, stru
     return wireframe;
 }
 
-export function StructureMolecularSurfaceWireframeVisual(materialId: number): ComplexVisual<MolecularSurfaceWireframeParams> {
-    return ComplexLinesVisual<MolecularSurfaceWireframeParams>({
-        defaultProps: PD.getDefaultValues(MolecularSurfaceWireframeParams),
+export function StructureMolecularSurfaceWireframeVisual(materialId: number): ComplexVisual<StructureMolecularSurfaceWireframeParams> {
+    return ComplexLinesVisual<StructureMolecularSurfaceWireframeParams>({
+        defaultProps: PD.getDefaultValues(StructureMolecularSurfaceWireframeParams),
         createGeometry: createStructureMolecularSurfaceWireframe,
         createLocationIterator: ElementIterator.fromStructure,
         getLoci: getSerialElementLoci,
         eachLocation: eachSerialElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<MolecularSurfaceWireframeParams>, currentProps: PD.Values<MolecularSurfaceWireframeParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<StructureMolecularSurfaceWireframeParams>, currentProps: PD.Values<StructureMolecularSurfaceWireframeParams>) => {
             state.createGeometry = (
                 newProps.resolution !== currentProps.resolution ||
                 newProps.probeRadius !== currentProps.probeRadius ||

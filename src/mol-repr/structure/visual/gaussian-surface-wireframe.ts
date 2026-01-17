@@ -16,16 +16,26 @@ import { UnitsLinesParams, UnitsVisual, UnitsLinesVisual } from '../units-visual
 import { ElementIterator, getElementLoci, eachElement, getSerialElementLoci, eachSerialElement } from './util/element';
 import { VisualUpdateState } from '../../util';
 import { Sphere3D } from '../../../mol-math/geometry';
-import { ComplexLinesVisual, ComplexVisual } from '../complex-visual';
+import { ComplexLinesParams, ComplexLinesVisual, ComplexVisual } from '../complex-visual';
 
-export const GaussianWireframeParams = {
-    ...UnitsLinesParams,
+const SharedParams = {
     ...GaussianDensityParams,
     sizeFactor: PD.Numeric(3, { min: 0, max: 10, step: 0.1 }),
     lineSizeAttenuation: PD.Boolean(false),
 };
+type SharedParams = typeof SharedParams
 
+export const GaussianWireframeParams = {
+    ...UnitsLinesParams,
+    ...SharedParams,
+};
 export type GaussianWireframeParams = typeof GaussianWireframeParams
+
+export const StructureGaussianWireframeParams = {
+    ...ComplexLinesParams,
+    ...SharedParams,
+};
+export type StructureGaussianWireframeParams = typeof StructureGaussianWireframeParams
 
 async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
     const { smoothness } = props;
@@ -90,14 +100,14 @@ async function createStructureGaussianWireframe(ctx: VisualContext, structure: S
     return wireframe;
 }
 
-export function StructureGaussianWireframeVisual(materialId: number): ComplexVisual<GaussianWireframeParams> {
-    return ComplexLinesVisual<GaussianWireframeParams>({
-        defaultProps: PD.getDefaultValues(GaussianWireframeParams),
+export function StructureGaussianWireframeVisual(materialId: number): ComplexVisual<StructureGaussianWireframeParams> {
+    return ComplexLinesVisual<StructureGaussianWireframeParams>({
+        defaultProps: PD.getDefaultValues(StructureGaussianWireframeParams),
         createGeometry: createStructureGaussianWireframe,
         createLocationIterator: ElementIterator.fromStructure,
         getLoci: getSerialElementLoci,
         eachLocation: eachSerialElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianWireframeParams>, currentProps: PD.Values<GaussianWireframeParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<StructureGaussianWireframeParams>, currentProps: PD.Values<StructureGaussianWireframeParams>) => {
             state.createGeometry = (
                 newProps.resolution !== currentProps.resolution ||
                 newProps.radiusOffset !== currentProps.radiusOffset ||
