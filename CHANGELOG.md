@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- handle Hex codes that are submitted with alpha channels by ignoring the alpha channel (#1746)
 - Only show "already registered transformer" warnings in non-production builds
 - Fix `label_seq_id` assignment in PDB parser to use 1-based linear indexing (#1730) if:
   - when insertion codes are present
@@ -16,6 +17,8 @@ Note that since we don't clearly distinguish between a public and private interf
   - Increase default size of `carbohydrate` representation
   - `color_from_uri` and `color_from_source` take `selector` parameter
   - Add `keepCameraOrientation` option for loading functions
+  - `label_from_*` and `tooltip_from_*` take `text_format` parameter
+  - `label_from_*` take `group_by_fields` parameter
 - Tweak Gaussian Density smoothness default range (less artefacts)
 - Support `includeParent` for Gaussian Surface (disables GPU support)
 - Support floodfill before surface extraction (`off`, `interior`, `exterior`)
@@ -26,6 +29,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Use blue noise for SSAO hemisphere vectors
 - Fix SSAO darkening when sampling background/offscreen pixels
 - Adding structure wireframe visuals on molecular and gaussian surfaces
+- Fix caching of `__srcIndexArray__`
 
 ## [v5.5.0] - 2025-12-22
 - Viewer app

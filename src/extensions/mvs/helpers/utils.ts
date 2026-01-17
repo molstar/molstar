@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,6 +7,7 @@
 
 import { hashString } from '../../../mol-data/util';
 import { StateObject } from '../../../mol-state';
+import { range } from '../../../mol-util/array';
 import { Color } from '../../../mol-util/color';
 import { decodeColor as _decodeColor } from '../../../mol-util/color/utils';
 
@@ -150,3 +151,49 @@ export function getMVSReferenceObject<T extends StateObject.Ctor>(type: T[], dep
         }
     }
 }
+
+
+/** Data structure for an array divided into contiguous groups */
+export interface GroupedArray<T> {
+    /** Number of groups */
+    count: number,
+    /** Get size of i-th group as `offsets[i+1]-offsets[i]`.
+     * Get j-th element in i-th group as `grouped[offsets[i]+j]` */
+    offsets: number[],
+    /** Get j-th element in i-th group as `grouped[offsets[i]+j]` */
+    grouped: T[],
+}
+
+export const GroupedArray = {
+    getGroup<T>(groupedArray: GroupedArray<T>, iGroup: number): T[] {
+        return groupedArray.grouped.slice(groupedArray.offsets[iGroup], groupedArray.offsets[iGroup + 1]);
+    },
+    /** Return element indices grouped by `group_by(element, index)`. Elements with `group_by(element, index)===undefined` are treated as separate groups. */
+    groupIndices<T>(elements: readonly T[], group_by: (element: T, index: number) => string | undefined): GroupedArray<number> {
+        let counter = 0;
+        const groupMap = new Map<string, number>();
+        const groups: number[] = [];
+        for (let i = 0; i < elements.length; i++) {
+            const groupId = group_by(elements[i], i);
+            if (!isDefined(groupId)) {
+                groups.push(counter++);
+            } else {
+                const groupIndex = groupMap.get(groupId);
+                if (groupIndex === undefined) {
+                    groupMap.set(groupId, counter);
+                    groups.push(counter);
+                    counter++;
+                } else {
+                    groups.push(groupIndex);
+                }
+            }
+        }
+        const elementIndices = range(elements.length).sort((i, j) => groups[i] - groups[j]);
+        const offsets: number[] = [];
+        for (let i = 0; i < elements.length; i++) {
+            if (i === 0 || groups[elementIndices[i]] !== groups[elementIndices[i - 1]]) offsets.push(i);
+        }
+        offsets.push(elementIndices.length);
+        return { count: offsets.length - 1, offsets, grouped: elementIndices };
+    },
+};
