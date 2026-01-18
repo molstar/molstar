@@ -340,9 +340,7 @@ class TMAlignState {
             if (filteredA.length < 3) continue;
 
             // Compute Kabsch on filtered pairs
-            const pairedA = filteredA.map(i => xa[i]);
-            const pairedB = filteredB.map(j => ya[j]);
-            const transform = this.kabsch(pairedA, pairedB);
+            const transform = this.kabsch(filteredA, filteredB);
 
             // Score using FULL alignment (not filtered) with new transform
             const score = this.scoreTM(
@@ -413,8 +411,8 @@ class TMAlignState {
             if (this.bestAlignmentA.length < 3) break;
 
             // Use trimmed Kabsch with this cutoff
-            const trimmedA: number[][] = [];
-            const trimmedB: number[][] = [];
+            const trimmedA: number[] = [];
+            const trimmedB: number[] = [];
 
             for (let i = 0; i < this.bestAlignmentA.length; i++) {
                 const ai = this.bestAlignmentA[i];
@@ -429,8 +427,8 @@ class TMAlignState {
                 const distSq = dx * dx + dy * dy + dz * dz;
 
                 if (distSq <= cutoffSq) {
-                    trimmedA.push(xa[ai]);
-                    trimmedB.push(ya[bi]);
+                    trimmedA.push(ai);
+                    trimmedB.push(bi);
                 }
             }
 
@@ -482,7 +480,7 @@ class TMAlignState {
      * This is O(n) per offset and provides good initial seeds
      */
     private tryGaplessThreading(): void {
-        const { xa, ya, lenA, lenB, d0A, scoreD8 } = this;
+        const { lenA, lenB, d0A, scoreD8 } = this;
 
         // Try various offsets
         for (let offset = -lenB + 4; offset <= lenA - 4; offset++) {
@@ -501,9 +499,7 @@ class TMAlignState {
             if (alignA.length < 4) continue;
 
             // Compute Kabsch
-            const pairedA: number[][] = alignA.map(i => xa[i]);
-            const pairedB: number[][] = alignB.map(j => ya[j]);
-            const transform = this.kabsch(pairedA, pairedB);
+            const transform = this.kabsch(alignA, alignB);
 
             // Score
             const score = this.scoreTMWithCutoff(alignA, alignB, transform, d0A, lenA, scoreD8);
@@ -519,33 +515,29 @@ class TMAlignState {
      * Medium-thoroughness fragment-based initialization
      */
     private tryFragmentInitializationMedium(fragLen: number): void {
-        const { xa, ya, lenA, lenB, d0A, scoreD8 } = this;
+        const { lenA, lenB, d0A, scoreD8 } = this;
         const maxStartA = lenA - fragLen;
         const maxStartB = lenB - fragLen;
         // Use fragLen/2 as step for more thorough search
         const step = Math.max(2, Math.floor(fragLen / 2));
 
         for (let startA = 0; startA <= maxStartA; startA += step) {
+            const fragA: number[] = [];
+            for (let k = 0; k < fragLen; k++) {
+                fragA.push(startA + k);
+            }
             for (let startB = 0; startB <= maxStartB; startB += step) {
                 // Extract fragment
-                const fragA: number[][] = [];
-                const fragB: number[][] = [];
+                const fragB: number[] = [];
                 for (let k = 0; k < fragLen; k++) {
-                    fragA.push(xa[startA + k]);
-                    fragB.push(ya[startB + k]);
+                    fragB.push(startB + k);
                 }
 
                 // Superpose fragments
                 const transform = this.kabsch(fragA, fragB);
 
                 // Quick score check
-                const alignA: number[] = [];
-                const alignB: number[] = [];
-                for (let k = 0; k < fragLen; k++) {
-                    alignA.push(startA + k);
-                    alignB.push(startB + k);
-                }
-                const quickScore = this.scoreTMWithCutoff(alignA, alignB, transform, d0A, lenA, scoreD8);
+                const quickScore = this.scoreTMWithCutoff(fragA, fragB, transform, d0A, lenA, scoreD8);
 
                 if (quickScore > this.bestScore * 0.3) {
                     this.extendFromSeed(transform);
@@ -558,33 +550,30 @@ class TMAlignState {
      * Fast fragment-based initialization with large steps
      */
     private tryFragmentInitializationFast(fragLen: number): void {
-        const { xa, ya, lenA, lenB, d0A, scoreD8 } = this;
+        const { lenA, lenB, d0A, scoreD8 } = this;
         const maxStartA = lenA - fragLen;
         const maxStartB = lenB - fragLen;
         // Use fragment length as step - only try diagonal and near-diagonal positions
         const step = Math.max(fragLen, 10);
 
         for (let startA = 0; startA <= maxStartA; startA += step) {
+            const fragA: number[] = [];
+            for (let k = 0; k < fragLen; k++) {
+                fragA.push(startA + k);
+            }
+
             for (let startB = 0; startB <= maxStartB; startB += step) {
                 // Extract fragment
-                const fragA: number[][] = [];
-                const fragB: number[][] = [];
+                const fragB: number[] = [];
                 for (let k = 0; k < fragLen; k++) {
-                    fragA.push(xa[startA + k]);
-                    fragB.push(ya[startB + k]);
+                    fragB.push(startB + k);
                 }
 
                 // Superpose fragments
                 const transform = this.kabsch(fragA, fragB);
 
                 // Quick score check before full refinement
-                const alignA: number[] = [];
-                const alignB: number[] = [];
-                for (let k = 0; k < fragLen; k++) {
-                    alignA.push(startA + k);
-                    alignB.push(startB + k);
-                }
-                const quickScore = this.scoreTMWithCutoff(alignA, alignB, transform, d0A, lenA, scoreD8);
+                const quickScore = this.scoreTMWithCutoff(fragA, fragB, transform, d0A, lenA, scoreD8);
 
                 if (quickScore > this.bestScore * 0.5) {
                     // Promising seed - refine it
@@ -696,8 +685,8 @@ class TMAlignState {
         const cutoffSq = cutoff * cutoff;
 
         // Find well-aligned pairs
-        const trimmedA: number[][] = [];
-        const trimmedB: number[][] = [];
+        const trimmedAlignA: number[] = [];
+        const trimmedAlignB: number[] = [];
 
         for (let i = 0; i < alignA.length; i++) {
             const ai = alignA[i];
@@ -712,20 +701,18 @@ class TMAlignState {
             const distSq = dx * dx + dy * dy + dz * dz;
 
             if (distSq <= cutoffSq) {
-                trimmedA.push(xa[ai]);
-                trimmedB.push(ya[bi]);
+                trimmedAlignA.push(ai);
+                trimmedAlignB.push(bi);
             }
         }
 
         // Need at least 3 pairs for Kabsch
-        if (trimmedA.length < 3) {
+        if (trimmedAlignA.length < 3) {
             // Fall back to using all pairs
-            const pairedA = alignA.map(i => xa[i]);
-            const pairedB = alignB.map(j => ya[j]);
-            return this.kabsch(pairedA, pairedB);
+            return this.kabsch(alignA, alignB);
         }
 
-        return this.kabsch(trimmedA, trimmedB);
+        return this.kabsch(trimmedAlignA, trimmedAlignB);
     }
 
     /**
@@ -776,9 +763,7 @@ class TMAlignState {
             }
 
             // Compute new Kabsch and score
-            const newPairedA: number[][] = newAlignA.map(i => xa[i]);
-            const newPairedB: number[][] = newAlignB.map(j => ya[j]);
-            const newTransform = this.kabsch(newPairedA, newPairedB);
+            const newTransform = this.kabsch(newAlignA, newAlignB);
             const newScore = this.scoreTMWithCutoff(newAlignA, newAlignB, newTransform, d0A, lenA, scoreD8);
 
             if (newScore > this.bestScore) {
@@ -902,9 +887,7 @@ class TMAlignState {
         }
 
         if (this.bestAlignmentA.length >= 3) {
-            const pairedA = this.bestAlignmentA.map(idx => this.xa[idx]);
-            const pairedB = this.bestAlignmentB.map(idx => this.ya[idx]);
-            this.bestTransform = this.kabsch(pairedA, pairedB);
+            this.bestTransform = this.kabsch(this.bestAlignmentA, this.bestAlignmentB);
             this.bestScore = this.scoreTMWithCutoff(
                 this.bestAlignmentA,
                 this.bestAlignmentB,
@@ -979,20 +962,26 @@ class TMAlignState {
     /**
      * Kabsch superposition using MinimizeRmsd
      */
-    private kabsch(a: number[][], b: number[][]): Mat4 {
-        const n = a.length;
+    private kabsch(alignA: number[], alignB: number[]): Mat4 {
+        const n = alignA.length;
         if (n < 3) return Mat4.identity();
+
+        const { xa, ya } = this;
 
         const posA = MinimizeRmsd.Positions.empty(n);
         const posB = MinimizeRmsd.Positions.empty(n);
+        let xai = xa[0];
+        let ybi = ya[0];
 
         for (let i = 0; i < n; i++) {
-            posA.x[i] = a[i][0];
-            posA.y[i] = a[i][1];
-            posA.z[i] = a[i][2];
-            posB.x[i] = b[i][0];
-            posB.y[i] = b[i][1];
-            posB.z[i] = b[i][2];
+            xai = xa[alignA[i]];
+            ybi = ya[alignB[i]];
+            posA.x[i] = xai[0];
+            posA.y[i] = xai[1];
+            posA.z[i] = xai[2];
+            posB.x[i] = ybi[0];
+            posB.y[i] = ybi[1];
+            posB.z[i] = ybi[2];
         }
 
         const result = MinimizeRmsd.compute({ a: posA, b: posB });
