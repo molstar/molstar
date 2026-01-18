@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -56,6 +56,7 @@ export interface Mesh {
     readonly groupMapping: GroupMapping
 
     setBoundingSphere(boundingSphere: Sphere3D): void
+    hasBoundingSphere(): boolean
 
     readonly meta: { [k: string]: unknown }
 }
@@ -119,6 +120,9 @@ export namespace Mesh {
             setBoundingSphere(sphere: Sphere3D) {
                 Sphere3D.copy(boundingSphere, sphere);
                 currentHash = hashCode(mesh);
+            },
+            hasBoundingSphere() {
+                return currentHash === hashCode(mesh);
             },
             meta: {}
         };

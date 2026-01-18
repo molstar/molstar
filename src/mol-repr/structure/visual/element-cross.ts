@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -40,6 +40,8 @@ export type ElementCrossParams = typeof ElementCrossParams
 export function createElementCross(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<ElementCrossParams>, lines: Lines) {
     const { child } = structure;
     if (child && !child.unitMap.get(unit.id)) return Lines.createEmpty(lines);
+
+    const oldBoundingSphere = lines?.hasBoundingSphere() ? Sphere3D.clone(lines.boundingSphere) : undefined;
 
     const elements = unit.elements;
     const n = elements.length;
@@ -83,7 +85,6 @@ export function createElementCross(ctx: VisualContext, unit: Unit, structure: St
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
-    const oldBoundingSphere = lines ? Sphere3D.clone(lines.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         boundingSphere = oldBoundingSphere;
     } else {
@@ -117,6 +118,8 @@ export function ElementCrossVisual(materialId: number): UnitsVisual<ElementCross
 
 export function createStructureElementCross(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<StructureElementCrossParams>, lines?: Lines): Lines {
     const { child } = structure;
+
+    const oldBoundingSphere = lines?.hasBoundingSphere() ? Sphere3D.clone(lines.boundingSphere) : undefined;
 
     const { getSerialIndex } = structure.serialMapping;
     const structureElementCount = structure.elementCount;
@@ -168,7 +171,6 @@ export function createStructureElementCross(ctx: VisualContext, structure: Struc
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
-    const oldBoundingSphere = lines ? Sphere3D.clone(lines.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
         boundingSphere = oldBoundingSphere;
     } else {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -68,6 +68,8 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
 
     const { detail, sizeFactor, stride } = props;
 
+    const oldBoundingSphere = mesh?.hasBoundingSphere() ? Sphere3D.clone(mesh.boundingSphere) : undefined;
+
     const { elements, conformation: c } = unit;
     const elementCount = elements.length;
     const vertexCount = elementCount * sphereVertexCount(detail);
@@ -103,7 +105,6 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
-    const oldBoundingSphere = mesh ? Sphere3D.clone(mesh.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         boundingSphere = oldBoundingSphere;
     } else {
@@ -120,6 +121,8 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     if (child && !childUnit) return Spheres.createEmpty(spheres);
 
     const { sizeFactor, stride } = props;
+
+    const oldBoundingSphere = spheres?.hasBoundingSphere() ? Sphere3D.clone(spheres.boundingSphere) : undefined;
 
     const { elements, conformation: c } = unit;
     const elementCount = elements.length;
@@ -164,7 +167,6 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
-    const oldBoundingSphere = spheres ? Sphere3D.clone(spheres.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         boundingSphere = oldBoundingSphere;
     } else {
@@ -224,6 +226,8 @@ export function createStructureElementSphereMesh(ctx: VisualContext, structure: 
     const { child } = structure;
     const { detail, sizeFactor, stride } = props;
 
+    const oldBoundingSphere = mesh?.hasBoundingSphere() ? Sphere3D.clone(mesh.boundingSphere) : undefined;
+
     const { getSerialIndex } = structure.serialMapping;
     const structureElementCount = structure.elementCount;
     const vertexCount = structureElementCount * sphereVertexCount(detail);
@@ -268,7 +272,6 @@ export function createStructureElementSphereMesh(ctx: VisualContext, structure: 
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
-    const oldBoundingSphere = mesh ? Sphere3D.clone(mesh.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
         boundingSphere = oldBoundingSphere;
     } else {
@@ -282,6 +285,8 @@ export function createStructureElementSphereMesh(ctx: VisualContext, structure: 
 export function createStructureElementSphereImpostor(ctx: VisualContext, structure: Structure, theme: Theme, props: ElementSphereImpostorProps, spheres?: Spheres): Spheres {
     const { child } = structure;
     const { sizeFactor, stride } = props;
+
+    const oldBoundingSphere = spheres?.hasBoundingSphere() ? Sphere3D.clone(spheres.boundingSphere) : undefined;
 
     const { getSerialIndex } = structure.serialMapping;
     const structureElementCount = structure.elementCount;
@@ -336,7 +341,6 @@ export function createStructureElementSphereImpostor(ctx: VisualContext, structu
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
-    const oldBoundingSphere = spheres ? Sphere3D.clone(spheres.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
         boundingSphere = oldBoundingSphere;
     } else {

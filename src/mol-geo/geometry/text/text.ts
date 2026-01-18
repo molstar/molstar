@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
@@ -68,6 +68,7 @@ export interface Text {
     readonly groupMapping: GroupMapping
 
     setBoundingSphere(boundingSphere: Sphere3D): void
+    hasBoundingSphere(): boolean
 }
 
 export namespace Text {
@@ -134,6 +135,9 @@ export namespace Text {
             setBoundingSphere(sphere: Sphere3D) {
                 Sphere3D.copy(boundingSphere, sphere);
                 currentHash = hashCode(text);
+            },
+            hasBoundingSphere() {
+                return currentHash === hashCode(text);
             }
         };
         return text;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -73,6 +73,7 @@ interface Image {
     readonly boundingSphere: Sphere3D
 
     setBoundingSphere(boundingSphere: Sphere3D): void
+    hasBoundingSphere(): boolean
 }
 
 namespace Image {
@@ -133,6 +134,9 @@ namespace Image {
                 Sphere3D.copy(boundingSphere, sphere);
                 currentHash = hashCode(image);
             },
+            hasBoundingSphere() {
+                return currentHash === hashCode(image);
+            }
         };
         return image;
     }

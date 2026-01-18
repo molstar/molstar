@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -42,6 +42,8 @@ export function createElementPoint(ctx: VisualContext, unit: Unit, structure: St
 
     const { stride } = props;
 
+    const oldBoundingSphere = points?.hasBoundingSphere() ? Sphere3D.clone(points.boundingSphere) : undefined;
+
     const elements = unit.elements;
     const n = elements.length;
     const builder = PointsBuilder.create(n, n / 10, points);
@@ -76,7 +78,6 @@ export function createElementPoint(ctx: VisualContext, unit: Unit, structure: St
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
-    const oldBoundingSphere = points ? Sphere3D.clone(points.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         boundingSphere = oldBoundingSphere;
     } else {
@@ -112,6 +113,8 @@ export function createStructureElementPoint(ctx: VisualContext, structure: Struc
 
     const { child } = structure;
     const { stride } = props;
+
+    const oldBoundingSphere = points?.hasBoundingSphere() ? Sphere3D.clone(points.boundingSphere) : undefined;
 
     const { getSerialIndex } = structure.serialMapping;
     const structureElementCount = structure.elementCount;
@@ -158,7 +161,6 @@ export function createStructureElementPoint(ctx: VisualContext, structure: Struc
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
-    const oldBoundingSphere = points ? Sphere3D.clone(points.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
         boundingSphere = oldBoundingSphere;
     } else {
