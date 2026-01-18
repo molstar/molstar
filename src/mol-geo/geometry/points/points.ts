@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -46,6 +46,7 @@ export interface Points {
     readonly groupMapping: GroupMapping
 
     setBoundingSphere(boundingSphere: Sphere3D): void
+    hasBoundingSphere(): boolean
 }
 
 export namespace Points {
@@ -99,6 +100,9 @@ export namespace Points {
             setBoundingSphere(sphere: Sphere3D) {
                 Sphere3D.copy(boundingSphere, sphere);
                 currentHash = hashCode(points);
+            },
+            hasBoundingSphere() {
+                return currentHash === hashCode(points);
             }
         };
         return points;

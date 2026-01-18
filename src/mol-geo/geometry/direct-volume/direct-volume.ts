@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -55,6 +55,7 @@ export interface DirectVolume {
     readonly boundingSphere: Sphere3D
 
     setBoundingSphere(boundingSphere: Sphere3D): void
+    hasBoundingSphere(): boolean
 
     readonly meta: {
         /** Called to restore when a webgl context is lost */
@@ -113,6 +114,9 @@ export namespace DirectVolume {
             setBoundingSphere(sphere: Sphere3D) {
                 Sphere3D.copy(boundingSphere, sphere);
                 currentHash = hashCode(directVolume);
+            },
+            hasBoundingSphere() {
+                return currentHash === hashCode(directVolume);
             },
             meta: {}
         };

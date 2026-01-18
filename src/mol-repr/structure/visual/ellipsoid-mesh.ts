@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -40,6 +40,8 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
     if (child && !childUnit) return Mesh.createEmpty(mesh);
 
     const { detail, sizeFactor } = props;
+
+    const oldBoundingSphere = mesh?.hasBoundingSphere() ? Sphere3D.clone(mesh.boundingSphere) : undefined;
 
     const { elements, model } = unit;
     const elementCount = elements.length;
@@ -102,7 +104,6 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
-    const oldBoundingSphere = mesh ? Sphere3D.clone(mesh.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         boundingSphere = oldBoundingSphere;
     } else {
@@ -145,6 +146,8 @@ export function EllipsoidMeshVisual(materialId: number): UnitsVisual<EllipsoidMe
 export function createStructureEllipsoidMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<StructureEllipsoidMeshParams>, mesh?: Mesh): Mesh {
     const { child } = structure;
 
+    const oldBoundingSphere = mesh?.hasBoundingSphere() ? Sphere3D.clone(mesh.boundingSphere) : undefined;
+
     const { detail, sizeFactor } = props;
     const { getSerialIndex } = structure.serialMapping;
     const structureElementCount = structure.elementCount;
@@ -178,26 +181,6 @@ export function createStructureEllipsoidMesh(ctx: VisualContext, structure: Stru
         const c = unit.conformation;
         const l = StructureElement.Location.create(structure);
         l.unit = unit;
-
-        // for (let i = 0 as StructureElement.UnitIndex; i < elementCount; i++) {
-        //     if (ignore && ignore(elements[i])) continue;
-        //     if (lone && Unit.isAtomic(unit) && hasUnitVisibleBonds(unit, props) && bondCount(structure, unit, i) !== 0) continue;
-
-        //     c.position(elements[i], p);
-        //     v3add(center, center, p);
-        //     count += 1;
-
-        //     const si = getSerialIndex(unit, elements[i]);
-        //     v3scaleAndAdd(s, p, v3unitX, r);
-        //     v3scaleAndAdd(e, p, v3unitX, -r);
-        //     builder.add(s[0], s[1], s[2], e[0], e[1], e[2], si);
-        //     v3scaleAndAdd(s, p, v3unitY, r);
-        //     v3scaleAndAdd(e, p, v3unitY, -r);
-        //     builder.add(s[0], s[1], s[2], e[0], e[1], e[2], si);
-        //     v3scaleAndAdd(s, p, v3unitZ, r);
-        //     v3scaleAndAdd(e, p, v3unitZ, -r);
-        //     builder.add(s[0], s[1], s[2], e[0], e[1], e[2], si);
-        // }
 
         for (let i = 0 as StructureElement.UnitIndex; i < elementCount; i++) {
             const ei = elements[i];
@@ -237,7 +220,6 @@ export function createStructureEllipsoidMesh(ctx: VisualContext, structure: Stru
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
-    const oldBoundingSphere = mesh ? Sphere3D.clone(mesh.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
         boundingSphere = oldBoundingSphere;
     } else {

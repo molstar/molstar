@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Zhenyu Zhang <jump2cn@gmail.com>
@@ -125,6 +125,8 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
 
     const { radialSegments, stubCap } = props;
 
+    const oldBoundingSphere = mesh?.hasBoundingSphere() ? Sphere3D.clone(mesh.boundingSphere) : undefined;
+
     const vertexCountEstimate = radialSegments * 2 * linkCount * 2;
     const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 4, mesh);
 
@@ -170,7 +172,6 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
 
     // re-use boundingSphere if it has not changed much
     Vec3.scale(center, center, 1 / count);
-    const oldBoundingSphere = mesh ? Sphere3D.clone(mesh.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         return { mesh: m, boundingSphere: oldBoundingSphere };
     } else {
@@ -330,6 +331,8 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
     const interpolate = colorMode === 'interpolate';
     const colorModeFlag = interpolate === true ? 3 : 2;
 
+    const oldBoundingSphere = cylinders?.hasBoundingSphere() ? Sphere3D.clone(cylinders.boundingSphere) : undefined;
+
     const cylindersCountEstimate = linkCount * 2;
     const builder = CylindersBuilder.create(cylindersCountEstimate, cylindersCountEstimate / 4, cylinders);
 
@@ -422,7 +425,6 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
 
     // re-use boundingSphere if it has not changed much
     Vec3.scale(center, center, 1 / count);
-    const oldBoundingSphere = cylinders ? Sphere3D.clone(cylinders.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         return { cylinders: c, boundingSphere: oldBoundingSphere };
     } else {
@@ -440,6 +442,8 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
     if (!linkCount) return { lines: Lines.createEmpty(lines) };
 
     const { linkScale, linkSpacing, aromaticDashCount, dashCount } = props;
+
+    const oldBoundingSphere = lines?.hasBoundingSphere() ? Sphere3D.clone(lines.boundingSphere) : undefined;
 
     const linesCountEstimate = linkCount * 2;
     const builder = LinesBuilder.create(linesCountEstimate, linesCountEstimate / 4, lines);
@@ -532,7 +536,6 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
 
     // re-use boundingSphere if it has not changed much
     Vec3.scale(center, center, 1 / count);
-    const oldBoundingSphere = lines ? Sphere3D.clone(lines.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         return { lines: l, boundingSphere: oldBoundingSphere };
     } else {

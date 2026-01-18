@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -64,6 +64,7 @@ export interface Cylinders {
     readonly groupMapping: GroupMapping
 
     setBoundingSphere(boundingSphere: Sphere3D): void
+    hasBoundingSphere(): boolean
 }
 
 export namespace Cylinders {
@@ -132,6 +133,9 @@ export namespace Cylinders {
             setBoundingSphere(sphere: Sphere3D) {
                 Sphere3D.copy(boundingSphere, sphere);
                 currentHash = hashCode(cylinders);
+            },
+            hasBoundingSphere() {
+                return currentHash === hashCode(cylinders);
             }
         };
         return cylinders;
