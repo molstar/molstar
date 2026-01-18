@@ -30,6 +30,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix SSAO darkening when sampling background/offscreen pixels
 - Adding structure wireframe visuals on molecular and gaussian surfaces
 - Fix caching of `__srcIndexArray__`
+- Prevent self-occlusion on quaternary amine
+- Fix outline postprocessing artifacts (black bands) on membrane layers at grazing view angles in Illustrative mode (#1749)
 
 ## [v5.5.0] - 2025-12-22
 - Viewer app
