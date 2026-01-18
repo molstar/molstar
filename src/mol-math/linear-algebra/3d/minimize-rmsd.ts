@@ -8,8 +8,6 @@ import { Mat4 } from './mat4';
 import { Vec3 } from './vec3';
 import { EVD } from '../matrix/evd';
 import { Matrix } from '../matrix/matrix';
-import { Sphere3D } from '../../geometry/primitives/sphere3d';
-import { CentroidHelper } from '../../geometry/centroid-helper';
 
 export { MinimizeRmsd };
 namespace MinimizeRmsd {
@@ -44,8 +42,8 @@ class RmsdTransformState {
     a: MinimizeRmsd.Positions;
     b: MinimizeRmsd.Positions;
 
-    centerA: Vec3;
-    centerB: Vec3;
+    centerA = Vec3();
+    centerB = Vec3();
 
     evdCache: EVD.Cache = EVD.createCache(4);
 
@@ -60,13 +58,25 @@ class RmsdTransformState {
         this.b = data.b;
 
         if (data.centerA) this.centerA = data.centerA;
-        else this.centerA = data.centerA = CentroidHelper.fromArrays(data.a, Sphere3D()).center;
+        else this.centerA = data.centerA = computeCenter(data.a, this.centerA);
 
         if (data.centerB) this.centerB = data.centerB;
-        else this.centerB = data.centerB = CentroidHelper.fromArrays(data.b, Sphere3D()).center;
+        else this.centerB = data.centerB = computeCenter(data.b, this.centerB);
 
         this.result = into;
     }
+}
+
+function computeCenter(pos: MinimizeRmsd.Positions, toCenter: Vec3, length?: number) {
+    let xSum = 0.0, ySum = 0.0, zSum = 0.0;
+    const L = length ?? pos.x.length;
+    for (let i = 0; i < L; i++) {
+        xSum += pos.x[i];
+        ySum += pos.y[i];
+        zSum += pos.z[i];
+    }
+    Vec3.set(toCenter, xSum / L, ySum / L, zSum / L);
+    return toCenter;
 }
 
 function computeN(state: RmsdTransformState) {
