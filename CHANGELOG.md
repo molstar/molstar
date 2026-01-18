@@ -34,6 +34,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix outline postprocessing artifacts (black bands) on membrane layers at grazing view angles in Illustrative mode (#1749)
 - Remove fence from `Canvas3D.render` to not interfer with `requestAnimationFrame`
 - Fix boundingSphere reuse in structure visuals (was triggering extra calculation)
+- Use PDB seqres record to deduce entity information
 
 ## [v5.5.0] - 2025-12-22
 - Viewer app

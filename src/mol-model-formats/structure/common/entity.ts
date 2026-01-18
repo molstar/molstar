@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,11 +7,11 @@
 import { MoleculeType, isPolymer } from '../../../mol-model/structure/model/types';
 import { Column, Table } from '../../../mol-data/db';
 import { BasicSchema } from '../basic/schema';
+import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 
 export type EntityCompound = { chains: string[], description: string }
 
-// TODO add support for `branched`
-type EntityType = 'water' | 'polymer' | 'non-polymer'
+type EntityType = mmCIF_Schema['entity']['type']['T']
 
 export class EntityBuilder {
     private count = 0;
@@ -20,16 +20,38 @@ export class EntityBuilder {
     private descriptions: string[][] = [];
 
     private compoundsMap = new Map<string, string>();
+    private seqresMap = new Map<string, { key: string, residues: Set<string> }>();
     private namesMap = new Map<string, string>();
     private heteroMap = new Map<string, string>();
     private chainMap = new Map<string, string>();
+    private sequenceMap = new Map<string, string>();
     private waterId?: string;
+
+    private polymerCount = 0;
 
     private set(type: EntityType, description: string) {
         this.count += 1;
         this.ids.push(`${this.count}`);
         this.types.push(type);
         this.descriptions.push([description]);
+    }
+
+    private addPolymer(map: Map<string, string>, key: string, options?: { customName?: string }) {
+        if (!map.has(key)) {
+            this.polymerCount += 1;
+            this.set('polymer', options?.customName || `Polymer ${this.polymerCount}`);
+            map.set(key, `${this.count}`);
+        }
+        return map.get(key)!;
+    }
+
+    private addNonPolymer(map: Map<string, string>, key: string, moleculeType: MoleculeType, options?: { customName?: string }) {
+        if (!map.has(key)) {
+            const type = moleculeType === MoleculeType.Saccharide ? 'branched' : 'non-polymer';
+            this.set(type, options?.customName || this.namesMap.get(key) || key);
+            map.set(key, `${this.count}`);
+        }
+        return map.get(key)!;
     }
 
     getEntityId(compId: string, moleculeType: MoleculeType, chainId: string, options?: { customName?: string }): string {
@@ -43,18 +65,22 @@ export class EntityBuilder {
             if (this.compoundsMap.has(chainId)) {
                 return this.compoundsMap.get(chainId)!;
             } else {
-                if (!this.chainMap.has(chainId)) {
-                    this.set('polymer', options?.customName || `Polymer ${this.chainMap.size + 1}`);
-                    this.chainMap.set(chainId, `${this.count}`);
+                if (this.seqresMap.has(chainId)) {
+                    const { key, residues } = this.seqresMap.get(chainId)!;
+                    if (residues.has(compId)) {
+                        return this.addPolymer(this.sequenceMap, key, options);
+                    }
                 }
-                return this.chainMap.get(chainId)!;
+                return this.addPolymer(this.chainMap, chainId, options);
             }
         } else {
-            if (!this.heteroMap.has(compId)) {
-                this.set('non-polymer', options?.customName || this.namesMap.get(compId) || compId);
-                this.heteroMap.set(compId, `${this.count}`);
+            if (this.seqresMap.has(chainId)) {
+                const { key, residues } = this.seqresMap.get(chainId)!;
+                if (residues.has(compId)) {
+                    return this.addNonPolymer(this.sequenceMap, key, moleculeType, options);
+                }
             }
-            return this.heteroMap.get(compId)!;
+            return this.addNonPolymer(this.heteroMap, compId, moleculeType, options);
         }
     }
 
@@ -78,5 +104,14 @@ export class EntityBuilder {
 
     setNames(names: [string, string][]) {
         names.forEach(n => this.namesMap.set(n[0], n[1]));
+    }
+
+    setSeqres(seqresMap: Map<string, string[]>) {
+        for (const [chainId, residues] of seqresMap) {
+            this.seqresMap.set(chainId, {
+                key: residues.join('-'),
+                residues: new Set(residues)
+            });
+        }
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -11,7 +11,7 @@ import { Tokenizer } from '../../../mol-io/reader/common/text/tokenizer';
 import { PdbFile } from '../../../mol-io/reader/pdb/schema';
 import { parseCryst1, parseRemark350, parseMtrix } from './assembly';
 import { parseHelix, parseSheet } from './secondary-structure';
-import { parseCmpnd, parseHetnam } from './entity';
+import { parseCmpnd, parseHetnam, parseSeqres } from './entity';
 import { ComponentBuilder } from '../common/component';
 import { EntityBuilder } from '../common/entity';
 import { Column } from '../../../mol-data/db';
@@ -177,6 +177,15 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     helperCategories.push(parseSheet(lines, i, j));
                     i = j - 1;
                 } else if (substringStartsWith(data, s, e, 'SEQRES')) {
+                    let j = i + 1;
+                    while (true) {
+                        s = indices[2 * j]; e = indices[2 * j + 1];
+                        if (!substringStartsWith(data, s, e, 'SEQRES')) break;
+                        j++;
+                    }
+                    // TODO: also create `entity_poly_seq` category; need to ensure `label_seq_id` consistency
+                    entityBuilder.setSeqres(parseSeqres(lines, i, j));
+                    i = j - 1;
                     hasSeqRes = true;
                 }
                 // TODO: SCALE record => cif.atom_sites.fract_transf_matrix, cif.atom_sites.fract_transf_vector
