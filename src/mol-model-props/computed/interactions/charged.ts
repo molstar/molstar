@@ -104,7 +104,7 @@ function addUnitPositiveCharges(structure: Structure, unit: Unit.Atomic, builder
                 }
                 if (group) {
                     builder.startState();
-                    eachBondedAtom(structure, unit, j, (_, k) => {
+                    eachIntraBondedAtom(unit, j, (_, k) => {
                         if (typeSymbol(unit, k) === Elements.N) {
                             addedElements.add(k);
                             builder.pushMember(x[elements[k]], y[elements[k]], z[elements[k]], k);
