@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
 export const outlines_frag = `
@@ -101,6 +102,59 @@ void main(void) {
                 bestTransparentAlpha = sampleAlphaTransparent;
                 transparentOutlineFlag = 1.0;
             }
+        }
+    }
+
+    // lazy curvature veto: only compute if an outline was found and center is not background
+    const float kCurvatureGate = 0.75;
+    vec2 dx = vec2(invTexSize.x, 0.0);
+    vec2 dy = vec2(0.0, invTexSize.y);
+
+    if (opaqueOutlineFlag > 0.0 && !isBackground(selfDepthOpaque)) {
+        float dL = getDepthOpaque(coords - dx);
+        float dR = getDepthOpaque(coords + dx);
+        float dU = getDepthOpaque(coords + dy);
+        float dD = getDepthOpaque(coords - dy);
+
+        float vzL = isBackground(dL) ? backgroundViewZ : getViewZ(dL);
+        float vzR = isBackground(dR) ? backgroundViewZ : getViewZ(dR);
+        float vzU = isBackground(dU) ? backgroundViewZ : getViewZ(dU);
+        float vzD = isBackground(dD) ? backgroundViewZ : getViewZ(dD);
+
+        float ddx = abs(vzL + vzR - 2.0 * selfViewZOpaque);
+        float ddy = abs(vzU + vzD - 2.0 * selfViewZOpaque);
+        float curvOpaque = max(ddx, ddy);
+
+        if (curvOpaque < pixelSizeOpaque * kCurvatureGate) {
+            opaqueOutlineFlag = 0.0;
+            bestOpaqueDepth = 1.0;
+        }
+    }
+
+    if (transparentOutlineFlag > 0.0 && !isBackground(selfDepthTransparent)) {
+        vec2 daL = getDepthTransparentWithAlpha(coords - dx);
+        vec2 daR = getDepthTransparentWithAlpha(coords + dx);
+        vec2 daU = getDepthTransparentWithAlpha(coords + dy);
+        vec2 daD = getDepthTransparentWithAlpha(coords - dy);
+
+        float dL = daL.x;
+        float dR = daR.x;
+        float dU = daU.x;
+        float dD = daD.x;
+
+        float vzL = isBackground(dL) ? backgroundViewZ : getViewZ(dL);
+        float vzR = isBackground(dR) ? backgroundViewZ : getViewZ(dR);
+        float vzU = isBackground(dU) ? backgroundViewZ : getViewZ(dU);
+        float vzD = isBackground(dD) ? backgroundViewZ : getViewZ(dD);
+
+        float ddx = abs(vzL + vzR - 2.0 * selfViewZTransparent);
+        float ddy = abs(vzU + vzD - 2.0 * selfViewZTransparent);
+        float curvTransparent = max(ddx, ddy);
+
+        if (curvTransparent < pixelSizeTransparent * kCurvatureGate) {
+            transparentOutlineFlag = 0.0;
+            bestTransparentDepth = 1.0;
+            bestTransparentAlpha = 0.0;
         }
     }
 
