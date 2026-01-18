@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -33,6 +33,14 @@ async function ensureLipidsAvailable() { await ensureAvailable(MARTINI_LIPIDS_PA
 
 const extraLipids = ['DMPC'];
 const v2lipids = ['DAPC', 'DBPC', 'DFPC', 'DGPC', 'DIPC', 'DLPC', 'DNPC', 'DOPC', 'DPPC', 'DRPC', 'DTPC', 'DVPC', 'DXPC', 'DYPC', 'LPPC', 'PAPC', 'PEPC', 'PGPC', 'PIPC', 'POPC', 'PRPC', 'PUPC', 'DAPE', 'DBPE', 'DFPE', 'DGPE', 'DIPE', 'DLPE', 'DNPE', 'DOPE', 'DPPE', 'DRPE', 'DTPE', 'DUPE', 'DVPE', 'DXPE', 'DYPE', 'LPPE', 'PAPE', 'PGPE', 'PIPE', 'POPE', 'PQPE', 'PRPE', 'PUPE', 'DAPS', 'DBPS', 'DFPS', 'DGPS', 'DIPS', 'DLPS', 'DNPS', 'DOPS', 'DPPS', 'DRPS', 'DTPS', 'DUPS', 'DVPS', 'DXPS', 'DYPS', 'LPPS', 'PAPS', 'PGPS', 'PIPS', 'POPS', 'PQPS', 'PRPS', 'PUPS', 'DAPG', 'DBPG', 'DFPG', 'DGPG', 'DIPG', 'DLPG', 'DNPG', 'DOPG', 'DPPG', 'DRPG', 'DTPG', 'DVPG', 'DXPG', 'DYPG', 'LPPG', 'PAPG', 'PGPG', 'PIPG', 'POPG', 'PRPG', 'DAPA', 'DBPA', 'DFPA', 'DGPA', 'DIPA', 'DLPA', 'DNPA', 'DOPA', 'DPPA', 'DRPA', 'DTPA', 'DVPA', 'DXPA', 'DYPA', 'LPPA', 'PAPA', 'PGPA', 'PIPA', 'POPA', 'PRPA', 'PUPA', 'DPP', 'DPPI', 'PAPI', 'PIPI', 'POP', 'POPI', 'PUPI', 'PVP', 'PVPI', 'PADG', 'PIDG', 'PODG', 'PUDG', 'PVDG', 'APC', 'CPC', 'IPC', 'LPC', 'OPC', 'PPC', 'TPC', 'UPC', 'VPC', 'BNSM', 'DBSM', 'DPSM', 'DXSM', 'PGSM', 'PNSM', 'POSM', 'PVSM', 'XNSM', 'DPCE', 'DXCE', 'PNCE', 'XNCE'];
+const amberLipids = [
+    // acyl chains
+    'PA', 'ST', 'OL', 'LEO', 'LEN', 'AR', 'DHA',
+    // head groups
+    'PC', 'PE', 'PS', 'PH-', 'P2-', 'PGR', 'PGS', 'PI',
+    // other
+    'CHL'
+];
 
 async function run(out: string) {
     await ensureLipidsAvailable();
@@ -55,13 +63,17 @@ async function run(out: string) {
         UniqueArray.add(lipids, v, v);
     }
 
+    for (const v of amberLipids) {
+        UniqueArray.add(lipids, v, v);
+    }
+
     const lipidNames = JSON.stringify(lipids.array);
 
     if (out) {
         const output = `/**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated lipid params file. Names extracted from Martini FF lipids itp.
+ * Code-generated lipid params file. Names from Martini FF and Amber.
  *
  * @author molstar/lipid-params cli
  */

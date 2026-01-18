@@ -35,6 +35,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Remove fence from `Canvas3D.render` to not interfer with `requestAnimationFrame`
 - Fix boundingSphere reuse in structure visuals (was triggering extra calculation)
 - Use PDB seqres record to deduce entity information
+- Add lipid components names used in amber ff
 
 ## [v5.5.0] - 2025-12-22
 - Viewer app
