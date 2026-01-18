@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -564,7 +564,6 @@ namespace Canvas3D {
                 }
             }),
             xrManager.sessionChanged.subscribe(() => {
-                fenceSync = null;
                 resizeRequested = true;
                 if (xrManager.session) {
                     saveNonXRProps();
@@ -646,8 +645,6 @@ namespace Canvas3D {
             return changed;
         }
 
-        let fenceSync: WebGLSync | null = null;
-
         function render(force: boolean, xrFrame?: XRFrame) {
             if (webgl.isContextLost) return false;
             if (webgl.xr.session && !xrFrame) return false;
@@ -663,14 +660,6 @@ namespace Canvas3D {
             if (x > drs.width || x + width < 0 ||
                 y > drs.height || y + height < 0
             ) return false;
-
-            if (fenceSync !== null && !xrFrame) {
-                if (webgl.checkSyncStatus(fenceSync)) {
-                    fenceSync = null;
-                } else {
-                    return false;
-                }
-            }
 
             if (xrFrame) {
                 setXRProps();
@@ -733,10 +722,6 @@ namespace Canvas3D {
                     pickHelper.dirty = pickHelper.dirty || shouldRender;
                     didRender = true;
                 }
-            }
-
-            if (didRender && !xrFrame) {
-                fenceSync = webgl.getFenceSync();
             }
 
             return didRender;
@@ -1102,7 +1087,6 @@ namespace Canvas3D {
 
         const contextLostSub = contextLost?.subscribe(() => {
             isContextLost = true;
-            fenceSync = null;
             pickHelper.dirty = true;
         });
 
@@ -1230,10 +1214,6 @@ namespace Canvas3D {
                 reprRenderObjects.clear();
                 scene.clear();
                 helper.debug.clear();
-                if (fenceSync !== null) {
-                    webgl.deleteSync(fenceSync);
-                    fenceSync = null;
-                }
                 requestDraw();
                 reprCount.next(reprRenderObjects.size);
             },
@@ -1445,11 +1425,6 @@ namespace Canvas3D {
                 pickHelper.dispose();
                 rayHelper.dispose();
                 xrManager.dispose();
-
-                if (fenceSync !== null) {
-                    webgl.deleteSync(fenceSync);
-                    fenceSync = null;
-                }
 
                 reprCount.complete();
                 interactionEvent.complete();
