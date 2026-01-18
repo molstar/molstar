@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Fred Ludlow <Fred.Ludlow@astx.com>
+ * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  *
  * based in part on NGL (https://github.com/arose/ngl)
  */
@@ -11,14 +12,14 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Structure, Unit, StructureElement } from '../../../mol-model/structure';
 import { FeaturesBuilder, Features } from './features';
 import { ProteinBackboneAtoms, PolymerNames, BaseNames } from '../../../mol-model/structure/model/types';
-import { typeSymbol, atomId, eachBondedAtom } from '../chemistry/util';
+import { typeSymbol, atomId, eachBondedAtom, eachIntraBondedAtom } from '../chemistry/util';
 import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
 import { ValenceModelProvider } from '../valence-model';
 import { degToRad } from '../../../mol-math/misc';
 import { FeatureType, FeatureGroup, InteractionType } from './common';
 import { ContactProvider } from './contacts';
 import { Segmentation } from '../../../mol-data/int';
-import { isGuanidine, isAcetamidine, isPhosphate, isSulfonicAcid, isSulfate, isCarboxylate } from '../chemistry/functional-group';
+import { isGuanidine, isAcetamidine, isPhosphate, isSulfonicAcid, isSulfate, isCarboxylate, isQuaternaryAmine } from '../chemistry/functional-group';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 
 const IonicParams = {
@@ -86,10 +87,24 @@ function addUnitPositiveCharges(structure: Structure, unit: Unit.Atomic, builder
                     group = FeatureGroup.Guanidine;
                 } else if (isAcetamidine(structure, unit, j)) {
                     group = FeatureGroup.Acetamidine;
+                } else if (isQuaternaryAmine(structure, unit, j)) {
+                    group = FeatureGroup.QuaternaryAmine;
+
+                    // special handling for N+: mark the entire functional group
+                    builder.startState();
+                    addedElements.add(j);
+                    builder.pushMember(x[elements[j]], y[elements[j]], z[elements[j]], j);
+
+                    eachIntraBondedAtom(unit, j, (_, k) => {
+                        addedElements.add(k);
+                        builder.markMember(k);
+                    });
+                    builder.finishState(FeatureType.PositiveCharge, group);
+                    continue;
                 }
                 if (group) {
                     builder.startState();
-                    eachBondedAtom(structure, unit, j, (_, k) => {
+                    eachIntraBondedAtom(unit, j, (_, k) => {
                         if (typeSymbol(unit, k) === Elements.N) {
                             addedElements.add(k);
                             builder.pushMember(x[elements[k]], y[elements[k]], z[elements[k]], k);

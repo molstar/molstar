@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -200,6 +200,8 @@ export { FeaturesBuilder };
 interface FeaturesBuilder {
     startState: () => void
     pushMember: (x: number, y: number, z: number, member: StructureElement.UnitIndex) => void
+    /** Mark an element as part of this feature without contributing to the centroid */
+    markMember: (member: StructureElement.UnitIndex) => void
     finishState: (type: FeatureType, group: FeatureGroup) => void
     add: (type: FeatureType, group: FeatureGroup, x: number, y: number, z: number, member: StructureElement.UnitIndex) => void
     getFeatures: (elementsCount: number) => Features
@@ -233,6 +235,9 @@ namespace FeaturesBuilder {
                 state.y += y;
                 state.z += z;
                 state.count += 1;
+            },
+            markMember: (member: StructureElement.UnitIndex) => {
+                ChunkedArray.add(members, member);
             },
             finishState: (type: FeatureType, group: FeatureGroup) => {
                 const { count } = state;
