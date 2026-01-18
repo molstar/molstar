@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -36,7 +36,7 @@ export function parseCmpnd(lines: Tokens, lineStart: number, lineEnd: number) {
         // 11 - 80       Specification   compound      Description of the molecular components.
         //               list
 
-        const cmpnd = line.substr(10, 70).trim();
+        const cmpnd = line.substring(10, 80).trim();
         const cmpndSpecEnd = cmpnd.indexOf(':');
         const cmpndSpec = cmpnd.substring(0, cmpndSpecEnd);
 
@@ -105,8 +105,8 @@ export function parseHetnam(lines: Tokens, lineStart: number, lineEnd: number) {
         // 12 - 14       LString(3)    hetID           Het identifier, right-justified.
         // 16 - 70       String        text            Chemical name.
 
-        const het = line.substr(11, 3).trim();
-        const name = line.substr(15).trim();
+        const het = line.substring(11, 14).trim();
+        const name = line.substring(15).trim(); // support any length
 
         if (hetnams.has(het)) {
             hetnams.set(het, `${hetnams.get(het)!} ${name}`);
@@ -116,4 +116,46 @@ export function parseHetnam(lines: Tokens, lineStart: number, lineEnd: number) {
     }
 
     return hetnams;
+}
+
+export function parseSeqres(lines: Tokens, lineStart: number, lineEnd: number) {
+    const getLine = (n: number) => lines.data.substring(lines.indices[2 * n], lines.indices[2 * n + 1]);
+
+    const seqresMap = new Map<string, string[]>();
+
+    for (let i = lineStart; i < lineEnd; i++) {
+        const line = getLine(i);
+        // COLUMNS        DATA TYPE      FIELD        DEFINITION
+        // -------------------------------------------------------------------------------------
+        // 1 -  6        Record name    "SEQRES"
+        // 8 - 10        Integer        serNum       Serial number of the SEQRES record for  the
+        //                                         current  chain. Starts at 1 and increments
+        //                                         by one  each line. Reset to 1 for each chain.
+        // 12             Character      chainID      Chain identifier. This may be any single
+        //                                         legal  character, including a blank which is
+        //                                         is  used if there is only one chain.
+        // 14 - 17        Integer        numRes       Number of residues in the chain.
+        //                                         This  value is repeated on every record.
+        // 20 - 22        Residue name   resName      Residue name.
+        // 24 - 26        Residue name   resName      Residue name.
+        // 28 - 30        Residue name   resName      Residue name.
+        // 32 - 34        Residue name   resName      Residue name.
+        // 36 - 38        Residue name   resName      Residue name.
+        // 40 - 42        Residue name   resName      Residue name.
+        // 44 - 46        Residue name   resName      Residue name.
+        // 48 - 50        Residue name   resName      Residue name.
+        // 52 - 54        Residue name   resName      Residue name.
+        // 56 - 58        Residue name   resName      Residue name.
+        // 60 - 62        Residue name   resName      Residue name.
+        // 64 - 66        Residue name   resName      Residue name.
+        // 68 - 70        Residue name   resName      Residue name.
+        const chainId = line.substring(11, 12);
+        const residues = line.substring(19).trim().split(/\s+/); // support any number
+        if (!seqresMap.has(chainId)) {
+            seqresMap.set(chainId, []);
+        }
+        seqresMap.get(chainId)!.push(...residues);
+    }
+
+    return seqresMap;
 }
