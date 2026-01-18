@@ -1,13 +1,15 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { StatefulPluginComponent } from '../component';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginStateAnimation } from '../animation/model';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { isDebugMode } from '../../mol-util/debug';
 
 export { PluginAnimationManager };
 
@@ -59,7 +61,14 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
     updateParams(newParams: Partial<PluginAnimationManager.State['params']>) {
         if (this.isEmpty) return;
         this.updateState({ params: { ...this.state.params, ...newParams } });
-        const anim = this.map.get(this.state.params.current)!;
+        const anim = this.map.get(this.state.params.current);
+        if (!anim) {
+            if (isDebugMode) {
+                console.warn(`Animation '${this.state.params.current}' not found. State might be from a different plugin instance.`);
+            }
+            return;
+        }
+
         const params = anim.params(this.context) as PD.Params;
         this._current = {
             anim,
