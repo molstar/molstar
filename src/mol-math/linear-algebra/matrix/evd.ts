@@ -296,15 +296,16 @@ function symmetricDiagonalize(a: number[], d: number[], e: number[], order: numb
 }
 
 function hypotenuse(a: number, b: number) {
-    if (Math.abs(a) > Math.abs(b)) {
-        const r = b / a;
-        return Math.abs(a) * Math.sqrt(1 + (r * r));
-    }
+    return Math.sqrt(a * a + b * b);
+    // if (Math.abs(a) > Math.abs(b)) {
+    //     const r = b / a;
+    //     return Math.abs(a) * Math.sqrt(1 + (r * r));
+    // }
 
-    if (b !== 0.0) {
-        const r = a / b;
-        return Math.abs(b) * Math.sqrt(1 + (r * r));
-    }
+    // if (b !== 0.0) {
+    //     const r = a / b;
+    //     return Math.abs(b) * Math.sqrt(1 + (r * r));
+    // }
 
-    return 0.0;
+    // return 0.0;
 }
