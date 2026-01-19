@@ -241,7 +241,7 @@ class TMAlignState {
         this.dpVal = new Array(lenA + 1);
         for (let i = 0; i <= lenA; i++) {
             this.dpPath[i] = new Array(lenB + 1).fill(false);
-            this.dpVal[i] = new Array(lenB + 1).fill(0);
+            this.dpVal[i] = new Array(lenB + 1).fill(0.0);
         }
         this.j2i = new Array(lenB).fill(-1);
 
@@ -804,11 +804,11 @@ class TMAlignState {
 
         // Initialize
         for (let i = 0; i <= lenA; i++) {
-            dpVal[i][0] = 0;
+            dpVal[i][0] = 0.0;
             dpPath[i][0] = false;
         }
         for (let j = 0; j <= lenB; j++) {
-            dpVal[0][j] = 0;
+            dpVal[0][j] = 0.0;
             dpPath[0][j] = false;
             j2i[j] = -1;
         }
@@ -881,11 +881,11 @@ class TMAlignState {
 
         // Initialize
         for (let i = 0; i <= lenA; i++) {
-            dpVal[i][0] = 0;
+            dpVal[i][0] = 0.0;
             dpPath[i][0] = false;
         }
         for (let j = 0; j <= lenB; j++) {
-            dpVal[0][j] = 0;
+            dpVal[0][j] = 0.0;
             dpPath[0][j] = false;
             j2i[j] = -1;
         }
