@@ -133,8 +133,8 @@ namespace TMAlign {
      * Calculate TM-score for a given alignment and transformation
      */
     function calculateTMScore(
-        xa: number[][],
-        ya: number[][],
+        xa: Vec3[],
+        ya: Vec3[],
         alignA: number[],
         alignB: number[],
         transform: Mat4,
@@ -145,18 +145,14 @@ namespace TMAlign {
 
         const d02 = d0 * d0;
         let score = 0;
-        const vA = Vec3();
-        const vB = Vec3();
+        const v = Vec3();
 
         for (let i = 0; i < alignA.length; i++) {
             const ai = alignA[i];
             const bi = alignB[i];
 
-            Vec3.set(vA, xa[ai][0], xa[ai][1], xa[ai][2]);
-            Vec3.set(vB, ya[bi][0], ya[bi][1], ya[bi][2]);
-            Vec3.transformMat4(vB, vB, transform);
-
-            const distSq = Vec3.squaredDistance(vA, vB);
+            Vec3.transformMat4(v, ya[bi], transform);
+            const distSq = Vec3.squaredDistance(xa[ai], v);
             score += 1.0 / (1.0 + distSq / d02);
         }
 
@@ -167,8 +163,8 @@ namespace TMAlign {
      * Calculate RMSD for aligned pairs after transformation
      */
     function calculateRMSD(
-        xa: number[][],
-        ya: number[][],
+        xa: Vec3[],
+        ya: Vec3[],
         alignA: number[],
         alignB: number[],
         transform: Mat4
@@ -176,25 +172,22 @@ namespace TMAlign {
         if (alignA.length === 0) return 0;
 
         let sumSq = 0;
-        const vA = Vec3();
-        const vB = Vec3();
+        const v = Vec3();
 
         for (let i = 0; i < alignA.length; i++) {
-            Vec3.set(vA, xa[alignA[i]][0], xa[alignA[i]][1], xa[alignA[i]][2]);
-            Vec3.set(vB, ya[alignB[i]][0], ya[alignB[i]][1], ya[alignB[i]][2]);
-            Vec3.transformMat4(vB, vB, transform);
-            sumSq += Vec3.squaredDistance(vA, vB);
+            Vec3.transformMat4(v, ya[alignB[i]], transform);
+            sumSq += Vec3.squaredDistance(xa[alignA[i]], v);
         }
 
         return Math.sqrt(sumSq / alignA.length);
     }
 
     /** Convert Positions to 2D array for internal computation */
-    function positionsToArray(pos: Positions): number[][] {
+    function positionsToArray(pos: Positions): Vec3[] {
         const n = pos.x.length;
-        const result: number[][] = new Array(n);
+        const result: Vec3[] = new Array(n);
         for (let i = 0; i < n; i++) {
-            result[i] = [pos.x[i], pos.y[i], pos.z[i]];
+            result[i] = <any>[pos.x[i], pos.y[i], pos.z[i]];
         }
         return result;
     }
@@ -204,8 +197,8 @@ namespace TMAlign {
  * Internal state class for TM-align computation
  */
 class TMAlignState {
-    private xa: number[][];
-    private ya: number[][];
+    private xa: Vec3[];
+    private ya: Vec3[];
     private lenA: number;
     private lenB: number;
     private d0A: number;
@@ -231,8 +224,8 @@ class TMAlignState {
         d0Search: number,
         scoreD8: number
     ) {
-        this.xa = xa;
-        this.ya = ya;
+        this.xa = <any> xa;
+        this.ya = <any> ya;
         this.lenA = lenA;
         this.lenB = lenB;
         this.d0A = d0A;
@@ -311,6 +304,7 @@ class TMAlignState {
 
         // Try different distance cutoffs to find optimal alignment
         const cutoffs = [8.0, 7.0, 6.0, 5.5, 5.0, 4.5, 4.0];
+        const v = Vec3();
 
         for (const cutoff of cutoffs) {
             const cutoffSq = cutoff * cutoff;
@@ -323,13 +317,8 @@ class TMAlignState {
                 const ai = this.bestAlignmentA[i];
                 const bi = this.bestAlignmentB[i];
 
-                const v = Vec3.create(ya[bi][0], ya[bi][1], ya[bi][2]);
-                Vec3.transformMat4(v, v, this.bestTransform);
-
-                const dx = v[0] - xa[ai][0];
-                const dy = v[1] - xa[ai][1];
-                const dz = v[2] - xa[ai][2];
-                const distSq = dx * dx + dy * dy + dz * dz;
+                Vec3.transformMat4(v, ya[bi], this.bestTransform);
+                const distSq = Vec3.squaredDistance(v, xa[ai]);
 
                 if (distSq <= cutoffSq) {
                     filteredA.push(ai);
@@ -380,18 +369,15 @@ class TMAlignState {
         const { xa, ya } = this;
         const d02 = d0 * d0;
         let score = 0;
+        const v = Vec3();
 
         for (let i = 0; i < alignA.length; i++) {
             const ai = alignA[i];
             const bi = alignB[i];
 
-            const v = Vec3.create(ya[bi][0], ya[bi][1], ya[bi][2]);
-            Vec3.transformMat4(v, v, transform);
+            Vec3.transformMat4(v, ya[bi], transform);
 
-            const dx = v[0] - xa[ai][0];
-            const dy = v[1] - xa[ai][1];
-            const dz = v[2] - xa[ai][2];
-            const distSq = dx * dx + dy * dy + dz * dz;
+            const distSq = Vec3.squaredDistance(v, xa[ai]);
 
             score += 1.0 / (1.0 + distSq / d02);
         }
@@ -406,6 +392,8 @@ class TMAlignState {
         if (cutoff < 1) return;
         const { xa, ya, lenA, d0A, d0Search, scoreD8 } = this;
         const cutoffSq = cutoff * cutoff;
+        const v = Vec3();
+        const yt: Vec3[] = Array.from({ length: this.lenB }, () => [0.0, 0.0, 0.0] as unknown as Vec3);
 
         for (let iter = 0; iter < 10; iter++) {
             if (this.bestAlignmentA.length < 3) break;
@@ -418,14 +406,9 @@ class TMAlignState {
                 const ai = this.bestAlignmentA[i];
                 const bi = this.bestAlignmentB[i];
 
-                const v = Vec3.create(ya[bi][0], ya[bi][1], ya[bi][2]);
-                Vec3.transformMat4(v, v, this.bestTransform);
+                Vec3.transformMat4(v, ya[bi], this.bestTransform);
 
-                const dx = v[0] - xa[ai][0];
-                const dy = v[1] - xa[ai][1];
-                const dz = v[2] - xa[ai][2];
-                const distSq = dx * dx + dy * dy + dz * dz;
-
+                const distSq = Vec3.squaredDistance(v, xa[ai]);
                 if (distSq <= cutoffSq) {
                     trimmedA.push(ai);
                     trimmedB.push(bi);
@@ -437,11 +420,8 @@ class TMAlignState {
             const transform = this.kabsch(trimmedA, trimmedB);
 
             // Transform ya
-            const yt: number[][] = new Array(this.lenB);
             for (let i = 0; i < this.lenB; i++) {
-                const v = Vec3.create(ya[i][0], ya[i][1], ya[i][2]);
-                Vec3.transformMat4(v, v, transform);
-                yt[i] = [v[0], v[1], v[2]];
+                Vec3.transformMat4(yt[i], ya[i], transform);
             }
 
             // Run DP with transformed coordinates
@@ -598,10 +578,7 @@ class TMAlignState {
 
         for (let i = 1; i <= lenA; i++) {
             for (let j = 1; j <= lenB; j++) {
-                const dx = xa[i - 1][0] - ya[j - 1][0];
-                const dy = xa[i - 1][1] - ya[j - 1][1];
-                const dz = xa[i - 1][2] - ya[j - 1][2];
-                const distSq = dx * dx + dy * dy + dz * dz;
+                const distSq = Vec3.squaredDistance(xa[i - 1], ya[j - 1]);
                 score[i][j] = 1.0 / (1.0 + distSq / d02);
             }
         }
@@ -620,15 +597,13 @@ class TMAlignState {
         let currentAlignA: number[] = [];
         let currentAlignB: number[] = [];
         let prevScore = -1;
+        const yt: Vec3[] = Array.from({ length: lenB }, () => [0.0, 0.0, 0.0] as unknown as Vec3);
 
         // Iteratively refine this seed
         for (let iter = 0; iter < 20; iter++) {
             // Transform ya by current transform
-            const yt: number[][] = new Array(lenB);
             for (let i = 0; i < lenB; i++) {
-                const v = Vec3.create(ya[i][0], ya[i][1], ya[i][2]);
-                Vec3.transformMat4(v, v, currentTransform);
-                yt[i] = [v[0], v[1], v[2]];
+                Vec3.transformMat4(yt[i], ya[i], currentTransform);
             }
 
             // Run structure-based DP
@@ -687,18 +662,14 @@ class TMAlignState {
         // Find well-aligned pairs
         const trimmedAlignA: number[] = [];
         const trimmedAlignB: number[] = [];
+        const v = Vec3();
 
         for (let i = 0; i < alignA.length; i++) {
             const ai = alignA[i];
             const bi = alignB[i];
 
-            const v = Vec3.create(ya[bi][0], ya[bi][1], ya[bi][2]);
-            Vec3.transformMat4(v, v, currentTransform);
-
-            const dx = v[0] - xa[ai][0];
-            const dy = v[1] - xa[ai][1];
-            const dz = v[2] - xa[ai][2];
-            const distSq = dx * dx + dy * dy + dz * dz;
+            Vec3.transformMat4(v, ya[bi], currentTransform);
+            const distSq = Vec3.squaredDistance(v, xa[ai]);
 
             if (distSq <= cutoffSq) {
                 trimmedAlignA.push(ai);
@@ -719,8 +690,9 @@ class TMAlignState {
      * Refine the current best alignment iteratively
      */
     private refineAlignment(): void {
-        const { xa, ya, lenA, d0A, d0Search, scoreD8 } = this;
+        const { xa, ya, lenA, lenB, d0A, d0Search, scoreD8 } = this;
         const maxIterations = 20;
+        const yt: Vec3[] = Array.from({ length: lenB }, () => [0.0, 0.0, 0.0] as unknown as Vec3);
 
         for (let iter = 0; iter < maxIterations; iter++) {
             if (this.bestAlignmentA.length < 3) break;
@@ -734,11 +706,8 @@ class TMAlignState {
             );
 
             // Transform ya
-            const yt: number[][] = new Array(this.lenB);
-            for (let i = 0; i < this.lenB; i++) {
-                const v = Vec3.create(ya[i][0], ya[i][1], ya[i][2]);
-                Vec3.transformMat4(v, v, transform);
-                yt[i] = [v[0], v[1], v[2]];
+            for (let i = 0; i < lenB; i++) {
+                Vec3.transformMat4(yt[i], ya[i], transform);
             }
 
             // Run DP with transformed coordinates
@@ -801,18 +770,14 @@ class TMAlignState {
         const d02 = d0 * d0;
         const scoreD8Sq = scoreD8 * scoreD8;
         let score = 0;
+        const v = Vec3();
 
         for (let i = 0; i < alignA.length; i++) {
             const ai = alignA[i];
             const bi = alignB[i];
 
-            const v = Vec3.create(ya[bi][0], ya[bi][1], ya[bi][2]);
-            Vec3.transformMat4(v, v, transform);
-
-            const dx = v[0] - xa[ai][0];
-            const dy = v[1] - xa[ai][1];
-            const dz = v[2] - xa[ai][2];
-            const distSq = dx * dx + dy * dy + dz * dz;
+            Vec3.transformMat4(v, ya[bi], transform);
+            const distSq = Vec3.squaredDistance(v, xa[ai]);
 
             if (distSq <= scoreD8Sq) {
                 score += 1.0 / (1.0 + distSq / d02);
@@ -902,7 +867,7 @@ class TMAlignState {
     /**
      * Structure-based DP (coordinates already transformed)
      */
-    private nwdpStructure(xa: number[][], yt: number[][], d02: number, gapOpen: number): void {
+    private nwdpStructure(xa: Vec3[], yt: Vec3[], d02: number, gapOpen: number): void {
         const { lenA, lenB, dpPath, dpVal, j2i } = this;
 
         // Initialize
@@ -919,10 +884,7 @@ class TMAlignState {
         // Fill DP matrix
         for (let i = 1; i <= lenA; i++) {
             for (let j = 1; j <= lenB; j++) {
-                const dx = xa[i - 1][0] - yt[j - 1][0];
-                const dy = xa[i - 1][1] - yt[j - 1][1];
-                const dz = xa[i - 1][2] - yt[j - 1][2];
-                const distSq = dx * dx + dy * dy + dz * dz;
+                const distSq = Vec3.squaredDistance(xa[i - 1], yt[j - 1]);
 
                 const d = dpVal[i - 1][j - 1] + 1.0 / (1.0 + distSq / d02);
                 let h = dpVal[i - 1][j];
