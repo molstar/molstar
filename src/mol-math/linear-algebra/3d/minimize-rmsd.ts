@@ -28,7 +28,8 @@ namespace MinimizeRmsd {
         a: Positions,
         b: Positions,
         centerA?: Vec3,
-        centerB?: Vec3
+        centerB?: Vec3,
+        length?: number
     }
 
     export function compute(data: Input, result?: MinimizeRmsd.Result) {
@@ -41,9 +42,10 @@ namespace MinimizeRmsd {
 class RmsdTransformState {
     a: MinimizeRmsd.Positions;
     b: MinimizeRmsd.Positions;
+    length: number;
 
-    centerA = Vec3();
-    centerB = Vec3();
+    centerA: Vec3;
+    centerB: Vec3;
 
     evdCache: EVD.Cache = EVD.createCache(4);
 
@@ -56,20 +58,20 @@ class RmsdTransformState {
     constructor(data: MinimizeRmsd.Input, into: MinimizeRmsd.Result) {
         this.a = data.a;
         this.b = data.b;
+        this.length = data.length ?? data.a.x.length;
 
         if (data.centerA) this.centerA = data.centerA;
-        else this.centerA = data.centerA = computeCenter(data.a, this.centerA);
+        else this.centerA = data.centerA = computeCenter(data.a, Vec3(), this.length);
 
         if (data.centerB) this.centerB = data.centerB;
-        else this.centerB = data.centerB = computeCenter(data.b, this.centerB);
+        else this.centerB = data.centerB = computeCenter(data.b, Vec3(), this.length);
 
         this.result = into;
     }
 }
 
-function computeCenter(pos: MinimizeRmsd.Positions, toCenter: Vec3, length?: number) {
+function computeCenter(pos: MinimizeRmsd.Positions, toCenter: Vec3, L: number) {
     let xSum = 0.0, ySum = 0.0, zSum = 0.0;
-    const L = length ?? pos.x.length;
     for (let i = 0; i < L; i++) {
         xSum += pos.x[i];
         ySum += pos.y[i];
@@ -91,7 +93,7 @@ function computeN(state: RmsdTransformState) {
 
     let sizeSq = 0.0;
 
-    const L = Math.min(state.a.x.length, state.b.x.length);
+    const L = state.length;
     for (let i = 0; i < L; i++) {
         const aX = xsA[i] - cA[0], aY = ysA[i] - cA[1], aZ = zsA[i] - cA[2];
         const bX = xsB[i] - cB[0], bY = ysB[i] - cB[1], bZ = zsB[i] - cB[2];
@@ -178,8 +180,8 @@ function findMinimalRmsdTransformImpl(state: RmsdTransformState): void {
 
     EVD.compute(state.evdCache);
     let rmsd = sizeSq - 2.0 * state.evdCache.eigenValues[3];
-    rmsd = rmsd < 0.0 ? 0.0 : Math.sqrt(rmsd / state.a.x.length);
+    rmsd = rmsd < 0.0 ? 0.0 : Math.sqrt(rmsd / state.length);
     makeTransformMatrix(state);
     state.result.rmsd = rmsd;
-    state.result.nAlignedElements = state.a.x.length;
+    state.result.nAlignedElements = state.length;
 }

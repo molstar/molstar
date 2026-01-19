@@ -215,6 +215,10 @@ class TMAlignState {
     private dpVal: number[][];
     private j2i: number[];
 
+    // Working pos vectors
+    private posA: MinimizeRmsd.Positions;
+    private posB: MinimizeRmsd.Positions;
+
     constructor(
         xa: number[][],
         ya: number[][],
@@ -240,6 +244,9 @@ class TMAlignState {
             this.dpVal[i] = new Array(lenB + 1).fill(0);
         }
         this.j2i = new Array(lenB).fill(-1);
+
+        this.posA = MinimizeRmsd.Positions.empty(lenA);
+        this.posB = MinimizeRmsd.Positions.empty(lenB);
     }
 
     /**
@@ -928,25 +935,23 @@ class TMAlignState {
         const n = alignA.length;
         if (n < 3) return Mat4.identity();
 
-        const { xa, ya } = this;
+        const { xa, ya, posA, posB } = this;
 
-        const posA = MinimizeRmsd.Positions.empty(n);
-        const posB = MinimizeRmsd.Positions.empty(n);
         let xai = xa[0];
         let ybi = ya[0];
 
         for (let i = 0; i < n; i++) {
             xai = xa[alignA[i]];
             ybi = ya[alignB[i]];
-            posA.x[i] = xai[0];
-            posA.y[i] = xai[1];
-            posA.z[i] = xai[2];
-            posB.x[i] = ybi[0];
-            posB.y[i] = ybi[1];
-            posB.z[i] = ybi[2];
+            (<any>posA.x)[i] = xai[0];
+            (<any>posA.y)[i] = xai[1];
+            (<any>posA.z)[i] = xai[2];
+            (<any>posB.x)[i] = ybi[0];
+            (<any>posB.y)[i] = ybi[1];
+            (<any>posB.z)[i] = ybi[2];
         }
 
-        const result = MinimizeRmsd.compute({ a: posA, b: posB });
+        const result = MinimizeRmsd.compute({ a: posA, b: posB, length: n });
         return result.bTransform;
     }
 
