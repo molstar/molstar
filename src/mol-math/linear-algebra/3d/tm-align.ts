@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Diego del Alamo <diego.delalamo@gmail.com>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  *
  * TM-align: Structure-based protein alignment algorithm
  *
