@@ -333,7 +333,7 @@ class TMAlignState {
                 }
             }
 
-            if (filteredA.length < 3) continue;
+            if (filteredA.length < 3) break;
 
             // Compute Kabsch on filtered pairs
             const transform = this.kabsch(filteredA, filteredB);
@@ -747,6 +747,8 @@ class TMAlignState {
                 this.bestAlignmentA = newAlignA;
                 this.bestAlignmentB = newAlignB;
                 this.bestTransform = newTransform;
+            } else {
+                break;
             }
         }
     }
