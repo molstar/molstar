@@ -596,24 +596,32 @@ class TMAlignState {
      * Get initial alignment using length-independent approach
      */
     private getInitialAlignment(): void {
-        const { xa, ya, lenA, lenB, d0Search } = this;
+        const { xa, ya, lenB, d0Search, j2i } = this;
         const d02 = d0Search * d0Search;
 
-        // Build initial score matrix based on distances
-        const score: number[][] = new Array(lenA + 1);
-        for (let i = 0; i <= lenA; i++) {
-            score[i] = new Array(lenB + 1).fill(0);
-        }
+        this.nwdpStructure(xa, ya, d02, -0.6);
 
-        for (let i = 1; i <= lenA; i++) {
-            for (let j = 1; j <= lenB; j++) {
-                const distSq = Vec3.squaredDistance(xa[i - 1], ya[j - 1]);
-                score[i][j] = 1.0 / (1.0 + distSq / d02);
+        // Extract alignment from j2i
+        this.bestAlignmentA = [];
+        this.bestAlignmentB = [];
+        for (let jj = 0; jj < lenB; jj++) {
+            if (j2i[jj] >= 0) {
+                this.bestAlignmentA.push(j2i[jj]);
+                this.bestAlignmentB.push(jj);
             }
         }
 
-        // Run DP alignment
-        this.nwdpScore(score, -0.6);
+        if (this.bestAlignmentA.length >= 3) {
+            this.bestTransform = this.kabsch(this.bestAlignmentA, this.bestAlignmentB);
+            this.bestScore = this.scoreTMWithCutoff(
+                this.bestAlignmentA,
+                this.bestAlignmentB,
+                this.bestTransform,
+                this.d0A,
+                this.lenA,
+                this.scoreD8
+            );
+        }
     }
 
     /**
@@ -817,83 +825,6 @@ class TMAlignState {
         }
 
         return score / normLen;
-    }
-
-    /**
-     * Needleman-Wunsch DP with score matrix
-     */
-    private nwdpScore(score: number[][], gapOpen: number): void {
-        const { lenA, lenB, dpPath, dpVal, j2i } = this;
-
-        // Initialize
-        for (let i = 0; i <= lenA; i++) {
-            dpVal[i][0] = 0.0;
-            dpPath[i][0] = false;
-        }
-        for (let j = 0; j <= lenB; j++) {
-            dpVal[0][j] = 0.0;
-            dpPath[0][j] = false;
-            j2i[j] = -1;
-        }
-
-        // Fill DP matrix
-        for (let i = 1; i <= lenA; i++) {
-            for (let j = 1; j <= lenB; j++) {
-                const d = dpVal[i - 1][j - 1] + score[i][j];
-                let h = dpVal[i - 1][j];
-                if (dpPath[i - 1][j]) h += gapOpen;
-                let v = dpVal[i][j - 1];
-                if (dpPath[i][j - 1]) v += gapOpen;
-
-                if (d >= h && d >= v) {
-                    dpPath[i][j] = true;
-                    dpVal[i][j] = d;
-                } else {
-                    dpPath[i][j] = false;
-                    dpVal[i][j] = v >= h ? v : h;
-                }
-            }
-        }
-
-        // Traceback
-        let i = lenA;
-        let j = lenB;
-        while (i > 0 && j > 0) {
-            if (dpPath[i][j]) {
-                j2i[j - 1] = i - 1;
-                i--;
-                j--;
-            } else {
-                let h = dpVal[i - 1][j];
-                if (dpPath[i - 1][j]) h += gapOpen;
-                let v = dpVal[i][j - 1];
-                if (dpPath[i][j - 1]) v += gapOpen;
-                if (v >= h) j--;
-                else i--;
-            }
-        }
-
-        // Extract alignment from j2i
-        this.bestAlignmentA = [];
-        this.bestAlignmentB = [];
-        for (let jj = 0; jj < lenB; jj++) {
-            if (j2i[jj] >= 0) {
-                this.bestAlignmentA.push(j2i[jj]);
-                this.bestAlignmentB.push(jj);
-            }
-        }
-
-        if (this.bestAlignmentA.length >= 3) {
-            this.bestTransform = this.kabsch(this.bestAlignmentA, this.bestAlignmentB);
-            this.bestScore = this.scoreTMWithCutoff(
-                this.bestAlignmentA,
-                this.bestAlignmentB,
-                this.bestTransform,
-                this.d0A,
-                this.lenA,
-                this.scoreD8
-            );
-        }
     }
 
     /**
