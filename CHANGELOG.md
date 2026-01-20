@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Disable occlusion culling in `ImagePass` (#1758)
 
 ## [v5.6.0] - 2026-01-18
 - Handle Hex codes that are submitted with alpha channels by ignoring the alpha channel (#1746)

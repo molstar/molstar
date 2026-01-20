@@ -110,6 +110,7 @@ export class ImagePass {
         Camera.copySnapshot(this._camera.state, this.camera.state);
         Viewport.set(this._camera.viewport, 0, 0, this._width, this._height);
         this._camera.update();
+        this.renderer.setOcclusionTest(null);
 
         const ctx = { renderer: this.renderer, camera: this._camera, scene: this.scene, helper: this.helper };
         if (this.illuminationPass.supported && this.props.illumination.enabled) {
