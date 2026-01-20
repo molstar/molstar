@@ -14,6 +14,7 @@
 import { Mat4 } from './mat4';
 import { Vec3 } from './vec3';
 import { MinimizeRmsd } from './minimize-rmsd';
+import type { UintArray } from '../../../mol-util/type-helpers';
 
 export { TMAlign };
 
@@ -220,6 +221,13 @@ class TMAlignState {
     private posA: MinimizeRmsd.Positions;
     private posB: MinimizeRmsd.Positions;
 
+    // Transformed coordinates of structure B
+    private yt: Vec3[];
+
+    // Working arrays for alignment indices
+    private tmpAlignA: Uint16Array;
+    private tmpAlignB: Uint16Array;
+
     constructor(
         xa: number[][],
         ya: number[][],
@@ -248,6 +256,11 @@ class TMAlignState {
 
         this.posA = MinimizeRmsd.Positions.empty(lenA);
         this.posB = MinimizeRmsd.Positions.empty(lenB);
+
+        this.yt = Array.from({ length: lenB }, () => [0.1, 0.0, 0.0] as unknown as Vec3);
+
+        this.tmpAlignA = new Uint16Array(lenA);
+        this.tmpAlignB = new Uint16Array(lenB);
     }
 
     /**
@@ -308,18 +321,18 @@ class TMAlignState {
      * to maximize TM-score
      */
     private optimizeFinalAlignment(): void {
-        const { xa, ya, d0A, lenA } = this;
+        const { xa, ya, d0A, lenA, tmpAlignA: filteredA, tmpAlignB: filteredB } = this;
 
         // Try different distance cutoffs to find optimal alignment
         const cutoffs = [8.0, 7.0, 6.0, 5.5, 5.0, 4.5, 4.0];
         const v = Vec3();
+        let n = 0;
 
         for (const cutoff of cutoffs) {
             const cutoffSq = cutoff * cutoff;
 
             // Filter pairs by distance
-            const filteredA: number[] = [];
-            const filteredB: number[] = [];
+            n = 0;
 
             for (let i = 0; i < this.bestAlignmentA.length; i++) {
                 const ai = this.bestAlignmentA[i];
@@ -329,15 +342,16 @@ class TMAlignState {
                 const distSq = Vec3.squaredDistance(v, xa[ai]);
 
                 if (distSq <= cutoffSq) {
-                    filteredA.push(ai);
-                    filteredB.push(bi);
+                    filteredA[n] = ai;
+                    filteredB[n] = bi;
+                    n++;
                 }
             }
 
-            if (filteredA.length < 3) break;
+            if (n < 3) break;
 
             // Compute Kabsch on filtered pairs
-            const transform = this.kabsch(filteredA, filteredB);
+            const transform = this.kabsch(filteredA.subarray(0, n), filteredB.subarray(0, n));
 
             // Score using FULL alignment (not filtered) with new transform
             const score = this.scoreTM(
@@ -350,7 +364,7 @@ class TMAlignState {
 
             if (score > this.bestScore) {
                 this.bestScore = score;
-                this.bestTransform = Mat4.clone(transform);
+                Mat4.copy(this.bestTransform, transform);
             }
         }
 
@@ -398,17 +412,16 @@ class TMAlignState {
      */
     private refineWithCutoff(cutoff: number): void {
         if (cutoff < 1) return;
-        const { xa, ya, lenA, d0A, d0Search, scoreD8 } = this;
+        const { xa, ya, yt, lenA, d0A, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
         const cutoffSq = cutoff * cutoff;
         const v = Vec3();
-        const yt: Vec3[] = Array.from({ length: this.lenB }, () => [0.0, 0.0, 0.0] as unknown as Vec3);
+        let n = 0;
 
         for (let iter = 0; iter < 10; iter++) {
             if (this.bestAlignmentA.length < 3) break;
 
             // Use trimmed Kabsch with this cutoff
-            const trimmedA: number[] = [];
-            const trimmedB: number[] = [];
+            n = 0;
 
             for (let i = 0; i < this.bestAlignmentA.length; i++) {
                 const ai = this.bestAlignmentA[i];
@@ -418,13 +431,16 @@ class TMAlignState {
 
                 const distSq = Vec3.squaredDistance(v, xa[ai]);
                 if (distSq <= cutoffSq) {
-                    trimmedA.push(ai);
-                    trimmedB.push(bi);
+                    tmpAlignA[n] = ai;
+                    tmpAlignB[n] = bi;
+                    n++;
                 }
             }
 
-            if (trimmedA.length < 3) break;
+            if (n < 3) break;
 
+            const trimmedA = tmpAlignA.subarray(0, n);
+            const trimmedB = tmpAlignB.subarray(0, n);
             const transform = this.kabsch(trimmedA, trimmedB);
 
             // Transform ya
@@ -437,16 +453,19 @@ class TMAlignState {
             this.nwdpStructure(xa, yt, d * d, -0.6);
 
             // Extract new alignment
-            const newAlignA: number[] = [];
-            const newAlignB: number[] = [];
+            n = 0;
             for (let j = 0; j < this.lenB; j++) {
                 if (this.j2i[j] >= 0) {
-                    newAlignA.push(this.j2i[j]);
-                    newAlignB.push(j);
+                    tmpAlignA[n] = this.j2i[j];
+                    tmpAlignB[n] = j;
+                    n++;
                 }
             }
 
-            if (newAlignA.length < 3) break;
+            if (n < 3) break;
+
+            const newAlignA = tmpAlignA.subarray(0, n);
+            const newAlignB = tmpAlignB.subarray(0, n);
 
             // Compute final Kabsch and score
             const newTransform = this.trimmedKabsch(newAlignA, newAlignB, transform, scoreD8);
@@ -454,8 +473,8 @@ class TMAlignState {
 
             if (newScore > this.bestScore) {
                 this.bestScore = newScore;
-                this.bestAlignmentA = newAlignA;
-                this.bestAlignmentB = newAlignB;
+                this.bestAlignmentA = Array.from(newAlignA);
+                this.bestAlignmentB = Array.from(newAlignB);
                 this.bestTransform = newTransform;
             } else {
                 break;
@@ -468,23 +487,28 @@ class TMAlignState {
      * This is O(n) per offset and provides good initial seeds
      */
     private tryGaplessThreading(): void {
-        const { lenA, lenB, d0A, scoreD8 } = this;
+        const { lenA, lenB, d0A, scoreD8, tmpAlignA, tmpAlignB } = this;
+        let n = 0;
 
         // Try various offsets
         for (let offset = -lenB + 4; offset <= lenA - 4; offset++) {
-            const alignA: number[] = [];
-            const alignB: number[] = [];
+            n = 0;
+            // TODO: use an increment array and compute the boundaries depending on lenA, lenB and offset
 
             // Build gapless alignment with this offset
             for (let i = 0; i < lenA; i++) {
                 const j = i - offset;
                 if (j >= 0 && j < lenB) {
-                    alignA.push(i);
-                    alignB.push(j);
+                    tmpAlignA[n] = i;
+                    tmpAlignB[n] = j;
+                    n++;
                 }
             }
 
-            if (alignA.length < 4) continue;
+            if (n < 4) continue;
+
+            const alignA = tmpAlignA.subarray(0, n);
+            const alignB = tmpAlignB.subarray(0, n);
 
             // Compute Kabsch
             const transform = this.kabsch(alignA, alignB);
@@ -503,23 +527,22 @@ class TMAlignState {
      * Medium-thoroughness fragment-based initialization
      */
     private tryFragmentInitializationMedium(fragLen: number): void {
-        const { lenA, lenB, d0A, scoreD8 } = this;
+        const { lenA, lenB, d0A, scoreD8, tmpAlignA, tmpAlignB } = this;
         const maxStartA = lenA - fragLen;
         const maxStartB = lenB - fragLen;
         // Use fragLen/2 as step for more thorough search
         const step = Math.max(2, Math.floor(fragLen / 2));
 
+        const incrSequence = lenA < lenB ? tmpAlignB : tmpAlignA;
+        for (let i = 0; i < incrSequence.length; i++) {
+            incrSequence[i] = i;
+        }
+
         for (let startA = 0; startA <= maxStartA; startA += step) {
-            const fragA: number[] = [];
-            for (let k = 0; k < fragLen; k++) {
-                fragA.push(startA + k);
-            }
+            const fragA = incrSequence.subarray(startA, startA + fragLen);
+
             for (let startB = 0; startB <= maxStartB; startB += step) {
-                // Extract fragment
-                const fragB: number[] = [];
-                for (let k = 0; k < fragLen; k++) {
-                    fragB.push(startB + k);
-                }
+                const fragB = incrSequence.subarray(startB, startB + fragLen);
 
                 // Superpose fragments
                 const transform = this.kabsch(fragA, fragB);
@@ -538,24 +561,22 @@ class TMAlignState {
      * Fast fragment-based initialization with large steps
      */
     private tryFragmentInitializationFast(fragLen: number): void {
-        const { lenA, lenB, d0A, scoreD8 } = this;
+        const { lenA, lenB, d0A, scoreD8, tmpAlignA, tmpAlignB } = this;
         const maxStartA = lenA - fragLen;
         const maxStartB = lenB - fragLen;
         // Use fragment length as step - only try diagonal and near-diagonal positions
         const step = Math.max(fragLen, 10);
 
+        const incrSequence = lenA < lenB ? tmpAlignB : tmpAlignA;
+        for (let i = 0; i < incrSequence.length; i++) {
+            incrSequence[i] = i;
+        }
+
         for (let startA = 0; startA <= maxStartA; startA += step) {
-            const fragA: number[] = [];
-            for (let k = 0; k < fragLen; k++) {
-                fragA.push(startA + k);
-            }
+            const fragA = incrSequence.subarray(startA, startA + fragLen);
 
             for (let startB = 0; startB <= maxStartB; startB += step) {
-                // Extract fragment
-                const fragB: number[] = [];
-                for (let k = 0; k < fragLen; k++) {
-                    fragB.push(startB + k);
-                }
+                const fragB = incrSequence.subarray(startB, startB + fragLen);
 
                 // Superpose fragments
                 const transform = this.kabsch(fragA, fragB);
@@ -599,13 +620,13 @@ class TMAlignState {
      * Extend alignment from a seed transformation with iterative refinement
      */
     private extendFromSeed(initialTransform: Mat4): void {
-        const { xa, ya, lenA, lenB, d0A, d0Search, scoreD8 } = this;
+        const { xa, ya, yt, lenA, lenB, d0A, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
 
         let currentTransform = initialTransform;
         let currentAlignA: number[] = [];
         let currentAlignB: number[] = [];
         let prevScore = -1;
-        const yt: Vec3[] = Array.from({ length: lenB }, () => [0.0, 0.0, 0.0] as unknown as Vec3);
+        let n = 0;
 
         // Iteratively refine this seed
         for (let iter = 0; iter < 20; iter++) {
@@ -619,16 +640,18 @@ class TMAlignState {
             this.nwdpStructure(xa, yt, d * d, -0.6);
 
             // Extract alignment from j2i
-            const alignA: number[] = [];
-            const alignB: number[] = [];
+            n = 0;
             for (let j = 0; j < lenB; j++) {
                 if (this.j2i[j] >= 0) {
-                    alignA.push(this.j2i[j]);
-                    alignB.push(j);
+                    tmpAlignA[n] = this.j2i[j];
+                    tmpAlignB[n] = j;
+                    n++;
                 }
             }
 
-            if (alignA.length < 3) break;
+            if (n < 3) break;
+            const alignA = tmpAlignA.subarray(0, n);
+            const alignB = tmpAlignB.subarray(0, n);
 
             // Check convergence
             if (this.alignmentsEqual(alignA, alignB, currentAlignA, currentAlignB)) {
@@ -641,21 +664,21 @@ class TMAlignState {
             // Score this alignment
             const score = this.scoreTMWithCutoff(alignA, alignB, transform, d0A, lenA, scoreD8);
 
-            // Update current state
-            currentAlignA = alignA;
-            currentAlignB = alignB;
-            currentTransform = transform;
-
             // Check if score improved
             if (score <= prevScore) break;
             prevScore = score;
 
+            // Update current state
+            currentAlignA = Array.from(alignA);
+            currentAlignB = Array.from(alignB);
+            currentTransform = transform;
+
             // Update global best if this is better
             if (score > this.bestScore) {
                 this.bestScore = score;
-                this.bestAlignmentA = alignA.slice();
-                this.bestAlignmentB = alignB.slice();
-                this.bestTransform = Mat4.clone(transform);
+                this.bestAlignmentA = currentAlignA;
+                this.bestAlignmentB = currentAlignB;
+                Mat4.copy(this.bestTransform, transform);
             }
         }
     }
@@ -663,7 +686,7 @@ class TMAlignState {
     /**
      * Kabsch using only well-aligned pairs (distance < cutoff)
      */
-    private trimmedKabsch(alignA: number[], alignB: number[], currentTransform: Mat4, cutoff: number): Mat4 {
+    private trimmedKabsch(alignA: UintArray, alignB: UintArray, currentTransform: Mat4, cutoff: number): Mat4 {
         const { xa, ya } = this;
         const cutoffSq = cutoff * cutoff;
 
@@ -698,9 +721,8 @@ class TMAlignState {
      * Refine the current best alignment iteratively
      */
     private refineAlignment(): void {
-        const { xa, ya, lenA, lenB, d0A, d0Search, scoreD8 } = this;
+        const { xa, ya, yt, lenA, lenB, d0A, d0Search, scoreD8 } = this;
         const maxIterations = 20;
-        const yt: Vec3[] = Array.from({ length: lenB }, () => [0.0, 0.0, 0.0] as unknown as Vec3);
 
         for (let iter = 0; iter < maxIterations; iter++) {
             if (this.bestAlignmentA.length < 3) break;
@@ -747,7 +769,7 @@ class TMAlignState {
                 this.bestScore = newScore;
                 this.bestAlignmentA = newAlignA;
                 this.bestAlignmentB = newAlignB;
-                this.bestTransform = newTransform;
+                Mat4.copy(this.bestTransform, newTransform);
             } else {
                 break;
             }
@@ -757,7 +779,7 @@ class TMAlignState {
     /**
      * Check if two alignments are equal
      */
-    private alignmentsEqual(a1: number[], b1: number[], a2: number[], b2: number[]): boolean {
+    private alignmentsEqual(a1: UintArray, b1: UintArray, a2: UintArray, b2: UintArray): boolean {
         if (a1.length !== a2.length) return false;
         for (let i = 0; i < a1.length; i++) {
             if (a1[i] !== a2[i] || b1[i] !== b2[i]) return false;
@@ -769,8 +791,8 @@ class TMAlignState {
      * Calculate TM-score with distance cutoff (score_d8)
      */
     private scoreTMWithCutoff(
-        alignA: number[],
-        alignB: number[],
+        alignA: UintArray,
+        alignB: UintArray,
         transform: Mat4,
         d0: number,
         normLen: number,
@@ -934,7 +956,7 @@ class TMAlignState {
     /**
      * Kabsch superposition using MinimizeRmsd
      */
-    private kabsch(alignA: number[], alignB: number[]): Mat4 {
+    private kabsch(alignA: UintArray, alignB: UintArray): Mat4 {
         const n = alignA.length;
         if (n < 3) return Mat4.identity();
 
