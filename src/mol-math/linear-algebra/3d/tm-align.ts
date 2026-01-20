@@ -13,7 +13,7 @@
 
 import { Mat4 } from './mat4';
 import { Vec3 } from './vec3';
-import { MinimizeRmsd } from './minimize-rmsd';
+import { MinimizeRmsd, RmsdTransformState } from './minimize-rmsd';
 import type { UintArray } from '../../../mol-util/type-helpers';
 
 export { TMAlign };
@@ -221,6 +221,10 @@ class TMAlignState {
     private posA: MinimizeRmsd.Positions;
     private posB: MinimizeRmsd.Positions;
 
+    // Cached objects for MinimizeRmsd operations
+    private rmsdResult: MinimizeRmsd.Result;
+    private rmsdState: RmsdTransformState;
+
     // Transformed coordinates of structure B
     private yt: Vec3[];
 
@@ -256,6 +260,19 @@ class TMAlignState {
 
         this.posA = MinimizeRmsd.Positions.empty(lenA);
         this.posB = MinimizeRmsd.Positions.empty(lenB);
+
+        // Initialize cached objects for MinimizeRmsd operations
+        this.rmsdResult = {
+            bTransform: Mat4.zero(),
+            rmsd: 0,
+            nAlignedElements: 0
+        };
+
+        // Initialize with dummy positions - will be reset on first use
+        this.rmsdState = new RmsdTransformState(
+            { a: this.posA, b: this.posB, length: 0 },
+            this.rmsdResult
+        );
 
         this.yt = Array.from({ length: lenB }, () => [0.1, 0.0, 0.0] as unknown as Vec3);
 
@@ -475,7 +492,7 @@ class TMAlignState {
                 this.bestScore = newScore;
                 this.bestAlignmentA = Array.from(newAlignA);
                 this.bestAlignmentB = Array.from(newAlignB);
-                this.bestTransform = newTransform;
+                Mat4.copy(this.bestTransform, newTransform);
             } else {
                 break;
             }
@@ -612,7 +629,7 @@ class TMAlignState {
         }
 
         if (this.bestAlignmentA.length >= 3) {
-            this.bestTransform = this.kabsch(this.bestAlignmentA, this.bestAlignmentB);
+            Mat4.copy(this.bestTransform, this.kabsch(this.bestAlignmentA, this.bestAlignmentB));
             this.bestScore = this.scoreTMWithCutoff(
                 this.bestAlignmentA,
                 this.bestAlignmentB,
@@ -920,7 +937,7 @@ class TMAlignState {
         const n = alignA.length;
         if (n < 3) return Mat4.identity();
 
-        const { xa, ya, posA, posB } = this;
+        const { xa, ya, posA, posB, rmsdResult, rmsdState } = this;
 
         let xai = xa[0];
         let ybi = ya[0];
@@ -936,8 +953,8 @@ class TMAlignState {
             (<any>posB.z)[i] = ybi[2];
         }
 
-        const result = MinimizeRmsd.compute({ a: posA, b: posB, length: n });
-        return result.bTransform;
+        MinimizeRmsd.compute({ a: posA, b: posB, length: n }, rmsdResult, rmsdState);
+        return rmsdResult.bTransform;
     }
 
     /**

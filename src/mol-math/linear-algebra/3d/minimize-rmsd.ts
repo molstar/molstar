@@ -33,14 +33,22 @@ namespace MinimizeRmsd {
         length?: number
     }
 
-    export function compute(data: Input, result?: MinimizeRmsd.Result) {
+    export function compute(data: Input, result?: MinimizeRmsd.Result, state?: RmsdTransformState) {
         result ??= { bTransform: Mat4.zero(), rmsd: 0.0, nAlignedElements: 0 };
-        findMinimalRmsdTransformImpl(new RmsdTransformState(data, result));
+
+        if (state) {
+            resetRmsdState(state, data, result);
+        } else {
+            state = new RmsdTransformState(data, result);
+        }
+
+        findMinimalRmsdTransformImpl(state);
+
         return result;
     }
 }
 
-class RmsdTransformState {
+export class RmsdTransformState {
     a: MinimizeRmsd.Positions;
     b: MinimizeRmsd.Positions;
     length: number;
@@ -70,6 +78,22 @@ class RmsdTransformState {
         this.result = into;
     }
 }
+
+// evdCache, translateB, rotateB, tempMatrix are overwritten.
+function resetRmsdState(state: RmsdTransformState, data: MinimizeRmsd.Input, into: MinimizeRmsd.Result) {
+    state.a = data.a;
+    state.b = data.b;
+    state.length = data.length ?? data.a.x.length;
+
+    if (data.centerA) state.centerA = data.centerA;
+    else data.centerA = computeCenter(data.a, state.centerA, state.length);
+
+    if (data.centerB) state.centerB = data.centerB;
+    else data.centerB = computeCenter(data.b, state.centerB, state.length);
+
+    state.result = into;
+}
+
 
 function computeCenter(pos: MinimizeRmsd.Positions, toCenter: Vec3, L: number) {
     let xSum = 0.0, ySum = 0.0, zSum = 0.0;
