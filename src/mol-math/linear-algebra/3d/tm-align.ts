@@ -468,7 +468,7 @@ class TMAlignState {
             const newAlignB = tmpAlignB.subarray(0, n);
 
             // Compute final Kabsch and score
-            const newTransform = this.trimmedKabsch(newAlignA, newAlignB, transform, scoreD8);
+            const newTransform = this.trimmedKabschWithTransformedCoordinates(newAlignA, newAlignB, yt, scoreD8);
             const newScore = this.scoreTMWithCutoff(newAlignA, newAlignB, newTransform, d0A, lenA, scoreD8);
 
             if (newScore > this.bestScore) {
@@ -667,7 +667,7 @@ class TMAlignState {
             }
 
             // Use trimmed Kabsch - only use well-aligned pairs for superposition
-            const transform = this.trimmedKabsch(alignA, alignB, currentTransform, scoreD8);
+            const transform = this.trimmedKabschWithTransformedCoordinates(alignA, alignB, yt, scoreD8);
 
             // Score this alignment
             const score = this.scoreTMWithCutoff(alignA, alignB, transform, d0A, lenA, scoreD8);
@@ -709,6 +709,35 @@ class TMAlignState {
 
             Vec3.transformMat4(v, ya[bi], currentTransform);
             const distSq = Vec3.squaredDistance(v, xa[ai]);
+
+            if (distSq <= cutoffSq) {
+                trimmedAlignA.push(ai);
+                trimmedAlignB.push(bi);
+            }
+        }
+
+        // Need at least 3 pairs for Kabsch
+        if (trimmedAlignA.length < 3) {
+            // Fall back to using all pairs
+            return this.kabsch(alignA, alignB);
+        }
+
+        return this.kabsch(trimmedAlignA, trimmedAlignB);
+    }
+
+    private trimmedKabschWithTransformedCoordinates(alignA: UintArray, alignB: UintArray, yt: Vec3[], cutoff: number): Mat4 {
+        const { xa } = this;
+        const cutoffSq = cutoff * cutoff;
+
+        // Find well-aligned pairs
+        const trimmedAlignA: number[] = [];
+        const trimmedAlignB: number[] = [];
+
+        for (let i = 0; i < alignA.length; i++) {
+            const ai = alignA[i];
+            const bi = alignB[i];
+
+            const distSq = Vec3.squaredDistance(yt[bi], xa[ai]);
 
             if (distSq <= cutoffSq) {
                 trimmedAlignA.push(ai);
