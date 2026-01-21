@@ -56,6 +56,12 @@ namespace TMAlign {
      * Compute TM-align between two structures
      */
     export function compute(input: Input): Result {
+        let swap = false;
+        if (input.a.x.length < input.b.x.length) {
+            swap = true;
+            input = { a: input.b, b: input.a, seqA: input.seqB, seqB: input.seqA };
+        }
+
         const { a, b } = input;
         const lenA = a.x.length;
         const lenB = b.x.length;
@@ -108,16 +114,27 @@ namespace TMAlign {
             sequenceIdentity = alignmentA.length > 0 ? identical / alignmentA.length : 0;
         }
 
-        return {
-            bTransform: transform,
-            tmScoreA,
-            tmScoreB,
-            rmsd,
-            alignedLength: alignmentA.length,
-            sequenceIdentity,
-            alignmentA,
-            alignmentB
-        };
+        return swap
+            ? {
+                bTransform: Mat4.invert(transform, transform),
+                tmScoreA: tmScoreB,
+                tmScoreB: tmScoreA,
+                rmsd,
+                alignedLength: alignmentA.length,
+                sequenceIdentity,
+                alignmentA: alignmentB,
+                alignmentB: alignmentA
+            }
+            : {
+                bTransform: transform,
+                tmScoreA,
+                tmScoreB,
+                rmsd,
+                alignedLength: alignmentA.length,
+                sequenceIdentity,
+                alignmentA,
+                alignmentB
+            };
     }
 
     /**
