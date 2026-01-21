@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -45,11 +45,11 @@ export const MVSAnnotationStructureComponent = MVSTransform({
     to: SO.Molecule.Structure,
     params: MVSAnnotationStructureComponentParams,
 })({
-    apply({ a, params }) {
-        return createMVSAnnotationStructureComponent(a.data, params);
+    apply({ a, params, cache }) {
+        return createMVSAnnotationStructureComponent(a.data, params, cache as MVSComponentCache);
     },
-    update: ({ a, b, oldParams, newParams }) => {
-        return updateMVSAnnotationStructureComponent(a.data, b, oldParams, newParams);
+    update: ({ a, b, oldParams, newParams, cache }) => {
+        return updateMVSAnnotationStructureComponent(a.data, b, oldParams, newParams, cache as MVSComponentCache);
     },
     dispose({ b }) {
         b?.data.customPropertyDescriptors.dispose();
@@ -75,8 +75,11 @@ export function createMVSAnnotationSubstructure(structure: Structure, params: MV
     }
 }
 
+interface MVSComponentCache { source: Structure }
+
 /** Create a substructure PSO based on `MVSAnnotationStructureComponentProps` */
-export function createMVSAnnotationStructureComponent(structure: Structure, params: MVSAnnotationStructureComponentProps) {
+export function createMVSAnnotationStructureComponent(structure: Structure, params: MVSAnnotationStructureComponentProps, cache: MVSComponentCache) {
+    cache.source = structure;
     const component = createMVSAnnotationSubstructure(structure, params);
 
     if (params.nullIfEmpty && component.elementCount === 0) return StateObject.Null;
@@ -102,15 +105,23 @@ export function createMVSAnnotationStructureComponent(structure: Structure, para
 }
 
 /** Update a substructure PSO based on `MVSAnnotationStructureComponentProps` */
-export function updateMVSAnnotationStructureComponent(a: Structure, b: SO.Molecule.Structure, oldParams: MVSAnnotationStructureComponentProps, newParams: MVSAnnotationStructureComponentProps) {
-    const change = !deepEqual(newParams, oldParams);
-    const needsRecreate = !deepEqual(omitObjectKeys(newParams, ['label']), omitObjectKeys(oldParams, ['label']));
-    if (!change) {
-        return StateTransformer.UpdateResult.Unchanged;
+export function updateMVSAnnotationStructureComponent(a: Structure, b: SO.Molecule.Structure, oldParams: MVSAnnotationStructureComponentProps, newParams: MVSAnnotationStructureComponentProps, cache: MVSComponentCache) {
+    const structureChanged = !Structure.areEquivalent(a, cache.source);
+    cache.source = a;
+    if (structureChanged) {
+        return StateTransformer.UpdateResult.Recreate;
     }
-    if (!needsRecreate) {
+
+    const coreParamsChanged = !deepEqual(omitObjectKeys(newParams, ['label']), omitObjectKeys(oldParams, ['label']));
+    if (coreParamsChanged) {
+        return StateTransformer.UpdateResult.Recreate;
+    }
+
+    const labelChanged = newParams.label !== oldParams.label;
+    if (labelChanged) {
         b.label = newParams.label || b.label;
         return StateTransformer.UpdateResult.Updated;
     }
-    return StateTransformer.UpdateResult.Recreate;
+    
+    return StateTransformer.UpdateResult.Unchanged;
 }
