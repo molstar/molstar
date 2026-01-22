@@ -122,6 +122,6 @@ export function updateMVSAnnotationStructureComponent(a: Structure, b: SO.Molecu
         b.label = newParams.label || b.label;
         return StateTransformer.UpdateResult.Updated;
     }
-    
+
     return StateTransformer.UpdateResult.Unchanged;
 }
