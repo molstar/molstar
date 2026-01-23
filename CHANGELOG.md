@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Disable occlusion culling in `ImagePass` (#1758)
+- MolViewSpec
+  - Fix `MVSAnnotationStructureComponent` not updating properly when parent structure changes
 
 ## [v5.6.0] - 2026-01-18
 - Handle Hex codes that are submitted with alpha channels by ignoring the alpha channel (#1746)
