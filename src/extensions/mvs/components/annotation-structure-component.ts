@@ -75,7 +75,7 @@ export function createMVSAnnotationSubstructure(structure: Structure, params: MV
     }
 }
 
-interface MVSComponentCache { source: Structure }
+interface MVSComponentCache { source?: Structure }
 
 /** Create a substructure PSO based on `MVSAnnotationStructureComponentProps` */
 export function createMVSAnnotationStructureComponent(structure: Structure, params: MVSAnnotationStructureComponentProps, cache: MVSComponentCache) {
@@ -106,7 +106,7 @@ export function createMVSAnnotationStructureComponent(structure: Structure, para
 
 /** Update a substructure PSO based on `MVSAnnotationStructureComponentProps` */
 export function updateMVSAnnotationStructureComponent(a: Structure, b: SO.Molecule.Structure, oldParams: MVSAnnotationStructureComponentProps, newParams: MVSAnnotationStructureComponentProps, cache: MVSComponentCache) {
-    const structureChanged = !Structure.areEquivalent(a, cache.source);
+    const structureChanged = !cache.source || !Structure.areEquivalent(a, cache.source);
     cache.source = a;
     if (structureChanged) {
         return StateTransformer.UpdateResult.Recreate;
