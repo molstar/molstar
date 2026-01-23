@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+
+## [v5.6.1] - 2026-01-23
 - Disable occlusion culling in `ImagePass` (#1758)
 - MolViewSpec
   - Fix `MVSAnnotationStructureComponent` not updating properly when parent structure changes
