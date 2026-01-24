@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -81,6 +81,13 @@ export function printTextureImage(textureImage: TextureImage<any>, options: Part
             }
         } else {
             data.set(array);
+        }
+    } else if (itemSize === 3) {
+        for (let i = 0, il = width * height; i < il; ++i) {
+            data[i * 4] = array[i * 3];
+            data[i * 4 + 1] = array[i * 3 + 1];
+            data[i * 4 + 2] = array[i * 3 + 2];
+            data[i * 4 + 3] = 255;
         }
     } else {
         console.warn(`itemSize '${itemSize}' not supported`);
