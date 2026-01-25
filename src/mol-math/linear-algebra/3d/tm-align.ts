@@ -248,6 +248,7 @@ class TMAlignState {
     // Working arrays for alignment indices
     private tmpAlignA: Uint16Array;
     private tmpAlignB: Uint16Array;
+    private incrSequence: Uint16Array;
 
     constructor(
         xa: number[][],
@@ -295,6 +296,7 @@ class TMAlignState {
 
         this.tmpAlignA = new Uint16Array(lenA);
         this.tmpAlignB = new Uint16Array(lenB);
+        this.incrSequence = Uint16Array.from({ length: Math.max(lenA, lenB) }, (_, i) => i);
     }
 
     /**
@@ -521,28 +523,19 @@ class TMAlignState {
      * This is O(n) per offset and provides good initial seeds
      */
     private tryGaplessThreading(): void {
-        const { lenA, lenB, d0A, scoreD8, tmpAlignA, tmpAlignB } = this;
-        let n = 0;
+        const { lenA, lenB, d0A, scoreD8, incrSequence } = this;
 
         // Try various offsets
         for (let offset = -lenB + 4; offset <= lenA - 4; offset++) {
-            n = 0;
-            // TODO: use an increment array and compute the boundaries depending on lenA, lenB and offset
-
-            // Build gapless alignment with this offset
-            for (let i = 0; i < lenA; i++) {
-                const j = i - offset;
-                if (j >= 0 && j < lenB) {
-                    tmpAlignA[n] = i;
-                    tmpAlignB[n] = j;
-                    n++;
-                }
-            }
+            const iStart = Math.max(0, offset);
+            const iEnd = Math.min(lenA, offset + lenB);
+            const n = iEnd - iStart;
 
             if (n < 4) continue;
 
-            const alignA = tmpAlignA.subarray(0, n);
-            const alignB = tmpAlignB.subarray(0, n);
+            const jStart = iStart - offset;
+            const alignA = incrSequence.subarray(iStart, iEnd);
+            const alignB = incrSequence.subarray(jStart, jStart + n);
 
             // Compute Kabsch
             const transform = this.kabsch(alignA, alignB);
@@ -561,16 +554,11 @@ class TMAlignState {
      * Medium-thoroughness fragment-based initialization
      */
     private tryFragmentInitializationMedium(fragLen: number): void {
-        const { lenA, lenB, d0A, scoreD8, tmpAlignA, tmpAlignB } = this;
+        const { lenA, lenB, d0A, scoreD8, incrSequence } = this;
         const maxStartA = lenA - fragLen;
         const maxStartB = lenB - fragLen;
         // Use fragLen/2 as step for more thorough search
         const step = Math.max(2, Math.floor(fragLen / 2));
-
-        const incrSequence = lenA < lenB ? tmpAlignB : tmpAlignA;
-        for (let i = 0; i < incrSequence.length; i++) {
-            incrSequence[i] = i;
-        }
 
         for (let startA = 0; startA <= maxStartA; startA += step) {
             const fragA = incrSequence.subarray(startA, startA + fragLen);
@@ -595,16 +583,11 @@ class TMAlignState {
      * Fast fragment-based initialization with large steps
      */
     private tryFragmentInitializationFast(fragLen: number): void {
-        const { lenA, lenB, d0A, scoreD8, tmpAlignA, tmpAlignB } = this;
+        const { lenA, lenB, d0A, scoreD8, incrSequence } = this;
         const maxStartA = lenA - fragLen;
         const maxStartB = lenB - fragLen;
         // Use fragment length as step - only try diagonal and near-diagonal positions
         const step = Math.max(fragLen, 10);
-
-        const incrSequence = lenA < lenB ? tmpAlignB : tmpAlignA;
-        for (let i = 0; i < incrSequence.length; i++) {
-            incrSequence[i] = i;
-        }
 
         for (let startA = 0; startA <= maxStartA; startA += step) {
             const fragA = incrSequence.subarray(startA, startA + fragLen);
