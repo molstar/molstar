@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -204,14 +204,14 @@ namespace Visual {
                 const { resolution, overpaintTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyMeshOverpaintSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, overpaintTexture);
+                    applyMeshOverpaintSmoothing(renderObject.values as any, csp, webgl, overpaintTexture);
                     (geometry.meta as SurfaceMeta).overpaintTexture = renderObject.values.tOverpaintGrid.ref.value;
                 }
             } else if (webgl && geometry.kind === 'texture-mesh') {
                 const { resolution, overpaintTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyTextureMeshOverpaintSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, overpaintTexture);
+                    applyTextureMeshOverpaintSmoothing(renderObject.values as any, csp, webgl, overpaintTexture);
                     (geometry.meta as SurfaceMeta).overpaintTexture = renderObject.values.tOverpaintGrid.ref.value;
                 }
             }
@@ -258,14 +258,14 @@ namespace Visual {
                 const { resolution, transparencyTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyMeshTransparencySmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, transparencyTexture);
+                    applyMeshTransparencySmoothing(renderObject.values as any, csp, webgl, transparencyTexture);
                     (geometry.meta as SurfaceMeta).transparencyTexture = renderObject.values.tTransparencyGrid.ref.value;
                 }
             } else if (webgl && geometry.kind === 'texture-mesh') {
                 const { resolution, transparencyTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyTextureMeshTransparencySmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, transparencyTexture);
+                    applyTextureMeshTransparencySmoothing(renderObject.values as any, csp, webgl, transparencyTexture);
                     (geometry.meta as SurfaceMeta).transparencyTexture = renderObject.values.tTransparencyGrid.ref.value;
                 }
             }
@@ -311,14 +311,14 @@ namespace Visual {
                 const { resolution, emissiveTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyMeshEmissiveSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, emissiveTexture);
+                    applyMeshEmissiveSmoothing(renderObject.values as any, csp, webgl, emissiveTexture);
                     (geometry.meta as SurfaceMeta).emissiveTexture = renderObject.values.tEmissiveGrid.ref.value;
                 }
             } else if (webgl && geometry.kind === 'texture-mesh') {
                 const { resolution, emissiveTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyTextureMeshEmissiveSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, emissiveTexture);
+                    applyTextureMeshEmissiveSmoothing(renderObject.values as any, csp, webgl, emissiveTexture);
                     (geometry.meta as SurfaceMeta).emissiveTexture = renderObject.values.tEmissiveGrid.ref.value;
                 }
             }
@@ -365,14 +365,14 @@ namespace Visual {
                 const { resolution, substanceTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyMeshSubstanceSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, substanceTexture);
+                    applyMeshSubstanceSmoothing(renderObject.values as any, csp, webgl, substanceTexture);
                     (geometry.meta as SurfaceMeta).substanceTexture = renderObject.values.tSubstanceGrid.ref.value;
                 }
             } else if (webgl && geometry.kind === 'texture-mesh') {
                 const { resolution, substanceTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyTextureMeshSubstanceSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, substanceTexture);
+                    applyTextureMeshSubstanceSmoothing(renderObject.values as any, csp, webgl, substanceTexture);
                     (geometry.meta as SurfaceMeta).substanceTexture = renderObject.values.tSubstanceGrid.ref.value;
                 }
             }
