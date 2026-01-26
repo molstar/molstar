@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -101,7 +101,7 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
             const { resolution, colorTexture } = geometry.meta as MolecularSurfaceMeta;
             const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
             if (csp) {
-                applyMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
+                applyMeshColorSmoothing(values, csp, webgl, colorTexture);
                 (geometry.meta as MolecularSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
         },
@@ -173,7 +173,7 @@ export function StructureMolecularSurfaceMeshVisual(materialId: number): Complex
             const { resolution, colorTexture } = geometry.meta as MolecularSurfaceMeta;
             const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
             if (csp) {
-                applyMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
+                applyMeshColorSmoothing(values, csp, webgl, colorTexture);
                 (geometry.meta as MolecularSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
         },
