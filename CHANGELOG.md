@@ -5,6 +5,16 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Disable transparent outline close to opaque elements
+- Add axis param to trackball spin & rock animation
+- Color smoothing fixes (#1747)
+    - Use correct instance for non instance-type
+    - Never transform for non instance-type
+    - Add extra radius to gaussian surface boundingsphere
+
+## [v5.6.1] - 2026-01-23
+- Disable occlusion culling in `ImagePass` (#1758)
+- MolViewSpec
+  - Fix `MVSAnnotationStructureComponent` not updating properly when parent structure changes
 
 ## [v5.6.0] - 2026-01-18
 - Handle Hex codes that are submitted with alpha channels by ignoring the alpha channel (#1746)

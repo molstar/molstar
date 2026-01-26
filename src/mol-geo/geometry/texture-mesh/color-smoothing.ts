@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,7 +14,7 @@ import { ValueSpec, AttributeSpec, UniformSpec, TextureSpec, Values, DefineSpec 
 import { quad_vert } from '../../../mol-gl/shader/quad.vert';
 import { normalize_frag } from '../../../mol-gl/shader/compute/color-smoothing/normalize.frag';
 import { QuadSchema, QuadValues } from '../../../mol-gl/compute/util';
-import { Vec2, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
+import { Mat4, Vec2, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { accumulate_frag } from '../../../mol-gl/shader/compute/color-smoothing/accumulate.frag';
 import { accumulate_vert } from '../../../mol-gl/shader/compute/color-smoothing/accumulate.vert';
@@ -246,17 +246,29 @@ interface ColorSmoothingInput extends AccumulateInput {
     invariantBoundingSphere: Sphere3D
 }
 
-export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolution: number, stride: number, webgl: WebGLContext, texture?: Texture) {
+export type ColorSmoothingOptions = {
+    resolution: number,
+    stride: number
+};
+
+export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, options: ColorSmoothingOptions, webgl: WebGLContext, texture?: Texture) {
     const { drawBuffers } = webgl.extensions;
     if (!drawBuffers) throw new Error('need WebGL draw buffers');
 
     if (isTimingMode) webgl.timer.mark('calcTextureMeshColorSmoothing');
     const { gl, resources, state, extensions: { colorBufferHalfFloat, textureHalfFloat } } = webgl;
+    const { resolution, stride } = options;
 
     const isInstanceType = input.colorType.endsWith('Instance');
     const box = Box3D.fromSphere3D(Box3D(), isInstanceType ? input.boundingSphere : input.invariantBoundingSphere);
     const pad = 1 + resolution;
     const expandedBox = Box3D.expand(Box3D(), box, Vec3.create(pad, pad, pad));
+
+    if (!isInstanceType) {
+        input.instanceCount = 1;
+        input.instanceBuffer = new Float32Array([0]);
+        input.transformBuffer = new Float32Array(Mat4.id);
+    }
 
     const scaleFactor = 1 / resolution;
     const scaledBox = Box3D.scale(Box3D(), expandedBox, scaleFactor);
@@ -389,7 +401,7 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
     const type = isInstanceType ? 'volumeInstance' : 'volume';
     if (isTimingMode) webgl.timer.markEnd('calcTextureMeshColorSmoothing');
 
-    // printTextureImage(readTexture(webgl, texture), { scale: 0.75 });
+    // printTextureImage(readTexture(webgl, texture), { scale: 0.75, id: `${texture.id}` });
 
     return { texture, gridDim, gridTexDim: Vec2.create(width, height), gridTransform, type };
 }
@@ -404,10 +416,10 @@ function isSupportedColorType(x: string): x is 'group' | 'groupInstance' {
     return x === 'group' || x === 'groupInstance';
 }
 
-export function applyTextureMeshColorSmoothing(values: TextureMeshValues, resolution: number, stride: number, webgl: WebGLContext, colorTexture?: Texture) {
+export function applyTextureMeshColorSmoothing(values: TextureMeshValues, options: ColorSmoothingOptions, webgl: WebGLContext, colorTexture?: Texture) {
     if (!isSupportedColorType(values.dColorType.ref.value)) return;
 
-    stride *= 3; // triple because TextureMesh is never indexed (no elements buffer)
+    options = { ...options, stride: options.stride * 3 }; // triple because TextureMesh is never indexed (no elements buffer)
 
     if (!webgl.namedTextures[ColorSmoothingRgbName]) {
         webgl.namedTextures[ColorSmoothingRgbName] = webgl.resources.texture('image-uint8', 'rgb', 'ubyte', 'nearest');
@@ -427,7 +439,7 @@ export function applyTextureMeshColorSmoothing(values: TextureMeshValues, resolu
         colorType: values.dColorType.ref.value,
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
-    }, resolution, stride, webgl, colorTexture);
+    }, options, webgl, colorTexture);
 
     ValueCell.updateIfChanged(values.dColorType, smoothingData.type);
     ValueCell.update(values.tColorGrid, smoothingData.texture);
@@ -440,10 +452,10 @@ function isSupportedOverpaintType(x: string): x is 'groupInstance' {
     return x === 'groupInstance';
 }
 
-export function applyTextureMeshOverpaintSmoothing(values: TextureMeshValues, resolution: number, stride: number, webgl: WebGLContext, colorTexture?: Texture) {
+export function applyTextureMeshOverpaintSmoothing(values: TextureMeshValues, options: ColorSmoothingOptions, webgl: WebGLContext, colorTexture?: Texture) {
     if (!isSupportedOverpaintType(values.dOverpaintType.ref.value)) return;
 
-    stride *= 3; // triple because TextureMesh is never indexed (no elements buffer)
+    options = { ...options, stride: options.stride * 3 }; // triple because TextureMesh is never indexed (no elements buffer)
 
     if (!webgl.namedTextures[ColorSmoothingRgbaName]) {
         webgl.namedTextures[ColorSmoothingRgbaName] = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
@@ -463,7 +475,7 @@ export function applyTextureMeshOverpaintSmoothing(values: TextureMeshValues, re
         colorType: values.dOverpaintType.ref.value,
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
-    }, resolution, stride, webgl, colorTexture);
+    }, options, webgl, colorTexture);
 
     ValueCell.updateIfChanged(values.dOverpaintType, smoothingData.type);
     ValueCell.update(values.tOverpaintGrid, smoothingData.texture);
@@ -476,10 +488,10 @@ function isSupportedTransparencyType(x: string): x is 'groupInstance' {
     return x === 'groupInstance';
 }
 
-export function applyTextureMeshTransparencySmoothing(values: TextureMeshValues, resolution: number, stride: number, webgl: WebGLContext, colorTexture?: Texture) {
+export function applyTextureMeshTransparencySmoothing(values: TextureMeshValues, options: ColorSmoothingOptions, webgl: WebGLContext, colorTexture?: Texture) {
     if (!isSupportedTransparencyType(values.dTransparencyType.ref.value)) return;
 
-    stride *= 3; // triple because TextureMesh is never indexed (no elements buffer)
+    options = { ...options, stride: options.stride * 3 }; // triple because TextureMesh is never indexed (no elements buffer)
 
     if (!webgl.namedTextures[ColorSmoothingAlphaName]) {
         webgl.namedTextures[ColorSmoothingAlphaName] = webgl.resources.texture('image-uint8', 'alpha', 'ubyte', 'nearest');
@@ -499,7 +511,7 @@ export function applyTextureMeshTransparencySmoothing(values: TextureMeshValues,
         colorType: values.dTransparencyType.ref.value,
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
-    }, resolution, stride, webgl, colorTexture);
+    }, options, webgl, colorTexture);
 
     ValueCell.updateIfChanged(values.dTransparencyType, smoothingData.type);
     ValueCell.update(values.tTransparencyGrid, smoothingData.texture);
@@ -512,10 +524,10 @@ function isSupportedEmissiveType(x: string): x is 'groupInstance' {
     return x === 'groupInstance';
 }
 
-export function applyTextureMeshEmissiveSmoothing(values: TextureMeshValues, resolution: number, stride: number, webgl: WebGLContext, colorTexture?: Texture) {
+export function applyTextureMeshEmissiveSmoothing(values: TextureMeshValues, options: ColorSmoothingOptions, webgl: WebGLContext, colorTexture?: Texture) {
     if (!isSupportedEmissiveType(values.dEmissiveType.ref.value)) return;
 
-    stride *= 3; // triple because TextureMesh is never indexed (no elements buffer)
+    options = { ...options, stride: options.stride * 3 }; // triple because TextureMesh is never indexed (no elements buffer)
 
     if (!webgl.namedTextures[ColorSmoothingAlphaName]) {
         webgl.namedTextures[ColorSmoothingAlphaName] = webgl.resources.texture('image-uint8', 'alpha', 'ubyte', 'nearest');
@@ -535,7 +547,7 @@ export function applyTextureMeshEmissiveSmoothing(values: TextureMeshValues, res
         colorType: values.dEmissiveType.ref.value,
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
-    }, resolution, stride, webgl, colorTexture);
+    }, options, webgl, colorTexture);
 
     ValueCell.updateIfChanged(values.dEmissiveType, smoothingData.type);
     ValueCell.update(values.tEmissiveGrid, smoothingData.texture);
@@ -548,10 +560,10 @@ function isSupportedSubstanceType(x: string): x is 'groupInstance' {
     return x === 'groupInstance';
 }
 
-export function applyTextureMeshSubstanceSmoothing(values: TextureMeshValues, resolution: number, stride: number, webgl: WebGLContext, colorTexture?: Texture) {
+export function applyTextureMeshSubstanceSmoothing(values: TextureMeshValues, options: ColorSmoothingOptions, webgl: WebGLContext, colorTexture?: Texture) {
     if (!isSupportedSubstanceType(values.dSubstanceType.ref.value)) return;
 
-    stride *= 3; // triple because TextureMesh is never indexed (no elements buffer)
+    options = { ...options, stride: options.stride * 3 }; // triple because TextureMesh is never indexed (no elements buffer)
 
     if (!webgl.namedTextures[ColorSmoothingRgbaName]) {
         webgl.namedTextures[ColorSmoothingRgbaName] = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
@@ -571,7 +583,7 @@ export function applyTextureMeshSubstanceSmoothing(values: TextureMeshValues, re
         colorType: values.dSubstanceType.ref.value,
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
-    }, resolution, stride, webgl, colorTexture);
+    }, options, webgl, colorTexture);
 
     ValueCell.updateIfChanged(values.dSubstanceType, smoothingData.type);
     ValueCell.update(values.tSubstanceGrid, smoothingData.texture);

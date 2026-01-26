@@ -216,7 +216,7 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                             settings: {
                                 trackball: {
                                     ...tp,
-                                    animate: { name, params: { speed: 0.1 } }
+                                    animate: { name, params: { speed: 0.1, axis: Vec3.create(0, -1, 0) } }
                                 }
                             }
                         });
@@ -239,7 +239,7 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                             settings: {
                                 trackball: {
                                     ...tp,
-                                    animate: { name, params: { speed: 0.3, angle: 10 } }
+                                    animate: { name, params: { speed: 0.3, angle: 10, axis: Vec3.create(0, -1, 0) } }
                                 }
                             }
                         });

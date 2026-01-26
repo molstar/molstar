@@ -24,6 +24,7 @@ import './index.html';
 import './tm-align.html';
 import { buildStaticSuperposition, dynamicSuperpositionTest, StaticSuperpositionTestData, tmAlignStructures, loadStructuresNoAlignment, sequenceAlignStructures } from './superposition';
 import '../../mol-plugin-ui/skin/light.scss';
+import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 
 type LoadParams = { url: string, format?: BuiltInTrajectoryFormat, isBinary?: boolean, assemblyId?: string }
 
@@ -95,7 +96,7 @@ class BasicWrapper {
                     ...trackball,
                     animate: trackball.animate.name === 'spin'
                         ? { name: 'off', params: {} }
-                        : { name: 'spin', params: { speed: 1 } }
+                        : { name: 'spin', params: { speed: 0.1, axis: Vec3.create(0, -1, 0) } }
                 }
             }
         });

@@ -73,7 +73,7 @@ export const ElementSet = {
 /** Return a substructure of `structure` defined by `selector` */
 export function substructureFromSelector(structure: Structure, selector: Selector): Structure {
     const pso = (selector.name === 'annotation') ?
-        createMVSAnnotationStructureComponent(structure, { ...selector.params, label: '', nullIfEmpty: false })
+        createMVSAnnotationStructureComponent(structure, { ...selector.params, label: '', nullIfEmpty: false }, {})
         : createStructureComponent(structure, { type: selector, label: '', nullIfEmpty: false }, { source: structure });
     return PluginStateObject.Molecule.Structure.is(pso) ? pso.data : Structure.Empty;
 }

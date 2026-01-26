@@ -30,6 +30,7 @@ import { createProteopediaCustomTheme } from './coloring';
 import { LoadParams, ModelInfo, RepresentationStyle, StateElements, SupportedFormats } from './helpers';
 import './index.html';
 import { volumeStreamingControls } from './ui/controls';
+import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 require('../../mol-plugin-ui/skin/light.scss');
 
 class MolStarProteopediaWrapper {
@@ -267,7 +268,7 @@ class MolStarProteopediaWrapper {
                     ...trackball,
                     animate: trackball.animate.name === 'spin'
                         ? { name: 'off', params: {} }
-                        : { name: 'spin', params: { speed: 1 } }
+                        : { name: 'spin', params: { speed: 0.1, axis: Vec3.create(0, -1, 0) } }
                 }
             }
         });
