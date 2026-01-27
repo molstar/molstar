@@ -105,6 +105,10 @@ void main(void) {
         }
     }
 
+    if (transparentOutlineFlag > 0.0 && abs(selfViewZOpaque - getViewZ(bestTransparentDepth)) < pixelSizeOpaque) { // Disable transparent outline close to opaque elements
+        transparentOutlineFlag = 0.0;
+    }
+
     // lazy curvature veto: only compute if an outline was found and center is not background
     const float kCurvatureGate = 0.75;
     vec2 dx = vec2(invTexSize.x, 0.0);
@@ -156,11 +160,6 @@ void main(void) {
             bestTransparentDepth = 1.0;
             bestTransparentAlpha = 0.0;
         }
-    }
-
-    if (transparentOutlineFlag > 0.0 && bestOpaqueDepth < 1.0 && bestTransparentDepth > bestOpaqueDepth) {
-        transparentOutlineFlag = 0.0;
-        bestTransparentAlpha = 0.0;
     }
 
     vec2 depthPacked; // Pack depth in G/B channels
