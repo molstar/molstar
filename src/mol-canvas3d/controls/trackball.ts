@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -76,11 +76,13 @@ export const TrackballControlsParams = {
         off: PD.EmptyGroup(),
         spin: PD.Group({
             speed: PD.Numeric(0.1, { min: -2, max: 2, step: 0.01 }, { description: 'Number of rotations per second' }),
-        }, { description: 'Spin the 3D scene around the x-axis in view space' }),
+            axis: PD.Vec3(Vec3.create(0, -1, 0), {}, { description: 'Axis of rotation in camera space' }),
+        }, { description: 'Spin the 3D scene around an axis in camera space' }),
         rock: PD.Group({
             speed: PD.Numeric(0.3, { min: -5, max: 5, step: 0.1 }, { description: 'Number of oscilations per second' }),
             angle: PD.Numeric(10, { min: 0, max: 90, step: 1 }, { description: 'How many degrees to rotate in each direction.' }),
-        }, { description: 'Rock the 3D scene around the x-axis in view space' })
+            axis: PD.Vec3(Vec3.create(0, -1, 0), {}, { description: 'Axis of rotation in camera space' }),
+        }, { description: 'Rock the 3D scene around an axis in camera space' })
     }),
 
     staticMoving: PD.Boolean(true, { isHidden: true }),
@@ -855,27 +857,67 @@ namespace TrackballControls {
             leaveSub.unsubscribe();
         }
 
-        const _spinSpeed = Vec2.create(0.005, 0);
+        const _animateQuat = Quat();
+        const _animateAxis = Vec3();
+        const _animateUp = Vec3();
+        const _animateSide = Vec3();
+        const _animateDir = Vec3();
         function spin(deltaT: number) {
             if (p.animate.name !== 'spin' || p.animate.params.speed === 0 || _isInteracting) return;
 
             const radPerMs = 2 * Math.PI * p.animate.params.speed / 1000;
-            _spinSpeed[0] = deltaT * radPerMs / getRotateFactor();
-            Vec2.add(_rotCurr, _rotPrev, _spinSpeed);
+            const angle = deltaT * radPerMs;
+
+            // Transform axis from camera space to world space
+            Vec3.sub(_eye, camera.position, camera.target);
+            Vec3.normalize(_animateDir, _eye); // Z-axis (view direction)
+            Vec3.normalize(_animateUp, camera.up); // Y-axis (up)
+            Vec3.cross(_animateSide, _animateUp, _animateDir); // X-axis (right)
+            Vec3.normalize(_animateSide, _animateSide);
+
+            const axis = p.animate.params.axis;
+            Vec3.set(_animateAxis,
+                axis[0] * _animateSide[0] + axis[1] * _animateUp[0] + axis[2] * _animateDir[0],
+                axis[0] * _animateSide[1] + axis[1] * _animateUp[1] + axis[2] * _animateDir[1],
+                axis[0] * _animateSide[2] + axis[1] * _animateUp[2] + axis[2] * _animateDir[2]
+            );
+            Vec3.normalize(_animateAxis, _animateAxis);
+
+            Quat.setAxisAngle(_animateQuat, _animateAxis, angle);
+            Vec3.transformQuat(_eye, _eye, _animateQuat);
+            Vec3.transformQuat(camera.up, camera.up, _animateQuat);
+            Vec3.add(camera.position, camera.target, _eye);
         }
 
         let _rockPhase = 0;
-        const _rockSpeed = Vec2.create(0.005, 0);
         function rock(deltaT: number) {
             if (p.animate.name !== 'rock' || p.animate.params.speed === 0 || _isInteracting) return;
 
             const dt = deltaT / 1000 * p.animate.params.speed;
-            const maxAngle = degToRad(p.animate.params.angle) / getRotateFactor();
+            const maxAngle = degToRad(p.animate.params.angle);
             const angleA = Math.sin(_rockPhase * Math.PI * 2) * maxAngle;
             const angleB = Math.sin((_rockPhase + dt) * Math.PI * 2) * maxAngle;
+            const angle = angleB - angleA;
 
-            _rockSpeed[0] = angleB - angleA;
-            Vec2.add(_rotCurr, _rotPrev, _rockSpeed);
+            // Transform axis from camera space to world space
+            Vec3.sub(_eye, camera.position, camera.target);
+            Vec3.normalize(_animateDir, _eye); // Z-axis (view direction)
+            Vec3.normalize(_animateUp, camera.up); // Y-axis (up)
+            Vec3.cross(_animateSide, _animateUp, _animateDir); // X-axis (right)
+            Vec3.normalize(_animateSide, _animateSide);
+
+            const axis = p.animate.params.axis;
+            Vec3.set(_animateAxis,
+                axis[0] * _animateSide[0] + axis[1] * _animateUp[0] + axis[2] * _animateDir[0],
+                axis[0] * _animateSide[1] + axis[1] * _animateUp[1] + axis[2] * _animateDir[1],
+                axis[0] * _animateSide[2] + axis[1] * _animateUp[2] + axis[2] * _animateDir[2]
+            );
+            Vec3.normalize(_animateAxis, _animateAxis);
+
+            Quat.setAxisAngle(_animateQuat, _animateAxis, angle);
+            Vec3.transformQuat(_eye, _eye, _animateQuat);
+            Vec3.transformQuat(camera.up, camera.up, _animateQuat);
+            Vec3.add(camera.position, camera.target, _eye);
 
             _rockPhase += dt;
             if (_rockPhase >= 1) {

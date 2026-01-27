@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -29,8 +29,14 @@ interface ColorSmoothingInput {
     itemSize: 4 | 3 | 1
 }
 
-export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: number, stride: number, webgl?: WebGLContext, texture?: Texture) {
+export type ColorSmoothingOptions = {
+    resolution: number,
+    stride: number
+};
+
+export function calcMeshColorSmoothing(input: ColorSmoothingInput, options: ColorSmoothingOptions, webgl?: WebGLContext, texture?: Texture) {
     const { colorType, vertexCount, groupCount, positionBuffer, instanceBuffer, transformBuffer, groupBuffer, itemSize } = input;
+    const { resolution, stride } = options;
 
     const isInstanceType = colorType.endsWith('Instance');
     const box = Box3D.fromSphere3D(Box3D(), isInstanceType ? input.boundingSphere : input.invariantBoundingSphere);
@@ -70,7 +76,7 @@ export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: n
     for (let i = 0; i < instanceCount; ++i) {
         // - use reordered index for access from GPU
         // - use serial index for access from CPU
-        const instanceIndex = webgl ? instanceBuffer[i] : i;
+        const instanceIndex = (webgl && isInstanceType) ? instanceBuffer[i] : i;
         for (let j = 0; j < vertexCount; j += stride) {
             Vec3.fromArray(v, positionBuffer, j * 3);
             if (isInstanceType) Vec3.transformMat4Offset(v, v, transformBuffer, 0, 0, i * 16);
@@ -262,7 +268,7 @@ function isSupportedColorType(x: string): x is 'group' | 'groupInstance' {
     return x === 'group' || x === 'groupInstance';
 }
 
-export function applyMeshColorSmoothing(values: MeshValues, resolution: number, stride: number, webgl?: WebGLContext, colorTexture?: Texture) {
+export function applyMeshColorSmoothing(values: MeshValues, options: ColorSmoothingOptions, webgl?: WebGLContext, colorTexture?: Texture) {
     if (!isSupportedColorType(values.dColorType.ref.value)) return;
 
     const smoothingData = calcMeshColorSmoothing({
@@ -278,7 +284,7 @@ export function applyMeshColorSmoothing(values: MeshValues, resolution: number, 
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
         itemSize: 3
-    }, resolution, stride, webgl, colorTexture);
+    }, options, webgl, colorTexture);
 
     if (smoothingData.kind === 'volume') {
         ValueCell.updateIfChanged(values.dColorType, smoothingData.type);
@@ -297,7 +303,7 @@ function isSupportedOverpaintType(x: string): x is 'groupInstance' {
     return x === 'groupInstance';
 }
 
-export function applyMeshOverpaintSmoothing(values: MeshValues, resolution: number, stride: number, webgl?: WebGLContext, colorTexture?: Texture) {
+export function applyMeshOverpaintSmoothing(values: MeshValues, options: ColorSmoothingOptions, webgl?: WebGLContext, colorTexture?: Texture) {
     if (!isSupportedOverpaintType(values.dOverpaintType.ref.value)) return;
 
     const smoothingData = calcMeshColorSmoothing({
@@ -313,7 +319,7 @@ export function applyMeshOverpaintSmoothing(values: MeshValues, resolution: numb
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
         itemSize: 4
-    }, resolution, stride, webgl, colorTexture);
+    }, options, webgl, colorTexture);
     if (smoothingData.kind === 'volume') {
         ValueCell.updateIfChanged(values.dOverpaintType, smoothingData.type);
         ValueCell.update(values.tOverpaintGrid, smoothingData.texture);
@@ -331,7 +337,7 @@ function isSupportedTransparencyType(x: string): x is 'groupInstance' {
     return x === 'groupInstance';
 }
 
-export function applyMeshTransparencySmoothing(values: MeshValues, resolution: number, stride: number, webgl?: WebGLContext, colorTexture?: Texture) {
+export function applyMeshTransparencySmoothing(values: MeshValues, options: ColorSmoothingOptions, webgl?: WebGLContext, colorTexture?: Texture) {
     if (!isSupportedTransparencyType(values.dTransparencyType.ref.value)) return;
 
     const smoothingData = calcMeshColorSmoothing({
@@ -347,7 +353,7 @@ export function applyMeshTransparencySmoothing(values: MeshValues, resolution: n
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
         itemSize: 1
-    }, resolution, stride, webgl, colorTexture);
+    }, options, webgl, colorTexture);
     if (smoothingData.kind === 'volume') {
         ValueCell.updateIfChanged(values.dTransparencyType, smoothingData.type);
         ValueCell.update(values.tTransparencyGrid, smoothingData.texture);
@@ -365,7 +371,7 @@ function isSupportedEmissiveType(x: string): x is 'groupInstance' {
     return x === 'groupInstance';
 }
 
-export function applyMeshEmissiveSmoothing(values: MeshValues, resolution: number, stride: number, webgl?: WebGLContext, colorTexture?: Texture) {
+export function applyMeshEmissiveSmoothing(values: MeshValues, options: ColorSmoothingOptions, webgl?: WebGLContext, colorTexture?: Texture) {
     if (!isSupportedEmissiveType(values.dEmissiveType.ref.value)) return;
 
     const smoothingData = calcMeshColorSmoothing({
@@ -381,7 +387,7 @@ export function applyMeshEmissiveSmoothing(values: MeshValues, resolution: numbe
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
         itemSize: 1
-    }, resolution, stride, webgl, colorTexture);
+    }, options, webgl, colorTexture);
     if (smoothingData.kind === 'volume') {
         ValueCell.updateIfChanged(values.dEmissiveType, smoothingData.type);
         ValueCell.update(values.tEmissiveGrid, smoothingData.texture);
@@ -399,7 +405,7 @@ function isSupportedSubstanceType(x: string): x is 'groupInstance' {
     return x === 'groupInstance';
 }
 
-export function applyMeshSubstanceSmoothing(values: MeshValues, resolution: number, stride: number, webgl?: WebGLContext, colorTexture?: Texture) {
+export function applyMeshSubstanceSmoothing(values: MeshValues, options: ColorSmoothingOptions, webgl?: WebGLContext, colorTexture?: Texture) {
     if (!isSupportedSubstanceType(values.dSubstanceType.ref.value)) return;
 
     const smoothingData = calcMeshColorSmoothing({
@@ -415,7 +421,7 @@ export function applyMeshSubstanceSmoothing(values: MeshValues, resolution: numb
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
         itemSize: 4
-    }, resolution, stride, webgl, colorTexture);
+    }, options, webgl, colorTexture);
     if (smoothingData.kind === 'volume') {
         ValueCell.updateIfChanged(values.dSubstanceType, smoothingData.type);
         ValueCell.update(values.tSubstanceGrid, smoothingData.texture);

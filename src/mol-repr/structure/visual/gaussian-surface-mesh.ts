@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -88,20 +88,20 @@ type GaussianSurfaceMeta = {
 //
 
 async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
-    const { smoothness } = props;
+    const { smoothness, floodfill, includeParent, radiusOffset } = props;
     const { transform, field, idField, radiusFactor, resolution, maxRadius } = await computeUnitGaussianDensity(structure, unit, theme.size, props).runInContext(ctx.runtime);
 
     const isoLevel = Math.exp(-smoothness) / radiusFactor;
     const params = {
         isoLevel,
-        scalarField: props.floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, props.floodfill) : field,
+        scalarField: floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, floodfill) : field,
         idField
     };
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
     (surface.meta.resolution as GaussianSurfaceMeta['resolution']) = resolution;
 
-    if (props.includeParent) {
-        const iterations = Math.ceil(2 / props.resolution);
+    if (includeParent) {
+        const iterations = Math.ceil(2 / resolution);
         Mesh.smoothEdges(surface, { iterations, maxNewEdgeLength: Math.sqrt(2) });
     }
 
@@ -113,7 +113,8 @@ async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structu
         ValueCell.updateIfChanged(surface.varyingGroup, true);
     }
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxRadius);
+    const extraRadius = radiusOffset * (1 + Math.exp(-smoothness));
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxRadius + extraRadius);
     surface.setBoundingSphere(sphere);
 
     return surface;
@@ -152,7 +153,7 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
             const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
             if (csp) {
-                applyMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
+                applyMeshColorSmoothing(values, csp, webgl, colorTexture);
                 (geometry.meta.colorTexture as GaussianSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
             }
         },
@@ -165,20 +166,20 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
 //
 
 async function createStructureGaussianSurfaceMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
-    const { smoothness } = props;
+    const { smoothness, floodfill, includeParent, radiusOffset } = props;
     const { transform, field, idField, radiusFactor, resolution, maxRadius } = await computeStructureGaussianDensity(structure, theme.size, props).runInContext(ctx.runtime);
 
     const isoLevel = Math.exp(-smoothness) / radiusFactor;
     const params = {
         isoLevel,
-        scalarField: props.floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, props.floodfill) : field,
+        scalarField: floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, floodfill) : field,
         idField
     };
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
     (surface.meta.resolution as GaussianSurfaceMeta['resolution']) = resolution;
 
-    if (props.includeParent) {
-        const iterations = Math.ceil(2 / props.resolution);
+    if (includeParent) {
+        const iterations = Math.ceil(2 / resolution);
         Mesh.smoothEdges(surface, { iterations, maxNewEdgeLength: Math.sqrt(2) });
     }
 
@@ -190,7 +191,8 @@ async function createStructureGaussianSurfaceMesh(ctx: VisualContext, structure:
         ValueCell.updateIfChanged(surface.varyingGroup, true);
     }
 
-    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, maxRadius);
+    const extraRadius = radiusOffset * (1 + Math.exp(-smoothness));
+    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, maxRadius + extraRadius);
     surface.setBoundingSphere(sphere);
 
     return surface;
@@ -229,7 +231,7 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
             const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
             if (csp) {
-                applyMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
+                applyMeshColorSmoothing(values, csp, webgl, colorTexture);
                 (geometry.meta.colorTexture as GaussianSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
             }
         },
@@ -268,7 +270,8 @@ function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, struct
         const gv = extractIsosurface(webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridDataDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
         if (isTimingMode) webgl.timer.markEnd('createGaussianSurfaceTextureMesh');
 
-        const boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, densityTextureData.maxRadius);
+        const extraRadius = props.radiusOffset * (1 + Math.exp(-props.smoothness));
+        const boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, densityTextureData.maxRadius + extraRadius);
         const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
         (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
         return surface;
@@ -314,7 +317,7 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
             const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
             if (csp && webgl) {
-                applyTextureMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
+                applyTextureMeshColorSmoothing(values, csp, webgl, colorTexture);
                 (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
         },
@@ -356,7 +359,8 @@ function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, structure
         const gv = extractIsosurface(webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridDataDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
         if (isTimingMode) webgl.timer.markEnd('createStructureGaussianSurfaceTextureMesh');
 
-        const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, densityTextureData.maxRadius);
+        const extraRadius = props.radiusOffset * (1 + Math.exp(-props.smoothness));
+        const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, densityTextureData.maxRadius + extraRadius);
         const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
         (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
         return surface;
@@ -402,7 +406,7 @@ export function StructureGaussianSurfaceTextureMeshVisual(materialId: number): C
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
             const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
             if (csp && webgl) {
-                applyTextureMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
+                applyTextureMeshColorSmoothing(values, csp, webgl, colorTexture);
                 (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
         },
