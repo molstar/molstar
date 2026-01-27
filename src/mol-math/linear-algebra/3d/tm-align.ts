@@ -14,7 +14,7 @@
 import { Mat4 } from './mat4';
 import { Vec3 } from './vec3';
 import { MinimizeRmsd, RmsdTransformState } from './minimize-rmsd';
-import type { UintArray } from '../../../mol-util/type-helpers';
+import type { NumberArray, UintArray } from '../../../mol-util/type-helpers';
 
 export { TMAlign };
 
@@ -33,8 +33,8 @@ namespace TMAlign {
         /** Sequence identity of aligned residues (if sequences provided) */
         sequenceIdentity: number;
         /** Alignment mapping: alignmentA[i] aligns with alignmentB[i] */
-        alignmentA: number[];
-        alignmentB: number[];
+        alignmentA: NumberArray;
+        alignmentB: NumberArray;
     }
 
     /** Reuse MinimizeRmsd.Positions type for consistency */
@@ -154,8 +154,8 @@ namespace TMAlign {
     function calculateTMScore(
         xa: Vec3[],
         ya: Vec3[],
-        alignA: number[],
-        alignB: number[],
+        alignA: NumberArray,
+        alignB: NumberArray,
         transform: Mat4,
         d0: number,
         normLength: number
@@ -184,8 +184,8 @@ namespace TMAlign {
     function calculateRMSD(
         xa: Vec3[],
         ya: Vec3[],
-        alignA: number[],
-        alignB: number[],
+        alignA: NumberArray,
+        alignB: NumberArray,
         transform: Mat4
     ): number {
         if (alignA.length === 0) return 0;
@@ -225,13 +225,13 @@ class TMAlignState {
     private scoreD8: number;
 
     private bestScore: number = -1;
-    private bestAlignmentA: number[] = [];
-    private bestAlignmentB: number[] = [];
+    private bestAlignmentA: NumberArray = [];
+    private bestAlignmentB: NumberArray = [];
     private bestTransform: Mat4 = Mat4.identity();
 
     // Working arrays for DP
-    private dpPath: boolean[][];
-    private dpVal: number[][];
+    private dpPath: Uint8Array[];
+    private dpVal: Float64Array[];
     private j2i: number[];
 
     // Working pos vectors
@@ -268,11 +268,17 @@ class TMAlignState {
         this.scoreD8 = scoreD8;
 
         // Initialize DP arrays
-        this.dpPath = new Array(lenA + 1);
-        this.dpVal = new Array(lenA + 1);
+        const lenRowsA = lenA + 1;
+        const lenColsB = lenB + 1;
+        let startB = 0;
+        const pathBuffer = new Uint8Array(lenRowsA * lenColsB);
+        const valBuffer = new Float64Array(lenRowsA * lenColsB);
+        this.dpPath = new Array(lenRowsA);
+        this.dpVal = new Array(lenRowsA);
         for (let i = 0; i <= lenA; i++) {
-            this.dpPath[i] = new Array(lenB + 1).fill(false);
-            this.dpVal[i] = new Array(lenB + 1).fill(0.0);
+            startB = i * lenColsB;
+            this.dpPath[i] = pathBuffer.subarray(startB, startB + lenColsB);
+            this.dpVal[i] = valBuffer.subarray(startB, startB + lenColsB);
         }
         this.j2i = new Array(lenB).fill(-1);
 
@@ -313,6 +319,11 @@ class TMAlignState {
         // Strategy 2: Gapless threading with various offsets
         this.tryGaplessThreading();
 
+        // TODO: from Fr-TM-align paper the fragment based approach improves results
+        // when TM-score is below 0.5. Current implementation is time consuming (70%). Maybe
+        // skip depending on the current best score?
+        // @link: https://link.springer.com/article/10.1186/1471-2105-9-531
+
         // Strategy 3: Fragment-based initialization
         // Try small fragments (5-12) with medium search (thorough was too slow)
         for (let fragLen = 5; fragLen <= Math.min(12, minLen); fragLen++) {
@@ -340,7 +351,7 @@ class TMAlignState {
         this.refineAlignment();
 
         // TM-align uses multiple refinement passes with different d0 values
-        for (let d = Math.max(1, this.d0A - 3); d <= this.d0A + 3; d++) {
+        for (let d = this.d0A + 3; d >= Math.max(1, this.d0A - 3); d--) {
             this.refineWithCutoff(d);
         }
 
@@ -404,6 +415,7 @@ class TMAlignState {
             }
         }
 
+        // TODO: this seems unnecessary as bestScore corresponds to the bestTransform, unless no refinements happened?
         // Recompute final score
         this.bestScore = this.scoreTM(
             this.bestAlignmentA,
@@ -418,8 +430,8 @@ class TMAlignState {
      * Calculate TM-score without distance cutoff (for final result)
      */
     private scoreTM(
-        alignA: number[],
-        alignB: number[],
+        alignA: NumberArray,
+        alignB: NumberArray,
         transform: Mat4,
         d0: number,
         normLen: number
@@ -509,8 +521,8 @@ class TMAlignState {
 
             if (newScore > this.bestScore) {
                 this.bestScore = newScore;
-                this.bestAlignmentA = Array.from(newAlignA);
-                this.bestAlignmentB = Array.from(newAlignB);
+                this.bestAlignmentA = newAlignA.slice();
+                this.bestAlignmentB = newAlignB.slice();
                 Mat4.copy(this.bestTransform, newTransform);
             } else {
                 break;
@@ -648,8 +660,8 @@ class TMAlignState {
         const { xa, ya, yt, lenA, lenB, d0A, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
 
         let currentTransform = initialTransform;
-        let currentAlignA: number[] = [];
-        let currentAlignB: number[] = [];
+        let currentAlignA: NumberArray = [];
+        let currentAlignB: NumberArray = [];
         let prevScore = -1;
         let n = 0;
 
@@ -694,8 +706,8 @@ class TMAlignState {
             prevScore = score;
 
             // Update current state
-            currentAlignA = Array.from(alignA);
-            currentAlignB = Array.from(alignB);
+            currentAlignA = alignA.slice();
+            currentAlignB = alignB.slice();
             currentTransform = transform;
 
             // Update global best if this is better
@@ -711,7 +723,7 @@ class TMAlignState {
     /**
      * Kabsch using only well-aligned pairs (distance < cutoff)
      */
-    private trimmedKabsch(alignA: UintArray, alignB: UintArray, currentTransform: Mat4, cutoff: number): Mat4 {
+    private trimmedKabsch(alignA: NumberArray, alignB: NumberArray, currentTransform: Mat4, cutoff: number): Mat4 {
         const { xa, ya } = this;
         const cutoffSq = cutoff * cutoff;
 
@@ -775,8 +787,9 @@ class TMAlignState {
      * Refine the current best alignment iteratively
      */
     private refineAlignment(): void {
-        const { xa, ya, yt, lenA, lenB, d0A, d0Search, scoreD8 } = this;
+        const { xa, ya, yt, lenA, lenB, d0A, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
         const maxIterations = 20;
+        let n = 0;
 
         for (let iter = 0; iter < maxIterations; iter++) {
             if (this.bestAlignmentA.length < 3) break;
@@ -799,17 +812,19 @@ class TMAlignState {
             this.nwdpStructure(xa, yt, d * d, -0.6);
 
             // Extract new alignment
-            const newAlignA: number[] = [];
-            const newAlignB: number[] = [];
+            n = 0;
             for (let j = 0; j < this.lenB; j++) {
                 if (this.j2i[j] >= 0) {
-                    newAlignA.push(this.j2i[j]);
-                    newAlignB.push(j);
+                    tmpAlignA[n] = this.j2i[j];
+                    tmpAlignB[n] = j;
+                    n++;
                 }
             }
 
-            if (newAlignA.length < 3) break;
+            if (n < 3) break;
 
+            const newAlignA = tmpAlignA.subarray(0, n);
+            const newAlignB = tmpAlignB.subarray(0, n);
             // Check convergence
             if (this.alignmentsEqual(newAlignA, newAlignB, this.bestAlignmentA, this.bestAlignmentB)) {
                 break;
@@ -821,8 +836,8 @@ class TMAlignState {
 
             if (newScore > this.bestScore) {
                 this.bestScore = newScore;
-                this.bestAlignmentA = newAlignA;
-                this.bestAlignmentB = newAlignB;
+                this.bestAlignmentA = newAlignA.slice();
+                this.bestAlignmentB = newAlignB.slice();
                 Mat4.copy(this.bestTransform, newTransform);
             } else {
                 break;
@@ -833,7 +848,7 @@ class TMAlignState {
     /**
      * Check if two alignments are equal
      */
-    private alignmentsEqual(a1: UintArray, b1: UintArray, a2: UintArray, b2: UintArray): boolean {
+    private alignmentsEqual(a1: NumberArray, b1: NumberArray, a2: NumberArray, b2: NumberArray): boolean {
         if (a1.length !== a2.length) return false;
         for (let i = 0; i < a1.length; i++) {
             if (a1[i] !== a2[i] || b1[i] !== b2[i]) return false;
@@ -882,11 +897,11 @@ class TMAlignState {
         // Initialize
         for (let i = 0; i <= lenA; i++) {
             dpVal[i][0] = 0.0;
-            dpPath[i][0] = false;
+            dpPath[i][0] = 0;
         }
         for (let j = 0; j <= lenB; j++) {
             dpVal[0][j] = 0.0;
-            dpPath[0][j] = false;
+            dpPath[0][j] = 0;
             j2i[j] = -1;
         }
 
@@ -902,10 +917,10 @@ class TMAlignState {
                 if (dpPath[i][j - 1]) v += gapOpen;
 
                 if (d >= h && d >= v) {
-                    dpPath[i][j] = true;
+                    dpPath[i][j] = 1;
                     dpVal[i][j] = d;
                 } else {
-                    dpPath[i][j] = false;
+                    dpPath[i][j] = 0;
                     dpVal[i][j] = v >= h ? v : h;
                 }
             }
@@ -933,7 +948,7 @@ class TMAlignState {
     /**
      * Kabsch superposition using MinimizeRmsd
      */
-    private kabsch(alignA: UintArray, alignB: UintArray): Mat4 {
+    private kabsch(alignA: NumberArray, alignB: NumberArray): Mat4 {
         const n = alignA.length;
         if (n < 3) return Mat4.identity();
 
@@ -960,7 +975,7 @@ class TMAlignState {
     /**
      * Get the best alignment result
      */
-    getBestAlignment(): { alignmentA: number[]; alignmentB: number[]; transform: Mat4 } {
+    getBestAlignment(): { alignmentA: NumberArray; alignmentB: NumberArray; transform: Mat4 } {
         return {
             alignmentA: this.bestAlignmentA,
             alignmentB: this.bestAlignmentB,
