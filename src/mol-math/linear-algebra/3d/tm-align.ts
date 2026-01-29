@@ -15,6 +15,7 @@ import { Mat4 } from './mat4';
 import { Vec3 } from './vec3';
 import { MinimizeRmsd, RmsdTransformState } from './minimize-rmsd';
 import type { NumberArray, UintArray } from '../../../mol-util/type-helpers';
+import { clamp } from '../../interpolate';
 
 export { TMAlign };
 
@@ -86,12 +87,13 @@ namespace TMAlign {
         // Calculate d0 parameters for both normalizations
         const d0A = calculateD0(lenA);
         const d0B = calculateD0(lenB);
-        const minLen = Math.min(lenA, lenB);
-        const d0Search = Math.min(Math.max(Math.min(d0A, d0B), 4.5), 8);
-        const scoreD8 = 1.5 * Math.pow(minLen, 0.3) + 3.5;
+        const lMin = Math.min(lenA, lenB);
+        const d0 = Math.min(d0A, d0B);
+        const d0Search = clamp(d0, 4.5, 8);
+        const scoreD8 = 1.5 * Math.pow(lMin, 0.3) + 3.5;
 
         // Run the TM-align algorithm
-        const state = new TMAlignState(xa, ya, lenA, lenB, d0A, d0Search, scoreD8);
+        const state = new TMAlignState(xa, ya, lenA, lenB, d0, d0Search, scoreD8);
         state.align();
 
         // Get the final alignment and transformation
@@ -220,10 +222,10 @@ class TMAlignState {
     private ya: Vec3[];
     private lenA: number;
     private lenB: number;
-    private d0A: number;
+    private lMin: number;
+    private d0: number;
     private d0Search: number;
     private scoreD8: number;
-
     private bestScore: number = -1;
     private bestAlignmentA: NumberArray = [];
     private bestAlignmentB: NumberArray = [];
@@ -255,7 +257,7 @@ class TMAlignState {
         ya: number[][],
         lenA: number,
         lenB: number,
-        d0A: number,
+        d0: number,
         d0Search: number,
         scoreD8: number
     ) {
@@ -263,7 +265,8 @@ class TMAlignState {
         this.ya = <any> ya;
         this.lenA = lenA;
         this.lenB = lenB;
-        this.d0A = d0A;
+        this.lMin = Math.min(lenA, lenB); // internal TM-score normalization length
+        this.d0 = d0;
         this.d0Search = d0Search;
         this.scoreD8 = scoreD8;
 
@@ -309,8 +312,7 @@ class TMAlignState {
      * Main alignment procedure
      */
     align(): void {
-        const { lenA, lenB } = this;
-        const minLen = Math.min(lenA, lenB);
+        const { lMin } = this;
 
         // Strategy 1: Initial global DP alignment
         this.getInitialAlignment();
@@ -319,44 +321,45 @@ class TMAlignState {
         // Strategy 2: Gapless threading with various offsets
         this.tryGaplessThreading();
 
-        // TODO: from Fr-TM-align paper the fragment based approach improves results
-        // when TM-score is below 0.5. Current implementation is time consuming (70%). Maybe
-        // skip depending on the current best score?
-        // @link: https://link.springer.com/article/10.1186/1471-2105-9-531
-
         // Strategy 3: Fragment-based initialization
-        // Try small fragments (5-12) with medium search (thorough was too slow)
-        for (let fragLen = 5; fragLen <= Math.min(12, minLen); fragLen++) {
-            this.tryFragmentInitializationMedium(fragLen);
-        }
+        // Heuristic: fragment based method is time consuming (x3) and only improves results
+        // for low structure similarity.
+        // See Pandit, Skolnick 2008 Fr-TM-align paper
+        // @link: https://link.springer.com/article/10.1186/1471-2105-9-531
+        if (this.bestScore < 0.5) {
+            // Try small fragments (5-12) with medium search (thorough was too slow)
+            for (let fragLen = 5; fragLen <= Math.min(12, lMin); fragLen++) {
+                this.tryFragmentInitializationMedium(fragLen);
+            }
 
-        // Try medium fragments (16-30) with medium search
-        for (let fragLen = 16; fragLen <= Math.min(30, minLen); fragLen += 2) {
-            this.tryFragmentInitializationMedium(fragLen);
-        }
+            // Try medium fragments (16-30) with medium search
+            for (let fragLen = 16; fragLen <= Math.min(30, lMin); fragLen += 2) {
+                this.tryFragmentInitializationMedium(fragLen);
+            }
 
-        // Try larger fragments with strategic sizes
-        const fragLengths = [
-            Math.floor(minLen * 0.15),
-            Math.floor(minLen * 0.25),
-            Math.floor(minLen * 0.4),
-            Math.floor(minLen * 0.6)
-        ].filter(f => f > 30);
+            // Try larger fragments with strategic sizes
+            const fragLengths = [
+                Math.floor(lMin * 0.15),
+                Math.floor(lMin * 0.25),
+                Math.floor(lMin * 0.4),
+                Math.floor(lMin * 0.6)
+            ].filter(f => f > 30);
 
-        for (const fragLen of fragLengths) {
-            this.tryFragmentInitializationFast(fragLen);
+            for (const fragLen of fragLengths) {
+                this.tryFragmentInitializationFast(fragLen);
+            }
         }
 
         // Final refinement passes with different cutoffs
         this.refineAlignment();
 
         // TM-align uses multiple refinement passes with different d0 values
-        for (let d = this.d0A + 3; d >= Math.max(1, this.d0A - 3); d--) {
+        for (let d = this.d0 + 3; d >= Math.max(1, this.d0 - 3); d--) {
             this.refineWithCutoff(d);
         }
 
         // Final pass with tighter cutoff
-        this.refineWithCutoff(this.d0A * 0.8);
+        this.refineWithCutoff(this.d0 * 0.8);
 
         // TM-align performs a final optimization to maximize TM-score
         // by iteratively removing poorly aligned pairs
@@ -368,7 +371,7 @@ class TMAlignState {
      * to maximize TM-score
      */
     private optimizeFinalAlignment(): void {
-        const { xa, ya, d0A, lenA, tmpAlignA: filteredA, tmpAlignB: filteredB } = this;
+        const { xa, ya, d0, lMin, tmpAlignA: filteredA, tmpAlignB: filteredB } = this;
 
         // Try different distance cutoffs to find optimal alignment
         const cutoffs = [8.0, 7.0, 6.0, 5.5, 5.0, 4.5, 4.0];
@@ -405,8 +408,8 @@ class TMAlignState {
                 this.bestAlignmentA,
                 this.bestAlignmentB,
                 transform,
-                d0A,
-                lenA
+                d0,
+                lMin
             );
 
             if (score > this.bestScore) {
@@ -421,8 +424,8 @@ class TMAlignState {
             this.bestAlignmentA,
             this.bestAlignmentB,
             this.bestTransform,
-            d0A,
-            lenA
+            d0,
+            lMin
         );
     }
 
@@ -460,7 +463,7 @@ class TMAlignState {
      */
     private refineWithCutoff(cutoff: number): void {
         if (cutoff < 1) return;
-        const { xa, ya, yt, lenA, d0A, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
+        const { xa, ya, yt, lMin, d0, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
         const cutoffSq = cutoff * cutoff;
         const v = Vec3();
         let n = 0;
@@ -517,7 +520,7 @@ class TMAlignState {
 
             // Compute final Kabsch and score
             const newTransform = this.trimmedKabschWithTransformedCoordinates(newAlignA, newAlignB, yt, scoreD8);
-            const newScore = this.scoreTMWithCutoff(newAlignA, newAlignB, newTransform, d0A, lenA, scoreD8);
+            const newScore = this.scoreTMWithCutoff(newAlignA, newAlignB, newTransform, d0, lMin, scoreD8);
 
             if (newScore > this.bestScore) {
                 this.bestScore = newScore;
@@ -535,7 +538,7 @@ class TMAlignState {
      * This is O(n) per offset and provides good initial seeds
      */
     private tryGaplessThreading(): void {
-        const { lenA, lenB, d0A, scoreD8, incrSequence } = this;
+        const { lenA, lenB, lMin, d0, scoreD8, incrSequence } = this;
 
         // Try various offsets
         for (let offset = -lenB + 4; offset <= lenA - 4; offset++) {
@@ -553,7 +556,7 @@ class TMAlignState {
             const transform = this.kabsch(alignA, alignB);
 
             // Score
-            const score = this.scoreTMWithCutoff(alignA, alignB, transform, d0A, lenA, scoreD8);
+            const score = this.scoreTMWithCutoff(alignA, alignB, transform, d0, lMin, scoreD8);
 
             if (score > this.bestScore * 0.8) {
                 // Promising seed - refine it
@@ -566,7 +569,7 @@ class TMAlignState {
      * Medium-thoroughness fragment-based initialization
      */
     private tryFragmentInitializationMedium(fragLen: number): void {
-        const { lenA, lenB, d0A, scoreD8, incrSequence } = this;
+        const { lenA, lenB, lMin, d0, scoreD8, incrSequence } = this;
         const maxStartA = lenA - fragLen;
         const maxStartB = lenB - fragLen;
         // Use fragLen/2 as step for more thorough search
@@ -582,7 +585,7 @@ class TMAlignState {
                 const transform = this.kabsch(fragA, fragB);
 
                 // Quick score check
-                const quickScore = this.scoreTMWithCutoff(fragA, fragB, transform, d0A, lenA, scoreD8);
+                const quickScore = this.scoreTMWithCutoff(fragA, fragB, transform, d0, lMin, scoreD8);
 
                 if (quickScore > this.bestScore * 0.3) {
                     this.extendFromSeed(transform);
@@ -595,7 +598,7 @@ class TMAlignState {
      * Fast fragment-based initialization with large steps
      */
     private tryFragmentInitializationFast(fragLen: number): void {
-        const { lenA, lenB, d0A, scoreD8, incrSequence } = this;
+        const { lenA, lenB, d0, lMin, scoreD8, incrSequence } = this;
         const maxStartA = lenA - fragLen;
         const maxStartB = lenB - fragLen;
         // Use fragment length as step - only try diagonal and near-diagonal positions
@@ -611,7 +614,7 @@ class TMAlignState {
                 const transform = this.kabsch(fragA, fragB);
 
                 // Quick score check before full refinement
-                const quickScore = this.scoreTMWithCutoff(fragA, fragB, transform, d0A, lenA, scoreD8);
+                const quickScore = this.scoreTMWithCutoff(fragA, fragB, transform, d0, lMin, scoreD8);
 
                 if (quickScore > this.bestScore * 0.5) {
                     // Promising seed - refine it
@@ -625,7 +628,7 @@ class TMAlignState {
      * Get initial alignment using length-independent approach
      */
     private getInitialAlignment(): void {
-        const { xa, ya, lenB, d0Search, j2i } = this;
+        const { xa, ya, lenB, d0, lMin, d0Search, scoreD8, j2i } = this;
         const d02 = d0Search * d0Search;
 
         this.nwdpStructure(xa, ya, d02, -0.6);
@@ -646,9 +649,9 @@ class TMAlignState {
                 this.bestAlignmentA,
                 this.bestAlignmentB,
                 this.bestTransform,
-                this.d0A,
-                this.lenA,
-                this.scoreD8
+                d0,
+                lMin,
+                scoreD8
             );
         }
     }
@@ -657,7 +660,7 @@ class TMAlignState {
      * Extend alignment from a seed transformation with iterative refinement
      */
     private extendFromSeed(initialTransform: Mat4): void {
-        const { xa, ya, yt, lenA, lenB, d0A, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
+        const { xa, ya, yt, lenB, lMin, d0, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
 
         let currentTransform = initialTransform;
         let currentAlignA: NumberArray = [];
@@ -699,7 +702,7 @@ class TMAlignState {
             const transform = this.trimmedKabschWithTransformedCoordinates(alignA, alignB, yt, scoreD8);
 
             // Score this alignment
-            const score = this.scoreTMWithCutoff(alignA, alignB, transform, d0A, lenA, scoreD8);
+            const score = this.scoreTMWithCutoff(alignA, alignB, transform, d0, lMin, scoreD8);
 
             // Check if score improved
             if (score <= prevScore) break;
@@ -787,7 +790,7 @@ class TMAlignState {
      * Refine the current best alignment iteratively
      */
     private refineAlignment(): void {
-        const { xa, ya, yt, lenA, lenB, d0A, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
+        const { xa, ya, yt, lMin, lenB, d0, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
         const maxIterations = 20;
         let n = 0;
 
@@ -832,7 +835,7 @@ class TMAlignState {
 
             // Compute new Kabsch and score
             const newTransform = this.kabsch(newAlignA, newAlignB);
-            const newScore = this.scoreTMWithCutoff(newAlignA, newAlignB, newTransform, d0A, lenA, scoreD8);
+            const newScore = this.scoreTMWithCutoff(newAlignA, newAlignB, newTransform, d0, lMin, scoreD8);
 
             if (newScore > this.bestScore) {
                 this.bestScore = newScore;
