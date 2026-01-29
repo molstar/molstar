@@ -1,13 +1,16 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { treeValidationIssues } from './tree/generic/tree-validation';
-import { treeToString } from './tree/generic/tree-utils';
+import { ajaxGet } from '../../mol-util/data-source';
+import { deepClone } from '../../mol-util/object';
+import { createMVSX } from './export';
 import { MVSAnimationSchema, MVSAnimationTree } from './tree/animation/animation-tree';
+import { findUris, replaceUris, resolveUri, treeToString, windowUrl } from './tree/generic/tree-utils';
+import { treeValidationIssues } from './tree/generic/tree-validation';
 import { Root, createMVSBuilder } from './tree/mvs/mvs-builder';
 import { MVSTree, MVSTreeSchema } from './tree/mvs/mvs-tree';
 
@@ -100,6 +103,55 @@ export const MVSData = {
     /** Encode `MVSData` to MVSJ (MolViewSpec-JSON) string. Use `space` parameter to control formatting (as with `JSON.stringify`). */
     toMVSJ(mvsData: MVSData, space?: string | number): string {
         return JSON.stringify(mvsData, undefined, space);
+    },
+
+    /** Encode `MVSData` to MVSX (MolViewSpec JSON zipped together with referenced assets). Automatically fetches all referenced assets unless specified otherwise in `options`. */
+    async toMVSX(mvsData: MVSData, options: {
+        /** Explicitely define assets to be included in the MVSX (binary data or string with asset content).
+         * If not specified, assets will be fetched automatically. */
+        assets?: { [uri: string]: Uint8Array<ArrayBuffer> | string },
+        /** Base URI for resolving relative URIs (only applies if `assets` not specified). */
+        baseUri?: string,
+        /** Do not include external resources (i.e. absolute URIs) in the MVSX (default is to include both relative and absolute URIs) (only applies if `assets` not specified). */
+        skipExternal?: boolean,
+        /** Optional cache for sharing fetched assets across multiple `toMVSX` calls (only applies if `assets` not specified). */
+        cache?: { [absoluteUri: string]: Uint8Array<ArrayBuffer> | string },
+    } = {}): Promise<Uint8Array<ArrayBuffer>> {
+        let { assets, baseUri, skipExternal, cache } = options;
+        mvsData = deepClone(mvsData);
+        const uriParamNames = ['uri', 'url'];
+        const trees = mvsData.kind === 'multiple' ? mvsData.snapshots.map(s => s.root) : [mvsData.root];
+        // Fetch assets:
+        if (!assets) {
+            assets = {};
+            cache ??= {};
+            const theWindowUrl = windowUrl();
+            const uris = new Set<string>();
+            for (const tree of trees) {
+                findUris(tree, uriParamNames, uris);
+            }
+            for (const uri of uris) {
+                if (skipExternal && isAbsoluteUri(uri)) continue;
+                const resolvedUri = resolveUri(uri, baseUri, theWindowUrl)!;
+                const content = cache[resolvedUri] ??= await ajaxGet({ url: resolvedUri, type: 'binary' }).run();
+                assets[uri] = content;
+            }
+        }
+        // Replace URIs by asset names:
+        const uriMapping: Record<string, string> = {};
+        const namedAssets: { name: string, content: string | Uint8Array<ArrayBuffer> }[] = [];
+        let counter = 0;
+        for (const uri in assets) {
+            const nameHint = uri.split('/').pop()!.replace(/[^\w\.+-]/g, '_').slice(0, 64);
+            const assetName = `./assets/${counter++}-${nameHint}`;
+            uriMapping[uri] = assetName;
+            namedAssets.push({ name: assetName, content: assets[uri] });
+        }
+        for (const tree of trees) {
+            replaceUris(tree, uriMapping, uriParamNames);
+        }
+        // Zip:
+        return await createMVSX(mvsData, namedAssets);
     },
 
     /** Validate `MVSData`. Return `true` if OK; `false` if not OK.
@@ -206,4 +258,13 @@ function snapshotValidationIssues(snapshot: MVSData_State | Snapshot, options: {
 /** Return the current universal time, in ISO format, e.g. '2023-11-24T10:45:49.873Z' */
 function utcNowISO(): string {
     return new Date().toISOString();
+}
+
+function isAbsoluteUri(uri: string): boolean {
+    try {
+        const url = new URL(uri);
+        return !!url.protocol;
+    } catch {
+        return false;
+    }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -186,7 +186,7 @@ export function resolveUris<T extends Tree>(tree: T, baseUri: string, uriParamNa
  * (i.e. the last one is the base URI). Skip any `undefined`.
  * E.g. `resolveUri('./unexpected.png', '/spanish/inquisition/expectations.html', 'https://example.org/spam/spam/spam')`
  * returns `'https://example.org/spanish/inquisition/unexpected.png'`. */
-function resolveUri(...refs: (string | undefined)[]): string | undefined {
+export function resolveUri(...refs: (string | undefined)[]): string | undefined {
     let result: string | undefined = undefined;
     for (const ref of refs.reverse()) {
         if (ref !== undefined) {
@@ -197,7 +197,43 @@ function resolveUri(...refs: (string | undefined)[]): string | undefined {
     return result;
 }
 
-/** Return URL of the current page when running in a browser; `undefined` when running in Node. */
-function windowUrl(): string | undefined {
-    return (typeof window !== 'undefined') ? window.location.href : undefined;
+/** Gather any URI params in a tree. URI params are those listed in `uriParamNames`. */
+export function findUris<T extends Tree>(tree: T, uriParamNames: string[], out = new Set<string>()): Set<string> {
+    dfs(tree, node => {
+        const params = node.params as Record<string, any> | undefined;
+        if (!params) return;
+        for (const name of uriParamNames) {
+            const uri = params[name];
+            if (typeof uri === 'string') {
+                out.add(uri);
+            }
+        }
+    });
+    return out;
+}
+
+/** Replace any URI params in a tree using the given `uriMapping`, in place. URI params are those listed in `uriParamNames`. */
+export function replaceUris<T extends Tree>(tree: T, uriMapping: { [oldUri: string]: string }, uriParamNames: string[]): void {
+    dfs(tree, node => {
+        const params = node.params as Record<string, any> | undefined;
+        if (!params) return;
+        for (const name of uriParamNames) {
+            const oldUri = params[name];
+            if (typeof oldUri === 'string' && typeof uriMapping[oldUri] === 'string') {
+                params[name] = uriMapping[oldUri];
+            }
+        }
+    });
+}
+
+/** Return URL of the current page when running in a browser; or file:// URL of the current working directory when running in Node. */
+export function windowUrl(): string | undefined {
+    if (typeof window !== 'undefined') {
+        return window.location.href;
+    }
+    if (typeof process !== 'undefined') {
+        const cwd = process.cwd().replace(/\/?$/, '/');
+        return `file://${cwd}`;
+    }
+    return undefined;
 }
