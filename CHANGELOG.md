@@ -5,11 +5,14 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - TM-align performance improvements (#1745)
+- Disable transparent outline close to opaque elements
 - Add axis param to trackball spin & rock animation
 - Color smoothing fixes (#1747)
     - Use correct instance for non instance-type
     - Never transform for non instance-type
     - Add extra radius to gaussian surface boundingsphere
+- MolViewSpec
+  - Add `MVSData.toMVSX` function and `mvs-mvsj-to-mvsx.js` CLI utility
 
 ## [v5.6.1] - 2026-01-23
 - Disable occlusion culling in `ImagePass` (#1758)
