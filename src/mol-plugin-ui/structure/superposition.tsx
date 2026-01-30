@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { SymmetryOperator } from '../../mol-math/geometry';
@@ -19,6 +20,7 @@ import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
 import { StateObjectCell, StateObjectRef } from '../../mol-state';
+import { Task } from '../../mol-task';
 import { elementLabel, structureElementStatsLabel } from '../../mol-theme/label';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { stripTags } from '../../mol-util/string';
@@ -236,17 +238,22 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         const pivot = this.plugin.managers.structure.hierarchy.findStructure(locis[0]?.structure);
         const coordinateSystem = pivot?.transform?.cell.obj?.data.coordinateSystem;
 
-        const eA = entries[0];
-        for (let i = 1, il = locis.length; i < il; ++i) {
-            const eB = entries[i];
-            const result = tmAlign(locis[0], locis[i]);
-            const { bTransform, tmScoreA, tmScoreB, rmsd, alignedLength } = result;
-            await this.transform(eB.cell, bTransform, coordinateSystem);
-            const labelA = stripTags(eA.label);
-            const labelB = stripTags(eB.label);
-            this.plugin.log.info(`TM-align [${labelA}] and [${labelB}]: TM-score=${tmScoreA.toFixed(4)}/${tmScoreB.toFixed(4)}, RMSD=${rmsd.toFixed(2)} Å, aligned ${alignedLength} residues.`);
-        }
-        await this.cameraReset();
+        const tmAlignTask = Task.create('TM-align Superposition', async ctx => {
+            const eA = entries[0];
+            for (let i = 1, il = locis.length; i < il; ++i) {
+                if (ctx.shouldUpdate) await ctx.update(`Superposing pair ${i} of ${il - 1}...`);
+
+                const eB = entries[i];
+                const result = tmAlign(locis[0], locis[i]);
+                const { bTransform, tmScoreA, tmScoreB, rmsd, alignedLength } = result;
+                await this.transform(eB.cell, bTransform, coordinateSystem);
+                const labelA = stripTags(eA.label);
+                const labelB = stripTags(eB.label);
+                this.plugin.log.info(`TM-align [${labelA}] and [${labelB}]: TM-score=${tmScoreA.toFixed(4)}/${tmScoreB.toFixed(4)}, RMSD=${rmsd.toFixed(2)} Å, aligned ${alignedLength} residues.`);
+            }
+            await this.cameraReset();
+        });
+        await this.plugin.runTask(tmAlignTask, { useOverlay: true });
     };
 
     async cameraReset() {
