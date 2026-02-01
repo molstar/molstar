@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -49,7 +49,7 @@ export const ParseFormatT = literal<ParseFormatT>(
 /** `format` parameter values for `parse` node in Molstar tree */
 export type MolstarParseFormatT =
     // trajectory
-    | 'cif' | 'pdb' | 'pdbqt' | 'gro' | 'xyz' | 'mol' | 'sdf' | 'mol2' | 'lammpstrj'
+    | 'cif' | 'pdb' | 'pdbqt' | 'pqr' | 'gro' | 'xyz' | 'mol' | 'sdf' | 'mol2' | 'lammpstrj'
     // coordinates
     | 'xtc' | 'nctraj' | 'dcd' | 'trr'
     // topology

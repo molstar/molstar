@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add extra radius to gaussian surface boundingsphere
 - MolViewSpec
   - Add `MVSData.toMVSX` function and `mvs-mvsj-to-mvsx.js` CLI utility
+- Add PQR file format support (#157)
 
 ## [v5.6.1] - 2026-01-23
 - Disable occlusion culling in `ImagePass` (#1758)
