@@ -10,5 +10,5 @@ import { Tokens } from '../common/text/tokenizer';
 export interface PdbFile {
     lines: Tokens
     id?: string,
-    isPdbqt?: boolean
+    variant: 'pdb' | 'pdbqt' | 'pqr'
 }

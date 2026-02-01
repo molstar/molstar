@@ -305,7 +305,8 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
                 });
             case 'pdb':
             case 'pdbqt':
-                return UpdateTarget.apply(updateParent, TrajectoryFromPDB, { isPdbqt: format === 'pdbqt' });
+            case 'pqr':
+                return UpdateTarget.apply(updateParent, TrajectoryFromPDB, { variant: format });
             case 'gro':
                 return UpdateTarget.apply(updateParent, TrajectoryFromGRO);
             case 'xyz':

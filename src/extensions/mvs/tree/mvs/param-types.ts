@@ -49,7 +49,7 @@ export const ParseFormatT = literal<ParseFormatT>(
 /** `format` parameter values for `parse` node in Molstar tree */
 export type MolstarParseFormatT =
     // trajectory
-    | 'cif' | 'pdb' | 'pdbqt' | 'gro' | 'xyz' | 'mol' | 'sdf' | 'mol2' | 'lammpstrj'
+    | 'cif' | 'pdb' | 'pdbqt' | 'pqr' | 'gro' | 'xyz' | 'mol' | 'sdf' | 'mol2' | 'lammpstrj'
     // coordinates
     | 'xtc' | 'nctraj' | 'dcd' | 'trr'
     // topology
