@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -65,6 +65,7 @@ import { setSaccharideCompIdMapType } from '../mol-model/structure/structure/car
 import { DragAndDropManager } from '../mol-plugin-state/manager/drag-and-drop';
 import { ErrorContext } from '../mol-util/error-context';
 import { PluginContainer } from './container';
+import { Volume } from '../mol-model/volume';
 
 export type PluginInitializedState =
     | { kind: 'no' }
@@ -205,6 +206,7 @@ export class PluginContext {
 
     readonly customModelProperties = new CustomProperty.Registry<Model>();
     readonly customStructureProperties = new CustomProperty.Registry<Structure>();
+    readonly customVolumeProperties = new CustomProperty.Registry<Volume>();
 
     readonly customStructureControls = new Map<string, { new(): any /* constructible react components with <action.customControl /> */ }>();
     readonly customImportControls = new Map<string, { new(): any /* constructible react components with <action.customControl /> */ }>();

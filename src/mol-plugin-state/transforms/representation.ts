@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -1015,6 +1015,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             const provider = plugin.representation.volume.registry.get(params.type.name);
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes }, provider.getParams);
+            await Theme.ensureDependencies(propertyCtx, plugin.representation.volume.themes, { volume: a.data }, params);
             repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data, locationKinds: provider.locationKinds }, params));
 
             const props = params.type.params || {};
@@ -1024,19 +1025,35 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
         return Task.create('Volume Representation', async ctx => {
-            const oldProvider = plugin.representation.volume.registry.get(oldParams.type.name);
-            if (newParams.type.name !== oldParams.type.name) {
-                oldProvider.ensureCustomProperties?.detach(a.data);
-                return StateTransformer.UpdateResult.Recreate;
-            }
+            if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
+
+            const provider = plugin.representation.volume.registry.get(newParams.type.name);
+            if (provider.mustRecreate?.(oldParams.type.params, newParams.type.params)) return StateTransformer.UpdateResult.Recreate;
+
+            const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext };
+            if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
+
+            // TODO: if themes had a .needsUpdate method the following block could
+            //       be optimized and only executed conditionally
+            Theme.releaseDependencies(plugin.representation.volume.themes, { volume: b.data.sourceData }, oldParams);
+            await Theme.ensureDependencies(propertyCtx, plugin.representation.volume.themes, { volume: a.data }, newParams);
+            b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data, locationKinds: provider.locationKinds }, newParams));
+
             const props = { ...b.data.repr.props, ...newParams.type.params };
-            b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data, locationKinds: oldProvider.locationKinds }, newParams));
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.data.sourceData = a.data;
             b.description = VolumeRepresentation3DHelpers.getDescription(props);
             return StateTransformer.UpdateResult.Updated;
         });
-    }
+    },
+    dispose({ b, params }, plugin: PluginContext) {
+        if (!b || !params) return;
+
+        const volume = b.data.sourceData;
+        const provider = plugin.representation.volume.registry.get(params.type.name);
+        if (provider.ensureCustomProperties) provider.ensureCustomProperties.detach(volume);
+        Theme.releaseDependencies(plugin.representation.volume.themes, { volume }, params);
+    },
 });
 
 //

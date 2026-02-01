@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -11,14 +11,14 @@ import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { volumeFromCcp4 } from '../../mol-model-formats/volume/ccp4';
 import { volumeFromDensityServerData } from '../../mol-model-formats/volume/density-server';
 import { volumeFromDsn6 } from '../../mol-model-formats/volume/dsn6';
-import { Task } from '../../mol-task';
+import { RuntimeContext, Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { volumeFromCube } from '../../mol-model-formats/volume/cube';
 import { volumeFromDx } from '../../mol-model-formats/volume/dx';
 import { Grid, Volume } from '../../mol-model/volume';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateSelection } from '../../mol-state';
+import { StateSelection, StateTransformer } from '../../mol-state';
 import { volumeFromSegmentationData } from '../../mol-model-formats/volume/segmentation';
 import { getTransformFromParams, TransformParam, transformParamsNeedCentroid } from './helpers';
 
@@ -29,6 +29,9 @@ export { VolumeFromDx };
 export { AssignColorVolume };
 export { VolumeFromDensityServerCif };
 export { VolumeFromSegmentationCif };
+export { VolumeTransform };
+export { VolumeInstances };
+export { CustomVolumeProperties };
 
 type VolumeFromCcp4 = typeof VolumeFromCcp4
 const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
@@ -232,8 +235,8 @@ const AssignColorVolume = PluginStateTransform.BuiltIn({
     }
 });
 
-export type VolumeTransform = typeof VolumeTransform;
-export const VolumeTransform = PluginStateTransform.BuiltIn({
+type VolumeTransform = typeof VolumeTransform;
+const VolumeTransform = PluginStateTransform.BuiltIn({
     name: 'volume-transform',
     display: { name: 'Transform Volume' },
     isDecorator: true,
@@ -267,8 +270,8 @@ export const VolumeTransform = PluginStateTransform.BuiltIn({
     },
 });
 
-export type VolumeInstances = typeof VolumeInstances;
-export const VolumeInstances = PluginStateTransform.BuiltIn({
+type VolumeInstances = typeof VolumeInstances;
+const VolumeInstances = PluginStateTransform.BuiltIn({
     name: 'volume-instances',
     display: { name: 'Volume Instances' },
     isDecorator: true,
@@ -296,3 +299,56 @@ export const VolumeInstances = PluginStateTransform.BuiltIn({
         });
     },
 });
+
+type CustomVolumeProperties = typeof CustomVolumeProperties
+const CustomVolumeProperties = PluginStateTransform.BuiltIn({
+    name: 'custom-volume-properties',
+    display: { name: 'Custom Volume Properties' },
+    isDecorator: true,
+    from: SO.Volume.Data,
+    to: SO.Volume.Data,
+    params: (a, ctx: PluginContext) => {
+        return ctx.customVolumeProperties.getParams(a?.data);
+    }
+})({
+    apply({ a, params }, ctx: PluginContext) {
+        return Task.create('Custom Volume Props', async taskCtx => {
+            await attachVolumeProps(a.data, ctx, taskCtx, params);
+            return new SO.Volume.Data(a.data, { label: a.label, description: a.description });
+        });
+    },
+    update({ a, b, oldParams, newParams }, ctx: PluginContext) {
+        return Task.create('Custom Volume Props', async taskCtx => {
+            b.data = a.data;
+            b.label = a.label;
+            b.description = a.description;
+            for (const name of oldParams.autoAttach) {
+                const property = ctx.customVolumeProperties.get(name);
+                if (!property) continue;
+                a.data.customProperties.reference(property.descriptor, false);
+            }
+            await attachVolumeProps(a.data, ctx, taskCtx, newParams);
+            return StateTransformer.UpdateResult.Updated;
+        });
+    },
+    dispose({ b }) {
+        b?.data.customProperties.dispose();
+    }
+});
+async function attachVolumeProps(volume: Volume, ctx: PluginContext, taskCtx: RuntimeContext, params: ReturnType<CustomVolumeProperties['createDefaultParams']>) {
+    const propertyCtx = { runtime: taskCtx, assetManager: ctx.managers.asset, errorContext: ctx.errorContext };
+    const { autoAttach, properties } = params;
+    for (const name of Object.keys(properties)) {
+        const property = ctx.customVolumeProperties.get(name)!;
+        const props = properties[name];
+        if (autoAttach.includes(name) || property.isHidden) {
+            try {
+                await property.attach(propertyCtx, volume, props, true);
+            } catch (e) {
+                ctx.log.warn(`Error attaching volume prop '${name}': ${e}`);
+            }
+        } else {
+            property.set(volume, props);
+        }
+    }
+}
