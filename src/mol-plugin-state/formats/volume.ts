@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -70,7 +70,9 @@ export const Ccp4Provider = DataFormatProvider({
             .to(data)
             .apply(StateTransforms.Data.ParseCcp4, {}, { state: { isGhost: true } });
 
-        const volume = format.apply(StateTransforms.Volume.VolumeFromCcp4, { entryId: params?.entryId });
+        const volume = format
+            .apply(StateTransforms.Volume.VolumeFromCcp4, { entryId: params?.entryId })
+            .apply(StateTransforms.Volume.CustomVolumeProperties);
 
         await format.commit({ revertOnError: true });
         await tryObtainRecommendedIsoValue(plugin, volume.selector.data);
@@ -90,7 +92,9 @@ export const Dsn6Provider = DataFormatProvider({
             .to(data)
             .apply(StateTransforms.Data.ParseDsn6, {}, { state: { isGhost: true } });
 
-        const volume = format.apply(StateTransforms.Volume.VolumeFromDsn6, { entryId: params?.entryId });
+        const volume = format
+            .apply(StateTransforms.Volume.VolumeFromDsn6, { entryId: params?.entryId })
+            .apply(StateTransforms.Volume.CustomVolumeProperties);
 
         await format.commit({ revertOnError: true });
         await tryObtainRecommendedIsoValue(plugin, volume.selector.data);
@@ -111,7 +115,9 @@ export const DxProvider = DataFormatProvider({
             .to(data)
             .apply(StateTransforms.Data.ParseDx, {}, { state: { isGhost: true } });
 
-        const volume = format.apply(StateTransforms.Volume.VolumeFromDx, { entryId: params?.entryId });
+        const volume = format
+            .apply(StateTransforms.Volume.VolumeFromDx, { entryId: params?.entryId })
+            .apply(StateTransforms.Volume.CustomVolumeProperties);
 
         await volume.commit({ revertOnError: true });
         await tryObtainRecommendedIsoValue(plugin, volume.selector.data);
@@ -131,11 +137,15 @@ export const CubeProvider = DataFormatProvider({
             .to(data)
             .apply(StateTransforms.Data.ParseCube, {}, { state: { isGhost: true } });
 
-        const volume = format.apply(StateTransforms.Volume.VolumeFromCube, { entryId: params?.entryId });
+        const volume = format
+            .apply(StateTransforms.Volume.VolumeFromCube, { entryId: params?.entryId })
+            .apply(StateTransforms.Volume.CustomVolumeProperties);
         const structure = format
             .apply(StateTransforms.Model.TrajectoryFromCube, void 0, { state: { isGhost: true } })
             .apply(StateTransforms.Model.ModelFromTrajectory)
-            .apply(StateTransforms.Model.StructureFromModel);
+            .apply(StateTransforms.Model.CustomModelProperties)
+            .apply(StateTransforms.Model.StructureFromModel)
+            .apply(StateTransforms.Model.CustomStructureProperties);
 
         await format.commit({ revertOnError: true });
         await tryObtainRecommendedIsoValue(plugin, volume.selector.data);
@@ -209,7 +219,10 @@ export const DscifProvider = DataFormatProvider({
 
             const entryId = Array.isArray(params?.entryId) ? params?.entryId[i] : params?.entryId;
             if (block.categories['volume_data_3d_info']?.rowCount > 0) {
-                volumes.push(b.apply(StateTransforms.Volume.VolumeFromDensityServerCif, { blockHeader: block.header, entryId }).selector);
+                const volume = b
+                    .apply(StateTransforms.Volume.VolumeFromDensityServerCif, { blockHeader: block.header, entryId })
+                    .apply(StateTransforms.Volume.CustomVolumeProperties);
+                volumes.push(volume.selector);
                 i++;
             }
         }
@@ -268,7 +281,10 @@ export const SegcifProvider = DataFormatProvider({
             if (block.header.toUpperCase() === 'SERVER') continue;
 
             if (block.categories['volume_data_3d_info']?.rowCount > 0) {
-                volumes.push(b.apply(StateTransforms.Volume.VolumeFromSegmentationCif, { blockHeader: block.header }).selector);
+                const volume = b
+                    .apply(StateTransforms.Volume.VolumeFromSegmentationCif, { blockHeader: block.header })
+                    .apply(StateTransforms.Volume.CustomVolumeProperties);
+                volumes.push(volume.selector);
             }
         }
 

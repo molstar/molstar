@@ -28,7 +28,6 @@ export interface Volume {
     readonly sourceData: ModelFormat
     readonly periodicity?: 'none' | 'xyz'
 
-    // TODO use...
     customProperties: CustomProperties
 
     /**
