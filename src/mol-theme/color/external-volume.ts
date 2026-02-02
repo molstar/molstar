@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Cai Huiyu <szmun.caihy@gmail.com>
@@ -17,13 +17,15 @@ import { isPositionLocation } from '../../mol-geo/util/location-iterator';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { clamp } from '../../mol-math/interpolate';
 import { ColorThemeCategory } from './categories';
+import { StateSelection } from '../../mol-state/state/selection';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 
 const Description = `Assigns a color based on volume value at a given vertex.`;
 
 export const ExternalVolumeColorThemeParams = {
     volume: PD.ValueRef<Volume>(
         (ctx: PluginContext) => {
-            const volumes = ctx.state.data.selectQ(q => q.root.subtree().filter(c => Volume.is(c.obj?.data)));
+            const volumes = ctx.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Volume.Data)).filter(c => c.obj?.data);
             return volumes.map(v => [v.transform.ref, v.obj?.label ?? '<unknown>'] as [string, string]);
         },
         (ref, getData) => getData(ref),
