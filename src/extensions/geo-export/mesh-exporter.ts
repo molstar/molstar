@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -30,6 +30,7 @@ import { RenderObjectExporter, RenderObjectExportData } from './render-object-ex
 import { readAlphaTexture, readTexture } from '../../mol-gl/compute/util';
 import { assertUnreachable } from '../../mol-util/type-helpers';
 import { ValueCell } from '../../mol-util/value-cell';
+import { ColorTheme } from '../../mol-theme/color';
 
 const GeoExportName = 'geo-export';
 
@@ -239,6 +240,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         const overpaintType = values.dOverpaintType.ref.value;
         const dOverpaint = values.dOverpaint.ref.value;
         const tOverpaint = values.tOverpaint.ref.value.array;
+        const usePalette = values.dUsePalette.ref.value;
 
         let vertexCount = geoData.vertexCount;
         if (mode === 'lines') {
@@ -277,6 +279,26 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
                 color = Color.fromArray(interpolatedColors!, (instanceIndex * vertexCount + vertexIndex) * 3);
                 break;
             default: throw new Error('Unsupported color type.');
+        }
+
+        if (usePalette) {
+            const palette = values.tPalette.ref.value;
+            const paletteArray = palette.array;
+            const paletteLength = paletteArray.length / 3;
+            const [r, g, b] = Color.toRgb(color);
+            const paletteValue = ((r * 256 * 256 + g * 256 + b) - 1) / ColorTheme.PaletteScale;
+            const fIndex = paletteValue * (paletteLength - 1);
+            if (palette.filter === 'linear') {
+                const index0 = Math.floor(fIndex);
+                const index1 = index0 + 1;
+                const t = fIndex - index0;
+                const color0 = Color.fromArray(paletteArray, index0 * 3);
+                const color1 = Color.fromArray(paletteArray, index1 * 3);
+                color = Color.interpolate(color0, color1, t);
+            } else { // nearest
+                const index = Math.round(fIndex);
+                color = Color.fromArray(paletteArray, index * 3);
+            }
         }
 
         if (dOverpaint) {

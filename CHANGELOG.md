@@ -15,6 +15,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Breaking] Add PQR file format support (#157)
     - Replace `isPdbqt` with `variant` param in `TrajectoryFromPDB`
 - Add `CustomVolumeProperty` (like for models and structures)
+- Fix missing `usePalette` support in `MeshExporter`
 
 ## [v5.6.1] - 2026-01-23
 - Disable occlusion culling in `ImagePass` (#1758)
