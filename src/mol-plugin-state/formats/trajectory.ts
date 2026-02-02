@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -100,7 +100,16 @@ export const PdbqtProvider: TrajectoryFormatProvider = {
     description: 'PDBQT',
     category: TrajectoryFormatCategory,
     stringExtensions: ['pdbqt'],
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB, { isPdbqt: true }),
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB, { variant: 'pdbqt' }),
+    visuals: defaultVisuals
+};
+
+export const PqrProvider: TrajectoryFormatProvider = {
+    label: 'PQR',
+    description: 'PQR',
+    category: TrajectoryFormatCategory,
+    stringExtensions: ['pqr'],
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB, { variant: 'pqr' }),
     visuals: defaultVisuals
 };
 
@@ -173,6 +182,7 @@ export const BuiltInTrajectoryFormats = [
     ['cifCore', CifCoreProvider] as const,
     ['pdb', PdbProvider] as const,
     ['pdbqt', PdbqtProvider] as const,
+    ['pqr', PqrProvider] as const,
     ['gro', GroProvider] as const,
     ['xyz', XyzProvider] as const,
     ['lammps_data', LammpsDataProvider] as const,

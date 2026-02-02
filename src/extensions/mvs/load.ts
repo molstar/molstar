@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -305,7 +305,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
                 });
             case 'pdb':
             case 'pdbqt':
-                return UpdateTarget.apply(updateParent, TrajectoryFromPDB, { isPdbqt: format === 'pdbqt' });
+                return UpdateTarget.apply(updateParent, TrajectoryFromPDB, { variant: format });
             case 'gro':
                 return UpdateTarget.apply(updateParent, TrajectoryFromGRO);
             case 'xyz':

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -214,7 +214,9 @@ export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsy
     };
 }
 
-export function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: number, e: number, isPdbqt: boolean) {
+// PQR: Field_name Atom_number Atom_name Residue_name Chain_ID Residue_number X Y Z Charge Radius
+
+export function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: number, e: number, variant: 'pdb' | 'pdbqt' | 'pqr') {
     const { data: str } = data;
     const length = e - s;
 
@@ -268,38 +270,45 @@ export function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer,
     // 47 - 54        Real(8.3)       Orthogonal coordinates for Z in Angstroms.
     TokenBuilder.addToken(sites.Cartn_z, Tokenizer.trim(data, s + 46, s + 54));
 
-    // 55 - 60        Real(6.2)       Occupancy.
-    TokenBuilder.addToken(sites.occupancy, Tokenizer.trim(data, s + 54, s + 60));
+    if (variant === 'pqr') {
+        TokenBuilder.addToken(sites.partial_charge, Tokenizer.trim(data, s + 54, s + 62));
+        // TODO: radius
 
-    // 61 - 66        Real(6.2)       Temperature factor (Default = 0.0).
-    if (length >= 66) {
-        TokenBuilder.addToken(sites.B_iso_or_equiv, Tokenizer.trim(data, s + 60, s + 66));
+        guessElementSymbolTokens(sites.type_symbol, str, s + 12, s + 16);
     } else {
-        TokenBuilder.add(sites.B_iso_or_equiv, 0, 0);
-    }
+        // 55 - 60        Real(6.2)       Occupancy.
+        TokenBuilder.addToken(sites.occupancy, Tokenizer.trim(data, s + 54, s + 60));
 
-    // 73 - 76        LString(4)      Segment identifier, left-justified.
-    if (isPdbqt) {
-        TokenBuilder.addToken(sites.partial_charge, Tokenizer.trim(data, s + 70, s + 76));
-    } else {
-        // ignored
-    }
+        // 61 - 66        Real(6.2)       Temperature factor (Default = 0.0).
+        if (length >= 66) {
+            TokenBuilder.addToken(sites.B_iso_or_equiv, Tokenizer.trim(data, s + 60, s + 66));
+        } else {
+            TokenBuilder.add(sites.B_iso_or_equiv, 0, 0);
+        }
 
-    // 77 - 78        LString(2)      Element symbol, right-justified.
-    if (length >= 78 && !isPdbqt) {
-        Tokenizer.trim(data, s + 76, s + 78);
+        // 73 - 76        LString(4)      Segment identifier, left-justified.
+        if (variant === 'pdbqt') {
+            TokenBuilder.addToken(sites.partial_charge, Tokenizer.trim(data, s + 70, s + 76));
+        } else {
+            // ignored
+        }
 
-        if (data.tokenStart < data.tokenEnd) {
-            TokenBuilder.addToken(sites.type_symbol, data);
+        // 77 - 78        LString(2)      Element symbol, right-justified.
+        if (length >= 78 && variant === 'pdb') {
+            Tokenizer.trim(data, s + 76, s + 78);
+
+            if (data.tokenStart < data.tokenEnd) {
+                TokenBuilder.addToken(sites.type_symbol, data);
+            } else {
+                guessElementSymbolTokens(sites.type_symbol, str, s + 12, s + 16);
+            }
         } else {
             guessElementSymbolTokens(sites.type_symbol, str, s + 12, s + 16);
         }
-    } else {
-        guessElementSymbolTokens(sites.type_symbol, str, s + 12, s + 16);
-    }
 
-    // 79 - 80        LString(2)    charge       Charge  on the atom.
-    // TODO
+        // 79 - 80        LString(2)    charge       Charge  on the atom.
+        // TODO: charge
+    }
 
     sites.pdbx_PDB_model_num[sites.index] = model;
 

@@ -34,10 +34,9 @@ function substringStartsWith(str: StringLike, start: number, end: number, target
 }
 
 export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
-    const { lines } = pdb;
+    const { lines, variant } = pdb;
     const { data, indices } = lines;
     const tokenizer = Tokenizer(data);
-    const isPdbqt = !!pdb.isPdbqt;
 
     // Count the atoms
     let atomCount = 0;
@@ -73,7 +72,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
             case 'A':
                 if (substringStartsWith(data, s, e, 'ATOM  ')) {
                     if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
-                    addAtom(atomSite, modelStr, tokenizer, s, e, isPdbqt);
+                    addAtom(atomSite, modelStr, tokenizer, s, e, variant);
                 } else if (substringStartsWith(data, s, e, 'ANISOU')) {
                     addAnisotropic(anisotropic, modelStr, tokenizer, s, e);
                 }
@@ -112,7 +111,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     addHeader(data, s, e, header);
                 } else if (substringStartsWith(data, s, e, 'HETATM')) {
                     if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
-                    addAtom(atomSite, modelStr, tokenizer, s, e, isPdbqt);
+                    addAtom(atomSite, modelStr, tokenizer, s, e, variant);
                 } else if (substringStartsWith(data, s, e, 'HELIX')) {
                     let j = i + 1;
                     while (true) {
@@ -233,7 +232,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
         atomSite.label_entity_id[i] = entityBuilder.getEntityId(compId, moleculeType, asymId);
     }
     const atom_site = getAtomSite(atomSite, labelAsymIdHelper, { hasAssemblies, hasSeqRes });
-    if (!isPdbqt) delete atom_site.partial_charge;
+    if (variant === 'pdb') delete atom_site.partial_charge;
 
     if (conectRange) {
         helperCategories.push(parseConect(lines, conectRange[0], conectRange[1], atom_site));
@@ -251,7 +250,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     }
 
     return {
-        header: pdb.id || 'PDB',
+        header: pdb.id || variant.toUpperCase(),
         categoryNames: Object.keys(categories),
         categories
     };
