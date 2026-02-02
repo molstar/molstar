@@ -288,16 +288,16 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
             const [r, g, b] = Color.toRgb(color);
             const paletteValue = ((r * 256 * 256 + g * 256 + b) - 1) / ColorTheme.PaletteScale;
             const fIndex = paletteValue * (paletteLength - 1);
-            if (palette.filter === 'linear') {
+            if (palette.filter === 'nearest') {
+                const index = Math.round(fIndex);
+                color = Color.fromArray(paletteArray, index * 3);
+            } else { // linear
                 const index0 = Math.floor(fIndex);
                 const index1 = index0 + 1;
                 const t = fIndex - index0;
                 const color0 = Color.fromArray(paletteArray, index0 * 3);
                 const color1 = Color.fromArray(paletteArray, index1 * 3);
                 color = Color.interpolate(color0, color1, t);
-            } else { // nearest
-                const index = Math.round(fIndex);
-                color = Color.fromArray(paletteArray, index * 3);
             }
         }
 
