@@ -43,6 +43,7 @@ export const KinProvider = DataFormatProvider({
   category: ShapeFormatCategory,
   stringExtensions: ['kin'],
   parse: async (plugin, data) => {
+    // This returns the last kinemage in the file if there are multiple
     const format = plugin.state.data.build()
       .to(data)
       .apply(StateTransforms.Data.ParseKin, {}, { state: { isGhost: true } });
@@ -63,7 +64,7 @@ export const KinProvider = DataFormatProvider({
 
 export const BuiltInShapeFormats = [
   ['ply', PlyProvider] as const,
-  ['kin', KinProvider] as const,
+  /// @todo Replaced the plugin loader with an extension ['kin', KinProvider] as const,
 ] as const;
 
 export type BuiltInShapeFormat = (typeof BuiltInShapeFormats)[number][0]

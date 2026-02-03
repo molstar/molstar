@@ -74,9 +74,9 @@ export function KinemageDataRepresentation(ctx: RepresentationContext, getParams
 }
 
 export const KinemageDataRepresentationProvider = StructureRepresentationProvider({
-    name: 'membrane-orientation',
-    label: 'Membrane Orientation',
-    description: 'Displays a grid of points representing membrane layers.',
+    name: 'kinemage',
+    label: 'Kinemage',
+    description: 'Displays data from an Kinemage.',
     factory: KinemageDataRepresentation,
     getParams: getKinemageDataParams,
     defaultValues: PD.getDefaultValues(KinemageDataParams),

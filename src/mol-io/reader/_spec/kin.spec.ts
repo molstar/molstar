@@ -45,7 +45,8 @@ describe('kin reader', () => {
     it('basic', async () => {
         const parsed = await parseKin(kinString).run();
         if (parsed.isError) return;
-        const kinemage = parsed.result;
+        if (parsed.result.length != 1) return;
+        const kinemage = parsed.result[0];
 
         const vectors = kinemage.vectorLists;
         expect(vectors.length).toEqual(1);

@@ -16,6 +16,11 @@ import { Vec3 } from '../../mol-math/linear-algebra';
 import { QuerySymbolRuntime } from '../../mol-script/runtime/query/base';
 import { CustomPropSymbol } from '../../mol-script/language/symbol';
 import { Type } from '../../mol-script/language/type';
+import { Task } from '../../mol-task';
+
+import { Kinemage } from '../../mol-io/reader/kin/schema';
+import { parseKin } from '../../mol-io/reader/kin/parser';
+
 
 export const KinemageDataParams = {
     ...KinemageParams
@@ -26,6 +31,7 @@ export type KinemageDataProps = PD.Values<KinemageDataParams>
 export { KinemageData };
 
 interface KinemageData {
+    /// @todo Remove these
     // point in membrane boundary
     readonly planePoint1: Vec3,
     // point in opposite side of membrane boundary
@@ -34,17 +40,32 @@ interface KinemageData {
     readonly normalVector: Vec3,
     // the radius of the membrane layer
     readonly radius: number,
-    readonly centroid: Vec3
+    readonly centroid: Vec3,
+
+    /**
+     * List of Kinemages read from one or more files.
+     */
+    readonly kinemages: Kinemage[],
+
+    /**
+     * Index of the active KinemageData
+     */
+    activeKinemage: number
 }
+
+const FileSourceParams = {
+  input: PD.File({ accept: '.kin', multiple: false })
+};
+type FileSourceProps = PD.Values<typeof FileSourceParams>
 
 namespace KinemageData {
     export enum Tag {
-        Representation = 'membrane-orientation-3d'
+        Representation = 'kinemage-3d'
     }
 
     const pos = Vec3();
     export const symbols = {
-        isTransmembrane: QuerySymbolRuntime.Dynamic(CustomPropSymbol('computed', 'membrane-orientation.is-transmembrane', Type.Bool),
+        isTransmembrane: QuerySymbolRuntime.Dynamic(CustomPropSymbol('computed', 'kinemage.is-kinemage', Type.Bool),
             ctx => {
                 const { unit, structure } = ctx.element;
                 const { x, y, z } = StructureProperties.atom;
@@ -56,6 +77,44 @@ namespace KinemageData {
                 return isInMembranePlane(pos, normalVector, planePoint1, planePoint2);
             })
     };
+
+    async function loadKinemageData(data: string): Promise<Kinemage[]> {
+      const task = parseKin(data);
+      const result = await task.run();
+      if (result.isError) {
+        throw new Error('Failed to parse KIN data');
+      }
+      return result.result;
+    }
+
+    export async function open(file: FileSourceProps | File): Promise<KinemageData> {
+
+      let fileToRead: File;
+
+      if (file instanceof File) {
+        fileToRead = file;
+      } else if (file && file.input && file.input.file) {
+        fileToRead = file.input.file;
+      } else {
+        throw new Error('No file given');
+      }
+
+      const task = Task.create('Load KIN file', async ctx => {
+        const data = await fileToRead.text();
+        const kinemages = await loadKinemageData(data);
+        return kinemages;
+      });
+
+      const kinemages = await task.run();
+      const activeKinemage = kinemages.length - 1;
+      /// @todo Remove these once we no longer need them
+      const planePoint1 = Vec3.create(0, 0, 0);
+      const planePoint2 = Vec3.create(0, 0, 0);
+      const normalVector = Vec3.create(0, 0, 1);
+      const radius = 0;
+      const centroid = Vec3.create(0, 0, 0);
+      return { kinemages, activeKinemage, planePoint1, planePoint2, normalVector, radius, centroid };
+    }
 }
 
 export const KinemageDataProvider: CustomStructureProperty.Provider<KinemageDataParams, KinemageData> = CustomStructureProperty.createProvider({
