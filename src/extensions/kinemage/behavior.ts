@@ -61,8 +61,7 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
             });
             this.ctx.builders.structure.representation.registerPreset(KinemageDataPreset);
 
-            console.log('XXX KinemageExtension register - adding drag and drop handler for ', KINDragAndDropHandler.name);
-            this.ctx.managers.dragAndDrop.addHandler(KINDragAndDropHandler.name, KINDragAndDropHandler.handle);
+            this.ctx.managers.dragAndDrop.addHandler(KinemageDragAndDropHandler.name, KinemageDragAndDropHandler.handle);
         }
 
         update(p: { autoAttach: boolean }) {
@@ -83,7 +82,7 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
             this.ctx.genericRepresentationControls.delete(Tag.Representation);
             this.ctx.builders.structure.representation.unregisterPreset(KinemageDataPreset);
 
-            this.ctx.managers.dragAndDrop.removeHandler(KINDragAndDropHandler.name);
+            this.ctx.managers.dragAndDrop.removeHandler(KinemageDragAndDropHandler.name);
         }
     },
     params: () => ({
@@ -197,7 +196,7 @@ interface DragAndDropHandler {
 }
 
 /** DragAndDropHandler handler for `.kin` files */
-const KINDragAndDropHandler: DragAndDropHandler = {
+const KinemageDragAndDropHandler: DragAndDropHandler = {
   name: 'kin',
   /** Load .kin files. Append to previous plugin state.
    * If multiple files are provided, append them all.
@@ -222,7 +221,7 @@ const KINDragAndDropHandler: DragAndDropHandler = {
         applied = true;
       }
     }
-    console.log('XXX KINDragAndDropHandler applied=', applied);
+    console.log('XXX KinemageDragAndDropHandler applied=', applied);
     return applied;
   },
 };
