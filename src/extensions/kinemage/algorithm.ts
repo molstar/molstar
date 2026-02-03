@@ -16,6 +16,7 @@ import { MoleculeType } from '../../mol-model/structure/model/types';
 import { AccessibleSurfaceArea } from '../../mol-model-props/computed/accessible-surface-area/shrake-rupley';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { KinemageData } from './prop';
+import { Kinemage } from '../../mol-io/reader/kin/schema';
 
 const LARGE_CA_THRESHOLD = 5000;
 const DEFAULT_UPDATE_INTERVAL = 10;
@@ -194,12 +195,15 @@ export async function calculate(runtime: RuntimeContext, structure: Structure, p
     v3scale(center, center, 0.5);
     const extent = adjustExtent(ctx, membrane, center);
 
+    const kinemages: Kinemage[] = [];
+    const activeKinemage = -1
     return {
         planePoint1: membrane.planePoint1,
         planePoint2: membrane.planePoint2,
         normalVector,
         centroid: center,
-        radius: extent
+        radius: extent,
+        kinemages, activeKinemage
     };
 }
 

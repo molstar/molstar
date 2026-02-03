@@ -12,6 +12,7 @@ import { KinemageDataProvider, KinemageData } from './prop';
 import { StateObjectRef, StateTransformer, StateTransform } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { PluginBehavior } from '../../mol-plugin/behavior';
+import { PluginDragAndDropHandler } from '../../mol-plugin-state/manager/drag-and-drop';
 import { KinemageDataRepresentationProvider, KinemageDataParams, KinemageDataRepresentation } from './representation';
 import { HydrophobicityColorThemeProvider } from '../../mol-theme/color/hydrophobicity';
 import { PluginStateObject, PluginStateTransform } from '../../mol-plugin-state/objects';
@@ -20,8 +21,17 @@ import { DefaultQueryRuntimeTable } from '../../mol-script/runtime/query/compile
 import { StructureSelectionQuery, StructureSelectionCategory } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { GenericRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
+import { Vec3 } from '../../mol-math/linear-algebra';
 
 const Tag = KinemageData.Tag;
+
+/// @todo Remove once we store into the proper location in the drag and drop handler
+/** Global KinemageInfo that is used to display */
+let g_kinemageInfo: KinemageData = {
+  kinemages: [], activeKinemage: -1
+  /// @todo Remove these when we no longer need them.
+  , planePoint1: Vec3(), planePoint2: Vec3(), normalVector: Vec3(), radius: 0, centroid: Vec3()
+};
 
 export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'kinemage-data-prop',
@@ -50,6 +60,9 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
                 return [refs, 'Membrane Orientation'];
             });
             this.ctx.builders.structure.representation.registerPreset(KinemageDataPreset);
+
+            console.log('XXX KinemageExtension register - adding drag and drop handler for ', KINDragAndDropHandler.name);
+            this.ctx.managers.dragAndDrop.addHandler(KINDragAndDropHandler.name, KINDragAndDropHandler.handle);
         }
 
         update(p: { autoAttach: boolean }) {
@@ -69,6 +82,8 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
 
             this.ctx.genericRepresentationControls.delete(Tag.Representation);
             this.ctx.builders.structure.representation.unregisterPreset(KinemageDataPreset);
+
+            this.ctx.managers.dragAndDrop.removeHandler(KINDragAndDropHandler.name);
         }
     },
     params: () => ({
@@ -171,6 +186,43 @@ export const KinemageDataPreset = StructureRepresentationPresetProvider({
 export function tryCreateKinemageData(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, params?: StateTransformer.Params<KinemageData3D>, initialState?: Partial<StateTransform.State>) {
     const state = plugin.state.data;
     const KinemageData = state.build().to(structure)
-        .applyOrUpdateTagged('membrane-orientation-3d', KinemageData3D, params, { state: initialState });
+        .applyOrUpdateTagged('kinemage-3d', KinemageData3D, params, { state: initialState });
     return KinemageData.commit({ revertOnError: true });
 }
+
+/** Registerable method for handling dragged-and-dropped files */
+interface DragAndDropHandler {
+  name: string,
+  handle: PluginDragAndDropHandler,
+}
+
+/** DragAndDropHandler handler for `.kin` files */
+const KINDragAndDropHandler: DragAndDropHandler = {
+  name: 'kin',
+  /** Load .kin files. Append to previous plugin state.
+   * If multiple files are provided, append them all.
+   * Select the last-loaded one from the list.
+   * Return `true` if at least one file has been loaded. */
+  async handle(files: File[], plugin: PluginContext): Promise<boolean> {
+    let applied = false;
+    for (const file of files) {
+      if (file.name.toLowerCase().endsWith('.kin')) {
+        const task = Task.create('Load KIN file', async ctx => {
+          console.log('XXX loading KIN file ', file.name);  /// @todo Remove when done debugging
+          const kinInfo = await KinemageData.open(file);
+          for (const kinData of kinInfo.kinemages) {
+            g_kinemageInfo.kinemages.push(kinData);
+            g_kinemageInfo.activeKinemage = g_kinemageInfo.kinemages.length - 1;
+          }
+          console.log('XXX accumulated Kinemages size ', g_kinemageInfo.kinemages.length, ', active is ', g_kinemageInfo.activeKinemage);
+          /// @todo See what loadMVS() ... LoadMolstarTree() ... MolstarLoadingActions().primitives() ... applyPrimitiveVisuals() does
+        });
+        console.log('XXX plugin.runTask');
+        await plugin.runTask(task);
+        applied = true;
+      }
+    }
+    console.log('XXX KINDragAndDropHandler applied=', applied);
+    return applied;
+  },
+};
