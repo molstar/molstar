@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,7 +8,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Image } from '../../mol-geo/geometry/image/image';
 import { ThemeRegistryContext, Theme } from '../../mol-theme/theme';
 import { Grid, Volume } from '../../mol-model/volume';
-import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
+import { VolumeRepresentation, VolumeRepresentationProvider } from './representation';
 import { PositionLocation } from '../../mol-geo/util/location-iterator';
 import { VisualUpdateState } from '../util';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
@@ -29,6 +29,7 @@ import { assertUnreachable } from '../../mol-util/type-helpers';
 import { OrderedSet } from '../../mol-data/int/ordered-set';
 import { SortedArray } from '../../mol-data/int/sorted-array';
 import { Interval } from '../../mol-data/int/interval';
+import { VolumeVisual } from './visual';
 
 export const SliceParams = {
     ...Image.Params,
