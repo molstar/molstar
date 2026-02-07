@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -10,7 +10,7 @@ import { Grid, Volume } from '../../mol-model/volume';
 import { VisualContext } from '../visual';
 import { Theme, ThemeRegistryContext } from '../../mol-theme/theme';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
-import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider, VolumeKey } from './representation';
+import { VolumeRepresentation, VolumeRepresentationProvider } from './representation';
 import { VisualUpdateState } from '../util';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
 import { PickingId } from '../../mol-geo/geometry/picking';
@@ -30,6 +30,7 @@ import { Mat4 } from '../../mol-math/linear-algebra';
 import { Interval } from '../../mol-data/int/interval';
 import { OrderedSet } from '../../mol-data/int/ordered-set';
 import { PCG } from '../../mol-data/util/hash-functions';
+import { VolumeKey, VolumeVisual } from './visual';
 
 export const VolumeDotParams = {
     isoValue: Volume.IsoValueParam,
@@ -70,7 +71,7 @@ export function VolumeSphereImpostorVisual(materialId: number): VolumeVisual<Vol
             );
         },
         geometryUtils: Spheres.Utils,
-        mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeSphereParams>, webgl?: WebGLContext) => {
+        mustRecreate: (_volumekey: VolumeKey, props: PD.Values<VolumeSphereParams>, webgl?: WebGLContext) => {
             return !props.tryUseImpostor || !webgl;
         }
     }, materialId);

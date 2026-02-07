@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,7 +13,7 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { VisualContext } from '../visual';
 import { Theme, ThemeRegistryContext } from '../../mol-theme/theme';
-import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
+import { VolumeRepresentation, VolumeRepresentationProvider } from './representation';
 import { VisualUpdateState } from '../util';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
 import { Loci, EmptyLoci } from '../../mol-model/loci';
@@ -22,6 +22,7 @@ import { createVolumeCellLocationIterator, createVolumeTexture2d, createVolumeTe
 import { Texture } from '../../mol-gl/webgl/texture';
 import { Interval } from '../../mol-data/int/interval';
 import { OrderedSet } from '../../mol-data/int/ordered-set';
+import { VolumeVisual } from './visual';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D();

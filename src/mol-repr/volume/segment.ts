@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,7 +10,7 @@ import { VisualContext } from '../visual';
 import { Theme, ThemeRegistryContext } from '../../mol-theme/theme';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from '../../mol-geo/util/marching-cubes/algorithm';
-import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider, VolumeKey } from './representation';
+import { VolumeRepresentation, VolumeRepresentationProvider } from './representation';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { VisualUpdateState } from '../util';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
@@ -28,6 +28,7 @@ import { Box3D } from '../../mol-math/geometry/primitives/box3d';
 import { SortedArray } from '../../mol-data/int/sorted-array';
 import { Interval } from '../../mol-data/int/interval';
 import { OrderedSet } from '../../mol-data/int/ordered-set';
+import { VolumeKey, VolumeVisual } from './visual';
 
 export const VolumeSegmentParams = {
     segments: PD.Converted(
@@ -304,7 +305,7 @@ export function SegmentTextureMeshVisual(materialId: number): VolumeVisual<Segme
 
 //
 
-function getSegments(props: VolumeSegmentProps): SortedArray {
+function getSegments(props: VolumeSegmentProps, _volume: Volume): SortedArray {
     return SortedArray.ofUnsortedArray(props.segments);
 }
 
