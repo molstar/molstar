@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem, Transparency } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, DefineSpec, Values, InternalSchema, SizeSchema, ElementsSpec, InternalValues, GlobalTextureSchema, UniformSpec, GlobalDefineValues, GlobalDefines, GlobalDefineSchema } from './schema';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, DefineSpec, Values, InternalSchema, SizeSchema, ElementsSpec, InternalValues, GlobalTextureSchema, UniformSpec, GlobalDefineValues, GlobalDefines, GlobalDefineSchema, ValueSpec } from './schema';
 import { ValueCell } from '../../mol-util';
 import { LinesShaderCode } from '../shader-code';
 
@@ -22,6 +22,8 @@ export const LinesSchema = {
     dLineSizeAttenuation: DefineSpec('boolean'),
     uDoubleSided: UniformSpec('b', 'material'),
     dFlipSided: DefineSpec('boolean'),
+    stripCount: ValueSpec('number'),
+    stripOffsets: ValueSpec('uint32'),
 };
 export type LinesSchema = typeof LinesSchema
 export type LinesValues = Values<LinesSchema>

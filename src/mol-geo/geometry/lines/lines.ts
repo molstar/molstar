@@ -35,6 +35,8 @@ export interface Lines {
 
     /** Number of lines */
     lineCount: number,
+    /** Number of vertices */
+    vertexCount: number,
 
     /** Mapping buffer as array of xy values wrapped in a value cell */
     readonly mappingBuffer: ValueCell<Float32Array>,
@@ -47,6 +49,11 @@ export interface Lines {
     /** Line end buffer as array of xyz values wrapped in a value cell */
     readonly endBuffer: ValueCell<Float32Array>,
 
+    /** Number of strips wrapped in a value cell */
+    readonly stripCount: ValueCell<number>,
+    /** Strip buffer as array of vertex offsets wrapped in a value cell */
+    readonly stripBuffer: ValueCell<Uint32Array>,
+
     /** Bounding sphere of the lines */
     readonly boundingSphere: Sphere3D
     /** Maps group ids to line indices */
@@ -57,10 +64,10 @@ export interface Lines {
 }
 
 export namespace Lines {
-    export function create(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, lineCount: number, lines?: Lines): Lines {
+    export function create(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, strips: Uint32Array, lineCount: number, vertexCount: number, stripCount: number, lines?: Lines): Lines {
         return lines ?
-            update(mappings, indices, groups, starts, ends, lineCount, lines) :
-            fromArrays(mappings, indices, groups, starts, ends, lineCount);
+            update(mappings, indices, groups, starts, ends, strips, lineCount, vertexCount, stripCount, lines) :
+            fromArrays(mappings, indices, groups, starts, ends, strips, lineCount, vertexCount, stripCount);
     }
 
     export function createEmpty(lines?: Lines): Lines {
@@ -69,7 +76,8 @@ export namespace Lines {
         const gb = lines ? lines.groupBuffer.ref.value : new Float32Array(0);
         const sb = lines ? lines.startBuffer.ref.value : new Float32Array(0);
         const eb = lines ? lines.endBuffer.ref.value : new Float32Array(0);
-        return create(mb, ib, gb, sb, eb, 0, lines);
+        const ob = lines ? lines.stripBuffer.ref.value : new Uint32Array(0);
+        return create(mb, ib, gb, sb, eb, ob, 0, 0, 0, lines);
     }
 
     export function fromMesh(mesh: Mesh, lines?: Lines) {
@@ -95,12 +103,14 @@ export namespace Lines {
 
     function hashCode(lines: Lines) {
         return hashFnv32a([
-            lines.lineCount, lines.mappingBuffer.ref.version, lines.indexBuffer.ref.version,
-            lines.groupBuffer.ref.version, lines.startBuffer.ref.version, lines.endBuffer.ref.version
+            lines.lineCount, lines.vertexCount,
+            lines.mappingBuffer.ref.version, lines.indexBuffer.ref.version,
+            lines.groupBuffer.ref.version, lines.startBuffer.ref.version, lines.endBuffer.ref.version,
+            lines.stripCount.ref.version, lines.stripBuffer.ref.version
         ]);
     }
 
-    function fromArrays(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, lineCount: number): Lines {
+    function fromArrays(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, strips: Uint32Array, lineCount: number, vertexCount: number, stripCount: number): Lines {
 
         const boundingSphere = Sphere3D();
         let groupMapping: GroupMapping;
@@ -111,11 +121,14 @@ export namespace Lines {
         const lines = {
             kind: 'lines' as const,
             lineCount,
+            vertexCount,
             mappingBuffer: ValueCell.create(mappings),
             indexBuffer: ValueCell.create(indices),
             groupBuffer: ValueCell.create(groups),
             startBuffer: ValueCell.create(starts),
             endBuffer: ValueCell.create(ends),
+            stripCount: ValueCell.create(stripCount),
+            stripBuffer: ValueCell.create(strips),
             get boundingSphere() {
                 const newHash = hashCode(lines);
                 if (newHash !== currentHash) {
@@ -145,24 +158,27 @@ export namespace Lines {
         return lines;
     }
 
-    function update(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, lineCount: number, lines: Lines) {
-        if (lineCount > lines.lineCount) {
+    function update(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, strips: Uint32Array, lineCount: number, vertexCount: number, stripCount: number, lines: Lines) {
+        if (lineCount > lines.lineCount || stripCount !== lines.stripCount.ref.value || stripCount > 0) {
             ValueCell.update(lines.mappingBuffer, mappings);
             ValueCell.update(lines.indexBuffer, indices);
         }
         lines.lineCount = lineCount;
+        lines.vertexCount = vertexCount;
         ValueCell.update(lines.groupBuffer, groups);
         ValueCell.update(lines.startBuffer, starts);
         ValueCell.update(lines.endBuffer, ends);
+        ValueCell.updateIfChanged(lines.stripCount, stripCount);
+        ValueCell.update(lines.stripBuffer, strips);
         return lines;
     }
 
     export function transform(lines: Lines, t: Mat4) {
         const start = lines.startBuffer.ref.value;
-        transformPositionArray(t, start, 0, lines.lineCount * 4);
+        transformPositionArray(t, start, 0, lines.vertexCount);
         ValueCell.update(lines.startBuffer, start);
         const end = lines.endBuffer.ref.value;
-        transformPositionArray(t, end, 0, lines.lineCount * 4);
+        transformPositionArray(t, end, 0, lines.vertexCount);
         ValueCell.update(lines.endBuffer, end);
     }
 
@@ -222,7 +238,7 @@ export namespace Lines {
         const material = createEmptySubstance();
         const clipping = createEmptyClipping();
 
-        const counts = { drawCount: lines.lineCount * 2 * 3, vertexCount: lines.lineCount * 4, groupCount, instanceCount };
+        const counts = { drawCount: lines.lineCount * 2 * 3, vertexCount: lines.vertexCount, groupCount, instanceCount };
 
         const invariantBoundingSphere = Sphere3D.clone(lines.boundingSphere);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount, 0);
@@ -253,6 +269,9 @@ export namespace Lines {
             dLineSizeAttenuation: ValueCell.create(props.lineSizeAttenuation),
             uDoubleSided: ValueCell.create(true),
             dFlipSided: ValueCell.create(false),
+
+            stripCount: lines.stripCount,
+            stripOffsets: lines.stripBuffer,
         };
     }
 
