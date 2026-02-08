@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { Jsonable, canonicalJsonString } from './json';
-import { NumberArray } from './type-helpers';
+import { AssignableArrayLike, NumberArray } from './type-helpers';
 
 // TODO move to mol-math as Vector???
 
@@ -234,4 +234,11 @@ export function arrayDistinct<T extends Jsonable>(values: T[]): T[] {
         }
     }
     return result;
+}
+
+export function arrayCopyOffset<T>(dst: AssignableArrayLike<T>, src: ArrayLike<T>, dstOffset: number, srcOffset: number, length: number): AssignableArrayLike<T> {
+    for (let i = 0; i < length; i++) {
+        dst[dstOffset + i] = src[srcOffset + i];
+    }
+    return dst;
 }

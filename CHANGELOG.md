@@ -16,7 +16,13 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Breaking] Add PQR file format support (#157)
     - Replace `isPdbqt` with `variant` param in `TrajectoryFromPDB`
 - Add `CustomVolumeProperty` (like for models and structures)
-- Fix missing `usePalette` support in `MeshExporter`
+- Geometry export
+    - Fix missing `usePalette` support
+    - Fix vertex-based coloring for non-mesh geometries
+    - Support line-strips
+- Support memory efficient line-strips in Lines geometry,
+    - Add `StripLinesBuilder`
+- Add `computeFrenetFrames` helper
 
 ## [v5.6.1] - 2026-01-23
 - Disable occlusion culling in `ImagePass` (#1758)

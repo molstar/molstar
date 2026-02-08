@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -85,7 +85,7 @@ export namespace Geometry {
             case 'spheres': return geometry.sphereCount * 6;
             case 'cylinders': return geometry.cylinderCount * 6;
             case 'text': return geometry.charCount * 4;
-            case 'lines': return geometry.lineCount * 4;
+            case 'lines': return geometry.vertexCount;
             case 'direct-volume':
                 const [x, y, z] = geometry.gridDimension.ref.value;
                 return x * y * z;

@@ -107,7 +107,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
         for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
             if (ctx.shouldUpdate) await ctx.update({ current: instanceIndex + 1 });
 
-            const { vertices, normals, indices, groups, vertexCount, drawCount } = ObjExporter.getInstance(input, instanceIndex);
+            const { vertices, normals, indices, groups, vertexCount, drawCount, vertexMapping } = ObjExporter.getInstance(input, instanceIndex);
 
             Mat4.fromArray(t, aTransform, instanceIndex * 16);
             Mat4.mul(t, this.centerTransform, t);
@@ -137,7 +137,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
                 StringBuilder.newline(obj);
             }
 
-            const geoData = { values, groups, vertexCount, instanceIndex, isGeoTexture, mode };
+            const geoData = { values, groups, vertexCount, instanceIndex, isGeoTexture, mode, vertexMapping };
 
             // color
             const quantizedColors = new Uint8Array(drawCount * 3);
