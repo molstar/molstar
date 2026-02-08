@@ -1,15 +1,14 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { Mat4 } from './mat4';
 import { Vec3 } from './vec3';
 import { EVD } from '../matrix/evd';
 import { Matrix } from '../matrix/matrix';
-import { Sphere3D } from '../../geometry/primitives/sphere3d';
-import { CentroidHelper } from '../../geometry/centroid-helper';
 
 export { MinimizeRmsd };
 namespace MinimizeRmsd {
@@ -30,19 +29,29 @@ namespace MinimizeRmsd {
         a: Positions,
         b: Positions,
         centerA?: Vec3,
-        centerB?: Vec3
+        centerB?: Vec3,
+        length?: number
     }
 
-    export function compute(data: Input, result?: MinimizeRmsd.Result) {
+    export function compute(data: Input, result?: MinimizeRmsd.Result, state?: RmsdTransformState) {
         result ??= { bTransform: Mat4.zero(), rmsd: 0.0, nAlignedElements: 0 };
-        findMinimalRmsdTransformImpl(new RmsdTransformState(data, result));
+
+        if (state) {
+            resetRmsdState(state, data, result);
+        } else {
+            state = new RmsdTransformState(data, result);
+        }
+
+        findMinimalRmsdTransformImpl(state);
+
         return result;
     }
 }
 
-class RmsdTransformState {
+export class RmsdTransformState {
     a: MinimizeRmsd.Positions;
     b: MinimizeRmsd.Positions;
+    length: number;
 
     centerA: Vec3;
     centerB: Vec3;
@@ -58,15 +67,43 @@ class RmsdTransformState {
     constructor(data: MinimizeRmsd.Input, into: MinimizeRmsd.Result) {
         this.a = data.a;
         this.b = data.b;
+        this.length = data.length ?? data.a.x.length;
 
         if (data.centerA) this.centerA = data.centerA;
-        else this.centerA = data.centerA = CentroidHelper.fromArrays(data.a, Sphere3D()).center;
+        else this.centerA = data.centerA = computeCenter(data.a, Vec3(), this.length);
 
         if (data.centerB) this.centerB = data.centerB;
-        else this.centerB = data.centerB = CentroidHelper.fromArrays(data.b, Sphere3D()).center;
+        else this.centerB = data.centerB = computeCenter(data.b, Vec3(), this.length);
 
         this.result = into;
     }
+}
+
+// evdCache, translateB, rotateB, tempMatrix are overwritten.
+function resetRmsdState(state: RmsdTransformState, data: MinimizeRmsd.Input, into: MinimizeRmsd.Result) {
+    state.a = data.a;
+    state.b = data.b;
+    state.length = data.length ?? data.a.x.length;
+
+    if (data.centerA) state.centerA = data.centerA;
+    else data.centerA = computeCenter(data.a, state.centerA, state.length);
+
+    if (data.centerB) state.centerB = data.centerB;
+    else data.centerB = computeCenter(data.b, state.centerB, state.length);
+
+    state.result = into;
+}
+
+
+function computeCenter(pos: MinimizeRmsd.Positions, toCenter: Vec3, L: number) {
+    let xSum = 0.0, ySum = 0.0, zSum = 0.0;
+    for (let i = 0; i < L; i++) {
+        xSum += pos.x[i];
+        ySum += pos.y[i];
+        zSum += pos.z[i];
+    }
+    Vec3.set(toCenter, xSum / L, ySum / L, zSum / L);
+    return toCenter;
 }
 
 function computeN(state: RmsdTransformState) {
@@ -81,7 +118,7 @@ function computeN(state: RmsdTransformState) {
 
     let sizeSq = 0.0;
 
-    const L = Math.min(state.a.x.length, state.b.x.length);
+    const L = state.length;
     for (let i = 0; i < L; i++) {
         const aX = xsA[i] - cA[0], aY = ysA[i] - cA[1], aZ = zsA[i] - cA[2];
         const bX = xsB[i] - cB[0], bY = ysB[i] - cB[1], bZ = zsB[i] - cB[2];
@@ -168,8 +205,8 @@ function findMinimalRmsdTransformImpl(state: RmsdTransformState): void {
 
     EVD.compute(state.evdCache);
     let rmsd = sizeSq - 2.0 * state.evdCache.eigenValues[3];
-    rmsd = rmsd < 0.0 ? 0.0 : Math.sqrt(rmsd / state.a.x.length);
+    rmsd = rmsd < 0.0 ? 0.0 : Math.sqrt(rmsd / state.length);
     makeTransformMatrix(state);
     state.result.rmsd = rmsd;
-    state.result.nAlignedElements = state.a.x.length;
+    state.result.nAlignedElements = state.length;
 }
