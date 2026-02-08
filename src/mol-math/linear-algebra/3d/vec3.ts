@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -591,6 +591,18 @@ export namespace Vec3 {
         }
         const axis = cross(rotTemp, a, b);
         return Mat4.fromRotation(mat, by, axis);
+    }
+
+    const tmpCrossAxis = Vec3();
+    export function rotateAroundAxis(out: Vec3, v: Vec3, axis: Vec3, angle: number) {
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const dot = Vec3.dot(v, axis);
+        Vec3.cross(tmpCrossAxis, axis, v);
+        out[0] = v[0] * cos + tmpCrossAxis[0] * sin + axis[0] * dot * (1 - cos);
+        out[1] = v[1] * cos + tmpCrossAxis[1] * sin + axis[1] * dot * (1 - cos);
+        out[2] = v[2] * cos + tmpCrossAxis[2] * sin + axis[2] * dot * (1 - cos);
+        return out;
     }
 
     export function isZero(v: Vec3) {

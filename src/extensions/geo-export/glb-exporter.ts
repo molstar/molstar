@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -241,7 +241,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
 
             // create a glTF mesh if needed
             if (instanceIndex === 0 || !sameGeometryBuffers || !sameColorBuffer) {
-                const { vertices, normals, indices, groups, vertexCount, drawCount } = GlbExporter.getInstance(input, instanceIndex);
+                const { vertices, normals, indices, groups, vertexCount, drawCount, vertexMapping } = GlbExporter.getInstance(input, instanceIndex);
 
                 // create geometry buffers if needed
                 if (instanceIndex === 0 || !sameGeometryBuffers) {
@@ -253,7 +253,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
 
                 // create a color buffer if needed
                 if (instanceIndex === 0 || !sameColorBuffer) {
-                    colorAccessorIndex = this.addColorBuffer({ values, groups, vertexCount, instanceIndex, isGeoTexture, mode }, interpolatedColors, interpolatedOverpaint, interpolatedTransparency);
+                    colorAccessorIndex = this.addColorBuffer({ values, groups, vertexCount, instanceIndex, isGeoTexture, mode, vertexMapping }, interpolatedColors, interpolatedOverpaint, interpolatedTransparency);
                 }
 
                 // glTF mesh

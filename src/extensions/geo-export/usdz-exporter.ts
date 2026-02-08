@@ -100,7 +100,7 @@ def Material "material${materialKey}"
         for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
             if (ctx.shouldUpdate) await ctx.update({ current: instanceIndex + 1 });
 
-            const { vertices, normals, indices, groups, vertexCount, drawCount } = UsdzExporter.getInstance(input, instanceIndex);
+            const { vertices, normals, indices, groups, vertexCount, drawCount, vertexMapping } = UsdzExporter.getInstance(input, instanceIndex);
 
             Mat4.fromArray(t, aTransform, instanceIndex * 16);
             Mat4.mul(t, this.centerTransform, t);
@@ -134,7 +134,7 @@ def Material "material${materialKey}"
                 StringBuilder.writeSafe(normalBuilder, ')');
             }
 
-            const geoData = { values, groups, vertexCount, instanceIndex, isGeoTexture, mode };
+            const geoData = { values, groups, vertexCount, instanceIndex, isGeoTexture, mode, vertexMapping };
 
             // face
             for (let i = 0; i < drawCount; ++i) {
