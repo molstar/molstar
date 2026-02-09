@@ -118,11 +118,10 @@ namespace KinemageData {
 }
 
 export const KinemageDataProvider: CustomStructureProperty.Provider<KinemageDataParams, KinemageData> = CustomStructureProperty.createProvider({
-    label: 'Membrane Orientation',
+    label: 'Kinemage',
     descriptor: CustomPropertyDescriptor({
-        name: 'Kinemage_computed_membrane_orientation',
+        name: 'Kinemage_loaded_data',
         symbols: KinemageData.symbols,
-        // TODO `cifExport`
     }),
     type: 'root',
     defaultParams: KinemageDataParams,
