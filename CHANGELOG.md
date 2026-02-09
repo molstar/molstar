@@ -23,6 +23,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support memory efficient line-strips in Lines geometry,
     - Add `StripLinesBuilder`
 - Add `computeFrenetFrames` helper
+- Streamlines support
+    - Add basic calculation method
+    - Add custom-volume-property
+    - Add representation with lines and tube-mesh visuals
 
 ## [v5.6.1] - 2026-01-23
 - Disable occlusion culling in `ImagePass` (#1758)

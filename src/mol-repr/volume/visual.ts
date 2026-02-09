@@ -173,12 +173,12 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
                 throw new Error('expected renderObject to be available');
             }
 
-            if (updateState.updateColor || updateState.updateSize || updateState.updateTransform) {
+            if (updateState.updateColor || updateState.updateSize || updateState.updateTransform || updateState.updateLocation) {
                 // console.log('update locationIterator');
                 locationIt = createLocationIterator(newVolume, newKey);
             }
 
-            if (updateState.updateTransform) {
+            if (updateState.updateTransform || updateState.updateLocation) {
                 // console.log('update transform');
                 const { instanceCount, groupCount } = locationIt;
                 if (newProps.instanceGranularity) {

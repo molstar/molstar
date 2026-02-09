@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -18,6 +18,7 @@ export interface VisualUpdateState {
     updateMatrix: boolean
     updateColor: boolean
     updateSize: boolean
+    updateLocation: boolean
     createGeometry: boolean
     createNew: boolean
 
@@ -31,6 +32,7 @@ export namespace VisualUpdateState {
             updateMatrix: false,
             updateColor: false,
             updateSize: false,
+            updateLocation: false,
             createGeometry: false,
             createNew: false,
 
@@ -42,6 +44,7 @@ export namespace VisualUpdateState {
         state.updateMatrix = false;
         state.updateColor = false;
         state.updateSize = false;
+        state.updateLocation = false;
         state.createGeometry = false;
         state.createNew = false;
     }
