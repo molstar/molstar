@@ -23,6 +23,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support memory efficient line-strips in Lines geometry,
     - Add `StripLinesBuilder`
 - Add `computeFrenetFrames` helper
+- Fix `TextCtrl` always moving cursor to end position
 
 ## [v5.6.1] - 2026-01-23
 - Disable occlusion culling in `ImagePass` (#1758)
