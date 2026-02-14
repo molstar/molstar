@@ -18,13 +18,14 @@ import { VisualUpdateState } from '../../../mol-repr/util';
 import { VisualContext } from '../../../mol-repr/visual';
 import { Theme, ThemeRegistryContext } from '../../../mol-theme/theme';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../../../mol-repr/representation';
-import { CommonStreamlinesParams, createStreamlinesLocationIterator, eachStreamlines, getStreamlinesLoci, getStreamlinesVisualLoci, Streamline, StreamlinesLocation, StreamlinesIndex, Streamlines, streamlinePassesFilter } from './shared';
+import { CommonStreamlinesParams, createStreamlinesLocationIterator, eachStreamlines, getStreamlinesLoci, getStreamlinesVisualLoci, Streamline, Streamlines, streamlinePassesFilter } from './shared';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { StreamlinesProvider } from '../streamlines';
 import { CustomProperty } from '../../common/custom-property';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { computeFrenetFrames } from '../../../mol-math/linear-algebra/3d/frenet-frames';
 import { VolumeVisual } from '../../../mol-repr/volume/visual';
+import { PositionLocation } from '../../../mol-geo/util/location-iterator';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3transformMat4 = Vec3.transformMat4;
@@ -234,19 +235,16 @@ function createVolumeStreamlinesTubeMesh(ctx: VisualContext, volume: Volume, _ke
     const vertexCount = pointCount * radialSegments * 2;
     const builderState = MeshBuilder.createState(vertexCount, Math.ceil(vertexCount / 10), mesh);
 
-    const location = StreamlinesLocation(streamlines, volume);
     for (let s = 0, sl = streamlines.length; s < sl; ++s) {
         const l = streamlines[s];
         if (!streamlinePassesFilter(l, gridToCartn, props)) continue;
 
         builderState.currentGroup = s;
-        location.element.index = s as StreamlinesIndex;
-        const tubeSize = theme.size.size(location) * tubeSizeFactor;
 
         if (dashEnabled) {
-            addDashedStreamlineTube(builderState, l, gridToCartn, radialSegments, tubeSize, dashPoints, dashShift);
+            addDashedStreamlineTube(builderState, l, gridToCartn, radialSegments, tubeSizeFactor, dashPoints, dashShift, theme);
         } else {
-            addStreamlineTube(builderState, l, gridToCartn, radialSegments, tubeSize);
+            addStreamlineTube(builderState, l, gridToCartn, radialSegments, tubeSizeFactor, theme);
         }
     }
 
@@ -255,10 +253,12 @@ function createVolumeStreamlinesTubeMesh(ctx: VisualContext, volume: Volume, _ke
     return m;
 }
 
+const positionLocation = PositionLocation();
+
 /**
  * Add a tube along a streamline path
  */
-function addStreamlineTube(state: MeshBuilder.State, streamline: Streamline, gridToCartn: Mat4, radialSegments: number, tubeSize: number) {
+function addStreamlineTube(state: MeshBuilder.State, streamline: Streamline, gridToCartn: Mat4, radialSegments: number, tubeSizeFactor: number, theme: Theme) {
     const n = streamline.length;
     if (n < 2) return;
 
@@ -272,6 +272,8 @@ function addStreamlineTube(state: MeshBuilder.State, streamline: Streamline, gri
     for (let i = 0; i < n; ++i) {
         const p = streamline[i];
         v3transformMat4Offset(curvePoints, p, gridToCartn, i * 3, 0, 0);
+        Vec3.fromArray(positionLocation.position, curvePoints, i * 3);
+        const tubeSize = theme.size.size(positionLocation) * tubeSizeFactor;
         widthValues[i] = tubeSize;
         heightValues[i] = tubeSize;
     }
@@ -284,13 +286,17 @@ function addStreamlineTube(state: MeshBuilder.State, streamline: Streamline, gri
  * Add dashed tube segments along a streamline path.
  * Uses point count to determine dash/gap boundaries.
  */
-function addDashedStreamlineTube(state: MeshBuilder.State, streamline: Streamline, gridToCartn: Mat4, radialSegments: number, tubeSize: number, dashPoints: number, dashShift: boolean) {
+function addDashedStreamlineTube(state: MeshBuilder.State, streamline: Streamline, gridToCartn: Mat4, radialSegments: number, tubeSizeFactor: number, dashPoints: number, dashShift: boolean, theme: Theme) {
     const n = streamline.length;
     if (n < 2) return;
 
     const allPoints: Vec3[] = [];
+    const allSizes: number[] = [];
     for (let i = 0; i < n; ++i) {
-        allPoints.push(v3transformMat4(Vec3(), streamline[i], gridToCartn));
+        const p = v3transformMat4(Vec3(), streamline[i], gridToCartn);
+        allPoints.push(p);
+        Vec3.copy(positionLocation.position, p);
+        allSizes.push(theme.size.size(positionLocation) * tubeSizeFactor);
     }
 
     const cycleLength = dashPoints * 2;
@@ -299,7 +305,7 @@ function addDashedStreamlineTube(state: MeshBuilder.State, streamline: Streamlin
         const dashStart = i;
         const dashEnd = Math.min(i + dashPoints, n - 1);
         if (dashEnd > dashStart) {
-            emitTubeSegment(state, allPoints, dashStart, dashEnd, radialSegments, tubeSize);
+            emitTubeSegment(state, allPoints, allSizes, dashStart, dashEnd, radialSegments);
         }
         i += cycleLength;
     }
@@ -308,7 +314,7 @@ function addDashedStreamlineTube(state: MeshBuilder.State, streamline: Streamlin
 /**
  * Emit a tube segment from startIdx to endIdx (inclusive) with caps on both ends.
  */
-function emitTubeSegment(state: MeshBuilder.State, points: Vec3[], startIdx: number, endIdx: number, radialSegments: number, tubeSize: number) {
+function emitTubeSegment(state: MeshBuilder.State, points: Vec3[], sizes: number[], startIdx: number, endIdx: number, radialSegments: number) {
     const segmentLength = endIdx - startIdx + 1;
     if (segmentLength < 2) return;
 
@@ -320,8 +326,8 @@ function emitTubeSegment(state: MeshBuilder.State, points: Vec3[], startIdx: num
 
     for (let i = 0; i < segmentLength; ++i) {
         v3toArray(points[startIdx + i], curvePoints, i * 3);
-        widthValues[i] = tubeSize;
-        heightValues[i] = tubeSize;
+        widthValues[i] = sizes[startIdx + i];
+        heightValues[i] = sizes[startIdx + i];
     }
 
     computeFrenetFrames(curvePoints, normalVectors, binormalVectors, segmentLength);
