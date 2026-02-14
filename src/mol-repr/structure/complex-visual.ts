@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -197,7 +197,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             if (updateState.updateSize) {
                 // not all geometries have size data, so check here
                 if ('uSize' in renderObject.values) {
-                    createSizes(locationIt, newTheme.size, renderObject.values as SizeData);
+                    createSizes(locationIt, positionIt, newTheme.size, renderObject.values as SizeData);
                 }
             }
 
