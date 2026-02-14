@@ -5,10 +5,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Text label improvements
-    - Fix label attachment inversion (top/bottom and left/right)
     - Improve label background vertical centering
-    - Add label near-clip fade out
-    - Handle label depth variant for correct transparent background and near fade
+    - Discard labels near the camera clip plane
+    - Handle label depth variant for correct transparent background
     - Draw border under text using fragment depth to prevent overlap on adjacent characters
     - Clamp border width to avoid exceeding SDF range
     - Increase font atlas quality (2x font size multiplier)

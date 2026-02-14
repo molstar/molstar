@@ -67,52 +67,52 @@ export namespace TextBuilder {
                 let yShift: number, xShift: number;
                 // vertical
                 if (attachment.startsWith('top')) {
-                    yShift = 0;
+                    yShift = bHeight;
                 } else if (attachment.startsWith('middle')) {
                     yShift = bHeight / 2;
                 } else {
-                    yShift = bHeight; // "bottom"
+                    yShift = 0; // "bottom"
                 }
                 // horizontal
                 if (attachment.endsWith('right')) {
-                    xShift = 0;
+                    xShift = bWidth;
                 } else if (attachment.endsWith('center')) {
                     xShift = bWidth / 2;
                 } else {
-                    xShift = bWidth; // "left"
+                    xShift = 0; // "left"
                 }
 
                 if (tether) {
                     switch (attachment) {
                         case 'bottom-left':
-                            xShift += tetherLength / 2 + margin + 0.1;
-                            yShift += tetherLength / 2 + margin;
+                            xShift -= tetherLength / 2 + margin + 0.1;
+                            yShift -= tetherLength / 2 + margin;
                             break;
                         case 'bottom-center':
-                            yShift += tetherLength + margin;
+                            yShift -= tetherLength + margin;
                             break;
                         case 'bottom-right':
-                            xShift -= tetherLength / 2 + margin + 0.1;
-                            yShift += tetherLength / 2 + margin;
+                            xShift += tetherLength / 2 + margin + 0.1;
+                            yShift -= tetherLength / 2 + margin;
                             break;
                         case 'middle-left':
-                            xShift += tetherLength + margin + 0.1;
+                            xShift -= tetherLength + margin + 0.1;
                             break;
                         case 'middle-center':
                             break;
                         case 'middle-right':
-                            xShift -= tetherLength + margin + 0.1;
+                            xShift += tetherLength + margin + 0.1;
                             break;
                         case 'top-left':
-                            xShift += tetherLength / 2 + margin + 0.1;
-                            yShift -= tetherLength / 2 + margin;
+                            xShift -= tetherLength / 2 + margin + 0.1;
+                            yShift += tetherLength / 2 + margin;
                             break;
                         case 'top-center':
-                            yShift -= tetherLength + margin;
+                            yShift += tetherLength + margin;
                             break;
                         case 'top-right':
-                            xShift -= tetherLength / 2 + margin + 0.1;
-                            yShift -= tetherLength / 2 + margin;
+                            xShift += tetherLength / 2 + margin + 0.1;
+                            yShift += tetherLength / 2 + margin;
                             break;
                     }
                 }
@@ -150,43 +150,43 @@ export namespace TextBuilder {
 
                     switch (attachment) {
                         case 'bottom-left':
-                            xTip = xRight + scaledTetherLength / 2;
-                            xBaseA = xRight;
-                            xBaseB = xRight - scaledTetherBaseWidth / 2;
-                            xBaseCenter = xRight;
-                            yTip = yTop + scaledTetherLength / 2;
-                            yBaseA = yTop - scaledTetherBaseWidth / 2;
-                            yBaseB = yTop;
-                            yBaseCenter = yTop;
+                            xTip = xLeft - scaledTetherLength / 2;
+                            xBaseA = xLeft + scaledTetherBaseWidth / 2;
+                            xBaseB = xLeft;
+                            xBaseCenter = xLeft;
+                            yTip = yBottom - scaledTetherLength / 2;
+                            yBaseA = yBottom;
+                            yBaseB = yBottom + scaledTetherBaseWidth / 2;
+                            yBaseCenter = yBottom;
                             break;
                         case 'bottom-center':
                             xTip = 0;
                             xBaseA = scaledTetherBaseWidth / 2;
                             xBaseB = -scaledTetherBaseWidth / 2;
                             xBaseCenter = 0;
-                            yTip = yTop + scaledTetherLength;
-                            yBaseA = yTop;
-                            yBaseB = yTop;
-                            yBaseCenter = yTop;
+                            yTip = yBottom - scaledTetherLength;
+                            yBaseA = yBottom;
+                            yBaseB = yBottom;
+                            yBaseCenter = yBottom;
                             break;
                         case 'bottom-right':
-                            xTip = xLeft - scaledTetherLength / 2;
-                            xBaseA = xLeft + scaledTetherBaseWidth / 2;
-                            xBaseB = xLeft;
-                            xBaseCenter = xLeft;
-                            yTip = yTop + scaledTetherLength / 2;
-                            yBaseA = yTop;
-                            yBaseB = yTop - scaledTetherBaseWidth / 2;
-                            yBaseCenter = yTop;
+                            xTip = xRight + scaledTetherLength / 2;
+                            xBaseA = xRight;
+                            xBaseB = xRight - scaledTetherBaseWidth / 2;
+                            xBaseCenter = xRight;
+                            yTip = yBottom - scaledTetherLength / 2;
+                            yBaseA = yBottom + scaledTetherBaseWidth / 2;
+                            yBaseB = yBottom;
+                            yBaseCenter = yBottom;
                             break;
                         case 'middle-left':
-                            xTip = xRight + scaledTetherLength;
-                            xBaseA = xRight;
-                            xBaseB = xRight;
-                            xBaseCenter = xRight;
+                            xTip = xLeft - scaledTetherLength;
+                            xBaseA = xLeft;
+                            xBaseB = xLeft;
+                            xBaseCenter = xLeft;
                             yTip = 0;
-                            yBaseA = scaledTetherBaseWidth / 2;
-                            yBaseB = -scaledTetherBaseWidth / 2;
+                            yBaseA = -scaledTetherBaseWidth / 2;
+                            yBaseB = scaledTetherBaseWidth / 2;
                             yBaseCenter = 0;
                             break;
                         case 'middle-center':
@@ -200,44 +200,44 @@ export namespace TextBuilder {
                             yBaseCenter = 0;
                             break;
                         case 'middle-right':
-                            xTip = xLeft - scaledTetherLength;
-                            xBaseA = xLeft;
-                            xBaseB = xLeft;
-                            xBaseCenter = xLeft;
+                            xTip = xRight + scaledTetherLength;
+                            xBaseA = xRight;
+                            xBaseB = xRight;
+                            xBaseCenter = xRight;
                             yTip = 0;
-                            yBaseA = -scaledTetherBaseWidth / 2;
-                            yBaseB = scaledTetherBaseWidth / 2;
+                            yBaseA = scaledTetherBaseWidth / 2;
+                            yBaseB = -scaledTetherBaseWidth / 2;
                             yBaseCenter = 0;
                             break;
                         case 'top-left':
-                            xTip = xRight + scaledTetherLength / 2;
-                            xBaseA = xRight;
-                            xBaseB = xRight - scaledTetherBaseWidth / 2;
-                            xBaseCenter = xRight;
-                            yTip = yBottom - scaledTetherLength / 2;
-                            yBaseA = yBottom + scaledTetherBaseWidth / 2;
-                            yBaseB = yBottom;
-                            yBaseCenter = yBottom;
+                            xTip = xLeft - scaledTetherLength / 2;
+                            xBaseA = xLeft + scaledTetherBaseWidth / 2;
+                            xBaseB = xLeft;
+                            xBaseCenter = xLeft;
+                            yTip = yTop + scaledTetherLength / 2;
+                            yBaseA = yTop;
+                            yBaseB = yTop - scaledTetherBaseWidth / 2;
+                            yBaseCenter = yTop;
                             break;
                         case 'top-center':
                             xTip = 0;
                             xBaseA = scaledTetherBaseWidth / 2;
                             xBaseB = -scaledTetherBaseWidth / 2;
                             xBaseCenter = 0;
-                            yTip = yBottom - scaledTetherLength;
-                            yBaseA = yBottom;
-                            yBaseB = yBottom;
-                            yBaseCenter = yBottom;
+                            yTip = yTop + scaledTetherLength;
+                            yBaseA = yTop;
+                            yBaseB = yTop;
+                            yBaseCenter = yTop;
                             break;
                         case 'top-right':
-                            xTip = xLeft - scaledTetherLength / 2;
-                            xBaseA = xLeft + scaledTetherBaseWidth / 2;
-                            xBaseB = xLeft;
-                            xBaseCenter = xLeft;
-                            yTip = yBottom - scaledTetherLength / 2;
-                            yBaseA = yBottom;
-                            yBaseB = yBottom + scaledTetherBaseWidth / 2;
-                            yBaseCenter = yBottom;
+                            xTip = xRight + scaledTetherLength / 2;
+                            xBaseA = xRight;
+                            xBaseB = xRight - scaledTetherBaseWidth / 2;
+                            xBaseCenter = xRight;
+                            yTip = yTop + scaledTetherLength / 2;
+                            yBaseA = yTop - scaledTetherBaseWidth / 2;
+                            yBaseB = yTop;
+                            yBaseCenter = yTop;
                             break;
                         default:
                             assertUnreachable(attachment);

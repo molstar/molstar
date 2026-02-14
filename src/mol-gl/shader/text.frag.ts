@@ -27,42 +27,39 @@ void main(){
     #include fade_lod
     #include clip_pixel
 
-    // fade out label as anchor approaches the near clip plane
+    // discard label when anchor approaches the near clip plane
     float anchorDepth = vViewPosition.z;
-    float nearFadeStart = uNear + (uFar - uNear) * 0.03;
-    float nearFade = smoothstep(uNear, nearFadeStart, anchorDepth);
-    if (nearFade <= 0.0) discard;
+    float nearFadeEnd = uNear + (uFar - uNear) * 0.03;
+    if (anchorDepth < nearFadeEnd) discard;
 
     float fragmentDepth = gl_FragCoord.z;
 
     // handle depth variant before assign_material_color,
     // since the chunk classifies opaque/transparent based on uAlpha alone
-    // and doesn't know about uBackgroundOpacity or nearFade
+    // and doesn't know about uBackgroundOpacity
     #if defined(dRenderVariant_depth)
     {
         if (fragmentDepth > getDepth(gl_FragCoord.xy / uDrawingBufferSize)) {
             discard;
         }
-        float effectiveAlpha;
         if (vTexCoord.x > 1.0) {
             discard; // background is cosmetic, skip depth to avoid outline artifacts
-        } else {
-            float rawSdf = texture2D(tFont, vTexCoord).a;
-            float sdf = rawSdf + min(uBorderWidth, 0.49); // clamp to avoid exceeding max SDF range
-            if (sdf < 0.5) discard;
-            effectiveAlpha = uAlpha * nearFade;
         }
+        float rawSdf = texture2D(tFont, vTexCoord).a;
+        float sdf = rawSdf + min(uBorderWidth, 0.49); // clamp to avoid exceeding max SDF range
+        if (sdf < 0.5) discard;
+
         vec4 material;
         if (uRenderMask == MaskOpaque) {
-            if (effectiveAlpha < 1.0) {
+            if (uAlpha < 1.0) {
                 discard;
             }
             material = packDepthToRGBA(fragmentDepth);
         } else if (uRenderMask == MaskTransparent) {
-            if (effectiveAlpha == 1.0) {
+            if (uAlpha == 1.0) {
                 discard;
             }
-            material = packDepthWithAlphaToRGBA(fragmentDepth, effectiveAlpha);
+            material = packDepthWithAlphaToRGBA(fragmentDepth, uAlpha);
         }
         gl_FragColor = material;
         return;
@@ -98,10 +95,6 @@ void main(){
             }
         #endif
     }
-
-    #if !defined(dRenderVariant_pick) && !defined(dRenderVariant_marking)
-        material.a *= nearFade;
-    #endif
 
     #include check_transparency
 
