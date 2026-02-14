@@ -25,6 +25,7 @@ const v3add = Vec3.add;
 export const BasicStreamlineCalculationParams = {
     seedDensity: PD.Numeric(10, { min: 1, max: 30, step: 1 }, { description: 'Percentage of cells with seed.' }),
     stepSize: PD.Numeric(0.35, { min: 0.01, max: 1, step: 0.01 }, { description: 'Step size in grid space.' }),
+    minSeparation: PD.Numeric(0, { min: 0, max: 5, step: 0.5 }, { description: 'Minimum separation between streamlines in grid space. 0 to disable.' }),
 };
 export type BasicStreamlineCalculationParams = typeof BasicStreamlineCalculationParams
 export type BasicStreamlineCalculationProps = PD.Values<BasicStreamlineCalculationParams>
@@ -39,7 +40,7 @@ const prev = Vec3();
 /**
  * Basic tracer with fixed step size in grid space
  */
-function traceOneDirection(out: StreamlinePoint[], grid: Grid, getGradient: GetGradient, seed: Vec3, stepSize: number, dir: 1 | -1): number {
+function traceOneDirection(out: StreamlinePoint[], grid: Grid, getGradient: GetGradient, seed: Vec3, stepSize: number, dir: 1 | -1, occupancy: Uint8Array | undefined): number {
     const { space } = grid.cells;
     const [nx, ny, nz] = space.dimensions;
     const o = space.dataOffset;
@@ -63,6 +64,10 @@ function traceOneDirection(out: StreamlinePoint[], grid: Grid, getGradient: GetG
         if (!getGradient(p, g)) break;
 
         const key = o(Math.round(p[0]), Math.round(p[1]), Math.round(p[2]));
+
+        // stop if entering a cell already claimed by another streamline
+        if (occupancy && occupancy[key]) break;
+
         const c = (seenVoxel.get(key) || 0) + 1;
         seenVoxel.set(key, c);
         if (c > maxVoxelVisits) break;
@@ -85,19 +90,20 @@ function traceOneDirection(out: StreamlinePoint[], grid: Grid, getGradient: GetG
     return written;
 }
 
-function traceStreamlineBothDirs(grid: Grid, getGradient: GetGradient, seed: Vec3, stepSize: number): StreamlinePoint[] {
+function traceStreamlineBothDirs(grid: Grid, getGradient: GetGradient, seed: Vec3, stepSize: number, occupancy: Uint8Array | undefined): StreamlinePoint[] {
     const line: StreamlinePoint[] = [];
-    const nBack = traceOneDirection(line, grid, getGradient, seed, stepSize, -1);
+    const nBack = traceOneDirection(line, grid, getGradient, seed, stepSize, -1, occupancy);
     if (nBack > 1) line.reverse();
-    traceOneDirection(line, grid, getGradient, seed, stepSize, +1);
+    traceOneDirection(line, grid, getGradient, seed, stepSize, +1, occupancy);
     return line;
 }
 
 async function computeBasicStreamlines(ctx: RuntimeContext, grid: Grid, props: BasicStreamlineCalculationProps): Promise<Streamlines> {
     const { space } = grid.cells;
     const [nx, ny, nz] = space.dimensions;
+    const o = space.dataOffset;
 
-    const { seedDensity, stepSize } = props;
+    const { seedDensity, stepSize, minSeparation } = props;
     const seedStep = Math.max(1, Math.floor(Math.min(nx, ny, nz) / seedDensity));
 
     // bounds avoiding edges
@@ -134,14 +140,55 @@ async function computeBasicStreamlines(ctx: RuntimeContext, grid: Grid, props: B
 
     const getGradient = Grid.makeGetInterpolatedGradient(grid);
 
+    // occupancy grid for minimum separation between streamlines
+    const useSeparation = minSeparation > 0;
+    const occupancy = useSeparation ? new Uint8Array(nx * ny * nz) : undefined;
+
+    // precompute sphere offsets for marking occupancy
+    const sphereOffsets: number[][] = [];
+    if (useSeparation) {
+        const r = Math.ceil(minSeparation);
+        const r2 = minSeparation * minSeparation;
+        for (let dz = -r; dz <= r; ++dz) {
+            for (let dy = -r; dy <= r; ++dy) {
+                for (let dx = -r; dx <= r; ++dx) {
+                    if (dx * dx + dy * dy + dz * dz <= r2) {
+                        sphereOffsets.push([dx, dy, dz]);
+                    }
+                }
+            }
+        }
+    }
+
     const lines: Streamlines = [];
     const pos = Vec3();
     for (let i = 0; i < seeds.length; i += 3) {
         if (ctx.shouldUpdate) await ctx.update({ current: i / 3 + 1 });
 
         v3fromArray(pos, seeds, i);
-        const line = traceStreamlineBothDirs(grid, getGradient, pos, stepSize);
-        if (line.length * stepSize >= 3) lines.push(line);
+        const line = traceStreamlineBothDirs(grid, getGradient, pos, stepSize, occupancy);
+        if (line.length * stepSize >= 3) {
+            lines.push(line);
+
+            // mark occupancy around accepted streamline points
+            if (occupancy) {
+                for (let j = 0, jl = line.length; j < jl; ++j) {
+                    const pt = line[j];
+                    const cx = Math.round(pt[0]);
+                    const cy = Math.round(pt[1]);
+                    const cz = Math.round(pt[2]);
+                    for (let k = 0, kl = sphereOffsets.length; k < kl; ++k) {
+                        const off = sphereOffsets[k];
+                        const ox = cx + off[0];
+                        const oy = cy + off[1];
+                        const oz = cz + off[2];
+                        if (ox >= 0 && ox < nx && oy >= 0 && oy < ny && oz >= 0 && oz < nz) {
+                            occupancy[o(ox, oy, oz)] = 1;
+                        }
+                    }
+                }
+            }
+        }
     }
     return lines;
 }
