@@ -20,10 +20,13 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fix missing `usePalette` support
     - Fix vertex-based coloring for non-mesh geometries
     - Support line-strips
+    - Support vertex-based sizing
 - Support memory efficient line-strips in Lines geometry,
     - Add `StripLinesBuilder`
 - Add `computeFrenetFrames` helper
 - Fix `TextCtrl` always moving cursor to end position
+- Add `vertex` and `vertexInstance` granularity support for size themes
+- Add `transform` and `domain` parameters to volume-value size theme
 
 ## [v5.6.1] - 2026-01-23
 - Disable occlusion culling in `ImagePass` (#1758)

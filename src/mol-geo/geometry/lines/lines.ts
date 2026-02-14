@@ -228,7 +228,7 @@ export namespace Lines {
         const positionIt = createPositionIterator(lines, transform);
 
         const color = createColors(locationIt, positionIt, theme.color);
-        const size = createSizes(locationIt, theme.size);
+        const size = createSizes(locationIt, positionIt, theme.size);
         const marker = props.instanceGranularity
             ? createMarkers(instanceCount, 'instance')
             : createMarkers(instanceCount * groupCount, 'groupInstance');

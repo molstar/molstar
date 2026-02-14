@@ -212,7 +212,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
                 // not all geometries have size data, so check here
                 if ('uSize' in renderObject.values) {
                     // console.log('update size');
-                    createSizes(locationIt, newTheme.size, renderObject.values as SizeValues);
+                    createSizes(locationIt, positionIt, newTheme.size, renderObject.values as SizeValues);
                 }
             }
 

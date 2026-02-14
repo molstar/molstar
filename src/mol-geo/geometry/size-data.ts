@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,7 +13,7 @@ import { SizeTheme } from '../../mol-theme/size';
 import { Geometry } from './geometry';
 import { unpackRGBToInt, packIntToRGBArray } from '../../mol-util/number-packing';
 
-export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance'
+export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance';
 
 export type SizeData = {
     uSize: ValueCell<number>,
@@ -22,12 +22,14 @@ export type SizeData = {
     dSizeType: ValueCell<string>,
 }
 
-export function createSizes(locationIt: LocationIterator, sizeTheme: SizeTheme<any>, sizeData?: SizeData): SizeData {
+export function createSizes(locationIt: LocationIterator, positionIt: LocationIterator, sizeTheme: SizeTheme<any>, sizeData?: SizeData): SizeData {
     switch (Geometry.getGranularity(locationIt, sizeTheme.granularity)) {
         case 'uniform': return createUniformSize(locationIt, sizeTheme.size, sizeData);
+        case 'instance': return createInstanceSize(locationIt, sizeTheme.size, sizeData);
         case 'group': return createGroupSize(locationIt, sizeTheme.size, sizeData);
         case 'groupInstance': return createGroupInstanceSize(locationIt, sizeTheme.size, sizeData);
-        case 'instance': return createInstanceSize(locationIt, sizeTheme.size, sizeData);
+        case 'vertex': return createVertexSize(positionIt, sizeTheme.size, sizeData);
+        case 'vertexInstance': return createVertexInstanceSize(positionIt, sizeTheme.size, sizeData);
     }
 }
 
@@ -41,6 +43,8 @@ export function getMaxSize(sizeData: SizeData): number {
         case 'instance':
         case 'group':
         case 'groupInstance':
+        case 'vertex':
+        case 'vertexInstance':
             let maxSize = 0;
             const array = sizeData.tSize.ref.value.array;
             for (let i = 0, il = array.length; i < il; i += 3) {
@@ -134,4 +138,29 @@ export function createGroupInstanceSize(locationIt: LocationIterator, sizeFn: Lo
         packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.index * 3);
     }
     return createTextureSize(sizes, 'groupInstance', sizeData);
+}
+
+/** Creates size texture with size for each vertex */
+export function createVertexSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
+    const { groupCount } = locationIt;
+    const sizes = createTextureImage(Math.max(1, groupCount), 3, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+    locationIt.reset();
+    while (locationIt.hasNext) {
+        const v = locationIt.move();
+        packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.index * 3);
+    }
+    return createTextureSize(sizes, 'vertex', sizeData);
+}
+
+/** Creates size texture with size for each vertex instance */
+export function createVertexInstanceSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
+    const { groupCount, instanceCount } = locationIt;
+    const count = instanceCount * groupCount;
+    const sizes = createTextureImage(Math.max(1, count), 3, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+    locationIt.reset();
+    while (locationIt.hasNext) {
+        const v = locationIt.move();
+        packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.index * 3);
+    }
+    return createTextureSize(sizes, 'vertexInstance', sizeData);
 }
