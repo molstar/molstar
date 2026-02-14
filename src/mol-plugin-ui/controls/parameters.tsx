@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -419,20 +419,31 @@ export class TextControl extends SimpleParam<PD.Text> {
 function TextCtrl({ props, placeholder, update }: { props: ParamProps<PD.Text>, placeholder: string, update: (v: string) => any }) {
     const [value, setValue] = React.useState(props.value);
     const [composition, setComposition] = React.useState(false);
-    React.useEffect(() => setValue(props.value), [props.value]);
+    React.useEffect(() => {
+        setValue(props.value);
+    }, [props.value]);
 
     const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (composition || props.param.disableInteractiveUpdates) setValue(e.target.value);
-        else update(e.target.value);
+        else {
+            setValue(e.target.value);
+            update(e.target.value);
+        }
     };
     const onCompositionEnd = (e: React.CompositionEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setComposition(false);
         const target = e.target as EventTarget & (HTMLInputElement | HTMLTextAreaElement);
         if (props.param.disableInteractiveUpdates) setValue(target.value);
-        else update(target.value);
+        else {
+            setValue(target.value);
+            update(target.value);
+        }
     };
     const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        if (props.param.disableInteractiveUpdates) update(e.target.value);
+        if (props.param.disableInteractiveUpdates) {
+            setValue(e.target.value);
+            update(e.target.value);
+        }
     };
     const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (e.key !== 'Enter') return;
@@ -442,6 +453,7 @@ function TextCtrl({ props, placeholder, update }: { props: ParamProps<PD.Text>, 
         } else if (e.shiftKey || e.ctrlKey || e.metaKey) {
             e.currentTarget.blur();
         } else if (props.param.disableInteractiveUpdates && !props.param.multiline) {
+            setValue(value);
             update(value);
         }
     };
@@ -450,15 +462,15 @@ function TextCtrl({ props, placeholder, update }: { props: ParamProps<PD.Text>, 
         return <div className='msp-control-text-area-wrapper'>
             <textarea
                 value={value ?? ''} placeholder={placeholder} disabled={props.isDisabled}
-            onChange={onChange} onBlur={onBlur} onKeyDown={onKeyDown}
-              onCompositionStart={() => setComposition(true)} onCompositionEnd={onCompositionEnd}
+                onChange={onChange} onBlur={onBlur} onKeyDown={onKeyDown}
+                onCompositionStart={() => setComposition(true)} onCompositionEnd={onCompositionEnd}
             />
         </div>;
     } else {
         return <input type='text'
             value={value ?? ''} placeholder={placeholder} disabled={props.isDisabled}
-          onChange={onChange} onBlur={onBlur} onKeyDown={onKeyDown}
-          onCompositionStart={() => setComposition(true)} onCompositionEnd={onCompositionEnd}
+            onChange={onChange} onBlur={onBlur} onKeyDown={onKeyDown}
+            onCompositionStart={() => setComposition(true)} onCompositionEnd={onCompositionEnd}
         />;
     }
 }

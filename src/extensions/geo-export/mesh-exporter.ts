@@ -91,7 +91,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         return unpackRGBToInt(r, g, b) / sizeDataFactor;
     }
 
-    private static getSize(values: BaseValues & SizeValues, instanceIndex: number, group: number): number {
+    private static getSize(values: BaseValues & SizeValues, instanceIndex: number, group: number, vertexIndex: number): number {
         const tSize = values.tSize.ref.value;
         let size = 0;
         switch (values.dSizeType.ref.value) {
@@ -107,6 +107,13 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
             case 'groupInstance':
                 const groupCount = values.uGroupCount.ref.value;
                 size = MeshExporter.getSizeFromTexture(tSize, instanceIndex * groupCount + group);
+                break;
+            case 'vertex':
+                size = MeshExporter.getSizeFromTexture(tSize, vertexIndex);
+                break;
+            case 'vertexInstance':
+                const vertexCount = values.uVertexCount.ref.value;
+                size = MeshExporter.getSizeFromTexture(tSize, instanceIndex * vertexCount + vertexIndex);
                 break;
         }
         return size * values.uSizeFactor.ref.value;
@@ -465,7 +472,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
                     const v0 = segmentIndices[0];
                     arrayCopyOffset(curvePoints, aStart, 0, v0 * 3, 3);
                     curveOrigIndices.push(v0);
-                    const radius0 = MeshExporter.getSize(values, instanceIndex, aGroup[v0]) * 0.03;
+                    const radius0 = MeshExporter.getSize(values, instanceIndex, aGroup[v0], v0) * 0.03;
                     widthValues[0] = radius0;
                     heightValues[0] = radius0;
 
@@ -474,7 +481,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
                         const v = segmentIndices[j];
                         arrayCopyOffset(curvePoints, aEnd, (j + 1) * 3, v * 3, 3);
                         curveOrigIndices.push(v);
-                        const radius = MeshExporter.getSize(values, instanceIndex, aGroup[v]) * 0.03;
+                        const radius = MeshExporter.getSize(values, instanceIndex, aGroup[v], v) * 0.03;
                         widthValues[j + 1] = radius;
                         heightValues[j + 1] = radius;
                     }
@@ -574,7 +581,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
                     v3fromArray(end, aEnd, i * 3);
 
                     const group = aGroup[i / 4];
-                    const radius = MeshExporter.getSize(values, instanceIndex, group) * 0.03;
+                    const radius = MeshExporter.getSize(values, instanceIndex, group, i / 4) * 0.03;
 
                     const cylinderProps = { radiusTop: radius, radiusBottom: radius, topCap, bottomCap, radialSegments };
                     const vertexOffset = state.vertices.elementCount;
@@ -633,7 +640,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
                     v3fromArray(center, aPosition, i * 3);
 
                     const group = aGroup[i];
-                    const radius = MeshExporter.getSize(values, instanceIndex, group) * 0.03;
+                    const radius = MeshExporter.getSize(values, instanceIndex, group, i) * 0.03;
                     const vertexOffset = state.vertices.elementCount;
                     addSphere(state, center, radius, detail);
 
@@ -692,7 +699,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
                 v3fromArray(center, aPosition, i * 3);
 
                 const group = aGroup[i];
-                const radius = MeshExporter.getSize(values, instanceIndex, group);
+                const radius = MeshExporter.getSize(values, instanceIndex, group, i);
                 const vertexOffset = state.vertices.elementCount;
                 addSphere(state, center, radius, detail);
 
@@ -755,7 +762,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
                 v3sub(dir, end, start);
 
                 const group = aGroup[i];
-                const radius = MeshExporter.getSize(values, instanceIndex, group) * aScale[i];
+                const radius = MeshExporter.getSize(values, instanceIndex, group, i) * aScale[i];
                 const cap = aCap[i];
                 let topCap = cap === 1 || cap === 3;
                 let bottomCap = cap >= 2;

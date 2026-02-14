@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -249,7 +249,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
                 // not all geometries have size data, so check here
                 if ('uSize' in renderObject.values) {
                     // console.log('update size');
-                    createSizes(locationIt, newTheme.size, renderObject.values as SizeValues);
+                    createSizes(locationIt, positionIt, newTheme.size, renderObject.values as SizeValues);
                 }
             }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -161,7 +161,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                     // not all geometries have size data, so check here
                     if ('uSize' in _renderObject.values) {
                         // console.log('update size')
-                        createSizes(locationIt, _theme.size, _renderObject.values as SizeData);
+                        createSizes(locationIt, positionIt, _theme.size, _renderObject.values as SizeData);
                     }
                 }
 
