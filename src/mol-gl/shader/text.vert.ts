@@ -2,6 +2,7 @@
  * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 export const text_vert = `
@@ -73,39 +74,44 @@ void main(void){
     //     }
     // #endif
 
-    vec4 mvCorner = vec4(mvPosition.xyz, 1.0);
+    vec4 mvCenter = vec4(mvPosition.xyz, 1.0);
 
     if (vTexCoord.x == 10.0) { // indicates background plane
         // move a bit to the back, taking distance to camera into account to avoid z-fighting
-        offsetZ -= 0.001 * distance(uCameraPosition, (uProjection * mvCorner).xyz);
+        offsetZ -= 0.001 * distance(uCameraPosition, (uProjection * mvCenter).xyz);
     }
 
-    vec3 cornerOffset = vec3(0.0);
-    cornerOffset.xy += aMapping * size * scale;
-    cornerOffset.x += offsetX;
-    cornerOffset.y += offsetY;
-
-    if (uHasHeadRotation) {
-        mvCorner.xyz += (uInvHeadRotation * vec4(cornerOffset, 1.0)).xyz;
-    } else {
-        mvCorner.xyz += cornerOffset;
-    }
-
+    // apply Z offset in view space
     if (!uHasEyeCamera) {
         if (uIsOrtho == 1.0) {
-            mvCorner.z += offsetZ;
+            mvCenter.z += offsetZ;
         } else {
-            mvCorner.xyz += normalize(-mvCorner.xyz) * offsetZ;
+            mvCenter.xyz += normalize(-mvCenter.xyz) * offsetZ;
         }
     }
 
     if (uHasEyeCamera) {
-        mvCorner = uModelView * uInvModelViewEye * mvCorner;
+        mvCenter = uModelView * uInvModelViewEye * mvCenter;
     }
 
-    gl_Position = uProjection * mvCorner;
+    // project center to clip space
+    vec4 clip = uProjection * mvCenter;
 
-    vViewPosition = -mvCorner.xyz;
+    // compute corner offset in screen-space units
+    vec2 cornerOffset = aMapping * size * scale;
+    cornerOffset.x += offsetX;
+    cornerOffset.y += offsetY;
+
+    if (uHasHeadRotation) {
+        cornerOffset = (uInvHeadRotation * vec4(cornerOffset, 0.0, 0.0)).xy;
+    }
+
+    // apply offset in clip space to avoid perspective distortion on the quad
+    clip.xy += vec2(uProjection[0][0], uProjection[1][1]) * cornerOffset;
+
+    gl_Position = clip;
+
+    vViewPosition = -mvCenter.xyz;
 
     #include clip_instance
 }

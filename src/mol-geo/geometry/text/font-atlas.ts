@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -76,7 +77,7 @@ export class FontAtlas {
         this.props = p;
 
         // create measurements
-        const fontSize = 32 * (p.fontQuality + 1);
+        const fontSize = 64 * (p.fontQuality + 1);
         this.buffer = fontSize / 8;
         this.radius = fontSize / 3;
         this.lineHeight = Math.round(fontSize + 2 * this.buffer + this.radius);

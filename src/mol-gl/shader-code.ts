@@ -207,7 +207,7 @@ export const CylindersShaderCode = ShaderCode('cylinders', cylinders_vert, cylin
 
 import { text_vert } from './shader/text.vert';
 import { text_frag } from './shader/text.frag';
-export const TextShaderCode = ShaderCode('text', text_vert, text_frag, { drawBuffers: 'optional' }, {}, ignoreDefineUnlit);
+export const TextShaderCode = ShaderCode('text', text_vert, text_frag, { fragDepth: 'optional', drawBuffers: 'optional' }, {}, ignoreDefineUnlit);
 
 import { lines_vert } from './shader/lines.vert';
 import { lines_frag } from './shader/lines.frag';
