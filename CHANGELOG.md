@@ -27,6 +27,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `TextCtrl` always moving cursor to end position
 - Add `vertex` and `vertexInstance` granularity support for size themes
 - Add `transform` and `domain` parameters to volume-value size theme
+- Fix parsing of single charge type_symbols (e.g., N+) in cif-core
 
 ## [v5.6.1] - 2026-01-23
 - Disable occlusion culling in `ImagePass` (#1758)
