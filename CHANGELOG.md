@@ -31,6 +31,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support memory efficient line-strips in Lines geometry,
     - Add `StripLinesBuilder`
 - Add `computeFrenetFrames` helper
+- Streamlines support
+    - Add basic calculation method
+    - Add custom-volume-property
+    - Add representation with lines and tube-mesh visuals
 - Fix `TextCtrl` always moving cursor to end position
 - Add `vertex` and `vertexInstance` granularity support for size themes
 - Add `transform` and `domain` parameters to volume-value size theme
