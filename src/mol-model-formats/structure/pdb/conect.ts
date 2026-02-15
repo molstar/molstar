@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Yakov Pechersky <ffxen158@gmail.com>
@@ -9,6 +9,8 @@
 import { CifCategory, CifField } from '../../../mol-io/reader/cif';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { Tokens } from '../../../mol-io/reader/common/text/tokenizer';
+import { isMetal } from '../../../mol-model/structure/model/properties/atomic/types';
+import { ElementSymbol } from '../../../mol-model/structure/model/types';
 
 export function parseConect(lines: Tokens, lineStart: number, lineEnd: number, sites: { [K in keyof mmCIF_Schema['atom_site']]?: CifField }): CifCategory {
     const idMap: { [k: string]: number } = {};
@@ -71,8 +73,16 @@ export function parseConect(lines: Tokens, lineStart: number, lineEnd: number, s
             }
             bondIndex[idxB] = k - 1;
 
-            id.push(`covale${k}`);
-            conn_type_id.push('covale');
+            const atomIdA = sites.type_symbol!.str(idxA) as ElementSymbol;
+            const atomIdB = sites.type_symbol!.str(idxB) as ElementSymbol;
+
+            if (isMetal(atomIdA) || isMetal(atomIdB)) {
+                id.push(`metalc${k}`);
+                conn_type_id.push('metalc');
+            } else {
+                id.push(`covale${k}`);
+                conn_type_id.push('covale');
+            }
             bondOrder.push(1);
 
             ptnr1_label_asym_id.push(sites.label_asym_id!.str(idxA));

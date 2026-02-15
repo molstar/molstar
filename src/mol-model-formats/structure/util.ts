@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -32,7 +32,9 @@ export function guessElementSymbolTokens(tokens: Tokens, str: StringLike, start:
             ((c === 70 || c === 102) && (c2 === 69 || c2 === 101)) || // FE
             ((c === 83 || c === 115) && (c2 === 73 || c2 === 105)) || // SI
             ((c === 66 || c === 98) && (c2 === 82 || c2 === 114)) || // BR
-            ((c === 65 || c === 97) && (c2 === 83 || c2 === 115)) // AS
+            ((c === 65 || c === 97) && (c2 === 83 || c2 === 115)) || // AS
+            ((c === 76 || c === 108) && (c2 === 73 || c2 === 105)) || // LI
+            ((c === 71 || c === 103) && (c2 === 65 || c2 === 97)) // GA
         ) return TokenBuilder.add(tokens, s, s + 2);
     }
 
@@ -48,7 +50,7 @@ export function guessElementSymbolTokens(tokens: Tokens, str: StringLike, start:
     TokenBuilder.add(tokens, s, s); // no reasonable guess, add empty token
 }
 
-const TwoCharElementNames = new Set(['NA', 'CL', 'FE', 'SI', 'BR', 'AS', 'LI']);
+const TwoCharElementNames = new Set(['NA', 'CL', 'FE', 'SI', 'BR', 'AS', 'LI', 'GA']);
 const OneCharElementNames = new Set(['C', 'H', 'N', 'O', 'P', 'S', 'F', 'B']);
 
 const reTrimSpacesAndNumbers = /^[\s\d]+|[\s\d]+$/g;
