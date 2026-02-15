@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,6 +22,7 @@ import { SpacefillRepresentationProvider } from './representation/spacefill';
 import { LineRepresentationProvider } from './representation/line';
 import { GaussianVolumeRepresentationProvider } from './representation/gaussian-volume';
 import { BackboneRepresentationProvider } from './representation/backbone';
+import { PolyhedronRepresentationProvider } from './representation/polyhedron';
 import { PlaneRepresentationProvider } from './representation/plane';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure, StructureRepresentationState> {
@@ -51,6 +52,7 @@ export namespace StructureRepresentationRegistry {
         'point': PointRepresentationProvider,
         'putty': PuttyRepresentationProvider,
         'spacefill': SpacefillRepresentationProvider,
+        'polyhedron': PolyhedronRepresentationProvider,
     };
 
     type _BuiltIn = typeof BuiltIn
