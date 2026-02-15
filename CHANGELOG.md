@@ -35,6 +35,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `vertex` and `vertexInstance` granularity support for size themes
 - Add `transform` and `domain` parameters to volume-value size theme
 - Add `convexHull` helper
+- Add `Structure.coordination` sites
 
 ## [v5.6.1] - 2026-01-23
 - Disable occlusion culling in `ImagePass` (#1758)

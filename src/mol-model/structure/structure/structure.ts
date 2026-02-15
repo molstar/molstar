@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -21,6 +21,8 @@ import { StructureProperties } from './properties';
 import { ResidueIndex, ChainIndex, EntityIndex } from '../model/indexing';
 import { Carbohydrates } from './carbohydrates/data';
 import { computeCarbohydrates } from './carbohydrates/compute';
+import { Coordination } from './coordination/data';
+import { computeCoordination } from './coordination/compute';
 import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
 import { idFactory } from '../../../mol-util/id-factory';
 import { UUID } from '../../../mol-util';
@@ -48,6 +50,7 @@ type State = {
     unitSymmetryGroupsIndexMap?: IntMap<number>,
     unitsSortedByVolume?: ReadonlyArray<Unit>;
     carbohydrates?: Carbohydrates,
+    coordination?: Coordination,
     models?: ReadonlyArray<Model>,
     model?: Model,
     masterModel?: Model,
@@ -279,6 +282,12 @@ class Structure {
         if (this.state.carbohydrates) return this.state.carbohydrates;
         this.state.carbohydrates = computeCarbohydrates(this);
         return this.state.carbohydrates;
+    }
+
+    get coordination(): Coordination {
+        if (this.state.coordination) return this.state.coordination;
+        this.state.coordination = computeCoordination(this);
+        return this.state.coordination;
     }
 
     get models(): ReadonlyArray<Model> {
