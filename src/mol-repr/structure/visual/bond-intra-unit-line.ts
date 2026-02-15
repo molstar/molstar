@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -34,10 +34,11 @@ function getIntraUnitBondLineBuilderProps(unit: Unit.Atomic, structure: Structur
     const { edgeCount, a, b, edgeProps, offset } = bonds;
 
     const { order: _order, flags: _flags } = edgeProps;
-    const { sizeFactor, aromaticBonds, includeTypes, excludeTypes, multipleBonds } = props;
+    const { sizeFactor, aromaticBonds, includeTypes, excludeTypes, multipleBonds, metalCoordination } = props;
 
     const mbOff = multipleBonds === 'off';
     const mbSymmetric = multipleBonds === 'symmetric';
+    const metalDashed = metalCoordination === 'dashed';
 
     const include = BondType.fromNames(includeTypes);
     const exclude = BondType.fromNames(excludeTypes);
@@ -89,8 +90,9 @@ function getIntraUnitBondLineBuilderProps(unit: Unit.Atomic, structure: Structur
         style: (edgeIndex: number) => {
             const o = _order[edgeIndex];
             const f = _flags[edgeIndex];
-            if (isBondType(f, BondType.Flag.MetallicCoordination) || isBondType(f, BondType.Flag.HydrogenBond)) {
-                // show metallic coordinations and hydrogen bonds with dashed lines
+            if (isBondType(f, BondType.Flag.MetallicCoordination)) {
+                return metalDashed ? LinkStyle.Dashed : LinkStyle.Solid;
+            } else if (isBondType(f, BondType.Flag.HydrogenBond)) {
                 return LinkStyle.Dashed;
             } else if (o === 3) {
                 return mbOff ? LinkStyle.Solid :
@@ -174,7 +176,8 @@ export function IntraUnitBondLineVisual(materialId: number): UnitsVisual<IntraUn
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.aromaticBonds !== currentProps.aromaticBonds ||
-                newProps.multipleBonds !== currentProps.multipleBonds
+                newProps.multipleBonds !== currentProps.multipleBonds ||
+                newProps.metalCoordination !== currentProps.metalCoordination
             );
 
             const newUnit = newStructureGroup.group.units[0];
@@ -294,7 +297,8 @@ export function StructureIntraUnitBondLineVisual(materialId: number): ComplexVis
                 newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
-                newProps.multipleBonds !== currentProps.multipleBonds
+                newProps.multipleBonds !== currentProps.multipleBonds ||
+                newProps.metalCoordination !== currentProps.metalCoordination
             );
 
             if (hasStructureVisibleBonds(newStructure, newProps) && newStructure.interUnitBonds !== currentStructure.interUnitBonds) {

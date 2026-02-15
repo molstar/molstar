@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -44,10 +44,11 @@ function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme
 
     const bonds = structure.interUnitBonds;
     const { edgeCount, edges } = bonds;
-    const { sizeFactor, sizeAspectRatio, adjustCylinderLength, aromaticBonds, multipleBonds } = props;
+    const { sizeFactor, sizeAspectRatio, adjustCylinderLength, aromaticBonds, multipleBonds, metalCoordination } = props;
 
     const mbOff = multipleBonds === 'off';
     const mbSymmetric = multipleBonds === 'symmetric';
+    const metalDashed = metalCoordination === 'dashed';
 
     const delta = Vec3();
 
@@ -139,8 +140,9 @@ function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme
         style: (edgeIndex: number) => {
             const o = edges[edgeIndex].props.order;
             const f = BitFlags.create(edges[edgeIndex].props.flag);
-            if (BondType.is(f, BondType.Flag.MetallicCoordination) || BondType.is(f, BondType.Flag.HydrogenBond)) {
-                // show metallic coordinations and hydrogen bonds with dashed cylinders
+            if (BondType.is(f, BondType.Flag.MetallicCoordination)) {
+                return metalDashed ? LinkStyle.Dashed : LinkStyle.Solid;
+            } else if (BondType.is(f, BondType.Flag.HydrogenBond)) {
                 return LinkStyle.Dashed;
             } else if (o === 3) {
                 return mbOff ? LinkStyle.Solid :
@@ -245,7 +247,8 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
-                newProps.multipleBonds !== currentProps.multipleBonds
+                newProps.multipleBonds !== currentProps.multipleBonds ||
+                newProps.metalCoordination !== currentProps.metalCoordination
             );
 
             if (newProps.colorMode !== currentProps.colorMode) {
@@ -299,6 +302,7 @@ export function InterUnitBondCylinderMeshVisual(materialId: number): ComplexVisu
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
                 newProps.multipleBonds !== currentProps.multipleBonds ||
+                newProps.metalCoordination !== currentProps.metalCoordination ||
                 newProps.adjustCylinderLength && !SizeTheme.areEqual(newTheme.size, currentTheme.size)
             );
 
