@@ -30,6 +30,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix parsing of single charge type_symbols (e.g., N+) in cif-core
 - Detect metal-coordination when parsing pdb
 - Handle additional elements in `guessElementSymbol*` (As, Li, Ga)
+- Add more element-pair thresholds for bonding (Ag-S, CoSb, Ga-F)
 
 ## [v5.6.1] - 2026-01-23
 - Disable occlusion culling in `ImagePass` (#1758)
