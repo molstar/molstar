@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Text label improvements
+    - Improve label background vertical centering
+    - Discard labels near the camera clip plane
+    - Handle label depth variant for correct transparent background
+    - Draw border under text using fragment depth to prevent overlap on adjacent characters
+    - Clamp border width to avoid exceeding SDF range
+    - Increase font atlas quality (2x font size multiplier)
 - TM-align performance improvements (#1745)
 - Disable transparent outline close to opaque elements
 - Add axis param to trackball spin & rock animation

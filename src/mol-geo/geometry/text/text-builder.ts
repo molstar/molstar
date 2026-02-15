@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -118,8 +119,9 @@ export namespace TextBuilder {
 
                 const xLeft = (-xShift - margin - 0.1) * scale;
                 const xRight = (bWidth - xShift + margin + 0.1) * scale;
-                const yTop = (bHeight - yShift + margin) * scale;
-                const yBottom = (-yShift - margin) * scale;
+                const yMid = 0.5 - yShift - outline * 0.5; // glyph vertical midpoint accounting for outline offset
+                const yTop = (yMid + bHeight / 2 + margin) * scale;
+                const yBottom = (yMid - bHeight / 2 - margin) * scale;
 
                 // background
                 if (background) {
