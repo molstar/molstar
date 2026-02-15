@@ -6,7 +6,6 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - Text label improvements
     - Improve label background vertical centering
-    - Discard labels near the camera clip plane
     - Handle label depth variant for correct transparent background
     - Draw border under text using fragment depth to prevent overlap on adjacent characters
     - Clamp border width to avoid exceeding SDF range
