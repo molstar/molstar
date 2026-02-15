@@ -327,16 +327,17 @@ export namespace Text {
 }
 
 function getPadding(mappings: Float32Array, depths: Float32Array, charCount: number, scale: number) {
-    let maxOffset = 0;
+    let maxOffsetX = 0;
+    let maxOffsetY = 0;
     let maxDepth = 0;
     for (let i = 0, il = charCount * 4; i < il; ++i) {
         const i2 = 2 * i;
         const ox = Math.abs(mappings[i2]);
-        if (ox > maxOffset) maxOffset = ox;
+        if (ox > maxOffsetX) maxOffsetX = ox;
         const oy = Math.abs(mappings[i2 + 1]);
-        if (oy > maxOffset) maxOffset = oy;
+        if (oy > maxOffsetY) maxOffsetY = oy;
         const d = Math.abs(depths[i]);
         if (d > maxDepth) maxDepth = d;
     }
-    return Math.max(maxDepth, scale * maxOffset);
+    return Math.max(maxDepth, scale * Math.sqrt(maxOffsetX * maxOffsetX + maxOffsetY * maxOffsetY));
 }
