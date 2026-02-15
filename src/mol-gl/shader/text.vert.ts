@@ -103,11 +103,12 @@ void main(void){
     cornerOffset.y += offsetY;
 
     if (uHasHeadRotation) {
-        cornerOffset = (uInvHeadRotation * vec4(cornerOffset, 0.0, 0.0)).xy;
+        vec3 rotatedOffset = (uInvHeadRotation * vec4(cornerOffset, 0.0, 0.0)).xyz;
+        clip += uProjection * vec4(rotatedOffset, 0.0);
+    } else {
+        // apply offset in clip space to avoid perspective distortion on the quad
+        clip.xy += vec2(uProjection[0][0], uProjection[1][1]) * cornerOffset;
     }
-
-    // apply offset in clip space to avoid perspective distortion on the quad
-    clip.xy += vec2(uProjection[0][0], uProjection[1][1]) * cornerOffset;
 
     gl_Position = clip;
 
