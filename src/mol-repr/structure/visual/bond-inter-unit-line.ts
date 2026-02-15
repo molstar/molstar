@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -34,10 +34,11 @@ export function getInterUnitBondLineBuilderProps(structure: Structure, theme: Th
     const bonds = structure.interUnitBonds;
     const { edgeCount, edges } = bonds;
 
-    const { sizeFactor, aromaticBonds, multipleBonds } = props;
+    const { sizeFactor, aromaticBonds, multipleBonds, metalCoordination } = props;
 
     const mbOff = multipleBonds === 'off';
     const mbSymmetric = multipleBonds === 'symmetric';
+    const metalDashed = metalCoordination === 'dashed';
 
     const ref = Vec3();
     const loc = StructureElement.Location.create();
@@ -73,8 +74,9 @@ export function getInterUnitBondLineBuilderProps(structure: Structure, theme: Th
         style: (edgeIndex: number) => {
             const o = edges[edgeIndex].props.order;
             const f = BitFlags.create(edges[edgeIndex].props.flag);
-            if (BondType.is(f, BondType.Flag.MetallicCoordination) || BondType.is(f, BondType.Flag.HydrogenBond)) {
-                // show metallic coordinations and hydrogen bonds with dashed cylinders
+            if (BondType.is(f, BondType.Flag.MetallicCoordination)) {
+                return metalDashed ? LinkStyle.Dashed : LinkStyle.Solid;
+            } else if (BondType.is(f, BondType.Flag.HydrogenBond)) {
                 return LinkStyle.Dashed;
             } else if (o === 3) {
                 return mbOff ? LinkStyle.Solid :
@@ -151,7 +153,8 @@ export function InterUnitBondLineVisual(materialId: number): ComplexVisual<Inter
                 newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
-                newProps.multipleBonds !== currentProps.multipleBonds
+                newProps.multipleBonds !== currentProps.multipleBonds ||
+                newProps.metalCoordination !== currentProps.metalCoordination
             );
 
             if (hasStructureVisibleBonds(newStructure, newProps) && newStructure.interUnitBonds !== currentStructure.interUnitBonds) {

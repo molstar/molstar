@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -38,10 +38,11 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
     const bonds = unit.bonds;
     const { edgeCount, a, b, edgeProps, offset } = bonds;
     const { order: _order, flags: _flags } = edgeProps;
-    const { sizeFactor, sizeAspectRatio, adjustCylinderLength, aromaticBonds, includeTypes, excludeTypes, multipleBonds } = props;
+    const { sizeFactor, sizeAspectRatio, adjustCylinderLength, aromaticBonds, includeTypes, excludeTypes, multipleBonds, metalCoordination } = props;
 
     const mbOff = multipleBonds === 'off';
     const mbSymmetric = multipleBonds === 'symmetric';
+    const metalDashed = metalCoordination === 'dashed';
 
     const include = BondType.fromNames(includeTypes);
     const exclude = BondType.fromNames(excludeTypes);
@@ -138,8 +139,9 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
         style: (edgeIndex: number) => {
             const o = _order[edgeIndex];
             const f = _flags[edgeIndex];
-            if (isBondType(f, BondType.Flag.MetallicCoordination) || isBondType(f, BondType.Flag.HydrogenBond)) {
-                // show metallic coordinations and hydrogen bonds with dashed cylinders
+            if (isBondType(f, BondType.Flag.MetallicCoordination)) {
+                return metalDashed ? LinkStyle.Dashed : LinkStyle.Solid;
+            } else if (isBondType(f, BondType.Flag.HydrogenBond)) {
                 return LinkStyle.Dashed;
             } else if (o === 3) {
                 return mbOff ? LinkStyle.Solid :
@@ -261,6 +263,7 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
                 newProps.aromaticBonds !== currentProps.aromaticBonds ||
                 newProps.multipleBonds !== currentProps.multipleBonds ||
+                newProps.metalCoordination !== currentProps.metalCoordination ||
                 newProps.adjustCylinderLength && !SizeTheme.areEqual(newTheme.size, currentTheme.size)
             );
 
@@ -315,7 +318,8 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
                 newProps.aromaticBonds !== currentProps.aromaticBonds ||
-                newProps.multipleBonds !== currentProps.multipleBonds
+                newProps.multipleBonds !== currentProps.multipleBonds ||
+                newProps.metalCoordination !== currentProps.metalCoordination
             );
 
             const newUnit = newStructureGroup.group.units[0];
@@ -475,7 +479,8 @@ export function StructureIntraUnitBondCylinderImpostorVisual(materialId: number)
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
-                newProps.multipleBonds !== currentProps.multipleBonds
+                newProps.multipleBonds !== currentProps.multipleBonds ||
+                newProps.metalCoordination !== currentProps.metalCoordination
             );
 
             if (newProps.colorMode !== currentProps.colorMode) {
@@ -529,6 +534,7 @@ export function StructureIntraUnitBondCylinderMeshVisual(materialId: number): Co
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
                 newProps.multipleBonds !== currentProps.multipleBonds ||
+                newProps.metalCoordination !== currentProps.metalCoordination ||
                 newProps.adjustCylinderLength && !SizeTheme.areEqual(newTheme.size, currentTheme.size)
             );
 
