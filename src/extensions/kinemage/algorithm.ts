@@ -23,6 +23,7 @@ const DEFAULT_UPDATE_INTERVAL = 10;
 const LARGE_CA_UPDATE_INTERVAL = 1;
 
 interface KinemageContext {
+    /// @todo Replace these with appropriate ones
     structure: Structure,
 
     numberOfSpherePoints: number,
@@ -73,7 +74,7 @@ const TMDET_DEFINITION = new Set(['LEU', 'ILE', 'VAL', 'PHE', 'MET', 'GLY', 'TRP
  * doi: 10.1093/bioinformatics/bth340
  */
 export function computeKinemage(structure: Structure, props: KinemageProps) {
-    return Task.create('Compute Membrane Orientation', async runtime => {
+    return Task.create('Compute kinemage', async runtime => {
         return await calculate(runtime, structure, props);
     });
 }
