@@ -22,6 +22,9 @@ import { StructureSelectionQuery, StructureSelectionCategory } from '../../mol-p
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { GenericRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { Vec3 } from '../../mol-math/linear-algebra';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { shapeFromKin } from '../../mol-model-formats/shape/kin';
+import { Kinemage } from '../../mol-io/reader/kin/schema';
 
 const Tag = KinemageData.Tag;
 
@@ -32,6 +35,29 @@ let g_kinemageInfo: KinemageData = {
   /// @todo Remove these when we no longer need them.
   , planePoint1: Vec3(), planePoint2: Vec3(), normalVector: Vec3(), radius: 0, centroid: Vec3()
 };
+
+const Transform = StateTransformer.builderFactory('sb-kinemage');
+
+export const KinemageShapeProvider = Transform({
+    name: 'sb-kinemage-shape-provider',
+    display: { name: 'Kinemage Shape Provider' },
+    from: PluginStateObject.Root,
+    to: PluginStateObject.Shape.Provider,
+    params: {
+        data: PD.Value<Kinemage>(undefined as any, { isHidden: true })
+    }
+})({
+    apply({ params }) {
+        return Task.create('Kinemage Shape Provider', async ctx => {
+            // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
+            const provider = await shapeFromKin(params.data).runInContext(ctx);
+            return new PluginStateObject.Shape.Provider(provider as any, {
+                label: params.data.captions?.[0] || 'Kinemage',
+                description: params.data.text || ''
+            });
+        });
+    }
+});
 
 export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'kinemage-data-prop',
@@ -207,21 +233,30 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
     for (const file of files) {
       if (file.name.toLowerCase().endsWith('.kin')) {
         const task = Task.create('Load KIN file', async ctx => {
-          console.log('XXX loading KIN file ', file.name);  /// @todo Remove when done debugging
           const kinInfo = await KinemageData.open(file);
+
+          // Create a state entry for each kinemage using the KinemageShapeProvider transform and add its geometry.
+          const update = plugin.state.data.build();
+          for (const kinData of kinInfo.kinemages) {
+            await update
+              .toRoot()
+              .apply(KinemageShapeProvider, { data: kinData })
+              .apply(StateTransforms.Representation.ShapeRepresentation3D)
+              .commit();
+            applied = true;
+          }
+
+          // keep legacy global info as well (optional)
+          /// @todo Remove this once we no longer need it.
           for (const kinData of kinInfo.kinemages) {
             g_kinemageInfo.kinemages.push(kinData);
             g_kinemageInfo.activeKinemage = g_kinemageInfo.kinemages.length - 1;
           }
           console.log('XXX accumulated Kinemages size ', g_kinemageInfo.kinemages.length, ', active is ', g_kinemageInfo.activeKinemage);
-          /// @todo See what loadMVS() ... LoadMolstarTree() ... MolstarLoadingActions().primitives() ... applyPrimitiveVisuals() does
         });
-        console.log('XXX plugin.runTask');
         await plugin.runTask(task);
-        applied = true;
       }
     }
-    console.log('XXX KinemageDragAndDropHandler applied=', applied);
     return applied;
   },
 };
