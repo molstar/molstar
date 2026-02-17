@@ -88,13 +88,13 @@ async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
 
     const group = i;  /// @todo Base this on something in the file instead?
     const numLines = position1Array.length / 3
-    for (let i = 0; i < numLines; i++) {
-      builderState.add(position1Array[3 * i + 0], position1Array[3 * i + 1], position1Array[3 * i + 2],
-        position2Array[3 * i + 0], position2Array[3 * i + 1], position2Array[3 * i + 2],
+    for (let j = 0; j < numLines; j++) {
+      builderState.add(position1Array[3 * j + 0], position1Array[3 * j + 1], position1Array[3 * j + 2],
+        position2Array[3 * j + 0], position2Array[3 * j + 1], position2Array[3 * j + 2],
         group);
 
-      if (ctx.shouldUpdate && (i % 10000 == 0)) {
-        await ctx.update({ message: 'adding kin line vertices', current: i, max: numLines });
+      if (ctx.shouldUpdate && (j % 10000 == 0)) {
+        await ctx.update({ message: 'adding kin line vertices', current: j, max: numLines });
       }
     }
   }
