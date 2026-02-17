@@ -52,7 +52,7 @@ export const KinemageShapePointsProvider = Transform({
       // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
       const provider = await shapePointsFromKin(params.data).runInContext(ctx);
       return new PluginStateObject.Shape.Provider(provider as any, {
-        label: params.data.captions?.[0] || 'Kinemage',
+        label: params.data.captions?.[0] || 'Kinemage Points',
         description: params.data.text || ''
       });
     });
@@ -73,7 +73,7 @@ export const KinemageShapeLinesProvider = Transform({
             // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
             const provider = await shapeLinesFromKin(params.data).runInContext(ctx);
             return new PluginStateObject.Shape.Provider(provider as any, {
-                label: params.data.captions?.[0] || 'Kinemage',
+                label: params.data.captions?.[0] || 'Kinemage Lines',
                 description: params.data.text || ''
             });
         });
@@ -94,7 +94,7 @@ export const KinemageShapeMeshProvider = Transform({
       // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
       const provider = await shapeMeshFromKin(params.data).runInContext(ctx);
       return new PluginStateObject.Shape.Provider(provider as any, {
-        label: params.data.captions?.[0] || 'Kinemage',
+        label: params.data.captions?.[0] || 'Kinemage Meshes',
         description: params.data.text || ''
       });
     });

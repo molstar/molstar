@@ -62,7 +62,7 @@ async function getPoints(ctx: RuntimeContext, dotLists: DotList[]) {
     /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
     const group = i;  /// @todo Base this on something in the file instead?
-    const numDots = positionArray.length
+    const numDots = positionArray.length / 3
     for (let j = 0; j < numDots; j++) {
       builderState.add(positionArray[3 * j + 0], positionArray[3 * j + 1], positionArray[3 * j + 2], group);
     }
@@ -228,15 +228,15 @@ export function shapePointsFromKin(source: Kinemage, params?: { transforms?: Mat
 }
 
 export function shapeLinesFromKin(source: Kinemage, params?: { transforms?: Mat4[] }) {
-    return Task.create<ShapeProvider<KinData, Lines, KinShapeLinesParams>>('Kin Shape Lines Provider', async ctx => {
-        return {
-            label: 'Lines',
-            data: { source, transforms: params?.transforms },
-            params: createKinShapeLinesParams(source),
-            getShape: makeLineShapeGetter(),
-            geometryUtils: Lines.Utils
-        };
-    });
+  return Task.create<ShapeProvider<KinData, Lines, KinShapeLinesParams>>('Kin Shape Lines Provider', async ctx => {
+    return {
+      label: 'Lines',
+      data: { source, transforms: params?.transforms },
+      params: createKinShapeLinesParams(source),
+      getShape: makeLineShapeGetter(),
+      geometryUtils: Lines.Utils
+    };
+  });
 }
 
 export function shapeMeshFromKin(source: Kinemage, params?: { transforms?: Mat4[] }) {
