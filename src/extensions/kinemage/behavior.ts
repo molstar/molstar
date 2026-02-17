@@ -279,20 +279,20 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
 
           // Create a state points entry for each kinemage using the KinemageShapePointsProvider transform and add its geometry.
           // We get a crash when we try to use the same builder for different shape types, so we make multiple here.
-          const updatePoints = plugin.state.data.build();
-          const updateLines = plugin.state.data.build();
-          const updateMesh = plugin.state.data.build();
           for (const kinData of kinInfo.kinemages) {
+            const updatePoints = plugin.state.data.build();
             await updatePoints
               .toRoot()
               .apply(KinemageShapePointsProvider, { data: kinData })
               .apply(StateTransforms.Representation.ShapeRepresentation3D)
               .commit();
+            const updateLines = plugin.state.data.build();
             await updateLines
               .toRoot()
               .apply(KinemageShapeLinesProvider, { data: kinData })
               .apply(StateTransforms.Representation.ShapeRepresentation3D)
               .commit();
+            const updateMesh = plugin.state.data.build();
             await updateMesh
               .toRoot()
               .apply(KinemageShapeMeshProvider, { data: kinData })
