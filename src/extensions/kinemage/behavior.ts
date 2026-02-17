@@ -277,27 +277,21 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
         const task = Task.create('Load KIN file', async ctx => {
           const kinInfo = await KinemageData.open(file);
 
-          // Create a state points entry for each kinemage using the KinemageShapePointsProvider transform and add its geometry.
-          // We get a crash when we try to use the same builder for different shape types, so we make multiple here.
+          // Create all types of geometry that may be in the Kinemage.
+          const update = plugin.state.data.build();
           for (const kinData of kinInfo.kinemages) {
-            const updatePoints = plugin.state.data.build();
-            await updatePoints
+            await update
               .toRoot()
               .apply(KinemageShapePointsProvider, { data: kinData })
-              .apply(StateTransforms.Representation.ShapeRepresentation3D)
-              .commit();
-            const updateLines = plugin.state.data.build();
-            await updateLines
+              .apply(StateTransforms.Representation.ShapeRepresentation3D);
+            await update
               .toRoot()
               .apply(KinemageShapeLinesProvider, { data: kinData })
-              .apply(StateTransforms.Representation.ShapeRepresentation3D)
-              .commit();
-            const updateMesh = plugin.state.data.build();
-            await updateMesh
+              .apply(StateTransforms.Representation.ShapeRepresentation3D);
+            await update
               .toRoot()
               .apply(KinemageShapeMeshProvider, { data: kinData })
-              .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true })
-              .commit();
+              .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
             // keep legacy global info as well (optional)
             /// @todo Remove this once we no longer need it.
             g_kinemageInfo.kinemages.push(kinData);
@@ -305,6 +299,7 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
             // At least one file has been loaded, so we return true at the end.
             applied = true;
           }
+          update.commit();
 
           console.log('XXX accumulated Kinemages size ', g_kinemageInfo.kinemages.length, ', active is ', g_kinemageInfo.activeKinemage);
         });
