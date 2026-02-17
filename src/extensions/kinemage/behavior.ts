@@ -23,7 +23,7 @@ import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { GenericRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { shapeLinesFromKin } from '../../mol-model-formats/shape/kin';
+import { shapeLinesFromKin, shapeMeshFromKin } from '../../mol-model-formats/shape/kin';
 import { Kinemage } from '../../mol-io/reader/kin/schema';
 
 const Tag = KinemageData.Tag;
@@ -38,15 +38,15 @@ let g_kinemageInfo: KinemageData = {
 
 const Transform = StateTransformer.builderFactory('sb-kinemage');
 
-export const KinemageShapeProvider = Transform({
-    name: 'sb-kinemage-shape-provider',
-    display: { name: 'Kinemage Shape Provider' },
+export const KinemageShapeLinesProvider = Transform({
+    name: 'sb-kinemage-shape-lines-provider',
+    display: { name: 'Kinemage Shape Lines Provider' },
     from: PluginStateObject.Root,
     to: PluginStateObject.Shape.Provider,
     params: {
         data: PD.Value<Kinemage>(undefined as any, { isHidden: true })
     }
-})({
+    })({
     apply({ params }) {
         return Task.create('Kinemage Lines Shape Provider', async ctx => {
             // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
@@ -57,6 +57,27 @@ export const KinemageShapeProvider = Transform({
             });
         });
     }
+});
+
+export const KinemageShapeMeshProvider = Transform({
+  name: 'sb-kinemage-shape-mesh-provider',
+  display: { name: 'Kinemage Shape Mesh Provider' },
+  from: PluginStateObject.Root,
+  to: PluginStateObject.Shape.Provider,
+  params: {
+    data: PD.Value<Kinemage>(undefined as any, { isHidden: true })
+  }
+})({
+  apply({ params }) {
+    return Task.create('Kinemage Mesh Shape Provider', async ctx => {
+      // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
+      const provider = await shapeMeshFromKin(params.data).runInContext(ctx);
+      return new PluginStateObject.Shape.Provider(provider as any, {
+        label: params.data.captions?.[0] || 'Kinemage',
+        description: params.data.text || ''
+      });
+    });
+  }
 });
 
 export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>({
@@ -235,13 +256,24 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
         const task = Task.create('Load KIN file', async ctx => {
           const kinInfo = await KinemageData.open(file);
 
-          // Create a state entry for each kinemage using the KinemageShapeProvider transform and add its geometry.
-          const update = plugin.state.data.build();
+          // Create a state lines entry for each kinemage using the KinemageShapeLinesProvider transform and add its geometry.
+          const updateLines = plugin.state.data.build();
           for (const kinData of kinInfo.kinemages) {
-            await update
+            await updateLines
               .toRoot()
-              .apply(KinemageShapeProvider, { data: kinData })
+              .apply(KinemageShapeLinesProvider, { data: kinData })
               .apply(StateTransforms.Representation.ShapeRepresentation3D)
+              .commit();
+            applied = true;
+          }
+
+          // Create a state mesh entry for each kinemage using the KinemageShapeMeshProvider transform and add its geometry.
+          const updateMesh = plugin.state.data.build();
+          for (const kinData of kinInfo.kinemages) {
+            await updateMesh
+              .toRoot()
+              .apply(KinemageShapeMeshProvider, { data: kinData })
+              .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true })
               .commit();
             applied = true;
           }

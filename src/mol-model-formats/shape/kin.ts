@@ -7,10 +7,12 @@
 import { RuntimeContext, Task } from '../../mol-task';
 import { ShapeProvider } from '../../mol-model/shape/provider';
 import { Color } from '../../mol-util/color';
-import { Kinemage, VectorList } from '../../mol-io/reader/kin/schema';
+import { Kinemage, VectorList, RibbonObject } from '../../mol-io/reader/kin/schema';
 import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../mol-geo/geometry/lines/lines-builder';
-//import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
+import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { Vec3 } from '../../mol-math/linear-algebra';
 import { Shape } from '../../mol-model/shape';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 //import { ValueCell } from '../../mol-util/value-cell';
@@ -29,9 +31,17 @@ function createKinShapeLinesParams(kinemage?: Kinemage) {
         ...Lines.Params,
     };
 }
-
 export const KinShapeLinesParams = createKinShapeLinesParams();
 export type KinShapeLinesParams = typeof KinShapeLinesParams
+function createKinShapeMeshParams(kinemage?: Kinemage) {
+
+  return {
+    ...Mesh.Params,
+  };
+}
+
+export const KinShapeMeshParams = createKinShapeMeshParams();
+export type KinShapeMeshParams = typeof KinShapeMeshParams
 
 async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
   const builderState = LinesBuilder.create();
@@ -59,38 +69,69 @@ async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
   return builderState.getLines();
 }
 
+async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
+  const builderState = MeshBuilder.createState();
+
+  for (let ri = 0; ri < ribbonObjects.length; ri++) {
+    const ribbonObject = ribbonObjects[ri];
+    builderState.currentGroup = ri;  /// @todo Base this on something in the file instead?
+
+    for (let i = 0; i < ribbonObject.masterArray.length; i++) {
+      const coords = ribbonObject.positionArray;
+
+      /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
+
+      // The positionArray contains 3x as many entries as there are vertices since it's a catenation of x, y, z for each vertex.
+      // The breakArray contains a boolean for each vertex indicating if there is a break there.
+      // We need to add a triangle for each new verticex after the first two, but we also need to check the break array to see
+      // if there is a break between any of the vertices in the triangle.  If there is a break, we need to start over accumulating
+      // vertices until we get to three.
+      // Keep track of the parity and flip over every other triangle so their front faces match.
+      /// @todo Lighting is to be set up to make each pair of triangles look like a quad with the same normal.
+      const numVertices = coords.length / 3;
+      const vertexList: Vec3[] = [];
+      let flip = true;  // Start with true so that the third flip will make it false.
+      for (let i = 0; i < numVertices; i++) {
+        // Get the next vertex
+        const v = Vec3.zero();
+        v[0] = coords[3 * i + 0];
+        v[1] = coords[3 * i + 1];
+        v[2] = coords[3 * i + 2];
+        vertexList.push(v);
+        flip = !flip;
+
+        // Once we have three vertices, make a triangle out of them and pop the oldest off the list.
+        if (vertexList.length == 3) {
+          if (flip) {
+            MeshBuilder.addTriangle(builderState, vertexList[2], vertexList[1], vertexList[0]);
+          } else {
+            MeshBuilder.addTriangle(builderState, vertexList[0], vertexList[1], vertexList[2]);
+          }
+          vertexList.shift();
+        }
+
+        // If there is a break, clear the vertex list so we start accumulating vertices for the next triangle from scratch.
+        if (ribbonObject.breakArray[i]) {
+          vertexList.length = 0;
+          flip = true;
+        }
+
+        if (ctx.shouldUpdate && (i % 10000 == 0)) {
+          await ctx.update({ message: 'adding kin ribbon vertices', current: i, max: numVertices });
+        }
+      }
+    }
+  }
+
+  return MeshBuilder.getMesh(builderState);
+}
+
 function makeLineShapeGetter() {
 
     const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeLinesParams>, shape?: Shape<Lines>) => {
-        console.log(`XXX Number of vector lists for lines: ${kinData.source.vectorLists.length}, ballLists: ${kinData.source.ballLists.length}, ribbonLists: ${kinData.source.ribbonLists.length}`);
-        /// @todo
-
-        /*
-        // Create an empty Mesh
-        const mesh = Mesh.createEmpty();
-
-        // Create an empty Shape with the empty Mesh
-        const emptyShape = Shape.create(
-          'Empty Shape', // id
-          kinData,      // source data
-          mesh,         // geometry
-          () => Color(0xFFFFFF), // color function
-          () => 1,      // size function
-          () => ''      // label function
-        );
-
-        return emptyShape;
-        */
-
+        console.log(`XXX Number of vector lists for lines: ${kinData.source.vectorLists.length}`);
         // Get our lines, adding them from all of the entries in the vector lists
         const _lines = await getLines(ctx, kinData.source.vectorLists);
-
-        /*
-        let _lines: Lines = {};
-        for (let i = 0; i < kinData.source.vectorLists.length; i++) {
-          _lines = getLines(ctx, kinData.source.vectorLists[i], [], _lines);
-        }
-        */
 
         let _shape: Shape<Lines>;
         _shape = Shape.create<Lines>(
@@ -106,6 +147,33 @@ function makeLineShapeGetter() {
     return getShape;
 }
 
+function makeMeshShapeGetter() {
+
+  const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeMeshParams>, shape?: Shape<Mesh>) => {
+    console.log(`XXX Number of ribbon lists for mesh: ribbonLists: ${kinData.source.ribbonLists.length}`);
+    /// @todo
+
+    let _mesh = await getMesh(ctx, kinData.source.ribbonLists);
+    // Ensure that _mesh is not undifined before we pass it to Shape.create.  If it is undefined, create an empty mesh instead.
+    if (!_mesh) {
+      console.warn('No mesh could be created from the KIN data.  Creating an empty mesh instead.');
+      _mesh = Mesh.createEmpty();
+    }
+
+    let _shape: Shape<Mesh>;
+    _shape = Shape.create<Mesh>(
+      'kin-mesh',
+      kinData.source,
+      _mesh,
+      () => Color(0x7F7F7F),  // @todo color function
+      () => 1,                // size function
+      () => ''                // @todo label function
+    );
+    return _shape;
+  };
+  return getShape;
+}
+
 export function shapeLinesFromKin(source: Kinemage, params?: { transforms?: Mat4[] }) {
     return Task.create<ShapeProvider<KinData, Lines, KinShapeLinesParams>>('Kin Shape Lines Provider', async ctx => {
         return {
@@ -116,4 +184,16 @@ export function shapeLinesFromKin(source: Kinemage, params?: { transforms?: Mat4
             geometryUtils: Lines.Utils
         };
     });
+}
+
+export function shapeMeshFromKin(source: Kinemage, params?: { transforms?: Mat4[] }) {
+  return Task.create<ShapeProvider<KinData, Mesh, KinShapeMeshParams>>('Kin Shape Mesh Provider', async ctx => {
+    return {
+      label: 'Mesh',
+      data: { source, transforms: params?.transforms },
+      params: createKinShapeMeshParams(source),
+      getShape: makeMeshShapeGetter(),
+      geometryUtils: Mesh.Utils
+    };
+  });
 }
