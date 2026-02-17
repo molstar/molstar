@@ -7,7 +7,7 @@
 import { RuntimeContext, Task } from '../../mol-task';
 import { ShapeProvider } from '../../mol-model/shape/provider';
 import { Color } from '../../mol-util/color';
-import { Kinemage, DotList, VectorList, RibbonObject } from '../../mol-io/reader/kin/schema';
+import { Kinemage, DotList, VectorList, RibbonObject, BallList } from '../../mol-io/reader/kin/schema';
 import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../mol-geo/geometry/lines/lines-builder';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
@@ -15,6 +15,8 @@ import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { Points } from '../../mol-geo/geometry/points/points';
 import { PointsBuilder } from '../../mol-geo/geometry/points/points-builder';
 import { Vec3 } from '../../mol-math/linear-algebra';
+import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
+import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
 import { Shape } from '../../mol-model/shape';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 //import { ValueCell } from '../../mol-util/value-cell';
@@ -52,6 +54,16 @@ function createKinShapeMeshParams(kinemage?: Kinemage) {
 
 export const KinShapeMeshParams = createKinShapeMeshParams();
 export type KinShapeMeshParams = typeof KinShapeMeshParams
+
+function createKinShapeSpheresParams(kinemage?: Kinemage) {
+
+  return {
+    ...Spheres.Params,
+  };
+}
+
+export const KinShapeSpheresParams = createKinShapeSpheresParams();
+export type KinShapeSpheresParams = typeof KinShapeSpheresParams
 
 async function getPoints(ctx: RuntimeContext, dotLists: DotList[]) {
   const builderState = PointsBuilder.create();
@@ -146,6 +158,36 @@ async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
   return MeshBuilder.getMesh(builderState);
 }
 
+/**
+ * Build spheres geometry and collect per-sphere radii from the KIN BallList entries.
+ * Returns an object with the Spheres geometry and a Float32Array with per-center radii (one entry per center, in the same order they were added).
+ */
+async function getSpheres(ctx: RuntimeContext, balls: BallList[]) {
+  const builderState = SpheresBuilder.create();
+  const radii: number[] = [];
+
+  // Every ball is in its own group because they may have individual radii and we look
+  // up the radius based on the group is in the size function.
+  let index = 0;
+
+  for (let i = 0; i < balls.length; i++) {
+    const positionArray = balls[i].positionArray;
+    const radiusArray = balls[i].radiusArray;
+    /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
+
+    const numBalls = positionArray.length / 3;
+    for (let j = 0; j < numBalls; j++) {
+      const group = index++;
+      builderState.add(positionArray[3 * j + 0], positionArray[3 * j + 1], positionArray[3 * j + 2], group);
+      // radiusArray may be undefined; push NaN when radius not provided
+      radii.push(radiusArray && radiusArray.length > j ? radiusArray[j] : NaN);
+    }
+  }
+
+  const spheres = builderState.getSpheres();
+  return { spheres, radii: new Float32Array(radii) };
+}
+
 function makePointsShapeGetter() {
 
   const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapePointsParams>, shape?: Shape<Points>) => {
@@ -215,6 +257,37 @@ function makeMeshShapeGetter() {
   return getShape;
 }
 
+/**
+ * Spheres shape getter: uses per-center radii read from the KIN BallList radiusArray when available.
+ */
+function makeSpheresShapeGetter() {
+
+  const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeSpheresParams>, shape?: Shape<Spheres>) => {
+    console.log(`XXX Number of ball lists for spheres: ${kinData.source.ballLists.length}`);
+    // Build spheres geometry and collect per-center radii
+    const { spheres: _spheres, radii } = await getSpheres(ctx, kinData.source.ballLists);
+
+    // size function signature: (groupId: number, instanceId: number) => number
+    // For Spheres the groupId corresponds to the center index (order added).
+    const sizeFn = (group: number, instance: number) => {
+      const r = radii[group];
+      return Number.isFinite(r) ? r : 1.0;
+    };
+
+    let _shape: Shape<Spheres>;
+    _shape = Shape.create<Spheres>(
+      'kin-spheres',
+      kinData.source,
+      _spheres,
+      () => Color(0x7F7F7F),  // @todo color function
+      sizeFn,                 // size function reads per-center radii
+      () => ''                // @todo label function
+    );
+    return _shape;
+  };
+  return getShape;
+}
+
 export function shapePointsFromKin(source: Kinemage, params?: { transforms?: Mat4[] }) {
   return Task.create<ShapeProvider<KinData, Points, KinShapePointsParams>>('Kin Shape Points Provider', async ctx => {
     return {
@@ -247,6 +320,18 @@ export function shapeMeshFromKin(source: Kinemage, params?: { transforms?: Mat4[
       params: createKinShapeMeshParams(source),
       getShape: makeMeshShapeGetter(),
       geometryUtils: Mesh.Utils
+    };
+  });
+}
+
+export function shapeSpheresFromKin(source: Kinemage, params?: { transforms?: Mat4[] }) {
+  return Task.create<ShapeProvider<KinData, Spheres, KinShapeSpheresParams>>('Kin Shape Spheres Provider', async ctx => {
+    return {
+      label: 'Spheres',
+      data: { source, transforms: params?.transforms },
+      params: createKinShapeSpheresParams(source),
+      getShape: makeSpheresShapeGetter(),
+      geometryUtils: Spheres.Utils
     };
   });
 }
