@@ -302,8 +302,9 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
             /// @todo Remove this once we no longer need it.
             g_kinemageInfo.kinemages.push(kinData);
             g_kinemageInfo.activeKinemage = g_kinemageInfo.kinemages.length - 1;
+            // At least one file has been loaded, so we return true at the end.
+            applied = true;
           }
-          applied = true;
 
           console.log('XXX accumulated Kinemages size ', g_kinemageInfo.kinemages.length, ', active is ', g_kinemageInfo.activeKinemage);
         });
