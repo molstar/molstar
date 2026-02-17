@@ -23,15 +23,15 @@ export type KinData = {
     transforms?: Mat4[],
 }
 
-function createKinShapeParams(kinemage?: Kinemage) {
+function createKinShapeLinesParams(kinemage?: Kinemage) {
 
     return {
         ...Lines.Params,
     };
 }
 
-export const KinShapeParams = createKinShapeParams();
-export type KinShapeParams = typeof KinShapeParams
+export const KinShapeLinesParams = createKinShapeLinesParams();
+export type KinShapeLinesParams = typeof KinShapeLinesParams
 
 async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
   const builderState = LinesBuilder.create();
@@ -59,10 +59,10 @@ async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
   return builderState.getLines();
 }
 
-function makeShapeGetter() {
+function makeLineShapeGetter() {
 
-    const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeParams>, shape?: Shape<Lines>) => {
-        console.log(`XXX Number of vector lists: ${kinData.source.vectorLists.length}, ballLists: ${kinData.source.ballLists.length}, ribbonLists: ${kinData.source.ribbonLists.length}`);
+    const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeLinesParams>, shape?: Shape<Lines>) => {
+        console.log(`XXX Number of vector lists for lines: ${kinData.source.vectorLists.length}, ballLists: ${kinData.source.ballLists.length}, ribbonLists: ${kinData.source.ribbonLists.length}`);
         /// @todo
 
         /*
@@ -106,13 +106,13 @@ function makeShapeGetter() {
     return getShape;
 }
 
-export function shapeFromKin(source: Kinemage, params?: { transforms?: Mat4[] }) {
-    return Task.create<ShapeProvider<KinData, Lines, KinShapeParams>>('Shape Provider', async ctx => {
+export function shapeLinesFromKin(source: Kinemage, params?: { transforms?: Mat4[] }) {
+    return Task.create<ShapeProvider<KinData, Lines, KinShapeLinesParams>>('Kin Shape Lines Provider', async ctx => {
         return {
             label: 'Lines',
             data: { source, transforms: params?.transforms },
-            params: createKinShapeParams(source),
-            getShape: makeShapeGetter(),
+            params: createKinShapeLinesParams(source),
+            getShape: makeLineShapeGetter(),
             geometryUtils: Lines.Utils
         };
     });

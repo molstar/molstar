@@ -15,7 +15,7 @@ import { GraphicsMode, MesoscaleGroup, MesoscaleState, getGraphicsModeProps, get
 import { ColorNames } from '../../../../mol-util/color/names';
 import { ShapeRepresentation3D, StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
 import { ParseCif, ParsePly, ParseKin, ReadFile } from '../../../../mol-plugin-state/transforms/data';
-import { ModelFromTrajectory, ShapeFromPly, ShapeFromKin, TrajectoryFromGRO, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromMmCif, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../../../mol-plugin-state/transforms/model';
+import { ModelFromTrajectory, ShapeFromPly, ShapeLinesFromKin, TrajectoryFromGRO, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromMmCif, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../../../mol-plugin-state/transforms/model';
 import { Euler } from '../../../../mol-math/linear-algebra/3d/euler';
 import { Asset } from '../../../../mol-util/assets';
 import { Clip } from '../../../../mol-util/clip';
@@ -286,7 +286,7 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
                     const clipVariant = transforms.length === 1 ? 'pixel' : 'instance';
                     build = build
                       .apply(ParseKin)
-                      .apply(ShapeFromKin, { label, transforms })
+                      .apply(ShapeLinesFromKin, { label, transforms })
                       .apply(ShapeRepresentation3D, getKinShapeParams(color, clipVariant), { tags });
                   }
                 } else {
