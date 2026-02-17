@@ -57,8 +57,7 @@ async function getPoints(ctx: RuntimeContext, dotLists: DotList[]) {
   const builderState = PointsBuilder.create();
 
   for (let i = 0; i < dotLists.length; i++) {
-    const vertices = dotLists[i];
-    const positionArray = vertices.positionArray;
+    const positionArray = dotLists[i].positionArray;
 
     /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
@@ -66,10 +65,6 @@ async function getPoints(ctx: RuntimeContext, dotLists: DotList[]) {
     const numDots = positionArray.length
     for (let j = 0; j < numDots; j++) {
       builderState.add(positionArray[3 * j + 0], positionArray[3 * j + 1], positionArray[3 * j + 2], group);
-
-      if (ctx.shouldUpdate && (j % 10000 == 0)) {
-        await ctx.update({ message: 'adding kin points', current: j, max: numDots });
-      }
     }
   }
 
@@ -92,10 +87,6 @@ async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
       builderState.add(position1Array[3 * j + 0], position1Array[3 * j + 1], position1Array[3 * j + 2],
         position2Array[3 * j + 0], position2Array[3 * j + 1], position2Array[3 * j + 2],
         group);
-
-      if (ctx.shouldUpdate && (j % 10000 == 0)) {
-        await ctx.update({ message: 'adding kin line vertices', current: j, max: numLines });
-      }
     }
   }
 
@@ -147,10 +138,6 @@ async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
         if (ribbonObject.breakArray[i]) {
           vertexList.length = 0;
           flip = true;
-        }
-
-        if (ctx.shouldUpdate && (i % 10000 == 0)) {
-          await ctx.update({ message: 'adding kin ribbon vertices', current: i, max: numVertices });
         }
       }
     }
