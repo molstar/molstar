@@ -23,7 +23,7 @@ import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { GenericRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { shapeLinesFromKin, shapeMeshFromKin } from '../../mol-model-formats/shape/kin';
+import { shapePointsFromKin, shapeLinesFromKin, shapeMeshFromKin } from '../../mol-model-formats/shape/kin';
 import { Kinemage } from '../../mol-io/reader/kin/schema';
 
 const Tag = KinemageData.Tag;
@@ -37,6 +37,27 @@ let g_kinemageInfo: KinemageData = {
 };
 
 const Transform = StateTransformer.builderFactory('sb-kinemage');
+
+export const KinemageShapePointsProvider = Transform({
+  name: 'sb-kinemage-shape-points-provider',
+  display: { name: 'Kinemage Shape Points Provider' },
+  from: PluginStateObject.Root,
+  to: PluginStateObject.Shape.Provider,
+  params: {
+    data: PD.Value<Kinemage>(undefined as any, { isHidden: true })
+  }
+})({
+  apply({ params }) {
+    return Task.create('Kinemage Points Shape Provider', async ctx => {
+      // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
+      const provider = await shapePointsFromKin(params.data).runInContext(ctx);
+      return new PluginStateObject.Shape.Provider(provider as any, {
+        label: params.data.captions?.[0] || 'Kinemage',
+        description: params.data.text || ''
+      });
+    });
+  }
+});
 
 export const KinemageShapeLinesProvider = Transform({
     name: 'sb-kinemage-shape-lines-provider',
@@ -255,6 +276,17 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
       if (file.name.toLowerCase().endsWith('.kin')) {
         const task = Task.create('Load KIN file', async ctx => {
           const kinInfo = await KinemageData.open(file);
+
+          // Create a state points entry for each kinemage using the KinemageShapePointsProvider transform and add its geometry.
+          const updatePoints = plugin.state.data.build();
+          for (const kinData of kinInfo.kinemages) {
+            await updatePoints
+              .toRoot()
+              .apply(KinemageShapePointsProvider, { data: kinData })
+              .apply(StateTransforms.Representation.ShapeRepresentation3D)
+              .commit();
+            applied = true;
+          }
 
           // Create a state lines entry for each kinemage using the KinemageShapeLinesProvider transform and add its geometry.
           const updateLines = plugin.state.data.build();

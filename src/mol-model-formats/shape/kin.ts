@@ -7,11 +7,13 @@
 import { RuntimeContext, Task } from '../../mol-task';
 import { ShapeProvider } from '../../mol-model/shape/provider';
 import { Color } from '../../mol-util/color';
-import { Kinemage, VectorList, RibbonObject } from '../../mol-io/reader/kin/schema';
+import { Kinemage, DotList, VectorList, RibbonObject } from '../../mol-io/reader/kin/schema';
 import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../mol-geo/geometry/lines/lines-builder';
-import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
+import { Points } from '../../mol-geo/geometry/points/points';
+import { PointsBuilder } from '../../mol-geo/geometry/points/points-builder';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { Shape } from '../../mol-model/shape';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -25,6 +27,14 @@ export type KinData = {
     transforms?: Mat4[],
 }
 
+function createKinShapePointsParams(kinemage?: Kinemage) {
+
+  return {
+    ...Points.Params,
+  };
+}
+export const KinShapePointsParams = createKinShapePointsParams();
+export type KinShapePointsParams = typeof KinShapePointsParams
 function createKinShapeLinesParams(kinemage?: Kinemage) {
 
     return {
@@ -42,6 +52,29 @@ function createKinShapeMeshParams(kinemage?: Kinemage) {
 
 export const KinShapeMeshParams = createKinShapeMeshParams();
 export type KinShapeMeshParams = typeof KinShapeMeshParams
+
+async function getPoints(ctx: RuntimeContext, dotLists: DotList[]) {
+  const builderState = PointsBuilder.create();
+
+  for (let i = 0; i < dotLists.length; i++) {
+    const vertices = dotLists[i];
+    const positionArray = vertices.positionArray;
+
+    /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
+
+    const group = i;  /// @todo Base this on something in the file instead?
+    const numDots = positionArray.length
+    for (let i = 0; i < numDots; i++) {
+      builderState.add(positionArray[3 * i + 0], positionArray[3 * i + 1], positionArray[3 * i + 2], group);
+
+      if (ctx.shouldUpdate && (i % 10000 == 0)) {
+        await ctx.update({ message: 'adding kin line vertices', current: i, max: numDots });
+      }
+    }
+  }
+
+  return builderState.getPoints();
+}
 
 async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
   const builderState = LinesBuilder.create();
@@ -126,6 +159,27 @@ async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
   return MeshBuilder.getMesh(builderState);
 }
 
+function makePointsShapeGetter() {
+
+  const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapePointsParams>, shape?: Shape<Points>) => {
+    console.log(`XXX Number of dot lists for points: ${kinData.source.dotLists.length}`);
+    // Get our points, adding them from all of the entries in the dot lists
+    const _points = await getPoints(ctx, kinData.source.dotLists);
+
+    let _shape: Shape<Points>;
+    _shape = Shape.create<Points>(
+      'kin-points',
+      kinData.source,
+      _points,
+      () => Color(0x7F7F7F),  // @todo color function
+      () => 1,                // size function
+      () => ''                // @todo label function
+    );
+    return _shape;
+  };
+  return getShape;
+}
+
 function makeLineShapeGetter() {
 
     const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeLinesParams>, shape?: Shape<Lines>) => {
@@ -172,6 +226,18 @@ function makeMeshShapeGetter() {
     return _shape;
   };
   return getShape;
+}
+
+export function shapePointsFromKin(source: Kinemage, params?: { transforms?: Mat4[] }) {
+  return Task.create<ShapeProvider<KinData, Points, KinShapePointsParams>>('Kin Shape Points Provider', async ctx => {
+    return {
+      label: 'Points',
+      data: { source, transforms: params?.transforms },
+      params: createKinShapePointsParams(source),
+      getShape: makePointsShapeGetter(),
+      geometryUtils: Points.Utils
+    };
+  });
 }
 
 export function shapeLinesFromKin(source: Kinemage, params?: { transforms?: Mat4[] }) {
