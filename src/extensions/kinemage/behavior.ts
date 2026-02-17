@@ -23,7 +23,7 @@ import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { GenericRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { shapeFromKin } from '../../mol-model-formats/shape/kin';
+import { shapeLinesFromKin } from '../../mol-model-formats/shape/kin';
 import { Kinemage } from '../../mol-io/reader/kin/schema';
 
 const Tag = KinemageData.Tag;
@@ -48,9 +48,9 @@ export const KinemageShapeProvider = Transform({
     }
 })({
     apply({ params }) {
-        return Task.create('Kinemage Shape Provider', async ctx => {
+        return Task.create('Kinemage Lines Shape Provider', async ctx => {
             // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
-            const provider = await shapeFromKin(params.data).runInContext(ctx);
+            const provider = await shapeLinesFromKin(params.data).runInContext(ctx);
             return new PluginStateObject.Shape.Provider(provider as any, {
                 label: params.data.captions?.[0] || 'Kinemage',
                 description: params.data.text || ''

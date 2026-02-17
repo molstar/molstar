@@ -48,7 +48,7 @@ export const KinProvider = DataFormatProvider({
       .to(data)
       .apply(StateTransforms.Data.ParseKin, {}, { state: { isGhost: true } });
 
-    const shape = format.apply(StateTransforms.Model.ShapeFromKin);
+    const shape = format.apply(StateTransforms.Model.ShapeLinesFromKin);
 
     await format.commit();
 
