@@ -278,6 +278,7 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
           const kinInfo = await KinemageData.open(file);
 
           // Create a state points entry for each kinemage using the KinemageShapePointsProvider transform and add its geometry.
+          // We get a crash when we try to use the same builder for different shape types, so we make multiple here.
           const updatePoints = plugin.state.data.build();
           const updateLines = plugin.state.data.build();
           const updateMesh = plugin.state.data.build();
@@ -297,15 +298,13 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
               .apply(KinemageShapeMeshProvider, { data: kinData })
               .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true })
               .commit();
-          }
-          applied = true;
-
-          // keep legacy global info as well (optional)
-          /// @todo Remove this once we no longer need it.
-          for (const kinData of kinInfo.kinemages) {
+            // keep legacy global info as well (optional)
+            /// @todo Remove this once we no longer need it.
             g_kinemageInfo.kinemages.push(kinData);
             g_kinemageInfo.activeKinemage = g_kinemageInfo.kinemages.length - 1;
           }
+          applied = true;
+
           console.log('XXX accumulated Kinemages size ', g_kinemageInfo.kinemages.length, ', active is ', g_kinemageInfo.activeKinemage);
         });
         await plugin.runTask(task);
