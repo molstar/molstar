@@ -64,11 +64,11 @@ async function getPoints(ctx: RuntimeContext, dotLists: DotList[]) {
 
     const group = i;  /// @todo Base this on something in the file instead?
     const numDots = positionArray.length
-    for (let i = 0; i < numDots; i++) {
-      builderState.add(positionArray[3 * i + 0], positionArray[3 * i + 1], positionArray[3 * i + 2], group);
+    for (let j = 0; j < numDots; j++) {
+      builderState.add(positionArray[3 * j + 0], positionArray[3 * j + 1], positionArray[3 * j + 2], group);
 
-      if (ctx.shouldUpdate && (i % 10000 == 0)) {
-        await ctx.update({ message: 'adding kin line vertices', current: i, max: numDots });
+      if (ctx.shouldUpdate && (j % 10000 == 0)) {
+        await ctx.update({ message: 'adding kin points', current: j, max: numDots });
       }
     }
   }

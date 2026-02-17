@@ -279,36 +279,26 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
 
           // Create a state points entry for each kinemage using the KinemageShapePointsProvider transform and add its geometry.
           const updatePoints = plugin.state.data.build();
+          const updateLines = plugin.state.data.build();
+          const updateMesh = plugin.state.data.build();
           for (const kinData of kinInfo.kinemages) {
             await updatePoints
               .toRoot()
               .apply(KinemageShapePointsProvider, { data: kinData })
               .apply(StateTransforms.Representation.ShapeRepresentation3D)
               .commit();
-            applied = true;
-          }
-
-          // Create a state lines entry for each kinemage using the KinemageShapeLinesProvider transform and add its geometry.
-          const updateLines = plugin.state.data.build();
-          for (const kinData of kinInfo.kinemages) {
             await updateLines
               .toRoot()
               .apply(KinemageShapeLinesProvider, { data: kinData })
               .apply(StateTransforms.Representation.ShapeRepresentation3D)
               .commit();
-            applied = true;
-          }
-
-          // Create a state mesh entry for each kinemage using the KinemageShapeMeshProvider transform and add its geometry.
-          const updateMesh = plugin.state.data.build();
-          for (const kinData of kinInfo.kinemages) {
             await updateMesh
               .toRoot()
               .apply(KinemageShapeMeshProvider, { data: kinData })
               .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true })
               .commit();
-            applied = true;
           }
+          applied = true;
 
           // keep legacy global info as well (optional)
           /// @todo Remove this once we no longer need it.
