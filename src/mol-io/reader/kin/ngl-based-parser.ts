@@ -80,6 +80,7 @@ const reCollapseEqual = /\s*=\s*/g
 function parseListDef (line: string) {
   let name
   let defaultColor
+  let radius
   let master = []
   let width
 
@@ -99,6 +100,8 @@ function parseListDef (line: string) {
           width = parseInt(es[ 1 ])
         } else if (es[ 0 ] === 'master') {
           master.push(es[ 1 ].replace(reTrimCurly, ''))
+        } else if (es[ 0 ] === 'radius') {
+          radius = parseFloat(es[ 1 ])
         }
       }
     }
@@ -108,7 +111,8 @@ function parseListDef (line: string) {
     listName: name,
     listColor: defaultColor,
     listMasters: master,
-    listWidth: width
+    listWidth: width,
+    listRadius: radius
   }
 }
 
@@ -354,7 +358,7 @@ class KinParser {
 
     let isBallList = false
     let prevBallLabel = ''
-    let ballRadius: number[], ballDefaultColor: number[]
+    let ballRadius: number[], ballDefaultColor: number[], ballDefaultRadius: number
     let ballLabel: string[], ballPosition: number[], ballColor: number[]
 
     let isRibbonList = false
@@ -467,7 +471,7 @@ class KinParser {
             width: vecDefaultWidth
           })
         } else if (line.startsWith('@balllist')) {
-          let { listName, listColor, listMasters } = parseListDef(line)
+          let { listName, listColor, listMasters, listRadius } = parseListDef(line)
 
           if (listMasters) {
             listMasters.forEach(function (name: string) {
@@ -488,6 +492,7 @@ class KinParser {
           ballPosition = []
           ballColor = []
           ballDefaultColor = listColor as number[]
+          ballDefaultRadius = listRadius !== undefined ? listRadius : 1
 
           if (currentGroupMasters) {
             listMasters = listMasters.concat(currentGroupMasters)
@@ -617,7 +622,7 @@ class KinParser {
           }
 
           if (radius === undefined) {
-            radius = 1 // temporary default radius
+            radius = ballDefaultRadius
           }
 
           if (color === undefined) {

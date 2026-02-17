@@ -23,7 +23,7 @@ import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { GenericRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { shapePointsFromKin, shapeLinesFromKin, shapeMeshFromKin } from '../../mol-model-formats/shape/kin';
+import { shapePointsFromKin, shapeLinesFromKin, shapeMeshFromKin, shapeSpheresFromKin } from '../../mol-model-formats/shape/kin';
 import { Kinemage } from '../../mol-io/reader/kin/schema';
 
 const Tag = KinemageData.Tag;
@@ -100,6 +100,28 @@ export const KinemageShapeMeshProvider = Transform({
     });
   }
 });
+
+export const KinemageShapeSpheresProvider = Transform({
+  name: 'sb-kinemage-shape-spheres-provider',
+  display: { name: 'Kinemage Shape Spheres Provider' },
+  from: PluginStateObject.Root,
+  to: PluginStateObject.Shape.Provider,
+  params: {
+    data: PD.Value<Kinemage>(undefined as any, { isHidden: true })
+    }
+})({
+  apply({ params }) {
+    return Task.create('Kinemage Spheres Shape Provider', async ctx => {
+      // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
+      const provider = await shapeSpheresFromKin(params.data).runInContext(ctx);
+      return new PluginStateObject.Shape.Provider(provider as any, {
+        label: params.data.captions?.[0] || 'Kinemage Spheres',
+        description: params.data.text || ''
+      });
+    });
+  }
+});
+
 
 export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'kinemage-data-prop',
@@ -292,6 +314,10 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
               .toRoot()
               .apply(KinemageShapeMeshProvider, { data: kinData })
               .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
+            await update
+              .toRoot()
+              .apply(KinemageShapeSpheresProvider, { data: kinData })
+              .apply(StateTransforms.Representation.ShapeRepresentation3D);
             // keep legacy global info as well (optional)
             /// @todo Remove this once we no longer need it.
             g_kinemageInfo.kinemages.push(kinData);
