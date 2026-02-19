@@ -228,8 +228,9 @@ function makeLineShapeGetter() {
         // Size function signature: (groupId: number, instanceId: number) => number
         // For Lines the groupId corresponds to the line index (order added).
         const sizeFn = (group: number, instance: number) => {
-          const w = width[group];
-          console.log('XXX width for group ' + group + ': ' + w);
+          // We're specifying the radius, which is half the width.
+          let w = width[group] / 2.0;
+          if (w < 1.0) { w = 1.0; }
           return Number.isFinite(w) ? w : 1.0;
         }
 
