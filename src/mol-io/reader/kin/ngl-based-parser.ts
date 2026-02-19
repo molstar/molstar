@@ -346,14 +346,14 @@ class KinParser {
 
     let isDotList = false
     let prevDotLabel = ''
-    let dotDefaultColor: number[] = ColorDict['white']
+    let dotDefaultColor: number[]
     let dotLabel: string[], dotPosition: number[], dotColor: number[]
 
     let isVectorList = false
     let prevVecLabel = ''
     let prevVecPosition: number[]|null = null
     let prevVecColor: number[]|null = null
-    let vecDefaultColor: number[] = ColorDict['white'], vecDefaultWidth: number
+    let vecDefaultColor: number[], vecDefaultWidth: number
     let vecLabel1: string[], vecLabel2: string[], vecPosition1: number[], vecPosition2: number[], vecColor1: number[], vecColor2: number[]
     let vecWidth: number[]
 
@@ -593,8 +593,8 @@ class KinParser {
 
             if (!isLineBreak) {
               if (prevVecPosition !== null) {
-                if (width) {
-                  vecDefaultWidth = width
+                if (width === undefined) {
+                  width = vecDefaultWidth
                 }
 
                 vecLabel1.push(prevVecLabel)
@@ -604,7 +604,7 @@ class KinParser {
                 vecLabel2.push(label)
                 vecPosition2.push(...position)
                 vecColor2.push(...color)
-                vecWidth.push(vecDefaultWidth)
+                vecWidth.push(width)
               }
             }
 
