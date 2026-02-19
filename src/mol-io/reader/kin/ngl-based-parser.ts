@@ -79,10 +79,10 @@ const reCollapseEqual = /\s*=\s*/g
 
 function parseListDef (line: string) {
   let name
-  let defaultColor
+  let defaultColor: number[] = ColorDict['white']  // Default color is white, but it can be overridden by the list definition
   let radius
   let master = []
-  let width
+  let width = 2   // Default width is 2, but it can be overridden by the list definition
 
   line = line.replace(reCollapseEqual, '=')
 
@@ -346,15 +346,16 @@ class KinParser {
 
     let isDotList = false
     let prevDotLabel = ''
-    let dotDefaultColor: number[]
+    let dotDefaultColor: number[] = ColorDict['white']
     let dotLabel: string[], dotPosition: number[], dotColor: number[]
 
     let isVectorList = false
     let prevVecLabel = ''
     let prevVecPosition: number[]|null = null
     let prevVecColor: number[]|null = null
-    let vecDefaultColor: number[], vecDefaultWidth: number[]
+    let vecDefaultColor: number[] = ColorDict['white'], vecDefaultWidth: number
     let vecLabel1: string[], vecLabel2: string[], vecPosition1: number[], vecPosition2: number[], vecColor1: number[], vecColor2: number[]
+    let vecWidth: number[]
 
     let isBallList = false
     let prevBallLabel = ''
@@ -364,7 +365,7 @@ class KinParser {
     let isRibbonList = false
     let prevRibbonPointLabel = ''
 
-    let ribbonListDefaultColor: number[]
+    let ribbonListDefaultColor: number[] = ColorDict['white']
     let ribbonPointLabelArray: string[], ribbonPointPositionArray: number[], ribbonPointBreakArray: boolean[], ribbonPointColorArray: number[]
 
     let isText = false
@@ -378,9 +379,9 @@ class KinParser {
 
     function _parseChunkOfLines (_i: number, _n: number, lines: string[]) {
       for (let i = _i; i < _n; ++i) {
-        const line = lines[ i ]
+        const line = lines[i]
 
-        if (line[ 0 ] === '@') {
+        if (line[0] === '@') {
           isDotList = false
           isVectorList = false
           isBallList = false
@@ -394,7 +395,7 @@ class KinParser {
           isVectorList = false
           isBallList = false
           isRibbonList = false
-        } else if (line.startsWith('@dotlist')) {
+        } else if (line.startsWith('@dot') /* dot or dotlist */) {
           // @dotlist {x} color=white master={vdw contact} master={dots}
 
           let { listColor, listName, listMasters } = parseListDef(line)
@@ -420,15 +421,15 @@ class KinParser {
             positionArray: dotPosition,
             colorArray: dotColor
           })
-        } else if (line.startsWith('@vectorlist')) {
+        } else if (line.startsWith('@vector') /* vector or vectorlist */) {
           // @vectorlist {x} color=white master={small overlap} master={dots}
 
           let { listMasters, listName, listWidth, listColor } = parseListDef(line)
 
           if (listMasters) {
             listMasters.forEach(function (name: string) {
-              if (!kinemage.masterDict[ name ]) {
-                kinemage.masterDict[ name ] = {
+              if (!kinemage.masterDict[name]) {
+                kinemage.masterDict[name] = {
                   indent: false,
                   visible: false
                 }
@@ -446,10 +447,11 @@ class KinParser {
           vecPosition2 = []
           vecColor1 = []
           vecColor2 = []
+          vecWidth = []
           vecDefaultColor = listColor as number[]
-          vecDefaultWidth = []
+          vecDefaultWidth = 2
           if (listWidth) {
-            vecDefaultWidth.push(listWidth)
+            vecDefaultWidth = listWidth
           }
 
           if (currentGroupMasters) {
@@ -468,9 +470,9 @@ class KinParser {
             position2Array: vecPosition2,
             color1Array: vecColor1,
             color2Array: vecColor2,
-            width: vecDefaultWidth
+            width: vecWidth
           })
-        } else if (line.startsWith('@balllist')) {
+        } else if (line.startsWith('@ball') /* ball or balllist*/ || line.startsWith('@sphere') /* sphere or spherelist */) {
           let { listName, listColor, listMasters, listRadius } = parseListDef(line)
 
           if (listMasters) {
@@ -509,7 +511,7 @@ class KinParser {
             positionArray: ballPosition,
             colorArray: ballColor
           })
-        } else if (line.startsWith('@ribbonlist')||line.startsWith('@trianglelist')) {
+        } else if (line.startsWith('@ribbon') /* ribbon or ribbonlist */ ||line.startsWith('@triangle') /* triangle or trianglelist */) {
           let { listMasters, listName, listColor } = parseListDef(line)
 
           if (listMasters) {
@@ -592,7 +594,7 @@ class KinParser {
             if (!isLineBreak) {
               if (prevVecPosition !== null) {
                 if (width) {
-                  vecDefaultWidth.push(width)
+                  vecDefaultWidth = width
                 }
 
                 vecLabel1.push(prevVecLabel)
@@ -602,7 +604,7 @@ class KinParser {
                 vecLabel2.push(label)
                 vecPosition2.push(...position)
                 vecColor2.push(...color)
-
+                vecWidth.push(vecDefaultWidth)
               }
             }
 
