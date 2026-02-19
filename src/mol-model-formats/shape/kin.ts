@@ -85,24 +85,33 @@ async function getPoints(ctx: RuntimeContext, dotLists: DotList[]) {
 
 async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
   const builderState = LinesBuilder.create();
+  const width: number[] = [];
+
+  // Every line is in its own group because they may have individual widths and we look
+  // up the width based on the group is in the size function.
+  let index = 0;
 
   for (let i = 0; i < vectorLists.length; i++) {
     const vertices = vectorLists[i];
     const position1Array = vertices.position1Array;
     const position2Array = vertices.position2Array;
+    const widthArray = vertices.width;
 
     /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
-    const group = i;  /// @todo Base this on something in the file instead?
     const numLines = position1Array.length / 3
     for (let j = 0; j < numLines; j++) {
+      let group = index++;
       builderState.add(position1Array[3 * j + 0], position1Array[3 * j + 1], position1Array[3 * j + 2],
         position2Array[3 * j + 0], position2Array[3 * j + 1], position2Array[3 * j + 2],
         group);
+      // widthArray may be undefined; push NaN when width not provided
+      width.push(widthArray && widthArray.length > j ? widthArray[j] : NaN);
     }
   }
 
-  return builderState.getLines();
+  const lines = builderState.getLines();
+  return { lines, width: new Float32Array(width) };
 }
 
 async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
@@ -214,7 +223,15 @@ function makeLineShapeGetter() {
     const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeLinesParams>, shape?: Shape<Lines>) => {
         console.log(`XXX Number of vector lists for lines: ${kinData.source.vectorLists.length}`);
         // Get our lines, adding them from all of the entries in the vector lists
-        const _lines = await getLines(ctx, kinData.source.vectorLists);
+        const { lines: _lines, width } = await getLines(ctx, kinData.source.vectorLists);
+
+        // Size function signature: (groupId: number, instanceId: number) => number
+        // For Lines the groupId corresponds to the line index (order added).
+        const sizeFn = (group: number, instance: number) => {
+          const w = width[group];
+          console.log('XXX width for group ' + group + ': ' + w);
+          return Number.isFinite(w) ? w : 1.0;
+        }
 
         let _shape: Shape<Lines>;
         _shape = Shape.create<Lines>(
@@ -222,7 +239,7 @@ function makeLineShapeGetter() {
           kinData.source,
           _lines,
           () => Color(0x7F7F7F),  // @todo color function
-          () => 1,                // size function
+          sizeFn,                 // size function reads per-line widths
           () => ''                // @todo label function
         );
         return _shape;
