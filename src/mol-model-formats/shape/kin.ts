@@ -85,7 +85,8 @@ async function getPoints(ctx: RuntimeContext, dotLists: DotList[]) {
 
 async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
   const builderState = LinesBuilder.create();
-  const width: number[] = [];
+  const widths: number[] = [];
+  const colors: Color[] = [];
 
   // Every line is in its own group because they may have individual widths and we look
   // up the width based on the group is in the size function.
@@ -96,6 +97,8 @@ async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
     const position1Array = vertices.position1Array;
     const position2Array = vertices.position2Array;
     const widthArray = vertices.width;
+    const color1Array = vertices.color1Array;
+    const color2Array = vertices.color2Array;
 
     /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
@@ -106,12 +109,18 @@ async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
         position2Array[3 * j + 0], position2Array[3 * j + 1], position2Array[3 * j + 2],
         group);
       // widthArray may be undefined; push NaN when width not provided
-      width.push(widthArray && widthArray.length > j ? widthArray[j] : NaN);
+      widths.push(widthArray && widthArray.length > j ? widthArray[j] : NaN);
+      // colorArray may be undefined; push a default color when not provided
+      colors.push(color1Array && color1Array.length > j * 3 ?
+        Color.fromRgb(255 * (color1Array[3 * j + 0] + color2Array[3 * j + 0]) / 2,
+                      255 * (color1Array[3 * j + 1] + color2Array[3 * j + 1]) / 2,
+                      255 * (color1Array[3 * j + 2] + color2Array[3 * j + 2]) / 2)
+        : Color.fromRgb(255, 255, 255));
     }
   }
 
   const lines = builderState.getLines();
-  return { lines, width: new Float32Array(width) };
+  return { lines, widths: new Float32Array(widths), colors };
 }
 
 async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
@@ -223,15 +232,21 @@ function makeLineShapeGetter() {
     const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeLinesParams>, shape?: Shape<Lines>) => {
         console.log(`XXX Number of vector lists for lines: ${kinData.source.vectorLists.length}`);
         // Get our lines, adding them from all of the entries in the vector lists
-        const { lines: _lines, width } = await getLines(ctx, kinData.source.vectorLists);
+        const { lines: _lines, widths, colors } = await getLines(ctx, kinData.source.vectorLists);
 
         // Size function signature: (groupId: number, instanceId: number) => number
         // For Lines the groupId corresponds to the line index (order added).
         const sizeFn = (group: number, instance: number) => {
           // We're specifying the radius, which is half the width.
-          let w = width[group] / 2.0;
+          let w = widths[group] / 2.0;
           if (w < 1.0) { w = 1.0; }
           return Number.isFinite(w) ? w : 1.0;
+        }
+
+        // Color function signature: (groupId: number, instanceId: number) => Color
+        // For Lines the groupId corresponds to the line index (order added).
+        const colorFn = (group: number, instance: number) => {
+          return colors[group];
         }
 
         let _shape: Shape<Lines>;
@@ -239,7 +254,7 @@ function makeLineShapeGetter() {
           'kin-lines',
           kinData.source,
           _lines,
-          () => Color(0x7F7F7F),  // @todo color function
+          colorFn,                // color function reads per-line colors
           sizeFn,                 // size function reads per-line widths
           () => ''                // @todo label function
         );
