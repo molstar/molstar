@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  * Based on earlier kin-parser.ts file from the NGL project (see second author notice below).
  * @file Ported NGL-based Kinemage file parser
  * @author ReliaSolve <russ@reliasolve.com>
@@ -77,9 +77,9 @@ const reTrimCurly = /^{+|}+$/g
 const reTrimQuotes = /^['"]+|['"]+$/g
 const reCollapseEqual = /\s*=\s*/g
 
-function parseListDef (line: string) {
+function parseListDef (line: string, localColorDict: {[k: string]: number[]}) {
   let name
-  let defaultColor: number[] = ColorDict['white']  // Default color is white, but it can be overridden by the list definition
+  let defaultColor: number[] = localColorDict['white']  // Default color is white, but it can be overridden by the list definition
   let radius
   let master = []
   let width = 2   // Default width is 2, but it can be overridden by the list definition
@@ -94,15 +94,20 @@ function parseListDef (line: string) {
     } else {
       const es = e.split('=')
       if (es.length === 2) {
-        if (es[ 0 ] === 'color') {
-          defaultColor = ColorDict[ es[ 1 ] ]
-        } else if (es[ 0 ] === 'width') {
-          width = parseInt(es[ 1 ])
-        } else if (es[ 0 ] === 'master') {
-          master.push(es[ 1 ].replace(reTrimCurly, ''))
-        } else if (es[ 0 ] === 'radius') {
-          radius = parseFloat(es[ 1 ])
+        if (es[0] === 'color') {
+          const colorName = parseStr(es[1])
+          defaultColor = localColorDict[colorName]
+        } else if (es[0] === 'width') {
+          width = parseInt(es[1])
+        } else if (es[0] === 'master') {
+          master.push(es[1].replace(reTrimCurly, ''))
+        } else if (es[0] === 'radius') {
+          radius = parseFloat(es[1])
+        } else {
+          console.log('Kinemage: Unknown list definition term found: ' + es[0])
         }
+      } else {
+        console.log('Kinemage: Unknown list definition term found: ' + e)
       }
     }
   }
@@ -116,7 +121,7 @@ function parseListDef (line: string) {
   }
 }
 
-function parseListElm (line: string) {
+function parseListElm (line: string, localColorDict: {[k: string]: number[]}) {
   line = line.trim()
 
   const idx1 = line.indexOf('{')
@@ -134,8 +139,8 @@ function parseListElm (line: string) {
   let triangleBreak = false
   for (let lsindex = 4; lsindex <= ls.length; lsindex++) {
     const literal = ls[ ls.length - lsindex ]
-    if (literal in ColorDict) {
-      color = ColorDict[ ls[ ls.length - lsindex ] ]
+    if (literal in localColorDict) {
+      color = localColorDict[ ls[ ls.length - lsindex ] ]
     }
     if (literal.startsWith('width')) {
       width = parseInt(literal.substring(5))
@@ -150,7 +155,7 @@ function parseListElm (line: string) {
       triangleBreak = true
     }
   }
-  // const color = line[ idx2 + 1 ] === ' ' ? undefined : ColorDict[ ls[ 0 ] ]
+  // const color = line[ idx2 + 1 ] === ' ' ? undefined : localColorDict[ ls[ 0 ] ]
 
   return {
     label: label,
@@ -341,6 +346,9 @@ class KinParser {
     }
     this.kinemage = kinemage
 
+    // Keep a local copy of the ColorDict that we can update with new colors defined in the file.
+    let localColorDict: { [k: string]: number[] } = Object.assign({}, ColorDict)
+
     let currentGroupMasters: string[]
     let currentSubgroupMasters: string[]
 
@@ -365,7 +373,7 @@ class KinParser {
     let isRibbonList = false
     let prevRibbonPointLabel = ''
 
-    let ribbonListDefaultColor: number[] = ColorDict['white']
+    let ribbonListDefaultColor: number[] = localColorDict['white']
     let ribbonPointLabelArray: string[], ribbonPointPositionArray: number[], ribbonPointBreakArray: boolean[], ribbonPointColorArray: number[]
 
     let isText = false
@@ -398,7 +406,7 @@ class KinParser {
         } else if (line.startsWith('@dot') /* dot or dotlist */) {
           // @dotlist {x} color=white master={vdw contact} master={dots}
 
-          let { listColor, listName, listMasters } = parseListDef(line)
+          let { listColor, listName, listMasters } = parseListDef(line, localColorDict)
 
           isDotList = true
           prevDotLabel = ''
@@ -424,7 +432,7 @@ class KinParser {
         } else if (line.startsWith('@vector') /* vector or vectorlist */) {
           // @vectorlist {x} color=white master={small overlap} master={dots}
 
-          let { listMasters, listName, listWidth, listColor } = parseListDef(line)
+          let { listMasters, listName, listWidth, listColor } = parseListDef(line, localColorDict)
 
           if (listMasters) {
             listMasters.forEach(function (name: string) {
@@ -473,12 +481,12 @@ class KinParser {
             width: vecWidth
           })
         } else if (line.startsWith('@ball') /* ball or balllist*/ || line.startsWith('@sphere') /* sphere or spherelist */) {
-          let { listName, listColor, listMasters, listRadius } = parseListDef(line)
+          let { listName, listColor, listMasters, listRadius } = parseListDef(line, localColorDict)
 
           if (listMasters) {
             listMasters.forEach(function (name: string) {
-              if (!kinemage.masterDict[ name ]) {
-                kinemage.masterDict[ name ] = {
+              if (!kinemage.masterDict[name]) {
+                kinemage.masterDict[name] = {
                   indent: false,
                   visible: false
                 }
@@ -511,13 +519,13 @@ class KinParser {
             positionArray: ballPosition,
             colorArray: ballColor
           })
-        } else if (line.startsWith('@ribbon') /* ribbon or ribbonlist */ ||line.startsWith('@triangle') /* triangle or trianglelist */) {
-          let { listMasters, listName, listColor } = parseListDef(line)
+        } else if (line.startsWith('@ribbon') /* ribbon or ribbonlist */ || line.startsWith('@triangle') /* triangle or trianglelist */) {
+          let { listMasters, listName, listColor } = parseListDef(line, localColorDict)
 
           if (listMasters) {
             listMasters.forEach(function (name: string) {
-              if (!kinemage.masterDict[ name ]) {
-                kinemage.masterDict[ name ] = {
+              if (!kinemage.masterDict[name]) {
+                kinemage.masterDict[name] = {
                   indent: false,
                   visible: false
                 }
@@ -556,7 +564,7 @@ class KinParser {
         } else if (isDotList) {
           // { CB  THR   1  A}sky  'P' 18.915,14.199,5.024
 
-          let { label, color, position } = parseListElm(line)
+          let { label, color, position } = parseListElm(line, localColorDict)
 
           if (label === '"') {
             label = prevDotLabel
@@ -579,7 +587,7 @@ class KinParser {
 
           for (var i2 = 0; i2 < splitLine.length; i2++) {
             let singlePointLine = splitLine[i2]
-            let { label, color, width, position, isLineBreak } = parseListElm(singlePointLine)
+            let { label, color, width, position, isLineBreak } = parseListElm(singlePointLine, localColorDict)
 
             if (label === '"') {
               label = prevVecLabel
@@ -615,7 +623,7 @@ class KinParser {
         } else if (isBallList) {
           // {cb arg A   1   1.431 -106.80} r=1.431  39.085, 8.083, 22.182
 
-          let { label, radius, color, position } = parseListElm(line)
+          let { label, radius, color, position } = parseListElm(line, localColorDict)
 
           if (label === '"') {
             label = prevBallLabel
@@ -636,7 +644,7 @@ class KinParser {
           ballPosition.push(...position)
           ballColor.push(...color)
         } else if (isRibbonList) {
-          let { label, color, position, isTriangleBreak } = parseListElm(line)
+          let { label, color, position, isTriangleBreak } = parseListElm(line, localColorDict)
 
           if (label === '"') {
             label = prevRibbonPointLabel
@@ -661,13 +669,13 @@ class KinParser {
         } else if (line.startsWith('@onewidth')) {
           kinemage.onewidth = true
         } else if (line.startsWith('@1viewid')) {
-          kinemage[ '1viewid' ] = parseStr(line)
+          kinemage['1viewid'] = parseStr(line)
         } else if (line.startsWith('@pdbfile')) {
           kinemage.pdbfile = parseStr(line)
         } else if (line.startsWith('@group')) {
           let { groupName, groupFlags, groupMasters } = parseGroup(line)
-          if (!kinemage.groupDict[ groupName as string ]) {
-            kinemage.groupDict[ groupName as string ] = {
+          if (!kinemage.groupDict[groupName as string]) {
+            kinemage.groupDict[groupName as string] = {
               dominant: false,
               animate: false
             }
@@ -676,8 +684,8 @@ class KinParser {
 
           if (currentGroupMasters) {
             currentGroupMasters.forEach(function (master) {
-              if (!kinemage.masterDict[ master ]) {
-                kinemage.masterDict[ master ] = {
+              if (!kinemage.masterDict[master]) {
+                kinemage.masterDict[master] = {
                   indent: false,
                   visible: false
                 }
@@ -685,14 +693,14 @@ class KinParser {
             })
           }
 
-          for (let key in groupFlags as {[k: string]: boolean}) {
-            kinemage.groupDict[ groupName as string ][ key ] = (groupFlags as {[k: string]: boolean})[ key ]
+          for (let key in groupFlags as { [k: string]: boolean }) {
+            kinemage.groupDict[groupName as string][key] = (groupFlags as { [k: string]: boolean })[key]
           }
         } else if (line.startsWith('@subgroup')) {
           const { groupName, groupFlags, groupMasters } = parseGroup(line)
 
-          if (!kinemage.subgroupDict[ groupName as string ]) {
-            kinemage.subgroupDict[ groupName as string ] = {
+          if (!kinemage.subgroupDict[groupName as string]) {
+            kinemage.subgroupDict[groupName as string] = {
               dominant: false,
               animate: false
             }
@@ -701,8 +709,8 @@ class KinParser {
 
           if (currentSubgroupMasters) {
             currentSubgroupMasters.forEach(function (master) {
-              if (!kinemage.masterDict[ master ]) {
-                kinemage.masterDict[ master ] = {
+              if (!kinemage.masterDict[master]) {
+                kinemage.masterDict[master] = {
                   indent: false,
                   visible: false
                 }
@@ -710,37 +718,44 @@ class KinParser {
             })
           }
 
-          for (let key in groupFlags as {[k: string]: boolean}) {
-            kinemage.subgroupDict[ groupName as string ][ key ] = (groupFlags as {[k: string]: boolean})[ key ]
+          for (let key in groupFlags as { [k: string]: boolean }) {
+            kinemage.subgroupDict[groupName as string][key] = (groupFlags as { [k: string]: boolean })[key]
           }
         } else if (line.startsWith('@master')) {
           const name = parseStr(line)
           const flag = parseFlag(line)
 
-          if (!kinemage.masterDict[ name ]) {
-            kinemage.masterDict[ name ] = {
+          if (!kinemage.masterDict[name]) {
+            kinemage.masterDict[name] = {
               indent: false,
               visible: false
             }
           }
 
           if (flag === 'on') {
-            kinemage.masterDict[ name ].visible = true
+            kinemage.masterDict[name].visible = true
           } else if (flag === 'off') {
-            kinemage.masterDict[ name ].visible = false
+            kinemage.masterDict[name].visible = false
           } else if (flag === 'indent') {
-            kinemage.masterDict[ name ].indent = true
+            kinemage.masterDict[name].indent = true
           } else if (!flag) {
             // nothing to do
           }
         } else if (line.startsWith('@pointmaster')) {
           const { groupName, groupFlags } = parseGroup(line)
 
-          kinemage.pointmasterDict[ groupName as string] = {
-            id: Object.keys(groupFlags as {[k: string]: boolean})[ 0 ].replace(reTrimQuotes, '')
+          kinemage.pointmasterDict[groupName as string] = {
+            id: Object.keys(groupFlags as { [k: string]: boolean })[0].replace(reTrimQuotes, '')
+          }
+        } else if (line.startsWith('@colorset')) {
+          // We have a string inside curly brackets {} followed by the name of an existing dictionary color.
+          const colorName = parseStr(line)
+          const colorReference = parseFlag(line)
+          if (colorReference && colorReference in localColorDict) {
+            localColorDict[colorName] = localColorDict[colorReference]
           }
         } else {
-          console.log(line)
+          console.log("Kinemage: Unrecognized line: " + line)
         }
       }
     }
