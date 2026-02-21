@@ -5,71 +5,71 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Mat3, Mat4, Quat, Vec3 } from "../../mol-math/linear-algebra";
-import { Volume } from "../../mol-model/volume";
-import { StructureComponentParams } from "../../mol-plugin-state/helpers/structure-component";
+import { Mat3, Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
+import { Volume } from '../../mol-model/volume';
+import { StructureComponentParams } from '../../mol-plugin-state/helpers/structure-component';
 import {
   StructureFromModel,
   StructureInstances,
   TransformStructureConformation,
-} from "../../mol-plugin-state/transforms/model";
+} from '../../mol-plugin-state/transforms/model';
 import {
   StructureRepresentation3D,
   VolumeRepresentation3D,
-} from "../../mol-plugin-state/transforms/representation";
+} from '../../mol-plugin-state/transforms/representation';
 import {
   VolumeInstances,
   VolumeTransform,
-} from "../../mol-plugin-state/transforms/volume";
-import { StateTransformer } from "../../mol-state";
-import { arrayDistinct } from "../../mol-util/array";
-import { Clip } from "../../mol-util/clip";
-import { Color } from "../../mol-util/color";
-import { ColorListEntry } from "../../mol-util/color/color";
-import { canonicalJsonString } from "../../mol-util/json";
-import { stringToWords } from "../../mol-util/string";
+} from '../../mol-plugin-state/transforms/volume';
+import { StateTransformer } from '../../mol-state';
+import { arrayDistinct } from '../../mol-util/array';
+import { Clip } from '../../mol-util/clip';
+import { Color } from '../../mol-util/color';
+import { ColorListEntry } from '../../mol-util/color/color';
+import { canonicalJsonString } from '../../mol-util/json';
+import { stringToWords } from '../../mol-util/string';
 import {
   MVSAnnotationColorThemeProps,
   MVSAnnotationColorThemeProvider,
   MVSCategoricalPaletteProps,
   MVSContinuousPaletteProps,
   MVSDiscretePaletteProps,
-} from "./components/annotation-color-theme";
+} from './components/annotation-color-theme';
 import {
   MVSAnnotationLabelProps,
   MVSAnnotationLabelRepresentationProvider,
-} from "./components/annotation-label/representation";
-import { MVSAnnotationSpec } from "./components/annotation-prop";
-import { MVSAnnotationStructureComponentProps } from "./components/annotation-structure-component";
-import { MVSAnnotationTooltipsProps } from "./components/annotation-tooltips-prop";
-import { CustomLabelTextProps } from "./components/custom-label/visual";
-import { CustomTooltipsProps } from "./components/custom-tooltips-prop";
+} from './components/annotation-label/representation';
+import { MVSAnnotationSpec } from './components/annotation-prop';
+import { MVSAnnotationStructureComponentProps } from './components/annotation-structure-component';
+import { MVSAnnotationTooltipsProps } from './components/annotation-tooltips-prop';
+import { CustomLabelTextProps } from './components/custom-label/visual';
+import { CustomTooltipsProps } from './components/custom-tooltips-prop';
 import {
   MultilayerColorThemeName,
   MultilayerColorThemeProps,
   NoColor,
-} from "./components/multilayer-color-theme";
-import { SelectorAll } from "./components/selector";
-import { MvsNamedColorDicts, MvsNamedColorLists } from "./helpers/colors";
-import { rowToExpression, rowsToExpression } from "./helpers/selections";
+} from './components/multilayer-color-theme';
+import { SelectorAll } from './components/selector';
+import { MvsNamedColorDicts, MvsNamedColorLists } from './helpers/colors';
+import { rowToExpression, rowsToExpression } from './helpers/selections';
 import {
   ElementOfSet,
   decodeColor,
   isDefined,
   stringHash,
-} from "./helpers/utils";
-import { MolstarLoadingContext } from "./load";
-import { mvsRefTags, UpdateTarget } from "./load-generic";
-import { Subtree, getChildren } from "./tree/generic/tree-schema";
-import { dfs, formatObject } from "./tree/generic/tree-utils";
+} from './helpers/utils';
+import { MolstarLoadingContext } from './load';
+import { mvsRefTags, UpdateTarget } from './load-generic';
+import { Subtree, getChildren } from './tree/generic/tree-schema';
+import { dfs, formatObject } from './tree/generic/tree-utils';
 import {
   MolstarKind,
   MolstarNode,
   MolstarNodeParams,
   MolstarSubtree,
   MolstarTree,
-} from "./tree/molstar/molstar-tree";
-import { DefaultColor } from "./tree/mvs/mvs-tree";
+} from './tree/molstar/molstar-tree';
+import { DefaultColor } from './tree/mvs/mvs-tree';
 import {
   CategoricalPalette,
   CategoricalPaletteDefaults,
@@ -79,21 +79,21 @@ import {
   ContinuousPaletteDefaults,
   DiscretePalette,
   DiscretePaletteDefaults,
-} from "./tree/mvs/param-types";
+} from './tree/mvs/param-types';
 
 export const AnnotationFromUriKinds = new Set([
-  "color_from_uri",
-  "component_from_uri",
-  "label_from_uri",
-  "tooltip_from_uri",
+  'color_from_uri',
+  'component_from_uri',
+  'label_from_uri',
+  'tooltip_from_uri',
 ] satisfies MolstarKind[]);
 export type AnnotationFromUriKind = ElementOfSet<typeof AnnotationFromUriKinds>;
 
 export const AnnotationFromSourceKinds = new Set([
-  "color_from_source",
-  "component_from_source",
-  "label_from_source",
-  "tooltip_from_source",
+  'color_from_source',
+  'component_from_source',
+  'label_from_source',
+  'tooltip_from_source',
 ] satisfies MolstarKind[]);
 export type AnnotationFromSourceKind = ElementOfSet<
   typeof AnnotationFromSourceKinds
@@ -163,7 +163,7 @@ const _tmpVecZ = Vec3();
 export function transformAndInstantiateStructure(
   target: UpdateTarget,
   node: MolstarSubtree<
-    "structure" | "component" | "component_from_source" | "component_from_uri"
+    'structure' | 'component' | 'component_from_source' | 'component_from_uri'
   >,
 ) {
   return applyTransformAndInstances(
@@ -176,7 +176,7 @@ export function transformAndInstantiateStructure(
 
 export function transformAndInstantiateVolume(
   target: UpdateTarget,
-  node: MolstarSubtree<"volume">,
+  node: MolstarSubtree<'volume'>,
 ) {
   return applyTransformAndInstances(
     target,
@@ -193,12 +193,12 @@ function applyTransformAndInstances(
   instantiate: StateTransformer,
 ) {
   let modified = target;
-  for (const { params, ref } of transformProps(node, "transform")) {
+  for (const { params, ref } of transformProps(node, 'transform')) {
     modified = UpdateTarget.apply(modified, transform, params);
     UpdateTarget.tag(modified, mvsRefTags(ref));
   }
 
-  const instances = transformProps(node, "instance");
+  const instances = transformProps(node, 'instance');
   if (instances.length > 0) {
     modified = UpdateTarget.apply(modified, instantiate, {
       transforms: instances.map((i) => i.params),
@@ -209,14 +209,14 @@ function applyTransformAndInstances(
 }
 
 /** Create an array of props for `TransformStructureConformation` transformers from all 'transform' nodes applied to a 'structure' node. */
-function transformProps(node: MolstarSubtree, kind: "transform" | "instance") {
+function transformProps(node: MolstarSubtree, kind: 'transform' | 'instance') {
   const result = [] as {
     params: StateTransformer.Params<TransformStructureConformation>;
     ref?: string;
   }[];
   const transforms = getChildren(node).filter(
     (c) => c.kind === kind,
-  ) as MolstarNode<"transform">[];
+  ) as MolstarNode<'transform'>[];
   for (const transform of transforms) {
     let matrix: Mat4 | undefined = transform.params.matrix as Mat4 | undefined;
     if (!matrix) {
@@ -226,7 +226,7 @@ function transformProps(node: MolstarSubtree, kind: "transform" | "instance") {
         result.push({
           params: {
             transform: {
-              name: "components",
+              name: 'components',
               params: {
                 translation: translation
                   ? Vec3.fromArray(Vec3(), translation, 0)
@@ -234,10 +234,10 @@ function transformProps(node: MolstarSubtree, kind: "transform" | "instance") {
                 angle: axisAngle.angle,
                 axis: axisAngle.axis,
                 rotationCenter:
-                  rotation_center === "centroid"
-                    ? { name: "centroid", params: {} }
+                  rotation_center === 'centroid'
+                    ? { name: 'centroid', params: {} }
                     : {
-                        name: "point",
+                        name: 'point',
                         params: {
                           point: Vec3.fromArray(Vec3(), rotation_center, 0),
                         },
@@ -254,7 +254,7 @@ function transformProps(node: MolstarSubtree, kind: "transform" | "instance") {
     result.push({
       params: {
         transform: {
-          name: "matrix",
+          name: 'matrix',
           params: { data: matrix, transpose: false },
         },
       },
@@ -272,11 +272,11 @@ export function collectAnnotationReferences(
 ): MVSAnnotationSpec[] {
   const distinctSpecs: { [key: string]: MVSAnnotationSpec } = {};
   dfs(tree, (node) => {
-    let spec: Omit<MVSAnnotationSpec, "id"> | undefined = undefined;
+    let spec: Omit<MVSAnnotationSpec, 'id'> | undefined = undefined;
     if (AnnotationFromUriKinds.has(node.kind as any)) {
       const p = (node as MolstarNode<AnnotationFromUriKind>).params;
       spec = {
-        source: { name: "url", params: { url: p.uri, format: p.format } },
+        source: { name: 'url', params: { url: p.uri, format: p.format } },
         schema: p.schema,
         cifBlock: blockSpec(p.block_header, p.block_index),
         cifCategory: p.category_name,
@@ -287,7 +287,7 @@ export function collectAnnotationReferences(
     } else if (AnnotationFromSourceKinds.has(node.kind as any)) {
       const p = (node as MolstarNode<AnnotationFromSourceKind>).params;
       spec = {
-        source: { name: "source-cif", params: {} },
+        source: { name: 'source-cif', params: {} },
         schema: p.schema,
         cifBlock: blockSpec(p.block_header, p.block_index),
         cifCategory: p.category_name,
@@ -310,24 +310,24 @@ export function collectAnnotationReferences(
 function blockSpec(
   header: string | null | undefined,
   index: number | null | undefined,
-): MVSAnnotationSpec["cifBlock"] {
+): MVSAnnotationSpec['cifBlock'] {
   if (isDefined(header)) {
-    return { name: "header", params: { header: header } };
+    return { name: 'header', params: { header: header } };
   } else {
-    return { name: "index", params: { index: index ?? 0 } };
+    return { name: 'index', params: { index: index ?? 0 } };
   }
 }
 
 /** Collect annotation tooltips from all nodes in `tree` and map them to annotationIds. */
 export function collectAnnotationTooltips(
-  tree: MolstarSubtree<"structure">,
+  tree: MolstarSubtree<'structure'>,
   context: MolstarLoadingContext,
-): MVSAnnotationTooltipsProps["tooltips"] {
-  const annotationTooltips: MVSAnnotationTooltipsProps["tooltips"] = [];
+): MVSAnnotationTooltipsProps['tooltips'] {
+  const annotationTooltips: MVSAnnotationTooltipsProps['tooltips'] = [];
   dfs(tree, (node) => {
     if (
-      node.kind === "tooltip_from_uri" ||
-      node.kind === "tooltip_from_source"
+      node.kind === 'tooltip_from_uri' ||
+      node.kind === 'tooltip_from_source'
     ) {
       const annotationId = context.annotationMap.get(node);
       if (annotationId) {
@@ -343,20 +343,20 @@ export function collectAnnotationTooltips(
 }
 /** Collect inline tooltips from all nodes in `tree`. */
 export function collectInlineTooltips(
-  tree: MolstarSubtree<"structure">,
+  tree: MolstarSubtree<'structure'>,
   context: MolstarLoadingContext,
-): CustomTooltipsProps["tooltips"] {
-  const inlineTooltips: CustomTooltipsProps["tooltips"] = [];
+): CustomTooltipsProps['tooltips'] {
+  const inlineTooltips: CustomTooltipsProps['tooltips'] = [];
   dfs(tree, (node, parent) => {
-    if (node.kind === "tooltip") {
-      if (parent?.kind === "component") {
+    if (node.kind === 'tooltip') {
+      if (parent?.kind === 'component') {
         inlineTooltips.push({
           text: node.params.text,
           selector: componentPropsFromSelector(parent.params.selector),
         });
       } else if (
-        parent?.kind === "component_from_uri" ||
-        parent?.kind === "component_from_source"
+        parent?.kind === 'component_from_uri' ||
+        parent?.kind === 'component_from_source'
       ) {
         const p = componentFromXProps(parent, context);
         if (
@@ -367,12 +367,12 @@ export function collectInlineTooltips(
           inlineTooltips.push({
             text: node.params.text,
             selector: {
-              name: "annotation",
+              name: 'annotation',
               params: {
                 annotationId: p.annotationId,
                 fieldName: p.fieldName,
                 fieldValues: p.fieldValues,
-                label: p.label || "Annotation",
+                label: p.label || 'Annotation',
               },
             },
           });
@@ -384,25 +384,25 @@ export function collectInlineTooltips(
 }
 /** Collect inline labels from all nodes in `tree`. */
 export function collectInlineLabels(
-  tree: MolstarSubtree<"structure">,
+  tree: MolstarSubtree<'structure'>,
   context: MolstarLoadingContext,
-): CustomLabelTextProps["items"] {
-  const inlineLabels: CustomLabelTextProps["items"] = [];
+): CustomLabelTextProps['items'] {
+  const inlineLabels: CustomLabelTextProps['items'] = [];
   dfs(tree, (node, parent) => {
-    if (node.kind === "label") {
-      if (parent?.kind === "component") {
+    if (node.kind === 'label') {
+      if (parent?.kind === 'component') {
         inlineLabels.push({
           text: node.params.text,
           position: {
-            name: "selection",
+            name: 'selection',
             params: {
               selector: componentPropsFromSelector(parent.params.selector),
             },
           },
         });
       } else if (
-        parent?.kind === "component_from_uri" ||
-        parent?.kind === "component_from_source"
+        parent?.kind === 'component_from_uri' ||
+        parent?.kind === 'component_from_source'
       ) {
         const p = componentFromXProps(parent, context);
         if (
@@ -413,15 +413,15 @@ export function collectInlineLabels(
           inlineLabels.push({
             text: node.params.text,
             position: {
-              name: "selection",
+              name: 'selection',
               params: {
                 selector: {
-                  name: "annotation",
+                  name: 'annotation',
                   params: {
                     annotationId: p.annotationId,
                     fieldName: p.fieldName,
                     fieldValues: p.fieldValues,
-                    label: p.label || "Annotation",
+                    label: p.label || 'Annotation',
                   },
                 },
               },
@@ -437,7 +437,7 @@ export function collectInlineLabels(
 /** Return `true` for components nodes which only serve for tooltip placement (not to be created in the MolStar object hierarchy) */
 export function isPhantomComponent(
   node: MolstarSubtree<
-    "component" | "component_from_uri" | "component_from_source"
+    'component' | 'component_from_uri' | 'component_from_source'
   >,
 ) {
   if (node.ref !== undefined) return false;
@@ -446,7 +446,7 @@ export function isPhantomComponent(
   return (
     node.children &&
     node.children.every(
-      (child) => child.kind === "tooltip" || child.kind === "label",
+      (child) => child.kind === 'tooltip' || child.kind === 'label',
     )
   );
   // These nodes could theoretically be removed when converting MVS to Molstar tree, but would get very tricky if we allow nested components
@@ -454,38 +454,38 @@ export function isPhantomComponent(
 
 /** Create props for `StructureFromModel` transformer from a structure node. */
 export function structureProps(
-  node: MolstarNode<"structure">,
+  node: MolstarNode<'structure'>,
 ): StateTransformer.Params<StructureFromModel> {
   const params = node.params;
   switch (params.type) {
-    case "model":
+    case 'model':
       return {
         type: {
-          name: "model",
+          name: 'model',
           params: {},
         },
       };
-    case "assembly":
+    case 'assembly':
       return {
         type: {
-          name: "assembly",
+          name: 'assembly',
           params: { id: params.assembly_id ?? undefined },
         },
       };
-    case "symmetry":
+    case 'symmetry':
       return {
         type: {
-          name: "symmetry",
+          name: 'symmetry',
           params: {
             ijkMin: Vec3.ofArray(params.ijk_min),
             ijkMax: Vec3.ofArray(params.ijk_max),
           },
         },
       };
-    case "symmetry_mates":
+    case 'symmetry_mates':
       return {
         type: {
-          name: "symmetry-mates",
+          name: 'symmetry-mates',
           params: { radius: params.radius },
         },
       };
@@ -498,29 +498,29 @@ export function structureProps(
 
 /** Create value for `type` prop for `StructureComponent` transformer based on a MVS selector. */
 export function componentPropsFromSelector(
-  selector?: MolstarNodeParams<"component">["selector"],
-): StructureComponentParams["type"] {
+  selector?: MolstarNodeParams<'component'>['selector'],
+): StructureComponentParams['type'] {
   if (selector === undefined) {
     return SelectorAll;
-  } else if (typeof selector === "string") {
-    return { name: "static", params: selector };
+  } else if (typeof selector === 'string') {
+    return { name: 'static', params: selector };
   } else if (Array.isArray(selector)) {
-    return { name: "expression", params: rowsToExpression(selector) };
+    return { name: 'expression', params: rowsToExpression(selector) };
   } else {
-    return { name: "expression", params: rowToExpression(selector) };
+    return { name: 'expression', params: rowToExpression(selector) };
   }
 }
 
 /** Return a pretty name for a value of selector param, e.g.  "protein" -> 'Protein', {label_asym_id: "A"} -> 'Custom Selection: {label_asym_id: "A"}' */
 export function prettyNameFromSelector(
-  selector?: MolstarNodeParams<"component">["selector"],
+  selector?: MolstarNodeParams<'component'>['selector'],
 ): string {
   if (selector === undefined) {
-    return "All";
-  } else if (typeof selector === "string") {
+    return 'All';
+  } else if (typeof selector === 'string') {
     return stringToWords(selector);
   } else if (Array.isArray(selector)) {
-    return `Custom Selection: [${selector.map(formatObject).join(", ")}]`;
+    return `Custom Selection: [${selector.map(formatObject).join(', ')}]`;
   } else {
     return `Custom Selection: ${formatObject(selector)}`;
   }
@@ -528,14 +528,14 @@ export function prettyNameFromSelector(
 
 /** Create props for `StructureRepresentation3D` transformer from a label_from_* node. */
 export function labelFromXProps(
-  node: MolstarNode<"label_from_uri" | "label_from_source">,
+  node: MolstarNode<'label_from_uri' | 'label_from_source'>,
   context: MolstarLoadingContext,
 ): Partial<StateTransformer.Params<StructureRepresentation3D>> {
   const annotationId = context.annotationMap.get(node)!;
   const fieldName = node.params.field_name;
   const textFormat = node.params.text_format;
   const groupBy = node.params.group_by_fields ?? [
-    node.params.field_remapping.group_id ?? "group_id",
+    node.params.field_remapping.group_id ?? 'group_id',
   ];
   const nearestReprNode = context.nearestReprMap?.get(node);
   return {
@@ -554,7 +554,7 @@ export function labelFromXProps(
 
 /** Create props for `AnnotationStructureComponent` transformer from a component_from_* node. */
 export function componentFromXProps(
-  node: MolstarNode<"component_from_uri" | "component_from_source">,
+  node: MolstarNode<'component_from_uri' | 'component_from_source'>,
   context: MolstarLoadingContext,
 ): Partial<MVSAnnotationStructureComponentProps> {
   const annotationId = context.annotationMap.get(node);
@@ -563,36 +563,36 @@ export function componentFromXProps(
     annotationId,
     fieldName: field_name,
     fieldValues: field_values
-      ? { name: "selected", params: field_values.map((v) => ({ value: v })) }
-      : { name: "all", params: {} },
+      ? { name: 'selected', params: field_values.map((v) => ({ value: v })) }
+      : { name: 'all', params: {} },
     nullIfEmpty: false,
   };
 }
 
 /** Create props for `StructureRepresentation3D` transformer from a representation node. */
 function representationPropsBase(
-  node: MolstarSubtree<"representation">,
+  node: MolstarSubtree<'representation'>,
 ): Partial<StateTransformer.Params<StructureRepresentation3D>> {
   const alpha = alphaForNode(node);
   const params = node.params;
   switch (params.type) {
-    case "cartoon":
+    case 'cartoon':
       return {
         type: {
-          name: "cartoon",
+          name: 'cartoon',
           params: { alpha, tubularHelices: params.tubular_helices },
         },
-        sizeTheme: { name: "uniform", params: { value: params.size_factor } },
+        sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
       };
-    case "backbone":
+    case 'backbone':
       return {
-        type: { name: "backbone", params: { alpha } },
-        sizeTheme: { name: "uniform", params: { value: params.size_factor } },
+        type: { name: 'backbone', params: { alpha } },
+        sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
       };
-    case "ball_and_stick":
+    case 'ball_and_stick':
       return {
         type: {
-          name: "ball-and-stick",
+          name: 'ball-and-stick',
           params: {
             sizeFactor: 0.5,
             sizeAspectRatio: 0.5,
@@ -600,56 +600,56 @@ function representationPropsBase(
             ignoreHydrogens: params.ignore_hydrogens,
           },
         },
-        sizeTheme: { name: "uniform", params: { value: params.size_factor } },
+        sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
       };
-    case "line":
+    case 'line':
       return {
         type: {
-          name: "line",
+          name: 'line',
           params: { alpha, ignoreHydrogens: params.ignore_hydrogens },
         },
-        sizeTheme: { name: "uniform", params: { value: params.size_factor } },
+        sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
       };
-    case "spacefill":
+    case 'spacefill':
       return {
         type: {
-          name: "spacefill",
+          name: 'spacefill',
           params: { alpha, ignoreHydrogens: params.ignore_hydrogens },
         },
-        sizeTheme: { name: "physical", params: { scale: params.size_factor } },
+        sizeTheme: { name: 'physical', params: { scale: params.size_factor } },
       };
-    case "carbohydrate":
+    case 'carbohydrate':
       return {
-        type: { name: "carbohydrate", params: { alpha, sizeFactor: 1.75 } },
-        sizeTheme: { name: "uniform", params: { value: params.size_factor } },
+        type: { name: 'carbohydrate', params: { alpha, sizeFactor: 1.75 } },
+        sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
       };
-    case "surface": {
+    case 'surface': {
       return {
         type: {
           name:
-            params.surface_type === "gaussian"
-              ? "gaussian-surface"
-              : "molecular-surface",
+            params.surface_type === 'gaussian'
+              ? 'gaussian-surface'
+              : 'molecular-surface',
           params: { alpha, ignoreHydrogens: params.ignore_hydrogens },
         },
-        sizeTheme: { name: "physical", params: { scale: params.size_factor } },
+        sizeTheme: { name: 'physical', params: { scale: params.size_factor } },
       };
     }
-    case "putty":
+    case 'putty':
       return {
         type: {
-          name: "putty",
+          name: 'putty',
           params: { alpha, sizeFactor: params.size_factor },
         },
-        sizeTheme: { name: "uncertainty", params: {} },
+        sizeTheme: { name: 'uncertainty', params: {} },
       };
     default:
-      throw new Error("NotImplementedError");
+      throw new Error('NotImplementedError');
   }
 }
 
 export function representationProps(
-  node: MolstarSubtree<"representation">,
+  node: MolstarSubtree<'representation'>,
 ): Partial<StateTransformer.Params<StructureRepresentation3D>> {
   const base = representationPropsBase(node);
   const clip = clippingForNode(node);
@@ -667,9 +667,9 @@ export function representationProps(
 
 /** Create value for `type.params.alpha` prop for `StructureRepresentation3D` transformer from a representation node based on 'opacity' nodes in its subtree. */
 export function alphaForNode(
-  node: MolstarSubtree<"representation" | "volume_representation">,
+  node: MolstarSubtree<'representation' | 'volume_representation'>,
 ): number {
-  const children = getChildren(node).filter((c) => c.kind === "opacity");
+  const children = getChildren(node).filter((c) => c.kind === 'opacity');
   if (children.length > 0) {
     return children[children.length - 1].params.opacity;
   } else {
@@ -678,8 +678,8 @@ export function alphaForNode(
 }
 
 function getCommonClipParams(
-  node: MolstarNode<"clip">,
-): Pick<Clip.Props["objects"][number], "invert" | "transform"> {
+  node: MolstarNode<'clip'>,
+): Pick<Clip.Props['objects'][number], 'invert' | 'transform'> {
   return {
     invert: !!node.params.invert,
     transform: node.params.check_transform
@@ -689,15 +689,15 @@ function getCommonClipParams(
 }
 
 function getClipObject(
-  node: MolstarNode<"clip">,
-): Clip.Props["objects"][number] | undefined {
+  node: MolstarNode<'clip'>,
+): Clip.Props['objects'][number] | undefined {
   switch (node.params.type) {
-    case "sphere":
+    case 'sphere':
       return {
-        type: "sphere",
+        type: 'sphere',
         position: Vec3.ofArray(node.params.center),
         scale:
-          typeof node.params.radius === "number"
+          typeof node.params.radius === 'number'
             ? Vec3.create(
                 2 * node.params.radius,
                 2 * node.params.radius,
@@ -707,13 +707,13 @@ function getClipObject(
         rotation: { axis: Vec3.create(1, 0, 0), angle: 0 },
         ...getCommonClipParams(node),
       };
-    case "plane": {
+    case 'plane': {
       const up = Vec3.create(0, 1, 0);
       const n = Vec3.normalize(Vec3(), Vec3.ofArray(node.params.normal));
       const axis = Vec3.cross(Vec3(), up, n);
       const isSingular = Vec3.magnitude(axis) < 1e-6;
       return {
-        type: "plane",
+        type: 'plane',
         position: Vec3.ofArray(node.params.point),
         scale: Vec3.create(1, 1, 1),
         rotation: {
@@ -723,7 +723,7 @@ function getClipObject(
         ...getCommonClipParams(node),
       };
     }
-    case "box":
+    case 'box':
       const q = Quat.fromMat3(
         Quat(),
         Mat3.fromArray(Mat3(), node.params.rotation, 0),
@@ -731,7 +731,7 @@ function getClipObject(
       const axis = Vec3();
       const angle = (Quat.getAxisAngle(axis, q) * 180) / Math.PI;
       return {
-        type: "cube",
+        type: 'cube',
         position: Vec3.ofArray(node.params.center),
         scale: Vec3.ofArray(node.params.size),
         rotation: { axis, angle },
@@ -739,25 +739,25 @@ function getClipObject(
       };
     default:
       console.warn(
-        `Mol* MVS: Unsupported clip type "${(node as MolstarNode<"clip">).params.type}" in node ${node.ref}.`,
+        `Mol* MVS: Unsupported clip type "${(node as MolstarNode<'clip'>).params.type}" in node ${node.ref}.`,
       );
   }
 }
 
 export function clippingForNode(
   node: MolstarSubtree<
-    | "representation"
-    | "volume_representation"
-    | "primitives"
-    | "primitives_from_uri"
+    | 'representation'
+    | 'volume_representation'
+    | 'primitives'
+    | 'primitives_from_uri'
   >,
 ): Clip.Props | undefined {
-  const children = getChildren(node).filter((c) => c.kind === "clip");
+  const children = getChildren(node).filter((c) => c.kind === 'clip');
   if (!children.length) return;
 
   const variant =
-    children[0].params.variant === "object" ? "instance" : "pixel";
-  const objects: Clip.Props["objects"] = children
+    children[0].params.variant === 'object' ? 'instance' : 'pixel';
+  const objects: Clip.Props['objects'] = children
     .map(getClipObject)
     .filter((o) => !!o);
 
@@ -767,8 +767,8 @@ export function clippingForNode(
 function hasMolStarUseDefaultColoring(node: MolstarNode): boolean {
   if (!node.custom) return false;
   return (
-    "molstar_use_default_coloring" in node.custom ||
-    "molstar_color_theme_name" in node.custom
+    'molstar_use_default_coloring' in node.custom ||
+    'molstar_color_theme_name' in node.custom
   );
 }
 
@@ -784,27 +784,27 @@ function customColoring(custom: any) {
 export function colorThemeForNode(
   node:
     | MolstarSubtree<
-        | "color"
-        | "color_from_uri"
-        | "color_from_source"
-        | "representation"
-        | "volume"
+        | 'color'
+        | 'color_from_uri'
+        | 'color_from_source'
+        | 'representation'
+        | 'volume'
       >
     | undefined,
   context: MolstarLoadingContext,
 ):
-  | StateTransformer.Params<StructureRepresentation3D>["colorTheme"]
+  | StateTransformer.Params<StructureRepresentation3D>['colorTheme']
   | undefined {
-  if (node?.kind === "representation") {
+  if (node?.kind === 'representation') {
     const children = getChildren(node).filter(
       (c) =>
-        c.kind === "color" ||
-        c.kind === "color_from_uri" ||
-        c.kind === "color_from_source",
-    ) as MolstarNode<"color" | "color_from_uri" | "color_from_source">[];
+        c.kind === 'color' ||
+        c.kind === 'color_from_uri' ||
+        c.kind === 'color_from_source',
+    ) as MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>[];
     if (children.length === 0) {
       return {
-        name: "uniform",
+        name: 'uniform',
         params: { value: decodeColor(DefaultColor) },
       };
     } else if (
@@ -815,7 +815,7 @@ export function colorThemeForNode(
     } else if (children.length === 1 && appliesColorToWholeRepr(children[0])) {
       return colorThemeForNode(children[0], context);
     } else {
-      const layers: MultilayerColorThemeProps["layers"] = children
+      const layers: MultilayerColorThemeProps['layers'] = children
         .map((c) => {
           const theme = colorThemeForNode(c, context);
           if (!theme) return undefined;
@@ -831,21 +831,21 @@ export function colorThemeForNode(
       };
     }
   }
-  if (node?.kind === "color") {
+  if (node?.kind === 'color') {
     if (hasMolStarUseDefaultColoring(node)) {
       return customColoring(node.custom);
     }
 
     return {
-      name: "uniform",
+      name: 'uniform',
       params: { value: decodeColor(node.params.color) },
     };
   }
-  if (node?.kind === "color_from_uri" || node?.kind === "color_from_source") {
+  if (node?.kind === 'color_from_uri' || node?.kind === 'color_from_source') {
     const annotationId = context.annotationMap.get(node);
     if (annotationId === undefined)
       return {
-        name: "uniform",
+        name: 'uniform',
         params: {},
       };
 
@@ -863,28 +863,28 @@ export function colorThemeForNode(
 }
 
 function appliesColorToWholeRepr(
-  node: MolstarNode<"color" | "color_from_uri" | "color_from_source">,
+  node: MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>,
 ): boolean {
-  return !isDefined(node.params.selector) || node.params.selector === "all";
+  return !isDefined(node.params.selector) || node.params.selector === 'all';
 }
 
 const FALLBACK_COLOR = decodeColor(DefaultColor)!;
 
 export function palettePropsFromMVSPalette(
   palette: MolstarNode<
-    "color_from_uri" | "color_from_source"
-  >["params"]["palette"],
-): MVSAnnotationColorThemeProps["palette"] {
+    'color_from_uri' | 'color_from_source'
+  >['params']['palette'],
+): MVSAnnotationColorThemeProps['palette'] {
   if (!palette) {
-    return { name: "direct", params: {} };
+    return { name: 'direct', params: {} };
   }
-  if (palette.kind === "categorical") {
+  if (palette.kind === 'categorical') {
     const fullParams: Required<CategoricalPalette> = objMerge(
       CategoricalPaletteDefaults,
       palette,
     );
     return {
-      name: "categorical",
+      name: 'categorical',
       params: {
         colors: categoricalPalettePropsFromMVSColors(fullParams.colors),
         repeatColorList: fullParams.repeat_color_list,
@@ -896,13 +896,13 @@ export function palettePropsFromMVSPalette(
       } satisfies MVSCategoricalPaletteProps,
     };
   }
-  if (palette.kind === "discrete") {
+  if (palette.kind === 'discrete') {
     const fullParams: Required<DiscretePalette> = objMerge(
       DiscretePaletteDefaults,
       palette,
     );
     return {
-      name: "discrete",
+      name: 'discrete',
       params: {
         colors: discretePalettePropsFromMVSColors(
           fullParams.colors,
@@ -914,7 +914,7 @@ export function palettePropsFromMVSPalette(
       } satisfies MVSDiscretePaletteProps,
     };
   }
-  if (palette.kind === "continuous") {
+  if (palette.kind === 'continuous') {
     const fullParams: Required<ContinuousPalette> = objMerge(
       ContinuousPaletteDefaults,
       palette,
@@ -924,7 +924,7 @@ export function palettePropsFromMVSPalette(
       fullParams.reverse,
     );
     return {
-      name: "continuous",
+      name: 'continuous',
       params: {
         colors: colors,
         mode: fullParams.mode,
@@ -932,12 +932,12 @@ export function palettePropsFromMVSPalette(
         xMax: fullParams.value_domain[1],
         setUnderflowColor: !!fullParams.underflow_color,
         underflowColor:
-          (fullParams.underflow_color === "auto"
+          (fullParams.underflow_color === 'auto'
             ? minColor(colors.colors)
             : decodeColor(fullParams.underflow_color)) ?? FALLBACK_COLOR,
         setOverflowColor: !!fullParams.overflow_color,
         overflowColor:
-          (fullParams.overflow_color === "auto"
+          (fullParams.overflow_color === 'auto'
             ? maxColor(colors.colors)
             : decodeColor(fullParams.overflow_color)) ?? FALLBACK_COLOR,
       } satisfies MVSContinuousPaletteProps,
@@ -962,17 +962,17 @@ function objMerge<T extends object, U extends object>(
 }
 
 function categoricalPalettePropsFromMVSColors(
-  colors: Required<CategoricalPalette>["colors"],
-): MVSCategoricalPaletteProps["colors"] {
-  if (typeof colors === "string") {
+  colors: Required<CategoricalPalette>['colors'],
+): MVSCategoricalPaletteProps['colors'] {
+  if (typeof colors === 'string') {
     if (colors in MvsNamedColorLists) {
       const colorList = MvsNamedColorLists[colors as ColorListNameT];
-      return { name: "list", params: { kind: "set", colors: colorList.list } };
+      return { name: 'list', params: { kind: 'set', colors: colorList.list } };
     }
     if (colors in MvsNamedColorDicts) {
       const colorDict = MvsNamedColorDicts[colors as ColorDictNameT];
       return {
-        name: "dictionary",
+        name: 'dictionary',
         params: Object.entries(colorDict).map(([value, color]) => ({
           value,
           color,
@@ -983,30 +983,30 @@ function categoricalPalettePropsFromMVSColors(
   }
   if (Array.isArray(colors)) {
     return {
-      name: "list",
+      name: 'list',
       params: {
-        kind: "set",
+        kind: 'set',
         colors: colors.map((c) => decodeColor(c) ?? FALLBACK_COLOR),
       },
     };
   }
-  if (typeof colors === "object") {
+  if (typeof colors === 'object') {
     return {
-      name: "dictionary",
+      name: 'dictionary',
       params: Object.entries(colors).map(([value, color]) => ({
         value,
         color: decodeColor(color) ?? FALLBACK_COLOR,
       })),
     };
   }
-  return { name: "list", params: { kind: "set", colors: [] } };
+  return { name: 'list', params: { kind: 'set', colors: [] } };
 }
 
 function discretePalettePropsFromMVSColors(
-  colors: Required<DiscretePalette>["colors"],
+  colors: Required<DiscretePalette>['colors'],
   reverse: boolean,
-): MVSDiscretePaletteProps["colors"] {
-  if (typeof colors === "string") {
+): MVSDiscretePaletteProps['colors'] {
+  if (typeof colors === 'string') {
     if (colors in MvsNamedColorLists) {
       const colorList = MvsNamedColorLists[colors];
       const list = reverse ? colorList.list.slice().reverse() : colorList.list;
@@ -1019,7 +1019,7 @@ function discretePalettePropsFromMVSColors(
     }
     console.warn(`Could not find named color palette "${colors}"`);
   }
-  if (Array.isArray(colors) && colors.every((t) => typeof t === "string")) {
+  if (Array.isArray(colors) && colors.every((t) => typeof t === 'string')) {
     const list = reverse ? colors.slice().reverse() : colors;
     const sectionLength = 1 / colors.length;
     return list.map((c, i) => ({
@@ -1052,17 +1052,17 @@ function discretePalettePropsFromMVSColors(
 }
 
 function continuousPalettePropsFromMVSColors(
-  colors: Required<ContinuousPalette>["colors"],
+  colors: Required<ContinuousPalette>['colors'],
   reverse: boolean,
-): MVSContinuousPaletteProps["colors"] {
-  if (typeof colors === "string") {
+): MVSContinuousPaletteProps['colors'] {
+  if (typeof colors === 'string') {
     // Named color list
     if (colors in MvsNamedColorLists) {
       const colorList = MvsNamedColorLists[colors];
       const list = reverse ? colorList.list.slice().reverse() : colorList.list;
       const n = list.length - 1;
       return {
-        kind: "interpolate",
+        kind: 'interpolate',
         colors: list.map((col, i) => [Color.fromColorListEntry(col), i / n]),
       };
     }
@@ -1073,7 +1073,7 @@ function continuousPalettePropsFromMVSColors(
       // Color list with checkpoints
       // Not applying `reverse` here, as it would have no effect
       return {
-        kind: "interpolate",
+        kind: 'interpolate',
         colors: colors.map((t) => [decodeColor(t[0]) ?? FALLBACK_COLOR, t[1]]),
       };
     } else {
@@ -1081,7 +1081,7 @@ function continuousPalettePropsFromMVSColors(
       const list = reverse ? colors.slice().reverse() : colors;
       const n = list.length - 1;
       return {
-        kind: "interpolate",
+        kind: 'interpolate',
         colors: list.map((col, i) => [
           decodeColor(col) ?? FALLBACK_COLOR,
           i / n,
@@ -1089,7 +1089,7 @@ function continuousPalettePropsFromMVSColors(
       };
     }
   }
-  return { kind: "interpolate", colors: [] };
+  return { kind: 'interpolate', colors: [] };
 }
 
 /** Return the color with the lowest checkpoint, or the first color if checkpoints not available. */
@@ -1115,14 +1115,14 @@ function maxColor(colors: ColorListEntry[]): Color | undefined {
  * (to transfer coloring to label nodes smartly).
  * Only considers nodes within the same 'structure' subtree. */
 export function makeNearestReprMap(root: MolstarTree) {
-  const map = new Map<MolstarNode, MolstarNode<"representation">>();
+  const map = new Map<MolstarNode, MolstarNode<'representation'>>();
   // Propagate up:
   dfs(root, undefined, (node, parent) => {
-    if (node.kind === "representation") {
+    if (node.kind === 'representation') {
       map.set(node, node);
     }
     if (
-      node.kind !== "structure" &&
+      node.kind !== 'structure' &&
       map.has(node) &&
       parent &&
       !map.has(parent)
@@ -1142,28 +1142,28 @@ export function makeNearestReprMap(root: MolstarTree) {
 
 /** Create props for `VolumeRepresentation3D` transformer from a representation node. */
 export function volumeRepresentationProps(
-  node: MolstarSubtree<"volume_representation">,
+  node: MolstarSubtree<'volume_representation'>,
 ): Partial<StateTransformer.Params<VolumeRepresentation3D>> {
   const alpha = alphaForNode(node);
   const clip = clippingForNode(node);
   const params = node.params;
 
   const isoValue =
-    typeof params.absolute_isovalue === "number"
+    typeof params.absolute_isovalue === 'number'
       ? Volume.IsoValue.absolute(params.absolute_isovalue)
       : Volume.IsoValue.relative(params.relative_isovalue ?? 0);
   switch (params.type) {
-    case "isosurface":
-      const visuals: ("wireframe" | "solid")[] = [];
-      if (params.show_wireframe) visuals.push("wireframe");
-      if (params.show_faces) visuals.push("solid");
+    case 'isosurface':
+      const visuals: ('wireframe' | 'solid')[] = [];
+      if (params.show_wireframe) visuals.push('wireframe');
+      if (params.show_faces) visuals.push('solid');
       return {
         type: {
-          name: "isosurface",
+          name: 'isosurface',
           params: { alpha, isoValue, visuals, clip },
         },
       };
-    case "grid_slice":
+    case 'grid_slice':
       const isRelative = params.relative_index !== undefined;
       const dimension = {
         name: isRelative
@@ -1172,26 +1172,26 @@ export function volumeRepresentationProps(
         params: params.relative_index ?? params.relative_index,
       };
       return {
-        type: { name: "slice", params: { alpha, dimension, isoValue, clip } },
+        type: { name: 'slice', params: { alpha, dimension, isoValue, clip } },
       };
     default:
-      throw new Error("NotImplementedError");
+      throw new Error('NotImplementedError');
   }
 }
 
 /** Create value for `colorTheme` prop for `StructureRepresentation3D` transformer from a representation node based on color* nodes in its subtree. */
 export function volumeColorThemeForNode(
-  node: MolstarSubtree<"volume_representation"> | undefined,
+  node: MolstarSubtree<'volume_representation'> | undefined,
   context: MolstarLoadingContext,
-): StateTransformer.Params<VolumeRepresentation3D>["colorTheme"] | undefined {
-  if (node?.kind !== "volume_representation") return undefined;
+): StateTransformer.Params<VolumeRepresentation3D>['colorTheme'] | undefined {
+  if (node?.kind !== 'volume_representation') return undefined;
 
   const children = getChildren(node).filter(
-    (c) => c.kind === "color",
-  ) as MolstarNode<"color">[];
+    (c) => c.kind === 'color',
+  ) as MolstarNode<'color'>[];
   if (children.length === 0) {
     return {
-      name: "uniform",
+      name: 'uniform',
       params: { value: decodeColor(DefaultColor) },
     };
   }

@@ -5,39 +5,39 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { MVSData } from "../../../mvs-data";
-import { builderDemo, createMVSBuilder } from "../mvs-builder";
+import { MVSData } from '../../../mvs-data';
+import { builderDemo, createMVSBuilder } from '../mvs-builder';
 
-describe("mvs-builder", () => {
-  it("mvs-builder demo works", () => {
+describe('mvs-builder', () => {
+  it('mvs-builder demo works', () => {
     const mvsData = builderDemo();
-    expect(typeof mvsData.metadata.version).toEqual("string");
-    expect(typeof mvsData.metadata.timestamp).toEqual("string");
+    expect(typeof mvsData.metadata.version).toEqual('string');
+    expect(typeof mvsData.metadata.timestamp).toEqual('string');
     expect(MVSData.validationIssues(mvsData)).toEqual(undefined);
   });
 
-  it("putty representation works", () => {
+  it('putty representation works', () => {
     const builder = createMVSBuilder();
     builder
-      .download({ url: "https://files.rcsb.org/download/1cbs.cif" })
-      .parse({ format: "mmcif" })
+      .download({ url: 'https://files.rcsb.org/download/1cbs.cif' })
+      .parse({ format: 'mmcif' })
       .modelStructure()
-      .component({ selector: "polymer" })
-      .representation({ type: "putty" });
+      .component({ selector: 'polymer' })
+      .representation({ type: 'putty' });
     const state = builder.getState();
     expect(MVSData.validationIssues(state)).toEqual(undefined);
   });
 
-  it("volume builder works", () => {
+  it('volume builder works', () => {
     const builder = createMVSBuilder();
     builder
       .download({
-        url: "https://www.ebi.ac.uk/pdbe/densities/x-ray/1tqn/box/-22.367,-33.367,-21.634/-7.106,-10.042,-0.937?detail=3",
+        url: 'https://www.ebi.ac.uk/pdbe/densities/x-ray/1tqn/box/-22.367,-33.367,-21.634/-7.106,-10.042,-0.937?detail=3',
       })
-      .parse({ format: "bcif" })
-      .volume({ channel_id: "2FO-FC" })
+      .parse({ format: 'bcif' })
+      .volume({ channel_id: '2FO-FC' })
       .representation({
-        type: "isosurface",
+        type: 'isosurface',
         absolute_isovalue: 1,
         show_wireframe: true,
         show_faces: false,
