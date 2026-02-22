@@ -225,6 +225,7 @@ async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
 async function getSpheres(ctx: RuntimeContext, balls: BallList[]) {
   const builderState = SpheresBuilder.create();
   const radii: number[] = [];
+  const colors: Color[] = [];
 
   // Every ball is in its own group because they may have individual radii and we look
   // up the radius based on the group is in the size function.
@@ -233,6 +234,8 @@ async function getSpheres(ctx: RuntimeContext, balls: BallList[]) {
   for (let i = 0; i < balls.length; i++) {
     const positionArray = balls[i].positionArray;
     const radiusArray = balls[i].radiusArray;
+    const colorArray = balls[i].colorArray;
+
     /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
     const numBalls = positionArray.length / 3;
@@ -241,11 +244,15 @@ async function getSpheres(ctx: RuntimeContext, balls: BallList[]) {
       builderState.add(positionArray[3 * j + 0], positionArray[3 * j + 1], positionArray[3 * j + 2], group);
       // radiusArray may be undefined; push NaN when radius not provided
       radii.push(radiusArray && radiusArray.length > j ? radiusArray[j] : NaN);
+      // colorArray may be undefined; push a default color when not provided
+      colors.push(colorArray && colorArray.length > j * 3 ?
+        Color.fromRgb(255 * (colorArray[3 * j + 0]), 255 * (colorArray[3 * j + 1]), 255 * (colorArray[3 * j + 2]))
+        : Color.fromRgb(255, 255, 255));
     }
   }
 
   const spheres = builderState.getSpheres();
-  return { spheres, radii: new Float32Array(radii) };
+  return { spheres, radii: new Float32Array(radii), colors };
 }
 
 function makePointsShapeGetter() {
@@ -347,7 +354,7 @@ function makeSpheresShapeGetter() {
 
   const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeSpheresParams>, shape?: Shape<Spheres>) => {
     // Build spheres geometry and collect per-center radii
-    const { spheres: _spheres, radii } = await getSpheres(ctx, kinData.source.ballLists);
+    const { spheres: _spheres, radii, colors } = await getSpheres(ctx, kinData.source.ballLists);
 
     // size function signature: (groupId: number, instanceId: number) => number
     // For Spheres the groupId corresponds to the center index (order added).
@@ -356,12 +363,18 @@ function makeSpheresShapeGetter() {
       return Number.isFinite(r) ? r : 1.0;
     };
 
+    // Color function signature: (groupId: number, instanceId: number) => Color
+    // For Spheres the groupId corresponds to the center index (order added).
+    const colorFn = (group: number, instance: number) => {
+      return colors[group];
+    }
+
     let _shape: Shape<Spheres>;
     _shape = Shape.create<Spheres>(
       'kin-spheres',
       kinData.source,
       _spheres,
-      () => Color(0x7F7F7F),  // @todo color function
+      colorFn,                // color function reads per-center colors
       sizeFn,                 // size function reads per-center radii
       () => ''                // @todo label function
     );
