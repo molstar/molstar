@@ -45,8 +45,8 @@ export interface RibbonObject {
   name?: string,                  ///< Optional name of the whole Ribbon
   masterArray: any[],             ///< Array of master names per Ribbon, not per element
   labelArray: string[],           ///< Array of labels per Ribbon, not per element
-  positionArray: number[],        ///< Catenation of x, y, z for each element, 3x as many as elements
-  colorArray: number[],           ///< Catenation of r, g, b for each element, 3x as many as elements
+  positionArray: number[],        ///< Catenation of x, y, z for each element, 9x as many as triangles (3 vertices per triangle)
+  colorArray: number[],           ///< Catenation of r, g, b for each element, 9x as many as triangles (3 colors per triangle)
   breakArray: boolean[]           ///< A single boolean per element indicating if there is a break there
 }
 

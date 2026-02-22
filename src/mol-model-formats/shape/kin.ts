@@ -49,6 +49,9 @@ function createKinShapeMeshParams(kinemage?: Kinemage) {
 
   return {
     ...Mesh.Params,
+    //transparentBackfaces: PD.Select('on', PD.arrayToOptions(['off', 'on', 'opaque'] as const)),
+    //doubleSided: PD.Boolean(true), // make mesh double-sided by default
+    //ignoreLight: PD.Boolean(true), // ignore lighting so front/back show same color
   };
 }
 
@@ -123,8 +126,20 @@ async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
   return { lines, widths: new Float32Array(widths), colors };
 }
 
+function addOffsetTriangle(builderState: MeshBuilder.State, a: Vec3, b: Vec3, c: Vec3, n: Vec3, offset: number) {
+  const aOffset = Vec3.add(Vec3(), a, Vec3.scale(Vec3(), n, offset));
+  const bOffset = Vec3.add(Vec3(), b, Vec3.scale(Vec3(), n, offset));
+  const cOffset = Vec3.add(Vec3(), c, Vec3.scale(Vec3(), n, offset));
+  MeshBuilder.addTriangleWithNormal(builderState, aOffset, bOffset, cOffset, n);
+}
+
 async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
   const builderState = MeshBuilder.createState();
+  const colors: Color[] = [];
+
+  // Every triangle is in its own group because they may have individual colors and we look
+  // up the color based on the group is in the color function.
+  let index = 0;
 
   for (let ri = 0; ri < ribbonObjects.length; ri++) {
     const ribbonObject = ribbonObjects[ri];
@@ -132,48 +147,67 @@ async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
 
     for (let i = 0; i < ribbonObject.masterArray.length; i++) {
       const coords = ribbonObject.positionArray;
+      const colorArray = ribbonObject.colorArray;
 
       /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
       // The positionArray contains 3x as many entries as there are vertices since it's a catenation of x, y, z for each vertex.
-      // The breakArray contains a boolean for each vertex indicating if there is a break there.
-      // We need to add a triangle for each new verticex after the first two, but we also need to check the break array to see
-      // if there is a break between any of the vertices in the triangle.  If there is a break, we need to start over accumulating
-      // vertices until we get to three.
-      // Keep track of the parity and flip over every other triangle so their front faces match.
-      /// @todo Lighting is to be set up to make each pair of triangles look like a quad with the same normal.
-      const numVertices = coords.length / 3;
-      const vertexList: Vec3[] = [];
-      let flip = true;  // Start with true so that the third flip will make it false.
-      for (let i = 0; i < numVertices; i++) {
-        // Get the next vertex
-        const v = Vec3.zero();
-        v[0] = coords[3 * i + 0];
-        v[1] = coords[3 * i + 1];
-        v[2] = coords[3 * i + 2];
-        vertexList.push(v);
-        flip = !flip;
+      // There are three vertices per triangle.
+      /// @todo Ribbon lighting is to be set up to make each pair of triangles look like a quad with the same normal.
+      const numTriangles = coords.length / 9;
+      for (let i = 0; i < numTriangles; i++) {
+        const vertexList: Vec3[] = [];
 
-        // Once we have three vertices, make a triangle out of them and pop the oldest off the list.
-        if (vertexList.length == 3) {
-          if (flip) {
-            MeshBuilder.addTriangle(builderState, vertexList[2], vertexList[1], vertexList[0]);
-          } else {
-            MeshBuilder.addTriangle(builderState, vertexList[0], vertexList[1], vertexList[2]);
-          }
-          vertexList.shift();
+        // Get the vertices for the triangle out of the position array and push them onto a list.
+        for (let j = 0; j < 3; j++) {
+          const v = Vec3.zero();
+          v[0] = coords[3 * (3 * i + j) + 0];
+          v[1] = coords[3 * (3 * i + j) + 1];
+          v[2] = coords[3 * (3 * i + j) + 2];
+          vertexList.push(v);
         }
 
-        // If there is a break, clear the vertex list so we start accumulating vertices for the next triangle from scratch.
-        if (ribbonObject.breakArray[i]) {
-          vertexList.length = 0;
-          flip = true;
+        // Set the group per triangle so that we can do per-triangle coloring.
+        let group = index++;
+        builderState.currentGroup = group;
+
+        let a: Vec3 = vertexList[0];
+        let b: Vec3 = vertexList[1];
+        let c: Vec3 = vertexList[2];
+        // Flip the winding for every other triangle to keep the faces consistent.
+        if (i % 2 === 1) {
+          const temp = b;
+          b = c;
+          c = temp;
         }
+        const n = Vec3.zero();
+        /// @todo Put both orientations of the triangle. Add a small amount along the normal to make them
+        // not be exactly on top of each other so that we only see the front face of each.
+        Vec3.triangleNormal(n, a, b, c);
+        addOffsetTriangle(builderState, a, b, c, n, 0.01);
+        //MeshBuilder.addTriangleWithNormal(builderState, a, b, c, n);
+        Vec3.triangleNormal(n, a, c, b);
+        addOffsetTriangle(builderState, a, c, b, n, 0.01);
+        //MeshBuilder.addTriangleWithNormal(builderState, a, c, b, n);
+
+        // colorArray may be undefined; push a default color when not provided
+        /// @todo Consider averaging the colors the vertices because we can't color different vertices differently.
+        colors.push(colorArray && colorArray.length > i * 3 ?
+          Color.fromRgb(255 * colorArray[9 * i + 0],
+                        255 * colorArray[9 * i + 1],
+                        255 * colorArray[9 * i + 2])
+          : Color.fromRgb(255, 255, 255));
+        colors.push(colorArray && colorArray.length > i * 3 ?
+          Color.fromRgb(255 * colorArray[9 * i + 0],
+            255 * colorArray[9 * i + 1],
+            255 * colorArray[9 * i + 2])
+          : Color.fromRgb(255, 255, 255));
       }
     }
   }
 
-  return MeshBuilder.getMesh(builderState);
+  const mesh = MeshBuilder.getMesh(builderState);
+  return { mesh, colors };
 }
 
 /**
@@ -209,7 +243,6 @@ async function getSpheres(ctx: RuntimeContext, balls: BallList[]) {
 function makePointsShapeGetter() {
 
   const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapePointsParams>, shape?: Shape<Points>) => {
-    console.log(`XXX Number of dot lists for points: ${kinData.source.dotLists.length}`);
     // Get our points, adding them from all of the entries in the dot lists
     const _points = await getPoints(ctx, kinData.source.dotLists);
 
@@ -230,7 +263,6 @@ function makePointsShapeGetter() {
 function makeLineShapeGetter() {
 
     const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeLinesParams>, shape?: Shape<Lines>) => {
-        console.log(`XXX Number of vector lists for lines: ${kinData.source.vectorLists.length}`);
         // Get our lines, adding them from all of the entries in the vector lists
         const { lines: _lines, widths, colors } = await getLines(ctx, kinData.source.vectorLists);
 
@@ -266,14 +298,18 @@ function makeLineShapeGetter() {
 function makeMeshShapeGetter() {
 
   const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeMeshParams>, shape?: Shape<Mesh>) => {
-    console.log(`XXX Number of ribbon lists for mesh: ribbonLists: ${kinData.source.ribbonLists.length}`);
-    /// @todo
 
-    let _mesh = await getMesh(ctx, kinData.source.ribbonLists);
+    let { mesh: _mesh, colors } = await getMesh(ctx, kinData.source.ribbonLists);
     // Ensure that _mesh is not undifined before we pass it to Shape.create.  If it is undefined, create an empty mesh instead.
     if (!_mesh) {
       console.warn('No mesh could be created from the KIN data.  Creating an empty mesh instead.');
       _mesh = Mesh.createEmpty();
+    }
+
+    // Color function signature: (groupId: number, instanceId: number) => Color
+    // For Lines the groupId corresponds to the line index (order added).
+    const colorFn = (group: number, instance: number) => {
+      return colors[group];
     }
 
     let _shape: Shape<Mesh>;
@@ -281,7 +317,7 @@ function makeMeshShapeGetter() {
       'kin-mesh',
       kinData.source,
       _mesh,
-      () => Color(0x7F7F7F),  // @todo color function
+      colorFn,                // color function reads per-triangle colors
       () => 1,                // size function
       () => ''                // @todo label function
     );
@@ -296,7 +332,6 @@ function makeMeshShapeGetter() {
 function makeSpheresShapeGetter() {
 
   const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeSpheresParams>, shape?: Shape<Spheres>) => {
-    console.log(`XXX Number of ball lists for spheres: ${kinData.source.ballLists.length}`);
     // Build spheres geometry and collect per-center radii
     const { spheres: _spheres, radii } = await getSpheres(ctx, kinData.source.ballLists);
 
