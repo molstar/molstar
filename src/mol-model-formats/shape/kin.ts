@@ -70,20 +70,30 @@ export type KinShapeSpheresParams = typeof KinShapeSpheresParams
 
 async function getPoints(ctx: RuntimeContext, dotLists: DotList[]) {
   const builderState = PointsBuilder.create();
+  const colors: Color[] = [];
+
+  // Every dot is in its own group because they may have colors and we look that up by group.
+  let index = 0;
 
   for (let i = 0; i < dotLists.length; i++) {
     const positionArray = dotLists[i].positionArray;
+    const colorArray = dotLists[i].colorArray;
 
     /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
-    const group = i;  /// @todo Base this on something in the file instead?
     const numDots = positionArray.length / 3
     for (let j = 0; j < numDots; j++) {
+      let group = index++;
       builderState.add(positionArray[3 * j + 0], positionArray[3 * j + 1], positionArray[3 * j + 2], group);
+      // colorArray may be undefined; push a default color when not provided
+      colors.push(colorArray && colorArray.length > j * 3 ?
+        Color.fromRgb(255 * (colorArray[3 * j + 0]), 255 * (colorArray[3 * j + 1]), 255 * (colorArray[3 * j + 2]))
+        : Color.fromRgb(255, 255, 255));
     }
   }
 
-  return builderState.getPoints();
+  const points = builderState.getPoints();
+  return { points, colors };
 }
 
 async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
@@ -242,14 +252,20 @@ function makePointsShapeGetter() {
 
   const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapePointsParams>, shape?: Shape<Points>) => {
     // Get our points, adding them from all of the entries in the dot lists
-    const _points = await getPoints(ctx, kinData.source.dotLists);
+    const { points: _points, colors } = await getPoints(ctx, kinData.source.dotLists);
+
+    // Color function signature: (groupId: number, instanceId: number) => Color
+    // For Lines the groupId corresponds to the line index (order added).
+    const colorFn = (group: number, instance: number) => {
+      return colors[group];
+    }
 
     let _shape: Shape<Points>;
     _shape = Shape.create<Points>(
       'kin-points',
       kinData.source,
       _points,
-      () => Color(0x7F7F7F),  // @todo color function
+      colorFn,                // color function reads per-point colors
       () => 1,                // size function
       () => ''                // @todo label function
     );
