@@ -171,6 +171,17 @@ async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
         let group = index++;
         builderState.currentGroup = group;
 
+        // colorArray may be undefined; push a default color when not provided.
+        // There is one color per group, even if we have two triangles in this group.
+        /// @todo Consider averaging the colors the vertices because we can't color different vertices differently.
+        const color = colorArray && colorArray.length > i * 9 ?
+          Color.fromRgb(255 * colorArray[9 * i + 0],
+                        255 * colorArray[9 * i + 1],
+                        255 * colorArray[9 * i + 2])
+          : Color.fromRgb(255, 255, 255);
+        colors.push(color);
+
+        // Find the vertics and normal for the triangle.
         let a: Vec3 = vertexList[0];
         let b: Vec3 = vertexList[1];
         let c: Vec3 = vertexList[2];
@@ -181,27 +192,14 @@ async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
           c = temp;
         }
         const n = Vec3.zero();
-        /// @todo Put both orientations of the triangle. Add a small amount along the normal to make them
+
+        // Put both orientations of the triangle. Add a small amount along the normal to make them
         // not be exactly on top of each other so that we only see the front face of each.
         Vec3.triangleNormal(n, a, b, c);
         addOffsetTriangle(builderState, a, b, c, n, 0.01);
-        //MeshBuilder.addTriangleWithNormal(builderState, a, b, c, n);
+
         Vec3.triangleNormal(n, a, c, b);
         addOffsetTriangle(builderState, a, c, b, n, 0.01);
-        //MeshBuilder.addTriangleWithNormal(builderState, a, c, b, n);
-
-        // colorArray may be undefined; push a default color when not provided
-        /// @todo Consider averaging the colors the vertices because we can't color different vertices differently.
-        colors.push(colorArray && colorArray.length > i * 3 ?
-          Color.fromRgb(255 * colorArray[9 * i + 0],
-                        255 * colorArray[9 * i + 1],
-                        255 * colorArray[9 * i + 2])
-          : Color.fromRgb(255, 255, 255));
-        colors.push(colorArray && colorArray.length > i * 3 ?
-          Color.fromRgb(255 * colorArray[9 * i + 0],
-            255 * colorArray[9 * i + 1],
-            255 * colorArray[9 * i + 2])
-          : Color.fromRgb(255, 255, 255));
       }
     }
   }
