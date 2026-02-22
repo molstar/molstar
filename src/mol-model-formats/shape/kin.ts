@@ -71,6 +71,7 @@ export type KinShapeSpheresParams = typeof KinShapeSpheresParams
 async function getPoints(ctx: RuntimeContext, dotLists: DotList[]) {
   const builderState = PointsBuilder.create();
   const colors: Color[] = [];
+  const labels: string[] = [];
 
   // Every dot is in its own group because they may have colors and we look that up by group.
   let index = 0;
@@ -78,6 +79,7 @@ async function getPoints(ctx: RuntimeContext, dotLists: DotList[]) {
   for (let i = 0; i < dotLists.length; i++) {
     const positionArray = dotLists[i].positionArray;
     const colorArray = dotLists[i].colorArray;
+    const labelArray = dotLists[i].labelArray;
 
     /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
@@ -89,17 +91,20 @@ async function getPoints(ctx: RuntimeContext, dotLists: DotList[]) {
       colors.push(colorArray && colorArray.length > j * 3 ?
         Color.fromRgb(255 * (colorArray[3 * j + 0]), 255 * (colorArray[3 * j + 1]), 255 * (colorArray[3 * j + 2]))
         : Color.fromRgb(255, 255, 255));
+      // labelArray may be undefined; push an empty string when not provided
+      labels.push(labelArray && labelArray.length > j ? labelArray[j] : '');
     }
   }
 
   const points = builderState.getPoints();
-  return { points, colors };
+  return { points, colors, labels };
 }
 
 async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
   const builderState = LinesBuilder.create();
   const widths: number[] = [];
   const colors: Color[] = [];
+  const labels: string[] = [];
 
   // Every line is in its own group because they may have individual widths and we look
   // up the width based on the group is in the size function.
@@ -112,6 +117,7 @@ async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
     const widthArray = vertices.width;
     const color1Array = vertices.color1Array;
     const color2Array = vertices.color2Array;
+    const label1Array = vertices.label1Array;
 
     /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
@@ -129,11 +135,13 @@ async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
                       255 * (color1Array[3 * j + 1] + color2Array[3 * j + 1]) / 2,
                       255 * (color1Array[3 * j + 2] + color2Array[3 * j + 2]) / 2)
         : Color.fromRgb(255, 255, 255));
+      // labelArray may be undefined; push an empty string when not provided
+      labels.push(label1Array && label1Array.length > j ? label1Array[j] : '');
     }
   }
 
   const lines = builderState.getLines();
-  return { lines, widths: new Float32Array(widths), colors };
+  return { lines, widths: new Float32Array(widths), colors, labels };
 }
 
 function addOffsetTriangle(builderState: MeshBuilder.State, a: Vec3, b: Vec3, c: Vec3, n: Vec3, offset: number) {
@@ -146,6 +154,7 @@ function addOffsetTriangle(builderState: MeshBuilder.State, a: Vec3, b: Vec3, c:
 async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
   const builderState = MeshBuilder.createState();
   const colors: Color[] = [];
+  const labels: string[] = [];
 
   // Every triangle is in its own group because they may have individual colors and we look
   // up the color based on the group is in the color function.
@@ -158,6 +167,7 @@ async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
     for (let i = 0; i < ribbonObject.masterArray.length; i++) {
       const coords = ribbonObject.positionArray;
       const colorArray = ribbonObject.colorArray;
+      const labelArray = ribbonObject.labelArray;
 
       /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
@@ -191,6 +201,10 @@ async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
           : Color.fromRgb(255, 255, 255);
         colors.push(color);
 
+        // labelArray may be undefined; push an empty string when not provided
+        const label = labelArray && labelArray.length > i ? labelArray[i] : '';
+        labels.push(label);
+
         // Find the vertics and normal for the triangle.
         let a: Vec3 = vertexList[0];
         let b: Vec3 = vertexList[1];
@@ -215,7 +229,7 @@ async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
   }
 
   const mesh = MeshBuilder.getMesh(builderState);
-  return { mesh, colors };
+  return { mesh, colors, labels };
 }
 
 /**
@@ -226,6 +240,7 @@ async function getSpheres(ctx: RuntimeContext, balls: BallList[]) {
   const builderState = SpheresBuilder.create();
   const radii: number[] = [];
   const colors: Color[] = [];
+  const labels: string[] = [];
 
   // Every ball is in its own group because they may have individual radii and we look
   // up the radius based on the group is in the size function.
@@ -248,23 +263,31 @@ async function getSpheres(ctx: RuntimeContext, balls: BallList[]) {
       colors.push(colorArray && colorArray.length > j * 3 ?
         Color.fromRgb(255 * (colorArray[3 * j + 0]), 255 * (colorArray[3 * j + 1]), 255 * (colorArray[3 * j + 2]))
         : Color.fromRgb(255, 255, 255));
+      // labelArray may be undefined; push an empty string when not provided
+      labels.push(balls[i].labelArray && balls[i].labelArray.length > j ? balls[i].labelArray[j] : '');
     }
   }
 
   const spheres = builderState.getSpheres();
-  return { spheres, radii: new Float32Array(radii), colors };
+  return { spheres, radii: new Float32Array(radii), colors, labels };
 }
 
 function makePointsShapeGetter() {
 
   const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapePointsParams>, shape?: Shape<Points>) => {
     // Get our points, adding them from all of the entries in the dot lists
-    const { points: _points, colors } = await getPoints(ctx, kinData.source.dotLists);
+    const { points: _points, colors, labels } = await getPoints(ctx, kinData.source.dotLists);
 
     // Color function signature: (groupId: number, instanceId: number) => Color
     // For Lines the groupId corresponds to the line index (order added).
     const colorFn = (group: number, instance: number) => {
       return colors[group];
+    }
+
+    // Label function signature: (groupId: number, instanceId: number) => string
+    // For Lines the groupId corresponds to the line index (order added).
+    const labelFn = (group: number, instance: number) => {
+      return labels[group];
     }
 
     let _shape: Shape<Points>;
@@ -274,7 +297,7 @@ function makePointsShapeGetter() {
       _points,
       colorFn,                // color function reads per-point colors
       () => 1,                // size function
-      () => ''                // @todo label function
+      labelFn                // label function reads per-point labels
     );
     return _shape;
   };
@@ -285,7 +308,7 @@ function makeLineShapeGetter() {
 
     const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeLinesParams>, shape?: Shape<Lines>) => {
         // Get our lines, adding them from all of the entries in the vector lists
-        const { lines: _lines, widths, colors } = await getLines(ctx, kinData.source.vectorLists);
+        const { lines: _lines, widths, colors, labels } = await getLines(ctx, kinData.source.vectorLists);
 
         // Size function signature: (groupId: number, instanceId: number) => number
         // For Lines the groupId corresponds to the line index (order added).
@@ -302,6 +325,12 @@ function makeLineShapeGetter() {
           return colors[group];
         }
 
+        // Label function signature: (groupId: number, instanceId: number) => string
+        // For Lines the groupId corresponds to the line index (order added).
+        const labelFn = (group: number, instance: number) => {
+          return labels[group];
+        }
+
         let _shape: Shape<Lines>;
         _shape = Shape.create<Lines>(
           'kin-lines',
@@ -309,7 +338,7 @@ function makeLineShapeGetter() {
           _lines,
           colorFn,                // color function reads per-line colors
           sizeFn,                 // size function reads per-line widths
-          () => ''                // @todo label function
+          labelFn                 // label function
         );
         return _shape;
     };
@@ -320,7 +349,7 @@ function makeMeshShapeGetter() {
 
   const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeMeshParams>, shape?: Shape<Mesh>) => {
 
-    let { mesh: _mesh, colors } = await getMesh(ctx, kinData.source.ribbonLists);
+    let { mesh: _mesh, colors, labels } = await getMesh(ctx, kinData.source.ribbonLists);
     // Ensure that _mesh is not undifined before we pass it to Shape.create.  If it is undefined, create an empty mesh instead.
     if (!_mesh) {
       console.warn('No mesh could be created from the KIN data.  Creating an empty mesh instead.');
@@ -333,6 +362,10 @@ function makeMeshShapeGetter() {
       return colors[group];
     }
 
+    const labelFn = (group: number, instance: number) => {
+      return labels[group];
+    }
+
     let _shape: Shape<Mesh>;
     _shape = Shape.create<Mesh>(
       'kin-mesh',
@@ -340,7 +373,7 @@ function makeMeshShapeGetter() {
       _mesh,
       colorFn,                // color function reads per-triangle colors
       () => 1,                // size function
-      () => ''                // @todo label function
+      labelFn                 // label function
     );
     return _shape;
   };
@@ -354,7 +387,7 @@ function makeSpheresShapeGetter() {
 
   const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeSpheresParams>, shape?: Shape<Spheres>) => {
     // Build spheres geometry and collect per-center radii
-    const { spheres: _spheres, radii, colors } = await getSpheres(ctx, kinData.source.ballLists);
+    const { spheres: _spheres, radii, colors, labels } = await getSpheres(ctx, kinData.source.ballLists);
 
     // size function signature: (groupId: number, instanceId: number) => number
     // For Spheres the groupId corresponds to the center index (order added).
@@ -369,6 +402,12 @@ function makeSpheresShapeGetter() {
       return colors[group];
     }
 
+    // Label function signature: (groupId: number, instanceId: number) => string
+    // For Spheres the groupId corresponds to the center index (order added).
+    const labelFn = (group: number, instance: number) => {
+      return labels[group];
+    }
+
     let _shape: Shape<Spheres>;
     _shape = Shape.create<Spheres>(
       'kin-spheres',
@@ -376,7 +415,7 @@ function makeSpheresShapeGetter() {
       _spheres,
       colorFn,                // color function reads per-center colors
       sizeFn,                 // size function reads per-center radii
-      () => ''                // @todo label function
+      labelFn                 // label function
     );
     return _shape;
   };
