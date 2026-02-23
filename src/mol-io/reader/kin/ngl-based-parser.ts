@@ -254,7 +254,8 @@ function convertKinTriangleArrays (ribbonObject: RibbonObject) {
     labelArray: convertedLabels,
     positionArray: convertedPositions,
     breakArray: convertedBreaks,
-    colorArray: convertedColors
+    colorArray: convertedColors,
+    pairTriangleNormals: ribbonObject.pairTriangleNormals
   }
 }
 
@@ -308,7 +309,8 @@ function removePointBreaksTriangleArrays (convertedRibbonObject: RibbonObject) {
     labelArray: editedLabels,
     positionArray: editedPositions,
     breakArray: editedBreaks,
-    colorArray: editedColors
+    colorArray: editedColors,
+    pairTriangleNormals: convertedRibbonObject.pairTriangleNormals
   }
 }
 
@@ -371,6 +373,7 @@ class KinParser {
     let ballLabel: string[], ballPosition: number[], ballColor: number[]
 
     let isRibbonList = false
+    let ribbonIsTriangles = false
     let prevRibbonPointLabel = ''
 
     let ribbonListDefaultColor: number[] = localColorDict['white']
@@ -533,6 +536,7 @@ class KinParser {
             })
           }
           isRibbonList = true
+          ribbonIsTriangles = line.startsWith('@triangle') /* triangle or trianglelist */
           prevRibbonPointLabel = ''
           ribbonPointLabelArray = []
           ribbonPointPositionArray = []
@@ -553,7 +557,8 @@ class KinParser {
             labelArray: ribbonPointLabelArray,
             positionArray: ribbonPointPositionArray,
             breakArray: ribbonPointBreakArray,
-            colorArray: ribbonPointColorArray
+            colorArray: ribbonPointColorArray,
+            pairTriangleNormals: !ribbonIsTriangles
           })
         } else if (line.startsWith('@text')) {
           isText = true

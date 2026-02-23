@@ -175,6 +175,7 @@ async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
       // There are three vertices per triangle.
       /// @todo Ribbon lighting is to be set up to make each pair of triangles look like a quad with the same normal.
       const numTriangles = coords.length / 9;
+      let prevTriangleNormal: Vec3 | undefined = undefined;
       for (let i = 0; i < numTriangles; i++) {
         const vertexList: Vec3[] = [];
 
@@ -215,14 +216,21 @@ async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
           b = c;
           c = temp;
         }
-        const n = Vec3.zero();
 
         // Put both orientations of the triangle. Add a small amount along the normal to make them
         // not be exactly on top of each other so that we only see the front face of each.
+        let n = Vec3.zero();
         Vec3.triangleNormal(n, a, b, c);
+        if (i % 2 === 1) {
+          // For ribbons, every other triangle is meant to be paired with the previous one to make a quad with the same normal.
+          // So use the same normal for every other triangle.
+          n = prevTriangleNormal || n;
+        }
+        prevTriangleNormal = n;
         addOffsetTriangle(builderState, a, b, c, n, 0.01);
 
-        Vec3.triangleNormal(n, a, c, b);
+        // Invert the normal for the back face.
+        Vec3.negate(n, n);
         addOffsetTriangle(builderState, a, c, b, n, 0.01);
       }
     }
