@@ -1,7 +1,7 @@
 # Kinemage extension
 
 This extension adds support for the Kinemage molecular graphics format based on the
-[kinemage](http://kinemage.biochem.duke.edu/static/files/PDFs/format-kinemage.pdf) format specification.
+[kinemage format specification](http://kinemage.biochem.duke.edu/static/files/PDFs/format-kinemage.pdf).
 
 It currently supports the following features:
 - Drag-and-drop of Kinemage files into the display area
