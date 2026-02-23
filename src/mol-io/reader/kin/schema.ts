@@ -47,7 +47,8 @@ export interface RibbonObject {
   labelArray: string[],           ///< Array of labels per element
   positionArray: number[],        ///< Catenation of x, y, z for each element, 9x as many as triangles (3 vertices per triangle)
   colorArray: number[],           ///< Catenation of r, g, b for each element, 9x as many as triangles (3 colors per triangle)
-  breakArray: boolean[]           ///< A single boolean per element indicating if there is a break there
+  breakArray: boolean[],          ///< A single boolean per element indicating if there is a break there
+  pairTriangleNormals: boolean    ///< Whether to pair every other triangle normal for lighting (true for ribbons, false for triangles)
 }
 
 export interface VectorList {
