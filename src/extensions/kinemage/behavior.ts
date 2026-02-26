@@ -76,7 +76,7 @@ export const KinemageShapeLinesProvider = Transform({
             return new PluginStateObject.Shape.Provider(provider as any, {
                 label: params.data.captions?.[0] || 'Kinemage Lines',
                 description: params.data.text || ''
-            });
+              });
         });
     }
 });
@@ -356,7 +356,43 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
   },
 };
 
-/** Data format provider for .kin files so the plugin can open/import them via the data system (File -> Open / import). */
+/** Track ongoing/completed loads per file signature to avoid duplicate parsing when both `parse` and `visuals` are invoked. */
+const kINLoadPromises = new Map<string, Promise<boolean>>();
+
+/** Create a stable key for a payload so different File instances (or wrappers) with same name+size reuse the same load. */
+function fileSignatureKeyFromPayload(data: any): { key: string, file: File } {
+  // If it's already a File or wrapped File, use name + size as signature (ignore lastModified to be more robust
+  // when different File instances are created from same content).
+  if (data instanceof File) {
+    return { key: `file:${data.name}|${data.size}`, file: data };
+  }
+  if (data?.input instanceof File) {
+    const f: File = data.input.file;
+    return { key: `file:${f.name}|${f.size}`, file: f };
+  }
+  if (data?.data && typeof data.data === 'string') {
+    const name = data.name || 'import.kin';
+    const content = data.data as string;
+    const file = new File([content], name, { type: 'text/plain' });
+    return { key: `file:${file.name}|${file.size}`, file };
+  }
+  if (typeof data === 'string') {
+    const file = new File([data], 'import.kin', { type: 'text/plain' });
+    return { key: `file:${file.name}|${file.size}`, file };
+  }
+
+  // Fallback: stringify & use length + prefix
+  try {
+    const s = String(data);
+    const file = new File([s], 'import.kin', { type: 'text/plain' });
+    return { key: `file:${file.name}|${file.size}`, file };
+  } catch {
+    // Last resort, use a unique key so we don't accidentally collide
+    const file = new File([''], 'import.kin', { type: 'text/plain' });
+    return { key: `file:import.kin|0|unknown`, file };
+  }
+}
+
 const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
   label: 'KIN',
   description: 'Kinemage',
@@ -365,42 +401,32 @@ const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
   parse: async (plugin, data) => {
     try {
       console.log('XXX KINFormatProvider.parse got data');
-      // data is usually a File when imported; if so, load it and apply into state
-      if (data instanceof File) {
-        await loadKinemageFile(plugin, data);
-      } else if ((data as any)?.input instanceof File) {
-        await loadKinemageFile(plugin, (data as any).input.file);
-      } else if (typeof data === 'string') {
-        // file contents passed as string -> wrap into a File so loader can use the same path
-        const file = new File([data], 'import.kin', { type: 'text/plain' });
-        await loadKinemageFile(plugin, file);
-      } else if ((data as any)?.data && typeof (data as any).data === 'string') {
-        // sometimes the payload may be { data: string, name?: string }
-        const payload = data as any;
-        const name = payload.name || 'import.kin';
-        const file = new File([payload.data], name, { type: 'text/plain' });
-        await loadKinemageFile(plugin, file);
-      } else {
-        // Unknown payload: attempt best-effort conversion to a string and load
-        try {
-          const maybeText = String(data);
-          const file = new File([maybeText], 'import.kin', { type: 'text/plain' });
-          await loadKinemageFile(plugin, file);
-        } catch (e) {
-          console.log('KINFormatProvider: unsupported data payload', e);
+
+      const { key, file } = fileSignatureKeyFromPayload(data);
+
+      let p = kINLoadPromises.get(key);
+      if (!p) {
+        p = loadKinemageFile(plugin, file).catch(e => {
+          // remove failed promise so retries are possible
+          kINLoadPromises.delete(key);
           throw e;
-        }
+        });
+        kINLoadPromises.set(key, p);
+      } else {
+        console.log('KINFormatProvider: reusing existing file load promise for', key);
       }
+
+      await p;
     } catch (e) {
-      console.log('Failed to parse KIN file', e);
+      console.error('Failed to parse KIN file', e);
       throw e;
     }
     // no persistent state object produced here (data gets applied as representations), so return undefined
     return undefined;
   },
   visuals: async (plugin, data) => {
-    // ensure visuals path behaves same as parse (load and apply)
-    await (KINFormatProvider.parse as any)(plugin, data);
+    // visuals should just call parse -- parse has deduplication logic so repeated calls won't re-parse the same file
+    //await (KINFormatProvider.parse as any)(plugin, data);
     return undefined;
   }
 });
