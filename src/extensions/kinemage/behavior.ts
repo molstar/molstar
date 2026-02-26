@@ -25,6 +25,7 @@ import { Vec3 } from '../../mol-math/linear-algebra';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { shapePointsFromKin, shapeLinesFromKin, shapeMeshFromKin, shapeSpheresFromKin } from '../../mol-model-formats/shape/kin';
 import { Kinemage } from '../../mol-io/reader/kin/schema';
+import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 
 const Tag = KinemageData.Tag;
 
@@ -152,6 +153,9 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
             this.ctx.builders.structure.representation.registerPreset(KinemageDataPreset);
 
             this.ctx.managers.dragAndDrop.addHandler(KinemageDragAndDropHandler.name, KinemageDragAndDropHandler.handle);
+
+            // Register .kin file handler so opening/dropping .kin is supported via the data formats system
+            this.ctx.dataFormats.add('KIN', KINFormatProvider);
         }
 
         update(p: { autoAttach: boolean }) {
@@ -173,6 +177,9 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
             this.ctx.builders.structure.representation.unregisterPreset(KinemageDataPreset);
 
             this.ctx.managers.dragAndDrop.removeHandler(KinemageDragAndDropHandler.name);
+
+            // Unregister the .kin data format provider
+            this.ctx.dataFormats.remove('KIN');
         }
     },
     params: () => ({
@@ -348,3 +355,32 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
     return applied;
   },
 };
+
+/** Data format provider for .kin files so the plugin can open/import them via the data system (File -> Open / import). */
+const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
+  label: 'KIN',
+  description: 'Kinemage',
+  category: 'Miscellaneous',
+  stringExtensions: ['kin'],
+  parse: async (plugin, data) => {
+    try {
+      // data is usually a File when imported; if so, load it and apply into state
+      console.log('XXX KINFormatProvider.parse got data');
+      if (data instanceof File) {
+        await loadKinemageFile(plugin, data);
+      } else if ((data as any)?.input instanceof File) {
+        await loadKinemageFile(plugin, (data as any).input.file);
+      }
+    } catch (e) {
+      console.log('Failed to parse KIN file', e);
+      throw e;
+    }
+    // no persistent state object produced here (data gets applied as representations), so return undefined
+    return undefined;
+  },
+  visuals: async (plugin, data) => {
+    // ensure visuals path behaves same as parse (load and apply)
+    await (KINFormatProvider.parse as any)(plugin, data);
+    return undefined;
+  }
+});
