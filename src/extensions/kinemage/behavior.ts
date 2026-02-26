@@ -12,12 +12,10 @@ import { StateObjectRef, StateTransformer, StateTransform } from '../../mol-stat
 import { Task } from '../../mol-task';
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { PluginDragAndDropHandler } from '../../mol-plugin-state/manager/drag-and-drop';
-import { KinemageDataRepresentationProvider, KinemageDataParams, KinemageDataRepresentation } from './representation';
+import { KinemageDataParams, KinemageDataRepresentation } from './representation';
 import { PluginStateObject, PluginStateTransform } from '../../mol-plugin-state/objects';
 import { PluginContext } from '../../mol-plugin/context';
 import { DefaultQueryRuntimeTable } from '../../mol-script/runtime/query/compiler';
-import { StructureSelectionQuery, StructureSelectionCategory } from '../../mol-plugin-state/helpers/structure-selection-query';
-import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { GenericRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { shapePointsFromKin, shapeLinesFromKin, shapeMeshFromKin, shapeSpheresFromKin } from '../../mol-model-formats/shape/kin';
@@ -128,9 +126,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
 
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
 
-            this.ctx.representation.structure.registry.add(KinemageDataRepresentationProvider);
-            this.ctx.query.structure.registry.add(isTransmembrane);
-
             this.ctx.genericRepresentationControls.set(Tag.Representation, selection => {
                 const refs: GenericRepresentationRef[] = [];
                 selection.structures.forEach(structure => {
@@ -158,9 +153,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
 
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
 
-            this.ctx.representation.structure.registry.remove(KinemageDataRepresentationProvider);
-            this.ctx.query.structure.registry.remove(isTransmembrane);
-
             this.ctx.genericRepresentationControls.delete(Tag.Representation);
 
             this.ctx.managers.dragAndDrop.removeHandler(KinemageDragAndDropHandler.name);
@@ -173,27 +165,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
         autoAttach: PD.Boolean(false)
     })
 });
-
-//
-
-export const isTransmembrane = StructureSelectionQuery('Residues Embedded in Membrane', MS.struct.modifier.union([
-    MS.struct.modifier.wholeResidues([
-        MS.struct.modifier.union([
-            MS.struct.generator.atomGroups({
-                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'atom-test': KinemageData.symbols.isTransmembrane.symbol(),
-            })
-        ])
-    ])
-]), {
-    description: 'Select residues that are embedded between the membrane layers.',
-    category: StructureSelectionCategory.Residue,
-    ensureCustomProperties: (ctx, structure) => {
-        return KinemageDataProvider.attach(ctx, structure);
-    }
-});
-
-//
 
 export { KinemageData3D };
 
