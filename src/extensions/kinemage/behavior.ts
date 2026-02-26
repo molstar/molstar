@@ -8,15 +8,13 @@
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { KinemageDataProvider, KinemageData } from './prop';
-import { StateObjectRef, StateTransformer, StateTransform } from '../../mol-state';
+import { StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { PluginDragAndDropHandler } from '../../mol-plugin-state/manager/drag-and-drop';
-import { KinemageDataParams, KinemageDataRepresentation } from './representation';
-import { PluginStateObject, PluginStateTransform } from '../../mol-plugin-state/objects';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { PluginContext } from '../../mol-plugin/context';
 import { DefaultQueryRuntimeTable } from '../../mol-script/runtime/query/compiler';
-import { GenericRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { shapePointsFromKin, shapeLinesFromKin, shapeMeshFromKin, shapeSpheresFromKin } from '../../mol-model-formats/shape/kin';
 import { Kinemage } from '../../mol-io/reader/kin/schema';
@@ -126,15 +124,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
 
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
 
-            this.ctx.genericRepresentationControls.set(Tag.Representation, selection => {
-                const refs: GenericRepresentationRef[] = [];
-                selection.structures.forEach(structure => {
-                    const memRepr = structure.genericRepresentations?.filter(r => r.cell.transform.transformer.id === KinemageData3D.id)[0];
-                    if (memRepr) refs.push(memRepr);
-                });
-                return [refs, 'Membrane Orientation'];
-            });
-
             this.ctx.managers.dragAndDrop.addHandler(KinemageDragAndDropHandler.name, KinemageDragAndDropHandler.handle);
 
             // Register .kin file handler so opening/dropping .kin is supported via the data formats system
@@ -165,55 +154,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
         autoAttach: PD.Boolean(false)
     })
 });
-
-export { KinemageData3D };
-
-type KinemageData3D = typeof KinemageData3D
-const KinemageData3D = PluginStateTransform.BuiltIn({
-    name: 'kinemage-3d',
-    display: {
-        name: 'Kinemage 3D Data',
-        description: '3D Data loaded from Kinemage.'
-    },
-    from: PluginStateObject.Molecule.Structure,
-    to: PluginStateObject.Shape.Representation3D,
-    params: (a) => {
-        return {
-          ...KinemageDataParams,
-        };
-    }
-})({
-    canAutoUpdate({ oldParams, newParams }) {
-        return true;
-    },
-    apply({ a, params }, plugin: PluginContext) {
-        return Task.create('Membrane Orientation', async ctx => {
-            await KinemageDataProvider.attach({ runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext }, a.data);
-            const repr = KinemageDataRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => KinemageDataParams);
-            await repr.createOrUpdate(params, a.data).runInContext(ctx);
-            return new PluginStateObject.Shape.Representation3D({ repr, sourceData: a.data }, { label: 'Membrane Orientation' });
-        });
-    },
-    update({ a, b, newParams }, plugin: PluginContext) {
-        return Task.create('Membrane Orientation', async ctx => {
-            await KinemageDataProvider.attach({ runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext }, a.data);
-            const props = { ...b.data.repr.props, ...newParams };
-            await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
-            b.data.sourceData = a.data;
-            return StateTransformer.UpdateResult.Updated;
-        });
-    },
-    isApplicable(a) {
-        return KinemageDataProvider.isApplicable(a.data);
-    }
-});
-
-export function tryCreateKinemageData(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, params?: StateTransformer.Params<KinemageData3D>, initialState?: Partial<StateTransform.State>) {
-    const state = plugin.state.data;
-    const KinemageData = state.build().to(structure)
-        .applyOrUpdateTagged('kinemage-3d', KinemageData3D, params, { state: initialState });
-    return KinemageData.commit({ revertOnError: true });
-}
 
 /** Registerable method for handling dragged-and-dropped files */
 interface DragAndDropHandler {
