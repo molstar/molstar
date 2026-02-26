@@ -356,40 +356,37 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
   },
 };
 
-/** Track ongoing/completed loads per file signature to avoid duplicate parsing when both `parse` and `visuals` are invoked. */
-const kINLoadPromises = new Map<string, Promise<boolean>>();
-
 /** Create a stable key for a payload so different File instances (or wrappers) with same name+size reuse the same load. */
-function fileSignatureKeyFromPayload(data: any): { key: string, file: File } {
+function fileSignatureKeyFromPayload(data: any): { file: File } {
   // If it's already a File or wrapped File, use name + size as signature (ignore lastModified to be more robust
   // when different File instances are created from same content).
   if (data instanceof File) {
-    return { key: `file:${data.name}|${data.size}`, file: data };
+    return { file: data };
   }
   if (data?.input instanceof File) {
     const f: File = data.input.file;
-    return { key: `file:${f.name}|${f.size}`, file: f };
+    return { file: f };
   }
   if (data?.data && typeof data.data === 'string') {
     const name = data.name || 'import.kin';
     const content = data.data as string;
     const file = new File([content], name, { type: 'text/plain' });
-    return { key: `file:${file.name}|${file.size}`, file };
+    return { file };
   }
   if (typeof data === 'string') {
     const file = new File([data], 'import.kin', { type: 'text/plain' });
-    return { key: `file:${file.name}|${file.size}`, file };
+    return { file };
   }
 
   // Fallback: stringify & use length + prefix
   try {
     const s = String(data);
     const file = new File([s], 'import.kin', { type: 'text/plain' });
-    return { key: `file:${file.name}|${file.size}`, file };
+    return { file };
   } catch {
     // Last resort, use a unique key so we don't accidentally collide
     const file = new File([''], 'import.kin', { type: 'text/plain' });
-    return { key: `file:import.kin|0|unknown`, file };
+    return { file };
   }
 }
 
@@ -402,20 +399,9 @@ const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
     try {
       console.log('XXX KINFormatProvider.parse got data');
 
-      const { key, file } = fileSignatureKeyFromPayload(data);
+      const { file } = fileSignatureKeyFromPayload(data);
 
-      let p = kINLoadPromises.get(key);
-      if (!p) {
-        p = loadKinemageFile(plugin, file).catch(e => {
-          // remove failed promise so retries are possible
-          kINLoadPromises.delete(key);
-          throw e;
-        });
-        kINLoadPromises.set(key, p);
-      } else {
-        console.log('KINFormatProvider: reusing existing file load promise for', key);
-      }
-
+      let p = loadKinemageFile(plugin, file);
       await p;
     } catch (e) {
       console.error('Failed to parse KIN file', e);
