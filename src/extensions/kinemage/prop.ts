@@ -6,24 +6,23 @@
 
 /** Based on the ../anvil extension. */
 
+import { Structure } from '../../mol-model/structure';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Structure, StructureProperties, Unit } from '../../mol-model/structure';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
-import { KinemageParams, KinemageProps, computeKinemage, isInMembranePlane } from './algorithm';
 import { CustomStructureProperty } from '../../mol-model-props/common/custom-structure-property';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
-import { Vec3 } from '../../mol-math/linear-algebra';
-import { QuerySymbolRuntime } from '../../mol-script/runtime/query/base';
-import { CustomPropSymbol } from '../../mol-script/language/symbol';
-import { Type } from '../../mol-script/language/type';
 import { Task } from '../../mol-task';
 
 import { Kinemage } from '../../mol-io/reader/kin/schema';
 import { parseKin } from '../../mol-io/reader/kin/parser';
 
+export const KinemageParams = {
+};
+export type KinemageParams = typeof KinemageParams
+export type KinemageProps = PD.Values<KinemageParams>
 
 export const KinemageDataParams = {
-    ...KinemageParams
+  ...KinemageParams
 };
 export type KinemageDataParams = typeof KinemageDataParams
 export type KinemageDataProps = PD.Values<KinemageDataParams>
@@ -31,17 +30,6 @@ export type KinemageDataProps = PD.Values<KinemageDataParams>
 export { KinemageData };
 
 interface KinemageData {
-    /// @todo Remove these
-    // point in membrane boundary
-    readonly planePoint1: Vec3,
-    // point in opposite side of membrane boundary
-    readonly planePoint2: Vec3,
-    // normal vector of membrane layer
-    readonly normalVector: Vec3,
-    // the radius of the membrane layer
-    readonly radius: number,
-    readonly centroid: Vec3,
-
     /**
      * List of Kinemages read from one or more files.
      */
@@ -63,20 +51,8 @@ namespace KinemageData {
         Representation = 'kinemage-3d'
     }
 
-    const pos = Vec3();
     export const symbols = {
-        isTransmembrane: QuerySymbolRuntime.Dynamic(CustomPropSymbol('computed', 'kinemage.is-kinemage', Type.Bool),
-            ctx => {
-                const { unit, structure } = ctx.element;
-                const { x, y, z } = StructureProperties.atom;
-                if (!Unit.isAtomic(unit)) return 0;
-                const KinemageData = KinemageDataProvider.get(structure).value;
-                if (!KinemageData) return 0;
-                Vec3.set(pos, x(ctx.element), y(ctx.element), z(ctx.element));
-                const { normalVector, planePoint1, planePoint2 } = KinemageData!;
-                return isInMembranePlane(pos, normalVector, planePoint1, planePoint2);
-            })
-    };
+    }
 
     async function loadKinemageData(data: string): Promise<Kinemage[]> {
       const task = parseKin(data);
@@ -107,13 +83,7 @@ namespace KinemageData {
 
       const kinemages = await task.run();
       const activeKinemage = kinemages.length - 1;
-      /// @todo Remove these once we no longer need them
-      const planePoint1 = Vec3.create(0, 0, 0);
-      const planePoint2 = Vec3.create(0, 0, 0);
-      const normalVector = Vec3.create(0, 0, 1);
-      const radius = 0;
-      const centroid = Vec3.create(0, 0, 0);
-      return { kinemages, activeKinemage, planePoint1, planePoint2, normalVector, radius, centroid };
+      return { kinemages, activeKinemage };
     }
 }
 
@@ -154,6 +124,10 @@ function isApplicable(structure: Structure) {
 }
 
 async function computeKinemageProps(ctx: CustomProperty.Context, data: Structure, props: Partial<KinemageProps>): Promise<KinemageData> {
-    const p = { ...PD.getDefaultValues(KinemageParams), ...props };
-    return await computeKinemage(data, p).runInContext(ctx.runtime);
+  // Return an empty KinemageData object since the actual data will be loaded asynchronously via the `open` method.
+  // This allows the property to be attached to the structure without blocking on file loading.
+  return {
+    kinemages: [],
+    activeKinemage: -1
+  };
 }
