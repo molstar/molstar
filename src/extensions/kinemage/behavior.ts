@@ -7,14 +7,12 @@
 /** Based on the ../anvil extension. */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../mol-plugin-state/builder/structure/representation-preset';
 import { KinemageDataProvider, KinemageData } from './prop';
 import { StateObjectRef, StateTransformer, StateTransform } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { PluginDragAndDropHandler } from '../../mol-plugin-state/manager/drag-and-drop';
 import { KinemageDataRepresentationProvider, KinemageDataParams, KinemageDataRepresentation } from './representation';
-import { HydrophobicityColorThemeProvider } from '../../mol-theme/color/hydrophobicity';
 import { PluginStateObject, PluginStateTransform } from '../../mol-plugin-state/objects';
 import { PluginContext } from '../../mol-plugin/context';
 import { DefaultQueryRuntimeTable } from '../../mol-script/runtime/query/compiler';
@@ -141,7 +139,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
                 });
                 return [refs, 'Membrane Orientation'];
             });
-            this.ctx.builders.structure.representation.registerPreset(KinemageDataPreset);
 
             this.ctx.managers.dragAndDrop.addHandler(KinemageDragAndDropHandler.name, KinemageDragAndDropHandler.handle);
 
@@ -165,7 +162,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
             this.ctx.query.structure.registry.remove(isTransmembrane);
 
             this.ctx.genericRepresentationControls.delete(Tag.Representation);
-            this.ctx.builders.structure.representation.unregisterPreset(KinemageDataPreset);
 
             this.ctx.managers.dragAndDrop.removeHandler(KinemageDragAndDropHandler.name);
 
@@ -238,35 +234,6 @@ const KinemageData3D = PluginStateTransform.BuiltIn({
     },
     isApplicable(a) {
         return KinemageDataProvider.isApplicable(a.data);
-    }
-});
-
-export const KinemageDataPreset = StructureRepresentationPresetProvider({
-    id: 'preset-kinemage',
-    display: {
-        name: 'Kinemage data', group: 'Annotation',
-        description: 'Shows data loaded from Kinemage file.'
-    },
-    isApplicable(a) {
-        return KinemageDataProvider.isApplicable(a.data);
-    },
-    params: () => StructureRepresentationPresetProvider.CommonParams,
-    async apply(ref, params, plugin) {
-        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
-        const structure = structureCell?.obj?.data;
-        if (!structureCell || !structure) return {};
-
-        if (!KinemageDataProvider.get(structure).value) {
-            await plugin.runTask(Task.create('Membrane Orientation', async runtime => {
-                await KinemageDataProvider.attach({ runtime, assetManager: plugin.managers.asset, errorContext: plugin.errorContext }, structure);
-            }));
-        }
-
-        const KinemageData = await tryCreateKinemageData(plugin, structureCell);
-        const colorTheme = HydrophobicityColorThemeProvider.name as any;
-        const preset = await PresetStructureRepresentations.auto.apply(ref, { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } }, plugin);
-
-        return { components: preset.components, representations: { ...preset.representations, KinemageData } };
     }
 });
 
