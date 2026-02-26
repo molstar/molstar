@@ -285,6 +285,50 @@ interface DragAndDropHandler {
   handle: PluginDragAndDropHandler,
 }
 
+/** Centralized helper to apply kinemage content into plugin state (re-used by drag handler and programmatic loader) */
+async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: KinemageData) {
+  const update = plugin.state.data.build();
+  for (const kinData of kinInfo.kinemages) {
+    await update
+      .toRoot()
+      .apply(KinemageShapePointsProvider, { data: kinData })
+      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    await update
+      .toRoot()
+      .apply(KinemageShapeLinesProvider, { data: kinData })
+      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    await update
+      .toRoot()
+      .apply(KinemageShapeMeshProvider, { data: kinData })
+      .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
+    await update
+      .toRoot()
+      .apply(KinemageShapeSpheresProvider, { data: kinData })
+      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    // keep legacy global info as well (optional)
+    /// @todo Remove this once we no longer need it.
+    g_kinemageInfo.kinemages.push(kinData);
+    g_kinemageInfo.activeKinemage = g_kinemageInfo.kinemages.length - 1;
+  }
+  update.commit();
+   console.log('XXX accumulated Kinemages size ', g_kinemageInfo.kinemages.length, ', active is ', g_kinemageInfo.activeKinemage);
+}
+
+/** Programmatic loader: load a single File (a .kin) into the plugin state.
+ * Runs the import inside a Task so it has a runtime and asset context similar to drag-and-drop.
+ * Returns true if at least one Kinemage was added.
+ */
+export async function loadKinemageFile(plugin: PluginContext, file: File): Promise<boolean> {
+  let applied = false;
+  const task = Task.create('Load KIN file', async ctx => {
+    const kinInfo = await KinemageData.open(file);
+    await applyKinemageInfoToState(plugin, kinInfo);
+    applied = kinInfo.kinemages.length > 0;
+  });
+  await plugin.runTask(task);
+  return applied;
+}
+
 /** DragAndDropHandler handler for `.kin` files */
 const KinemageDragAndDropHandler: DragAndDropHandler = {
   name: 'kin',
@@ -296,40 +340,9 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
     let applied = false;
     for (const file of files) {
       if (file.name.toLowerCase().endsWith('.kin')) {
-        const task = Task.create('Load KIN file', async ctx => {
-          const kinInfo = await KinemageData.open(file);
-
-          // Create all types of geometry that may be in the Kinemage.
-          const update = plugin.state.data.build();
-          for (const kinData of kinInfo.kinemages) {
-            await update
-              .toRoot()
-              .apply(KinemageShapePointsProvider, { data: kinData })
-              .apply(StateTransforms.Representation.ShapeRepresentation3D);
-            await update
-              .toRoot()
-              .apply(KinemageShapeLinesProvider, { data: kinData })
-              .apply(StateTransforms.Representation.ShapeRepresentation3D);
-            await update
-              .toRoot()
-              .apply(KinemageShapeMeshProvider, { data: kinData })
-              .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
-            await update
-              .toRoot()
-              .apply(KinemageShapeSpheresProvider, { data: kinData })
-              .apply(StateTransforms.Representation.ShapeRepresentation3D);
-            // keep legacy global info as well (optional)
-            /// @todo Remove this once we no longer need it.
-            g_kinemageInfo.kinemages.push(kinData);
-            g_kinemageInfo.activeKinemage = g_kinemageInfo.kinemages.length - 1;
-            // At least one file has been loaded, so we return true at the end.
-            applied = true;
-          }
-          update.commit();
-
-          console.log('XXX accumulated Kinemages size ', g_kinemageInfo.kinemages.length, ', active is ', g_kinemageInfo.activeKinemage);
-        });
-        await plugin.runTask(task);
+        // reuse programmatic loader so drag & drop and programmatic loading behave the same
+        const ok = await loadKinemageFile(plugin, file);
+        applied = applied || ok;
       }
     }
     return applied;
