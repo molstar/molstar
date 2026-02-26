@@ -356,7 +356,8 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
   },
 };
 
-/** Create a stable key for a payload so different File instances (or wrappers) with same name+size reuse the same load. */
+/* Convert a string to a file if needed so that our file loader can handle it properly. */
+/// @todo Consider making the handler be able to deal with a string to avoid extra work here.
 function fileFromPayload(data: any): File {
   // If it's already a File or wrapped File, use name + size as signature (ignore lastModified to be more robust
   // when different File instances are created from same content).
@@ -411,7 +412,10 @@ const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
     return undefined;
   },
   visuals: async (plugin, data) => {
-    // visuals should just call parse -- parse has deduplication logic so repeated calls won't re-parse the same file
+    /// @todo A more standard approach would be to have the parse call generate data and the visuals call create
+    /// the representations. However, since the KIN loader is already implemented as a side-effecting function that
+    /// applies directly to the plugin state, we can just call it from parse and have visuals be a no-op.  If we wanted
+    // to split it up more cleanly, we would need to refactor the KIN loader to separate parsing from applying to state.
     //await (KINFormatProvider.parse as any)(plugin, data);
     return undefined;
   }
