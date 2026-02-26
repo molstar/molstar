@@ -21,21 +21,12 @@ import { DefaultQueryRuntimeTable } from '../../mol-script/runtime/query/compile
 import { StructureSelectionQuery, StructureSelectionCategory } from '../../mol-plugin-state/helpers/structure-selection-query';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { GenericRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
-import { Vec3 } from '../../mol-math/linear-algebra';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { shapePointsFromKin, shapeLinesFromKin, shapeMeshFromKin, shapeSpheresFromKin } from '../../mol-model-formats/shape/kin';
 import { Kinemage } from '../../mol-io/reader/kin/schema';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 
 const Tag = KinemageData.Tag;
-
-/// @todo Remove once we store into the proper location in the drag and drop handler
-/** Global KinemageInfo that is used to display */
-let g_kinemageInfo: KinemageData = {
-  kinemages: [], activeKinemage: -1
-  /// @todo Remove these when we no longer need them.
-  , planePoint1: Vec3(), planePoint2: Vec3(), normalVector: Vec3(), radius: 0, centroid: Vec3()
-};
 
 const Transform = StateTransformer.builderFactory('sb-kinemage');
 
@@ -312,13 +303,8 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
       .toRoot()
       .apply(KinemageShapeSpheresProvider, { data: kinData })
       .apply(StateTransforms.Representation.ShapeRepresentation3D);
-    // keep legacy global info as well (optional)
-    /// @todo Remove this once we no longer need it.
-    g_kinemageInfo.kinemages.push(kinData);
-    g_kinemageInfo.activeKinemage = g_kinemageInfo.kinemages.length - 1;
   }
   update.commit();
-   console.log('XXX accumulated Kinemages size ', g_kinemageInfo.kinemages.length, ', active is ', g_kinemageInfo.activeKinemage);
 }
 
 /** Programmatic loader: load a single File (a .kin) into the plugin state.
@@ -398,10 +384,9 @@ const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
   stringExtensions: ['kin'],
   parse: async (plugin, data) => {
     try {
-      console.log('XXX KINFormatProvider.parse got data');
-
+      /// @todo Consider allowing the handler to directly take a string and not to open and read the file.
+      /// This avoids having to create a File object from the string content.
       const file = fileFromPayload(data);
-
       let p = loadKinemageFile(plugin, file);
       await p;
     } catch (e) {
