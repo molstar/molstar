@@ -364,12 +364,32 @@ const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
   stringExtensions: ['kin'],
   parse: async (plugin, data) => {
     try {
-      // data is usually a File when imported; if so, load it and apply into state
       console.log('XXX KINFormatProvider.parse got data');
+      // data is usually a File when imported; if so, load it and apply into state
       if (data instanceof File) {
         await loadKinemageFile(plugin, data);
       } else if ((data as any)?.input instanceof File) {
         await loadKinemageFile(plugin, (data as any).input.file);
+      } else if (typeof data === 'string') {
+        // file contents passed as string -> wrap into a File so loader can use the same path
+        const file = new File([data], 'import.kin', { type: 'text/plain' });
+        await loadKinemageFile(plugin, file);
+      } else if ((data as any)?.data && typeof (data as any).data === 'string') {
+        // sometimes the payload may be { data: string, name?: string }
+        const payload = data as any;
+        const name = payload.name || 'import.kin';
+        const file = new File([payload.data], name, { type: 'text/plain' });
+        await loadKinemageFile(plugin, file);
+      } else {
+        // Unknown payload: attempt best-effort conversion to a string and load
+        try {
+          const maybeText = String(data);
+          const file = new File([maybeText], 'import.kin', { type: 'text/plain' });
+          await loadKinemageFile(plugin, file);
+        } catch (e) {
+          console.log('KINFormatProvider: unsupported data payload', e);
+          throw e;
+        }
       }
     } catch (e) {
       console.log('Failed to parse KIN file', e);
