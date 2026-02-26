@@ -110,16 +110,6 @@ export const KinemageDataProvider: CustomStructureProperty.Provider<KinemageData
 });
 
 function isApplicable(structure: Structure) {
-    if (!structure.isAtomic) return false;
-
-    for (const model of structure.models) {
-        const { byEntityKey } = model.sequence;
-        for (const key of Object.keys(byEntityKey)) {
-            const { kind, length } = byEntityKey[+key].sequence;
-            if (kind !== 'protein') continue; // can only process protein chains
-            if (length >= 15) return true; // short peptides might fail
-        }
-    }
     return false;
 }
 
