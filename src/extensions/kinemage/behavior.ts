@@ -357,36 +357,36 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
 };
 
 /** Create a stable key for a payload so different File instances (or wrappers) with same name+size reuse the same load. */
-function fileSignatureKeyFromPayload(data: any): { file: File } {
+function fileFromPayload(data: any): File {
   // If it's already a File or wrapped File, use name + size as signature (ignore lastModified to be more robust
   // when different File instances are created from same content).
   if (data instanceof File) {
-    return { file: data };
+    return data;
   }
   if (data?.input instanceof File) {
     const f: File = data.input.file;
-    return { file: f };
+    return f;
   }
   if (data?.data && typeof data.data === 'string') {
     const name = data.name || 'import.kin';
     const content = data.data as string;
     const file = new File([content], name, { type: 'text/plain' });
-    return { file };
+    return file;
   }
   if (typeof data === 'string') {
     const file = new File([data], 'import.kin', { type: 'text/plain' });
-    return { file };
+    return file;
   }
 
   // Fallback: stringify & use length + prefix
   try {
     const s = String(data);
     const file = new File([s], 'import.kin', { type: 'text/plain' });
-    return { file };
+    return file;
   } catch {
     // Last resort, use a unique key so we don't accidentally collide
     const file = new File([''], 'import.kin', { type: 'text/plain' });
-    return { file };
+    return file;
   }
 }
 
@@ -399,7 +399,7 @@ const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
     try {
       console.log('XXX KINFormatProvider.parse got data');
 
-      const { file } = fileSignatureKeyFromPayload(data);
+      const file = fileFromPayload(data);
 
       let p = loadKinemageFile(plugin, file);
       await p;
