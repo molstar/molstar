@@ -21,10 +21,38 @@ import { shapePointsFromKin, shapeLinesFromKin, shapeMeshFromKin, shapeSpheresFr
 import { Kinemage } from '../../mol-io/reader/kin/schema';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 import { Camera } from '../../mol-canvas3d/camera';
+import { PluginCommands } from '../../mol-plugin/commands';
+import { StateObjectRef } from '../../mol-state';
+import { getPluginBoundingSphere } from '../../mol-plugin-state/manager/focus-camera/focus-object';
 
 const Tag = KinemageData.Tag;
 
 const Transform = StateTransformer.builderFactory('sb-kinemage');
+
+/**
+ * Apply a saved snapshot object (from a view state node) to the plugin camera.
+ * Use PluginCommands.Camera.SetSnapshot so transitions and canvas props are handled properly.
+ */
+/// @todo Hook this in
+export async function applyViewSnapshot(plugin: PluginContext, snapshot: Partial<Camera.Snapshot>) {
+  if (!snapshot) return;
+  // If the snapshot provides a target, adjust the canvas `sceneRadiusFactor` so the scene isn't clipped
+  // when we switch camera.
+  if (snapshot.target) {
+    try {
+      const boundingSphere = getPluginBoundingSphere(plugin);
+      if (boundingSphere && boundingSphere.radius > 0) {
+        const offset = Vec3.distance(snapshot.target as Vec3, boundingSphere.center);
+        const sceneRadiusFactor = (boundingSphere.radius + offset) / boundingSphere.radius;
+        plugin.canvas3d?.setProps({ sceneRadiusFactor });
+      }
+    } catch (e) {
+      // fallback: ignore errors and continue to set the camera snapshot
+      console.warn('Failed to adjust sceneRadiusFactor for view snapshot', e);
+    }
+  }
+  await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
+}
 
 export const KinemageShapePointsProvider = Transform({
   name: 'sb-kinemage-shape-points-provider',
@@ -110,6 +138,26 @@ export const KinemageShapeSpheresProvider = Transform({
   }
 });
 
+export const KinemageViewProvider = Transform({
+  name: 'sb-kinemage-view-provider',
+  display: { name: 'Kinemage View Provider' },
+  from: PluginStateObject.Root,
+  to: PluginStateObject.Format.Json, // store view metadata as JSON data node
+  params: {
+    name: PD.Text(''),
+    snapshot: PD.Value<Partial<Camera.Snapshot>>(undefined as any, { isHidden: true })
+  }
+})({
+  apply({ params }) {
+    return Task.create('Kinemage View Provider', async ctx => {
+      // PluginStateObject.Format.Json holds arbitrary JSON-like data; create instance with the payload
+      return new PluginStateObject.Format.Json({
+        name: params.name || 'Kinemage View',
+        snapshot: params.snapshot
+      } as any);
+    });
+  }
+});
 
 export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'kinemage-data-prop',
@@ -120,6 +168,8 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
     },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private provider = KinemageDataProvider;
+        private applyViewAction?: any;
+        private sub?: any;
 
         register(): void {
             DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
@@ -130,6 +180,37 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
 
             // Register .kin file handler so opening/dropping .kin is supported via the data formats system
             this.ctx.dataFormats.add('KIN', KINFormatProvider);
+
+            const applyViewAction = {
+                // keep fields minimal and compatible with the actions system
+                // adjust names if your repo expects different keys (use MVS LoadMvsData as example)
+                label: 'Apply View',
+                isApplicable: (a: any) => {
+                    const d = a?.data;
+                    return !!(d && d.data && (d.data as any).snapshot);
+                },
+                apply: async (a: any) => {
+                    const node = a?.data;
+                    const snapshot = node?.data?.snapshot as Partial<Camera.Snapshot> | undefined;
+                    if (snapshot) await applyViewSnapshot(this.ctx, snapshot);
+                }
+            };
+
+            // When this object is selected in the GUI, update the camera to its snapshot.
+            this.sub = this.ctx.state.data.behaviors.currentObject.subscribe((e: any) => {
+              const ref = e.ref;
+              // state.select returns an array of cells; the first is the matching cell
+              const cell = this.ctx.state.data.select(ref)[0];
+              const obj = cell?.obj;
+              const nodeData = obj?.data;
+              if (nodeData && nodeData.snapshot) {
+                applyViewSnapshot(this.ctx, nodeData.snapshot);
+              }
+            });
+
+            // store and register the exact object reference
+            this.applyViewAction = applyViewAction;
+            this.ctx.state.data.actions.add(this.applyViewAction);
         }
 
         update(p: { autoAttach: boolean }) {
@@ -150,6 +231,18 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
 
             // Unregister the .kin data format provider
             this.ctx.dataFormats.remove('KIN');
+
+            // Remove the state action if we registered one
+            if (this.applyViewAction) {
+              this.ctx.state.data.actions.remove(this.applyViewAction);
+              this.applyViewAction = undefined;
+            }
+
+            // Remove the action subscription if we created one
+            if (this.sub) {
+              this.sub.unsubscribe();
+              this.sub = undefined;
+            }
         }
     },
     params: () => ({
@@ -192,8 +285,9 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
         .apply(StateTransforms.Representation.ShapeRepresentation3D);
     }
     // Iterate over all entries in the view dictionary.
-    for (const [_, viewObj] of Object.entries(kinData.viewDict)) {
-      console.log('XXX view', viewObj);
+    const createdViewRefs: StateObjectRef<PluginStateObject.Format.Json>[] = [];
+    for (const [viewKey, viewObj] of Object.entries(kinData.viewDict)) {
+      const viewName = viewObj.name || `View ${viewKey}`;
 
       // If center is specified, then we will use that as the camera target. Otherwise, we will use the origin.
       const center = Vec3.create(0, 0, 0);
@@ -216,11 +310,11 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
       const yAxis = Vec3.create(0, 1, 0);
       Vec3.transformMat3(yAxis, yAxis, orientation);
 
-      // If span is specified, then we go half that distance along Z to find the camera position (90 degree FOV).
+      // If span is specified, then we go that distance along Z to find the camera position (90 degree FOV).
       // Otherwise, we go a default distance of 100 along Z.
       let distance = 100;
       if (viewObj.span) {
-        distance = viewObj.span / 2;
+        distance = viewObj.span;
       } else if (viewObj.zoom) {
         /// @todo If zoom is specified, then we need to do more computations based on the bounds on the geometry.
       }
@@ -229,12 +323,18 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
       Vec3.add(position, center, zAxis);
 
       // If the zslab is specified, then we set the radius to it; otherwise, we use a default of 100.
-      const radius = viewObj.zslab || 100;
+      // When the zslab value is 200, it should match the same as the span (half is percent of half span).
+      let radius = 100;
+      if (viewObj.zslab) {
+        const scale = viewObj.zslab / 200;
+        // Scale by 0.5 here to match the behavior of KiNG
+        radius = 0.5 * distance * scale;
+      }
 
       // Fill in the camera shapshot
       let snap: Camera.Snapshot;
       snap = {
-        mode: 'perspective',    ///< @todo Make this orthographic by default, and set reasonable parameters
+        mode: 'orthographic',   ///< Make this orthographic by default, to match Kinemage defaults
         fov: Math.PI / 4,       ///< 90-degree view by default for Molstar
 
         position: position,
@@ -248,8 +348,16 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
         minNear: 1,
         minFar: 1
       };
-      console.log('XXX snap', snap);
+
+      // Create a state object for the view (visible in State Tree)
+      const viewNode = update
+        .toRoot()
+        .apply(KinemageViewProvider, { name: viewName, snapshot: snap });
+
+      // Store the selector for UI wiring
+      createdViewRefs.push(viewNode.selector as StateObjectRef<PluginStateObject.Format.Json>);
     }
+
   }
   update.commit();
 }

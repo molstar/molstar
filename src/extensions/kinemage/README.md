@@ -9,6 +9,7 @@ It currently supports the following features:
 - Display of @ball, @sphere, @vector, @dot, @ribbon, and @triangle lists
 - Coloring of objects by vertex color, or by a single color for the entire list
 - Hovering over objects to see their labels (if present)
+- When there are views defined, JSON Data entries are added to the State Tree; when selected, they shift the view
 - State Tree names are based on the @pdbfile or @caption in the Kinemage file if there is one
 
 Currently unsupported features include:
@@ -22,4 +23,6 @@ Currently unsupported features include:
 Current limitations include:
 - Lines and triangles are a single color, not colored by vertex (Mol* does not support per-vertex coloring for these primitives)
 - Line segments in Mol* do not support end-caps for wide lines, so there are artifacts in highly-curved lines
-- The default perspective view and white background for Mol* differs from that of Kinemage
+- The default perspective view and white background for Mol* differs from that of Kinemage (though selecting a view from the
+  State Tree will switch it to orthographic)
+- The name of the view is buried down inside of the JSON Data object and you must click the Update pull-down to see it
