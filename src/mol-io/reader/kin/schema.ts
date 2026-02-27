@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author ReliaSolve <russ@reliasolve.com>
  */
@@ -8,7 +8,7 @@ export interface Kinemage {
   readonly comments: ReadonlyArray<string>
   kinemage?: number,
   onewidth?: any,
-  '1viewid'?: string,
+  viewDict: { [id: number]: View },
   pdbfile?: string,
   text: string,
   texts: string[],
@@ -61,4 +61,13 @@ export interface VectorList {
   color1Array: number[],          ///< Catenation of r, g, b for each element, 3x as many as elements
   color2Array: number[],          ///< Catenation of r, g, b for each element, 3x as many as elements
   width: number[]                 ///< A single width per element
+}
+
+export interface View {
+  name?: string,                  ///< Optional name of the View
+  center?: number[],              ///< X, Y, Z of the center of the view; the model rotates arond this point
+  matrix?: number[],              ///< Specifies and orthonormal rotation matrix defining view orientation
+  span?: number,                  ///< Specifies the (smaller of) width or height of the view in world coordinates at the center
+  zoom?: number,                  ///< Alternate zoom specification, indicates how much of the model is visible, 1=all, 2=half
+  zslab?: number                  ///< Distance from the center to the near and far clipping planes, 200 means same as span (half is percent of half span)
 }
