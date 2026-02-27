@@ -298,8 +298,9 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
       // Make an orientation matrix based on the matrix provided, otherwise make the identity matrix.
       const orientation: Mat3 = Mat3.identity();
       if (viewObj.matrix) {
-        /// @todo See if we should transpose this
+        /// Transpose this so that it matches the order for Molstar's Mat3 (row-major vs column-major).
         Mat3.fromArray(orientation, viewObj.matrix, 0);
+        Mat3.transpose(orientation, orientation);
       }
 
       // Rotate the +Z axis by the orientation to see which way points to the camera.
