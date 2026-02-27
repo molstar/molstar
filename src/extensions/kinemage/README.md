@@ -5,9 +5,11 @@ This extension adds support for the Kinemage molecular graphics format based on 
 
 It currently supports the following features:
 - Drag-and-drop of Kinemage files into the display area
+- Open File can open Kinemage files from the local filesystem
 - Display of @ball, @sphere, @vector, @dot, @ribbon, and @triangle lists
 - Coloring of objects by vertex color, or by a single color for the entire list
 - Hovering over objects to see their labels (if present)
+- State Tree names are based on the @pdbfile or @caption in the Kinemage file if there is one
 
 Currently unsupported features include:
 - master and submaster selections of visible objects
