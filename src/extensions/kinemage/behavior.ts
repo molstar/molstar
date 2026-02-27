@@ -6,6 +6,7 @@
 
 /** Based on the ../anvil extension. */
 
+import { Vec3, Mat3 } from '../../mol-math/linear-algebra';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { KinemageDataProvider, KinemageData } from './prop';
 import { StateTransformer } from '../../mol-state';
@@ -19,6 +20,7 @@ import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { shapePointsFromKin, shapeLinesFromKin, shapeMeshFromKin, shapeSpheresFromKin } from '../../mol-model-formats/shape/kin';
 import { Kinemage } from '../../mol-io/reader/kin/schema';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
+import { Camera } from '../../mol-canvas3d/camera';
 
 const Tag = KinemageData.Tag;
 
@@ -188,6 +190,65 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
         .toRoot()
         .apply(KinemageShapeSpheresProvider, { data: kinData })
         .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    }
+    // Iterate over all entries in the view dictionary.
+    for (const [_, viewObj] of Object.entries(kinData.viewDict)) {
+      console.log('XXX view', viewObj);
+
+      // If center is specified, then we will use that as the camera target. Otherwise, we will use the origin.
+      const center = Vec3.create(0, 0, 0);
+      if (viewObj.center) {
+        Vec3.set(center, viewObj.center[0], viewObj.center[1], viewObj.center[2]);
+      }
+
+      // Make an orientation matrix based on the matrix provided, otherwise make the identity matrix.
+      const orientation: Mat3 = Mat3.identity();
+      if (viewObj.matrix) {
+        /// @todo See if we should transpose this
+        Mat3.fromArray(orientation, viewObj.matrix, 0);
+      }
+
+      // Rotate the +Z axis by the orientation to see which way points to the camera.
+      const zAxis = Vec3.create(0, 0, 1);
+      Vec3.transformMat3(zAxis, zAxis, orientation);
+
+      // Rotate the +Y axis by the orientation to see which way points up.
+      const yAxis = Vec3.create(0, 1, 0);
+      Vec3.transformMat3(yAxis, yAxis, orientation);
+
+      // If span is specified, then we go half that distance along Z to find the camera position (90 degree FOV).
+      // Otherwise, we go a default distance of 100 along Z.
+      let distance = 100;
+      if (viewObj.span) {
+        distance = viewObj.span / 2;
+      } else if (viewObj.zoom) {
+        /// @todo If zoom is specified, then we need to do more computations based on the bounds on the geometry.
+      }
+      Vec3.scale(zAxis, zAxis, distance);
+      const position = Vec3.create(0, 0, 100);
+      Vec3.add(position, center, zAxis);
+
+      // If the zslab is specified, then we set the radius to it; otherwise, we use a default of 100.
+      const radius = viewObj.zslab || 100;
+
+      // Fill in the camera shapshot
+      let snap: Camera.Snapshot;
+      snap = {
+        mode: 'perspective',    ///< @todo Make this orthographic by default, and set reasonable parameters
+        fov: Math.PI / 4,       ///< 90-degree view by default for Molstar
+
+        position: position,
+        up: yAxis,
+        target: center,
+
+        radius: radius,
+        radiusMax: 1e4,
+        fog: 0,
+        clipFar: true,
+        minNear: 1,
+        minFar: 1
+      };
+      console.log('XXX snap', snap);
     }
   }
   update.commit();
