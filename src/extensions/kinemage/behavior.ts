@@ -38,7 +38,7 @@ export const KinemageShapePointsProvider = Transform({
       // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
       const provider = await shapePointsFromKin(params.data, { transforms: undefined }, 'Dots').runInContext(ctx);
       return new PluginStateObject.Shape.Provider(provider as any, {
-        label: params.data.captions?.[0] || 'Kinemage Points',
+        label: params.data.pdbfile || params.data.caption || 'Kinemage Points',
         description: params.data.text || ''
       });
     });
@@ -59,7 +59,7 @@ export const KinemageShapeLinesProvider = Transform({
             // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
             const provider = await shapeLinesFromKin(params.data).runInContext(ctx);
             return new PluginStateObject.Shape.Provider(provider as any, {
-                label: params.data.captions?.[0] || 'Kinemage Lines',
+              label: params.data.pdbfile || params.data.caption || 'Kinemage Lines',
                 description: params.data.text || ''
               });
         });
@@ -80,7 +80,7 @@ export const KinemageShapeMeshProvider = Transform({
       // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
       const provider = await shapeMeshFromKin(params.data).runInContext(ctx);
       return new PluginStateObject.Shape.Provider(provider as any, {
-        label: params.data.captions?.[0] || 'Kinemage Meshes',
+        label: params.data.pdbfile || params.data.caption || 'Kinemage Meshes',
         description: params.data.text || ''
       });
     });
@@ -101,7 +101,7 @@ export const KinemageShapeSpheresProvider = Transform({
       // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
       const provider = await shapeSpheresFromKin(params.data).runInContext(ctx);
       return new PluginStateObject.Shape.Provider(provider as any, {
-        label: params.data.captions?.[0] || 'Kinemage Spheres',
+        label: params.data.pdbfile || params.data.caption || 'Kinemage Spheres',
         description: params.data.text || ''
       });
     });
