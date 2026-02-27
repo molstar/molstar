@@ -430,10 +430,10 @@ function makeSpheresShapeGetter() {
   return getShape;
 }
 
-export function shapePointsFromKin(source: Kinemage, params?: { transforms?: Mat4[] }) {
+export function shapePointsFromKin(source: Kinemage, params?: { transforms?: Mat4[] }, label?: string) {
   return Task.create<ShapeProvider<KinData, Points, KinShapePointsParams>>('Kin Shape Points Provider', async ctx => {
     return {
-      label: 'Points',
+      label: label ?? 'Points',
       data: { source, transforms: params?.transforms },
       params: createKinShapePointsParams(source),
       getShape: makePointsShapeGetter(),
@@ -442,10 +442,10 @@ export function shapePointsFromKin(source: Kinemage, params?: { transforms?: Mat
   });
 }
 
-export function shapeLinesFromKin(source: Kinemage, params?: { transforms?: Mat4[] }) {
+export function shapeLinesFromKin(source: Kinemage, params?: { transforms?: Mat4[] }, label?: string) {
   return Task.create<ShapeProvider<KinData, Lines, KinShapeLinesParams>>('Kin Shape Lines Provider', async ctx => {
     return {
-      label: 'Lines',
+      label: label ?? 'Lines',
       data: { source, transforms: params?.transforms },
       params: createKinShapeLinesParams(source),
       getShape: makeLineShapeGetter(),
@@ -454,10 +454,10 @@ export function shapeLinesFromKin(source: Kinemage, params?: { transforms?: Mat4
   });
 }
 
-export function shapeMeshFromKin(source: Kinemage, params?: { transforms?: Mat4[] }) {
+export function shapeMeshFromKin(source: Kinemage, params?: { transforms?: Mat4[] }, label?: string) {
   return Task.create<ShapeProvider<KinData, Mesh, KinShapeMeshParams>>('Kin Shape Mesh Provider', async ctx => {
     return {
-      label: 'Mesh',
+      label: label ?? 'Meshes',
       data: { source, transforms: params?.transforms },
       params: createKinShapeMeshParams(source),
       getShape: makeMeshShapeGetter(),
@@ -466,10 +466,10 @@ export function shapeMeshFromKin(source: Kinemage, params?: { transforms?: Mat4[
   });
 }
 
-export function shapeSpheresFromKin(source: Kinemage, params?: { transforms?: Mat4[] }) {
+export function shapeSpheresFromKin(source: Kinemage, params?: { transforms?: Mat4[] }, label?: string) {
   return Task.create<ShapeProvider<KinData, Spheres, KinShapeSpheresParams>>('Kin Shape Spheres Provider', async ctx => {
     return {
-      label: 'Spheres',
+      label: label ?? 'Spheres',
       data: { source, transforms: params?.transforms },
       params: createKinShapeSpheresParams(source),
       getShape: makeSpheresShapeGetter(),

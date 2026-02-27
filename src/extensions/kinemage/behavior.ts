@@ -36,7 +36,7 @@ export const KinemageShapePointsProvider = Transform({
   apply({ params }) {
     return Task.create('Kinemage Points Shape Provider', async ctx => {
       // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
-      const provider = await shapePointsFromKin(params.data).runInContext(ctx);
+      const provider = await shapePointsFromKin(params.data, { transforms: undefined }, 'Dots').runInContext(ctx);
       return new PluginStateObject.Shape.Provider(provider as any, {
         label: params.data.captions?.[0] || 'Kinemage Points',
         description: params.data.text || ''
@@ -165,22 +165,30 @@ interface DragAndDropHandler {
 async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: KinemageData) {
   const update = plugin.state.data.build();
   for (const kinData of kinInfo.kinemages) {
-    await update
-      .toRoot()
-      .apply(KinemageShapePointsProvider, { data: kinData })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D);
-    await update
-      .toRoot()
-      .apply(KinemageShapeLinesProvider, { data: kinData })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D);
-    await update
-      .toRoot()
-      .apply(KinemageShapeMeshProvider, { data: kinData })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
-    await update
-      .toRoot()
-      .apply(KinemageShapeSpheresProvider, { data: kinData })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    if (kinData.dotLists.length > 0) {
+      await update
+        .toRoot()
+        .apply(KinemageShapePointsProvider, { data: kinData })
+        .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    }
+    if (kinData.vectorLists.length > 0) {
+      await update
+        .toRoot()
+        .apply(KinemageShapeLinesProvider, { data: kinData })
+        .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    }
+    if (kinData.ribbonLists.length > 0) {
+      await update
+        .toRoot()
+        .apply(KinemageShapeMeshProvider, { data: kinData })
+        .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
+    }
+    if (kinData.ballLists.length > 0) {
+      await update
+        .toRoot()
+        .apply(KinemageShapeSpheresProvider, { data: kinData })
+        .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    }
   }
   update.commit();
 }
