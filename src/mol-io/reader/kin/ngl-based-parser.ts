@@ -331,7 +331,7 @@ class KinParser {
       comments: [],
       kinemage: undefined,
       onewidth: undefined,
-      '1viewid': undefined,
+      viewDict: {},
       pdbfile: undefined,
       texts: [],
       text: '',
@@ -673,8 +673,6 @@ class KinParser {
           kinemage.kinemage = parseInt(line.substr(9).trim())
         } else if (line.startsWith('@onewidth')) {
           kinemage.onewidth = true
-        } else if (line.startsWith('@1viewid')) {
-          kinemage['1viewid'] = parseStr(line)
         } else if (line.startsWith('@pdbfile')) {
           kinemage.pdbfile = parseStr(line)
         } else if (line.startsWith('@group')) {
@@ -758,6 +756,77 @@ class KinParser {
           const colorReference = parseFlag(line)
           if (colorReference && colorReference in localColorDict) {
             localColorDict[colorName] = localColorDict[colorReference]
+          }
+        } else if (/^@(\d*)viewid\b/.test(line)) {
+          const m = line.match(/^@(\d*)viewid\b/);
+          const viewCount = (m && m[1] && m[1].length > 0) ? parseInt(m[1], 10) : 1;
+          if (!kinemage.viewDict[viewCount]) kinemage.viewDict[viewCount] = {};
+          kinemage.viewDict[viewCount].name = parseStr(line);
+        } else if (/^@(\d*)center\b/.test(line)) {
+          // Match all of the line after center as another string.
+          const m = line.match(/^@(\d*)center\b\s*(.*)$/);
+          const viewCount = (m && m[1] && m[1].length > 0) ? parseInt(m[1], 10) : 1;
+          // Pull out the three whitespace-separated numbers after the keyword.  Parse each as a float and
+          // add them to a length-3 list of numbers.
+          const rest = (m && m[2]) ? m[2].trim() : '';
+          // Split on whitespace and take the first three tokens, parsed as floating-point numbers, as the center coordinates.
+          const parts = rest.length > 0 ? rest.split(/\s+/).filter(Boolean) : [];
+          const centerTokens = parts.slice(0, 3).map(parseFloat);
+          // If the length is 3 and all are valid numbers, add the list of three numbers to the view dictionary.
+          if (centerTokens.length === 3 && centerTokens.every(num => !isNaN(num))) {
+            if (!kinemage.viewDict[viewCount]) kinemage.viewDict[viewCount] = {};
+            kinemage.viewDict[viewCount].center = centerTokens;
+          }
+        } else if (/^@(\d*)matrix\b/.test(line)) {
+          // Match all of the line after matrix as another string.
+          const m = line.match(/^@(\d*)matrix\b\s*(.*)$/);
+          const viewCount = (m && m[1] && m[1].length > 0) ? parseInt(m[1], 10) : 1;
+          // Pull out the nine whitespace-separated numbers after the keyword.  Parse each as a float and
+          // add them to a length-9 list of numbers.
+          const rest = (m && m[2]) ? m[2].trim() : '';
+          // Split on whitespace and take the first nine tokens, parsed as floating-point numbers, as the matrix values.
+          const parts = rest.length > 0 ? rest.split(/\s+/).filter(Boolean) : [];
+          const matrixTokens = parts.slice(0, 9).map(parseFloat);
+          // If the length is 9 and all are valid numbers, add the list of nine numbers to the view dictionary.
+          if (matrixTokens.length === 9 && matrixTokens.every(num => !isNaN(num))) {
+            if (!kinemage.viewDict[viewCount]) kinemage.viewDict[viewCount] = {};
+            kinemage.viewDict[viewCount].matrix = matrixTokens;
+          }
+        } else if (/^@(\d*)span\b/.test(line)) {
+          // Match all of the line after span as another string.
+          const m = line.match(/^@(\d*)span\b\s*(.*)$/);
+          const viewCount = (m && m[1] && m[1].length > 0) ? parseInt(m[1], 10) : 1;
+          // Pull out the remainder of the line and parse it as a float.
+          const rest = (m && m[2]) ? m[2].trim() : '';
+          const spanValue = parseFloat(rest);
+          // If it is a valid number, add it to the view dictionary.
+          if (!isNaN(spanValue)) {
+            if (!kinemage.viewDict[viewCount]) kinemage.viewDict[viewCount] = {};
+            kinemage.viewDict[viewCount].span = spanValue;
+          }
+        } else if (/^@(\d*)zoom\b/.test(line)) {
+          // Match all of the line after zoom as another string.
+          const m = line.match(/^@(\d*)zoom\b\s*(.*)$/);
+          const viewCount = (m && m[1] && m[1].length > 0) ? parseInt(m[1], 10) : 1;
+          // Pull out the remainder of the line and parse it as a float.
+          const rest = (m && m[2]) ? m[2].trim() : '';
+          const zoomValue = parseFloat(rest);
+          // If it is a valid number, add it to the view dictionary.
+          if (!isNaN(zoomValue)) {
+            if (!kinemage.viewDict[viewCount]) kinemage.viewDict[viewCount] = {};
+            kinemage.viewDict[viewCount].zoom = zoomValue;
+          }
+        } else if (/^@(\d*)zslab\b/.test(line)) {
+          // Match all of the line after zslab as another string.
+          const m = line.match(/^@(\d*)zslab\b\s*(.*)$/);
+          const viewCount = (m && m[1] && m[1].length > 0) ? parseInt(m[1], 10) : 1;
+          // Pull out the remainder of the line and parse it as a float.
+          const rest = (m && m[2]) ? m[2].trim() : '';
+          const zslabValue = parseFloat(rest);
+          // If it is a valid number, add it to the view dictionary.
+          if (!isNaN(zslabValue)) {
+            if (!kinemage.viewDict[viewCount]) kinemage.viewDict[viewCount] = {};
+            kinemage.viewDict[viewCount].zslab = zslabValue;
           }
         } else {
           console.log("Kinemage: Unrecognized line: " + line)
