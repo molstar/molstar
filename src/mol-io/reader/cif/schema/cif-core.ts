@@ -126,6 +126,17 @@ export const CifCore_Schema = {
      */
     chemical_formula: {
         /**
+         * Formula expressed in conformance with IUPAC rules for inorganic
+         * and metal-organic compounds where these conflict with the rules
+         * for any other chemical_formula entries. Typically used for
+         * formatting a formula in accordance with journal rules. This
+         * should appear in the data block in addition to the most
+         * appropriate of the other chemical_formula data names.
+         * Ref: IUPAC (1990). Nomenclature of Inorganic Chemistry.
+         * Oxford: Blackwell Scientific Publications.
+         */
+        iupac: str,
+        /**
          * Formula with each discrete bonded residue or ion shown as a
          * separate moiety. See above CHEMICAL_FORMULA for rules
          * for writing chemical formulae. In addition to the general
@@ -195,6 +206,32 @@ export const CifCore_Schema = {
          */
         it_number: int,
         /**
+         * _space_group.name_H-M_alt allows for any Hermann-Mauguin symbol
+         * to be given. The way in which this item is used is determined
+         * by the user and in general is not intended to be interpreted by
+         * computer. It may, for example, be used to give one of the
+         * extended Hermann-Mauguin symbols given in Table 4.3.1 of
+         * International Tables for Crystallography Vol. A (1995) or
+         * a Hermann-Mauguin symbol for a conventional or unconventional
+         * setting.
+         * Each component of the space group name is separated by a
+         * space or underscore. The use of space is strongly
+         * recommended. The underscore is only retained because it
+         * was used in earlier archived files. It should not be
+         * used in new CIFs. Subscripts should appear without special
+         * symbols. Bars should be given as negative signs before the
+         * numbers to which they apply.
+         * The commonly used Hermann-Mauguin symbol determines the space
+         * group type uniquely, but a given space group type may be
+         * described by more than one Hermann-Mauguin symbol. The space
+         * group type is best described using _space_group.IT_number.
+         * The Hermann-Mauguin symbol may contain information on the
+         * choice of basis though not on the choice of origin. To
+         * define the setting uniquely use _space_group.name_Hall or
+         * list the symmetry operations.
+         */
+        'name_h-m_alt': str,
+        /**
          * The full international Hermann-Mauguin space-group symbol as
          * defined in Section 2.1.3.3 and given as the second item of the
          * second line of each of the space-group tables of Chapter 2.3 of
@@ -225,6 +262,18 @@ export const CifCore_Schema = {
          * Chichester: John Wiley & Sons.
          */
         'name_h-m_full': str,
+        /**
+         * Space group symbol defined by Hall. Each component of the
+         * space group name is separated by a space or an underscore.
+         * The use of space is strongly recommended because it specifies
+         * the coordinate system. The underscore in the name is only
+         * retained because it was used in earlier archived files. It
+         * should not be used in new CIFs.
+         * Ref: Hall, S. R. (1981). Acta Cryst. A37, 517-525
+         * [See also International Tables for Crystallography,
+         * Vol. B (1993) 1.4 Appendix B]
+         */
+        name_hall: str,
     },
     /**
      * The category of data items used to describe symmetry equivalent sites
@@ -725,12 +774,22 @@ export const CifCore_Aliases = {
     'cell.formula_units_z': [
         'cell_formula_units_Z',
     ],
+    'chemical_formula.iupac': [
+        'chemical_formula_IUPAC',
+    ],
     'space_group.it_number': [
         'space_group_IT_number',
         'symmetry_Int_Tables_number',
     ],
+    'space_group.name_h-m_alt': [
+        'space_group_name_H-M_alt',
+    ],
     'space_group.name_h-m_full': [
         'symmetry_space_group_name_H-M',
+    ],
+    'space_group.name_hall': [
+        'space_group_name_Hall',
+        'symmetry_space_group_name_Hall',
     ],
     'space_group_symop.operation_xyz': [
         'symmetry_equiv_pos_as_xyz',

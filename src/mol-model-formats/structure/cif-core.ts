@@ -26,9 +26,10 @@ import { cantorPairing } from '../../mol-data/util';
 
 function getSpacegroupNameOrNumber(space_group: CifCore_Database['space_group']) {
     const groupNumber = space_group.it_number.value(0);
-    const groupName = space_group['name_h-m_full'].value(0).replace('-', ' ');
+    const space_group_name = space_group['name_h-m_full'].isDefined ? space_group['name_h-m_full'] : space_group['name_h-m_alt'];
+    const groupName = space_group_name.value(0).replace('_', ' ');
     if (!space_group.it_number.isDefined) return groupName;
-    if (!space_group['name_h-m_full'].isDefined) return groupNumber;
+    if (!space_group_name.isDefined) return groupNumber;
     return groupNumber;
 }
 

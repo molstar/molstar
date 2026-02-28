@@ -93,6 +93,7 @@ export function getFieldType(type: string, description: string, values?: string[
         case 'Implied':
         case 'Word':
         case 'Uri':
+        case 'Iri':
             return wrapContainer('str', ',', description, container);
         case 'Real':
             return wrapContainer('float', ',', description, container);

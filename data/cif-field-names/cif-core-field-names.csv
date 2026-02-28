@@ -14,6 +14,7 @@ chemical.melting_point
 
 chemical_formula.moiety
 chemical_formula.sum
+chemical_formula.iupac
 chemical_formula.weight
 
 atom_type.symbol
@@ -25,6 +26,8 @@ atom_type_scat.source
 
 space_group.crystal_system
 space_group.name_h-m_full
+space_group.name_h-m_alt
+space_group.name_hall
 space_group.it_number
 space_group_symop.operation_xyz
 

@@ -166,9 +166,9 @@ const MA_DIC_URL = 'https://raw.githubusercontent.com/ihmwg/ModelCIF/master/dist
 const CIF_CORE_DIC_PATH = `${DIC_DIR}/cif_core.dic`;
 const CIF_CORE_DIC_URL = 'https://raw.githubusercontent.com/COMCIFS/cif_core/master/cif_core.dic';
 const CIF_CORE_ENUM_PATH = `${DIC_DIR}/templ_enum.cif`;
-const CIF_CORE_ENUM_URL = 'https://raw.githubusercontent.com/COMCIFS/cif_core/master/templ_enum.cif';
+const CIF_CORE_ENUM_URL = 'https://raw.githubusercontent.com/COMCIFS/Enumeration_Templates/refs/heads/main/templ_enum.cif';
 const CIF_CORE_ATTR_PATH = `${DIC_DIR}/templ_attr.cif`;
-const CIF_CORE_ATTR_URL = 'https://raw.githubusercontent.com/COMCIFS/cif_core/master/templ_attr.cif';
+const CIF_CORE_ATTR_URL = 'https://raw.githubusercontent.com/COMCIFS/Attribute_Templates/refs/heads/main/templ_attr.cif';
 
 const parser = new argparse.ArgumentParser({
     add_help: true,
