@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Code-generated lipid params file. Names from Martini FF and Amber.
  *

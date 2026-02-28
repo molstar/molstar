@@ -126,16 +126,16 @@ and navigate to `build/viewer`
 
 **Ion names**
 
-    node --max-old-space-size=4096 lib/commonjs/cli/chem-comp-dict/create-ions.js src/mol-model/structure/model/types/ions.ts
+    node --max-old-space-size=8192 lib/commonjs/cli/chem-comp-dict/create-ions.js src/mol-model/structure/model/types/ions.ts
 
 **Saccharide names**
 
-    node --max-old-space-size=4096 lib/commonjs/cli/chem-comp-dict/create-saccharides.js src/mol-model/structure/model/types/saccharides.ts
+    node --max-old-space-size=8192 lib/commonjs/cli/chem-comp-dict/create-saccharides.js src/mol-model/structure/model/types/saccharides.ts
 
 ### Other scripts
 **Create chem comp bond table**
 
-    node --max-old-space-size=4096 lib/commonjs/cli/chem-comp-dict/create-table.js build/data/ccb.bcif -b
+    node --max-old-space-size=8192 lib/commonjs/cli/chem-comp-dict/create-table.js build/data/ccb.bcif -b
 
 **Test model server**
 
