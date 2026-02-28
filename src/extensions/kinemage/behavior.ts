@@ -151,10 +151,12 @@ export const KinemageViewProvider = Transform({
   apply({ params }) {
     return Task.create('Kinemage View Provider', async ctx => {
       // PluginStateObject.Format.Json holds arbitrary JSON-like data; create instance with the payload
-      return new PluginStateObject.Format.Json({
-        name: params.name || 'Kinemage View',
-        snapshot: params.snapshot
-      } as any);
+      // Pass the view name as the node label so the State Tree shows the provided name instead of "JSON Data"
+      const viewName = String(params.name || 'Kinemage View');
+      return new PluginStateObject.Format.Json(
+        { name: viewName, snapshot: params.snapshot } as any,
+        { label: viewName }
+      );
     });
   }
 });
