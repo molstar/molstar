@@ -1,0 +1,14 @@
+# added semicolons to linting rules
+fb0634a0f4aab3764b7e6368e38d8dea7615e591
+
+# new linting rules (no default exports, no named tuples)
+6c5224f33e9de20fe9967a82536c269bacf29738
+
+# lint: add space-in-parens rule
+1d21787e7ea1971817813c008351541e4640c261
+
+# lint: add object-curly-spacing rule
+b31302ba3ad4ab7f98aedd500b762be642374ff0
+
+# fix eslint warnings
+3b1513adc0048dc4879f1d70874b3e56aaffd10e
