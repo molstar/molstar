@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -30,7 +30,7 @@ import { CustomModelProperty } from '../../../mol-model-props/common/custom-mode
 import { Trajectory, ArrayTrajectory } from '../trajectory';
 import { Unit } from '../structure';
 import { SortedArray } from '../../../mol-data/int/sorted-array';
-import { PolymerType } from './types';
+import { PolymerType, TraceAtoms } from './types';
 import { ModelSecondaryStructure } from '../../../mol-model-formats/structure/property/secondary-structure';
 
 /**
@@ -298,14 +298,15 @@ export namespace Model {
                 }
             }
 
-            // check for coarse grained atom names
-            let hasBB = false, hasSC1 = false;
+            // check for coarse grained & trace atom names
+            let hasBB = false, hasSC1 = false, hasTrace = false;
             const { label_atom_id, _rowCount: atomCount } = model.atomicHierarchy.atoms;
             for (let i = 0; i < atomCount; ++i) {
                 const atomName = label_atom_id.value(i);
                 if (!hasBB && atomName === 'BB') hasBB = true;
                 if (!hasSC1 && atomName === 'SC1') hasSC1 = true;
-                if (hasBB && hasSC1) break;
+                if (!hasTrace && TraceAtoms.has(atomName)) hasTrace = true;
+                if (hasBB && hasSC1 && hasTrace) break;
             }
 
             coarseGrained = false;
@@ -314,7 +315,7 @@ export namespace Model {
                     coarseGrained = true;
                 } else if (atomCount / polymerResidueCount < 3) {
                     coarseGrained = true;
-                } else if (polymerDirectionCount === 0) {
+                } else if (polymerDirectionCount === 0 && hasTrace) {
                     coarseGrained = true;
                 }
             }

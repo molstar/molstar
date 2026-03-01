@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -152,7 +152,7 @@ export const ProteinBackboneAtoms = new Set([
     'CA', 'C', 'N', 'O',
     'O1', 'O2', 'OC1', 'OC2', 'OT1', 'OT2', 'OX1', 'OXT',
     'H', 'H1', 'H2', 'H3', 'HA', 'HN', 'HXT',
-    'BB'
+    'CA1', 'BB', 'BAS'
 ]);
 
 export const NucleicBackboneAtoms = new Set([
@@ -160,6 +160,10 @@ export const NucleicBackboneAtoms = new Set([
     'O2\'', 'O3\'', 'O4\'', 'O5\'', 'C1\'', 'C2\'', 'C3\'', 'C4\'', 'C5\'',
     'H1\'', 'H2\'', 'H2\'\'', 'HO2\'', 'H3\'', 'H4\'', 'H5\'', 'H5\'\'', 'HO3\'', 'HO5\'',
     'O2*', 'O3*', 'O4*', 'O5*', 'C1*', 'C2*', 'C3*', 'C4*', 'C5*'
+]);
+
+export const TraceAtoms = new Set([
+    'CA', 'CA1', 'BB', 'BAS', 'O3\'', 'O3*', 'N4\'', 'N4*'
 ]);
 
 type ChemCompType = mmCIF_chemComp_schema['type']['T'];
