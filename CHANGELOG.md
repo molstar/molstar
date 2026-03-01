@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Add `putty` as a mol-view-spec representation.
 
 ## [v5.7.0] - 2026-02-28
 - Text label improvements
@@ -49,7 +50,6 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `Structure.coordination` sites
 - Add `Polyhedron` representation showing coordination sites
 - Guard against `xr-spatial-tracking` blocked in `Permissions-Policy`
-- Add `putty` as a mol-view-spec representation.
 
 ## [v5.6.1] - 2026-01-23
 - Disable occlusion culling in `ImagePass` (#1758)
