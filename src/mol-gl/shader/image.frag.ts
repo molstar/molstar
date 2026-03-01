@@ -58,6 +58,7 @@ uniform sampler2D tMarker;
 
 varying vec2 vUv;
 varying float vInstance;
+varying vec3 vPosition;
 
 #ifdef dUsePalette
     uniform sampler2D tPalette;
@@ -138,7 +139,7 @@ uniform float uIsoLevel;
 #endif
 
 void main() {
-    if (uTrimType != 0 && getSignedDistance(vModelPosition, uTrimType, uTrimCenter, uTrimRotation, uTrimScale, uTrimTransform) > 0.0) discard;
+    if (uTrimType != 0 && getSignedDistance(vPosition, uTrimType, uTrimCenter, uTrimRotation, uTrimScale, uTrimTransform) > 0.0) discard;
 
     #include fade_lod
     #include clip_pixel

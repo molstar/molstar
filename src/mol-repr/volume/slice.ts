@@ -19,7 +19,7 @@ import { transformPositionArray } from '../../mol-geo/util';
 import { Color } from '../../mol-util/color';
 import { ColorTheme } from '../../mol-theme/color';
 import { packIntToRGBArray } from '../../mol-util/number-packing';
-import { createVolumeCellLocationIterator, eachVolumeLoci } from './util';
+import { createPeriodicVolume, createVolumeSliceCellLocationIterator, eachVolumeLoci } from './util';
 import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { Quat } from '../../mol-math/linear-algebra/3d/quat';
 import { degToRad } from '../../mol-math/misc';
@@ -27,9 +27,9 @@ import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 import { clamp, normalize } from '../../mol-math/interpolate';
 import { assertUnreachable } from '../../mol-util/type-helpers';
 import { OrderedSet } from '../../mol-data/int/ordered-set';
-import { SortedArray } from '../../mol-data/int/sorted-array';
 import { Interval } from '../../mol-data/int/interval';
 import { VolumeVisual } from './visual';
+import { cantorPairing } from '../../mol-data/util/hash-functions';
 
 export const SliceParams = {
     ...Image.Params,
@@ -59,6 +59,12 @@ export type SliceParams = typeof SliceParams
 export type SliceProps = PD.Values<SliceParams>
 
 export function getSliceParams(ctx: ThemeRegistryContext, volume: Volume) {
+    const periodicRange = Volume.getPeriodicRange(volume);
+    if (periodicRange) {
+        const { min, max } = periodicRange;
+        volume = createPeriodicVolume(volume, min, max);
+    }
+
     const p = PD.clone(SliceParams);
     const dim = volume.grid.cells.space.dimensions;
     p.dimension = PD.MappedStatic('x', {
@@ -74,6 +80,11 @@ export function getSliceParams(ctx: ThemeRegistryContext, volume: Volume) {
 }
 
 export async function createImage(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: SliceProps, image?: Image): Promise<Image> {
+    const periodicRange = Volume.getPeriodicRange(volume);
+    if (periodicRange) {
+        const { min, max } = periodicRange;
+        volume = createPeriodicVolume(volume, min, max);
+    }
     switch (props.mode) {
         case 'frame':
             return createFrameImage(ctx, volume, key, theme, props, image);
@@ -194,14 +205,24 @@ function getSampledImage(volume: Volume, theme: Theme, info: SamplingInfo, isoVa
     const groupArray = new Uint8Array(width * height * 4);
     const valueArray = new Float32Array(width * height);
 
+    const mapping = {
+        instance: new Int16Array(width * height),
+        cell: new Uint32Array(width * height),
+        index: new Map<number, number>(),
+    };
+
     const gridCoords = Vec3();
 
     const pl = PositionLocation(Vec3(), Vec3());
     const getTrilinearlyInterpolated = Grid.makeGetTrilinearlyInterpolated(volume.grid, 'none');
 
+    const periodicMapping = Volume.getPeriodicMapping(volume);
+
     let i = 0;
     for (let ih = 0; ih < height; ++ih) {
         for (let iw = 0; iw < width; ++iw) {
+            const i4 = i * 4;
+
             const y = (clamp(iw + 0.5, 0, width - 1) / width) - 0.5;
             const x = (clamp(ih + 0.5, 0, height - 1) / height) - 0.5;
             Vec3.set(v, x, -y, 0);
@@ -216,21 +237,41 @@ function getSampledImage(volume: Volume, theme: Theme, info: SamplingInfo, isoVa
 
             Vec3.copy(pl.position, v);
             const c = color(pl, false);
-            Color.toArray(c, imageArray, i);
+            Color.toArray(c, imageArray, i4);
 
             const val = normalize(getTrilinearlyInterpolated(v), min, max);
             if (isUniform) {
-                imageArray[i] *= val;
-                imageArray[i + 1] *= val;
-                imageArray[i + 2] *= val;
+                imageArray[i4] *= val;
+                imageArray[i4 + 1] *= val;
+                imageArray[i4 + 2] *= val;
             }
-            valueArray[i / 4] = val;
+            valueArray[i] = val;
 
             if (ix >= 0 && ix < mx && iy >= 0 && iy < my && iz >= 0 && iz < mz) {
-                packIntToRGBArray(space.dataOffset(ix, iy, iz), groupArray, i);
+                packIntToRGBArray(i, groupArray, i4);
+
+                if (periodicMapping) {
+                    const pm = periodicMapping.get(ix, iy, iz);
+                    if (pm) {
+                        mapping.instance[i] = pm.instance;
+                        mapping.cell[i] = pm.cell;
+                        mapping.index.set(cantorPairing(pm.instance, pm.cell), i);
+                    } else {
+                        imageArray[i4] = 0;
+                        imageArray[i4 + 1] = 0;
+                        imageArray[i4 + 2] = 0;
+                        imageArray[i4 + 3] = 0;
+                        valueArray[i] = NaN;
+                    }
+                } else {
+                    const o = space.dataOffset(ix, iy, iz);
+                    mapping.instance[i] = -1;
+                    mapping.cell[i] = o;
+                    mapping.index.set(o, i);
+                }
             }
 
-            i += 4;
+            i += 1;
         }
     }
 
@@ -249,7 +290,10 @@ function getSampledImage(volume: Volume, theme: Theme, info: SamplingInfo, isoVa
     const isoLevel = clamp(normalize(Volume.IsoValue.toAbsolute(isoValue, stats).absoluteValue, min, max), 0, 1);
 
     const im = Image.create(imageTexture, corners, groupTexture, valueTexture, trim, isoLevel, image);
-    im.setBoundingSphere(Volume.getBoundingSphere(volume));
+    im.setBoundingSphere(Volume.isPeriodic(volume) ? Volume.getBoundingSphere(volume) : Grid.getBoundingSphere(volume.grid));
+
+    im.meta.mapping = mapping;
+
     return im;
 }
 
@@ -344,29 +388,60 @@ async function createGridImage(ctx: VisualContext, volume: Volume, key: number, 
     );
 
     const imageArray = new Uint8Array(width * height * 4);
-    const groupArray = getPackedGroupArray(volume.grid, props);
+    const groupArray = new Uint8Array(width * height * 4);
     const valueArray = new Float32Array(width * height);
+
+    const mapping = {
+        instance: new Int16Array(width * height),
+        cell: new Uint32Array(width * height),
+        index: new Map<number, number>(),
+    };
 
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
     const l = PositionLocation(Vec3(), Vec3());
+
+    const periodicMapping = Volume.getPeriodicMapping(volume);
 
     let i = 0;
     for (let iy = y0; iy < ny; ++iy) {
         for (let ix = x0; ix < nx; ++ix) {
             for (let iz = z0; iz < nz; ++iz) {
+                const i4 = i * 4;
+
                 Vec3.set(l.position, ix, iy, iz);
                 Vec3.transformMat4(l.position, l.position, gridToCartn);
-                Color.toArray(color(l, false), imageArray, i);
+                Color.toArray(color(l, false), imageArray, i4);
 
                 const val = normalize(space.get(data, ix, iy, iz), min, max);
                 if (isUniform) {
-                    imageArray[i] *= val;
-                    imageArray[i + 1] *= val;
-                    imageArray[i + 2] *= val;
+                    imageArray[i4] *= val;
+                    imageArray[i4 + 1] *= val;
+                    imageArray[i4 + 2] *= val;
                 }
-                valueArray[i / 4] = val;
+                valueArray[i] = val;
+                packIntToRGBArray(i, groupArray, i4);
 
-                i += 4;
+                if (periodicMapping) {
+                    const pm = periodicMapping.get(ix, iy, iz);
+                    if (pm) {
+                        mapping.instance[i] = pm.instance;
+                        mapping.cell[i] = pm.cell;
+                        mapping.index.set(cantorPairing(pm.instance, pm.cell), i);
+                    } else {
+                        imageArray[i4] = 0;
+                        imageArray[i4 + 1] = 0;
+                        imageArray[i4 + 2] = 0;
+                        imageArray[i4 + 3] = 0;
+                        valueArray[i] = NaN;
+                    }
+                } else {
+                    const o = space.dataOffset(ix, iy, iz);
+                    mapping.instance[i] = -1;
+                    mapping.cell[i] = o;
+                    mapping.index.set(o, i);
+                }
+
+                i += 1;
             }
         }
     }
@@ -382,7 +457,10 @@ async function createGridImage(ctx: VisualContext, volume: Volume, key: number, 
     const isoLevel = clamp(normalize(Volume.IsoValue.toAbsolute(isoValue, stats).absoluteValue, min, max), 0, 1);
 
     const im = Image.create(imageTexture, corners, groupTexture, valueTexture, trim, isoLevel, image);
-    im.setBoundingSphere(Volume.getBoundingSphere(volume));
+    im.setBoundingSphere(Volume.isPeriodic(volume) ? Volume.getBoundingSphere(volume) : Grid.getBoundingSphere(volume.grid));
+
+    im.meta.mapping = mapping;
+
     return im;
 }
 
@@ -440,50 +518,9 @@ function getSliceInfo(grid: Grid, props: SliceProps) {
     };
 }
 
-function getPackedGroupArray(grid: Grid, props: SliceProps) {
-    const { space } = grid.cells;
-    const { width, height, x0, y0, z0, nx, ny, nz } = getSliceInfo(grid, props);
-    const groupArray = new Uint8Array(width * height * 4);
-
-    let j = 0;
-    for (let iy = y0; iy < ny; ++iy) {
-        for (let ix = x0; ix < nx; ++ix) {
-            for (let iz = z0; iz < nz; ++iz) {
-                packIntToRGBArray(space.dataOffset(ix, iy, iz), groupArray, j);
-                j += 4;
-            }
-        }
-    }
-    return groupArray;
-}
-
-function getGroupArray(grid: Grid, props: SliceProps) {
-    const { space } = grid.cells;
-    const { width, height, x0, y0, z0, nx, ny, nz } = getSliceInfo(grid, props);
-    const groupArray = new Uint32Array(width * height);
-
-    let j = 0;
-    for (let iy = y0; iy < ny; ++iy) {
-        for (let ix = x0; ix < nx; ++ix) {
-            for (let iz = z0; iz < nz; ++iz) {
-                groupArray[j] = space.dataOffset(ix, iy, iz);
-                j += 1;
-            }
-        }
-    }
-    return groupArray;
-}
-
 function getObjectLoci(volume: Volume, instances: OrderedSet<Volume.InstanceIndex>, props: SliceProps) {
-    // TODO: cache somehow?
-    if (props.mode === 'grid') {
-        const groupArray = getGroupArray(volume.grid, props);
-        const indices = SortedArray.ofUnsortedArray<Volume.CellIndex>(groupArray);
-        return Volume.Cell.Loci(volume, [{ indices, instances }]);
-    } else {
-        // TODO: get exact groups
-        return Volume.Loci(volume, instances);
-    }
+    // TODO: get exact groups
+    return Volume.Loci(volume, instances);
 }
 
 function getLoci(volume: Volume, props: SliceProps) {
@@ -491,9 +528,16 @@ function getLoci(volume: Volume, props: SliceProps) {
     return getObjectLoci(volume, instances, props);
 }
 
-function getSliceLoci(pickingId: PickingId, volume: Volume, key: number, props: SliceProps, id: number) {
-    const { objectId, groupId, instanceId } = pickingId;
+function getSliceLoci(pickingId: PickingId, volume: Volume, _key: number, props: SliceProps, id: number, image: Image) {
+    let { objectId, groupId, instanceId } = pickingId;
     if (id === objectId) {
+        const mapping = image.meta.mapping as any;
+        if (mapping) {
+            const instanceIndex = mapping.instance[groupId];
+            if (instanceIndex >= 0) instanceId = instanceIndex;
+            groupId = mapping.cell[groupId];
+        }
+
         const granularity = Volume.PickingGranularity.get(volume);
         const instances = OrderedSet.ofSingleton(instanceId as Volume.InstanceIndex);
         if (granularity === 'volume') {
@@ -508,17 +552,46 @@ function getSliceLoci(pickingId: PickingId, volume: Volume, key: number, props: 
     return EmptyLoci;
 }
 
-function eachSlice(loci: Loci, volume: Volume, key: number, props: SliceProps, apply: (interval: Interval) => boolean) {
-    return eachVolumeLoci(loci, volume, undefined, apply);
+function eachSlice(loci: Loci, volume: Volume, key: number, props: SliceProps, apply: (interval: Interval) => boolean, image: Image) {
+    const mapping = image.meta.mapping as any;
+    if (mapping) {
+        const groupCount = mapping.cell.length;
+        const cellCount = volume.grid.cells.data.length;
+        const isPeriodic = Volume.isPeriodic(volume);
+
+        const getIndex = (i: number,) => {
+            const instanceIndex = Math.floor(i / cellCount);
+            const groupIndex = i % cellCount;
+            return isPeriodic
+                ? mapping.index.get(cantorPairing(instanceIndex, groupIndex))
+                : mapping.index.get(groupIndex) + instanceIndex * groupCount;
+        };
+
+        return eachVolumeLoci(loci, volume, undefined, (interval) => {
+            let changed = false;
+            for (let i = Interval.start(interval), il = Interval.end(interval); i < il; ++i) {
+                const v = getIndex(i);
+                if (v === undefined) continue;
+                if (apply(Interval.ofSingleton(v))) changed = true;
+            }
+            return changed;
+            // const start = getIndex(Interval.min(interval));
+            // const end = getIndex(Interval.max(interval));
+            // console.log(Interval.min(interval), Interval.max(interval), {start, end });
+            // return apply(Interval.ofRange(start, end));
+        });
+    } else {
+        return eachVolumeLoci(loci, volume, undefined, apply);
+    }
 }
 
 //
 
-export function SliceVisual(materialId: number): VolumeVisual<SliceParams> {
+export function SliceVisual(materialId: number, volume: Volume, key: number): VolumeVisual<SliceParams> {
     return VolumeVisual<Image, SliceParams>({
         defaultProps: PD.getDefaultValues(SliceParams),
         createGeometry: createImage,
-        createLocationIterator: createVolumeCellLocationIterator,
+        createLocationIterator: createVolumeSliceCellLocationIterator,
         getLoci: getSliceLoci,
         eachLocation: eachSlice,
         setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: SliceProps, currentProps: SliceProps, newTheme: Theme, currentTheme: Theme) => {
@@ -533,10 +606,11 @@ export function SliceVisual(materialId: number): VolumeVisual<SliceParams> {
                 !Vec3.equals(newProps.plane.point, currentProps.plane.point) ||
                 !Vec3.equals(newProps.plane.normal, currentProps.plane.normal) ||
                 !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
-                !ColorTheme.areEqual(newTheme.color, currentTheme.color)
+                !ColorTheme.areEqual(newTheme.color, currentTheme.color) ||
+                !Volume.areInstanceTransformsEqual(newVolume, currentVolume)
+
             );
         },
-
         geometryUtils: Image.Utils
     }, materialId);
 }
@@ -554,5 +628,5 @@ export const SliceRepresentationProvider = VolumeRepresentationProvider({
     defaultValues: PD.getDefaultValues(SliceParams),
     defaultColorTheme: { name: 'uniform' },
     defaultSizeTheme: { name: 'uniform' },
-    isApplicable: (volume: Volume) => !Volume.isEmpty(volume) && !Volume.Segmentation.get(volume)
+    isApplicable: (volume: Volume) => !Volume.isEmpty(volume) && !Volume.Segmentation.get(volume),
 });

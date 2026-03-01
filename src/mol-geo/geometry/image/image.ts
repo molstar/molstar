@@ -74,6 +74,8 @@ interface Image {
 
     setBoundingSphere(boundingSphere: Sphere3D): void
     hasBoundingSphere(): boolean
+
+    readonly meta: { [k: string]: unknown }
 }
 
 namespace Image {
@@ -136,7 +138,8 @@ namespace Image {
             },
             hasBoundingSphere() {
                 return currentHash === hashCode(image);
-            }
+            },
+            meta: {}
         };
         return image;
     }
