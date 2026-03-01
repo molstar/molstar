@@ -49,6 +49,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `Structure.coordination` sites
 - Add `Polyhedron` representation showing coordination sites
 - Guard against `xr-spatial-tracking` blocked in `Permissions-Policy`
+- Add `putty` as a mol-view-spec representation.
 
 ## [v5.6.1] - 2026-01-23
 - Disable occlusion culling in `ImagePass` (#1758)

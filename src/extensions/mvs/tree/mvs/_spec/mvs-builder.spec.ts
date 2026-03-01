@@ -3,6 +3,7 @@
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Zachary Charlop-Powers <zach.charlop.powers@gmail.com>
  */
 
 import { MVSData } from '../../../mvs-data';
@@ -15,6 +16,42 @@ describe('mvs-builder', () => {
         expect(typeof mvsData.metadata.version).toEqual('string');
         expect(typeof mvsData.metadata.timestamp).toEqual('string');
         expect(MVSData.validationIssues(mvsData)).toEqual(undefined);
+    });
+
+    it('putty representation works', () => {
+        const builder = createMVSBuilder();
+        builder
+            .download({ url: 'https://files.rcsb.org/download/1cbs.cif' })
+            .parse({ format: 'mmcif' })
+            .modelStructure()
+            .component({ selector: 'polymer' })
+            .representation({ type: 'putty' });
+        const state = builder.getState();
+        expect(MVSData.validationIssues(state)).toEqual(undefined);
+    });
+
+    it('putty representation works with uniform size_theme', () => {
+        const builder = createMVSBuilder();
+        builder
+            .download({ url: 'https://files.rcsb.org/download/1cbs.cif' })
+            .parse({ format: 'mmcif' })
+            .modelStructure()
+            .component({ selector: 'polymer' })
+            .representation({ type: 'putty', size_theme: 'uniform', size_factor: 0.5 });
+        const state = builder.getState();
+        expect(MVSData.validationIssues(state)).toEqual(undefined);
+    });
+
+    it('putty representation works with uncertainty size_theme', () => {
+        const builder = createMVSBuilder();
+        builder
+            .download({ url: 'https://files.rcsb.org/download/1cbs.cif' })
+            .parse({ format: 'mmcif' })
+            .modelStructure()
+            .component({ selector: 'polymer' })
+            .representation({ type: 'putty', size_theme: 'uncertainty' });
+        const state = builder.getState();
+        expect(MVSData.validationIssues(state)).toEqual(undefined);
     });
 
     it('volume builder works', () => {
