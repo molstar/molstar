@@ -46,6 +46,13 @@ const Carbohydrate = {
     size_factor: OptionalField(float, 1, 'Scales the corresponding visuals.'),
 };
 
+const Putty = {
+    /** Scales the corresponding visuals */
+    size_factor: OptionalField(float, 1, 'Scales the corresponding visuals.'),
+    /** Controls how the tube radius is determined. */
+    size_theme: OptionalField(literal('uniform', 'uncertainty'), 'uniform', "Controls how the tube radius is determined. 'uniform' uses a constant radius scaled by size_factor. 'uncertainty' drives the radius from per-residue B-factor/RMSF values."),
+};
+
 const Surface = {
     /** Type of surface representation. (Default is 'molecular') */
     surface_type: OptionalField(literal('molecular', 'gaussian'), 'molecular', `Type of surface representation. (Default is 'molecular')`),
@@ -66,6 +73,7 @@ export const MVSRepresentationParams = UnionParamsSchema(
         spacefill: SimpleParamsSchema(Spacefill),
         carbohydrate: SimpleParamsSchema(Carbohydrate),
         surface: SimpleParamsSchema(Surface),
+        putty: SimpleParamsSchema(Putty),
     },
 );
 

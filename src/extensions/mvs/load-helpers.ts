@@ -405,6 +405,15 @@ function representationPropsBase(node: MolstarSubtree<'representation'>): Partia
                 sizeTheme: { name: 'physical', params: { scale: params.size_factor } },
             };
         }
+        case 'putty': {
+            const sizeTheme = params.size_theme ?? 'uniform';
+            return {
+                type: { name: 'putty', params: { alpha, sizeFactor: params.size_factor } },
+                sizeTheme: sizeTheme === 'uncertainty'
+                    ? { name: 'uncertainty', params: {} }
+                    : { name: 'uniform', params: { value: params.size_factor } },
+            };
+        }
         default:
             throw new Error('NotImplementedError');
     }
