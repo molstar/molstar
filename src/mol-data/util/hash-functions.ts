@@ -577,3 +577,25 @@ export class PCG {
         return this.int() / 0x100000000;
     }
 }
+
+export function mortonOrder3d(x: number, y: number, z: number): number {
+    let out = 0;
+    for (let i = 0; i < 21; ++i) {
+        out |= ((x >> i) & 1) << (3 * i + 2);
+        out |= ((y >> i) & 1) << (3 * i + 1);
+        out |= ((z >> i) & 1) << (3 * i);
+    }
+    return out;
+}
+
+export function invertMortonOrder3d(code: number): [number, number, number] {
+    let x = 0;
+    let y = 0;
+    let z = 0;
+    for (let i = 0; i < 21; ++i) {
+        x |= ((code >> (3 * i + 2)) & 1) << i;
+        y |= ((code >> (3 * i + 1)) & 1) << i;
+        z |= ((code >> (3 * i)) & 1) << i;
+    }
+    return [x, y, z];
+}

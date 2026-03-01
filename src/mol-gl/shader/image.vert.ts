@@ -17,6 +17,7 @@ attribute float aInstance;
 
 varying vec2 vUv;
 varying float vInstance;
+varying vec3 vPosition;
 
 void main() {
     int vertexId = VertexID;
@@ -25,5 +26,6 @@ void main() {
 
     vUv = aUv;
     vInstance = aInstance;
+    vPosition = aPosition;
 }
 `;

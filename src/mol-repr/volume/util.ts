@@ -18,6 +18,8 @@ import { Tensor } from '../../mol-math/linear-algebra/tensor';
 import { Interval } from '../../mol-data/int/interval';
 import { SortedArray } from '../../mol-data/int/sorted-array';
 import { OrderedSet } from '../../mol-data/int/ordered-set';
+import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
+import { Image } from '../../mol-geo/geometry/image/image';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3set = Vec3.set;
@@ -135,6 +137,22 @@ export function createVolumeCellLocationIterator(volume: Volume, key: number): L
         return location;
     };
     return LocationIterator(groupCount, instanceCount, 1, getLocation);
+}
+
+export function createVolumeSliceCellLocationIterator(volume: Volume, key: number, image: Image): LocationIterator {
+    const mapping = image.meta.mapping as any;
+    if (!mapping) return createVolumeCellLocationIterator(volume, key);
+
+    const groupCount = mapping.cell.length;
+    const instanceCount = Volume.isPeriodic(volume) ? 1 : volume.instances.length;
+    const location = Volume.Cell.Location(volume);
+    const getLocation = (groupIndex: number, instanceIndex: number) => {
+        location.cell = groupIndex as Volume.CellIndex;
+        location.instance = instanceIndex as Volume.InstanceIndex;
+        return location;
+    };
+    const nonInstanceable = Volume.isPeriodic(volume);
+    return LocationIterator(groupCount, instanceCount, 1, getLocation, nonInstanceable);
 }
 
 //
@@ -406,5 +424,54 @@ export function createWrappedVolume(volume: Volume): Volume {
         ...volume,
         grid: _grid,
         parent: volume,
+    };
+}
+
+export function createPeriodicVolume(volume: Volume, min: Vec3, max: Vec3): Volume {
+    const { grid } = volume;
+    const { space } = grid.cells;
+    const { get, set, add, dataOffset } = space;
+    const [xn, yn, zn] = space.dimensions as Vec3;
+
+    const r = Vec3.sub(Vec3(), max, min);
+    const _dimensions = Vec3.create(xn * r[0], yn * r[1], zn * r[2]);
+
+    const _get = (data: Tensor.Data, x: number, y: number, z: number) => get(data, x % xn, y % yn, z % zn);
+    const _set = (data: Tensor.Data, x: number, y: number, z: number, d: number) => set(data, x % xn, y % yn, z % zn, d);
+    const _add = (data: Tensor.Data, x: number, y: number, z: number, d: number) => add(data, x % xn, y % yn, z % zn, d);
+    const _dataOffset = (x: number, y: number, z: number) => dataOffset(x % xn, y % yn, z % zn);
+
+    const _space: Tensor.Space = {
+        ...space,
+        dimensions: _dimensions,
+        get: _get,
+        set: _set,
+        add: _add,
+        dataOffset: _dataOffset,
+    };
+
+    const matrix = Grid.getGridToCartesianTransform(volume.grid);
+
+    const t = Mat4.getScaling(Vec3(), matrix);
+    Vec3.mul(t, t, space.dimensions as Vec3);
+    const s = Vec3.mul(Vec3(), min, t);
+    Mat4.setTranslation(matrix, s);
+
+    const _transform: Grid.Transform = { kind: 'matrix', matrix };
+
+    const _grid: Grid = {
+        ...grid,
+        transform: _transform,
+        cells: {
+            ...grid.cells,
+            space: _space
+        }
+    };
+
+    return {
+        ...volume,
+        grid: _grid,
+        parent: volume,
+        instances: [{ transform: Mat4.identity() }],
     };
 }

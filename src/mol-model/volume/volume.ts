@@ -17,6 +17,7 @@ import { CustomProperties } from '../custom-property';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { toPrecision } from '../../mol-util/number';
 import { DscifFormat } from '../../mol-model-formats/volume/density-server';
+import { mortonOrder3d } from '../../mol-data/util/hash-functions';
 
 export interface Volume {
     readonly label?: string
@@ -461,6 +462,73 @@ export namespace Volume {
         get(volume: Volume): Segmentation | undefined {
             return volume._propertyData['__segmentation__'];
         }
+    };
+
+    type PeriodicRange = { min: Vec3, max: Vec3 };
+    export function getPeriodicRange(volume: Volume): PeriodicRange | undefined {
+        if (!isPeriodic(volume)) return;
+
+        const v = volume.parent || volume;
+        if (!v._localPropertyData['__periodicRange__']) {
+            const dim = Vec3.fromArray(Vec3(), v.grid.cells.space.dimensions, 0);
+            const gridToCartn = Grid.getGridToCartesianTransform(v.grid);
+            Vec3.transformMat4(dim, dim, gridToCartn);
+            const min = Vec3.create(Infinity, Infinity, Infinity);
+            const max = Vec3.create(-Infinity, -Infinity, -Infinity);
+            const tg = Vec3();
+            for (const { transform } of v.instances) {
+                Mat4.getTranslation(tg, transform);
+                Vec3.div(tg, tg, dim);
+                Vec3.round(tg, tg);
+                Vec3.min(min, min, tg);
+                Vec3.max(max, max, tg);
+            }
+            Vec3.addScalar(max, max, 1);
+            v._localPropertyData['__periodicRange__'] = { min, max };
+        }
+        return v._localPropertyData['__periodicRange__'];
+    };
+
+    export type PeriodicMapping = {
+        get(x: number, y: number, z: number): { instance: InstanceIndex, cell: CellIndex } | undefined
+    }
+    export function getPeriodicMapping(volume: Volume): PeriodicMapping | undefined {
+        if (!isPeriodic(volume)) return;
+
+        const v = volume.parent || volume;
+        if (!v._localPropertyData['__periodicInstanceMapping__']) {
+            const map = new Map<number, InstanceIndex>();
+            const dim = Vec3.fromArray(Vec3(), v.grid.cells.space.dimensions, 0);
+            const gridToCartn = Grid.getGridToCartesianTransform(v.grid);
+            Vec3.transformMat4(dim, dim, gridToCartn);
+            const { min } = getPeriodicRange(v)!;
+            const tg = Vec3();
+            for (let i = 0, il = v.instances.length; i < il; i++) {
+                const { transform } = v.instances[i];
+                Mat4.getTranslation(tg, transform);
+                Vec3.div(tg, tg, dim);
+                Vec3.round(tg, tg);
+                Vec3.sub(tg, tg, min);
+                map.set(mortonOrder3d(tg[0], tg[1], tg[2]), i as InstanceIndex);
+            }
+            const dd = Vec3.fromArray(Vec3(), v.grid.cells.space.dimensions, 0);
+            v._localPropertyData['__periodicInstanceMapping__'] = {
+                get(x: number, y: number, z: number) {
+                    Vec3.set(tg, x, y, z);
+                    Vec3.div(tg, tg, dd);
+                    Vec3.floor(tg, tg);
+                    const instance = map.get(mortonOrder3d(tg[0], tg[1], tg[2]));
+                    if (instance === undefined) return;
+
+                    Vec3.set(tg, x, y, z);
+                    Vec3.mod(tg, tg, dd);
+                    const cell = v.grid.cells.space.dataOffset(tg[0], tg[1], tg[2]) as CellIndex;
+
+                    return { instance, cell };
+                }
+            };
+        }
+        return v._localPropertyData['__periodicInstanceMapping__'];
     };
 
     export function isPeriodic(volume: Volume): boolean {
