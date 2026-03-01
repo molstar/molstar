@@ -14,6 +14,7 @@ export interface StructureRepresentationState extends Representation.State {
     unitTransforms: StructureUnitTransforms | null,
     unitTransformsVersion: number
 }
+
 export const StructureRepresentationStateBuilder: Representation.StateBuilder<StructureRepresentationState> = {
     create: () => {
         return {
@@ -32,9 +33,10 @@ export interface StructureRepresentation<P extends RepresentationProps = {}> ext
 
 export type StructureRepresentationProvider<P extends PD.Params, Id extends string = string> = RepresentationProvider<Structure, P, StructureRepresentationState, Id>
 export function StructureRepresentationProvider<P extends PD.Params, Id extends string>(p: StructureRepresentationProvider<P, Id>): StructureRepresentationProvider<P, Id> { return p; }
+
 //
+
 export { ComplexRepresentation } from './complex-representation';
 export { ComplexVisual } from './complex-visual';
 export { UnitsRepresentation } from './units-representation';
 export { UnitsVisual } from './units-visual';
-
