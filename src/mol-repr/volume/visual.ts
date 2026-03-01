@@ -64,10 +64,10 @@ function createVolumeRenderObject<G extends Geometry>(volume: Volume, geometry: 
 interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
     defaultProps: PD.Values<P>
     createGeometry(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
-    createLocationIterator(volume: Volume, key: number): LocationIterator
-    getLoci(pickingId: PickingId, volume: Volume, key: number, props: PD.Values<P>, id: number): Loci
-    eachLocation(loci: Loci, volume: Volume, key: number, props: PD.Values<P>, apply: (interval: Interval) => boolean): boolean
-    setUpdateState(state: VisualUpdateState, volume: Volume, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
+    createLocationIterator(volume: Volume, key: number, geometry: G): LocationIterator
+    getLoci(pickingId: PickingId, volume: Volume, key: number, props: PD.Values<P>, id: number, geometry: G): Loci
+    eachLocation(loci: Loci, volume: Volume, key: number, props: PD.Values<P>, apply: (interval: Interval) => boolean, geometry: G): boolean
+    setUpdateState(state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
     initUpdateState?: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<P>, newTheme: Theme) => void
     mustRecreate?: (volumeKey: VolumeKey, props: PD.Values<P>) => boolean
     dispose?: (geometry: G) => void
@@ -125,13 +125,13 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             return;
         }
 
-        setUpdateState(updateState, volume, newProps, currentProps, newTheme, currentTheme);
+        setUpdateState(updateState, newVolume, currentVolume, newProps, currentProps, newTheme, currentTheme);
 
-        if (!ColorTheme.areEqual(theme.color, currentTheme.color)) {
+        if (!ColorTheme.areEqual(newTheme.color, currentTheme.color)) {
             updateState.updateColor = true;
         }
 
-        if (!SizeTheme.areEqual(theme.size, currentTheme.size)) {
+        if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) {
             updateState.updateSize = true;
         }
 
@@ -161,8 +161,8 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
 
     function update(newGeometry?: G) {
         if (updateState.createNew) {
-            locationIt = createLocationIterator(newVolume, newKey);
             if (newGeometry) {
+                locationIt = createLocationIterator(newVolume, newKey, newGeometry);
                 renderObject = createVolumeRenderObject(newVolume, newGeometry, locationIt, newTheme, newProps, materialId);
                 positionIt = createPositionIterator(newGeometry, renderObject.values);
             } else {
@@ -175,7 +175,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
 
             if (updateState.updateColor || updateState.updateSize || updateState.updateTransform || updateState.updateLocation) {
                 // console.log('update locationIterator');
-                locationIt = createLocationIterator(newVolume, newKey);
+                locationIt = createLocationIterator(newVolume, newKey, newGeometry || geometry);
             }
 
             if (updateState.updateTransform || updateState.updateLocation) {
@@ -288,7 +288,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             if (currentProps.instanceGranularity) {
                 return eachInstance(loci, currentVolume, currentKey, apply);
             } else {
-                return eachLocation(loci, currentVolume, currentKey, currentProps, apply);
+                return eachLocation(loci, currentVolume, currentKey, currentProps, apply, geometry);
             }
         }
     }
@@ -307,7 +307,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             }
         },
         getLoci(pickingId: PickingId) {
-            return renderObject ? getLoci(pickingId, currentVolume, currentKey, currentProps, renderObject.id) : EmptyLoci;
+            return renderObject ? getLoci(pickingId, currentVolume, currentKey, currentProps, renderObject.id, geometry) : EmptyLoci;
         },
         eachLocation(cb: LocationCallback) {
             locationIt.reset();

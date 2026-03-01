@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -39,7 +39,6 @@ export function volumeFromDensityServerData(source: DensityServer_Data_Database,
         return {
             label: params?.label,
             entryId: params?.entryId,
-            periodicity: Vec3.isInteger(dimensions) ? 'xyz' : 'none',
             grid: {
                 transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin, Vec3.add(Vec3.zero(), origin, dimensions)) },
                 cells: data,
@@ -49,11 +48,13 @@ export function volumeFromDensityServerData(source: DensityServer_Data_Database,
                     mean: info.mean_sampled.value(0),
                     sigma: info.sigma_sampled.value(0)
                 },
+                periodicity: Vec3.isInteger(dimensions) ? 'xyz' : 'none',
             },
             instances: [{ transform: Mat4.identity() }],
             sourceData: DscifFormat.create(source),
             customProperties: new CustomProperties(),
             _propertyData: Object.create(null),
+            _localPropertyData: Object.create(null),
         };
     });
 }

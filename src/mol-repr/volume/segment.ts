@@ -199,7 +199,7 @@ export function SegmentMeshVisual(materialId: number): VolumeVisual<SegmentMeshP
         },
         getLoci: getSegmentLoci,
         eachLocation: eachSegment,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<SegmentMeshParams>, currentProps: PD.Values<SegmentMeshParams>) => {
+        setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<SegmentMeshParams>, currentProps: PD.Values<SegmentMeshParams>) => {
         },
         geometryUtils: Mesh.Utils,
         mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, webgl?: WebGLContext) => {
@@ -288,7 +288,7 @@ export function SegmentTextureMeshVisual(materialId: number): VolumeVisual<Segme
         },
         getLoci: getSegmentLoci,
         eachLocation: eachSegment,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<SegmentMeshParams>, currentProps: PD.Values<SegmentMeshParams>) => {
+        setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<SegmentMeshParams>, currentProps: PD.Values<SegmentMeshParams>) => {
         },
         geometryUtils: TextureMesh.Utils,
         mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, webgl?: WebGLContext) => {

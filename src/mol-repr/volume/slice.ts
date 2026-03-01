@@ -521,7 +521,7 @@ export function SliceVisual(materialId: number): VolumeVisual<SliceParams> {
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getSliceLoci,
         eachLocation: eachSlice,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: SliceProps, currentProps: SliceProps, newTheme: Theme, currentTheme: Theme) => {
+        setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: SliceProps, currentProps: SliceProps, newTheme: Theme, currentTheme: Theme) => {
             state.createGeometry = (
                 newProps.dimension.name !== currentProps.dimension.name ||
                 newProps.dimension.params !== currentProps.dimension.params ||
@@ -532,7 +532,7 @@ export function SliceVisual(materialId: number): VolumeVisual<SliceParams> {
                 newProps.axis !== currentProps.axis ||
                 !Vec3.equals(newProps.plane.point, currentProps.plane.point) ||
                 !Vec3.equals(newProps.plane.normal, currentProps.plane.normal) ||
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
+                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
                 !ColorTheme.areEqual(newTheme.color, currentTheme.color)
             );
         },
