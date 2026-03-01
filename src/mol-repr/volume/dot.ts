@@ -64,9 +64,9 @@ export function VolumeSphereImpostorVisual(materialId: number): VolumeVisual<Vol
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getDotLoci,
         eachLocation: eachDot,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumeSphereParams>, currentProps: PD.Values<VolumeSphereParams>, newTheme: Theme, currentTheme: Theme) => {
+        setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<VolumeSphereParams>, currentProps: PD.Values<VolumeSphereParams>, newTheme: Theme, currentTheme: Theme) => {
             state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
+                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
                 newProps.perturbPositions !== currentProps.perturbPositions
             );
         },
@@ -84,9 +84,9 @@ export function VolumeSphereMeshVisual(materialId: number): VolumeVisual<VolumeS
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getDotLoci,
         eachLocation: eachDot,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumeSphereParams>, currentProps: PD.Values<VolumeSphereParams>, newTheme: Theme, currentTheme: Theme) => {
+        setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<VolumeSphereParams>, currentProps: PD.Values<VolumeSphereParams>, newTheme: Theme, currentTheme: Theme) => {
             state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
+                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
                 newProps.perturbPositions !== currentProps.perturbPositions ||
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.detail !== currentProps.detail
@@ -229,9 +229,9 @@ export function VolumePointVisual(materialId: number): VolumeVisual<VolumePointP
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getDotLoci,
         eachLocation: eachDot,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumePointParams>, currentProps: PD.Values<VolumePointParams>, newTheme: Theme, currentTheme: Theme) => {
+        setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<VolumePointParams>, currentProps: PD.Values<VolumePointParams>, newTheme: Theme, currentTheme: Theme) => {
             state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
+                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
                 newProps.perturbPositions !== currentProps.perturbPositions
             );
         },

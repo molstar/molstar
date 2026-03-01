@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -118,6 +118,7 @@ export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
                 sourceData: CubeGridFormat(data),
                 customProperties: new CustomProperties(),
                 _propertyData: Object.create(null),
+                _localPropertyData: Object.create(null)
             };
 
             if (params.clampValues?.name === 'on') {
@@ -151,6 +152,7 @@ export const CreateOrbitalDensityVolume = PluginStateTransform.BuiltIn({
                 sourceData: CubeGridFormat(data),
                 customProperties: new CustomProperties(),
                 _propertyData: Object.create(null),
+                _localPropertyData: Object.create(null)
             };
 
             if (params.clampValues?.name === 'on') {

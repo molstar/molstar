@@ -169,7 +169,7 @@ export function DirectVolumeVisual(materialId: number): VolumeVisual<DirectVolum
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getDirectVolumeLoci,
         eachLocation: eachDirectVolume,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<DirectVolumeParams>, currentProps: PD.Values<DirectVolumeParams>) => {
+        setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<DirectVolumeParams>, currentProps: PD.Values<DirectVolumeParams>) => {
             state.createGeometry = newProps.dataType !== currentProps.dataType;
         },
         geometryUtils: DirectVolume.Utils,

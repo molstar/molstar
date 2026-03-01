@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -36,7 +36,6 @@ export function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3, la
         return {
             label: params?.label,
             entryId: params?.entryId,
-            periodicity: Vec3.isInteger(dimensions_frac) ? 'xyz' : 'none',
             grid: {
                 transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)) },
                 cells: data,
@@ -46,11 +45,13 @@ export function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3, la
                     mean: arrayMean(values),
                     sigma: header.sigma !== undefined ? header.sigma : arrayRms(values)
                 },
+                periodicity: Vec3.isInteger(dimensions_frac) ? 'xyz' : 'none',
             },
             instances: [{ transform: Mat4.identity() }],
             sourceData: Dsn6Format.create(source),
             customProperties: new CustomProperties(),
             _propertyData: Object.create(null),
+            _localPropertyData: Object.create(null),
         };
     });
 }

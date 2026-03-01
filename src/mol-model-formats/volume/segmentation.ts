@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -55,6 +55,7 @@ export function volumeFromSegmentationData(source: Segmentation_Data_Database, p
             sourceData: SegcifFormat.create(source),
             customProperties: new CustomProperties(),
             _propertyData: { ownerId: params?.ownerId },
+            _localPropertyData: Object.create(null),
         };
 
         Volume.PickingGranularity.set(v, 'object');

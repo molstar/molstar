@@ -23,7 +23,8 @@ interface Grid {
         max: number,
         mean: number,
         sigma: number
-    }>
+    }>,
+    readonly periodicity?: 'none' | 'xyz'
 }
 
 namespace Grid {
@@ -93,11 +94,12 @@ namespace Grid {
 
         const [mi, mj, mk] = dimensions;
         const getValue = (i: number, j: number, k: number) => get(data, i, j, k);
+        const isPeriodic = grid.periodicity === 'xyz';
 
         return function getTrilinearlyInterpolated(position: Vec3): number {
             v3transformMat4(gridCoords, position, cartnToGrid);
 
-            const value = trilinearlyInterpolate(gridCoords, mi, mj, mk, getValue);
+            const value = trilinearlyInterpolate(gridCoords, mi, mj, mk, isPeriodic, getValue);
             if (Number.isNaN(value)) return value;
 
             if (transform === 'relative') {
@@ -118,13 +120,14 @@ namespace Grid {
     export function trilinearlyInterpolate(
         gridCoords: Vec3,
         mi: number, mj: number, mk: number,
+        isPeriodic: boolean,
         getValue: (i: number, j: number, k: number) => number
     ): number {
         const i = Math.trunc(gridCoords[0]);
         const j = Math.trunc(gridCoords[1]);
         const k = Math.trunc(gridCoords[2]);
 
-        if (i < 0 || i >= mi || j < 0 || j >= mj || k < 0 || k >= mk) {
+        if (!isPeriodic && (i < 0 || i >= mi || j < 0 || j >= mj || k < 0 || k >= mk)) {
             return Number.NaN;
         }
 

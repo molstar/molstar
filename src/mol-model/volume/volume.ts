@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -26,7 +26,6 @@ export interface Volume {
         transform: Mat4
     }>
     readonly sourceData: ModelFormat
-    readonly periodicity?: 'none' | 'xyz'
 
     customProperties: CustomProperties
 
@@ -35,19 +34,23 @@ export interface Volume {
      * defines property accessors that use this field to store the data.
      */
     _propertyData: { [name: string]: any }
+    _localPropertyData: { [name: string]: any }
 
     // TODO add as customProperty?
     readonly colorVolume?: Volume
+    readonly parent?: Volume
 }
 
 export namespace Volume {
     export function is(x: any): x is Volume {
-        // TODO: improve
+        // TODO: improve?
         return (
             x?.grid?.cells?.space?.dimensions?.length &&
+            x?.instances &&
             x?.sourceData &&
             x?.customProperties &&
-            x?._propertyData
+            x?._propertyData &&
+            x?._localPropertyData
         );
     }
 
@@ -156,6 +159,7 @@ export namespace Volume {
         sourceData: { kind: '', name: '', data: {} },
         customProperties: new CustomProperties(),
         _propertyData: Object.create(null),
+        _localPropertyData: Object.create(null)
     };
 
     export function areEquivalent(volA: Volume, volB: Volume) {
@@ -185,8 +189,27 @@ export namespace Volume {
     export function areLociEqual(a: Loci, b: Loci) { return a.volume === b.volume && OrderedSet.areEqual(a.instances, b.instances); }
     export function isLociEmpty(loci: Loci) { return isEmpty(loci.volume) || OrderedSet.isEmpty(loci.instances); }
 
+    const boundaryHelper = new BoundaryHelper('98');
     export function getBoundingSphere(volume: Volume, boundingSphere?: Sphere3D) {
-        return Grid.getBoundingSphere(volume.grid, boundingSphere);
+        const gs = Grid.getBoundingSphere(volume.grid);
+        if (!boundingSphere) boundingSphere = Sphere3D();
+        if (volume.instances.length === 0) return Sphere3D.copy(boundingSphere, gs);
+
+        const spheres: Sphere3D[] = [];
+        for (let i = 0, il = volume.instances.length; i < il; ++i) {
+            const { transform } = volume.instances[i];
+            spheres.push(Sphere3D.transform(Sphere3D(), gs, transform));
+        }
+
+        boundaryHelper.reset();
+        for (const s of spheres) {
+            boundaryHelper.includeSphere(s);
+        }
+        boundaryHelper.finishedIncludeStep();
+        for (const s of spheres) {
+            boundaryHelper.radiusSphere(s);
+        }
+        return boundaryHelper.getSphere(boundingSphere);
     }
 
     export namespace Isosurface {
@@ -439,4 +462,8 @@ export namespace Volume {
             return volume._propertyData['__segmentation__'];
         }
     };
+
+    export function isPeriodic(volume: Volume): boolean {
+        return volume.grid.periodicity === 'xyz';
+    }
 }

@@ -227,7 +227,8 @@ const AssignColorVolume = PluginStateTransform.BuiltIn({
             const colorVolume = dependencies[params.ref].data as Volume;
             const volume: Volume = {
                 ...a.data,
-                colorVolume
+                colorVolume,
+                _localPropertyData: Object.create(null),
             };
             const props = { label: a.label, description: 'Volume + Colors' };
             return new SO.Volume.Data(volume, props);
@@ -263,6 +264,7 @@ const VolumeTransform = PluginStateTransform.BuiltIn({
                 ...a.data.grid,
                 transform: gridTransform,
             },
+            _localPropertyData: Object.create(null),
         }, {
             label: a.label,
             description: `${a.description} [Transformed]`,
@@ -278,21 +280,49 @@ const VolumeInstances = PluginStateTransform.BuiltIn({
     from: SO.Volume.Data,
     to: SO.Volume.Data,
     params: {
-        transforms: PD.ObjectList({ transform: TransformParam }, () => 'Transform')
+        mode: PD.Select('transforms', PD.arrayToOptions(['transforms', 'periodicRange'])),
+        transforms: PD.ObjectList({ transform: TransformParam }, () => 'Transform', { hideIf: c => c.mode !== 'transforms' }),
+        periodicRange: PD.Group({
+            min: PD.Vec3(Vec3.create(0, 0, 0), { min: -10, max: 10, step: 1 }, { label: 'Min', description: 'Inclusive lower bound of the translation range (x, y, z)' }),
+            max: PD.Vec3(Vec3.create(1, 1, 1), { min: -10, max: 10, step: 1 }, { label: 'Max', description: 'Exclusive upper bound of the translation range (x, y, z)' }),
+        }, { hideIf: c => c.mode !== 'periodicRange', isFlat: true }),
     },
 })({
     canAutoUpdate() {
         return true;
     },
     apply({ a, params }) {
-        const center = params.transforms.some(t => transformParamsNeedCentroid(t.transform)) ? Grid.getBoundingSphere(a.data.grid).center : Vec3.unit;
-        const instances = params.transforms.map(t => ({ transform: getTransformFromParams(t.transform, center) }));
+        let instances: { transform: Mat4 }[] = [];
+        if (params.mode === 'transforms') {
+            const center = params.transforms.some(t => transformParamsNeedCentroid(t.transform)) ? Grid.getBoundingSphere(a.data.grid).center : Vec3.unit;
+            instances = params.transforms.map(t => ({ transform: getTransformFromParams(t.transform, center) }));
+        } else if (params.mode === 'periodicRange' && Volume.isPeriodic(a.data)) {
+            const dims = a.data.grid.cells.space.dimensions;
+            const gridToCartn = Grid.getGridToCartesianTransform(a.data.grid);
+            const { min, max } = params.periodicRange;
+
+            const [minA, minB, minC] = min;
+            const [maxA, maxB, maxC] = max;
+
+            const t = Vec3();
+            for (let ia = minA; ia < maxA; ia++) {
+                for (let ib = minB; ib < maxB; ib++) {
+                    for (let ic = minC; ic < maxC; ic++) {
+                        Vec3.set(t, dims[0] * ia, dims[1] * ib, dims[2] * ic);
+                        Vec3.transformMat4(t, t, gridToCartn);
+                        instances.push({ transform: Mat4.fromTranslation(Mat4(), t) });
+                    }
+                }
+            }
+        }
+
         if (!instances.length) {
             return a;
         }
         return new SO.Volume.Data({
             ...a.data,
             instances,
+            _localPropertyData: Object.create(null),
         }, {
             label: a.label,
             description: `${a.description} [Instanced]`,
