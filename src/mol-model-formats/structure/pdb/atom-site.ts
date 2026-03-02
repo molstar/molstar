@@ -85,7 +85,7 @@ export class LabelAsymIdHelper {
     }
 }
 
-export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsymIdHelper, options: { hasAssemblies: boolean, hasSeqRes: boolean }): { [K in keyof mmCIF_Schema['atom_site'] | 'partial_charge']?: CifField } {
+export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsymIdHelper, options: { hasAssemblies: boolean, hasSeqRes: boolean, seqresMap?: Map<string, string[]> }): { [K in keyof mmCIF_Schema['atom_site'] | 'partial_charge']?: CifField } {
     labelAsymIdHelper.clear();
 
     const pdbx_PDB_model_num = CifField.ofStrings(sites.pdbx_PDB_model_num);
@@ -109,11 +109,39 @@ export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsy
 
     //
 
+    // SEQRES alignment state
+    const seqresMap = options.seqresMap;
+    let seqresArr: string[] | undefined = undefined;
+    let seqresPtr = 0;
+
+    /** Advance SEQRES pointer to find compId; returns 1-based position or -1 if not found */
+    function findInSeqres(compId: string): number {
+        if (!seqresArr) return -1;
+        while (seqresPtr < seqresArr.length) {
+            if (seqresArr[seqresPtr] === compId) {
+                const pos = seqresPtr + 1; // 1-based
+                seqresPtr++;
+                return pos;
+            }
+            seqresPtr++;
+        }
+        return -1;
+    }
+
+    function resetSeqres(chainId: string) {
+        seqresArr = seqresMap?.get(chainId);
+        seqresPtr = 0;
+    }
+
     let currModelNum = pdbx_PDB_model_num.str(0);
     let currAsymId = auth_asym_id.str(0);
     let currSeqId = auth_seq_id.int(0);
     let currInsCode = pdbx_PDB_ins_code.str(0);
-    let currLabelSeqId = useLinearLabelSeqId ? 1 : currSeqId;
+
+    // Initialize SEQRES state for the first chain
+    resetSeqres(currAsymId);
+    const firstSeqresPos = seqresArr ? findInSeqres(auth_comp_id.str(0)) : -1;
+    let currLabelSeqId = firstSeqresPos > 0 ? firstSeqresPos : (useLinearLabelSeqId ? 1 : currSeqId);
 
     const asymIdCounts = new Map<string, number>();
     const atomIdCounts = new Map<string, number>();
@@ -137,26 +165,29 @@ export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsy
             currAsymId = asymId;
             currSeqId = seqId;
             currInsCode = insCode;
-            currLabelSeqId = useLinearLabelSeqId ? 1 : currSeqId;
+            resetSeqres(asymId);
+            const seqresPos = findInSeqres(auth_comp_id.str(i));
+            currLabelSeqId = seqresPos > 0 ? seqresPos : (useLinearLabelSeqId ? 1 : currSeqId);
         } else if (currAsymId !== asymId) {
             atomIdCounts.clear();
             currAsymId = asymId;
             currSeqId = seqId;
             currInsCode = insCode;
-            currLabelSeqId = useLinearLabelSeqId ? 1 : currSeqId;
-        } else if (currSeqId !== seqId) {
+            resetSeqres(asymId);
+            const seqresPos = findInSeqres(auth_comp_id.str(i));
+            currLabelSeqId = seqresPos > 0 ? seqresPos : (useLinearLabelSeqId ? 1 : currSeqId);
+        } else if (currSeqId !== seqId || currInsCode !== insCode) {
             atomIdCounts.clear();
-            if (currSeqId === currLabelSeqId && !useLinearLabelSeqId) {
+            const seqresPos = findInSeqres(auth_comp_id.str(i));
+            if (seqresPos > 0) {
+                currLabelSeqId = seqresPos;
+            } else if (currSeqId === currLabelSeqId && !useLinearLabelSeqId) {
                 currLabelSeqId = seqId;
             } else {
                 currLabelSeqId += 1;
             }
             currSeqId = seqId;
             currInsCode = insCode;
-        } else if (currInsCode !== insCode) {
-            atomIdCounts.clear();
-            currInsCode = insCode;
-            currLabelSeqId += 1;
         }
 
         labelAsymIds[i] = labelAsymIdHelper.get(i);

@@ -114,4 +114,21 @@ export class EntityBuilder {
             });
         }
     }
+
+    /** Get entity_id for a chain based on SEQRES/COMPND data. Only valid after all atoms have been processed via getEntityId. */
+    getEntityIdForChain(chainId: string): string | undefined {
+        if (this.compoundsMap.has(chainId)) {
+            return this.compoundsMap.get(chainId)!;
+        }
+        if (this.seqresMap.has(chainId)) {
+            const { key } = this.seqresMap.get(chainId)!;
+            if (this.sequenceMap.has(key)) {
+                return this.sequenceMap.get(key)!;
+            }
+        }
+        if (this.chainMap.has(chainId)) {
+            return this.chainMap.get(chainId)!;
+        }
+        return undefined;
+    }
 }
