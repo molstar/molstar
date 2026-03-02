@@ -278,15 +278,30 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
         }
 
         // Build pdbx_unobs_or_zero_occ_residues by comparing SEQRES with observed ATOM records
-        // Collect observed (label_asym_id, label_seq_id) pairs per model, and auth_asym_id -> label_asym_id mapping
+        // Collect observed (label_asym_id, label_seq_id) pairs per model, and auth_asym_id -> label_asym_id mapping.
+        // Only include atoms belonging to the polymer entity for each SEQRES chain.
+        // Non-polymer HETATMs (ions, ligands, water) share auth_asym_id in PDB format
+        // and their sequential label_seq_id values can collide with unobserved SEQRES positions.
+        const polymerEntityIds = new Map<string, string>();
+        for (const chainId of seqresMap.keys()) {
+            const entityId = entityBuilder.getEntityIdForChain(chainId);
+            if (entityId) polymerEntityIds.set(chainId, entityId);
+        }
+
         const observedResidues = new Set<string>();
         const authToLabelAsym = new Map<string, string>();
         const rowCount = atom_site.label_asym_id!.rowCount;
         for (let i = 0; i < rowCount; ++i) {
+            const authAsym = atom_site.auth_asym_id!.str(i);
+            const entityId = atom_site.label_entity_id!.str(i);
+
+            // Skip non-polymer atoms: their label_seq_id can collide with SEQRES positions
+            const polymerEntityId = polymerEntityIds.get(authAsym);
+            if (polymerEntityId && entityId !== polymerEntityId) continue;
+
             const labelAsym = atom_site.label_asym_id!.str(i);
             const labelSeq = atom_site.label_seq_id!.int(i);
             const modelN = atom_site.pdbx_PDB_model_num!.int(i);
-            const authAsym = atom_site.auth_asym_id!.str(i);
             observedResidues.add(`${modelN}|${labelAsym}|${labelSeq}`);
             if (!authToLabelAsym.has(authAsym)) {
                 authToLabelAsym.set(authAsym, labelAsym);
