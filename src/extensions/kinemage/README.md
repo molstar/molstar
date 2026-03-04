@@ -14,7 +14,6 @@ It currently supports the following features:
 
 Currently unsupported features include:
 - master and submaster selections of visible objects
-- Setting one or more viewpoints
 - animations
 - @label and @ring lists
 - @hsvcolor keyword for coloring by hue, saturation, and value
@@ -25,4 +24,3 @@ Current limitations include:
 - Line segments in Mol* do not support end-caps for wide lines, so there are artifacts in highly-curved lines
 - The default perspective view and white background for Mol* differs from that of Kinemage (though selecting a view from the
   State Tree will switch it to orthographic)
-- The name of the view is buried down inside of the JSON Data object and you must click the Update pull-down to see it
