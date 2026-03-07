@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -89,7 +89,8 @@ export namespace Clip {
             type[i] = Type[p.type];
             invert[i] = p.invert;
             Vec3.toArray(p.position, position, i * 3);
-            Quat.toArray(Quat.setAxisAngle(qA, p.rotation.axis, degToRad(p.rotation.angle)), rotation, i * 4);
+            Vec3.normalize(vA, p.rotation.axis);
+            Quat.toArray(Quat.setAxisAngle(qA, vA, degToRad(p.rotation.angle)), rotation, i * 4);
             Vec3.toArray(p.scale, scale, i * 3);
             Mat4.toArray(p.transform, transform, i * 16);
         }

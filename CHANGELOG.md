@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - Add `putty` as a mol-view-spec representation.
 - Fix detecting sidechain-only structures as coarse-grained (#1420)
+- Fix clip-object transform due to missing axis normalization
 
 ## [v5.7.0] - 2026-02-28
 - Text label improvements
