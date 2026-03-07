@@ -13,6 +13,7 @@ import { guessElementSymbolTokens } from '../util';
 import { Column } from '../../../mol-data/db';
 import { areTokensEmpty } from '../../../mol-io/reader/common/text/column/token';
 import { StringLike } from '../../../mol-io/common/string-like';
+import { align } from '../../../mol-model/sequence/alignment/alignment';
 
 
 type AtomSiteTemplate = typeof getAtomSiteTemplate extends (...args: any) => infer T ? T : never
@@ -85,7 +86,55 @@ export class LabelAsymIdHelper {
     }
 }
 
-export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsymIdHelper, options: { hasAssemblies: boolean, hasSeqRes: boolean }): { [K in keyof mmCIF_Schema['atom_site'] | 'partial_charge']?: CifField } {
+/**
+ * Align observed comp_ids against SEQRES comp_ids using Needleman-Wunsch.
+ * Returns an array where result[i] is the 1-based SEQRES position for observed[i],
+ * or 0 if the observed residue could not be aligned to any SEQRES position.
+ */
+function alignCompIdsToSeqres(seqres: string[], observed: string[]): number[] {
+    const n = observed.length;
+    const m = seqres.length;
+
+    if (n === 0) return [];
+    if (m === 0) return new Array(n).fill(0);
+
+    // align() concatenates elements into a string for its output, so multi-char
+    // comp_ids (e.g. 'ALA') would be unparseable. Map each unique comp_id to a
+    // single Unicode character. align()'s default scoring uses === comparison
+    // (match=5, mismatch=-3) with affine gap penalties (open=-11, extend=-1).
+    const charByCompId = new Map<string, string>();
+    const allCompIds = new Set([...seqres, ...observed]);
+    let code = 0x41; // start at 'A'
+    for (const id of allCompIds) {
+        charByCompId.set(id, String.fromCodePoint(code++));
+    }
+
+    const seqA = observed.map(id => charByCompId.get(id)!);
+    const seqB = seqres.map(id => charByCompId.get(id)!);
+
+    const { aliA, aliB } = align(seqA, seqB);
+
+    // Walk the alignment to build the position mapping
+    const result = new Array<number>(n).fill(0);
+    let obsIdx = 0, seqresIdx = 0;
+    for (let k = 0, kl = aliA.length; k < kl; k++) {
+        const hasObs = aliA[k] !== '-';
+        const hasSeqres = aliB[k] !== '-';
+        if (hasObs && hasSeqres) {
+            result[obsIdx] = seqresIdx + 1; // 1-based
+            obsIdx++;
+            seqresIdx++;
+        } else if (hasObs) {
+            obsIdx++;
+        } else {
+            seqresIdx++;
+        }
+    }
+
+    return result;
+}
+
+export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsymIdHelper, options: { hasAssemblies: boolean, hasSeqRes: boolean, seqresMap?: Map<string, string[]> }): { [K in keyof mmCIF_Schema['atom_site'] | 'partial_charge']?: CifField } {
     labelAsymIdHelper.clear();
 
     const pdbx_PDB_model_num = CifField.ofStrings(sites.pdbx_PDB_model_num);
@@ -109,11 +158,48 @@ export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsy
 
     //
 
+    // Pre-compute SEQRES alignment using Needleman-Wunsch
+    const seqresMap = options.seqresMap;
+    const seqresAlignments = new Map<string, number[]>();
+    if (seqresMap) {
+        // Collect unique observed residues per chain (first model only)
+        const chainObserved = new Map<string, string[]>();
+        let prevChain = '', prevSeqId = -99999, prevInsCode = '___';
+        const firstModel = pdbx_PDB_model_num.str(0);
+
+        for (let i = 0, il = id.rowCount; i < il; ++i) {
+            if (pdbx_PDB_model_num.str(i) !== firstModel) break;
+            const chain = auth_asym_id.str(i);
+            const seqId = auth_seq_id.int(i);
+            const insCode = pdbx_PDB_ins_code.str(i);
+
+            if (chain !== prevChain || seqId !== prevSeqId || insCode !== prevInsCode) {
+                if (!chainObserved.has(chain)) chainObserved.set(chain, []);
+                chainObserved.get(chain)!.push(auth_comp_id.str(i));
+                prevChain = chain;
+                prevSeqId = seqId;
+                prevInsCode = insCode;
+            }
+        }
+
+        for (const [chainId, observed] of chainObserved) {
+            const seqres = seqresMap.get(chainId);
+            if (seqres && seqres.length > 0) {
+                seqresAlignments.set(chainId, alignCompIdsToSeqres(seqres, observed));
+            }
+        }
+    }
+
     let currModelNum = pdbx_PDB_model_num.str(0);
     let currAsymId = auth_asym_id.str(0);
     let currSeqId = auth_seq_id.int(0);
     let currInsCode = pdbx_PDB_ins_code.str(0);
-    let currLabelSeqId = useLinearLabelSeqId ? 1 : currSeqId;
+
+    // Initialize alignment state for the first chain
+    let alignmentForChain = seqresAlignments.get(currAsymId);
+    let chainResidueIdx = 0;
+    const firstAlignedPos = alignmentForChain ? alignmentForChain[0] : 0;
+    let currLabelSeqId = firstAlignedPos > 0 ? firstAlignedPos : (useLinearLabelSeqId ? 1 : currSeqId);
 
     const asymIdCounts = new Map<string, number>();
     const atomIdCounts = new Map<string, number>();
@@ -137,26 +223,33 @@ export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsy
             currAsymId = asymId;
             currSeqId = seqId;
             currInsCode = insCode;
-            currLabelSeqId = useLinearLabelSeqId ? 1 : currSeqId;
+            alignmentForChain = seqresAlignments.get(asymId);
+            chainResidueIdx = 0;
+            const alignedPos = alignmentForChain ? alignmentForChain[0] : 0;
+            currLabelSeqId = alignedPos > 0 ? alignedPos : (useLinearLabelSeqId ? 1 : currSeqId);
         } else if (currAsymId !== asymId) {
             atomIdCounts.clear();
             currAsymId = asymId;
             currSeqId = seqId;
             currInsCode = insCode;
-            currLabelSeqId = useLinearLabelSeqId ? 1 : currSeqId;
-        } else if (currSeqId !== seqId) {
+            alignmentForChain = seqresAlignments.get(asymId);
+            chainResidueIdx = 0;
+            const alignedPos = alignmentForChain ? alignmentForChain[0] : 0;
+            currLabelSeqId = alignedPos > 0 ? alignedPos : (useLinearLabelSeqId ? 1 : currSeqId);
+        } else if (currSeqId !== seqId || currInsCode !== insCode) {
             atomIdCounts.clear();
-            if (currSeqId === currLabelSeqId && !useLinearLabelSeqId) {
+            chainResidueIdx++;
+            const alignedPos = alignmentForChain && chainResidueIdx < alignmentForChain.length
+                ? alignmentForChain[chainResidueIdx] : 0;
+            if (alignedPos > 0) {
+                currLabelSeqId = alignedPos;
+            } else if (currSeqId === currLabelSeqId && !useLinearLabelSeqId) {
                 currLabelSeqId = seqId;
             } else {
                 currLabelSeqId += 1;
             }
             currSeqId = seqId;
             currInsCode = insCode;
-        } else if (currInsCode !== insCode) {
-            atomIdCounts.clear();
-            currInsCode = insCode;
-            currLabelSeqId += 1;
         }
 
         labelAsymIds[i] = labelAsymIdHelper.get(i);

@@ -64,6 +64,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     let conectRange: [number, number] | undefined = undefined;
     let hasAssemblies = false;
     let hasSeqRes = false;
+    let seqresMap: Map<string, string[]> | undefined = undefined;
     const terIndices = new Set<number>();
 
     for (let i = 0, _i = lines.count; i < _i; i++) {
@@ -182,8 +183,8 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                         if (!substringStartsWith(data, s, e, 'SEQRES')) break;
                         j++;
                     }
-                    // TODO: also create `entity_poly_seq` category; need to ensure `label_seq_id` consistency
-                    entityBuilder.setSeqres(parseSeqres(lines, i, j));
+                    seqresMap = parseSeqres(lines, i, j);
+                    entityBuilder.setSeqres(seqresMap);
                     i = j - 1;
                     hasSeqRes = true;
                 }
@@ -231,7 +232,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
         const asymId = labelAsymIdHelper.get(i);
         atomSite.label_entity_id[i] = entityBuilder.getEntityId(compId, moleculeType, asymId);
     }
-    const atom_site = getAtomSite(atomSite, labelAsymIdHelper, { hasAssemblies, hasSeqRes });
+    const atom_site = getAtomSite(atomSite, labelAsymIdHelper, { hasAssemblies, hasSeqRes, seqresMap });
     if (variant === 'pdb') delete atom_site.partial_charge;
 
     if (conectRange) {
@@ -244,6 +245,122 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
         atom_site: CifCategory.ofFields('atom_site', atom_site),
         atom_site_anisotrop: CifCategory.ofFields('atom_site_anisotrop', getAnisotropic(anisotropic))
     } as any;
+
+    // Build entity_poly_seq from SEQRES
+    if (seqresMap) {
+        const epsEntityIds: string[] = [];
+        const epsNums: number[] = [];
+        const epsMonIds: string[] = [];
+        const epsHeteros: string[] = [];
+        const processedEntities = new Set<string>();
+
+        for (const [chainId, residues] of seqresMap) {
+            const entityId = entityBuilder.getEntityIdForChain(chainId);
+            if (!entityId || processedEntities.has(entityId)) continue;
+            processedEntities.add(entityId);
+
+            for (let j = 0; j < residues.length; j++) {
+                epsEntityIds.push(entityId);
+                epsNums.push(j + 1);
+                epsMonIds.push(residues[j]);
+                epsHeteros.push('no');
+            }
+        }
+
+        if (epsEntityIds.length > 0) {
+            const entity_poly_seq: CifCategory.SomeFields<mmCIF_Schema['entity_poly_seq']> = {
+                entity_id: CifField.ofStrings(epsEntityIds),
+                num: CifField.ofNumbers(epsNums),
+                mon_id: CifField.ofStrings(epsMonIds),
+                hetero: CifField.ofStrings(epsHeteros),
+            };
+            categories.entity_poly_seq = CifCategory.ofFields('entity_poly_seq', entity_poly_seq);
+        }
+
+        // Build pdbx_unobs_or_zero_occ_residues by comparing SEQRES with observed ATOM records
+        // Collect observed (label_asym_id, label_seq_id) pairs per model, and auth_asym_id -> label_asym_id mapping.
+        // Only include atoms belonging to the polymer entity for each SEQRES chain.
+        // Non-polymer HETATMs (ions, ligands, water) share auth_asym_id in PDB format
+        // and their sequential label_seq_id values can collide with unobserved SEQRES positions.
+        const polymerEntityIds = new Map<string, string>();
+        for (const chainId of seqresMap.keys()) {
+            const entityId = entityBuilder.getEntityIdForChain(chainId);
+            if (entityId) polymerEntityIds.set(chainId, entityId);
+        }
+
+        const observedResidues = new Set<string>();
+        const authToLabelAsym = new Map<string, string>();
+        const rowCount = atom_site.label_asym_id!.rowCount;
+        for (let i = 0; i < rowCount; ++i) {
+            const authAsym = atom_site.auth_asym_id!.str(i);
+            const entityId = atom_site.label_entity_id!.str(i);
+
+            // Skip non-polymer atoms: their label_seq_id can collide with SEQRES positions
+            const polymerEntityId = polymerEntityIds.get(authAsym);
+            if (polymerEntityId && entityId !== polymerEntityId) continue;
+
+            const labelAsym = atom_site.label_asym_id!.str(i);
+            const labelSeq = atom_site.label_seq_id!.int(i);
+            const modelN = atom_site.pdbx_PDB_model_num!.int(i);
+            observedResidues.add(`${modelN}|${labelAsym}|${labelSeq}`);
+            if (!authToLabelAsym.has(authAsym)) {
+                authToLabelAsym.set(authAsym, labelAsym);
+            }
+        }
+
+        const unobsIds: number[] = [];
+        const unobsModelNums: number[] = [];
+        const unobsLabelAsymIds: string[] = [];
+        const unobsLabelCompIds: string[] = [];
+        const unobsLabelSeqIds: number[] = [];
+        const unobsAuthAsymIds: string[] = [];
+        const unobsAuthCompIds: string[] = [];
+        const unobsAuthSeqIds: number[] = [];
+        const unobsPolymerFlags: string[] = [];
+        const unobsOccupancyFlags: number[] = [];
+        let unobsId = 0;
+        const modelCount = Math.max(modelNum, 1);
+
+        for (let m = 1; m <= modelCount; ++m) {
+            for (const [chainId, residues] of seqresMap) {
+                const labelAsymId = authToLabelAsym.get(chainId);
+                if (!labelAsymId) continue;
+
+                for (let j = 0; j < residues.length; j++) {
+                    const seqId = j + 1; // 1-based label_seq_id
+                    if (!observedResidues.has(`${m}|${labelAsymId}|${seqId}`)) {
+                        unobsId++;
+                        unobsIds.push(unobsId);
+                        unobsModelNums.push(m);
+                        unobsLabelAsymIds.push(labelAsymId);
+                        unobsLabelCompIds.push(residues[j]);
+                        unobsLabelSeqIds.push(seqId);
+                        unobsAuthAsymIds.push(chainId);
+                        unobsAuthCompIds.push(residues[j]);
+                        unobsAuthSeqIds.push(seqId);
+                        unobsPolymerFlags.push('y');
+                        unobsOccupancyFlags.push(1);
+                    }
+                }
+            }
+        }
+
+        if (unobsIds.length > 0) {
+            const pdbx_unobs: CifCategory.SomeFields<mmCIF_Schema['pdbx_unobs_or_zero_occ_residues']> = {
+                id: CifField.ofNumbers(unobsIds),
+                PDB_model_num: CifField.ofNumbers(unobsModelNums),
+                polymer_flag: CifField.ofStrings(unobsPolymerFlags),
+                occupancy_flag: CifField.ofNumbers(unobsOccupancyFlags),
+                label_asym_id: CifField.ofStrings(unobsLabelAsymIds),
+                label_comp_id: CifField.ofStrings(unobsLabelCompIds),
+                label_seq_id: CifField.ofNumbers(unobsLabelSeqIds),
+                auth_asym_id: CifField.ofStrings(unobsAuthAsymIds),
+                auth_comp_id: CifField.ofStrings(unobsAuthCompIds),
+                auth_seq_id: CifField.ofNumbers(unobsAuthSeqIds),
+            };
+            categories.pdbx_unobs_or_zero_occ_residues = CifCategory.ofFields('pdbx_unobs_or_zero_occ_residues', pdbx_unobs);
+        }
+    }
 
     for (const c of helperCategories) {
         categories[c.name] = c;
