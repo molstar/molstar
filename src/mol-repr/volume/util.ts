@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -124,7 +124,7 @@ export function eachVolumeLoci(loci: Loci, volume: Volume, props: { isoValue?: V
     return changed;
 }
 
-export function createVolumeCellLocationIterator(volume: Volume): LocationIterator {
+export function createVolumeCellLocationIterator(volume: Volume, key: number): LocationIterator {
     const [xn, yn, zn] = volume.grid.cells.space.dimensions;
     const groupCount = xn * yn * zn;
     const instanceCount = volume.instances.length;
@@ -404,6 +404,7 @@ export function createWrappedVolume(volume: Volume): Volume {
 
     return {
         ...volume,
-        grid: _grid
+        grid: _grid,
+        parent: volume,
     };
 }

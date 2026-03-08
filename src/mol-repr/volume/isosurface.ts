@@ -54,7 +54,7 @@ function gpuSupport(webgl: WebGLContext) {
 function shouldWrap(volume: Volume, wrap: VolumeIsosurfaceProps['wrap']) {
     if (wrap === 'on') return true;
     if (wrap === 'off') return false;
-    return volume.periodicity === 'xyz';
+    return Volume.isPeriodic(volume);
 }
 
 const Padding = 1;
@@ -157,9 +157,9 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getIsosurfaceLoci,
         eachLocation: eachIsosurface,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {
+        setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {
             state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
+                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
                 newProps.wrap !== currentProps.wrap ||
                 newProps.floodfill !== currentProps.floodfill
             );
@@ -244,7 +244,7 @@ function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Volume, k
 
     const axisOrder = volume.grid.cells.space.axisOrderSlowToFast as Vec3;
     const groupCount = volume.grid.cells.data.length;
-    const boundingSphere = Volume.getBoundingSphere(volume); // getting isosurface bounding-sphere is too expensive here
+    const boundingSphere = Grid.getBoundingSphere(volume.grid); // getting isosurface bounding-sphere is too expensive here
 
     const create = (textureMesh?: TextureMesh) => {
         const { texture, gridDimension, gridTexDim, gridDataDim, gridTexScale, transform } = VolumeIsosurfaceTexture.get(volume, webgl, props);
@@ -272,9 +272,9 @@ export function IsosurfaceTextureMeshVisual(materialId: number): VolumeVisual<Is
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getIsosurfaceLoci,
         eachLocation: eachIsosurface,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {
+        setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {
             state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
+                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
                 newProps.gpuDataType !== currentProps.gpuDataType ||
                 newProps.wrap !== currentProps.wrap
             );
@@ -338,9 +338,9 @@ export function IsosurfaceWireframeVisual(materialId: number): VolumeVisual<Isos
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getIsosurfaceLoci,
         eachLocation: eachIsosurface,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<IsosurfaceWireframeParams>, currentProps: PD.Values<IsosurfaceWireframeParams>) => {
+        setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<IsosurfaceWireframeParams>, currentProps: PD.Values<IsosurfaceWireframeParams>) => {
             state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
+                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
                 newProps.wrap !== currentProps.wrap ||
                 newProps.floodfill !== currentProps.floodfill
             );

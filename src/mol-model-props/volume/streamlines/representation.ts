@@ -47,8 +47,8 @@ export function VolumeStreamlinesLinesVisual(materialId: number): VolumeVisual<S
         createLocationIterator: createStreamlinesLocationIterator,
         getLoci: getStreamlinesLoci,
         eachLocation: eachStreamlines,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<StreamlinesLinesParams>, currentProps: PD.Values<StreamlinesLinesParams>) => {
-            const streamlinesHash = StreamlinesProvider.get(volume).version;
+        setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<StreamlinesLinesParams>, currentProps: PD.Values<StreamlinesLinesParams>) => {
+            const streamlinesHash = StreamlinesProvider.get(newVolume).version;
             if ((state.info.streamlinesHash as number) !== streamlinesHash) {
                 if (state.info.streamlinesHash !== undefined) {
                     state.createGeometry = true;
@@ -190,8 +190,8 @@ export function VolumeStreamlinesTubeMeshVisual(materialId: number): VolumeVisua
         createLocationIterator: createStreamlinesLocationIterator,
         getLoci: getStreamlinesLoci,
         eachLocation: eachStreamlines,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<StreamlinesTubeMeshParams>, currentProps: PD.Values<StreamlinesTubeMeshParams>) => {
-            const streamlinesHash = StreamlinesProvider.get(volume).version;
+        setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<StreamlinesTubeMeshParams>, currentProps: PD.Values<StreamlinesTubeMeshParams>) => {
+            const streamlinesHash = StreamlinesProvider.get(newVolume).version;
             if ((state.info.streamlinesHash as number) !== streamlinesHash) {
                 if (state.info.streamlinesHash !== undefined) {
                     state.createGeometry = true;
