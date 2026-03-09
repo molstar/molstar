@@ -23,7 +23,7 @@ import { MarkerAction } from '../mol-util/marker-action';
 import { Loci, EmptyLoci, isEmptyLoci } from '../mol-model/loci';
 import { Camera } from './camera';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
-import { DebugHelperParams } from './helper/bounding-sphere-helper';
+import { DebugHelperParams } from './helper/debug-helper';
 import { SetUtils } from '../mol-util/set';
 import { Canvas3dInteractionHelper, Canvas3dInteractionHelperParams } from './helper/interaction-events';
 import { PostprocessingParams } from './passes/postprocessing';

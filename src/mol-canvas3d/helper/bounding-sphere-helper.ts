@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,14 +19,14 @@ import { sphereVertexCount } from '../../mol-geo/primitive/sphere';
 import { ValueCell } from '../../mol-util';
 import { Geometry } from '../../mol-geo/geometry/geometry';
 
-export const DebugHelperParams = {
+export const BoundingSphereHelperParams = {
     sceneBoundingSpheres: PD.Boolean(false, { description: 'Show full scene bounding spheres.' }),
     visibleSceneBoundingSpheres: PD.Boolean(false, { description: 'Show visible scene bounding spheres.' }),
     objectBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of visible render objects.' }),
     instanceBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of visible instances.' }),
 };
-export type DebugHelperParams = typeof DebugHelperParams
-export type DebugHelperProps = PD.Values<DebugHelperParams>
+export type BoundingSphereHelperParams = typeof BoundingSphereHelperParams;
+export type BoundingSphereHelperProps = PD.Values<BoundingSphereHelperParams>;
 
 type BoundingSphereData = { boundingSphere: Sphere3D, renderObject: GraphicsRenderObject, mesh: Mesh }
 
@@ -34,16 +34,16 @@ export class BoundingSphereHelper {
     readonly scene: Scene;
 
     private readonly parent: Scene;
-    private _props: DebugHelperProps;
+    private _props: BoundingSphereHelperProps;
     private objectsData = new Map<GraphicsRenderObject, BoundingSphereData>();
     private instancesData = new Map<GraphicsRenderObject, BoundingSphereData>();
     private sceneData: BoundingSphereData | undefined;
     private visibleSceneData: BoundingSphereData | undefined;
 
-    constructor(ctx: WebGLContext, parent: Scene, props: Partial<DebugHelperProps>) {
+    constructor(ctx: WebGLContext, parent: Scene, props: Partial<BoundingSphereHelperProps>) {
         this.scene = Scene.create(ctx, 'blended');
         this.parent = parent;
-        this._props = { ...PD.getDefaultValues(DebugHelperParams), ...props };
+        this._props = { ...PD.getDefaultValues(BoundingSphereHelperParams), ...props };
     }
 
     update() {
@@ -120,9 +120,9 @@ export class BoundingSphereHelper {
             this._props.objectBoundingSpheres || this._props.instanceBoundingSpheres
         );
     }
-    get props() { return this._props as Readonly<DebugHelperProps>; }
+    get props() { return this._props as Readonly<BoundingSphereHelperProps>; }
 
-    setProps(props: Partial<DebugHelperProps>) {
+    setProps(props: Partial<BoundingSphereHelperProps>) {
         Object.assign(this._props, props);
         if (this.isEnabled) this.update();
     }
