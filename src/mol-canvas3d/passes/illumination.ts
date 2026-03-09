@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -329,6 +329,33 @@ export class IlluminationPass {
             renderer.setViewport(x, y, width, height);
             renderer.update(camera, scene);
             this.renderInput(renderer, camera, scene, props);
+
+            this.transparentTarget.bind();
+            if (helper.debug.isEnabled || helper.pointer.isEnabled) {
+                this.drawPass.depthTextureOpaque.attachFramebuffer(this.transparentTarget.framebuffer, 'depth');
+                if (helper.debug.isEnabled) {
+                    helper.debug.syncVisibility();
+                    renderer.renderBlended(helper.debug.boundingSphereScene, camera);
+                    renderer.renderBlended(helper.debug.clipScene, camera);
+                    renderer.renderBlended(helper.debug.meshScene, camera);
+                    renderer.renderBlended(helper.debug.imageScene, camera);
+                    renderer.renderBlended(helper.debug.directVolumeScene, camera);
+                }
+                if (helper.pointer.isEnabled) {
+                    helper.pointer.setCamera(camera);
+                    renderer.update(helper.pointer.camera, helper.pointer.scene);
+                    renderer.renderBlended(helper.pointer.scene, helper.pointer.camera);
+                }
+                this.drawPass.depthTextureOpaque.detachFramebuffer(this.transparentTarget.framebuffer, 'depth');
+            }
+            if (helper.handle.isEnabled) {
+                renderer.renderBlended(helper.handle.scene, camera);
+            }
+            if (helper.camera.isEnabled) {
+                helper.camera.update(camera);
+                renderer.update(helper.camera.camera, helper.camera.scene);
+                renderer.renderBlended(helper.camera.scene, helper.camera.camera);
+            }
         }
 
         state.disable(gl.BLEND);
@@ -432,19 +459,6 @@ export class IlluminationPass {
         renderer.setPixelRatio(this.webgl.pixelRatio);
         renderer.setViewport(x, y, width, height);
         renderer.update(camera, scene);
-
-        if (helper.debug.isEnabled) {
-            helper.debug.syncVisibility();
-            renderer.renderBlended(helper.debug.scene, camera);
-        }
-        if (helper.handle.isEnabled) {
-            renderer.renderBlended(helper.handle.scene, camera);
-        }
-        if (helper.camera.isEnabled) {
-            helper.camera.update(camera);
-            renderer.update(helper.camera.camera, helper.camera.scene);
-            renderer.renderBlended(helper.camera.scene, helper.camera.camera);
-        }
 
         //
 
