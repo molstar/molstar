@@ -16,7 +16,7 @@ import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 import { MeshValues } from '../../mol-gl/renderable/mesh';
 
 export const MeshHelperParams = {
-    meshNormals: PD.Boolean(false, { description: 'Show normals of visible mesh render objects as lines.' }),
+    meshNormals: PD.Boolean(false, { description: 'Show normals of visible mesh render objects.' }),
 };
 export type MeshHelperParams = typeof MeshHelperParams;
 export type MeshHelperProps = PD.Values<MeshHelperParams>;

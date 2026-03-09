@@ -24,7 +24,7 @@ import { Cylinder } from '../../mol-geo/primitive/cylinder';
 import { Sphere } from '../../mol-geo/primitive/sphere';
 
 export const ClipObjectHelperParams = {
-    clipObjects: PD.Boolean(false, { description: 'Show clip objects of visible render objects.' }),
+    clipObjects: PD.Boolean(false, { description: 'Show clip-objects of visible render objects.' }),
 };
 export type ClipObjectHelperParams = typeof ClipObjectHelperParams;
 export type ClipObjectHelperProps = PD.Values<ClipObjectHelperParams>;
