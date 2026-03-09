@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -446,17 +446,29 @@ export class DrawPass {
             target.bind();
         }
 
-        if (helper.debug.isEnabled) {
-            helper.debug.syncVisibility();
-            renderer.renderBlended(helper.debug.scene, camera);
+        if (helper.debug.isEnabled || helper.pointer.isEnabled) {
+            if (!this.packedDepth) {
+                this.depthTextureOpaque.attachFramebuffer(target.framebuffer, 'depth');
+            }
+            if (helper.debug.isEnabled) {
+                helper.debug.syncVisibility();
+                renderer.renderBlended(helper.debug.boundingSphereScene, camera);
+                renderer.renderBlended(helper.debug.clipScene, camera);
+                renderer.renderBlended(helper.debug.meshScene, camera);
+                renderer.renderBlended(helper.debug.imageScene, camera);
+                renderer.renderBlended(helper.debug.directVolumeScene, camera);
+            }
+            if (helper.pointer.isEnabled) {
+                helper.pointer.setCamera(camera);
+                renderer.update(helper.pointer.camera, helper.pointer.scene);
+                renderer.renderBlended(helper.pointer.scene, helper.pointer.camera);
+            }
+            if (!this.packedDepth) {
+                this.depthTextureOpaque.detachFramebuffer(target.framebuffer, 'depth');
+            }
         }
         if (helper.handle.isEnabled) {
             renderer.renderBlended(helper.handle.scene, camera);
-        }
-        if (helper.pointer.isEnabled) {
-            helper.pointer.setCamera(camera);
-            renderer.update(helper.pointer.camera, helper.pointer.scene);
-            renderer.renderBlended(helper.pointer.scene, helper.pointer.camera);
         }
         if (helper.camera.isEnabled) {
             helper.camera.update(camera);
