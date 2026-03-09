@@ -4,24 +4,24 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createRenderObject, GraphicsRenderObject, getNextMaterialId } from '../../mol-gl/render-object';
-import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
-import { addSphere } from '../../mol-geo/geometry/mesh/builder/sphere';
-import { addCylinder } from '../../mol-geo/geometry/mesh/builder/cylinder';
-import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Scene } from '../../mol-gl/scene';
-import { WebGLContext } from '../../mol-gl/webgl/context';
-import { Color } from '../../mol-util/color';
-import { ColorNames } from '../../mol-util/color/names';
-import { Clip } from '../../mol-util/clip';
-import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
-import { Quat } from '../../mol-math/linear-algebra/3d/quat';
-import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
-import { Box } from '../../mol-geo/primitive/box';
-import { Plane } from '../../mol-geo/primitive/plane';
-import { Cylinder } from '../../mol-geo/primitive/cylinder';
-import { Sphere } from '../../mol-geo/primitive/sphere';
+import { createRenderObject, GraphicsRenderObject, getNextMaterialId } from '../../../mol-gl/render-object';
+import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
+import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
+import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { Scene } from '../../../mol-gl/scene';
+import { WebGLContext } from '../../../mol-gl/webgl/context';
+import { Color } from '../../../mol-util/color';
+import { ColorNames } from '../../../mol-util/color/names';
+import { Clip } from '../../../mol-util/clip';
+import { Mat4 } from '../../../mol-math/linear-algebra/3d/mat4';
+import { Quat } from '../../../mol-math/linear-algebra/3d/quat';
+import { Vec3 } from '../../../mol-math/linear-algebra/3d/vec3';
+import { Box } from '../../../mol-geo/primitive/box';
+import { Plane } from '../../../mol-geo/primitive/plane';
+import { Cylinder } from '../../../mol-geo/primitive/cylinder';
+import { Sphere } from '../../../mol-geo/primitive/sphere';
 
 export const ClipObjectHelperParams = {
     clipObjects: PD.Boolean(false, { description: 'Show clip-objects of visible render objects.' }),

@@ -4,22 +4,22 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createRenderObject, GraphicsRenderObject, getNextMaterialId } from '../../mol-gl/render-object';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Scene } from '../../mol-gl/scene';
-import { WebGLContext } from '../../mol-gl/webgl/context';
-import { ColorNames } from '../../mol-util/color/names';
-import { Color } from '../../mol-util/color';
-import { Lines } from '../../mol-geo/geometry/lines/lines';
-import { LinesBuilder } from '../../mol-geo/geometry/lines/lines-builder';
-import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
-import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
-import { Quat } from '../../mol-math/linear-algebra/3d/quat';
-import { ImageValues } from '../../mol-gl/renderable/image';
-import { Clip } from '../../mol-util/clip';
-import { addSphere as addLinesSphere } from '../../mol-geo/geometry/lines/builder/sphere';
-import { addBox } from '../../mol-geo/geometry/lines/builder/box';
-import { addPlane } from '../../mol-geo/geometry/lines/builder/plane';
+import { createRenderObject, GraphicsRenderObject, getNextMaterialId } from '../../../mol-gl/render-object';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { Scene } from '../../../mol-gl/scene';
+import { WebGLContext } from '../../../mol-gl/webgl/context';
+import { ColorNames } from '../../../mol-util/color/names';
+import { Color } from '../../../mol-util/color';
+import { Lines } from '../../../mol-geo/geometry/lines/lines';
+import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
+import { Vec3 } from '../../../mol-math/linear-algebra/3d/vec3';
+import { Mat4 } from '../../../mol-math/linear-algebra/3d/mat4';
+import { Quat } from '../../../mol-math/linear-algebra/3d/quat';
+import { ImageValues } from '../../../mol-gl/renderable/image';
+import { Clip } from '../../../mol-util/clip';
+import { addSphere as addLinesSphere } from '../../../mol-geo/geometry/lines/builder/sphere';
+import { addBox } from '../../../mol-geo/geometry/lines/builder/box';
+import { addPlane } from '../../../mol-geo/geometry/lines/builder/plane';
 
 export const ImageHelperParams = {
     imageEdges: PD.Boolean(false, { description: 'Show edges of visible image render objects.' }),

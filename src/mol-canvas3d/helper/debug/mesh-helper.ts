@@ -4,16 +4,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createRenderObject, GraphicsRenderObject, getNextMaterialId } from '../../mol-gl/render-object';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Scene } from '../../mol-gl/scene';
-import { WebGLContext } from '../../mol-gl/webgl/context';
-import { ColorNames } from '../../mol-util/color/names';
-import { Lines } from '../../mol-geo/geometry/lines/lines';
-import { LinesBuilder } from '../../mol-geo/geometry/lines/lines-builder';
-import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
-import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
-import { MeshValues } from '../../mol-gl/renderable/mesh';
+import { createRenderObject, GraphicsRenderObject, getNextMaterialId } from '../../../mol-gl/render-object';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { Scene } from '../../../mol-gl/scene';
+import { WebGLContext } from '../../../mol-gl/webgl/context';
+import { ColorNames } from '../../../mol-util/color/names';
+import { Lines } from '../../../mol-geo/geometry/lines/lines';
+import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
+import { Vec3 } from '../../../mol-math/linear-algebra/3d/vec3';
+import { Mat4 } from '../../../mol-math/linear-algebra/3d/mat4';
+import { MeshValues } from '../../../mol-gl/renderable/mesh';
 
 export const MeshHelperParams = {
     meshNormals: PD.Boolean(false, { description: 'Show normals of visible mesh render objects.' }),

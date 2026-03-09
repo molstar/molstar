@@ -7,11 +7,11 @@
 import { Scene } from '../../mol-gl/scene';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { BoundingSphereHelper, BoundingSphereHelperParams } from './bounding-sphere-helper';
-import { ClipObjectHelper, ClipObjectHelperParams } from './clip-object-helper';
-import { DirectVolumeHelper, DirectVolumeHelperParams } from './direct-volume-helper';
-import { ImageHelper, ImageHelperParams } from './image-helper';
-import { MeshHelper, MeshHelperParams } from './mesh-helper';
+import { BoundingSphereHelper, BoundingSphereHelperParams } from './debug/bounding-sphere-helper';
+import { ClipObjectHelper, ClipObjectHelperParams } from './debug/clip-object-helper';
+import { DirectVolumeHelper, DirectVolumeHelperParams } from './debug/direct-volume-helper';
+import { ImageHelper, ImageHelperParams } from './debug/image-helper';
+import { MeshHelper, MeshHelperParams } from './debug/mesh-helper';
 
 export const DebugHelperParams = {
     ...BoundingSphereHelperParams,
