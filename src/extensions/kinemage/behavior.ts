@@ -33,7 +33,6 @@ const Transform = StateTransformer.builderFactory('sb-kinemage');
  * Apply a saved snapshot object (from a view state node) to the plugin camera.
  * Use PluginCommands.Camera.SetSnapshot so transitions and canvas props are handled properly.
  */
-/// @todo Hook this in
 export async function applyViewSnapshot(plugin: PluginContext, snapshot: Partial<Camera.Snapshot>) {
   if (!snapshot) return;
   // If the snapshot provides a target, adjust the canvas `sceneRadiusFactor` so the scene isn't clipped
