@@ -36,7 +36,7 @@ interface KinemageData {
     readonly kinemages: Kinemage[],
 
     /**
-     * Index of the active KinemageData
+     * Index of the active Kinemage
      */
     activeKinemage: number
 }
