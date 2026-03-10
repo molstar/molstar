@@ -29,6 +29,8 @@ const Tag = KinemageData.Tag;
 
 const Transform = StateTransformer.builderFactory('sb-kinemage');
 
+let g_kinemageData: KinemageData | undefined = undefined;
+
 /**
  * Apply a saved snapshot object (from a view state node) to the plugin camera.
  * Use PluginCommands.Camera.SetSnapshot so transitions and canvas props are handled properly.
@@ -371,9 +373,15 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
 export async function loadKinemageFile(plugin: PluginContext, file: File): Promise<boolean> {
   let applied = false;
   const task = Task.create('Load KIN file', async ctx => {
-    const kinInfo = await KinemageData.open(file);
-    await applyKinemageInfoToState(plugin, kinInfo);
-    applied = kinInfo.kinemages.length > 0;
+    const kinData = await KinemageData.open(file);
+    if (!g_kinemageData) {
+      g_kinemageData = kinData;
+    } else {
+      // If we already have kinemage data loaded, append to the list of kinemages and make the last one active
+      g_kinemageData.kinemages.push(...kinData.kinemages);
+      g_kinemageData.activeKinemage = g_kinemageData.kinemages.length - 1;
+    }
+    applied = g_kinemageData.kinemages.length > 0;
   });
   await plugin.runTask(task);
   return applied;
@@ -393,6 +401,9 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
         // reuse programmatic loader so drag & drop and programmatic loading behave the same
         const ok = await loadKinemageFile(plugin, file);
         applied = applied || ok;
+        if (g_kinemageData) {
+          await applyKinemageInfoToState(plugin, g_kinemageData);
+        }
       }
     }
     return applied;
@@ -454,11 +465,9 @@ const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
     return undefined;
   },
   visuals: async (plugin, data) => {
-    /// @todo A more standard approach would be to have the parse call generate data and the visuals call create
-    /// the representations. However, since the KIN loader is already implemented as a side-effecting function that
-    /// applies directly to the plugin state, we can just call it from parse and have visuals be a no-op.  If we wanted
-    // to split it up more cleanly, we would need to refactor the KIN loader to separate parsing from applying to state.
-    //await (KINFormatProvider.parse as any)(plugin, data);
+    if (g_kinemageData) {
+      await applyKinemageInfoToState(plugin, g_kinemageData);
+    }
     return undefined;
   }
 });
