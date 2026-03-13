@@ -68,18 +68,33 @@ function createKinShapeSpheresParams(kinemage?: Kinemage) {
 export const KinShapeSpheresParams = createKinShapeSpheresParams();
 export type KinShapeSpheresParams = typeof KinShapeSpheresParams
 
-async function getPoints(ctx: RuntimeContext, dotLists: DotList[]) {
+async function getPoints(ctx: RuntimeContext, kin: Kinemage) {
+  const dotLists: DotList[] = kin.dotLists;
   const builderState = PointsBuilder.create();
   const colors: Color[] = [];
   const labels: string[] = [];
 
-  // Every dot is in its own group because they may have colors and we look that up by group.
+  // Every dot is in its own Molstar group because they may have colors and we look that up by group.
   let index = 0;
 
   for (let i = 0; i < dotLists.length; i++) {
-    const positionArray = dotLists[i].positionArray;
-    const colorArray = dotLists[i].colorArray;
-    const labelArray = dotLists[i].labelArray;
+    const dotList = dotLists[i];
+    const positionArray = dotList.positionArray;
+    const colorArray = dotList.colorArray;
+    const labelArray = dotList.labelArray;
+    const masterArray = dotList.masterArray;
+
+    // Check the visibility of all of our masters and skip this dot list if any of them are not visible.
+    let visible = true;
+    for (let m = 0; m < masterArray.length; m++) {
+      const masterName = masterArray[m];
+      const masterInfo = kin.masterDict[masterName];
+      if (masterInfo && !masterInfo.visible) {
+        visible = false;
+        break;
+      }
+    }
+    if (!visible) { continue; }
 
     /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
@@ -100,24 +115,38 @@ async function getPoints(ctx: RuntimeContext, dotLists: DotList[]) {
   return { points, colors, labels };
 }
 
-async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
+async function getLines(ctx: RuntimeContext, kin: Kinemage) {
+  const vectorLists: VectorList[] = kin.vectorLists;
   const builderState = LinesBuilder.create();
   const widths: number[] = [];
   const colors: Color[] = [];
   const labels: string[] = [];
 
-  // Every line is in its own group because they may have individual widths and we look
+  // Every line is in its own Molstar group because they may have individual widths and we look
   // up the width based on the group is in the size function.
   let index = 0;
 
   for (let i = 0; i < vectorLists.length; i++) {
-    const vertices = vectorLists[i];
-    const position1Array = vertices.position1Array;
-    const position2Array = vertices.position2Array;
-    const widthArray = vertices.width;
-    const color1Array = vertices.color1Array;
-    const color2Array = vertices.color2Array;
-    const label1Array = vertices.label1Array;
+    const vectorList = vectorLists[i];
+    const position1Array = vectorList.position1Array;
+    const position2Array = vectorList.position2Array;
+    const widthArray = vectorList.width;
+    const color1Array = vectorList.color1Array;
+    const color2Array = vectorList.color2Array;
+    const label1Array = vectorList.label1Array;
+    const masterArray = vectorList.masterArray;
+
+    // Check the visibility of all of our masters and skip this vector list if any of them are not visible.
+    let visible = true;
+    for (let m = 0; m < masterArray.length; m++) {
+      const masterName = masterArray[m];
+      const masterInfo = kin.masterDict[masterName];
+      if (masterInfo && !masterInfo.visible) {
+        visible = false;
+        break;
+      }
+    }
+    if (!visible) { continue; }
 
     /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
@@ -151,88 +180,100 @@ function addOffsetTriangle(builderState: MeshBuilder.State, a: Vec3, b: Vec3, c:
   MeshBuilder.addTriangleWithNormal(builderState, aOffset, bOffset, cOffset, n);
 }
 
-async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
+async function getMesh(ctx: RuntimeContext, kin: Kinemage) {
+  const ribbonObjects: RibbonObject[] = kin.ribbonLists;
   const builderState = MeshBuilder.createState();
   const colors: Color[] = [];
   const labels: string[] = [];
 
-  // Every triangle is in its own group because they may have individual colors and we look
+  // Every triangle is in its own Molstar group because they may have individual colors and we look
   // up the color based on the group is in the color function.
   let index = 0;
 
   for (let ri = 0; ri < ribbonObjects.length; ri++) {
     const ribbonObject = ribbonObjects[ri];
+    const coords = ribbonObject.positionArray;
+    const colorArray = ribbonObject.colorArray;
+    const labelArray = ribbonObject.labelArray;
+    const masterArray = ribbonObject.masterArray;
+
+    // Check the visibility of all of our masters and skip this ribbon object if any of them are not visible.
+    let visible = true;
+    for (let m = 0; m < masterArray.length; m++) {
+      const masterName = masterArray[m];
+      const masterInfo = kin.masterDict[masterName];
+      if (masterInfo && !masterInfo.visible) {
+        visible = false;
+        break;
+      }
+    }
+    if (!visible) { continue; }
+
     builderState.currentGroup = ri;  /// @todo Base this on something in the file instead?
 
-    for (let i = 0; i < ribbonObject.masterArray.length; i++) {
-      const coords = ribbonObject.positionArray;
-      const colorArray = ribbonObject.colorArray;
-      const labelArray = ribbonObject.labelArray;
+    /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
-      /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
+    // The positionArray contains 3x as many entries as there are vertices since it's a catenation of x, y, z for each vertex.
+    // There are three vertices per triangle.
+    /// @todo Ribbon lighting is to be set up to make each pair of triangles look like a quad with the same normal.
+    const numTriangles = coords.length / 9;
+    let prevTriangleNormal: Vec3 | undefined = undefined;
+    for (let i = 0; i < numTriangles; i++) {
+      const vertexList: Vec3[] = [];
 
-      // The positionArray contains 3x as many entries as there are vertices since it's a catenation of x, y, z for each vertex.
-      // There are three vertices per triangle.
-      /// @todo Ribbon lighting is to be set up to make each pair of triangles look like a quad with the same normal.
-      const numTriangles = coords.length / 9;
-      let prevTriangleNormal: Vec3 | undefined = undefined;
-      for (let i = 0; i < numTriangles; i++) {
-        const vertexList: Vec3[] = [];
-
-        // Get the vertices for the triangle out of the position array and push them onto a list.
-        for (let j = 0; j < 3; j++) {
-          const v = Vec3.zero();
-          v[0] = coords[3 * (3 * i + j) + 0];
-          v[1] = coords[3 * (3 * i + j) + 1];
-          v[2] = coords[3 * (3 * i + j) + 2];
-          vertexList.push(v);
-        }
-
-        // Set the group per triangle so that we can do per-triangle coloring.
-        let group = index++;
-        builderState.currentGroup = group;
-
-        // colorArray may be undefined; push a default color when not provided.
-        // There is one color per group, even if we have two triangles in this group.
-        /// @todo Consider averaging the colors the vertices because we can't color different vertices differently.
-        const color = colorArray && colorArray.length > i * 9 ?
-          Color.fromRgb(255 * colorArray[9 * i + 0],
-                        255 * colorArray[9 * i + 1],
-                        255 * colorArray[9 * i + 2])
-          : Color.fromRgb(255, 255, 255);
-        colors.push(color);
-
-        // labelArray may be undefined; push an empty string when not provided
-        const label = labelArray && labelArray.length > i ? labelArray[i] : '';
-        labels.push(label);
-
-        // Find the vertics and normal for the triangle.
-        let a: Vec3 = vertexList[0];
-        let b: Vec3 = vertexList[1];
-        let c: Vec3 = vertexList[2];
-        // Flip the winding for every other triangle to keep the faces consistent.
-        if (i % 2 === 1) {
-          const temp = b;
-          b = c;
-          c = temp;
-        }
-
-        // Put both orientations of the triangle. Add a small amount along the normal to make them
-        // not be exactly on top of each other so that we only see the front face of each.
-        let n = Vec3.zero();
-        Vec3.triangleNormal(n, a, b, c);
-        if (i % 2 === 1) {
-          // For ribbons, every other triangle is meant to be paired with the previous one to make a quad with the same normal.
-          // So use the same normal for every other triangle.
-          n = prevTriangleNormal || n;
-        }
-        prevTriangleNormal = n;
-        addOffsetTriangle(builderState, a, b, c, n, 0.01);
-
-        // Invert the normal for the back face.
-        Vec3.negate(n, n);
-        addOffsetTriangle(builderState, a, c, b, n, 0.01);
+      // Get the vertices for the triangle out of the position array and push them onto a list.
+      for (let j = 0; j < 3; j++) {
+        const v = Vec3.zero();
+        v[0] = coords[3 * (3 * i + j) + 0];
+        v[1] = coords[3 * (3 * i + j) + 1];
+        v[2] = coords[3 * (3 * i + j) + 2];
+        vertexList.push(v);
       }
+
+      // Set the group per triangle so that we can do per-triangle coloring.
+      let group = index++;
+      builderState.currentGroup = group;
+
+      // colorArray may be undefined; push a default color when not provided.
+      // There is one color per group, even if we have two triangles in this group.
+      /// @todo Consider averaging the colors the vertices because we can't color different vertices differently.
+      const color = colorArray && colorArray.length > i * 9 ?
+        Color.fromRgb(255 * colorArray[9 * i + 0],
+                      255 * colorArray[9 * i + 1],
+                      255 * colorArray[9 * i + 2])
+        : Color.fromRgb(255, 255, 255);
+      colors.push(color);
+
+      // labelArray may be undefined; push an empty string when not provided
+      const label = labelArray && labelArray.length > i ? labelArray[i] : '';
+      labels.push(label);
+
+      // Find the vertics and normal for the triangle.
+      let a: Vec3 = vertexList[0];
+      let b: Vec3 = vertexList[1];
+      let c: Vec3 = vertexList[2];
+      // Flip the winding for every other triangle to keep the faces consistent.
+      if (i % 2 === 1) {
+        const temp = b;
+        b = c;
+        c = temp;
+      }
+
+      // Put both orientations of the triangle. Add a small amount along the normal to make them
+      // not be exactly on top of each other so that we only see the front face of each.
+      let n = Vec3.zero();
+      Vec3.triangleNormal(n, a, b, c);
+      if (i % 2 === 1) {
+        // For ribbons, every other triangle is meant to be paired with the previous one to make a quad with the same normal.
+        // So use the same normal for every other triangle.
+        n = prevTriangleNormal || n;
+      }
+      prevTriangleNormal = n;
+      addOffsetTriangle(builderState, a, b, c, n, 0.01);
+
+      // Invert the normal for the back face.
+      Vec3.negate(n, n);
+      addOffsetTriangle(builderState, a, c, b, n, 0.01);
     }
   }
 
@@ -244,13 +285,14 @@ async function getMesh(ctx: RuntimeContext, ribbonObjects: RibbonObject[]) {
  * Build spheres geometry and collect per-sphere radii from the KIN BallList entries.
  * Returns an object with the Spheres geometry and a Float32Array with per-center radii (one entry per center, in the same order they were added).
  */
-async function getSpheres(ctx: RuntimeContext, balls: BallList[]) {
+async function getSpheres(ctx: RuntimeContext, kin: Kinemage) {
+  const balls: BallList[] = kin.ballLists;
   const builderState = SpheresBuilder.create();
   const radii: number[] = [];
   const colors: Color[] = [];
   const labels: string[] = [];
 
-  // Every ball is in its own group because they may have individual radii and we look
+  // Every ball is in its own Molstar group because they may have individual radii and we look
   // up the radius based on the group is in the size function.
   let index = 0;
 
@@ -258,6 +300,19 @@ async function getSpheres(ctx: RuntimeContext, balls: BallList[]) {
     const positionArray = balls[i].positionArray;
     const radiusArray = balls[i].radiusArray;
     const colorArray = balls[i].colorArray;
+    const masterArray = balls[i].masterArray;
+
+    // Check the visibility of all of our masters and skip this ball list if any of them are not visible.
+    let visible = true;
+    for (let m = 0; m < masterArray.length; m++) {
+      const masterName = masterArray[m];
+      const masterInfo = kin.masterDict[masterName];
+      if (masterInfo && !masterInfo.visible) {
+        visible = false;
+        break;
+      }
+    }
+    if (!visible) { continue; }
 
     /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
@@ -284,7 +339,7 @@ function makePointsShapeGetter() {
 
   const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapePointsParams>, shape?: Shape<Points>) => {
     // Get our points, adding them from all of the entries in the dot lists
-    const { points: _points, colors, labels } = await getPoints(ctx, kinData.source.dotLists);
+    const { points: _points, colors, labels } = await getPoints(ctx, kinData.source);
 
     // Color function signature: (groupId: number, instanceId: number) => Color
     // For Lines the groupId corresponds to the line index (order added).
@@ -316,7 +371,7 @@ function makeLineShapeGetter() {
 
     const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeLinesParams>, shape?: Shape<Lines>) => {
         // Get our lines, adding them from all of the entries in the vector lists
-        const { lines: _lines, widths, colors, labels } = await getLines(ctx, kinData.source.vectorLists);
+        const { lines: _lines, widths, colors, labels } = await getLines(ctx, kinData.source);
 
         // Size function signature: (groupId: number, instanceId: number) => number
         // For Lines the groupId corresponds to the line index (order added).
@@ -357,7 +412,7 @@ function makeMeshShapeGetter() {
 
   const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeMeshParams>, shape?: Shape<Mesh>) => {
 
-    let { mesh: _mesh, colors, labels } = await getMesh(ctx, kinData.source.ribbonLists);
+    let { mesh: _mesh, colors, labels } = await getMesh(ctx, kinData.source);
     // Ensure that _mesh is not undifined before we pass it to Shape.create.  If it is undefined, create an empty mesh instead.
     if (!_mesh) {
       console.warn('No mesh could be created from the KIN data.  Creating an empty mesh instead.');
@@ -395,7 +450,7 @@ function makeSpheresShapeGetter() {
 
   const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeSpheresParams>, shape?: Shape<Spheres>) => {
     // Build spheres geometry and collect per-center radii
-    const { spheres: _spheres, radii, colors, labels } = await getSpheres(ctx, kinData.source.ballLists);
+    const { spheres: _spheres, radii, colors, labels } = await getSpheres(ctx, kinData.source);
 
     // size function signature: (groupId: number, instanceId: number) => number
     // For Spheres the groupId corresponds to the center index (order added).
