@@ -239,7 +239,7 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
             });
 
             // When one of the state objects is has its visibility changed in the GUI, handle the appropriate behavior:
-            // For a master, just print the master data for now.
+            // For a master, turn on or off the value and regenerate appropriate geometry.
             this.visibilitySub = this.ctx.state.data.events.cell.stateUpdated.subscribe((e: any) => {
               const ref = e.ref;
               // state.select returns an array of cells; the first is the matching cell
@@ -262,10 +262,10 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
                   // visibility changed for the object referenced by `ref`
                   if (nowHidden) {
                     // Became hidden
-                    console.log(`Object ${nodeData.masterData} became hidden`);
+                    console.log(`XXX Object ${nodeData.masterData} became hidden`);
                   } else {
                     // Became visible
-                    console.log(`Object ${nodeData.masterData} became visible`);
+                    console.log(`XXX Object ${nodeData.masterData} became visible`);
                   }
                   /// @todo Handle properly
                 }
@@ -424,7 +424,6 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
 
       // capture desired visibility so we can set transform state after commit
       const visible = !!(masterInfo && (masterInfo as any).visible);
-      console.log(`Master ${masterName} initial visibility: ${visible ? 'visible' : 'hidden'}`);
       createdMasterPairs.push({ selector: masterNode.selector as StateObjectRef<PluginStateObject.Format.Json>, visible });
     }
 
@@ -481,11 +480,9 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
     try {
       const ref = resolveSelectorRef(pair.selector);
       if (!ref) continue;
-      console.log(`Setting master ${pair.selector} visibility to ${pair.visible ? 'visible' : 'hidden'} with ref ${ref}`);
 
       // Set the isHidden state for this master based on the visibile flag stored above.
       plugin.state.data.updateCellState(ref, (old: any) => {
-        console.log(`Updating state for ${ref}, old state:`, old);
         const s = { ...(old || {}) };
         s.isHidden = !pair.visible;
         return s;
