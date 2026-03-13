@@ -442,7 +442,7 @@ class KinParser {
               if (!kinemage.masterDict[name]) {
                 kinemage.masterDict[name] = {
                   indent: false,
-                  visible: false
+                  visible: true
                 }
               }
             })
@@ -491,7 +491,7 @@ class KinParser {
               if (!kinemage.masterDict[name]) {
                 kinemage.masterDict[name] = {
                   indent: false,
-                  visible: false
+                  visible: true
                 }
               }
             })
@@ -530,7 +530,7 @@ class KinParser {
               if (!kinemage.masterDict[name]) {
                 kinemage.masterDict[name] = {
                   indent: false,
-                  visible: false
+                  visible: true
                 }
               }
             })
@@ -680,7 +680,8 @@ class KinParser {
           if (!kinemage.groupDict[groupName as string]) {
             kinemage.groupDict[groupName as string] = {
               dominant: false,
-              animate: false
+              animate: false,
+              "2animate": false
             }
             currentGroupMasters = groupMasters
           }
@@ -690,7 +691,7 @@ class KinParser {
               if (!kinemage.masterDict[master]) {
                 kinemage.masterDict[master] = {
                   indent: false,
-                  visible: false
+                  visible: true
                 }
               }
             })
@@ -705,7 +706,8 @@ class KinParser {
           if (!kinemage.subgroupDict[groupName as string]) {
             kinemage.subgroupDict[groupName as string] = {
               dominant: false,
-              animate: false
+              animate: false,
+              "2animate": false
             }
             currentSubgroupMasters = groupMasters
           }
@@ -715,7 +717,7 @@ class KinParser {
               if (!kinemage.masterDict[master]) {
                 kinemage.masterDict[master] = {
                   indent: false,
-                  visible: false
+                  visible: true
                 }
               }
             })
@@ -731,7 +733,7 @@ class KinParser {
           if (!kinemage.masterDict[name]) {
             kinemage.masterDict[name] = {
               indent: false,
-              visible: false
+              visible: true
             }
           }
 

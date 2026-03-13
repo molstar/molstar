@@ -61,6 +61,7 @@ export const KinemageShapePointsProvider = Transform({
   from: PluginStateObject.Root,
   to: PluginStateObject.Shape.Provider,
   params: {
+    /// @todo What is the point of setting this and others to isHidden?
     data: PD.Value<Kinemage>(undefined as any, { isHidden: true })
   }
 })({
@@ -162,6 +163,29 @@ export const KinemageViewProvider = Transform({
   }
 });
 
+export const KinemageMasterProvider = Transform({
+  name: 'sb-kinemage-master-provider',
+  display: { name: 'Kinemage Master Provider' },
+  from: PluginStateObject.Root,
+  to: PluginStateObject.Format.Json, // store view metadata as JSON data node
+  params: {
+    name: PD.Text(''),
+    masterData: PD.Text('') /// @todo Fill this in with actual master data if needed, and parse it in the provider
+  }
+})({
+  apply({ params }) {
+    return Task.create('Kinemage Master Provider', async ctx => {
+      // PluginStateObject.Format.Json holds arbitrary JSON-like data; create instance with the payload
+      // Pass the view name as the node label so the State Tree shows the provided name instead of "JSON Data"
+      const masterName = String(params.name);
+      return new PluginStateObject.Format.Json(
+        { name: masterName, masterData: params.masterData } as any,
+        { label: masterName }
+      );
+    });
+  }
+});
+
 export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'kinemage-data-prop',
     category: 'custom-props',
@@ -172,7 +196,9 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private provider = KinemageDataProvider;
         private applyViewAction?: any;
-        private sub?: any;
+        private selectedSub?: any;
+        private visibilitySub?: any;
+        private visibilityMap = new Map<string, boolean>();
 
         register(): void {
             DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
@@ -199,8 +225,9 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
                 }
             };
 
-            // When this object is selected in the GUI, update the camera to its snapshot.
-            this.sub = this.ctx.state.data.behaviors.currentObject.subscribe((e: any) => {
+            // When one of the state objects is selected in the GUI, handle the appropriate behavior:
+            // For a view object (which has a snapshot), update the camera to its snapshot.
+            this.selectedSub = this.ctx.state.data.behaviors.currentObject.subscribe((e: any) => {
               const ref = e.ref;
               // state.select returns an array of cells; the first is the matching cell
               const cell = this.ctx.state.data.select(ref)[0];
@@ -208,6 +235,40 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
               const nodeData = obj?.data;
               if (nodeData && nodeData.snapshot) {
                 applyViewSnapshot(this.ctx, nodeData.snapshot);
+              }
+            });
+
+            // When one of the state objects is has its visibility changed in the GUI, handle the appropriate behavior:
+            // For a master, just print the master data for now.
+            this.visibilitySub = this.ctx.state.data.events.cell.stateUpdated.subscribe((e: any) => {
+              const ref = e.ref;
+              // state.select returns an array of cells; the first is the matching cell
+              const cell = this.ctx.state.data.select(ref)[0];
+
+              const obj = cell?.obj;
+              const nodeData = obj?.data;
+              if (nodeData && nodeData.masterData) {
+                // transform.state usually holds the runtime state; inspect it to find the exact visibility flag used
+                const st = (cell.transform && cell.transform.state) || cell.state || {};
+                const nowHidden = !!st.isHidden;
+                const prev = this.visibilityMap.get(ref);
+                if (prev === undefined) {
+                  // first time seeing this cell, store and return (or handle initial state)
+                  this.visibilityMap.set(ref, nowHidden);
+                  return;
+                }
+                if (prev !== nowHidden) {
+                  this.visibilityMap.set(ref, nowHidden);
+                  // visibility changed for the object referenced by `ref`
+                  if (nowHidden) {
+                    // Became hidden
+                    console.log(`Object ${nodeData.masterData} became hidden`);
+                  } else {
+                    // Became visible
+                    console.log(`Object ${nodeData.masterData} became visible`);
+                  }
+                  /// @todo Handle properly
+                }
               }
             });
 
@@ -241,10 +302,14 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
               this.applyViewAction = undefined;
             }
 
-            // Remove the action subscription if we created one
-            if (this.sub) {
-              this.sub.unsubscribe();
-              this.sub = undefined;
+            // Remove the action subscriptions if we created them
+            if (this.selectedSub) {
+              this.selectedSub.unsubscribe();
+              this.selectedSub = undefined;
+            }
+            if (this.visibilitySub) {
+              this.visibilitySub.unsubscribe();
+              this.visibilitySub = undefined;
             }
         }
     },
@@ -262,32 +327,12 @@ interface DragAndDropHandler {
 /** Centralized helper to apply kinemage content into plugin state (re-used by drag handler and programmatic loader) */
 async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: KinemageData) {
   const update = plugin.state.data.build();
+  const createdMasterPairs: { selector: StateObjectRef<PluginStateObject.Format.Json>, visible: boolean }[] = [];
+
   for (const kinData of kinInfo.kinemages) {
-    if (kinData.dotLists.length > 0) {
-      await update
-        .toRoot()
-        .apply(KinemageShapePointsProvider, { data: kinData })
-        .apply(StateTransforms.Representation.ShapeRepresentation3D);
-    }
-    if (kinData.vectorLists.length > 0) {
-      await update
-        .toRoot()
-        .apply(KinemageShapeLinesProvider, { data: kinData })
-        .apply(StateTransforms.Representation.ShapeRepresentation3D);
-    }
-    if (kinData.ribbonLists.length > 0) {
-      await update
-        .toRoot()
-        .apply(KinemageShapeMeshProvider, { data: kinData })
-        .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
-    }
-    if (kinData.ballLists.length > 0) {
-      await update
-        .toRoot()
-        .apply(KinemageShapeSpheresProvider, { data: kinData })
-        .apply(StateTransforms.Representation.ShapeRepresentation3D);
-    }
-    // Iterate over all entries in the view dictionary.
+
+    // Iterate over all entries in the view dictionary. Do this before creating shapes so that the views show up
+    // in the state tree first and don't change order when we update the masters.
     const createdViewRefs: StateObjectRef<PluginStateObject.Format.Json>[] = [];
     for (const [viewKey, viewObj] of Object.entries(kinData.viewDict)) {
       const viewName = viewObj.name || `View ${viewKey}`;
@@ -362,8 +407,94 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
       createdViewRefs.push(viewNode.selector as StateObjectRef<PluginStateObject.Format.Json>);
     }
 
+    // Iterate over all of the masterDict entries and create a state object for each master.
+    // Add a callback handler for visibility changes on each and print whether it is visible or not.
+    // Name each after the master dictionary key.
+    // Set its visibility according to the visible entry in the masterDict.
+    const createdMasterRefs: StateObjectRef<PluginStateObject.Format.Json>[] = [];
+    for (const [masterKey, masterInfo] of Object.entries(kinData.masterDict)) {
+      const masterName = masterKey;
+
+      const masterNode = update
+        .toRoot()
+        .apply(KinemageMasterProvider, { name: masterName, masterData: masterKey });
+
+      // Store the selector for UI wiring
+      createdMasterRefs.push(masterNode.selector as StateObjectRef<PluginStateObject.Format.Json>);
+
+      // capture desired visibility so we can set transform state after commit
+      const visible = !!(masterInfo && (masterInfo as any).visible);
+      console.log(`Master ${masterName} initial visibility: ${visible ? 'visible' : 'hidden'}`);
+      createdMasterPairs.push({ selector: masterNode.selector as StateObjectRef<PluginStateObject.Format.Json>, visible });
+    }
+
+    // Generate all of the shapes for this kinemage, each shape type having its own provider and representation.
+    if (kinData.dotLists.length > 0) {
+      await update
+        .toRoot()
+        .apply(KinemageShapePointsProvider, { data: kinData })
+        .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    }
+    if (kinData.vectorLists.length > 0) {
+      await update
+        .toRoot()
+        .apply(KinemageShapeLinesProvider, { data: kinData })
+        .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    }
+    if (kinData.ribbonLists.length > 0) {
+      await update
+        .toRoot()
+        .apply(KinemageShapeMeshProvider, { data: kinData })
+        .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
+    }
+    if (kinData.ballLists.length > 0) {
+      await update
+        .toRoot()
+        .apply(KinemageShapeSpheresProvider, { data: kinData })
+        .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    }
   }
-  update.commit();
+  await update.commit();
+
+  // Helper: robustly resolve a transform ref from different selector shapes without changing other modules.
+  function resolveSelectorRef(sel: any): string | undefined {
+    if (!sel) return undefined;
+    if (typeof sel === 'string') return sel;
+    // StateObjectSelector has a .ref property containing the transform ref
+    if (sel.ref && typeof sel.ref === 'string') return sel.ref;
+    // StateObjectCell or StateObjectCell-like has transform.ref
+    if (sel.transform && typeof sel.transform.ref === 'string') return sel.transform.ref;
+    // Some callers may wrap selector as { cell: ... }
+    if (sel.cell && sel.cell.transform && typeof sel.cell.transform.ref === 'string') return sel.cell.transform.ref;
+    // fallback: try existing util (in case shape matches)
+    try {
+      return StateObjectRef.resolveRef(sel as any);
+    } catch {
+      return undefined;
+    }
+  }
+
+  // Ensure the State Tree visibility matches the masters' initial 'visible' flags.
+  // The UI commonly uses `isHidden` on transform state; set it here so the created
+  // master nodes show the expected checked/unchecked visibility in the GUI.
+  for (const pair of createdMasterPairs) {
+    try {
+      const ref = resolveSelectorRef(pair.selector);
+      if (!ref) continue;
+      console.log(`Setting master ${pair.selector} visibility to ${pair.visible ? 'visible' : 'hidden'} with ref ${ref}`);
+
+      // Set the isHidden state for this master based on the visibile flag stored above.
+      plugin.state.data.updateCellState(ref, (old: any) => {
+        console.log(`Updating state for ${ref}, old state:`, old);
+        const s = { ...(old || {}) };
+        s.isHidden = !pair.visible;
+        return s;
+      });
+    } catch (e) {
+      // Non-fatal: log and continue
+      console.warn('Failed to set master visibility for', pair, e);
+    }
+  }
 }
 
 /** Programmatic loader: load a single File (a .kin) into the plugin state.
