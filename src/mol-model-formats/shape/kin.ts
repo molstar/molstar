@@ -66,7 +66,46 @@ function createKinShapeSpheresParams(kinemage?: Kinemage) {
 }
 
 export const KinShapeSpheresParams = createKinShapeSpheresParams();
-export type KinShapeSpheresParams = typeof KinShapeSpheresParams
+export type KinShapeSpheresParams = typeof KinShapeSpheresParams;
+
+function getVisibility(group: string, subGroup: string, masters: string[], kin: Kinemage) {
+  let visible = true;
+
+  // Check to see if this name references a master that is not visible.  If so, then this whole list is not visible and we can skip it.
+  const masterDict = kin.masterDict;
+  for (let m = 0; m < masters.length; m++) {
+    const masterName = masters[m];
+    const masterInfo = masterDict[masterName];
+    if (masterInfo && !masterInfo.visible) {
+      visible = false;
+      break;
+    }
+  }
+
+  // Check to see if this name references a group that has the 'off' flag set.  If so, this is not visible.
+  const groupDict = kin.groupDict;
+  const groupInfo = groupDict[group];
+  if (groupInfo && groupInfo.off) {
+    visible = false;
+  }
+
+  // Check to see if this name references a subgroup that it or its master has the 'off' flag set.  If so, this is not visible.
+  const subgroupDict = kin.subgroupDict;
+  const subgroupInfo = subgroupDict[subGroup];
+  if (subgroupInfo) {
+    if (subgroupInfo.off) {
+      visible = false;
+    }
+    if (subgroupInfo.group) {
+      const groupInfo = groupDict[subgroupInfo.group];
+      if (groupInfo && groupInfo.off) {
+        visible = false;
+      }
+    }
+  }
+
+  return visible;
+}
 
 async function getPoints(ctx: RuntimeContext, kin: Kinemage) {
   const dotLists: DotList[] = kin.dotLists;
@@ -85,15 +124,7 @@ async function getPoints(ctx: RuntimeContext, kin: Kinemage) {
     const masterArray = dotList.masterArray;
 
     // Check the visibility of all of our masters and skip this dot list if any of them are not visible.
-    let visible = true;
-    for (let m = 0; m < masterArray.length; m++) {
-      const masterName = masterArray[m];
-      const masterInfo = kin.masterDict[masterName];
-      if (masterInfo && !masterInfo.visible) {
-        visible = false;
-        break;
-      }
-    }
+    const visible = getVisibility(dotList.group, dotList.subgroup, masterArray, kin);
     if (!visible) { continue; }
 
     /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
@@ -137,15 +168,7 @@ async function getLines(ctx: RuntimeContext, kin: Kinemage) {
     const masterArray = vectorList.masterArray;
 
     // Check the visibility of all of our masters and skip this vector list if any of them are not visible.
-    let visible = true;
-    for (let m = 0; m < masterArray.length; m++) {
-      const masterName = masterArray[m];
-      const masterInfo = kin.masterDict[masterName];
-      if (masterInfo && !masterInfo.visible) {
-        visible = false;
-        break;
-      }
-    }
+    const visible = getVisibility(vectorList.group, vectorList.subgroup, masterArray, kin);
     if (!visible) { continue; }
 
     /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
@@ -198,15 +221,7 @@ async function getMesh(ctx: RuntimeContext, kin: Kinemage) {
     const masterArray = ribbonObject.masterArray;
 
     // Check the visibility of all of our masters and skip this ribbon object if any of them are not visible.
-    let visible = true;
-    for (let m = 0; m < masterArray.length; m++) {
-      const masterName = masterArray[m];
-      const masterInfo = kin.masterDict[masterName];
-      if (masterInfo && !masterInfo.visible) {
-        visible = false;
-        break;
-      }
-    }
+    const visible = getVisibility(ribbonObject.group, ribbonObject.subgroup, masterArray, kin);
     if (!visible) { continue; }
 
     builderState.currentGroup = ri;  /// @todo Base this on something in the file instead?
@@ -303,15 +318,7 @@ async function getSpheres(ctx: RuntimeContext, kin: Kinemage) {
     const masterArray = balls[i].masterArray;
 
     // Check the visibility of all of our masters and skip this ball list if any of them are not visible.
-    let visible = true;
-    for (let m = 0; m < masterArray.length; m++) {
-      const masterName = masterArray[m];
-      const masterInfo = kin.masterDict[masterName];
-      if (masterInfo && !masterInfo.visible) {
-        visible = false;
-        break;
-      }
-    }
+    const visible = getVisibility(balls[i].group, balls[i].subgroup, masterArray, kin);
     if (!visible) { continue; }
 
     /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.

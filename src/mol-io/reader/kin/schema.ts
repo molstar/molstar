@@ -15,7 +15,7 @@ export interface Kinemage {
   captions: string[],
   caption: string,
   groupDict: { [k: string]: { [k: string]: boolean } },
-  subgroupDict: { [k: string]: any },
+  subgroupDict: { [k: string]: any },   ///< Subgroup key is "GroupName:SubgroupName" to preserve tree structure
   masterDict: { [k: string]: { indent: boolean, visible: boolean } },
   pointmasterDict: { [k: string]: any },
   dotLists: DotList[],
@@ -24,26 +24,28 @@ export interface Kinemage {
   ribbonLists: RibbonObject[]
 }
 
-export interface DotList {
+/** Common base for all list-like objects in a kinemage */
+export interface KinListBase {
+  group: string,                  ///< Name of the group this List belongs to
+  subgroup: string,               ///< Name of the subgroup this List belongs to
   name?: string,                  ///< Optional name of the whole List
-  masterArray: any[],             ///< Array of master names per List, not per element
+  masterArray: any[]              ///< Array of master names per List, not per element
+}
+
+export interface DotList extends KinListBase {
   labelArray: string[],           ///< Array of labels per element
   positionArray: number[],        ///< Catenation of x, y, z for each element, 3x as many as elements
   colorArray: number[]            ///< Catenation of r, g, b for each element, 3x as many as elements
 }
 
-export interface BallList {
-  name?: string,                  ///< Optional name of the whole List
-  masterArray: any[],             ///< Array of master names per List, not per element
+export interface BallList extends KinListBase {
   labelArray: string[],           ///< Array of labels per element
   positionArray: number[],        ///< Catenation of x, y, z for each element, 3x as many as elements
   colorArray: number[],           ///< Catenation of r, g, b for each element, 3x as many as elements
   radiusArray: number[]           ///< A single radius per element
 }
 
-export interface RibbonObject {
-  name?: string,                  ///< Optional name of the whole Ribbon
-  masterArray: any[],             ///< Array of master names per Ribbon, not per element
+export interface RibbonObject extends KinListBase {
   labelArray: string[],           ///< Array of labels per element
   positionArray: number[],        ///< Catenation of x, y, z for each element, 9x as many as triangles (3 vertices per triangle)
   colorArray: number[],           ///< Catenation of r, g, b for each element, 9x as many as triangles (3 colors per triangle)
@@ -51,9 +53,7 @@ export interface RibbonObject {
   pairTriangleNormals: boolean    ///< Whether to pair every other triangle normal for lighting (true for ribbons, false for triangles)
 }
 
-export interface VectorList {
-  name?: string,                  ///< Optional name of the whole List
-  masterArray: any[],             ///< Array of master names per List, not per element
+export interface VectorList extends KinListBase {
   label1Array: string[],          ///< Array of labels per element
   label2Array: string[],          ///< Array of labels per element
   position1Array: number[],       ///< Catenation of x, y, z for each element, 3x as many as elements

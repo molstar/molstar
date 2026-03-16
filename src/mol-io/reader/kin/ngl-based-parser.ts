@@ -249,6 +249,8 @@ function convertKinTriangleArrays (ribbonObject: RibbonObject) {
   //  normals.push(normalVec3.z)
   //}
   return {
+    group: ribbonObject.group,
+    subgroup: ribbonObject.subgroup,
     name: ribbonObject.name,
     masterArray: ribbonObject.masterArray,
     labelArray: convertedLabels,
@@ -304,6 +306,8 @@ function removePointBreaksTriangleArrays (convertedRibbonObject: RibbonObject) {
     }
   }
   return {
+    group: convertedRibbonObject.group,
+    subgroup: convertedRibbonObject.subgroup,
     name: convertedRibbonObject.name,
     masterArray: convertedRibbonObject.masterArray,
     labelArray: editedLabels,
@@ -351,7 +355,9 @@ class KinParser {
     // Keep a local copy of the ColorDict that we can update with new colors defined in the file.
     let localColorDict: { [k: string]: number[] } = Object.assign({}, ColorDict)
 
+    let currentGroup: string = ''
     let currentGroupMasters: string[]
+    let currentSubgroup: string = ''
     let currentSubgroupMasters: string[]
 
     let isDotList = false
@@ -426,6 +432,8 @@ class KinParser {
           }
 
           kinemage.dotLists.push({
+            group: currentGroup,
+            subgroup: currentSubgroup,
             name: listName,
             masterArray: listMasters,
             labelArray: dotLabel,
@@ -473,6 +481,8 @@ class KinParser {
           }
 
           kinemage.vectorLists.push({
+            group: currentGroup,
+            subgroup: currentSubgroup,
             name: listName,
             masterArray: listMasters,
             label1Array: vecLabel1,
@@ -515,6 +525,8 @@ class KinParser {
           }
 
           kinemage.ballLists.push({
+            group: currentGroup,
+            subgroup: currentSubgroup,
             name: listName,
             masterArray: listMasters,
             labelArray: ballLabel,
@@ -552,6 +564,8 @@ class KinParser {
           }
 
           kinemage.ribbonLists.push({
+            group: currentGroup,
+            subgroup: currentSubgroup,
             name: listName,
             masterArray: listMasters,
             labelArray: ribbonPointLabelArray,
@@ -686,6 +700,7 @@ class KinParser {
             }
             currentGroupMasters = groupMasters
           }
+          currentGroup = groupName
 
           if (currentGroupMasters) {
             currentGroupMasters.forEach(function (master) {
@@ -704,15 +719,18 @@ class KinParser {
         } else if (line.startsWith('@subgroup')) {
           const { groupName, groupFlags, groupMasters } = parseGroup(line)
 
-          if (!kinemage.subgroupDict[groupName as string]) {
-            kinemage.subgroupDict[groupName as string] = {
+          const combinedName = currentGroup + ":" + groupName as string
+          if (!kinemage.subgroupDict[combinedName]) {
+            kinemage.subgroupDict[combinedName] = {
               dominant: false,
               animate: false,
               "2animate": false,
-              off: false
+              off: false,
+              group: currentGroup
             }
             currentSubgroupMasters = groupMasters
           }
+          currentSubgroup = combinedName
 
           if (currentSubgroupMasters) {
             currentSubgroupMasters.forEach(function (master) {
@@ -726,7 +744,7 @@ class KinParser {
           }
 
           for (let key in groupFlags as { [k: string]: boolean }) {
-            kinemage.subgroupDict[groupName as string][key] = (groupFlags as { [k: string]: boolean })[key]
+            kinemage.subgroupDict[combinedName as string][key] = (groupFlags as { [k: string]: boolean })[key]
           }
         } else if (line.startsWith('@master')) {
           const name = parseStr(line)
