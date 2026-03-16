@@ -681,7 +681,8 @@ class KinParser {
             kinemage.groupDict[groupName as string] = {
               dominant: false,
               animate: false,
-              "2animate": false
+              "2animate": false,
+              off: false
             }
             currentGroupMasters = groupMasters
           }
@@ -707,7 +708,8 @@ class KinParser {
             kinemage.subgroupDict[groupName as string] = {
               dominant: false,
               animate: false,
-              "2animate": false
+              "2animate": false,
+              off: false
             }
             currentSubgroupMasters = groupMasters
           }
