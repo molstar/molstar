@@ -262,6 +262,11 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
                   // When the transform is hidden, the master is invisible, and vice versa.
                   kinRef.masterDict[nodeData.masterData].visible = !nowHidden;
 
+                  // capture current camera snapshot so we can restore view after re-creating shapes
+                  const curSnap = (this.ctx.canvas3d && (this.ctx.canvas3d as any).camera && (this.ctx.canvas3d as any).camera.getSnapshot)
+                    ? (this.ctx.canvas3d as any).camera.getSnapshot()
+                    : undefined;
+
                   // recreate: ensure old selectors are cleared, then build new ones with a fresh builder
                   destroyShapesForKinemage(this.ctx, kinRef);
                   const update = this.ctx.state.data.build();
@@ -269,6 +274,15 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
                     console.log('XXX Recreating kinemage shapes for master', nodeData.masterData, 'with visibility', !nowHidden);
                     await createShapesForKinemage(this.ctx, update, kinRef);
                     await update.commit();
+
+                    // restore camera snapshot to avoid the temporary zoom-out caused by removing geometry
+                    if (curSnap) {
+                      try {
+                        await applyViewSnapshot(this.ctx, curSnap);
+                      } catch (e) {
+                        console.warn('Failed to restore camera snapshot after recreating shapes', e);
+                      }
+                    }
                   } catch (err) {
                     console.error('Failed to recreate kinemage shapes', err);
                   }
@@ -497,6 +511,35 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
   }
   await update.commit();
 
+  // helper: wait briefly until the plugin bounding sphere has non-zero radius (or timeout)
+  async function waitForNonEmptyBoundingSphere(plugin: PluginContext, timeoutMs = 2000, pollMs = 50) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      try {
+        const bs = getPluginBoundingSphere(plugin);
+        if (bs && bs.radius > 0) return bs;
+      } catch { /* ignore */ }
+      await new Promise<void>(r => setTimeout(r, pollMs));
+    }
+    return null;
+  }
+
+  // After commit, wait for the geometry to show up and then point the camera at it.
+  // We must do this before changing the visibility of the masters, otherwise it uses
+  // the original center-oriented snapshot.
+  try {
+    const bs = await waitForNonEmptyBoundingSphere(plugin);
+    if (bs && bs.radius > 0 && plugin.canvas3d) {
+      await PluginCommands.Camera.Focus(plugin, { center: bs.center, radius: bs.radius, durationMs: 250 });
+      plugin.canvas3d?.commit();
+    } else {
+      // fallback: still try applying the snapshot (may be OK for some cases)
+      console.log('Did not get a valid bounding sphere after waiting, applying initial view snapshot without adjustment');
+    }
+  } catch (e) {
+    console.warn('Failed to apply initial kinemage view snapshot', e);
+  }
+
   // Ensure the State Tree visibility matches the masters' initial 'visible' flags.
   // The UI commonly uses `isHidden` on transform state; set it here so the created
   // master nodes show the expected checked/unchecked visibility in the GUI.
@@ -512,7 +555,6 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
         return s;
       });
     } catch (e) {
-      // Non-fatal: log and continue
       console.warn('Failed to set master visibility for', pair, e);
     }
   }
