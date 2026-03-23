@@ -209,7 +209,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
     },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private provider = KinemageDataProvider;
-        private applyViewAction?: any;
         private selectedSub?: any;
         private visibilitySub?: any;
         private visibilityMap = new Map<string, boolean>();
@@ -296,12 +295,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
 
             // Unregister the .kin data format provider
             this.ctx.dataFormats.remove('KIN');
-
-            // Remove the state action if we registered one
-            if (this.applyViewAction) {
-              this.ctx.state.data.actions.remove(this.applyViewAction);
-              this.applyViewAction = undefined;
-            }
 
             // Remove the action subscriptions if we created them
             if (this.selectedSub) {
