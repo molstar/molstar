@@ -224,21 +224,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
             // Register .kin file handler so opening/dropping .kin is supported via the data formats system
             this.ctx.dataFormats.add('KIN', KINFormatProvider);
 
-            const applyViewAction = {
-                // keep fields minimal and compatible with the actions system
-                // adjust names if your repo expects different keys (use MVS LoadMvsData as example)
-                label: 'Apply View',
-                isApplicable: (a: any) => {
-                    const d = a?.data;
-                    return !!(d && d.data && (d.data as any).snapshot);
-                },
-                apply: async (a: any) => {
-                    const node = a?.data;
-                    const snapshot = node?.data?.snapshot as Partial<Camera.Snapshot> | undefined;
-                    if (snapshot) await applyViewSnapshot(this.ctx, snapshot);
-                }
-            };
-
             // When one of the state objects is selected in the GUI, handle the appropriate behavior:
             // For a view object (which has a snapshot), update the camera to its snapshot.
             this.selectedSub = this.ctx.state.data.behaviors.currentObject.subscribe((e: any) => {
@@ -254,43 +239,43 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
 
             // When one of the state objects is has its visibility changed in the GUI, handle the appropriate behavior:
             // For a master, turn on or off the value and regenerate appropriate geometry.
-            this.visibilitySub = this.ctx.state.data.events.cell.stateUpdated.subscribe((e: any) => {
+            this.visibilitySub = this.ctx.state.data.events.cell.stateUpdated.subscribe(async (e: any) => {
               const ref = e.ref;
-              // state.select returns an array of cells; the first is the matching cell
               const cell = this.ctx.state.data.select(ref)[0];
-
               const obj = cell?.obj;
               const nodeData = obj?.data;
               if (nodeData && nodeData.masterData) {
-                // nodeData now contains `kinData` (the Kinemage reference) because we passed it into the provider.
-                // transform.state usually holds the runtime state; inspect it to find the exact visibility flag used
                 const st = (cell.transform && cell.transform.state) || cell.state || {};
                 const nowHidden = !!st.isHidden;
+
+                // Change the record of visibility so we know whether we became visible or invisible.
                 const prev = this.visibilityMap.get(ref);
                 if (prev === undefined) {
-                  // first time seeing this cell, store and return (or handle initial state)
                   this.visibilityMap.set(ref, nowHidden);
                   return;
                 }
                 if (prev !== nowHidden) {
                   this.visibilityMap.set(ref, nowHidden);
-                  // visibility changed for the object referenced by `ref`
                   const kinRef: Kinemage | undefined = nodeData.kinData;
-                  if (nowHidden) {
-                    // Became hidden
-                    console.log(`XXX Object ${nodeData.masterData} became hidden for kinemage`, kinRef);
-                  } else {
-                    // Became visible
-                    console.log(`XXX Object ${nodeData.masterData} became visible for kinemage`, kinRef);
+                  if (!kinRef) return;
+
+                  // Set the Kinemage master visibility based on the isHidden state of the transform.
+                  // When the transform is hidden, the master is invisible, and vice versa.
+                  kinRef.masterDict[nodeData.masterData].visible = !nowHidden;
+
+                  // recreate: ensure old selectors are cleared, then build new ones with a fresh builder
+                  destroyShapesForKinemage(this.ctx, kinRef);
+                  const update = this.ctx.state.data.build();
+                  try {
+                    console.log('XXX Recreating kinemage shapes for master', nodeData.masterData, 'with visibility', !nowHidden);
+                    await createShapesForKinemage(this.ctx, update, kinRef);
+                    await update.commit();
+                  } catch (err) {
+                    console.error('Failed to recreate kinemage shapes', err);
                   }
-                  /// @todo Handle properly (use kinRef to find shapes/selectors in g_kinemageShapeSelectors and update)
                 }
               }
             });
-
-            // store and register the exact object reference
-            this.applyViewAction = applyViewAction;
-            this.ctx.state.data.actions.add(this.applyViewAction);
         }
 
         update(p: { autoAttach: boolean }) {
@@ -379,6 +364,37 @@ async function createShapesForKinemage(plugin: PluginContext, update: StateBuild
   if (createdShapeSelectors.length > 0) {
     g_kinemageShapeSelectors.set(kinData as Kinemage, createdShapeSelectors);
   }
+}
+
+/** Helper function to destroy all previously-made shapes for a kinemage
+ *  (soft remove: hide the transforms so visuals are removed from scene) */
+function destroyShapesForKinemage(plugin: PluginContext, kinData: Kinemage) {
+  const createdShapeSelectors = g_kinemageShapeSelectors.get(kinData as Kinemage);
+  if (!createdShapeSelectors) return;
+
+  for (const selector of createdShapeSelectors) {
+    try {
+      const ref = resolveSelectorRef(selector);
+      if (ref) {
+        // Soft-delete: mark transform as hidden so visuals are torn down
+        /// @todo We would like to fully remove these shapes from the state tree, while leaving the GUI elements intact
+        plugin.state.data.updateCellState(ref, (old: any) => {
+          const s = { ...(old || {}) };
+          s.isHidden = true;
+          return s;
+        });
+      } else if ((selector as any).destroy) {
+        // Fallback if selector object exposes destroy (unlikely for state refs)
+        (selector as any).destroy();
+      } else {
+        console.warn('Could not resolve selector to a ref for destruction', selector);
+      }
+    } catch (e) {
+      console.warn('Failed to destroy selector', selector, e);
+    }
+  }
+
+  g_kinemageShapeSelectors.delete(kinData as Kinemage);
 }
 
 /** Centralized helper to apply kinemage content into plugin state (re-used by drag handler and programmatic loader) */
@@ -488,24 +504,6 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
   }
   await update.commit();
 
-  // Helper: robustly resolve a transform ref from different selector shapes without changing other modules.
-  function resolveSelectorRef(sel: any): string | undefined {
-    if (!sel) return undefined;
-    if (typeof sel === 'string') return sel;
-    // StateObjectSelector has a .ref property containing the transform ref
-    if (sel.ref && typeof sel.ref === 'string') return sel.ref;
-    // StateObjectCell or StateObjectCell-like has transform.ref
-    if (sel.transform && typeof sel.transform.ref === 'string') return sel.transform.ref;
-    // Some callers may wrap selector as { cell: ... }
-    if (sel.cell && sel.cell.transform && typeof sel.cell.transform.ref === 'string') return sel.cell.transform.ref;
-    // fallback: try existing util (in case shape matches)
-    try {
-      return StateObjectRef.resolveRef(sel as any);
-    } catch {
-      return undefined;
-    }
-  }
-
   // Ensure the State Tree visibility matches the masters' initial 'visible' flags.
   // The UI commonly uses `isHidden` on transform state; set it here so the created
   // master nodes show the expected checked/unchecked visibility in the GUI.
@@ -526,6 +524,22 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
     }
   }
 }
+
+// Helper: robustly resolve a transform ref from different selector shapes without changing other modules.
+function resolveSelectorRef(sel: any): string | undefined {
+  if (!sel) return undefined;
+  if (typeof sel === 'string') return sel;
+  if (sel.ref && typeof sel.ref === 'string') return sel.ref;
+  if (sel.transform && typeof sel.transform.ref === 'string') return sel.transform.ref;
+  if (sel.cell && sel.cell.transform && typeof sel.cell.transform.ref === 'string') return sel.cell.transform.ref;
+  try {
+    // In case the runtime provides a utility on the ref type
+    return (StateObjectRef as any).resolveRef ? (StateObjectRef as any).resolveRef(sel as any) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 
 /** Programmatic loader: load a single File (a .kin) into the plugin state.
  * Runs the import inside a Task so it has a runtime and asset context similar to drag-and-drop.
