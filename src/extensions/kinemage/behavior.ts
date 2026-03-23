@@ -9,7 +9,7 @@
 import { Vec3, Mat3 } from '../../mol-math/linear-algebra';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { KinemageDataProvider, KinemageData } from './prop';
-import { StateTransformer } from '../../mol-state';
+import { StateTransformer, StateBuilder } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { PluginDragAndDropHandler } from '../../mol-plugin-state/manager/drag-and-drop';
@@ -183,7 +183,8 @@ export const KinemageMasterProvider = Transform({
   to: PluginStateObject.Format.Json, // store view metadata as JSON data node
   params: {
     name: PD.Text(''),
-    masterData: PD.Text('') /// @todo Fill this in with actual master data if needed, and parse it in the provider
+    masterData: PD.Text(''), /// @todo Fill this in with actual master data if needed, and parse it in the provider
+    data: PD.Value<Kinemage>(undefined as any, { isHidden: true }) // store kinData reference so visibility handlers can access it
   }
 })({
   apply({ params }) {
@@ -192,7 +193,7 @@ export const KinemageMasterProvider = Transform({
       // Pass the view name as the node label so the State Tree shows the provided name instead of "JSON Data"
       const masterName = String(params.name);
       return new PluginStateObject.Format.Json(
-        { name: masterName, masterData: params.masterData } as any,
+        { name: masterName, masterData: params.masterData, kinData: params.data } as any,
         { label: masterName }
       );
     });
@@ -261,6 +262,7 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
               const obj = cell?.obj;
               const nodeData = obj?.data;
               if (nodeData && nodeData.masterData) {
+                // nodeData now contains `kinData` (the Kinemage reference) because we passed it into the provider.
                 // transform.state usually holds the runtime state; inspect it to find the exact visibility flag used
                 const st = (cell.transform && cell.transform.state) || cell.state || {};
                 const nowHidden = !!st.isHidden;
@@ -273,14 +275,15 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
                 if (prev !== nowHidden) {
                   this.visibilityMap.set(ref, nowHidden);
                   // visibility changed for the object referenced by `ref`
+                  const kinRef: Kinemage | undefined = nodeData.kinData;
                   if (nowHidden) {
                     // Became hidden
-                    console.log(`XXX Object ${nodeData.masterData} became hidden`);
+                    console.log(`XXX Object ${nodeData.masterData} became hidden for kinemage`, kinRef);
                   } else {
                     // Became visible
-                    console.log(`XXX Object ${nodeData.masterData} became visible`);
+                    console.log(`XXX Object ${nodeData.masterData} became visible for kinemage`, kinRef);
                   }
-                  /// @todo Handle properly
+                  /// @todo Handle properly (use kinRef to find shapes/selectors in g_kinemageShapeSelectors and update)
                 }
               }
             });
@@ -337,15 +340,53 @@ interface DragAndDropHandler {
   handle: PluginDragAndDropHandler,
 }
 
+/** Helper function to create the shapes for a kinemage */
+async function createShapesForKinemage(plugin: PluginContext, update: StateBuilder.Root,  kinData: Kinemage) {
+  // Keep list of created selectors for this kinemage (shapes / representations etc.)
+  const createdShapeSelectors: StateObjectRef<any>[] = [];
+
+  // Generate all of the shapes for this kinemage, each shape type having its own provider and representation.
+  if (kinData.dotLists.length > 0) {
+    const node = await update
+      .toRoot()
+      .apply(KinemageShapePointsProvider, { data: kinData })
+      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    createdShapeSelectors.push(node.selector as StateObjectRef<any>);
+  }
+  if (kinData.vectorLists.length > 0) {
+    const node = await update
+      .toRoot()
+      .apply(KinemageShapeLinesProvider, { data: kinData })
+      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    createdShapeSelectors.push(node.selector as StateObjectRef<any>);
+  }
+  if (kinData.ribbonLists.length > 0) {
+    const node = await update
+      .toRoot()
+      .apply(KinemageShapeMeshProvider, { data: kinData })
+      .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
+    createdShapeSelectors.push(node.selector as StateObjectRef<any>);
+  }
+  if (kinData.ballLists.length > 0) {
+    const node = await update
+      .toRoot()
+      .apply(KinemageShapeSpheresProvider, { data: kinData })
+      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    createdShapeSelectors.push(node.selector as StateObjectRef<any>);
+  }
+
+  // Store the created selector list for this kinemage so callback handlers can destroy / re-create.
+  if (createdShapeSelectors.length > 0) {
+    g_kinemageShapeSelectors.set(kinData as Kinemage, createdShapeSelectors);
+  }
+}
+
 /** Centralized helper to apply kinemage content into plugin state (re-used by drag handler and programmatic loader) */
 async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: KinemageData) {
   const update = plugin.state.data.build();
   const createdMasterPairs: { selector: StateObjectRef<PluginStateObject.Format.Json>, visible: boolean }[] = [];
 
   for (const kinData of kinInfo.kinemages) {
-
-    // Keep list of created selectors for this kinemage (shapes / representations etc.)
-    const createdShapeSelectors: StateObjectRef<any>[] = [];
 
     // Iterate over all entries in the view dictionary. Do this before creating shapes so that the views show up
     // in the state tree first and don't change order when we update the masters.
@@ -433,7 +474,7 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
 
       const masterNode = update
         .toRoot()
-        .apply(KinemageMasterProvider, { name: masterName, masterData: masterKey });
+        .apply(KinemageMasterProvider, { name: masterName, masterData: masterKey, data: kinData });
 
       // Store the selector for UI wiring
       createdMasterRefs.push(masterNode.selector as StateObjectRef<PluginStateObject.Format.Json>);
@@ -443,40 +484,7 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
       createdMasterPairs.push({ selector: masterNode.selector as StateObjectRef<PluginStateObject.Format.Json>, visible });
     }
 
-    // Generate all of the shapes for this kinemage, each shape type having its own provider and representation.
-    if (kinData.dotLists.length > 0) {
-      const node = await update
-        .toRoot()
-        .apply(KinemageShapePointsProvider, { data: kinData })
-        .apply(StateTransforms.Representation.ShapeRepresentation3D);
-      createdShapeSelectors.push(node.selector as StateObjectRef<any>);
-    }
-    if (kinData.vectorLists.length > 0) {
-      const node = await update
-        .toRoot()
-        .apply(KinemageShapeLinesProvider, { data: kinData })
-        .apply(StateTransforms.Representation.ShapeRepresentation3D);
-      createdShapeSelectors.push(node.selector as StateObjectRef<any>);
-    }
-    if (kinData.ribbonLists.length > 0) {
-      const node = await update
-        .toRoot()
-        .apply(KinemageShapeMeshProvider, { data: kinData })
-        .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
-      createdShapeSelectors.push(node.selector as StateObjectRef<any>);
-    }
-    if (kinData.ballLists.length > 0) {
-      const node = await update
-        .toRoot()
-        .apply(KinemageShapeSpheresProvider, { data: kinData })
-        .apply(StateTransforms.Representation.ShapeRepresentation3D);
-      createdShapeSelectors.push(node.selector as StateObjectRef<any>);
-    }
-
-    // Store the created selector list for this kinemage so callback handlers can destroy / re-create.
-    if (createdShapeSelectors.length > 0) {
-      g_kinemageShapeSelectors.set(kinData as Kinemage, createdShapeSelectors);
-    }
+    await createShapesForKinemage(plugin, update, kinData);
   }
   await update.commit();
 
