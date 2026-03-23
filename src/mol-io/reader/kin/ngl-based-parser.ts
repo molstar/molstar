@@ -610,8 +610,6 @@ class KinParser {
 
             if (label === '"') {
               label = prevVecLabel
-            } else {
-              prevVecLabel = label
             }
 
             if (color === undefined) {
@@ -630,7 +628,7 @@ class KinParser {
 
                 vecLabel2.push(label)
                 vecPosition2.push(...position)
-                vecColor2.push(...color)
+                vecColor2.push(...color as number[])
                 vecWidth.push(width)
               }
             }

@@ -22,8 +22,6 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 //import { ValueCell } from '../../mol-util/value-cell';
 import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 
-/// @todo Fill in geometry and coloring information
-
 export type KinData = {
     source: Kinemage,
     transforms?: Mat4[],
@@ -127,8 +125,6 @@ async function getPoints(ctx: RuntimeContext, kin: Kinemage) {
     const visible = getVisibility(dotList.group, dotList.subgroup, masterArray, kin);
     if (!visible) { continue; }
 
-    /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
-
     const numDots = positionArray.length / 3
     for (let j = 0; j < numDots; j++) {
       let group = index++;
@@ -165,30 +161,52 @@ async function getLines(ctx: RuntimeContext, kin: Kinemage) {
     const color1Array = vectorList.color1Array;
     const color2Array = vectorList.color2Array;
     const label1Array = vectorList.label1Array;
+    const label2Array = vectorList.label2Array;
     const masterArray = vectorList.masterArray;
 
     // Check the visibility of all of our masters and skip this vector list if any of them are not visible.
     const visible = getVisibility(vectorList.group, vectorList.subgroup, masterArray, kin);
     if (!visible) { continue; }
 
-    /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
-
     const numLines = position1Array.length / 3
     for (let j = 0; j < numLines; j++) {
+      // Find the midpoint of the line because we're going to actually make
+      // two half-lines so that labels and selection work better.
+      const midX = (position1Array[3 * j + 0] + position2Array[3 * j + 0]) / 2;
+      const midY = (position1Array[3 * j + 1] + position2Array[3 * j + 1]) / 2;
+      const midZ = (position1Array[3 * j + 2] + position2Array[3 * j + 2]) / 2;
+
+      // Make the first half of the line from position1 to the midpoint, labeled and colored based on position1.
       let group = index++;
       builderState.add(position1Array[3 * j + 0], position1Array[3 * j + 1], position1Array[3 * j + 2],
-        position2Array[3 * j + 0], position2Array[3 * j + 1], position2Array[3 * j + 2],
+        midX, midY, midZ,
         group);
       // widthArray may be undefined; push NaN when width not provided
       widths.push(widthArray && widthArray.length > j ? widthArray[j] : NaN);
       // colorArray may be undefined; push a default color when not provided
       colors.push(color1Array && color1Array.length > j * 3 ?
-        Color.fromRgb(255 * (color1Array[3 * j + 0] + color2Array[3 * j + 0]) / 2,
-                      255 * (color1Array[3 * j + 1] + color2Array[3 * j + 1]) / 2,
-                      255 * (color1Array[3 * j + 2] + color2Array[3 * j + 2]) / 2)
+        Color.fromRgb(255 * color1Array[3 * j + 0],
+                      255 * color1Array[3 * j + 1],
+                      255 * color1Array[3 * j + 2])
         : Color.fromRgb(255, 255, 255));
       // labelArray may be undefined; push an empty string when not provided
       labels.push(label1Array && label1Array.length > j ? label1Array[j] : '');
+
+      // Make the second half of the line from the midpoint to position2, labeled and colored based on position2.
+      group = index++;
+      builderState.add(midX, midY, midZ,
+        position2Array[3 * j + 0], position2Array[3 * j + 1], position2Array[3 * j + 2],
+        group);
+      // widthArray may be undefined; push NaN when width not provided
+      widths.push(widthArray && widthArray.length > j ? widthArray[j] : NaN);
+      // colorArray may be undefined; push a default color when not provided
+      colors.push(color2Array && color2Array.length > j * 3 ?
+        Color.fromRgb(255 * color2Array[3 * j + 0],
+                      255 * color2Array[3 * j + 1],
+                      255 * color2Array[3 * j + 2])
+        : Color.fromRgb(255, 255, 255));
+      // labelArray may be undefined; push an empty string when not provided
+      labels.push(label2Array && label2Array.length > j ? label2Array[j] : '');
     }
   }
 
@@ -226,8 +244,6 @@ async function getMesh(ctx: RuntimeContext, kin: Kinemage) {
 
     builderState.currentGroup = ri;  /// @todo Base this on something in the file instead?
 
-    /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
-
     // The positionArray contains 3x as many entries as there are vertices since it's a catenation of x, y, z for each vertex.
     // There are three vertices per triangle.
     /// @todo Ribbon lighting is to be set up to make each pair of triangles look like a quad with the same normal.
@@ -251,7 +267,6 @@ async function getMesh(ctx: RuntimeContext, kin: Kinemage) {
 
       // colorArray may be undefined; push a default color when not provided.
       // There is one color per group, even if we have two triangles in this group.
-      /// @todo Consider averaging the colors the vertices because we can't color different vertices differently.
       const color = colorArray && colorArray.length > i * 9 ?
         Color.fromRgb(255 * colorArray[9 * i + 0],
                       255 * colorArray[9 * i + 1],
@@ -320,8 +335,6 @@ async function getSpheres(ctx: RuntimeContext, kin: Kinemage) {
     // Check the visibility of all of our masters and skip this ball list if any of them are not visible.
     const visible = getVisibility(balls[i].group, balls[i].subgroup, masterArray, kin);
     if (!visible) { continue; }
-
-    /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
     const numBalls = positionArray.length / 3;
     for (let j = 0; j < numBalls; j++) {
