@@ -32,6 +32,19 @@ const Transform = StateTransformer.builderFactory('sb-kinemage');
 let g_kinemageData: KinemageData | undefined = undefined;
 
 /**
+ * Map that keeps track of created shape/repr selectors for each created `Kinemage`.
+ * This lets callback handlers destroy / re-create shapes for a given `kinData`.
+ * Key: the `Kinemage` instance (object identity), Value: array of selectors produced
+ * by the state builder for the created shape/provider/representation transforms.
+ */
+const g_kinemageShapeSelectors = new Map<Kinemage, StateObjectRef<PluginStateObject.Format.Json | PluginStateObject.Shape.Provider>[]>();
+
+/** Getter for external code / handlers to obtain the selectors for a specific kinemage. */
+export function getKinemageShapeSelectors(kin: Kinemage) {
+  return g_kinemageShapeSelectors.get(kin) || [];
+}
+
+/**
  * Apply a saved snapshot object (from a view state node) to the plugin camera.
  * Use PluginCommands.Camera.SetSnapshot so transitions and canvas props are handled properly.
  */
@@ -331,6 +344,9 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
 
   for (const kinData of kinInfo.kinemages) {
 
+    // Keep list of created selectors for this kinemage (shapes / representations etc.)
+    const createdShapeSelectors: StateObjectRef<any>[] = [];
+
     // Iterate over all entries in the view dictionary. Do this before creating shapes so that the views show up
     // in the state tree first and don't change order when we update the masters.
     const createdViewRefs: StateObjectRef<PluginStateObject.Format.Json>[] = [];
@@ -429,28 +445,37 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
 
     // Generate all of the shapes for this kinemage, each shape type having its own provider and representation.
     if (kinData.dotLists.length > 0) {
-      await update
+      const node = await update
         .toRoot()
         .apply(KinemageShapePointsProvider, { data: kinData })
         .apply(StateTransforms.Representation.ShapeRepresentation3D);
+      createdShapeSelectors.push(node.selector as StateObjectRef<any>);
     }
     if (kinData.vectorLists.length > 0) {
-      await update
+      const node = await update
         .toRoot()
         .apply(KinemageShapeLinesProvider, { data: kinData })
         .apply(StateTransforms.Representation.ShapeRepresentation3D);
+      createdShapeSelectors.push(node.selector as StateObjectRef<any>);
     }
     if (kinData.ribbonLists.length > 0) {
-      await update
+      const node = await update
         .toRoot()
         .apply(KinemageShapeMeshProvider, { data: kinData })
         .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
+      createdShapeSelectors.push(node.selector as StateObjectRef<any>);
     }
     if (kinData.ballLists.length > 0) {
-      await update
+      const node = await update
         .toRoot()
         .apply(KinemageShapeSpheresProvider, { data: kinData })
         .apply(StateTransforms.Representation.ShapeRepresentation3D);
+      createdShapeSelectors.push(node.selector as StateObjectRef<any>);
+    }
+
+    // Store the created selector list for this kinemage so callback handlers can destroy / re-create.
+    if (createdShapeSelectors.length > 0) {
+      g_kinemageShapeSelectors.set(kinData as Kinemage, createdShapeSelectors);
     }
   }
   await update.commit();
