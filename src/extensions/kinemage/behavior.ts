@@ -615,6 +615,8 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
           await applyKinemageInfoToState(plugin, g_kinemageData);
         }
       }
+      // Clear the kinemage data after applying so that if the user drags in another file, it doesn't get merged with the previous one.
+      g_kinemageData = undefined;
     }
     return applied;
   },
@@ -678,6 +680,9 @@ const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
     if (g_kinemageData) {
       await applyKinemageInfoToState(plugin, g_kinemageData);
     }
+    // Clear the kinemage data after applying so that if the user drags in another file, it doesn't get merged with the previous one.
+    g_kinemageData = undefined;
+
     return undefined;
   }
 });
