@@ -338,32 +338,33 @@ async function createShapesForKinemage(plugin: PluginContext, update: StateBuild
   const createdShapeSelectors: StateObjectRef<any>[] = [];
 
   // Generate all of the shapes for this kinemage, each shape type having its own provider and representation.
+  // Make all of their GUI buttons ghosted -- we'll control visibility using Kinemage master and group settings
   if (kinData.dotLists.length > 0) {
     const node = await update
       .toRoot()
       .apply(KinemageShapePointsProvider, { data: kinData })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+      .apply(StateTransforms.Representation.ShapeRepresentation3D, undefined, { state: { isGhost: true } });
     createdShapeSelectors.push(node.selector as StateObjectRef<any>);
   }
   if (kinData.vectorLists.length > 0) {
     const node = await update
       .toRoot()
       .apply(KinemageShapeLinesProvider, { data: kinData })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+      .apply(StateTransforms.Representation.ShapeRepresentation3D, undefined, { state: { isGhost: true } });
     createdShapeSelectors.push(node.selector as StateObjectRef<any>);
   }
   if (kinData.ribbonLists.length > 0) {
     const node = await update
       .toRoot()
       .apply(KinemageShapeMeshProvider, { data: kinData })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
+      .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true }, { state: { isGhost: true } });
     createdShapeSelectors.push(node.selector as StateObjectRef<any>);
   }
   if (kinData.ballLists.length > 0) {
     const node = await update
       .toRoot()
       .apply(KinemageShapeSpheresProvider, { data: kinData })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+      .apply(StateTransforms.Representation.ShapeRepresentation3D, undefined, { state: { isGhost: true } });
     createdShapeSelectors.push(node.selector as StateObjectRef<any>);
   }
 
