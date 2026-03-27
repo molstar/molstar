@@ -8,7 +8,6 @@
 import * as B from 'benchmark';
 
 import * as fs from 'fs';
-import fetch from 'node-fetch';
 import { CIF } from '../mol-io/reader/cif';
 
 import { Structure, Model, Queries as Q, StructureElement, StructureSelection, StructureSymmetry, StructureQuery, StructureProperties as SP } from '../mol-model/structure';
@@ -93,7 +92,7 @@ async function ensureBcifAvailable(pdbId: string) {
     if (!fs.existsSync(bcifPath)) {
         console.log(`downloading ${pdbId} bcif...`);
         const data = await fetch(getBcifUrl(pdbId));
-        await writeFileAsync(bcifPath, await data.buffer());
+        await writeFileAsync(bcifPath, Buffer.from(await data.arrayBuffer()));
         console.log(`done downloading ${pdbId} bcif`);
     }
 }

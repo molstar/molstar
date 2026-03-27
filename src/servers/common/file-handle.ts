@@ -1,13 +1,13 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import * as fs from 'fs';
-import fetch from 'node-fetch';
 import { FileHandle } from '../../mol-io/common/file-handle';
 import { SimpleBuffer } from '../../mol-io/common/simple-buffer';
 import { defaults, noop } from '../../mol-util';
@@ -125,8 +125,8 @@ export function fileHandleFromHTTP(url: string, name: string): FileHandle {
             if (!innerHandle) {
                 const response = await fetch(url);
                 if (response.ok) {
-                    const buffer = await response.buffer();
-                    innerHandle = FileHandle.fromBuffer(buffer, name);
+                    const arrayBuffer = await response.arrayBuffer();
+                    innerHandle = FileHandle.fromBuffer(Buffer.from(arrayBuffer), name);
                 } else {
                     const error = new Error(`fileHandleFromHTTP: Fetch failed with status code ${response.status}`);
                     (error as any).isFileNotFound = true;

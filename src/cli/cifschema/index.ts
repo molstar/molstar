@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import * as argparse from 'argparse';
 import * as fs from 'fs';
 import * as path from 'path';
-import fetch from 'node-fetch';
 
 import { parseCsv } from '../../mol-io/reader/csv/parser';
 import { CifFrame, CifBlock } from '../../mol-io/reader/cif';

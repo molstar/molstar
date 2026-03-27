@@ -6,7 +6,6 @@
  */
 
 import * as fs from 'fs';
-import fetch from 'node-fetch';
 
 import { CIF } from '../../mol-io/reader/cif';
 import { Progress } from '../../mol-task';

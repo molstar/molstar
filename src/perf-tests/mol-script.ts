@@ -9,7 +9,6 @@ import * as util from 'util';
 import { transpileMolScript } from '../mol-script/script/mol-script/symbols';
 import { formatMolScript } from '../mol-script/language/expression-formatter';
 import { StructureQualityReport, StructureQualityReportProvider } from '../extensions/pdbe/structure-quality-report/prop';
-import fetch from 'node-fetch';
 import { CustomPropertyDescriptor } from '../mol-model/custom-property';
 
 // import Examples from 'mol-script/script/mol-script/examples'

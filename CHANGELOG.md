@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
-- Dependencies: remove `utils.promisify` (#1797)
+- Dependencies: remove `utils.promisify`, `node-fetch` (#1797)
 - Fix circular dependency which causes crash in bundlers (#1791)
 - Add `putty` as a mol-view-spec representation.
 - Fix detecting sidechain-only structures as coarse-grained (#1420)

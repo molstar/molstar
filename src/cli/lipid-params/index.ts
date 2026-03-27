@@ -3,12 +3,12 @@
  * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import * as argparse from 'argparse';
 import * as fs from 'fs';
 import * as path from 'path';
-import fetch from 'node-fetch';
 import { UniqueArray } from '../../mol-data/generic';
 
 const LIPIDS_DIR = path.resolve(__dirname, '../../../../build/lipids/');

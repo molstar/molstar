@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 
@@ -46,7 +47,7 @@ function parseGsUrl(url: string) {
     };
 }
 
-export async function downloadGs(gsUrl: string, options?: gsCreateReadStreamOptions): Promise<Buffer> {
+export async function downloadGs(gsUrl: string, options?: gsCreateReadStreamOptions): Promise<Buffer<ArrayBuffer>> {
     const { bucket, file } = parseGsUrl(gsUrl);
     try {
         const response = await getGsClient().bucket(bucket).file(file).download(options);

@@ -8,7 +8,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as zlib from 'zlib';
-import fetch from 'node-fetch';
 const readFileAsync = fs.promises.readFile;
 const writeFileAsync = fs.promises.writeFile;
 
@@ -26,7 +25,7 @@ export async function ensureAvailable(path: string, url: string, forceDownload =
             fs.mkdirSync(DATA_DIR);
         }
         if (url.endsWith('.gz')) {
-            await writeFileAsync(path, zlib.gunzipSync(await data.buffer()));
+            await writeFileAsync(path, zlib.gunzipSync(await data.arrayBuffer()));
         } else {
             await writeFileAsync(path, await data.text());
         }
