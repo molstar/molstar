@@ -176,6 +176,30 @@ export const KinemageViewProvider = Transform({
   }
 });
 
+export const KinemageGroupProvider = Transform({
+  name: 'sb-kinemage-group-provider',
+  display: { name: 'Kinemage Group Provider' },
+  from: PluginStateObject.Root,
+  to: PluginStateObject.Format.Json, // store view metadata as JSON data node
+  params: {
+    name: PD.Text(''),
+    groupData: PD.Text(''), /// @todo Fill this in with actual group data if needed, and parse it in the provider
+    data: PD.Value<Kinemage>(undefined as any, { isHidden: true }) // store kinData reference so visibility handlers can access it
+  }
+})({
+  apply({ params }) {
+    return Task.create('Kinemage Group Provider', async ctx => {
+      // PluginStateObject.Format.Json holds arbitrary JSON-like data; create instance with the payload
+      // Pass the view name as the node label so the State Tree shows the provided name instead of "JSON Data"
+      const groupName = String(params.name);
+      return new PluginStateObject.Format.Json(
+        { name: groupName, groupData: params.groupData, kinData: params.data } as any,
+        { label: groupName }
+      );
+    });
+  }
+});
+
 export const KinemageMasterProvider = Transform({
   name: 'sb-kinemage-master-provider',
   display: { name: 'Kinemage Master Provider' },
@@ -243,7 +267,7 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
               const cell = this.ctx.state.data.select(ref)[0];
               const obj = cell?.obj;
               const nodeData = obj?.data;
-              if (nodeData && nodeData.masterData) {
+              if (nodeData && (nodeData.masterData || nodeData.groupData)) {
                 const st = (cell.transform && cell.transform.state) || cell.state || {};
                 const nowHidden = !!st.isHidden;
 
@@ -260,7 +284,8 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
 
                   // Set the Kinemage master visibility based on the isHidden state of the transform.
                   // When the transform is hidden, the master is invisible, and vice versa.
-                  kinRef.masterDict[nodeData.masterData].visible = !nowHidden;
+                  if (nodeData.masterData) kinRef.masterDict[nodeData.masterData].visible = !nowHidden;
+                  if (nodeData.groupData) kinRef.groupDict[nodeData.groupData].off = nowHidden;
 
                   // capture current camera snapshot so we can restore view after re-creating shapes
                   const curSnap = (this.ctx.canvas3d && (this.ctx.canvas3d as any).camera && (this.ctx.canvas3d as any).camera.getSnapshot)
@@ -271,7 +296,8 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
                   destroyShapesForKinemage(this.ctx, kinRef);
                   const update = this.ctx.state.data.build();
                   try {
-                    console.log('XXX Recreating kinemage shapes for master', nodeData.masterData, 'with visibility', !nowHidden);
+                    if (nodeData.groupData) console.log('XXX Recreating kinemage shapes for group', nodeData.groupData, 'with visibility', !nowHidden);
+                    if (nodeData.masterdata) console.log('XXX Recreating kinemage shapes for master', nodeData.masterData, 'with visibility', !nowHidden);
                     await createShapesForKinemage(this.ctx, update, kinRef);
                     await update.commit();
 
@@ -408,6 +434,7 @@ function destroyShapesForKinemage(plugin: PluginContext, kinData: Kinemage) {
 /** Centralized helper to apply kinemage content into plugin state (re-used by drag handler and programmatic loader) */
 async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: KinemageData) {
   const update = plugin.state.data.build();
+  const createdGroupPairs: { selector: StateObjectRef<PluginStateObject.Format.Json>, visible: boolean }[] = [];
   const createdMasterPairs: { selector: StateObjectRef<PluginStateObject.Format.Json>, visible: boolean }[] = [];
 
   for (const kinData of kinInfo.kinemages) {
@@ -488,20 +515,32 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
       createdViewRefs.push(viewNode.selector as StateObjectRef<PluginStateObject.Format.Json>);
     }
 
+    // Iterate over all of the groupDict entries and create a state object for each group.
+    // Add a callback handler for visibility changes on each and print whether it is visible or not.
+    // Name each after the group dictionary key.
+    // Set its visibility according to the 'off' entry in the groupDict.
+    for (const [groupKey, groupInfo] of Object.entries(kinData.groupDict)) {
+      const groupName = groupKey;
+
+      const groupNode = update
+        .toRoot()
+        .apply(KinemageGroupProvider, { name: groupName, groupData: groupKey, data: kinData });
+
+      // Capture desired visibility so we can set transform state after commit
+      const visible = !(groupInfo as any).off;
+      createdGroupPairs.push({ selector: groupNode.selector as StateObjectRef<PluginStateObject.Format.Json>, visible });
+    }
+
     // Iterate over all of the masterDict entries and create a state object for each master.
     // Add a callback handler for visibility changes on each and print whether it is visible or not.
     // Name each after the master dictionary key.
     // Set its visibility according to the visible entry in the masterDict.
-    const createdMasterRefs: StateObjectRef<PluginStateObject.Format.Json>[] = [];
     for (const [masterKey, masterInfo] of Object.entries(kinData.masterDict)) {
       const masterName = masterKey;
 
       const masterNode = update
         .toRoot()
         .apply(KinemageMasterProvider, { name: masterName, masterData: masterKey, data: kinData });
-
-      // Store the selector for UI wiring
-      createdMasterRefs.push(masterNode.selector as StateObjectRef<PluginStateObject.Format.Json>);
 
       // capture desired visibility so we can set transform state after commit
       const visible = !!(masterInfo && (masterInfo as any).visible);
@@ -539,6 +578,25 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
     }
   } catch (e) {
     console.warn('Failed to apply initial kinemage view snapshot', e);
+  }
+
+  // Ensure that the State Tree visibility matches the groups' initial 'off' flags.
+  // The UI commonly uses `isHidden` on transform state; set it here so the created
+  // group nodes show the expected checked/unchecked visibility in the GUI.
+  for (const pair of createdGroupPairs) {
+    try {
+      const ref = resolveSelectorRef(pair.selector);
+      if (!ref) continue;
+
+      // Set the isHidden state for this group based on the visible flag stored above.
+      plugin.state.data.updateCellState(ref, (old: any) => {
+        const s = { ...(old || {}) };
+        s.isHidden = !pair.visible;
+        return s;
+      });
+    } catch (e) {
+      console.warn('Failed to set group visibility for', pair, e);
+    }
   }
 
   // Ensure the State Tree visibility matches the masters' initial 'visible' flags.
