@@ -296,8 +296,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
                   destroyShapesForKinemage(this.ctx, kinRef);
                   const update = this.ctx.state.data.build();
                   try {
-                    if (nodeData.groupData) console.log('XXX Recreating kinemage shapes for group', nodeData.groupData, 'with visibility', !nowHidden);
-                    if (nodeData.masterdata) console.log('XXX Recreating kinemage shapes for master', nodeData.masterData, 'with visibility', !nowHidden);
                     await createShapesForKinemage(this.ctx, update, kinRef);
                     await update.commit();
 
@@ -434,8 +432,6 @@ function destroyShapesForKinemage(plugin: PluginContext, kinData: Kinemage) {
 /** Centralized helper to apply kinemage content into plugin state (re-used by drag handler and programmatic loader) */
 async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: KinemageData) {
   const update = plugin.state.data.build();
-  const createdGroupPairs: { selector: StateObjectRef<PluginStateObject.Format.Json>, visible: boolean }[] = [];
-  const createdMasterPairs: { selector: StateObjectRef<PluginStateObject.Format.Json>, visible: boolean }[] = [];
 
   for (const kinData of kinInfo.kinemages) {
 
@@ -516,35 +512,27 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
     }
 
     // Iterate over all of the groupDict entries and create a state object for each group.
-    // Add a callback handler for visibility changes on each and print whether it is visible or not.
     // Name each after the group dictionary key.
-    // Set its visibility according to the 'off' entry in the groupDict.
     for (const [groupKey, groupInfo] of Object.entries(kinData.groupDict)) {
       const groupName = groupKey;
 
-      const groupNode = update
-        .toRoot()
-        .apply(KinemageGroupProvider, { name: groupName, groupData: groupKey, data: kinData });
-
-      // Capture desired visibility so we can set transform state after commit
+      // capture desired visibility and set it as the transform state at creation time
       const visible = !(groupInfo as any).off;
-      createdGroupPairs.push({ selector: groupNode.selector as StateObjectRef<PluginStateObject.Format.Json>, visible });
+      update
+        .toRoot()
+        .apply(KinemageGroupProvider, { name: groupName, groupData: groupKey, data: kinData }, { state: { isHidden: !visible } });
     }
 
     // Iterate over all of the masterDict entries and create a state object for each master.
-    // Add a callback handler for visibility changes on each and print whether it is visible or not.
     // Name each after the master dictionary key.
-    // Set its visibility according to the visible entry in the masterDict.
     for (const [masterKey, masterInfo] of Object.entries(kinData.masterDict)) {
       const masterName = masterKey;
 
-      const masterNode = update
-        .toRoot()
-        .apply(KinemageMasterProvider, { name: masterName, masterData: masterKey, data: kinData });
-
-      // capture desired visibility so we can set transform state after commit
+      // capture desired visibility and set it as the transform state at creation time
       const visible = !!(masterInfo && (masterInfo as any).visible);
-      createdMasterPairs.push({ selector: masterNode.selector as StateObjectRef<PluginStateObject.Format.Json>, visible });
+      update
+        .toRoot()
+        .apply(KinemageMasterProvider, { name: masterName, masterData: masterKey, data: kinData }, { state: { isHidden: !visible } });
     }
 
     await createShapesForKinemage(plugin, update, kinData);
@@ -564,59 +552,21 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
     return null;
   }
 
-  // After commit, wait for the geometry to show up and then point the camera at it.
-  // We must do this before changing the visibility of the masters, otherwise it uses
-  // the original center-oriented snapshot.
+  // After commit, focus camera as before...
   try {
     const bs = await waitForNonEmptyBoundingSphere(plugin);
     if (bs && bs.radius > 0 && plugin.canvas3d) {
       await PluginCommands.Camera.Focus(plugin, { center: bs.center, radius: bs.radius, durationMs: 250 });
       plugin.canvas3d?.commit();
     } else {
-      // fallback: still try applying the snapshot (may be OK for some cases)
       console.log('Did not get a valid bounding sphere after waiting, applying initial view snapshot without adjustment');
     }
   } catch (e) {
     console.warn('Failed to apply initial kinemage view snapshot', e);
   }
 
-  // Ensure that the State Tree visibility matches the groups' initial 'off' flags.
-  // The UI commonly uses `isHidden` on transform state; set it here so the created
-  // group nodes show the expected checked/unchecked visibility in the GUI.
-  for (const pair of createdGroupPairs) {
-    try {
-      const ref = resolveSelectorRef(pair.selector);
-      if (!ref) continue;
-
-      // Set the isHidden state for this group based on the visible flag stored above.
-      plugin.state.data.updateCellState(ref, (old: any) => {
-        const s = { ...(old || {}) };
-        s.isHidden = !pair.visible;
-        return s;
-      });
-    } catch (e) {
-      console.warn('Failed to set group visibility for', pair, e);
-    }
-  }
-
-  // Ensure the State Tree visibility matches the masters' initial 'visible' flags.
-  // The UI commonly uses `isHidden` on transform state; set it here so the created
-  // master nodes show the expected checked/unchecked visibility in the GUI.
-  for (const pair of createdMasterPairs) {
-    try {
-      const ref = resolveSelectorRef(pair.selector);
-      if (!ref) continue;
-
-      // Set the isHidden state for this master based on the visibile flag stored above.
-      plugin.state.data.updateCellState(ref, (old: any) => {
-        const s = { ...(old || {}) };
-        s.isHidden = !pair.visible;
-        return s;
-      });
-    } catch (e) {
-      console.warn('Failed to set master visibility for', pair, e);
-    }
-  }
+  // The explicit updateCellState loops that set isHidden for group/master nodes are removed,
+  // because the state was applied at creation time above.
 }
 
 // Helper: robustly resolve a transform ref from different selector shapes without changing other modules.
