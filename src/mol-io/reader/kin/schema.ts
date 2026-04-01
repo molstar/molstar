@@ -26,9 +26,10 @@ export interface Kinemage {
 
 /** Common base for all list-like objects in a kinemage */
 export interface KinListBase {
-  group: string,                  ///< Name of the group this List belongs to
-  subgroup: string,               ///< Name of the subgroup this List belongs to
   name?: string,                  ///< Optional name of the whole List
+  group: string,                  ///< Name of the group this List belongs to (may be '' if no group)
+  subgroup: string,               ///< Name of the subgroup this List belongs to (may be '' if no subgroup)
+  nobutton: boolean,              ///< Whether the list is a nobutton list (true if 'nobutton' keyword found)
   masterArray: any[]              ///< Array of master names per List, not per element
 }
 
