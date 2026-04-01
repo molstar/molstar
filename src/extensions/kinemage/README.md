@@ -13,10 +13,11 @@ It currently supports the following features:
 - State Tree names are based on the @pdbfile or @caption in the Kinemage file if there is one
 - Lines are split in half, with each half colored by and labeled by the nearest vertex
 - Master and submaster selections of visible objects
+- Group and subgroup hierarchy with buttons to control visibility
 
 Currently unsupported features include:
-- Group and subgroup hierarchy
-- Animations
+- animate/2animate: all options are turned on at start unless they are marked as 'off' in the file
+- @pointmaster lists controlling visibility
 - @label and @ring lists
 - @hsvcolor keyword for coloring by hue, saturation, and value
 - 'fore' and 'rear' keywords for different front and back colors
