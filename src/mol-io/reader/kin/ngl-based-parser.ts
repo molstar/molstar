@@ -81,6 +81,7 @@ function parseListDef (line: string, localColorDict: {[k: string]: number[]}) {
   let name
   let defaultColor: number[] = localColorDict['white']  // Default color is white, but it can be overridden by the list definition
   let radius
+  let nobutton = false
   let master = []
   let width = 2   // Default width is 2, but it can be overridden by the list definition
 
@@ -106,6 +107,8 @@ function parseListDef (line: string, localColorDict: {[k: string]: number[]}) {
         } else {
           console.log('Kinemage: Unknown list definition term found: ' + es[0])
         }
+      } else if (es[0] === 'nobutton') {
+       nobutton = true
       } else {
         console.log('Kinemage: Unknown list definition term found: ' + e)
       }
@@ -117,7 +120,8 @@ function parseListDef (line: string, localColorDict: {[k: string]: number[]}) {
     listColor: defaultColor,
     listMasters: master,
     listWidth: width,
-    listRadius: radius
+    listRadius: radius,
+    nobutton: nobutton
   }
 }
 
@@ -183,7 +187,8 @@ function parseFlag (line: string) {
 }
 
 function parseGroup (line: string) {
-  let name:string = ''
+  let name: string = ''
+  let nobutton = false
   let master:string[] = []
   let flags: {[k: string]: string|boolean} = {}
 
@@ -210,7 +215,8 @@ function parseGroup (line: string) {
 
   return { groupName: name,
            groupFlags: flags,
-           groupMasters: master
+           groupMasters: master,
+           nobutton: nobutton
   }
 }
 function convertKinTriangleArrays (ribbonObject: RibbonObject) {
@@ -253,6 +259,7 @@ function convertKinTriangleArrays (ribbonObject: RibbonObject) {
     subgroup: ribbonObject.subgroup,
     name: ribbonObject.name,
     masterArray: ribbonObject.masterArray,
+    nobutton: ribbonObject.nobutton,
     labelArray: convertedLabels,
     positionArray: convertedPositions,
     breakArray: convertedBreaks,
@@ -310,6 +317,7 @@ function removePointBreaksTriangleArrays (convertedRibbonObject: RibbonObject) {
     subgroup: convertedRibbonObject.subgroup,
     name: convertedRibbonObject.name,
     masterArray: convertedRibbonObject.masterArray,
+    nobutton: convertedRibbonObject.nobutton,
     labelArray: editedLabels,
     positionArray: editedPositions,
     breakArray: editedBreaks,
@@ -415,7 +423,7 @@ class KinParser {
         } else if (line.startsWith('@dot') /* dot or dotlist */) {
           // @dotlist {x} color=white master={vdw contact} master={dots}
 
-          let { listColor, listName, listMasters } = parseListDef(line, localColorDict)
+          let { listColor, listName, listMasters, nobutton } = parseListDef(line, localColorDict)
 
           isDotList = true
           prevDotLabel = ''
@@ -436,6 +444,7 @@ class KinParser {
             subgroup: currentSubgroup,
             name: listName,
             masterArray: listMasters,
+            nobutton: nobutton,
             labelArray: dotLabel,
             positionArray: dotPosition,
             colorArray: dotColor
@@ -443,7 +452,7 @@ class KinParser {
         } else if (line.startsWith('@vector') /* vector or vectorlist */) {
           // @vectorlist {x} color=white master={small overlap} master={dots}
 
-          let { listMasters, listName, listWidth, listColor } = parseListDef(line, localColorDict)
+          let { listMasters, listName, listWidth, listColor, nobutton } = parseListDef(line, localColorDict)
 
           if (listMasters) {
             listMasters.forEach(function (name: string) {
@@ -485,6 +494,7 @@ class KinParser {
             subgroup: currentSubgroup,
             name: listName,
             masterArray: listMasters,
+            nobutton: nobutton,
             label1Array: vecLabel1,
             label2Array: vecLabel2,
             position1Array: vecPosition1,
@@ -494,7 +504,7 @@ class KinParser {
             width: vecWidth
           })
         } else if (line.startsWith('@ball') /* ball or balllist*/ || line.startsWith('@sphere') /* sphere or spherelist */) {
-          let { listName, listColor, listMasters, listRadius } = parseListDef(line, localColorDict)
+          let { listName, listColor, listMasters, listRadius, nobutton } = parseListDef(line, localColorDict)
 
           if (listMasters) {
             listMasters.forEach(function (name: string) {
@@ -529,13 +539,14 @@ class KinParser {
             subgroup: currentSubgroup,
             name: listName,
             masterArray: listMasters,
+            nobutton: nobutton,
             labelArray: ballLabel,
             radiusArray: ballRadius,
             positionArray: ballPosition,
             colorArray: ballColor
           })
         } else if (line.startsWith('@ribbon') /* ribbon or ribbonlist */ || line.startsWith('@triangle') /* triangle or trianglelist */) {
-          let { listMasters, listName, listColor } = parseListDef(line, localColorDict)
+          let { listMasters, listName, listColor, nobutton } = parseListDef(line, localColorDict)
 
           if (listMasters) {
             listMasters.forEach(function (name: string) {
@@ -568,6 +579,7 @@ class KinParser {
             subgroup: currentSubgroup,
             name: listName,
             masterArray: listMasters,
+            nobutton: nobutton,
             labelArray: ribbonPointLabelArray,
             positionArray: ribbonPointPositionArray,
             breakArray: ribbonPointBreakArray,

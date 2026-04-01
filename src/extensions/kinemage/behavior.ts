@@ -539,17 +539,28 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
     // Iterate over all of the groupDict entries and create a state object for each group.
     // Name each after the group dictionary key.
     for (const [groupKey, groupInfo] of Object.entries(kinData.groupDict)) {
-      // capture desired visibility and set it as the transform state at creation time
-      const visible = !(groupInfo as any).off;
-      update
-        .toRoot()
-        .apply(KinemageGroupProvider, { name: groupKey, groupData: groupKey, data: kinData }, { state: { isHidden: !visible } });
+
+      // Only make state object for this group if it did not have noButton set.
+      if (!(groupInfo as any).nobutton) {
+
+        // capture desired visibility and set it as the transform state at creation time
+        const visible = !(groupInfo as any).off;
+        update
+          .toRoot()
+          .apply(KinemageGroupProvider, { name: groupKey, groupData: groupKey, data: kinData }, { state: { isHidden: !visible } });
+      }
 
       // Iterate over all of the subgroupDict entries under this group and create a state object for each subgroup.
       // Name each after the subgroup dictionary key, which is in the format "GroupName:SubgroupName" to preserve tree structure.
       for (const [subgroupKey, subgroupInfo] of Object.entries(kinData.subgroupDict)) {
         // Skip subgroups that don't belong to this group (based on the naming convention of "GroupName:SubgroupName")
         if (!subgroupKey.startsWith(groupKey + ':')) continue;
+
+        // Skip this subgroup if its parent group is dominant.
+        if ((groupInfo as any).dominant) continue;
+
+        // Skip this subgroup if it has noButton set.
+        if ((subgroupInfo as any).nobutton) continue;
 
         // capture desired visibility and set it as the transform state at creation time
         const visible = !(subgroupInfo as any).off;
@@ -563,7 +574,7 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
     // so they show up in the State Tree.
     for (const [subgroupKey, subgroupInfo] of Object.entries(kinData.subgroupDict)) {
       // Skip subgroups that belong to a group (characters before the ":" indicate the parent group)
-      if (subgroupKey[0] === ':' || subgroupKey.indexOf(':') === -1) continue;
+      if (subgroupKey[0] !== ':' || subgroupKey.indexOf(':') === -1) continue;
 
       // capture desired visibility and set it as the transform state at creation time
       const visible = !(subgroupInfo as any).off;
