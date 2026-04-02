@@ -107,7 +107,7 @@ function parseListDef (line: string, localColorDict: {[k: string]: number[]}) {
         } else {
           console.log('Kinemage: Unknown list definition term found: ' + es[0])
         }
-      } else if (es[0] === 'nobutton') {
+      } else if (e === 'nobutton') {
         nobutton = true
       } else {
         console.log('Kinemage: Unknown list definition term found: ' + e)
