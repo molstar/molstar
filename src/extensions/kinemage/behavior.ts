@@ -317,7 +317,7 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
                     : undefined;
 
                   // recreate: ensure old selectors are cleared, then build new ones with a fresh builder
-                  destroyShapesForKinemage(this.ctx, kinRef);
+                  await destroyShapesForKinemage(this.ctx, kinRef);
                   const update = this.ctx.state.data.build();
                   try {
                     await createShapesForKinemage(this.ctx, update, kinRef);
@@ -424,7 +424,7 @@ async function createShapesForKinemage(plugin: PluginContext, update: StateBuild
 
 /** Helper function to destroy all previously-made shapes for a kinemage
  *  (soft remove: hide the transforms so visuals are removed from scene) */
-function destroyShapesForKinemage(plugin: PluginContext, kinData: Kinemage) {
+async function destroyShapesForKinemage(plugin: PluginContext, kinData: Kinemage) {
   const createdShapeSelectors = g_kinemageShapeSelectors.get(kinData as Kinemage);
   if (!createdShapeSelectors) return;
 
@@ -432,13 +432,19 @@ function destroyShapesForKinemage(plugin: PluginContext, kinData: Kinemage) {
     try {
       const ref = resolveSelectorRef(selector);
       if (ref) {
-        // Soft-delete: mark transform as hidden so visuals are torn down
-        /// @todo We would like to fully remove these shapes from the state tree, while leaving the GUI elements intact
-        plugin.state.data.updateCellState(ref, (old: any) => {
-          const s = { ...(old || {}) };
-          s.isHidden = true;
-          return s;
-        });
+        // Fully remove the transform from the state tree so the nodes are gone (not just hidden).
+        // Use the plugin command so the removal is handled in the same place as other UI removals.
+        try {
+          await PluginCommands.State.RemoveObject(plugin, { state: plugin.state.data, ref, removeParentGhosts: true });
+        } catch (e) {
+          console.warn('Failed to remove state object via command, falling back to hiding', ref, e);
+          // fallback: mark transform as hidden so visuals are torn down
+          plugin.state.data.updateCellState(ref, (old: any) => {
+            const s = { ...(old || {}) };
+            s.isHidden = true;
+            return s;
+          });
+        }
       } else if ((selector as any).destroy) {
         // Fallback if selector object exposes destroy (unlikely for state refs)
         (selector as any).destroy();
