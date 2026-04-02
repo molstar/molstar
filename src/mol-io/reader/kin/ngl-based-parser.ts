@@ -108,7 +108,7 @@ function parseListDef (line: string, localColorDict: {[k: string]: number[]}) {
           console.log('Kinemage: Unknown list definition term found: ' + es[0])
         }
       } else if (es[0] === 'nobutton') {
-       nobutton = true
+        nobutton = true
       } else {
         console.log('Kinemage: Unknown list definition term found: ' + e)
       }
@@ -188,7 +188,6 @@ function parseFlag (line: string) {
 
 function parseGroup (line: string) {
   let name: string = ''
-  let nobutton = false
   let master:string[] = []
   let flags: {[k: string]: string|boolean} = {}
 
@@ -216,7 +215,6 @@ function parseGroup (line: string) {
   return { groupName: name,
            groupFlags: flags,
            groupMasters: master,
-           nobutton: nobutton
   }
 }
 function convertKinTriangleArrays (ribbonObject: RibbonObject) {
