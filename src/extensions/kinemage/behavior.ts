@@ -74,8 +74,7 @@ export const KinemageShapePointsProvider = Transform({
   from: PluginStateObject.Root,
   to: PluginStateObject.Shape.Provider,
   params: {
-    /// @todo What is the point of setting this and others to isHidden?
-    data: PD.Value<Kinemage>(undefined as any, { isHidden: true })
+    data: PD.Value<Kinemage>(undefined as any, {})
   }
 })({
   apply({ params }) {
@@ -96,7 +95,7 @@ export const KinemageShapeLinesProvider = Transform({
     from: PluginStateObject.Root,
     to: PluginStateObject.Shape.Provider,
     params: {
-        data: PD.Value<Kinemage>(undefined as any, { isHidden: true })
+        data: PD.Value<Kinemage>(undefined as any, {})
     }
     })({
     apply({ params }) {
@@ -117,7 +116,7 @@ export const KinemageShapeMeshProvider = Transform({
   from: PluginStateObject.Root,
   to: PluginStateObject.Shape.Provider,
   params: {
-    data: PD.Value<Kinemage>(undefined as any, { isHidden: true })
+    data: PD.Value<Kinemage>(undefined as any, {})
   }
 })({
   apply({ params }) {
@@ -138,7 +137,7 @@ export const KinemageShapeSpheresProvider = Transform({
   from: PluginStateObject.Root,
   to: PluginStateObject.Shape.Provider,
   params: {
-    data: PD.Value<Kinemage>(undefined as any, { isHidden: true })
+    data: PD.Value<Kinemage>(undefined as any, {})
     }
 })({
   apply({ params }) {
@@ -160,7 +159,7 @@ export const KinemageViewProvider = Transform({
   to: PluginStateObject.Format.Json, // store view metadata as JSON data node
   params: {
     name: PD.Text(''),
-    snapshot: PD.Value<Partial<Camera.Snapshot>>(undefined as any, { isHidden: true })
+    snapshot: PD.Value<Partial<Camera.Snapshot>>(undefined as any, {})
   }
 })({
   apply({ params }) {
@@ -184,7 +183,7 @@ export const KinemageGroupProvider = Transform({
   params: {
     name: PD.Text(''),
     groupData: PD.Text(''), /// @todo Fill this in with actual group data if needed, and parse it in the provider
-    data: PD.Value<Kinemage>(undefined as any, { isHidden: true }) // store kinData reference so visibility handlers can access it
+    data: PD.Value<Kinemage>(undefined as any, {}) // store kinData reference so visibility handlers can access it
   }
 })({
   apply({ params }) {
@@ -208,7 +207,7 @@ export const KinemageSubgroupProvider = Transform({
   params: {
     name: PD.Text(''),
     subgroupData: PD.Text(''), /// @todo Fill this in with actual subgroup data if needed, and parse it in the provider
-    data: PD.Value<Kinemage>(undefined as any, { isHidden: true }) // store kinData reference so visibility handlers can access it
+    data: PD.Value<Kinemage>(undefined as any, {}) // store kinData reference so visibility handlers can access it
   }
 })({
   apply({ params }) {
@@ -232,7 +231,7 @@ export const KinemageMasterProvider = Transform({
   params: {
     name: PD.Text(''),
     masterData: PD.Text(''), /// @todo Fill this in with actual master data if needed, and parse it in the provider
-    data: PD.Value<Kinemage>(undefined as any, { isHidden: true }) // store kinData reference so visibility handlers can access it
+    data: PD.Value<Kinemage>(undefined as any, {}) // store kinData reference so visibility handlers can access it
   }
 })({
   apply({ params }) {
