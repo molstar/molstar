@@ -396,6 +396,9 @@ class KinParser {
     let isText = false
     let isCaption = false
 
+    let foundAnimate = false
+    let found2Animate = false
+
     // @vectorlist {mc} color= white  master= {mainchain}
     // { n   thr A   1  B13.79 1crnFH} P 17.047, 14.099, 3.625 { n   thr A   1  B13.79 1crnFH} L 17.047, 14.099, 3.625
 
@@ -704,9 +707,18 @@ class KinParser {
           if (!kinemage.groupDict[groupName as string]) {
             kinemage.groupDict[groupName as string] = {
               dominant: false,
-              animate: false,
-              "2animate": false,
-              off: false
+              // If the groupFlags include animate or 2animate, set those to true in the groupDict. Otherwise, set them to false.
+              animate: groupFlags["animate"] ? true : false,
+              "2animate": groupFlags["2animate"] ? true : false,
+              // If the foundAnimate or found2Animate flags are true, set off to true; otherwise set it to the flags value.
+              off: (foundAnimate || found2Animate) ? true : groupFlags["off"] ? true : false
+            }
+            // If the animate or 2animate flags are found in the groupFlags, set foundAnimate or found2Animate to true, respectively.
+            if (groupFlags["animate"]) {
+              foundAnimate = true
+            }
+            if (groupFlags["2animate"]) {
+              found2Animate = true
             }
             currentGroupMasters = groupMasters
           }
@@ -733,9 +745,8 @@ class KinParser {
           if (!kinemage.subgroupDict[combinedName]) {
             kinemage.subgroupDict[combinedName] = {
               dominant: false,
-              animate: false,
-              "2animate": false,
-              off: false,
+              // If the groupFlag includes "off", set off to true; otherwise, set it to false.
+              off: groupFlags["off"] ? true : false,
               group: currentGroup
             }
             currentSubgroupMasters = groupMasters
@@ -767,6 +778,7 @@ class KinParser {
             }
           }
 
+          /// @todo There can be more than one flag on a @master line: indent, off, nobutton
           if (flag === 'on') {
             kinemage.masterDict[name].visible = true
           } else if (flag === 'off') {
