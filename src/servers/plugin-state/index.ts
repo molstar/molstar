@@ -105,7 +105,7 @@ function mapPath(path: string) {
 }
 
 app.get(mapPath(`/get/:id`), (req, res) => {
-    const id: string = req.params.id || '';
+    const id = (Array.isArray(req.params.id) ? req.params.id[0] : req.params.id) || '';
     console.log('Reading', id);
     if (id.length === 0 || id.indexOf('.') >= 0 || id.indexOf('/') >= 0 || id.indexOf('\\') >= 0) {
         res.status(404);

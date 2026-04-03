@@ -183,7 +183,9 @@ async function queryBox(req: express.Request, res: express.Response, params: Dat
         return;
     }
 
-    const outputFilename = Api.getOutputFilename(req.params.source, req.params.id, params);
+    const stringSource = (Array.isArray(req.params.source) ? req.params.source[0] : req.params.source) || '';
+    const stringId = (Array.isArray(req.params.id) ? req.params.id[0] : req.params.id) || '';
+    const outputFilename = Api.getOutputFilename(stringSource, stringId, params);
     const response = wrapResponse(outputFilename, res);
 
     try {
