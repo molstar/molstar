@@ -12,7 +12,6 @@ import { parseGRO } from '../../mol-io/reader/gro/parser';
 import { parsePDB } from '../../mol-io/reader/pdb/parser';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { shapeFromPly } from '../../mol-model-formats/shape/ply';
-import { shapeLinesFromKin } from '../../mol-model-formats/shape/kin';
 import { coordinatesFromDcd } from '../../mol-model-formats/structure/dcd';
 import { trajectoryFromGRO } from '../../mol-model-formats/structure/gro';
 import { trajectoryFromCCD, trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
@@ -95,7 +94,6 @@ export { StructureComponent };
 export { CustomModelProperties };
 export { CustomStructureProperties };
 export { ShapeFromPly };
-export { ShapeLinesFromKin };
 
 type CoordinatesFromDcd = typeof CoordinatesFromDcd
 const CoordinatesFromDcd = PluginStateTransform.BuiltIn({
@@ -1320,24 +1318,3 @@ const ShapeFromPly = PluginStateTransform.BuiltIn({
     }
 });
 
-type ShapeLinesFromKin = typeof ShapeLinesFromKin
-const ShapeLinesFromKin = PluginStateTransform.BuiltIn({
-  name: 'shape-lines-from-kin',
-  display: { name: 'Shape Lines from KIN', description: 'Create Shape from KIN data' },
-  from: SO.Format.Kin,
-  to: SO.Shape.Provider,
-  params(a) {
-    return {
-      transforms: PD.Optional(PD.Value<Mat4[]>([], { isHidden: true })),
-      label: PD.Optional(PD.Text('', { isHidden: true }))
-    };
-  }
-})({
-  apply({ a, params }) {
-    return Task.create('Create shape from KIN', async ctx => {
-      const shape = await shapeLinesFromKin(a.data, params).runInContext(ctx);
-      const props = { label: params.label || 'Shape' };
-      return new SO.Shape.Provider(shape, props);
-    });
-  }
-});
