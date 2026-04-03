@@ -282,12 +282,6 @@ async function getMesh(ctx: RuntimeContext, kin: Kinemage) {
       let a: Vec3 = vertexList[0];
       let b: Vec3 = vertexList[1];
       let c: Vec3 = vertexList[2];
-      // Flip the winding for every other triangle to keep the faces consistent.
-      if (i % 2 === 1) {
-        const temp = b;
-        b = c;
-        c = temp;
-      }
 
       // Put both orientations of the triangle. Add a small amount along the normal to make them
       // not be exactly on top of each other so that we only see the front face of each.
