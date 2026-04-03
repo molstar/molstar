@@ -21,7 +21,11 @@ export interface Kinemage {
   dotLists: DotList[],
   vectorLists: VectorList[],
   ballLists: BallList[],
-  ribbonLists: RibbonObject[]
+  ribbonLists: RibbonObject[],
+  groupsAnimate: string[],
+  activeAnimateGroup: number,
+  groupsAnimate2: string[],
+  activeAnimateGroup2: number
 }
 
 /** Common base for all list-like objects in a kinemage */

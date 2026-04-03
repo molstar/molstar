@@ -247,6 +247,30 @@ export const KinemageMasterProvider = Transform({
   }
 });
 
+export const KinemageAnimateProvider = Transform({
+  name: 'sb-kinemage-animate-provider',
+  display: { name: 'Kinemage Animate Provider' },
+  from: PluginStateObject.Root,
+  to: PluginStateObject.Format.Json, // store view metadata as JSON data node
+  params: {
+    name: PD.Text(''),
+    animateData: PD.Text(''), /// @todo Fill this in with actual animate data if needed, and parse it in the provider
+    data: PD.Value<Kinemage>(undefined as any, {}) // store kinData reference so visibility handlers can access it
+  }
+})({
+  apply({ params }) {
+    return Task.create('Kinemage Animate Provider', async ctx => {
+      // PluginStateObject.Format.Json holds arbitrary JSON-like data; create instance with the payload
+      // Pass the view name as the node label so the State Tree shows the provided name instead of "JSON Data"
+      const animateName = String(params.name);
+      return new PluginStateObject.Format.Json(
+        { name: animateName, animateData: params.animateData, kinData: params.data, firedOnce: false } as any,
+        { label: animateName }
+      );
+    });
+  }
+});
+
 export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'kinemage-data-prop',
     category: 'custom-props',
@@ -272,6 +296,7 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
 
             // When one of the state objects is selected in the GUI, handle the appropriate behavior:
             // For a view object (which has a snapshot), update the camera to its snapshot.
+            // For an animation button, have it adjust the various visibilities and then regenerate shapes.
             this.selectedSub = this.ctx.state.data.behaviors.currentObject.subscribe((e: any) => {
               const ref = e.ref;
               // state.select returns an array of cells; the first is the matching cell
@@ -284,12 +309,52 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
             });
 
             // When one of the state objects is has its visibility changed in the GUI, handle the appropriate behavior:
-            // For a master, turn on or off the value and regenerate appropriate geometry.
+            // For an animation object, adjust which group is visible and then regenerate shapes.
+            // For a master, group, or subgroup, turn on or off the value and regenerate appropriate geometry.
             this.visibilitySub = this.ctx.state.data.events.cell.stateUpdated.subscribe(async (e: any) => {
               const ref = e.ref;
               const cell = this.ctx.state.data.select(ref)[0];
               const obj = cell?.obj;
               const nodeData = obj?.data;
+              let madeChanges = false;
+              if (nodeData && nodeData.animateData) {
+                // If we have not yet fired, ignore this event because it is just the creation of the node.
+                if (!nodeData.firedOnce) {
+                  nodeData.firedOnce = true;
+                  return;
+                }
+                const kinData = nodeData.kinData as Kinemage;
+                if (nodeData.animateData === 'animate') {
+                  // Increment the activeAnimateGroup index and wrap around if needed,
+                  // then make the selected group visible and the others not.
+                  kinData.activeAnimateGroup = (kinData.activeAnimateGroup + 1) % kinData.groupsAnimate.length;
+                  for (let i = 0; i < kinData.groupsAnimate.length; i++) {
+                    const groupName = kinData.groupsAnimate[i];
+                    const groupInfo = kinData.groupDict[groupName];
+                    groupInfo.off = i !== kinData.activeAnimateGroup;
+                    // Also set the GUI element visibility state to match the kinemage data,
+                    // so that the GUI reflects which group is currently active.
+                    /// @todo
+                  }
+
+                } else if (nodeData.animateData === '2animate') {
+                  // Increment the activeAnimateGroup2 index and wrap around if needed,
+                  // then make the selected group visible and the others not.
+                  kinData.activeAnimateGroup2 = (kinData.activeAnimateGroup2 + 1) % kinData.groupsAnimate2.length;
+                  for (let i = 0; i < kinData.groupsAnimate2.length; i++) {
+                    const groupName = kinData.groupsAnimate2[i];
+                    const groupInfo = kinData.groupDict[groupName];
+                    groupInfo.off = i !== kinData.activeAnimateGroup2;
+                    // Also set the GUI element visibility state to match the kinemage data,
+                    // so that the GUI reflects which group is currently active.
+                    /// @todo
+                  }
+                }
+
+                // Indicate that we need to rebuild the shapes for this kinemage based on the animation change.
+                madeChanges = true;
+              }
+
               if (nodeData && (nodeData.masterData || nodeData.groupData || nodeData.subgroupData)) {
                 const st = (cell.transform && cell.transform.state) || cell.state || {};
                 const nowHidden = !!st.isHidden;
@@ -311,31 +376,39 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
                   if (nodeData.subgroupData) kinRef.subgroupDict[nodeData.subgroupData].off = nowHidden;
                   if (nodeData.masterData) kinRef.masterDict[nodeData.masterData].visible = !nowHidden;
 
-                  // capture current camera snapshot so we can restore view after re-creating shapes
-                  const curSnap = (this.ctx.canvas3d && (this.ctx.canvas3d as any).camera && (this.ctx.canvas3d as any).camera.getSnapshot)
-                    ? (this.ctx.canvas3d as any).camera.getSnapshot()
-                    : undefined;
-
-                  // recreate: ensure old selectors are cleared, then build new ones with a fresh builder
-                  await destroyShapesForKinemage(this.ctx, kinRef);
-                  const update = this.ctx.state.data.build();
-                  try {
-                    await createShapesForKinemage(this.ctx, update, kinRef);
-                    await update.commit();
-
-                    // restore camera snapshot to avoid the temporary zoom-out caused by removing geometry
-                    if (curSnap) {
-                      try {
-                        await applyViewSnapshot(this.ctx, curSnap);
-                      } catch (e) {
-                        console.warn('Failed to restore camera snapshot after recreating shapes', e);
-                      }
-                    }
-                  } catch (err) {
-                    console.error('Failed to recreate kinemage shapes', err);
-                  }
+                  // Indicate that we need to rebuild the shapes for this kinemage based on the animation change.
+                  madeChanges = true;
                 }
               }
+
+              if (madeChanges) {
+                // capture current camera snapshot so we can restore view after re-creating shapes
+                const curSnap = (this.ctx.canvas3d && (this.ctx.canvas3d as any).camera && (this.ctx.canvas3d as any).camera.getSnapshot)
+                  ? (this.ctx.canvas3d as any).camera.getSnapshot()
+                  : undefined;
+
+                // recreate: ensure old selectors are cleared, then build new ones with a fresh builder
+                const kinRef: Kinemage | undefined = nodeData.kinData;
+                if (!kinRef) return;
+                await destroyShapesForKinemage(this.ctx, kinRef);
+                const update = this.ctx.state.data.build();
+                try {
+                  await createShapesForKinemage(this.ctx, update, kinRef);
+                  await update.commit();
+
+                  // restore camera snapshot to avoid the temporary zoom-out caused by removing geometry
+                  if (curSnap) {
+                    try {
+                      await applyViewSnapshot(this.ctx, curSnap);
+                    } catch (e) {
+                      console.warn('Failed to restore camera snapshot after recreating shapes', e);
+                    }
+                  }
+                } catch (err) {
+                  console.error('Failed to recreate kinemage shapes', err);
+                }
+              }
+
             });
         }
 
@@ -543,6 +616,20 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
       createdViewRefs.push(viewNode.selector as StateObjectRef<PluginStateObject.Format.Json>);
     }
 
+    // If there are any entries in the groupsAnimate list, create a state object for the animate provider so it shows up in the State Tree.
+    if (kinData.groupsAnimate.length > 0) {
+      update
+        .toRoot()
+        .apply(KinemageAnimateProvider, { name: 'Animate (change vis)', animateData: 'animate', data: kinData });
+    }
+
+    // If there are any entries in the groupsAnimate2 list, create a state object for the animate provider so it shows up in the State Tree.
+    if (kinData.groupsAnimate2.length > 0) {
+      update
+        .toRoot()
+        .apply(KinemageAnimateProvider, { name: 'Animate2 (change vis)', animateData: '2animate', data: kinData });
+    }
+
     // Iterate over all of the groupDict entries and create a state object for each group.
     // Name each after the group dictionary key.
     for (const [groupKey, groupInfo] of Object.entries(kinData.groupDict)) {
@@ -631,9 +718,6 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
   } catch (e) {
     console.warn('Failed to apply initial kinemage view snapshot', e);
   }
-
-  // The explicit updateCellState loops that set isHidden for group/master nodes are removed,
-  // because the state was applied at creation time above.
 }
 
 // Helper: robustly resolve a transform ref from different selector shapes without changing other modules.
