@@ -182,7 +182,7 @@ export const KinemageGroupProvider = Transform({
   to: PluginStateObject.Format.Json, // store view metadata as JSON data node
   params: {
     name: PD.Text(''),
-    groupData: PD.Text(''), /// @todo Fill this in with actual group data if needed, and parse it in the provider
+    groupData: PD.Text(''),
     data: PD.Value<Kinemage>(undefined as any, {}) // store kinData reference so visibility handlers can access it
   }
 })({
@@ -206,7 +206,7 @@ export const KinemageSubgroupProvider = Transform({
   to: PluginStateObject.Format.Json, // store view metadata as JSON data node
   params: {
     name: PD.Text(''),
-    subgroupData: PD.Text(''), /// @todo Fill this in with actual subgroup data if needed, and parse it in the provider
+    subgroupData: PD.Text(''),
     data: PD.Value<Kinemage>(undefined as any, {}) // store kinData reference so visibility handlers can access it
   }
 })({
@@ -230,7 +230,7 @@ export const KinemageMasterProvider = Transform({
   to: PluginStateObject.Format.Json, // store view metadata as JSON data node
   params: {
     name: PD.Text(''),
-    masterData: PD.Text(''), /// @todo Fill this in with actual master data if needed, and parse it in the provider
+    masterData: PD.Text(''),
     data: PD.Value<Kinemage>(undefined as any, {}) // store kinData reference so visibility handlers can access it
   }
 })({
@@ -254,7 +254,7 @@ export const KinemageAnimateProvider = Transform({
   to: PluginStateObject.Format.Json, // store view metadata as JSON data node
   params: {
     name: PD.Text(''),
-    animateData: PD.Text(''), /// @todo Fill this in with actual animate data if needed, and parse it in the provider
+    animateData: PD.Text(''),
     data: PD.Value<Kinemage>(undefined as any, {}) // store kinData reference so visibility handlers can access it
   }
 })({
