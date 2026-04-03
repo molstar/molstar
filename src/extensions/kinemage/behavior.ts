@@ -321,7 +321,8 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
               const kinRef: Kinemage | undefined = nodeData.kinData;
               if (!kinRef) return;
               let madeChanges = false;
-              if (nodeData && nodeData.animateData) {
+
+            if (nodeData && nodeData.animateData) {
                 // If we have not yet fired, ignore this event because it is just the creation of the node.
                 if (!nodeData.firedOnce) {
                   nodeData.firedOnce = true;
@@ -329,16 +330,13 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
                 }
                 const kinData = nodeData.kinData as Kinemage;
                 if (nodeData.animateData === 'animate') {
-                  console.log('XXX visibilitySub animate');
                   // Increment the activeAnimateGroup index and wrap around if needed,
                   // then make the selected group visible and the others not.
                   kinData.activeAnimateGroup = (kinData.activeAnimateGroup + 1) % kinData.groupsAnimate.length;
                   for (let i = 0; i < kinData.groupsAnimate.length; i++) {
                     const groupName = kinData.groupsAnimate[i];
-                    //const groupInfo = kinData.groupDict[groupName];
-                    //groupInfo.off = i !== kinData.activeAnimateGroup;
 
-                    // Also set the GUI element visibility state to match the kinemage data,
+                    // Set the GUI element visibility state to match the kinemage data,
                     // so that the GUI reflects which group is currently active.
                     try {
                       // before changing multiple nodes, mark them to ignore
@@ -356,21 +354,13 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
                         // mark all so we don't react to our own programmatic updates
                         for (const r of refsToUpdate) this.ignoreStateUpdates.add(r);
 
-                        // Find the State Tree cell corresponding to this group button and update its transform state
-                        for (const [cellRef, cellEntry] of (this.ctx.state.data as any).cells) {
-                          const entryObj = (cellEntry as any).obj;
-                          const entryData = entryObj?.data;
-                          if (!entryData) continue;
-                          // Match both groupData and kinData to ensure we update the correct node
-                          if (entryData.groupData === groupName && entryData.kinData === kinData) {
-                            this.ctx.state.data.updateCellState(cellRef, (old: any) => {
-                              const s = { ...(old || {}) };
-                              // `off === true` => hidden in GUI
-                              s.isHidden = i !== kinData.activeAnimateGroup;
-                              return s;
-                            });
-                            break;
-                          }
+                        // perform updates
+                        for (const r of refsToUpdate) {
+                          this.ctx.state.data.updateCellState(r, (old: any) => {
+                            const s = { ...(old || {}) };
+                            s.isHidden = i !== kinData.activeAnimateGroup;
+                            return s;
+                          });
                         }
                       } finally {
                         // clear marks
@@ -390,11 +380,40 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
                   kinData.activeAnimateGroup2 = (kinData.activeAnimateGroup2 + 1) % kinData.groupsAnimate2.length;
                   for (let i = 0; i < kinData.groupsAnimate2.length; i++) {
                     const groupName = kinData.groupsAnimate2[i];
-                    const groupInfo = kinData.groupDict[groupName];
-                    groupInfo.off = i !== kinData.activeAnimateGroup2;
-                    // Also set the GUI element visibility state to match the kinemage data,
+
+                    // Set the GUI element visibility state to match the kinemage data,
                     // so that the GUI reflects which group is currently active.
-                    /// @todo
+                    try {
+                      // before changing multiple nodes, mark them to ignore
+                      const refsToUpdate: string[] = []; // fill with the refs you will update
+
+                      for (const [cellRef, cellEntry] of (this.ctx.state.data as any).cells) {
+                        const entryData = (cellEntry as any).obj?.data;
+                        if (entryData && entryData.groupData === groupName && entryData.kinData === kinData) {
+                          refsToUpdate.push(cellRef);
+                          break;
+                        }
+                      }
+
+                      try {
+                        // mark all so we don't react to our own programmatic updates
+                        for (const r of refsToUpdate) this.ignoreStateUpdates.add(r);
+
+                        // perform updates
+                        for (const r of refsToUpdate) {
+                          this.ctx.state.data.updateCellState(r, (old: any) => {
+                            const s = { ...(old || {}) };
+                            s.isHidden = i !== kinData.activeAnimateGroup2;
+                            return s;
+                          });
+                        }
+                      } finally {
+                        // clear marks
+                        for (const r of refsToUpdate) this.ignoreStateUpdates.delete(r);
+                      }
+                    } catch (err) {
+                      console.warn('Failed to sync GUI group visibility for', groupName, err);
+                    }
                   }
 
                   // Indicate that we need to rebuild the shapes for this kinemage based on the animation change.
@@ -403,7 +422,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
               }
 
               if (nodeData && (nodeData.masterData || nodeData.groupData || nodeData.subgroupData)) {
-                console.log('XXX visibilitySub');
                 const st = (cell.transform && cell.transform.state) || cell.state || {};
                 const nowHidden = !!st.isHidden;
 
@@ -423,7 +441,7 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
                   if (nodeData.masterData) kinRef.masterDict[nodeData.masterData].visible = !nowHidden;
 
                   // Indicate that we need to rebuild the shapes for this kinemage based on the animation change.
-                  // Do not do this when we're called re-entrantly because the caller will handle it.
+                  // Do not do this when we're called re-entrantly because the animation code will handle it.
                   madeChanges = !this.ignoreStateUpdates.has(ref);
                 }
               }

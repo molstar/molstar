@@ -14,9 +14,9 @@ It currently supports the following features:
 - Lines are split in half, with each half colored by and labeled by the nearest vertex
 - Master and submaster selections of visible objects
 - Group and subgroup hierarchy with buttons to control visibility
+- animate/2animate: First entry turned on to start, changing visibility of Animate button cycles through them
 
 Currently unsupported features include:
-- animate/2animate: all options are turned on at start unless they are marked as 'off' in the file
 - @pointmaster lists controlling visibility
 - @label and @ring lists
 - @hsvcolor keyword for coloring by hue, saturation, and value
