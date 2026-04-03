@@ -390,29 +390,29 @@ async function createShapesForKinemage(plugin: PluginContext, update: StateBuild
   if (kinData.dotLists.length > 0) {
     const node = await update
       .toRoot()
-      .apply(KinemageShapePointsProvider, { data: kinData })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D, undefined, { state: { isGhost: true } });
+      .apply(KinemageShapePointsProvider, { data: kinData }, { state: { isGhost: true } })
+      .apply(StateTransforms.Representation.ShapeRepresentation3D);
     createdShapeSelectors.push(node.selector as StateObjectRef<any>);
   }
   if (kinData.vectorLists.length > 0) {
     const node = await update
       .toRoot()
-      .apply(KinemageShapeLinesProvider, { data: kinData })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D, undefined, { state: { isGhost: true } });
+      .apply(KinemageShapeLinesProvider, { data: kinData }, { state: { isGhost: true } })
+      .apply(StateTransforms.Representation.ShapeRepresentation3D);
     createdShapeSelectors.push(node.selector as StateObjectRef<any>);
   }
   if (kinData.ribbonLists.length > 0) {
     const node = await update
       .toRoot()
-      .apply(KinemageShapeMeshProvider, { data: kinData })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true }, { state: { isGhost: true } });
+      .apply(KinemageShapeMeshProvider, { data: kinData }, { state: { isGhost: true } })
+      .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
     createdShapeSelectors.push(node.selector as StateObjectRef<any>);
   }
   if (kinData.ballLists.length > 0) {
     const node = await update
       .toRoot()
-      .apply(KinemageShapeSpheresProvider, { data: kinData })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D, undefined, { state: { isGhost: true } });
+      .apply(KinemageShapeSpheresProvider, { data: kinData }, { state: { isGhost: true } })
+      .apply(StateTransforms.Representation.ShapeRepresentation3D);
     createdShapeSelectors.push(node.selector as StateObjectRef<any>);
   }
 
@@ -454,6 +454,8 @@ async function destroyShapesForKinemage(plugin: PluginContext, kinData: Kinemage
     } catch (e) {
       console.warn('Failed to destroy selector', selector, e);
     }
+    // Commit canvas / repaint if needed
+    plugin.canvas3d?.commit();
   }
 
   g_kinemageShapeSelectors.delete(kinData as Kinemage);
