@@ -303,7 +303,6 @@ type GenericEntity = {
      *
      * meshes
      * - ply
-     * - kin
      */
     file: string
     label?: string
