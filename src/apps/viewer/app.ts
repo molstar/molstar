@@ -1,11 +1,10 @@
 /**
- * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Neli Fonseca <neli@ebi.ac.uk>
  * @author Adam Midlik <midlik@gmail.com>
- * @author Russ Taylor <russ@reliasolve.com>
  */
 
 import { AssemblySymmetryConfig } from '../../extensions/assembly-symmetry';

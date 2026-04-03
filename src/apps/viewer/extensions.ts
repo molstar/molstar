@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Russ Taylor <russ@reliasolve.com>
  */
 
 import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
