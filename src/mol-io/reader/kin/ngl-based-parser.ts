@@ -354,7 +354,11 @@ class KinParser {
       dotLists: [],
       vectorLists: [],
       ballLists: [],
-      ribbonLists: []
+      ribbonLists: [],
+      groupsAnimate: [],
+      activeAnimateGroup: -1,
+      groupsAnimate2: [],
+      activeAnimateGroup2: -1
     }
     this.kinemage = kinemage
 
@@ -711,12 +715,17 @@ class KinParser {
               // If the foundAnimate or found2Animate flags are true, set off to true; otherwise set it to the flags value.
               off: (foundAnimate || found2Animate) ? true : groupFlags["off"] ? true : false
             }
-            // If the animate or 2animate flags are found in the groupFlags, set foundAnimate or found2Animate to true, respectively.
+            // If the animate or 2animate flags are found in the groupFlags, set foundAnimate
+            // or found2Animate to true, respectively. Also update the list and index.
             if (groupFlags["animate"]) {
               foundAnimate = true
+              kinemage.groupsAnimate.push(groupName as string)
+              kinemage.activeAnimateGroup = 0
             }
             if (groupFlags["2animate"]) {
               found2Animate = true
+              kinemage.groupsAnimate2.push(groupName as string)
+              kinemage.activeAnimateGroup2 = 0
             }
             currentGroupMasters = groupMasters
           }
