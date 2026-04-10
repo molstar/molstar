@@ -36,7 +36,7 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
     get animations() { return this._animations; }
 
     get isAnimatingStateTransition() {
-        return this._current.anim.name === 'built-in.animate-state-snapshot-transition';
+        return !!this._current && this._current.anim.name === 'built-in.animate-state-snapshot-transition';
     }
 
     private triggerUpdate() {

@@ -5,6 +5,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v5.8.1] - 2026-04-03
+- Fix edge case when `PluginSpec.animations` is empty
+
 ## [v5.8.0] - 2026-04-03
 - Dependencies: remove `utils.promisify`, `node-fetch` (#1797)
 - Fix circular dependency which causes crash in bundlers (#1791)
