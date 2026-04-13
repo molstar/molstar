@@ -9,8 +9,8 @@ It currently supports the following features:
 - Display of @ball, @sphere, @vector, @dot, @ribbon, and @triangle lists
 - Coloring of objects by vertex color, or by a single color for the entire list
 - Hovering over objects to see their labels (if present)
-- When there are views defined, JSON Data entries are added to the State Tree; when selected, they shift the view
-- State Tree names are based on the @pdbfile or @caption in the Kinemage file if there is one
+- When there are views defined, controls are added to the right panel; when selected, they shift the view
+- Control panel names are based on the @pdbfile or @caption in the Kinemage file if there is one
 - Lines are split in half, with each half colored by and labeled by the nearest vertex
 - Master and submaster selections of visible objects
 - Group and subgroup hierarchy with buttons to control visibility

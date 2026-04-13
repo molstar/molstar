@@ -307,11 +307,7 @@ export async function destroyShapesForKinemage(plugin: PluginContext, kinData: K
 }
 
 /** Centralized helper to apply kinemage content into plugin state (re-used by drag handler and programmatic loader)
- *  NOTE: This no longer creates State Tree JSON nodes for views/groups/masters/subgroups/animate.
  *  It computes view snapshots and stores them on the kinemage objects (runtime-only) and then creates shapes.
- *
- *  IMPORTANT: Before adding new visuals we explicitly destroy any previously-created kinemage visuals
- *  so we don't leak shapes / state objects across loads.
  */
 async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: KinemageData) {
   const update = plugin.state.data.build();
