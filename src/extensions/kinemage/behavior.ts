@@ -19,17 +19,23 @@ import { DefaultQueryRuntimeTable } from '../../mol-script/runtime/query/compile
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { shapePointsFromKin, shapeLinesFromKin, shapeMeshFromKin, shapeSpheresFromKin } from './kin';
 import { Kinemage } from './reader/schema';
-import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
+//import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 import { Camera } from '../../mol-canvas3d/camera';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { StateObjectRef } from '../../mol-state';
 import { getPluginBoundingSphere } from '../../mol-plugin-state/manager/focus-camera/focus-object';
+import { KinemageControls } from './ui';
 
 const Tag = KinemageData.Tag;
 
 const Transform = StateTransformer.builderFactory('sb-kinemage');
 
 let g_kinemageData: KinemageData | undefined = undefined;
+
+/** Getter for external code / handlers to obtain the loaded kinemage runtime data. */
+export function getLoadedKinemageData() {
+  return g_kinemageData;
+}
 
 /**
  * Map that keeps track of created shape/repr selectors for each created `Kinemage`.
@@ -152,125 +158,6 @@ export const KinemageShapeSpheresProvider = Transform({
   }
 });
 
-export const KinemageViewProvider = Transform({
-  name: 'sb-kinemage-view-provider',
-  display: { name: 'Kinemage View Provider' },
-  from: PluginStateObject.Root,
-  to: PluginStateObject.Format.Json, // store view metadata as JSON data node
-  params: {
-    name: PD.Text(''),
-    snapshot: PD.Value<Partial<Camera.Snapshot>>(undefined as any, {})
-  }
-})({
-  apply({ params }) {
-    return Task.create('Kinemage View Provider', async ctx => {
-      // PluginStateObject.Format.Json holds arbitrary JSON-like data; create instance with the payload
-      // Pass the view name as the node label so the State Tree shows the provided name instead of "JSON Data"
-      const viewName = 'View ' + String(params.name || '');
-      return new PluginStateObject.Format.Json(
-        { name: viewName, snapshot: params.snapshot } as any,
-        { label: viewName }
-      );
-    });
-  }
-});
-
-export const KinemageGroupProvider = Transform({
-  name: 'sb-kinemage-group-provider',
-  display: { name: 'Kinemage Group Provider' },
-  from: PluginStateObject.Root,
-  to: PluginStateObject.Format.Json, // store view metadata as JSON data node
-  params: {
-    name: PD.Text(''),
-    groupData: PD.Text(''),
-    data: PD.Value<Kinemage>(undefined as any, {}) // store kinData reference so visibility handlers can access it
-  }
-})({
-  apply({ params }) {
-    return Task.create('Kinemage Group Provider', async ctx => {
-      // PluginStateObject.Format.Json holds arbitrary JSON-like data; create instance with the payload
-      // Pass the view name as the node label so the State Tree shows the provided name instead of "JSON Data"
-      const groupName = String(params.name);
-      return new PluginStateObject.Format.Json(
-        { name: groupName, groupData: params.groupData, kinData: params.data } as any,
-        { label: groupName }
-      );
-    });
-  }
-});
-
-export const KinemageSubgroupProvider = Transform({
-  name: 'sb-kinemage-subgroup-provider',
-  display: { name: 'Kinemage Subgroup Provider' },
-  from: PluginStateObject.Root,
-  to: PluginStateObject.Format.Json, // store view metadata as JSON data node
-  params: {
-    name: PD.Text(''),
-    subgroupData: PD.Text(''),
-    data: PD.Value<Kinemage>(undefined as any, {}) // store kinData reference so visibility handlers can access it
-  }
-})({
-  apply({ params }) {
-    return Task.create('Kinemage Subgroup Provider', async ctx => {
-      // PluginStateObject.Format.Json holds arbitrary JSON-like data; create instance with the payload
-      // Pass the view name as the node label so the State Tree shows the provided name instead of "JSON Data"
-      const subgroupName = String(params.name);
-      return new PluginStateObject.Format.Json(
-        { name: subgroupName, subgroupData: params.subgroupData, kinData: params.data } as any,
-        { label: subgroupName }
-      );
-    });
-  }
-});
-
-export const KinemageMasterProvider = Transform({
-  name: 'sb-kinemage-master-provider',
-  display: { name: 'Kinemage Master Provider' },
-  from: PluginStateObject.Root,
-  to: PluginStateObject.Format.Json, // store view metadata as JSON data node
-  params: {
-    name: PD.Text(''),
-    masterData: PD.Text(''),
-    data: PD.Value<Kinemage>(undefined as any, {}) // store kinData reference so visibility handlers can access it
-  }
-})({
-  apply({ params }) {
-    return Task.create('Kinemage Master Provider', async ctx => {
-      // PluginStateObject.Format.Json holds arbitrary JSON-like data; create instance with the payload
-      // Pass the view name as the node label so the State Tree shows the provided name instead of "JSON Data"
-      const masterName = String(params.name);
-      return new PluginStateObject.Format.Json(
-        { name: masterName, masterData: params.masterData, kinData: params.data } as any,
-        { label: masterName }
-      );
-    });
-  }
-});
-
-export const KinemageAnimateProvider = Transform({
-  name: 'sb-kinemage-animate-provider',
-  display: { name: 'Kinemage Animate Provider' },
-  from: PluginStateObject.Root,
-  to: PluginStateObject.Format.Json, // store view metadata as JSON data node
-  params: {
-    name: PD.Text(''),
-    animateData: PD.Text(''),
-    data: PD.Value<Kinemage>(undefined as any, {}) // store kinData reference so visibility handlers can access it
-  }
-})({
-  apply({ params }) {
-    return Task.create('Kinemage Animate Provider', async ctx => {
-      // PluginStateObject.Format.Json holds arbitrary JSON-like data; create instance with the payload
-      // Pass the view name as the node label so the State Tree shows the provided name instead of "JSON Data"
-      const animateName = String(params.name);
-      return new PluginStateObject.Format.Json(
-        { name: animateName, animateData: params.animateData, kinData: params.data, firedOnce: false } as any,
-        { label: animateName }
-      );
-    });
-  }
-});
-
 export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'kinemage-data-prop',
     category: 'custom-props',
@@ -280,199 +167,22 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
     },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private provider = KinemageDataProvider;
-        private selectedSub?: any;
-        private visibilitySub?: any;
-        private visibilityMap = new Map<string, boolean>();
-        private ignoreStateUpdates = new Set<string>();
 
         register(): void {
             DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
 
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
 
+            // Register right-panel controls for Kinemage (show in the right-hand inspector)
+            // Register both as a structure-scoped control and (if available) as a global control
+            this.ctx.customStructureControls.set(Tag.Representation, KinemageControls as any);
+            // Some app hosts expose a global customControls registry; register there too so the card is visible
+            // even when no structure is loaded. Use `any` guards to avoid type errors if customControls isn't present.
+            if ((this.ctx as any).customControls && typeof (this.ctx as any).customControls.set === 'function') {
+              (this.ctx as any).customControls.set('kinemage', KinemageControls as any);
+            }
+
             this.ctx.managers.dragAndDrop.addHandler(KinemageDragAndDropHandler.name, KinemageDragAndDropHandler.handle);
-
-            // Register .kin file handler so opening/dropping .kin is supported via the data formats system
-            this.ctx.dataFormats.add('KIN', KINFormatProvider);
-
-            // When one of the state objects is selected in the GUI, handle the appropriate behavior:
-            // For a view object (which has a snapshot), update the camera to its snapshot.
-            // For an animation button, have it adjust the various visibilities and then regenerate shapes.
-            this.selectedSub = this.ctx.state.data.behaviors.currentObject.subscribe((e: any) => {
-              const ref = e.ref;
-              // state.select returns an array of cells; the first is the matching cell
-              const cell = this.ctx.state.data.select(ref)[0];
-              const obj = cell?.obj;
-              const nodeData = obj?.data;
-              if (nodeData && nodeData.snapshot) {
-                applyViewSnapshot(this.ctx, nodeData.snapshot);
-              }
-            });
-
-            // When one of the state objects is has its visibility changed in the GUI, handle the appropriate behavior:
-            // For an animation object, adjust which group is visible and then regenerate shapes.
-            // For a master, group, or subgroup, turn on or off the value and regenerate appropriate geometry.
-          this.visibilitySub = this.ctx.state.data.events.cell.stateUpdated.subscribe(async (e: any) => {
-              const ref = e.ref;
-              const cell = this.ctx.state.data.select(ref)[0];
-              const obj = cell?.obj;
-              const nodeData = obj?.data;
-              if (!nodeData) return;
-              const kinRef: Kinemage | undefined = nodeData.kinData;
-              if (!kinRef) return;
-              let madeChanges = false;
-
-            if (nodeData && nodeData.animateData) {
-                // If we have not yet fired, ignore this event because it is just the creation of the node.
-                if (!nodeData.firedOnce) {
-                  nodeData.firedOnce = true;
-                  return;
-                }
-                const kinData = nodeData.kinData as Kinemage;
-                if (nodeData.animateData === 'animate') {
-                  // Increment the activeAnimateGroup index and wrap around if needed,
-                  // then make the selected group visible and the others not.
-                  kinData.activeAnimateGroup = (kinData.activeAnimateGroup + 1) % kinData.groupsAnimate.length;
-                  for (let i = 0; i < kinData.groupsAnimate.length; i++) {
-                    const groupName = kinData.groupsAnimate[i];
-
-                    // Set the GUI element visibility state to match the kinemage data,
-                    // so that the GUI reflects which group is currently active.
-                    try {
-                      // before changing multiple nodes, mark them to ignore
-                      const refsToUpdate: string[] = []; // fill with the refs you will update
-
-                      for (const [cellRef, cellEntry] of (this.ctx.state.data as any).cells) {
-                        const entryData = (cellEntry as any).obj?.data;
-                        if (entryData && entryData.groupData === groupName && entryData.kinData === kinData) {
-                          refsToUpdate.push(cellRef);
-                          break;
-                        }
-                      }
-
-                      try {
-                        // mark all so we don't react to our own programmatic updates
-                        for (const r of refsToUpdate) this.ignoreStateUpdates.add(r);
-
-                        // perform updates
-                        for (const r of refsToUpdate) {
-                          this.ctx.state.data.updateCellState(r, (old: any) => {
-                            const s = { ...(old || {}) };
-                            s.isHidden = i !== kinData.activeAnimateGroup;
-                            return s;
-                          });
-                        }
-                      } finally {
-                        // clear marks
-                        for (const r of refsToUpdate) this.ignoreStateUpdates.delete(r);
-                      }
-                    } catch (err) {
-                      console.warn('Failed to sync GUI group visibility for', groupName, err);
-                    }
-                  }
-
-                  // Indicate that we need to rebuild the shapes for this kinemage based on the animation change.
-                  madeChanges = true;
-
-                } else if (nodeData.animateData === '2animate') {
-                  // Increment the activeAnimateGroup2 index and wrap around if needed,
-                  // then make the selected group visible and the others not.
-                  kinData.activeAnimateGroup2 = (kinData.activeAnimateGroup2 + 1) % kinData.groupsAnimate2.length;
-                  for (let i = 0; i < kinData.groupsAnimate2.length; i++) {
-                    const groupName = kinData.groupsAnimate2[i];
-
-                    // Set the GUI element visibility state to match the kinemage data,
-                    // so that the GUI reflects which group is currently active.
-                    try {
-                      // before changing multiple nodes, mark them to ignore
-                      const refsToUpdate: string[] = []; // fill with the refs you will update
-
-                      for (const [cellRef, cellEntry] of (this.ctx.state.data as any).cells) {
-                        const entryData = (cellEntry as any).obj?.data;
-                        if (entryData && entryData.groupData === groupName && entryData.kinData === kinData) {
-                          refsToUpdate.push(cellRef);
-                          break;
-                        }
-                      }
-
-                      try {
-                        // mark all so we don't react to our own programmatic updates
-                        for (const r of refsToUpdate) this.ignoreStateUpdates.add(r);
-
-                        // perform updates
-                        for (const r of refsToUpdate) {
-                          this.ctx.state.data.updateCellState(r, (old: any) => {
-                            const s = { ...(old || {}) };
-                            s.isHidden = i !== kinData.activeAnimateGroup2;
-                            return s;
-                          });
-                        }
-                      } finally {
-                        // clear marks
-                        for (const r of refsToUpdate) this.ignoreStateUpdates.delete(r);
-                      }
-                    } catch (err) {
-                      console.warn('Failed to sync GUI group visibility for', groupName, err);
-                    }
-                  }
-
-                  // Indicate that we need to rebuild the shapes for this kinemage based on the animation change.
-                  madeChanges = true;
-                }
-              }
-
-              if (nodeData && (nodeData.masterData || nodeData.groupData || nodeData.subgroupData)) {
-                const st = (cell.transform && cell.transform.state) || cell.state || {};
-                const nowHidden = !!st.isHidden;
-
-                // Change the record of visibility so we know whether we became visible or invisible.
-                const prev = this.visibilityMap.get(ref);
-                if (prev === undefined) {
-                  this.visibilityMap.set(ref, nowHidden);
-                  return;
-                }
-                if (prev !== nowHidden) {
-                  this.visibilityMap.set(ref, nowHidden);
-
-                  // Set the Kinemage master visibility based on the isHidden state of the transform.
-                  // When the transform is hidden, the master is invisible, and vice versa.
-                  if (nodeData.groupData) kinRef.groupDict[nodeData.groupData].off = nowHidden;
-                  if (nodeData.subgroupData) kinRef.subgroupDict[nodeData.subgroupData].off = nowHidden;
-                  if (nodeData.masterData) kinRef.masterDict[nodeData.masterData].visible = !nowHidden;
-
-                  // Indicate that we need to rebuild the shapes for this kinemage based on the animation change.
-                  // Do not do this when we're called re-entrantly because the animation code will handle it.
-                  madeChanges = !this.ignoreStateUpdates.has(ref);
-                }
-              }
-
-              if (madeChanges) {
-                // capture current camera snapshot so we can restore view after re-creating shapes
-                const curSnap = (this.ctx.canvas3d && (this.ctx.canvas3d as any).camera && (this.ctx.canvas3d as any).camera.getSnapshot)
-                  ? (this.ctx.canvas3d as any).camera.getSnapshot()
-                  : undefined;
-
-                // recreate: ensure old selectors are cleared, then build new ones with a fresh builder
-                await destroyShapesForKinemage(this.ctx, kinRef);
-                const update = this.ctx.state.data.build();
-                try {
-                  await createShapesForKinemage(this.ctx, update, kinRef);
-                  await update.commit();
-
-                  // restore camera snapshot to avoid the temporary zoom-out caused by removing geometry
-                  if (curSnap) {
-                    try {
-                      await applyViewSnapshot(this.ctx, curSnap);
-                    } catch (e) {
-                      console.warn('Failed to restore camera snapshot after recreating shapes', e);
-                    }
-                  }
-                } catch (err) {
-                  console.error('Failed to recreate kinemage shapes', err);
-                }
-              }
-
-            });
         }
 
         update(p: { autoAttach: boolean }) {
@@ -494,14 +204,10 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
             // Unregister the .kin data format provider
             this.ctx.dataFormats.remove('KIN');
 
-            // Remove the action subscriptions if we created them
-            if (this.selectedSub) {
-              this.selectedSub.unsubscribe();
-              this.selectedSub = undefined;
-            }
-            if (this.visibilitySub) {
-              this.visibilitySub.unsubscribe();
-              this.visibilitySub = undefined;
+            // Remove right-panel controls
+            try { this.ctx.customStructureControls.delete(Tag.Representation); } catch {}
+            if ((this.ctx as any).customControls && typeof (this.ctx as any).customControls.delete === 'function') {
+              try { (this.ctx as any).customControls.delete('kinemage'); } catch {}
             }
         }
     },
@@ -517,7 +223,7 @@ interface DragAndDropHandler {
 }
 
 /** Helper function to create the shapes for a kinemage */
-async function createShapesForKinemage(plugin: PluginContext, update: StateBuilder.Root,  kinData: Kinemage) {
+export async function createShapesForKinemage(plugin: PluginContext, update: StateBuilder.Root,  kinData: Kinemage) {
   // Keep list of created selectors for this kinemage (shapes / representations etc.)
   const createdShapeSelectors: StateObjectRef<any>[] = [];
 
@@ -560,7 +266,7 @@ async function createShapesForKinemage(plugin: PluginContext, update: StateBuild
 
 /** Helper function to destroy all previously-made shapes for a kinemage
  *  (soft remove: hide the transforms so visuals are removed from scene) */
-async function destroyShapesForKinemage(plugin: PluginContext, kinData: Kinemage) {
+export async function destroyShapesForKinemage(plugin: PluginContext, kinData: Kinemage) {
   const createdShapeSelectors = g_kinemageShapeSelectors.get(kinData as Kinemage);
   if (!createdShapeSelectors) return;
 
@@ -597,72 +303,73 @@ async function destroyShapesForKinemage(plugin: PluginContext, kinData: Kinemage
   g_kinemageShapeSelectors.delete(kinData as Kinemage);
 }
 
-/** Centralized helper to apply kinemage content into plugin state (re-used by drag handler and programmatic loader) */
+/** Centralized helper to apply kinemage content into plugin state (re-used by drag handler and programmatic loader)
+ *  NOTE: This no longer creates State Tree JSON nodes for views/groups/masters/subgroups/animate.
+ *  It computes view snapshots and stores them on the kinemage objects (runtime-only) and then creates shapes.
+ *
+ *  IMPORTANT: Before adding new visuals we explicitly destroy any previously-created kinemage visuals
+ *  so we don't leak shapes / state objects across loads.
+ */
 async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: KinemageData) {
+  // Destroy previously-created kinemage visuals (if any).
+  try {
+    const existing = Array.from(g_kinemageShapeSelectors.keys());
+    for (const k of existing) {
+      try { await destroyShapesForKinemage(plugin, k); } catch { /* ignore */ }
+    }
+  } finally {
+    g_kinemageShapeSelectors.clear();
+  }
+
+  // Replace the runtime store with the new kinemage info (don't append).
+  g_kinemageData = { kinemages: [], activeKinemage: -1 };
+
   const update = plugin.state.data.build();
 
   for (const kinData of kinInfo.kinemages) {
-
-    // Iterate over all entries in the view dictionary. Do this before creating shapes so that the views show up
-    // in the state tree first and don't change order when we update the masters.
-    const createdViewRefs: StateObjectRef<PluginStateObject.Format.Json>[] = [];
+    // Precompute snapshots for views and attach them to kinData so the right-panel UI can apply them.
+    (kinData as any).viewSnapshots = (kinData as any).viewSnapshots || Object.create(null);
     for (const [viewKey, viewObj] of Object.entries(kinData.viewDict)) {
-      const viewName = viewObj.name || `View ${viewKey}`;
+      //const viewName = viewObj.name || `View ${viewKey}`;
 
-      // If center is specified, then we will use that as the camera target. Otherwise, we will use the origin.
       const center = Vec3.create(0, 0, 0);
       if (viewObj.center) {
         Vec3.set(center, viewObj.center[0], viewObj.center[1], viewObj.center[2]);
       }
 
-      // Make an orientation matrix based on the matrix provided, otherwise make the identity matrix.
       const orientation: Mat3 = Mat3.identity();
       if (viewObj.matrix) {
-        /// Transpose this so that it matches the order for Molstar's Mat3 (row-major vs column-major).
         Mat3.fromArray(orientation, viewObj.matrix, 0);
         Mat3.transpose(orientation, orientation);
       }
 
-      // Rotate the +Z axis by the orientation to see which way points to the camera.
       const zAxis = Vec3.create(0, 0, 1);
       Vec3.transformMat3(zAxis, zAxis, orientation);
 
-      // Rotate the +Y axis by the orientation to see which way points up.
       const yAxis = Vec3.create(0, 1, 0);
       Vec3.transformMat3(yAxis, yAxis, orientation);
 
-      // If span is specified, then we go that distance along Z to find the camera position (90 degree FOV).
-      // Otherwise, we go a default distance of 100 along Z.
       let distance = 100;
       if (viewObj.span) {
         distance = viewObj.span;
-      } else if (viewObj.zoom) {
-        /// @todo If zoom is specified, then we need to do more computations based on the bounds on the geometry.
       }
       Vec3.scale(zAxis, zAxis, distance);
       const position = Vec3.create(0, 0, 100);
       Vec3.add(position, center, zAxis);
 
-      // If the zslab is specified, then we set the radius to it; otherwise, we use a default of 100.
-      // When the zslab value is 200, it should match the same as the span (half is percent of half span).
       let radius = 100;
       if (viewObj.zslab) {
         const scale = viewObj.zslab / 200;
-        // Scale by 0.5 here to match the behavior of KiNG
         radius = 0.5 * distance * scale;
       }
 
-      // Fill in the camera shapshot
-      let snap: Camera.Snapshot;
-      snap = {
-        mode: 'orthographic',   ///< Make this orthographic by default, to match Kinemage defaults
-        fov: Math.PI / 4,       ///< 90-degree view by default for Molstar
-
-        position: position,
+      const snap: Camera.Snapshot = {
+        mode: 'orthographic',
+        fov: Math.PI / 4,
+        position,
         up: yAxis,
         target: center,
-
-        radius: radius,
+        radius,
         radiusMax: 1e4,
         fog: 0,
         clipFar: true,
@@ -670,90 +377,18 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
         minFar: 1
       };
 
-      // Create a state object for the view (visible in State Tree)
-      const viewNode = update
-        .toRoot()
-        .apply(KinemageViewProvider, { name: viewName, snapshot: snap });
-
-      // Store the selector for UI wiring
-      createdViewRefs.push(viewNode.selector as StateObjectRef<PluginStateObject.Format.Json>);
+      (kinData as any).viewSnapshots[viewKey] = snap;
     }
 
-    // If there are any entries in the groupsAnimate list, create a state object for the animate provider so it shows up in the State Tree.
-    if (kinData.groupsAnimate.length > 0) {
-      update
-        .toRoot()
-        .apply(KinemageAnimateProvider, { name: 'Animate (change vis)', animateData: 'animate', data: kinData });
-    }
+    // Keep the kinemage info in the global runtime store so UI can find it
+    if (!g_kinemageData) g_kinemageData = { kinemages: [], activeKinemage: -1 };
+    g_kinemageData.kinemages.push(kinData);
+    g_kinemageData.activeKinemage = g_kinemageData.kinemages.length - 1;
 
-    // If there are any entries in the groupsAnimate2 list, create a state object for the animate provider so it shows up in the State Tree.
-    if (kinData.groupsAnimate2.length > 0) {
-      update
-        .toRoot()
-        .apply(KinemageAnimateProvider, { name: 'Animate2 (change vis)', animateData: '2animate', data: kinData });
-    }
-
-    // Iterate over all of the groupDict entries and create a state object for each group.
-    // Name each after the group dictionary key.
-    for (const [groupKey, groupInfo] of Object.entries(kinData.groupDict)) {
-
-      // Only make state object for this group if it did not have noButton set.
-      if (!(groupInfo as any).nobutton) {
-
-        // capture desired visibility and set it as the transform state at creation time
-        const visible = !(groupInfo as any).off;
-        update
-          .toRoot()
-          .apply(KinemageGroupProvider, { name: groupKey, groupData: groupKey, data: kinData }, { state: { isHidden: !visible } });
-      }
-
-      // Iterate over all of the subgroupDict entries under this group and create a state object for each subgroup.
-      // Name each after the subgroup dictionary key, which is in the format "GroupName:SubgroupName" to preserve tree structure.
-      for (const [subgroupKey, subgroupInfo] of Object.entries(kinData.subgroupDict)) {
-        // Skip subgroups that don't belong to this group (based on the naming convention of "GroupName:SubgroupName")
-        if (!subgroupKey.startsWith(groupKey + ':')) continue;
-
-        // Skip this subgroup if its parent group is dominant.
-        if ((groupInfo as any).dominant) continue;
-
-        // Skip this subgroup if it has noButton set.
-        if ((subgroupInfo as any).nobutton) continue;
-
-        // capture desired visibility and set it as the transform state at creation time
-        const visible = !(subgroupInfo as any).off;
-        update
-          .toRoot()
-          .apply(KinemageSubgroupProvider, { name: subgroupKey, subgroupData: subgroupKey, data: kinData }, { state: { isHidden: !visible } });
-      }
-    }
-
-    // Iterate over all subgroupDict entries that don't have a parent group and create state objects for them as well,
-    // so they show up in the State Tree.
-    for (const [subgroupKey, subgroupInfo] of Object.entries(kinData.subgroupDict)) {
-      // Skip subgroups that belong to a group (characters before the ":" indicate the parent group)
-      if (subgroupKey[0] !== ':' || subgroupKey.indexOf(':') === -1) continue;
-
-      // capture desired visibility and set it as the transform state at creation time
-      const visible = !(subgroupInfo as any).off;
-      update
-        .toRoot()
-        .apply(KinemageSubgroupProvider, { name: subgroupKey, subgroupData: subgroupKey, data: kinData }, { state: { isHidden: !visible } });
-    }
-
-    // Iterate over all of the masterDict entries and create a state object for each master.
-    // Name each after the master dictionary key.
-    for (const [masterKey, masterInfo] of Object.entries(kinData.masterDict)) {
-      const masterName = masterKey;
-
-      // capture desired visibility and set it as the transform state at creation time
-      const visible = !!(masterInfo && (masterInfo as any).visible);
-      update
-        .toRoot()
-        .apply(KinemageMasterProvider, { name: masterName, masterData: masterKey, data: kinData }, { state: { isHidden: !visible } });
-    }
-
+    // Create shapes for this kinemage
     await createShapesForKinemage(plugin, update, kinData);
   }
+
   await update.commit();
 
   // helper: wait briefly until the plugin bounding sphere has non-zero radius (or timeout)
@@ -798,7 +433,6 @@ function resolveSelectorRef(sel: any): string | undefined {
   }
 }
 
-
 /** Programmatic loader: load a single File (a .kin) into the plugin state.
  * Runs the import inside a Task so it has a runtime and asset context similar to drag-and-drop.
  * Returns true if at least one Kinemage was added.
@@ -807,13 +441,8 @@ export async function loadKinemageFile(plugin: PluginContext, file: File): Promi
   let applied = false;
   const task = Task.create('Load KIN file', async ctx => {
     const kinData = await KinemageData.open(file);
-    if (!g_kinemageData) {
-      g_kinemageData = kinData;
-    } else {
-      // If we already have kinemage data loaded, append to the list of kinemages and make the last one active
-      g_kinemageData.kinemages.push(...kinData.kinemages);
-      g_kinemageData.activeKinemage = g_kinemageData.kinemages.length - 1;
-    }
+    // Replace previous runtime data with the loaded one (do not keep appending old data).
+    g_kinemageData = kinData;
     applied = g_kinemageData.kinemages.length > 0;
   });
   await plugin.runTask(task);
@@ -838,7 +467,7 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
           await applyKinemageInfoToState(plugin, g_kinemageData);
         }
       }
-      // Clear the kinemage data after applying so that if the user drags in another file, it doesn't get merged with the previous one.
+      // Clear the kinemage runtime data after applying so that if the user drags in another file, it doesn't get merged with the previous one.
       g_kinemageData = undefined;
     }
     return applied;
@@ -847,6 +476,7 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
 
 /* Convert a string to a file if needed so that our file loader can handle it properly. */
 /// @todo Consider making the handler be able to deal with a string to avoid extra work here.
+/*
 function fileFromPayload(data: any): File {
   // If it's already a File or wrapped File, use name + size as signature (ignore lastModified to be more robust
   // when different File instances are created from same content).
@@ -879,7 +509,9 @@ function fileFromPayload(data: any): File {
     return file;
   }
 }
+*/
 
+/*
 const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
   label: 'KIN',
   description: 'Kinemage',
@@ -909,3 +541,4 @@ const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
     return undefined;
   }
 });
+*/

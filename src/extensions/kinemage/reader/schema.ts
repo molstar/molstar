@@ -25,7 +25,8 @@ export interface Kinemage {
   groupsAnimate: string[],
   activeAnimateGroup: number,
   groupsAnimate2: string[],
-  activeAnimateGroup2: number
+  activeAnimateGroup2: number,
+  viewSnapshots?: {}              ///< Used to store view snapshots
 }
 
 /** Common base for all list-like objects in a kinemage */
