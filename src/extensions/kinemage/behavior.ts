@@ -17,7 +17,7 @@ import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { PluginContext } from '../../mol-plugin/context';
 import { DefaultQueryRuntimeTable } from '../../mol-script/runtime/query/compiler';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { shapePointsFromKin, shapeLinesFromKin, shapeMeshFromKin, shapeSpheresFromKin } from '../../mol-model-formats/shape/kin';
+import { shapePointsFromKin, shapeLinesFromKin, shapeMeshFromKin, shapeSpheresFromKin } from './kin';
 import { Kinemage } from './reader/schema';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 import { Camera } from '../../mol-canvas3d/camera';
