@@ -424,13 +424,11 @@ function resolveSelectorRef(sel: any): string | undefined {
  * Returns true if at least one Kinemage was added.
  */
 export async function loadKinemageFile(plugin: PluginContext, file: File): Promise<boolean> {
-  console.log('XXX loadKinemageFile() called');
   let applied = false;
   const task = Task.create('Load KIN file', async ctx => {
     const kinData = await KinemageData.open(file);
     // Replace previous runtime data with the loaded one (do not keep appending old data).
     g_kinemageData = kinData;
-    console.log('XXX loaded kinemage data', g_kinemageData);
     applied = g_kinemageData.kinemages.length > 0;
   });
   await plugin.runTask(task);

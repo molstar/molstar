@@ -103,6 +103,29 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
         }
     }
 
+    private async rebuildShapesForKin(kin: any) {
+
+        // Store away the current camera snapshot so we can replace it after rebuilding shapes (which may reset the view).
+        // We get this from the canvas3d.
+        const curSnap = (this.plugin.canvas3d && (this.plugin.canvas3d as any).camera && (this.plugin.canvas3d as any).camera.getSnapshot)
+          ? (this.plugin.canvas3d as any).camera.getSnapshot()
+          : undefined;
+
+        const update = this.plugin.state.data.build();
+        await destroyShapesForKinemage(this.plugin, kin);
+        await createShapesForKinemage(this.plugin, update, kin);
+        await update.commit();
+
+        // restore camera snapshot to avoid the temporary zoom-out caused by removing geometry
+        if (curSnap) {
+            try {
+                await applyViewSnapshot(this.plugin, curSnap);
+            } catch (e) {
+                console.warn('Failed to restore camera snapshot after recreating shapes', e);
+            }
+        }
+    }
+
     private async toggleVisibility(kin: any, target: { type: 'group'|'subgroup'|'master', key: string }) {
         try {
             if (target.type === 'group') {
@@ -117,10 +140,7 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
             }
 
             // rebuild shapes for this kinemage
-            const update = this.plugin.state.data.build();
-            await destroyShapesForKinemage(this.plugin, kin);
-            await createShapesForKinemage(this.plugin, update, kin);
-            await update.commit();
+            await this.rebuildShapesForKin(kin);
             this.updateVisibility();
         } catch (e) {
             console.error('Failed to toggle kinemage visibility', e);
@@ -131,14 +151,30 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
         try {
             if (mode === 'animate') {
                 kin.activeAnimateGroup = (kin.activeAnimateGroup + 1) % Math.max(1, kin.groupsAnimate.length);
+
+                // Make only the active animate group visible, hide the others (if any)
+                for (let i = 0; i < kin.groupsAnimate.length; i++) {
+                    const groupName = kin.groupsAnimate[i];
+                    const groupInfo = kin.groupDict[groupName];
+                    if (groupInfo) {
+                        groupInfo.off = (i !== kin.activeAnimateGroup);
+                    }
+                }
             } else {
                 kin.activeAnimateGroup2 = (kin.activeAnimateGroup2 + 1) % Math.max(1, kin.groupsAnimate2.length);
+
+              // Make only the active animate group visible, hide the others (if any)
+              for (let i = 0; i < kin.groupsAnimate2.length; i++) {
+                const groupName = kin.groupsAnimate2[i];
+                const groupInfo = kin.groupDict[groupName];
+                if (groupInfo) {
+                  groupInfo.off = (i !== kin.activeAnimateGroup2);
+                }
+              }
             }
 
-            const update = this.plugin.state.data.build();
-            await destroyShapesForKinemage(this.plugin, kin);
-            await createShapesForKinemage(this.plugin, update, kin);
-            await update.commit();
+            // rebuild shapes for this kinemage
+            await this.rebuildShapesForKin(kin);
             this.updateVisibility();
         } catch (e) {
             console.error('Failed to trigger animate', e);
@@ -171,7 +207,7 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
                 kinBlock.push(
                     <div key={'anim-' + title} className='msp-row'>
                         <button className='msp-button' onClick={() => this.triggerAnimateForKin(kin, 'animate')}>Animate</button>
-                        <span style={{ marginLeft: 8 }}>Animate (change vis)</span>
+                        <span style={{ marginLeft: 8 }}>Animate</span>
                     </div>
                 );
             }
@@ -179,7 +215,7 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
                 kinBlock.push(
                     <div key={'anim2-' + title} className='msp-row'>
                         <button className='msp-button' onClick={() => this.triggerAnimateForKin(kin, '2animate')}>Animate2</button>
-                        <span style={{ marginLeft: 8 }}>Animate2 (change vis)</span>
+                        <span style={{ marginLeft: 8 }}>Animate2</span>
                     </div>
                 );
             }
