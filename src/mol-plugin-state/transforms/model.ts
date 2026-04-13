@@ -1317,4 +1317,3 @@ const ShapeFromPly = PluginStateTransform.BuiltIn({
         });
     }
 });
-
