@@ -38,7 +38,7 @@ export const PlyProvider = DataFormatProvider({
 });
 
 export const BuiltInShapeFormats = [
-  ['ply', PlyProvider] as const,
+    ['ply', PlyProvider] as const,
 ] as const;
 
-export type BuiltInShapeFormat = (typeof BuiltInShapeFormats)[number][0]
+export type BuildInShapeFormat = (typeof BuiltInShapeFormats)[number][0]
