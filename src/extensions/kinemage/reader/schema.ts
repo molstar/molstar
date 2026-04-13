@@ -26,7 +26,7 @@ export interface Kinemage {
   activeAnimateGroup: number,
   groupsAnimate2: string[],
   activeAnimateGroup2: number,
-  viewSnapshots?: {}              ///< Used to store view snapshots
+  viewSnapshots?: {}              ///< Used to store view snapshots in behavior.ts to use in ui.tsx
 }
 
 /** Common base for all list-like objects in a kinemage */
