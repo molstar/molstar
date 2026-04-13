@@ -19,7 +19,7 @@ import { DefaultQueryRuntimeTable } from '../../mol-script/runtime/query/compile
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { shapePointsFromKin, shapeLinesFromKin, shapeMeshFromKin, shapeSpheresFromKin } from './kin';
 import { Kinemage } from './reader/schema';
-//import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
+import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 import { Camera } from '../../mol-canvas3d/camera';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { StateObjectRef } from '../../mol-state';
@@ -183,6 +183,9 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
             }
 
             this.ctx.managers.dragAndDrop.addHandler(KinemageDragAndDropHandler.name, KinemageDragAndDropHandler.handle);
+
+            // Register .kin file handler so opening/dropping .kin is supported via the data formats system
+            this.ctx.dataFormats.add('KIN', KINFormatProvider);
         }
 
         update(p: { autoAttach: boolean }) {
@@ -311,18 +314,6 @@ export async function destroyShapesForKinemage(plugin: PluginContext, kinData: K
  *  so we don't leak shapes / state objects across loads.
  */
 async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: KinemageData) {
-  // Destroy previously-created kinemage visuals (if any).
-  try {
-    const existing = Array.from(g_kinemageShapeSelectors.keys());
-    for (const k of existing) {
-      try { await destroyShapesForKinemage(plugin, k); } catch { /* ignore */ }
-    }
-  } finally {
-    g_kinemageShapeSelectors.clear();
-  }
-
-  // Replace the runtime store with the new kinemage info (don't append).
-  g_kinemageData = { kinemages: [], activeKinemage: -1 };
 
   const update = plugin.state.data.build();
 
@@ -379,11 +370,6 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
 
       (kinData as any).viewSnapshots[viewKey] = snap;
     }
-
-    // Keep the kinemage info in the global runtime store so UI can find it
-    if (!g_kinemageData) g_kinemageData = { kinemages: [], activeKinemage: -1 };
-    g_kinemageData.kinemages.push(kinData);
-    g_kinemageData.activeKinemage = g_kinemageData.kinemages.length - 1;
 
     // Create shapes for this kinemage
     await createShapesForKinemage(plugin, update, kinData);
@@ -467,8 +453,6 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
           await applyKinemageInfoToState(plugin, g_kinemageData);
         }
       }
-      // Clear the kinemage runtime data after applying so that if the user drags in another file, it doesn't get merged with the previous one.
-      g_kinemageData = undefined;
     }
     return applied;
   },
@@ -476,7 +460,6 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
 
 /* Convert a string to a file if needed so that our file loader can handle it properly. */
 /// @todo Consider making the handler be able to deal with a string to avoid extra work here.
-/*
 function fileFromPayload(data: any): File {
   // If it's already a File or wrapped File, use name + size as signature (ignore lastModified to be more robust
   // when different File instances are created from same content).
@@ -509,21 +492,17 @@ function fileFromPayload(data: any): File {
     return file;
   }
 }
-*/
 
-/*
 const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
   label: 'KIN',
   description: 'Kinemage',
   category: 'Miscellaneous',
-  stringExtensions: ['kin'],
+  // accept common casings
+  stringExtensions: ['kin', 'KIN'],
   parse: async (plugin, data) => {
     try {
-      /// @todo Consider allowing the handler to directly take a string and not to open and read the file.
-      /// This avoids having to create a File object from the string content.
       const file = fileFromPayload(data);
-      let p = loadKinemageFile(plugin, file);
-      await p;
+      await loadKinemageFile(plugin, file);
     } catch (e) {
       console.error('Failed to parse KIN file', e);
       throw e;
@@ -534,11 +513,9 @@ const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
   visuals: async (plugin, data) => {
     if (g_kinemageData) {
       await applyKinemageInfoToState(plugin, g_kinemageData);
+    } else {
+      console.warn('[Kinemage] visuals: no loaded kinemage data present');
     }
-    // Clear the kinemage data after applying so that if the user drags in another file, it doesn't get merged with the previous one.
-    g_kinemageData = undefined;
-
     return undefined;
   }
 });
-*/
