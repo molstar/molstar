@@ -95,7 +95,7 @@ export namespace PluginStateObject {
             { kind: 'dsn6', data: Dsn6File } |
             { kind: 'dx', data: DxFile } |
             { kind: 'ply', data: PlyFile } |
-            // For non-built-in extensions
+            // For non-build in extensions
             { kind: 'custom', data: unknown, tag: string }
         )
         export type BlobData = BlobEntry[]
