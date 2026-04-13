@@ -314,10 +314,12 @@ export async function destroyShapesForKinemage(plugin: PluginContext, kinData: K
  *  so we don't leak shapes / state objects across loads.
  */
 async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: KinemageData) {
-
   const update = plugin.state.data.build();
 
   for (const kinData of kinInfo.kinemages) {
+    // Skip kinemages we've already created shapes for
+    if (g_kinemageShapeSelectors.has(kinData)) continue;
+
     // Precompute snapshots for views and attach them to kinData so the right-panel UI can apply them.
     (kinData as any).viewSnapshots = (kinData as any).viewSnapshots || Object.create(null);
     for (const [viewKey, viewObj] of Object.entries(kinData.viewDict)) {
@@ -371,7 +373,14 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
       (kinData as any).viewSnapshots[viewKey] = snap;
     }
 
-    // Create shapes for this kinemage
+    // Ensure runtime store contains this kinData (loadKinemageFile already appends, but be safe)
+    if (!g_kinemageData) g_kinemageData = { kinemages: [], activeKinemage: -1 };
+    if (!g_kinemageData.kinemages.includes(kinData)) {
+      g_kinemageData.kinemages.push(kinData);
+      g_kinemageData.activeKinemage = g_kinemageData.kinemages.length - 1;
+    }
+
+    // Create shapes only for this new kinemage
     await createShapesForKinemage(plugin, update, kinData);
   }
 
@@ -427,8 +436,12 @@ export async function loadKinemageFile(plugin: PluginContext, file: File): Promi
   let applied = false;
   const task = Task.create('Load KIN file', async ctx => {
     const kinData = await KinemageData.open(file);
-    // Replace previous runtime data with the loaded one (do not keep appending old data).
-    g_kinemageData = kinData;
+    // Append to runtime store instead of replacing it
+    if (!g_kinemageData) {
+      g_kinemageData = { kinemages: [], activeKinemage: -1 };
+    }
+    g_kinemageData.kinemages.push(...kinData.kinemages);
+    g_kinemageData.activeKinemage = g_kinemageData.kinemages.length - 1;
     applied = g_kinemageData.kinemages.length > 0;
   });
   await plugin.runTask(task);
