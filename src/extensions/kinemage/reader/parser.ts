@@ -4,7 +4,7 @@
  * @author ReliaSolve <russ@reliasolve.com>
  */
 
-import { ReaderResult as Result } from '../result';
+import { ReaderResult as Result } from '../../../mol-io/reader/result';
 import { Task, RuntimeContext } from '../../../mol-task';
 import { Kinemage } from './schema';
 import KinParser from './ngl-based-parser';

@@ -13,8 +13,8 @@ import { CustomStructureProperty } from '../../mol-model-props/common/custom-str
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
 import { Task } from '../../mol-task';
 
-import { Kinemage } from '../../mol-io/reader/kin/schema';
-import { parseKin } from '../../mol-io/reader/kin/parser';
+import { Kinemage } from './reader/schema';
+import { parseKin } from './reader/parser';
 
 export const KinemageParams = {
 };

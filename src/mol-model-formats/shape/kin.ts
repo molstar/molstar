@@ -7,7 +7,7 @@
 import { RuntimeContext, Task } from '../../mol-task';
 import { ShapeProvider } from '../../mol-model/shape/provider';
 import { Color } from '../../mol-util/color';
-import { Kinemage, DotList, VectorList, RibbonObject, BallList } from '../../mol-io/reader/kin/schema';
+import { Kinemage, DotList, VectorList, RibbonObject, BallList } from '../../extensions/kinemage/reader/schema';
 import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../mol-geo/geometry/lines/lines-builder';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';

@@ -4,7 +4,7 @@
  * @author ReliaSolve <russ@reliasolve.com>
  */
 
-import { parseKin } from '../kin/parser';
+import { parseKin } from './parser';
 
 const kinString = `@kinemage 1
 @caption probe.2.26.021123, run Tue Apr 23 14:49:17 2024
