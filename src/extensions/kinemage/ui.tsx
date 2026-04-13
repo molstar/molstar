@@ -9,7 +9,7 @@
  *
  * Shows kinemage views, animate buttons, and group/subgroup/master toggles in the right inspector.
  * Controls directly operate on the loaded kinemage runtime data and call exported helpers
- * to rebuild visuals.
+ * to rebuild visuals. No State Tree JSON nodes are created for these UI items.
  */
 
 import * as React from 'react';
@@ -24,7 +24,6 @@ interface KinemageControlState extends CollapsableState {
 function nameFromString(s: string | undefined) {
   // If this is undefined, return undefined.
   if (!s) return undefined;
-
   // Return up to the first 30 characters of the string.
   return s.length > 30 ? s.substring(0, 30) + '...' : s;
 }
@@ -35,7 +34,7 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
             header: 'Kinemage',
             isCollapsed: false,
             isBusy: false,
-            // make the control invisible until a Kinemage is loaded
+            // default hidden until a kinemage is present
             isHidden: true,
             brand: { accent: 'cyan', svg: undefined as any }
         };
@@ -43,17 +42,53 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
 
     componentDidMount() {
         // Listen for shape/state changes: when state tree cells are created or removed the visuals changed.
-        // This is sufficient to update the UI after applyKinemageInfoToState creates/destroys transforms.
-        //this.subscribe(this.plugin.state.data.events.cell.removed, () => this.updateVisibility());
+        // Use plugin.state.data.events.cell.created specifically to detect when kinemage-related transforms are added.
+        this.subscribe(this.plugin.state.data.events.cell.created, (e: any) => this.onCellCreated(e));
+        this.subscribe(this.plugin.state.data.events.cell.removed, () => this.onCellRemoved());
         // also track cell state updates that may change labels / visibility
         this.subscribe(this.plugin.state.data.events.cell.stateUpdated, () => this.forceUpdate());
+
+        // ensure initial visibility reflects current runtime store / state
+        this.updateVisibility();
+    }
+
+    private onCellCreated(e: any) {
+        try {
+            const cell = e?.cell;
+            const obj = cell?.obj;
+            // If the created cell carries kinemage runtime data, show the control
+            if (obj && obj.data && (obj.data as any).kinData) {
+                this.setState({ isHidden: false });
+                return;
+            }
+        } catch { /* ignore */ }
+        // fallback: re-evaluate visibility from runtime store
+        this.updateVisibility();
+    }
+
+    private onCellRemoved() {
+        // Recompute whether any kinemage-related cells still exist in the state tree.
+        try {
+            const cells = (this.plugin.state.data as any).cells as Map<string, any>;
+            for (const [, entry] of cells) {
+                const obj = (entry as any).obj;
+                if (obj && obj.data && (obj.data as any).kinData) {
+                    // still have kinemage cell(s); keep visible
+                    this.setState({ isHidden: false });
+                    return;
+                }
+            }
+        } catch {
+            // ignore and fall through to runtime-store check
+        }
+        // If no state cells remain, also check runtime store (loaded kinemage data)
         this.updateVisibility();
     }
 
     private updateVisibility() {
-        // Keep the card visible; the content will show "No Kinemage data" when nothing is loaded.
-        // If you prefer the card to hide when no kinemage is present, change this implementation.
-        this.setState({ isHidden: false });
+        const data = getLoadedKinemageData();
+        const has = !!(data && data.kinemages && data.kinemages.length > 0);
+        this.setState({ isHidden: !has });
     }
 
     private getKinemageList() {
@@ -116,7 +151,7 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
 
         const blocks: React.ReactNode[] = [];
         for (const kin of kins) {
-            const title = kin.pdbfile || nameFromString(kin.caption) || 'Kinemage';
+          const title = kin.pdbfile || nameFromString(kin.caption) || 'Kinemage';
             const kinBlock: React.ReactNode[] = [];
             kinBlock.push(<div key={'title-' + title} className='msp-row-text'><b>{title}</b></div>);
 
@@ -136,7 +171,7 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
                 kinBlock.push(
                     <div key={'anim-' + title} className='msp-row'>
                         <button className='msp-button' onClick={() => this.triggerAnimateForKin(kin, 'animate')}>Animate</button>
-                        <span style={{ marginLeft: 8 }}>Animate</span>
+                        <span style={{ marginLeft: 8 }}>Animate (change vis)</span>
                     </div>
                 );
             }
@@ -144,7 +179,7 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
                 kinBlock.push(
                     <div key={'anim2-' + title} className='msp-row'>
                         <button className='msp-button' onClick={() => this.triggerAnimateForKin(kin, '2animate')}>Animate2</button>
-                        <span style={{ marginLeft: 8 }}>Animate2</span>
+                        <span style={{ marginLeft: 8 }}>Animate2 (change vis)</span>
                     </div>
                 );
             }
