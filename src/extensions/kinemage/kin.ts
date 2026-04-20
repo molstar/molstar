@@ -259,7 +259,6 @@ async function getMesh(ctx: RuntimeContext, kin: Kinemage) {
       // There is one color per group, even if we have two triangles in this group.
       const color = colorArray && colorArray.length > i * 3 ? colorArray[3 * i] : Color.fromRgb(255, 255, 255);
       colors.push(color);
-      console.log('XXX ribbon %o color[%o] = %o', ri, group, color)
 
       // labelArray may be undefined; push an empty string when not provided
       const label = labelArray && labelArray.length > i ? labelArray[i] : '';

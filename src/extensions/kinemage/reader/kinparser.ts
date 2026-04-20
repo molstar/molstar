@@ -11,12 +11,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-// import { Debug, Log, ParserRegistry } from '../globals'
-// import { Vector3 } from 'three'
-// import Parser from './parser'
-
-/// @todo Fill in commments
-
 import { Kinemage, RibbonObject } from './schema';
 import { Hsv } from '../../../mol-util/color/spaces/hsv';
 import { Color } from '../../../mol-util/color';
@@ -140,7 +134,6 @@ function parseListElm (line: string, localColorDict: {[k: string]: Color}) {
       triangleBreak = true
     }
   }
-  // const color = line[ idx2 + 1 ] === ' ' ? undefined : localColorDict[ ls[ 0 ] ]
 
   return {
     label: label,
@@ -226,13 +219,6 @@ function convertKinTriangleArrays (ribbonObject: RibbonObject) {
   for (let i = 0; i < (convertedPositions.length) / 3; ++i) {
     vector3Positions.push([convertedPositions[i * 3], convertedPositions[i * 3] + 1, convertedPositions[i * 3] + 2])
   }
-  //let normals = []
-  //for (let i = 0; i < vector3Positions.length - 1; ++i) {
-  //  let normalVec3 = vector3Positions[i].cross(vector3Positions[i + 1])
-  //  normals.push(normalVec3.x)
-  //  normals.push(normalVec3.y)
-  //  normals.push(normalVec3.z)
-  //}
   return {
     group: ribbonObject.group,
     subgroup: ribbonObject.subgroup,
@@ -375,12 +361,6 @@ class KinParser {
 
     let foundAnimate = false
     let found2Animate = false
-
-    // @vectorlist {mc} color= white  master= {mainchain}
-    // { n   thr A   1  B13.79 1crnFH} P 17.047, 14.099, 3.625 { n   thr A   1  B13.79 1crnFH} L 17.047, 14.099, 3.625
-
-    // @dotlist {x} color=white master={vdw contact} master={dots}
-    // { CB  THR   1  A}sky  'P' 18.915,14.199,5.024
 
     function _parseChunkOfLines (_i: number, _n: number, lines: string[]) {
       for (let i = _i; i < _n; ++i) {
@@ -669,7 +649,6 @@ class KinParser {
           ribbonPointPositionArray.push(...position)
           ribbonPointBreakArray.push(isTriangleBreak)
           ribbonPointColorArray.push(color)
-          console.log('XXX Pushing ribbon color ' + color)
         } else if (isText) {
           kinemage.texts.push(line)
         } else if (isCaption) {

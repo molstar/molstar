@@ -7,7 +7,7 @@
 import { ReaderResult as Result } from '../../../mol-io/reader/result';
 import { Task, RuntimeContext } from '../../../mol-task';
 import { Kinemage } from './schema';
-import KinParser from './ngl-based-parser';
+import KinParser from './kinparser';
 
 async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<Kinemage[]>> {
   const kinemages: Kinemage[] = [];
