@@ -54,7 +54,7 @@ export function createResultWriter(response: express.Response, params: ResultWri
 
 function mapQuery(app: express.Express, queryName: string, queryDefinition: QueryDefinition) {
     function createJob(queryParams: any, req: express.Request, res: express.Response) {
-        const entryId = (Array.isArray(req.params.id) ? req.params.id[0] : req.params.id) || '';
+        const entryId = req.params.id;
         const commonParams = normalizeRestCommonParams(req.query);
         const resultWriterParams = { encoding: commonParams.encoding!, download: !!commonParams.download, filename: commonParams.filename!, entryId, queryName };
         const jobId = JobManager.add({
@@ -93,9 +93,7 @@ function serveStatic(req: express.Request, res: express.Response) {
             : req.params.source;
 
     const id = req.params.id;
-    const stringSource = (Array.isArray(source) ? source[0] : source) || '';
-    const stringId = (Array.isArray(id) ? id[0] : id) || '';
-    const [fn, format] = mapSourceAndIdToFilename(stringSource, stringId);
+    const [fn, format] = mapSourceAndIdToFilename(source, id);
     const binary = format === 'bcif' || fn.indexOf('.bcif') > 0;
 
     if (!fn || !fs.existsSync(fn)) {
