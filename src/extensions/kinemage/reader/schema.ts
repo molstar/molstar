@@ -4,6 +4,8 @@
  * @author ReliaSolve <russ@reliasolve.com>
  */
 
+import { Color } from '../../../mol-util/color';
+
 export interface Kinemage {
   readonly comments: ReadonlyArray<string>
   kinemage?: number,
@@ -41,31 +43,31 @@ export interface KinListBase {
 export interface DotList extends KinListBase {
   labelArray: string[],           ///< Array of labels per element
   positionArray: number[],        ///< Catenation of x, y, z for each element, 3x as many as elements
-  colorArray: number[]            ///< Catenation of r, g, b for each element, 3x as many as elements
+  colorArray: Color[]             ///< Color for each element, as many as elements
 }
 
 export interface BallList extends KinListBase {
   labelArray: string[],           ///< Array of labels per element
   positionArray: number[],        ///< Catenation of x, y, z for each element, 3x as many as elements
-  colorArray: number[],           ///< Catenation of r, g, b for each element, 3x as many as elements
+  colorArray: Color[],            ///< Color for each element, as many as elements
   radiusArray: number[]           ///< A single radius per element
 }
 
 export interface RibbonObject extends KinListBase {
   labelArray: string[],           ///< Array of labels per element
   positionArray: number[],        ///< Catenation of x, y, z for each element, 9x as many as triangles (3 vertices per triangle)
-  colorArray: number[],           ///< Catenation of r, g, b for each element, 9x as many as triangles (3 colors per triangle)
+  colorArray: Color[],            ///< Color for each element, as many as elements
   breakArray: boolean[],          ///< A single boolean per element indicating if there is a break there
   pairTriangleNormals: boolean    ///< Whether to pair every other triangle normal for lighting (true for ribbons, false for triangles)
 }
 
 export interface VectorList extends KinListBase {
-  label1Array: string[],          ///< Array of labels per element
-  label2Array: string[],          ///< Array of labels per element
+  label1Array: string[],          ///< Array of labels for the first half of each element
+  label2Array: string[],          ///< Array of labels for the second half of each element
   position1Array: number[],       ///< Catenation of x, y, z for each element, 3x as many as elements
   position2Array: number[],       ///< Catenation of x, y, z for each element, 3x as many as elements
-  color1Array: number[],          ///< Catenation of r, g, b for each element, 3x as many as elements
-  color2Array: number[],          ///< Catenation of r, g, b for each element, 3x as many as elements
+  color1Array: Color[],           ///< Color for first half of each element, as many as elements
+  color2Array: Color[],           ///< Color for second half of each element, as many as elements
   width: number[]                 ///< A single width per element
 }
 

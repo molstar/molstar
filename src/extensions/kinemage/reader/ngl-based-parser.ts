@@ -8,7 +8,7 @@
 
 /**
  * file Kin Parser
- * author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // import { Debug, Log, ParserRegistry } from '../globals'
@@ -18,57 +18,38 @@
 /// @todo Fill in commments
 
 import { Kinemage, RibbonObject } from './schema';
+import { Hsv } from '../../../mol-util/color/spaces/hsv';
+import { Color } from '../../../mol-util/color';
 
-function hsvToRgb (h: number, s: number, v: number) {
-  h /= 360
-  s /= 100
-  v /= 100
-  let r, g, b
-  const i = Math.floor(h * 6)
-  const f = h * 6 - i
-  const p = v * (1 - s)
-  const q = v * (1 - f * s)
-  const t = v * (1 - (1 - f) * s)
-  switch (i % 6) {
-    case 0: r = v; g = t; b = p; break
-    case 1: r = q; g = v; b = p; break
-    case 2: r = p; g = v; b = t; break
-    case 3: r = p; g = q; b = v; break
-    case 4: r = t; g = p; b = v; break
-    case 5: r = v; g = p; b = q; break
-  }
-  return [ r, g, b ] as number []
-}
-
-const ColorDict: {[k: string]: number[]} = {
-  red: hsvToRgb(0, 100, 100),
-  orange: hsvToRgb(20, 100, 100),
-  gold: hsvToRgb(40, 100, 100),
-  yellow: hsvToRgb(60, 100, 100),
-  lime: hsvToRgb(80, 100, 100),
-  green: hsvToRgb(120, 80, 100),
-  sea: hsvToRgb(150, 100, 100),
-  cyan: hsvToRgb(180, 100, 85),
-  sky: hsvToRgb(210, 75, 95),
-  blue: hsvToRgb(240, 70, 100),
-  purple: hsvToRgb(275, 75, 100),
-  magenta: hsvToRgb(300, 95, 100),
-  hotpink: hsvToRgb(335, 100, 100),
-  pink: hsvToRgb(350, 55, 100),
-  peach: hsvToRgb(25, 75, 100),
-  lilac: hsvToRgb(275, 55, 100),
-  pinktint: hsvToRgb(340, 30, 100),
-  peachtint: hsvToRgb(25, 50, 100),
-  yellowtint: hsvToRgb(60, 50, 100),
-  greentint: hsvToRgb(135, 40, 100),
-  bluetint: hsvToRgb(220, 40, 100),
-  lilactint: hsvToRgb(275, 35, 100),
-  white: hsvToRgb(0, 0, 100),
-  gray: hsvToRgb(0, 0, 50),
-  brown: hsvToRgb(20, 45, 75),
-  deadwhite: [ 1, 1, 1 ],
-  deadblack: [ 0, 0, 0 ],
-  invisible: [ 0, 0, 0 ]
+const ColorDict: {[k: string]: Color } = {
+  red: Hsv.toColor(Hsv.fromArray([0, 100, 100])),
+  orange: Hsv.toColor(Hsv.fromArray([20, 100, 100])),
+  gold: Hsv.toColor(Hsv.fromArray([40, 100, 100])),
+  yellow: Hsv.toColor(Hsv.fromArray([60, 100, 100])),
+  lime: Hsv.toColor(Hsv.fromArray([80, 100, 100])),
+  green: Hsv.toColor(Hsv.fromArray([120, 80, 100])),
+  sea: Hsv.toColor(Hsv.fromArray([150, 100, 100])),
+  cyan: Hsv.toColor(Hsv.fromArray([180, 100, 85])),
+  sky: Hsv.toColor(Hsv.fromArray([210, 75, 95])),
+  blue: Hsv.toColor(Hsv.fromArray([240, 70, 100])),
+  purple: Hsv.toColor(Hsv.fromArray([275, 75, 100])),
+  magenta: Hsv.toColor(Hsv.fromArray([300, 95, 100])),
+  hotpink: Hsv.toColor(Hsv.fromArray([335, 100, 100])),
+  pink: Hsv.toColor(Hsv.fromArray([350, 55, 100])),
+  peach: Hsv.toColor(Hsv.fromArray([25, 75, 100])),
+  lilac: Hsv.toColor(Hsv.fromArray([275, 55, 100])),
+  pinktint: Hsv.toColor(Hsv.fromArray([340, 30, 100])),
+  peachtint: Hsv.toColor(Hsv.fromArray([25, 50, 100])),
+  yellowtint: Hsv.toColor(Hsv.fromArray([60, 50, 100])),
+  greentint: Hsv.toColor(Hsv.fromArray([135, 40, 100])),
+  bluetint: Hsv.toColor(Hsv.fromArray([220, 40, 100])),
+  lilactint: Hsv.toColor(Hsv.fromArray([275, 35, 100])),
+  white: Hsv.toColor(Hsv.fromArray([0, 0, 100])),
+  gray: Hsv.toColor(Hsv.fromArray([0, 0, 50])),
+  brown: Hsv.toColor(Hsv.fromArray([20, 45, 75])),
+  deadwhite: Hsv.toColor(Hsv.fromArray([0, 0, 100])),
+  deadblack: Hsv.toColor(Hsv.fromArray([0, 0, 0])),
+  invisible: Hsv.toColor(Hsv.fromArray([0, 0, 0]))
 }
 
 const reWhitespaceComma = /[\s,]+/
@@ -77,9 +58,9 @@ const reTrimCurly = /^{+|}+$/g
 const reTrimQuotes = /^['"]+|['"]+$/g
 const reCollapseEqual = /\s*=\s*/g
 
-function parseListDef (line: string, localColorDict: {[k: string]: number[]}) {
+function parseListDef (line: string, localColorDict: {[k: string]: Color}) {
   let name
-  let defaultColor: number[] = localColorDict['white']  // Default color is white, but it can be overridden by the list definition
+  let defaultColor: Color = localColorDict['white']  // Default color is white, but it can be overridden by the list definition
   let radius
   let nobutton = false
   let master = []
@@ -125,7 +106,7 @@ function parseListDef (line: string, localColorDict: {[k: string]: number[]}) {
   }
 }
 
-function parseListElm (line: string, localColorDict: {[k: string]: number[]}) {
+function parseListElm (line: string, localColorDict: {[k: string]: Color}) {
   line = line.trim()
 
   const idx1 = line.indexOf('{')
@@ -219,15 +200,19 @@ function parseGroup (line: string) {
 }
 function convertKinTriangleArrays (ribbonObject: RibbonObject) {
   // have to convert ribbons/triangle lists from stripdrawmode to normal drawmode
-  // index                    [ 0 1 2 3 4 5 6 7 8 91011 ]
-  // label [ 0 1 2 3 4 5 ] to [ 0 1 2 1 2 3 2 3 4 3 4 5 ]
+  // index          [ 0 1 2 3 4 5 6 7 8 91011 ]
+  // label/color    [ 0 1 2 3 4 5 ] to [ 0 1 2 1 2 3 2 3 4 3 4 5 ]
   // convertedindex                                      [ 0 1 2 3 4 5 6 7 8 91011121314151617181920212223242526 ]
   // index          [ 0 1 2 3 4 5 6 7 8 91011121314 ]    [ 0 1 2 3 4 5 6 7 8 3 4 5 6 7 8 91011 6 7 8 91011121314 ]
-  // position/color [ 0 0 0 1 1 1 2 2 2 3 3 3 4 4 4 ] to [ 0 0 0 1 1 1 2 2 2 1 1 1 2 2 2 3 3 3 2 2 2 3 3 3 4 4 4 ]
+  // position       [ 0 0 0 1 1 1 2 2 2 3 3 3 4 4 4 ] to [ 0 0 0 1 1 1 2 2 2 1 1 1 2 2 2 3 3 3 2 2 2 3 3 3 4 4 4 ]
   let { labelArray, positionArray, colorArray, breakArray } = ribbonObject
   let convertedLabels = []
   for (let i = 0; i < (labelArray.length - 2) * 3; ++i) {
     convertedLabels[i] = labelArray[i - Math.floor(i / 3) * 2]
+  }
+  let convertedColors = []
+  for (let i = 0; i < (colorArray.length - 2) * 3; ++i) {
+    convertedColors[i] = colorArray[i - Math.floor(i / 3) * 2]
   }
   let convertedBreaks = []
   for (let i = 0; i < (breakArray.length - 2) * 3; ++i) {
@@ -236,10 +221,6 @@ function convertKinTriangleArrays (ribbonObject: RibbonObject) {
   let convertedPositions = []
   for (let i = 0; i < (positionArray.length / 3 - 2) * 9; ++i) {
     convertedPositions[i] = positionArray[i - Math.floor(i / 9) * 6]
-  }
-  let convertedColors = []
-  for (let i = 0; i < (colorArray.length / 3 - 2) * 9; ++i) {
-    convertedColors[i] = colorArray[i - Math.floor(i / 9) * 6]
   }
   let vector3Positions = []
   for (let i = 0; i < (convertedPositions.length) / 3; ++i) {
@@ -268,8 +249,8 @@ function convertKinTriangleArrays (ribbonObject: RibbonObject) {
 
 function removePointBreaksTriangleArrays (convertedRibbonObject: RibbonObject) {
   // after converting ribbon/triangle arrys to drawmode, removed point break triangles
-  // label [ 0 1 2 3 4 5 ] to [ 0 1 2 1 2 3 2 3 4 3 4 5 ]
-  // position/color [ 0 0 0 1 1 1 2 2 2 3 3 3 4 4 4 ] to [ 0 0 0 1 1 1 2 2 2 1 1 1 2 2 2 3 3 3 2 2 2 3 3 3 4 4 4 ]
+  // label/color [ 0 1 2 3 4 5 ] to [ 0 1 2 1 2 3 2 3 4 3 4 5 ]
+  // position    [ 0 0 0 1 1 1 2 2 2 3 3 3 4 4 4 ] to [ 0 0 0 1 1 1 2 2 2 1 1 1 2 2 2 3 3 3 2 2 2 3 3 3 4 4 4 ]
   let { labelArray, positionArray, colorArray, breakArray } = convertedRibbonObject
   let editedLabels = []
   let editedPositions = []
@@ -294,15 +275,9 @@ function removePointBreaksTriangleArrays (convertedRibbonObject: RibbonObject) {
       editedPositions.push(positionArray[positionPointer+6])
       editedPositions.push(positionArray[positionPointer+7])
       editedPositions.push(positionArray[positionPointer+8])
-      editedColors.push(colorArray[positionPointer])
-      editedColors.push(colorArray[positionPointer+1])
-      editedColors.push(colorArray[positionPointer+2])
-      editedColors.push(colorArray[positionPointer+3])
-      editedColors.push(colorArray[positionPointer+4])
-      editedColors.push(colorArray[positionPointer+5])
-      editedColors.push(colorArray[positionPointer+6])
-      editedColors.push(colorArray[positionPointer+7])
-      editedColors.push(colorArray[positionPointer+8])
+      editedColors.push(colorArray[breakPointer])
+      editedColors.push(colorArray[breakPointer+1])
+      editedColors.push(colorArray[breakPointer+2])
     } else {
       //console.log('X triangle break found')
       //console.log('skipping: '+positionArray[positionPointer]+','+positionArray[positionPointer+1]+','+positionArray[positionPointer+2]+','
@@ -363,7 +338,7 @@ class KinParser {
     this.kinemage = kinemage
 
     // Keep a local copy of the ColorDict that we can update with new colors defined in the file.
-    let localColorDict: { [k: string]: number[] } = Object.assign({}, ColorDict)
+    let localColorDict: { [k: string]: Color } = Object.assign({}, ColorDict)
 
     let currentGroup: string = ''
     let currentGroupMasters: string[]
@@ -372,28 +347,28 @@ class KinParser {
 
     let isDotList = false
     let prevDotLabel = ''
-    let dotDefaultColor: number[]
-    let dotLabel: string[], dotPosition: number[], dotColor: number[]
+    let dotDefaultColor: Color
+    let dotLabel: string[], dotPosition: number[], dotColor: Color[]
 
     let isVectorList = false
     let prevVecLabel = ''
     let prevVecPosition: number[]|null = null
-    let prevVecColor: number[]|null = null
-    let vecDefaultColor: number[], vecDefaultWidth: number
-    let vecLabel1: string[], vecLabel2: string[], vecPosition1: number[], vecPosition2: number[], vecColor1: number[], vecColor2: number[]
+    let prevVecColor: Color|null = null
+    let vecDefaultColor: Color, vecDefaultWidth: number
+    let vecLabel1: string[], vecLabel2: string[], vecPosition1: number[], vecPosition2: number[], vecColor1: Color[], vecColor2: Color[]
     let vecWidth: number[]
 
     let isBallList = false
     let prevBallLabel = ''
-    let ballRadius: number[], ballDefaultColor: number[], ballDefaultRadius: number
-    let ballLabel: string[], ballPosition: number[], ballColor: number[]
+    let ballRadius: number[], ballDefaultColor: Color, ballDefaultRadius: number
+    let ballLabel: string[], ballPosition: number[], ballColor: Color[]
 
     let isRibbonList = false
     let ribbonIsTriangles = false
     let prevRibbonPointLabel = ''
 
-    let ribbonListDefaultColor: number[] = localColorDict['white']
-    let ribbonPointLabelArray: string[], ribbonPointPositionArray: number[], ribbonPointBreakArray: boolean[], ribbonPointColorArray: number[]
+    let ribbonListDefaultColor: Color = localColorDict['white']
+    let ribbonPointLabelArray: string[], ribbonPointPositionArray: number[], ribbonPointBreakArray: boolean[], ribbonPointColorArray: Color[]
 
     let isText = false
     let isCaption = false
@@ -435,7 +410,7 @@ class KinParser {
           dotLabel = []
           dotPosition = []
           dotColor = []
-          dotDefaultColor = listColor as number[]
+          dotDefaultColor = listColor
 
           if (currentGroupMasters) {
             listMasters = listMasters.concat(currentGroupMasters)
@@ -481,7 +456,7 @@ class KinParser {
           vecColor1 = []
           vecColor2 = []
           vecWidth = []
-          vecDefaultColor = listColor as number[]
+          vecDefaultColor = listColor
           vecDefaultWidth = 2
           if (listWidth) {
             vecDefaultWidth = listWidth
@@ -529,7 +504,7 @@ class KinParser {
           ballRadius = []
           ballPosition = []
           ballColor = []
-          ballDefaultColor = listColor as number[]
+          ballDefaultColor = listColor
           ballDefaultRadius = listRadius !== undefined ? listRadius : 1
 
           if (currentGroupMasters) {
@@ -570,7 +545,7 @@ class KinParser {
           ribbonPointPositionArray = []
           ribbonPointBreakArray = []
           ribbonPointColorArray = []
-          ribbonListDefaultColor = listColor as number[]
+          ribbonListDefaultColor = listColor
 
           if (currentGroupMasters) {
             listMasters = listMasters.concat(currentGroupMasters)
@@ -614,7 +589,7 @@ class KinParser {
 
           dotLabel.push(label)
           dotPosition.push(...position)
-          dotColor.push(...color)
+          dotColor.push(color)
         } else if (isVectorList) {
           // { n   thr A   1  B13.79 1crnFH} P 17.047, 14.099, 3.625 { n   thr A   1  B13.79 1crnFH} L 17.047, 14.099, 3.625
 
@@ -641,11 +616,11 @@ class KinParser {
 
                 vecLabel1.push(prevVecLabel)
                 vecPosition1.push(...prevVecPosition)
-                vecColor1.push(...prevVecColor as number[])
+                vecColor1.push(prevVecColor ? prevVecColor : vecDefaultColor)
 
                 vecLabel2.push(label)
                 vecPosition2.push(...position)
-                vecColor2.push(...color as number[])
+                vecColor2.push(color)
                 vecWidth.push(width)
               }
             }
@@ -676,7 +651,7 @@ class KinParser {
           ballLabel.push(label)
           ballRadius.push(radius)
           ballPosition.push(...position)
-          ballColor.push(...color)
+          ballColor.push(color)
         } else if (isRibbonList) {
           let { label, color, position, isTriangleBreak } = parseListElm(line, localColorDict)
 
@@ -693,7 +668,8 @@ class KinParser {
           ribbonPointLabelArray.push(label)
           ribbonPointPositionArray.push(...position)
           ribbonPointBreakArray.push(isTriangleBreak)
-          ribbonPointColorArray.push(...color)
+          ribbonPointColorArray.push(color)
+          console.log('XXX Pushing ribbon color ' + color)
         } else if (isText) {
           kinemage.texts.push(line)
         } else if (isCaption) {

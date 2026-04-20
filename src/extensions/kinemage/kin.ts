@@ -130,9 +130,7 @@ async function getPoints(ctx: RuntimeContext, kin: Kinemage) {
       let group = index++;
       builderState.add(positionArray[3 * j + 0], positionArray[3 * j + 1], positionArray[3 * j + 2], group);
       // colorArray may be undefined; push a default color when not provided
-      colors.push(colorArray && colorArray.length > j * 3 ?
-        Color.fromRgb(255 * (colorArray[3 * j + 0]), 255 * (colorArray[3 * j + 1]), 255 * (colorArray[3 * j + 2]))
-        : Color.fromRgb(255, 255, 255));
+      colors.push(colorArray && colorArray.length > j ? colorArray[j] : Color.fromRgb(255, 255, 255))
       // labelArray may be undefined; push an empty string when not provided
       labels.push(labelArray && labelArray.length > j ? labelArray[j] : '');
     }
@@ -182,15 +180,11 @@ async function getLines(ctx: RuntimeContext, kin: Kinemage) {
         midX, midY, midZ,
         group);
       // widthArray may be undefined; push NaN when width not provided
-      widths.push(widthArray && widthArray.length > j ? widthArray[j] : NaN);
+      widths.push(widthArray && widthArray.length > j ? widthArray[j] : NaN)
       // colorArray may be undefined; push a default color when not provided
-      colors.push(color1Array && color1Array.length > j * 3 ?
-        Color.fromRgb(255 * color1Array[3 * j + 0],
-                      255 * color1Array[3 * j + 1],
-                      255 * color1Array[3 * j + 2])
-        : Color.fromRgb(255, 255, 255));
+      colors.push(color1Array && color1Array.length > j ? color1Array[j] : Color.fromRgb(255, 255, 255))
       // labelArray may be undefined; push an empty string when not provided
-      labels.push(label1Array && label1Array.length > j ? label1Array[j] : '');
+      labels.push(label1Array && label1Array.length > j ? label1Array[j] : '')
 
       // Make the second half of the line from the midpoint to position2, labeled and colored based on position2.
       group = index++;
@@ -198,15 +192,11 @@ async function getLines(ctx: RuntimeContext, kin: Kinemage) {
         position2Array[3 * j + 0], position2Array[3 * j + 1], position2Array[3 * j + 2],
         group);
       // widthArray may be undefined; push NaN when width not provided
-      widths.push(widthArray && widthArray.length > j ? widthArray[j] : NaN);
+      widths.push(widthArray && widthArray.length > j ? widthArray[j] : NaN)
       // colorArray may be undefined; push a default color when not provided
-      colors.push(color2Array && color2Array.length > j * 3 ?
-        Color.fromRgb(255 * color2Array[3 * j + 0],
-                      255 * color2Array[3 * j + 1],
-                      255 * color2Array[3 * j + 2])
-        : Color.fromRgb(255, 255, 255));
+      colors.push(color2Array && color2Array.length > j ? color2Array[j] : Color.fromRgb(255, 255, 255))
       // labelArray may be undefined; push an empty string when not provided
-      labels.push(label2Array && label2Array.length > j ? label2Array[j] : '');
+      labels.push(label2Array && label2Array.length > j ? label2Array[j] : '')
     }
   }
 
@@ -267,12 +257,9 @@ async function getMesh(ctx: RuntimeContext, kin: Kinemage) {
 
       // colorArray may be undefined; push a default color when not provided.
       // There is one color per group, even if we have two triangles in this group.
-      const color = colorArray && colorArray.length > i * 9 ?
-        Color.fromRgb(255 * colorArray[9 * i + 0],
-                      255 * colorArray[9 * i + 1],
-                      255 * colorArray[9 * i + 2])
-        : Color.fromRgb(255, 255, 255);
+      const color = colorArray && colorArray.length > i * 3 ? colorArray[3 * i] : Color.fromRgb(255, 255, 255);
       colors.push(color);
+      console.log('XXX ribbon %o color[%o] = %o', ri, group, color)
 
       // labelArray may be undefined; push an empty string when not provided
       const label = labelArray && labelArray.length > i ? labelArray[i] : '';
@@ -337,9 +324,7 @@ async function getSpheres(ctx: RuntimeContext, kin: Kinemage) {
       // radiusArray may be undefined; push NaN when radius not provided
       radii.push(radiusArray && radiusArray.length > j ? radiusArray[j] : NaN);
       // colorArray may be undefined; push a default color when not provided
-      colors.push(colorArray && colorArray.length > j * 3 ?
-        Color.fromRgb(255 * (colorArray[3 * j + 0]), 255 * (colorArray[3 * j + 1]), 255 * (colorArray[3 * j + 2]))
-        : Color.fromRgb(255, 255, 255));
+      colors.push(colorArray && colorArray.length > j ? colorArray[j] : Color.fromRgb(255, 255, 255));
       // labelArray may be undefined; push an empty string when not provided
       labels.push(balls[i].labelArray && balls[i].labelArray.length > j ? balls[i].labelArray[j] : '');
     }
@@ -374,7 +359,7 @@ function makePointsShapeGetter() {
       _points,
       colorFn,                // color function reads per-point colors
       () => 1,                // size function
-      labelFn                // label function reads per-point labels
+      labelFn                 // label function reads per-point labels
     );
     return _shape;
   };
