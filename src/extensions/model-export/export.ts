@@ -6,12 +6,15 @@
  */
 
 import { utf8ByteCount, utf8Write } from '../../mol-io/common/utf8';
+import { encodeZml } from '../../mol-io/writer/zml';
 import { Structure, to_mmCIF, Unit } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
 import { Task } from '../../mol-task';
 import { getFormattedTime } from '../../mol-util/date';
 import { download } from '../../mol-util/download';
 import { zip } from '../../mol-util/zip/zip';
+
+export type ModelExportFormat = 'cif' | 'bcif' | 'zml';
 
 const ModelExportNameProp = '__ModelExportName__';
 export const ModelExport = {
@@ -23,7 +26,7 @@ export const ModelExport = {
     }
 };
 
-export async function exportHierarchy(plugin: PluginContext, options?: { format?: 'cif' | 'bcif' }) {
+export async function exportHierarchy(plugin: PluginContext, options?: { format?: ModelExportFormat }) {
     try {
         await plugin.runTask(_exportHierarchy(plugin, options), { useOverlay: true });
     } catch (e) {
@@ -32,7 +35,7 @@ export async function exportHierarchy(plugin: PluginContext, options?: { format?
     }
 }
 
-function _exportHierarchy(plugin: PluginContext, options?: { format?: 'cif' | 'bcif' }) {
+function _exportHierarchy(plugin: PluginContext, options?: { format?: ModelExportFormat }) {
     return Task.create('Export', async ctx => {
         await ctx.update({ message: 'Exporting...', isIndeterminate: true, canAbort: false });
 
@@ -68,7 +71,11 @@ function _exportHierarchy(plugin: PluginContext, options?: { format?: 'cif' | 'b
             }
 
             try {
-                files.push([fileName, to_mmCIF(name, s, format === 'bcif', { copyAllCategories: true })]);
+                if (format === 'zml') {
+                    files.push([fileName, await encodeZml(ctx, name, s)]);
+                } else {
+                    files.push([fileName, to_mmCIF(name, s, format === 'bcif', { copyAllCategories: true })]);
+                }
             } catch (e) {
                 if (format === 'cif' && s.elementCount > 2000000) {
                     plugin.log.warn(`[Export] The structure might be too big to be exported as Text CIF, consider using the BinaryCIF format instead.`);

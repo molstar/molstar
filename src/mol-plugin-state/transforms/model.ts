@@ -37,6 +37,8 @@ import { trajectoryFromCifCore } from '../../mol-model-formats/structure/cif-cor
 import { trajectoryFromCube } from '../../mol-model-formats/structure/cube';
 import { parseMol2 } from '../../mol-io/reader/mol2/parser';
 import { trajectoryFromMol2 } from '../../mol-model-formats/structure/mol2';
+import { parseZml } from '../../mol-io/reader/zml/parser';
+import { trajectoryFromZml } from '../../mol-model-formats/structure/zml';
 import { parseXtc } from '../../mol-io/reader/xtc/parser';
 import { coordinatesFromXtc } from '../../mol-model-formats/structure/xtc';
 import { parseXyz } from '../../mol-io/reader/xyz/parser';
@@ -76,6 +78,7 @@ export { TrajectoryFromLammpsTrajData };
 export { TrajectoryFromMOL };
 export { TrajectoryFromSDF };
 export { TrajectoryFromMOL2 };
+export { TrajectoryFromZML };
 export { TrajectoryFromCube };
 export { TrajectoryFromCifCore };
 export { ModelFromTrajectory };
@@ -524,6 +527,24 @@ const TrajectoryFromCube = PluginStateTransform.BuiltIn({
     apply({ a }) {
         return Task.create('Parse MOL', async ctx => {
             const models = await trajectoryFromCube(a.data).runInContext(ctx);
+            const props = trajectoryProps(models);
+            return new SO.Molecule.Trajectory(models, props);
+        });
+    }
+});
+
+type TrajectoryFromZML = typeof TrajectoryFromZML
+const TrajectoryFromZML = PluginStateTransform.BuiltIn({
+    name: 'trajectory-from-zml',
+    display: { name: 'Parse ZML', description: 'Parse a ZML (Zipped Molecular Lot) archive to create a trajectory.' },
+    from: [SO.Data.Binary],
+    to: SO.Molecule.Trajectory
+})({
+    apply({ a }) {
+        return Task.create('Parse ZML', async ctx => {
+            const parsed = await parseZml(a.data, a.label).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const models = await trajectoryFromZml(parsed.result).runInContext(ctx);
             const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
