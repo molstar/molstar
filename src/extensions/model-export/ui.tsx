@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Yujie Wu <yujie@atommap.com>
  */
 
 import { useState } from 'react';
@@ -28,7 +29,7 @@ export class ModelExportUI extends CollapsableControls<{}, {}> {
 }
 
 const Params = {
-    format: PD.Select<'cif' | 'bcif'>('cif', [['cif', 'mmCIF'], ['bcif', 'Binary mmCIF']])
+    format: PD.Select<'cif' | 'bcif' | 'zml'>('cif', [['cif', 'mmCIF'], ['bcif', 'Binary mmCIF'], ['zml', 'ZML']])
 };
 const DefaultParams = PD.getDefaultValues(Params);
 

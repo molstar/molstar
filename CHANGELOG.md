@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Handle CCD bonds with Deuterium atoms
 - [Breaking] ComponentBond.Entry.map now returns ComponentBond.Pairs
 - Fix volume slice marking performance regression
+- Add ZML (Zipped Molecular Lot) format support: reader for V1 and V3 archives (topology + coordinates; force field data ignored) and V1 writer
 
 ## [v5.8.0] - 2026-04-03
 - Dependencies: remove `utils.promisify`, `node-fetch` (#1797)

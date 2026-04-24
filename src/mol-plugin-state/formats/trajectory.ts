@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Yujie Wu <yujie@atommap.com>
  */
 
 import { StateTransforms } from '../transforms';
@@ -177,6 +178,15 @@ export const Mol2Provider: TrajectoryFormatProvider = {
     visuals: defaultVisuals
 };
 
+export const ZmlProvider: TrajectoryFormatProvider = {
+    label: 'ZML',
+    description: 'ZML (Zipped Molecular Lot)',
+    category: TrajectoryFormatCategory,
+    binaryExtensions: ['zml'],
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromZML),
+    visuals: defaultVisuals
+};
+
 export const BuiltInTrajectoryFormats = [
     ['mmcif', MmcifProvider] as const,
     ['cifCore', CifCoreProvider] as const,
@@ -190,6 +200,7 @@ export const BuiltInTrajectoryFormats = [
     ['mol', MolProvider] as const,
     ['sdf', SdfProvider] as const,
     ['mol2', Mol2Provider] as const,
+    ['zml', ZmlProvider] as const,
 ] as const;
 
 export type BuiltInTrajectoryFormat = (typeof BuiltInTrajectoryFormats)[number][0]
