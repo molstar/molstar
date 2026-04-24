@@ -2,6 +2,7 @@
  * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ludovic Autin <autin@scripps.edu>
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -306,7 +307,6 @@ function getSampledImage(volume: Volume, theme: Theme, info: SamplingInfo, isoVa
 
     const im = Image.create(imageTexture, corners, groupTexture, valueTexture, trim, isoLevel, image);
     im.setBoundingSphere(Volume.isPeriodic(volume) ? Volume.getBoundingSphere(volume) : Grid.getBoundingSphere(volume.grid));
-
     im.meta.mapping = mapping;
 
     return im;
@@ -481,7 +481,6 @@ async function createGridImage(ctx: VisualContext, volume: Volume, key: number, 
 
     const im = Image.create(imageTexture, corners, groupTexture, valueTexture, trim, isoLevel, image);
     im.setBoundingSphere(Volume.isPeriodic(volume) ? Volume.getBoundingSphere(volume) : Grid.getBoundingSphere(volume.grid));
-
     im.meta.mapping = mapping;
 
     return im;
@@ -575,6 +574,49 @@ function getSliceLoci(pickingId: PickingId, volume: Volume, _key: number, props:
     return EmptyLoci;
 }
 
+export function applySliceObjectLoci(loci: Volume.Loci, volume: Volume, groupCount: number, apply: (interval: Interval) => boolean) {
+    if (Volume.isLociEmpty(loci) || !Volume.areEquivalent(loci.volume, volume)) return false;
+
+    if (Volume.isPeriodic(volume)) {
+        return apply(Interval.ofBounds(0, groupCount));
+    }
+
+    let changed = false;
+    if (Interval.is(loci.instances)) {
+        const start = Interval.start(loci.instances) * groupCount;
+        const end = Interval.end(loci.instances) * groupCount;
+        if (apply(Interval.ofBounds(start, end))) changed = true;
+    } else {
+        OrderedSet.forEach(loci.instances, instanceIndex => {
+            const offset = instanceIndex * groupCount;
+            if (apply(Interval.ofBounds(offset, offset + groupCount))) changed = true;
+        });
+    }
+    return changed;
+}
+
+export function applySliceGroupIntervals(indices: number[] | undefined, offset: number, apply: (interval: Interval) => boolean) {
+    if (!indices || indices.length === 0) return false;
+
+    let changed = false;
+    let start = indices[0] + offset;
+    let prev = start;
+
+    for (let i = 1, il = indices.length; i < il; ++i) {
+        const value = indices[i] + offset;
+        if (value === prev + 1) {
+            prev = value;
+            continue;
+        }
+        if (apply(Interval.ofBounds(start, prev + 1))) changed = true;
+        start = value;
+        prev = value;
+    }
+
+    if (apply(Interval.ofBounds(start, prev + 1))) changed = true;
+    return changed;
+}
+
 function eachSlice(loci: Loci, volume: Volume, key: number, props: SliceProps, apply: (interval: Interval) => boolean, image: Image) {
     const mapping = image.meta.mapping as SampledImageMapping;
     if (mapping) {
@@ -582,24 +624,23 @@ function eachSlice(loci: Loci, volume: Volume, key: number, props: SliceProps, a
         const cellCount = volume.grid.cells.data.length;
         const isPeriodic = Volume.isPeriodic(volume);
 
-        const getIndices = isPeriodic
-            ? (instanceIndex: number, groupIndex: number) => {
-                return mapping.index.get(cantorPairing(instanceIndex, groupIndex));
-            }
-            : (instanceIndex: number, groupIndex: number) => {
-                const indices = mapping.index.get(groupIndex);
-                return indices !== undefined ? indices.map(idx => idx + instanceIndex * groupCount) : undefined;
-            };
+        if (Volume.isLoci(loci)) {
+            return applySliceObjectLoci(loci, volume, groupCount, apply);
+        }
 
         return eachVolumeLoci(loci, volume, undefined, (interval) => {
             let changed = false;
             for (let i = Interval.start(interval), il = Interval.end(interval); i < il; ++i) {
                 const instanceIndex = Math.floor(i / cellCount);
                 const groupIndex = i % cellCount;
-                const vs = getIndices(instanceIndex, groupIndex);
-                if (vs !== undefined) {
-                    for (const v of vs) {
-                        if (apply(Interval.ofSingleton(v))) changed = true;
+                if (isPeriodic) {
+                    if (applySliceGroupIntervals(mapping.index.get(cantorPairing(instanceIndex, groupIndex)), 0, apply)) {
+                        changed = true;
+                    }
+                } else {
+                    const offset = instanceIndex * groupCount;
+                    if (applySliceGroupIntervals(mapping.index.get(groupIndex), offset, apply)) {
+                        changed = true;
                     }
                 }
             }

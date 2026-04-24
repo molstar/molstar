@@ -29,6 +29,14 @@ export function getCcp4Origin(header: Ccp4Header): Vec3 {
     }
 }
 
+export function getCcp4Size(header: Ccp4Header): Vec3 {
+    if (header.xLength === 0.0 && header.yLength === 0.0 && header.zLength === 0.0) {
+        return Vec3.create(header.NX, header.NY, header.NZ);
+    } else {
+        return Vec3.create(header.xLength, header.yLength, header.zLength);
+    }
+}
+
 function getTypedArrayCtor(header: Ccp4Header) {
     const valueType = getCcp4ValueType(header);
     switch (valueType) {
@@ -43,7 +51,7 @@ function getTypedArrayCtor(header: Ccp4Header) {
 export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, offset?: Vec3, label?: string, entryId?: string }): Task<Volume> {
     return Task.create<Volume>('Create Volume', async ctx => {
         const { header, values } = source;
-        const size = Vec3.create(header.xLength, header.yLength, header.zLength);
+        const size = getCcp4Size(header);
         if (params && params.voxelSize) Vec3.mul(size, size, params.voxelSize);
         const angles = Vec3.create(degToRad(header.alpha), degToRad(header.beta), degToRad(header.gamma));
         const spacegroup = header.ISPG > 65536 ? 0 : header.ISPG;

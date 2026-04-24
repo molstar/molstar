@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -55,6 +55,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
                 hd: PD.Group({}),
                 'full-hd': PD.Group({}),
                 'ultra-hd': PD.Group({}),
+                '8k-ultra-hd': PD.Group({}),
                 custom: PD.Group({
                     width: PD.Numeric(1920, { min: 128, max, step: 1 }),
                     height: PD.Numeric(1080, { min: 128, max, step: 1 }),
@@ -65,6 +66,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
                     ['hd', 'HD (1280 x 720)'],
                     ['full-hd', 'Full HD (1920 x 1080)'],
                     ['ultra-hd', 'Ultra HD (3840 x 2160)'],
+                    ['8k-ultra-hd', '8K Ultra HD (7680 x 4320)'],
                     ['custom', 'Custom']
                 ]
             }),
@@ -139,6 +141,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
             case 'hd': return { width: 1280, height: 720 };
             case 'full-hd': return { width: 1920, height: 1080 };
             case 'ultra-hd': return { width: 3840, height: 2160 };
+            case '8k-ultra-hd': return { width: 7680, height: 4320 };
             default: return { width: values.resolution.params.width, height: values.resolution.params.height };
         }
     }
@@ -186,12 +189,12 @@ export class ViewportScreenshotHelper extends PluginComponent {
         });
     }
 
-    private _previewPass: ImagePass;
+    private _previewPass: ImagePass | undefined;
     private get previewPass() {
         return this._previewPass || (this._previewPass = this.createPass(true));
     }
 
-    private _imagePass: ImagePass;
+    private _imagePass: ImagePass | undefined;
     get imagePass() {
         if (this._imagePass) {
             const c = this.plugin.canvas3d!;

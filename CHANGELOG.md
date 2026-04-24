@@ -4,9 +4,12 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
-
-## [v5.8.1] - 2026-04-03
 - Fix edge case when `PluginSpec.animations` is empty
+- Add 8K UHD option to `ViewportScreenshotHelper`
+- Handle MRC files with empty length header fields
+- Handle CCD bonds with Deuterium atoms
+- [Breaking] ComponentBond.Entry.map now returns ComponentBond.Pairs
+- Fix volume slice marking performance regression
 
 ## [v5.8.0] - 2026-04-03
 - Dependencies: remove `utils.promisify`, `node-fetch` (#1797)
