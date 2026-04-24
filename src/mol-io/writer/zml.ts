@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * @author Augment Agent
+ * @author Yujie Wu <yujie@atommap.com>
  */
 
 import { utf8ByteCount, utf8Write } from '../common/utf8';

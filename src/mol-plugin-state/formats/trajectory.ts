@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Yujie Wu <yujie@atommap.com>
  */
 
 import { StateTransforms } from '../transforms';

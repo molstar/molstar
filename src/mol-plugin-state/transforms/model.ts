@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Yujie Wu <yujie@atommap.com>
  */
 
 import { parseDcd } from '../../mol-io/reader/dcd/parser';
