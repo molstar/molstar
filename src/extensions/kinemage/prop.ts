@@ -33,12 +33,7 @@ interface KinemageData {
     /**
      * List of Kinemages read from one or more files.
      */
-    readonly kinemages: Kinemage[],
-
-    /**
-     * Index of the active Kinemage
-     */
-    activeKinemage: number
+    readonly kinemages: Kinemage[]
 }
 
 const FileSourceParams = {
@@ -82,8 +77,7 @@ namespace KinemageData {
       });
 
       const kinemages = await task.run();
-      const activeKinemage = kinemages.length - 1;
-      return { kinemages, activeKinemage };
+      return { kinemages };
     }
 }
 
@@ -117,7 +111,6 @@ async function computeKinemageProps(ctx: CustomProperty.Context, data: Structure
   // Return an empty KinemageData object since the actual data will be loaded asynchronously via the `open` method.
   // This allows the property to be attached to the structure without blocking on file loading.
   return {
-    kinemages: [],
-    activeKinemage: -1
+    kinemages: []
   };
 }
