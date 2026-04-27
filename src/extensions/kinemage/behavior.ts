@@ -25,6 +25,7 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { getPluginBoundingSphere } from '../../mol-plugin-state/manager/focus-camera/focus-object';
 import { KinemageControls } from './ui';
 import { StateObjectSelector } from '../../mol-state';
+import { Color } from '../../mol-util/color';
 
 const Tag = KinemageData.Tag;
 
@@ -41,6 +42,15 @@ export class KinemageObject extends PluginStateObject.Create<KinemageData>({ nam
  */
 export async function applyViewSnapshot(plugin: PluginContext, snapshot: Partial<Camera.Snapshot>) {
   if (!snapshot) return;
+  
+  // Set background color to black
+  plugin.canvas3d?.setProps({
+    renderer: {
+      ...plugin.canvas3d.props.renderer,
+      backgroundColor: Color(0x000000)
+    }
+  });
+  
   // If the snapshot provides a target, adjust the canvas `sceneRadiusFactor` so the scene isn't clipped
   // when we switch camera.
   if (snapshot.target) {
