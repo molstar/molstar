@@ -10,6 +10,7 @@ It currently supports the following features:
 - Coloring of objects by vertex color, or by a single color for the entire list
 - Hovering over objects to see their labels (if present)
 - When there are views defined, controls are added to the right panel; when selected, they shift the view
+    - When the view is changes, the projection is set to orthographic and the background is set to black to match Kinemage's default view
 - Control panel names are based on the @pdbfile or @caption in the Kinemage file if there is one
 - Lines are split in half, with each half colored by and labeled by the nearest vertex
 - Master and submaster selections of visible objects
@@ -25,5 +26,3 @@ Currently unsupported features include:
 Current limitations include:
 - Triangles are a single color, not colored by vertex (Mol* does not support per-vertex coloring for these primitives)
 - Line segments in Mol* do not support end-caps for wide lines, so there are artifacts in highly-curved lines
-- The default perspective view and white background for Mol* differs from that of Kinemage (though selecting a view from the
-  State Tree will switch it to orthographic)
