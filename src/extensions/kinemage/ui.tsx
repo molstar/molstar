@@ -187,16 +187,34 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
 
       // groups
       for (const [groupKey, groupInfo] of Object.entries(kinData.groupDict || {})) {
-        if ((groupInfo as any).nobutton) continue;
-        const visible = !(groupInfo as any).off;
-        kinBlock.push(
-          <div key={'group-' + title + '-' + groupKey} className='msp-row'>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input type='checkbox' checked={visible} onChange={() => this.toggleVisibility(kinData, ref, { type: 'group', key: groupKey })} />
-              <span>{groupKey}</span>
-            </label>
-          </div>
-        );
+        if (!(groupInfo as any).nobutton) {
+          const visible = !(groupInfo as any).off;
+          kinBlock.push(
+            <div key={'group-' + title + '-' + groupKey} className='msp-row'>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input type='checkbox' checked={visible} onChange={() => this.toggleVisibility(kinData, ref, { type: 'group', key: groupKey })} />
+                <span>{groupKey}</span>
+              </label>
+            </div>
+          );
+        }
+        // If this group is not dominant, find any subgroups of this group and show them here (indented) unless they have nobutton set
+        if (!(groupInfo as any).dominant) {
+          for (const [subgroupKey, subgroupInfo] of Object.entries(kinData.subgroupDict || {})) {
+            if (subgroupKey.startsWith(groupKey + ':')) {
+              if ((subgroupInfo as any).nobutton) continue;
+              const visible = !(subgroupInfo as any).off;
+              kinBlock.push(
+                <div key={'subgroup-' + title + '-' + subgroupKey} className='msp-row' style={{ paddingLeft: 16 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input type='checkbox' checked={visible} onChange={() => this.toggleVisibility(kinData, ref, { type: 'subgroup', key: subgroupKey })} />
+                    <span>{subgroupKey.split(':')[1]}</span>
+                  </label>
+                </div>
+              );
+            }
+          }
+        }
       }
 
       // subgroups that don't belong to a group (standalone)
