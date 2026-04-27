@@ -22,33 +22,18 @@ import { Kinemage } from './reader/schema';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 import { Camera } from '../../mol-canvas3d/camera';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { StateObjectRef } from '../../mol-state';
 import { getPluginBoundingSphere } from '../../mol-plugin-state/manager/focus-camera/focus-object';
 import { KinemageControls } from './ui';
+import { StateObjectSelector } from '../../mol-state';
 
 const Tag = KinemageData.Tag;
 
 const Transform = StateTransformer.builderFactory('sb-kinemage');
 
-let g_kinemageData: KinemageData | undefined = undefined;
-
-/** Getter for external code / handlers to obtain the loaded kinemage runtime data. */
-export function getLoadedKinemageData() {
-  return g_kinemageData;
-}
-
 /**
- * Map that keeps track of created shape/repr selectors for each created `Kinemage`.
- * This lets callback handlers destroy / re-create shapes for a given `kinData`.
- * Key: the `Kinemage` instance (object identity), Value: array of selectors produced
- * by the state builder for the created shape/provider/representation transforms.
+ * State object to hold parsed Kinemage data
  */
-const g_kinemageShapeSelectors = new Map<Kinemage, StateObjectRef<PluginStateObject.Format.Json | PluginStateObject.Shape.Provider>[]>();
-
-/** Getter for external code / handlers to obtain the selectors for a specific kinemage. */
-export function getKinemageShapeSelectors(kin: Kinemage) {
-  return g_kinemageShapeSelectors.get(kin) || [];
-}
+export class KinemageObject extends PluginStateObject.Create<KinemageData>({ name: 'Kinemage', typeClass: 'Object' }) { }
 
 /**
  * Apply a saved snapshot object (from a view state node) to the plugin camera.
@@ -74,64 +59,188 @@ export async function applyViewSnapshot(plugin: PluginContext, snapshot: Partial
   await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
 }
 
+/**
+ * Transform to parse Kinemage data from string/data input
+ */
+export const ParseKinemage = Transform({
+  name: 'sb-kinemage-parse',
+  display: { name: 'Parse Kinemage' },
+  from: [PluginStateObject.Data.String],
+  to: KinemageObject,
+  params: {
+    label: PD.Optional(PD.Text('', { description: 'Label for the Kinemage data' }))
+  }
+})({
+  apply({ a, params }) {
+    return Task.create('Parse Kinemage', async ctx => {
+      const input = a.data;
+      let data: KinemageData;
+
+      if (typeof input === 'string') {
+        // Parse from string content
+        const file = new File([input], 'input.kin', { type: 'text/plain' });
+        data = await KinemageData.open(file);
+      } else {
+        throw new Error('Unsupported input type for ParseKinemage');
+      }
+
+      // Precompute camera snapshots for all views in all kinemages
+      for (const kinData of data.kinemages) {
+        (kinData as any).viewSnapshots = (kinData as any).viewSnapshots || Object.create(null);
+        for (const [viewKey, viewObj] of Object.entries(kinData.viewDict)) {
+          const center = Vec3.create(0, 0, 0);
+          if (viewObj.center) {
+            Vec3.set(center, viewObj.center[0], viewObj.center[1], viewObj.center[2]);
+          }
+
+          const orientation: Mat3 = Mat3.identity();
+          if (viewObj.matrix) {
+            Mat3.fromArray(orientation, viewObj.matrix, 0);
+            Mat3.transpose(orientation, orientation);
+          }
+
+          const zAxis = Vec3.create(0, 0, 1);
+          Vec3.transformMat3(zAxis, zAxis, orientation);
+
+          const yAxis = Vec3.create(0, 1, 0);
+          Vec3.transformMat3(yAxis, yAxis, orientation);
+
+          let distance = 100;
+          if (viewObj.span) {
+            distance = viewObj.span;
+          }
+          Vec3.scale(zAxis, zAxis, distance);
+          const position = Vec3.create(0, 0, 100);
+          Vec3.add(position, center, zAxis);
+
+          let radius = 100;
+          if (viewObj.zslab) {
+            const scale = viewObj.zslab / 200;
+            radius = 0.5 * distance * scale;
+          }
+
+          const snap: Camera.Snapshot = {
+            mode: 'orthographic',
+            fov: Math.PI / 4,
+            position,
+            up: yAxis,
+            target: center,
+            radius,
+            radiusMax: 1e4,
+            fog: 0,
+            clipFar: true,
+            minNear: 1,
+            minFar: 1
+          };
+
+          (kinData as any).viewSnapshots[viewKey] = snap;
+        }
+      }
+
+      const label = params.label || data.kinemages[0]?.caption || 'Kinemage';
+      return new KinemageObject(data, { label, description: `Kinemage with ${data.kinemages.length} view(s)` });
+    });
+  }
+});
+
+/**
+ * Transform to select a specific kinemage from parsed data
+ */
+export const SelectKinemage = Transform({
+  name: 'sb-kinemage-select',
+  display: { name: 'Select Kinemage' },
+  from: KinemageObject,
+  to: PluginStateObject.Format.Json,
+  params: (a) => {
+    const kinemages = a?.data?.kinemages || [];
+    const options = kinemages.map((k: Kinemage, i: number) => [i, k.pdbfile || k.caption || `Kinemage ${i}`] as const);
+    return {
+      index: PD.Select(0, options, { description: 'Which kinemage to use' })
+    };
+  }
+})({
+  apply({ a, params }) {
+    return Task.create('Select Kinemage', async ctx => {
+      const kinData = a.data.kinemages[params.index];
+      if (!kinData) {
+        throw new Error(`No kinemage found at index ${params.index}`);
+      }
+
+      const label = kinData.pdbfile || kinData.caption || `Kinemage ${params.index}`;
+
+      // Store the kinemage data in a Format.Json node so downstream transforms can access it
+      return new PluginStateObject.Format.Json(
+        { kinData },
+        { label, description: kinData.text || '' }
+      );
+    });
+  }
+});
+
 export const KinemageShapePointsProvider = Transform({
   name: 'sb-kinemage-shape-points-provider',
   display: { name: 'Kinemage Shape Points Provider' },
-  from: PluginStateObject.Root,
+  from: PluginStateObject.Format.Json,
   to: PluginStateObject.Shape.Provider,
-  params: {
-    data: PD.Value<Kinemage>(undefined as any, {})
-  }
+  params: {}
 })({
-  apply({ params }) {
+  apply({ a }) {
     return Task.create('Kinemage Points Shape Provider', async ctx => {
-      // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
-      const provider = await shapePointsFromKin(params.data, { transforms: undefined }, 'Dots').runInContext(ctx);
+      const kinData = (a.data as any).kinData as Kinemage;
+      if (!kinData) {
+        throw new Error('No kinData found in parent Format.Json node');
+      }
+
+      const provider = await shapePointsFromKin(kinData, { transforms: undefined }, 'Dots').runInContext(ctx);
       return new PluginStateObject.Shape.Provider(provider as any, {
-        label: params.data.pdbfile || params.data.caption || 'Kinemage Points',
-        description: params.data.text || ''
+        label: kinData.pdbfile || kinData.caption || 'Kinemage Points',
+        description: kinData.text || ''
       });
     });
   }
 });
 
 export const KinemageShapeLinesProvider = Transform({
-    name: 'sb-kinemage-shape-lines-provider',
-    display: { name: 'Kinemage Shape Lines Provider' },
-    from: PluginStateObject.Root,
-    to: PluginStateObject.Shape.Provider,
-    params: {
-        data: PD.Value<Kinemage>(undefined as any, {})
-    }
-    })({
-    apply({ params }) {
-        return Task.create('Kinemage Lines Shape Provider', async ctx => {
-            // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
-            const provider = await shapeLinesFromKin(params.data).runInContext(ctx);
-            return new PluginStateObject.Shape.Provider(provider as any, {
-              label: params.data.pdbfile || params.data.caption || 'Kinemage Lines',
-                description: params.data.text || ''
-              });
-        });
-    }
+  name: 'sb-kinemage-shape-lines-provider',
+  display: { name: 'Kinemage Shape Lines Provider' },
+  from: PluginStateObject.Format.Json,
+  to: PluginStateObject.Shape.Provider,
+  params: {}
+})({
+  apply({ a }) {
+    return Task.create('Kinemage Lines Shape Provider', async ctx => {
+      const kinData = (a.data as any).kinData as Kinemage;
+      if (!kinData) {
+        throw new Error('No kinData found in parent Format.Json node');
+      }
+
+      const provider = await shapeLinesFromKin(kinData).runInContext(ctx);
+      return new PluginStateObject.Shape.Provider(provider as any, {
+        label: kinData.pdbfile || kinData.caption || 'Kinemage Lines',
+        description: kinData.text || ''
+      });
+    });
+  }
 });
 
 export const KinemageShapeMeshProvider = Transform({
   name: 'sb-kinemage-shape-mesh-provider',
   display: { name: 'Kinemage Shape Mesh Provider' },
-  from: PluginStateObject.Root,
+  from: PluginStateObject.Format.Json,
   to: PluginStateObject.Shape.Provider,
-  params: {
-    data: PD.Value<Kinemage>(undefined as any, {})
-  }
+  params: {}
 })({
-  apply({ params }) {
+  apply({ a }) {
     return Task.create('Kinemage Mesh Shape Provider', async ctx => {
-      // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
-      const provider = await shapeMeshFromKin(params.data).runInContext(ctx);
+      const kinData = (a.data as any).kinData as Kinemage;
+      if (!kinData) {
+        throw new Error('No kinData found in parent Format.Json node');
+      }
+
+      const provider = await shapeMeshFromKin(kinData).runInContext(ctx);
       return new PluginStateObject.Shape.Provider(provider as any, {
-        label: params.data.pdbfile || params.data.caption || 'Kinemage Meshes',
-        description: params.data.text || ''
+        label: kinData.pdbfile || kinData.caption || 'Kinemage Meshes',
+        description: kinData.text || ''
       });
     });
   }
@@ -140,19 +249,21 @@ export const KinemageShapeMeshProvider = Transform({
 export const KinemageShapeSpheresProvider = Transform({
   name: 'sb-kinemage-shape-spheres-provider',
   display: { name: 'Kinemage Shape Spheres Provider' },
-  from: PluginStateObject.Root,
+  from: PluginStateObject.Format.Json,
   to: PluginStateObject.Shape.Provider,
-  params: {
-    data: PD.Value<Kinemage>(undefined as any, {})
-    }
+  params: {}
 })({
-  apply({ params }) {
+  apply({ a }) {
     return Task.create('Kinemage Spheres Shape Provider', async ctx => {
-      // shapeFromKin returns a Task that resolves to a ShapeProvider-like object
-      const provider = await shapeSpheresFromKin(params.data).runInContext(ctx);
+      const kinData = (a.data as any).kinData as Kinemage;
+      if (!kinData) {
+        throw new Error('No kinData found in parent Format.Json node');
+      }
+
+      const provider = await shapeSpheresFromKin(kinData).runInContext(ctx);
       return new PluginStateObject.Shape.Provider(provider as any, {
-        label: params.data.pdbfile || params.data.caption || 'Kinemage Spheres',
-        description: params.data.text || ''
+        label: kinData.pdbfile || kinData.caption || 'Kinemage Spheres',
+        description: kinData.text || ''
       });
     });
   }
@@ -174,7 +285,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
 
             // Register right-panel controls for Kinemage (show in the right-hand inspector)
-            // Register both as a structure-scoped control and (if available) as a global control
             this.ctx.customStructureControls.set(Tag.Representation, KinemageControls as any);
             // Some app hosts expose a global customControls registry; register there too so the card is visible
             // even when no structure is loaded. Use `any` guards to avoid type errors if customControls isn't present.
@@ -225,164 +335,97 @@ interface DragAndDropHandler {
   handle: PluginDragAndDropHandler,
 }
 
-/** Helper function to create the shapes for a kinemage */
-export async function createShapesForKinemage(plugin: PluginContext, update: StateBuilder.Root,  kinData: Kinemage) {
-  // Keep list of created selectors for this kinemage (shapes / representations etc.)
-  const createdShapeSelectors: StateObjectRef<any>[] = [];
+/** Helper function to create all shapes for a kinemage via proper transform chain */
+async function createShapesForKinemage(plugin: PluginContext, update: StateBuilder.Root, kinDataSelector: StateObjectSelector<PluginStateObject.Format.Json>) {
+  const kinDataCell = plugin.state.data.cells.get(kinDataSelector.ref);
+  if (!kinDataCell?.obj?.data) return;
 
-  // Generate all of the shapes for this kinemage, each shape type having its own provider and representation.
-  // Make all of their GUI buttons ghosted -- we'll control visibility using Kinemage master and group settings
+  const kinData = (kinDataCell.obj.data as any).kinData as Kinemage;
+  if (!kinData) return;
+
+  // Generate all shape types that have data, each as child of the selected kinemage
   if (kinData.dotLists.length > 0) {
-    const node = await update
-      .toRoot()
-      .apply(KinemageShapePointsProvider, { data: kinData }, { state: { isGhost: true } })
+    await update
+      .to(kinDataSelector)
+      .apply(KinemageShapePointsProvider, {}, { state: { isGhost: true } })
       .apply(StateTransforms.Representation.ShapeRepresentation3D);
-    createdShapeSelectors.push(node.selector as StateObjectRef<any>);
   }
   if (kinData.vectorLists.length > 0) {
-    const node = await update
-      .toRoot()
-      .apply(KinemageShapeLinesProvider, { data: kinData }, { state: { isGhost: true } })
+    await update
+      .to(kinDataSelector)
+      .apply(KinemageShapeLinesProvider, {}, { state: { isGhost: true } })
       .apply(StateTransforms.Representation.ShapeRepresentation3D);
-    createdShapeSelectors.push(node.selector as StateObjectRef<any>);
   }
   if (kinData.ribbonLists.length > 0) {
-    const node = await update
-      .toRoot()
-      .apply(KinemageShapeMeshProvider, { data: kinData }, { state: { isGhost: true } })
+    await update
+      .to(kinDataSelector)
+      .apply(KinemageShapeMeshProvider, {}, { state: { isGhost: true } })
       .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
-    createdShapeSelectors.push(node.selector as StateObjectRef<any>);
   }
   if (kinData.ballLists.length > 0) {
-    const node = await update
-      .toRoot()
-      .apply(KinemageShapeSpheresProvider, { data: kinData }, { state: { isGhost: true } })
+    await update
+      .to(kinDataSelector)
+      .apply(KinemageShapeSpheresProvider, {}, { state: { isGhost: true } })
       .apply(StateTransforms.Representation.ShapeRepresentation3D);
-    createdShapeSelectors.push(node.selector as StateObjectRef<any>);
-  }
-
-  // Store the created selector list for this kinemage so callback handlers can destroy / re-create.
-  if (createdShapeSelectors.length > 0) {
-    g_kinemageShapeSelectors.set(kinData as Kinemage, createdShapeSelectors);
   }
 }
 
-/** Helper function to destroy all previously-made shapes for a kinemage
- *  (soft remove: hide the transforms so visuals are removed from scene) */
-export async function destroyShapesForKinemage(plugin: PluginContext, kinData: Kinemage) {
-  const createdShapeSelectors = g_kinemageShapeSelectors.get(kinData as Kinemage);
-  if (!createdShapeSelectors) return;
+/** Helper function to rebuild shapes for a kinemage (remove and recreate) */
+export async function rebuildShapesForKinemage(plugin: PluginContext, kinDataSelector: StateObjectSelector<PluginStateObject.Format.Json>) {
+  // Store current camera snapshot
+  const curSnap = (plugin.canvas3d && (plugin.canvas3d as any).camera && (plugin.canvas3d as any).camera.getSnapshot)
+    ? (plugin.canvas3d as any).camera.getSnapshot()
+    : undefined;
 
-  for (const selector of createdShapeSelectors) {
-    try {
-      const ref = resolveSelectorRef(selector);
-      if (ref) {
-        // Fully remove the transform from the state tree so the nodes are gone (not just hidden).
-        // Use the plugin command so the removal is handled in the same place as other UI removals.
-        try {
-          await PluginCommands.State.RemoveObject(plugin, { state: plugin.state.data, ref, removeParentGhosts: true });
-        } catch (e) {
-          console.warn('Failed to remove state object via command, falling back to hiding', ref, e);
-          // fallback: mark transform as hidden so visuals are torn down
-          plugin.state.data.updateCellState(ref, (old: any) => {
-            const s = { ...(old || {}) };
-            s.isHidden = true;
-            return s;
-          });
-        }
-      } else if ((selector as any).destroy) {
-        // Fallback if selector object exposes destroy (unlikely for state refs)
-        (selector as any).destroy();
-      } else {
-        console.warn('Could not resolve selector to a ref for destruction', selector);
-      }
-    } catch (e) {
-      console.warn('Failed to destroy selector', selector, e);
-    }
-    // Commit canvas / repaint if needed
-    plugin.canvas3d?.commit();
-  }
-
-  g_kinemageShapeSelectors.delete(kinData as Kinemage);
-}
-
-/** Centralized helper to apply kinemage content into plugin state (re-used by drag handler and programmatic loader)
- *  It computes view snapshots and stores them on the kinemage objects (runtime-only) and then creates shapes.
- */
-async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: KinemageData) {
   const update = plugin.state.data.build();
 
-  for (const kinData of kinInfo.kinemages) {
-    // Skip kinemages we've already created shapes for
-    if (g_kinemageShapeSelectors.has(kinData)) continue;
-
-    // Precompute snapshots for views and attach them to kinData so the right-panel UI can apply them.
-    (kinData as any).viewSnapshots = (kinData as any).viewSnapshots || Object.create(null);
-    for (const [viewKey, viewObj] of Object.entries(kinData.viewDict)) {
-      //const viewName = viewObj.name || `View ${viewKey}`;
-
-      const center = Vec3.create(0, 0, 0);
-      if (viewObj.center) {
-        Vec3.set(center, viewObj.center[0], viewObj.center[1], viewObj.center[2]);
-      }
-
-      const orientation: Mat3 = Mat3.identity();
-      if (viewObj.matrix) {
-        Mat3.fromArray(orientation, viewObj.matrix, 0);
-        Mat3.transpose(orientation, orientation);
-      }
-
-      const zAxis = Vec3.create(0, 0, 1);
-      Vec3.transformMat3(zAxis, zAxis, orientation);
-
-      const yAxis = Vec3.create(0, 1, 0);
-      Vec3.transformMat3(yAxis, yAxis, orientation);
-
-      let distance = 100;
-      if (viewObj.span) {
-        distance = viewObj.span;
-      }
-      Vec3.scale(zAxis, zAxis, distance);
-      const position = Vec3.create(0, 0, 100);
-      Vec3.add(position, center, zAxis);
-
-      let radius = 100;
-      if (viewObj.zslab) {
-        const scale = viewObj.zslab / 200;
-        radius = 0.5 * distance * scale;
-      }
-
-      const snap: Camera.Snapshot = {
-        mode: 'orthographic',
-        fov: Math.PI / 4,
-        position,
-        up: yAxis,
-        target: center,
-        radius,
-        radiusMax: 1e4,
-        fog: 0,
-        clipFar: true,
-        minNear: 1,
-        minFar: 1
-      };
-
-      (kinData as any).viewSnapshots[viewKey] = snap;
+  // Remove all children of this kinemage node (shapes/representations)
+  const children = plugin.state.data.tree.children.get(kinDataSelector.ref);
+  if (children) {
+    for (const childRef of children.values()) {
+      update.delete(childRef);
     }
-
-    // Ensure runtime store contains this kinData (loadKinemageFile already appends, but be safe)
-    if (!g_kinemageData) g_kinemageData = { kinemages: [], activeKinemage: -1 };
-    if (!g_kinemageData.kinemages.includes(kinData)) {
-      g_kinemageData.kinemages.push(kinData);
-      g_kinemageData.activeKinemage = g_kinemageData.kinemages.length - 1;
-    }
-
-    // Create shapes only for this new kinemage
-    await createShapesForKinemage(plugin, update, kinData);
   }
+
+  // Recreate shapes
+  await createShapesForKinemage(plugin, update, kinDataSelector);
+  await update.commit();
+
+  // Restore camera
+  if (curSnap) {
+    try {
+      await applyViewSnapshot(plugin, curSnap);
+    } catch (e) {
+      console.warn('Failed to restore camera snapshot after recreating shapes', e);
+    }
+  }
+}
+
+/** Centralized helper to apply kinemage content into plugin state */
+async function applyKinemageToState(plugin: PluginContext, data: string, label?: string) {
+  const update = plugin.state.data.build();
+
+  // Create String data node
+  const dataNode = update
+    .toRoot()
+    .apply(StateTransforms.Data.RawData, { data, label: label || 'Kinemage File' });
+
+  // Parse into KinemageObject
+  const parsedNode = dataNode
+    .apply(ParseKinemage, { label });
+
+  // Select first kinemage (default)
+  const selectedNode = parsedNode
+    .apply(SelectKinemage, { index: 0 });
 
   await update.commit();
 
-  // helper: wait briefly until the plugin bounding sphere has non-zero radius (or timeout)
+  // Now create shapes from the selected kinemage
+  const shapeUpdate = plugin.state.data.build();
+  await createShapesForKinemage(plugin, shapeUpdate, selectedNode.selector);
+  await shapeUpdate.commit();
+
+  // Wait for bounding sphere and focus camera
   async function waitForNonEmptyBoundingSphere(plugin: PluginContext, timeoutMs = 2000, pollMs = 50) {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
@@ -395,136 +438,101 @@ async function applyKinemageInfoToState(plugin: PluginContext, kinInfo: Kinemage
     return null;
   }
 
-  // After commit, focus camera as before...
   try {
     const bs = await waitForNonEmptyBoundingSphere(plugin);
     if (bs && bs.radius > 0 && plugin.canvas3d) {
       await PluginCommands.Camera.Focus(plugin, { center: bs.center, radius: bs.radius, durationMs: 250 });
       plugin.canvas3d?.commit();
-    } else {
-      console.log('Did not get a valid bounding sphere after waiting, applying initial view snapshot without adjustment');
     }
   } catch (e) {
     console.warn('Failed to apply initial kinemage view snapshot', e);
   }
-}
 
-// Helper: robustly resolve a transform ref from different selector shapes without changing other modules.
-function resolveSelectorRef(sel: any): string | undefined {
-  if (!sel) return undefined;
-  if (typeof sel === 'string') return sel;
-  if (sel.ref && typeof sel.ref === 'string') return sel.ref;
-  if (sel.transform && typeof sel.transform.ref === 'string') return sel.transform.ref;
-  if (sel.cell && sel.cell.transform && typeof sel.cell.transform.ref === 'string') return sel.cell.transform.ref;
-  try {
-    // In case the runtime provides a utility on the ref type
-    return (StateObjectRef as any).resolveRef ? (StateObjectRef as any).resolveRef(sel as any) : undefined;
-  } catch {
-    return undefined;
-  }
+  return selectedNode.selector;
 }
 
 /** Programmatic loader: load a single File (a .kin) into the plugin state.
- * Runs the import inside a Task so it has a runtime and asset context similar to drag-and-drop.
- * Returns true if at least one Kinemage was added.
+ * Returns the ref to the selected kinemage node.
  */
-export async function loadKinemageFile(plugin: PluginContext, file: File): Promise<boolean> {
-  let applied = false;
-  const task = Task.create('Load KIN file', async ctx => {
-    const kinData = await KinemageData.open(file);
-    // Append to runtime store instead of replacing it
-    if (!g_kinemageData) {
-      g_kinemageData = { kinemages: [], activeKinemage: -1 };
-    }
-    g_kinemageData.kinemages.push(...kinData.kinemages);
-    g_kinemageData.activeKinemage = g_kinemageData.kinemages.length - 1;
-    applied = g_kinemageData.kinemages.length > 0;
-  });
-  await plugin.runTask(task);
-  return applied;
+export async function loadKinemageFile(plugin: PluginContext, file: File): Promise<StateObjectSelector<PluginStateObject.Format.Json> | undefined> {
+  const content = await file.text();
+  return await applyKinemageToState(plugin, content, file.name);
 }
 
 /** DragAndDropHandler handler for `.kin` files */
 const KinemageDragAndDropHandler: DragAndDropHandler = {
   name: 'kin',
-  /** Load .kin files. Append to previous plugin state.
-   * If multiple files are provided, append them all.
-   * Select the last-loaded one from the list.
-   * Return `true` if at least one file has been loaded. */
   async handle(files: File[], plugin: PluginContext): Promise<boolean> {
     let applied = false;
     for (const file of files) {
       if (file.name.toLowerCase().endsWith('.kin')) {
-        // reuse programmatic loader so drag & drop and programmatic loading behave the same
-        const ok = await loadKinemageFile(plugin, file);
-        applied = applied || ok;
-        if (g_kinemageData) {
-          await applyKinemageInfoToState(plugin, g_kinemageData);
-        }
+        const ref = await loadKinemageFile(plugin, file);
+        applied = applied || !!ref;
       }
     }
     return applied;
   },
 };
 
-/* Convert a string to a file if needed so that our file loader can handle it properly. */
-/// @todo Consider making the handler be able to deal with a string to avoid extra work here.
-function fileFromPayload(data: any): File {
-  // If it's already a File or wrapped File, use name + size as signature (ignore lastModified to be more robust
-  // when different File instances are created from same content).
-  if (data instanceof File) {
-    return data;
-  }
-  if (data?.input instanceof File) {
-    const f: File = data.input.file;
-    return f;
-  }
-  if (data?.data && typeof data.data === 'string') {
-    const name = data.name || 'import.kin';
-    const content = data.data as string;
-    const file = new File([content], name, { type: 'text/plain' });
-    return file;
-  }
-  if (typeof data === 'string') {
-    const file = new File([data], 'import.kin', { type: 'text/plain' });
-    return file;
-  }
-
-  // Fallback: stringify & use length + prefix
-  try {
-    const s = String(data);
-    const file = new File([s], 'import.kin', { type: 'text/plain' });
-    return file;
-  } catch {
-    // Last resort, use a unique key so we don't accidentally collide
-    const file = new File([''], 'import.kin', { type: 'text/plain' });
-    return file;
-  }
-}
-
 const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
   label: 'KIN',
   description: 'Kinemage',
   category: 'Miscellaneous',
-  // accept common casings
   stringExtensions: ['kin', 'KIN'],
   parse: async (plugin, data) => {
     try {
-      const file = fileFromPayload(data);
-      await loadKinemageFile(plugin, file);
+      // data is already a StateObjectRef to the raw data in the tree
+      // Build the transform chain from it
+      const builder = plugin.state.data.build()
+        .to(data)
+        .apply(ParseKinemage, {});
+
+      const selectedKin = builder
+        .apply(SelectKinemage, { index: 0 });
+
+      await builder.commit();
+
+      // Return the selector for the selected kinemage so visuals can use it
+      return { selectedKin: selectedKin.selector };
     } catch (e) {
       console.error('Failed to parse KIN file', e);
       throw e;
     }
-    // no persistent state object produced here (data gets applied as representations), so return undefined
-    return undefined;
   },
   visuals: async (plugin, data) => {
-    if (g_kinemageData) {
-      await applyKinemageInfoToState(plugin, g_kinemageData);
-    } else {
-      console.warn('[Kinemage] visuals: no loaded kinemage data present');
+    if (!data?.selectedKin) {
+      console.warn('[Kinemage] visuals: no selectedKin ref provided');
+      return;
     }
+
+    // Create shapes from the selected kinemage
+    const shapeBuilder = plugin.state.data.build();
+    await createShapesForKinemage(plugin, shapeBuilder, data.selectedKin);
+    await shapeBuilder.commit();
+
+    // Wait for bounding sphere and focus camera
+    async function waitForNonEmptyBoundingSphere(plugin: PluginContext, timeoutMs = 2000, pollMs = 50) {
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        try {
+          const bs = getPluginBoundingSphere(plugin);
+          if (bs && bs.radius > 0) return bs;
+        } catch { /* ignore */ }
+        await new Promise<void>(r => setTimeout(r, pollMs));
+      }
+      return null;
+    }
+
+    try {
+      const bs = await waitForNonEmptyBoundingSphere(plugin);
+      if (bs && bs.radius > 0 && plugin.canvas3d) {
+        await PluginCommands.Camera.Focus(plugin, { center: bs.center, radius: bs.radius, durationMs: 250 });
+        plugin.canvas3d?.commit();
+      }
+    } catch (e) {
+      console.warn('Failed to focus camera on kinemage', e);
+    }
+
     return undefined;
   }
 });
