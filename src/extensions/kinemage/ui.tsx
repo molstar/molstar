@@ -189,11 +189,14 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
       for (const [groupKey, groupInfo] of Object.entries(kinData.groupDict || {})) {
         if (!(groupInfo as any).nobutton) {
           const visible = !(groupInfo as any).off;
+          // If this group is in animate or animate2, then add '*' before its groupKey name to indicate that it's an animation group
+          const isAnimate = kinData.groupsAnimate?.includes(groupKey) || kinData.groupsAnimate2?.includes(groupKey);
+          const label = isAnimate ? `* ${groupKey}` : groupKey;
           kinBlock.push(
             <div key={'group-' + title + '-' + groupKey} className='msp-row'>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <input type='checkbox' checked={visible} onChange={() => this.toggleVisibility(kinData, ref, { type: 'group', key: groupKey })} />
-                <span>{groupKey}</span>
+                <span>{label}</span>
               </label>
             </div>
           );
