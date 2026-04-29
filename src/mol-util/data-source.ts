@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -34,7 +34,7 @@ export interface AjaxGetParams<T extends DataType = 'string'> {
     url: string,
     type?: T,
     title?: string,
-    headers?: [string, string][],
+    headers?: Record<string, string>,
     body?: string
 }
 
@@ -250,7 +250,7 @@ function getRequestResponseType(type: DataType): XMLHttpRequestResponseType {
     }
 }
 
-function ajaxGetInternal<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: [string, string][]): Task<DataResponse<T>> {
+function ajaxGetInternal<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: Record<string, string>): Task<DataResponse<T>> {
     if (RUNNING_IN_NODEJS) {
         if (url.startsWith('file://')) {
             return ajaxGetInternal_file_NodeJS(title, url, type, body, headers);
@@ -265,7 +265,7 @@ function ajaxGetInternal<T extends DataType>(title: string | undefined, url: str
 
         xhttp.open(body ? 'post' : 'get', url, true);
         if (headers) {
-            for (const [name, value] of headers) {
+            for (const [name, value] of Object.entries(headers)) {
                 xhttp.setRequestHeader(name, value);
             }
         }
@@ -311,7 +311,7 @@ function readFileAsync(filename: string): Promise<NonSharedBuffer> {
 }
 
 /** Alternative implementation of ajaxGetInternal for NodeJS for file:// protocol */
-function ajaxGetInternal_file_NodeJS<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: [string, string][]): Task<DataResponse<T>> {
+function ajaxGetInternal_file_NodeJS<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: Record<string, string>): Task<DataResponse<T>> {
     if (!RUNNING_IN_NODEJS) throw new Error('This function should only be used when running in Node.js');
     if (!url.startsWith('file://')) throw new Error('This function is only for URLs with protocol file://');
 
@@ -327,13 +327,18 @@ function ajaxGetInternal_file_NodeJS<T extends DataType>(title: string | undefin
 }
 
 /** Alternative implementation of ajaxGetInternal for NodeJS for http(s):// protocol */
-function ajaxGetInternal_http_NodeJS<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: [string, string][]): Task<DataResponse<T>> {
+function ajaxGetInternal_http_NodeJS<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: Record<string, string>): Task<DataResponse<T>> {
     if (!RUNNING_IN_NODEJS) throw new Error('This function should only be used when running in Node.js');
 
     const aborter = new AbortController();
     return Task.create(title ?? 'Download', async ctx => {
         await ctx.update({ message: 'Downloading...', canAbort: true });
-        const response = await fetch(url, { signal: aborter.signal });
+        const response = await fetch(url, {
+            signal: aborter.signal,
+            method: body ? 'POST' : 'GET',
+            body,
+            headers
+        });
         if (!(response.status >= 200 && response.status < 400)) {
             throw new Error(`Download failed with status code ${response.status}`);
         }

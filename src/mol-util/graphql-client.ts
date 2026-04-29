@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -57,9 +57,12 @@ export class GraphQLClient {
     constructor(private url: string, private assetManager: AssetManager) { }
 
     async request(ctx: RuntimeContext, query: string, variables?: Variables): Promise<Asset.Wrapper<'json'>> {
-
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Accept': 'application/json',
+        };
         const body = JSON.stringify({ query, variables }, null, 2);
-        const url = Asset.getUrlAsset(this.assetManager, this.url, body);
+        const url = Asset.getUrlAsset(this.assetManager, this.url, body, headers);
         const result = await this.assetManager.resolve(url, 'json').runInContext(ctx);
 
         if (!result.data.errors && result.data.data) {
