@@ -34,6 +34,8 @@ import { applySubstanceMaterial, clearSubstance, createSubstance } from '../mol-
 import { LocationCallback } from './util';
 import { Emissive } from '../mol-theme/emissive';
 import { applyEmissiveValue, clearEmissive, createEmissive, getEmissiveAverage } from '../mol-geo/geometry/emissive-data';
+import { Wiggle } from '../mol-theme/wiggle';
+import { applyWiggleValue, clearWiggle, createWiggle, getWiggleAverage } from '../mol-geo/geometry/wiggle-data';
 
 export interface VisualContext {
     readonly runtime: RuntimeContext
@@ -60,7 +62,8 @@ interface Visual<D, P extends PD.Params> {
     setEmissive: (emissive: Emissive, webgl?: WebGLContext) => void
     setSubstance: (substance: Substance, webgl?: WebGLContext) => void
     setClipping: (clipping: Clipping) => void
-    setThemeStrength: (strength: { overpaint: number, transparency: number, emissive: number, substance: number }) => void
+    setWiggle: (wiggle: Wiggle, webgl?: WebGLContext) => void
+    setThemeStrength: (strength: { overpaint: number, transparency: number, emissive: number, substance: number, wiggle: number }) => void
     destroy: () => void
     mustRecreate?: (data: D, props: PD.Values<P>, webgl?: WebGLContext) => boolean
 }
@@ -410,12 +413,44 @@ namespace Visual {
         ValueCell.updateIfChanged(dClipping, clipping.layers.length > 0);
     }
 
-    export function setThemeStrength(renderObject: GraphicsRenderObject | undefined, strength: { overpaint: number, transparency: number, emissive: number, substance: number }) {
+    export function setWiggle(renderObject: GraphicsRenderObject | undefined, wiggle: Wiggle, lociApply: LociApply, clear: boolean) {
+        if (!renderObject) return;
+
+        const { tWiggle, dWiggleType, wiggleAverage, dWiggle, uGroupCount, instanceCount, instanceGranularity: instanceGranularity } = renderObject.values;
+        const count = instanceGranularity.ref.value
+            ? instanceCount.ref.value
+            : uGroupCount.ref.value * instanceCount.ref.value;
+
+        // ensure texture has right size and type
+        const type = instanceGranularity.ref.value ? 'instance' : 'groupInstance';
+        createWiggle(wiggle.layers.length ? count : 0, type, renderObject.values);
+        const { array } = tWiggle.ref.value;
+
+        // clear if requested
+        if (clear) clearWiggle(array, 0, count);
+
+        for (let i = 0, il = wiggle.layers.length; i < il; ++i) {
+            const { loci, value } = wiggle.layers[i];
+            const apply = (interval: Interval) => {
+                const start = Interval.start(interval);
+                const end = Interval.end(interval);
+                return applyWiggleValue(array, start, end, value);
+            };
+            lociApply(loci, apply, false);
+        }
+        ValueCell.update(tWiggle, tWiggle.ref.value);
+        ValueCell.updateIfChanged(wiggleAverage, getWiggleAverage(array, count));
+        ValueCell.updateIfChanged(dWiggleType, type);
+        ValueCell.updateIfChanged(dWiggle, wiggle.layers.length > 0);
+    }
+
+    export function setThemeStrength(renderObject: GraphicsRenderObject | undefined, strength: { overpaint: number, transparency: number, emissive: number, substance: number, wiggle: number }) {
         if (renderObject) {
             ValueCell.updateIfChanged(renderObject.values.uOverpaintStrength, strength.overpaint);
             ValueCell.updateIfChanged(renderObject.values.uTransparencyStrength, strength.transparency);
             ValueCell.updateIfChanged(renderObject.values.uEmissiveStrength, strength.emissive);
             ValueCell.updateIfChanged(renderObject.values.uSubstanceStrength, strength.substance);
+            ValueCell.updateIfChanged(renderObject.values.uWiggleStrength, strength.wiggle);
         }
     }
 

@@ -30,6 +30,7 @@ import { isPromiseLike } from '../../mol-util/type-helpers';
 import { Substance } from '../../mol-theme/substance';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
 import { Emissive } from '../../mol-theme/emissive';
+import { Wiggle } from '../../mol-theme/wiggle';
 import { SizeTheme } from '../../mol-theme/size';
 import { Sphere3D } from '../../mol-math/geometry/primitives/sphere3d';
 import { BaseGeometry } from '../../mol-geo/geometry/base';
@@ -349,7 +350,10 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         setClipping(clipping: Clipping) {
             return Visual.setClipping(renderObject, clipping, lociApply, true);
         },
-        setThemeStrength(strength: { overpaint: number, transparency: number, emissive: number, substance: number }) {
+        setWiggle(wiggle: Wiggle) {
+            return Visual.setWiggle(renderObject, wiggle, lociApply, true);
+        },
+        setThemeStrength(strength: { overpaint: number, transparency: number, emissive: number, substance: number, wiggle: number }) {
             Visual.setThemeStrength(renderObject, strength);
         },
         destroy() {

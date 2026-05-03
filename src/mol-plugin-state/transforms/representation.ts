@@ -45,6 +45,7 @@ import { Material } from '../../mol-util/material';
 import { lerp } from '../../mol-math/interpolate';
 import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { Emissive } from '../../mol-theme/emissive';
+import { Wiggle } from '../../mol-theme/wiggle';
 
 export { StructureRepresentation3D };
 export { ExplodeStructureRepresentation3D };
@@ -60,6 +61,8 @@ export { SubstanceStructureRepresentation3DFromScript };
 export { SubstanceStructureRepresentation3DFromBundle };
 export { ClippingStructureRepresentation3DFromScript };
 export { ClippingStructureRepresentation3DFromBundle };
+export { WiggleStructureRepresentation3DFromScript };
+export { WiggleStructureRepresentation3DFromBundle };
 export { ThemeStrengthRepresentation3D };
 export { VolumeRepresentation3D };
 
@@ -862,6 +865,109 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
     }
 });
 
+type WiggleStructureRepresentation3DFromScript = typeof WiggleStructureRepresentation3DFromScript
+const WiggleStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn({
+    name: 'wiggle-structure-representation-3d-from-script',
+    display: 'Wiggle 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: () => ({
+        layers: PD.ObjectList({
+            script: PD.Script(Script('(sel.atom.all)', 'mol-script')),
+            value: PD.Numeric(5, { min: 0, max: 1, step: 0.01 }, { label: 'Wiggle' }),
+        }, e => `Wiggle (${e.value})`, {
+            defaultValue: [{
+                script: Script('(sel.atom.all)', 'mol-script'),
+                value: 1,
+            }]
+        })
+    })
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const structure = a.data.sourceData;
+        const geometryVersion = a.data.repr.geometryVersion;
+        const wiggle = Wiggle.ofScript(params.layers, structure);
+
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { wiggle },
+            initialState: { wiggle: Wiggle.Empty },
+            info: { structure, geometryVersion },
+            repr: a.data.repr
+        }, { label: `Wiggle (${wiggle.layers.length} Layers)` });
+    },
+    update({ a, b, newParams, oldParams }) {
+        const info = b.data.info as { structure: Structure, geometryVersion: number };
+        const newStructure = a.data.sourceData;
+        if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
+
+        const oldWiggle = b.data.state.wiggle!;
+        const newWiggle = Wiggle.ofScript(newParams.layers, newStructure);
+        if (Wiggle.areEqual(oldWiggle, newWiggle)) return StateTransformer.UpdateResult.Unchanged;
+
+        info.geometryVersion = a.data.repr.geometryVersion;
+        b.data.state.wiggle = newWiggle;
+        b.data.repr = a.data.repr;
+        b.label = `Wiggle (${newWiggle.layers.length} Layers)`;
+        return StateTransformer.UpdateResult.Updated;
+    }
+});
+
+type WiggleStructureRepresentation3DFromBundle = typeof WiggleStructureRepresentation3DFromBundle
+const WiggleStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn({
+    name: 'wiggle-structure-representation-3d-from-bundle',
+    display: 'Wiggle 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: () => ({
+        layers: PD.ObjectList({
+            bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
+            value: PD.Numeric(5, { min: 0, max: 1, step: 0.01 }, { label: 'Wiggle' }),
+        }, e => `Wiggle (${e.value})`, {
+            defaultValue: [{
+                bundle: StructureElement.Bundle.Empty,
+                value: 1,
+            }],
+            isHidden: true
+        })
+    })
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const structure = a.data.sourceData;
+        const geometryVersion = a.data.repr.geometryVersion;
+        const wiggle = Wiggle.ofBundle(params.layers, structure);
+
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { wiggle },
+            initialState: { wiggle: Wiggle.Empty },
+            info: { structure, geometryVersion },
+            repr: a.data.repr
+        }, { label: `Wiggle (${wiggle.layers.length} Layers)` });
+    },
+    update({ a, b, newParams, oldParams }) {
+        const info = b.data.info as { structure: Structure, geometryVersion: number };
+        const newStructure = a.data.sourceData;
+        if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
+
+        const oldWiggle = b.data.state.wiggle!;
+        const newWiggle = Wiggle.ofBundle(newParams.layers, newStructure);
+        if (Wiggle.areEqual(oldWiggle, newWiggle)) return StateTransformer.UpdateResult.Unchanged;
+
+        info.geometryVersion = a.data.repr.geometryVersion;
+        b.data.state.wiggle = newWiggle;
+        b.data.repr = a.data.repr;
+        b.label = `Wiggle (${newWiggle.layers.length} Layers)`;
+        return StateTransformer.UpdateResult.Updated;
+    }
+});
+
 type ThemeStrengthRepresentation3D = typeof ThemeStrengthRepresentation3D
 const ThemeStrengthRepresentation3D = PluginStateTransform.BuiltIn({
     name: 'theme-strength-representation-3d',
@@ -873,6 +979,7 @@ const ThemeStrengthRepresentation3D = PluginStateTransform.BuiltIn({
         transparencyStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
         emissiveStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
         substanceStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+        wiggleStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
     })
 })({
     canAutoUpdate() {
@@ -885,21 +992,23 @@ const ThemeStrengthRepresentation3D = PluginStateTransform.BuiltIn({
                     overpaint: params.overpaintStrength,
                     transparency: params.transparencyStrength,
                     emissive: params.emissiveStrength,
-                    substance: params.substanceStrength
+                    substance: params.substanceStrength,
+                    wiggle: params.wiggleStrength,
                 },
             },
             initialState: {
-                themeStrength: { overpaint: 1, transparency: 1, emissive: 1, substance: 1 },
+                themeStrength: { overpaint: 1, transparency: 1, emissive: 1, substance: 1, wiggle: 1 },
             },
             info: { },
             repr: a.data.repr
-        }, { label: 'Theme Strength', description: `${params.overpaintStrength.toFixed(2)}, ${params.transparencyStrength.toFixed(2)}, ${params.emissiveStrength.toFixed(2)}, ${params.substanceStrength.toFixed(2)}` });
+        }, { label: 'Theme Strength', description: `${params.overpaintStrength.toFixed(2)}, ${params.transparencyStrength.toFixed(2)}, ${params.emissiveStrength.toFixed(2)}, ${params.substanceStrength.toFixed(2)}, ${params.wiggleStrength.toFixed(2)}` });
     },
     update({ a, b, newParams, oldParams }) {
         if (newParams.overpaintStrength === b.data.state.themeStrength?.overpaint &&
             newParams.transparencyStrength === b.data.state.themeStrength?.transparency &&
             newParams.emissiveStrength === b.data.state.themeStrength?.emissive &&
-            newParams.substanceStrength === b.data.state.themeStrength?.substance
+            newParams.substanceStrength === b.data.state.themeStrength?.substance &&
+            newParams.wiggleStrength === b.data.state.themeStrength?.wiggle
         ) return StateTransformer.UpdateResult.Unchanged;
 
         b.data.state.themeStrength = {
@@ -907,10 +1016,11 @@ const ThemeStrengthRepresentation3D = PluginStateTransform.BuiltIn({
             transparency: newParams.transparencyStrength,
             emissive: newParams.emissiveStrength,
             substance: newParams.substanceStrength,
+            wiggle: newParams.wiggleStrength,
         };
         b.data.repr = a.data.repr;
         b.label = 'Theme Strength';
-        b.description = `${newParams.overpaintStrength.toFixed(2)}, ${newParams.transparencyStrength.toFixed(2)}, ${newParams.emissiveStrength.toFixed(2)}, ${newParams.substanceStrength.toFixed(2)}`;
+        b.description = `${newParams.overpaintStrength.toFixed(2)}, ${newParams.transparencyStrength.toFixed(2)}, ${newParams.emissiveStrength.toFixed(2)}, ${newParams.substanceStrength.toFixed(2)}, ${newParams.wiggleStrength.toFixed(2)}`;
         return StateTransformer.UpdateResult.Updated;
     },
     interpolate(src, tar, t) {
@@ -919,6 +1029,7 @@ const ThemeStrengthRepresentation3D = PluginStateTransform.BuiltIn({
             transparencyStrength: lerp(src.transparencyStrength, tar.transparencyStrength, t),
             emissiveStrength: lerp(src.emissiveStrength, tar.emissiveStrength, t),
             substanceStrength: lerp(src.substanceStrength, tar.substanceStrength, t),
+            wiggleStrength: lerp(src.wiggleStrength, tar.wiggleStrength, t),
         };
     }
 });

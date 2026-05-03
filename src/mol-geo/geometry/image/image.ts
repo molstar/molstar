@@ -28,6 +28,7 @@ import { NullLocation } from '../../../mol-model/location';
 import { QuadPositions } from '../../../mol-gl/compute/util';
 import { createEmptySubstance } from '../substance-data';
 import { createEmptyEmissive } from '../emissive-data';
+import { createEmptyWiggle } from '../wiggle-data';
 
 const QuadIndices = new Uint32Array([
     0, 1, 2,
@@ -208,6 +209,7 @@ namespace Image {
         const emissive = createEmptyEmissive();
         const material = createEmptySubstance();
         const clipping = createEmptyClipping();
+        const wiggle = createEmptyWiggle();
 
         const counts = { drawCount: QuadIndices.length, vertexCount: QuadPositions.length / 3, groupCount, instanceCount };
 
@@ -224,6 +226,7 @@ namespace Image {
             ...emissive,
             ...material,
             ...clipping,
+            ...wiggle,
             ...transform,
             ...BaseGeometry.createValues(props, counts),
 

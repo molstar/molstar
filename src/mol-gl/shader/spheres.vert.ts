@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,6 +14,7 @@ precision highp int;
 #include color_vert_params
 #include size_vert_params
 #include common_clip
+#include common_animation
 
 uniform mat4 uModelView;
 uniform mat4 uInvProjection;
@@ -68,7 +69,7 @@ const mat4 D = mat4(
  * "GPU-Based Ray-Casting of Quadratic Surfaces" http://dl.acm.org/citation.cfm?id=2386396
  * by Christian Sigg, Tim Weyrich, Mario Botsch, Markus Gross.
  */
-void quadraticProjection(const in vec3 position, const in float radius, const in vec2 mapping) {
+void quadraticProjection(const in vec3 position, const in float radius, const in vec2 mapping, const in mat4 transform) {
     vec2 xbc, ybc;
 
     mat4 T = mat4(
@@ -78,7 +79,7 @@ void quadraticProjection(const in vec3 position, const in float radius, const in
         position.x, position.y, position.z, 1.0
     );
 
-    mat4 R = transpose4(uProjection * uModelView * aTransform * T);
+    mat4 R = transpose4(uProjection * uModelView * transform * T);
     float A = dot(R[3], D * R[3]);
     float B = -2.0 * dot(R[0], D * R[3]);
     float C = dot(R[0], D * R[0]);
@@ -119,6 +120,9 @@ void main(void){
     vec3 position = positionGroup.rgb;
     float group = positionGroup.a;
 
+    position = applyWiggle(position, group, aInstance);
+    mat4 transform = applyTumble(aTransform, aInstance, float(uObjectId));
+
     #include assign_color_varying
     #include assign_marker_varying
     #include assign_clipping_varying
@@ -127,7 +131,7 @@ void main(void){
     vRadius = size * uModelScale;
 
     vec4 position4 = vec4(position, 1.0);
-    vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
+    vModelPosition = (uModel * transform * position4).xyz; // for clipping in frag shader
 
     float d;
     if (uLod.w != 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
@@ -143,7 +147,7 @@ void main(void){
         }
     }
 
-    vec4 mvPosition = uModelView * aTransform * position4;
+    vec4 mvPosition = uModelView * transform * position4;
 
     #ifdef dApproximate
         vec4 mvCorner = vec4(mvPosition.xyz, 1.0);
@@ -156,7 +160,7 @@ void main(void){
             gl_Position = uProjection * mvCorner;
         } else if (uIsAsymmetricProjection) {
             gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
-            quadraticProjection(position, vRadius / uModelScale, mapping);
+            quadraticProjection(position, vRadius / uModelScale, mapping, transform);
         } else {
             gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
             sphereProjection(mvPosition.xyz, vRadius, mapping);

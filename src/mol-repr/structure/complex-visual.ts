@@ -40,6 +40,7 @@ import { isPromiseLike } from '../../mol-util/type-helpers';
 import { Substance } from '../../mol-theme/substance';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { Emissive } from '../../mol-theme/emissive';
+import { Wiggle } from '../../mol-theme/wiggle';
 import { Points } from '../../mol-geo/geometry/points/points';
 import { Image } from '../../mol-geo/geometry/image/image';
 
@@ -324,7 +325,10 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         setClipping(clipping: Clipping) {
             Visual.setClipping(renderObject, clipping, lociApply, true);
         },
-        setThemeStrength(strength: { overpaint: number, transparency: number, emissive: number, substance: number }) {
+        setWiggle(wiggle: Wiggle, webgl?: WebGLContext) {
+            Visual.setWiggle(renderObject, wiggle, lociApply, true);
+        },
+        setThemeStrength(strength: { overpaint: number, transparency: number, emissive: number, substance: number, wiggle: number }) {
             Visual.setThemeStrength(renderObject, strength);
         },
         destroy() {

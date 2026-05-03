@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,6 +14,7 @@ precision highp int;
 #include color_vert_params
 #include size_vert_params
 #include common_clip
+#include common_animation
 
 uniform float uPixelRatio;
 uniform vec4 uViewport;

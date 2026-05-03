@@ -29,6 +29,7 @@ import { createEmptyClipping } from '../clipping-data';
 import { Grid } from '../../../mol-model/volume';
 import { createEmptySubstance } from '../substance-data';
 import { createEmptyEmissive } from '../emissive-data';
+import { createEmptyWiggle } from '../wiggle-data';
 
 const VolumeBox = Box();
 
@@ -235,6 +236,7 @@ export namespace DirectVolume {
         const emissive = createEmptyEmissive();
         const material = createEmptySubstance();
         const clipping = createEmptyClipping();
+        const wiggle = createEmptyWiggle();
 
         const [x, y, z] = gridDimension.ref.value;
         const counts = { drawCount: VolumeBox.indices.length, vertexCount: x * y * z, groupCount, instanceCount };
@@ -255,6 +257,7 @@ export namespace DirectVolume {
             ...emissive,
             ...material,
             ...clipping,
+            ...wiggle,
             ...transform,
             ...BaseGeometry.createValues(props, counts),
 

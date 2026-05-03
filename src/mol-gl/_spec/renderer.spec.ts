@@ -52,7 +52,7 @@ describe('renderer', () => {
         scene.add(points);
         scene.commit();
         expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 4 : 5);
-        expect(ctx.stats.resourceCounts.texture).toBe(10);
+        expect(ctx.stats.resourceCounts.texture).toBe(11);
         expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 5 : 0);
         expect(ctx.stats.resourceCounts.program).toBe(5);
         expect(ctx.stats.resourceCounts.shader).toBe(10);
@@ -89,7 +89,7 @@ describe('renderer', () => {
         sceneDpoit.commit();
 
         expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 12 : 15);
-        expect(ctx.stats.resourceCounts.texture).toBe(28);
+        expect(ctx.stats.resourceCounts.texture).toBe(31);
         expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 15 : 0);
         expect(ctx.stats.resourceCounts.program).toBe(7);
         expect(ctx.stats.resourceCounts.shader).toBe(14);

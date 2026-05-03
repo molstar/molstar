@@ -115,12 +115,13 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         if (state.emissive !== undefined && visual) visual.setEmissive(state.emissive);
         if (state.substance !== undefined && visual) visual.setSubstance(state.substance);
         if (state.clipping !== undefined && visual) visual.setClipping(state.clipping);
+        if (state.wiggle !== undefined && visual) visual.setWiggle(state.wiggle);
         if (state.transform !== undefined && visual) visual.setTransform(state.transform);
         if (state.themeStrength !== undefined && visual) visual.setThemeStrength(state.themeStrength);
     }
 
     function setState(state: Partial<Representation.State>) {
-        const { visible, alphaFactor, pickable, overpaint, transparency, emissive, substance, clipping, transform, themeStrength, syncManually, markerActions } = state;
+        const { visible, alphaFactor, pickable, overpaint, transparency, emissive, substance, clipping, wiggle, transform, themeStrength, syncManually, markerActions } = state;
         const newState: Partial<Representation.State> = {};
 
         if (visible !== undefined) newState.visible = visible;
@@ -131,6 +132,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         if (emissive !== undefined) newState.emissive = emissive;
         if (substance !== undefined) newState.substance = substance;
         if (clipping !== undefined) newState.clipping = clipping;
+        if (wiggle !== undefined) newState.wiggle = wiggle;
         if (themeStrength !== undefined) newState.themeStrength = themeStrength;
         if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) {
             newState.transform = transform;

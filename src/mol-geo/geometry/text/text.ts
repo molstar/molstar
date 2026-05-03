@@ -33,6 +33,7 @@ import { GroupMapping, createGroupMapping } from '../../util';
 import { createEmptyClipping } from '../clipping-data';
 import { createEmptySubstance } from '../substance-data';
 import { createEmptyEmissive } from '../emissive-data';
+import { createEmptyWiggle } from '../wiggle-data';
 
 type TextAttachment = (
     'bottom-left' | 'bottom-center' | 'bottom-right' |
@@ -226,6 +227,7 @@ export namespace Text {
         const emissive = createEmptyEmissive();
         const substance = createEmptySubstance();
         const clipping = createEmptyClipping();
+        const wiggle = createEmptyWiggle();
 
         const counts = { drawCount: text.charCount * 2 * 3, vertexCount: text.charCount * 4, groupCount, instanceCount };
 
@@ -253,6 +255,7 @@ export namespace Text {
             ...emissive,
             ...substance,
             ...clipping,
+            ...wiggle,
             ...transform,
 
             aTexCoord: text.tcoordBuffer,

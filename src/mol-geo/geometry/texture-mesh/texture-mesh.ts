@@ -28,7 +28,9 @@ import { createEmptySubstance } from '../substance-data';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { createEmptyEmissive } from '../emissive-data';
+import { createEmptyWiggle } from '../wiggle-data';
 import { createInteriorValues, getInteriorParam, updateInteriorValues } from '../interior';
+import { getAnimationParam, createAnimationValues, updateAnimationValues } from '../animation';
 
 export interface TextureMesh {
     readonly kind: 'texture-mesh',
@@ -130,6 +132,7 @@ export namespace TextureMesh {
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
         bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
         interior: getInteriorParam(),
+        animation: getAnimationParam(),
     };
     export type Params = typeof Params
 
@@ -208,6 +211,7 @@ export namespace TextureMesh {
         const emissive = createEmptyEmissive();
         const substance = createEmptySubstance();
         const clipping = createEmptyClipping();
+        const wiggle = createEmptyWiggle();
 
         const counts = { drawCount: textureMesh.vertexCount, vertexCount: textureMesh.vertexCount, groupCount, instanceCount };
 
@@ -234,6 +238,7 @@ export namespace TextureMesh {
             ...emissive,
             ...substance,
             ...clipping,
+            ...wiggle,
             ...transform,
 
             ...BaseGeometry.createValues(props, counts),
@@ -250,6 +255,7 @@ export namespace TextureMesh {
             meta: ValueCell.create(textureMesh.meta),
 
             ...createInteriorValues(props.interior),
+            ...createAnimationValues(props.animation),
         };
     }
 
@@ -271,6 +277,7 @@ export namespace TextureMesh {
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
         ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
         updateInteriorValues(values, props.interior);
+        updateAnimationValues(values, props.animation);
     }
 
     function updateBoundingSphere(values: TextureMeshValues, textureMesh: TextureMesh) {

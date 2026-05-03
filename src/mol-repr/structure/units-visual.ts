@@ -44,6 +44,7 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isPromiseLike } from '../../mol-util/type-helpers';
 import { Substance } from '../../mol-theme/substance';
 import { Emissive } from '../../mol-theme/emissive';
+import { Wiggle } from '../../mol-theme/wiggle';
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 
@@ -411,7 +412,10 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         setClipping(clipping: Clipping) {
             Visual.setClipping(renderObject, clipping, lociApply, true);
         },
-        setThemeStrength(strength: { overpaint: number, transparency: number, emissive: number, substance: number }) {
+        setWiggle(wiggle: Wiggle, webgl?: WebGLContext) {
+            Visual.setWiggle(renderObject, wiggle, lociApply, true);
+        },
+        setThemeStrength(strength: { overpaint: number, transparency: number, emissive: number, substance: number, wiggle: number }) {
             Visual.setThemeStrength(renderObject, strength);
         },
         destroy() {

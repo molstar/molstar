@@ -4,12 +4,23 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+
+## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty
 - Add 8K UHD option to `ViewportScreenshotHelper`
 - Handle MRC files with empty length header fields
 - Handle CCD bonds with Deuterium atoms
 - [Breaking] ComponentBond.Entry.map now returns ComponentBond.Pairs
 - Fix volume slice marking performance regression
+- Add GPU procedural animation (wiggle & tumble)
+    - Per-vertex wiggle via fbm noise (position & group mode)
+    - Per-instance tumble via fbm noise (rotation + translation)
+    - `Wiggle` theme layer for data-driven per-group wiggle
+    - `enableAnimation` Canvas3D param for global toggle
+- Add `AnimateTime` built-in for, e.g., exporting procedural animation
+- Add Procedural Animation panels
+    - Viewer: structure dynamics & uncertainty
+    - Mesoscale Explorer: entity dynamics
 - Fix `GraphQLClient` missing required headers
 - [Breaking] Use Record instead of Array for headers (assets & data-source utils)
 

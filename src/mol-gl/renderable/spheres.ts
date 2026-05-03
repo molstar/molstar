@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem, Transparency } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, Values, InternalSchema, SizeSchema, InternalValues, ValueSpec, DefineSpec, GlobalTextureSchema, UniformSpec, TextureSpec, GlobalDefineValues, GlobalDefines, GlobalDefineSchema, InteriorSchema } from './schema';
+import { GlobalUniformSchema, BaseSchema, Values, InternalSchema, SizeSchema, InternalValues, ValueSpec, DefineSpec, GlobalTextureSchema, UniformSpec, TextureSpec, GlobalDefineValues, GlobalDefines, GlobalDefineSchema, InteriorSchema, AnimationSchema } from './schema';
 import { SpheresShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
 
@@ -36,6 +36,7 @@ export const SpheresSchema = {
     groupBuffer: ValueSpec('float32'),
 
     ...InteriorSchema,
+    ...AnimationSchema,
 };
 export type SpheresSchema = typeof SpheresSchema
 export type SpheresValues = Values<SpheresSchema>

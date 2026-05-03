@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -63,6 +63,7 @@ interface Renderer {
     clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean, forceToTransparency?: boolean) => void
     clearDepth: (packed?: boolean) => void
     update: (camera: ICamera, scene: Scene) => void
+    setTime: (time: number) => void
 
     renderPick: (group: Scene.Group, camera: ICamera, variant: 'pick' | 'depth', pickType: PickType) => void
     renderDepth: (group: Scene.Group, camera: ICamera) => void
@@ -121,6 +122,8 @@ export const RendererParams = {
     }] }),
     ambientColor: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),
     ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 2.0, step: 0.01 }),
+
+    enableAnimation: PD.Boolean(true, { description: 'Enable time-based animations.' }),
 };
 export type RendererProps = PD.Values<typeof RendererParams>
 
@@ -277,6 +280,9 @@ namespace Renderer {
             uXrayEdgeFalloff: ValueCell.create(p.xrayEdgeFalloff),
             uCelSteps: ValueCell.create(p.celSteps),
             uExposure: ValueCell.create(p.exposure),
+
+            uTime: ValueCell.create(0),
+            uEnableAnimation: ValueCell.create(p.enableAnimation),
         };
         const globalUniformList = Object.entries(globalUniforms);
 
@@ -829,6 +835,9 @@ namespace Renderer {
             renderWboitTransparent,
             renderDpoitTransparent,
 
+            setTime: (time: number) => {
+                ValueCell.updateIfChanged(globalUniforms.uTime, time);
+            },
             setProps: (props: Partial<RendererProps>) => {
                 if (props.backgroundColor !== undefined && props.backgroundColor !== p.backgroundColor) {
                     p.backgroundColor = props.backgroundColor;
@@ -903,6 +912,11 @@ namespace Renderer {
                     p.ambientIntensity = props.ambientIntensity;
                     Vec3.scale(ambientColor, Color.toArrayNormalized(p.ambientColor, ambientColor, 0), p.ambientIntensity);
                     ValueCell.update(globalUniforms.uAmbientColor, ambientColor);
+                }
+
+                if (props.enableAnimation !== undefined && props.enableAnimation !== p.enableAnimation) {
+                    p.enableAnimation = props.enableAnimation;
+                    ValueCell.update(globalUniforms.uEnableAnimation, p.enableAnimation);
                 }
             },
             setViewport: (x: number, y: number, width: number, height: number) => {
