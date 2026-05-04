@@ -187,12 +187,17 @@ function degToRad(value: number) {
 }
 
 function relionEulerToRotation(out: Mat4, rot: number, tilt: number, psi: number) {
+    // RELION's `Euler_angles2matrix(rot, tilt, psi)` (a.k.a. pyEM `euler2matrix`)
+    // is the rotation that places the reference at the particle's orientation
+    // in the tomogram. As a composition: A = (Rz(rot) Ry(tilt) Rz(psi))^T,
+    // i.e. the transpose of the standard intrinsic ZYZ active matrix.
     const rotZ = Mat4.fromRotation(Mat4(), degToRad(rot), Vec3.unitZ);
     const tiltY = Mat4.fromRotation(Mat4(), degToRad(tilt), Vec3.unitY);
     const psiZ = Mat4.fromRotation(Mat4(), degToRad(psi), Vec3.unitZ);
 
-    Mat4.mul(out, tiltY, rotZ);
-    Mat4.mul(out, psiZ, out);
+    Mat4.mul(out, tiltY, psiZ);
+    Mat4.mul(out, rotZ, out);
+    Mat4.transpose(out, out);
     return out;
 }
 

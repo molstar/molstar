@@ -72,13 +72,17 @@ _rlnTomoSubtomogramPsi
     expect(particleList.particles[0].metadata).toMatchObject({ subtomogramRot: 10, subtomogramTilt: 20, subtomogramPsi: 30 });
     expect(particleList.particles[0].originRotation).toBeDefined();
     const rotatedX = Vec3.transformMat4(Vec3(), Vec3.create(1, 0, 0), particleList.particles[0].originRotation!);
-    const expectedRotation = Mat4.mul(
+    // RELION's matrix is the transpose of intrinsic ZYZ active: A = (Rz(rot) Ry(tilt) Rz(psi))^T.
+    const expectedRotation = Mat4.transpose(
         Mat4(),
-        Mat4.fromRotation(Mat4(), 30 * Math.PI / 180, Vec3.unitZ),
         Mat4.mul(
             Mat4(),
-            Mat4.fromRotation(Mat4(), 20 * Math.PI / 180, Vec3.unitY),
-            Mat4.fromRotation(Mat4(), 10 * Math.PI / 180, Vec3.unitZ)
+            Mat4.fromRotation(Mat4(), 10 * Math.PI / 180, Vec3.unitZ),
+            Mat4.mul(
+                Mat4(),
+                Mat4.fromRotation(Mat4(), 20 * Math.PI / 180, Vec3.unitY),
+                Mat4.fromRotation(Mat4(), 30 * Math.PI / 180, Vec3.unitZ)
+            )
         )
     );
     const expectedX = Vec3.transformMat4(Vec3(), Vec3.create(1, 0, 0), expectedRotation);
