@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Add HFF (EMDB-SFF / HDF5) format support
+    - Vendor jsfive HDF5 reader (public domain) under `mol-io/common/h5`
+    - Add `inflateSync` to `mol-util/zip` to back the HDF5 gzip filter
+    - HFF parser at `mol-io/reader/hff` producing typed `SffData`
+    - `hff` extension (g3d-style) with `ParseHff` / `ShapeFromSff`
+      transforms, `HffProvider` data format provider, and `LoadHff`
+      state action; registered in the viewer
+    - Mesh segments render double-sided with per-segment SFF colours,
+      labels from biological annotations, and SFF transforms applied
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty

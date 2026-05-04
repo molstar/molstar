@@ -12,6 +12,7 @@ import { Backgrounds } from '../../extensions/backgrounds';
 import { DebugHelpers } from '../../extensions/debug-helpers';
 import { DnatcoNtCs } from '../../extensions/dnatco';
 import { G3DFormat } from '../../extensions/g3d/format';
+import { HffFormat } from '../../extensions/hff/format';
 import { GeometryExport } from '../../extensions/geo-export';
 import { MAQualityAssessment, MAQualityAssessmentConfig } from '../../extensions/model-archive/quality-assessment/behavior';
 import { ModelExport } from '../../extensions/model-export';
@@ -47,6 +48,7 @@ export const ExtensionMap = {
     'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
     'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
     'g3d': PluginSpec.Behavior(G3DFormat), // TODO: consider removing this for Mol* 6.0
+    'hff': PluginSpec.Behavior(HffFormat),
     'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
     'sb-ncbr-partial-charges': PluginSpec.Behavior(SbNcbrPartialCharges),
     'tunnels': PluginSpec.Behavior(SbNcbrTunnels),

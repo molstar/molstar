@@ -156,6 +156,15 @@ function inflateBlocks(ctx: InflateContext, count: number) {
 // inflate: 422.319091796875 ms
 // inflate: 428.925048828125 ms
 
+// Synchronous raw-deflate inflater. Used by integrations that cannot await
+// (e.g. the vendored jsfive HDF5 reader's per-chunk filter pipeline).
+export function _inflateSync(data: Uint8Array<ArrayBuffer>, buf?: Uint8Array<ArrayBuffer>): Uint8Array<ArrayBuffer> {
+    if (data[0] === 3 && data[1] === 0) return (buf ? buf : new Uint8Array(0));
+    const ctx = InflateContext(data, buf);
+    while (ctx.BFINAL === 0) inflateBlocks(ctx, 1 << 30);
+    return ctx.buf.length === ctx.off ? ctx.buf : ctx.buf.slice(0, ctx.off);
+}
+
 // https://tools.ietf.org/html/rfc1951
 export async function _inflate(runtime: RuntimeContext, data: Uint8Array<ArrayBuffer>, buf?: Uint8Array<ArrayBuffer>): Promise<Uint8Array<ArrayBuffer>> {
     if (data[0] === 3 && data[1] === 0) return (buf ? buf : new Uint8Array(0));
