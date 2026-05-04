@@ -49,7 +49,6 @@ const ColorDict: {[k: string]: Color } = {
 const reWhitespaceComma = /[\s,]+/
 const reCurlyWhitespace = /[^{}\s]*{[^{}]+}|[^{}\s]+/g
 const reTrimCurly = /^{+|}+$/g
-const reTrimQuotes = /^['"]+|['"]+$/g
 const reCollapseEqual = /\s*=\s*/g
 
 function parseListDef (line: string, localColorDict: {[k: string]: Color}) {
@@ -116,6 +115,7 @@ function parseListElm (line: string, localColorDict: {[k: string]: Color}) {
   let color, width, radius
   let lineBreak = false
   let triangleBreak = false
+  let pointMasters: string[] = []
   for (let lsindex = 4; lsindex <= ls.length; lsindex++) {
     const literal = ls[ ls.length - lsindex ]
     if (literal in localColorDict) {
@@ -133,6 +133,13 @@ function parseListElm (line: string, localColorDict: {[k: string]: Color}) {
     if (literal.startsWith('X')) {
       triangleBreak = true
     }
+    if (literal.startsWith("'") && literal.endsWith("'")) {
+      // Handle single-character tags by putting each character into a pointMaster tag, e.g. 'ab' would be two tags, 'a' and 'b'
+      const tagString: string = literal.substring(1, literal.length - 1)
+      for (let i = 0; i < tagString.length; i++) {
+        pointMasters.push(tagString[i])
+      }
+    }
   }
 
   return {
@@ -142,7 +149,8 @@ function parseListElm (line: string, localColorDict: {[k: string]: Color}) {
     radius: radius,
     width: width,
     isLineBreak: lineBreak,
-    isTriangleBreak: triangleBreak
+    isTriangleBreak: triangleBreak,
+    pointMasters: pointMasters
   }
 }
 
@@ -191,13 +199,53 @@ function parseGroup (line: string) {
            groupMasters: master,
   }
 }
+
+function parsePointmaster(line: string) {
+  let name: string = ''
+  let tags: string[] = []
+  let on: boolean | undefined = undefined
+
+  // Find the string name between curly braces, or print an error if not found
+  const nameMatch = line.match(/{([^}]+)}/)
+  if (nameMatch) {
+    name = nameMatch[1]
+
+    // Find all characters between the pair of single quotes, which are the tags, and add them to the tags array
+    const tagMatch = line.match(/'([^']+)'/)
+    if (tagMatch) {
+      const tagString: string = tagMatch[1]
+      for (let i = 0; i < tagString.length; i++) {
+        tags.push(tagString[i])
+      }
+
+      // See if the line contains the word "on" or "off" and set the on variable accordingly
+      if (line.includes(' on')) {
+        on = true
+      } else if (line.includes(' off')) {
+        on = false
+      }
+
+    } else {
+      console.log('Kinemage: Pointmaster definition missing tags: ' + line)
+    }
+  } else {
+    console.log('Kinemage: Pointmaster definition missing name: ' + line)
+  }
+
+  return {
+    name: name,
+    tags: tags,
+    on: on
+  }
+}
+
 function convertKinTriangleArrays (ribbonObject: RibbonObject) {
   // have to convert ribbons/triangle lists from stripdrawmode to normal drawmode
-  // index          [ 0 1 2 3 4 5 6 7 8 91011 ]
-  // label/color    [ 0 1 2 3 4 5 ] to [ 0 1 2 1 2 3 2 3 4 3 4 5 ]
-  // convertedindex                                      [ 0 1 2 3 4 5 6 7 8 91011121314151617181920212223242526 ]
-  // index          [ 0 1 2 3 4 5 6 7 8 91011121314 ]    [ 0 1 2 3 4 5 6 7 8 3 4 5 6 7 8 91011 6 7 8 91011121314 ]
-  // position       [ 0 0 0 1 1 1 2 2 2 3 3 3 4 4 4 ] to [ 0 0 0 1 1 1 2 2 2 1 1 1 2 2 2 3 3 3 2 2 2 3 3 3 4 4 4 ]
+  // index           [ 0 1 2 3 4 5 6 7 8 91011 ]
+  // label/color/ptm [ 0 1 2 3 4 5 ] to [ 0 1 2 1 2 3 2 3 4 3 4 5 ]
+  // convertedindex                                       [ 0 1 2 3 4 5 6 7 8 91011121314151617181920212223242526 ]
+  // index           [ 0 1 2 3 4 5 6 7 8 91011121314 ]    [ 0 1 2 3 4 5 6 7 8 3 4 5 6 7 8 91011 6 7 8 91011121314 ]
+  // position        [ 0 0 0 1 1 1 2 2 2 3 3 3 4 4 4 ] to [ 0 0 0 1 1 1 2 2 2 1 1 1 2 2 2 3 3 3 2 2 2 3 3 3 4 4 4 ]
   let { labelArray, positionArray, colorArray, breakArray } = ribbonObject
   let convertedLabels = []
   for (let i = 0; i < (labelArray.length - 2) * 3; ++i) {
@@ -206,6 +254,10 @@ function convertKinTriangleArrays (ribbonObject: RibbonObject) {
   let convertedColors = []
   for (let i = 0; i < (colorArray.length - 2) * 3; ++i) {
     convertedColors[i] = colorArray[i - Math.floor(i / 3) * 2]
+  }
+  let convertedPMs = []
+  for (let i = 0; i < (ribbonObject.pointmasterArray.length - 2) * 3; ++i) {
+    convertedPMs[i] = ribbonObject.pointmasterArray[i - Math.floor(i / 3) * 2]
   }
   let convertedBreaks = []
   for (let i = 0; i < (breakArray.length - 2) * 3; ++i) {
@@ -224,6 +276,7 @@ function convertKinTriangleArrays (ribbonObject: RibbonObject) {
     subgroup: ribbonObject.subgroup,
     name: ribbonObject.name,
     masterArray: ribbonObject.masterArray,
+    pointmasterArray: convertedPMs,
     nobutton: ribbonObject.nobutton,
     labelArray: convertedLabels,
     positionArray: convertedPositions,
@@ -241,6 +294,7 @@ function removePointBreaksTriangleArrays (convertedRibbonObject: RibbonObject) {
   let editedLabels = []
   let editedPositions = []
   let editedColors = []
+  let editedPMs = []
   let editedBreaks = []
   for (let i = 0; i < breakArray.length / 3; i++) {
     let breakPointer = i * 3
@@ -263,7 +317,10 @@ function removePointBreaksTriangleArrays (convertedRibbonObject: RibbonObject) {
       editedPositions.push(positionArray[positionPointer+8])
       editedColors.push(colorArray[breakPointer])
       editedColors.push(colorArray[breakPointer+1])
-      editedColors.push(colorArray[breakPointer+2])
+      editedColors.push(colorArray[breakPointer + 2])
+      editedPMs.push(convertedRibbonObject.pointmasterArray[breakPointer])
+      editedPMs.push(convertedRibbonObject.pointmasterArray[breakPointer + 1])
+      editedPMs.push(convertedRibbonObject.pointmasterArray[breakPointer + 2])
     } else {
       //console.log('X triangle break found')
       //console.log('skipping: '+positionArray[positionPointer]+','+positionArray[positionPointer+1]+','+positionArray[positionPointer+2]+','
@@ -276,6 +333,7 @@ function removePointBreaksTriangleArrays (convertedRibbonObject: RibbonObject) {
     subgroup: convertedRibbonObject.subgroup,
     name: convertedRibbonObject.name,
     masterArray: convertedRibbonObject.masterArray,
+    pointmasterArray: editedPMs,
     nobutton: convertedRibbonObject.nobutton,
     labelArray: editedLabels,
     positionArray: editedPositions,
@@ -334,7 +392,7 @@ class KinParser {
     let isDotList = false
     let prevDotLabel = ''
     let dotDefaultColor: Color
-    let dotLabel: string[], dotPosition: number[], dotColor: Color[]
+    let dotLabel: string[], dotPosition: number[], dotColor: Color[], dotPointMasters: string[][]
 
     let isVectorList = false
     let prevVecLabel = ''
@@ -342,12 +400,12 @@ class KinParser {
     let prevVecColor: Color|null = null
     let vecDefaultColor: Color, vecDefaultWidth: number
     let vecLabel1: string[], vecLabel2: string[], vecPosition1: number[], vecPosition2: number[], vecColor1: Color[], vecColor2: Color[]
-    let vecWidth: number[]
+    let vecWidth: number[], vecPointMasters: string[][]
 
     let isBallList = false
     let prevBallLabel = ''
     let ballRadius: number[], ballDefaultColor: Color, ballDefaultRadius: number
-    let ballLabel: string[], ballPosition: number[], ballColor: Color[]
+    let ballLabel: string[], ballPosition: number[], ballColor: Color[], ballPointMasters: string[][]
 
     let isRibbonList = false
     let ribbonIsTriangles = false
@@ -355,6 +413,7 @@ class KinParser {
 
     let ribbonListDefaultColor: Color = localColorDict['white']
     let ribbonPointLabelArray: string[], ribbonPointPositionArray: number[], ribbonPointBreakArray: boolean[], ribbonPointColorArray: Color[]
+    let ribbonPointMasters: string[][]
 
     let isText = false
     let isCaption = false
@@ -390,6 +449,7 @@ class KinParser {
           dotLabel = []
           dotPosition = []
           dotColor = []
+          dotPointMasters = []
           dotDefaultColor = listColor
 
           if (currentGroupMasters) {
@@ -404,6 +464,7 @@ class KinParser {
             subgroup: currentSubgroup,
             name: listName,
             masterArray: listMasters,
+            pointmasterArray: dotPointMasters,
             nobutton: nobutton,
             labelArray: dotLabel,
             positionArray: dotPosition,
@@ -437,6 +498,7 @@ class KinParser {
           vecColor2 = []
           vecWidth = []
           vecDefaultColor = listColor
+          vecPointMasters = []
           vecDefaultWidth = 2
           if (listWidth) {
             vecDefaultWidth = listWidth
@@ -454,6 +516,7 @@ class KinParser {
             subgroup: currentSubgroup,
             name: listName,
             masterArray: listMasters,
+            pointmasterArray: vecPointMasters,
             nobutton: nobutton,
             label1Array: vecLabel1,
             label2Array: vecLabel2,
@@ -484,6 +547,7 @@ class KinParser {
           ballRadius = []
           ballPosition = []
           ballColor = []
+          ballPointMasters = []
           ballDefaultColor = listColor
           ballDefaultRadius = listRadius !== undefined ? listRadius : 1
 
@@ -499,6 +563,7 @@ class KinParser {
             subgroup: currentSubgroup,
             name: listName,
             masterArray: listMasters,
+            pointmasterArray: ballPointMasters,
             nobutton: nobutton,
             labelArray: ballLabel,
             radiusArray: ballRadius,
@@ -526,6 +591,7 @@ class KinParser {
           ribbonPointBreakArray = []
           ribbonPointColorArray = []
           ribbonListDefaultColor = listColor
+          ribbonPointMasters = []
 
           if (currentGroupMasters) {
             listMasters = listMasters.concat(currentGroupMasters)
@@ -539,6 +605,7 @@ class KinParser {
             subgroup: currentSubgroup,
             name: listName,
             masterArray: listMasters,
+            pointmasterArray: ribbonPointMasters,
             nobutton: nobutton,
             labelArray: ribbonPointLabelArray,
             positionArray: ribbonPointPositionArray,
@@ -555,7 +622,7 @@ class KinParser {
         } else if (isDotList) {
           // { CB  THR   1  A}sky  'P' 18.915,14.199,5.024
 
-          let { label, color, position } = parseListElm(line, localColorDict)
+          let { label, color, position, pointMasters  } = parseListElm(line, localColorDict)
 
           if (label === '"') {
             label = prevDotLabel
@@ -570,6 +637,7 @@ class KinParser {
           dotLabel.push(label)
           dotPosition.push(...position)
           dotColor.push(color)
+          dotPointMasters.push(pointMasters)
         } else if (isVectorList) {
           // { n   thr A   1  B13.79 1crnFH} P 17.047, 14.099, 3.625 { n   thr A   1  B13.79 1crnFH} L 17.047, 14.099, 3.625
 
@@ -578,7 +646,7 @@ class KinParser {
 
           for (var i2 = 0; i2 < splitLine.length; i2++) {
             let singlePointLine = splitLine[i2]
-            let { label, color, width, position, isLineBreak } = parseListElm(singlePointLine, localColorDict)
+            let { label, color, width, position, isLineBreak, pointMasters } = parseListElm(singlePointLine, localColorDict)
 
             if (label === '"') {
               label = prevVecLabel
@@ -602,6 +670,8 @@ class KinParser {
                 vecPosition2.push(...position)
                 vecColor2.push(color)
                 vecWidth.push(width)
+
+                vecPointMasters.push(pointMasters)
               }
             }
 
@@ -612,7 +682,7 @@ class KinParser {
         } else if (isBallList) {
           // {cb arg A   1   1.431 -106.80} r=1.431  39.085, 8.083, 22.182
 
-          let { label, radius, color, position } = parseListElm(line, localColorDict)
+          let { label, radius, color, position, pointMasters } = parseListElm(line, localColorDict)
 
           if (label === '"') {
             label = prevBallLabel
@@ -632,8 +702,9 @@ class KinParser {
           ballRadius.push(radius)
           ballPosition.push(...position)
           ballColor.push(color)
+          ballPointMasters.push(pointMasters)
         } else if (isRibbonList) {
-          let { label, color, position, isTriangleBreak } = parseListElm(line, localColorDict)
+          let { label, color, position, isTriangleBreak, pointMasters } = parseListElm(line, localColorDict)
 
           if (label === '"') {
             label = prevRibbonPointLabel
@@ -649,6 +720,7 @@ class KinParser {
           ribbonPointPositionArray.push(...position)
           ribbonPointBreakArray.push(isTriangleBreak)
           ribbonPointColorArray.push(color)
+          ribbonPointMasters.push(pointMasters)
         } else if (isText) {
           kinemage.texts.push(line)
         } else if (isCaption) {
@@ -751,10 +823,21 @@ class KinParser {
             // nothing to do
           }
         } else if (line.startsWith('@pointmaster')) {
-          const { groupName, groupFlags } = parseGroup(line)
+          const { name, tags, on } = parsePointmaster(line)
+          if (name.length > 0 && tags.length > 0) {
 
-          kinemage.pointmasterDict[groupName as string] = {
-            id: Object.keys(groupFlags as { [k: string]: boolean })[0].replace(reTrimQuotes, '')
+            // Ensure that we have a masterDict entry for this pointmaster name, even though it doesn't have any flags of its own.
+            if (!kinemage.masterDict[name]) {
+              kinemage.masterDict[name] = {
+                indent: false,
+                visible: on !== false // If the on variable is explicitly false, set visible to false. Otherwise, set it to true.
+              }
+            }
+
+            // Add the mapping to point each single-character tag to the pointmaster name in the pointmasterDict.
+            for (let i = 0; i < tags.length; i++) {
+              kinemage.pointmasterDict[tags[i]] = name
+            }
           }
         } else if (line.startsWith('@colorset')) {
           // We have a string inside curly brackets {} followed by the name of an existing dictionary color.

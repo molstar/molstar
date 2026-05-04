@@ -19,7 +19,7 @@ export interface Kinemage {
   groupDict: { [k: string]: { [k: string]: boolean } },
   subgroupDict: { [k: string]: any },   ///< Subgroup key is "GroupName:SubgroupName" to preserve tree structure
   masterDict: { [k: string]: { indent: boolean, visible: boolean } },
-  pointmasterDict: { [k: string]: any },
+  pointmasterDict: { [k: string]: string },   ///< Maps from single-character name to master name for points, e.g. 'a' -> 'alta'
   dotLists: DotList[],
   vectorLists: VectorList[],
   ballLists: BallList[],
@@ -37,7 +37,8 @@ export interface KinListBase {
   group: string,                  ///< Name of the group this List belongs to (may be '' if no group)
   subgroup: string,               ///< Name of the subgroup this List belongs to (may be '' if no subgroup)
   nobutton: boolean,              ///< Whether the list is a nobutton list (true if 'nobutton' keyword found)
-  masterArray: any[]              ///< Array of master names per List, not per element
+  masterArray: any[],             ///< Array of master names per List, not per element
+  pointmasterArray: string[][]  ///< Array of point master names per element
 }
 
 export interface DotList extends KinListBase {
@@ -73,7 +74,7 @@ export interface VectorList extends KinListBase {
 
 export interface View {
   name?: string,                  ///< Optional name of the View
-  center?: number[],              ///< X, Y, Z of the center of the view; the model rotates arond this point
+  center?: number[],              ///< X, Y, Z of the center of the view; the model rotates around this point
   matrix?: number[],              ///< Specifies and orthonormal rotation matrix defining view orientation
   span?: number,                  ///< Specifies the (smaller of) width or height of the view in world coordinates at the center
   zoom?: number,                  ///< Alternate zoom specification, indicates how much of the model is visible, 1=all, 2=half

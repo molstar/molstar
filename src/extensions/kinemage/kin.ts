@@ -127,6 +127,20 @@ async function getPoints(ctx: RuntimeContext, kin: Kinemage) {
 
     const numDots = positionArray.length / 3
     for (let j = 0; j < numDots; j++) {
+      // Skip this element if any master associated with any of its pointMasters are turned off.
+      const pointMasterNames = dotList.pointmasterArray[j];
+      let pmVisibility = true;
+      for (let pm = 0; pm < pointMasterNames.length; pm++) {
+        const pointMasterName = pointMasterNames[pm];
+        const masterName = kin.pointmasterDict[pointMasterName];
+        const masterInfo = kin.masterDict[masterName];
+        if (masterInfo && !masterInfo.visible) {
+          pmVisibility = false;
+          continue;
+        }
+      }
+      if (!pmVisibility) { continue; }
+
       let group = index++;
       builderState.add(positionArray[3 * j + 0], positionArray[3 * j + 1], positionArray[3 * j + 2], group);
       // colorArray may be undefined; push a default color when not provided
@@ -168,6 +182,20 @@ async function getLines(ctx: RuntimeContext, kin: Kinemage) {
 
     const numLines = position1Array.length / 3
     for (let j = 0; j < numLines; j++) {
+      // Skip this element if any master associated with any of its pointMasters are turned off.
+      const pointMasterNames = vectorList.pointmasterArray[j];
+      let pmVisibility = true;
+      for (let pm = 0; pm < pointMasterNames.length; pm++) {
+        const pointMasterName = pointMasterNames[pm];
+        const masterName = kin.pointmasterDict[pointMasterName];
+        const masterInfo = kin.masterDict[masterName];
+        if (masterInfo && !masterInfo.visible) {
+          pmVisibility = false;
+          continue;
+        }
+      }
+      if (!pmVisibility) { continue; }
+
       // Find the midpoint of the line because we're going to actually make
       // two half-lines so that labels and selection work better.
       const midX = (position1Array[3 * j + 0] + position2Array[3 * j + 0]) / 2;
@@ -227,6 +255,7 @@ async function getMesh(ctx: RuntimeContext, kin: Kinemage) {
     const colorArray = ribbonObject.colorArray;
     const labelArray = ribbonObject.labelArray;
     const masterArray = ribbonObject.masterArray;
+    const pointMasterArray = ribbonObject.pointmasterArray;
 
     // Check the visibility of all of our masters and skip this ribbon object if any of them are not visible.
     const visible = getVisibility(ribbonObject.group, ribbonObject.subgroup, masterArray, kin);
@@ -240,6 +269,20 @@ async function getMesh(ctx: RuntimeContext, kin: Kinemage) {
     const numTriangles = coords.length / 9;
     let prevTriangleNormal: Vec3 | undefined = undefined;
     for (let i = 0; i < numTriangles; i++) {
+      // Skip this element if any master associated with any of its pointMasters are turned off.
+      const pointMasterNames = pointMasterArray[3 * i];
+      let pmVisibility = true;
+      for (let pm = 0; pm < pointMasterNames.length; pm++) {
+        const pointMasterName = pointMasterNames[pm];
+        const masterName = kin.pointmasterDict[pointMasterName];
+        const masterInfo = kin.masterDict[masterName];
+        if (masterInfo && !masterInfo.visible) {
+          pmVisibility = false;
+          continue;
+        }
+      }
+      if (!pmVisibility) { continue; }
+
       const vertexList: Vec3[] = [];
 
       // Get the vertices for the triangle out of the position array and push them onto a list.
@@ -307,17 +350,32 @@ async function getSpheres(ctx: RuntimeContext, kin: Kinemage) {
   let index = 0;
 
   for (let i = 0; i < balls.length; i++) {
-    const positionArray = balls[i].positionArray;
-    const radiusArray = balls[i].radiusArray;
-    const colorArray = balls[i].colorArray;
-    const masterArray = balls[i].masterArray;
+    const ballList = balls[i];
+    const positionArray = ballList.positionArray;
+    const radiusArray = ballList.radiusArray;
+    const colorArray = ballList.colorArray;
+    const masterArray = ballList.masterArray;
 
     // Check the visibility of all of our masters and skip this ball list if any of them are not visible.
-    const visible = getVisibility(balls[i].group, balls[i].subgroup, masterArray, kin);
+    const visible = getVisibility(ballList.group, ballList.subgroup, masterArray, kin);
     if (!visible) { continue; }
 
     const numBalls = positionArray.length / 3;
     for (let j = 0; j < numBalls; j++) {
+      // Skip this element if any master associated with any of its pointMasters are turned off.
+      const pointMasterNames = ballList.pointmasterArray[j];
+      let pmVisibility = true;
+      for (let pm = 0; pm < pointMasterNames.length; pm++) {
+        const pointMasterName = pointMasterNames[pm];
+        const masterName = kin.pointmasterDict[pointMasterName];
+        const masterInfo = kin.masterDict[masterName];
+        if (masterInfo && !masterInfo.visible) {
+          pmVisibility = false;
+          continue;
+        }
+      }
+      if (!pmVisibility) { continue; }
+
       const group = index++;
       builderState.add(positionArray[3 * j + 0], positionArray[3 * j + 1], positionArray[3 * j + 2], group);
       // radiusArray may be undefined; push NaN when radius not provided
@@ -325,7 +383,7 @@ async function getSpheres(ctx: RuntimeContext, kin: Kinemage) {
       // colorArray may be undefined; push a default color when not provided
       colors.push(colorArray && colorArray.length > j ? colorArray[j] : Color.fromRgb(255, 255, 255));
       // labelArray may be undefined; push an empty string when not provided
-      labels.push(balls[i].labelArray && balls[i].labelArray.length > j ? balls[i].labelArray[j] : '');
+      labels.push(ballList.labelArray && ballList.labelArray.length > j ? ballList.labelArray[j] : '');
     }
   }
 
