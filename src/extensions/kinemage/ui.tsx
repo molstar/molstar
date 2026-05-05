@@ -148,39 +148,63 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
 
   renderControls() {
     const kins = this.getKinemageList();
-    if (kins.length === 0) return <div className='msp-row-text'>No Kinemage data</div>;
+    if (kins.length === 0) return <div style={{ padding: '6px' }}>No Kinemage data</div>;
 
     const blocks: React.ReactNode[] = [];
     for (const { kinData, ref } of kins) {
       const title = kinData.pdbfile || nameFromString(kinData.caption) || 'Kinemage';
       const kinBlock: React.ReactNode[] = [];
-      kinBlock.push(<div key={'title-' + title} className='msp-row-text'><b>{title}</b></div>);
+
+      // Title
+      kinBlock.push(
+        <div key={'title-' + title} style={{ padding: '6px', fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          {title}
+        </div>
+      );
 
       // views
-      for (const [viewKey, viewObj] of Object.entries(kinData.viewDict || {})) {
-        const label = viewObj.name || `View ${viewKey}`;
-        kinBlock.push(
-          <div key={'view-' + title + '-' + viewKey} className='msp-row'>
-            <button className='msp-button' onClick={() => this.applyView(kinData, viewKey)}>Apply View</button>
-            <span style={{ marginLeft: 8 }}>{label}</span>
-          </div>
-        );
+      const viewEntries = Object.entries(kinData.viewDict || {});
+      if (viewEntries.length > 0) {
+        for (const [viewKey, viewObj] of viewEntries) {
+          const label = `View ${viewObj.name || `View ${viewKey}`}`;
+          kinBlock.push(
+            <div key={'view-' + title + '-' + viewKey} style={{ padding: '2px 6px' }}>
+              <button
+                className='msp-btn msp-btn-block'
+                onClick={() => this.applyView(kinData, viewKey)}
+                title={`Apply view: ${label}`}
+              >
+                {label}
+              </button>
+            </div>
+          );
+        }
       }
 
       // animate
       if (kinData.groupsAnimate && kinData.groupsAnimate.length > 0) {
         kinBlock.push(
-          <div key={'anim-' + title} className='msp-row'>
-            <button className='msp-button' onClick={() => this.triggerAnimateForKin(kinData, ref, 'animate')}>Animate</button>
-            <span style={{ marginLeft: 8 }}>Animate</span>
+          <div key={'anim-' + title} style={{ padding: '2px 6px' }}>
+            <button
+              className='msp-btn msp-btn-block'
+              onClick={() => this.triggerAnimateForKin(kinData, ref, 'animate')}
+              title='Cycle through animation frames'
+            >
+              Animate
+            </button>
           </div>
         );
       }
       if (kinData.groupsAnimate2 && kinData.groupsAnimate2.length > 0) {
         kinBlock.push(
-          <div key={'anim2-' + title} className='msp-row'>
-            <button className='msp-button' onClick={() => this.triggerAnimateForKin(kinData, ref, '2animate')}>Animate2</button>
-            <span style={{ marginLeft: 8 }}>Animate2</span>
+          <div key={'anim2-' + title} style={{ padding: '2px 6px' }}>
+            <button
+              className='msp-btn msp-btn-block'
+              onClick={() => this.triggerAnimateForKin(kinData, ref, '2animate')}
+              title='Cycle through second animation frames'
+            >
+              Animate2
+            </button>
           </div>
         );
       }
@@ -193,10 +217,15 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
           const isAnimate = kinData.groupsAnimate?.includes(groupKey) || kinData.groupsAnimate2?.includes(groupKey);
           const label = isAnimate ? `* ${groupKey}` : groupKey;
           kinBlock.push(
-            <div key={'group-' + title + '-' + groupKey} className='msp-row'>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input type='checkbox' checked={visible} onChange={() => this.toggleVisibility(kinData, ref, { type: 'group', key: groupKey })} />
-                <span>{label}</span>
+            <div key={'group-' + title + '-' + groupKey} style={{ padding: '2px 6px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type='checkbox'
+                  checked={visible}
+                  onChange={() => this.toggleVisibility(kinData, ref, { type: 'group', key: groupKey })}
+                  style={{ marginRight: '6px' }}
+                />
+                <span title={label}>{label}</span>
               </label>
             </div>
           );
@@ -207,11 +236,17 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
             if (subgroupKey.startsWith(groupKey + ':')) {
               if ((subgroupInfo as any).nobutton) continue;
               const visible = !(subgroupInfo as any).off;
+              const subgroupLabel = subgroupKey.split(':')[1];
               kinBlock.push(
-                <div key={'subgroup-' + title + '-' + subgroupKey} className='msp-row' style={{ paddingLeft: 16 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input type='checkbox' checked={visible} onChange={() => this.toggleVisibility(kinData, ref, { type: 'subgroup', key: subgroupKey })} />
-                    <span>{subgroupKey.split(':')[1]}</span>
+                <div key={'subgroup-' + title + '-' + subgroupKey} style={{ padding: '2px 6px', paddingLeft: '24px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <input
+                      type='checkbox'
+                      checked={visible}
+                      onChange={() => this.toggleVisibility(kinData, ref, { type: 'subgroup', key: subgroupKey })}
+                      style={{ marginRight: '6px' }}
+                    />
+                    <span title={subgroupLabel}>{subgroupLabel}</span>
                   </label>
                 </div>
               );
@@ -230,10 +265,15 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
         if ((subgroupInfo as any).nobutton) continue;
         const visible = !(subgroupInfo as any).off;
         kinBlock.push(
-          <div key={'subgroup-' + title + '-' + subgroupKey} className='msp-row'>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input type='checkbox' checked={visible} onChange={() => this.toggleVisibility(kinData, ref, { type: 'subgroup', key: subgroupKey })} />
-              <span>{subgroupKey}</span>
+          <div key={'subgroup-' + title + '-' + subgroupKey} style={{ padding: '2px 6px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type='checkbox'
+                checked={visible}
+                onChange={() => this.toggleVisibility(kinData, ref, { type: 'subgroup', key: subgroupKey })}
+                style={{ marginRight: '6px' }}
+              />
+              <span title={subgroupKey}>{subgroupKey}</span>
             </label>
           </div>
         );
@@ -243,18 +283,23 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
       for (const [masterKey, masterInfo] of Object.entries(kinData.masterDict || {})) {
         const visible = !!(masterInfo && (masterInfo as any).visible);
         kinBlock.push(
-          <div key={'master-' + title + '-' + masterKey} className='msp-row'>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input type='checkbox' checked={visible} onChange={() => this.toggleVisibility(kinData, ref, { type: 'master', key: masterKey })} />
-              <span>{masterKey}</span>
+          <div key={'master-' + title + '-' + masterKey} style={{ padding: '2px 6px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type='checkbox'
+                checked={visible}
+                onChange={() => this.toggleVisibility(kinData, ref, { type: 'master', key: masterKey })}
+                style={{ marginRight: '6px' }}
+              />
+              <span title={masterKey}>{masterKey}</span>
             </label>
           </div>
         );
       }
 
-      blocks.push(<div key={'kin-block-' + title} style={{ marginBottom: 8 }}>{kinBlock}</div>);
+      blocks.push(<div key={'kin-block-' + title} className='msp-control-group-wrapper'>{kinBlock}</div>);
     }
 
-    return <div>{blocks}</div>;
+    return <>{blocks}</>;
   }
 }
