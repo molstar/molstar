@@ -116,6 +116,9 @@ export const RelionStar_Aliases: CifAliases = {
     'particles.rlnAngleTilt': ['rlnAngleTilt', 'wrpAngleTilt1'],
     'particles.rlnAnglePsi': ['rlnAnglePsi', 'wrpAnglePsi1'],
 
+    'particles.rlnMicrographId': ['rlnMicrographId'],
+    'particles.rlnMicrographName': ['rlnMicrographName'],
+
     'particles.rlnTomoSubtomogramRot': ['rlnTomoSubtomogramRot'],
     'particles.rlnTomoSubtomogramTilt': ['rlnTomoSubtomogramTilt'],
     'particles.rlnTomoSubtomogramPsi': ['rlnTomoSubtomogramPsi'],
@@ -133,7 +136,9 @@ export const RelionStar_Aliases: CifAliases = {
     'particles.rlnOriginalParticleName': ['rlnOriginalParticleName'],
     'particles.rlnOpticsGroup': ['rlnOpticsGroup'],
     'particles.rlnTomoName': ['rlnTomoName'],
-    'particles.rlnMicrographName': ['rlnMicrographName'],
+    'particles.rlnPixelSize': ['rlnPixelSize'],
+
+    'particles.rlnGroupNumber': ['rlnGroupNumber'],
 
     'particles.rlnTomoTiltSeriesPixelSize': ['rlnTomoTiltSeriesPixelSize'],
     'particles.rlnImagePixelSize': ['rlnImagePixelSize'],
