@@ -5,7 +5,7 @@
  */
 
 import { Structure, Unit, StructureElement } from '../../../mol-model/structure';
-import { IntMap } from '../../../mol-data/int';
+import { IntMap, OrderedSet } from '../../../mol-data/int';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { DataLocation } from '../../../mol-model/location';
@@ -18,7 +18,7 @@ import { Features } from './features';
 import { FeatureType } from './common';
 import { GeometryOptions, checkGeometry } from './hydrogen-bonds';
 import { degToRad } from '../../../mol-math/misc';
-import { elementLabel } from '../../../mol-theme/label';
+import { bundleLabel, LabelGranularity } from '../../../mol-theme/label';
 import { cantorPairing } from '../../../mol-data/util/hash-functions';
 
 export type { WaterBridgeContact, WaterBridgeContacts };
@@ -374,13 +374,19 @@ namespace WaterBridges {
         const uB = structure.unitMap.get(wb.unitB) as Unit.Atomic;
         const fB = unitsFeatures.get(wb.unitB);
 
-        const locA = StructureElement.Location.create(structure, uA, uA.elements[fA.members[fA.offsets[wb.indexA]]]);
-        const locW = StructureElement.Location.create(structure, uW, uW.elements[fW.members[fW.offsets[wb.indexWA]]]);
-        const locB = StructureElement.Location.create(structure, uB, uB.elements[fB.members[fB.offsets[wb.indexB]]]);
+        const options = { granularity: 'element' as LabelGranularity };
+        if (fA.offsets[wb.indexA + 1] - fA.offsets[wb.indexA] > 1 ||
+                fB.offsets[wb.indexB + 1] - fB.offsets[wb.indexB] > 1) {
+            options.granularity = 'residue';
+        }
 
         return [
             'Water Bridge',
-            `${elementLabel(locA, { granularity: 'element' })} → ${elementLabel(locW, { granularity: 'residue' })} → ${elementLabel(locB, { granularity: 'element' })}`,
+            bundleLabel({ loci: [
+                StructureElement.Loci(structure, [{ unit: uA, indices: OrderedSet.ofSingleton(fA.members[fA.offsets[wb.indexA]] as StructureElement.UnitIndex) }]),
+                StructureElement.Loci(structure, [{ unit: uW, indices: OrderedSet.ofSingleton(fW.members[fW.offsets[wb.indexWA]] as StructureElement.UnitIndex) }]),
+                StructureElement.Loci(structure, [{ unit: uB, indices: OrderedSet.ofSingleton(fB.members[fB.offsets[wb.indexB]] as StructureElement.UnitIndex) }]),
+            ] }, options),
         ].join('</br>');
     }
 
