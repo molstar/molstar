@@ -1,15 +1,17 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  *
  * based in part on NGL (https://github.com/arose/ngl)
  */
 
 import { Interactions } from './interactions';
 import { InteractionType, InteractionFlag, InteractionsIntraContacts, FeatureType, InteractionsInterContacts } from './common';
-import { Unit, Structure } from '../../../mol-model/structure';
+import { Unit, Structure, StructureElement } from '../../../mol-model/structure';
 import { Features } from './features';
+import { cantorPairing } from '../../../mol-data/util/hash-functions';
 
 interface ContactRefiner {
     isApplicable: (type: InteractionType) => boolean
@@ -27,6 +29,7 @@ export function refineInteractions(structure: Structure, interactions: Interacti
         saltBridgeRefiner(structure, interactions),
         piStackingRefiner(structure, interactions),
         metalCoordinationRefiner(structure, interactions),
+        waterBridgeRefiner(structure, interactions),
     ];
 
     for (let i = 0, il = contacts.edgeCount; i < il; ++i) {
@@ -277,5 +280,116 @@ function metalCoordinationRefiner(structure: Structure, interactions: Interactio
         handleIntraContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
             filterIntra([InteractionType.MetalCoordination], index, infoA, infoB, interactions.unitsContacts.get(infoA.unit.id));
         }
+    };
+}
+
+function waterBridgeRefiner(_structure: Structure, interactions: Interactions): ContactRefiner {
+    const { contacts, waterBridges, unitsFeatures } = interactions;
+
+    type AtomKey = number;
+    type AtomPairSet = Map<AtomKey, Set<AtomKey>>;
+
+    function atomKey(unitId: number, atomIndex: StructureElement.UnitIndex): AtomKey {
+        return cantorPairing(unitId, atomIndex);
+    }
+
+    function featureMember(features: Features, featureIndex: Features.FeatureIndex): StructureElement.UnitIndex {
+        return features.members[features.offsets[featureIndex]] as StructureElement.UnitIndex;
+    }
+
+    function addAtomPair(
+        set: AtomPairSet,
+        unitA: number,
+        atomA: StructureElement.UnitIndex,
+        unitB: number,
+        atomB: StructureElement.UnitIndex
+    ) {
+        const a = atomKey(unitA, atomA);
+        const b = atomKey(unitB, atomB);
+
+        let bs = set.get(a);
+        if (bs === undefined) {
+            bs = new Set();
+            set.set(a, bs);
+        }
+        bs.add(b);
+
+        let as = set.get(b);
+        if (as === undefined) {
+            as = new Set();
+            set.set(b, as);
+        }
+        as.add(a);
+    }
+
+    function hasAtomPair(
+        set: AtomPairSet,
+        unitA: number,
+        atomA: StructureElement.UnitIndex,
+        unitB: number,
+        atomB: StructureElement.UnitIndex
+    ): boolean {
+        return set.get(atomKey(unitA, atomA))?.has(atomKey(unitB, atomB)) === true;
+    }
+
+    function hasInfoPair(set: AtomPairSet, infoA: Features.Info, infoB: Features.Info): boolean {
+        const { offsets: offsetsA, members: membersA, feature: featureA } = infoA;
+        const { offsets: offsetsB, members: membersB, feature: featureB } = infoB;
+
+        for (let i = offsetsA[featureA], il = offsetsA[featureA + 1]; i < il; ++i) {
+            const a = membersA[i] as StructureElement.UnitIndex;
+
+            for (let j = offsetsB[featureB], jl = offsetsB[featureB + 1]; j < jl; ++j) {
+                const b = membersB[j] as StructureElement.UnitIndex;
+
+                if (hasAtomPair(set, infoA.unit.id, a, infoB.unit.id, b)) return true;
+            }
+        }
+
+        return false;
+    }
+
+    const bridgeLegs: AtomPairSet = new Map();
+
+    for (const wb of waterBridges) {
+        const fA = unitsFeatures.get(wb.unitA);
+        const fW = unitsFeatures.get(wb.unitW);
+        const fB = unitsFeatures.get(wb.unitB);
+
+        if (!fA || !fW || !fB) continue;
+
+        const atomA = featureMember(fA, wb.indexA);
+        const atomWA = featureMember(fW, wb.indexWA);
+        const atomWD = featureMember(fW, wb.indexWD);
+        const atomB = featureMember(fB, wb.indexB);
+
+        // donor atom ↔ water oxygen
+        addAtomPair(bridgeLegs, wb.unitA, atomA, wb.unitW, atomWA);
+
+        // water oxygen ↔ acceptor atom
+        addAtomPair(bridgeLegs, wb.unitW, atomWD, wb.unitB, atomB);
+    }
+
+    let intraContacts: InteractionsIntraContacts | undefined;
+
+    return {
+        isApplicable: (type: InteractionType) => {
+            return bridgeLegs.size > 0 && type === InteractionType.HydrogenBond;
+        },
+        handleInterContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
+            if (hasInfoPair(bridgeLegs, infoA, infoB)) {
+                contacts.edges[index].props.flag = InteractionFlag.Filtered;
+            }
+        },
+        startUnit: (_unit: Unit.Atomic, contacts: InteractionsIntraContacts) => {
+            intraContacts = contacts;
+        },
+        handleIntraContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
+            if (!intraContacts) return;
+
+            if (hasInfoPair(bridgeLegs, infoA, infoB)) {
+                intraContacts.edgeProps.flag[index] = InteractionFlag.Filtered;
+            }
+        },
     };
 }

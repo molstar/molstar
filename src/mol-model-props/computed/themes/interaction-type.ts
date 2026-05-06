@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
 import { Location } from '../../../mol-model/location';
@@ -13,6 +14,7 @@ import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { InteractionType } from '../interactions/common';
 import { TableLegend } from '../../../mol-util/legend';
 import { Interactions } from '../interactions/interactions';
+import { WaterBridges } from '../interactions/water-bridges';
 import { CustomProperty } from '../../common/custom-property';
 import { hash2 } from '../../../mol-data/util';
 import { ColorThemeCategory } from '../../../mol-theme/color/categories';
@@ -29,6 +31,7 @@ const InteractionTypeColors = ColorMap({
     CationPi: 0xFF8000,
     PiStacking: 0x8CB366,
     WeakHydrogenBond: 0xC5DDEC,
+    WaterBridge: 0x00CCEE,
 });
 
 const InteractionTypeColorTable: [string, Color][] = [
@@ -40,6 +43,7 @@ const InteractionTypeColorTable: [string, Color][] = [
     ['Cation Pi', InteractionTypeColors.CationPi],
     ['Pi Stacking', InteractionTypeColors.PiStacking],
     ['Weak HydrogenBond', InteractionTypeColors.WeakHydrogenBond],
+    ['Water Bridge', InteractionTypeColors.WaterBridge],
 ];
 
 function typeColor(type: InteractionType): Color {
@@ -60,6 +64,8 @@ function typeColor(type: InteractionType): Color {
             return InteractionTypeColors.PiStacking;
         case InteractionType.WeakHydrogenBond:
             return InteractionTypeColors.WeakHydrogenBond;
+        case InteractionType.WaterBridge:
+            return InteractionTypeColors.WaterBridge;
         case InteractionType.Unknown:
             return DefaultColor;
     }
@@ -90,6 +96,9 @@ export function InteractionTypeColorTheme(ctx: ThemeDataContext, props: PD.Value
                     const idx = contacts.getEdgeIndex(indexA, unitA.id, indexB, unitB.id);
                     return typeColor(contacts.edges[idx].props.type);
                 }
+            }
+            if (WaterBridges.isLocation(location)) {
+                return InteractionTypeColors.WaterBridge;
             }
             return DefaultColor;
         };

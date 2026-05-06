@@ -15,6 +15,7 @@ import { IntMap } from '../../../mol-data/int';
 import { addUnitContacts, ContactTester, addStructureContacts, ContactsParams, ContactsProps } from './contacts';
 import { HalogenDonorProvider, HalogenAcceptorProvider, HalogenBondsProvider } from './halogen-bonds';
 import { HydrogenDonorProvider, WeakHydrogenDonorProvider, HydrogenAcceptorProvider, HydrogenBondsProvider, WeakHydrogenBondsProvider } from './hydrogen-bonds';
+import { findWaterBridgeContacts, WaterBridgeContacts, WaterBridgesParams } from './water-bridges';
 import { NegativChargeProvider, PositiveChargeProvider, AromaticRingProvider, IonicProvider, PiStackingProvider, CationPiProvider } from './charged';
 import { HydrophobicAtomProvider, HydrophobicProvider } from './hydrophobic';
 import { SetUtils } from '../../../mol-util/set';
@@ -37,6 +38,8 @@ interface Interactions {
     unitsContacts: IntMap<InteractionsIntraContacts>
     /** Interactions between units */
     contacts: InteractionsInterContacts
+    /** Water-mediated hydrogen bonds (donor → water → acceptor) */
+    waterBridges: WaterBridgeContacts
 }
 
 namespace Interactions {
@@ -174,8 +177,16 @@ export const ContactProviderParams = getProvidersParams([
     // 'weak-hydrogen-bonds',
 ]);
 
+export const WaterBridgesToggleParams = {
+    'water-bridges': PD.MappedStatic('off', {
+        on: PD.Group(WaterBridgesParams),
+        off: PD.Group({})
+    }, { cycle: true }),
+};
+
 export const InteractionsParams = {
     providers: PD.Group(ContactProviderParams, { isFlat: true }),
+    waterBridges: PD.Group(WaterBridgesToggleParams, { isFlat: true }),
     contacts: PD.Group(ContactsParams, { label: 'Advanced Options' }),
 };
 export type InteractionsParams = typeof InteractionsParams
@@ -229,7 +240,12 @@ export async function computeInteractions(ctx: CustomProperty.Context, structure
 
     const contacts = findInterUnitContacts(structure, unitsFeatures, contactTesters, p.contacts, options);
 
-    const interactions = { unitsFeatures, unitsContacts, contacts };
+    const wbToggle = p.waterBridges['water-bridges'];
+    const waterBridges = wbToggle.name === 'on'
+        ? findWaterBridgeContacts(structure, unitsFeatures, wbToggle.params)
+        : [];
+
+    const interactions = { unitsFeatures, unitsContacts, contacts, waterBridges };
     refineInteractions(structure, interactions);
     return interactions;
 }

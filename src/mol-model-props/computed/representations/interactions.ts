@@ -12,20 +12,23 @@ import { UnitsRepresentation, StructureRepresentation, StructureRepresentationSt
 import { InteractionsIntraUnitParams, InteractionsIntraUnitVisual } from './interactions-intra-unit-cylinder';
 import { InteractionsProvider } from '../interactions';
 import { InteractionsInterUnitParams, InteractionsInterUnitVisual } from './interactions-inter-unit-cylinder';
+import { WaterBridgeInterUnitParams, WaterBridgeInterUnitVisual } from './interactions-water-bridge-cylinder';
 import { CustomProperty } from '../../common/custom-property';
 import { getUnitKindsParam } from '../../../mol-repr/structure/params';
 
 const InteractionsVisuals = {
     'intra-unit': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InteractionsIntraUnitParams>) => UnitsRepresentation('Intra-unit interactions cylinder', ctx, getParams, InteractionsIntraUnitVisual),
     'inter-unit': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InteractionsInterUnitParams>) => ComplexRepresentation('Inter-unit interactions cylinder', ctx, getParams, InteractionsInterUnitVisual),
+    'water-bridge': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, WaterBridgeInterUnitParams>) => ComplexRepresentation('Water bridge cylinder', ctx, getParams, WaterBridgeInterUnitVisual),
 };
 
 export const InteractionsParams = {
     ...InteractionsIntraUnitParams,
     ...InteractionsInterUnitParams,
+    ...WaterBridgeInterUnitParams,
     unitKinds: getUnitKindsParam(['atomic']),
     sizeFactor: PD.Numeric(0.2, { min: 0.01, max: 1, step: 0.01 }),
-    visuals: PD.MultiSelect(['intra-unit', 'inter-unit'], PD.objectToOptions(InteractionsVisuals)),
+    visuals: PD.MultiSelect(['intra-unit', 'inter-unit', 'water-bridge'], PD.objectToOptions(InteractionsVisuals)),
 };
 export type InteractionsParams = typeof InteractionsParams
 export function getInteractionParams(ctx: ThemeRegistryContext, structure: Structure) {
