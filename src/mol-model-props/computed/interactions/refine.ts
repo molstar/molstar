@@ -27,6 +27,7 @@ export function refineInteractions(structure: Structure, interactions: Interacti
         saltBridgeRefiner(structure, interactions),
         piStackingRefiner(structure, interactions),
         metalCoordinationRefiner(structure, interactions),
+        waterBridgeRefiner(structure, interactions),
     ];
 
     for (let i = 0, il = contacts.edgeCount; i < il; ++i) {
@@ -277,5 +278,36 @@ function metalCoordinationRefiner(structure: Structure, interactions: Interactio
         handleIntraContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
             filterIntra([InteractionType.MetalCoordination], index, infoA, infoB, interactions.unitsContacts.get(infoA.unit.id));
         }
+    };
+}
+
+/**
+ * Flag hydrogen bonds that are legs of a water bridge as filtered,
+ * so they don't render on top of water bridge visuals.
+ *
+ * Builds a set of (nonWaterUnit|nonWaterFeature|waterUnit) triples from all
+ * detected water bridges, then marks any H-bond whose two endpoints match one
+ * of those triples.
+ */
+function waterBridgeRefiner(_structure: Structure, interactions: Interactions): ContactRefiner {
+    const { contacts, waterBridges } = interactions;
+
+    const legTriples = new Set<string>();
+    for (const wb of waterBridges) {
+        legTriples.add(`${wb.unitA}|${wb.indexA}|${wb.unitW}`);
+        legTriples.add(`${wb.unitB}|${wb.indexB}|${wb.unitW}`);
+    }
+
+    return {
+        isApplicable: (type: InteractionType) => legTriples.size > 0 && type === InteractionType.HydrogenBond,
+        handleInterContact: (index: number) => {
+            const e = contacts.edges[index];
+            if (legTriples.has(`${e.unitA}|${e.indexA}|${e.unitB}`) ||
+                    legTriples.has(`${e.unitB}|${e.indexB}|${e.unitA}`)) {
+                e.props.flag = InteractionFlag.Filtered;
+            }
+        },
+        startUnit: () => {},
+        handleIntraContact: () => {},
     };
 }

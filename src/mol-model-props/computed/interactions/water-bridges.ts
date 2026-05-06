@@ -16,9 +16,8 @@ import { Sphere3D } from '../../../mol-math/geometry';
 import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
 import { Features } from './features';
 import { FeatureType } from './common';
-import { GeometryParams, GeometryOptions, getGeometryOptions, checkGeometry } from './hydrogen-bonds';
-import { typeSymbol } from '../chemistry/util';
-import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
+import { GeometryOptions, checkGeometry } from './hydrogen-bonds';
+import { degToRad } from '../../../mol-math/misc';
 import { elementLabel } from '../../../mol-theme/label';
 
 export type { WaterBridgeContact, WaterBridgeContacts };
@@ -43,8 +42,16 @@ interface WaterBridgeContact {
 type WaterBridgeContacts = ReadonlyArray<WaterBridgeContact>;
 
 export const WaterBridgesParams = {
-    ...GeometryParams,
-    sulfurDistanceMax: PD.Numeric(4.1, { min: 1, max: 5, step: 0.1 }),
+    backbone: PD.Boolean(true, { description: 'Include backbone hydrogen bonds' }),
+    ignoreHydrogens: PD.Boolean(true, { description: 'Ignore explicit hydrogens in geometric constraints' }),
+    legDistMin: PD.Numeric(2.5, { min: 1, max: 4, step: 0.1 }, { description: 'Minimum leg distance (Å)' }),
+    legDistMax: PD.Numeric(4.1, { min: 1, max: 6, step: 0.1 }, { description: 'Maximum leg distance (Å)' }),
+    donAngleDevMax: PD.Numeric(80, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal donor angle' }),
+    accAngleDevMax: PD.Numeric(50, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal acceptor angle' }),
+    donOutOfPlaneAngleMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }),
+    accOutOfPlaneAngleMax: PD.Numeric(90, { min: 0, max: 180, step: 1 }),
+    omegaMin: PD.Numeric(71, { min: 0, max: 180, step: 1 }, { description: 'Minimum A–W–B angle (°)' }),
+    omegaMax: PD.Numeric(140, { min: 0, max: 180, step: 1 }, { description: 'Maximum A–W–B angle (°)' }),
 };
 export type WaterBridgesParams = typeof WaterBridgesParams;
 export type WaterBridgesProps = PD.Values<WaterBridgesParams>;
@@ -56,18 +63,40 @@ function isWater(unit: Unit.Atomic, index: StructureElement.UnitIndex): boolean 
 }
 
 const _lookupCtx = StructureLookup3DResultContext();
+const _vA = Vec3();
+const _vB = Vec3();
+
+function checkOmega(posA: Vec3, posW: Vec3, posB: Vec3, omegaMinRad: number, omegaMaxRad: number): boolean {
+    Vec3.sub(_vA, posA, posW);
+    Vec3.sub(_vB, posB, posW);
+    Vec3.normalize(_vA, _vA);
+    Vec3.normalize(_vB, _vB);
+    const omega = Math.acos(Math.max(-1, Math.min(1, Vec3.dot(_vA, _vB))));
+    return omega >= omegaMinRad && omega <= omegaMaxRad;
+}
 
 export function findWaterBridgeContacts(
     structure: Structure,
     unitsFeatures: IntMap<Features>,
     props: WaterBridgesProps
 ): WaterBridgeContacts {
-    const opts: GeometryOptions = getGeometryOptions(props);
-    const maxLeg = Math.max(props.distanceMax, props.sulfurDistanceMax);
-    const distMaxSq = props.distanceMax * props.distanceMax;
-    const sulfurDistMaxSq = props.sulfurDistanceMax * props.sulfurDistanceMax;
+    const legOpts: GeometryOptions = {
+        ignoreHydrogens: props.ignoreHydrogens,
+        includeBackbone: props.backbone,
+        maxAccAngleDev: degToRad(props.accAngleDevMax),
+        maxDonAngleDev: degToRad(props.donAngleDevMax),
+        maxAccOutOfPlaneAngle: degToRad(props.accOutOfPlaneAngleMax),
+        maxDonOutOfPlaneAngle: degToRad(props.donOutOfPlaneAngleMax),
+    };
+    const legDistMinSq = props.legDistMin * props.legDistMin;
+    const legDistMaxSq = props.legDistMax * props.legDistMax;
+    const omegaMinRad = degToRad(props.omegaMin);
+    const omegaMaxRad = degToRad(props.omegaMax);
 
-    const edges: WaterBridgeContact[] = [];
+    type Candidate = { unit: Unit.Atomic; featureIdx: Features.FeatureIndex; pos: Vec3; distSq: number };
+
+    // Best bridge per unique (donor, acceptor) feature pair across all water molecules.
+    const best = new Map<string, { contact: WaterBridgeContact; combinedDistSq: number }>();
     const wPos = Vec3();
 
     for (const unitW of structure.units) {
@@ -95,20 +124,16 @@ export function findWaterBridgeContacts(
         for (const [waterAtomIdx, { acc: accFW, don: donFW }] of waterMap) {
             if (accFW === undefined || donFW === undefined) continue;
 
-            // Water oxygen world-space position.
             unitW.conformation.position(unitW.elements[waterAtomIdx], wPos);
 
-            // Both Info objects share the same unitW / featW; feature index differs.
             const infoWAcc = Features.Info(structure, unitW, featW);
             infoWAcc.feature = accFW;
             const infoWDon = Features.Info(structure, unitW, featW);
             infoWDon.feature = donFW;
 
-            // Find all non-water atoms within leg distance of the water oxygen.
             const { count, indices, units: hitUnits, squaredDistances } =
-                structure.lookup3d.find(wPos[0], wPos[1], wPos[2], maxLeg, _lookupCtx);
+                structure.lookup3d.find(wPos[0], wPos[1], wPos[2], props.legDistMax, _lookupCtx);
 
-            type Candidate = { unitId: number; featureIdx: Features.FeatureIndex };
             const donors: Candidate[] = [];
             const acceptors: Candidate[] = [];
 
@@ -120,6 +145,9 @@ export function findWaterBridgeContacts(
                 const hitLocalIdx = indices[r] as StructureElement.UnitIndex;
                 if (isWater(hitUnit as Unit.Atomic, hitLocalIdx)) continue;
 
+                const dSq = squaredDistances[r];
+                if (dSq < legDistMinSq || dSq > legDistMaxSq) continue;
+
                 const hitFeat = unitsFeatures.get(hitUnit.id);
                 if (!hitFeat || hitFeat.count === 0) continue;
 
@@ -127,46 +155,54 @@ export function findWaterBridgeContacts(
                 for (let k = fOff[hitLocalIdx], kl = fOff[hitLocalIdx + 1]; k < kl; k++) {
                     const fi = fIdxs[k] as Features.FeatureIndex;
                     const fType = hitFeat.types[fi];
-                    if (fType !== FeatureType.HydrogenDonor &&
-                        fType !== FeatureType.WeakHydrogenDonor &&
-                        fType !== FeatureType.HydrogenAcceptor) continue;
+                    if (fType !== FeatureType.HydrogenDonor && fType !== FeatureType.HydrogenAcceptor) continue;
 
+                    const atomicUnit = hitUnit as Unit.Atomic;
                     const memberIdx = hitFeat.members[hitFeat.offsets[fi]] as StructureElement.UnitIndex;
-                    const isSulfur = typeSymbol(hitUnit as Unit.Atomic, memberIdx) === Elements.S;
-                    if (squaredDistances[r] > (isSulfur ? sulfurDistMaxSq : distMaxSq)) continue;
+                    const candidatePos = Vec3();
+                    atomicUnit.conformation.position(atomicUnit.elements[memberIdx], candidatePos);
 
-                    if (fType === FeatureType.HydrogenDonor || fType === FeatureType.WeakHydrogenDonor) {
-                        const infoDon = Features.Info(structure, hitUnit as Unit.Atomic, hitFeat);
+                    if (fType === FeatureType.HydrogenDonor) {
+                        const infoDon = Features.Info(structure, atomicUnit, hitFeat);
                         infoDon.feature = fi;
-                        if (checkGeometry(structure, infoDon, infoWAcc, opts)) {
-                            donors.push({ unitId: hitUnit.id, featureIdx: fi });
+                        if (checkGeometry(structure, infoDon, infoWAcc, legOpts)) {
+                            donors.push({ unit: atomicUnit, featureIdx: fi, pos: candidatePos, distSq: dSq });
                         }
                     } else {
-                        const infoAcc = Features.Info(structure, hitUnit as Unit.Atomic, hitFeat);
+                        const infoAcc = Features.Info(structure, atomicUnit, hitFeat);
                         infoAcc.feature = fi;
-                        if (checkGeometry(structure, infoWDon, infoAcc, opts)) {
-                            acceptors.push({ unitId: hitUnit.id, featureIdx: fi });
+                        if (checkGeometry(structure, infoWDon, infoAcc, legOpts)) {
+                            acceptors.push({ unit: atomicUnit, featureIdx: fi, pos: candidatePos, distSq: dSq });
                         }
                     }
                 }
             }
 
-            // Cross-pair verified donors and acceptors.
             for (const don of donors) {
                 for (const acc of acceptors) {
-                    // Prevent donor == acceptor (same feature).
-                    if (don.unitId === acc.unitId && don.featureIdx === acc.featureIdx) continue;
-                    edges.push({
-                        unitA: don.unitId, indexA: don.featureIdx,
-                        unitB: acc.unitId, indexB: acc.featureIdx,
-                        unitW: unitW.id, indexWA: accFW, indexWD: donFW,
-                    });
+                    if (don.unit === acc.unit && don.featureIdx === acc.featureIdx) continue;
+                    if (!checkOmega(don.pos, wPos, acc.pos, omegaMinRad, omegaMaxRad)) continue;
+
+                    const combinedDistSq = don.distSq + acc.distSq;
+                    const pairKey = `${don.unit.id}|${don.featureIdx}|${acc.unit.id}|${acc.featureIdx}`;
+
+                    const existing = best.get(pairKey);
+                    if (!existing || combinedDistSq < existing.combinedDistSq) {
+                        best.set(pairKey, {
+                            contact: {
+                                unitA: don.unit.id, indexA: don.featureIdx,
+                                unitB: acc.unit.id, indexB: acc.featureIdx,
+                                unitW: unitW.id, indexWA: accFW, indexWD: donFW,
+                            },
+                            combinedDistSq,
+                        });
+                    }
                 }
             }
         }
     }
 
-    return edges;
+    return Array.from(best.values()).map(e => e.contact);
 }
 
 // ---------------------------------------------------------------------------
