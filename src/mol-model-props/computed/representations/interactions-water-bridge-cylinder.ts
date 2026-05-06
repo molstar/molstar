@@ -35,6 +35,23 @@ function createWaterBridgeCylinderMesh(ctx: VisualContext, structure: Structure,
     const l = StructureElement.Location.create(structure);
     const { sizeFactor } = props;
 
+    // When multiple bridges share the same physical leg (e.g. the same donor
+    // bonded to the same water oxygen, bridging two different acceptors) the
+    // half-cylinders for that leg must be drawn only once. Drawing them twice
+    // stacks two cylinders at the same position, causing a barely-visible hover
+    // halo and non-deterministic picking.
+    const seenDonorLegs = new Set<string>();
+    const seenAcceptorLegs = new Set<string>();
+    const skipDonorLeg = new Uint8Array(n);
+    const skipAcceptorLeg = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+        const wb = waterBridges[i];
+        const dk = `${wb.unitA}|${wb.indexA}|${wb.unitW}|${wb.indexWA}`;
+        const ak = `${wb.unitW}|${wb.indexWD}|${wb.unitB}|${wb.indexB}`;
+        if (seenDonorLegs.has(dk)) { skipDonorLeg[i] = 1; } else { seenDonorLegs.add(dk); }
+        if (seenAcceptorLegs.has(ak)) { skipAcceptorLeg[i] = 1; } else { seenAcceptorLegs.add(ak); }
+    }
+
     const builderProps = {
         // Four half-cylinders per bridge (createLinkCylinderMesh draws only the A-side half per call):
         //   [0,   n): donor→water,    forward  (donor side)
@@ -74,6 +91,11 @@ function createWaterBridgeCylinderMesh(ctx: VisualContext, structure: Structure,
                 atomPosition(uW, fW, wb.indexWD, posB);
             }
         },
+        ignore: (edgeIndex: number) => {
+            const bi = edgeIndex % n;
+            const leg = Math.floor(edgeIndex / n);
+            return leg <= 1 ? skipDonorLeg[bi] === 1 : skipAcceptorLeg[bi] === 1;
+        },
         style: (_edgeIndex: number) => LinkStyle.Dashed,
         radius: (edgeIndex: number) => {
             const wb = waterBridges[edgeIndex % n];
@@ -96,7 +118,6 @@ function createWaterBridgeCylinderMesh(ctx: VisualContext, structure: Structure,
 
             return Math.min(sizeA, sizeB) * sizeFactor;
         },
-        ignore: (_edgeIndex: number) => false,
     };
 
     const { mesh: m, boundingSphere } = createLinkCylinderMesh(ctx, builderProps, props, mesh);
