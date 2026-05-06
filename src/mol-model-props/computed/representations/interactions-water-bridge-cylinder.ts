@@ -15,6 +15,7 @@ import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../../../mo
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { PickingId } from '../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
+import { NullLocation } from '../../../mol-model/location';
 import { Interval, OrderedSet } from '../../../mol-data/int';
 import { InteractionsProvider } from '../interactions';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
@@ -383,7 +384,9 @@ function eachWaterBridgeInteraction(loci: Loci, structure: Structure, apply: (in
 }
 
 function createWaterBridgeIterator(structure: Structure): LocationIterator {
-    const interactions = InteractionsProvider.get(structure).value!;
+    const interactions = InteractionsProvider.get(structure).value;
+    if (!interactions) return LocationIterator(0, 1, 1, () => NullLocation, true);
+
     const { waterBridges, unitsFeatures } = interactions;
 
     const n = waterBridges.length;
