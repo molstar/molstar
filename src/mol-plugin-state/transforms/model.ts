@@ -644,6 +644,31 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
     }
 });
 
+const StructureTransformParam = PD.MappedStatic('matrix', {
+    matrix: TransformParam.map('matrix') as PD.Group<any>,
+    components: TransformParam.map('components') as PD.Group<any>,
+    centerAtOrigin: PD.EmptyGroup({
+        label: 'Center at Origin',
+        description: 'Translate the structure boundary-sphere center to the origin.'
+    }),
+}, {
+    label: 'Kind',
+    options: [
+        ['matrix', 'Matrix'],
+        ['components', 'Components'],
+        ['centerAtOrigin', 'Center at Origin'],
+    ]
+});
+type StructureTransformParam = (typeof StructureTransformParam)['defaultValue']
+
+function getStructureTransformFromParams(s: Structure, params: StructureTransformParam) {
+    const center = s.boundary.sphere.center;
+    if (params.name === 'centerAtOrigin') {
+        return Mat4.fromTranslation(Mat4(), Vec3.negate(Vec3(), center));
+    }
+    return getTransformFromParams(params as TransformParam, transformParamsNeedCentroid(params as TransformParam) ? center : Vec3.unit);
+}
+
 type TransformStructureConformation = typeof TransformStructureConformation
 const TransformStructureConformation = PluginStateTransform.BuiltIn({
     name: 'transform-structure-conformation',
@@ -652,15 +677,14 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: {
-        transform: TransformParam
+        transform: StructureTransformParam
     }
 })({
     canAutoUpdate({ newParams }) {
         return newParams.transform.name !== 'matrix';
     },
     apply({ a, params }) {
-        const center = transformParamsNeedCentroid(params.transform) ? a.data.boundary.sphere.center : Vec3.unit;
-        const transform = getTransformFromParams(params.transform, center);
+        const transform = getStructureTransformFromParams(a.data, params.transform);
         const s = Structure.transform(a.data, transform);
         return new SO.Molecule.Structure(s, { label: a.label, description: `${a.description} [Transformed]` });
     },
