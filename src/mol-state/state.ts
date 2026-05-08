@@ -159,6 +159,23 @@ class State {
     }
 
     dispose() {
+        // Dispose every still-live cell so transformer dispose callbacks
+        // (e.g. WebGL/GL buffer cleanup) actually run. Without this,
+        // calling dispose() on a State that still has cells leaks any
+        // resources held by transformer dispose callbacks because they
+        // would only fire on per-cell deletion (see updateNode/findDeletes).
+        const refs: StateTransform.Ref[] = [];
+        StateTree.doPostOrder(this._tree, this._tree.root, { refs }, (n, _, s) => { s.refs.push(n.ref); });
+        for (let i = refs.length - 1; i >= 0; i--) {
+            const cell = (this.cells as Map<StateTransform.Ref, StateObjectCell>).get(refs[i]);
+            if (!cell) continue;
+            try {
+                dispose(cell.transform, cell.obj, cell.transform.params, cell.cache, this.globalContext);
+            } catch (e) {
+                console.warn('Error in transformer dispose during State.dispose', e);
+            }
+        }
+
         this.ev.dispose();
         this.actions.dispose();
     }
