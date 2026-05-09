@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Fix empty transforms default in `ShapeFromPly`
+- Add mesoscale representation preset
+- Add presets option to `ObjectList` param definition
 - Fix memory leak in `State.dispose()` not invoking transformer `dispose` callbacks for live cells
 
 ## [v5.9.0] - 2026-05-03

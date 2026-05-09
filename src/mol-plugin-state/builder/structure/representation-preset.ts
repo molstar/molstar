@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -26,6 +26,7 @@ import { StructConn } from '../../../mol-model-formats/structure/property/bonds/
 import { StructureRepresentationRegistry } from '../../../mol-repr/structure/registry';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { Vec3 } from '../../../mol-math/linear-algebra/3d/vec3';
+import { Spheres } from '../../../mol-geo/geometry/spheres/spheres';
 
 export interface StructureRepresentationPresetProvider<P = any, S extends _Result = _Result> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
 export function StructureRepresentationPresetProvider<P, S extends _Result>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
@@ -495,6 +496,61 @@ const autoLod = StructureRepresentationPresetProvider({
     }
 });
 
+type MesoscaleGraphicsMode = keyof typeof Spheres.LodLevelsPresets
+const MesoscaleGraphicsOptions = PD.arrayToOptions(Object.keys(Spheres.LodLevelsPresets) as MesoscaleGraphicsMode[]);
+function getMesoscaleLodLevels(mode: MesoscaleGraphicsMode) {
+    return Spheres.LodLevelsPresets[mode];
+}
+
+const mesoscale = StructureRepresentationPresetProvider({
+    id: 'preset-structure-representation-mesoscale',
+    display: {
+        name: 'Mesoscale', group: 'Miscellaneous',
+        description: 'Show everything in spacefill representation with instance-granularity and level-of-detail tuned for large particle scenes.'
+    },
+    params: () => ({
+        ...CommonParams,
+        graphics: PD.Select<MesoscaleGraphicsMode>('quality', MesoscaleGraphicsOptions),
+    }),
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        if (!structureCell) return {};
+
+        const components = {
+            all: await presetStaticComponent(plugin, structureCell, 'all'),
+        };
+
+        const structure = structureCell.obj!.data;
+
+        const { update, builder, typeParams, color } = reprBuilder(plugin, params, structure);
+
+        const graphics: MesoscaleGraphicsMode = params.graphics ?? 'quality';
+        const lodLevels = getMesoscaleLodLevels(graphics);
+        const approximate = graphics !== 'quality' && graphics !== 'ultra';
+        const alphaThickness = graphics === 'performance' ? 15 : 12;
+
+        const representations = {
+            all: builder.buildRepresentation(update, components.all, {
+                type: 'spacefill',
+                typeParams: {
+                    ...typeParams,
+                    instanceGranularity: true,
+                    lodLevels,
+                    approximate,
+                    alphaThickness,
+                    clipPrimitive: true,
+                },
+                color: color || 'entity-id',
+            }, { tag: 'all' }),
+        };
+
+        await update.commit({ revertOnError: true });
+        await updateFocusRepr(plugin, structure, params.theme?.focus?.name ?? color, params.theme?.focus?.params);
+
+        return { components, representations };
+    }
+});
+
 export function presetStaticComponent(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, type: StaticStructureComponentType, params?: { label?: string, tags?: string[] }) {
     return plugin.builders.structure.tryCreateComponentStatic(structure, type, params);
 }
@@ -514,5 +570,6 @@ export const PresetStructureRepresentations = {
     illustrative,
     'molecular-surface': molecularSurface,
     'auto-lod': autoLod,
+    mesoscale,
 };
 export type PresetStructureRepresentations = typeof PresetStructureRepresentations;
