@@ -296,9 +296,9 @@ export namespace ParamDefinition {
         element: Params,
         ctor(): T,
         getLabel(t: T): string,
-        presets?: SelectOption<T[]>
+        presets?: Select<T[]>['options']
     }
-    export function ObjectList<T>(element: For<T>, getLabel: (e: T) => string, info?: Info & { defaultValue?: T[], ctor?: () => T, presets?: SelectOption<T[]> }): ObjectList<Normalize<T>> {
+    export function ObjectList<T>(element: For<T>, getLabel: (e: T) => string, info?: Info & { defaultValue?: T[], ctor?: () => T, presets?: Select<T[]>['options'] }): ObjectList<Normalize<T>> {
         const ret = setInfo<ObjectList<Normalize<T>>>({ type: 'object-list', element: element as any as Params, getLabel, ctor: _defaultObjectListCtor, defaultValue: (info?.defaultValue) || [] }, info);
         if (info?.presets) ret.presets = info.presets as any;
         return ret;
