@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,6 +10,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Task } from '../../../mol-task';
 import { Color } from '../../../mol-util/color';
 import { Spheres } from '../../../mol-geo/geometry/spheres/spheres';
+import { getAnimationParam } from '../../../mol-geo/geometry/animation';
 import { Clip } from '../../../mol-util/clip';
 import { escapeRegExp, stringToWords } from '../../../mol-util/string';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
@@ -174,6 +175,8 @@ export const LodParams = {
     approximate: Spheres.Params.approximate,
 };
 
+export const AnimationParams = getAnimationParam().params;
+
 export const SimpleClipParams = {
     type: PD.Select('none', PD.objectToOptions(Clip.Type, t => stringToWords(t))),
     invert: PD.Boolean(false),
@@ -281,6 +284,7 @@ export const MesoscaleGroupParams = {
     emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
     lod: PD.Group(LodParams),
     clip: PD.Group(SimpleClipParams),
+    animation: PD.Group(AnimationParams),
 };
 export type MesoscaleGroupProps = PD.Values<typeof MesoscaleGroupParams>;
 

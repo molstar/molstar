@@ -9,6 +9,7 @@ import { Dsn6File, Dsn6Header } from './schema';
 import { ReaderResult as Result } from '../result';
 import { FileHandle } from '../../common/file-handle';
 import { SimpleBuffer } from '../../../mol-io/common/simple-buffer';
+import { uint8ToString } from '../../common/binary';
 
 export const dsn6HeaderSize = 512;
 
@@ -70,7 +71,7 @@ function getBlocks(header: Dsn6Header) {
 
 export async function readDsn6Header(file: FileHandle): Promise<{ header: Dsn6Header, littleEndian: boolean }> {
     const { buffer } = await file.readBuffer(0, dsn6HeaderSize);
-    const brixStr = String.fromCharCode.apply(null, buffer) as string;
+    const brixStr = uint8ToString(buffer);
     const isBrix = brixStr.startsWith(':-)');
     const littleEndian = isBrix || buffer.readInt16LE(18 * 2) === 100;
     const header = isBrix ? parseBrixHeader(brixStr) : parseDsn6Header(buffer, littleEndian);

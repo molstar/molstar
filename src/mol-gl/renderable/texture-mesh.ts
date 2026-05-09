@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem, Transparency } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, DefineSpec, Values, InternalSchema, InternalValues, UniformSpec, TextureSpec, GlobalTextureSchema, ValueSpec, GlobalDefineValues, GlobalDefines, GlobalDefineSchema, InteriorSchema } from './schema';
+import { GlobalUniformSchema, BaseSchema, DefineSpec, Values, InternalSchema, InternalValues, UniformSpec, TextureSpec, GlobalTextureSchema, ValueSpec, GlobalDefineValues, GlobalDefines, GlobalDefineSchema, InteriorSchema, AnimationSchema } from './schema';
 import { MeshShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
 
@@ -30,6 +30,7 @@ export const TextureMeshSchema = {
     meta: ValueSpec('unknown'),
 
     ...InteriorSchema,
+    ...AnimationSchema,
 };
 export type TextureMeshSchema = typeof TextureMeshSchema
 export type TextureMeshValues = Values<TextureMeshSchema>

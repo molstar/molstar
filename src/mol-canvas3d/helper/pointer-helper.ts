@@ -121,7 +121,7 @@ export class PointerHelper {
 
         this.camera = new Camera();
 
-        this.shape = getPointerMeshShape(this.getData(), this.props, this.shape);
+        this.shape = getPointerMeshShape(this.getData(), this.props);
         this.renderObject = createMeshRenderObject(this.shape, this.props);
         this.scene.add(this.renderObject);
     }

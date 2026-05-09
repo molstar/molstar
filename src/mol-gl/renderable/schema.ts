@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -179,6 +179,9 @@ export const GlobalUniformSchema = {
     uMarkingDepthTest: UniformSpec('b'),
     uMarkingType: UniformSpec('i'),
     uPickType: UniformSpec('i'),
+
+    uTime: UniformSpec('f'),
+    uEnableAnimation: UniformSpec('b'),
 } as const;
 export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = Values<GlobalUniformSchema>
@@ -315,6 +318,17 @@ export const ClippingSchema = {
 export type ClippingSchema = typeof ClippingSchema
 export type ClippingValues = Values<ClippingSchema>
 
+export const WiggleSchema = {
+    uWiggleTexDim: UniformSpec('v2'),
+    tWiggle: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+    dWiggle: DefineSpec('boolean'),
+    wiggleAverage: ValueSpec('number'),
+    dWiggleType: DefineSpec('string', ['instance', 'groupInstance']),
+    uWiggleStrength: UniformSpec('f', 'material'),
+} as const;
+export type WiggleSchema = typeof WiggleSchema
+export type WiggleValues = Values<WiggleSchema>
+
 export const BaseSchema = {
     dGeometryType: DefineSpec('string', ['cylinders', 'directVolume', 'image', 'lines', 'mesh', 'points', 'spheres', 'text', 'textureMesh']),
 
@@ -325,6 +339,7 @@ export const BaseSchema = {
     ...EmissiveSchema,
     ...SubstanceSchema,
     ...ClippingSchema,
+    ...WiggleSchema,
 
     dClipObjectCount: DefineSpec('number'),
     dClipVariant: DefineSpec('string', ['instance', 'pixel']),
@@ -395,3 +410,15 @@ export const InteriorSchema = {
 } as const;
 export type InteriorSchema = typeof InteriorSchema
 export type InteriorValues = Values<InteriorSchema>
+
+export const AnimationSchema = {
+    uWiggleSpeed: UniformSpec('f', 'material'),
+    uWiggleAmplitude: UniformSpec('f', 'material'),
+    uWiggleFrequency: UniformSpec('f', 'material'),
+    uWiggleMode: UniformSpec('i', 'material'),
+    uTumbleSpeed: UniformSpec('f', 'material'),
+    uTumbleAmplitude: UniformSpec('f', 'material'),
+    uTumbleFrequency: UniformSpec('f', 'material'),
+} as const;
+export type AnimationSchema = typeof AnimationSchema
+export type AnimationValues = Values<AnimationSchema>

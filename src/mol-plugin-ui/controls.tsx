@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -26,6 +26,7 @@ import { VolumeStreamingControls, VolumeSourceControls } from './structure/volum
 import { PluginConfig } from '../mol-plugin/config';
 import { StructureSuperpositionControls } from './structure/superposition';
 import { StructureQuickStylesControls } from './structure/quick-styles';
+import { StructureProceduralAnimationControls } from './structure/procedural-animation';
 import { Markdown } from './controls/markdown';
 import { Slider } from './controls/slider';
 import { AnimateStateSnapshotTransition } from '../mol-plugin-state/animation/built-in/state-snapshots';
@@ -336,6 +337,7 @@ export class DefaultStructureTools extends PluginUIComponent {
             <StructureMeasurementsControls />
             <StructureSuperpositionControls />
             <StructureQuickStylesControls />
+            <StructureProceduralAnimationControls />
             <StructureComponentControls />
             {this.plugin.config.get(PluginConfig.VolumeStreaming.Enabled) && <VolumeStreamingControls />}
             <VolumeSourceControls />

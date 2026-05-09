@@ -12,6 +12,8 @@ uniform vec4 uLod;
 
 uniform bool uDoubleSided;
 uniform int uPickType;
+uniform float uTime;
+uniform bool uEnableAnimation;
 
 #if dClipObjectCount != 0
     uniform int uClipObjectType[dClipObjectCount];
