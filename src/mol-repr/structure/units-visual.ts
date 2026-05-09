@@ -20,6 +20,7 @@ import { Interval } from '../../mol-data/int';
 import { LocationCallback, VisualUpdateState } from '../util';
 import { ColorTheme } from '../../mol-theme/color';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
+import { resolveInstanceGranularity } from '../../mol-geo/geometry/base';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { ValueCell, deepEqual } from '../../mol-util';
 import { createSizes } from '../../mol-geo/geometry/size-data';
@@ -214,7 +215,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             if (updateState.updateTransform) {
                 // console.log('update transform');
                 const { instanceCount, groupCount } = locationIt;
-                if (newProps.instanceGranularity) {
+                if (resolveInstanceGranularity(newProps.instanceGranularity, groupCount, instanceCount)) {
                     createMarkers(instanceCount, 'instance', renderObject.values);
                 } else {
                     createMarkers(instanceCount * groupCount, 'groupInstance', renderObject.values);
@@ -313,14 +314,15 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
     }
 
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean, isMarking: boolean) {
+        const instanceGranularity = resolveInstanceGranularity(currentProps.instanceGranularity, locationIt.groupCount, locationIt.instanceCount);
         if (lociIsSuperset(loci)) {
-            if (currentProps.instanceGranularity) {
+            if (instanceGranularity) {
                 return apply(Interval.ofBounds(0, locationIt.instanceCount));
             } else {
                 return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount));
             }
         } else {
-            if (currentProps.instanceGranularity) {
+            if (instanceGranularity) {
                 return eachInstance(loci, currentStructureGroup, apply);
             } else {
                 return eachLocation(loci, currentStructureGroup, apply, isMarking);
@@ -355,7 +357,11 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             finalize(ctx);
         },
         getLoci(pickingId: PickingId) {
-            return renderObject ? getLoci(pickingId, currentStructureGroup, renderObject.id) : EmptyLoci;
+            if (!renderObject) return EmptyLoci;
+            if (resolveInstanceGranularity(currentProps.instanceGranularity, locationIt.groupCount, locationIt.instanceCount)) {
+                pickingId = { ...pickingId, groupId: PickingId.Null };
+            }
+            return getLoci(pickingId, currentStructureGroup, renderObject.id);
         },
         eachLocation(cb: LocationCallback) {
             locationIt.reset();

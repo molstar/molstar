@@ -20,7 +20,7 @@ import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere } fr
 import { Theme } from '../../../mol-theme/theme';
 import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { Color } from '../../../mol-util/color';
-import { BaseGeometry } from '../base';
+import { BaseGeometry, resolveInstanceGranularity } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { createEmptyClipping } from '../clipping-data';
@@ -684,7 +684,7 @@ export namespace Mesh {
         const positionIt = createPositionIterator(mesh, transform);
 
         const color = createColors(locationIt, positionIt, theme.color);
-        const marker = props.instanceGranularity
+        const marker = resolveInstanceGranularity(props.instanceGranularity, groupCount, instanceCount)
             ? createMarkers(instanceCount, 'instance')
             : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();
