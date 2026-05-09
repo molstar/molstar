@@ -1,3 +1,6 @@
+# 0.9.13
+* /surroundingLigands: honor `omit_water=true|false` for REST GET requests (boolean parser previously coerced both to `false`)
+
 # 0.9.12
 * add `health-check` endpoint + `healthCheckPath` config prop to report service health
 

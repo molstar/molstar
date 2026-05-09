@@ -295,7 +295,7 @@ function _normalizeQueryParams(params: { [p: string]: string }, paramList: Query
                 case QueryParamType.String: el = value; break;
                 case QueryParamType.Integer: el = parseInt(value); break;
                 case QueryParamType.Float: el = parseFloat(value); break;
-                case QueryParamType.Boolean: el = Boolean(+value); break;
+                case QueryParamType.Boolean: el = isTrue(value); break;
             }
 
             if (p.validation) p.validation(el);
