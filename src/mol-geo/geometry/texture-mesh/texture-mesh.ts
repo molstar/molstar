@@ -15,7 +15,7 @@ import { createMarkers } from '../marker-data';
 import { GeometryUtils } from '../geometry';
 import { Theme } from '../../../mol-theme/theme';
 import { Color } from '../../../mol-util/color';
-import { BaseGeometry } from '../base';
+import { BaseGeometry, resolveInstanceGranularity } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { TextureMeshValues } from '../../../mol-gl/renderable/texture-mesh';
@@ -203,7 +203,7 @@ export namespace TextureMesh {
         const positionIt = Utils.createPositionIterator(textureMesh, transform);
 
         const color = createColors(locationIt, positionIt, theme.color);
-        const marker = props.instanceGranularity
+        const marker = resolveInstanceGranularity(props.instanceGranularity, groupCount, instanceCount)
             ? createMarkers(instanceCount, 'instance')
             : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();

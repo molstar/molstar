@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Fix empty transforms default in `ShapeFromPly`
+- Add `instanceGranularity: 'auto'` as a memory guard
+- Honor `instanceGranularity` in `Visual.getLoci`
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty
