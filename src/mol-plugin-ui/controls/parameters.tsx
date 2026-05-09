@@ -1414,8 +1414,8 @@ class ObjectListItem extends React.PureComponent<ObjectListItemProps, { isExpand
     }
 }
 
-export class ObjectListControl extends React.PureComponent<ParamProps<PD.ObjectList>, { isExpanded: boolean }> {
-    state = { isExpanded: false };
+export class ObjectListControl extends React.PureComponent<ParamProps<PD.ObjectList>, { isExpanded: boolean, showPresets: boolean }> {
+    state = { isExpanded: false, showPresets: false };
 
     change(value: any) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
@@ -1459,12 +1459,29 @@ export class ObjectListControl extends React.PureComponent<ParamProps<PD.ObjectL
         e.currentTarget.blur();
     };
 
+    toggleShowPresets = () => this.setState({ showPresets: !this.state.showPresets });
+
+    presetItems = memoizeLatest((param: PD.ObjectList) => ActionMenu.createItemsFromSelectOptions(param.presets ?? []));
+
+    onSelectPreset: ActionMenu.OnSelect = item => {
+        this.setState({ showPresets: false });
+        this.change(item?.value);
+    };
+
     render() {
         const v = this.props.value;
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         const value = `${v.length} item${v.length !== 1 ? 's' : ''}`;
+        const hasPresets = !!this.props.param.presets;
+        const control = hasPresets
+            ? <div className='msp-flex-row'>
+                <button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{value}</button>
+                <IconButton svg={BookmarksOutlinedSvg} onClick={this.toggleShowPresets} toggleState={this.state.showPresets} title='Presets' disabled={this.props.isDisabled} />
+            </div>
+            : <button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{value}</button>;
         return <>
-            <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{value}</button>} />
+            <ControlRow label={label} control={control} />
+            {hasPresets && this.state.showPresets && <ActionMenu items={this.presetItems(this.props.param)} onSelect={this.onSelectPreset} />}
             {this.state.isExpanded && <div className='msp-control-offset'>
                 {this.props.value.map((v, i) => <ObjectListItem key={i} param={this.props.param} value={v} index={i} actions={this.actions} isDisabled={this.props.isDisabled} />)}
                 <ControlGroup header='New Item'>
