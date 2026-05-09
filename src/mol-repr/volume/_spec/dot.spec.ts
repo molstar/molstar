@@ -35,8 +35,25 @@ describe('volume dot representation', () => {
         const spheres = createVolumeSphereImpostor(undefined as any, volume, 0, undefined as any, {
             isoValue: Volume.IsoValue.absolute(0.5),
             perturbPositions: false,
+            lodLevels: [{ minDistance: 0, maxDistance: 0, overlap: 0, stride: 0, scaleBias: 3 }],
         } as any);
 
         expect(Array.from(spheres.groupBuffer.ref.value)).toEqual([0, 4, 2, 6, 1, 5, 3, 7]);
+    });
+
+    it('adds sphere impostor dots in row-major order when no LOD levels are configured', () => {
+        const volume = createTestVolume([2, 2, 2], [
+            1, 1,
+            1, 1,
+            1, 1,
+            1, 1,
+        ]);
+        const spheres = createVolumeSphereImpostor(undefined as any, volume, 0, undefined as any, {
+            isoValue: Volume.IsoValue.absolute(0.5),
+            perturbPositions: false,
+            lodLevels: [],
+        } as any);
+
+        expect(Array.from(spheres.groupBuffer.ref.value)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
     });
 });
