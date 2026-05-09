@@ -19,7 +19,7 @@ import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere } fr
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Theme } from '../../../mol-theme/theme';
 import { Color } from '../../../mol-util/color';
-import { BaseGeometry } from '../base';
+import { BaseGeometry, resolveInstanceGranularity } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { hashFnv32a } from '../../../mol-data/util';
@@ -225,7 +225,7 @@ export namespace Cylinders {
 
         const color = createColors(locationIt, positionIt, theme.color);
         const size = createSizes(locationIt, positionIt, theme.size);
-        const marker = props.instanceGranularity
+        const marker = resolveInstanceGranularity(props.instanceGranularity, groupCount, instanceCount)
             ? createMarkers(instanceCount, 'instance')
             : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();

@@ -17,7 +17,7 @@ import { TextureImage, calculateInvariantBoundingSphere, calculateTransformBound
 import { Sphere3D } from '../../../mol-math/geometry';
 import { createSizes, getMaxSize } from '../size-data';
 import { Color } from '../../../mol-util/color';
-import { BaseGeometry } from '../base';
+import { BaseGeometry, resolveInstanceGranularity } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { hashFnv32a } from '../../../mol-data/util';
@@ -249,6 +249,33 @@ export namespace Spheres {
         return lodLevels.map(l => getAdjustedStride(l, sizeFactor)).reverse();
     }
 
+    export const LodLevelsPresets: { [key in 'performance' | 'balanced' | 'quality' | 'ultra']: LodLevels } = {
+        performance: [
+            { minDistance: 1, maxDistance: 300, overlap: 0, stride: 1, scaleBias: 1 },
+            { minDistance: 300, maxDistance: 2000, overlap: 0, stride: 40, scaleBias: 3 },
+            { minDistance: 2000, maxDistance: 6000, overlap: 0, stride: 150, scaleBias: 3 },
+            { minDistance: 6000, maxDistance: 10000000, overlap: 0, stride: 300, scaleBias: 2.5 },
+        ],
+        balanced: [
+            { minDistance: 1, maxDistance: 500, overlap: 0, stride: 1, scaleBias: 1 },
+            { minDistance: 500, maxDistance: 2000, overlap: 0, stride: 15, scaleBias: 3 },
+            { minDistance: 2000, maxDistance: 6000, overlap: 0, stride: 70, scaleBias: 2.7 },
+            { minDistance: 6000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2.5 },
+        ],
+        quality: [
+            { minDistance: 1, maxDistance: 1000, overlap: 0, stride: 1, scaleBias: 1 },
+            { minDistance: 1000, maxDistance: 4000, overlap: 0, stride: 10, scaleBias: 3 },
+            { minDistance: 4000, maxDistance: 10000, overlap: 0, stride: 50, scaleBias: 2.7 },
+            { minDistance: 10000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2.3 },
+        ],
+        ultra: [
+            { minDistance: 1, maxDistance: 5000, overlap: 0, stride: 1, scaleBias: 1 },
+            { minDistance: 5000, maxDistance: 10000, overlap: 0, stride: 10, scaleBias: 3 },
+            { minDistance: 10000, maxDistance: 30000, overlap: 0, stride: 50, scaleBias: 2.5 },
+            { minDistance: 30000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2 },
+        ],
+    };
+
     export const Params = {
         ...BaseGeometry.Params,
         sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
@@ -273,7 +300,8 @@ export namespace Spheres {
             scaleBias: PD.Numeric(3, { min: 0.1, max: 10, step: 0.1 }),
         }, o => `${o.stride}`, {
             ...BaseGeometry.CullingLodCategory,
-            defaultValue: [] as LodLevels
+            defaultValue: [] as LodLevels,
+            presets: Object.entries(LodLevelsPresets).map(([k, v]) => [v, k])
         })
     };
     export type Params = typeof Params
@@ -314,7 +342,7 @@ export namespace Spheres {
 
         const color = createColors(locationIt, positionIt, theme.color);
         const size = createSizes(locationIt, positionIt, theme.size);
-        const marker = props.instanceGranularity
+        const marker = resolveInstanceGranularity(props.instanceGranularity, groupCount, instanceCount)
             ? createMarkers(instanceCount, 'instance')
             : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();

@@ -6,6 +6,12 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - Fix empty transforms default in `ShapeFromPly`
 - Use morton order for spheres in dot visual with lod-levels
+- Add `Camera.changed` event and rotation/translation setter/getter
+- Add `instanceGranularity: 'auto'` as a memory guard
+- Honor `instanceGranularity` in `Visual.getLoci`
+- Add mesoscale representation preset
+- Add presets option to `ObjectList` param definition
+- Fix memory leak in `State.dispose()` not invoking transformer `dispose` callbacks for live cells
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty

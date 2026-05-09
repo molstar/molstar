@@ -22,7 +22,6 @@ import { Hcl } from '../../../mol-util/color/spaces/hcl';
 import { StateObjectCell, StateObjectRef, StateSelection } from '../../../mol-state';
 import { ShapeRepresentation3D, StructureRepresentation3D } from '../../../mol-plugin-state/transforms/representation';
 import { SpacefillRepresentationProvider } from '../../../mol-repr/structure/representation/spacefill';
-import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { MesoscaleExplorerState } from '../app';
 import { saturate } from '../../../mol-math/interpolate';
 import { Material } from '../../../mol-util/material';
@@ -322,38 +321,7 @@ export function getMesoscaleGroupParams(graphicsMode: GraphicsMode): MesoscaleGr
 export type LodLevels = typeof SpacefillRepresentationProvider.defaultValues['lodLevels']
 
 export function getLodLevels(graphicsMode: Exclude<GraphicsMode, 'custom'>): LodLevels {
-    switch (graphicsMode) {
-        case 'performance':
-            return [
-                { minDistance: 1, maxDistance: 300, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 300, maxDistance: 2000, overlap: 0, stride: 40, scaleBias: 3 },
-                { minDistance: 2000, maxDistance: 6000, overlap: 0, stride: 150, scaleBias: 3 },
-                { minDistance: 6000, maxDistance: 10000000, overlap: 0, stride: 300, scaleBias: 2.5 },
-            ];
-        case 'balanced':
-            return [
-                { minDistance: 1, maxDistance: 500, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 500, maxDistance: 2000, overlap: 0, stride: 15, scaleBias: 3 },
-                { minDistance: 2000, maxDistance: 6000, overlap: 0, stride: 70, scaleBias: 2.7 },
-                { minDistance: 6000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2.5 },
-            ];
-        case 'quality':
-            return [
-                { minDistance: 1, maxDistance: 1000, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 1000, maxDistance: 4000, overlap: 0, stride: 10, scaleBias: 3 },
-                { minDistance: 4000, maxDistance: 10000, overlap: 0, stride: 50, scaleBias: 2.7 },
-                { minDistance: 10000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2.3 },
-            ];
-        case 'ultra':
-            return [
-                { minDistance: 1, maxDistance: 5000, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 5000, maxDistance: 10000, overlap: 0, stride: 10, scaleBias: 3 },
-                { minDistance: 10000, maxDistance: 30000, overlap: 0, stride: 50, scaleBias: 2.5 },
-                { minDistance: 30000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2 },
-            ];
-        default:
-            assertUnreachable(graphicsMode);
-    }
+    return Spheres.LodLevelsPresets[graphicsMode];
 }
 
 export type GraphicsMode = 'ultra' | 'quality' | 'balanced' | 'performance' | 'custom';
