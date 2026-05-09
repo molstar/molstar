@@ -295,10 +295,13 @@ export namespace ParamDefinition {
         type: 'object-list',
         element: Params,
         ctor(): T,
-        getLabel(t: T): string
+        getLabel(t: T): string,
+        presets?: Select<T[]>['options']
     }
-    export function ObjectList<T>(element: For<T>, getLabel: (e: T) => string, info?: Info & { defaultValue?: T[], ctor?: () => T }): ObjectList<Normalize<T>> {
-        return setInfo<ObjectList<Normalize<T>>>({ type: 'object-list', element: element as any as Params, getLabel, ctor: _defaultObjectListCtor, defaultValue: (info?.defaultValue) || [] }, info);
+    export function ObjectList<T>(element: For<T>, getLabel: (e: T) => string, info?: Info & { defaultValue?: T[], ctor?: () => T, presets?: Select<T[]>['options'] }): ObjectList<Normalize<T>> {
+        const ret = setInfo<ObjectList<Normalize<T>>>({ type: 'object-list', element: element as any as Params, getLabel, ctor: _defaultObjectListCtor, defaultValue: (info?.defaultValue) || [] }, info);
+        if (info?.presets) ret.presets = info.presets as any;
+        return ret;
     }
     function _defaultObjectListCtor(this: ObjectList) { return getDefaultValues(this.element) as any; }
 
