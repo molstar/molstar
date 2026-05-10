@@ -70,6 +70,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateActions.DataFormat.OpenFiles),
         PluginSpec.Action(StateActions.Structure.LoadTrajectory),
         PluginSpec.Action(StateActions.Structure.LoadParticlesStructure),
+        PluginSpec.Action(StateActions.Volume.LoadParticlesVolume),
         PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
         PluginSpec.Action(StateActions.Structure.EnableStructureCustomProps),
 

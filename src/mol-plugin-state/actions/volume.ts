@@ -16,6 +16,12 @@ import { DataFormatProvider } from '../formats/provider';
 import { Asset } from '../../mol-util/assets';
 import { StateTransforms } from '../transforms';
 import { assertUnreachable } from '../../mol-util/type-helpers';
+import { VolumeFormatCategory } from '../formats/volume';
+import { ParticlesFormatCategory } from '../formats/particles';
+import { VolumeFromVolumeAndParticles } from '../transforms/volume';
+import { createVolumeRepresentationParams } from '../helpers/volume-representation-params';
+import { Volume } from '../../mol-model/volume';
+import { StateObjectSelector } from '../../mol-state';
 
 export type EmdbDownloadProvider = 'pdbe' | 'rcsb'
 
@@ -148,3 +154,166 @@ export const AssignColorVolume = StateAction.build({
 })(({ ref, params, state }, plugin: PluginContext) => {
     return plugin.build().to(ref).apply(StateTransforms.Volume.AssignColorVolume, { ref: params.ref }, { dependsOn: [params.ref] }).commit();
 });
+
+async function applyParticlesVolumeVisuals(plugin: PluginContext, volume: StateObjectSelector<PluginStateObject.Volume.Data>) {
+    const typeParams: { isoValue?: Volume.IsoValue, instanceGranularity: boolean } = { instanceGranularity: true };
+    if (volume.data) {
+        typeParams.isoValue = Volume.IsoValue.relative(2);
+    }
+    const update = plugin.build().to(volume).apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(plugin, volume.data, {
+        type: 'isosurface',
+        typeParams,
+    }));
+    await update.commit();
+}
+
+export const AddParticlesVolume = StateAction.build({
+    display: { name: 'Add Particles Volume', description: 'Replicate an existing volume at the positions/orientations of an existing particle list.' },
+    from: PluginStateObject.Root,
+    params(a, ctx: PluginContext) {
+        const state = ctx.state.data;
+        const volumes = state.selectQ(q => q.rootsOfType(PluginStateObject.Volume.Data));
+        const volumeOptions = volumes.map(v => [v.transform.ref, v.obj!.label]) as [string, string][];
+        const particles = state.selectQ(q => q.rootsOfType(PluginStateObject.Particle.List));
+        const particleOptions = particles.map(p => [p.transform.ref, p.obj!.label]) as [string, string][];
+        return {
+            volume: PD.Select(volumeOptions.length ? volumeOptions[0][0] : '', volumeOptions),
+            particles: PD.Select(particleOptions.length ? particleOptions[0][0] : '', particleOptions),
+        };
+    }
+})(({ params, state }, ctx: PluginContext) => Task.create('Add Particles Volume', taskCtx => {
+    return state.transaction(async () => {
+        const dependsOn = [params.volume, params.particles];
+        const tree = state.build().toRoot()
+            .apply(VolumeFromVolumeAndParticles, {
+                volumeRef: params.volume,
+                particlesRef: params.particles,
+            }, { dependsOn });
+
+        await state.updateTree(tree).runInContext(taskCtx);
+        await applyParticlesVolumeVisuals(ctx, tree.selector);
+    }).runInContext(taskCtx);
+}));
+
+export const LoadParticlesVolume = StateAction.build({
+    display: { name: 'Load Particles Volume', description: 'Load a volume and a particle list from URL or file and replicate the volume at each particle.' },
+    from: PluginStateObject.Root,
+    params(a, ctx: PluginContext) {
+        const { options } = ctx.dataFormats;
+        const volumeOptions = options.filter(o => o[2] === VolumeFormatCategory);
+        const particlesOptions = options.filter(o => o[2] === ParticlesFormatCategory);
+
+        const volumeExts: string[] = [];
+        const particlesExts: string[] = [];
+        for (const { provider } of ctx.dataFormats.list) {
+            if (provider.category === VolumeFormatCategory) {
+                if (provider.binaryExtensions) volumeExts.push(...provider.binaryExtensions);
+                if (provider.stringExtensions) volumeExts.push(...provider.stringExtensions);
+            } else if (provider.category === ParticlesFormatCategory) {
+                if (provider.binaryExtensions) particlesExts.push(...provider.binaryExtensions);
+                if (provider.stringExtensions) particlesExts.push(...provider.stringExtensions);
+            }
+        }
+
+        return {
+            source: PD.MappedStatic('file', {
+                url: PD.Group({
+                    volume: PD.Group({
+                        url: PD.Url(''),
+                        format: PD.Select(volumeOptions[0]?.[0] ?? '', volumeOptions),
+                        isBinary: PD.Boolean(true),
+                    }, { isExpanded: true }),
+                    particles: PD.Group({
+                        url: PD.Url(''),
+                        format: PD.Select(particlesOptions[0]?.[0] ?? '', particlesOptions),
+                        isBinary: PD.Boolean(false),
+                    }, { isExpanded: true })
+                }, { isFlat: true }),
+                file: PD.Group({
+                    volume: PD.File({ accept: volumeExts.map(e => `.${e}`).join(','), label: 'Volume' }),
+                    particles: PD.File({ accept: particlesExts.map(e => `.${e}`).join(','), label: 'Particles' }),
+                }, { isFlat: true }),
+            }, { options: [['url', 'URL'], ['file', 'File']] })
+        };
+    }
+})(({ params, state }, ctx: PluginContext) => Task.create('Load Particles Volume', taskCtx => {
+    return state.transaction(async () => {
+        const s = params.source;
+
+        if (s.name === 'file' && (s.params.volume === null || s.params.particles === null)) {
+            ctx.log.error('No file(s) selected');
+            return;
+        }
+
+        if (s.name === 'url' && (!s.params.volume || !s.params.particles)) {
+            ctx.log.error('No URL(s) given');
+            return;
+        }
+
+        const processUrl = async (url: string | Asset.Url, format: string, isBinary: boolean) => {
+            const data = await ctx.builders.data.download({ url, isBinary });
+            const provider = ctx.dataFormats.get(format);
+
+            if (!provider) {
+                ctx.log.warn(`LoadParticlesVolume: could not find data provider for '${format}'`);
+                return;
+            }
+
+            return provider.parse(ctx, data);
+        };
+
+        const processFile = async (file: Asset.File | null) => {
+            if (!file) throw new Error('No file selected');
+
+            const info = getFileNameInfo(file.file?.name ?? '');
+            const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
+            const { data } = await ctx.builders.data.readFile({ file, isBinary });
+            const provider = ctx.dataFormats.auto(info, data.cell?.obj!);
+
+            if (!provider) {
+                ctx.log.warn(`LoadParticlesVolume: could not find data provider for '${info.ext}'`);
+                await ctx.state.data.build().delete(data).commit();
+                return;
+            }
+
+            return provider.parse(ctx, data);
+        };
+
+        try {
+            const volumeParsed = s.name === 'url'
+                ? await processUrl(s.params.volume.url, s.params.volume.format, s.params.volume.isBinary)
+                : await processFile(s.params.volume);
+
+            if (!volumeParsed || !('volume' in volumeParsed)) {
+                ctx.log.error('Expected a volume format for the volume input');
+                return;
+            }
+
+            //
+
+            const particlesParsed = s.name === 'url'
+                ? await processUrl(s.params.particles.url, s.params.particles.format, s.params.particles.isBinary)
+                : await processFile(s.params.particles);
+
+            if (!particlesParsed || !('list' in particlesParsed)) {
+                ctx.log.error('Expected a particles format for the particles input');
+                return;
+            }
+
+            //
+
+            const dependsOn = [volumeParsed.volume.ref, particlesParsed.list.ref];
+            const tree = state.build().toRoot()
+                .apply(VolumeFromVolumeAndParticles, {
+                    volumeRef: volumeParsed.volume.ref,
+                    particlesRef: particlesParsed.list.ref,
+                }, { dependsOn });
+
+            await state.updateTree(tree).runInContext(taskCtx);
+            await applyParticlesVolumeVisuals(ctx, tree.selector);
+        } catch (e) {
+            console.error(e);
+            ctx.log.error(`Error loading particles volume`);
+        }
+    }).runInContext(taskCtx);
+}));
