@@ -12,7 +12,9 @@ import { createPluginUI } from '../../mol-plugin-ui';
 import { renderReact18 } from '../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginSpec } from '../../mol-plugin/spec';
-import { VolumeMaskBehavior, VolumeMaskController, MaskCreatorPanel } from '../../extensions/volume-mask';
+import { VolumeMaskBehavior } from '../../extensions/volume-mask';
+import { VolumeMaskController } from './controller';
+import { MaskCreatorPanel } from './ui/mask-panel';
 import '../../mol-plugin-ui/skin/light.scss';
 import './index.html';
 

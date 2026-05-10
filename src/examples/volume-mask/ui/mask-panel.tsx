@@ -11,9 +11,9 @@ import { Volume } from '../../../mol-model/volume';
 import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
 import { OpenFiles } from '../../../mol-plugin-state/actions/file';
 import { Asset } from '../../../mol-util/assets';
-import { VolumeMaskController } from '../behavior';
+import { VolumeMaskController } from '../controller';
 import { DrawingCanvas } from './drawing-canvas';
-import type { MaskCreatorState, MaskSource, ViewMask, Point2D } from '../types';
+import type { MaskCreatorState, MaskSource, ViewMask, Point2D } from '../../../extensions/volume-mask/types';
 
 interface Props {
     plugin: PluginContext;

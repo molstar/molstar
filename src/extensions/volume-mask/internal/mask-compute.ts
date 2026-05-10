@@ -9,7 +9,7 @@ import { Grid, Volume } from '../../../mol-model/volume';
 import { Tensor, Mat4, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { CustomProperties } from '../../../mol-model/custom-property';
 import { RuntimeContext } from '../../../mol-task';
-import { pointInPolygon } from './polygon';
+import { pointInPolygon2D as pointInPolygon } from '../../../mol-math/geometry/polygon';
 import type { ViewMask } from '../types';
 
 const tmpVec3 = Vec3();

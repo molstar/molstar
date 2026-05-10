@@ -5,7 +5,7 @@
 
 import * as React from 'react';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { Point2D, ViewMask } from '../types';
+import type { Point2D, ViewMask } from '../../../extensions/volume-mask/types';
 
 const CLOSE_DIST_PX = 12;
 const PREVIEW_COLOR = '#FF6B00';
