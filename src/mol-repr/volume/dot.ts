@@ -67,7 +67,8 @@ export function VolumeSphereImpostorVisual(materialId: number): VolumeVisual<Vol
         setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<VolumeSphereParams>, currentProps: PD.Values<VolumeSphereParams>, newTheme: Theme, currentTheme: Theme) => {
             state.createGeometry = (
                 !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
-                newProps.perturbPositions !== currentProps.perturbPositions
+                newProps.perturbPositions !== currentProps.perturbPositions ||
+                newProps.lodLevels.length > 0 && currentProps.lodLevels.length === 0
             );
         },
         geometryUtils: Spheres.Utils,
@@ -128,32 +129,65 @@ export function createVolumeSphereImpostor(ctx: VisualContext, volume: Volume, k
 
     const p = Vec3();
     const [xn, yn, zn] = space.dimensions;
-
-    const count = Math.ceil((xn * yn * zn) / 10);
-    const builder = SpheresBuilder.create(count, Math.ceil(count / 2), spheres);
-
     const invert = isoVal < 0;
 
     // Precompute basis vectors and largest cell axis length
     const basis = props.perturbPositions ? getBasis(gridToCartn) : undefined;
 
-    for (let z = 0; z < zn; ++z) {
-        for (let y = 0; y < yn; ++y) {
-            for (let x = 0; x < xn; ++x) {
-                const value = space.get(data, x, y, z);
-                if (!invert && value < isoVal || invert && value > isoVal) continue;
+    const count = Math.ceil((xn * yn * zn) / 10);
+    const builder = SpheresBuilder.create(count, Math.ceil(count / 2), spheres);
 
-                const cellIdx = space.dataOffset(x, y, z);
-                if (basis) {
-                    Vec3.set(p, x, y, z);
-                    Vec3.transformMat4(p, p, gridToCartn);
-                    const offset = getRandomOffsetFromBasis(basis);
-                    Vec3.add(p, p, offset);
-                } else {
-                    Vec3.set(p, x, y, z);
-                    Vec3.transformMat4(p, p, gridToCartn);
+    const add = (x: number, y: number, z: number) => {
+        const value = space.get(data, x, y, z);
+        if (!invert && value < isoVal || invert && value > isoVal) return;
+
+        const cellIdx = space.dataOffset(x, y, z);
+        Vec3.set(p, x, y, z);
+        Vec3.transformMat4(p, p, gridToCartn);
+        if (basis) {
+            Vec3.add(p, p, getRandomOffsetFromBasis(basis));
+        }
+        builder.add(p[0], p[1], p[2], cellIdx);
+    };
+
+    // Morton ordering keeps stride-based LOD sampling spatially balanced.
+    // Only worthwhile when LOD levels are configured; otherwise use the
+    // direct row-major path to avoid the extra allocations and sort.
+    const useMortonOrder = props.lodLevels.length > 0;
+
+    if (useMortonOrder) {
+        // Recursive octree traversal over the bounding power-of-two cube,
+        // visiting children in Morton order (octant bit2=x, bit1=y, bit0=z).
+        // Octants whose origin already exceeds the grid extent are pruned,
+        // so out-of-range subtrees of non-cube grids cost ~O(log) per skip.
+        let size = 1;
+        while (size < xn || size < yn || size < zn) size <<= 1;
+
+        const visit = (x0: number, y0: number, z0: number, s: number): void => {
+            if (x0 >= xn || y0 >= yn || z0 >= zn) return;
+
+            if (s === 1) {
+                add(x0, y0, z0);
+                return;
+            }
+            const h = s >> 1;
+            visit(x0, y0, z0, h);
+            visit(x0, y0, z0 + h, h);
+            visit(x0, y0 + h, z0, h);
+            visit(x0, y0 + h, z0 + h, h);
+            visit(x0 + h, y0, z0, h);
+            visit(x0 + h, y0, z0 + h, h);
+            visit(x0 + h, y0 + h, z0, h);
+            visit(x0 + h, y0 + h, z0 + h, h);
+        };
+
+        visit(0, 0, 0, size);
+    } else {
+        for (let z = 0; z < zn; ++z) {
+            for (let y = 0; y < yn; ++y) {
+                for (let x = 0; x < xn; ++x) {
+                    add(x, y, z);
                 }
-                builder.add(p[0], p[1], p[2], cellIdx);
             }
         }
     }
@@ -320,6 +354,7 @@ const DotVisuals = {
 export const DotParams = {
     ...VolumeSphereParams,
     ...VolumePointParams,
+    sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
     visuals: PD.MultiSelect(['sphere'], PD.objectToOptions(DotVisuals)),
     bumpFrequency: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
 };

@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Fix empty transforms default in `ShapeFromPly`
+- Use morton order for spheres in dot visual with lod-levels
 - Add `Camera.changed` event and rotation/translation setter/getter
 - Add `instanceGranularity: 'auto'` as a memory guard
 - Honor `instanceGranularity` in `Visual.getLoci`
