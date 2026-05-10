@@ -5,6 +5,7 @@
  */
 
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
+import { resolveInstanceGranularity } from '../../mol-geo/geometry/base';
 import { Representation } from '../representation';
 import { Shape, ShapeGroup } from '../../mol-model/shape';
 import { Subject } from 'rxjs';
@@ -129,7 +130,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                     // console.log('update transform')
                     locationIt = Shape.groupIterator(_shape);
                     const { instanceCount, groupCount } = locationIt;
-                    if (props.instanceGranularity) {
+                    if (resolveInstanceGranularity(newProps.instanceGranularity, groupCount, instanceCount)) {
                         createMarkers(instanceCount, 'instance', _renderObject.values);
                     } else {
                         createMarkers(instanceCount * groupCount, 'groupInstance', _renderObject.values);
@@ -197,14 +198,15 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     }
 
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
+        const instanceGranularity = resolveInstanceGranularity(currentProps.instanceGranularity, _shape.groupCount, _shape.transforms.length);
         if (isEveryLoci(loci) || (Shape.isLoci(loci) && loci.shape === _shape)) {
-            if (currentProps.instanceGranularity) {
+            if (instanceGranularity) {
                 return apply(Interval.ofBounds(0, _shape.transforms.length));
             } else {
                 return apply(Interval.ofBounds(0, _shape.groupCount * _shape.transforms.length));
             }
         } else {
-            if (currentProps.instanceGranularity) {
+            if (instanceGranularity) {
                 return eachInstance(loci, _shape, apply);
             } else {
                 return eachShapeGroup(loci, _shape, apply);
@@ -226,7 +228,8 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         getLoci(pickingId: PickingId) {
             const { objectId, groupId, instanceId } = pickingId;
             if (_renderObject && _renderObject.id === objectId) {
-                if (groupId === PickingId.Null) {
+                const instanceGranularity = resolveInstanceGranularity(currentProps.instanceGranularity, _shape.groupCount, _shape.transforms.length);
+                if (groupId === PickingId.Null || instanceGranularity) {
                     return Shape.Loci(_shape);
                 } else {
                     return ShapeGroup.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId), instance: instanceId }]);

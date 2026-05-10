@@ -234,12 +234,14 @@ export namespace MonadicParser {
     export type Result<T> = Success<T> | Failure
 
     export function seqMap<A, B>(a: MonadicParser<A>, b: MonadicParser<B>, c: any) {
-        const args = [].slice.call(arguments);
+        const args: any[] = [].slice.call(arguments);
         if (args.length === 0) {
             throw new Error('seqMap needs at least one argument');
         }
         const mapper = args.pop();
-        assertFunction(mapper);
+        if (typeof mapper !== 'function') {
+            throw new Error('not a function: ' + mapper);
+        }
         return seq.apply(null, args).map(function (results: any) {
             return mapper.apply(null, results);
         });
@@ -570,10 +572,4 @@ function unsafeUnion(xs: string[], ys: string[]) {
 
 function isParser(obj: any): obj is MonadicParser<any> {
     return obj instanceof MonadicParser;
-}
-
-function assertFunction(x: any) {
-    if (typeof x !== 'function') {
-        throw new Error('not a function: ' + x);
-    }
 }

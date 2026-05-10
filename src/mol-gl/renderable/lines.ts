@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem, Transparency } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, DefineSpec, Values, InternalSchema, SizeSchema, ElementsSpec, InternalValues, GlobalTextureSchema, UniformSpec, GlobalDefineValues, GlobalDefines, GlobalDefineSchema, ValueSpec } from './schema';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, DefineSpec, Values, InternalSchema, SizeSchema, ElementsSpec, InternalValues, GlobalTextureSchema, UniformSpec, GlobalDefineValues, GlobalDefines, GlobalDefineSchema, ValueSpec, AnimationSchema } from './schema';
 import { ValueCell } from '../../mol-util';
 import { LinesShaderCode } from '../shader-code';
 
@@ -24,6 +24,8 @@ export const LinesSchema = {
     dFlipSided: DefineSpec('boolean'),
     stripCount: ValueSpec('number'),
     stripOffsets: ValueSpec('uint32'),
+
+    ...AnimationSchema,
 };
 export type LinesSchema = typeof LinesSchema
 export type LinesValues = Values<LinesSchema>

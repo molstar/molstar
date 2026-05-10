@@ -32,6 +32,7 @@ import { Text } from '../../mol-geo/geometry/text/text';
 import { SizeTheme } from '../../mol-theme/size';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
+import { resolveInstanceGranularity } from '../../mol-geo/geometry/base';
 import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams, StructureTextureMeshParams, StructureSpheresParams, StructurePointsParams, StructureImageParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
@@ -40,6 +41,7 @@ import { isPromiseLike } from '../../mol-util/type-helpers';
 import { Substance } from '../../mol-theme/substance';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { Emissive } from '../../mol-theme/emissive';
+import { Wiggle } from '../../mol-theme/wiggle';
 import { Points } from '../../mol-geo/geometry/points/points';
 import { Image } from '../../mol-geo/geometry/image/image';
 
@@ -172,7 +174,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             if (updateState.updateTransform) {
                 // console.log('update transform')
                 const { instanceCount, groupCount } = locationIt;
-                if (newProps.instanceGranularity) {
+                if (resolveInstanceGranularity(newProps.instanceGranularity, groupCount, instanceCount)) {
                     createMarkers(instanceCount, 'instance', renderObject.values);
                 } else {
                     createMarkers(instanceCount * groupCount, 'groupInstance', renderObject.values);
@@ -236,14 +238,15 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     }
 
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean, isMarking: boolean) {
+        const instanceGranularity = resolveInstanceGranularity(currentProps.instanceGranularity, locationIt.groupCount, locationIt.instanceCount);
         if (lociIsSuperset(loci)) {
-            if (currentProps.instanceGranularity) {
+            if (instanceGranularity) {
                 return apply(Interval.ofBounds(0, locationIt.instanceCount));
             } else {
                 return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount));
             }
         } else {
-            if (currentProps.instanceGranularity) {
+            if (instanceGranularity) {
                 return eachInstance(loci, currentStructure, apply);
             } else {
                 return eachLocation(loci, currentStructure, apply, isMarking);
@@ -278,7 +281,11 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             finalize(ctx);
         },
         getLoci(pickingId: PickingId) {
-            return renderObject ? getLoci(pickingId, currentStructure, renderObject.id) : EmptyLoci;
+            if (!renderObject) return EmptyLoci;
+            if (resolveInstanceGranularity(currentProps.instanceGranularity, locationIt.groupCount, locationIt.instanceCount)) {
+                pickingId = { ...pickingId, groupId: PickingId.Null };
+            }
+            return getLoci(pickingId, currentStructure, renderObject.id);
         },
         eachLocation(cb: LocationCallback) {
             locationIt.reset();
@@ -324,7 +331,10 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         setClipping(clipping: Clipping) {
             Visual.setClipping(renderObject, clipping, lociApply, true);
         },
-        setThemeStrength(strength: { overpaint: number, transparency: number, emissive: number, substance: number }) {
+        setWiggle(wiggle: Wiggle, webgl?: WebGLContext) {
+            Visual.setWiggle(renderObject, wiggle, lociApply, true);
+        },
+        setThemeStrength(strength: { overpaint: number, transparency: number, emissive: number, substance: number, wiggle: number }) {
             Visual.setThemeStrength(renderObject, strength);
         },
         destroy() {

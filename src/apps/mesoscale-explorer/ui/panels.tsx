@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,7 +13,7 @@ import { StructureMeasurementsControls } from '../../../mol-plugin-ui/structure/
 import { MesoscaleExplorerState } from '../app';
 import { MesoscaleState } from '../data/state';
 import { EntityControls, FocusInfo, ModelInfo, SelectionInfo } from './entities';
-import { LoaderControls, ExampleControls, SessionControls, SnapshotControls, DatabaseControls, MesoQuickStylesControls, ExplorerInfo } from './states';
+import { LoaderControls, ExampleControls, SessionControls, SnapshotControls, DatabaseControls, MesoQuickStylesControls, MesoProceduralAnimationControls, ExplorerInfo } from './states';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { TuneSvg } from '../../../mol-plugin-ui/controls/icons';
 import { RendererParams } from '../../../mol-gl/renderer';
@@ -145,6 +145,7 @@ export class RightPanel extends PluginUIComponent<{}, { isDisabled: boolean }> {
                 <StructureMeasurementsControls initiallyCollapsed={true}/>
             </>
             <MesoQuickStylesControls />
+            <MesoProceduralAnimationControls />
             <Spacer />
             <SectionHeader title='Entities' />
             <EntityControls />

@@ -34,7 +34,7 @@ export const VolumeSegmentParams = {
     segments: PD.Converted(
         (v: number[]) => v.map(x => `${x}`),
         (v: string[]) => v.map(x => parseInt(x)),
-        PD.MultiSelect(['0'], PD.arrayToOptions(['0']), {
+        PD.MultiSelect<string>(['0'], PD.arrayToOptions(['0']), {
             isEssential: true
         })
     )

@@ -181,8 +181,8 @@ export class Slider2 extends React.Component<{
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-function classNames(_classes: { [name: string]: boolean | number }) {
-    const classes = [];
+function classNames(_classes: { [name: string]: boolean | number }): string {
+    const classes: string[] = [];
     const hasOwn = {}.hasOwnProperty;
 
     for (let i = 0; i < arguments.length; i++) {
@@ -194,7 +194,7 @@ function classNames(_classes: { [name: string]: boolean | number }) {
         if (argType === 'string' || argType === 'number') {
             classes.push(arg);
         } else if (Array.isArray(arg)) {
-            classes.push(classNames.apply(null, arg));
+            classes.push(classNames.apply(null, arg as any));
         } else if (argType === 'object') {
             for (const key in arg) {
                 if (hasOwn.call(arg, key) && arg[key]) {
@@ -290,6 +290,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         const defaultValue = ('defaultValue' in props ? props.defaultValue : initialValue);
         const value = (props.value !== undefined ? props.value : defaultValue);
 
+        // @ts-ignore
         const bounds = (range ? value : [min, value]).map((v: number) => this.trimAlignValue(v));
 
         let recent;

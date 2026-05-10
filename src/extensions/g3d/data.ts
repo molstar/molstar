@@ -59,7 +59,7 @@ export async function getG3dDataBlock(ctx: PluginContext, header: G3dHeader, url
 
 async function getRawData(ctx: PluginContext, urlOrData: string | Uint8Array, range: { offset: number, size: number }) {
     if (typeof urlOrData === 'string') {
-        return await ctx.runTask(ctx.fetch({ url: urlOrData, headers: [['Range', `bytes=${range.offset}-${range.offset + range.size - 1}`]], type: 'binary' }));
+        return await ctx.runTask(ctx.fetch({ url: urlOrData, headers: { 'Range': `bytes=${range.offset}-${range.offset + range.size - 1}` }, type: 'binary' }));
     } else {
         return urlOrData.slice(range.offset, range.offset + range.size);
     }
