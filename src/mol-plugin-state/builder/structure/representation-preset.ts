@@ -26,6 +26,7 @@ import { StructConn } from '../../../mol-model-formats/structure/property/bonds/
 import { StructureRepresentationRegistry } from '../../../mol-repr/structure/registry';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { Vec3 } from '../../../mol-math/linear-algebra/3d/vec3';
+import { Spheres } from '../../../mol-geo/geometry/spheres/spheres';
 
 export interface StructureRepresentationPresetProvider<P = any, S extends _Result = _Result> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
 export function StructureRepresentationPresetProvider<P, S extends _Result>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
@@ -495,44 +496,11 @@ const autoLod = StructureRepresentationPresetProvider({
     }
 });
 
-type MesoscaleGraphicsMode = 'ultra' | 'quality' | 'balanced' | 'performance';
-
-function getMesoscaleLodLevels(graphics: MesoscaleGraphicsMode) {
-    switch (graphics) {
-        case 'performance':
-            return [
-                { minDistance: 1, maxDistance: 300, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 300, maxDistance: 2000, overlap: 0, stride: 40, scaleBias: 3 },
-                { minDistance: 2000, maxDistance: 6000, overlap: 0, stride: 150, scaleBias: 3 },
-                { minDistance: 6000, maxDistance: 10000000, overlap: 0, stride: 300, scaleBias: 2.5 },
-            ];
-        case 'balanced':
-            return [
-                { minDistance: 1, maxDistance: 500, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 500, maxDistance: 2000, overlap: 0, stride: 15, scaleBias: 3 },
-                { minDistance: 2000, maxDistance: 6000, overlap: 0, stride: 70, scaleBias: 2.7 },
-                { minDistance: 6000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2.5 },
-            ];
-        case 'quality':
-            return [
-                { minDistance: 1, maxDistance: 1000, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 1000, maxDistance: 4000, overlap: 0, stride: 10, scaleBias: 3 },
-                { minDistance: 4000, maxDistance: 10000, overlap: 0, stride: 50, scaleBias: 2.7 },
-                { minDistance: 10000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2.3 },
-            ];
-        case 'ultra':
-            return [
-                { minDistance: 1, maxDistance: 5000, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 5000, maxDistance: 10000, overlap: 0, stride: 10, scaleBias: 3 },
-                { minDistance: 10000, maxDistance: 30000, overlap: 0, stride: 50, scaleBias: 2.5 },
-                { minDistance: 30000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2 },
-            ];
-        default:
-            assertUnreachable(graphics);
-    }
+type MesoscaleGraphicsMode = keyof typeof Spheres.LodLevelsPresets
+const MesoscaleGraphicsOptions = PD.arrayToOptions(Object.keys(Spheres.LodLevelsPresets) as MesoscaleGraphicsMode[]);
+function getMesoscaleLodLevels(mode: MesoscaleGraphicsMode) {
+    return Spheres.LodLevelsPresets[mode];
 }
-
-const MesoscaleGraphicsOptions = PD.arrayToOptions<MesoscaleGraphicsMode>(['ultra', 'quality', 'balanced', 'performance']);
 
 const mesoscale = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-mesoscale',
@@ -572,7 +540,7 @@ const mesoscale = StructureRepresentationPresetProvider({
                     alphaThickness,
                     clipPrimitive: true,
                 },
-                color,
+                color: color || 'entity-id',
             }, { tag: 'all' }),
         };
 
