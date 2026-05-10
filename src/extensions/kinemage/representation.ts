@@ -12,8 +12,8 @@ import { Structure } from '../../mol-model/structure';
 import { StructureRepresentation, StructureRepresentationStateBuilder } from '../../mol-repr/structure/representation';
 import { ThemeRegistryContext } from '../../mol-theme/theme';
 
-/// @todo Convert this approach to a more usual one that creates visuals during parse and shows them
-/// during visuals.
+// TODO: Convert this approach to a more usual one that creates visuals during parse and shows them
+// during visuals.
 
 const KinemageDataVisuals = {
 };

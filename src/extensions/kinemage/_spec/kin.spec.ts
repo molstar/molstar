@@ -55,7 +55,7 @@ describe('kin reader', () => {
         expect(element.name).toEqual('x');
         expect(element.position1Array.length).toEqual(7);
 
-        // @todo Add more tests
+        // TODO: Add more tests
 
         expect.assertions(3);
     });
@@ -64,7 +64,7 @@ describe('kin reader', () => {
         const parsed = await parseKin(kinComplexString).run();
         if (parsed.isError) return;
 
-        // @todo Add more complex tests
+        // TODO: Add more complex tests
 
     });
 });

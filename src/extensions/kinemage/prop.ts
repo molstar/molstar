@@ -22,7 +22,7 @@ export type KinemageParams = typeof KinemageParams
 export type KinemageProps = PD.Values<KinemageParams>
 
 export const KinemageDataParams = {
-  ...KinemageParams
+    ...KinemageParams
 };
 export type KinemageDataParams = typeof KinemageDataParams
 export type KinemageDataProps = PD.Values<KinemageDataParams>
@@ -37,7 +37,7 @@ interface KinemageData {
 }
 
 const FileSourceParams = {
-  input: PD.File({ accept: '.kin', multiple: false })
+    input: PD.File({ accept: '.kin', multiple: false })
 };
 type FileSourceProps = PD.Values<typeof FileSourceParams>
 
@@ -47,37 +47,37 @@ namespace KinemageData {
     }
 
     export const symbols = {
-    }
+    };
 
     async function loadKinemageData(data: string): Promise<Kinemage[]> {
-      const task = parseKin(data);
-      const result = await task.run();
-      if (result.isError) {
-        throw new Error('Failed to parse KIN data');
-      }
-      return result.result;
+        const task = parseKin(data);
+        const result = await task.run();
+        if (result.isError) {
+            throw new Error('Failed to parse KIN data');
+        }
+        return result.result;
     }
 
     export async function open(file: FileSourceProps | File): Promise<KinemageData> {
 
-      let fileToRead: File;
+        let fileToRead: File;
 
-      if (file instanceof File) {
-        fileToRead = file;
-      } else if (file && file.input && file.input.file) {
-        fileToRead = file.input.file;
-      } else {
-        throw new Error('No file given');
-      }
+        if (file instanceof File) {
+            fileToRead = file;
+        } else if (file && file.input && file.input.file) {
+            fileToRead = file.input.file;
+        } else {
+            throw new Error('No file given');
+        }
 
-      const task = Task.create('Load KIN file', async ctx => {
-        const data = await fileToRead.text();
-        const kinemages = await loadKinemageData(data);
-        return kinemages;
-      });
+        const task = Task.create('Load KIN file', async ctx => {
+            const data = await fileToRead.text();
+            const kinemages = await loadKinemageData(data);
+            return kinemages;
+        });
 
-      const kinemages = await task.run();
-      return { kinemages };
+        const kinemages = await task.run();
+        return { kinemages };
     }
 }
 
@@ -108,9 +108,9 @@ function isApplicable(structure: Structure) {
 }
 
 async function computeKinemageProps(ctx: CustomProperty.Context, data: Structure, props: Partial<KinemageProps>): Promise<KinemageData> {
-  // Return an empty KinemageData object since the actual data will be loaded asynchronously via the `open` method.
-  // This allows the property to be attached to the structure without blocking on file loading.
-  return {
-    kinemages: []
-  };
+    // Return an empty KinemageData object since the actual data will be loaded asynchronously via the `open` method.
+    // This allows the property to be attached to the structure without blocking on file loading.
+    return {
+        kinemages: []
+    };
 }
