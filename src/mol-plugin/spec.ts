@@ -24,6 +24,7 @@ import { BoxifyVolumeStreaming, CreateVolumeStreamingBehavior, InitVolumeStreami
 import { AnimateStateInterpolation } from '../mol-plugin-state/animation/built-in/state-interpolation';
 import { AnimateStructureSpin } from '../mol-plugin-state/animation/built-in/spin-structure';
 import { AnimateCameraRock } from '../mol-plugin-state/animation/built-in/camera-rock';
+import { AnimateTime } from '../mol-plugin-state/animation/built-in/time';
 
 export { PluginSpec };
 
@@ -105,6 +106,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateTransforms.Representation.TransparencyStructureRepresentation3DFromScript),
         PluginSpec.Action(StateTransforms.Representation.ClippingStructureRepresentation3DFromScript),
         PluginSpec.Action(StateTransforms.Representation.SubstanceStructureRepresentation3DFromScript),
+        PluginSpec.Action(StateTransforms.Representation.WiggleStructureRepresentation3DFromScript),
         PluginSpec.Action(StateTransforms.Representation.ThemeStrengthRepresentation3D),
 
         PluginSpec.Action(AssignColorVolume),
@@ -144,6 +146,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         AnimateStateSnapshotTransition,
         AnimateAssemblyUnwind,
         AnimateStructureSpin,
-        AnimateStateInterpolation
+        AnimateStateInterpolation,
+        AnimateTime
     ]
 });

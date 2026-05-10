@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,6 +10,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Task } from '../../../mol-task';
 import { Color } from '../../../mol-util/color';
 import { Spheres } from '../../../mol-geo/geometry/spheres/spheres';
+import { getAnimationParam } from '../../../mol-geo/geometry/animation';
 import { Clip } from '../../../mol-util/clip';
 import { escapeRegExp, stringToWords } from '../../../mol-util/string';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
@@ -21,7 +22,6 @@ import { Hcl } from '../../../mol-util/color/spaces/hcl';
 import { StateObjectCell, StateObjectRef, StateSelection } from '../../../mol-state';
 import { ShapeRepresentation3D, StructureRepresentation3D } from '../../../mol-plugin-state/transforms/representation';
 import { SpacefillRepresentationProvider } from '../../../mol-repr/structure/representation/spacefill';
-import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { MesoscaleExplorerState } from '../app';
 import { saturate } from '../../../mol-math/interpolate';
 import { Material } from '../../../mol-util/material';
@@ -174,6 +174,8 @@ export const LodParams = {
     approximate: Spheres.Params.approximate,
 };
 
+export const AnimationParams = getAnimationParam().params;
+
 export const SimpleClipParams = {
     type: PD.Select('none', PD.objectToOptions(Clip.Type, t => stringToWords(t))),
     invert: PD.Boolean(false),
@@ -281,6 +283,7 @@ export const MesoscaleGroupParams = {
     emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
     lod: PD.Group(LodParams),
     clip: PD.Group(SimpleClipParams),
+    animation: PD.Group(AnimationParams),
 };
 export type MesoscaleGroupProps = PD.Values<typeof MesoscaleGroupParams>;
 
@@ -318,38 +321,7 @@ export function getMesoscaleGroupParams(graphicsMode: GraphicsMode): MesoscaleGr
 export type LodLevels = typeof SpacefillRepresentationProvider.defaultValues['lodLevels']
 
 export function getLodLevels(graphicsMode: Exclude<GraphicsMode, 'custom'>): LodLevels {
-    switch (graphicsMode) {
-        case 'performance':
-            return [
-                { minDistance: 1, maxDistance: 300, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 300, maxDistance: 2000, overlap: 0, stride: 40, scaleBias: 3 },
-                { minDistance: 2000, maxDistance: 6000, overlap: 0, stride: 150, scaleBias: 3 },
-                { minDistance: 6000, maxDistance: 10000000, overlap: 0, stride: 300, scaleBias: 2.5 },
-            ];
-        case 'balanced':
-            return [
-                { minDistance: 1, maxDistance: 500, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 500, maxDistance: 2000, overlap: 0, stride: 15, scaleBias: 3 },
-                { minDistance: 2000, maxDistance: 6000, overlap: 0, stride: 70, scaleBias: 2.7 },
-                { minDistance: 6000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2.5 },
-            ];
-        case 'quality':
-            return [
-                { minDistance: 1, maxDistance: 1000, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 1000, maxDistance: 4000, overlap: 0, stride: 10, scaleBias: 3 },
-                { minDistance: 4000, maxDistance: 10000, overlap: 0, stride: 50, scaleBias: 2.7 },
-                { minDistance: 10000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2.3 },
-            ];
-        case 'ultra':
-            return [
-                { minDistance: 1, maxDistance: 5000, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 5000, maxDistance: 10000, overlap: 0, stride: 10, scaleBias: 3 },
-                { minDistance: 10000, maxDistance: 30000, overlap: 0, stride: 50, scaleBias: 2.5 },
-                { minDistance: 30000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2 },
-            ];
-        default:
-            assertUnreachable(graphicsMode);
-    }
+    return Spheres.LodLevelsPresets[graphicsMode];
 }
 
 export type GraphicsMode = 'ultra' | 'quality' | 'balanced' | 'performance' | 'custom';

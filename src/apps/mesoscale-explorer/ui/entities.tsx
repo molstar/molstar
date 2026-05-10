@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -18,7 +18,7 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci, Loci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams, IllustrativeParams, getCellDescription, getEntityDescription, getEveryEntity } from '../data/state';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, AnimationParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams, IllustrativeParams, getCellDescription, getEntityDescription, getEveryEntity } from '../data/state';
 import React, { useState } from 'react';
 import { MesoscaleExplorerState } from '../app';
 import { StructureElement } from '../../../mol-model/structure/structure/element';
@@ -828,6 +828,26 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         update.commit();
     };
 
+    updateAnimation = (values: PD.Values) => {
+        const update = this.plugin.state.data.build();
+
+        for (const r of this.allFilteredEntities) {
+            update.to(r).update(old => {
+                if (old.type) {
+                    old.type.params.animation = values;
+                }
+            });
+        }
+
+        for (const g of this.allGroups) {
+            update.to(g).update(old => {
+                old.animation = values;
+            });
+        }
+
+        update.commit();
+    };
+
     update = (props: MesoscaleGroupProps) => {
         this.plugin.state.data.build().to(this.ref).update(props);
     };
@@ -865,6 +885,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         const rootValue = this.cell.params?.values.color;
         const clipValue = this.cell.params?.values.clip;
         const lodValue = this.cell.params?.values.lod;
+        const animationValue = this.cell.params?.values.animation;
         const isRoot = this.cell.params?.values.root;
 
         const groups = this.groups;
@@ -904,6 +925,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
                     topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <ParameterControls params={SimpleClipParams} values={clipValue} onChangeValues={this.updateClip} />
                     <ParameterControls params={LodParams} values={lodValue} onChangeValues={this.updateLod} />
+                    <ParameterControls params={AnimationParams} values={animationValue} onChangeValues={this.updateAnimation} />
                 </ControlGroup>
             </div>}
             {this.state.action === 'root' && <div style={{ marginRight: 5 }} className='msp-accent-offset'>
@@ -1080,6 +1102,19 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         };
     }
 
+    get animationValue(): PD.Values<typeof AnimationParams> | undefined {
+        const p = this.cell.transform.params?.type?.params?.animation;
+        if (!p) return;
+        return {
+            wiggleMode: p.wiggleMode,
+            wiggleSpeed: p.wiggleSpeed,
+            wiggleAmplitude: p.wiggleAmplitude,
+            wiggleFrequency: p.wiggleFrequency,
+            tumbleSpeed: p.tumbleSpeed,
+            tumbleAmplitude: p.tumbleAmplitude,
+        };
+    }
+
     get patternValue(): { amplitude: number, frequency: number } | undefined {
         const p = this.cell.transform.params;
         if (p.type) return;
@@ -1194,6 +1229,15 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         }
     };
 
+    updateAnimation = (values: PD.Values) => {
+        const params = this.cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
+        if (!params.type) return;
+
+        this.plugin.build().to(this.ref).update(old => {
+            old.type.params.animation = values;
+        }).commit();
+    };
+
     updatePattern = (values: PD.Values) => {
         return this.plugin.build().to(this.ref).update(old => {
             if (!old.type) {
@@ -1213,6 +1257,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         const opacityValue = this.opacityValue;
         const emissiveValue = this.emissiveValue;
         const lodValue = this.lodValue;
+        const animationValue = this.animationValue;
         const patternValue = this.patternValue;
 
         const l = getEntityLabel(this.plugin, this.cell);
@@ -1251,6 +1296,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
                     topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <ParameterMappingControl mapping={this.clipMapping} />
                     {lodValue && <ParameterControls params={LodParams} values={lodValue} onChangeValues={this.updateLod} />}
+                    {animationValue && <ParameterControls params={AnimationParams} values={animationValue} onChangeValues={this.updateAnimation} />}
                 </ControlGroup>
             </div>}
         </>;

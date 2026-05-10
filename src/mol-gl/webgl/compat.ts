@@ -104,7 +104,7 @@ export interface COMPAT_vertex_array_object {
     bindVertexArray(arrayObject: WebGLVertexArrayObject | null): void;
     createVertexArray(): WebGLVertexArrayObject | null;
     deleteVertexArray(arrayObject: WebGLVertexArrayObject): void;
-    isVertexArray(value: any): value is WebGLVertexArrayObject;
+    isVertexArray(value: any): boolean
 }
 
 export function getVertexArrayObject(gl: GLRenderingContext): COMPAT_vertex_array_object | null {
@@ -484,7 +484,7 @@ export interface COMPAT_disjoint_timer_query {
     /** Records the current time into the corresponding query object. */
     queryCounter: (query: WebGLQuery, target: number) => void
     /** Returns information about a query target. */
-    getQuery: (target: number, pname: number) => WebGLQuery | number
+    getQuery: (target: number, pname: number) => WebGLQuery | null
     /** Return the state of a query object. */
     getQueryParameter: (query: WebGLQuery, pname: number) => number | boolean
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem, Transparency } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, DefineSpec, Values, InternalSchema, SizeSchema, InternalValues, GlobalTextureSchema, GlobalDefineValues, GlobalDefines, GlobalDefineSchema } from './schema';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, DefineSpec, Values, InternalSchema, SizeSchema, InternalValues, GlobalTextureSchema, GlobalDefineValues, GlobalDefines, GlobalDefineSchema, AnimationSchema } from './schema';
 import { PointsShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
 
@@ -18,6 +18,8 @@ export const PointsSchema = {
     aPosition: AttributeSpec('float32', 3, 0),
     dPointSizeAttenuation: DefineSpec('boolean'),
     dPointStyle: DefineSpec('string', ['square', 'circle', 'fuzzy']),
+
+    ...AnimationSchema,
 };
 export type PointsSchema = typeof PointsSchema
 export type PointsValues = Values<PointsSchema>

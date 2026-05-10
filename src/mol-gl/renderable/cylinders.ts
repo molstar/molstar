@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem, Transparency } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, Values, InternalSchema, SizeSchema, InternalValues, ElementsSpec, ValueSpec, DefineSpec, GlobalTextureSchema, UniformSpec, GlobalDefineValues, GlobalDefines, GlobalDefineSchema, InteriorSchema } from './schema';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, Values, InternalSchema, SizeSchema, InternalValues, ElementsSpec, ValueSpec, DefineSpec, GlobalTextureSchema, UniformSpec, GlobalDefineValues, GlobalDefines, GlobalDefineSchema, InteriorSchema, AnimationSchema } from './schema';
 import { CylindersShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
 
@@ -35,6 +35,7 @@ export const CylindersSchema = {
     dDualColor: DefineSpec('boolean'),
 
     ...InteriorSchema,
+    ...AnimationSchema,
 };
 export type CylindersSchema = typeof CylindersSchema
 export type CylindersValues = Values<CylindersSchema>

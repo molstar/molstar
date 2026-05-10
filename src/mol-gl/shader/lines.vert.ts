@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -16,6 +16,7 @@ precision highp int;
 #include color_vert_params
 #include size_vert_params
 #include common_clip
+#include common_animation
 
 uniform float uPixelRatio;
 uniform vec4 uViewport;
@@ -48,18 +49,20 @@ void main(){
     #include assign_clipping_varying
     #include assign_size
 
-    mat4 modelView = uView * uModel * aTransform;
+    mat4 transform = applyTumble(aTransform, aInstance, float(uObjectId));
+    vec3 wigStart = applyWiggle(aStart, group, aInstance);
+    vec3 wigEnd = applyWiggle(aEnd, group, aInstance);
+    mat4 modelView = uView * uModel * transform;
 
     // camera space
-    vec4 start = modelView * vec4(aStart, 1.0);
-    vec4 end = modelView * vec4(aEnd, 1.0);
+    vec4 start = modelView * vec4(wigStart, 1.0);
+    vec4 end = modelView * vec4(wigEnd, 1.0);
 
     // assign position
-    vec4 position4 = vec4((aMapping.y < 0.5) ? aStart : aEnd, 1.0);
-    vec4 mvPosition = modelView * position4;
-    vViewPosition = mvPosition.xyz;
+    vec4 position4 = vec4((aMapping.y < 0.5) ? wigStart : wigEnd, 1.0);
+    vViewPosition = (aMapping.y < 0.5) ? start.xyz : end.xyz;
 
-    vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
+    vModelPosition = (uModel * transform * position4).xyz; // for clipping in frag shader
 
     // special case for perspective projection, and segments that terminate either in, or behind, the camera plane
     // clearly the gpu firmware has a way of addressing this issue when projecting into ndc space

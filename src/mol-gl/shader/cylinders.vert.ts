@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,6 +14,7 @@ precision highp int;
 #include color_vert_params
 #include size_vert_params
 #include common_clip
+#include common_animation
 
 uniform mat4 uModelView;
 
@@ -46,11 +47,14 @@ void main() {
     #include assign_clipping_varying
     #include assign_size
 
-    mat4 modelTransform = uModel * aTransform;
+    mat4 transform = applyTumble(aTransform, aInstance, float(uObjectId));
+    vec3 wigStart = applyWiggle(aStart, aGroup, aInstance);
+    vec3 wigEnd = applyWiggle(aEnd, aGroup, aInstance);
+    mat4 modelTransform = uModel * transform;
 
     vTransform = modelTransform;
-    vStart = (modelTransform * vec4(aStart, 1.0)).xyz;
-    vEnd = (modelTransform * vec4(aEnd, 1.0)).xyz;
+    vStart = (modelTransform * vec4(wigStart, 1.0)).xyz;
+    vEnd = (modelTransform * vec4(wigEnd, 1.0)).xyz;
     vSize = size * aScale * uModelScale;
     vCap = aCap;
 

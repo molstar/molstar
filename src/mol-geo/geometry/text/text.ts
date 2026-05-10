@@ -25,7 +25,7 @@ import { FontAtlasParams } from './font-atlas';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { clamp } from '../../../mol-math/interpolate';
 import { createRenderObject as _createRenderObject } from '../../../mol-gl/render-object';
-import { BaseGeometry } from '../base';
+import { BaseGeometry, resolveInstanceGranularity } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { hashFnv32a } from '../../../mol-data/util';
@@ -33,6 +33,7 @@ import { GroupMapping, createGroupMapping } from '../../util';
 import { createEmptyClipping } from '../clipping-data';
 import { createEmptySubstance } from '../substance-data';
 import { createEmptyEmissive } from '../emissive-data';
+import { createEmptyWiggle } from '../wiggle-data';
 
 type TextAttachment = (
     'bottom-left' | 'bottom-center' | 'bottom-right' |
@@ -218,7 +219,7 @@ export namespace Text {
 
         const color = createColors(locationIt, positionIt, theme.color);
         const size = createSizes(locationIt, positionIt, theme.size);
-        const marker = props.instanceGranularity
+        const marker = resolveInstanceGranularity(props.instanceGranularity, groupCount, instanceCount)
             ? createMarkers(instanceCount, 'instance')
             : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();
@@ -226,6 +227,7 @@ export namespace Text {
         const emissive = createEmptyEmissive();
         const substance = createEmptySubstance();
         const clipping = createEmptyClipping();
+        const wiggle = createEmptyWiggle();
 
         const counts = { drawCount: text.charCount * 2 * 3, vertexCount: text.charCount * 4, groupCount, instanceCount };
 
@@ -253,6 +255,7 @@ export namespace Text {
             ...emissive,
             ...substance,
             ...clipping,
+            ...wiggle,
             ...transform,
 
             aTexCoord: text.tcoordBuffer,

@@ -1304,7 +1304,7 @@ const ShapeFromPly = PluginStateTransform.BuiltIn({
     to: SO.Shape.Provider,
     params(a) {
         return {
-            transforms: PD.Optional(PD.Value<Mat4[]>([], { isHidden: true })),
+            transforms: PD.Optional(PD.Value([Mat4.identity()], { isHidden: true })),
             label: PD.Optional(PD.Text('', { isHidden: true }))
         };
     }
