@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add mesoscale representation preset
 - Add presets option to `ObjectList` param definition
 - Fix memory leak in `State.dispose()` not invoking transformer `dispose` callbacks for live cells
+- Adds File/Open and drag-and-drop support for Kinemage files in the viewer app
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty
@@ -51,7 +52,6 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add `VolumeStreamingExtension` (`molstar_volume_streaming` custom property)
     - Fix focusing empty selections
 - Avoid re-calculating static model properties for trajectories
-- Adds File/Open and drag-and-drop support for Kinemage files in the viewer app
 
 ## [v5.7.0] - 2026-02-28
 - Text label improvements
