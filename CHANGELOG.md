@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add mesoscale representation preset
 - Add presets option to `ObjectList` param definition
 - Fix memory leak in `State.dispose()` not invoking transformer `dispose` callbacks for live cells
+- Fix bugs in ModelServer surroundingLigands endpoint, resulting in omitWater not honored
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty
