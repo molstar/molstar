@@ -17,7 +17,7 @@ import { Spheres } from '../../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../../mol-geo/geometry/spheres/spheres-builder';
 import { MarkerAction, MarkerActions } from '../../../mol-util/marker-action';
 import { ThemeRegistryContext, Theme } from '../../../mol-theme/theme';
-import { Particle, ParticleList, getParticleCount, getParticleTransforms } from '../../../mol-model/particles/particle-list';
+import { Particle, ParticleList, getParticleTransforms } from '../../../mol-model/particles/particle-list';
 import { GraphicsRenderObject, createRenderObject, getNextMaterialId } from '../../../mol-gl/render-object';
 import { createTransform } from '../../../mol-geo/geometry/transform-data';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
@@ -30,8 +30,6 @@ import { Loci as ModelLoci, EmptyLoci, isEveryLoci } from '../../../mol-model/lo
 import { Interval, OrderedSet } from '../../../mol-data/int';
 import { Visual } from '../../visual';
 import { ParticleRepresentation, ParticleRepresentationProvider } from '../representation';
-
-export { getParticleCount, getParticleTransforms };
 
 const AxisColorByGroup = [ColorNames.red, ColorNames.green, ColorNames.blue] as const;
 
@@ -344,20 +342,20 @@ export function OrientationParticlesRepresentation(ctx: RepresentationContext, g
             for (const e of entries.values()) {
                 if (e.renderObject.id !== pickingId.objectId) continue;
                 const idx = pickingId.instanceId;
-                if (idx < 0 || idx >= getParticleCount(_data)) return EmptyLoci;
+                if (idx < 0 || idx >= _data.count) return EmptyLoci;
                 return Particle.Loci(_data, OrderedSet.ofSingleton(idx));
             }
             return EmptyLoci;
         },
         getAllLoci: (): ModelLoci[] => {
             if (!_data) return [];
-            const count = getParticleCount(_data);
+            const { count } = _data;
             if (count === 0) return [];
             return [Particle.Loci(_data, OrderedSet.ofBounds(0, count))];
         },
         eachLocation: (cb) => {
             if (!_data) return;
-            const count = getParticleCount(_data);
+            const { count } = _data;
             const location = Particle.Location(_data, 0);
             for (let i = 0; i < count; ++i) {
                 location.index = i;
@@ -378,5 +376,5 @@ export const OrientationParticlesRepresentationProvider = ParticleRepresentation
     defaultValues: PD.getDefaultValues(OrientationParticlesParams),
     defaultColorTheme: { name: 'particle-index' },
     defaultSizeTheme: { name: 'uniform' },
-    isApplicable: (data: ParticleList) => getParticleCount(data) > 0,
+    isApplicable: (data: ParticleList) => data.count > 0,
 });

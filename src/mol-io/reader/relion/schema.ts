@@ -74,6 +74,10 @@ export const RelionStar_Schema = {
         rlnOpticsGroup: int,
         /** Tomogram name */
         rlnTomoName: str,
+        /** Name of each individual particle */
+        rlnTomoParticleName: str,
+        /** Unique particle index */
+        rlnTomoParticleId: int,
         /** Size of the pixels in the references and images (in Angstroms) */
         rlnPixelSize: float,
 
@@ -136,6 +140,8 @@ export const RelionStar_Aliases: CifAliases = {
     'particles.rlnOriginalParticleName': ['rlnOriginalParticleName'],
     'particles.rlnOpticsGroup': ['rlnOpticsGroup'],
     'particles.rlnTomoName': ['rlnTomoName'],
+    'particles.rlnTomoParticleName': ['rlnTomoParticleName'],
+    'particles.rlnTomoParticleId': ['rlnTomoParticleId'],
     'particles.rlnPixelSize': ['rlnPixelSize'],
 
     'particles.rlnGroupNumber': ['rlnGroupNumber'],

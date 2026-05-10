@@ -13,7 +13,7 @@ import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
 import { ColorThemeCategory } from './categories';
-import { Particle, getParticleCount } from '../../mol-model/particles/particle-list';
+import { Particle } from '../../mol-model/particles/particle-list';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xCCCCCC);
@@ -26,7 +26,7 @@ export type ParticleIndexColorThemeParams = typeof ParticleIndexColorThemeParams
 export function getParticleIndexColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(ParticleIndexColorThemeParams);
     if (ctx.particles) {
-        const count = getParticleCount(ctx.particles);
+        const { count } = ctx.particles;
         if (count > ColorLists[DefaultList].list.length) {
             params.palette.defaultValue.name = 'colors';
             params.palette.defaultValue.params = {
@@ -43,7 +43,7 @@ export function ParticleIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<
     let legend: ScaleLegend | TableLegend | undefined;
 
     if (ctx.particles) {
-        const count = getParticleCount(ctx.particles);
+        const { count } = ctx.particles;
         const palette = getPalette(count, props);
         legend = palette.legend;
 

@@ -11,6 +11,7 @@ import { ParticleList } from '../../mol-model/particles/particle-list';
 import { RelionStarFile } from '../../mol-io/reader/relion/star';
 import { RelionStar_Database } from '../../mol-io/reader/relion/schema';
 import { degToRad } from '../../mol-math/misc';
+import { ModelFormat } from '../format';
 
 type Particles = RelionStar_Database['particles'];
 type Optics = RelionStar_Database['optics'];
@@ -195,13 +196,13 @@ export function createParticleListFromRelionStar(data: RelionStarFile, options: 
     const hasParticleAngles = hasAngleColumns(particles, ParticleAngleSpec);
     const hasSubtomogramAngles = hasAngleColumns(particles, SubtomogramAngleSpec);
     const hasRotations = hasParticleAngles || hasSubtomogramAngles;
-    const needsPixelSize = coordinateColumns.kind === 'pixel' || originColumns?.kind === 'pixel';
 
     const { fixed: fixedPixelSize, perRow: perRowPixelSize, perGroup: perGroupPixelSize } = resolvePixelSize(particles, optics, options);
     const particleGroupCol = particles.rlnOpticsGroup;
 
-    const coordinates = new Float32Array(rowCount * 3);
-    const rotations = hasRotations ? new Float32Array(rowCount * 4) : undefined;
+    const _keys = new Int32Array(rowCount);
+    const _coordinates = new Float32Array(rowCount * 3);
+    const _rotations = hasRotations ? new Float32Array(rowCount * 4) : undefined;
 
     const position = Vec3();
     const originShift = Vec3();
@@ -247,12 +248,14 @@ export function createParticleListFromRelionStar(data: RelionStarFile, options: 
             Vec3.sub(position, position, originShift);
         }
 
-        const cOffset = count * 3;
-        coordinates[cOffset + 0] = position[0];
-        coordinates[cOffset + 1] = position[1];
-        coordinates[cOffset + 2] = position[2];
+        _keys[count] = row;
 
-        if (rotations) {
+        const cOffset = count * 3;
+        _coordinates[cOffset + 0] = position[0];
+        _coordinates[cOffset + 1] = position[1];
+        _coordinates[cOffset + 2] = position[2];
+
+        if (_rotations) {
             if (hasParticleAngles) {
                 readAngles(particleAngles, particles, row, ParticleAngleSpec);
                 relionEulerToRotation(rotation, particleAngles.rot, particleAngles.tilt, particleAngles.psi);
@@ -265,10 +268,10 @@ export function createParticleListFromRelionStar(data: RelionStarFile, options: 
             }
             Quat.normalize(quaternion, Quat.fromMat4(quaternion, rotation));
             const qOffset = count * 4;
-            rotations[qOffset + 0] = quaternion[0];
-            rotations[qOffset + 1] = quaternion[1];
-            rotations[qOffset + 2] = quaternion[2];
-            rotations[qOffset + 3] = quaternion[3];
+            _rotations[qOffset + 0] = quaternion[0];
+            _rotations[qOffset + 1] = quaternion[1];
+            _rotations[qOffset + 2] = quaternion[2];
+            _rotations[qOffset + 3] = quaternion[3];
         }
 
         ++count;
@@ -283,21 +286,41 @@ export function createParticleListFromRelionStar(data: RelionStarFile, options: 
             : `Block '${particleBlock.header}' does not contain any readable particle rows.`);
     }
 
-    const finalCoordinates = count === rowCount ? coordinates : coordinates.slice(0, count * 3);
-    const finalRotations = rotations && (count === rowCount ? rotations : rotations.slice(0, count * 4));
+    const keys = count === rowCount ? _keys : _keys.slice(0, count);
+    const coordinates = count === rowCount ? _coordinates : _coordinates.slice(0, count * 3);
+    const rotations = _rotations && (count === rowCount ? _rotations : _rotations.slice(0, count * 4));
 
     return {
         label: buildRelionLabel(particleBlock.header, options.tomograms, options.micrographs),
-        coordinates: finalCoordinates,
-        rotations: finalRotations,
-        sourceData: {
-            data,
-            format: 'relion-star',
-            warnings: [
-                needsPixelSize && fixedPixelSize === void 0 && perRowPixelSize === void 0 && perGroupPixelSize === void 0
-                    ? 'RELION particle coordinates are pixel-space, but no pixel size was provided or detected; coordinates are kept unscaled.'
-                    : void 0,
-            ].filter((v): v is string => !!v)
-        }
+        count,
+        keys,
+        coordinates,
+        rotations,
+        getParticleLabel: (index: number) => {
+            const row = keys[index];
+            const tomoName = tomoNameCol.isDefined ? tomoNameCol.value(row) : undefined;
+            const micrographName = micrographNameCol.isDefined ? micrographNameCol.value(row) : undefined;
+            const label: string[] = [`#${row + 1}`];
+            if (tomoName) label.push(tomoName);
+            if (micrographName) label.push(micrographName);
+            return label.join(' | ');
+        },
+        sourceData: RelionStarFormat.create(data),
     };
+}
+
+//
+
+export { RelionStarFormat };
+
+type RelionStarFormat = ModelFormat<RelionStarFile>
+
+namespace RelionStarFormat {
+    export function is(x?: ModelFormat): x is RelionStarFormat {
+        return x?.kind === 'relion-star';
+    }
+
+    export function create(relionStar: RelionStarFile): RelionStarFormat {
+        return { kind: 'relion-star', name: 'relion-star', data: relionStar };
+    }
 }

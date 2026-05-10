@@ -9,28 +9,31 @@ import { OrderedSet } from '../../mol-data/int';
 import { Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { Sphere3D } from '../../mol-math/geometry';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
+import { ModelFormat } from '../../mol-model-formats/format';
 
 export interface ParticleList {
-    readonly label: string
+    readonly entryId?: string
+    readonly label?: string
+
+    readonly count: number
+
+    /** Unique keys for each particle for mapping to source data. */
+    readonly keys: Int32Array
 
     /** Particle positions in angstrom, packed as `[x0, y0, z0, x1, y1, z1, ...]`. */
     readonly coordinates: Float32Array
     /** Optional per-particle orientations as unit quaternions, packed as `[x0, y0, z0, w0, ...]`. */
     readonly rotations?: Float32Array
 
+    readonly getParticleLabel: (index: number) => string
+
     // TODO: add common data fields, anything format-specific should be accessed via `sourceData`
 
-    readonly sourceData: unknown
-}
-
-export function getParticleCount(data: ParticleList) {
-    const positionCount = Math.floor(data.coordinates.length / 3);
-    if (!data.rotations) return positionCount;
-    return Math.min(positionCount, Math.floor(data.rotations.length / 4));
+    readonly sourceData: ModelFormat
 }
 
 export function getParticleTransforms(data: ParticleList) {
-    const particleCount = getParticleCount(data);
+    const particleCount = data.count;
     const transforms: Mat4[] = [];
     const { rotations } = data;
 
@@ -105,7 +108,7 @@ export namespace Particle {
     /** Remap a loci to a new `ParticleList`; indices outside the new range are dropped. */
     export function remapLoci(loci: Loci, particles: ParticleList): Loci {
         if (loci.particles === particles) return loci;
-        const count = getParticleCount(particles);
+        const { count } = particles;
         if (count === 0) return Loci(particles, OrderedSet.Empty);
         const filtered: number[] = [];
         OrderedSet.forEach(loci.indices, v => { if (v < count) filtered.push(v); });
@@ -142,8 +145,11 @@ export namespace Particle {
 
     export function getLabel(loci: Loci): string {
         const size = OrderedSet.size(loci.indices);
-        if (size === 0) return 'Nothing';
-        if (size === 1) return `Particle ${OrderedSet.start(loci.indices) + 1}`;
+        if (size === 0) return 'None';
+        if (size === 1) {
+            const index = OrderedSet.start(loci.indices);
+            return loci.particles.getParticleLabel(index);
+        }
         return `${size} Particles`;
     }
 }

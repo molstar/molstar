@@ -46,9 +46,10 @@ const ParticleListFromRelionStar = PluginStateTransform.BuiltIn({
         const tomoOptions = tomoNames.map(n => [n, n] as [string, string]);
         const micrographOptions = micrographNames.map(n => [n, n] as [string, string]);
         const tomoDefault = tomoNames.length > 0 ? [tomoNames[0]] : [];
+        const micrographDefault = micrographNames.length > 0 ? [micrographNames[0]] : [];
         return {
             tomograms: PD.MultiSelect<string>(tomoDefault, tomoOptions, { description: 'Empty selection includes all tomograms.' }),
-            micrographs: PD.MultiSelect<string>([], micrographOptions, { description: 'Empty selection includes all micrographs. Combined with the tomogram filter using AND.' }),
+            micrographs: PD.MultiSelect<string>(micrographDefault, micrographOptions, { description: 'Empty selection includes all micrographs. Combined with the tomogram filter using AND.' }),
             pixelSize: PD.Optional(PD.Numeric(0, { min: 0, step: 0.001 }, { description: 'Override pixel size in Å/pixel for converting pixel-space coordinates to angstrom. Leave 0 to auto-detect from STAR optics/particle metadata.' })),
         };
     }
@@ -64,7 +65,7 @@ const ParticleListFromRelionStar = PluginStateTransform.BuiltIn({
                 pixelSize: params.pixelSize && params.pixelSize > 0 ? params.pixelSize : void 0,
             });
 
-            return new SO.Particle.List(list, { label: list.label, description: 'RELION Particle List' });
+            return new SO.Particle.List(list, { label: list.label || 'Particles', description: 'RELION Particle List' });
         });
     }
 });
@@ -97,7 +98,7 @@ const ParticleListFromDynamoTbl = PluginStateTransform.BuiltIn({
                 tomos: params.tomos.map(v => Number(v)),
                 pixelSize: params.pixelSize && params.pixelSize > 0 ? params.pixelSize : void 0,
             });
-            return new SO.Particle.List(list, { label: list.label, description: 'Dynamo Particle List' });
+            return new SO.Particle.List(list, { label: list.label || 'Particles', description: 'Dynamo Particle List' });
         });
     }
 });
@@ -119,7 +120,7 @@ const ParticleListFromCryoEtDataPortalNdjson = PluginStateTransform.BuiltIn({
                 pixelSize: params.pixelSize,
                 type: params.type || void 0,
             });
-            return new SO.Particle.List(list, { label: list.label, description: 'CryoET NDJSON Particle List' });
+            return new SO.Particle.List(list, { label: list.label || 'Particles', description: 'CryoET NDJSON Particle List' });
         });
     }
 });
