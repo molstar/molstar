@@ -193,7 +193,7 @@ export function createVolumeSphereImpostor(ctx: VisualContext, volume: Volume, k
     }
 
     const s = builder.getSpheres();
-    s.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
+    s.setBoundingSphere(Grid.getIsosurfaceBoundingSphere(volume.grid, Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue));
     return s;
 }
 
@@ -243,7 +243,7 @@ export function createVolumeSphereMesh(ctx: VisualContext, volume: Volume, key: 
     }
 
     const m = MeshBuilder.getMesh(builderState);
-    m.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
+    m.setBoundingSphere(Grid.getIsosurfaceBoundingSphere(volume.grid, Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue));
     return m;
 }
 
@@ -311,7 +311,7 @@ export function createVolumePoint(ctx: VisualContext, volume: Volume, key: numbe
     }
 
     const pt = builder.getPoints();
-    pt.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
+    pt.setBoundingSphere(Grid.getIsosurfaceBoundingSphere(volume.grid, Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue));
     return pt;
 }
 
