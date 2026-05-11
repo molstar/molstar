@@ -6,7 +6,7 @@
  */
 
 import { Grid } from './grid';
-import { OrderedSet } from '../../mol-data/int';
+import { Interval, OrderedSet } from '../../mol-data/int';
 import { Box3D, Sphere3D } from '../../mol-math/geometry';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
@@ -191,14 +191,14 @@ export namespace Volume {
     export function isLociEmpty(loci: Loci) { return isEmpty(loci.volume) || OrderedSet.isEmpty(loci.instances); }
 
     const boundaryHelper = new BoundaryHelper('98');
-    export function getBoundingSphere(volume: Volume, boundingSphere?: Sphere3D) {
+    export function getBoundingSphere(volume: Volume, instances: OrderedSet<InstanceIndex>, boundingSphere?: Sphere3D) {
         const gs = Grid.getBoundingSphere(volume.grid);
         if (!boundingSphere) boundingSphere = Sphere3D();
-        if (volume.instances.length === 0) return Sphere3D.copy(boundingSphere, gs);
+        if (OrderedSet.isEmpty(instances)) return Sphere3D.copy(boundingSphere, gs);
 
         const spheres: Sphere3D[] = [];
-        for (let i = 0, il = volume.instances.length; i < il; ++i) {
-            const { transform } = volume.instances[i];
+        for (let i = 0, il = OrderedSet.size(instances); i < il; ++i) {
+            const { transform } = volume.instances[OrderedSet.getAt(instances, i)];
             spheres.push(Sphere3D.transform(Sphere3D(), gs, transform));
         }
 
@@ -220,35 +220,23 @@ export namespace Volume {
         export function areLociEqual(a: Loci, b: Loci) { return a.volume === b.volume && Volume.IsoValue.areSame(a.isoValue, b.isoValue, a.volume.grid.stats) && OrderedSet.areEqual(a.instances, b.instances); }
         export function isLociEmpty(loci: Loci) { return isEmpty(loci.volume) || OrderedSet.isEmpty(loci.instances); }
 
-        const bbox = Box3D();
-        export function getBoundingSphere(volume: Volume, isoValue: Volume.IsoValue, boundingSphere?: Sphere3D) {
+        const boundaryHelper = new BoundaryHelper('98');
+        export function getBoundingSphere(volume: Volume, isoValue: Volume.IsoValue, instances: OrderedSet<InstanceIndex>, boundingSphere?: Sphere3D) {
             const value = Volume.IsoValue.toAbsolute(isoValue, volume.grid.stats).absoluteValue;
-            const neg = value < 0;
+            const gs = Grid.getIsosurfaceBoundingSphere(volume.grid, value);
 
-            const c = [0, 0, 0];
-            const getCoords = volume.grid.cells.space.getCoords;
-            const d = volume.grid.cells.data;
-            const [xn, yn, zn] = volume.grid.cells.space.dimensions;
+            if (OrderedSet.isEmpty(instances)) return Sphere3D.copy(boundingSphere || Sphere3D(), gs);
 
-            let minx = xn - 1, miny = yn - 1, minz = zn - 1;
-            let maxx = 0, maxy = 0, maxz = 0;
-            for (let i = 0, il = d.length; i < il; ++i) {
-                if ((neg && d[i] <= value) || (!neg && d[i] >= value)) {
-                    getCoords(i, c);
-                    if (c[0] < minx) minx = c[0];
-                    if (c[1] < miny) miny = c[1];
-                    if (c[2] < minz) minz = c[2];
-                    if (c[0] > maxx) maxx = c[0];
-                    if (c[1] > maxy) maxy = c[1];
-                    if (c[2] > maxz) maxz = c[2];
-                }
+            const spheres: Sphere3D[] = [];
+            for (let i = 0, il = OrderedSet.size(instances); i < il; ++i) {
+                spheres.push(Sphere3D.transform(Sphere3D(), gs, volume.instances[OrderedSet.getAt(instances, i)].transform));
             }
 
-            Vec3.set(bbox.min, minx - 1, miny - 1, minz - 1);
-            Vec3.set(bbox.max, maxx + 1, maxy + 1, maxz + 1);
-            const transform = Grid.getGridToCartesianTransform(volume.grid);
-            Box3D.transform(bbox, bbox, transform);
-            return Sphere3D.fromBox3D(boundingSphere || Sphere3D(), bbox);
+            boundaryHelper.reset();
+            for (const s of spheres) boundaryHelper.includeSphere(s);
+            boundaryHelper.finishedIncludeStep();
+            for (const s of spheres) boundaryHelper.radiusSphere(s);
+            return boundaryHelper.getSphere(boundingSphere);
         }
     }
 
@@ -416,7 +404,7 @@ export namespace Volume {
                 }
                 return Sphere3D.fromBox3D(boundingSphere || Sphere3D(), bbox);
             } else {
-                return Volume.getBoundingSphere(volume, boundingSphere);
+                return Volume.getBoundingSphere(volume, Interval.ofLength(volume.instances.length as InstanceIndex), boundingSphere);
             }
         }
 

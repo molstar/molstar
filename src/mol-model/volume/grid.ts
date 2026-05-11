@@ -68,6 +68,36 @@ namespace Grid {
         return Sphere3D.fromDimensionsAndTransform(boundingSphere, dimensions, transform);
     }
 
+    const _isoBbox = Box3D();
+    export function getIsosurfaceBoundingSphere(grid: Grid, isoValue: number, boundingSphere?: Sphere3D) {
+        const neg = isoValue < 0;
+
+        const c = [0, 0, 0];
+        const getCoords = grid.cells.space.getCoords;
+        const d = grid.cells.data;
+        const [xn, yn, zn] = grid.cells.space.dimensions;
+
+        let minx = xn - 1, miny = yn - 1, minz = zn - 1;
+        let maxx = 0, maxy = 0, maxz = 0;
+        for (let i = 0, il = d.length; i < il; ++i) {
+            if ((neg && d[i] <= isoValue) || (!neg && d[i] >= isoValue)) {
+                getCoords(i, c);
+                if (c[0] < minx) minx = c[0];
+                if (c[1] < miny) miny = c[1];
+                if (c[2] < minz) minz = c[2];
+                if (c[0] > maxx) maxx = c[0];
+                if (c[1] > maxy) maxy = c[1];
+                if (c[2] > maxz) maxz = c[2];
+            }
+        }
+
+        Vec3.set(_isoBbox.min, minx - 1, miny - 1, minz - 1);
+        Vec3.set(_isoBbox.max, maxx + 1, maxy + 1, maxz + 1);
+        const transform = Grid.getGridToCartesianTransform(grid);
+        Box3D.transform(_isoBbox, _isoBbox, transform);
+        return Sphere3D.fromBox3D(boundingSphere || Sphere3D(), _isoBbox);
+    }
+
     /**
      * Compute histogram with given bin count.
      * Cached on the Grid object.

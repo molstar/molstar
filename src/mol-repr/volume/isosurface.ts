@@ -136,7 +136,7 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
         ValueCell.updateIfChanged(surface.varyingGroup, true);
     }
 
-    surface.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
+    surface.setBoundingSphere(Grid.getIsosurfaceBoundingSphere(volume.grid, Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue));
 
     return surface;
 }
@@ -318,7 +318,7 @@ export async function createVolumeIsosurfaceWireframe(ctx: VisualContext, volume
     const transform = Grid.getGridToCartesianTransform(volume.grid);
     Lines.transform(wireframe, transform);
 
-    wireframe.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
+    wireframe.setBoundingSphere(Grid.getIsosurfaceBoundingSphere(volume.grid, Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue));
 
     return wireframe;
 }
