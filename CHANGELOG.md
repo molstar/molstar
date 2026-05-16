@@ -13,6 +13,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add presets option to `ObjectList` param definition
 - Fix memory leak in `State.dispose()` not invoking transformer `dispose` callbacks for live cells
 - Fix `Volume` and `Isosurface` getBoundingSphere ignoring instances
+- Add chain splitting functionality for polymer structures
+    - Manual split via "Split into Chains" action on structure components
+    - Automatic split via "Split Chains" option in Download Structure dialog
+    - Individual chains (Chain A, B, C, etc.) with preserved representations
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty

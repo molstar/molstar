@@ -71,6 +71,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateActions.Structure.LoadTrajectory),
         PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
         PluginSpec.Action(StateActions.Structure.EnableStructureCustomProps),
+        PluginSpec.Action(StateActions.Structure.SplitStructureByChains),
 
         // Volume streaming
         PluginSpec.Action(InitVolumeStreaming),
