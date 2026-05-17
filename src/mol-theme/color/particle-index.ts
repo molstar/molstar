@@ -13,7 +13,9 @@ import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
 import { ColorThemeCategory } from './categories';
-import { Particle } from '../../mol-model/particles/particle-list';
+import { Particle, ParticleList } from '../../mol-model/particles/particle-list';
+import { Structure, StructureElement, Bond } from '../../mol-model/structure';
+import { Volume } from '../../mol-model/volume';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xCCCCCC);
@@ -23,10 +25,25 @@ export const ParticleIndexColorThemeParams = {
     ...getPaletteParams({ type: 'colors', colorList: DefaultList }),
 };
 export type ParticleIndexColorThemeParams = typeof ParticleIndexColorThemeParams
+
+function getParticleList(ctx: ThemeDataContext): ParticleList | undefined {
+    if (ctx.particles) return ctx.particles;
+    if (ctx.structure) {
+        const p = Structure.ParticleList.get(ctx.structure);
+        if (p) return p;
+    }
+    if (ctx.volume) {
+        const p = Volume.ParticleList.get(ctx.volume);
+        if (p) return p;
+    }
+    return undefined;
+}
+
 export function getParticleIndexColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(ParticleIndexColorThemeParams);
-    if (ctx.particles) {
-        const { count } = ctx.particles;
+    const particles = getParticleList(ctx);
+    if (particles) {
+        const { count } = particles;
         if (count > ColorLists[DefaultList].list.length) {
             params.palette.defaultValue.name = 'colors';
             params.palette.defaultValue.params = {
@@ -42,14 +59,27 @@ export function ParticleIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<
     let color: LocationColor;
     let legend: ScaleLegend | TableLegend | undefined;
 
-    if (ctx.particles) {
-        const { count } = ctx.particles;
+    const particles = getParticleList(ctx);
+    if (particles) {
+        const { count } = particles;
         const palette = getPalette(count, props);
         legend = palette.legend;
 
+        const pick = (index: number) => index >= 0 && index < count ? palette.color(index) : DefaultColor;
+
         color = (location: Location): Color => {
             if (Particle.isLocation(location)) {
-                return palette.color(location.index);
+                return pick(location.index);
+            }
+            if (StructureElement.Location.is(location)) {
+                return pick(location.unit.conformation.operator.group);
+            }
+            if (Bond.isLocation(location)) {
+                return pick(location.aUnit.conformation.operator.group);
+            }
+            if (Volume.Cell.isLocation(location)) {
+                const inst = location.volume.instances[location.instance];
+                return pick(inst?.group ?? -1);
             }
             return DefaultColor;
         };
@@ -74,5 +104,5 @@ export const ParticleIndexColorThemeProvider: ColorTheme.Provider<ParticleIndexC
     factory: ParticleIndexColorTheme,
     getParams: getParticleIndexColorThemeParams,
     defaultValues: PD.getDefaultValues(ParticleIndexColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.particles
+    isApplicable: (ctx: ThemeDataContext) => !!getParticleList(ctx)
 };

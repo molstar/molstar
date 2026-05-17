@@ -67,7 +67,7 @@ export { TopologyFromPsf };
 export { TopologyFromPrmtop };
 export { TopologyFromTop };
 export { TrajectoryFromModelAndCoordinates };
-export { StructureFromModelAndParticles };
+export { ParticlesStructure };
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
 export { TrajectoryFromPDB };
@@ -259,35 +259,32 @@ const TrajectoryFromModelAndCoordinates = PluginStateTransform.BuiltIn({
     }
 });
 
-type StructureFromModelAndParticles = typeof StructureFromModelAndParticles
-const StructureFromModelAndParticles = PluginStateTransform.BuiltIn({
-    name: 'structure-from-model-and-particles',
-    display: { name: 'Structure from Model & Particles', description: 'Create an instanced structure by replicating a model at each particle position and orientation.' },
-    from: SO.Root,
+type ParticlesStructure = typeof ParticlesStructure
+const ParticlesStructure = PluginStateTransform.BuiltIn({
+    name: 'particles-structure',
+    display: { name: 'Particles Structure', description: 'Create a structure with instances at each particle position and orientation.' },
+    from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
+    isDecorator: true,
     params: {
-        modelRef: PD.Text('', { isHidden: true }),
         particlesRef: PD.Text('', { isHidden: true }),
     }
 })({
-    apply({ params, dependencies }) {
-        return Task.create('Create structure from model and particles', async ctx => {
-            const modelObj = dependencies![params.modelRef];
+    apply({ a, params, dependencies }) {
+        return Task.create('Create structure from structure and particles', async ctx => {
             const particlesObj = dependencies![params.particlesRef];
-            if (modelObj.type !== SO.Molecule.Model.type) throw new Error('Expected a Model as `modelRef`');
             if (particlesObj.type !== SO.Particle.List.type) throw new Error('Expected a Particle List as `particlesRef`');
-            const model = modelObj.data as Model;
             const particles = particlesObj.data as ParticleList;
-            const structure = Structure.ofModel(model);
             const transforms = getParticleTransforms(particles);
-            // Center the model on each particle position by composing each
+            // Center the structure on each particle position by composing each
             // particle's rotation/translation with a translation that brings
             // the structure's centroid to the origin.
-            const center = structure.boundary.sphere.center;
+            const center = a.data.boundary.sphere.center;
             const offset = Mat4.fromTranslation(Mat4(), Vec3.negate(Vec3(), center));
             for (const t of transforms) Mat4.mul(t, t, offset);
-            const instanced = Structure.instances(structure, transforms, true);
-            return new SO.Molecule.Structure(instanced, { label: modelObj.label, description: `${transforms.length} particle${transforms.length === 1 ? '' : 's'}` });
+            const instanced = Structure.instances(a.data, transforms.map((transform, i) => ({ transform, group: i })), true);
+            Structure.ParticleList.set(instanced, particles);
+            return new SO.Molecule.Structure(instanced, { label: a.label, description: `${transforms.length} particle${transforms.length === 1 ? '' : 's'}` });
         });
     },
     dispose({ b }) {

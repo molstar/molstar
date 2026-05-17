@@ -15,7 +15,7 @@ import { RootStructureDefinition } from '../helpers/root-structure';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
-import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureFromModelAndParticles, TrajectoryFromModelAndCoordinates } from '../transforms/model';
+import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureFromModel, ParticlesStructure, TrajectoryFromModelAndCoordinates } from '../transforms/model';
 import { Asset } from '../../mol-util/assets';
 import { PluginConfig } from '../../mol-plugin/config';
 import { getFileNameInfo } from '../../mol-util/file-info';
@@ -455,39 +455,6 @@ export const LoadTrajectory = StateAction.build({
     }).runInContext(taskCtx);
 }));
 
-export const AddParticlesStructure = StateAction.build({
-    display: { name: 'Add Particles Structure', description: 'Replicate an existing model at the positions/orientations of an existing particle list.' },
-    from: PluginStateObject.Root,
-    params(a, ctx: PluginContext) {
-        const state = ctx.state.data;
-        const models = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model));
-        const modelOptions = models.map(m => [m.transform.ref, m.obj!.label]) as [string, string][];
-        const particles = state.selectQ(q => q.rootsOfType(PluginStateObject.Particle.List));
-        const particleOptions = particles.map(p => [p.transform.ref, p.obj!.label]) as [string, string][];
-        return {
-            model: PD.Select(modelOptions.length ? modelOptions[0][0] : '', modelOptions),
-            particles: PD.Select(particleOptions.length ? particleOptions[0][0] : '', particleOptions),
-        };
-    }
-})(({ params, state }, ctx: PluginContext) => Task.create('Add Particles Structure', taskCtx => {
-    return state.transaction(async () => {
-        const dependsOn = [params.model, params.particles];
-        const tree = state.build().toRoot()
-            .apply(StructureFromModelAndParticles, {
-                modelRef: params.model,
-                particlesRef: params.particles,
-            }, { dependsOn });
-
-        await state.updateTree(tree).runInContext(taskCtx);
-        const structureProperties = await ctx.builders.structure.insertStructureProperties(tree.ref);
-        await ctx.builders.structure.representation.applyPreset(structureProperties, 'mesoscale', {
-            theme: {
-                globalName: 'chain-id',
-            }
-        });
-    }).runInContext(taskCtx);
-}));
-
 export const LoadParticlesStructure = StateAction.build({
     display: { name: 'Load Particles Structure', description: 'Load a structure (trajectory) and a particle list from URL or file and replicate the structure at each particle.' },
     from: PluginStateObject.Root,
@@ -573,6 +540,17 @@ export const LoadParticlesStructure = StateAction.build({
         };
 
         try {
+            const particlesParsed = s.name === 'url'
+                ? await processUrl(s.params.particles.url, s.params.particles.format, s.params.particles.isBinary)
+                : await processFile(s.params.particles);
+
+            if (!particlesParsed || !('list' in particlesParsed)) {
+                ctx.log.error('Expected a particles format for the particles input');
+                return;
+            }
+
+            //
+
             const modelParsed = s.name === 'url'
                 ? await processUrl(s.params.model.url, s.params.model.format, s.params.model.isBinary)
                 : await processFile(s.params.model);
@@ -586,23 +564,15 @@ export const LoadParticlesStructure = StateAction.build({
                 .apply(ModelFromTrajectory, { modelIndex: 0 })
                 .commit();
 
-            //
-
-            const particlesParsed = s.name === 'url'
-                ? await processUrl(s.params.particles.url, s.params.particles.format, s.params.particles.isBinary)
-                : await processFile(s.params.particles);
-
-            if (!particlesParsed || !('list' in particlesParsed)) {
-                ctx.log.error('Expected a particles format for the particles input');
-                return;
-            }
+            const structure = await state.build().to(model)
+                .apply(StructureFromModel)
+                .commit();
 
             //
 
-            const dependsOn = [model.ref, particlesParsed.list.ref];
-            const tree = state.build().toRoot()
-                .apply(StructureFromModelAndParticles, {
-                    modelRef: model.ref,
+            const dependsOn = [particlesParsed.list.ref];
+            const tree = state.build().to(structure.ref)
+                .apply(ParticlesStructure, {
                     particlesRef: particlesParsed.list.ref,
                 }, { dependsOn });
 

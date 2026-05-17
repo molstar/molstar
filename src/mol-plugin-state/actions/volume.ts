@@ -18,7 +18,7 @@ import { StateTransforms } from '../transforms';
 import { assertUnreachable } from '../../mol-util/type-helpers';
 import { VolumeFormatCategory } from '../formats/volume';
 import { ParticlesFormatCategory } from '../formats/particles';
-import { VolumeFromVolumeAndParticles } from '../transforms/volume';
+import { ParticlesVolume } from '../transforms/volume';
 import { createVolumeRepresentationParams } from '../helpers/volume-representation-params';
 import { Volume } from '../../mol-model/volume';
 import { StateObjectSelector } from '../../mol-state';
@@ -167,34 +167,6 @@ async function applyParticlesVolumeVisuals(plugin: PluginContext, volume: StateO
     await update.commit();
 }
 
-export const AddParticlesVolume = StateAction.build({
-    display: { name: 'Add Particles Volume', description: 'Replicate an existing volume at the positions/orientations of an existing particle list.' },
-    from: PluginStateObject.Root,
-    params(a, ctx: PluginContext) {
-        const state = ctx.state.data;
-        const volumes = state.selectQ(q => q.rootsOfType(PluginStateObject.Volume.Data));
-        const volumeOptions = volumes.map(v => [v.transform.ref, v.obj!.label]) as [string, string][];
-        const particles = state.selectQ(q => q.rootsOfType(PluginStateObject.Particle.List));
-        const particleOptions = particles.map(p => [p.transform.ref, p.obj!.label]) as [string, string][];
-        return {
-            volume: PD.Select(volumeOptions.length ? volumeOptions[0][0] : '', volumeOptions),
-            particles: PD.Select(particleOptions.length ? particleOptions[0][0] : '', particleOptions),
-        };
-    }
-})(({ params, state }, ctx: PluginContext) => Task.create('Add Particles Volume', taskCtx => {
-    return state.transaction(async () => {
-        const dependsOn = [params.volume, params.particles];
-        const tree = state.build().toRoot()
-            .apply(VolumeFromVolumeAndParticles, {
-                volumeRef: params.volume,
-                particlesRef: params.particles,
-            }, { dependsOn });
-
-        await state.updateTree(tree).runInContext(taskCtx);
-        await applyParticlesVolumeVisuals(ctx, tree.selector);
-    }).runInContext(taskCtx);
-}));
-
 export const LoadParticlesVolume = StateAction.build({
     display: { name: 'Load Particles Volume', description: 'Load a volume and a particle list from URL or file and replicate the volume at each particle.' },
     from: PluginStateObject.Root,
@@ -280,17 +252,6 @@ export const LoadParticlesVolume = StateAction.build({
         };
 
         try {
-            const volumeParsed = s.name === 'url'
-                ? await processUrl(s.params.volume.url, s.params.volume.format, s.params.volume.isBinary)
-                : await processFile(s.params.volume);
-
-            if (!volumeParsed || !('volume' in volumeParsed)) {
-                ctx.log.error('Expected a volume format for the volume input');
-                return;
-            }
-
-            //
-
             const particlesParsed = s.name === 'url'
                 ? await processUrl(s.params.particles.url, s.params.particles.format, s.params.particles.isBinary)
                 : await processFile(s.params.particles);
@@ -302,10 +263,20 @@ export const LoadParticlesVolume = StateAction.build({
 
             //
 
-            const dependsOn = [volumeParsed.volume.ref, particlesParsed.list.ref];
-            const tree = state.build().toRoot()
-                .apply(VolumeFromVolumeAndParticles, {
-                    volumeRef: volumeParsed.volume.ref,
+            const volumeParsed = s.name === 'url'
+                ? await processUrl(s.params.volume.url, s.params.volume.format, s.params.volume.isBinary)
+                : await processFile(s.params.volume);
+
+            if (!volumeParsed || !('volume' in volumeParsed)) {
+                ctx.log.error('Expected a volume format for the volume input');
+                return;
+            }
+
+            //
+
+            const dependsOn = [particlesParsed.list.ref];
+            const tree = state.build().to(volumeParsed.volume.ref)
+                .apply(ParticlesVolume, {
                     particlesRef: particlesParsed.list.ref,
                 }, { dependsOn });
 
