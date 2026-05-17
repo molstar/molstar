@@ -13,6 +13,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add presets option to `ObjectList` param definition
 - Fix memory leak in `State.dispose()` not invoking transformer `dispose` callbacks for live cells
 - Fix `Volume` and `Isosurface` getBoundingSphere ignoring instances
+- Fix SSAO half/quarter resolution textures for multi-scale
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty
