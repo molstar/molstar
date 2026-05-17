@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Camera } from '../../../mol-canvas3d/camera';
@@ -11,7 +12,7 @@ import { Vec3 } from '../../../mol-math/linear-algebra/3d/vec3';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateAnimation } from '../model';
 
-const _dir = Vec3(), _axis = Vec3(), _rot = Quat();
+const _dir = Vec3(), _axis = Vec3(), _rot = Quat(), _up = Vec3(), _side = Vec3();
 
 type State = { snapshot: Camera.Snapshot };
 
@@ -22,7 +23,7 @@ export const AnimateCameraSpin = PluginStateAnimation.create({
     params: () => ({
         durationInMs: PD.Numeric(4000, { min: 100, max: 20000, step: 100 }),
         speed: PD.Numeric(1, { min: 1, max: 10, step: 1 }, { description: 'How many times to spin in the specified duration.' }),
-        direction: PD.Select<'cw' | 'ccw'>('cw', [['cw', 'Clockwise'], ['ccw', 'Counter Clockwise']], { cycle: true })
+        axis: PD.Vec3(Vec3.create(0, -1, 0), {}, { description: 'Axis of rotation in camera space' }),
     }),
     initialState: (_, ctx) => ({ snapshot: ctx.canvas3d?.camera.getSnapshot()! }) as State,
     getDuration: p => ({ kind: 'fixed', durationMs: p.durationInMs }),
@@ -42,14 +43,28 @@ export const AnimateCameraSpin = PluginStateAnimation.create({
         const phase = t.animation
             ? t.animation?.currentFrame / (t.animation.frameCount + 1)
             : clamp(t.current / ctx.params.durationInMs, 0, 1);
-        const angle = 2 * Math.PI * phase * ctx.params.speed * (ctx.params.direction === 'ccw' ? -1 : 1);
+        const angle = 2 * Math.PI * phase * ctx.params.speed;
 
         Vec3.sub(_dir, snapshot.position, snapshot.target);
-        Vec3.normalize(_axis, snapshot.up);
+
+        // Transform axis from camera space to world space
+        Vec3.normalize(_axis, _dir); // Z = view direction
+        Vec3.normalize(_up, snapshot.up); // Y = up
+        Vec3.cross(_side, _up, _axis); // X = right
+        Vec3.normalize(_side, _side);
+        const a = ctx.params.axis;
+        Vec3.set(_axis,
+            a[0] * _side[0] + a[1] * _up[0] + a[2] * _axis[0],
+            a[0] * _side[1] + a[1] * _up[1] + a[2] * _axis[1],
+            a[0] * _side[2] + a[1] * _up[2] + a[2] * _axis[2]
+        );
+        Vec3.normalize(_axis, _axis);
+
         Quat.setAxisAngle(_rot, _axis, angle);
         Vec3.transformQuat(_dir, _dir, _rot);
+        Vec3.transformQuat(_up, snapshot.up, _rot);
         const position = Vec3.add(Vec3(), snapshot.target, _dir);
-        ctx.plugin.canvas3d?.requestCameraReset({ snapshot: { ...snapshot, position }, durationMs: 0 });
+        ctx.plugin.canvas3d?.requestCameraReset({ snapshot: { ...snapshot, position, up: _up }, durationMs: 0 });
 
         if (phase >= 0.99999) {
             return { kind: 'finished' };
