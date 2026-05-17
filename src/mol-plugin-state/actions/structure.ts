@@ -6,7 +6,7 @@
  */
 
 import { PluginContext } from '../../mol-plugin/context';
-import { StateAction, StateSelection, StateTransformer } from '../../mol-state';
+import { StateAction, StateSelection, StateTransformer, State } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from '../builder/structure/representation-preset';
@@ -22,6 +22,10 @@ import { getFileNameInfo } from '../../mol-util/file-info';
 import { assertUnreachable } from '../../mol-util/type-helpers';
 import { TopologyFormatCategory } from '../formats/topology';
 import { CoordinatesFormatCategory } from '../formats/coordinates';
+import { Structure, StructureElement, StructureProperties } from '../../mol-model/structure';
+import { QueryContext } from '../../mol-model/structure/query/context';
+import { StructureSelection } from '../../mol-model/structure/query/selection';
+import { chains } from '../../mol-model/structure/query/queries/generators';
 
 const DownloadModelRepresentationOptions = (plugin: PluginContext) => {
     const representationDefault = plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
@@ -31,7 +35,8 @@ const DownloadModelRepresentationOptions = (plugin: PluginContext) => {
             plugin.builders.structure.representation.getPresets().map(p => [p.id, p.display.name, p.display.group] as any),
             { description: 'Which representation preset to use.' }),
         representationParams: PD.Group(StructureRepresentationPresetProvider.CommonParams, { isHidden: true }),
-        asTrajectory: PD.Optional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' }))
+        asTrajectory: PD.Optional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' })),
+        splitChains: PD.Optional(PD.Boolean(false, { description: 'Split polymer into individual chains.' }))
     }, { isExpanded: false });
 };
 
@@ -181,6 +186,7 @@ const DownloadStructure = StateAction.build({
 
     const representationPreset: any = params.source.params.options.representation || plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
     const showUnitcell = representationPreset !== PresetStructureRepresentations.empty.id;
+    const splitChains = !!src.params.options.splitChains;
 
     const structure = src.params.options.type.name === 'auto' ? void 0 : src.params.options.type;
     await state.transaction(async () => {
@@ -213,6 +219,24 @@ const DownloadStructure = StateAction.build({
             }
         }
     }).runInContext(ctx);
+
+    // Auto-split chains if requested (after transaction completes so representations exist)
+    if (splitChains) {
+        const polymerComponents = state.selectQ(q =>
+            q.ofTransformer(StateTransforms.Model.StructureComponent)
+             .filter(c => {
+                 const params = c.transform.params as any;
+                 return params?.type?.name === 'static' && params?.type?.params === 'polymer';
+             })
+        );
+
+        for (const polymerRef of polymerComponents) {
+            const polymerCell = state.cells.get(polymerRef.transform.ref);
+            if (polymerCell?.obj) {
+                await splitPolymerChains(state, polymerRef.transform.ref, polymerCell.obj.data, plugin);
+            }
+        }
+    }
 }));
 
 async function getDownloadParams(src: string, url: (id: string) => string | Promise<string>, label: (id: string) => string, isBinary: boolean): Promise<StateTransformer.Params<Download>[]> {
@@ -452,4 +476,131 @@ export const LoadTrajectory = StateAction.build({
             ctx.log.error(`Error loading trajectory`);
         }
     }).runInContext(taskCtx);
+}));
+
+function getChainLabel(structure: Structure, componentLabel?: string): string {
+    const firstUnit = structure.units[0];
+    if (!firstUnit) return 'Chain Unknown';
+
+    const firstElement = firstUnit.elements[0];
+    const location = StructureElement.Location.create(structure, firstUnit, firstElement);
+
+    const labelAsymId = StructureProperties.chain.label_asym_id(location);
+    const authAsymId = StructureProperties.chain.auth_asym_id(location);
+    const chainId = labelAsymId || authAsymId || 'Unknown';
+
+    // Include component type in label if provided (e.g., "Polymer Chain A")
+    return componentLabel ? `${componentLabel} ${chainId}` : `Chain ${chainId}`;
+}
+
+async function splitPolymerChains(state: State, ref: string, structure: Structure, plugin: PluginContext) {
+    const cell = state.cells.get(ref)!;
+    const rootStructure = structure.root;
+
+    // Use chains() query to split by chain
+    const chainQuery = chains();
+    const queryCtx = new QueryContext(structure);
+    const chainSelection = chainQuery(queryCtx);
+
+    // Check if result is a sequence with multiple structures
+    if (StructureSelection.isSingleton(chainSelection)) {
+        return;
+    }
+
+    const chainStructures = chainSelection.structures;
+    const chainCount = chainStructures.length;
+
+    if (chainCount <= 1) {
+        return;
+    }
+
+    // Get representation children to copy
+    const children = state.tree.children.get(ref);
+    const representationChildren: { ref: string, transformer: StateTransformer, params: any }[] = [];
+
+    if (children) {
+        children.forEach((childRef: string) => {
+            const childCell = state.cells.get(childRef);
+            if (childCell && childCell.transform.transformer === StateTransforms.Representation.StructureRepresentation3D) {
+                representationChildren.push({
+                    ref: childRef,
+                    transformer: childCell.transform.transformer,
+                    params: childCell.transform.params
+                });
+            }
+        });
+    }
+
+    const labelPrefix = 'Chain';
+
+    const parentRef = cell.transform.parent;
+    const builder = state.build();
+
+    for (let i = 0; i < chainCount; i++) {
+        const chainStructure = chainStructures[i];
+        const chainLabel = getChainLabel(chainStructure, labelPrefix);
+        const bundle = StructureElement.Bundle.fromSubStructure(rootStructure, chainStructure);
+
+        const chainComponent = builder.to(parentRef).apply(StateTransforms.Model.StructureComponent, {
+            type: { name: 'bundle', params: bundle },
+            label: chainLabel
+        });
+
+        // Copy representations from original to this chain
+        for (const repr of representationChildren) {
+            chainComponent.apply(repr.transformer, repr.params);
+        }
+    }
+
+    await builder.commit();
+
+    // Hide the original structure/component and all its children (representations) after the commit
+    state.updateCellState(ref, { isHidden: true });
+
+    // Also hide all representation children
+    const childNodes = state.tree.children.get(ref);
+    if (childNodes) {
+        childNodes.forEach((childRef: string) => {
+            state.updateCellState(childRef, { isHidden: true });
+        });
+    }
+}
+
+export const SplitStructureByChains = StateAction.build({
+    from: PluginStateObject.Molecule.Structure,
+    display: {
+        name: 'Split into Chains',
+        description: 'Split structure into individual chains as separate nodes.'
+    },
+    isApplicable(a, t, ctx: PluginContext) {
+        // Only applicable to StructureComponent nodes (Polymer, Water, etc.), not Assembly
+        return t.transformer === StateTransforms.Model.StructureComponent;
+    }
+})(({ a, ref, state }, plugin: PluginContext) => Task.create('Split Chains', async ctx => {
+    const structure = a.data;
+
+    // Quick check for chain count
+    const chainQuery = chains();
+    const queryCtx = new QueryContext(structure);
+    const chainSelection = chainQuery(queryCtx);
+
+    if (StructureSelection.isSingleton(chainSelection)) {
+        plugin.log.info('Structure contains only one chain');
+        return;
+    }
+
+    const chainCount = chainSelection.structures.length;
+
+    if (chainCount === 0) {
+        plugin.log.warn('No chains found in structure');
+        return;
+    }
+    if (chainCount === 1) {
+        plugin.log.info('Structure contains only one chain');
+        return;
+    }
+
+    // Perform the split
+    await splitPolymerChains(state, ref, structure, plugin);
+    plugin.log.info(`Split structure into ${chainCount} chains`);
 }));
