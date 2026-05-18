@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -27,6 +27,8 @@ import { parseTop } from '../../mol-io/reader/top/parser';
 import { ungzip } from '../../mol-util/zip/zip';
 import { StringLike } from '../../mol-io/common/string-like';
 import { utf8ReadLong } from '../../mol-io/common/utf8';
+import { parseDynamoTbl } from '../../mol-io/reader/dynamo/tbl';
+import { parseCryoEtDataPortalNdjson } from '../../mol-io/reader/cryoet/ndjson';
 
 
 export { Download };
@@ -44,6 +46,8 @@ export { ParsePly };
 export { ParseCcp4 };
 export { ParseDsn6 };
 export { ParseDx };
+export { ParseDynamoTbl };
+export { ParseCryoEtDataPortalNdjson };
 export { ImportString };
 export { ImportJson };
 export { ParseJson };
@@ -399,6 +403,38 @@ const ParsePly = PluginStateTransform.BuiltIn({
             const parsed = await PLY.parsePly(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             return new SO.Format.Ply(parsed.result, { label: parsed.result.comments[0] || 'PLY Data' });
+        });
+    }
+});
+
+type ParseDynamoTbl = typeof ParseDynamoTbl
+const ParseDynamoTbl = PluginStateTransform.BuiltIn({
+    name: 'parse-dynamo-tbl',
+    display: { name: 'Parse Dynamo TBL', description: 'Parse Dynamo TBL from String data' },
+    from: [SO.Data.String],
+    to: SO.Format.DynamoTbl
+})({
+    apply({ a }) {
+        return Task.create('Parse Dynamo TBL', async ctx => {
+            const parsed = await parseDynamoTbl(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            return new SO.Format.DynamoTbl(parsed.result, { label: a.label || 'Dynamo TBL' });
+        });
+    }
+});
+
+type ParseCryoEtDataPortalNdjson = typeof ParseCryoEtDataPortalNdjson
+const ParseCryoEtDataPortalNdjson = PluginStateTransform.BuiltIn({
+    name: 'parse-cryoet-data-portal-ndjson',
+    display: { name: 'Parse CryoET NDJSON', description: 'Parse CryoET Data Portal NDJSON from String data' },
+    from: [SO.Data.String],
+    to: SO.Format.CryoEtDataPortalNdjson
+})({
+    apply({ a }) {
+        return Task.create('Parse CryoET NDJSON', async ctx => {
+            const parsed = await parseCryoEtDataPortalNdjson(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            return new SO.Format.CryoEtDataPortalNdjson(parsed.result, { label: a.label || 'CryoET NDJSON' });
         });
     }
 });

@@ -870,9 +870,19 @@ namespace Structure {
         return create(units, { parent: s, coordinateSystem: newCS });
     }
 
-     export function instances(s: Structure, transforms: Mat4[]) {
-        for (const t of transforms) {
-            if (!Mat4.isRotationAndTranslation(t, SymmetryOperator.RotationTranslationEpsilon)) {
+    export interface InstanceDescriptor {
+        transform: Mat4
+        group?: number
+    }
+    function isInstanceDescriptor(x: Mat4 | InstanceDescriptor): x is InstanceDescriptor {
+        return !!(x as InstanceDescriptor).transform;
+    }
+
+    // TODO: add option to change at least op name
+    export function instances(s: Structure, transforms: ReadonlyArray<Mat4 | InstanceDescriptor>, asRoot = false) {
+        const descriptors: InstanceDescriptor[] = transforms.map(t => isInstanceDescriptor(t) ? t : { transform: t });
+        for (const { transform } of descriptors) {
+            if (!Mat4.isRotationAndTranslation(transform, SymmetryOperator.RotationTranslationEpsilon)) {
                 throw new Error('Only rotation/translation combination can be applied.');
             }
         }
@@ -881,17 +891,17 @@ namespace Structure {
         let id = 0;
         for (const u of s.units) {
             const old = u.conformation.operator;
-            for (const transform of transforms) {
-                if (Mat4.isIdentity(transform)) {
+            for (const { transform, group } of descriptors) {
+                if (Mat4.isIdentity(transform) && (group === undefined || group === old.group)) {
                     units.push(u);
                     continue;
                 }
-                const op = SymmetryOperator.create(old.name, transform, old);
+                const op = SymmetryOperator.create(old.name, transform, { ...old, group: group ?? old.group });
                 units.push(u.applyOperator(id++, op));
             }
         }
 
-        return create(units, { parent: s });
+        return create(units, asRoot ? { } : { parent: s });
     }
 
 
@@ -1290,6 +1300,15 @@ namespace Structure {
 
     export type MaxIndex = number;
     export const MaxIndex = CustomStructureProperty.createSimple<MaxIndex>('max_index', 'root');
+
+    export const ParticleList = {
+        set(structure: Structure, particles: import('../../particles/particle-list').ParticleList) {
+            structure.root.inheritedPropertyData['__particleList__'] = particles;
+        },
+        get(structure: Structure): import('../../particles/particle-list').ParticleList | undefined {
+            return structure.root.inheritedPropertyData['__particleList__'];
+        }
+    };
 
     const PrincipalAxesProp = '__PrincipalAxes__';
     export function getPrincipalAxes(structure: Structure): PrincipalAxes {

@@ -47,6 +47,7 @@ import { ColorThemeCategory } from './color/categories';
 import { CartoonColorThemeProvider } from './color/cartoon';
 import { FormalChargeColorThemeProvider } from './color/formal-charge';
 import { ExternalStructureColorThemeProvider } from './color/external-structure';
+import { ParticleIndexColorThemeProvider } from './color/particle-index';
 import { ColorListEntry } from '../mol-util/color/color';
 import { getPrecision } from '../mol-util/number';
 import { SortedArray } from '../mol-data/int/sorted-array';
@@ -198,6 +199,7 @@ namespace ColorTheme {
         'operator-hkl': OperatorHklColorThemeProvider,
         'operator-name': OperatorNameColorThemeProvider,
         'partial-charge': PartialChargeColorThemeProvider,
+        'particle-index': ParticleIndexColorThemeProvider,
         'polymer-id': PolymerIdColorThemeProvider,
         'polymer-index': PolymerIndexColorThemeProvider,
         'residue-charge': ResidueChargeColorThemeProvider,

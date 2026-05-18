@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -7,10 +7,13 @@
 
 import { Ccp4File } from '../mol-io/reader/ccp4/schema';
 import { CifFile } from '../mol-io/reader/cif';
+import { CryoEtDataPortalNdjsonFile } from '../mol-io/reader/cryoet/ndjson';
 import { DcdFile } from '../mol-io/reader/dcd/parser';
+import { DynamoTblFile } from '../mol-io/reader/dynamo/tbl';
 import { Dsn6File } from '../mol-io/reader/dsn6/schema';
 import { PlyFile } from '../mol-io/reader/ply/schema';
 import { PsfFile } from '../mol-io/reader/psf/parser';
+import { ParticleList } from '../mol-model/particles/particle-list';
 import { ShapeProvider } from '../mol-model/shape/provider';
 import { Coordinates as _Coordinates, Model as _Model, Structure as _Structure, Trajectory as _Trajectory, StructureElement, Topology as _Topology } from '../mol-model/structure';
 import { Volume as _Volume } from '../mol-model/volume';
@@ -19,6 +22,7 @@ import { Representation } from '../mol-repr/representation';
 import { ShapeRepresentation } from '../mol-repr/shape/representation';
 import { StructureRepresentation, StructureRepresentationState } from '../mol-repr/structure/representation';
 import { VolumeRepresentation } from '../mol-repr/volume/representation';
+import { ParticleRepresentation } from '../mol-repr/particles/representation';
 import { StateObject, StateTransformer } from '../mol-state';
 import { CubeFile } from '../mol-io/reader/cube/parser';
 import { DxFile } from '../mol-io/reader/dx/parser';
@@ -74,6 +78,8 @@ export namespace PluginStateObject {
     export namespace Format {
         export class Json extends Create<any>({ name: 'JSON Data', typeClass: 'Data' }) { }
         export class Cif extends Create<CifFile>({ name: 'CIF File', typeClass: 'Data' }) { }
+        export class DynamoTbl extends Create<DynamoTblFile>({ name: 'Dynamo TBL File', typeClass: 'Data' }) { }
+        export class CryoEtDataPortalNdjson extends Create<CryoEtDataPortalNdjsonFile>({ name: 'CryoET Data Portal NDJSON File', typeClass: 'Data' }) { }
         export class Cube extends Create<CubeFile>({ name: 'Cube File', typeClass: 'Data' }) { }
         export class Psf extends Create<PsfFile>({ name: 'PSF File', typeClass: 'Data' }) { }
         export class Prmtop extends Create<PrmtopFile>({ name: 'PRMTOP File', typeClass: 'Data' }) { }
@@ -149,6 +155,11 @@ export namespace PluginStateObject {
     export namespace Shape {
         export class Provider extends Create<ShapeProvider<any, any, any>>({ name: 'Shape Provider', typeClass: 'Object' }) { }
         export class Representation3D extends CreateRepresentation3D<ShapeRepresentation<any, any, any>, unknown>({ name: 'Shape 3D' }) { }
+    }
+
+    export namespace Particle {
+        export class List extends Create<ParticleList>({ name: 'Particle List', typeClass: 'Object' }) { }
+        export class Representation3D extends CreateRepresentation3D<ParticleRepresentation<any>, ParticleList>({ name: 'Particle 3D' }) { }
     }
 }
 

@@ -18,6 +18,7 @@ import { trajectoryFromCCD, trajectoryFromMmCIF } from '../../mol-model-formats/
 import { trajectoryFromPDB } from '../../mol-model-formats/structure/pdb';
 import { topologyFromPsf } from '../../mol-model-formats/structure/psf';
 import { Coordinates, Model, Queries, QueryContext, Structure, StructureElement, StructureQuery, StructureSelection as Sel, Topology, ArrayTrajectory, Trajectory, Frame } from '../../mol-model/structure';
+import { getParticleTransforms, ParticleList } from '../../mol-model/particles/particle-list';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
 import { Expression } from '../../mol-script/language/expression';
@@ -66,6 +67,7 @@ export { TopologyFromPsf };
 export { TopologyFromPrmtop };
 export { TopologyFromTop };
 export { TrajectoryFromModelAndCoordinates };
+export { ParticlesStructure };
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
 export { TrajectoryFromPDB };
@@ -254,6 +256,39 @@ const TrajectoryFromModelAndCoordinates = PluginStateTransform.BuiltIn({
             const props = { label: 'Trajectory', description: `${trajectory.frameCount} model${trajectory.frameCount === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(trajectory, props);
         });
+    }
+});
+
+type ParticlesStructure = typeof ParticlesStructure
+const ParticlesStructure = PluginStateTransform.BuiltIn({
+    name: 'particles-structure',
+    display: { name: 'Particles Structure', description: 'Create a structure with instances at each particle position and orientation.' },
+    from: SO.Molecule.Structure,
+    to: SO.Molecule.Structure,
+    isDecorator: true,
+    params: {
+        particlesRef: PD.Text('', { isHidden: true }),
+    }
+})({
+    apply({ a, params, dependencies }) {
+        return Task.create('Create structure from structure and particles', async ctx => {
+            const particlesObj = dependencies![params.particlesRef];
+            if (particlesObj.type !== SO.Particle.List.type) throw new Error('Expected a Particle List as `particlesRef`');
+            const particles = particlesObj.data as ParticleList;
+            const transforms = getParticleTransforms(particles);
+            // Center the structure on each particle position by composing each
+            // particle's rotation/translation with a translation that brings
+            // the structure's centroid to the origin.
+            const center = a.data.boundary.sphere.center;
+            const offset = Mat4.fromTranslation(Mat4(), Vec3.negate(Vec3(), center));
+            for (const t of transforms) Mat4.mul(t, t, offset);
+            const instanced = Structure.instances(a.data, transforms.map((transform, i) => ({ transform, group: i })), true);
+            Structure.ParticleList.set(instanced, particles);
+            return new SO.Molecule.Structure(instanced, { label: a.label, description: `${transforms.length} particle${transforms.length === 1 ? '' : 's'}` });
+        });
+    },
+    dispose({ b }) {
+        b?.data.customPropertyDescriptors.dispose();
     }
 });
 

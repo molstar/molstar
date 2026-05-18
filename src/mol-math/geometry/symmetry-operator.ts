@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -35,6 +35,8 @@ interface SymmetryOperator {
     readonly spgrOp: number,
     /** unique (external) key, -1 if not available */
     readonly key: number,
+    /** group, -1 if not available */
+    readonly group: number,
 
     readonly matrix: Mat4,
     /** cache the inverse of the transform */
@@ -57,21 +59,22 @@ namespace SymmetryOperator {
 
     export const RotationTranslationEpsilon = 0.005;
 
-    export type CreateInfo = { assembly?: SymmetryOperator['assembly'], ncsId?: number, hkl?: Vec3, spgrOp?: number, key?: number, instanceId?: string }
+    export type CreateInfo = { assembly?: SymmetryOperator['assembly'], ncsId?: number, hkl?: Vec3, spgrOp?: number, key?: number, group?: number, instanceId?: string }
     export function create(name: string, matrix: Mat4, info?: CreateInfo | SymmetryOperator): SymmetryOperator {
-        let { assembly, ncsId, hkl, spgrOp, key } = info || {};
+        let { assembly, ncsId, hkl, spgrOp, key, group } = info || {};
         const _hkl = hkl ? Vec3.clone(hkl) : Vec3();
         spgrOp = spgrOp ?? -1;
         key = key ?? -1;
+        group = group ?? -1;
         ncsId = ncsId || -1;
         const isIdentity = Mat4.isIdentity(matrix);
         const suffix = getSuffix(info, isIdentity);
         const instanceId = info?.instanceId ?? name;
-        if (isIdentity) return { name, instanceId, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId, suffix, key };
+        if (isIdentity) return { name, instanceId, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId, suffix, key, group };
         if (!Mat4.isRotationAndTranslation(matrix, RotationTranslationEpsilon)) {
             console.warn(`Symmetry operator (${name}) should be a composition of rotation and translation.`);
         }
-        return { name, instanceId, assembly, matrix, inverse: Mat4.invert(Mat4(), matrix), isIdentity: false, hkl: _hkl, spgrOp, key, ncsId, suffix };
+        return { name, instanceId, assembly, matrix, inverse: Mat4.invert(Mat4(), matrix), isIdentity: false, hkl: _hkl, spgrOp, key, ncsId, suffix, group };
     }
 
     function isSymmetryOperator(x: any): x is SymmetryOperator {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,6 +17,7 @@ import { FiniteArray } from '../mol-util/type-helpers';
 import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
 import { stringToWords } from '../mol-util/string';
 import { Volume } from './volume/volume';
+import { Particle } from './particles/particle-list';
 import { Interval } from '../mol-data/int';
 
 /** A Loci that includes every loci */
@@ -65,7 +66,7 @@ export function DataLoci<T = unknown, E = unknown>(tag: string, data: T, element
 
 export { Loci };
 
-type Loci = StructureElement.Loci | Structure.Loci | Bond.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci | Volume.Loci | Volume.Isosurface.Loci | Volume.Cell.Loci | Volume.Segment.Loci
+type Loci = StructureElement.Loci | Structure.Loci | Bond.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci | Volume.Loci | Volume.Isosurface.Loci | Volume.Cell.Loci | Volume.Segment.Loci | Particle.Loci
 
 namespace Loci {
     export interface Bundle<L extends number> { loci: FiniteArray<Loci, L> }
@@ -113,6 +114,9 @@ namespace Loci {
         if (Volume.Segment.isLoci(lociA) && Volume.Segment.isLoci(lociB)) {
             return Volume.Segment.areLociEqual(lociA, lociB);
         }
+        if (Particle.isLoci(lociA) && Particle.isLoci(lociB)) {
+            return Particle.areLociEqual(lociA, lociB);
+        }
         return false;
     }
 
@@ -133,6 +137,7 @@ namespace Loci {
         if (Volume.Isosurface.isLoci(loci)) return Volume.Isosurface.isLociEmpty(loci);
         if (Volume.Cell.isLoci(loci)) return Volume.Cell.isLociEmpty(loci);
         if (Volume.Segment.isLoci(loci)) return Volume.Segment.isLociEmpty(loci);
+        if (Particle.isLoci(loci)) return Particle.isLociEmpty(loci);
         return false;
     }
 
@@ -145,6 +150,8 @@ namespace Loci {
             } else if (Bond.isLoci(loci)) {
                 loci = Bond.remapLoci(loci, data);
             }
+        } else if (Particle.isLoci(loci) && data && typeof data === 'object' && 'coordinates' in data && 'rotations' in data) {
+            loci = Particle.remapLoci(loci, data as any);
         }
         return loci;
     }
@@ -174,6 +181,8 @@ namespace Loci {
             return Volume.Cell.getBoundingSphere(loci.volume, loci.elements, boundingSphere);
         } else if (loci.kind === 'segment-loci') {
             return Volume.Segment.getBoundingSphere(loci.volume, loci.elements, boundingSphere);
+        } else if (loci.kind === 'particle-loci') {
+            return Particle.getBoundingSphere(loci, boundingSphere);
         }
     }
 

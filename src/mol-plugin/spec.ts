@@ -69,6 +69,8 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateActions.DataFormat.DownloadFile),
         PluginSpec.Action(StateActions.DataFormat.OpenFiles),
         PluginSpec.Action(StateActions.Structure.LoadTrajectory),
+        PluginSpec.Action(StateActions.Structure.LoadParticlesStructure),
+        PluginSpec.Action(StateActions.Volume.LoadParticlesVolume),
         PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
         PluginSpec.Action(StateActions.Structure.EnableStructureCustomProps),
 
@@ -117,6 +119,11 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
         PluginSpec.Action(StateTransforms.Volume.VolumeTransform),
         PluginSpec.Action(StateTransforms.Volume.VolumeInstances),
+
+        PluginSpec.Action(StateTransforms.Particles.ParticleListFromRelionStar),
+        PluginSpec.Action(StateTransforms.Particles.ParticleListFromDynamoTbl),
+        PluginSpec.Action(StateTransforms.Particles.ParticleListFromCryoEtDataPortalNdjson),
+        PluginSpec.Action(StateTransforms.Particles.ParticlesRepresentation3D),
     ],
     behaviors: [
         PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),
