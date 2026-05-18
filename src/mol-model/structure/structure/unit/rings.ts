@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -95,10 +95,22 @@ namespace UnitRing {
         Elements.SN, Elements.SB,
         Elements.BI
     ] as ElementSymbol[]);
+    /**
+     * Elements that are sp3 (and therefore non-aromatic) when degree >= 4 with no pi bonds.
+     * Excludes O (never realistically reaches degree 4) and N (quaternary N can be aromatic,
+     * but is guarded by the hasPiBond check below).
+     */
+    const Sp3RingCheckElements = new Set([
+        Elements.B, Elements.C, Elements.N,
+        Elements.SI, Elements.P, Elements.S,
+        Elements.GE, Elements.AS,
+        Elements.SN, Elements.SB,
+        Elements.BI
+    ] as ElementSymbol[]);
     const AromaticRingPlanarityThreshold = 0.05;
 
     export function isAromatic(unit: Unit.Atomic, ring: UnitRing): boolean {
-        const { elements, bonds: { b, offset, edgeProps: { flags } } } = unit;
+        const { elements, bonds: { b, offset, edgeProps: { flags, order } } } = unit;
         const { type_symbol, label_comp_id } = unit.model.atomicHierarchy.atoms;
 
         // ignore Proline (can be flat because of bad geometry)
@@ -120,6 +132,25 @@ namespace UnitRing {
                 }
             }
         }
+
+        for (let i = 0, il = ring.length; i < il; ++i) {
+            const aI = ring[i];
+            const elem = type_symbol.value(elements[aI]);
+            if (!Sp3RingCheckElements.has(elem)) continue;
+
+            let degree = 0;
+            let hasPiBond = false;
+            for (let j = offset[aI], jl = offset[aI + 1]; j < jl; ++j) {
+                degree += 1;
+                const f = flags[j];
+                const o = order[j];
+                if (BondType.is(BondType.Flag.Aromatic, f) || o === 2 || o === 3) {
+                    hasPiBond = true;
+                }
+            }
+            if (degree >= 4 && !hasPiBond) return false;
+        }
+
         if (aromaticBondCount === 2 * ring.length) return true;
         if (!hasAromaticRingElement) return false;
         if (ring.length < 5) return false;
