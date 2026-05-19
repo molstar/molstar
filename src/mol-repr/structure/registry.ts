@@ -24,6 +24,7 @@ import { GaussianVolumeRepresentationProvider } from './representation/gaussian-
 import { BackboneRepresentationProvider } from './representation/backbone';
 import { PolyhedronRepresentationProvider } from './representation/polyhedron';
 import { PlaneRepresentationProvider } from './representation/plane';
+import { PolymerTerminusRepresentationProvider } from './representation/polymer-terminus';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure, StructureRepresentationState> {
     constructor() {
@@ -50,6 +51,7 @@ export namespace StructureRepresentationRegistry {
         'orientation': OrientationRepresentationProvider,
         'plane': PlaneRepresentationProvider,
         'point': PointRepresentationProvider,
+        'polymer-terminus': PolymerTerminusRepresentationProvider,
         'putty': PuttyRepresentationProvider,
         'spacefill': SpacefillRepresentationProvider,
         'polyhedron': PolyhedronRepresentationProvider,
