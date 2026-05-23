@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -436,12 +436,12 @@ export const LoadTrajectory = StateAction.build({
 
             //
 
-            const dependsOn = [model.ref, coordinates.ref];
+            // dependsOn is auto-derived from the `getDependencies` hook on TrajectoryFromModelAndCoordinates
             const traj = state.build().toRoot()
                 .apply(TrajectoryFromModelAndCoordinates, {
                     modelRef: model.ref,
                     coordinatesRef: coordinates.ref
-                }, { dependsOn })
+                })
                 .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
 
             await state.updateTree(traj).runInContext(taskCtx);

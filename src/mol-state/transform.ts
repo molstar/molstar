@@ -1,12 +1,14 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { StateTransformer } from './transformer';
 import { UUID } from '../mol-util';
 import { hashMurmur128o } from '../mol-data/util/hash-functions';
+import { ParamDefinition as PD } from '../mol-util/param-definition';
 
 export { Transform as StateTransform };
 
@@ -168,6 +170,81 @@ namespace Transform {
             if (t.tags.indexOf(tag) < 0) return false;
         }
         return true;
+    }
+
+    /**
+     * Compute the effective set of sibling-like dependencies for a transform.
+     *
+     * Combines (in order, de-duplicated):
+     *   1. Explicit `t.dependsOn` (back-compat / non-param refs).
+     *   2. Refs from `transformer.definition.getDependencies(params)` if defined.
+     *   3. Refs collected from `PD.ValueRef` / `PD.DataRef` parameter values.
+     *
+     * Self-references and the root ref are filtered out. `globalCtx` is forwarded
+     * to `params(undefined, globalCtx)` for schema acquisition. If the schema
+     * can't be obtained (no `params` function or it throws), auto-derivation
+     * falls back to a structural scan of parameter values for `{ ref, getValue }`
+     * shaped objects.
+     */
+    export function getEffectiveDependsOn(t: Transform, globalCtx?: unknown): Ref[] {
+        const out: Ref[] = [];
+        const seen = new Set<string>();
+        const add = (ref: string | undefined) => {
+            if (!ref || ref === t.ref || ref === RootRef) return;
+            if (seen.has(ref)) return;
+            seen.add(ref);
+            out.push(ref as Ref);
+        };
+
+        if (t.dependsOn) {
+            for (const r of t.dependsOn) add(r);
+        }
+
+        const def = t.transformer.definition;
+        const params = t.params as any;
+
+        if (def.getDependencies && params) {
+            try {
+                const extra = def.getDependencies(params);
+                if (extra) for (const r of extra) add(r);
+            } catch {
+                // Keep reconciliation robust if a user hook misbehaves.
+            }
+        }
+
+        if (params) {
+            let schema: PD.Params | undefined = void 0;
+            if (def.params) {
+                try {
+                    schema = def.params(undefined as any, globalCtx) as PD.Params;
+                } catch {
+                    schema = void 0;
+                }
+            }
+            if (schema) {
+                const refs = PD.collectRefs(schema, params);
+                refs.forEach(r => add(r));
+            } else {
+                collectStructuralRefs(params, add);
+            }
+        }
+
+        return out;
+    }
+
+    function collectStructuralRefs(value: any, add: (ref: string) => void, depth = 0) {
+        if (!value || typeof value !== 'object' || depth > 6) return;
+        if (Array.isArray(value)) {
+            for (const v of value) collectStructuralRefs(v, add, depth + 1);
+            return;
+        }
+        if (typeof (value as any).ref === 'string' && typeof (value as any).getValue === 'function') {
+            add((value as any).ref);
+            return;
+        }
+        for (const k of Object.keys(value)) {
+            collectStructuralRefs(value[k], add, depth + 1);
+        }
     }
 
     const _emptyParams = {};

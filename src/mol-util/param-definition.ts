@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -443,6 +443,45 @@ export namespace ParamDefinition {
         for (const n of Object.keys(params)) {
             resolveRefValue(params[n], values?.[n], getData);
         }
+    }
+
+    function collectRefValue(p: Any, value: any, out: Set<string>) {
+        if (value === undefined || value === null) return;
+
+        if (p.type === 'value-ref' || p.type === 'data-ref') {
+            const v = value as ValueRef['defaultValue'];
+            if (v && typeof v.ref === 'string' && v.ref) out.add(v.ref);
+        } else if (p.type === 'group') {
+            collectRefsImpl(p.params, value, out);
+        } else if (p.type === 'mapped') {
+            const v = value as NamedParams;
+            if (!v) return;
+            const param = p.map(v.name);
+            collectRefValue(param, v.params, out);
+        } else if (p.type === 'object-list') {
+            if (!hasValueRef(p.element)) return;
+            for (const e of value) {
+                collectRefsImpl(p.element, e, out);
+            }
+        }
+    }
+
+    function collectRefsImpl(params: Params, values: any, out: Set<string>) {
+        for (const n of Object.keys(params)) {
+            collectRefValue(params[n], values?.[n], out);
+        }
+    }
+
+    /**
+     * Collect all non-empty `ref` strings of `value-ref` and `data-ref` parameter
+     * values into a set. Used by `mol-state` to derive transform dependencies from
+     * parameter values.
+     */
+    export function collectRefs(params: Params, values: any, out?: Set<string>): Set<string> {
+        const result = out ?? new Set<string>();
+        if (!params || !values) return result;
+        collectRefsImpl(params, values, result);
+        return result;
     }
 
     export function setDefaultValues<T extends Params>(params: T, defaultValues: Values<T>) {
