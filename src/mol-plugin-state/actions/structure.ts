@@ -15,14 +15,13 @@ import { RootStructureDefinition } from '../helpers/root-structure';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
-import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureFromModel, ParticlesStructure, TrajectoryFromModelAndCoordinates } from '../transforms/model';
+import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, TrajectoryFromModelAndCoordinates } from '../transforms/model';
 import { Asset } from '../../mol-util/assets';
 import { PluginConfig } from '../../mol-plugin/config';
 import { getFileNameInfo } from '../../mol-util/file-info';
 import { assertUnreachable } from '../../mol-util/type-helpers';
 import { TopologyFormatCategory } from '../formats/topology';
 import { CoordinatesFormatCategory } from '../formats/coordinates';
-import { ParticlesFormatCategory } from '../formats/particles';
 
 const DownloadModelRepresentationOptions = (plugin: PluginContext) => {
     const representationDefault = plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
@@ -451,141 +450,6 @@ export const LoadTrajectory = StateAction.build({
         } catch (e) {
             console.error(e);
             ctx.log.error(`Error loading trajectory`);
-        }
-    }).runInContext(taskCtx);
-}));
-
-export const LoadParticlesStructure = StateAction.build({
-    display: { name: 'Load Particles Structure', description: 'Load a structure (trajectory) and a particle list from URL or file and replicate the structure at each particle.' },
-    from: PluginStateObject.Root,
-    params(a, ctx: PluginContext) {
-        const { options } = ctx.dataFormats;
-        const structureOptions = options.filter(o => o[2] === TrajectoryFormatCategory);
-        const particlesOptions = options.filter(o => o[2] === ParticlesFormatCategory);
-
-        const structureExts: string[] = [];
-        const particlesExts: string[] = [];
-        for (const { provider } of ctx.dataFormats.list) {
-            if (provider.category === TrajectoryFormatCategory) {
-                if (provider.binaryExtensions) structureExts.push(...provider.binaryExtensions);
-                if (provider.stringExtensions) structureExts.push(...provider.stringExtensions);
-            } else if (provider.category === ParticlesFormatCategory) {
-                if (provider.binaryExtensions) particlesExts.push(...provider.binaryExtensions);
-                if (provider.stringExtensions) particlesExts.push(...provider.stringExtensions);
-            }
-        }
-
-        return {
-            source: PD.MappedStatic('file', {
-                url: PD.Group({
-                    model: PD.Group({
-                        url: PD.Url(''),
-                        format: PD.Select(structureOptions[0]?.[0] ?? '', structureOptions),
-                        isBinary: PD.Boolean(false),
-                    }, { isExpanded: true }),
-                    particles: PD.Group({
-                        url: PD.Url(''),
-                        format: PD.Select(particlesOptions[0]?.[0] ?? '', particlesOptions),
-                        isBinary: PD.Boolean(false),
-                    }, { isExpanded: true })
-                }, { isFlat: true }),
-                file: PD.Group({
-                    model: PD.File({ accept: structureExts.map(e => `.${e}`).join(','), label: 'Model' }),
-                    particles: PD.File({ accept: particlesExts.map(e => `.${e}`).join(','), label: 'Particles' }),
-                }, { isFlat: true }),
-            }, { options: [['url', 'URL'], ['file', 'File']] })
-        };
-    }
-})(({ params, state }, ctx: PluginContext) => Task.create('Load Particles Structure', taskCtx => {
-    return state.transaction(async () => {
-        const s = params.source;
-
-        if (s.name === 'file' && (s.params.model === null || s.params.particles === null)) {
-            ctx.log.error('No file(s) selected');
-            return;
-        }
-
-        if (s.name === 'url' && (!s.params.model || !s.params.particles)) {
-            ctx.log.error('No URL(s) given');
-            return;
-        }
-
-        const processUrl = async (url: string | Asset.Url, format: string, isBinary: boolean) => {
-            const data = await ctx.builders.data.download({ url, isBinary });
-            const provider = ctx.dataFormats.get(format);
-
-            if (!provider) {
-                ctx.log.warn(`LoadParticlesStructure: could not find data provider for '${format}'`);
-                return;
-            }
-
-            return provider.parse(ctx, data);
-        };
-
-        const processFile = async (file: Asset.File | null) => {
-            if (!file) throw new Error('No file selected');
-
-            const info = getFileNameInfo(file.file?.name ?? '');
-            const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
-            const { data } = await ctx.builders.data.readFile({ file, isBinary });
-            const provider = ctx.dataFormats.auto(info, data.cell?.obj!);
-
-            if (!provider) {
-                ctx.log.warn(`LoadParticlesStructure: could not find data provider for '${info.ext}'`);
-                await ctx.state.data.build().delete(data).commit();
-                return;
-            }
-
-            return provider.parse(ctx, data);
-        };
-
-        try {
-            const particlesParsed = s.name === 'url'
-                ? await processUrl(s.params.particles.url, s.params.particles.format, s.params.particles.isBinary)
-                : await processFile(s.params.particles);
-
-            if (!particlesParsed || !('list' in particlesParsed)) {
-                ctx.log.error('Expected a particles format for the particles input');
-                return;
-            }
-
-            //
-
-            const modelParsed = s.name === 'url'
-                ? await processUrl(s.params.model.url, s.params.model.format, s.params.model.isBinary)
-                : await processFile(s.params.model);
-
-            if (!modelParsed || !('trajectory' in modelParsed)) {
-                ctx.log.error('Expected a trajectory format for the model input');
-                return;
-            }
-
-            const model = await state.build().to(modelParsed.trajectory)
-                .apply(ModelFromTrajectory, { modelIndex: 0 })
-                .commit();
-
-            const structure = await state.build().to(model)
-                .apply(StructureFromModel)
-                .commit();
-
-            //
-
-            const dependsOn = [particlesParsed.list.ref];
-            const tree = state.build().to(structure.ref)
-                .apply(ParticlesStructure, {
-                    particlesRef: particlesParsed.list.ref,
-                }, { dependsOn });
-
-            await state.updateTree(tree).runInContext(taskCtx);
-            const structureProperties = await ctx.builders.structure.insertStructureProperties(tree.ref);
-            await ctx.builders.structure.representation.applyPreset(structureProperties, 'mesoscale', {
-                theme: {
-                    globalName: 'chain-id',
-                }
-            });
-        } catch (e) {
-            console.error(e);
-            ctx.log.error(`Error loading particles structure`);
         }
     }).runInContext(taskCtx);
 }));
