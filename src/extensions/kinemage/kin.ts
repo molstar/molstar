@@ -20,6 +20,7 @@ import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
 import { Shape } from '../../mol-model/shape';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
+import { KinemageVisibilityState } from './behavior';
 
 export type KinData = {
     source: Kinemage,
@@ -64,46 +65,88 @@ function createKinShapeSpheresParams(kinemage?: Kinemage) {
 export const KinShapeSpheresParams = createKinShapeSpheresParams();
 export type KinShapeSpheresParams = typeof KinShapeSpheresParams;
 
-function getVisibility(group: string, subGroup: string, masters: string[], kin: Kinemage) {
-    let visible = true;
+/**
+ * Check visibility using AND logic:
+ * - ALL masters must be visible
+ * - AND group must be visible
+ * - AND subgroup must be visible (and its parent group if it has one)
+ */
+function getVisibility(group: string, subGroup: string, masters: string[], kin: Kinemage, visibilityState?: KinemageVisibilityState) {
+    // If no visibility state provided, fall back to checking the original parsed data
+    if (!visibilityState) {
+        let visible = true;
 
-    // Check to see if this name references a master that is not visible.  If so, then this whole list is not visible and we can skip it.
-    const masterDict = kin.masterDict;
+        // Check masters from parsed data
+        for (let m = 0; m < masters.length; m++) {
+            const masterName = masters[m];
+            const masterInfo = kin.masterDict[masterName];
+            if (masterInfo && !masterInfo.visible) {
+                visible = false;
+                break;
+            }
+        }
+
+        // Check group from parsed data
+        const groupInfo = kin.groupDict[group];
+        if (groupInfo && (groupInfo as any).off) {
+            visible = false;
+        }
+
+        // Check subgroup from parsed data
+        const subgroupInfo = kin.subgroupDict[subGroup];
+        if (subgroupInfo) {
+            if ((subgroupInfo as any).off) {
+                visible = false;
+            }
+            if ((subgroupInfo as any).group) {
+                const parentGroupInfo = kin.groupDict[(subgroupInfo as any).group];
+                if (parentGroupInfo && (parentGroupInfo as any).off) {
+                    visible = false;
+                }
+            }
+        }
+
+        return visible;
+    }
+
+    // Use visibility state - all conditions must be true (AND logic)
+    
+    // Check all masters - if ANY master is not visible, return false
     for (let m = 0; m < masters.length; m++) {
         const masterName = masters[m];
-        const masterInfo = masterDict[masterName];
-        if (masterInfo && !masterInfo.visible) {
-            visible = false;
-            break;
+        const masterVisible = visibilityState.masterVisibility.get(masterName);
+        if (masterVisible === false) {
+            return false;
         }
     }
 
-    // Check to see if this name references a group that has the 'off' flag set.  If so, this is not visible.
-    const groupDict = kin.groupDict;
-    const groupInfo = groupDict[group];
-    if (groupInfo && groupInfo.off) {
-        visible = false;
+    // Check group visibility
+    const groupVisible = visibilityState.groupVisibility.get(group);
+    if (groupVisible === false) {
+        return false;
     }
 
-    // Check to see if this name references a subgroup that it or its master has the 'off' flag set.  If so, this is not visible.
-    const subgroupDict = kin.subgroupDict;
-    const subgroupInfo = subgroupDict[subGroup];
-    if (subgroupInfo) {
-        if (subgroupInfo.off) {
-            visible = false;
+    // Check subgroup visibility
+    if (subGroup) {
+        const subgroupVisible = visibilityState.subgroupVisibility.get(subGroup);
+        if (subgroupVisible === false) {
+            return false;
         }
-        if (subgroupInfo.group) {
-            const groupInfo = groupDict[subgroupInfo.group];
-            if (groupInfo && groupInfo.off) {
-                visible = false;
+
+        // Also check if subgroup's parent group is visible
+        const subgroupInfo = kin.subgroupDict[subGroup];
+        if (subgroupInfo && (subgroupInfo as any).group) {
+            const parentGroupVisible = visibilityState.groupVisibility.get((subgroupInfo as any).group);
+            if (parentGroupVisible === false) {
+                return false;
             }
         }
     }
 
-    return visible;
+    return true;
 }
 
-async function getPoints(ctx: RuntimeContext, kin: Kinemage) {
+async function getPoints(ctx: RuntimeContext, kin: Kinemage, visibilityState?: KinemageVisibilityState) {
     const dotLists: DotList[] = kin.dotLists;
     const builderState = PointsBuilder.create();
     const colors: Color[] = [];
@@ -120,7 +163,7 @@ async function getPoints(ctx: RuntimeContext, kin: Kinemage) {
         const masterArray = dotList.masterArray;
 
         // Check the visibility of all of our masters and skip this dot list if any of them are not visible.
-        const visible = getVisibility(dotList.group, dotList.subgroup, masterArray, kin);
+        const visible = getVisibility(dotList.group, dotList.subgroup, masterArray, kin, visibilityState);
         if (!visible) { continue; }
 
         const numDots = positionArray.length / 3;
@@ -131,10 +174,18 @@ async function getPoints(ctx: RuntimeContext, kin: Kinemage) {
             for (let pm = 0; pm < pointMasterNames.length; pm++) {
                 const pointMasterName = pointMasterNames[pm];
                 const masterName = kin.pointmasterDict[pointMasterName];
-                const masterInfo = kin.masterDict[masterName];
-                if (masterInfo && !masterInfo.visible) {
-                    pmVisibility = false;
-                    continue;
+                if (visibilityState) {
+                    const masterVisible = visibilityState.masterVisibility.get(masterName);
+                    if (masterVisible === false) {
+                        pmVisibility = false;
+                        break;
+                    }
+                } else {
+                    const masterInfo = kin.masterDict[masterName];
+                    if (masterInfo && !masterInfo.visible) {
+                        pmVisibility = false;
+                        break;
+                    }
                 }
             }
             if (!pmVisibility) { continue; }
@@ -152,7 +203,7 @@ async function getPoints(ctx: RuntimeContext, kin: Kinemage) {
     return { points, colors, labels };
 }
 
-async function getLines(ctx: RuntimeContext, kin: Kinemage) {
+async function getLines(ctx: RuntimeContext, kin: Kinemage, visibilityState?: KinemageVisibilityState) {
     const vectorLists: VectorList[] = kin.vectorLists;
     const builderState = LinesBuilder.create();
     const widths: number[] = [];
@@ -175,7 +226,7 @@ async function getLines(ctx: RuntimeContext, kin: Kinemage) {
         const masterArray = vectorList.masterArray;
 
         // Check the visibility of all of our masters and skip this vector list if any of them are not visible.
-        const visible = getVisibility(vectorList.group, vectorList.subgroup, masterArray, kin);
+        const visible = getVisibility(vectorList.group, vectorList.subgroup, masterArray, kin, visibilityState);
         if (!visible) { continue; }
 
         const numLines = position1Array.length / 3;
@@ -186,10 +237,18 @@ async function getLines(ctx: RuntimeContext, kin: Kinemage) {
             for (let pm = 0; pm < pointMasterNames.length; pm++) {
                 const pointMasterName = pointMasterNames[pm];
                 const masterName = kin.pointmasterDict[pointMasterName];
-                const masterInfo = kin.masterDict[masterName];
-                if (masterInfo && !masterInfo.visible) {
-                    pmVisibility = false;
-                    continue;
+                if (visibilityState) {
+                    const masterVisible = visibilityState.masterVisibility.get(masterName);
+                    if (masterVisible === false) {
+                        pmVisibility = false;
+                        break;
+                    }
+                } else {
+                    const masterInfo = kin.masterDict[masterName];
+                    if (masterInfo && !masterInfo.visible) {
+                        pmVisibility = false;
+                        break;
+                    }
                 }
             }
             if (!pmVisibility) { continue; }
@@ -237,7 +296,7 @@ function addOffsetTriangle(builderState: MeshBuilder.State, a: Vec3, b: Vec3, c:
     MeshBuilder.addTriangleWithNormal(builderState, aOffset, bOffset, cOffset, n);
 }
 
-async function getMesh(ctx: RuntimeContext, kin: Kinemage) {
+async function getMesh(ctx: RuntimeContext, kin: Kinemage, visibilityState?: KinemageVisibilityState) {
     const ribbonObjects: RibbonObject[] = kin.ribbonLists;
     const builderState = MeshBuilder.createState();
     const colors: Color[] = [];
@@ -256,7 +315,7 @@ async function getMesh(ctx: RuntimeContext, kin: Kinemage) {
         const pointMasterArray = ribbonObject.pointmasterArray;
 
         // Check the visibility of all of our masters and skip this ribbon object if any of them are not visible.
-        const visible = getVisibility(ribbonObject.group, ribbonObject.subgroup, masterArray, kin);
+        const visible = getVisibility(ribbonObject.group, ribbonObject.subgroup, masterArray, kin, visibilityState);
         if (!visible) { continue; }
 
         builderState.currentGroup = ri; // TODO: Base this on something in the file instead?
@@ -273,10 +332,18 @@ async function getMesh(ctx: RuntimeContext, kin: Kinemage) {
             for (let pm = 0; pm < pointMasterNames.length; pm++) {
                 const pointMasterName = pointMasterNames[pm];
                 const masterName = kin.pointmasterDict[pointMasterName];
-                const masterInfo = kin.masterDict[masterName];
-                if (masterInfo && !masterInfo.visible) {
-                    pmVisibility = false;
-                    continue;
+                if (visibilityState) {
+                    const masterVisible = visibilityState.masterVisibility.get(masterName);
+                    if (masterVisible === false) {
+                        pmVisibility = false;
+                        break;
+                    }
+                } else {
+                    const masterInfo = kin.masterDict[masterName];
+                    if (masterInfo && !masterInfo.visible) {
+                        pmVisibility = false;
+                        break;
+                    }
                 }
             }
             if (!pmVisibility) { continue; }
@@ -336,7 +403,7 @@ async function getMesh(ctx: RuntimeContext, kin: Kinemage) {
  * Build spheres geometry and collect per-sphere radii from the KIN BallList entries.
  * Returns an object with the Spheres geometry and a Float32Array with per-center radii (one entry per center, in the same order they were added).
  */
-async function getSpheres(ctx: RuntimeContext, kin: Kinemage) {
+async function getSpheres(ctx: RuntimeContext, kin: Kinemage, visibilityState?: KinemageVisibilityState) {
     const balls: BallList[] = kin.ballLists;
     const builderState = SpheresBuilder.create();
     const radii: number[] = [];
@@ -355,7 +422,7 @@ async function getSpheres(ctx: RuntimeContext, kin: Kinemage) {
         const masterArray = ballList.masterArray;
 
         // Check the visibility of all of our masters and skip this ball list if any of them are not visible.
-        const visible = getVisibility(ballList.group, ballList.subgroup, masterArray, kin);
+        const visible = getVisibility(ballList.group, ballList.subgroup, masterArray, kin, visibilityState);
         if (!visible) { continue; }
 
         const numBalls = positionArray.length / 3;
@@ -366,10 +433,18 @@ async function getSpheres(ctx: RuntimeContext, kin: Kinemage) {
             for (let pm = 0; pm < pointMasterNames.length; pm++) {
                 const pointMasterName = pointMasterNames[pm];
                 const masterName = kin.pointmasterDict[pointMasterName];
-                const masterInfo = kin.masterDict[masterName];
-                if (masterInfo && !masterInfo.visible) {
-                    pmVisibility = false;
-                    continue;
+                if (visibilityState) {
+                    const masterVisible = visibilityState.masterVisibility.get(masterName);
+                    if (masterVisible === false) {
+                        pmVisibility = false;
+                        break;
+                    }
+                } else {
+                    const masterInfo = kin.masterDict[masterName];
+                    if (masterInfo && !masterInfo.visible) {
+                        pmVisibility = false;
+                        break;
+                    }
                 }
             }
             if (!pmVisibility) { continue; }
@@ -389,11 +464,11 @@ async function getSpheres(ctx: RuntimeContext, kin: Kinemage) {
     return { spheres, radii: new Float32Array(radii), colors, labels };
 }
 
-function makePointsShapeGetter() {
+function makePointsShapeGetter(visibilityState?: KinemageVisibilityState) {
 
     const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapePointsParams>, shape?: Shape<Points>) => {
         // Get our points, adding them from all of the entries in the dot lists
-        const { points: _points, colors, labels } = await getPoints(ctx, kinData.source);
+        const { points: _points, colors, labels } = await getPoints(ctx, kinData.source, visibilityState);
 
         // Color function signature: (groupId: number, instanceId: number) => Color
         // For Lines the groupId corresponds to the line index (order added).
@@ -420,11 +495,11 @@ function makePointsShapeGetter() {
     return getShape;
 }
 
-function makeLineShapeGetter() {
+function makeLineShapeGetter(visibilityState?: KinemageVisibilityState) {
 
     const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeLinesParams>, shape?: Shape<Lines>) => {
         // Get our lines, adding them from all of the entries in the vector lists
-        const { lines: _lines, widths, colors, labels } = await getLines(ctx, kinData.source);
+        const { lines: _lines, widths, colors, labels } = await getLines(ctx, kinData.source, visibilityState);
 
         // Size function signature: (groupId: number, instanceId: number) => number
         // For Lines the groupId corresponds to the line index (order added).
@@ -460,11 +535,11 @@ function makeLineShapeGetter() {
     return getShape;
 }
 
-function makeMeshShapeGetter() {
+function makeMeshShapeGetter(visibilityState?: KinemageVisibilityState) {
 
     const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeMeshParams>, shape?: Shape<Mesh>) => {
 
-        let { mesh: _mesh, colors, labels } = await getMesh(ctx, kinData.source);
+        let { mesh: _mesh, colors, labels } = await getMesh(ctx, kinData.source, visibilityState);
         // Ensure that _mesh is not undifined before we pass it to Shape.create.  If it is undefined, create an empty mesh instead.
         if (!_mesh) {
             console.warn('No mesh could be created from the KIN data.  Creating an empty mesh instead.');
@@ -497,11 +572,11 @@ function makeMeshShapeGetter() {
 /**
  * Spheres shape getter: uses per-center radii read from the KIN BallList radiusArray when available.
  */
-function makeSpheresShapeGetter() {
+function makeSpheresShapeGetter(visibilityState?: KinemageVisibilityState) {
 
     const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeSpheresParams>, shape?: Shape<Spheres>) => {
         // Build spheres geometry and collect per-center radii
-        const { spheres: _spheres, radii, colors, labels } = await getSpheres(ctx, kinData.source);
+        const { spheres: _spheres, radii, colors, labels } = await getSpheres(ctx, kinData.source, visibilityState);
 
         // size function signature: (groupId: number, instanceId: number) => number
         // For Spheres the groupId corresponds to the center index (order added).
@@ -535,49 +610,49 @@ function makeSpheresShapeGetter() {
     return getShape;
 }
 
-export function shapePointsFromKin(source: Kinemage, params?: { transforms?: Mat4[] }, label?: string) {
+export function shapePointsFromKin(source: Kinemage, visibilityState: KinemageVisibilityState | undefined, params?: { transforms?: Mat4[] }, label?: string) {
     return Task.create<ShapeProvider<KinData, Points, KinShapePointsParams>>('Kin Shape Points Provider', async ctx => {
         return {
             label: label ?? 'Points',
             data: { source, transforms: params?.transforms },
             params: createKinShapePointsParams(source),
-            getShape: makePointsShapeGetter(),
+            getShape: makePointsShapeGetter(visibilityState),
             geometryUtils: Points.Utils
         };
     });
 }
 
-export function shapeLinesFromKin(source: Kinemage, params?: { transforms?: Mat4[] }, label?: string) {
+export function shapeLinesFromKin(source: Kinemage, visibilityState: KinemageVisibilityState | undefined, params?: { transforms?: Mat4[] }, label?: string) {
     return Task.create<ShapeProvider<KinData, Lines, KinShapeLinesParams>>('Kin Shape Lines Provider', async ctx => {
         return {
             label: label ?? 'Lines',
             data: { source, transforms: params?.transforms },
             params: createKinShapeLinesParams(source),
-            getShape: makeLineShapeGetter(),
+            getShape: makeLineShapeGetter(visibilityState),
             geometryUtils: Lines.Utils
         };
     });
 }
 
-export function shapeMeshFromKin(source: Kinemage, params?: { transforms?: Mat4[] }, label?: string) {
+export function shapeMeshFromKin(source: Kinemage, visibilityState: KinemageVisibilityState | undefined, params?: { transforms?: Mat4[] }, label?: string) {
     return Task.create<ShapeProvider<KinData, Mesh, KinShapeMeshParams>>('Kin Shape Mesh Provider', async ctx => {
         return {
             label: label ?? 'Meshes',
             data: { source, transforms: params?.transforms },
             params: createKinShapeMeshParams(source),
-            getShape: makeMeshShapeGetter(),
+            getShape: makeMeshShapeGetter(visibilityState),
             geometryUtils: Mesh.Utils
         };
     });
 }
 
-export function shapeSpheresFromKin(source: Kinemage, params?: { transforms?: Mat4[] }, label?: string) {
+export function shapeSpheresFromKin(source: Kinemage, visibilityState: KinemageVisibilityState | undefined, params?: { transforms?: Mat4[] }, label?: string) {
     return Task.create<ShapeProvider<KinData, Spheres, KinShapeSpheresParams>>('Kin Shape Spheres Provider', async ctx => {
         return {
             label: label ?? 'Spheres',
             data: { source, transforms: params?.transforms },
             params: createKinShapeSpheresParams(source),
-            getShape: makeSpheresShapeGetter(),
+            getShape: makeSpheresShapeGetter(visibilityState),
             geometryUtils: Spheres.Utils
         };
     });

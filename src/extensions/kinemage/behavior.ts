@@ -37,6 +37,20 @@ const Transform = StateTransformer.builderFactory('sb-kinemage');
 export class KinemageObject extends PluginStateObject.Create<KinemageData>({ name: 'Kinemage', typeClass: 'Object' }) { }
 
 /**
+ * Visibility state for kinemage elements - stores which items are VISIBLE (not hidden)
+ */
+export interface KinemageVisibilityState {
+    /** Map of group name -> visibility (true = visible, false = hidden/off) */
+    groupVisibility: Map<string, boolean>;
+    /** Map of subgroup name -> visibility (true = visible, false = hidden/off) */
+    subgroupVisibility: Map<string, boolean>;
+    /** Map of master name -> visibility (true = visible, false = hidden) */
+    masterVisibility: Map<string, boolean>;
+    activeAnimateGroup: number;
+    activeAnimateGroup2: number;
+}
+
+/**
  * Apply a saved snapshot object (from a view state node) to the plugin camera.
  * Use PluginCommands.Camera.SetSnapshot so transitions and canvas props are handled properly.
  */
@@ -187,6 +201,77 @@ export const SelectKinemage = Transform({
     }
 });
 
+/**
+ * Visibility Controller Transform - centralizes visibility state for all shape types
+ * Stores visibility as key-value pairs where key is the item name and value is boolean (true = visible)
+ */
+export const KinemageVisibilityController = Transform({
+    name: 'sb-kinemage-visibility-controller',
+    display: { name: 'Kinemage Visibility Controller' },
+    from: PluginStateObject.Format.Json,
+    to: PluginStateObject.Format.Json,
+    params: (a) => {
+        const kinData = (a?.data as any)?.kinData as Kinemage | undefined;
+        if (!kinData) {
+            return {
+                groupVisibility: PD.Value<{ [key: string]: boolean }>({}),
+                subgroupVisibility: PD.Value<{ [key: string]: boolean }>({}),
+                masterVisibility: PD.Value<{ [key: string]: boolean }>({}),
+                activeAnimateGroup: PD.Numeric(0, { min: 0, max: 0, step: 1 }, { description: 'Active animate group index' }),
+                activeAnimateGroup2: PD.Numeric(0, { min: 0, max: 0, step: 1 }, { description: 'Active animate2 group index' })
+            };
+        }
+
+        // Build initial visibility from parsed data
+        const groupVisibility: { [key: string]: boolean } = {};
+        const subgroupVisibility: { [key: string]: boolean } = {};
+        const masterVisibility: { [key: string]: boolean } = {};
+
+        for (const [groupKey, groupInfo] of Object.entries(kinData.groupDict)) {
+            groupVisibility[groupKey] = !(groupInfo as any).off;
+        }
+
+        for (const [subgroupKey, subgroupInfo] of Object.entries(kinData.subgroupDict)) {
+            subgroupVisibility[subgroupKey] = !(subgroupInfo as any).off;
+        }
+
+        for (const [masterKey, masterInfo] of Object.entries(kinData.masterDict)) {
+            masterVisibility[masterKey] = !!(masterInfo as any).visible;
+        }
+
+        return {
+            groupVisibility: PD.Value(groupVisibility, { isHidden: true }),
+            subgroupVisibility: PD.Value(subgroupVisibility, { isHidden: true }),
+            masterVisibility: PD.Value(masterVisibility, { isHidden: true }),
+            activeAnimateGroup: PD.Numeric(0, { min: 0, max: Math.max(0, kinData.groupsAnimate.length - 1), step: 1 }, { description: 'Active animate group index', isHidden: true }),
+            activeAnimateGroup2: PD.Numeric(0, { min: 0, max: Math.max(0, kinData.groupsAnimate2.length - 1), step: 1 }, { description: 'Active animate2 group index', isHidden: true })
+        };
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Kinemage Visibility Controller', async ctx => {
+            const kinData = (a.data as any).kinData as Kinemage;
+            if (!kinData) {
+                throw new Error('No kinData found in parent Format.Json node');
+            }
+
+            // Store visibility state alongside kinData
+            const visibilityState: KinemageVisibilityState = {
+                groupVisibility: new Map(Object.entries(params.groupVisibility)),
+                subgroupVisibility: new Map(Object.entries(params.subgroupVisibility)),
+                masterVisibility: new Map(Object.entries(params.masterVisibility)),
+                activeAnimateGroup: params.activeAnimateGroup,
+                activeAnimateGroup2: params.activeAnimateGroup2
+            };
+
+            return new PluginStateObject.Format.Json(
+                { kinData, visibilityState },
+                { label: a.label, description: a.description }
+            );
+        });
+    }
+});
+
 export const KinemageShapePointsProvider = Transform({
     name: 'sb-kinemage-shape-points-provider',
     display: { name: 'Kinemage Shape Points Provider' },
@@ -197,11 +282,13 @@ export const KinemageShapePointsProvider = Transform({
     apply({ a }) {
         return Task.create('Kinemage Points Shape Provider', async ctx => {
             const kinData = (a.data as any).kinData as Kinemage;
+            const visibilityState = (a.data as any).visibilityState as KinemageVisibilityState | undefined;
+            
             if (!kinData) {
                 throw new Error('No kinData found in parent Format.Json node');
             }
 
-            const provider = await shapePointsFromKin(kinData, { transforms: undefined }, 'Dots').runInContext(ctx);
+            const provider = await shapePointsFromKin(kinData, visibilityState, { transforms: undefined }, 'Dots').runInContext(ctx);
             return new PluginStateObject.Shape.Provider(provider as any, {
                 label: kinData.pdbfile || kinData.caption || 'Kinemage Points',
                 description: kinData.text || ''
@@ -220,11 +307,13 @@ export const KinemageShapeLinesProvider = Transform({
     apply({ a }) {
         return Task.create('Kinemage Lines Shape Provider', async ctx => {
             const kinData = (a.data as any).kinData as Kinemage;
+            const visibilityState = (a.data as any).visibilityState as KinemageVisibilityState | undefined;
+            
             if (!kinData) {
                 throw new Error('No kinData found in parent Format.Json node');
             }
 
-            const provider = await shapeLinesFromKin(kinData).runInContext(ctx);
+            const provider = await shapeLinesFromKin(kinData, visibilityState).runInContext(ctx);
             return new PluginStateObject.Shape.Provider(provider as any, {
                 label: kinData.pdbfile || kinData.caption || 'Kinemage Lines',
                 description: kinData.text || ''
@@ -243,11 +332,13 @@ export const KinemageShapeMeshProvider = Transform({
     apply({ a }) {
         return Task.create('Kinemage Mesh Shape Provider', async ctx => {
             const kinData = (a.data as any).kinData as Kinemage;
+            const visibilityState = (a.data as any).visibilityState as KinemageVisibilityState | undefined;
+            
             if (!kinData) {
                 throw new Error('No kinData found in parent Format.Json node');
             }
 
-            const provider = await shapeMeshFromKin(kinData).runInContext(ctx);
+            const provider = await shapeMeshFromKin(kinData, visibilityState).runInContext(ctx);
             return new PluginStateObject.Shape.Provider(provider as any, {
                 label: kinData.pdbfile || kinData.caption || 'Kinemage Meshes',
                 description: kinData.text || ''
@@ -266,11 +357,13 @@ export const KinemageShapeSpheresProvider = Transform({
     apply({ a }) {
         return Task.create('Kinemage Spheres Shape Provider', async ctx => {
             const kinData = (a.data as any).kinData as Kinemage;
+            const visibilityState = (a.data as any).visibilityState as KinemageVisibilityState | undefined;
+            
             if (!kinData) {
                 throw new Error('No kinData found in parent Format.Json node');
             }
 
-            const provider = await shapeSpheresFromKin(kinData).runInContext(ctx);
+            const provider = await shapeSpheresFromKin(kinData, visibilityState).runInContext(ctx);
             return new PluginStateObject.Shape.Provider(provider as any, {
                 label: kinData.pdbfile || kinData.caption || 'Kinemage Spheres',
                 description: kinData.text || ''
@@ -346,68 +439,37 @@ interface DragAndDropHandler {
 }
 
 /** Helper function to create all shapes for a kinemage via proper transform chain */
-async function createShapesForKinemage(plugin: PluginContext, update: StateBuilder.Root, kinDataSelector: StateObjectSelector<PluginStateObject.Format.Json>) {
-    const kinDataCell = plugin.state.data.cells.get(kinDataSelector.ref);
-    if (!kinDataCell?.obj?.data) return;
+async function createShapesForKinemage(plugin: PluginContext, update: StateBuilder.Root, visControllerSelector: StateObjectSelector<PluginStateObject.Format.Json>) {
+    const visControllerCell = plugin.state.data.cells.get(visControllerSelector.ref);
+    if (!visControllerCell?.obj?.data) return;
 
-    const kinData = (kinDataCell.obj.data as any).kinData as Kinemage;
+    const kinData = (visControllerCell.obj.data as any).kinData as Kinemage;
     if (!kinData) return;
 
-    // Generate all shape types that have data, each as child of the selected kinemage
+    // Generate all shape types that have data, each as child of the visibility controller
     if (kinData.dotLists.length > 0) {
         await update
-            .to(kinDataSelector)
+            .to(visControllerSelector)
             .apply(KinemageShapePointsProvider, {}, { state: { isGhost: true } })
             .apply(StateTransforms.Representation.ShapeRepresentation3D);
     }
     if (kinData.vectorLists.length > 0) {
         await update
-            .to(kinDataSelector)
+            .to(visControllerSelector)
             .apply(KinemageShapeLinesProvider, {}, { state: { isGhost: true } })
             .apply(StateTransforms.Representation.ShapeRepresentation3D);
     }
     if (kinData.ribbonLists.length > 0) {
         await update
-            .to(kinDataSelector)
+            .to(visControllerSelector)
             .apply(KinemageShapeMeshProvider, {}, { state: { isGhost: true } })
             .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
     }
     if (kinData.ballLists.length > 0) {
         await update
-            .to(kinDataSelector)
+            .to(visControllerSelector)
             .apply(KinemageShapeSpheresProvider, {}, { state: { isGhost: true } })
             .apply(StateTransforms.Representation.ShapeRepresentation3D);
-    }
-}
-
-/** Helper function to rebuild shapes for a kinemage (remove and recreate) */
-export async function rebuildShapesForKinemage(plugin: PluginContext, kinDataSelector: StateObjectSelector<PluginStateObject.Format.Json>) {
-    // Store current camera snapshot
-    const curSnap = (plugin.canvas3d && (plugin.canvas3d as any).camera && (plugin.canvas3d as any).camera.getSnapshot)
-        ? (plugin.canvas3d as any).camera.getSnapshot()
-        : undefined;
-
-    const update = plugin.state.data.build();
-
-    // Remove all children of this kinemage node (shapes/representations)
-    const children = plugin.state.data.tree.children.get(kinDataSelector.ref);
-    if (children) {
-        for (const childRef of children.values()) {
-            update.delete(childRef);
-        }
-    }
-
-    // Recreate shapes
-    await createShapesForKinemage(plugin, update, kinDataSelector);
-    await update.commit();
-
-    // Restore camera
-    if (curSnap) {
-        try {
-            await applyViewSnapshot(plugin, curSnap);
-        } catch (e) {
-            console.warn('Failed to restore camera snapshot after recreating shapes', e);
-        }
     }
 }
 
@@ -428,11 +490,15 @@ async function applyKinemageToState(plugin: PluginContext, data: string, label?:
     const selectedNode = parsedNode
         .apply(SelectKinemage, { index: 0 });
 
+    // Add visibility controller
+    const visControllerNode = selectedNode
+        .apply(KinemageVisibilityController, {});
+
     await update.commit();
 
-    // Now create shapes from the selected kinemage
+    // Now create shapes from the visibility controller
     const shapeUpdate = plugin.state.data.build();
-    await createShapesForKinemage(plugin, shapeUpdate, selectedNode.selector);
+    await createShapesForKinemage(plugin, shapeUpdate, visControllerNode.selector);
     await shapeUpdate.commit();
 
     // Wait for bounding sphere and focus camera
@@ -458,11 +524,11 @@ async function applyKinemageToState(plugin: PluginContext, data: string, label?:
         console.warn('Failed to apply initial kinemage view snapshot', e);
     }
 
-    return selectedNode.selector;
+    return visControllerNode.selector;
 }
 
 /** Programmatic loader: load a single File (a .kin) into the plugin state.
- * Returns the ref to the selected kinemage node.
+ * Returns the ref to the visibility controller node.
  */
 export async function loadKinemageFile(plugin: PluginContext, file: File): Promise<StateObjectSelector<PluginStateObject.Format.Json> | undefined> {
     const content = await file.text();
@@ -500,24 +566,27 @@ const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
             const selectedKin = builder
                 .apply(SelectKinemage, { index: 0 });
 
+            const visController = selectedKin
+                .apply(KinemageVisibilityController, {});
+
             await builder.commit();
 
-            // Return the selector for the selected kinemage so visuals can use it
-            return { selectedKin: selectedKin.selector };
+            // Return the selector for the visibility controller so visuals can use it
+            return { visController: visController.selector };
         } catch (e) {
             console.error('Failed to parse KIN file', e);
             throw e;
         }
     },
     visuals: async (plugin, data) => {
-        if (!data?.selectedKin) {
-            console.warn('[Kinemage] visuals: no selectedKin ref provided');
+        if (!data?.visController) {
+            console.warn('[Kinemage] visuals: no visController ref provided');
             return;
         }
 
-        // Create shapes from the selected kinemage
+        // Create shapes from the visibility controller
         const shapeBuilder = plugin.state.data.build();
-        await createShapesForKinemage(plugin, shapeBuilder, data.selectedKin);
+        await createShapesForKinemage(plugin, shapeBuilder, data.visController);
         await shapeBuilder.commit();
 
         // Wait for bounding sphere and focus camera
