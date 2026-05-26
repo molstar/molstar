@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Fix exported image artifacts on transparent background with emissive, bloom, or antialiasing
 - Fix cel-shaded ambient color being stripped to luminance (now uses full RGB, matching the classic lighting path)
 - Fix empty transforms default in `ShapeFromPly`
 - Use morton order for spheres in dot visual with lod-levels
