@@ -306,7 +306,7 @@ function getSampledImage(volume: Volume, theme: Theme, info: SamplingInfo, isoVa
     const isoLevel = clamp(normalize(Volume.IsoValue.toAbsolute(isoValue, stats).absoluteValue, min, max), 0, 1);
 
     const im = Image.create(imageTexture, corners, groupTexture, valueTexture, trim, isoLevel, image);
-    im.setBoundingSphere(Volume.isPeriodic(volume) ? Volume.getBoundingSphere(volume) : Grid.getBoundingSphere(volume.grid));
+    im.setBoundingSphere(Volume.isPeriodic(volume) ? Volume.getBoundingSphere(volume, Interval.ofLength(volume.instances.length as Volume.InstanceIndex)) : Grid.getBoundingSphere(volume.grid));
     im.meta.mapping = mapping;
 
     return im;
@@ -480,7 +480,7 @@ async function createGridImage(ctx: VisualContext, volume: Volume, key: number, 
     const isoLevel = clamp(normalize(Volume.IsoValue.toAbsolute(isoValue, stats).absoluteValue, min, max), 0, 1);
 
     const im = Image.create(imageTexture, corners, groupTexture, valueTexture, trim, isoLevel, image);
-    im.setBoundingSphere(Volume.isPeriodic(volume) ? Volume.getBoundingSphere(volume) : Grid.getBoundingSphere(volume.grid));
+    im.setBoundingSphere(Volume.isPeriodic(volume) ? Volume.getBoundingSphere(volume, Interval.ofLength(volume.instances.length as Volume.InstanceIndex)) : Grid.getBoundingSphere(volume.grid));
     im.meta.mapping = mapping;
 
     return im;

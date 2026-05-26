@@ -4,7 +4,18 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Fix cel-shaded ambient color being stripped to luminance (now uses full RGB, matching the classic lighting path)
 - Fix empty transforms default in `ShapeFromPly`
+- Use morton order for spheres in dot visual with lod-levels
+- Add `Camera.changed` event and rotation/translation setter/getter
+- Add `instanceGranularity: 'auto'` as a memory guard
+- Honor `instanceGranularity` in `Visual.getLoci`
+- Add mesoscale representation preset
+- Add presets option to `ObjectList` param definition
+- Fix memory leak in `State.dispose()` not invoking transformer `dispose` callbacks for live cells
+- Fix bugs in ModelServer surroundingLigands endpoint, resulting in omitWater not honored
+- Fix `Volume` and `Isosurface` getBoundingSphere ignoring instances
+- Fix SSAO half/quarter resolution textures for multi-scale
 - Non-covalent interactions: water bridge support
 
 ## [v5.9.0] - 2026-05-03

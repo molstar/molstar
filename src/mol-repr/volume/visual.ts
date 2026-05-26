@@ -33,7 +33,7 @@ import { Emissive } from '../../mol-theme/emissive';
 import { Wiggle } from '../../mol-theme/wiggle';
 import { SizeTheme } from '../../mol-theme/size';
 import { Sphere3D } from '../../mol-math/geometry/primitives/sphere3d';
-import { BaseGeometry } from '../../mol-geo/geometry/base';
+import { BaseGeometry, resolveInstanceGranularity } from '../../mol-geo/geometry/base';
 
 export const VolumeParams = {
     ...BaseGeometry.Params,
@@ -182,7 +182,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             if (updateState.updateTransform || updateState.updateLocation) {
                 // console.log('update transform');
                 const { instanceCount, groupCount } = locationIt;
-                if (newProps.instanceGranularity) {
+                if (resolveInstanceGranularity(newProps.instanceGranularity, groupCount, instanceCount)) {
                     createMarkers(instanceCount, 'instance', renderObject.values);
                 } else {
                     createMarkers(instanceCount * groupCount, 'groupInstance', renderObject.values);
@@ -279,14 +279,15 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
     }
 
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
+        const instanceGranularity = resolveInstanceGranularity(currentProps.instanceGranularity, locationIt.groupCount, locationIt.instanceCount);
         if (isEveryLoci(loci)) {
-            if (currentProps.instanceGranularity) {
+            if (instanceGranularity) {
                 return apply(Interval.ofBounds(0, locationIt.instanceCount));
             } else {
                 return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount));
             }
         } else {
-            if (currentProps.instanceGranularity) {
+            if (instanceGranularity) {
                 return eachInstance(loci, currentVolume, currentKey, apply);
             } else {
                 return eachLocation(loci, currentVolume, currentKey, currentProps, apply, geometry);
@@ -308,7 +309,11 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             }
         },
         getLoci(pickingId: PickingId) {
-            return renderObject ? getLoci(pickingId, currentVolume, currentKey, currentProps, renderObject.id, geometry) : EmptyLoci;
+            if (!renderObject) return EmptyLoci;
+            if (resolveInstanceGranularity(currentProps.instanceGranularity, locationIt.groupCount, locationIt.instanceCount)) {
+                pickingId = { ...pickingId, groupId: PickingId.Null };
+            }
+            return getLoci(pickingId, currentVolume, currentKey, currentProps, renderObject.id, geometry);
         },
         eachLocation(cb: LocationCallback) {
             locationIt.reset();
