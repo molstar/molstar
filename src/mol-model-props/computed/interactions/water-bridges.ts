@@ -15,7 +15,7 @@ import { StructureLookup3DResultContext } from '../../../mol-model/structure/str
 import { Sphere3D } from '../../../mol-math/geometry';
 import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
 import { Features } from './features';
-import { FeatureType } from './common';
+import { FeatureType, InteractionType, InteractionFlag } from './common';
 import { GeometryOptions, checkGeometry } from './hydrogen-bonds';
 import { degToRad } from '../../../mol-math/misc';
 import { bundleLabel, LabelGranularity } from '../../../mol-theme/label';
@@ -38,6 +38,7 @@ interface WaterBridgeContact {
     readonly indexWA: Features.FeatureIndex
     /** water oxygen as HydrogenDonor (leg: water → acceptor) */
     readonly indexWD: Features.FeatureIndex
+    props: { type: InteractionType.WaterBridge, flag: InteractionFlag }
 }
 
 type WaterBridgeContacts = ReadonlyArray<WaterBridgeContact>;
@@ -315,6 +316,7 @@ export function findWaterBridgeContacts(
                                 unitW: unitW.id,
                                 indexWA: accFW,
                                 indexWD: donFW,
+                                props: { type: InteractionType.WaterBridge, flag: InteractionFlag.None },
                             },
                             combinedDistSq,
                         });

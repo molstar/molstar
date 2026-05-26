@@ -19,7 +19,8 @@ import { NullLocation } from '../../../mol-model/location';
 import { Interval, OrderedSet } from '../../../mol-data/int';
 import { InteractionsProvider } from '../interactions';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { WaterBridges } from '../interactions/water-bridges';
+import { WaterBridges, WaterBridgeContact } from '../interactions/water-bridges';
+import { InteractionType } from '../interactions/common';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { InteractionsSharedParams } from './shared';
 import { Features } from '../interactions/features';
@@ -129,14 +130,15 @@ function createWaterBridgeCylinderMesh(ctx: VisualContext, structure: Structure,
     const interactions = InteractionsProvider.get(structure).value;
     if (!interactions) return Mesh.createEmpty(mesh);
 
-    const { waterBridges, unitsFeatures } = interactions;
+    const { bridges, unitsFeatures } = interactions;
+    const waterBridges = bridges.filter((b): b is WaterBridgeContact => b.props.type === InteractionType.WaterBridge);
 
     const n = waterBridges.length;
     if (!n) return Mesh.createEmpty(mesh);
 
     const l = StructureElement.Location.create(structure);
     const { sizeFactor } = props;
-    const canonical = getCanonicalLegIndices(waterBridges);
+    const canonical = getCanonicalLegIndices(bridges);
 
     const builderProps = {
         // Four half-cylinders per bridge; createLinkCylinderMesh draws the A-side half per call:
@@ -288,14 +290,15 @@ function getWaterBridgeLoci(pickingId: PickingId, structure: Structure, id: numb
     const interactions = InteractionsProvider.get(structure).value;
     if (!interactions) return EmptyLoci;
 
-    const { waterBridges, unitsFeatures } = interactions;
+    const { bridges, unitsFeatures } = interactions;
+    const waterBridges = bridges.filter((b): b is WaterBridgeContact => b.props.type === InteractionType.WaterBridge);
     const n = waterBridges.length;
 
     if (!n || groupId < 0 || groupId >= 4 * n) return EmptyLoci;
 
     const bridgeIndex = groupId % n;
 
-    return WaterBridges.Loci({ structure, waterBridges, unitsFeatures }, [{ bridgeIndex }]);
+    return WaterBridges.Loci({ structure, waterBridges: bridges, unitsFeatures }, [{ bridgeIndex }]);
 }
 
 const __unitMap = new Map<number, OrderedSet<StructureElement.UnitIndex>>();
@@ -309,10 +312,11 @@ function eachWaterBridgeInteraction(loci: Loci, structure: Structure, apply: (in
         const interactions = InteractionsProvider.get(structure).value;
         if (!interactions) return false;
 
-        const n = interactions.waterBridges.length;
+        const waterBridges = interactions.bridges.filter((b): b is WaterBridgeContact => b.props.type === InteractionType.WaterBridge);
+        const n = waterBridges.length;
         if (!n) return false;
 
-        const canonical = getCanonicalLegIndices(interactions.waterBridges);
+        const canonical = getCanonicalLegIndices(waterBridges);
 
         for (const e of loci.elements) {
             if (e.bridgeIndex < 0 || e.bridgeIndex >= n) continue;
@@ -326,7 +330,8 @@ function eachWaterBridgeInteraction(loci: Loci, structure: Structure, apply: (in
         const interactions = InteractionsProvider.get(structure).value;
         if (!interactions) return false;
 
-        const { waterBridges, unitsFeatures } = interactions;
+        const { bridges, unitsFeatures } = interactions;
+        const waterBridges = bridges.filter((b): b is WaterBridgeContact => b.props.type === InteractionType.WaterBridge);
         const n = waterBridges.length;
         if (!n) return false;
 
@@ -387,7 +392,8 @@ function createWaterBridgeIterator(structure: Structure): LocationIterator {
     const interactions = InteractionsProvider.get(structure).value;
     if (!interactions) return LocationIterator(0, 1, 1, () => NullLocation, true);
 
-    const { waterBridges, unitsFeatures } = interactions;
+    const { bridges, unitsFeatures } = interactions;
+    const waterBridges = bridges.filter((b): b is WaterBridgeContact => b.props.type === InteractionType.WaterBridge);
 
     const n = waterBridges.length;
     const groupCount = 4 * n;

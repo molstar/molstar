@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -15,7 +15,7 @@ import { IntMap } from '../../../mol-data/int';
 import { addUnitContacts, ContactTester, addStructureContacts, ContactsParams, ContactsProps } from './contacts';
 import { HalogenDonorProvider, HalogenAcceptorProvider, HalogenBondsProvider } from './halogen-bonds';
 import { HydrogenDonorProvider, WeakHydrogenDonorProvider, HydrogenAcceptorProvider, HydrogenBondsProvider, WeakHydrogenBondsProvider } from './hydrogen-bonds';
-import { findWaterBridgeContacts, WaterBridgeContacts, WaterBridgesParams } from './water-bridges';
+import { findWaterBridgeContacts, WaterBridgesParams, WaterBridgeContact } from './water-bridges';
 import { NegativChargeProvider, PositiveChargeProvider, AromaticRingProvider, IonicProvider, PiStackingProvider, CationPiProvider } from './charged';
 import { HydrophobicAtomProvider, HydrophobicProvider } from './hydrophobic';
 import { SetUtils } from '../../../mol-util/set';
@@ -30,6 +30,10 @@ import { bondLabel, LabelGranularity } from '../../../mol-theme/label';
 import { ObjectKeys } from '../../../mol-util/type-helpers';
 
 export { Interactions };
+export type { BridgeContact, BridgeContacts };
+
+type BridgeContact = WaterBridgeContact
+type BridgeContacts = ReadonlyArray<BridgeContact>
 
 interface Interactions {
     /** Features of each unit */
@@ -38,8 +42,8 @@ interface Interactions {
     unitsContacts: IntMap<InteractionsIntraContacts>
     /** Interactions between units */
     contacts: InteractionsInterContacts
-    /** Water-mediated hydrogen bonds (donor → water → acceptor) */
-    waterBridges: WaterBridgeContacts
+    /** Bridge-mediated interactions covering the whole structure */
+    bridges: BridgeContacts
 }
 
 namespace Interactions {
@@ -239,13 +243,9 @@ export async function computeInteractions(ctx: CustomProperty.Context, structure
     }
 
     const contacts = findInterUnitContacts(structure, unitsFeatures, contactTesters, p.contacts, options);
+    const bridges = findBridges(structure, unitsFeatures, p.waterBridges);
+    const interactions = { unitsFeatures, unitsContacts, contacts, bridges };
 
-    const wbToggle = p.waterBridges['water-bridges'];
-    const waterBridges = wbToggle.name === 'on'
-        ? findWaterBridgeContacts(structure, unitsFeatures, wbToggle.params)
-        : [];
-
-    const interactions = { unitsFeatures, unitsContacts, contacts, waterBridges };
     refineInteractions(structure, interactions);
     return interactions;
 }
@@ -274,6 +274,17 @@ function findIntraUnitContacts(structure: Structure, unit: Unit, features: Featu
         addUnitContacts(structure, unit, features, builder, contactTesters, props);
     }
     return builder.getContacts();
+}
+
+function findBridges(structure: Structure, unitsFeatures: IntMap<Features>, props: PD.Values<typeof WaterBridgesToggleParams>): BridgeContacts {
+    const bridges: BridgeContact[] = [];
+
+    const wb = props['water-bridges'];
+    if (wb.name === 'on') {
+        for (const b of findWaterBridgeContacts(structure, unitsFeatures, wb.params)) bridges.push(b);
+    }
+
+    return bridges;
 }
 
 function findInterUnitContacts(structure: Structure, unitsFeatures: IntMap<Features>, contactTesters: ReadonlyArray<ContactTester>, props: ContactsProps, options?: ComputeInterctionsOptions) {

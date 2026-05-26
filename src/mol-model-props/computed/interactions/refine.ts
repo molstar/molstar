@@ -284,7 +284,7 @@ function metalCoordinationRefiner(structure: Structure, interactions: Interactio
 }
 
 function waterBridgeRefiner(_structure: Structure, interactions: Interactions): ContactRefiner {
-    const { contacts, waterBridges, unitsFeatures } = interactions;
+    const { contacts, bridges, unitsFeatures } = interactions;
 
     type AtomKey = number;
     type AtomPairSet = Map<AtomKey, Set<AtomKey>>;
@@ -351,7 +351,9 @@ function waterBridgeRefiner(_structure: Structure, interactions: Interactions): 
 
     const bridgeLegs: AtomPairSet = new Map();
 
-    for (const wb of waterBridges) {
+    for (const wb of bridges) {
+        if (wb.props.type !== InteractionType.WaterBridge) continue;
+
         const fA = unitsFeatures.get(wb.unitA);
         const fW = unitsFeatures.get(wb.unitW);
         const fB = unitsFeatures.get(wb.unitB);
