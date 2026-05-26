@@ -58,6 +58,12 @@ export const WaterBridgesParams = {
 export type WaterBridgesParams = typeof WaterBridgesParams;
 export type WaterBridgesProps = PD.Values<WaterBridgesParams>;
 
+export const WaterBridgesProvider = {
+    requiredFeatures: new Set([FeatureType.HydrogenDonor, FeatureType.HydrogenAcceptor]),
+    params: WaterBridgesParams,
+    find: findWaterBridgeContacts,
+};
+
 function isWater(unit: Unit.Atomic, index: StructureElement.UnitIndex): boolean {
     return unit.model.atomicHierarchy.derived.residue.moleculeType[
         unit.residueIndex[unit.elements[index]]

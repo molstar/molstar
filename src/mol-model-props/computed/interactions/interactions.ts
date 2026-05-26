@@ -15,7 +15,7 @@ import { IntMap } from '../../../mol-data/int';
 import { addUnitContacts, ContactTester, addStructureContacts, ContactsParams, ContactsProps } from './contacts';
 import { HalogenDonorProvider, HalogenAcceptorProvider, HalogenBondsProvider } from './halogen-bonds';
 import { HydrogenDonorProvider, WeakHydrogenDonorProvider, HydrogenAcceptorProvider, HydrogenBondsProvider, WeakHydrogenBondsProvider } from './hydrogen-bonds';
-import { findWaterBridgeContacts, WaterBridgesParams, WaterBridgeContact } from './water-bridges';
+import { WaterBridgesProvider, WaterBridgeContact } from './water-bridges';
 import { NegativChargeProvider, PositiveChargeProvider, AromaticRingProvider, IonicProvider, PiStackingProvider, CationPiProvider } from './charged';
 import { HydrophobicAtomProvider, HydrophobicProvider } from './hydrophobic';
 import { SetUtils } from '../../../mol-util/set';
@@ -181,16 +181,30 @@ export const ContactProviderParams = getProvidersParams([
     // 'weak-hydrogen-bonds',
 ]);
 
-export const WaterBridgesToggleParams = {
-    'water-bridges': PD.MappedStatic('off', {
-        on: PD.Group(WaterBridgesParams),
-        off: PD.Group({})
-    }, { cycle: true }),
+const BridgeProviders = {
+    'water-bridges': WaterBridgesProvider,
 };
+type BridgeProviders = typeof BridgeProviders
+
+function getBridgeProviderParams(defaultOn: string[] = []) {
+    const params: { [k in keyof BridgeProviders]: PD.Mapped<PD.NamedParamUnion<{
+        on: PD.Group<BridgeProviders[k]['params']>
+        off: PD.Group<{}>
+    }>> } = Object.create(null);
+
+    Object.keys(BridgeProviders).forEach(k => {
+        (params as any)[k] = PD.MappedStatic(defaultOn.includes(k) ? 'on' : 'off', {
+            on: PD.Group(BridgeProviders[k as keyof BridgeProviders].params),
+            off: PD.Group({})
+        }, { cycle: true });
+    });
+    return params;
+}
+export const BridgeProviderParams = getBridgeProviderParams([]);
 
 export const InteractionsParams = {
     providers: PD.Group(ContactProviderParams, { isFlat: true }),
-    waterBridges: PD.Group(WaterBridgesToggleParams, { isFlat: true }),
+    bridges: PD.Group(BridgeProviderParams, { isFlat: true }),
     contacts: PD.Group(ContactsParams, { label: 'Advanced Options' }),
 };
 export type InteractionsParams = typeof InteractionsParams
@@ -217,6 +231,9 @@ export async function computeInteractions(ctx: CustomProperty.Context, structure
 
     const requiredFeatures = new Set<FeatureType>();
     contactTesters.forEach(l => SetUtils.add(requiredFeatures, l.requiredFeatures));
+    ObjectKeys(BridgeProviders).forEach(k => {
+        if (p.bridges[k].name === 'on') SetUtils.add(requiredFeatures, BridgeProviders[k].requiredFeatures);
+    });
     const featureProviders = FeatureProviders.filter(f => SetUtils.areIntersecting(requiredFeatures, f.types));
 
     const unitsFeatures = IntMap.Mutable<Features>();
@@ -243,7 +260,7 @@ export async function computeInteractions(ctx: CustomProperty.Context, structure
     }
 
     const contacts = findInterUnitContacts(structure, unitsFeatures, contactTesters, p.contacts, options);
-    const bridges = findBridges(structure, unitsFeatures, p.waterBridges);
+    const bridges = findBridges(structure, unitsFeatures, p.bridges);
     const interactions = { unitsFeatures, unitsContacts, contacts, bridges };
 
     refineInteractions(structure, interactions);
@@ -276,13 +293,15 @@ function findIntraUnitContacts(structure: Structure, unit: Unit, features: Featu
     return builder.getContacts();
 }
 
-function findBridges(structure: Structure, unitsFeatures: IntMap<Features>, props: PD.Values<typeof WaterBridgesToggleParams>): BridgeContacts {
+function findBridges(structure: Structure, unitsFeatures: IntMap<Features>, props: PD.Values<typeof BridgeProviderParams>): BridgeContacts {
     const bridges: BridgeContact[] = [];
 
-    const wb = props['water-bridges'];
-    if (wb.name === 'on') {
-        for (const b of findWaterBridgeContacts(structure, unitsFeatures, wb.params)) bridges.push(b);
-    }
+    ObjectKeys(BridgeProviders).forEach(k => {
+        const { name, params } = props[k];
+        if (name === 'on') {
+            for (const b of BridgeProviders[k].find(structure, unitsFeatures, params as any)) bridges.push(b);
+        }
+    });
 
     return bridges;
 }
