@@ -204,28 +204,44 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
       const currentActive = mode === 'animate' ? currentParams.activeAnimateGroup : currentParams.activeAnimateGroup2;
       const nextActive = (currentActive + 1) % Math.max(1, animateGroups.length);
 
-      // Update group visibility to show only the active animate group
-      const newGroupVisibility = { ...currentParams.groupVisibility };
+      // IMPORTANT: Read the CURRENT visibility state from the controller node's data (not params)
+      // to preserve any changes made through UI interactions
+      const controllerCell = this.plugin.state.data.cells.get(visControllerRef);
+      const currentVisibilityState = controllerCell?.obj?.data ? (controllerCell.obj.data as any).visibilityState : null;
 
-      // Hide all animate groups, then show only the active one
+      // Start with current actual visibility state
+      const newGroupVisibility = currentVisibilityState
+        ? Object.fromEntries(currentVisibilityState.groupVisibility)
+        : { ...currentParams.groupVisibility };
+
+      // Only update the animate groups - leave everything else as-is
       for (let i = 0; i < animateGroups.length; i++) {
         newGroupVisibility[animateGroups[i]] = (i === nextActive);
       }
 
       const update = this.plugin.state.data.build();
 
-      // Update the visibility controller
+      // Update the visibility controller with current visibility PLUS animate changes
+      const updateParams: any = {
+        groupVisibility: newGroupVisibility,
+      };
+
       if (mode === 'animate') {
-        update.to(visControllerRef).update({
-          groupVisibility: newGroupVisibility,
-          activeAnimateGroup: nextActive
-        });
+        updateParams.activeAnimateGroup = nextActive;
       } else {
-        update.to(visControllerRef).update({
-          groupVisibility: newGroupVisibility,
-          activeAnimateGroup2: nextActive
-        });
+        updateParams.activeAnimateGroup2 = nextActive;
       }
+
+      // Also preserve other visibility states
+      if (currentVisibilityState) {
+        updateParams.subgroupVisibility = Object.fromEntries(currentVisibilityState.subgroupVisibility);
+        updateParams.masterVisibility = Object.fromEntries(currentVisibilityState.masterVisibility);
+      } else {
+        updateParams.subgroupVisibility = currentParams.subgroupVisibility;
+        updateParams.masterVisibility = currentParams.masterVisibility;
+      }
+
+      update.to(visControllerRef).update(updateParams);
 
       await update.commit();
 
