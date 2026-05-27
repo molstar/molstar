@@ -46,9 +46,6 @@ function createKinShapeMeshParams(kinemage?: Kinemage) {
 
     return {
         ...Mesh.Params,
-        // transparentBackfaces: PD.Select('on', PD.arrayToOptions(['off', 'on', 'opaque'] as const)),
-        // doubleSided: PD.Boolean(true), // make mesh double-sided by default
-        // ignoreLight: PD.Boolean(true), // ignore lighting so front/back show same color
     };
 }
 

@@ -322,11 +322,6 @@ function removePointBreaksTriangleArrays(convertedRibbonObject: RibbonObject) {
             editedPMs.push(convertedRibbonObject.pointmasterArray[breakPointer]);
             editedPMs.push(convertedRibbonObject.pointmasterArray[breakPointer + 1]);
             editedPMs.push(convertedRibbonObject.pointmasterArray[breakPointer + 2]);
-        } else {
-            // console.log('X triangle break found')
-            // console.log('skipping: '+positionArray[positionPointer]+','+positionArray[positionPointer+1]+','+positionArray[positionPointer+2]+','
-            //                        +positionArray[positionPointer+3]+','+positionArray[positionPointer+4]+','+positionArray[positionPointer+5]+','
-            //                        +positionArray[positionPointer+6]+','+positionArray[positionPointer+7]+','+positionArray[positionPointer+8])
         }
     }
     return {
