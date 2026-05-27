@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -12,6 +12,7 @@ import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Sphere3D } from '../../mol-math/geometry';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { Mat3 } from '../../mol-math/linear-algebra';
+import { leastObstructedDirection } from '../../mol-math/linear-algebra/3d/optimize-direction';
 import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { PrincipalAxes } from '../../mol-math/linear-algebra/matrix/principal-axes';
 import { Loci } from '../../mol-model/loci';
@@ -57,10 +58,59 @@ export class CameraManager {
         this.focusSpheres(spheres, s => s, options);
     }
 
-    focusLoci(loci: Loci | Loci[], options?: Partial<CameraFocusOptions>) {
-        // TODO: allow computation of principal axes here?
-        // perhaps have an optimized function, that does exact axes small Loci and approximate/sampled from big ones?
+    private focusLociOptimized(loci: Loci | Loci[], options?: Partial<CameraFocusOptions & { optimizeRadius?: number, up?: Vec3 }>) {
+        const { canvas3d } = this.plugin;
+        if (!canvas3d) return;
 
+        const lociArray = Array.isArray(loci) ? loci : [loci];
+        const spheres: Sphere3D[] = [];
+        const positions: { x: number[], y: number[], z: number[] } = { x: [], y: [], z: [] };
+        const t = Vec3();
+
+        for (const l of lociArray) {
+            const s = Loci.getBoundingSphere(this.transformedLoci(l));
+            if (!s) continue;
+            spheres.push(s);
+
+            if (!StructureElement.Loci.is(l)) continue;
+            const extended = StructureElement.Loci.extendToRadius(l, options?.optimizeRadius ?? 15);
+            StructureElement.Loci.forEachLocation(extended, loc => {
+                loc.unit.conformation.position(loc.element, t);
+                positions.x.push(t[0]);
+                positions.y.push(t[1]);
+                positions.z.push(t[2]);
+            });
+        }
+
+        if (spheres.length === 0) {
+            return;
+        }
+
+        this.boundaryHelper.reset();
+        for (const s of spheres) {
+            this.boundaryHelper.includeSphere(s);
+        }
+        this.boundaryHelper.finishedIncludeStep();
+        for (const s of spheres) {
+            this.boundaryHelper.radiusSphere(s);
+        }
+        const sphere = this.boundaryHelper.getSphere();
+        const direction = leastObstructedDirection(positions, { origin: sphere.center, minDistance: 1e-3 });
+
+        if (!direction) {
+            this.focusSphere(sphere, options);
+            return;
+        }
+
+        Vec3.negate(direction, direction);
+
+        const { extraRadius, minRadius, durationMs } = { ...DefaultCameraFocusOptions, ...options };
+        const radius = Math.max(sphere.radius + extraRadius, minRadius);
+        const snapshot = canvas3d.camera.getInvariantFocus(sphere.center, radius, options?.up ?? Vec3.unitY, direction);
+        canvas3d.requestCameraReset({ durationMs, snapshot });
+    }
+
+    private focusLociBase(loci: Loci | Loci[], options?: Partial<CameraFocusOptions>) {
         let sphere: Sphere3D | undefined;
 
         if (Array.isArray(loci) && loci.length > 1) {
@@ -90,6 +140,18 @@ export class CameraManager {
 
         if (sphere) {
             this.focusSphere(sphere, options);
+        }
+    }
+
+    focusLoci(loci: Loci | Loci[], options?: Partial<CameraFocusOptions & { optimizeDirection?: boolean, optimizeDirectionUp?: Vec3, optimizeDirectionRadius?: number }>) { 
+        if (options?.optimizeDirection) {
+            this.focusLociOptimized(loci, {
+                ...options,
+                optimizeRadius: options.optimizeDirectionRadius,
+                up: options.optimizeDirectionUp,
+            });
+        } else {
+            this.focusLociBase(loci, options);
         }
     }
 

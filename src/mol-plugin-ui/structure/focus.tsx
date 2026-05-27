@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { OrderedSet, SortedArray } from '../../mol-data/int';
@@ -184,14 +185,18 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
         } else {
             this.plugin.managers.structure.focus.set(f);
         }
-        this.focusCamera();
+        this.focusCamera(true);
     };
 
     toggleAction = () => this.setState({ showAction: !this.state.showAction });
 
-    focusCamera = () => {
+    focusCamera = (optimizeDirection?: boolean) => {
         const { current } = this.plugin.managers.structure.focus;
-        if (current) this.plugin.managers.camera.focusLoci(current.loci);
+        if (!current) return;
+
+        this.plugin.managers.camera.focusLoci(current.loci, {
+            optimizeDirection,
+        });
     };
 
     clear = () => {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -570,6 +570,42 @@ export namespace Loci {
         }
 
         return Loci(loci.structure, elements);
+    }
+
+    export function extendToRadius(loci: Loci, radius: number): Loci {
+        const elementsByUnit = new Map<number, Set<UnitIndex>>();
+
+        const lookup = loci.structure.lookup3d;
+        const pos = Vec3();
+        forEachLocation(loci, loc => {
+            loc.unit.conformation.position(loc.element, pos);
+            const result = lookup.find(pos[0], pos[1], pos[2], radius);
+            for (let i = 0, il = result.count; i < il; ++i) {
+                const unit = result.units[i];
+                const unitIdx = result.indices[i];
+                let set: Set<UnitIndex> = elementsByUnit.get(unit.id) as Set<UnitIndex>;
+                if (!set) {
+                    set = new Set();
+                    elementsByUnit.set(unit.id, set);
+                }
+                set.add(unitIdx);
+            }
+        });
+
+
+        const elements: Element[] = [];
+        for (const [unitId, indexSet] of elementsByUnit.entries()) {
+            const unit = loci.structure.unitMap.get(unitId)!;
+            const indices = Array.from(indexSet) as UnitIndex[];
+            indices.sort((a, b) => a - b);
+            elements.push({ unit, indices: makeIndexSet(indices) });
+        }
+
+        return {
+            kind: 'element-loci',
+            structure: loci.structure,
+            elements,
+        };
     }
 
     //
