@@ -17,6 +17,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix bugs in ModelServer surroundingLigands endpoint, resulting in omitWater not honored
 - Fix `Volume` and `Isosurface` getBoundingSphere ignoring instances
 - Fix SSAO half/quarter resolution textures for multi-scale
+- Add the option to approximate "least obstructed direction" when focusing camera
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty
