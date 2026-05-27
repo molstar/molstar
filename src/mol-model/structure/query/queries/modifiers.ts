@@ -545,6 +545,12 @@ export function surroundingLigands({ query, radius, includeWater }: SurroundingL
                     continue;
                 }
 
+                // Water is handled exclusively by the `includeWater` 3D-lookup branch below.
+                // A single water pulled in via a struct_conn metalc/covale edge would
+                // otherwise match every other water in the chain (all share label_seq_id
+                // and label_comp_id) and leak the entire chain.
+                if (StructureProperties.entity.type(l) === 'water') continue;
+
                 residuesIt.setSegment(chainSegment);
                 while (residuesIt.hasNext) {
                     const residueSegment = residuesIt.move();

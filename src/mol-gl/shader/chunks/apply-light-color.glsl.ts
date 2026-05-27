@@ -78,7 +78,7 @@ export const apply_light_color = `
         }
         #pragma unroll_loop_end
 
-        outgoingLight += physicalMaterial.diffuseColor * luminance(uAmbientColor);
+        outgoingLight += physicalMaterial.diffuseColor * uAmbientColor;
     #else
         ReflectedLight reflectedLight = ReflectedLight(vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0));
 

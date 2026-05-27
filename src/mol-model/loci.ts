@@ -167,9 +167,9 @@ namespace Loci {
         } else if (loci.kind === 'data-loci') {
             return loci.getBoundingSphere?.(boundingSphere);
         } else if (loci.kind === 'volume-loci') {
-            return Volume.getBoundingSphere(loci.volume, boundingSphere);
+            return Volume.getBoundingSphere(loci.volume, loci.instances, boundingSphere);
         } else if (loci.kind === 'isosurface-loci') {
-            return Volume.Isosurface.getBoundingSphere(loci.volume, loci.isoValue, boundingSphere);
+            return Volume.Isosurface.getBoundingSphere(loci.volume, loci.isoValue, loci.instances, boundingSphere);
         } else if (loci.kind === 'cell-loci') {
             return Volume.Cell.getBoundingSphere(loci.volume, loci.elements, boundingSphere);
         } else if (loci.kind === 'segment-loci') {

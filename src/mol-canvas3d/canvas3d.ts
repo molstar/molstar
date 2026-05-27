@@ -98,7 +98,6 @@ export const Canvas3DParams = {
     transparentBackground: PD.Boolean(false),
     checkeredTransparentBackground: PD.Boolean(false),
     dpoitIterations: PD.Numeric(2, { min: 1, max: 10, step: 1 }),
-    enableAnimation: PD.Boolean(true, { description: 'Enable GPU time-based animations (wiggle/tumble).' }),
     pickPadding: PD.Numeric(3, { min: 0, max: 10, step: 1 }, { description: 'Extra pixels to around target to check in case target is empty.' }),
     userInteractionReleaseMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time before the user is not considered interacting anymore.' }),
 
@@ -480,7 +479,6 @@ namespace Canvas3D {
         const hiZ = new HiZPass(webgl, passes.draw, canvas, p.hiZ);
 
         const renderer = Renderer.create(webgl, p.renderer);
-        renderer.setProps({ enableAnimation: p.enableAnimation });
         renderer.setOcclusionTest(hiZ.isOccluded);
 
         const shaderManager = new ShaderManager(webgl, scene);
@@ -677,7 +675,7 @@ namespace Canvas3D {
             const xrChanged = xrManager.update(xrFrame);
             if (!xrChanged && xrFrame) return false;
 
-            const activeAnimation = p.enableAnimation && scene.hasAnimation;
+            const activeAnimation = renderer.props.enableAnimation && scene.hasAnimation;
             const shouldRender = force || cameraChanged || resized || forceNextRender || xrChanged || activeAnimation;
             forceNextRender = false;
 
@@ -1071,7 +1069,6 @@ namespace Canvas3D {
                 transparentBackground: p.transparentBackground,
                 checkeredTransparentBackground: p.checkeredTransparentBackground,
                 dpoitIterations: p.dpoitIterations,
-                enableAnimation: p.enableAnimation,
                 pickPadding: p.pickPadding,
                 userInteractionReleaseMs: p.userInteractionReleaseMs,
                 viewport: p.viewport,
@@ -1317,10 +1314,6 @@ namespace Canvas3D {
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground;
                 if (props.checkeredTransparentBackground !== undefined) p.checkeredTransparentBackground = props.checkeredTransparentBackground;
                 if (props.dpoitIterations !== undefined) p.dpoitIterations = props.dpoitIterations;
-                if (props.enableAnimation !== undefined) {
-                    p.enableAnimation = props.enableAnimation;
-                    renderer.setProps({ enableAnimation: p.enableAnimation });
-                }
                 if (props.pickPadding !== undefined) {
                     p.pickPadding = props.pickPadding;
                     pickHelper.setPickPadding(p.pickPadding);
