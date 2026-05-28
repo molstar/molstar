@@ -8,6 +8,7 @@
  */
 
 import { Camera } from '../../mol-canvas3d/camera';
+import { CameraTransitionManager } from '../../mol-canvas3d/camera/transition';
 import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Sphere3D } from '../../mol-math/geometry';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
@@ -32,7 +33,11 @@ const DefaultCameraFocusOptions = {
 };
 
 export type CameraFocusOptions = typeof DefaultCameraFocusOptions
-export type CameraFocusLociOptions = CameraFocusOptions & { optimizeDirection?: boolean, optimizeDirectionUp?: Vec3 }
+export type CameraFocusLociOptions = CameraFocusOptions & {
+    optimizeDirection?: boolean,
+    optimizeDirectionUp?: Vec3,
+    zoomOut?: boolean,
+}
 
 export class CameraManager {
     private boundaryHelper = new BoundaryHelper('98');
@@ -101,12 +106,11 @@ export class CameraManager {
         const positions: { x: number[], y: number[], z: number[] } = { x: [], y: [], z: [] };
         const t = Vec3();
 
-        const { extraRadius, minRadius, durationMs } = { ...DefaultCameraFocusOptions, ...options };
+        const { extraRadius, minRadius } = { ...DefaultCameraFocusOptions, ...options };
         const radius = Math.max(sphere.radius + extraRadius, minRadius);
 
         if (radius <= 1e-3) {
-            this.focusSphere(sphere, options);
-            return;
+            return this.getFocusSphereSnapshot(sphere, options);
         }
 
         const entityType = StructureProperties.entity.type;
@@ -125,8 +129,7 @@ export class CameraManager {
         }
 
         if (positions.x.length === 0) {
-            this.focusSphere(sphere, options);
-            return;
+            return this.getFocusSphereSnapshot(sphere, options);
         }
 
         const direction = leastObstructedDirection(positions, {
@@ -135,31 +138,59 @@ export class CameraManager {
             sigma: sphere.radius,
         });
         if (!direction) {
-            this.focusSphere(sphere, options);
-            return;
+            return this.getFocusSphereSnapshot(sphere, options);
         }
 
         Vec3.negate(direction, direction);
-        const snapshot = canvas3d.camera.getInvariantFocus(sphere.center, radius, options?.up ?? Vec3.unitY, direction);
-        canvas3d.requestCameraReset({ durationMs, snapshot });
+        return canvas3d.camera.getInvariantFocus(sphere.center, radius, options?.up ?? Vec3.unitY, direction);
     }
 
     private focusLociBase(loci: Loci | Loci[], options?: Partial<CameraFocusOptions>) {
         const sphere = this.getFocusSphere(loci);
         if (sphere) {
-            this.focusSphere(sphere, options);
+            return this.getFocusSphereSnapshot(sphere, options);
         }
     }
 
     focusLoci(loci: Loci | Loci[], options?: Partial<CameraFocusLociOptions>) {
+        if (!this.plugin.canvas3d) return;
+
+        let snapshot: Partial<Camera.Snapshot> | undefined;
         if (options?.optimizeDirection) {
-            this.focusLociOptimized(loci, {
+            snapshot = this.focusLociOptimized(loci, {
                 ...options,
                 up: options.optimizeDirectionUp,
             });
         } else {
-            this.focusLociBase(loci, options);
+            snapshot = this.focusLociBase(loci, options);
         }
+
+        if (!snapshot) return;
+
+        const durationMs = options?.durationMs ?? DefaultCameraFocusOptions.durationMs;
+
+        if (options?.zoomOut) {
+            const sphere = this.plugin.canvas3d.boundingSphere;
+            const mid = this.getFocusSphereSnapshot(sphere, options) as Camera.Snapshot;
+            const current = this.plugin.canvas3d?.camera.getSnapshot()!;
+
+            const distA = Vec3.distance(current.position, mid.position);
+            const distB = Vec3.distance(mid.position, snapshot.position!);
+
+            const t = distA / (distA + distB);
+            const timeFactor = 1 + 3 * Math.min(t, 0.5);
+
+            this.plugin.canvas3d?.requestCameraReset({
+                snapshot,
+                durationMs: timeFactor * durationMs,
+                keyframes: [
+                    { t, snapshot: mid },
+                ]
+            });
+            return;
+        }
+
+        this.plugin.canvas3d.requestCameraReset({ snapshot, durationMs });
     }
 
     focusSpheres<T>(xs: ReadonlyArray<T>, sphere: (t: T) => Sphere3D | undefined, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
@@ -184,21 +215,29 @@ export class CameraManager {
         this.focusSphere(this.boundaryHelper.getSphere(), options);
     }
 
+    private getFocusSphereSnapshot(sphere: Sphere3D, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
+        const { canvas3d } = this.plugin;
+        if (!canvas3d) return;
+
+        const { extraRadius, minRadius } = { ...DefaultCameraFocusOptions, ...options };
+        const radius = Math.max(sphere.radius + extraRadius, minRadius);
+
+        if (options?.principalAxes) {
+            return pcaFocus(this.plugin, radius, options as { principalAxes: PrincipalAxes, positionToFlip?: Vec3 });
+        } else {
+            return canvas3d.camera.getFocus(sphere.center, radius);
+        }
+    }
+
     focusSphere(sphere: Sphere3D, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
         const { canvas3d } = this.plugin;
         if (!canvas3d) return;
 
-        const { extraRadius, minRadius, durationMs } = { ...DefaultCameraFocusOptions, ...options };
-        const radius = Math.max(sphere.radius + extraRadius, minRadius);
+        const snapshot = this.getFocusSphereSnapshot(sphere, options);
+        if (!snapshot) return;
 
-        if (options?.principalAxes) {
-            const snapshot = pcaFocus(this.plugin, radius, options as { principalAxes: PrincipalAxes, positionToFlip?: Vec3 });
-            this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot });
-        } else {
-            const snapshot = canvas3d.camera.getFocus(sphere.center, radius);
-            canvas3d.requestCameraReset({ durationMs, snapshot });
-        }
-    }
+        canvas3d.requestCameraReset({ durationMs: options?.durationMs ?? DefaultCameraFocusOptions.durationMs, snapshot });
+     }
 
     /** Focus on a set of plugin state object cells (if `options.targets` is non-empty) or on the whole scene (if `options.targets` is empty). */
     focusObject(options: PluginState.SnapshotFocusInfo & { minRadius?: number, durationMs?: number }) {

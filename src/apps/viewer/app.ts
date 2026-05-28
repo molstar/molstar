@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -555,6 +555,11 @@ export class Viewer {
             }
             return;
         }
+
+        if (actions.includes('select')) {
+            plugin.managers.interactivity.lociSelects.deselectAll();
+        }
+
         const structures = this.plugin.state.data.selectQ(Q => Q.rootsOfType(PluginStateObject.Molecule.Structure));
         let focused = false;
         for (const s of structures) {

@@ -53,6 +53,7 @@ import { RayHelper } from './helper/ray-helper';
 import { produce } from '../mol-util/produce';
 import { ShaderManager } from './helper/shader-manager';
 import { toFixed } from '../mol-util/number';
+import type { CameraTransitionManager } from './camera/transition';
 
 export const CameraFogParams = {
     intensity: PD.Numeric(15, { min: 1, max: 100, step: 1 }),
@@ -371,7 +372,7 @@ interface Canvas3D {
     /** performs handleResize on the next animation frame */
     requestResize(): void
     /** Focuses camera on scene's bounding sphere, centered and zoomed. */
-    requestCameraReset(options?: { durationMs?: number, snapshot?: Camera.SnapshotProvider }): void
+    requestCameraReset(options?: { durationMs?: number, snapshot?: Camera.SnapshotProvider, keyframes?: CameraTransitionManager.TransitionKeyframes }): void
     readonly camera: Camera
     readonly boundingSphere: Readonly<Sphere3D>
     readonly boundingSphereVisible: Readonly<Sphere3D>
@@ -500,6 +501,7 @@ namespace Canvas3D {
         let cameraResetRequested = false;
         let nextCameraResetDuration: number | undefined = void 0;
         let nextCameraResetSnapshot: Camera.SnapshotProvider | undefined = void 0;
+        let nextCameraResetKeyframes: CameraTransitionManager.TransitionKeyframes | undefined = void 0;
         let resizeRequested = false;
 
         //
@@ -882,11 +884,12 @@ namespace Canvas3D {
                 const focus = camera.getFocus(center, radius);
                 const next = typeof nextCameraResetSnapshot === 'function' ? nextCameraResetSnapshot(scene, camera) : nextCameraResetSnapshot;
                 const snapshot = next ? { ...focus, ...next } : focus;
-                camera.setState({ ...snapshot, radiusMax: getSceneRadius() }, duration);
+                camera.setState({ ...snapshot, radiusMax: getSceneRadius() }, duration, { keyframes: nextCameraResetKeyframes });
             }
 
             nextCameraResetDuration = void 0;
             nextCameraResetSnapshot = void 0;
+            nextCameraResetKeyframes = void 0;
             cameraResetRequested = false;
         }
 
@@ -1253,6 +1256,7 @@ namespace Canvas3D {
             requestCameraReset: options => {
                 nextCameraResetDuration = options?.durationMs;
                 nextCameraResetSnapshot = options?.snapshot;
+                nextCameraResetKeyframes = options?.keyframes;
                 cameraResetRequested = true;
             },
             camera,

@@ -17,7 +17,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix bugs in ModelServer surroundingLigands endpoint, resulting in omitWater not honored
 - Fix `Volume` and `Isosurface` getBoundingSphere ignoring instances
 - Fix SSAO half/quarter resolution textures for multi-scale
-- Add the option to approximate "least obstructed direction" when focusing camera, accessibe via `PluginContext.managers.camera.focusLoci` with `optimizeDirection` option
+- Camera improvements 
+  - Add the option to approximate "least obstructed direction" when focusing camera, accessibe via `PluginContext.managers.camera.focusLoci` with `optimizeDirection` option
+  - Add the option to "zoom out" to entire scene before focusing camera
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty

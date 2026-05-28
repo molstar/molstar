@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -20,12 +20,18 @@ class CameraTransitionManager {
     private durationMs = 0;
     private _source: Camera.Snapshot = Camera.createDefaultSnapshot();
     private _target: Camera.Snapshot = Camera.createDefaultSnapshot();
+    private _keyframes: CameraTransitionManager.TransitionKeyframes | undefined = void 0;
     private _current = Camera.createDefaultSnapshot();
 
     get source(): Readonly<Camera.Snapshot> { return this._source; }
     get target(): Readonly<Camera.Snapshot> { return this._target; }
 
-    apply(to: Partial<Camera.Snapshot>, durationMs: number = 0, transition?: CameraTransitionManager.TransitionFunc) {
+    apply(
+        to: Partial<Camera.Snapshot>,
+        durationMs: number = 0,
+        transition?: CameraTransitionManager.TransitionFunc,
+        options?: { keyframes?: CameraTransitionManager.TransitionKeyframes },
+    ) {
         if (!this.inTransition || durationMs > 0) {
             Camera.copySnapshot(this._source, this.camera.state);
         }
@@ -50,6 +56,7 @@ class CameraTransitionManager {
 
         this.inTransition = true;
         this.func = transition || CameraTransitionManager.defaultTransition;
+        this._keyframes = options?.keyframes;
 
         if (!this.inTransition || durationMs > 0) {
             this.start = this.t;
@@ -76,7 +83,7 @@ class CameraTransitionManager {
             return;
         }
 
-        this.func(this._current, normalized, this._source, this._target);
+        this.func(this._current, normalized, this._source, this._target, { keyframes: this._keyframes });
         Camera.copySnapshot(this.camera.state, this._current);
     }
 
@@ -86,7 +93,8 @@ class CameraTransitionManager {
 }
 
 namespace CameraTransitionManager {
-    export type TransitionFunc = (out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot) => void
+    export type TransitionKeyframes = { t: number, snapshot: Partial<Camera.Snapshot> }[]
+    export type TransitionFunc = (out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot, options?: { keyframes?: TransitionKeyframes }) => void
 
     const _rotUp = Quat.identity();
     const _rotDist = Quat.identity();
@@ -94,7 +102,52 @@ namespace CameraTransitionManager {
     const _sourcePosition = Vec3();
     const _targetPosition = Vec3();
 
-    export function defaultTransition(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
+
+    let _tempSource: Camera.Snapshot | undefined = void 0;
+    let _tempTarget: Camera.Snapshot | undefined = void 0;
+
+    export function defaultTransition(out: Camera.Snapshot, t_: number, source_: Camera.Snapshot, target_: Camera.Snapshot, options?: { keyframes?: TransitionKeyframes }): void {
+        let sourcePartial: Partial<Camera.Snapshot> = source_;
+        let targetPartial: Partial<Camera.Snapshot> = target_;
+
+        let tStart = 0;
+        let tEnd = 1;
+
+        const keyframes = options?.keyframes;
+        if (keyframes && keyframes.length > 0) {
+            for (let i = 0; i < keyframes.length; i++) {
+                const keyframe = keyframes[i];
+                if (t_ >= keyframe.t) {
+                    sourcePartial = keyframe.snapshot;
+                    tStart = keyframe.t;
+                    break;
+                }
+            }
+            for (let i = keyframes.length - 1; i >= 0; i--) {
+                const keyframe = keyframes[i];
+                if (t_ <= keyframe.t) {
+                    targetPartial = keyframe.snapshot;
+                    tEnd = keyframe.t;
+                }
+                if (t_ >= keyframe.t) {
+                    break;
+                }
+            }
+        }
+
+        const t = (t_ - tStart) / (tEnd - tStart);
+
+        if (!_tempSource) _tempSource = Camera.createDefaultSnapshot();
+        if (!_tempTarget) _tempTarget = Camera.createDefaultSnapshot();
+
+        Camera.copySnapshot(_tempSource, source_);
+        Camera.copySnapshot(_tempSource, sourcePartial);
+        Camera.copySnapshot(_tempTarget, target_);
+        Camera.copySnapshot(_tempTarget, targetPartial);
+
+        const source = _tempSource;
+        const target = _tempTarget;
+
         Camera.copySnapshot(out, target);
 
         // Rotate up
