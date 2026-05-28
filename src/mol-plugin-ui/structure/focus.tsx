@@ -188,15 +188,20 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
         this.focusCamera(true);
     };
 
-    toggleAction = () => this.setState({ showAction: !this.state.showAction });
-
-    focusCamera = (optimizeDirection?: boolean) => {
+    focusCamera(optimizeDirection?: boolean) {
         const { current } = this.plugin.managers.structure.focus;
         if (!current) return;
 
         this.plugin.managers.camera.focusLoci(current.loci, {
             optimizeDirection,
         });
+    }
+
+
+    toggleAction = () => this.setState({ showAction: !this.state.showAction });
+
+    focusCameraClick = () => {
+        this.focusCamera(false);
     };
 
     clear = () => {
@@ -236,7 +241,7 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
 
         return <>
             <div className='msp-flex-row'>
-                <Button noOverflow onClick={this.focusCamera} title={title} onMouseEnter={this.highlightCurrent} onMouseLeave={this.clearHighlights} disabled={this.isDisabled || !current}
+                <Button noOverflow onClick={this.focusCameraClick} title={title} onMouseEnter={this.highlightCurrent} onMouseLeave={this.clearHighlights} disabled={this.isDisabled || !current}
                     style={{ textAlignLast: current ? 'left' : void 0 }}>
                     {label}
                 </Button>

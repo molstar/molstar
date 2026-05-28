@@ -8,7 +8,6 @@
  */
 
 import { Camera } from '../../mol-canvas3d/camera';
-import { CameraTransitionManager } from '../../mol-canvas3d/camera/transition';
 import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Sphere3D } from '../../mol-math/geometry';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
