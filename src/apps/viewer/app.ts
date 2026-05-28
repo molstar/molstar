@@ -51,7 +51,7 @@ export { consoleStats, isDebugMode, isProductionMode, isTimingMode, setDebugMode
 import { decodeColor } from '../../mol-util/color/utils';
 import '../../mol-util/polyfill';
 import { ViewerAutoPreset } from './presets';
-import { CameraFocusOptions } from '../../mol-plugin-state/manager/camera';
+import { CameraFocusLociOptions } from '../../mol-plugin-state/manager/camera';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { NoPrimaryFocusLociBindings } from '../../mol-plugin/behavior/dynamic/camera';
 
@@ -535,26 +535,28 @@ export class Viewer {
      * If neither `expression` nor `elements` are provided, all selections/highlights
      * will be cleared based on the specified `action`.
      */
-    structureInteractivity({ expression, elements, action, applyGranularity = false, filterStructure, focusOptions }: {
+    structureInteractivity({ expression, elements, action: action_, applyGranularity = false, filterStructure, focusOptions }: {
         expression?: (queryBuilder: typeof MolScriptBuilder) => Expression,
         elements?: StructureElement.Schema,
-        action: 'highlight' | 'select' | 'focus',
+        action: 'highlight' | 'select' | 'focus' | ('highlight' | 'select' | 'focus')[],
         applyGranularity?: boolean,
         filterStructure?: (structure: Structure) => boolean,
-        focusOptions?: Partial<CameraFocusOptions>
+        focusOptions?: Partial<CameraFocusLociOptions>
     }) {
         const plugin = this.plugin;
+        const actions = Array.isArray(action_) ? action_ : [action_];
 
         if (!expression && !elements) {
-            if (action === 'select') {
+            if (actions.includes('select')) {
                 plugin.managers.interactivity.lociSelects.deselectAll();
-            } else if (action === 'highlight') {
+            }
+            if (actions.includes('highlight')) {
                 plugin.managers.interactivity.lociHighlights.clearHighlights();
             }
             return;
         }
-
         const structures = this.plugin.state.data.selectQ(Q => Q.rootsOfType(PluginStateObject.Molecule.Structure));
+        let focused = false;
         for (const s of structures) {
             if (!s.obj?.data) continue;
 
@@ -564,13 +566,16 @@ export class Viewer {
                 ? StructureElement.Loci.fromExpression(s.obj.data, expression)
                 : StructureElement.Loci.fromSchema(s.obj.data, elements!);
 
-            if (action === 'select') {
-                plugin.managers.interactivity.lociSelects.select({ loci }, applyGranularity);
-            } else if (action === 'highlight') {
-                plugin.managers.interactivity.lociHighlights.highlight({ loci }, applyGranularity);
-            } else if (action === 'focus' && !StructureElement.Loci.isEmpty(loci)) {
-                plugin.managers.camera.focusLoci(loci, focusOptions);
-                return;
+            for (const action of actions) {
+                if (action === 'select') {
+                    plugin.managers.interactivity.lociSelects.select({ loci }, applyGranularity);
+                } else if (action === 'highlight') {
+                    plugin.managers.interactivity.lociHighlights.highlight({ loci }, applyGranularity);
+                } else if (action === 'focus' && !StructureElement.Loci.isEmpty(loci) && !focused) {
+                    plugin.managers.camera.focusLoci(loci, focusOptions);
+                    focused = true;
+                    if (actions.length === 1) return; // if only focusing, focus the first matching structure and return immediately
+                }
             }
         }
     }

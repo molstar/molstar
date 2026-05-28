@@ -16,7 +16,7 @@ import { leastObstructedDirection } from '../../mol-math/linear-algebra/3d/optim
 import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { PrincipalAxes } from '../../mol-math/linear-algebra/matrix/principal-axes';
 import { Loci } from '../../mol-model/loci';
-import { Structure, StructureElement } from '../../mol-model/structure';
+import { Structure, StructureElement, StructureProperties } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginState } from '../../mol-plugin/state';
 import { PluginStateObject } from '../objects';
@@ -32,6 +32,7 @@ const DefaultCameraFocusOptions = {
 };
 
 export type CameraFocusOptions = typeof DefaultCameraFocusOptions
+export type CameraFocusLociOptions = CameraFocusOptions & { optimizeDirection?: boolean, optimizeDirectionUp?: Vec3 }
 
 export class CameraManager {
     private boundaryHelper = new BoundaryHelper('98');
@@ -58,59 +59,7 @@ export class CameraManager {
         this.focusSpheres(spheres, s => s, options);
     }
 
-    private focusLociOptimized(loci: Loci | Loci[], options?: Partial<CameraFocusOptions & { optimizeRadius?: number, up?: Vec3 }>) {
-        const { canvas3d } = this.plugin;
-        if (!canvas3d) return;
-
-        const lociArray = Array.isArray(loci) ? loci : [loci];
-        const spheres: Sphere3D[] = [];
-        const positions: { x: number[], y: number[], z: number[] } = { x: [], y: [], z: [] };
-        const t = Vec3();
-
-        for (const l of lociArray) {
-            const s = Loci.getBoundingSphere(this.transformedLoci(l));
-            if (!s) continue;
-            spheres.push(s);
-
-            if (!StructureElement.Loci.is(l)) continue;
-            const extended = StructureElement.Loci.extendToRadius(l, options?.optimizeRadius ?? 15);
-            StructureElement.Loci.forEachLocation(extended, loc => {
-                loc.unit.conformation.position(loc.element, t);
-                positions.x.push(t[0]);
-                positions.y.push(t[1]);
-                positions.z.push(t[2]);
-            });
-        }
-
-        if (spheres.length === 0) {
-            return;
-        }
-
-        this.boundaryHelper.reset();
-        for (const s of spheres) {
-            this.boundaryHelper.includeSphere(s);
-        }
-        this.boundaryHelper.finishedIncludeStep();
-        for (const s of spheres) {
-            this.boundaryHelper.radiusSphere(s);
-        }
-        const sphere = this.boundaryHelper.getSphere();
-        const direction = leastObstructedDirection(positions, { origin: sphere.center, minDistance: 1e-3 });
-
-        if (!direction) {
-            this.focusSphere(sphere, options);
-            return;
-        }
-
-        Vec3.negate(direction, direction);
-
-        const { extraRadius, minRadius, durationMs } = { ...DefaultCameraFocusOptions, ...options };
-        const radius = Math.max(sphere.radius + extraRadius, minRadius);
-        const snapshot = canvas3d.camera.getInvariantFocus(sphere.center, radius, options?.up ?? Vec3.unitY, direction);
-        canvas3d.requestCameraReset({ durationMs, snapshot });
-    }
-
-    private focusLociBase(loci: Loci | Loci[], options?: Partial<CameraFocusOptions>) {
+    private getFocusSphere(loci: Loci | Loci[]) {
         let sphere: Sphere3D | undefined;
 
         if (Array.isArray(loci) && loci.length > 1) {
@@ -138,16 +87,74 @@ export class CameraManager {
             sphere = Loci.getBoundingSphere(this.transformedLoci(loci));
         }
 
+        return sphere;
+    }
+
+    private focusLociOptimized(loci: Loci | Loci[], options?: Partial<CameraFocusOptions & { up?: Vec3 }>) {
+        const { canvas3d } = this.plugin;
+        if (!canvas3d) return;
+
+        const sphere = this.getFocusSphere(loci);
+        if (!sphere) return;
+
+        const lociArray = Array.isArray(loci) ? loci : [loci];
+        const positions: { x: number[], y: number[], z: number[] } = { x: [], y: [], z: [] };
+        const t = Vec3();
+
+        const { extraRadius, minRadius, durationMs } = { ...DefaultCameraFocusOptions, ...options };
+        const radius = Math.max(sphere.radius + extraRadius, minRadius);
+
+        if (radius <= 1e-3) {
+            this.focusSphere(sphere, options);
+            return;
+        }
+
+        const entityType = StructureProperties.entity.type;
+
+        for (const l of lociArray) {
+            if (!StructureElement.Loci.is(l)) continue;
+            const extended = StructureElement.Loci.extendToRadius(l, radius);
+            StructureElement.Loci.forEachLocation(extended, loc => {
+                if (entityType(loc) === 'water') return;
+
+                loc.unit.conformation.position(loc.element, t);
+                positions.x.push(t[0]);
+                positions.y.push(t[1]);
+                positions.z.push(t[2]);
+            });
+        }
+
+        if (positions.x.length === 0) {
+            this.focusSphere(sphere, options);
+            return;
+        }
+
+        const direction = leastObstructedDirection(positions, {
+            origin: sphere.center,
+            minDistance: 1e-3,
+            sigma: sphere.radius,
+        });
+        if (!direction) {
+            this.focusSphere(sphere, options);
+            return;
+        }
+
+        Vec3.negate(direction, direction);
+        const snapshot = canvas3d.camera.getInvariantFocus(sphere.center, radius, options?.up ?? Vec3.unitY, direction);
+        canvas3d.requestCameraReset({ durationMs, snapshot });
+    }
+
+    private focusLociBase(loci: Loci | Loci[], options?: Partial<CameraFocusOptions>) {
+        const sphere = this.getFocusSphere(loci);
         if (sphere) {
             this.focusSphere(sphere, options);
         }
     }
 
-    focusLoci(loci: Loci | Loci[], options?: Partial<CameraFocusOptions & { optimizeDirection?: boolean, optimizeDirectionUp?: Vec3, optimizeDirectionRadius?: number }>) { 
+    focusLoci(loci: Loci | Loci[], options?: Partial<CameraFocusLociOptions>) {
         if (options?.optimizeDirection) {
             this.focusLociOptimized(loci, {
                 ...options,
-                optimizeRadius: options.optimizeDirectionRadius,
                 up: options.optimizeDirectionUp,
             });
         } else {
