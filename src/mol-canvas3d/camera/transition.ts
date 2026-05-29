@@ -8,8 +8,14 @@ import { Camera } from '../camera';
 import { lerp } from '../../mol-math/interpolate';
 import { Quat } from '../../mol-math/linear-algebra/3d/quat';
 import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
+import { EasingFunction, getEasingFn } from '../../mol-math/easing';
 
 export { CameraTransitionManager };
+
+export interface CameraTransitionOptions {
+    keyframes?: CameraTransitionManager.TransitionKeyframes,
+    easing?: EasingFunction
+}
 
 class CameraTransitionManager {
     private t = 0;
@@ -20,7 +26,7 @@ class CameraTransitionManager {
     private durationMs = 0;
     private _source: Camera.Snapshot = Camera.createDefaultSnapshot();
     private _target: Camera.Snapshot = Camera.createDefaultSnapshot();
-    private _keyframes: CameraTransitionManager.TransitionKeyframes | undefined = void 0;
+    private _options: CameraTransitionOptions | undefined = void 0;
     private _current = Camera.createDefaultSnapshot();
 
     get source(): Readonly<Camera.Snapshot> { return this._source; }
@@ -30,7 +36,7 @@ class CameraTransitionManager {
         to: Partial<Camera.Snapshot>,
         durationMs: number = 0,
         transition?: CameraTransitionManager.TransitionFunc,
-        options?: { keyframes?: CameraTransitionManager.TransitionKeyframes },
+        options?: CameraTransitionOptions,
     ) {
         if (!this.inTransition || durationMs > 0) {
             Camera.copySnapshot(this._source, this.camera.state);
@@ -56,7 +62,7 @@ class CameraTransitionManager {
 
         this.inTransition = true;
         this.func = transition || CameraTransitionManager.defaultTransition;
-        this._keyframes = options?.keyframes;
+        this._options = options;
 
         if (!this.inTransition || durationMs > 0) {
             this.start = this.t;
@@ -83,7 +89,7 @@ class CameraTransitionManager {
             return;
         }
 
-        this.func(this._current, normalized, this._source, this._target, { keyframes: this._keyframes });
+        this.func(this._current, normalized, this._source, this._target, this._options);
         Camera.copySnapshot(this.camera.state, this._current);
     }
 
@@ -93,7 +99,7 @@ class CameraTransitionManager {
 }
 
 namespace CameraTransitionManager {
-    export type TransitionKeyframes = { t: number, snapshot: Partial<Camera.Snapshot> }[]
+    export type TransitionKeyframes = { t: number, snapshot: Partial<Camera.Snapshot>, easing?: EasingFunction }[]
     export type TransitionFunc = (out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot, options?: { keyframes?: TransitionKeyframes }) => void
 
     const _rotUp = Quat.identity();
@@ -102,16 +108,22 @@ namespace CameraTransitionManager {
     const _sourcePosition = Vec3();
     const _targetPosition = Vec3();
 
-
     let _tempSource: Camera.Snapshot | undefined = void 0;
     let _tempTarget: Camera.Snapshot | undefined = void 0;
 
-    export function defaultTransition(out: Camera.Snapshot, t_: number, source_: Camera.Snapshot, target_: Camera.Snapshot, options?: { keyframes?: TransitionKeyframes }): void {
+    export function defaultTransition(
+        out: Camera.Snapshot,
+        t_: number,
+        source_: Camera.Snapshot,
+        target_: Camera.Snapshot,
+        options?: CameraTransitionOptions
+    ): void {
         let sourcePartial: Partial<Camera.Snapshot> = source_;
         let targetPartial: Partial<Camera.Snapshot> = target_;
 
         let tStart = 0;
         let tEnd = 1;
+        let easingKindStart = options?.easing;
 
         const keyframes = options?.keyframes;
         if (keyframes && keyframes.length > 0) {
@@ -120,22 +132,22 @@ namespace CameraTransitionManager {
                 if (t_ >= keyframe.t) {
                     sourcePartial = keyframe.snapshot;
                     tStart = keyframe.t;
+                    easingKindStart = keyframe.easing ?? easingKindStart;
                     break;
                 }
             }
-            for (let i = keyframes.length - 1; i >= 0; i--) {
+            for (let i = 0; i < keyframes.length; i++) {
                 const keyframe = keyframes[i];
-                if (t_ <= keyframe.t) {
+                if (keyframe.t >= t_) {
                     targetPartial = keyframe.snapshot;
                     tEnd = keyframe.t;
-                }
-                if (t_ >= keyframe.t) {
                     break;
                 }
             }
         }
 
-        const t = (t_ - tStart) / (tEnd - tStart);
+        const easing = getEasingFn(easingKindStart);
+        const t = easing((t_ - tStart) / (tEnd - tStart));
 
         if (!_tempSource) _tempSource = Camera.createDefaultSnapshot();
         if (!_tempTarget) _tempTarget = Camera.createDefaultSnapshot();

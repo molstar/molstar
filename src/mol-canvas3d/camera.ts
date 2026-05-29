@@ -6,7 +6,7 @@
  */
 
 import { Viewport, cameraProject, cameraUnproject } from './camera/util';
-import { CameraTransitionManager } from './camera/transition';
+import { CameraTransitionManager, CameraTransitionOptions } from './camera/transition';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { Scene } from '../mol-gl/scene';
 import { assertUnreachable } from '../mol-util/type-helpers';
@@ -138,7 +138,11 @@ export class Camera implements ICamera {
         return changed;
     }
 
-    setState(snapshot: Partial<Camera.Snapshot>, durationMs?: number, options?: { keyframes?: CameraTransitionManager.TransitionKeyframes }) {
+    setState(
+        snapshot: Partial<Camera.Snapshot>,
+        durationMs?: number,
+        options?: CameraTransitionOptions
+    ) {
         this.transition.apply(snapshot, durationMs, undefined, options);
         this.stateChanged.next(snapshot);
     }

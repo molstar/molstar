@@ -24,18 +24,21 @@ import { pcaFocus } from './focus-camera/focus-first-residue';
 import { getFocusSnapshot } from './focus-camera/focus-object';
 import { changeCameraRotation, structureLayingTransform } from './focus-camera/orient-axes';
 
-// TODO: make this customizable somewhere?
-const DefaultCameraFocusOptions = {
+export const DefaultCameraFocusOptions = {
     minRadius: 1,
     extraRadius: 4,
     durationMs: 250,
+    // When set, zooms out to the current scene bounding sphere before focusing on the target.
+    zoomOut: false,
+    zoomOutOptions: {
+        durationFactor: 3.5,
+    }
 };
 
 export type CameraFocusOptions = typeof DefaultCameraFocusOptions
 export type CameraFocusLociOptions = CameraFocusOptions & {
     optimizeDirection?: boolean,
     optimizeDirectionUp?: Vec3,
-    zoomOut?: boolean,
 }
 
 export class CameraManager {
@@ -164,32 +167,7 @@ export class CameraManager {
             snapshot = this.focusLociBase(loci, options);
         }
 
-        if (!snapshot) return;
-
-        const durationMs = options?.durationMs ?? DefaultCameraFocusOptions.durationMs;
-
-        if (options?.zoomOut) {
-            const sphere = this.plugin.canvas3d.boundingSphere;
-            const mid = this.getFocusSphereSnapshot(sphere, options) as Camera.Snapshot;
-            const current = this.plugin.canvas3d?.camera.getSnapshot()!;
-
-            const distA = Vec3.distance(current.position, mid.position);
-            const distB = Vec3.distance(mid.position, snapshot.position!);
-
-            const t = distA / (distA + distB);
-            const timeFactor = 1 + 3 * Math.min(t, 0.5);
-
-            this.plugin.canvas3d?.requestCameraReset({
-                snapshot,
-                durationMs: timeFactor * durationMs,
-                keyframes: [
-                    { t, snapshot: mid },
-                ]
-            });
-            return;
-        }
-
-        this.plugin.canvas3d.requestCameraReset({ snapshot, durationMs });
+        this.focusSnapshot(snapshot, options);
     }
 
     focusSpheres<T>(xs: ReadonlyArray<T>, sphere: (t: T) => Sphere3D | undefined, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
@@ -228,6 +206,36 @@ export class CameraManager {
         }
     }
 
+    private focusSnapshot(snapshot: Partial<Camera.Snapshot> | undefined, options?: Partial<CameraFocusOptions>) {
+        if (!this.plugin.canvas3d || !snapshot) return;
+
+        const durationMs = options?.durationMs ?? DefaultCameraFocusOptions.durationMs;
+        if (!options?.zoomOut) {
+            this.plugin.canvas3d.requestCameraReset({ snapshot, durationMs });
+            return;
+        }
+
+        const sphere = this.plugin.canvas3d.boundingSphere;
+        const zoomOut = this.getFocusSphereSnapshot(sphere, options) as Camera.Snapshot;
+        const current = this.plugin.canvas3d?.camera.getSnapshot()!;
+
+        const distA = Vec3.distance(current.position, zoomOut.position);
+        const distB = Vec3.distance(zoomOut.position, snapshot.position!);
+
+        const t = distA / (distA + distB);
+        const durationFactor = options?.zoomOutOptions?.durationFactor ?? DefaultCameraFocusOptions.zoomOutOptions.durationFactor;
+        const df = 1 + durationFactor * Math.min(t, 0.5);
+
+        this.plugin.canvas3d.requestCameraReset({
+            snapshot,
+            durationMs: df * durationMs,
+            easing: 'cubic-out',
+            keyframes: t > 0.05 ? [
+                { t, snapshot: zoomOut, easing: 'cubic-in' },
+            ] : undefined
+        });
+    }
+
     focusSphere(sphere: Sphere3D, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
         const { canvas3d } = this.plugin;
         if (!canvas3d) return;
@@ -235,7 +243,7 @@ export class CameraManager {
         const snapshot = this.getFocusSphereSnapshot(sphere, options);
         if (!snapshot) return;
 
-        canvas3d.requestCameraReset({ durationMs: options?.durationMs ?? DefaultCameraFocusOptions.durationMs, snapshot });
+        this.focusSnapshot(snapshot, options);
      }
 
     /** Focus on a set of plugin state object cells (if `options.targets` is non-empty) or on the whole scene (if `options.targets` is empty). */
@@ -246,7 +254,7 @@ export class CameraManager {
             targets: options.targets?.map(t => ({ ...t, extraRadius: t.extraRadius ?? DefaultCameraFocusOptions.extraRadius })),
             minRadius: options.minRadius ?? DefaultCameraFocusOptions.minRadius,
         });
-        this.plugin.canvas3d.requestCameraReset({ snapshot, durationMs: options.durationMs ?? DefaultCameraFocusOptions.durationMs });
+        this.focusSnapshot(snapshot, options);
     }
 
     /** Align PCA axes of `structures` (default: all loaded structures) to the screen axes. */

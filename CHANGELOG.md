@@ -19,7 +19,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix SSAO half/quarter resolution textures for multi-scale
 - Camera improvements 
   - Add the option to approximate "least obstructed direction" when focusing camera, accessibe via `PluginContext.managers.camera.focusLoci` with `optimizeDirection` option
-  - Add the option to "zoom out" to entire scene before focusing camera
+  - Add `CameraFocusOptions.zoomOut` option that zooms out to to make the entire scene visible before focusing on the target
+  - Add easing support in camera transtion
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty
