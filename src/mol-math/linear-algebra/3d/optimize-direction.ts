@@ -34,11 +34,54 @@ function eachPosition(points: ReadonlyArray<Vec3> | { x: ArrayLike<number>, y: A
 }
 
 /**
- * Returns a direction from the selection centroid toward the camera.
+ * Estimate a visually open camera direction around a selection.
  *
- * Input points should usually be nearby, non-selected atom positions.
+ * Geometric intuition:
  *
- * The returned direction is a unit Vec3 or undefined if no valid direction could be computed.
+ * The selection centroid is treated as the origin. Each nearby obstruction
+ * point is converted into a unit direction on the sphere around the selection:
+ *
+ *     v_i = normalize(p_i - origin)
+ *
+ * We then build the directional second-moment matrix:
+ *
+ *     M = sum_i w_i v_i v_i^T
+ *
+ * For any candidate view direction `u`, the quadratic form
+ *
+ *     u^T M u
+ *
+ * expands to:
+ *
+ *     sum_i w_i (u · v_i)^2
+ *
+ * Since `u · v_i = cos(theta_i)`, this value is large when `u` is aligned
+ * with many obstruction directions and small when `u` is mostly perpendicular
+ * to them. Therefore, the eigenvector of `M` with the smallest eigenvalue is
+ * the axis that is least aligned, in a least-squares sense, with the nearby
+ * obstruction directions.
+ *
+ * This gives an unoriented axis: `u` and `-u` have the same score because the
+ * dot products are squared. To choose the camera-facing side, we compute the
+ * weighted mean obstruction direction:
+ *
+ *     m = sum_i w_i v_i
+ *
+ * and return the sign of the axis that points away from this mean direction.
+ *
+ * In short:
+ *
+ * - project nearby points onto a sphere around the selection;
+ * - find the sparsest angular axis using the smallest eigenvector of their
+ *   second-moment matrix;
+ * - choose the side of that axis opposite the average obstruction direction.
+ *
+ * This is a fast, deterministic heuristic. It minimizes average squared
+ * angular alignment with nearby points; it is not the exact largest-empty-cone
+ * or maximum-clearance solution.
+ *
+ * The returned vector is a unit direction from the selection centroid toward
+ * the camera.
  */
 export function leastObstructedDirection(
     points: ReadonlyArray<Vec3> | { x: ArrayLike<number>, y: ArrayLike<number>, z: ArrayLike<number> },
