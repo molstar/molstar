@@ -355,21 +355,21 @@ function waterBridgeRefiner(_structure: Structure, interactions: Interactions): 
         if (wb.props.type !== InteractionType.WaterBridge) continue;
 
         const fA = unitsFeatures.get(wb.unitA);
-        const fW = unitsFeatures.get(wb.unitW);
+        const fM = unitsFeatures.get(wb.unitM);
         const fB = unitsFeatures.get(wb.unitB);
 
-        if (!fA || !fW || !fB) continue;
+        if (!fA || !fM || !fB) continue;
 
         const atomA = featureMember(fA, wb.indexA);
-        const atomWA = featureMember(fW, wb.indexWA);
-        const atomWD = featureMember(fW, wb.indexWD);
+        const atomMA = featureMember(fM, wb.indexMA);
+        const atomMB = featureMember(fM, wb.indexMB);
         const atomB = featureMember(fB, wb.indexB);
 
         // donor atom ↔ water oxygen
-        addAtomPair(bridgeLegs, wb.unitA, atomA, wb.unitW, atomWA);
+        addAtomPair(bridgeLegs, wb.unitA, atomA, wb.unitM, atomMA);
 
         // water oxygen ↔ acceptor atom
-        addAtomPair(bridgeLegs, wb.unitW, atomWD, wb.unitB, atomB);
+        addAtomPair(bridgeLegs, wb.unitM, atomMB, wb.unitB, atomB);
     }
 
     let intraContacts: InteractionsIntraContacts | undefined;

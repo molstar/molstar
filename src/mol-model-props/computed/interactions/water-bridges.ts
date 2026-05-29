@@ -5,20 +5,15 @@
  */
 
 import { Structure, Unit, StructureElement } from '../../../mol-model/structure';
-import { IntMap, OrderedSet } from '../../../mol-data/int';
+import { IntMap } from '../../../mol-data/int';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { DataLocation } from '../../../mol-model/location';
-import { DataLoci } from '../../../mol-model/loci';
 import { MoleculeType, NucleicBackboneAtoms, ProteinBackboneAtoms } from '../../../mol-model/structure/model/types';
 import { StructureLookup3DResultContext } from '../../../mol-model/structure/structure/util/lookup3d';
-import { Sphere3D } from '../../../mol-math/geometry';
-import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
 import { Features } from './features';
 import { FeatureType, InteractionType, InteractionFlag } from './common';
 import { GeometryOptions, checkGeometry } from './hydrogen-bonds';
 import { degToRad } from '../../../mol-math/misc';
-import { bundleLabel, LabelGranularity } from '../../../mol-theme/label';
 import { cantorPairing } from '../../../mol-data/util/hash-functions';
 
 export type { WaterBridgeContact, WaterBridgeContacts };
@@ -33,11 +28,11 @@ interface WaterBridgeContact {
     /** acceptor feature index in unitB */
     readonly indexB: Features.FeatureIndex
     /** bridging water unit id */
-    readonly unitW: number
+    readonly unitM: number
     /** water oxygen as HydrogenAcceptor (leg: donor → water) */
-    readonly indexWA: Features.FeatureIndex
+    readonly indexMA: Features.FeatureIndex
     /** water oxygen as HydrogenDonor (leg: water → acceptor) */
-    readonly indexWD: Features.FeatureIndex
+    readonly indexMB: Features.FeatureIndex
     props: { type: InteractionType.WaterBridge, flag: InteractionFlag }
 }
 
@@ -319,9 +314,9 @@ export function findWaterBridgeContacts(
                                 indexA: don.featureIdx,
                                 unitB: acc.unit.id,
                                 indexB: acc.featureIdx,
-                                unitW: unitW.id,
-                                indexWA: accFW,
-                                indexWD: donFW,
+                                unitM: unitW.id,
+                                indexMA: accFW,
+                                indexMB: donFW,
                                 props: { type: InteractionType.WaterBridge, flag: InteractionFlag.None },
                             },
                             combinedDistSq,
@@ -333,99 +328,4 @@ export function findWaterBridgeContacts(
     }
 
     return bestBridgeValues(best).map(e => e.contact);
-}
-
-// ---------------------------------------------------------------------------
-// Location / Loci for use by the renderer and color theme.
-// ---------------------------------------------------------------------------
-
-export { WaterBridges };
-
-namespace WaterBridges {
-    export interface Data {
-        readonly structure: Structure
-        readonly waterBridges: WaterBridgeContacts
-        readonly unitsFeatures: IntMap<Features>
-    }
-
-    export interface Element { bridgeIndex: number }
-
-    export interface Location extends DataLocation<Data, Element> {}
-
-    export function Location(data: Data, bridgeIndex = 0): Location {
-        return DataLocation('water-bridges', data, { bridgeIndex });
-    }
-
-    export function isLocation(x: any): x is Location {
-        return !!x && x.kind === 'data-location' && x.tag === 'water-bridges';
-    }
-
-    export interface Loci extends DataLoci<Data, Element> {}
-
-    export function Loci(data: Data, elements: ReadonlyArray<Element>): Loci {
-        return DataLoci('water-bridges', data, elements,
-            bs => getBoundingSphere(data, elements, bs),
-            () => getLabel(data, elements));
-    }
-
-    function getLabel(data: Data, elements: ReadonlyArray<Element>): string {
-        const e = elements[0];
-        if (e === undefined) return '';
-
-        const { structure, waterBridges, unitsFeatures } = data;
-        const wb = waterBridges[e.bridgeIndex];
-
-        const uA = structure.unitMap.get(wb.unitA) as Unit.Atomic;
-        const fA = unitsFeatures.get(wb.unitA);
-        const uW = structure.unitMap.get(wb.unitW) as Unit.Atomic;
-        const fW = unitsFeatures.get(wb.unitW);
-        const uB = structure.unitMap.get(wb.unitB) as Unit.Atomic;
-        const fB = unitsFeatures.get(wb.unitB);
-
-        const options = { granularity: 'element' as LabelGranularity };
-        if (fA.offsets[wb.indexA + 1] - fA.offsets[wb.indexA] > 1 ||
-                fB.offsets[wb.indexB + 1] - fB.offsets[wb.indexB] > 1) {
-            options.granularity = 'residue';
-        }
-
-        return [
-            'Water Bridge',
-            bundleLabel({ loci: [
-                StructureElement.Loci(structure, [{ unit: uA, indices: OrderedSet.ofSingleton(fA.members[fA.offsets[wb.indexA]] as StructureElement.UnitIndex) }]),
-                StructureElement.Loci(structure, [{ unit: uW, indices: OrderedSet.ofSingleton(fW.members[fW.offsets[wb.indexWA]] as StructureElement.UnitIndex) }]),
-                StructureElement.Loci(structure, [{ unit: uB, indices: OrderedSet.ofSingleton(fB.members[fB.offsets[wb.indexB]] as StructureElement.UnitIndex) }]),
-            ] }, options),
-        ].join('</br>');
-    }
-
-    export function isLoci(x: any): x is Loci {
-        return !!x && x.kind === 'data-loci' && x.tag === 'water-bridges';
-    }
-
-    function getBoundingSphere(data: Data, elements: ReadonlyArray<Element>, boundingSphere: Sphere3D) {
-        return CentroidHelper.fromPairProvider(elements.length * 2, (i, pA, pB) => {
-            const wb = data.waterBridges[elements[i >> 1].bridgeIndex];
-
-            const uA = data.structure.unitMap.get(wb.unitA) as Unit.Atomic;
-            const fA = data.unitsFeatures.get(wb.unitA);
-
-            const uW = data.structure.unitMap.get(wb.unitW) as Unit.Atomic;
-            const fW = data.unitsFeatures.get(wb.unitW);
-
-            const uB = data.structure.unitMap.get(wb.unitB) as Unit.Atomic;
-            const fB = data.unitsFeatures.get(wb.unitB);
-
-            const aIdx = fA.members[fA.offsets[wb.indexA]] as StructureElement.UnitIndex;
-            const wIdx = fW.members[fW.offsets[wb.indexWA]] as StructureElement.UnitIndex;
-            const bIdx = fB.members[fB.offsets[wb.indexB]] as StructureElement.UnitIndex;
-
-            if ((i & 1) === 0) {
-                uA.conformation.position(uA.elements[aIdx], pA);
-                uW.conformation.position(uW.elements[wIdx], pB);
-            } else {
-                uW.conformation.position(uW.elements[wIdx], pA);
-                uB.conformation.position(uB.elements[bIdx], pB);
-            }
-        }, boundingSphere);
-    }
 }

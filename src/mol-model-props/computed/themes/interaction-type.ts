@@ -13,8 +13,7 @@ import { ThemeDataContext } from '../../../mol-theme/theme';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { InteractionType } from '../interactions/common';
 import { TableLegend } from '../../../mol-util/legend';
-import { Interactions } from '../interactions/interactions';
-import { WaterBridges } from '../interactions/water-bridges';
+import { Interactions, Bridges } from '../interactions/interactions';
 import { CustomProperty } from '../../common/custom-property';
 import { hash2 } from '../../../mol-data/util';
 import { ColorThemeCategory } from '../../../mol-theme/color/categories';
@@ -97,8 +96,8 @@ export function InteractionTypeColorTheme(ctx: ThemeDataContext, props: PD.Value
                     return typeColor(contacts.edges[idx].props.type);
                 }
             }
-            if (WaterBridges.isLocation(location)) {
-                return InteractionTypeColors.WaterBridge;
+            if (Bridges.isLocation(location)) {
+                return typeColor(location.data.bridges[location.element.bridgeIndex].props.type);
             }
             return DefaultColor;
         };

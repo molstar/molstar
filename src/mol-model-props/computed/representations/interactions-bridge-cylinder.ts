@@ -19,55 +19,52 @@ import { NullLocation } from '../../../mol-model/location';
 import { Interval, OrderedSet } from '../../../mol-data/int';
 import { InteractionsProvider } from '../interactions';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { WaterBridges, WaterBridgeContact } from '../interactions/water-bridges';
-import { InteractionType } from '../interactions/common';
+import { BridgeContacts, Bridges } from '../interactions/interactions';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { InteractionsSharedParams } from './shared';
 import { Features } from '../interactions/features';
 
-type WaterBridgeContacts = WaterBridges.Data['waterBridges'];
-
 type CanonicalLegIndices = {
-    donor: Int32Array
-    acceptor: Int32Array
+    endpointA: Int32Array
+    endpointB: Int32Array
 };
 
-const CanonicalLegIndicesCache = new WeakMap<WaterBridgeContacts, CanonicalLegIndices>();
+const CanonicalLegIndicesCache = new WeakMap<BridgeContacts, CanonicalLegIndices>();
 
-function getCanonicalLegIndices(waterBridges: WaterBridgeContacts): CanonicalLegIndices {
-    const cached = CanonicalLegIndicesCache.get(waterBridges);
+function getCanonicalLegIndices(bridges: BridgeContacts): CanonicalLegIndices {
+    const cached = CanonicalLegIndicesCache.get(bridges);
     if (cached) return cached;
 
-    const n = waterBridges.length;
-    const donor = new Int32Array(n);
-    const acceptor = new Int32Array(n);
+    const n = bridges.length;
+    const endpointA = new Int32Array(n);
+    const endpointB = new Int32Array(n);
 
-    const donorLegs = new Map<string, number>();
-    const acceptorLegs = new Map<string, number>();
+    const legA = new Map<string, number>();
+    const legB = new Map<string, number>();
 
     for (let i = 0; i < n; i++) {
-        const wb = waterBridges[i];
+        const b = bridges[i];
 
-        const dk = `${wb.unitA}|${wb.indexA}|${wb.unitW}|${wb.indexWA}`;
-        const ak = `${wb.unitW}|${wb.indexWD}|${wb.unitB}|${wb.indexB}`;
+        const kA = `${b.unitA}|${b.indexA}|${b.unitM}|${b.indexMA}`;
+        const kB = `${b.unitM}|${b.indexMB}|${b.unitB}|${b.indexB}`;
 
-        let di = donorLegs.get(dk);
-        if (di === undefined) {
-            di = i;
-            donorLegs.set(dk, i);
-        }
-        donor[i] = di;
-
-        let ai = acceptorLegs.get(ak);
+        let ai = legA.get(kA);
         if (ai === undefined) {
             ai = i;
-            acceptorLegs.set(ak, i);
+            legA.set(kA, i);
         }
-        acceptor[i] = ai;
+        endpointA[i] = ai;
+
+        let bi = legB.get(kB);
+        if (bi === undefined) {
+            bi = i;
+            legB.set(kB, i);
+        }
+        endpointB[i] = bi;
     }
 
-    const indices = { donor, acceptor };
-    CanonicalLegIndicesCache.set(waterBridges, indices);
+    const indices = { endpointA, endpointB };
+    CanonicalLegIndicesCache.set(bridges, indices);
     return indices;
 }
 
@@ -94,14 +91,14 @@ function setFeatureLocation(
     location.element = unit.elements[atomLocalIdx];
 }
 
-function applyDonorLeg(
+function applyLegA(
     bridgeIndex: number,
     bridgeCount: number,
     canonical: CanonicalLegIndices,
     apply: (interval: Interval) => boolean
 ) {
     let changed = false;
-    const i = canonical.donor[bridgeIndex];
+    const i = canonical.endpointA[bridgeIndex];
 
     if (apply(Interval.ofSingleton(i))) changed = true;
     if (apply(Interval.ofSingleton(i + bridgeCount))) changed = true;
@@ -109,14 +106,14 @@ function applyDonorLeg(
     return changed;
 }
 
-function applyAcceptorLeg(
+function applyLegB(
     bridgeIndex: number,
     bridgeCount: number,
     canonical: CanonicalLegIndices,
     apply: (interval: Interval) => boolean
 ) {
     let changed = false;
-    const i = canonical.acceptor[bridgeIndex];
+    const i = canonical.endpointB[bridgeIndex];
 
     if (apply(Interval.ofSingleton(i + 2 * bridgeCount))) changed = true;
     if (apply(Interval.ofSingleton(i + 3 * bridgeCount))) changed = true;
@@ -124,16 +121,15 @@ function applyAcceptorLeg(
     return changed;
 }
 
-function createWaterBridgeCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<WaterBridgeInterUnitParams>, mesh?: Mesh) {
+function createBridgeCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<BridgeParams>, mesh?: Mesh) {
     if (!structure.hasAtomic) return Mesh.createEmpty(mesh);
 
     const interactions = InteractionsProvider.get(structure).value;
     if (!interactions) return Mesh.createEmpty(mesh);
 
     const { bridges, unitsFeatures } = interactions;
-    const waterBridges = bridges.filter((b): b is WaterBridgeContact => b.props.type === InteractionType.WaterBridge);
 
-    const n = waterBridges.length;
+    const n = bridges.length;
     if (!n) return Mesh.createEmpty(mesh);
 
     const l = StructureElement.Location.create(structure);
@@ -142,46 +138,41 @@ function createWaterBridgeCylinderMesh(ctx: VisualContext, structure: Structure,
 
     const builderProps = {
         // Four half-cylinders per bridge; createLinkCylinderMesh draws the A-side half per call:
-        //   [0,   n): donor→water,    forward  (donor side)
-        //   [n,  2n): donor→water,    backward (water side)
-        //   [2n, 3n): water→acceptor, forward  (water side)
-        //   [3n, 4n): water→acceptor, backward (acceptor side)
+        //   [0,   n): A→mediator, forward  (A side)
+        //   [n,  2n): A→mediator, backward (mediator side)
+        //   [2n, 3n): mediator→B, forward  (mediator side)
+        //   [3n, 4n): mediator→B, backward (B side)
         //
         // When multiple bridges share the same physical leg, only the first
-        // occurrence is drawn. Marking later maps duplicate legs back to the
-        // canonical drawn edge index.
+        // occurrence is drawn; later ones map back to the canonical edge index.
         linkCount: 4 * n,
 
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
-            const wb = waterBridges[edgeIndex % n];
-            const uW = structure.unitMap.get(wb.unitW) as Unit.Atomic;
-            const fW = unitsFeatures.get(wb.unitW);
+            const b = bridges[edgeIndex % n];
+            const uM = structure.unitMap.get(b.unitM) as Unit.Atomic;
+            const fM = unitsFeatures.get(b.unitM);
             const leg = Math.floor(edgeIndex / n);
 
             if (leg === 0) {
-                // donor→water, A-side: draw donor→mid
-                const uA = structure.unitMap.get(wb.unitA) as Unit.Atomic;
-                const fA = unitsFeatures.get(wb.unitA);
-                atomPosition(uA, fA, wb.indexA, posA);
-                atomPosition(uW, fW, wb.indexWA, posB);
+                const uA = structure.unitMap.get(b.unitA) as Unit.Atomic;
+                const fA = unitsFeatures.get(b.unitA);
+                atomPosition(uA, fA, b.indexA, posA);
+                atomPosition(uM, fM, b.indexMA, posB);
             } else if (leg === 1) {
-                // donor→water, B-side: draw water→mid
-                const uA = structure.unitMap.get(wb.unitA) as Unit.Atomic;
-                const fA = unitsFeatures.get(wb.unitA);
-                atomPosition(uW, fW, wb.indexWA, posA);
-                atomPosition(uA, fA, wb.indexA, posB);
+                const uA = structure.unitMap.get(b.unitA) as Unit.Atomic;
+                const fA = unitsFeatures.get(b.unitA);
+                atomPosition(uM, fM, b.indexMA, posA);
+                atomPosition(uA, fA, b.indexA, posB);
             } else if (leg === 2) {
-                // water→acceptor, A-side: draw water→mid
-                const uB = structure.unitMap.get(wb.unitB) as Unit.Atomic;
-                const fB = unitsFeatures.get(wb.unitB);
-                atomPosition(uW, fW, wb.indexWD, posA);
-                atomPosition(uB, fB, wb.indexB, posB);
+                const uB = structure.unitMap.get(b.unitB) as Unit.Atomic;
+                const fB = unitsFeatures.get(b.unitB);
+                atomPosition(uM, fM, b.indexMB, posA);
+                atomPosition(uB, fB, b.indexB, posB);
             } else {
-                // water→acceptor, B-side: draw acceptor→mid
-                const uB = structure.unitMap.get(wb.unitB) as Unit.Atomic;
-                const fB = unitsFeatures.get(wb.unitB);
-                atomPosition(uB, fB, wb.indexB, posA);
-                atomPosition(uW, fW, wb.indexWD, posB);
+                const uB = structure.unitMap.get(b.unitB) as Unit.Atomic;
+                const fB = unitsFeatures.get(b.unitB);
+                atomPosition(uB, fB, b.indexB, posA);
+                atomPosition(uM, fM, b.indexMB, posB);
             }
         },
 
@@ -190,39 +181,39 @@ function createWaterBridgeCylinderMesh(ctx: VisualContext, structure: Structure,
             const leg = Math.floor(edgeIndex / n);
 
             return leg <= 1
-                ? canonical.donor[bi] !== bi
-                : canonical.acceptor[bi] !== bi;
+                ? canonical.endpointA[bi] !== bi
+                : canonical.endpointB[bi] !== bi;
         },
 
         style: (_edgeIndex: number) => LinkStyle.Dashed,
 
         radius: (edgeIndex: number) => {
-            const wb = waterBridges[edgeIndex % n];
+            const b = bridges[edgeIndex % n];
             const leg = Math.floor(edgeIndex / n);
-            const isDonorWaterLeg = leg <= 1;
+            const isLegA = leg <= 1;
 
-            if (isDonorWaterLeg) {
-                const fA = unitsFeatures.get(wb.unitA);
-                const fW = unitsFeatures.get(wb.unitW);
+            if (isLegA) {
+                const fA = unitsFeatures.get(b.unitA);
+                const fM = unitsFeatures.get(b.unitM);
 
-                setFeatureLocation(structure, l, wb.unitA, fA, wb.indexA);
+                setFeatureLocation(structure, l, b.unitA, fA, b.indexA);
                 const sizeA = theme.size.size(l);
 
-                setFeatureLocation(structure, l, wb.unitW, fW, wb.indexWA);
-                const sizeW = theme.size.size(l);
+                setFeatureLocation(structure, l, b.unitM, fM, b.indexMA);
+                const sizeM = theme.size.size(l);
 
-                return Math.min(sizeA, sizeW) * sizeFactor;
+                return Math.min(sizeA, sizeM) * sizeFactor;
             } else {
-                const fW = unitsFeatures.get(wb.unitW);
-                const fB = unitsFeatures.get(wb.unitB);
+                const fM = unitsFeatures.get(b.unitM);
+                const fB = unitsFeatures.get(b.unitB);
 
-                setFeatureLocation(structure, l, wb.unitW, fW, wb.indexWD);
-                const sizeW = theme.size.size(l);
+                setFeatureLocation(structure, l, b.unitM, fM, b.indexMB);
+                const sizeM = theme.size.size(l);
 
-                setFeatureLocation(structure, l, wb.unitB, fB, wb.indexB);
+                setFeatureLocation(structure, l, b.unitB, fB, b.indexB);
                 const sizeB = theme.size.size(l);
 
-                return Math.min(sizeW, sizeB) * sizeFactor;
+                return Math.min(sizeM, sizeB) * sizeFactor;
             }
         },
     };
@@ -239,25 +230,25 @@ function createWaterBridgeCylinderMesh(ctx: VisualContext, structure: Structure,
     return m;
 }
 
-export const WaterBridgeInterUnitParams = {
+export const BridgeParams = {
     ...ComplexMeshParams,
     ...LinkCylinderParams,
     ...InteractionsSharedParams,
 };
-export type WaterBridgeInterUnitParams = typeof WaterBridgeInterUnitParams
+export type BridgeParams = typeof BridgeParams
 
-export function WaterBridgeInterUnitVisual(materialId: number): ComplexVisual<WaterBridgeInterUnitParams> {
-    return ComplexMeshVisual<WaterBridgeInterUnitParams>({
-        defaultProps: PD.getDefaultValues(WaterBridgeInterUnitParams),
-        createGeometry: createWaterBridgeCylinderMesh,
-        createLocationIterator: createWaterBridgeIterator,
-        getLoci: getWaterBridgeLoci,
-        eachLocation: eachWaterBridgeInteraction,
+export function BridgeVisual(materialId: number): ComplexVisual<BridgeParams> {
+    return ComplexMeshVisual<BridgeParams>({
+        defaultProps: PD.getDefaultValues(BridgeParams),
+        createGeometry: createBridgeCylinderMesh,
+        createLocationIterator: createBridgeIterator,
+        getLoci: getBridgeLoci,
+        eachLocation: eachBridgeInteraction,
 
         setUpdateState: (
             state: VisualUpdateState,
-            newProps: PD.Values<WaterBridgeInterUnitParams>,
-            currentProps: PD.Values<WaterBridgeInterUnitParams>,
+            newProps: PD.Values<BridgeParams>,
+            currentProps: PD.Values<BridgeParams>,
             newTheme: Theme,
             currentTheme: Theme,
             newStructure: Structure,
@@ -283,7 +274,7 @@ export function WaterBridgeInterUnitVisual(materialId: number): ComplexVisual<Wa
     }, materialId);
 }
 
-function getWaterBridgeLoci(pickingId: PickingId, structure: Structure, id: number) {
+function getBridgeLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId;
     if (id !== objectId) return EmptyLoci;
 
@@ -291,38 +282,37 @@ function getWaterBridgeLoci(pickingId: PickingId, structure: Structure, id: numb
     if (!interactions) return EmptyLoci;
 
     const { bridges, unitsFeatures } = interactions;
-    const waterBridges = bridges.filter((b): b is WaterBridgeContact => b.props.type === InteractionType.WaterBridge);
-    const n = waterBridges.length;
+    const n = bridges.length;
 
     if (!n || groupId < 0 || groupId >= 4 * n) return EmptyLoci;
 
     const bridgeIndex = groupId % n;
 
-    return WaterBridges.Loci({ structure, waterBridges: bridges, unitsFeatures }, [{ bridgeIndex }]);
+    return Bridges.Loci({ structure, bridges, unitsFeatures }, [{ bridgeIndex }]);
 }
 
 const __unitMap = new Map<number, OrderedSet<StructureElement.UnitIndex>>();
 
-function eachWaterBridgeInteraction(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, _isMarking: boolean) {
+function eachBridgeInteraction(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, _isMarking: boolean) {
     let changed = false;
 
-    if (WaterBridges.isLoci(loci)) {
+    if (Bridges.isLoci(loci)) {
         if (!Structure.areEquivalent(loci.data.structure, structure)) return false;
 
         const interactions = InteractionsProvider.get(structure).value;
         if (!interactions) return false;
 
-        const waterBridges = interactions.bridges.filter((b): b is WaterBridgeContact => b.props.type === InteractionType.WaterBridge);
-        const n = waterBridges.length;
+        const { bridges } = interactions;
+        const n = bridges.length;
         if (!n) return false;
 
-        const canonical = getCanonicalLegIndices(waterBridges);
+        const canonical = getCanonicalLegIndices(bridges);
 
         for (const e of loci.elements) {
             if (e.bridgeIndex < 0 || e.bridgeIndex >= n) continue;
 
-            if (applyDonorLeg(e.bridgeIndex, n, canonical, apply)) changed = true;
-            if (applyAcceptorLeg(e.bridgeIndex, n, canonical, apply)) changed = true;
+            if (applyLegA(e.bridgeIndex, n, canonical, apply)) changed = true;
+            if (applyLegB(e.bridgeIndex, n, canonical, apply)) changed = true;
         }
     } else if (StructureElement.Loci.is(loci)) {
         if (!Structure.areEquivalent(loci.structure, structure)) return false;
@@ -331,11 +321,10 @@ function eachWaterBridgeInteraction(loci: Loci, structure: Structure, apply: (in
         if (!interactions) return false;
 
         const { bridges, unitsFeatures } = interactions;
-        const waterBridges = bridges.filter((b): b is WaterBridgeContact => b.props.type === InteractionType.WaterBridge);
-        const n = waterBridges.length;
+        const n = bridges.length;
         if (!n) return false;
 
-        const canonical = getCanonicalLegIndices(waterBridges);
+        const canonical = getCanonicalLegIndices(bridges);
 
         __unitMap.clear();
         for (const e of loci.elements) {
@@ -343,42 +332,42 @@ function eachWaterBridgeInteraction(loci: Loci, structure: Structure, apply: (in
         }
 
         for (let i = 0; i < n; i++) {
-            const wb = waterBridges[i];
+            const b = bridges[i];
 
-            const indicesA = __unitMap.get(wb.unitA);
-            const indicesW = __unitMap.get(wb.unitW);
-            const indicesB = __unitMap.get(wb.unitB);
+            const indicesA = __unitMap.get(b.unitA);
+            const indicesM = __unitMap.get(b.unitM);
+            const indicesB = __unitMap.get(b.unitB);
 
-            if (!indicesA && !indicesW && !indicesB) continue;
+            if (!indicesA && !indicesM && !indicesB) continue;
 
             let hitA = false;
             if (indicesA) {
-                const fA = unitsFeatures.get(wb.unitA);
-                const mi = getFeatureMember(fA, wb.indexA);
+                const fA = unitsFeatures.get(b.unitA);
+                const mi = getFeatureMember(fA, b.indexA);
                 hitA = OrderedSet.has(indicesA, mi);
             }
 
-            let hitW = false;
-            if (indicesW) {
-                const fW = unitsFeatures.get(wb.unitW);
-                const miA = getFeatureMember(fW, wb.indexWA);
-                const miD = getFeatureMember(fW, wb.indexWD);
-                hitW = OrderedSet.has(indicesW, miA) || OrderedSet.has(indicesW, miD);
+            let hitM = false;
+            if (indicesM) {
+                const fM = unitsFeatures.get(b.unitM);
+                const miA = getFeatureMember(fM, b.indexMA);
+                const miB = getFeatureMember(fM, b.indexMB);
+                hitM = OrderedSet.has(indicesM, miA) || OrderedSet.has(indicesM, miB);
             }
 
             let hitB = false;
             if (indicesB) {
-                const fB = unitsFeatures.get(wb.unitB);
-                const mi = getFeatureMember(fB, wb.indexB);
+                const fB = unitsFeatures.get(b.unitB);
+                const mi = getFeatureMember(fB, b.indexB);
                 hitB = OrderedSet.has(indicesB, mi);
             }
 
-            if (hitA || hitW) {
-                if (applyDonorLeg(i, n, canonical, apply)) changed = true;
+            if (hitA || hitM) {
+                if (applyLegA(i, n, canonical, apply)) changed = true;
             }
 
-            if (hitB || hitW) {
-                if (applyAcceptorLeg(i, n, canonical, apply)) changed = true;
+            if (hitB || hitM) {
+                if (applyLegB(i, n, canonical, apply)) changed = true;
             }
         }
 
@@ -388,19 +377,18 @@ function eachWaterBridgeInteraction(loci: Loci, structure: Structure, apply: (in
     return changed;
 }
 
-function createWaterBridgeIterator(structure: Structure): LocationIterator {
+function createBridgeIterator(structure: Structure): LocationIterator {
     const interactions = InteractionsProvider.get(structure).value;
     if (!interactions) return LocationIterator(0, 1, 1, () => NullLocation, true);
 
     const { bridges, unitsFeatures } = interactions;
-    const waterBridges = bridges.filter((b): b is WaterBridgeContact => b.props.type === InteractionType.WaterBridge);
 
-    const n = waterBridges.length;
+    const n = bridges.length;
     const groupCount = 4 * n;
     const instanceCount = 1;
 
-    const data: WaterBridges.Data = { structure, waterBridges, unitsFeatures };
-    const location = WaterBridges.Location(data);
+    const data: Bridges.Data = { structure, bridges, unitsFeatures };
+    const location = Bridges.Location(data);
     const { element } = location;
 
     const getLocation = (groupIndex: number) => {
