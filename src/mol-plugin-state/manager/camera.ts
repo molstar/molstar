@@ -35,12 +35,14 @@ export const DefaultCameraFocusOptions = {
     }
 };
 
-export type CameraFocusOptions = typeof DefaultCameraFocusOptions
-export type CameraFocusLociOptions = CameraFocusOptions & {
-    optimizeDirection?: boolean,
-    optimizeDirectionUp?: Vec3,
-}
+export const DefaultCameraFocusLociOptions = {
+    ...DefaultCameraFocusOptions,
+    optimizeDirection: false,
+    optimizeDirectionUp: 'current' as 'current' | 'default' | Vec3,
+};
 
+export type CameraFocusOptions = typeof DefaultCameraFocusOptions;
+export type CameraFocusLociOptions = typeof DefaultCameraFocusLociOptions;
 export class CameraManager {
     private boundaryHelper = new BoundaryHelper('98');
 
@@ -97,7 +99,7 @@ export class CameraManager {
         return sphere;
     }
 
-    private focusLociOptimized(loci: Loci | Loci[], options?: Partial<CameraFocusOptions & { up?: Vec3 }>) {
+    private focusLociOptimized(loci: Loci | Loci[], options?: Partial<CameraFocusLociOptions>) {
         const { canvas3d } = this.plugin;
         if (!canvas3d) return;
 
@@ -144,7 +146,13 @@ export class CameraManager {
         }
 
         Vec3.negate(direction, direction);
-        return canvas3d.camera.getInvariantFocus(sphere.center, radius, options?.up ?? Vec3.unitY, direction);
+        const upVector = options?.optimizeDirectionUp === 'default'
+            ? Vec3.unitY
+            : Vec3.is(options?.optimizeDirectionUp) ? options.optimizeDirectionUp : undefined;
+        if (upVector) {
+            return canvas3d.camera.getInvariantFocus(sphere.center, radius, upVector as Vec3, direction);
+        }
+        return canvas3d.camera.getFocus(sphere.center, radius, undefined, direction);
     }
 
     private focusLociBase(loci: Loci | Loci[], options?: Partial<CameraFocusOptions>) {
@@ -157,17 +165,15 @@ export class CameraManager {
     focusLoci(loci: Loci | Loci[], options?: Partial<CameraFocusLociOptions>) {
         if (!this.plugin.canvas3d) return;
 
+        const options_ = { ...DefaultCameraFocusLociOptions, ...options };
         let snapshot: Partial<Camera.Snapshot> | undefined;
-        if (options?.optimizeDirection) {
-            snapshot = this.focusLociOptimized(loci, {
-                ...options,
-                up: options.optimizeDirectionUp,
-            });
+        if (options_.optimizeDirection) {
+            snapshot = this.focusLociOptimized(loci, options_);
         } else {
-            snapshot = this.focusLociBase(loci, options);
+            snapshot = this.focusLociBase(loci, options_);
         }
 
-        this.focusSnapshot(snapshot, options);
+        this.focusSnapshot(snapshot, options_);
     }
 
     focusSpheres<T>(xs: ReadonlyArray<T>, sphere: (t: T) => Sphere3D | undefined, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
@@ -229,9 +235,9 @@ export class CameraManager {
         this.plugin.canvas3d.requestCameraReset({
             snapshot,
             durationMs: df * durationMs,
-            easing: 'cubic-out',
             keyframes: t > 0.05 ? [
-                { t, snapshot: zoomOut, easing: 'cubic-in' },
+                { t, snapshot: zoomOut, easing: 'cubic-out' },
+                { t: 1, snapshot, easing: 'cubic-in' },
             ] : undefined
         });
     }

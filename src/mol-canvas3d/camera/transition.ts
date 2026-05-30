@@ -13,7 +13,9 @@ import { EasingFunction, getEasingFn } from '../../mol-math/easing';
 export { CameraTransitionManager };
 
 export interface CameraTransitionOptions {
+    /** If present, approximates the transion between, [current] -> [keyframes] -> -> [target] */
     keyframes?: CameraTransitionManager.TransitionKeyframes,
+    /** Global easing, if easing is specified for keyframes, the "end" frame value is used  */
     easing?: EasingFunction
 }
 
@@ -123,7 +125,7 @@ namespace CameraTransitionManager {
 
         let tStart = 0;
         let tEnd = 1;
-        let easingKindStart = options?.easing;
+        let easingKind = options?.easing;
 
         const keyframes = options?.keyframes;
         if (keyframes && keyframes.length > 0) {
@@ -132,7 +134,6 @@ namespace CameraTransitionManager {
                 if (t_ >= keyframe.t) {
                     sourcePartial = keyframe.snapshot;
                     tStart = keyframe.t;
-                    easingKindStart = keyframe.easing ?? easingKindStart;
                     break;
                 }
             }
@@ -141,12 +142,13 @@ namespace CameraTransitionManager {
                 if (keyframe.t >= t_) {
                     targetPartial = keyframe.snapshot;
                     tEnd = keyframe.t;
+                    easingKind = keyframe.easing ?? easingKind;
                     break;
                 }
             }
         }
 
-        const easing = getEasingFn(easingKindStart);
+        const easing = getEasingFn(easingKind);
         const t = easing((t_ - tStart) / (tEnd - tStart));
 
         if (!_tempSource) _tempSource = Camera.createDefaultSnapshot();

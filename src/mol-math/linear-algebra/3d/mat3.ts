@@ -150,6 +150,10 @@ namespace Mat3 {
         return areEqual(m, _id, typeof eps === 'undefined' ? EPSILON : eps);
     }
 
+    export function is(a: any): a is Mat3 {
+        return Array.isArray(a) && a.length === 9;
+    }
+
     export function hasNaN(m: Mat3) {
         for (let i = 0; i < 9; i++) if (Number.isNaN(m[i])) return true;
         return false;
