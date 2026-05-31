@@ -9,6 +9,7 @@ import { StateTransformer } from './transformer';
 import { UUID } from '../mol-util';
 import { hashMurmur128o } from '../mol-data/util/hash-functions';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
+import { arraySetAdd, arraySetRemove } from '../mol-util/array';
 
 export { Transform as StateTransform };
 
@@ -173,6 +174,26 @@ namespace Transform {
     }
 
     /**
+     * Returns the default param schema for the transform's transformer, caching
+     * the result on the transform instance. Returns `undefined` if the transformer
+     * has no `params` definition or if calling it throws.
+     */
+    export function tryGetDefaultParamDefinition(t: Transform): PD.Params | undefined {
+        const any = t as any;
+        if (any._defaultSchemaSet) return any._defaultSchema;
+        any._defaultSchemaSet = true;
+        try {
+            const def = t.transformer.definition;
+            if (def.params) {
+                any._defaultSchema = def.params(undefined as any, undefined) as PD.Params;
+            }
+        } catch {
+            // Schema could not be obtained.
+        }
+        return any._defaultSchema;
+    }
+
+    /**
      * Compute the effective set of sibling-like dependencies for a transform.
      *
      * Combines (in order, de-duplicated):
@@ -180,24 +201,17 @@ namespace Transform {
      *   2. Refs from `transformer.definition.getDependencies(params)` if defined.
      *   3. Refs collected from `PD.ValueRef` / `PD.DataRef` parameter values.
      *
-     * Self-references and the root ref are filtered out. `globalCtx` is forwarded
-     * to `params(undefined, globalCtx)` for schema acquisition. If the schema
-     * can't be obtained (no `params` function or it throws), auto-derivation
-     * falls back to a structural scan of parameter values for `{ ref, getValue }`
-     * shaped objects.
+     * Self-references and the root ref are filtered out. If the param schema
+     * can't be obtained, auto-derivation falls back to a structural scan of
+     * parameter values for `{ ref, getValue }` shaped objects.
      */
-    export function getEffectiveDependsOn(t: Transform, globalCtx?: unknown): Ref[] {
-        const out: Ref[] = [];
-        const seen = new Set<string>();
-        const add = (ref: string | undefined) => {
-            if (!ref || ref === t.ref || ref === RootRef) return;
-            if (seen.has(ref)) return;
-            seen.add(ref);
-            out.push(ref as Ref);
-        };
+    export function getEffectiveDependsOn(t: Transform): Ref[] {
+        const out: string[] = [];
 
         if (t.dependsOn) {
-            for (const r of t.dependsOn) add(r);
+            for (const r of t.dependsOn) {
+                arraySetAdd(out, r);
+            }
         }
 
         const def = t.transformer.definition;
@@ -206,45 +220,48 @@ namespace Transform {
         if (def.getDependencies && params) {
             try {
                 const extra = def.getDependencies(params);
-                if (extra) for (const r of extra) add(r);
+                if (extra) {
+                    for (const r of extra) {
+                        arraySetAdd(out, r);
+                    }
+                }
             } catch {
                 // Keep reconciliation robust if a user hook misbehaves.
             }
         }
 
         if (params) {
-            let schema: PD.Params | undefined = void 0;
-            if (def.params) {
-                try {
-                    schema = def.params(undefined as any, globalCtx) as PD.Params;
-                } catch {
-                    schema = void 0;
-                }
-            }
+            const schema = tryGetDefaultParamDefinition(t);
             if (schema) {
-                const refs = PD.collectRefs(schema, params);
-                refs.forEach(r => add(r));
+                PD.collectRefs(schema, params, out);
             } else {
-                collectStructuralRefs(params, add);
+                collectStructuralRefs(params, out);
             }
         }
 
+        // Filter out self-references and the root ref.
+        arraySetRemove(out, t.ref);
+        arraySetRemove(out, RootRef);
         return out;
     }
 
-    function collectStructuralRefs(value: any, add: (ref: string) => void, depth = 0) {
-        if (!value || typeof value !== 'object' || depth > 6) return;
+    function collectStructuralRefs(value: any, out: string[], depth = 0): string[] {
+        if (!value || typeof value !== 'object' || depth > 6) return out;
         if (Array.isArray(value)) {
-            for (const v of value) collectStructuralRefs(v, add, depth + 1);
-            return;
+            for (const v of value) {
+                collectStructuralRefs(v, out, depth + 1);
+            }
+            return out;
         }
-        if (typeof (value as any).ref === 'string' && typeof (value as any).getValue === 'function') {
-            add((value as any).ref);
-            return;
+        const ref = (value as any).ref;
+        if (typeof ref === 'string' && typeof (value as any).getValue === 'function') {
+            arraySetAdd(out, ref);
+            return out;
         }
         for (const k of Object.keys(value)) {
-            collectStructuralRefs(value[k], add, depth + 1);
+            collectStructuralRefs(value[k], out, depth + 1);
         }
+        return out;
     }
 
     const _emptyParams = {};

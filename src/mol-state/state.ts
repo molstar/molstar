@@ -778,7 +778,7 @@ function addCellsVisitor(transform: StateTransform, _: any, { ctx, added, visite
 // type LinkCellsCtx = { ctx: UpdateContext, visited: Set<Ref>, dependent: UniqueArray<Ref, StateObjectCell> }
 
 function linkCells(target: StateObjectCell, ctx: UpdateContext) {
-    const effective = StateTransform.getEffectiveDependsOn(target.transform, ctx.parent.globalContext);
+    const effective = StateTransform.getEffectiveDependsOn(target.transform);
     if (effective.length === 0) return;
 
     for (const ref of effective) {
@@ -800,7 +800,7 @@ function linkCells(target: StateObjectCell, ctx: UpdateContext) {
  * when nothing has changed. Returns `true` if any edge was added or removed.
  */
 function relinkCells(target: StateObjectCell, ctx: UpdateContext): boolean {
-    const effective = StateTransform.getEffectiveDependsOn(target.transform, ctx.parent.globalContext);
+    const effective = StateTransform.getEffectiveDependsOn(target.transform);
     const current = target.dependencies.dependsOn;
 
     // Fast path: same number and all current refs are still in effective.
