@@ -52,7 +52,7 @@ export const AnimateCameraSpin = PluginStateAnimation.create({
         Vec3.normalize(_up, snapshot.up); // Y = up
         Vec3.cross(_side, _up, _axis); // X = right
         Vec3.normalize(_side, _side);
-        const a = ctx.params.axis;
+        const a = ctx.params.axis ?? Vec3.create(0, -1, 0); // default for backwards compatibility
         Vec3.set(_axis,
             a[0] * _side[0] + a[1] * _up[0] + a[2] * _axis[0],
             a[0] * _side[1] + a[1] * _up[1] + a[2] * _axis[1],
