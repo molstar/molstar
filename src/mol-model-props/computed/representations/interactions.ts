@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,20 +12,23 @@ import { UnitsRepresentation, StructureRepresentation, StructureRepresentationSt
 import { InteractionsIntraUnitParams, InteractionsIntraUnitVisual } from './interactions-intra-unit-cylinder';
 import { InteractionsProvider } from '../interactions';
 import { InteractionsInterUnitParams, InteractionsInterUnitVisual } from './interactions-inter-unit-cylinder';
+import { BridgeParams, BridgeVisual } from './interactions-bridge-cylinder';
 import { CustomProperty } from '../../common/custom-property';
 import { getUnitKindsParam } from '../../../mol-repr/structure/params';
 
 const InteractionsVisuals = {
     'intra-unit': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InteractionsIntraUnitParams>) => UnitsRepresentation('Intra-unit interactions cylinder', ctx, getParams, InteractionsIntraUnitVisual),
     'inter-unit': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InteractionsInterUnitParams>) => ComplexRepresentation('Inter-unit interactions cylinder', ctx, getParams, InteractionsInterUnitVisual),
+    'bridge': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, BridgeParams>) => ComplexRepresentation('Bridge cylinder', ctx, getParams, BridgeVisual),
 };
 
 export const InteractionsParams = {
     ...InteractionsIntraUnitParams,
     ...InteractionsInterUnitParams,
+    ...BridgeParams,
     unitKinds: getUnitKindsParam(['atomic']),
     sizeFactor: PD.Numeric(0.2, { min: 0.01, max: 1, step: 0.01 }),
-    visuals: PD.MultiSelect(['intra-unit', 'inter-unit'], PD.objectToOptions(InteractionsVisuals)),
+    visuals: PD.MultiSelect(['intra-unit', 'inter-unit', 'bridge'], PD.objectToOptions(InteractionsVisuals)),
 };
 export type InteractionsParams = typeof InteractionsParams
 export function getInteractionParams(ctx: ThemeRegistryContext, structure: Structure) {
