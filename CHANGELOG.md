@@ -16,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix memory leak in `State.dispose()` not invoking transformer `dispose` callbacks for live cells
 - Fix bugs in ModelServer surroundingLigands endpoint, resulting in omitWater not honored
 - Fix `Volume` and `Isosurface` getBoundingSphere ignoring instances
+- Fix aromatic ring detection not accounting for hybridization
 - Add axis param to camera spin/rock animation
 - Fix SSAO half/quarter resolution textures for multi-scale
 - Non-covalent interactions: water bridge support
