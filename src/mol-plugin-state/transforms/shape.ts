@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
@@ -9,6 +10,8 @@ import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { BoxCage } from '../../mol-geo/primitive/box';
 import { Box3D, Sphere3D } from '../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
+import { shapeFromObj } from '../../mol-model-formats/shape/obj';
+import { shapeFromPly } from '../../mol-model-formats/shape/ply';
 import { Shape } from '../../mol-model/shape';
 import { Task } from '../../mol-task';
 import { ColorNames } from '../../mol-util/color/names';
@@ -67,3 +70,49 @@ export function getBoxMesh(box: Box3D, radius: number, oldMesh?: Mesh) {
 
     return mesh;
 }
+
+export { ShapeFromPly };
+type ShapeFromPly = typeof ShapeFromPly
+const ShapeFromPly = PluginStateTransform.BuiltIn({
+    name: 'shape-from-ply',
+    display: { name: 'Shape from PLY', description: 'Create Shape from PLY data' },
+    from: SO.Format.Ply,
+    to: SO.Shape.Provider,
+    params(a) {
+        return {
+            transforms: PD.Optional(PD.Value([Mat4.identity()], { isHidden: true })),
+            label: PD.Optional(PD.Text('', { isHidden: true }))
+        };
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Create shape from PLY', async ctx => {
+            const shape = await shapeFromPly(a.data, params).runInContext(ctx);
+            const props = { label: params.label || 'Shape' };
+            return new SO.Shape.Provider(shape, props);
+        });
+    }
+});
+
+export { ShapeFromObj };
+type ShapeFromObj = typeof ShapeFromObj
+const ShapeFromObj = PluginStateTransform.BuiltIn({
+    name: 'shape-from-obj',
+    display: { name: 'Shape from OBJ', description: 'Create Shape from OBJ data' },
+    from: SO.Format.Obj,
+    to: SO.Shape.Provider,
+    params(a) {
+        return {
+            transforms: PD.Optional(PD.Value([Mat4.identity()], { isHidden: true })),
+            label: PD.Optional(PD.Text('', { isHidden: true }))
+        };
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Create shape from OBJ', async ctx => {
+            const shape = await shapeFromObj(a.data, params).runInContext(ctx);
+            const props = { label: params.label || 'Shape' };
+            return new SO.Shape.Provider(shape, props);
+        });
+    }
+});
