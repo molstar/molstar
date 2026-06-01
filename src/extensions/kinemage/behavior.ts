@@ -162,7 +162,7 @@ export const ParseKinemage = Transform({
             }
 
             const label = params.label || data.kinemages[0]?.caption || 'Kinemage';
-            return new KinemageObject(data, { label, description: `Kinemage with ${data.kinemages.length} view(s)` });
+            return new KinemageObject(data, { label, description: `Kinemage with ${data.kinemages.length} kinemage(s)` });
         });
     }
 });
@@ -449,25 +449,25 @@ async function createShapesForKinemage(plugin: PluginContext, update: StateBuild
     // Generate all shape types that have data, each as child of the visibility controller
     if (kinData.dotLists.length > 0) {
         await update
-            .to(visControllerSelector)
+            .to(visControllerSelector.ref)
             .apply(KinemageShapePointsProvider, {}, { state: { isGhost: true } })
             .apply(StateTransforms.Representation.ShapeRepresentation3D);
     }
     if (kinData.vectorLists.length > 0) {
         await update
-            .to(visControllerSelector)
+            .to(visControllerSelector.ref)
             .apply(KinemageShapeLinesProvider, {}, { state: { isGhost: true } })
             .apply(StateTransforms.Representation.ShapeRepresentation3D);
     }
     if (kinData.ribbonLists.length > 0) {
         await update
-            .to(visControllerSelector)
+            .to(visControllerSelector.ref)
             .apply(KinemageShapeMeshProvider, {}, { state: { isGhost: true } })
             .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
     }
     if (kinData.ballLists.length > 0) {
         await update
-            .to(visControllerSelector)
+            .to(visControllerSelector.ref)
             .apply(KinemageShapeSpheresProvider, {}, { state: { isGhost: true } })
             .apply(StateTransforms.Representation.ShapeRepresentation3D);
     }
@@ -486,19 +486,42 @@ async function applyKinemageToState(plugin: PluginContext, data: string, label?:
     const parsedNode = dataNode
         .apply(ParseKinemage, { label });
 
-    // Select first kinemage (default)
-    const selectedNode = parsedNode
-        .apply(SelectKinemage, { index: 0 });
-
-    // Add visibility controller
-    const visControllerNode = selectedNode
-        .apply(KinemageVisibilityController, {});
-
     await update.commit();
 
-    // Now create shapes from the visibility controller
+    // Get the parsed kinemage object to see how many kinemages it contains
+    const parsedCell = plugin.state.data.cells.get(parsedNode.ref);
+    const kinemageData = parsedCell?.obj?.data as KinemageData | undefined;
+
+    if (!kinemageData || !kinemageData.kinemages || kinemageData.kinemages.length === 0) {
+        console.warn('No kinemages found in parsed data');
+        return undefined;
+    }
+
+    // Create a separate visibility controller and shapes for EACH kinemage
+    const visControllerSelectors: StateObjectSelector<PluginStateObject.Format.Json>[] = [];
+
+    for (let i = 0; i < kinemageData.kinemages.length; i++) {
+        const kinUpdate = plugin.state.data.build();
+
+        // Select this specific kinemage
+        const selectedNode = kinUpdate
+            .to(parsedNode.ref)
+            .apply(SelectKinemage, { index: i });
+
+        // Add visibility controller for this kinemage
+        const visControllerNode = selectedNode
+            .apply(KinemageVisibilityController, {});
+
+        await kinUpdate.commit();
+
+        visControllerSelectors.push(visControllerNode.selector);
+    }
+
+    // Now create shapes for all kinemages
     const shapeUpdate = plugin.state.data.build();
-    await createShapesForKinemage(plugin, shapeUpdate, visControllerNode.selector);
+    for (const visControllerSelector of visControllerSelectors) {
+        await createShapesForKinemage(plugin, shapeUpdate, visControllerSelector);
+    }
     await shapeUpdate.commit();
 
     // Wait for bounding sphere and focus camera
@@ -524,11 +547,11 @@ async function applyKinemageToState(plugin: PluginContext, data: string, label?:
         console.warn('Failed to apply initial kinemage view snapshot', e);
     }
 
-    return visControllerNode.selector;
+    return visControllerSelectors[0]; // Return first for backward compatibility
 }
 
 /** Programmatic loader: load a single File (a .kin) into the plugin state.
- * Returns the ref to the visibility controller node.
+ * Returns the ref to the first visibility controller node.
  */
 export async function loadKinemageFile(plugin: PluginContext, file: File): Promise<StateObjectSelector<PluginStateObject.Format.Json> | undefined> {
     const content = await file.text();
@@ -563,30 +586,53 @@ const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
                 .to(data)
                 .apply(ParseKinemage, {});
 
-            const selectedKin = builder
-                .apply(SelectKinemage, { index: 0 });
-
-            const visController = selectedKin
-                .apply(KinemageVisibilityController, {});
-
             await builder.commit();
 
-            // Return the selector for the visibility controller so visuals can use it
-            return { visController: visController.selector };
+            // Get the parsed data to see how many kinemages
+            const parsedRef = builder.selector.ref;
+            const parsedCell = plugin.state.data.cells.get(parsedRef);
+            const kinemageData = parsedCell?.obj?.data as KinemageData | undefined;
+
+            if (!kinemageData || !kinemageData.kinemages || kinemageData.kinemages.length === 0) {
+                console.warn('No kinemages found in parsed data');
+                return {};
+            }
+
+            // Create visibility controllers for all kinemages
+            const visControllers: StateObjectSelector<PluginStateObject.Format.Json>[] = [];
+
+            for (let i = 0; i < kinemageData.kinemages.length; i++) {
+                const kinBuilder = plugin.state.data.build();
+
+                const selectedKin = kinBuilder
+                    .to(parsedRef)
+                    .apply(SelectKinemage, { index: i });
+
+                const visController = selectedKin
+                    .apply(KinemageVisibilityController, {});
+
+                await kinBuilder.commit();
+                visControllers.push(visController.selector);
+            }
+
+            // Return all visibility controllers
+            return { visControllers };
         } catch (e) {
             console.error('Failed to parse KIN file', e);
             throw e;
         }
     },
     visuals: async (plugin, data) => {
-        if (!data?.visController) {
-            console.warn('[Kinemage] visuals: no visController ref provided');
+        if (!data?.visControllers || !Array.isArray(data.visControllers)) {
+            console.warn('[Kinemage] visuals: no visControllers array provided');
             return;
         }
 
-        // Create shapes from the visibility controller
+        // Create shapes for all kinemages
         const shapeBuilder = plugin.state.data.build();
-        await createShapesForKinemage(plugin, shapeBuilder, data.visController);
+        for (const visController of data.visControllers) {
+            await createShapesForKinemage(plugin, shapeBuilder, visController);
+        }
         await shapeBuilder.commit();
 
         // Wait for bounding sphere and focus camera
