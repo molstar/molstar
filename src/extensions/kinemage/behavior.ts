@@ -283,7 +283,7 @@ export const KinemageShapePointsProvider = Transform({
         return Task.create('Kinemage Points Shape Provider', async ctx => {
             const kinData = (a.data as any).kinData as Kinemage;
             const visibilityState = (a.data as any).visibilityState as KinemageVisibilityState | undefined;
-            
+
             if (!kinData) {
                 throw new Error('No kinData found in parent Format.Json node');
             }
@@ -308,7 +308,7 @@ export const KinemageShapeLinesProvider = Transform({
         return Task.create('Kinemage Lines Shape Provider', async ctx => {
             const kinData = (a.data as any).kinData as Kinemage;
             const visibilityState = (a.data as any).visibilityState as KinemageVisibilityState | undefined;
-            
+
             if (!kinData) {
                 throw new Error('No kinData found in parent Format.Json node');
             }
@@ -333,7 +333,7 @@ export const KinemageShapeMeshProvider = Transform({
         return Task.create('Kinemage Mesh Shape Provider', async ctx => {
             const kinData = (a.data as any).kinData as Kinemage;
             const visibilityState = (a.data as any).visibilityState as KinemageVisibilityState | undefined;
-            
+
             if (!kinData) {
                 throw new Error('No kinData found in parent Format.Json node');
             }
@@ -358,7 +358,7 @@ export const KinemageShapeSpheresProvider = Transform({
         return Task.create('Kinemage Spheres Shape Provider', async ctx => {
             const kinData = (a.data as any).kinData as Kinemage;
             const visibilityState = (a.data as any).visibilityState as KinemageVisibilityState | undefined;
-            
+
             if (!kinData) {
                 throw new Error('No kinData found in parent Format.Json node');
             }

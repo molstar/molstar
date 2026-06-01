@@ -107,7 +107,7 @@ function getVisibility(group: string, subGroup: string, masters: string[], kin: 
     }
 
     // Use visibility state - all conditions must be true (AND logic)
-    
+
     // Check all masters - if ANY master is not visible, return false
     for (let m = 0; m < masters.length; m++) {
         const masterName = masters[m];
