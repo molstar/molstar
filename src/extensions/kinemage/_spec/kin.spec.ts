@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author ReliaSolve <russ@reliasolve.com>
  */
@@ -44,8 +44,13 @@ const kinComplexString = `@kinemage 1
 describe('kin reader', () => {
     it('basic', async () => {
         const parsed = await parseKin(kinString).run();
-        if (parsed.isError) return;
-        if (parsed.result.length !== 1) return;
+        if (parsed.isError) {
+            console.error('Parse error:', parsed);
+            fail('Parse should not error');
+        }
+        if (parsed.result.length !== 1) {
+            fail(`Expected 1 kinemage, got ${parsed.result.length}`);
+        }
         const kinemage = parsed.result[0];
 
         const vectors = kinemage.vectorLists;
@@ -53,18 +58,32 @@ describe('kin reader', () => {
 
         const element = vectors[0];
         expect(element.name).toEqual('x');
-        expect(element.position1Array.length).toEqual(7);
+        expect(element.position1Array.length).toEqual(7*3);
 
-        // TODO: Add more tests
+        // Test that colors are parsed correctly
+        expect(element.color1Array.length).toEqual(7);
 
-        expect.assertions(3);
+        // Test masters are set up
+        expect(element.masterArray).toContain('bad overlap');
+
+        expect.assertions(5);
     });
 
     it('complex', async () => {
         const parsed = await parseKin(kinComplexString).run();
-        if (parsed.isError) return;
+        if (parsed.isError) {
+            fail('Parse should not error');
+        }
 
-        // TODO: Add more complex tests
+        expect(parsed.result.length).toBeGreaterThan(0);
+        const kinemage = parsed.result[0];
 
+        // Verify structure is valid
+        expect(kinemage.vectorLists).toBeDefined();
+        expect(kinemage.masterDict).toBeDefined();
+        expect(kinemage.groupDict).toBeDefined();
+
+        expect.assertions(4);
     });
+
 });
