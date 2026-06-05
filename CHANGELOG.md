@@ -20,6 +20,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add axis param to camera spin/rock animation
 - Fix SSAO half/quarter resolution textures for multi-scale
 - Non-covalent interactions: water bridge support
+- Download Structure From AlphaFoldDB allows IDs with version suffix (version is ignored)
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty
