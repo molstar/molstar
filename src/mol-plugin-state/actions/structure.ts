@@ -76,7 +76,18 @@ const DownloadStructure = StateAction.build({
                 }, { isFlat: true, label: 'SWISS-MODEL', description: 'Loads the best homology model or experimental structure' }),
                 'alphafolddb': PD.Group({
                     provider: PD.Group({
-                        id: PD.Text('Q8W3K0', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
+                        id: PD.Text('Q8W3K0', {
+                            label: 'ID(s)',
+                            description: 'One or more comma/space separated IDs. Each ID can be either UniProt accession (e.g. Q14676, Q14676-2) or AlphaFoldDB model entity ID (e.g. AF-Q14676-F1, AF-Q14676-2-F1, AF-0000000066074510). Do NOT include version suffix (e.g. -v6).',
+                            // Q14676                 OK   (bare Uniprot acc, returns all isoforms)
+                            // Q14676-4               OK   (isoform Uniprot acc)
+                            // AF-Q14676-F1           OK   (model entity id, canonical isoform)
+                            // AF-Q14676-4-F1         OK   (model entity id, other isoform)
+                            // AF-0000000066074510    OK   (model entity id, NVIDIA)
+                            // AF-Q14676-4-F1-v6      FAIL (model version)
+                            // AF-0000000066074510-v1 FAIL (model version)
+                            // 0000000066074510       FAIL (not a complete model entity id)
+                        }),
                         encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
                     }, { pivot: 'id' }),
                     options
