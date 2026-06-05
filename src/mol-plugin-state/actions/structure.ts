@@ -78,15 +78,7 @@ const DownloadStructure = StateAction.build({
                     provider: PD.Group({
                         id: PD.Text('Q8W3K0', {
                             label: 'ID(s)',
-                            description: 'One or more comma/space separated IDs. Each ID can be either UniProt accession (e.g. Q14676, Q14676-2) or AlphaFoldDB model entity ID (e.g. AF-Q14676-F1, AF-Q14676-2-F1, AF-0000000066074510). Do NOT include version suffix (e.g. -v6).',
-                            // Q14676                 OK   (bare Uniprot acc, returns all isoforms)
-                            // Q14676-4               OK   (isoform Uniprot acc)
-                            // AF-Q14676-F1           OK   (model entity id, canonical isoform)
-                            // AF-Q14676-4-F1         OK   (model entity id, other isoform)
-                            // AF-0000000066074510    OK   (model entity id, NVIDIA)
-                            // AF-Q14676-4-F1-v6      FAIL (model version)
-                            // AF-0000000066074510-v1 FAIL (model version)
-                            // 0000000066074510       FAIL (not a complete model entity id)
+                            description: 'One or more comma/space separated IDs. Each ID can be either UniProt accession (e.g. Q14676, Q14676-2) or AlphaFoldDB model entity ID (e.g. AF-Q14676-F1, AF-Q14676-2-F1, AF-0000000066074510). Version suffixes (e.g. -v1) will be ignored and the newest model version will be downloaded.',
                         }),
                         encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
                     }, { pivot: 'id' }),
@@ -163,7 +155,11 @@ const DownloadStructure = StateAction.build({
         case 'alphafolddb':
             downloadParams = await getDownloadParams(src.params.provider.id,
                 async id => {
-                    const url = `https://www.alphafold.ebi.ac.uk/api/prediction/${id.toUpperCase()}`;
+                    // id = UniProt accession: Q14676, Q14676-4
+                    // id = model entity ID: AF-Q14676-F1, AF-Q14676-4-F1, AF-0000000066074510
+                    // id = model entity ID + version to be ignored: AF-Q14676-4-F1-v6, AF-0000000066074510-v1
+                    const cleanId = id.replace(/-v\d+$/i, '').toUpperCase(); // Ignore version suffix (e.g. "-v6") because it is not a part of the ID, but displayed on AFDB page and people often copy-paste it
+                    const url = `https://www.alphafold.ebi.ac.uk/api/prediction/${cleanId}`;
                     const info = await plugin.runTask(plugin.fetch({ url, type: 'json' }));
                     if (Array.isArray(info) && info.length > 0) {
                         const prop = src.params.provider.encoding === 'bcif' ? 'bcifUrl' : 'cifUrl';
