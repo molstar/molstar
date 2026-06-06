@@ -14,6 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add mesoscale representation preset
 - Add presets option to `ObjectList` param definition
 - Fix memory leak in `State.dispose()` not invoking transformer `dispose` callbacks for live cells
+- Adds File/Open and drag-and-drop support for Kinemage files in the viewer app
 - Fix bugs in ModelServer surroundingLigands endpoint, resulting in omitWater not honored
 - Fix `Volume` and `Isosurface` getBoundingSphere ignoring instances
 - Fix aromatic ring detection not accounting for hybridization
