@@ -48,6 +48,7 @@ export const SphericalHarmonicSurfaceMeshParams = {
     ...ColorSmoothingParams,
     sphericalHarmonicL: PD.Numeric(8, { min: 2, max: 20, step: 1 }, { description: 'Maximum spherical harmonic degree. Higher values follow the molecular surface more closely.' }),
     reconstructionDetail: PD.Numeric(3, { min: 1, max: 5, step: 1 }, { description: 'Triangulation detail of the reconstructed sphere mesh.' }),
+    fitSource: PD.Select('surface', [['surface', 'Molecular surface'], ['atoms', 'Atom positions']] as const, { description: 'Fit the spherical harmonics to the molecular surface, or directly to atom positions (faster, blobbier, no surface step).' }),
 };
 export type SphericalHarmonicSurfaceMeshParams = typeof SphericalHarmonicSurfaceMeshParams
 export type SphericalHarmonicSurfaceMeshProps = PD.Values<SphericalHarmonicSurfaceMeshParams>
@@ -76,7 +77,7 @@ function getSphere(detail: number) {
 /** Props that affect the base molecular surface (i.e. everything except L and reconstruction detail). */
 function surfaceCacheKey(id: string, props: SphericalHarmonicSurfaceMeshProps) {
     return [
-        id, props.probeRadius, props.resolution, props.probePositions,
+        id, props.fitSource, props.probeRadius, props.resolution, props.probePositions,
         props.ignoreHydrogens, props.ignoreHydrogensVariant, props.traceOnly,
         props.includeParent, props.floodfill,
     ].join('|');
@@ -146,34 +147,120 @@ function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMeta, pr
     return surface;
 }
 
-/** Populate the base-surface cache in `surface.meta` from a freshly computed molecular surface. */
-function populateCache(surface: Mesh, center: Vec3, boundingSphere: Sphere3D, resolution: number, cacheKey: string) {
-    const meta = surface.meta as SphericalHarmonicSurfaceMeta;
-    const vertexCount = surface.vertexCount;
-    const vb = surface.vertexBuffer.ref.value;
-    const gb = surface.groupBuffer.ref.value;
-
-    const shVertices = vb.slice(0, vertexCount * 3);
-    const shGroups = gb.slice(0, vertexCount);
-
-    const x = new Float32Array(vertexCount);
-    const y = new Float32Array(vertexCount);
-    const z = new Float32Array(vertexCount);
-    for (let i = 0; i < vertexCount; ++i) {
-        x[i] = shVertices[i * 3];
-        y[i] = shVertices[i * 3 + 1];
-        z[i] = shVertices[i * 3 + 2];
+/**
+ * Populate the base cache in `meta` from an explicit point cloud (interleaved xyz) and per-point
+ * group ids. Used by both the surface path (marching-cubes vertices) and the atom-cloud path.
+ */
+function populateCacheFromPoints(meta: SphericalHarmonicSurfaceMeta, points: Float32Array, groups: Float32Array, center: Vec3, boundingSphere: Sphere3D, resolution: number, cacheKey: string) {
+    const n = points.length / 3;
+    const x = new Float32Array(n);
+    const y = new Float32Array(n);
+    const z = new Float32Array(n);
+    for (let i = 0; i < n; ++i) {
+        x[i] = points[i * 3];
+        y[i] = points[i * 3 + 1];
+        z[i] = points[i * 3 + 2];
     }
-    const position = { x, y, z, indices: OrderedSet.ofRange(0, vertexCount) };
-    const shLookup = vertexCount > 0 ? GridLookup3D(position, getBoundary(position)) : undefined;
+    const position = { x, y, z, indices: OrderedSet.ofRange(0, n) };
+    const shLookup = n > 0 ? GridLookup3D(position, getBoundary(position)) : undefined;
 
     meta.shCacheKey = cacheKey;
     meta.shCenter = Vec3.clone(center);
-    meta.shVertices = shVertices;
-    meta.shGroups = shGroups;
+    meta.shVertices = points;
+    meta.shGroups = groups;
     meta.shLookup = shLookup;
     meta.shBoundingSphere = Sphere3D.clone(boundingSphere);
     meta.resolution = resolution;
+}
+
+/** Populate the base-surface cache in `surface.meta` from a freshly computed molecular surface. */
+function populateCache(surface: Mesh, center: Vec3, boundingSphere: Sphere3D, resolution: number, cacheKey: string) {
+    const vertexCount = surface.vertexCount;
+    const points = surface.vertexBuffer.ref.value.slice(0, vertexCount * 3);
+    const groups = surface.groupBuffer.ref.value.slice(0, vertexCount);
+    populateCacheFromPoints(surface.meta as SphericalHarmonicSurfaceMeta, points, groups, center, boundingSphere, resolution, cacheKey);
+}
+
+/**
+ * Build an SH-fitting point cloud from atom positions: each atom is pushed outward by its radius
+ * (size + probe) along the centroid->atom direction so the fit tracks the surface envelope rather
+ * than the (inward-biased) atom centers. `ids[i]` is the group id carried to the reconstructed mesh.
+ */
+function buildAtomCloud(xs: number[], ys: number[], zs: number[], rs: number[], ids: number[]) {
+    const n = xs.length;
+    const position = { x: xs, y: ys, z: zs, radius: rs, indices: OrderedSet.ofRange(0, n) };
+    const boundary = getBoundary(position);
+    const center = boundary.sphere.center;
+    const cx = center[0], cy = center[1], cz = center[2];
+
+    const points = new Float32Array(n * 3);
+    const groups = new Float32Array(n);
+    let maxRadius = 0;
+    for (let i = 0; i < n; ++i) {
+        const dx = xs[i] - cx, dy = ys[i] - cy, dz = zs[i] - cz;
+        const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        const r = rs[i];
+        if (r > maxRadius) maxRadius = r;
+        if (len > 1e-3) {
+            const push = r / len; // push outward by the atom radius
+            points[i * 3] = xs[i] + dx * push;
+            points[i * 3 + 1] = ys[i] + dy * push;
+            points[i * 3 + 2] = zs[i] + dz * push;
+        } else {
+            points[i * 3] = xs[i]; points[i * 3 + 1] = ys[i]; points[i * 3 + 2] = zs[i];
+        }
+        groups[i] = ids[i];
+    }
+    const boundingSphere = Sphere3D.expand(Sphere3D(), boundary.sphere, maxRadius);
+    return { points, groups, center: Vec3.clone(center), boundingSphere, maxRadius };
+}
+
+/** Reconstruct an SH blob directly from an atom point cloud (no molecular surface). */
+function reconstructFromAtomCloud(cloud: ReturnType<typeof buildAtomCloud>, props: SphericalHarmonicSurfaceMeshProps, resolution: number, cacheKey: string, ctx: VisualContext, mesh?: Mesh): Mesh {
+    const target = mesh ?? Mesh.createEmpty();
+    populateCacheFromPoints(target.meta as SphericalHarmonicSurfaceMeta, cloud.points, cloud.groups, cloud.center, cloud.boundingSphere, resolution, cacheKey);
+    return reconstructSphericalHarmonicMesh(target.meta as SphericalHarmonicSurfaceMeta, props, ctx, target);
+}
+
+/** Atom arrays (model coords) for one unit, with group id = index into unit.elements. */
+function getUnitAtomArrays(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, props: SphericalHarmonicSurfaceMeshProps) {
+    const { probeRadius, ignoreHydrogens, ignoreHydrogensVariant, traceOnly } = props;
+    const { x, y, z } = getConformation(unit);
+    const { elements } = unit;
+    const l = StructureElement.Location.create(structure, unit);
+    const xs: number[] = [], ys: number[] = [], zs: number[] = [], rs: number[] = [], ids: number[] = [];
+    for (let j = 0, jl = elements.length; j < jl; ++j) {
+        const eI = elements[j];
+        if (ignoreHydrogens && isHydrogen(structure, unit, eI, ignoreHydrogensVariant)) continue;
+        if (traceOnly && !isTrace(unit, eI)) continue;
+        xs.push(x[eI]); ys.push(y[eI]); zs.push(z[eI]);
+        l.element = eI;
+        rs.push(sizeTheme.size(l) + probeRadius);
+        ids.push(j);
+    }
+    return { xs, ys, zs, rs, ids };
+}
+
+/** Atom arrays (world coords) for the whole structure, with group id = serial element index. */
+function getStructureAtomArrays(structure: Structure, sizeTheme: SizeTheme<any>, props: SphericalHarmonicSurfaceMeshProps) {
+    const { probeRadius, ignoreHydrogens, ignoreHydrogensVariant, traceOnly } = props;
+    const { getSerialIndex } = structure.serialMapping;
+    const l = StructureElement.Location.create(structure);
+    const xs: number[] = [], ys: number[] = [], zs: number[] = [], rs: number[] = [], ids: number[] = [];
+    for (const unit of structure.units) {
+        const { elements, conformation: c } = unit;
+        l.unit = unit;
+        for (let j = 0, jl = elements.length; j < jl; ++j) {
+            const eI = elements[j];
+            if (ignoreHydrogens && isHydrogen(structure, unit, eI, ignoreHydrogensVariant)) continue;
+            if (traceOnly && !isTrace(unit, eI)) continue;
+            xs.push(c.x(eI)); ys.push(c.y(eI)); zs.push(c.z(eI));
+            l.element = eI;
+            rs.push(sizeTheme.size(l) + probeRadius);
+            ids.push(getSerialIndex(unit, eI));
+        }
+    }
+    return { xs, ys, zs, rs, ids };
 }
 
 //
@@ -183,6 +270,12 @@ async function createSphericalHarmonicSurfaceMesh(ctx: VisualContext, unit: Unit
     const meta = mesh?.meta as SphericalHarmonicSurfaceMeta | undefined;
     if (mesh && meta && meta.shCacheKey === cacheKey && meta.shVertices) {
         return reconstructSphericalHarmonicMesh(meta, props, ctx, mesh);
+    }
+
+    if (props.fitSource === 'atoms') {
+        const { xs, ys, zs, rs, ids } = getUnitAtomArrays(structure, unit, theme.size, props);
+        const cloud = buildAtomCloud(xs, ys, zs, rs, ids);
+        return reconstructFromAtomCloud(cloud, props, props.resolution, cacheKey, ctx, mesh);
     }
 
     const { transform, field, idField, resolution, maxRadius } = await computeUnitMolecularSurface(structure, unit, theme.size, props).runInContext(ctx.runtime);
@@ -221,7 +314,8 @@ export function SphericalHarmonicSurfaceMeshVisual(materialId: number): UnitsVis
                 newProps.includeParent !== currentProps.includeParent ||
                 newProps.floodfill !== currentProps.floodfill ||
                 newProps.sphericalHarmonicL !== currentProps.sphericalHarmonicL ||
-                newProps.reconstructionDetail !== currentProps.reconstructionDetail
+                newProps.reconstructionDetail !== currentProps.reconstructionDetail ||
+                newProps.fitSource !== currentProps.fitSource
             );
 
             if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
@@ -252,6 +346,12 @@ async function createStructureSphericalHarmonicSurfaceMesh(ctx: VisualContext, s
     const meta = mesh?.meta as SphericalHarmonicSurfaceMeta | undefined;
     if (mesh && meta && meta.shCacheKey === cacheKey && meta.shVertices) {
         return reconstructSphericalHarmonicMesh(meta, props, ctx, mesh);
+    }
+
+    if (props.fitSource === 'atoms') {
+        const { xs, ys, zs, rs, ids } = getStructureAtomArrays(structure, theme.size, props);
+        const cloud = buildAtomCloud(xs, ys, zs, rs, ids);
+        return reconstructFromAtomCloud(cloud, props, props.resolution, cacheKey, ctx, mesh);
     }
 
     const { transform, field, idField, resolution, maxRadius } = await computeStructureMolecularSurface(structure, theme.size, props).runInContext(ctx.runtime);
@@ -290,7 +390,8 @@ export function StructureSphericalHarmonicSurfaceMeshVisual(materialId: number):
                 newProps.includeParent !== currentProps.includeParent ||
                 newProps.floodfill !== currentProps.floodfill ||
                 newProps.sphericalHarmonicL !== currentProps.sphericalHarmonicL ||
-                newProps.reconstructionDetail !== currentProps.reconstructionDetail
+                newProps.reconstructionDetail !== currentProps.reconstructionDetail ||
+                newProps.fitSource !== currentProps.fitSource
             );
 
             if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
@@ -417,6 +518,12 @@ async function createProtomerSphericalHarmonicSurfaceMesh(ctx: VisualContext, st
         return reconstructSphericalHarmonicMesh(meta, props, ctx, mesh);
     }
 
+    if (props.fitSource === 'atoms') {
+        const { position } = getProtomerPositionDataAndMaxRadius(structure, theme.size, props);
+        const cloud = buildAtomCloud(position.x, position.y, position.z, position.radius, position.id);
+        return reconstructFromAtomCloud(cloud, props, props.resolution, cacheKey, ctx, mesh);
+    }
+
     const { position, boundary, maxRadius } = getProtomerPositionDataAndMaxRadius(structure, theme.size, props);
     const p = ensureReasonableResolution(boundary.box, props);
     const { transform, field, idField, resolution } = await Task.create('Protomer Molecular Surface', async runtime => {
@@ -506,7 +613,8 @@ export function ProtomerSphericalHarmonicSurfaceMeshVisual(materialId: number): 
                 newProps.traceOnly !== currentProps.traceOnly ||
                 newProps.floodfill !== currentProps.floodfill ||
                 newProps.sphericalHarmonicL !== currentProps.sphericalHarmonicL ||
-                newProps.reconstructionDetail !== currentProps.reconstructionDetail
+                newProps.reconstructionDetail !== currentProps.reconstructionDetail ||
+                newProps.fitSource !== currentProps.fitSource
             );
 
             if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
