@@ -597,7 +597,7 @@ export namespace Loci {
         for (const [unitId, indexSet] of elementsByUnit.entries()) {
             const unit = loci.structure.unitMap.get(unitId)!;
             const indices = Array.from(indexSet) as UnitIndex[];
-            indices.sort((a, b) => a - b);
+            sortArray(indices);
             elements.push({ unit, indices: makeIndexSet(indices) });
         }
 
