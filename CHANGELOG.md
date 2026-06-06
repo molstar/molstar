@@ -22,6 +22,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix SSAO half/quarter resolution textures for multi-scale
 - Non-covalent interactions: water bridge support
 - Download Structure From AlphaFoldDB allows IDs with version suffix (version is ignored)
+- Add `loadUrl` method and GET params to Viewer app
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty
