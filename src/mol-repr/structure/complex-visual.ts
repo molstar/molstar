@@ -11,7 +11,7 @@ import { Bond, Structure, StructureElement } from '../../mol-model/structure';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
-import { createIdentityTransform } from '../../mol-geo/geometry/transform-data';
+import { createIdentityTransform, TransformData } from '../../mol-geo/geometry/transform-data';
 import { createRenderObject, GraphicsRenderObject, RenderObjectValues } from '../../mol-gl/render-object';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
@@ -47,9 +47,8 @@ import { Image } from '../../mol-geo/geometry/image/image';
 
 export interface ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
-function createComplexRenderObject<G extends Geometry>(structure: Structure, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>, materialId: number) {
+function createComplexRenderObject<G extends Geometry>(structure: Structure, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>, materialId: number, transform: TransformData) {
     const { createValues, createRenderableState } = Geometry.getUtils(geometry);
-    const transform = createIdentityTransform();
     const values = createValues(geometry, transform, locationIt, theme, props);
     const state = createRenderableState(props);
     return createRenderObject(geometry.kind, values, state, materialId);
@@ -61,6 +60,8 @@ interface ComplexVisualBuilder<P extends StructureParams, G extends Geometry> {
     createLocationIterator(structure: Structure, props: PD.Values<P>): LocationIterator
     getLoci(pickingId: PickingId, structure: Structure, id: number): Loci
     eachLocation(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean): boolean,
+    /** Optional per-instance transforms (e.g. assembly operators). Defaults to a single identity instance. */
+    createInstances?(structure: Structure, props: PD.Values<P>, geometry: G, transformData?: TransformData): TransformData
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure): void
     mustRecreate?: (structure: Structure, props: PD.Values<P>) => boolean
     processValues?: (values: RenderObjectValues<G['kind']>, geometry: G, props: PD.Values<P>, theme: Theme, webgl?: WebGLContext) => void
@@ -72,7 +73,7 @@ interface ComplexVisualGeometryBuilder<P extends StructureParams, G extends Geom
 }
 
 export function ComplexVisual<G extends Geometry, P extends StructureParams & Geometry.Params<G>>(builder: ComplexVisualGeometryBuilder<P, G>, materialId: number): ComplexVisual<P> {
-    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate, processValues, dispose } = builder;
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, createInstances, setUpdateState, mustRecreate, processValues, dispose } = builder;
     const { updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();
     const previousMark: Visual.PreviousMark = { loci: EmptyLoci, action: MarkerAction.None, status: -1 };
@@ -156,7 +157,10 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         if (updateState.createNew) {
             locationIt = createLocationIterator(newStructure, newProps);
             if (newGeometry) {
-                renderObject = createComplexRenderObject(newStructure, newGeometry, locationIt, newTheme, newProps, materialId);
+                const transform = createInstances
+                    ? createInstances(newStructure, newProps, newGeometry)
+                    : createIdentityTransform();
+                renderObject = createComplexRenderObject(newStructure, newGeometry, locationIt, newTheme, newProps, materialId, transform);
                 positionIt = createPositionIterator(newGeometry, renderObject.values);
             } else {
                 throw new Error('expected geometry to be given');
@@ -178,6 +182,11 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
                     createMarkers(instanceCount, 'instance', renderObject.values);
                 } else {
                     createMarkers(instanceCount * groupCount, 'groupInstance', renderObject.values);
+                }
+
+                // keep custom per-instance transforms (e.g. assembly operators) in sync with the structure
+                if (createInstances) {
+                    createInstances(newStructure, newProps, newGeometry || geometry, renderObject.values);
                 }
             }
 

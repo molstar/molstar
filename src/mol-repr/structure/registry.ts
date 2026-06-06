@@ -24,6 +24,7 @@ import { GaussianVolumeRepresentationProvider } from './representation/gaussian-
 import { BackboneRepresentationProvider } from './representation/backbone';
 import { PolyhedronRepresentationProvider } from './representation/polyhedron';
 import { PlaneRepresentationProvider } from './representation/plane';
+import { SphericalHarmonicSurfaceRepresentationProvider } from './representation/spherical-harmonic-surface';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure, StructureRepresentationState> {
     constructor() {
@@ -53,6 +54,7 @@ export namespace StructureRepresentationRegistry {
         'putty': PuttyRepresentationProvider,
         'spacefill': SpacefillRepresentationProvider,
         'polyhedron': PolyhedronRepresentationProvider,
+        'spherical-harmonic-surface': SphericalHarmonicSurfaceRepresentationProvider,
     };
 
     type _BuiltIn = typeof BuiltIn
