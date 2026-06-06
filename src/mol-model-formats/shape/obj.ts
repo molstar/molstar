@@ -14,68 +14,87 @@ import { Shape } from '../../mol-model/shape';
 import { ChunkedArray } from '../../mol-data/util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ColorNames } from '../../mol-util/color/names';
-import { deepClone } from '../../mol-util/object';
 import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 import { distinctColors } from '../../mol-util/color/distinct';
-import { ValueCell } from '../../mol-util/value-cell';
 
 export type ObjData = {
     source: ObjFile,
     transforms?: Mat4[],
 }
 
-export const ObjShapeParams = {
-    ...Mesh.Params,
-    coloring: PD.MappedStatic('group', {
-        group: PD.Group({}),
-        uniform: PD.Group({
-            color: PD.Color(ColorNames.grey),
-        }, { isFlat: true })
-    }),
-};
+function createObjShapeParams(objFile?: ObjFile) {
+    const materialNames = objFile?.materialNames ?? [];
+    const hasMaterials = materialNames.length > 0;
+
+    const defaultColors = materialNames.length > 1
+        ? distinctColors(materialNames.length)
+        : materialNames.length === 1 ? [ColorNames.grey] : [];
+
+    const materialColorParams: Record<string, PD.Color> = {};
+    for (let i = 0; i < materialNames.length; ++i) {
+        materialColorParams[materialNames[i]] = PD.Color(defaultColors[i]);
+    }
+
+    return {
+        ...Mesh.Params,
+        coloring: PD.MappedStatic(hasMaterials ? 'material' : 'uniform', {
+            uniform: PD.Group({
+                color: PD.Color(ColorNames.grey),
+            }, { isFlat: true }),
+            material: PD.Group(materialColorParams, { isFlat: false }),
+        }),
+    };
+}
+
+export const ObjShapeParams = createObjShapeParams();
 export type ObjShapeParams = typeof ObjShapeParams
 
 /**
- * Build an expanded mesh from indexed OBJ data.
+ * Resolve one Color per material group from the current params.
+ * The returned array has length = max(1, materialNames.length).
+ */
+function getMaterialColors(materialNames: readonly string[], props: PD.Values<ObjShapeParams>): Color[] {
+    const count = Math.max(1, materialNames.length);
+    const { coloring } = props;
+    if (coloring.name === 'uniform') {
+        return Array<Color>(count).fill(coloring.params.color);
+    } else {
+        // material: read one color per material name from dynamic params
+        if (materialNames.length === 0) return [ColorNames.grey];
+        const params = coloring.params as Record<string, Color>;
+        return materialNames.map(name => params[name] ?? ColorNames.grey);
+    }
+}
+
+/**
+ * Build a mesh from indexed OBJ data.
  *
  * OBJ stores positions and normals as indexed arrays (each face-vertex
  * references a position index and an optional normal index). Mesh.create
  * requires a flat vertex array, so we expand the indexed data.
  *
- * A vertex key encodes (posIdx, normIdx, groupIdx) so that a position
- * shared between faces of different material groups or with different normals
- * gets a distinct mesh vertex — ensuring each vertex has one unambiguous
- * group ID and normal.
+ * A vertex key encodes (posIdx, normIdx) so that a shared position with
+ * different normals gets a distinct mesh vertex.
  */
 async function getMesh(ctx: RuntimeContext, obj: ObjFile, mesh?: Mesh): Promise<Mesh> {
-    const { positions, normals, positionIndices, normalIndices, groupIndices, triangleCount } = obj;
+    const { positions, normals, positionIndices, normalIndices, triangleCount, faceGroups } = obj;
     const hasNormals = obj.normalCount > 0;
 
     const builderState = MeshBuilder.createState(triangleCount * 3, triangleCount, mesh);
     const { vertices, normals: normBuf, indices, groups } = builderState;
 
-    // Group count for the composite dedup key; groups always contains at least 'default'.
-    const groupCount = Math.max(1, obj.groups.length);
+    const updateChunk = 50000;
 
-    // Map from position index to a map of (normal index, group) composite keys to expanded vertex index.
-    // Avoids allocating a string key per face-vertex on the hot path.
-    const vertexMap = new Map<number, Map<number, number>>();
+    for (let t = 0; t < triangleCount; ++t) {
+        const triOffset = t * 3;
+        const base = t * 3;
 
-    const getVertex = (pi: number, ni: number, groupId: number): number => {
-        let inner = vertexMap.get(pi);
-        if (inner === undefined) {
-            inner = new Map<number, number>();
-            vertexMap.set(pi, inner);
-        }
-        const subKey = (ni + 1) * groupCount + groupId;
-        let idx = inner.get(subKey);
-        if (idx === undefined) {
-            idx = vertices.elementCount;
-            inner.set(subKey, idx);
-
+        for (let v = 0; v < 3; ++v) {
+            const pi = positionIndices[triOffset + v];
             const po = pi * 3;
             ChunkedArray.add3(vertices, positions[po], positions[po + 1], positions[po + 2]);
 
+            const ni = hasNormals ? normalIndices[triOffset + v] : -1;
             if (hasNormals && ni >= 0) {
                 const no = ni * 3;
                 ChunkedArray.add3(normBuf, normals[no], normals[no + 1], normals[no + 2]);
@@ -83,22 +102,10 @@ async function getMesh(ctx: RuntimeContext, obj: ObjFile, mesh?: Mesh): Promise<
                 ChunkedArray.add3(normBuf, 0, 0, 0);
             }
 
-            ChunkedArray.add(groups, groupId);
+            ChunkedArray.add(groups, faceGroups[t]);
         }
-        return idx;
-    };
 
-    const updateChunk = 50000;
-
-    for (let t = 0; t < triangleCount; ++t) {
-        const triOffset = t * 3;
-        const groupId = groupIndices[t];
-
-        const i0 = getVertex(positionIndices[triOffset], hasNormals ? normalIndices[triOffset] : -1, groupId);
-        const i1 = getVertex(positionIndices[triOffset + 1], hasNormals ? normalIndices[triOffset + 1] : -1, groupId);
-        const i2 = getVertex(positionIndices[triOffset + 2], hasNormals ? normalIndices[triOffset + 2] : -1, groupId);
-
-        ChunkedArray.add3(indices, i0, i1, i2);
+        ChunkedArray.add3(indices, base, base + 1, base + 2);
 
         if (t % updateChunk === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'Building OBJ mesh', current: t, max: triangleCount });
@@ -108,73 +115,47 @@ async function getMesh(ctx: RuntimeContext, obj: ObjFile, mesh?: Mesh): Promise<
     const m = MeshBuilder.getMesh(builderState);
     if (!hasNormals) Mesh.computeNormals(m);
 
-    ValueCell.updateIfChanged(m.varyingGroup, true);
-
     return m;
 }
 
-type GroupColors = { kind: 'group', colors: Color[] } | { kind: 'uniform', color: Color }
-
-function getColoring(obj: ObjFile, props: PD.Values<ObjShapeParams>): GroupColors {
-    const { coloring } = props;
-    if (coloring.name === 'uniform') {
-        return { kind: 'uniform', color: coloring.params.color };
-    }
-    // Generate distinct colors for each group
-    const n = Math.max(1, obj.groups.length);
-    const colors = distinctColors(n);
-    return { kind: 'group', colors };
-}
-
-function createShape(objData: ObjData, mesh: Mesh, groupColors: GroupColors) {
+function createShape(objData: ObjData, mesh: Mesh, colors: Color[]) {
     const { source, transforms } = objData;
+    const { materialNames } = source;
     return Shape.create(
         'obj-mesh', source, mesh,
-        (groupId: number) => {
-            if (groupColors.kind === 'uniform') return groupColors.color;
-            const idx = Math.min(groupId, groupColors.colors.length - 1);
-            return groupColors.colors[idx];
-        },
+        (groupId: number) => colors[Math.min(groupId, colors.length - 1)],
         () => 1,
-        (groupId: number) => {
-            const name = source.groups[groupId] ?? `Group ${groupId}`;
-            return name;
-        },
-        transforms
+        (groupId: number) => materialNames.length > 0 ? (materialNames[groupId] ?? 'OBJ Mesh') : 'OBJ Mesh',
+        transforms,
+        colors.length
     );
 }
 
 function makeShapeGetter() {
     let _objData: ObjData | undefined;
-    let _props: PD.Values<ObjShapeParams> | undefined;
+    let _colors: Color[] | undefined;
 
     let _shape: Shape<Mesh>;
     let _mesh: Mesh;
-    let _groupColors: GroupColors;
 
     const getShape = async (ctx: RuntimeContext, objData: ObjData, props: PD.Values<ObjShapeParams>, shape?: Shape<Mesh>) => {
-        let newMesh = false;
-        let newColor = false;
+        const newMesh = !_objData || _objData !== objData;
 
-        if (!_objData || _objData !== objData) {
-            newMesh = true;
-        }
-
-        if (!_props || !PD.isParamEqual(ObjShapeParams.coloring, _props.coloring, props.coloring)) {
-            newColor = true;
-        }
+        const nextColors = getMaterialColors(objData.source.materialNames, props);
+        const newColor = !_colors
+            || nextColors.length !== _colors.length
+            || nextColors.some((c, i) => c !== _colors![i]);
 
         if (newMesh) {
+            _colors = nextColors;
             _mesh = await getMesh(ctx, objData.source, shape && shape.geometry);
-            _groupColors = getColoring(objData.source, props);
-            _shape = createShape(objData, _mesh, _groupColors);
+            _shape = createShape(objData, _mesh, _colors);
         } else if (newColor) {
-            _groupColors = getColoring(objData.source, props);
-            _shape = createShape(objData, _mesh, _groupColors);
+            _colors = nextColors;
+            _shape = createShape(objData, _mesh, _colors);
         }
 
         _objData = objData;
-        _props = deepClone(props);
 
         return _shape;
     };
@@ -186,9 +167,10 @@ export function shapeFromObj(source: ObjFile, params?: { transforms?: Mat4[] }) 
         return {
             label: 'Mesh',
             data: { source, transforms: params?.transforms },
-            params: ObjShapeParams,
+            params: createObjShapeParams(source),
             getShape: makeShapeGetter(),
-            geometryUtils: Mesh.Utils
+            geometryUtils: Mesh.Utils,
         };
     });
 }
+

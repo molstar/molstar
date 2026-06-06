@@ -20,9 +20,10 @@ interface State {
     normals: ChunkedArray<number, 3>
     positionIndices: ChunkedArray<number, 3>
     normalIndices: ChunkedArray<number, 3>
-    groupIndices: ChunkedArray<number, 1>
-    groups: string[]
-    currentGroupIdx: number
+    faceGroups: ChunkedArray<number, 1>
+    materialNames: string[]
+    materialMap: Map<string, number>
+    currentMaterialIdx: number
     warnings: string[]
 }
 
@@ -33,9 +34,10 @@ function State(data: StringLike): State {
         normals: ChunkedArray.create(Float32Array, 3, 1024),
         positionIndices: ChunkedArray.create(Int32Array, 3, 1024),
         normalIndices: ChunkedArray.create(Int32Array, 3, 1024),
-        groupIndices: ChunkedArray.create(Uint32Array, 1, 1024),
-        groups: ['default'],
-        currentGroupIdx: 0,
+        faceGroups: ChunkedArray.create(Int32Array, 1, 1024),
+        materialNames: [],
+        materialMap: new Map(),
+        currentMaterialIdx: 0,
         warnings: []
     };
 }
@@ -164,6 +166,20 @@ const MAX_FACE_VERTICES = 256;
 const _facePos = new Int32Array(MAX_FACE_VERTICES);
 const _faceNorm = new Int32Array(MAX_FACE_VERTICES);
 
+function handleUseMtl(state: State): void {
+    const { tokenizer } = state;
+    if (readInlineToken(tokenizer)) {
+        const name = tokenizer.data.substring(tokenizer.tokenStart, tokenizer.tokenEnd);
+        if (!state.materialMap.has(name)) {
+            const idx = state.materialNames.length;
+            state.materialMap.set(name, idx);
+            state.materialNames.push(name);
+        }
+        state.currentMaterialIdx = state.materialMap.get(name)!;
+    }
+    skipLine(tokenizer);
+}
+
 function handleVertex(state: State): void {
     const { tokenizer } = state;
     let x = 0, y = 0, z = 0;
@@ -202,36 +218,11 @@ function handleFace(state: State): void {
 
     // Fan-triangulate: (0,1,2), (0,2,3), ...
     const p0 = _facePos[0], n0 = _faceNorm[0];
+    const group = state.currentMaterialIdx;
     for (let i = 1; i < n - 1; ++i) {
         ChunkedArray.add3(state.positionIndices, p0, _facePos[i], _facePos[i + 1]);
         ChunkedArray.add3(state.normalIndices, n0, _faceNorm[i], _faceNorm[i + 1]);
-        ChunkedArray.add(state.groupIndices, state.currentGroupIdx);
-    }
-    skipLine(tokenizer);
-}
-
-function handleUsemtl(state: State): void {
-    const { tokenizer } = state;
-    // Read the rest of the line as the material name (trimmed)
-    skipInlineWS(tokenizer);
-    tokenizer.tokenStart = tokenizer.position;
-    const { data } = tokenizer;
-    while (tokenizer.position < tokenizer.length) {
-        const c = data.charCodeAt(tokenizer.position);
-        if (c === CC_NEWLINE || c === CC_CR) break;
-        ++tokenizer.position;
-    }
-    // Trim trailing whitespace
-    let end = tokenizer.position;
-    while (end > tokenizer.tokenStart && (data.charCodeAt(end - 1) === CC_SPACE || data.charCodeAt(end - 1) === CC_TAB)) --end;
-    const name = end > tokenizer.tokenStart ? data.substring(tokenizer.tokenStart, end) : 'default';
-
-    const existing = state.groups.indexOf(name);
-    if (existing !== -1) {
-        state.currentGroupIdx = existing;
-    } else {
-        state.currentGroupIdx = state.groups.length;
-        state.groups.push(name);
+        ChunkedArray.add(state.faceGroups, group);
     }
     skipLine(tokenizer);
 }
@@ -260,6 +251,23 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
             // "f " — face
             tokenizer.position += 2;
             handleFace(state);
+        } else if (c0 === CC_u) {
+            // Check for "usemtl "
+            const p = tokenizer.position;
+            if (
+                p + 6 < tokenizer.length &&
+                tokenizer.data.charCodeAt(p + 1) === CC_s &&
+                tokenizer.data.charCodeAt(p + 2) === CC_e &&
+                tokenizer.data.charCodeAt(p + 3) === CC_m &&
+                tokenizer.data.charCodeAt(p + 4) === CC_t &&
+                tokenizer.data.charCodeAt(p + 5) === CC_l &&
+                (tokenizer.data.charCodeAt(p + 6) === CC_SPACE || tokenizer.data.charCodeAt(p + 6) === CC_TAB)
+            ) {
+                tokenizer.position += 7;
+                handleUseMtl(state);
+            } else {
+                skipLine(tokenizer);
+            }
         } else if (c0 === CC_v) {
             if (c1 === CC_SPACE || c1 === CC_TAB) {
                 // "v " — vertex position
@@ -273,20 +281,8 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
                 // "vt", "vp", etc — skip
                 skipLine(tokenizer);
             }
-        } else if (
-            c0 === CC_u &&
-            tokenizer.position + 6 < tokenizer.length &&
-            tokenizer.data.charCodeAt(tokenizer.position + 1) === CC_s &&
-            tokenizer.data.charCodeAt(tokenizer.position + 2) === CC_e &&
-            tokenizer.data.charCodeAt(tokenizer.position + 3) === CC_m &&
-            tokenizer.data.charCodeAt(tokenizer.position + 4) === CC_t &&
-            tokenizer.data.charCodeAt(tokenizer.position + 5) === CC_l
-        ) {
-            // "usemtl"
-            tokenizer.position += 6;
-            handleUsemtl(state);
         } else {
-            // "o", "g", "s", "mtllib", "call", etc. — skip entire line
+            // "g", "o", "s", "usemtl", "mtllib", etc. — skip entire line
             skipLine(tokenizer);
         }
 
@@ -299,18 +295,18 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
     const normArr = ChunkedArray.compact(state.normals) as Float32Array;
     const posIdxArr = ChunkedArray.compact(state.positionIndices) as Int32Array;
     const normIdxArr = ChunkedArray.compact(state.normalIndices) as Int32Array;
-    const grpIdxArr = ChunkedArray.compact(state.groupIndices) as Uint32Array;
+    const faceGroupsArr = ChunkedArray.compact(state.faceGroups) as Int32Array;
 
     const result: ObjFile = {
         positions: posArr,
         normals: normArr,
         positionIndices: posIdxArr,
         normalIndices: normIdxArr,
-        groupIndices: grpIdxArr,
-        groups: state.groups,
         positionCount: state.positions.elementCount,
         normalCount: state.normals.elementCount,
-        triangleCount: posIdxArr.length / 3
+        triangleCount: posIdxArr.length / 3,
+        materialNames: state.materialNames,
+        faceGroups: faceGroupsArr
     };
 
     return Result.success(result, state.warnings);

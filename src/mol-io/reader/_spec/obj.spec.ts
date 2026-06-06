@@ -42,7 +42,7 @@ vn 0.0 0.0 1.0
 f 1/1/1 2/2/1 3/3/1
 `;
 
-// Multiple materials / usemtl groups
+// Multiple materials / usemtl groups — should be silently skipped
 const objMultiMaterial = `v 0.0 0.0 0.0
 v 1.0 0.0 0.0
 v 0.5 1.0 0.0
@@ -74,7 +74,7 @@ v 0.5 1.0 0.0
 f 1 2 3
 `;
 
-// Unsupported directives (g, o, s, mtllib, vt, vp) should be silently skipped
+// Unsupported directives (s, mtllib, vt, vp, g, o, usemtl) should be silently skipped
 const objUnsupportedDirectives = `mtllib material.mtl
 o MyObject
 g mygroup
@@ -147,7 +147,7 @@ vn 0.0 0.0 1.0
 f 1//-1 2//-1 3//-1
 `;
 
-// usemtl reuse: a material name is referenced again after another material
+// usemtl reuse: silently skipped like any other usemtl
 const objReusedMaterial = `v 0.0 0.0 0.0
 v 1.0 0.0 0.0
 v 0.5 1.0 0.0
@@ -159,6 +159,19 @@ usemtl green
 f 2 4 5
 usemtl red
 f 1 3 4
+`;
+
+// combined: object + group + material on the same triangles — all directives silently skipped
+const objAllThree = `v 0.0 0.0 0.0
+v 1.0 0.0 0.0
+v 0.5 1.0 0.0
+v 2.0 0.0 0.0
+v 2.5 1.0 0.0
+o MyObj
+g MyGroup
+usemtl MyMtl
+f 1 2 3
+f 2 4 5
 `;
 
 // Empty file
@@ -220,18 +233,15 @@ describe('obj reader', () => {
         expect(Array.from(obj.normalIndices)).toEqual([0, 0, 0]);
     });
 
-    it('assigns material groups via usemtl', async () => {
+    it('tracks usemtl directives into materialNames and faceGroups', async () => {
         const parsed = await parseObj(objMultiMaterial).run();
         if (parsed.isError) throw new Error(parsed.message);
         const obj = parsed.result;
 
         expect(obj.triangleCount).toBe(2);
-        // 'default' is always first; 'red' and 'green' added on use
-        expect(obj.groups[1]).toBe('red');
-        expect(obj.groups[2]).toBe('green');
-        // First triangle belongs to 'red' (index 1), second to 'green' (index 2)
-        expect(obj.groupIndices[0]).toBe(1);
-        expect(obj.groupIndices[1]).toBe(2);
+        expect(obj.materialNames).toEqual(['red', 'green']);
+        // triangle 0 → red (0), triangle 1 → green (1)
+        expect(Array.from(obj.faceGroups)).toEqual([0, 1]);
     });
 
     it('handles negative (relative) vertex indices', async () => {
@@ -282,13 +292,13 @@ describe('obj reader', () => {
         expect(Array.from(obj.normalIndices)).toEqual([-1, -1, -1]);
     });
 
-    it('default group is always present', async () => {
+    it('default arrays are present', async () => {
         const parsed = await parseObj(objTriangle).run();
         if (parsed.isError) throw new Error(parsed.message);
         const obj = parsed.result;
 
-        expect(obj.groups[0]).toBe('default');
-        expect(obj.groupIndices[0]).toBe(0);
+        expect(obj.positionCount).toBe(3);
+        expect(obj.triangleCount).toBe(1);
     });
 
     it('parses CRLF line endings', async () => {
@@ -347,19 +357,16 @@ describe('obj reader', () => {
         expect(Array.from(obj.normalIndices)).toEqual([0, 0, 0]);
     });
 
-    it('reuses an already-seen usemtl material name', async () => {
+    it('deduplicates reused usemtl material names and maps faceGroups correctly', async () => {
         const parsed = await parseObj(objReusedMaterial).run();
         if (parsed.isError) throw new Error(parsed.message);
         const obj = parsed.result;
 
         expect(obj.triangleCount).toBe(3);
-        // 'red' (1) and 'green' (2) are the only added groups; no duplicate 'red'
-        expect(obj.groups[1]).toBe('red');
-        expect(obj.groups[2]).toBe('green');
-        expect(obj.groups.indexOf('red')).toBe(1);
-        expect(obj.groups.lastIndexOf('red')).toBe(1);
-        // Third face reuses 'red' (index 1)
-        expect(Array.from(obj.groupIndices)).toEqual([1, 2, 1]);
+        // "red" and "green" each appear once in materialNames
+        expect(obj.materialNames).toEqual(['red', 'green']);
+        // triangle 0 → red (0), triangle 1 → green (1), triangle 2 → red (0) again
+        expect(Array.from(obj.faceGroups)).toEqual([0, 1, 0]);
     });
 
     it('parses an empty file', async () => {
@@ -370,7 +377,6 @@ describe('obj reader', () => {
         expect(obj.positionCount).toBe(0);
         expect(obj.normalCount).toBe(0);
         expect(obj.triangleCount).toBe(0);
-        expect(obj.groups[0]).toBe('default');
     });
 
     it('parses a file with vertices but no faces', async () => {
@@ -382,4 +388,16 @@ describe('obj reader', () => {
         expect(obj.triangleCount).toBe(0);
         expect(obj.positionIndices.length).toBe(0);
     });
+
+    it('silently skips g and o directives; tracks usemtl into materialNames and faceGroups', async () => {
+        const parsed = await parseObj(objAllThree).run();
+        if (parsed.isError) throw new Error(parsed.message);
+        const obj = parsed.result;
+
+        expect(obj.triangleCount).toBe(2);
+        expect(obj.materialNames).toEqual(['MyMtl']);
+        // both triangles belong to the single material
+        expect(Array.from(obj.faceGroups)).toEqual([0, 0]);
+    });
 });
+

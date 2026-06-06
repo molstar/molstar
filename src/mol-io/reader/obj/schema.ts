@@ -30,16 +30,19 @@ export interface ObjFile {
      */
     readonly normalIndices: Int32Array
 
-    /**
-     * Material/group index per triangle, length = triangleCount.
-     * Index into the `groups` array.
-     */
-    readonly groupIndices: Uint32Array
-
-    /** Ordered list of material group names, populated from `usemtl` directives. */
-    readonly groups: ReadonlyArray<string>
-
     readonly positionCount: number
     readonly normalCount: number
     readonly triangleCount: number
+
+    /**
+     * Unique material names encountered via `usemtl` directives, in encounter order.
+     * Empty when no `usemtl` directives are present.
+     */
+    readonly materialNames: readonly string[]
+
+    /**
+     * Per-triangle material index (0-based, indexes into materialNames), length = triangleCount.
+     * 0 for faces before the first `usemtl` or when no materials are defined.
+     */
+    readonly faceGroups: Int32Array
 }
