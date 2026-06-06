@@ -691,15 +691,28 @@ async function createResidueSphericalHarmonicSurfaceMesh(ctx: VisualContext, str
             if (xs.length === 0 || repSerial < 0) continue;
 
             const cloud = buildAtomCloud(xs, ys, zs, rs, xs.map(() => 0));
-            const { coeffs } = fitSphericalHarmonics(cloud.points, cloud.center, L);
             const cx = cloud.center[0], cy = cloud.center[1], cz = cloud.center[2];
+
+            // angular spread of the (envelope-pushed) atoms about the centroid; monatomic /
+            // centroid-coincident residues (waters, ions, single-atom ligands) have none, so an
+            // SH fit collapses to ~0 radius. Fall back to a plain vdW-sized sphere in that case.
+            let spread = 0;
+            let rConst = 0;
+            for (let p = 0; p < cloud.points.length; p += 3) {
+                const ddx = cloud.points[p] - cx, ddy = cloud.points[p + 1] - cy, ddz = cloud.points[p + 2] - cz;
+                const d = Math.sqrt(ddx * ddx + ddy * ddy + ddz * ddz);
+                if (d > spread) spread = d;
+            }
+            for (let ri = 0; ri < rs.length; ++ri) if (rs[ri] > rConst) rConst = rs[ri];
+            const useFit = spread > 1e-3;
+            const coeffs = useFit ? fitSphericalHarmonics(cloud.points, cloud.center, L).coeffs : undefined;
 
             const base = vertices.length / 3;
             for (let k = 0; k < svCount; ++k) {
                 const dx = sv[k * 3], dy = sv[k * 3 + 1], dz = sv[k * 3 + 2];
                 const theta = Math.acos(Math.min(1, Math.max(-1, dz)));
                 const phi = Math.atan2(dy, dx);
-                let r = reconstructRadius(coeffs, L, theta, phi, basisScratch, legendreScratch);
+                let r = useFit ? reconstructRadius(coeffs!, L, theta, phi, basisScratch, legendreScratch) : rConst;
                 if (r < MinRadius) r = MinRadius;
                 vertices.push(cx + r * dx, cy + r * dy, cz + r * dz);
                 groups.push(repSerial);

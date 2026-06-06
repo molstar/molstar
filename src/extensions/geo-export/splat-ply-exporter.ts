@@ -28,6 +28,19 @@ export type SplatPlyData = {
     ply: Uint8Array
 }
 
+/**
+ * Encode one splat to the INRIA 3DGS float conventions: isotropic scale stored as log(radius),
+ * opacity as logit(alpha), color as the SH DC term f_dc = (c_normalized - 0.5) / C0.
+ * Pure function so the convention-critical math is unit-testable.
+ */
+export function encodeSplat(radius: number, alpha: number, color: Color): { logScale: number, logitOpacity: number, fDc: [number, number, number] } {
+    const logScale = Math.log(Math.max(radius, 1e-6));
+    const a = Math.min(Math.max(alpha, 1e-3), 1 - 1e-3);
+    const logitOpacity = Math.log(a / (1 - a));
+    const [r, g, b] = Color.toRgb(color);
+    return { logScale, logitOpacity, fDc: [(r / 255 - 0.5) / C0, (g / 255 - 0.5) / C0, (b / 255 - 0.5) / C0] };
+}
+
 const v3fromArray = Vec3.fromArray;
 
 export class SplatPlyExporter extends MeshExporter<SplatPlyData> {
@@ -138,11 +151,12 @@ export class SplatPlyExporter extends MeshExporter<SplatPlyData> {
             dv.setFloat32(o, this.py[i], true); o += 4;
             dv.setFloat32(o, this.pz[i], true); o += 4;
 
+            const { logScale, logitOpacity, fDc } = encodeSplat(this.radii[i], this.alphas[i], this.colors[i]);
+
             // isotropic gaussian: scale stored as log(radius) (viewers apply exp)
-            const logS = Math.log(Math.max(this.radii[i], 1e-6));
-            dv.setFloat32(o, logS, true); o += 4;
-            dv.setFloat32(o, logS, true); o += 4;
-            dv.setFloat32(o, logS, true); o += 4;
+            dv.setFloat32(o, logScale, true); o += 4;
+            dv.setFloat32(o, logScale, true); o += 4;
+            dv.setFloat32(o, logScale, true); o += 4;
 
             // identity quaternion, INRIA layout rot_0 = w
             dv.setFloat32(o, 1, true); o += 4;
@@ -151,14 +165,12 @@ export class SplatPlyExporter extends MeshExporter<SplatPlyData> {
             dv.setFloat32(o, 0, true); o += 4;
 
             // opacity stored as logit (viewers apply sigmoid)
-            const alpha = Math.min(Math.max(this.alphas[i], 1e-3), 1 - 1e-3);
-            dv.setFloat32(o, Math.log(alpha / (1 - alpha)), true); o += 4;
+            dv.setFloat32(o, logitOpacity, true); o += 4;
 
-            // color as SH DC term: f_dc = (color_normalized - 0.5) / C0
-            const [r, g, b] = Color.toRgb(this.colors[i]);
-            dv.setFloat32(o, (r / 255 - 0.5) / C0, true); o += 4;
-            dv.setFloat32(o, (g / 255 - 0.5) / C0, true); o += 4;
-            dv.setFloat32(o, (b / 255 - 0.5) / C0, true); o += 4;
+            // color as SH DC term
+            dv.setFloat32(o, fDc[0], true); o += 4;
+            dv.setFloat32(o, fDc[1], true); o += 4;
+            dv.setFloat32(o, fDc[2], true); o += 4;
         }
 
         const ply = new Uint8Array(headerBytes.length + body.byteLength);
