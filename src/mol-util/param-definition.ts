@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -18,6 +18,7 @@ import { getColorListFromName, ColorListName } from './color/lists';
 import { Asset } from './assets';
 import { ColorListEntry } from './color/color';
 import { EPSILON } from '../mol-math/linear-algebra/3d/common';
+import { arraySetAdd } from './array';
 
 export namespace ParamDefinition {
     export interface Info {
@@ -443,6 +444,47 @@ export namespace ParamDefinition {
         for (const n of Object.keys(params)) {
             resolveRefValue(params[n], values?.[n], getData);
         }
+    }
+
+    function collectRefValue(p: Any, value: any, out: string[]): string[] {
+        if (value === undefined || value === null) return out;
+
+        if (p.type === 'value-ref' || p.type === 'data-ref') {
+            const v = value as ValueRef['defaultValue'];
+            if (v && typeof v.ref === 'string' && v.ref) {
+                arraySetAdd(out, v.ref);
+            }
+        } else if (p.type === 'group') {
+            collectRefsImpl(p.params, value, out);
+        } else if (p.type === 'mapped') {
+            const v = value as NamedParams;
+            if (!v) return out;
+            const param = p.map(v.name);
+            collectRefValue(param, v.params, out);
+        } else if (p.type === 'object-list') {
+            if (!hasValueRef(p.element)) return out;
+            for (const e of value) {
+                collectRefsImpl(p.element, e, out);
+            }
+        }
+        return out;
+    }
+
+    function collectRefsImpl(params: Params, values: any, out: string[]): string[] {
+        for (const n of Object.keys(params)) {
+            collectRefValue(params[n], values?.[n], out);
+        }
+        return out;
+    }
+
+    /**
+     * Collect all non-empty `ref` strings of `value-ref` and `data-ref` parameter
+     * values into a set. Used by `mol-state` to derive transform dependencies from
+     * parameter values.
+     */
+    export function collectRefs(params: Params, values: any, out: string[]): string[] {
+        if (!params || !values) return out;
+        return collectRefsImpl(params, values, out);
     }
 
     export function setDefaultValues<T extends Params>(params: T, defaultValues: Values<T>) {

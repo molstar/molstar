@@ -1,12 +1,15 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { StateTransformer } from './transformer';
 import { UUID } from '../mol-util';
 import { hashMurmur128o } from '../mol-data/util/hash-functions';
+import { ParamDefinition as PD } from '../mol-util/param-definition';
+import { arraySetAdd, arraySetRemove } from '../mol-util/array';
 
 export { Transform as StateTransform };
 
@@ -168,6 +171,97 @@ namespace Transform {
             if (t.tags.indexOf(tag) < 0) return false;
         }
         return true;
+    }
+
+    /**
+     * Returns the default param schema for the transform's transformer, caching
+     * the result on the transform instance. Returns `undefined` if the transformer
+     * has no `params` definition or if calling it throws.
+     */
+    export function tryGetDefaultParamDefinition(t: Transform): PD.Params | undefined {
+        const any = t as any;
+        if (any._defaultSchemaSet) return any._defaultSchema;
+        any._defaultSchemaSet = true;
+        try {
+            const def = t.transformer.definition;
+            if (def.params) {
+                any._defaultSchema = def.params(undefined as any, undefined) as PD.Params;
+            }
+        } catch {
+            // Schema could not be obtained.
+        }
+        return any._defaultSchema;
+    }
+
+    /**
+     * Compute the effective set of sibling-like dependencies for a transform.
+     *
+     * Combines (in order, de-duplicated):
+     *   1. Explicit `t.dependsOn` (back-compat / non-param refs).
+     *   2. Refs from `transformer.definition.getDependencies(params)` if defined.
+     *   3. Refs collected from `PD.ValueRef` / `PD.DataRef` parameter values.
+     *
+     * Self-references and the root ref are filtered out. If the param schema
+     * can't be obtained, auto-derivation falls back to a structural scan of
+     * parameter values for `{ ref, getValue }` shaped objects.
+     */
+    export function getEffectiveDependsOn(t: Transform): Ref[] {
+        const out: string[] = [];
+
+        if (t.dependsOn) {
+            for (const r of t.dependsOn) {
+                arraySetAdd(out, r);
+            }
+        }
+
+        const def = t.transformer.definition;
+        const params = t.params as any;
+
+        if (def.getDependencies && params) {
+            try {
+                const extra = def.getDependencies(params);
+                if (extra) {
+                    for (const r of extra) {
+                        arraySetAdd(out, r);
+                    }
+                }
+            } catch {
+                // Keep reconciliation robust if a user hook misbehaves.
+            }
+        }
+
+        if (params) {
+            const schema = tryGetDefaultParamDefinition(t);
+            if (schema) {
+                PD.collectRefs(schema, params, out);
+            } else {
+                collectStructuralRefs(params, out);
+            }
+        }
+
+        // Filter out self-references and the root ref.
+        arraySetRemove(out, t.ref);
+        arraySetRemove(out, RootRef);
+        return out;
+    }
+
+    function collectStructuralRefs(value: any, out: string[], depth = 0): string[] {
+        if (!value || typeof value !== 'object' || depth > 6) return out;
+        if (Array.isArray(value)) {
+            for (const v of value) {
+                collectStructuralRefs(v, out, depth + 1);
+            }
+            return out;
+        }
+        const ref = (value as any).ref;
+        if (typeof ref === 'string' && typeof (value as any).getValue === 'function') {
+            arraySetAdd(out, ref);
+            return out;
+        }
+        for (const k of Object.keys(value)) {
+            collectStructuralRefs(value[k], out, depth + 1);
+        }
+        return out;
     }
 
     const _emptyParams = {};

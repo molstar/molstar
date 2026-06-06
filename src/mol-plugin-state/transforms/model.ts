@@ -22,7 +22,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
 import { Expression } from '../../mol-script/language/expression';
 import { Script } from '../../mol-script/script';
-import { StateObject, StateTransformer } from '../../mol-state';
+import { StateObject, StateTransform, StateTransformer } from '../../mol-state';
 import { RuntimeContext, Task } from '../../mol-task';
 import { deepEqual } from '../../mol-util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -247,6 +247,12 @@ const TrajectoryFromModelAndCoordinates = PluginStateTransform.BuiltIn({
         coordinatesRef: PD.Text('', { isHidden: true }),
     }
 })({
+    getDependencies: ({ modelRef, coordinatesRef }: { modelRef: string, coordinatesRef: string }) => {
+        const deps: StateTransform.Ref[] = [];
+        if (modelRef) deps.push(modelRef as StateTransform.Ref);
+        if (coordinatesRef) deps.push(coordinatesRef as StateTransform.Ref);
+        return deps;
+    },
     apply({ params, dependencies }) {
         return Task.create('Create trajectory from model/topology and coordinates', async ctx => {
             const coordinates = dependencies![params.coordinatesRef].data as Coordinates;
