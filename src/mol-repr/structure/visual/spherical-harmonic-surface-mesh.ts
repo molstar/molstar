@@ -31,7 +31,7 @@ import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
 import { Sphere } from '../../../mol-geo/primitive/sphere';
 import { GridLookup3D } from '../../../mol-math/geometry/lookup3d/grid';
 import { getBoundary } from '../../../mol-math/geometry/boundary';
-import { OrderedSet, Interval } from '../../../mol-data/int';
+import { OrderedSet, Interval, Segmentation } from '../../../mol-data/int';
 import { fitSphericalHarmonics, reconstructRadius, shTermCount } from '../../../mol-math/geometry/spherical-harmonics';
 import { Task } from '../../../mol-task';
 import { calcMolecularSurface } from '../../../mol-math/geometry/molecular-surface';
@@ -49,6 +49,8 @@ export const SphericalHarmonicSurfaceMeshParams = {
     sphericalHarmonicL: PD.Numeric(8, { min: 2, max: 20, step: 1 }, { description: 'Maximum spherical harmonic degree. Higher values follow the molecular surface more closely.' }),
     reconstructionDetail: PD.Numeric(3, { min: 1, max: 5, step: 1 }, { description: 'Triangulation detail of the reconstructed sphere mesh.' }),
     fitSource: PD.Select('surface', [['surface', 'Molecular surface'], ['atoms', 'Atom positions']] as const, { description: 'Fit the spherical harmonics to the molecular surface, or directly to atom positions (faster, blobbier, no surface step).' }),
+    residueL: PD.Numeric(2, { min: 1, max: 4, step: 1 }, { description: 'Spherical harmonic degree for the per-residue blobs (kept low: a residue has too few atoms for high degrees).' }),
+    residueDetail: PD.Numeric(2, { min: 1, max: 3, step: 1 }, { description: 'Triangulation detail of each per-residue blob.' }),
 };
 export type SphericalHarmonicSurfaceMeshParams = typeof SphericalHarmonicSurfaceMeshParams
 export type SphericalHarmonicSurfaceMeshProps = PD.Values<SphericalHarmonicSurfaceMeshParams>
@@ -615,6 +617,131 @@ export function ProtomerSphericalHarmonicSurfaceMeshVisual(materialId: number): 
                 newProps.sphericalHarmonicL !== currentProps.sphericalHarmonicL ||
                 newProps.reconstructionDetail !== currentProps.reconstructionDetail ||
                 newProps.fitSource !== currentProps.fitSource
+            );
+
+            if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
+                state.updateColor = true;
+            } else if (newProps.smoothColors.name === 'on' && currentProps.smoothColors.name === 'on') {
+                if (newProps.smoothColors.params.resolutionFactor !== currentProps.smoothColors.params.resolutionFactor) state.updateColor = true;
+                if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride) state.updateColor = true;
+            }
+        },
+        processValues: (values: MeshValues, geometry: Mesh, props: SphericalHarmonicSurfaceMeshProps, theme: Theme, webgl?: WebGLContext) => {
+            const { resolution, colorTexture } = geometry.meta as SphericalHarmonicSurfaceMeta;
+            const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
+            if (csp) {
+                applyMeshColorSmoothing(values, csp, webgl, colorTexture);
+                (geometry.meta as SphericalHarmonicSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
+            }
+        },
+        dispose: (geometry: Mesh) => {
+            (geometry.meta as SphericalHarmonicSurfaceMeta).colorTexture?.destroy();
+        },
+    }, materialId);
+}
+
+//
+// Per-residue blobs: one small low-degree SH blob per residue, baked into a single mesh.
+// A residue has too few atoms for high L, so this is an ellipsoidal-blob mode (residueL clamped low).
+//
+
+function clampInt(v: number, min: number, max: number) {
+    return Math.max(min, Math.min(max, Math.round(v)));
+}
+
+async function createResidueSphericalHarmonicSurfaceMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: SphericalHarmonicSurfaceMeshProps, mesh?: Mesh): Promise<Mesh> {
+    const { probeRadius, ignoreHydrogens, ignoreHydrogensVariant, traceOnly } = props;
+    const L = clampInt(props.residueL, 1, 4);
+    const sphere = getSphere(clampInt(props.residueDetail, 1, 3));
+    const sv = sphere.vertices;
+    const svCount = sv.length / 3;
+    const sIndices = sphere.indices;
+
+    const { getSerialIndex } = structure.serialMapping;
+    const l = StructureElement.Location.create(structure);
+
+    const vertices: number[] = [];
+    const groups: number[] = [];
+    const indices: number[] = [];
+
+    const basisScratch = new Float64Array(shTermCount(L));
+    const legendreScratch = new Float64Array(((L + 1) * (L + 2)) / 2);
+
+    for (let u = 0; u < structure.units.length; ++u) {
+        const unit = structure.units[u];
+        if (!Unit.isAtomic(unit)) continue;
+        if (ctx.runtime.shouldUpdate) await ctx.runtime.update({ message: 'Residue spherical harmonic blobs', current: u, max: structure.units.length });
+
+        const { elements, conformation: c } = unit;
+        const residueIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
+        l.unit = unit;
+        while (residueIt.hasNext) {
+            const seg = residueIt.move();
+            const xs: number[] = [], ys: number[] = [], zs: number[] = [], rs: number[] = [];
+            let repSerial = -1;
+            for (let j = seg.start; j < seg.end; ++j) {
+                const eI = elements[j];
+                if (ignoreHydrogens && isHydrogen(structure, unit, eI, ignoreHydrogensVariant)) continue;
+                if (traceOnly && !isTrace(unit, eI)) continue;
+                if (repSerial < 0) repSerial = getSerialIndex(unit, eI);
+                xs.push(c.x(eI)); ys.push(c.y(eI)); zs.push(c.z(eI));
+                l.element = eI;
+                rs.push(theme.size.size(l) + probeRadius);
+            }
+            if (xs.length === 0 || repSerial < 0) continue;
+
+            const cloud = buildAtomCloud(xs, ys, zs, rs, xs.map(() => 0));
+            const { coeffs } = fitSphericalHarmonics(cloud.points, cloud.center, L);
+            const cx = cloud.center[0], cy = cloud.center[1], cz = cloud.center[2];
+
+            const base = vertices.length / 3;
+            for (let k = 0; k < svCount; ++k) {
+                const dx = sv[k * 3], dy = sv[k * 3 + 1], dz = sv[k * 3 + 2];
+                const theta = Math.acos(Math.min(1, Math.max(-1, dz)));
+                const phi = Math.atan2(dy, dx);
+                let r = reconstructRadius(coeffs, L, theta, phi, basisScratch, legendreScratch);
+                if (r < MinRadius) r = MinRadius;
+                vertices.push(cx + r * dx, cy + r * dy, cz + r * dz);
+                groups.push(repSerial);
+            }
+            for (let k = 0; k < sIndices.length; ++k) indices.push(base + sIndices[k]);
+        }
+    }
+
+    const vb = new Float32Array(vertices);
+    const ib = new Uint32Array(indices);
+    const nb = new Float32Array(vb.length);
+    const gb = new Float32Array(groups);
+    const surface = Mesh.create(vb, ib, nb, gb, vb.length / 3, ib.length / 3, mesh);
+    Mesh.computeNormals(surface);
+
+    if (ctx.webgl && !ctx.webgl.isWebGL2) {
+        Mesh.uniformTriangleGroup(surface);
+        ValueCell.updateIfChanged(surface.varyingGroup, false);
+    } else {
+        ValueCell.updateIfChanged(surface.varyingGroup, true);
+    }
+
+    surface.setBoundingSphere(Sphere3D.clone(structure.boundary.sphere));
+    (surface.meta as SphericalHarmonicSurfaceMeta).resolution = props.resolution;
+    return surface;
+}
+
+export function ResidueSphericalHarmonicSurfaceMeshVisual(materialId: number): ComplexVisual<SphericalHarmonicSurfaceMeshParams> {
+    return ComplexMeshVisual<SphericalHarmonicSurfaceMeshParams>({
+        defaultProps: PD.getDefaultValues(SphericalHarmonicSurfaceMeshParams),
+        createGeometry: createResidueSphericalHarmonicSurfaceMesh,
+        createLocationIterator: ElementIterator.fromStructure,
+        getLoci: getSerialElementLoci,
+        eachLocation: eachSerialElement,
+        setUpdateState: (state: VisualUpdateState, newProps: SphericalHarmonicSurfaceMeshProps, currentProps: SphericalHarmonicSurfaceMeshProps) => {
+            state.createGeometry = (
+                newProps.probeRadius !== currentProps.probeRadius ||
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
+                newProps.traceOnly !== currentProps.traceOnly ||
+                newProps.residueL !== currentProps.residueL ||
+                newProps.residueDetail !== currentProps.residueDetail
             );
 
             if (newProps.smoothColors.name !== currentProps.smoothColors.name) {

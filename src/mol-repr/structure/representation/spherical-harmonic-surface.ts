@@ -6,7 +6,7 @@
  * `sphericalHarmonicL` parameter controls the level of detail.
  */
 
-import { SphericalHarmonicSurfaceMeshVisual, SphericalHarmonicSurfaceMeshParams, StructureSphericalHarmonicSurfaceMeshVisual, ProtomerSphericalHarmonicSurfaceMeshVisual } from '../visual/spherical-harmonic-surface-mesh';
+import { SphericalHarmonicSurfaceMeshVisual, SphericalHarmonicSurfaceMeshParams, StructureSphericalHarmonicSurfaceMeshVisual, ProtomerSphericalHarmonicSurfaceMeshVisual, ResidueSphericalHarmonicSurfaceMeshVisual } from '../visual/spherical-harmonic-surface-mesh';
 import { UnitsRepresentation } from '../units-representation';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { ComplexRepresentation, StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
@@ -19,6 +19,7 @@ const SphericalHarmonicSurfaceVisuals = {
     'spherical-harmonic-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, SphericalHarmonicSurfaceMeshParams>) => UnitsRepresentation('Spherical harmonic surface mesh', ctx, getParams, SphericalHarmonicSurfaceMeshVisual),
     'structure-spherical-harmonic-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, SphericalHarmonicSurfaceMeshParams>) => ComplexRepresentation('Structure spherical harmonic surface mesh', ctx, getParams, StructureSphericalHarmonicSurfaceMeshVisual),
     'protomer-spherical-harmonic-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, SphericalHarmonicSurfaceMeshParams>) => ComplexRepresentation('Protomer spherical harmonic surface mesh', ctx, getParams, ProtomerSphericalHarmonicSurfaceMeshVisual),
+    'residue-spherical-harmonic-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, SphericalHarmonicSurfaceMeshParams>) => ComplexRepresentation('Residue spherical harmonic surface mesh', ctx, getParams, ResidueSphericalHarmonicSurfaceMeshVisual),
 };
 
 export const SphericalHarmonicSurfaceParams = {
