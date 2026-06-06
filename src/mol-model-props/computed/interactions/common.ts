@@ -133,6 +133,7 @@ export enum InteractionType {
     Hydrophobic = 6,
     MetalCoordination = 7,
     WeakHydrogenBond = 8,
+    WaterBridge = 9,
 }
 
 export function interactionTypeLabel(type: InteractionType): string {
@@ -153,6 +154,8 @@ export function interactionTypeLabel(type: InteractionType): string {
             return 'Pi Stacking';
         case InteractionType.WeakHydrogenBond:
             return 'Weak Hydrogen Bond';
+        case InteractionType.WaterBridge:
+            return 'Water Bridge';
         case InteractionType.Unknown:
             return 'Unknown Interaction';
     }
