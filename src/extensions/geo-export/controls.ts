@@ -16,13 +16,15 @@ import { GlbExporter } from './glb-exporter';
 import { ObjExporter } from './obj-exporter';
 import { StlExporter } from './stl-exporter';
 import { UsdzExporter } from './usdz-exporter';
+import { SplatPlyExporter } from './splat-ply-exporter';
 
 export const GeometryParams = {
     format: PD.Select('glb', [
         ['glb', 'glTF 2.0 Binary (.glb)'],
         ['stl', 'Stl (.stl)'],
         ['obj', 'Wavefront (.obj)'],
-        ['usdz', 'Universal Scene Description (.usdz)']
+        ['usdz', 'Universal Scene Description (.usdz)'],
+        ['splat-ply', 'Gaussian Splats (.ply)']
     ])
 };
 
@@ -47,7 +49,7 @@ export class GeometryControls extends PluginComponent {
 
                 const boundingSphere = this.plugin.canvas3d?.boundingSphereVisible!;
                 const boundingBox = Box3D.fromSphere3D(Box3D(), boundingSphere);
-                let renderObjectExporter: GlbExporter | ObjExporter | StlExporter | UsdzExporter;
+                let renderObjectExporter: GlbExporter | ObjExporter | StlExporter | UsdzExporter | SplatPlyExporter;
                 switch (this.behaviors.params.value.format) {
                     case 'glb':
                         renderObjectExporter = new GlbExporter(boundingBox);
@@ -60,6 +62,9 @@ export class GeometryControls extends PluginComponent {
                         break;
                     case 'usdz':
                         renderObjectExporter = new UsdzExporter(boundingBox, boundingSphere.radius);
+                        break;
+                    case 'splat-ply':
+                        renderObjectExporter = new SplatPlyExporter(boundingBox);
                         break;
                     default: throw new Error('Unsupported format.');
                 }
