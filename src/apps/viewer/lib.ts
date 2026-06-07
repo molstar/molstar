@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -10,6 +10,7 @@ import { Volume } from '../../mol-model/volume';
 import { Shape, ShapeGroup } from '../../mol-model/shape';
 import * as LinearAlgebra3D from '../../mol-math/linear-algebra/3d';
 import { PluginContext } from '../../mol-plugin/context';
+import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { PluginConfig } from '../../mol-plugin/config';
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { DefaultPluginSpec, PluginSpec } from '../../mol-plugin/spec';
@@ -42,6 +43,7 @@ export const lib = {
     },
     plugin: {
         PluginContext,
+        PluginUIContext,
         PluginConfig,
         PluginBehavior,
         PluginSpec,

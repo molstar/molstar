@@ -26,6 +26,10 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add easing support in camera transtion
 - Non-covalent interactions: water bridge support
 - Download Structure From AlphaFoldDB allows IDs with version suffix (version is ignored)
+- Add `extensions/plugin` with several QoL improvements
+  - Standalone useful loading functions previously avaiable only in the `Viewer` class
+  - Standalong plugin interactivity helper function previously available only via the `Viewer` class
+  - View models (and hooks) for more straightforward usafe in React (and in other UI libraries)
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty
