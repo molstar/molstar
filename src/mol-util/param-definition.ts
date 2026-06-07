@@ -321,12 +321,18 @@ export namespace ParamDefinition {
     export function ValueRef<T>(getOptions: ValueRef['getOptions'], resolveRef: ValueRef<T>['resolveRef'], info?: Info & { defaultRef?: string }) {
         return setInfo<ValueRef<T>>({ type: 'value-ref', defaultValue: { ref: info?.defaultRef ?? '', getValue: unsetGetValue as any }, getOptions, resolveRef }, info);
     }
+    export function asValueRef(ref: string) {
+        return { ref, getValue: unsetGetValue } as ValueRef['defaultValue'];
+    }
 
     export interface DataRef<T = any> extends Base<{ ref: string, getValue: () => T }> {
         type: 'data-ref'
     }
     export function DataRef<T>(info?: Info & { defaultRef?: string }) {
         return setInfo<DataRef<T>>({ type: 'data-ref', defaultValue: { ref: info?.defaultRef ?? '', getValue: unsetGetValue as any } }, info);
+    }
+    export function asDataRef(ref: string) {
+        return { ref, getValue: unsetGetValue } as DataRef['defaultValue'];
     }
 
     export interface Converted<T, C> extends Base<T> {

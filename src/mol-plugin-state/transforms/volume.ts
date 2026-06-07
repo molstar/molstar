@@ -341,14 +341,18 @@ const ParticlesVolume = PluginStateTransform.BuiltIn({
     to: SO.Volume.Data,
     isDecorator: true,
     params: {
-        particlesRef: PD.Text('', { isHidden: true }),
+        particles: PD.ValueRef<ParticleList>(
+            (ctx: PluginContext) => {
+                const particles = ctx.state.data.select(StateSelection.Generators.rootsOfType(SO.Particle.List)).filter(c => c.obj?.data);
+                return particles.map(v => [v.transform.ref, v.obj?.label ?? '<unknown>'] as [string, string]);
+            },
+            (ref, getData) => getData(ref),
+        ),
     }
 })({
-    apply({ a, params, dependencies }) {
+    apply({ a, params }) {
         return Task.create('Create volume from volume and particles', async ctx => {
-            const particlesObj = dependencies![params.particlesRef];
-            if (particlesObj.type !== SO.Particle.List.type) throw new Error('Expected a Particle List as `particlesRef`');
-            const particles = particlesObj.data as ParticleList;
+            const particles = params.particles.getValue();
             const transforms = getParticleTransforms(particles);
             // Center the volume on each particle position by composing each
             // particle's rotation/translation with a translation that brings

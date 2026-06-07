@@ -23,7 +23,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
 import { Expression } from '../../mol-script/language/expression';
 import { Script } from '../../mol-script/script';
-import { StateObject, StateTransform, StateTransformer } from '../../mol-state';
+import { StateObject, StateSelection, StateTransform, StateTransformer } from '../../mol-state';
 import { RuntimeContext, Task } from '../../mol-task';
 import { deepEqual } from '../../mol-util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -269,18 +269,22 @@ type ParticlesStructure = typeof ParticlesStructure
 const ParticlesStructure = PluginStateTransform.BuiltIn({
     name: 'particles-structure',
     display: { name: 'Particles Structure', description: 'Create a structure with instances at each particle position and orientation.' },
+    isDecorator: true,
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
-    isDecorator: true,
     params: {
-        particlesRef: PD.Text('', { isHidden: true }),
+        particles: PD.ValueRef<ParticleList>(
+            (ctx: PluginContext) => {
+                const particles = ctx.state.data.select(StateSelection.Generators.rootsOfType(SO.Particle.List)).filter(c => c.obj?.data);
+                return particles.map(v => [v.transform.ref, v.obj?.label ?? '<unknown>'] as [string, string]);
+            },
+            (ref, getData) => getData(ref),
+        ),
     }
 })({
-    apply({ a, params, dependencies }) {
+    apply({ a, params }) {
         return Task.create('Create structure from structure and particles', async ctx => {
-            const particlesObj = dependencies![params.particlesRef];
-            if (particlesObj.type !== SO.Particle.List.type) throw new Error('Expected a Particle List as `particlesRef`');
-            const particles = particlesObj.data as ParticleList;
+            const particles = params.particles.getValue();
             const transforms = getParticleTransforms(particles);
             // Center the structure on each particle position by composing each
             // particle's rotation/translation with a translation that brings

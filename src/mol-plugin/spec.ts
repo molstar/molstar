@@ -88,6 +88,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateTransforms.Model.TrajectoryFromPDB),
         PluginSpec.Action(StateTransforms.Model.TransformStructureConformation),
         PluginSpec.Action(StateTransforms.Model.StructureInstances),
+        PluginSpec.Action(StateTransforms.Model.ParticlesStructure),
         PluginSpec.Action(StateTransforms.Model.StructureFromModel),
         PluginSpec.Action(StateTransforms.Model.StructureFromTrajectory),
         PluginSpec.Action(StateTransforms.Model.ModelFromTrajectory),
@@ -118,6 +119,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
         PluginSpec.Action(StateTransforms.Volume.VolumeTransform),
         PluginSpec.Action(StateTransforms.Volume.VolumeInstances),
+        PluginSpec.Action(StateTransforms.Volume.ParticlesVolume),
 
         PluginSpec.Action(StateTransforms.Particles.ParticleListFromRelionStar),
         PluginSpec.Action(StateTransforms.Particles.ParticleListFromDynamoTbl),

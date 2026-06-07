@@ -152,18 +152,16 @@ export const LoadParticles = StateAction.build({
                 const structure = await state.build().to(model)
                     .apply(StructureFromModel)
                     .commit();
-                const structureDependsOn = [particlesParsed.list.ref];
                 const structureTree = state.build().to(structure.ref)
-                    .apply(ParticlesStructure, { particlesRef: particlesParsed.list.ref }, { dependsOn: structureDependsOn });
+                    .apply(ParticlesStructure, { particles: PD.asValueRef(particlesParsed.list.ref) });
                 await state.updateTree(structureTree).runInContext(taskCtx);
                 const structureProperties = await ctx.builders.structure.insertStructureProperties(structureTree.ref);
                 await ctx.builders.structure.representation.applyPreset(structureProperties, 'mesoscale', {
                     theme: { globalName: 'chain-id' }
                 });
             } else if ('volume' in targetParsed) {
-                const volumeDependsOn = [particlesParsed.list.ref];
                 const volumeTree = state.build().to(targetParsed.volume.ref)
-                    .apply(ParticlesVolume, { particlesRef: particlesParsed.list.ref }, { dependsOn: volumeDependsOn });
+                    .apply(ParticlesVolume, { particles: PD.asValueRef(particlesParsed.list.ref) });
                 await state.updateTree(volumeTree).runInContext(taskCtx);
                 await applyParticlesVolumeVisuals(ctx, volumeTree.selector);
             } else {
@@ -199,13 +197,12 @@ export const AddParticles = StateAction.build({
         };
     }
 })(({ params, state }, ctx: PluginContext) => Task.create('Add Particles', async taskCtx => {
-    const dependsOn = [params.particles];
     const structures = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Structure));
     const isStructure = structures.some(s => s.transform.ref === params.target);
 
     if (isStructure) {
         const tree = state.build().to(params.target)
-            .apply(ParticlesStructure, { particlesRef: params.particles }, { dependsOn });
+            .apply(ParticlesStructure, { particles: PD.asValueRef(params.particles) });
 
         await state.updateTree(tree).runInContext(taskCtx);
         const structureProperties = await ctx.builders.structure.insertStructureProperties(tree.ref);
@@ -214,7 +211,7 @@ export const AddParticles = StateAction.build({
         });
     } else {
         const tree = state.build().to(params.target)
-            .apply(ParticlesVolume, { particlesRef: params.particles }, { dependsOn });
+            .apply(ParticlesVolume, { particles: PD.asValueRef(params.particles) });
 
         await state.updateTree(tree).runInContext(taskCtx);
         await applyParticlesVolumeVisuals(ctx, tree.selector);
