@@ -1,12 +1,13 @@
 /**
- * Copyright (c) 2024-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  *
  * Partially adapted from three.js, The MIT License, Copyright © 2010-2024 three.js authors
  */
 
-import { CopyRenderable, QuadSchema, QuadValues, createCopyRenderable } from '../../mol-gl/compute/util';
+import { QuadSchema, QuadValues } from '../../mol-gl/compute/util';
 import { ComputeRenderable, createComputeRenderable } from '../../mol-gl/renderable';
 import { TextureSpec, UniformSpec, DefineSpec, Values } from '../../mol-gl/renderable/schema';
 import { ShaderCode } from '../../mol-gl/shader-code';
@@ -33,6 +34,7 @@ export const BloomParams = {
     radius: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
     threshold: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }, { description: 'Luminosity threshold', hideIf: p => p.mode === 'emissive' }),
     mode: PD.Select('emissive', [['luminosity', 'Luminosity'], ['emissive', 'Emissive']] as const),
+    transparency: PD.Boolean(true, { description: 'Include transparent objects in emissive bloom', hideIf: p => p.mode !== 'emissive' }),
 };
 export type BloomProps = PD.Values<typeof BloomParams>
 
@@ -42,16 +44,15 @@ export class BloomPass {
     }
 
     readonly emissiveTarget: RenderTarget;
+    readonly compositeTarget: RenderTarget;
 
     private readonly luminosityTarget: RenderTarget;
     private readonly horizontalBlurTargets: RenderTarget[] = [];
     private readonly verticalBlurTargets: RenderTarget[] = [];
-    private readonly compositeTarget: RenderTarget;
 
     private readonly luminosityRenderable: LuminosityRenderable;
     private readonly blurRenderable: BlurRenderable;
     private readonly compositeRenderable: CompositeRenderable;
-    private readonly copyRenderable: CopyRenderable;
 
     constructor(private webgl: WebGLContext, width: number, height: number) {
         this.emissiveTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'linear', 'rgba');
@@ -69,10 +70,9 @@ export class BloomPass {
         }
 
         const nullTexture = createNullTexture();
-        this.luminosityRenderable = getLuminosityRenderable(webgl, nullTexture, nullTexture, nullTexture);
+        this.luminosityRenderable = getLuminosityRenderable(webgl, nullTexture, nullTexture, nullTexture, nullTexture, nullTexture);
         this.blurRenderable = getBlurRenderable(webgl, nullTexture);
         this.compositeRenderable = getCompositeRenderable(webgl, width, height, this.verticalBlurTargets[0].texture, this.verticalBlurTargets[1].texture, this.verticalBlurTargets[2].texture, this.verticalBlurTargets[3].texture, this.verticalBlurTargets[4].texture);
-        this.copyRenderable = createCopyRenderable(webgl, this.compositeTarget.texture);
     }
 
     getByteCount() {
@@ -103,18 +103,21 @@ export class BloomPass {
                 blurHeight = Math.round(blurHeight / 2);
             }
 
-            ValueCell.update(this.luminosityRenderable.values.uTexSizeInv, Vec2.set(this.compositeRenderable.values.uTexSizeInv.ref.value, 1 / width, 1 / height));
+            ValueCell.update(this.luminosityRenderable.values.uTexSizeInv, Vec2.set(this.luminosityRenderable.values.uTexSizeInv.ref.value, 1 / width, 1 / height));
             ValueCell.update(this.compositeRenderable.values.uTexSizeInv, Vec2.set(this.compositeRenderable.values.uTexSizeInv.ref.value, 1 / width, 1 / height));
-
-            ValueCell.update(this.copyRenderable.values.uTexSize, Vec2.set(this.copyRenderable.values.uTexSize.ref.value, width, height));
         }
     }
 
-    update(input: Texture, emissive: Texture, depth: Texture, props: BloomProps) {
+    update(colorOpaque: Texture, colorTransparent: Texture, emissive: Texture, depthOpaque: Texture, depthTransparent: Texture, props: BloomProps) {
         let luminosityNeedsUpdate = false;
 
-        if (this.luminosityRenderable.values.tColor.ref.value !== input) {
-            ValueCell.update(this.luminosityRenderable.values.tColor, input);
+        if (this.luminosityRenderable.values.tColorOpaque.ref.value !== colorOpaque) {
+            ValueCell.update(this.luminosityRenderable.values.tColorOpaque, colorOpaque);
+            luminosityNeedsUpdate = true;
+        }
+
+        if (this.luminosityRenderable.values.tColorTransparent.ref.value !== colorTransparent) {
+            ValueCell.update(this.luminosityRenderable.values.tColorTransparent, colorTransparent);
             luminosityNeedsUpdate = true;
         }
 
@@ -123,8 +126,13 @@ export class BloomPass {
             luminosityNeedsUpdate = true;
         }
 
-        if (this.luminosityRenderable.values.tDepth.ref.value !== depth) {
-            ValueCell.update(this.luminosityRenderable.values.tDepth, depth);
+        if (this.luminosityRenderable.values.tDepthOpaque.ref.value !== depthOpaque) {
+            ValueCell.update(this.luminosityRenderable.values.tDepthOpaque, depthOpaque);
+            luminosityNeedsUpdate = true;
+        }
+
+        if (this.luminosityRenderable.values.tDepthTransparent.ref.value !== depthTransparent) {
+            ValueCell.update(this.luminosityRenderable.values.tDepthTransparent, depthTransparent);
             luminosityNeedsUpdate = true;
         }
 
@@ -139,46 +147,26 @@ export class BloomPass {
             this.luminosityRenderable.update();
         }
 
-        //
-
-        let blurNeedsUpdate = false;
-
-        if (this.blurRenderable.values.tInput.ref.value !== input) {
-            ValueCell.update(this.blurRenderable.values.tInput, input);
-            blurNeedsUpdate = true;
-        }
-
-        if (blurNeedsUpdate) {
-            this.blurRenderable.update();
-        }
-
-        //
-
-        ValueCell.update(this.compositeRenderable.values.uBloomRadius, props.radius);
-        ValueCell.update(this.compositeRenderable.values.uBloomStrength, props.strength);
+        ValueCell.updateIfChanged(this.compositeRenderable.values.uBloomRadius, props.radius);
+        ValueCell.updateIfChanged(this.compositeRenderable.values.uBloomStrength, props.strength);
     }
 
-    render(viewport: Viewport, target: RenderTarget | undefined) {
+    /** Writes bloom to `compositeTarget`; caller blends it. */
+    render(viewport: Viewport) {
         if (isTimingMode) this.webgl.timer.mark('BloomPass.render');
         const { gl, state } = this.webgl;
         const { x, y, width, height } = viewport;
         state.viewport(x, y, width, height);
         state.scissor(x, y, width, height);
 
-        // printTextureImage(readTexture(this.webgl, this.luminosityRenderable.values.tEmissive.ref.value, new Uint8Array(width * height * 4)), { scale: 0.25, id: 'emissive' });
-
         state.enable(gl.SCISSOR_TEST);
         state.disable(gl.BLEND);
         state.disable(gl.DEPTH_TEST);
         state.depthMask(false);
 
-        // Extract Bright Areas
         this.luminosityTarget.bind();
         this.luminosityRenderable.render();
 
-        // printTextureImage(readTexture(this.webgl, this.luminosityTarget.texture, new Uint8Array(width * height * 4)), { scale: 0.25, id: 'luminosity' });
-
-        // Blur All the mips progressively
         for (let i = 0; i < MipCount; ++i) {
             const blurWidth = this.horizontalBlurTargets[i].getWidth();
             const blurHeight = this.horizontalBlurTargets[i].getHeight();
@@ -200,28 +188,15 @@ export class BloomPass {
             ValueCell.update(this.blurRenderable.values.uDirection, BlurDirectionY);
             this.blurRenderable.update();
             this.blurRenderable.render();
-
-            // printTextureImage(readTexture(this.webgl, this.verticalBlurTargets[i].texture, new Uint8Array(blurWidth * blurHeight * 4)), { scale: 0.25, id: `blur-${i}` });
         }
 
         state.viewport(x, y, width, height);
         state.scissor(x, y, width, height);
 
-        // Composite All the mips
         this.compositeTarget.bind();
         this.compositeRenderable.update();
         this.compositeRenderable.render();
 
-        // printTextureImage(readTexture(this.webgl, this.compositeTarget.texture, new Uint8Array(width * height * 4)), { scale: 0.25, id: 'composite' });
-
-        if (target) {
-            target.bind();
-        } else {
-            this.webgl.bindDrawingBuffer();
-        }
-        state.enable(gl.BLEND);
-        state.blendFunc(gl.ONE, gl.ONE);
-        this.copyRenderable.render();
         if (isTimingMode) this.webgl.timer.markEnd('BloomPass.render');
     }
 }
@@ -230,9 +205,11 @@ export class BloomPass {
 
 const LuminositySchema = {
     ...QuadSchema,
-    tColor: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+    tColorOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+    tColorTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     tEmissive: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
-    tDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tDepthOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     uTexSizeInv: UniformSpec('v2'),
 
     uDefaultColor: UniformSpec('v3'),
@@ -244,15 +221,17 @@ const LuminositySchema = {
 const LuminosityShaderCode = ShaderCode('Bloom Luminosity', quad_vert, luminosity_frag);
 type LuminosityRenderable = ComputeRenderable<Values<typeof LuminositySchema>>
 
-function getLuminosityRenderable(ctx: WebGLContext, colorTexture: Texture, emissiveTexture: Texture, depthTexture: Texture): LuminosityRenderable {
-    const width = colorTexture.getWidth();
-    const height = colorTexture.getHeight();
+function getLuminosityRenderable(ctx: WebGLContext, colorOpaqueTexture: Texture, colorTransparentTexture: Texture, emissiveTexture: Texture, depthOpaqueTexture: Texture, depthTransparentTexture: Texture): LuminosityRenderable {
+    const width = colorOpaqueTexture.getWidth();
+    const height = colorOpaqueTexture.getHeight();
 
     const values: Values<typeof LuminositySchema> = {
         ...QuadValues,
-        tColor: ValueCell.create(colorTexture),
+        tColorOpaque: ValueCell.create(colorOpaqueTexture),
+        tColorTransparent: ValueCell.create(colorTransparentTexture),
         tEmissive: ValueCell.create(emissiveTexture),
-        tDepth: ValueCell.create(depthTexture),
+        tDepthOpaque: ValueCell.create(depthOpaqueTexture),
+        tDepthTransparent: ValueCell.create(depthTransparentTexture),
         uTexSizeInv: ValueCell.create(Vec2.create(1 / width, 1 / height)),
 
         uDefaultColor: ValueCell.create(Vec3()),
@@ -357,3 +336,4 @@ function getCompositeRenderable(ctx: WebGLContext, width: number, height: number
 
     return createComputeRenderable(renderItem, values);
 }
+

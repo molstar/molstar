@@ -11,6 +11,7 @@ uniform sampler2D tSsaoDepthTransparent;
 uniform sampler2D tDepthOpaque;
 uniform sampler2D tDepthTransparent;
 uniform sampler2D tOutlines;
+uniform sampler2D tBloom;
 uniform vec2 uTexSize;
 
 uniform float uNear;
@@ -284,6 +285,25 @@ void main() {
                 color = transparentColor + color * (1.0 - transparentColor.a);
                 alpha = transparentColor.a + alpha * (1.0 - transparentColor.a);
             }
+        }
+    #endif
+
+    #ifdef dBloomEnable
+        vec4 bloom = texture2D(tBloom, coords);
+        // Bg: screen if transparent (no darkening), PMA OVER if opaque (screen is invisible on bright bg). Geometry: additive.
+        bool bloomBg = isBackground(opaqueDepth);
+        #ifdef dBlendTransparency
+            bloomBg = bloomBg && isBackground(transparentDepth);
+        #endif
+        if (bloomBg) {
+            if (uTransparentBackground) {
+                color.rgb = 1.0 - (1.0 - color.rgb) * (1.0 - bloom.rgb);
+            } else {
+                color.rgb = bloom.rgb + color.rgb * (1.0 - bloom.a);
+            }
+            alpha = bloom.a + alpha * (1.0 - bloom.a);
+        } else {
+            color.rgb += bloom.rgb;
         }
     #endif
 

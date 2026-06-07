@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -32,7 +32,7 @@ import { AssetManager } from '../../mol-util/assets';
 import { Light } from '../../mol-gl/renderer';
 import { CasParams, CasPass } from './cas';
 import { DofPass, DofParams } from './dof';
-import { BloomParams } from './bloom';
+import { BloomParams, BloomPass } from './bloom';
 import { OutlinePass, OutlineProps, OutlineParams } from './outline';
 import { ShadowPass, ShadowProps, ShadowParams } from './shadow';
 import { SsaoPass, SsaoProps, SsaoParams } from './ssao';
@@ -49,6 +49,8 @@ const PostprocessingSchema = {
     tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tShadows: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tOutlines: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tBloom: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+    dBloomEnable: DefineSpec('boolean'),
     uTexSize: UniformSpec('v2'),
 
     dOrthographic: DefineSpec('number'),
@@ -75,7 +77,7 @@ const PostprocessingSchema = {
 };
 type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>
 
-function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, transparentColorTexture: Texture, depthTextureOpaque: Texture, depthTextureTransparent: Texture, shadowsTexture: Texture, outlinesTexture: Texture, ssaoDepthTexture: Texture, ssaoDepthTransparentTexture: Texture, transparentOutline: boolean): PostprocessingRenderable {
+function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, transparentColorTexture: Texture, depthTextureOpaque: Texture, depthTextureTransparent: Texture, shadowsTexture: Texture, outlinesTexture: Texture, ssaoDepthTexture: Texture, ssaoDepthTransparentTexture: Texture, bloomTexture: Texture, transparentOutline: boolean): PostprocessingRenderable {
     const values: Values<typeof PostprocessingSchema> = {
         ...QuadValues,
         tSsaoDepth: ValueCell.create(ssaoDepthTexture),
@@ -87,6 +89,8 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, t
         tDepthTransparent: ValueCell.create(depthTextureTransparent),
         tShadows: ValueCell.create(shadowsTexture),
         tOutlines: ValueCell.create(outlinesTexture),
+        tBloom: ValueCell.create(bloomTexture),
+        dBloomEnable: ValueCell.create(false),
         uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
 
         dOrthographic: ValueCell.create(0),
@@ -157,11 +161,11 @@ export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
 export class PostprocessingPass {
     static isEnabled(props: PostprocessingProps) {
-        return props.enabled && (SsaoPass.isEnabled(props) || ShadowPass.isEnabled(props) || OutlinePass.isEnabled(props) || props.background.variant.name !== 'off');
+        return props.enabled && (SsaoPass.isEnabled(props) || ShadowPass.isEnabled(props) || OutlinePass.isEnabled(props) || props.background.variant.name !== 'off' || BloomPass.isEnabled(props));
     }
 
     static isTransparentDepthRequired(scene: Scene, props: PostprocessingProps) {
-        return props.enabled && (DofPass.isEnabled(props) || OutlinePass.isEnabled(props) && PostprocessingPass.isTransparentOutlineEnabled(props) || SsaoPass.isEnabled(props) && PostprocessingPass.isTransparentSsaoEnabled(scene, props)) && scene.opacityAverage < 1;
+        return props.enabled && (DofPass.isEnabled(props) || OutlinePass.isEnabled(props) && PostprocessingPass.isTransparentOutlineEnabled(props) || SsaoPass.isEnabled(props) && PostprocessingPass.isTransparentSsaoEnabled(scene, props) || BloomPass.isEnabled(props)) && scene.opacityAverage < 1;
     }
 
     static isTransparentOutlineEnabled(props: PostprocessingProps) {
@@ -183,6 +187,7 @@ export class PostprocessingPass {
     readonly ssao: SsaoPass;
     readonly shadow: ShadowPass;
     readonly outline: OutlinePass;
+    readonly bloom: BloomPass;
     readonly background: BackgroundPass;
 
     constructor(private readonly webgl: WebGLContext, assetManager: AssetManager, readonly drawPass: DrawPass) {
@@ -196,8 +201,9 @@ export class PostprocessingPass {
         this.ssao = new SsaoPass(webgl, width, height, packedDepth, depthTextureOpaque, depthTextureTransparent);
         this.shadow = new ShadowPass(webgl, width, height, depthTextureOpaque);
         this.outline = new OutlinePass(webgl, width, height, depthTextureTransparent, depthTextureOpaque);
+        this.bloom = new BloomPass(webgl, width, height);
 
-        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, transparentColorTarget.texture, depthTextureOpaque, depthTextureTransparent, this.shadow.target.texture, this.outline.target.texture, this.ssao.ssaoDepthTexture, this.ssao.ssaoDepthTransparentTexture, true);
+        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, transparentColorTarget.texture, depthTextureOpaque, depthTextureTransparent, this.shadow.target.texture, this.outline.target.texture, this.ssao.ssaoDepthTexture, this.ssao.ssaoDepthTransparentTexture, this.bloom.compositeTarget.texture, true);
 
         this.background = new BackgroundPass(webgl, assetManager, width, height);
     }
@@ -207,7 +213,8 @@ export class PostprocessingPass {
             this.target.getByteCount() +
             this.ssao.getByteCount() +
             this.shadow.getByteCount() +
-            this.outline.getByteCount()
+            this.outline.getByteCount() +
+            this.bloom.getByteCount()
         );
     }
 
@@ -222,6 +229,7 @@ export class PostprocessingPass {
         this.ssao.setSize(width, height);
         this.shadow.setSize(width, height);
         this.outline.setSize(width, height);
+        this.bloom.setSize(width, height);
         this.background.setSize(width, height);
     }
 
@@ -323,9 +331,14 @@ export class PostprocessingPass {
         this.transparentBackground = value;
     }
 
-    render(camera: ICamera, scene: Scene, toDrawingBuffer: boolean, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps, light: Light, ambientColor: Vec3) {
+    render(camera: ICamera, scene: Scene, toDrawingBuffer: boolean, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps, light: Light, ambientColor: Vec3, bloomEnable: boolean = false) {
         if (isTimingMode) this.webgl.timer.mark('PostprocessingPass.render');
         this.updateState(camera, scene, transparentBackground, backgroundColor, props, light, ambientColor);
+
+        if (this.renderable.values.dBloomEnable.ref.value !== bloomEnable) {
+            ValueCell.update(this.renderable.values.dBloomEnable, bloomEnable);
+            this.renderable.update();
+        }
 
         const { state } = this.webgl;
         const { x, y, width, height } = camera.viewport;

@@ -107,7 +107,11 @@ export const assign_material_color = `
     #ifdef dEmissive
         emissive += vEmissive;
     #endif
-    vec4 material = vec4(emissive);
+    float emissiveAlpha = uAlpha;
+    #if defined(dXrayShaded)
+        emissiveAlpha = calcXrayShadedAlpha(emissiveAlpha, normal);
+    #endif
+    vec4 material = vec4(emissive * emissiveAlpha);
 #endif
 
 // apply per-group transparency
@@ -119,8 +123,7 @@ export const assign_material_color = `
         if (ta * uAlpha < uPickingAlphaThreshold)
             discard; // ignore so the element below can be picked
     #elif defined(dRenderVariant_emissive)
-        if (ta < 1.0)
-            discard; // emissive not supported with transparency
+        material *= ta;
     #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
         material.a *= ta;
     #endif
