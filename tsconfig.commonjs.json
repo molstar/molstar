@@ -1,8 +1,7 @@
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "moduleResolution": "node16",
-        "module": "CommonJS",
+        "module": "commonjs",
         "outDir": "lib/commonjs"
     }
 }
