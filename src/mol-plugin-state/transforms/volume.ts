@@ -18,7 +18,7 @@ import { volumeFromCube } from '../../mol-model-formats/volume/cube';
 import { volumeFromDx } from '../../mol-model-formats/volume/dx';
 import { Grid, Volume } from '../../mol-model/volume';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateSelection, StateTransformer } from '../../mol-state';
+import { StateSelection, StateTransform, StateTransformer } from '../../mol-state';
 import { volumeFromSegmentationData } from '../../mol-model-formats/volume/segmentation';
 import { getTransformFromParams, TransformParam, transformParamsNeedCentroid } from './helpers';
 import { getParticleTransforms, ParticleList } from '../../mol-model/particles/particle-list';
@@ -235,7 +235,8 @@ const AssignColorVolume = PluginStateTransform.BuiltIn({
             const props = { label: a.label, description: 'Volume + Colors' };
             return new SO.Volume.Data(volume, props);
         });
-    }
+    },
+    getDependencies: ({ ref }) => ref ? [ref as StateTransform.Ref] : []
 });
 
 type VolumeTransform = typeof VolumeTransform;

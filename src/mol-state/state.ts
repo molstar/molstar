@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { StateObject, StateObjectCell, StateObjectSelector } from './object';
@@ -24,7 +25,22 @@ import { arraySetAdd, arraySetRemove } from '../mol-util/array';
 import { UniqueArray } from '../mol-data/generic/unique-array';
 import { assignIfUndefined } from '../mol-util/object';
 
-export { State };
+export { State, StateTreeCycleError };
+
+/**
+ * Thrown when a cycle is detected in the state-tree dependency graph
+ * (the cross-edges defined by `transform.dependsOn` and effective
+ * dependencies derived from params). `cycle` holds the closed path,
+ * e.g. `['A', 'B', 'A']`.
+ */
+class StateTreeCycleError extends Error {
+    readonly cycle: StateTransform.Ref[];
+    constructor(cycle: StateTransform.Ref[]) {
+        super(`Cyclic state-tree dependency detected: ${cycle.join(' -> ')}`);
+        this.name = 'StateTreeCycleError';
+        this.cycle = cycle;
+    }
+}
 
 class State {
     private _tree: TransientTree;
@@ -494,6 +510,21 @@ interface UpdateContext {
     wasAborted: boolean,
     newCurrent?: Ref,
 
+    /**
+     * Refs that are scheduled to be (re-)evaluated in this update pass:
+     * the union of every `roots[i]` and its descendants. Used to distinguish
+     * "dep not yet produced this pass" (defer + retry) from "dep can never
+     * be produced this pass" (throw).
+     */
+    scheduled?: Set<Ref>,
+
+    /**
+     * Subtree roots that were skipped because at least one of their
+     * dependencies hadn't been evaluated yet. Drained after the main loop
+     * makes a fixpoint pass.
+     */
+    deferred?: Ref[],
+
     getCellData: (ref: string) => any
 }
 
@@ -573,9 +604,43 @@ async function update(ctx: UpdateContext) {
     // Set status of cells that will be updated to 'pending'.
     initCellStatus(ctx, roots);
 
+    // Build the set of refs that will be (re-)evaluated this pass so that
+    // `updateSubtree` can distinguish "dep not produced yet" (defer + retry)
+    // from "dep can never be produced" (throw via resolveDependencies).
+    ctx.scheduled = collectScheduled(ctx, roots);
+
     // Sequentially update all the subtrees.
     for (const root of roots) {
         await updateSubtree(ctx, root);
+    }
+
+    // Drain the deferred queue: nodes whose `dependsOn` cells weren't yet
+    // evaluated when first visited get retried until either all succeed or
+    // a full pass makes no forward progress (true deadlock / unresolvable).
+    if (ctx.deferred && ctx.deferred.length > 0) {
+        while (ctx.deferred.length > 0) {
+            const pending = ctx.deferred;
+            ctx.deferred = [];
+            let progress = false;
+            for (const ref of pending) {
+                const before = ctx.deferred.length;
+                await updateSubtree(ctx, ref);
+                // Forward progress = this attempt did not re-defer the same ref.
+                const reDeferred = ctx.deferred.length > before
+                    && ctx.deferred[ctx.deferred.length - 1] === ref;
+                if (!reDeferred) progress = true;
+            }
+            if (!progress) {
+                const stuck = ctx.deferred.map(r => {
+                    const c = ctx.cells.get(r);
+                    if (!c) return r;
+                    const blockers = pendingBlockers(ctx, c);
+                    return `${r} (waiting on: ${blockers.length ? blockers.join(', ') : 'unknown'})`;
+                });
+                ctx.deferred = [];
+                throw new Error(`Unresolved dependency: ${stuck.join('; ')}`);
+            }
+        }
     }
 
     // Sync cell states
@@ -663,7 +728,13 @@ function setCellStatus(ctx: UpdateContext, ref: Ref, status: StateObjectCell.Sta
 }
 
 function initCellStatusVisitor(t: StateTransform, _: any, ctx: UpdateContext) {
-    ctx.cells.get(t.ref)!.transform = t;
+    const cell = ctx.cells.get(t.ref)!;
+    cell.transform = t;
+    if (relinkCells(cell, ctx)) {
+        // Edges changed (e.g. param update added/removed dependencies) —
+        // re-verify there is no cycle.
+        checkDependenciesCycle(cell);
+    }
     setCellStatus(ctx, t.ref, 'pending');
 }
 
@@ -707,9 +778,10 @@ function addCellsVisitor(transform: StateTransform, _: any, { ctx, added, visite
 // type LinkCellsCtx = { ctx: UpdateContext, visited: Set<Ref>, dependent: UniqueArray<Ref, StateObjectCell> }
 
 function linkCells(target: StateObjectCell, ctx: UpdateContext) {
-    if (!target.transform.dependsOn) return;
+    const effective = StateTransform.getEffectiveDependsOn(target.transform);
+    if (effective.length === 0) return;
 
-    for (const ref of target.transform.dependsOn) {
+    for (const ref of effective) {
         const t = ctx.tree.transforms.get(ref);
         if (!t) {
             throw new Error(`Cannot depend on a non-existent transform.`);
@@ -719,6 +791,103 @@ function linkCells(target: StateObjectCell, ctx: UpdateContext) {
         arraySetAdd(target.dependencies.dependsOn, cell);
         arraySetAdd(cell.dependencies.dependentBy, target);
     }
+}
+
+/**
+ * Diff the current outgoing dependency edges of `target` against the effective
+ * set derived from its (possibly updated) transform. Unlinks stale edges and
+ * links new ones so the dependency graph reflects param changes. Idempotent
+ * when nothing has changed. Returns `true` if any edge was added or removed.
+ */
+function relinkCells(target: StateObjectCell, ctx: UpdateContext): boolean {
+    const effective = StateTransform.getEffectiveDependsOn(target.transform);
+    const current = target.dependencies.dependsOn;
+
+    // Fast path: same number and all current refs are still in effective.
+    if (current.length === effective.length) {
+        let same = true;
+        for (const c of current) {
+            if (effective.indexOf(c.transform.ref) < 0) { same = false; break; }
+        }
+        if (same) return false;
+    }
+
+    const desired = new Set(effective);
+    let changed = false;
+
+    // Remove stale outgoing edges.
+    for (let i = current.length - 1; i >= 0; i--) {
+        const dep = current[i];
+        if (!desired.has(dep.transform.ref)) {
+            current.splice(i, 1);
+            arraySetRemove(dep.dependencies.dependentBy, target);
+            changed = true;
+        }
+    }
+
+    // Add new outgoing edges.
+    const have = new Set(current.map(c => c.transform.ref));
+    for (const ref of effective) {
+        if (have.has(ref)) continue;
+        const t = ctx.tree.transforms.get(ref);
+        if (!t) {
+            throw new Error(`Cannot depend on a non-existent transform.`);
+        }
+        const cell = ctx.cells.get(ref)!;
+        arraySetAdd(target.dependencies.dependsOn, cell);
+        arraySetAdd(cell.dependencies.dependentBy, target);
+        changed = true;
+    }
+
+    return changed;
+}
+
+/**
+ * Detect a cycle in the `dependsOn` graph reachable from `start`.
+ *
+ * Iterative DFS, returning the closed cycle path (first occurrence of the
+ * repeated ref appended at the end) or `undefined` if none. Operates on the
+ * already-linked cell graph; safe to call after `linkCells` / `relinkCells`.
+ */
+function detectDependenciesCycle(start: StateObjectCell): StateTransform.Ref[] | undefined {
+    if (start.dependencies.dependsOn.length === 0) return void 0;
+    const stack: { cell: StateObjectCell, idx: number }[] = [{ cell: start, idx: 0 }];
+    const onPath = new Set<StateTransform.Ref>([start.transform.ref]);
+    const fully = new Set<StateTransform.Ref>();
+
+    while (stack.length > 0) {
+        const top = stack[stack.length - 1];
+        const deps = top.cell.dependencies.dependsOn;
+        if (top.idx >= deps.length) {
+            onPath.delete(top.cell.transform.ref);
+            fully.add(top.cell.transform.ref);
+            stack.pop();
+            continue;
+        }
+        const next = deps[top.idx++];
+        const ref = next.transform.ref;
+        if (fully.has(ref)) continue;
+        if (onPath.has(ref)) {
+            const path: StateTransform.Ref[] = [];
+            let started = false;
+            for (const s of stack) {
+                if (started || s.cell.transform.ref === ref) {
+                    started = true;
+                    path.push(s.cell.transform.ref);
+                }
+            }
+            path.push(ref);
+            return path;
+        }
+        onPath.add(ref);
+        stack.push({ cell: next, idx: 0 });
+    }
+    return void 0;
+}
+
+function checkDependenciesCycle(cell: StateObjectCell) {
+    const cycle = detectDependenciesCycle(cell);
+    if (cycle) throw new StateTreeCycleError(cycle);
 }
 
 function initCells(ctx: UpdateContext, roots: Ref[]) {
@@ -732,6 +901,12 @@ function initCells(ctx: UpdateContext, roots: Ref[]) {
     // Update links for newly added cells
     for (const cell of initCtx.added) {
         linkCells(cell, ctx);
+    }
+
+    // Cycle detection over the dependency cross-edges of newly added cells.
+    // Parent/child is already a tree, so cycles can only enter via dependsOn.
+    for (const cell of initCtx.added) {
+        checkDependenciesCycle(cell);
     }
 
     let dependent: UniqueArray<Ref, StateObjectCell>;
@@ -834,7 +1009,54 @@ type UpdateNodeResult =
 
 const ParentNullErrorText = 'Parent is null';
 
+function collectScheduledVisitor(t: StateTransform, _: any, s: Set<Ref>) {
+    s.add(t.ref);
+}
+
+function collectScheduled(ctx: UpdateContext, roots: Ref[]): Set<Ref> {
+    const out = new Set<Ref>();
+    for (const root of roots) {
+        const node = ctx.tree.transforms.get(root);
+        if (!node) continue;
+        StateTree.doPreOrder(ctx.tree, node, out, collectScheduledVisitor);
+    }
+    return out;
+}
+
+/**
+ * Refs that `cell` depends on which are scheduled for evaluation in this
+ * pass but haven't produced an object yet (and aren't in an error state).
+ * An empty result means deps are either ready, in error, or out-of-scope —
+ * in any of those cases the cell should proceed (and may throw at
+ * `resolveDependencies` time if the dep is genuinely missing).
+ */
+function pendingBlockers(ctx: UpdateContext, cell: StateObjectCell): Ref[] {
+    const blockers: Ref[] = [];
+    const scheduled = ctx.scheduled;
+    if (!scheduled) return blockers;
+    for (const dep of cell.dependencies.dependsOn) {
+        if (dep.obj) continue;
+        if (dep.status === 'error') continue;
+        if (!scheduled.has(dep.transform.ref)) continue;
+        blockers.push(dep.transform.ref);
+    }
+    return blockers;
+}
+
 async function updateSubtree(ctx: UpdateContext, root: Ref) {
+    const cell = ctx.cells.get(root);
+    if (cell && cell.dependencies.dependsOn.length > 0) {
+        const blockers = pendingBlockers(ctx, cell);
+        if (blockers.length > 0) {
+            // A dependency hasn't been produced yet this pass — defer this
+            // subtree and retry after other roots have run. Children will be
+            // visited when the deferred re-attempt succeeds.
+            if (!ctx.deferred) ctx.deferred = [];
+            ctx.deferred.push(root);
+            return;
+        }
+    }
+
     setCellStatus(ctx, root, 'processing');
 
     let isNull = false;

@@ -1,20 +1,21 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { Structure, Unit, Bond } from '../../../mol-model/structure';
+import { Structure, Unit, Bond, StructureElement } from '../../../mol-model/structure';
 import { Features, FeaturesBuilder } from './features';
 import { ValenceModelProvider } from '../valence-model';
-import { InteractionsIntraContacts, InteractionsInterContacts, FeatureType, interactionTypeLabel } from './common';
+import { InteractionsIntraContacts, InteractionsInterContacts, FeatureType, InteractionType, InteractionFlag, interactionTypeLabel } from './common';
 import { IntraContactsBuilder, InterContactsBuilder } from './contacts-builder';
-import { IntMap } from '../../../mol-data/int';
+import { IntMap, OrderedSet } from '../../../mol-data/int';
 import { addUnitContacts, ContactTester, addStructureContacts, ContactsParams, ContactsProps } from './contacts';
 import { HalogenDonorProvider, HalogenAcceptorProvider, HalogenBondsProvider } from './halogen-bonds';
 import { HydrogenDonorProvider, WeakHydrogenDonorProvider, HydrogenAcceptorProvider, HydrogenBondsProvider, WeakHydrogenBondsProvider } from './hydrogen-bonds';
+import { WaterBridgesProvider } from './water-bridges';
 import { NegativChargeProvider, PositiveChargeProvider, AromaticRingProvider, IonicProvider, PiStackingProvider, CationPiProvider } from './charged';
 import { HydrophobicAtomProvider, HydrophobicProvider } from './hydrophobic';
 import { SetUtils } from '../../../mol-util/set';
@@ -25,10 +26,26 @@ import { DataLocation } from '../../../mol-model/location';
 import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { DataLoci } from '../../../mol-model/loci';
-import { bondLabel, LabelGranularity } from '../../../mol-theme/label';
+import { bondLabel, bundleLabel, LabelGranularity } from '../../../mol-theme/label';
 import { ObjectKeys } from '../../../mol-util/type-helpers';
 
-export { Interactions };
+export { Interactions, Bridges };
+export type { BridgeContact, BridgeContacts };
+
+interface BridgeContact {
+    readonly unitA: number
+    readonly indexA: Features.FeatureIndex
+    readonly unitB: number
+    readonly indexB: Features.FeatureIndex
+    /** mediator unit id */
+    readonly unitM: number
+    /** mediator feature facing endpoint A */
+    readonly indexMA: Features.FeatureIndex
+    /** mediator feature facing endpoint B */
+    readonly indexMB: Features.FeatureIndex
+    props: { type: InteractionType, flag: InteractionFlag }
+}
+type BridgeContacts = ReadonlyArray<BridgeContact>
 
 interface Interactions {
     /** Features of each unit */
@@ -37,6 +54,8 @@ interface Interactions {
     unitsContacts: IntMap<InteractionsIntraContacts>
     /** Interactions between units */
     contacts: InteractionsInterContacts
+    /** Bridge-mediated interactions covering the whole structure */
+    bridges: BridgeContacts
 }
 
 namespace Interactions {
@@ -129,6 +148,93 @@ namespace Interactions {
     }
 }
 
+namespace Bridges {
+    export interface Data {
+        readonly structure: Structure
+        readonly bridges: BridgeContacts
+        readonly unitsFeatures: IntMap<Features>
+    }
+
+    export interface Element { bridgeIndex: number }
+
+    export interface Location extends DataLocation<Data, Element> {}
+
+    export function Location(data: Data, bridgeIndex = 0): Location {
+        return DataLocation('bridges', data, { bridgeIndex });
+    }
+
+    export function isLocation(x: any): x is Location {
+        return !!x && x.kind === 'data-location' && x.tag === 'bridges';
+    }
+
+    export interface Loci extends DataLoci<Data, Element> {}
+
+    export function Loci(data: Data, elements: ReadonlyArray<Element>): Loci {
+        return DataLoci('bridges', data, elements,
+            bs => getBoundingSphere(data, elements, bs),
+            () => getLabel(data, elements));
+    }
+
+    export function isLoci(x: any): x is Loci {
+        return !!x && x.kind === 'data-loci' && x.tag === 'bridges';
+    }
+
+    function getLabel(data: Data, elements: ReadonlyArray<Element>): string {
+        const e = elements[0];
+        if (e === undefined) return '';
+
+        const { structure, bridges, unitsFeatures } = data;
+        const bridge = bridges[e.bridgeIndex];
+
+        const uA = structure.unitMap.get(bridge.unitA) as Unit.Atomic;
+        const fA = unitsFeatures.get(bridge.unitA);
+        const uM = structure.unitMap.get(bridge.unitM) as Unit.Atomic;
+        const fM = unitsFeatures.get(bridge.unitM);
+        const uB = structure.unitMap.get(bridge.unitB) as Unit.Atomic;
+        const fB = unitsFeatures.get(bridge.unitB);
+
+        const options = { granularity: 'element' as LabelGranularity };
+        if (fA.offsets[bridge.indexA + 1] - fA.offsets[bridge.indexA] > 1 ||
+                fB.offsets[bridge.indexB + 1] - fB.offsets[bridge.indexB] > 1) {
+            options.granularity = 'residue';
+        }
+
+        return [
+            interactionTypeLabel(bridge.props.type),
+            bundleLabel({ loci: [
+                StructureElement.Loci(structure, [{ unit: uA, indices: OrderedSet.ofSingleton(fA.members[fA.offsets[bridge.indexA]] as StructureElement.UnitIndex) }]),
+                StructureElement.Loci(structure, [{ unit: uM, indices: OrderedSet.ofSingleton(fM.members[fM.offsets[bridge.indexMA]] as StructureElement.UnitIndex) }]),
+                StructureElement.Loci(structure, [{ unit: uB, indices: OrderedSet.ofSingleton(fB.members[fB.offsets[bridge.indexB]] as StructureElement.UnitIndex) }]),
+            ] }, options),
+        ].join('</br>');
+    }
+
+    function getBoundingSphere(data: Data, elements: ReadonlyArray<Element>, boundingSphere: Sphere3D) {
+        return CentroidHelper.fromPairProvider(elements.length * 2, (i, pA, pB) => {
+            const bridge = data.bridges[elements[i >> 1].bridgeIndex];
+
+            const uA = data.structure.unitMap.get(bridge.unitA) as Unit.Atomic;
+            const fA = data.unitsFeatures.get(bridge.unitA);
+            const uM = data.structure.unitMap.get(bridge.unitM) as Unit.Atomic;
+            const fM = data.unitsFeatures.get(bridge.unitM);
+            const uB = data.structure.unitMap.get(bridge.unitB) as Unit.Atomic;
+            const fB = data.unitsFeatures.get(bridge.unitB);
+
+            const aIdx = fA.members[fA.offsets[bridge.indexA]];
+            const mIdx = fM.members[fM.offsets[bridge.indexMA]];
+            const bIdx = fB.members[fB.offsets[bridge.indexB]];
+
+            if ((i & 1) === 0) {
+                uA.conformation.position(uA.elements[aIdx], pA);
+                uM.conformation.position(uM.elements[mIdx], pB);
+            } else {
+                uM.conformation.position(uM.elements[mIdx], pA);
+                uB.conformation.position(uB.elements[bIdx], pB);
+            }
+        }, boundingSphere);
+    }
+}
+
 const FeatureProviders = [
     HydrogenDonorProvider, WeakHydrogenDonorProvider, HydrogenAcceptorProvider,
     NegativChargeProvider, PositiveChargeProvider, AromaticRingProvider,
@@ -174,8 +280,30 @@ export const ContactProviderParams = getProvidersParams([
     // 'weak-hydrogen-bonds',
 ]);
 
+const BridgeProviders = {
+    'water-bridges': WaterBridgesProvider,
+};
+type BridgeProviders = typeof BridgeProviders
+
+function getBridgeProviderParams(defaultOn: string[] = []) {
+    const params: { [k in keyof BridgeProviders]: PD.Mapped<PD.NamedParamUnion<{
+        on: PD.Group<BridgeProviders[k]['params']>
+        off: PD.Group<{}>
+    }>> } = Object.create(null);
+
+    Object.keys(BridgeProviders).forEach(k => {
+        (params as any)[k] = PD.MappedStatic(defaultOn.includes(k) ? 'on' : 'off', {
+            on: PD.Group(BridgeProviders[k as keyof BridgeProviders].params),
+            off: PD.Group({})
+        }, { cycle: true });
+    });
+    return params;
+}
+export const BridgeProviderParams = getBridgeProviderParams([]);
+
 export const InteractionsParams = {
     providers: PD.Group(ContactProviderParams, { isFlat: true }),
+    bridges: PD.Group(BridgeProviderParams, { isFlat: true }),
     contacts: PD.Group(ContactsParams, { label: 'Advanced Options' }),
 };
 export type InteractionsParams = typeof InteractionsParams
@@ -202,6 +330,9 @@ export async function computeInteractions(ctx: CustomProperty.Context, structure
 
     const requiredFeatures = new Set<FeatureType>();
     contactTesters.forEach(l => SetUtils.add(requiredFeatures, l.requiredFeatures));
+    ObjectKeys(BridgeProviders).forEach(k => {
+        if (p.bridges[k].name === 'on') SetUtils.add(requiredFeatures, BridgeProviders[k].requiredFeatures);
+    });
     const featureProviders = FeatureProviders.filter(f => SetUtils.areIntersecting(requiredFeatures, f.types));
 
     const unitsFeatures = IntMap.Mutable<Features>();
@@ -228,8 +359,9 @@ export async function computeInteractions(ctx: CustomProperty.Context, structure
     }
 
     const contacts = findInterUnitContacts(structure, unitsFeatures, contactTesters, p.contacts, options);
+    const bridges = findBridges(structure, unitsFeatures, p.bridges);
+    const interactions = { unitsFeatures, unitsContacts, contacts, bridges };
 
-    const interactions = { unitsFeatures, unitsContacts, contacts };
     refineInteractions(structure, interactions);
     return interactions;
 }
@@ -258,6 +390,19 @@ function findIntraUnitContacts(structure: Structure, unit: Unit, features: Featu
         addUnitContacts(structure, unit, features, builder, contactTesters, props);
     }
     return builder.getContacts();
+}
+
+function findBridges(structure: Structure, unitsFeatures: IntMap<Features>, props: PD.Values<typeof BridgeProviderParams>): BridgeContacts {
+    const bridges: BridgeContact[] = [];
+
+    ObjectKeys(BridgeProviders).forEach(k => {
+        const { name, params } = props[k];
+        if (name === 'on') {
+            for (const b of BridgeProviders[k].find(structure, unitsFeatures, params as any)) bridges.push(b);
+        }
+    });
+
+    return bridges;
 }
 
 function findInterUnitContacts(structure: Structure, unitsFeatures: IntMap<Features>, contactTesters: ReadonlyArray<ContactTester>, props: ContactsProps, options?: ComputeInterctionsOptions) {

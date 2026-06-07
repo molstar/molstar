@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Fix exported image artifacts on transparent background with emissive, bloom, or antialiasing
+- Fix cel-shaded ambient color being stripped to luminance (now uses full RGB, matching the classic lighting path)
 - Fix empty transforms default in `ShapeFromPly`
 - Use morton order for spheres in dot visual with lod-levels
 - Add `Camera.changed` event and rotation/translation setter/getter
@@ -12,7 +14,14 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add mesoscale representation preset
 - Add presets option to `ObjectList` param definition
 - Fix memory leak in `State.dispose()` not invoking transformer `dispose` callbacks for live cells
+- Adds File/Open and drag-and-drop support for Kinemage files in the viewer app
+- Fix bugs in ModelServer surroundingLigands endpoint, resulting in omitWater not honored
 - Fix `Volume` and `Isosurface` getBoundingSphere ignoring instances
+- Fix aromatic ring detection not accounting for hybridization
+- Add axis param to camera spin/rock animation
+- Fix SSAO half/quarter resolution textures for multi-scale
+- Non-covalent interactions: water bridge support
+- Download Structure From AlphaFoldDB allows IDs with version suffix (version is ignored)
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty
