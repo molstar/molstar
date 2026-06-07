@@ -8,8 +8,8 @@
  */
 
 import { MolstarLoadingExtension } from '../../extensions/mvs/load';
-import { structureInteractivity, StructureInteractivityOptions } from '../../extensions/plugin/interactivity';
-import * as loaders from '../../extensions/plugin/load';
+import { applyStructureInteractivity, StructureInteractivityOptions } from '../../extensions/plugin/interactivity';
+import * as loaders from '../../extensions/plugin/loaders';
 import { Volume } from '../../mol-model/volume';
 import { PluginComponent } from '../../mol-plugin-state/component';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
@@ -30,7 +30,7 @@ export { consoleStats, isDebugMode, isProductionMode, isTimingMode, setDebugMode
 
 // re-export for backwards compatibility, but these should ideally be imported from the plugin extension directly
 // TODO: consider removing these in v6.0
-export type { LoadStructureOptions, LoadTrajectoryParams, VolumeIsovalueInfo } from '../../extensions/plugin/load';
+export type { LoadStructureOptions, LoadTrajectoryParams, VolumeIsovalueInfo } from '../../extensions/plugin/loaders';
 
 export class Viewer {
     private _events = new PluginComponent();
@@ -208,7 +208,7 @@ export class Viewer {
      * will be cleared based on the specified `action`.
      */
     structureInteractivity(options: StructureInteractivityOptions) {
-        return structureInteractivity(this.plugin, options);
+        return applyStructureInteractivity(this.plugin, options);
     }
 
     dispose() {

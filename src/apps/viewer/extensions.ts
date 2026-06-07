@@ -31,7 +31,7 @@ import { MVSData } from '../../extensions/mvs/mvs-data';
 import * as MVSUtil from '../../extensions/mvs/util';
 import { KinemageExtension } from '../../extensions/kinemage/behavior';
 import * as interactivity from '../../extensions/plugin/interactivity';
-import * as loaders from '../../extensions/plugin/load';
+import * as loaders from '../../extensions/plugin/loaders';
 import { PluginViewModel } from '../../extensions/plugin/view-model';
 import { PluginUIViewModel } from '../../extensions/plugin/ui-view-model';
 

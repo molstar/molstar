@@ -28,7 +28,7 @@ export interface StructureInteractivityOptions {
  * If neither `expression` nor `elements` are provided, all selections/highlights
  * will be cleared based on the specified `action`.
  */
-export function structureInteractivity(plugin: PluginContext, { expression, elements, action: action_, applyGranularity = false, filterStructure, focusOptions }: StructureInteractivityOptions) {
+export function applyStructureInteractivity(plugin: PluginContext, { expression, elements, action: action_, applyGranularity = false, filterStructure, focusOptions }: StructureInteractivityOptions) {
     const actions = Array.isArray(action_) ? action_ : [action_];
 
     if (!expression && !elements) {
