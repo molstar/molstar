@@ -18,34 +18,8 @@
     </head>
     <body>
         <div id="app"></div>
-        <div>
-            <button onclick="javascript:focusPair('MA', 1513, 'MA', 1478, true)">Pair 1</button>
-            <button onclick="javascript:focusPair('MA', 1183, 'MA', 1166, true)">Pair 2</button>
-            <button onclick="javascript:focusPair('OA', 118, 'OA', 288, true)">Pair 3</button>
-        </div>
         <script type="text/javascript" src="./molstar.js"></script>
         <script type="text/javascript">
-            function focusPair(ca, ra, cb, rb, opt) {
-                const elements = {
-                    items: [
-                        { label_asym_id: ca, label_seq_id: ra },
-                        { label_asym_id: cb, label_seq_id: rb }
-                    ]
-                }
-                document.msViewer.structureInteractivity({
-                    elements: elements,
-                    action: ['focus', 'select'],
-                    focusOptions: {
-                        optimizeDirection: opt,
-                        durationMs: 500,
-                        extraRadius: -1,
-                        minRadius: 5,
-                        zoomOut: true
-                    }
-                });
-            }
-
-
             molstar.Viewer.create('app', {
                 layoutIsExpanded: false,
                 layoutShowControls: false,
@@ -61,11 +35,8 @@
                 pdbProvider: 'rcsb',
                 emdbProvider: 'rcsb',
             }).then(viewer => {
-                document.msViewer = viewer;
-                viewer.loadPdb('9rja');
-
-                // viewer.loadPdb('7bv2');
-                // viewer.loadEmdb('EMD-30210', { detail: 6 });
+                viewer.loadPdb('7bv2');
+                viewer.loadEmdb('EMD-30210', { detail: 6 });
                 // viewer.loadAllModelsOrAssemblyFromUrl('https://cs.litemol.org/5ire/full', 'mmcif', false, { representationParams: { theme: { globalName: 'operator-name' } } })
                 // viewer.loadStructureFromUrl('my url', 'pdb', false, {
                 //     representationParams: {
