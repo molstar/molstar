@@ -188,7 +188,7 @@ function populateCache(surface: Mesh, center: Vec3, boundingSphere: Sphere3D, re
  * (size + probe) along the centroid->atom direction so the fit tracks the surface envelope rather
  * than the (inward-biased) atom centers. `ids[i]` is the group id carried to the reconstructed mesh.
  */
-function buildAtomCloud(xs: number[], ys: number[], zs: number[], rs: number[], ids: number[]) {
+function buildAtomCloud(xs: number[], ys: number[], zs: number[], rs: number[], ids: number[], pushScale = 1) {
     const n = xs.length;
     const position = { x: xs, y: ys, z: zs, radius: rs, indices: OrderedSet.ofRange(0, n) };
     const boundary = getBoundary(position);
@@ -201,10 +201,10 @@ function buildAtomCloud(xs: number[], ys: number[], zs: number[], rs: number[], 
     for (let i = 0; i < n; ++i) {
         const dx = xs[i] - cx, dy = ys[i] - cy, dz = zs[i] - cz;
         const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        const r = rs[i];
+        const r = rs[i] * pushScale;
         if (r > maxRadius) maxRadius = r;
         if (len > 1e-3) {
-            const push = r / len; // push outward by the atom radius
+            const push = r / len; // push outward by the (scaled) atom radius
             points[i * 3] = xs[i] + dx * push;
             points[i * 3 + 1] = ys[i] + dy * push;
             points[i * 3 + 2] = zs[i] + dz * push;
@@ -650,8 +650,11 @@ function clampInt(v: number, min: number, max: number) {
 }
 
 async function createResidueSphericalHarmonicSurfaceMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: SphericalHarmonicSurfaceMeshProps, mesh?: Mesh): Promise<Mesh> {
-    const { probeRadius, ignoreHydrogens, ignoreHydrogensVariant, traceOnly } = props;
+    const { ignoreHydrogens, ignoreHydrogensVariant, traceOnly } = props;
     const L = clampInt(props.residueL, 1, 4);
+    // residues are tiny: use vdW only (no probe) and a gentle outward push, otherwise blobs
+    // roughly double and merge into a lump.
+    const residuePushScale = 0.5;
     const sphere = getSphere(clampInt(props.residueDetail, 1, 3));
     const sv = sphere.vertices;
     const svCount = sv.length / 3;
@@ -686,11 +689,11 @@ async function createResidueSphericalHarmonicSurfaceMesh(ctx: VisualContext, str
                 if (repSerial < 0) repSerial = getSerialIndex(unit, eI);
                 xs.push(c.x(eI)); ys.push(c.y(eI)); zs.push(c.z(eI));
                 l.element = eI;
-                rs.push(theme.size.size(l) + probeRadius);
+                rs.push(theme.size.size(l));
             }
             if (xs.length === 0 || repSerial < 0) continue;
 
-            const cloud = buildAtomCloud(xs, ys, zs, rs, xs.map(() => 0));
+            const cloud = buildAtomCloud(xs, ys, zs, rs, xs.map(() => 0), residuePushScale);
             const cx = cloud.center[0], cy = cloud.center[1], cz = cloud.center[2];
 
             // angular spread of the (envelope-pushed) atoms about the centroid; monatomic /
