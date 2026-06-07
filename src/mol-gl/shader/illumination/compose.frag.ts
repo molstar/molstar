@@ -52,7 +52,8 @@ float getDepthTransparent(const in vec2 coords) {
 }
 
 bool isBackground(const in float depth) {
-    return depth == 1.0;
+    // (2^24 - 1) / 2^24, max of 24-bit packed depth; also passes raw fp32.
+    return depth >= 0.99999994;
 }
 
 float getSsao(vec2 coords) {
