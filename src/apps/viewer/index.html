@@ -129,6 +129,11 @@
                 var modelArchive = getParam('model-archive', '[^&]+').trim();
                 if (modelArchive) viewer.loadModelArchive(modelArchive);
 
+                var url = getParam('url', '[^&]+').trim();
+                var urlFormat = getParam('url-format', '[^&]+').trim() || undefined;
+                var urlIsBinary = getParam('url-is-binary', '[^&]+').trim() === '1';
+                if (url && urlFormat) viewer.loadUrl(url, urlFormat, urlIsBinary);
+
                 window.addEventListener('unload', () => {
                     // to aid GC
                     viewer.dispose();

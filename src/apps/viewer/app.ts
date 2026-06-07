@@ -14,7 +14,7 @@ import { MVSData } from '../../extensions/mvs/mvs-data';
 import { StringLike } from '../../mol-io/common/string-like';
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { Volume } from '../../mol-model/volume';
-import { OpenFiles } from '../../mol-plugin-state/actions/file';
+import { DownloadFile, OpenFiles } from '../../mol-plugin-state/actions/file';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
@@ -521,6 +521,17 @@ export class Viewer {
                 visuals: true
             }));
         }
+    }
+
+    loadUrl(url: string, format: string, isBinary = false) {
+        return this.plugin.runTask(Task.create('Load URL', async taskCtx => {
+            await this.plugin.state.data.applyAction(DownloadFile, {
+                url: Asset.Url(url),
+                format,
+                isBinary,
+                visuals: true
+            }).runInContext(taskCtx);
+        }));
     }
 
     handleResize() {
