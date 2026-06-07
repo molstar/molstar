@@ -49,7 +49,7 @@ export const SphericalHarmonicSurfaceMeshParams = {
     sphericalHarmonicL: PD.Numeric(8, { min: 2, max: 20, step: 1 }, { description: 'Maximum spherical harmonic degree. Higher values follow the molecular surface more closely.' }),
     reconstructionDetail: PD.Numeric(3, { min: 1, max: 5, step: 1 }, { description: 'Triangulation detail of the reconstructed sphere mesh.' }),
     fitSource: PD.Select('surface', [['surface', 'Molecular surface'], ['atoms', 'Atom positions']] as const, { description: 'Fit the spherical harmonics to the molecular surface, or directly to atom positions (faster, blobbier, no surface step).' }),
-    residueL: PD.Numeric(2, { min: 1, max: 4, step: 1 }, { description: 'Spherical harmonic degree for the per-residue blobs (kept low: a residue has too few atoms for high degrees).' }),
+    residueL: PD.Numeric(1, { min: 1, max: 4, step: 1 }, { description: 'Spherical harmonic degree for the per-residue blobs (kept low: a residue has too few atoms for high degrees; 1 = ellipsoidal).' }),
     residueDetail: PD.Numeric(2, { min: 1, max: 3, step: 1 }, { description: 'Triangulation detail of each per-residue blob.' }),
 };
 export type SphericalHarmonicSurfaceMeshParams = typeof SphericalHarmonicSurfaceMeshParams
