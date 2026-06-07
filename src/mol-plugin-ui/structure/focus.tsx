@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { OrderedSet, SortedArray } from '../../mol-data/int';
@@ -184,14 +185,23 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
         } else {
             this.plugin.managers.structure.focus.set(f);
         }
-        this.focusCamera();
+        this.focusCamera(true);
     };
+
+    focusCamera(optimizeDirection?: boolean) {
+        const { current } = this.plugin.managers.structure.focus;
+        if (!current) return;
+
+        this.plugin.managers.camera.focusLoci(current.loci, {
+            optimizeDirection,
+        });
+    }
+
 
     toggleAction = () => this.setState({ showAction: !this.state.showAction });
 
-    focusCamera = () => {
-        const { current } = this.plugin.managers.structure.focus;
-        if (current) this.plugin.managers.camera.focusLoci(current.loci);
+    focusCameraClick = () => {
+        this.focusCamera(false);
     };
 
     clear = () => {
@@ -231,7 +241,7 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
 
         return <>
             <div className='msp-flex-row'>
-                <Button noOverflow onClick={this.focusCamera} title={title} onMouseEnter={this.highlightCurrent} onMouseLeave={this.clearHighlights} disabled={this.isDisabled || !current}
+                <Button noOverflow onClick={this.focusCameraClick} title={title} onMouseEnter={this.highlightCurrent} onMouseLeave={this.clearHighlights} disabled={this.isDisabled || !current}
                     style={{ textAlignLast: current ? 'left' : void 0 }}>
                     {label}
                 </Button>

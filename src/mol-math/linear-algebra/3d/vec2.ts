@@ -58,6 +58,10 @@ namespace Vec2 {
         return Number.isNaN(a[0]) || Number.isNaN(a[1]);
     }
 
+    export function is(a: any): a is Vec2 {
+        return Array.isArray(a) && a.length === 2;
+    }
+
     export function toArray<T extends NumberArray>(a: Vec2, out: T, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];

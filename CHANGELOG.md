@@ -20,6 +20,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix aromatic ring detection not accounting for hybridization
 - Add axis param to camera spin/rock animation
 - Fix SSAO half/quarter resolution textures for multi-scale
+- Camera improvements 
+  - Add the option to approximate "least obstructed direction" when focusing camera, accessibe via `PluginContext.managers.camera.focusLoci` with `optimizeDirection` option
+  - Add `CameraFocusOptions.zoomOut` option that zooms out to to make the entire scene visible before focusing on the target
+  - Add easing support in camera transtion
 - Non-covalent interactions: water bridge support
 - Download Structure From AlphaFoldDB allows IDs with version suffix (version is ignored)
 

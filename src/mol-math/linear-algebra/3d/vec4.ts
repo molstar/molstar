@@ -71,6 +71,10 @@ namespace Vec4 {
         return Number.isNaN(a[0]) || Number.isNaN(a[1]) || Number.isNaN(a[2]) || Number.isNaN(a[3]);
     }
 
+    export function is(a: any): a is Vec4 {
+        return Array.isArray(a) && a.length === 4;
+    }
+
     export function toArray<T extends NumberArray>(a: Vec4, out: T, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
