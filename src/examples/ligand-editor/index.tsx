@@ -10,7 +10,7 @@ import { BehaviorSubject, Subscription, throttleTime } from 'rxjs';
 import { JSONCifLigandGraph, JSONCifLigandGraphBondProps } from '../../extensions/json-cif/ligand-graph';
 import { JSONCifDataBlock, JSONCifFile } from '../../extensions/json-cif/model';
 import { ParseJSONCifFileData } from '../../extensions/json-cif/transformers';
-import { MolViewSpec } from '../../extensions/mvs/behavior';
+import { MolViewSpecBehavior } from '../../extensions/mvs/behavior';
 import { StructureElement, StructureProperties } from '../../mol-model/structure';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { ModelFromTrajectory, StructureFromModel, TrajectoryFromMmCif } from '../../mol-plugin-state/transforms/model';
@@ -22,7 +22,6 @@ import '../../mol-plugin-ui/skin/light.scss';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
-import { PluginSpec } from '../../mol-plugin/spec';
 import { StateObjectSelector } from '../../mol-state';
 import { download } from '../../mol-util/download';
 import { GeometryEditFn, GeometryEdits, TopologyEdits } from './edits';
@@ -35,7 +34,7 @@ import { SingleTaskQueue } from '../../mol-util/single-task-queue';
 
 async function init(target: HTMLElement | string, molfile: string = ExampleMol) {
     const root = typeof target === 'string' ? document.getElementById(target)! : target;
-    const plugin = await createViewer(root);
+    const plugin = await createViewer();
     const model = new EditorModel(plugin);
     createRoot(root).render(<AppUI model={model} />);
     loadMolfile(model, molfile);
@@ -44,7 +43,7 @@ async function init(target: HTMLElement | string, molfile: string = ExampleMol) 
 
 (window as any).initLigandEditorExample = init;
 
-async function createViewer(root: HTMLElement) {
+async function createViewer() {
     const spec = DefaultPluginUISpec();
     const plugin = new PluginUIContext({
         ...spec,
@@ -59,7 +58,7 @@ async function createViewer(root: HTMLElement) {
         },
         behaviors: [
             ...spec.behaviors,
-            PluginSpec.Behavior(MolViewSpec)
+            MolViewSpecBehavior
         ],
         config: [
             [PluginConfig.Viewport.ShowAnimation, false],

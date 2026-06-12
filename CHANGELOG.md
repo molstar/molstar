@@ -30,6 +30,8 @@ Note that since we don't clearly distinguish between a public and private interf
   - Standalone useful loading functions previously avaiable only in the `Viewer` class
   - Standalong plugin interactivity helper function previously available only via the `Viewer` class
   - View models (and hooks) for more straightforward usafe in React (and in other UI libraries)
+- Add `examples/react` that showcases few ways the Mol* can be used together with React
+- Fix default representation plugin option, which resulted in represenations not being shown automatically when using the default plugin spec
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty

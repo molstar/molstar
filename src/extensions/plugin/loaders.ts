@@ -28,19 +28,22 @@ import { Task } from '../../mol-task';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import { loadMVSData, loadMVSX } from '../mvs/components/formats';
-import { loadMVS, MolstarLoadingExtension } from '../mvs/load';
+import { loadMVS, MolstarLoadingExtension, MVSLoadOptions } from '../mvs/load';
 import { MVSData } from '../mvs/mvs-data';
 
-export function setRemoteSnapshot(plugin: PluginContext, id: string) {
+export async function setRemoteSnapshot(plugin: PluginContext, id: string) {
+    await plugin.initialized;
     const url = `${plugin.config.get(PluginConfig.State.CurrentServer)}/get/${id}`;
     return PluginCommands.State.Snapshots.Fetch(plugin, { url });
 }
 
-export function loadSnapshotFromUrl(plugin: PluginContext, url: string, type: PluginState.SnapshotType) {
+export async function loadSnapshotFromUrl(plugin: PluginContext, url: string, type: PluginState.SnapshotType) {
+    await plugin.initialized;
     return PluginCommands.State.Snapshots.OpenUrl(plugin, { url, type });
 }
 
-export function loadStructureFromUrl(plugin: PluginContext, url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false, options?: LoadStructureOptions & { label?: string }) {
+export async function loadStructureFromUrl(plugin: PluginContext, url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false, options?: LoadStructureOptions & { label?: string }) {
+    await plugin.initialized;
     const params = DownloadStructure.createDefaultParams(plugin.state.data.root.obj!, plugin);
     return plugin.runTask(plugin.state.data.applyAction(DownloadStructure, {
         source: {
@@ -57,19 +60,21 @@ export function loadStructureFromUrl(plugin: PluginContext, url: string, format:
 }
 
 export async function loadAllModelsOrAssemblyFromUrl(plugin: PluginContext, url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false, options?: LoadStructureOptions) {
+    await plugin.initialized;
     const data = await plugin.builders.data.download({ url, isBinary }, { state: { isGhost: true } });
     const trajectory = await plugin.builders.structure.parseTrajectory(data, format);
-
     await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'all-models', { useDefaultIfSingleModel: true, representationPresetParams: options?.representationParams });
 }
 
 export async function loadStructureFromData(plugin: PluginContext, data: string | number[], format: BuiltInTrajectoryFormat, options?: { dataLabel?: string }) {
+    await plugin.initialized;
     const _data = await plugin.builders.data.rawData({ data, label: options?.dataLabel });
     const trajectory = await plugin.builders.structure.parseTrajectory(_data, format);
     await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
 }
 
-export function loadPdb(plugin: PluginContext, pdb: string, options?: LoadStructureOptions) {
+export async function loadPdb(plugin: PluginContext, pdb: string, options?: LoadStructureOptions) {
+    await plugin.initialized;
     const params = DownloadStructure.createDefaultParams(plugin.state.data.root.obj!, plugin);
     const provider = plugin.config.get(PluginConfig.Download.DefaultPdbProvider)!;
     return plugin.runTask(plugin.state.data.applyAction(DownloadStructure, {
@@ -89,7 +94,8 @@ export function loadPdb(plugin: PluginContext, pdb: string, options?: LoadStruct
     }));
 }
 
-export function loadPdbIhm(plugin: PluginContext, pdbIhm: string) {
+export async function loadPdbIhm(plugin: PluginContext, pdbIhm: string) {
+    await plugin.initialized;
     const params = DownloadStructure.createDefaultParams(plugin.state.data.root.obj!, plugin);
     return plugin.runTask(plugin.state.data.applyAction(DownloadStructure, {
         source: {
@@ -105,7 +111,8 @@ export function loadPdbIhm(plugin: PluginContext, pdbIhm: string) {
     }));
 }
 
-export function loadEmdb(plugin: PluginContext, emdb: string, options?: { detail?: number }) {
+export async function loadEmdb(plugin: PluginContext, emdb: string, options?: { detail?: number }) {
+    await plugin.initialized;
     const provider = plugin.config.get(PluginConfig.Download.DefaultEmdbProvider)!;
     return plugin.runTask(plugin.state.data.applyAction(DownloadDensity, {
         source: {
@@ -121,7 +128,8 @@ export function loadEmdb(plugin: PluginContext, emdb: string, options?: { detail
     }));
 }
 
-export function loadAlphaFoldDb(plugin: PluginContext, afdb: string) {
+export async function loadAlphaFoldDb(plugin: PluginContext, afdb: string) {
+    await plugin.initialized;
     const params = DownloadStructure.createDefaultParams(plugin.state.data.root.obj!, plugin);
     return plugin.runTask(plugin.state.data.applyAction(DownloadStructure, {
         source: {
@@ -140,7 +148,8 @@ export function loadAlphaFoldDb(plugin: PluginContext, afdb: string) {
     }));
 }
 
-export function loadModelArchive(plugin: PluginContext, id: string) {
+export async function loadModelArchive(plugin: PluginContext, id: string) {
+    await plugin.initialized;
     const params = DownloadStructure.createDefaultParams(plugin.state.data.root.obj!, plugin);
     return plugin.runTask(plugin.state.data.applyAction(DownloadStructure, {
         source: {
@@ -193,6 +202,8 @@ export function loadModelArchive(plugin: PluginContext, id: string) {
     });
  */
 export async function loadVolumeFromUrl(plugin: PluginContext, { url, format, isBinary }: { url: string, format: BuildInVolumeFormat, isBinary: boolean }, isovalues: VolumeIsovalueInfo[], options?: { entryId?: string | string[], isLazy?: boolean }) {
+    await plugin.initialized;
+
     if (!plugin.dataFormats.get(format)) {
         throw new Error(`Unknown density format: ${format}`);
     }
@@ -234,7 +245,8 @@ export async function loadVolumeFromUrl(plugin: PluginContext, { url, format, is
     });
 }
 
-export function loadFullResolutionEMDBMap(plugin: PluginContext, emdbId: string, options: { isoValue: Volume.IsoValue, color?: Color }) {
+export async function loadFullResolutionEMDBMap(plugin: PluginContext, emdbId: string, options: { isoValue: Volume.IsoValue, color?: Color }) {
+    await plugin.initialized;
     const numericId = parseInt(emdbId.toUpperCase().replace('EMD-', ''));
     const url = `https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-${numericId}/map/emd_${numericId}.map.gz`;
 
@@ -270,6 +282,8 @@ export function loadFullResolutionEMDBMap(plugin: PluginContext, emdbId: string,
  *  });
  */
 export async function loadTrajectory(plugin: PluginContext, params: LoadTrajectoryParams) {
+    await plugin.initialized;
+
     let model: StateObjectSelector;
 
     if (params.model.kind === 'model-data' || params.model.kind === 'model-url') {
@@ -308,7 +322,8 @@ export async function loadTrajectory(plugin: PluginContext, params: LoadTrajecto
     return { model, coords, preset };
 }
 
-export async function loadMvsFromUrl(plugin: PluginContext, url: string, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, keepCameraOrientation?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+export async function loadMVSFromUrl(plugin: PluginContext, url: string, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, keepCameraOrientation?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+    await plugin.initialized;
     if (format === 'mvsj') {
         const data = await plugin.runTask(plugin.fetch({ url, type: 'string' }));
         const mvsData = MVSData.fromMVSJ(StringLike.toString(data));
@@ -327,11 +342,18 @@ export async function loadMvsFromUrl(plugin: PluginContext, url: string, format:
 /** Load MolViewSpec from `data`.
  * If `format` is 'mvsj', `data` must be a string or a Uint8Array containing a UTF8-encoded string.
  * If `format` is 'mvsx', `data` must be a Uint8Array or a string containing base64-encoded binary data prefixed with 'base64,'. */
-export function loadMvsData(plugin: PluginContext, data: string | Uint8Array<ArrayBuffer>, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, keepCameraOrientation?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+export async function loadMvsData(plugin: PluginContext, data: string | Uint8Array<ArrayBuffer>, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, keepCameraOrientation?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+    await plugin.initialized;
     return loadMVSData(plugin, data, format, options);
 }
 
-export function loadFiles(plugin: PluginContext, files: File[]) {
+export async function loadMvsState(plugin: PluginContext, mvsData: MVSData, options?: MVSLoadOptions) {
+    await plugin.initialized;
+    return loadMVS(plugin, mvsData, options);
+}
+
+export async function loadFiles(plugin: PluginContext, files: File[]) {
+    await plugin.initialized;
     const sessions = files.filter(f => {
         const fn = f.name.toLowerCase();
         return fn.endsWith('.molx') || fn.endsWith('.molj');

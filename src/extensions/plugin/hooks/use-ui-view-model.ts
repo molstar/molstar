@@ -8,7 +8,7 @@ import { useRef } from 'react';
 import { DefaultPluginUISpec, PluginUISpec } from '../../../mol-plugin-ui/spec';
 import { PluginUIViewModel } from '../ui-view-model';
 
-export function useCreatePluginUIViewModel(options?: { spec?: PluginUISpec | ((defaultSpec?: PluginUISpec) => PluginUISpec) }): PluginUIViewModel {
+export function useCreatePluginUIViewModel(options?: { spec?: PluginUISpec | ((defaultSpec: PluginUISpec) => PluginUISpec) }): PluginUIViewModel {
     const model = useRef<PluginUIViewModel>();
     if (!model.current) {
         model.current = new PluginUIViewModel({

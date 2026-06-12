@@ -181,7 +181,7 @@ export class Viewer {
     }
 
     loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, keepCameraOrientation?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
-        return loaders.loadMvsFromUrl(this.plugin, url, format, options);
+        return loaders.loadMVSFromUrl(this.plugin, url, format, options);
     }
 
     /** Load MolViewSpec from `data`.
