@@ -8,14 +8,16 @@ import { useRef } from 'react';
 import { DefaultPluginUISpec, PluginUISpec } from '../../../mol-plugin-ui/spec';
 import { PluginUIViewModel } from '../ui-view-model';
 
-export function useCreatePluginUIViewModel(options?: { spec?: PluginUISpec | ((defaultSpec: PluginUISpec) => PluginUISpec) }): PluginUIViewModel {
-    const model = useRef<PluginUIViewModel>();
+export function useCreatePluginUIViewModel<T extends PluginUIViewModel = PluginUIViewModel>(options?: {
+    spec?: PluginUISpec | ((defaultSpec: PluginUISpec) => PluginUISpec),
+    model?: (spec: PluginUISpec) => T
+}): T {
+    const model = useRef<T>();
     if (!model.current) {
-        model.current = new PluginUIViewModel({
-            spec: options?.spec
-                ? (typeof options.spec === 'function' ? options.spec(DefaultPluginUISpec()) : options.spec)
-                : options?.spec as PluginUISpec
-        });
+        const spec = options?.spec
+            ? (typeof options.spec === 'function' ? options.spec(DefaultPluginUISpec()) : options.spec)
+            : DefaultPluginUISpec();
+        model.current = options?.model ? options.model(spec) : new PluginUIViewModel({ spec }) as T;
     }
     return model.current;
 }

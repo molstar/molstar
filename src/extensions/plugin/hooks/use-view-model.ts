@@ -8,16 +8,18 @@ import { MutableRefObject, useEffect, useRef } from 'react';
 import { DefaultPluginSpec, PluginSpec } from '../../../mol-plugin/spec';
 import { PluginViewModel } from '../view-model';
 
-export function useCreatePluginViewModel(options?: { spec?: PluginSpec | ((defaultSpec: PluginSpec) => PluginSpec) }): PluginViewModel {
-    const model = useRef<PluginViewModel>();
+export function useCreatePluginViewModel<T extends PluginViewModel>(options?: {
+    spec?: PluginSpec | ((defaultSpec: PluginSpec) => PluginSpec),
+    model?: (spec: PluginSpec) => T
+}): T {
+    const model = useRef<T>();
     if (!model.current) {
-        model.current = new PluginViewModel({
-            spec: options?.spec
-                ? (typeof options.spec === 'function' ? options.spec(DefaultPluginSpec()) : options.spec)
-                : options?.spec as PluginSpec
-        });
+        const spec = options?.spec
+            ? (typeof options.spec === 'function' ? options.spec(DefaultPluginSpec()) : options.spec)
+            : DefaultPluginSpec();
+        model.current = options?.model ? options.model(spec) : new PluginViewModel({ spec }) as T;
     }
-    return model.current;
+    return model.current!;
 }
 
 export function usePluginViewModel(view: PluginViewModel, parent: MutableRefObject<HTMLElement | null>) {

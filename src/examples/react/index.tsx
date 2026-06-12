@@ -17,6 +17,9 @@ import { createViewerSpec } from '../../apps/viewer/plugin-spec';
 import { PluginViewModel } from '../../extensions/plugin/view-model';
 import { MVSData } from '../../extensions/mvs';
 import { MolViewSpecBehavior } from '../../extensions/mvs/behavior';
+import { PluginUIViewModel } from '../../extensions/plugin/ui-view-model';
+import { BehaviorSubject } from 'rxjs';
+import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
 
 function Root() {
     return <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', position: 'absolute', inset: 8, gap: 8 }}>
@@ -102,18 +105,52 @@ function DefaultUI() {
     return <Plugin plugin={model.plugin} />;
 }
 
+// You can also create your own custom view model by extending PluginUIViewModel or PluginViewModel,
+// and use it in useCreatePluginUIViewModel. This allows you to add your own state and methods
+// to the view model, and use them in your React components.
+class CustomViewerModel extends PluginUIViewModel {
+    state = {
+        // It is often convenient to keep some state related to the viewer
+        // close to it. Use useBehavior hook to access it in the React components.
+        loadedId: new BehaviorSubject<string | null>(null),
+    };
+
+    loadAlphaFoldDb(id: string) {
+        // In React strict mode in dev, the useEffect is called twice, so we
+        // check if the same ID is already loaded to avoid reloading it.
+        // In a real app, might want to use a more robust solution, e.g., an async queue
+        // to serialize the commands.
+        if (this.state.loadedId.value === id) return;
+        this.state.loadedId.next(id);
+        return loadAlphaFoldDb(this.plugin, id);
+    }
+}
+
 function ViewerUI() {
     const model = useCreatePluginUIViewModel({
         spec: () => createViewerSpec({
             layoutIsExpanded: false,
             layoutShowControls: false,
-        })
+        }),
+        model: spec => new CustomViewerModel({ spec })
     });
     useEffect(() => {
-        loadAlphaFoldDb(model.plugin, 'AF-Q9I1F6-F1');
+        model.loadAlphaFoldDb('AF-Q9I1F6-F1');
     }, [model]);
 
-    return <Plugin plugin={model.plugin} />;
+    return <>
+        <Plugin plugin={model.plugin} />
+        <AFIdLabel model={model} />
+    </>;
+}
+
+function AFIdLabel({ model }: { model: CustomViewerModel }) {
+    // useBehavior is used to access the RxJS BehaviorSubject in the model's state.
+    // It will re-render the component whenever the value changes.
+    const id = useBehavior(model.state.loadedId);
+    return <div style={{ position: 'absolute', bottom: 8, left: 8, fontSize: 10, padding: '2px 4px', background: 'rgba(255, 255, 255, 0.8)' }}>
+        {id ? `Loaded ${id}` : 'Loading...'}
+    </div>;
 }
 
 // In simple apps, the model can just be a global variable.
