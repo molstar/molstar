@@ -195,6 +195,10 @@ export class Viewer {
         return loaders.loadFiles(this.plugin, files);
     }
 
+    loadUrl(url: string, format: string, isBinary = false) {
+        return loaders.loadUrl(this.plugin, url, format, isBinary);
+    }
+
     handleResize() {
         this.plugin.layout.events.updated.next(void 0);
     }

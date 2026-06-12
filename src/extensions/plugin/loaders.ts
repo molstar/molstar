@@ -6,7 +6,7 @@
 
 import { StringLike } from '../../mol-io/common/string-like';
 import { Volume } from '../../mol-model/volume';
-import { OpenFiles } from '../../mol-plugin-state/actions/file';
+import { DownloadFile, OpenFiles } from '../../mol-plugin-state/actions/file';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
@@ -368,6 +368,18 @@ export async function loadFiles(plugin: PluginContext, files: File[]) {
             visuals: true
         }));
     }
+}
+
+export async function loadUrl(plugin: PluginContext, url: string, format: string, isBinary = false) {
+    await plugin.initialized;
+    return plugin.runTask(Task.create('Load URL', async taskCtx => {
+        await plugin.state.data.applyAction(DownloadFile, {
+            url: Asset.Url(url),
+            format,
+            isBinary,
+            visuals: true
+        }).runInContext(taskCtx);
+    }));
 }
 
 export interface LoadStructureOptions {
