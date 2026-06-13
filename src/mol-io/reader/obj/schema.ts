@@ -4,6 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { Color } from '../../../mol-util/color';
+
 /**
  * Intermediate representation of a parsed OBJ file.
  *
@@ -35,6 +37,13 @@ export interface ObjFile {
     readonly triangleCount: number
 
     /**
+     * Per-vertex RGB colors parsed from the non-standard `v x y z r g b` extension,
+     * interleaved [r0,g0,b0, r1,g1,b1, ...] with values in [0, 1].
+     * Length 0 when no vertex colors were present in the file.
+     */
+    readonly vertexColors: Float32Array
+
+    /**
      * Unique material names encountered via `usemtl` directives, in encounter order.
      * Empty when no `usemtl` directives are present.
      */
@@ -46,3 +55,15 @@ export interface ObjFile {
      */
     readonly faceGroups: Int32Array
 }
+
+/** Subset of MTL material properties used for rendering (diffuse color only). */
+export interface MtlMaterial {
+    /** Diffuse color from `Kd r g b` directive. */
+    readonly Kd: Color
+}
+
+/**
+ * Parsed MTL file: a map from material name to its properties.
+ * Only names referenced by `newmtl` directives are present.
+ */
+export type MtlFile = ReadonlyMap<string, MtlMaterial>

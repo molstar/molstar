@@ -5,6 +5,8 @@
  */
 
 import { parseObj } from '../obj/parser';
+import { parseMtl } from '../obj/mtl-parser';
+import { Color } from '../../../mol-util/color';
 
 // Simple triangle
 const objTriangle = `# simple triangle
@@ -398,6 +400,103 @@ describe('obj reader', () => {
         expect(obj.materialNames).toEqual(['MyMtl']);
         // both triangles belong to the single material
         expect(Array.from(obj.faceGroups)).toEqual([0, 0]);
+    });
+});
+
+// ─── MTL parser ──────────────────────────────────────────────────────────────
+
+describe('mtl parser', () => {
+    it('parses a single material with Kd', () => {
+        const mtl = parseMtl(`
+newmtl red
+illum 2
+Ns 163
+Ka 0 0 0
+Kd 1.0 0.0 0.0
+Ks 0.25 0.25 0.25
+d 1
+`);
+        expect(mtl.size).toBe(1);
+        const red = mtl.get('red');
+        expect(red).toBeDefined();
+        expect(red!.Kd).toBe(Color.fromNormalizedRgb(1.0, 0.0, 0.0));
+    });
+
+    it('parses multiple materials', () => {
+        const mtl = parseMtl(`
+newmtl mat_a
+Kd 1.0 0.0 0.0
+newmtl mat_b
+Kd 0.0 1.0 0.0
+newmtl mat_c
+Kd 0.0 0.0 1.0
+`);
+        expect(mtl.size).toBe(3);
+        expect(mtl.get('mat_a')!.Kd).toBe(Color.fromNormalizedRgb(1, 0, 0));
+        expect(mtl.get('mat_b')!.Kd).toBe(Color.fromNormalizedRgb(0, 1, 0));
+        expect(mtl.get('mat_c')!.Kd).toBe(Color.fromNormalizedRgb(0, 0, 1));
+    });
+
+    it('ignores comments and blank lines', () => {
+        const mtl = parseMtl(`
+# This is a comment
+newmtl grey
+# another comment
+Kd 0.5 0.5 0.5
+`);
+        expect(mtl.size).toBe(1);
+        expect(mtl.get('grey')!.Kd).toBe(Color.fromNormalizedRgb(0.5, 0.5, 0.5));
+    });
+
+    it('uses default grey Kd when Kd directive is absent', () => {
+        const mtl = parseMtl(`
+newmtl no_kd
+illum 2
+Ns 100
+`);
+        expect(mtl.size).toBe(1);
+        // Default grey: Color(0x808080)
+        expect(mtl.get('no_kd')!.Kd).toBe(Color(0x808080));
+    });
+
+    it('ignores Ka, Ks, Ns, Ni, illum, d directives', () => {
+        const mtl = parseMtl(`
+newmtl full
+illum 2
+Ns 163
+Ni 0.001
+Ka 1 0 0
+Kd 0.957 0.427 0.263
+Ks 0.25 0.25 0.25
+d 0.5
+`);
+        expect(mtl.size).toBe(1);
+        // Only Kd is captured; d is ignored
+        const mat = mtl.get('full')!;
+        expect(mat.Kd).toBe(Color.fromNormalizedRgb(0.957, 0.427, 0.263));
+        expect((mat as any).d).toBeUndefined();
+    });
+
+    it('returns an empty map for an empty file', () => {
+        const mtl = parseMtl('');
+        expect(mtl.size).toBe(0);
+    });
+
+    it('returns an empty map for a file with only comments', () => {
+        const mtl = parseMtl('# just a comment\n# another');
+        expect(mtl.size).toBe(0);
+    });
+
+    it('handles CRLF line endings', () => {
+        const mtl = parseMtl('newmtl cr\r\nKd 0.2 0.4 0.6\r\n');
+        expect(mtl.size).toBe(1);
+        expect(mtl.get('cr')!.Kd).toBe(Color.fromNormalizedRgb(0.2, 0.4, 0.6));
+    });
+
+    it('parses material names that contain special characters', () => {
+        const mtl = parseMtl('newmtl 0xf46d431\nKd 0.957 0.427 0.263\n');
+        expect(mtl.size).toBe(1);
+        expect(mtl.get('0xf46d431')).toBeDefined();
     });
 });
 

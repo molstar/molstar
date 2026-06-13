@@ -18,12 +18,14 @@ interface State {
     tokenizer: Tokenizer
     positions: ChunkedArray<number, 3>
     normals: ChunkedArray<number, 3>
+    vertexColors: ChunkedArray<number, 3>
     positionIndices: ChunkedArray<number, 3>
     normalIndices: ChunkedArray<number, 3>
     faceGroups: ChunkedArray<number, 1>
     materialNames: string[]
     materialMap: Map<string, number>
     currentMaterialIdx: number
+    hasVertexColors: boolean
     warnings: string[]
 }
 
@@ -32,12 +34,14 @@ function State(data: StringLike): State {
         tokenizer: Tokenizer(data),
         positions: ChunkedArray.create(Float32Array, 3, 1024),
         normals: ChunkedArray.create(Float32Array, 3, 1024),
+        vertexColors: ChunkedArray.create(Float32Array, 3, 1024),
         positionIndices: ChunkedArray.create(Int32Array, 3, 1024),
         normalIndices: ChunkedArray.create(Int32Array, 3, 1024),
         faceGroups: ChunkedArray.create(Int32Array, 1, 1024),
         materialNames: [],
         materialMap: new Map(),
         currentMaterialIdx: 0,
+        hasVertexColors: false,
         warnings: []
     };
 }
@@ -187,6 +191,22 @@ function handleVertex(state: State): void {
     if (readInlineToken(tokenizer)) y = parseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
     if (readInlineToken(tokenizer)) z = parseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
     ChunkedArray.add3(state.positions, x, y, z);
+
+    // Non-standard vertex color extension: `v x y z r g b` with r,g,b in [0, 1].
+    // Only mark hasVertexColors when all three components are successfully read.
+    let r = 1, g = 1, b = 1;
+    if (readInlineToken(tokenizer)) {
+        const r0 = parseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
+        if (readInlineToken(tokenizer)) {
+            const g0 = parseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
+            if (readInlineToken(tokenizer)) {
+                r = r0; g = g0;
+                b = parseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
+                state.hasVertexColors = true;
+            }
+        }
+    }
+    ChunkedArray.add3(state.vertexColors, r, g, b);
     skipLine(tokenizer);
 }
 
@@ -282,7 +302,7 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
                 skipLine(tokenizer);
             }
         } else {
-            // "g", "o", "s", "usemtl", "mtllib", etc. — skip entire line
+            // "g", "o", "s", "mtllib", etc. — skip entire line
             skipLine(tokenizer);
         }
 
@@ -296,6 +316,9 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
     const posIdxArr = ChunkedArray.compact(state.positionIndices) as Int32Array;
     const normIdxArr = ChunkedArray.compact(state.normalIndices) as Int32Array;
     const faceGroupsArr = ChunkedArray.compact(state.faceGroups) as Int32Array;
+    const vertexColorsArr = state.hasVertexColors
+        ? ChunkedArray.compact(state.vertexColors) as Float32Array
+        : new Float32Array(0);
 
     const result: ObjFile = {
         positions: posArr,
@@ -305,6 +328,7 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
         positionCount: state.positions.elementCount,
         normalCount: state.normals.elementCount,
         triangleCount: posIdxArr.length / 3,
+        vertexColors: vertexColorsArr,
         materialNames: state.materialNames,
         faceGroups: faceGroupsArr
     };
