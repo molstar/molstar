@@ -22,7 +22,7 @@ export namespace CCP4Writer {
         i32[0] = nx; // NC
         i32[1] = ny; // NR
         i32[2] = nz; // NS
-        i32[3] = 2;  // MODE = 2 (float32)
+        i32[3] = 2; // MODE = 2 (float32)
 
         i32[4] = 0; // NXSTART
         i32[5] = 0; // NYSTART
@@ -62,8 +62,8 @@ export namespace CCP4Writer {
             if (v > max) max = v;
             sum += v;
         }
-        f32[19] = min;              // AMIN
-        f32[20] = max;              // AMAX
+        f32[19] = min; // AMIN
+        f32[20] = max; // AMAX
         f32[21] = sum / voxelCount; // AMEAN
 
         i32[22] = 0; // ISPG
