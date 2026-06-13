@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -68,24 +68,24 @@ export function getMarkersAverage(array: Uint8Array, count: number): number {
 }
 
 export function createMarkers(count: number, type: MarkerType, markerData?: MarkerData): MarkerData {
-    const markers = createTextureImage(Math.max(1, count), 1, Uint8Array, markerData && markerData.tMarker.ref.value.array);
-    const average = getMarkersAverage(markers.array, count);
-    const status = average === 0 ? 0 : -1;
     if (markerData) {
+        const markers = createTextureImage(Math.max(1, count), 1, Uint8Array, markerData.tMarker.ref.value.array);
+        markers.array.fill(0, 0, count);
         ValueCell.updateIfChanged(markerData.uMarker, 0);
         ValueCell.update(markerData.tMarker, markers);
         ValueCell.update(markerData.uMarkerTexDim, Vec2.create(markers.width, markers.height));
-        ValueCell.updateIfChanged(markerData.markerAverage, average);
-        ValueCell.updateIfChanged(markerData.markerStatus, status);
+        ValueCell.updateIfChanged(markerData.markerAverage, 0);
+        ValueCell.updateIfChanged(markerData.markerStatus, 0);
         ValueCell.updateIfChanged(markerData.dMarkerType, type);
         return markerData;
     } else {
+        const markers = createTextureImage(Math.max(1, count), 1, Uint8Array);
         return {
             uMarker: ValueCell.create(0),
             tMarker: ValueCell.create(markers),
             uMarkerTexDim: ValueCell.create(Vec2.create(markers.width, markers.height)),
-            markerAverage: ValueCell.create(average),
-            markerStatus: ValueCell.create(status),
+            markerAverage: ValueCell.create(0),
+            markerStatus: ValueCell.create(0),
             dMarkerType: ValueCell.create(type),
         };
     }

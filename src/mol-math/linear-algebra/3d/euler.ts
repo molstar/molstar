@@ -59,6 +59,10 @@ namespace Euler {
         return out;
     }
 
+    export function is(a: any): a is Euler {
+        return Array.isArray(a) && a.length === 3;
+    }
+
     /**
      * Assumes the upper 3x3 of m is a pure rotation matrix (i.e, unscaled)
      */
