@@ -32,6 +32,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Sideload MTL files (diffuse color only)
 - Download Structure From AlphaFoldDB allows IDs with version suffix (version is ignored)
 - Add `loadUrl` method and GET params to Viewer app
+- Add binary PLY format variants support
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty

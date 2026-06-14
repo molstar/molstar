@@ -392,8 +392,8 @@ const ParseTop = PluginStateTransform.BuiltIn({
 type ParsePly = typeof ParsePly
 const ParsePly = PluginStateTransform.BuiltIn({
     name: 'parse-ply',
-    display: { name: 'Parse PLY', description: 'Parse PLY from String data' },
-    from: [SO.Data.String],
+    display: { name: 'Parse PLY', description: 'Parse PLY from String or Binary data' },
+    from: [SO.Data.String, SO.Data.Binary],
     to: SO.Format.Ply
 })({
     apply({ a }) {
