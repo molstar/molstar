@@ -30,6 +30,7 @@ import { StringLike } from '../../mol-io/common/string-like';
 import { utf8ReadLong } from '../../mol-io/common/utf8';
 import { parseDynamoTbl } from '../../mol-io/reader/dynamo/tbl';
 import { parseCryoEtDataPortalNdjson } from '../../mol-io/reader/cryoet/ndjson';
+import { parseArtiatomiEm } from '../../mol-io/reader/artiatomi/em';
 
 
 export { Download };
@@ -50,6 +51,7 @@ export { ParseDsn6 };
 export { ParseDx };
 export { ParseDynamoTbl };
 export { ParseCryoEtDataPortalNdjson };
+export { ParseArtiatomiEm };
 export { ImportString };
 export { ImportJson };
 export { ParseJson };
@@ -454,6 +456,22 @@ const ParseCryoEtDataPortalNdjson = PluginStateTransform.BuiltIn({
             if (parsed.isError) throw new Error(parsed.message);
             return new SO.Format.CryoEtDataPortalNdjson(parsed.result, { label: a.label || 'CryoET NDJSON' });
                     });
+    }
+});
+
+type ParseArtiatomiEm = typeof ParseArtiatomiEm
+const ParseArtiatomiEm = PluginStateTransform.BuiltIn({
+    name: 'parse-artiatomi-em',
+    display: { name: 'Parse Artiatomi EM', description: 'Parse Artiatomi EM motivelist from Binary data' },
+    from: [SO.Data.Binary],
+    to: SO.Format.ArtiatomiEm
+})({
+    apply({ a }) {
+        return Task.create('Parse Artiatomi EM', async () => {
+            const parsed = await parseArtiatomiEm(a.data).run();
+            if (parsed.isError) throw new Error(parsed.message);
+            return new SO.Format.ArtiatomiEm(parsed.result, { label: a.label || 'Artiatomi EM' });
+        });
     }
 });
 

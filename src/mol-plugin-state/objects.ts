@@ -7,6 +7,7 @@
 
 import { Ccp4File } from '../mol-io/reader/ccp4/schema';
 import { CifFile } from '../mol-io/reader/cif';
+import { ArtiatomiEmFile } from '../mol-io/reader/artiatomi/em';
 import { CryoEtDataPortalNdjsonFile } from '../mol-io/reader/cryoet/ndjson';
 import { DcdFile } from '../mol-io/reader/dcd/parser';
 import { DynamoTblFile } from '../mol-io/reader/dynamo/tbl';
@@ -79,6 +80,7 @@ export namespace PluginStateObject {
     export namespace Format {
         export class Json extends Create<any>({ name: 'JSON Data', typeClass: 'Data' }) { }
         export class Cif extends Create<CifFile>({ name: 'CIF File', typeClass: 'Data' }) { }
+        export class ArtiatomiEm extends Create<ArtiatomiEmFile>({ name: 'Artiatomi EM File', typeClass: 'Data' }) { }
         export class DynamoTbl extends Create<DynamoTblFile>({ name: 'Dynamo TBL File', typeClass: 'Data' }) { }
         export class CryoEtDataPortalNdjson extends Create<CryoEtDataPortalNdjsonFile>({ name: 'CryoET Data Portal NDJSON File', typeClass: 'Data' }) { }
         export class Cube extends Create<CubeFile>({ name: 'Cube File', typeClass: 'Data' }) { }

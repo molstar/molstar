@@ -9,6 +9,7 @@ import { parseRelionStar, getRelionStarTomogramNames, getRelionStarMicrographNam
 import { createParticleListFromCryoEtDataPortalNdjson } from '../../mol-model-formats/particles/ndjson';
 import { createParticleListFromRelionStar } from '../../mol-model-formats/particles/star';
 import { createParticleListFromDynamoTbl, getDynamoTblTomogramIds } from '../../mol-model-formats/particles/tbl';
+import { createParticleListFromArtiatomiEm, getArtiatomiMotivelistTomogramIds } from '../../mol-model-formats/particles/em';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
@@ -19,6 +20,7 @@ import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 export { ParticleListFromRelionStar };
 export { ParticleListFromDynamoTbl };
 export { ParticleListFromCryoEtDataPortalNdjson };
+export { ParticleListFromArtiatomiEm };
 export { ParticlesRepresentation3D };
 
 type ParticleListFromRelionStar = typeof ParticleListFromRelionStar
@@ -121,6 +123,40 @@ const ParticleListFromCryoEtDataPortalNdjson = PluginStateTransform.BuiltIn({
                 type: params.type || void 0,
             });
             return new SO.Particle.List(list, { label: list.label || 'Particles', description: 'CryoET NDJSON Particle List' });
+        });
+    }
+});
+
+type ParticleListFromArtiatomiEm = typeof ParticleListFromArtiatomiEm
+const ParticleListFromArtiatomiEm = PluginStateTransform.BuiltIn({
+    name: 'particle-list-from-artiatomi-em',
+    display: { name: 'Particle List from Artiatomi EM', description: 'Create ParticleList from Artiatomi EM motivelist data.' },
+    from: SO.Format.ArtiatomiEm,
+    to: SO.Particle.List,
+    params: a => {
+        if (!a) {
+            return {
+                tomos: PD.MultiSelect<string>([], [], { description: 'Empty selection includes all tomograms.' }),
+                pixelSize: PD.Numeric(1, { min: 0, step: 0.001 }, { description: 'Pixel size in Å/pixel used to convert voxel-space coordinates to angstrom. Required because Artiatomi EM files do not encode distance units.' }),
+            };
+        }
+        const ids = getArtiatomiMotivelistTomogramIds(a.data);
+        const options = ids.map(id => [String(id), String(id)] as [string, string]);
+        const defaultValue = ids.length > 0 ? [String(ids[0])] : [];
+        return {
+            tomos: PD.MultiSelect<string>(defaultValue, options, { description: 'Empty selection includes all tomograms.' }),
+            pixelSize: PD.Numeric(1, { min: 0, step: 0.001 }, { description: 'Pixel size in Å/pixel used to convert voxel-space coordinates to angstrom. Required because Artiatomi EM files do not encode distance units.' }),
+        };
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Create Particle List from Artiatomi EM', async () => {
+            const list = createParticleListFromArtiatomiEm(a.data, {
+                tomos: params.tomos.map(v => Number(v)),
+                pixelSize: params.pixelSize,
+                label: a.label
+            });
+            return new SO.Particle.List(list, { label: list.label || 'Particles', description: 'Artiatomi EM Particle List' });
         });
     }
 });

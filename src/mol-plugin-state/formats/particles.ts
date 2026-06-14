@@ -70,7 +70,7 @@ export const CryoEtDataPortalNdjsonParticlesProvider = DataFormatProvider({
     label: 'CryoET NDJSON Particles',
     description: 'CryoET NDJSON Particles',
     category: ParticlesFormatCategory,
-    stringExtensions: ['ndjson', 'jsonl'],
+    stringExtensions: ['ndjson'],
     parse: async (plugin, data, params?: { label?: string, type?: string }) => {
         const format = plugin.state.data.build()
             .to(data)
@@ -87,10 +87,33 @@ export const CryoEtDataPortalNdjsonParticlesProvider = DataFormatProvider({
     visuals: particleVisuals,
 });
 
+export const ArtiatomiEmParticlesProvider = DataFormatProvider({
+    label: 'Artiatomi EM Particles',
+    description: 'Artiatomi EM Particles',
+    category: ParticlesFormatCategory,
+    binaryExtensions: ['em'],
+    parse: async (plugin, data, params?: { label?: string, tomo?: number, pixelSize?: number }) => {
+        const format = plugin.state.data.build()
+            .to(data)
+            .apply(StateTransforms.Data.ParseArtiatomiEm, void 0, { state: { isGhost: true } });
+
+        const list = format.apply(StateTransforms.Particles.ParticleListFromArtiatomiEm, {
+            tomos: params?.tomo !== void 0 ? [String(params.tomo)] : [],
+            pixelSize: params?.pixelSize ?? 1,
+        });
+
+        await format.commit({ revertOnError: true });
+
+        return { format: format.selector, list: list.selector };
+    },
+    visuals: particleVisuals,
+});
+
 export const BuiltInParticlesFormats = [
     ['relion_star_particles', RelionStarParticlesProvider] as const,
     ['dynamo_tbl_particles', DynamoTblParticlesProvider] as const,
     ['cryoet_ndjson_particles', CryoEtDataPortalNdjsonParticlesProvider] as const,
+    ['artiatomi_em_particles', ArtiatomiEmParticlesProvider] as const,
 ] as const;
 
 export type BuiltInParticlesFormat = (typeof BuiltInParticlesFormats)[number][0]

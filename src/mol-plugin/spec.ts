@@ -124,6 +124,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateTransforms.Particles.ParticleListFromRelionStar),
         PluginSpec.Action(StateTransforms.Particles.ParticleListFromDynamoTbl),
         PluginSpec.Action(StateTransforms.Particles.ParticleListFromCryoEtDataPortalNdjson),
+        PluginSpec.Action(StateTransforms.Particles.ParticleListFromArtiatomiEm),
         PluginSpec.Action(StateTransforms.Particles.ParticlesRepresentation3D),
     ],
     behaviors: [

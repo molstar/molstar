@@ -56,6 +56,7 @@ import { coordinatesFromNctraj } from '../../mol-model-formats/structure/nctraj'
 import { topologyFromPrmtop } from '../../mol-model-formats/structure/prmtop';
 import { topologyFromTop } from '../../mol-model-formats/structure/top';
 import { getTransformFromParams, TransformParam, transformParamsNeedCentroid } from './helpers';
+import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 
 export { CoordinatesFromDcd };
 export { CoordinatesFromXtc };
