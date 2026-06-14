@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Viewport, cameraProject, cameraUnproject } from './camera/util';
-import { CameraTransitionManager } from './camera/transition';
+import { CameraTransitionManager, CameraTransitionOptions } from './camera/transition';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { Scene } from '../mol-gl/scene';
 import { assertUnreachable } from '../mol-util/type-helpers';
@@ -138,8 +138,12 @@ export class Camera implements ICamera {
         return changed;
     }
 
-    setState(snapshot: Partial<Camera.Snapshot>, durationMs?: number) {
-        this.transition.apply(snapshot, durationMs);
+    setState(
+        snapshot: Partial<Camera.Snapshot>,
+        durationMs?: number,
+        options?: CameraTransitionOptions
+    ) {
+        this.transition.apply(snapshot, durationMs, undefined, options);
         this.stateChanged.next(snapshot);
     }
 

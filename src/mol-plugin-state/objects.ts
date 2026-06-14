@@ -12,6 +12,7 @@ import { DcdFile } from '../mol-io/reader/dcd/parser';
 import { DynamoTblFile } from '../mol-io/reader/dynamo/tbl';
 import { Dsn6File } from '../mol-io/reader/dsn6/schema';
 import { PlyFile } from '../mol-io/reader/ply/schema';
+import { ObjFile } from '../mol-io/reader/obj/schema';
 import { PsfFile } from '../mol-io/reader/psf/parser';
 import { ParticleList } from '../mol-model/particles/particle-list';
 import { ShapeProvider } from '../mol-model/shape/provider';
@@ -85,6 +86,7 @@ export namespace PluginStateObject {
         export class Prmtop extends Create<PrmtopFile>({ name: 'PRMTOP File', typeClass: 'Data' }) { }
         export class Top extends Create<TopFile>({ name: 'TOP File', typeClass: 'Data' }) { }
         export class Ply extends Create<PlyFile>({ name: 'PLY File', typeClass: 'Data' }) { }
+        export class Obj extends Create<ObjFile>({ name: 'OBJ File', typeClass: 'Data' }) { }
         export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4/MRC/MAP File', typeClass: 'Data' }) { }
         export class Dsn6 extends Create<Dsn6File>({ name: 'DSN6/BRIX File', typeClass: 'Data' }) { }
         export class Dx extends Create<DxFile>({ name: 'DX File', typeClass: 'Data' }) { }

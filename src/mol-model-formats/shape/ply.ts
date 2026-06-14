@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Schäfer, Marco <marco.schaefer@uni-tuebingen.de>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -231,6 +231,7 @@ function createShape(plyData: PlyData, mesh: Mesh, coloring: Coloring, grouping:
     const { kind, red, green, blue } = coloring;
     const { ids, map, label } = grouping;
     const { source, transforms } = plyData;
+    const groupCount = arrayMax(ids) + 1;
     return Shape.create(
         'ply-mesh', source, mesh,
         (groupId: number) => {
@@ -241,7 +242,8 @@ function createShape(plyData: PlyData, mesh: Mesh, coloring: Coloring, grouping:
         (groupId: number) => {
             return `${label} ${ids[groupId]}`;
         },
-        transforms
+        transforms,
+        groupCount
     );
 }
 
