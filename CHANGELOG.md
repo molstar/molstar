@@ -26,6 +26,10 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add easing support in camera transtion
 - Non-covalent interactions: water bridge support
 - Add OBJ format support
+    - Positions, normals, faces
+    - Groups from usemtl directive
+    - Vertex color extension
+    - Sideload MTL files (diffuse color only)
 - Download Structure From AlphaFoldDB allows IDs with version suffix (version is ignored)
 - Add `loadUrl` method and GET params to Viewer app
 
