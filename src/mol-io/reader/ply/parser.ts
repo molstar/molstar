@@ -24,6 +24,7 @@ interface State {
     tokenizer: Tokenizer
     runtimeCtx: RuntimeContext
     format: PlyFormat
+    formatPreset: boolean
     littleEndian: boolean
     binaryData: Uint8Array | undefined
     binaryOffset: number
@@ -33,14 +34,15 @@ interface State {
     elements: PlyElement[]
 }
 
-function State(data: StringLike, runtimeCtx: RuntimeContext): State {
+function State(data: StringLike, runtimeCtx: RuntimeContext, presetFormat?: PlyFormat): State {
     const tokenizer = Tokenizer(data);
     return {
         data,
         tokenizer,
         runtimeCtx,
-        format: 'ascii',
-        littleEndian: true,
+        format: presetFormat ?? 'ascii',
+        formatPreset: presetFormat !== undefined,
+        littleEndian: presetFormat !== 'binary_big_endian',
         binaryData: undefined,
         binaryOffset: 0,
 
@@ -75,18 +77,20 @@ function parseHeader(state: State) {
     const headerLines = Tokenizer.getTokenString(tokenizer).split(/\r?\n/);
 
     if (headerLines[0] !== 'ply') throw new Error(`data not starting with 'ply'`);
-    const formatLine = headerLines[1];
-    if (formatLine === 'format ascii 1.0') {
-        state.format = 'ascii';
-        state.littleEndian = true;
-    } else if (formatLine === 'format binary_little_endian 1.0') {
-        state.format = 'binary_little_endian';
-        state.littleEndian = true;
-    } else if (formatLine === 'format binary_big_endian 1.0') {
-        state.format = 'binary_big_endian';
-        state.littleEndian = false;
-    } else {
-        throw new Error(`unsupported PLY format '${formatLine}'`);
+    if (!state.formatPreset) {
+        const formatLine = headerLines[1];
+        if (formatLine === 'format ascii 1.0') {
+            state.format = 'ascii';
+            state.littleEndian = true;
+        } else if (formatLine === 'format binary_little_endian 1.0') {
+            state.format = 'binary_little_endian';
+            state.littleEndian = true;
+        } else if (formatLine === 'format binary_big_endian 1.0') {
+            state.format = 'binary_big_endian';
+            state.littleEndian = false;
+        } else {
+            throw new Error(`unsupported PLY format '${formatLine}'`);
+        }
     }
 
     let currentName: string | undefined;
@@ -386,12 +390,14 @@ async function parseInternal(data: StringLike | Uint8Array, ctx: RuntimeContext)
     let stateData: StringLike;
     let binaryData: Uint8Array | undefined;
     let binaryOffset = 0;
+    let presetFormat: PlyFormat | undefined;
 
     if (data instanceof Uint8Array) {
         binaryOffset = findEndHeaderByteOffset(data);
         const headerText = utf8Read(data, 0, binaryOffset);
-        const isBinary = isUint8ArrayBinaryPly(headerText);
-        if (isBinary) {
+        const format = detectPlyFormat(headerText);
+        presetFormat = format;
+        if (format !== 'ascii') {
             stateData = headerText;
             binaryData = data;
         } else {
@@ -402,7 +408,7 @@ async function parseInternal(data: StringLike | Uint8Array, ctx: RuntimeContext)
         stateData = data;
     }
 
-    const state = State(stateData, ctx);
+    const state = State(stateData, ctx, presetFormat);
     if (binaryData !== undefined) {
         state.binaryData = binaryData;
         state.binaryOffset = binaryOffset;
@@ -417,11 +423,13 @@ async function parseInternal(data: StringLike | Uint8Array, ctx: RuntimeContext)
     return Result.success(result);
 }
 
-/** Returns true if the PLY header text indicates a binary format. */
-function isUint8ArrayBinaryPly(headerText: string): boolean {
+/** Extracts the PLY format from the header text (second line). */
+function detectPlyFormat(headerText: string): PlyFormat {
     const newline = headerText.indexOf('\n');
     const formatLine = newline === -1 ? '' : headerText.substring(newline + 1, headerText.indexOf('\n', newline + 1)).replace(/\r$/, '');
-    return formatLine === 'format binary_little_endian 1.0' || formatLine === 'format binary_big_endian 1.0';
+    if (formatLine === 'format binary_little_endian 1.0') return 'binary_little_endian';
+    if (formatLine === 'format binary_big_endian 1.0') return 'binary_big_endian';
+    return 'ascii';
 }
 
 /** Returns the byte offset of the first byte after the `end_header\n` line. */
@@ -429,6 +437,8 @@ function findEndHeaderByteOffset(data: Uint8Array): number {
     const target = [101, 110, 100, 95, 104, 101, 97, 100, 101, 114]; // 'end_header'
     const tlen = target.length;
     for (let i = 0; i <= data.length - tlen; i++) {
+        // Only match at the start of a line
+        if (i !== 0 && data[i - 1] !== 10 /* \n */) continue;
         let matched = true;
         for (let j = 0; j < tlen; j++) {
             if (data[i + j] !== target[j]) {
