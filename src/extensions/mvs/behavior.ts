@@ -11,6 +11,7 @@ import { PluginDragAndDropHandler } from '../../mol-plugin-state/manager/drag-an
 import { LociLabelProvider } from '../../mol-plugin-state/manager/loci-label';
 import { PluginBehavior } from '../../mol-plugin/behavior/behavior';
 import { PluginContext } from '../../mol-plugin/context';
+import { PluginSpec } from '../../mol-plugin/spec';
 import { StructureRepresentationProvider } from '../../mol-repr/structure/representation';
 import { StateAction, StateObject, StateObjectCell, StateTree } from '../../mol-state';
 import { Task } from '../../mol-task';
@@ -201,6 +202,8 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
         autoAttach: PD.Boolean(false),
     })
 });
+
+export const MolViewSpecBehavior = PluginSpec.Behavior(MolViewSpec);
 
 
 /** Registrable method for handling dragged-and-dropped files */
