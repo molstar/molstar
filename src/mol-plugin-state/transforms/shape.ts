@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
@@ -9,10 +10,15 @@ import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { BoxCage } from '../../mol-geo/primitive/box';
 import { Box3D, Sphere3D } from '../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
+import { parseMtl } from '../../mol-io/reader/obj/mtl-parser';
+import { shapeFromObj } from '../../mol-model-formats/shape/obj';
+import { shapeFromPly } from '../../mol-model-formats/shape/ply';
 import { Shape } from '../../mol-model/shape';
 import { Task } from '../../mol-task';
+import { Asset } from '../../mol-util/assets';
 import { ColorNames } from '../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { PluginContext } from '../../mol-plugin/context';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 
 export { BoxShape3D };
@@ -67,3 +73,59 @@ export function getBoxMesh(box: Box3D, radius: number, oldMesh?: Mesh) {
 
     return mesh;
 }
+
+export { ShapeFromPly };
+type ShapeFromPly = typeof ShapeFromPly
+const ShapeFromPly = PluginStateTransform.BuiltIn({
+    name: 'shape-from-ply',
+    display: { name: 'Shape from PLY', description: 'Create Shape from PLY data' },
+    from: SO.Format.Ply,
+    to: SO.Shape.Provider,
+    params(a) {
+        return {
+            transforms: PD.Optional(PD.Value([Mat4.identity()], { isHidden: true })),
+            label: PD.Optional(PD.Text('', { isHidden: true }))
+        };
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Create shape from PLY', async ctx => {
+            const shape = await shapeFromPly(a.data, params).runInContext(ctx);
+            const props = { label: params.label || 'Shape' };
+            return new SO.Shape.Provider(shape, props);
+        });
+    }
+});
+
+export { ShapeFromObj };
+type ShapeFromObj = typeof ShapeFromObj
+const ShapeFromObj = PluginStateTransform.BuiltIn({
+    name: 'shape-from-obj',
+    display: { name: 'Shape from OBJ', description: 'Create Shape from OBJ data' },
+    from: SO.Format.Obj,
+    to: SO.Shape.Provider,
+    params(a) {
+        return {
+            transforms: PD.Optional(PD.Value([Mat4.identity()], { isHidden: true })),
+            label: PD.Optional(PD.Text('', { isHidden: true })),
+            mtlFile: PD.Optional(PD.File({ accept: '.mtl', label: 'MTL File' }))
+        };
+    }
+})({
+    apply({ a, params, cache }, plugin: PluginContext) {
+        return Task.create('Create shape from OBJ', async ctx => {
+            let mtl;
+            if (params.mtlFile) {
+                const asset = await plugin.managers.asset.resolve(params.mtlFile, 'string').runInContext(ctx);
+                (cache as any).mtlAsset = asset;
+                mtl = parseMtl(asset.data as string);
+            }
+            const shape = await shapeFromObj(a.data, { ...params, mtl }).runInContext(ctx);
+            const props = { label: params.label || 'Shape' };
+            return new SO.Shape.Provider(shape, props);
+        });
+    },
+    dispose({ cache }) {
+        ((cache as any)?.mtlAsset as Asset.Wrapper | undefined)?.dispose();
+    }
+});
