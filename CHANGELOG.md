@@ -32,6 +32,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Sideload MTL files (diffuse color only)
 - Download Structure From AlphaFoldDB allows IDs with version suffix (version is ignored)
 - Add `loadUrl` method and GET params to Viewer app
+- Add binary PLY format variants support
 - Add `extensions/plugin` with several QoL improvements
   - Standalone useful loading functions previously avaiable only in the `Viewer` class
   - Standalong plugin interactivity helper function previously available only via the `Viewer` class

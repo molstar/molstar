@@ -18,6 +18,7 @@ export const PlyProvider = DataFormatProvider({
     description: 'PLY',
     category: ShapeFormatCategory,
     stringExtensions: ['ply'],
+    binaryExtensions: ['ply'], // binary files have same extension
     parse: async (plugin, data) => {
         const format = plugin.state.data.build()
             .to(data)
