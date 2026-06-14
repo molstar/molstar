@@ -14,6 +14,8 @@ import { parseInt, parseFloat } from '../common/text/number-parser';
 
 // OBJ file format specification: http://www.martinreddy.net/gfx/3d/OBJ.spec
 
+const MAX_FACE_VERTICES = 256;
+
 interface State {
     tokenizer: Tokenizer
     positions: ChunkedArray<number, 3>
@@ -22,6 +24,8 @@ interface State {
     positionIndices: ChunkedArray<number, 3>
     normalIndices: ChunkedArray<number, 3>
     faceGroups: ChunkedArray<number, 1>
+    facePos: Int32Array
+    faceNorm: Int32Array
     materialNames: string[]
     materialMap: Map<string, number>
     currentMaterialIdx: number
@@ -38,6 +42,8 @@ function State(data: StringLike): State {
         positionIndices: ChunkedArray.create(Int32Array, 3, 1024),
         normalIndices: ChunkedArray.create(Int32Array, 3, 1024),
         faceGroups: ChunkedArray.create(Int32Array, 1, 1024),
+        facePos: new Int32Array(MAX_FACE_VERTICES),
+        faceNorm: new Int32Array(MAX_FACE_VERTICES),
         materialNames: [],
         materialMap: new Map(),
         currentMaterialIdx: 0,
@@ -165,11 +171,6 @@ function readFaceTokens(
     return count;
 }
 
-// Reusable scratch buffers for face vertex data (polygons up to MAX_FACE_VERTICES vertices)
-const MAX_FACE_VERTICES = 256;
-const _facePos = new Int32Array(MAX_FACE_VERTICES);
-const _faceNorm = new Int32Array(MAX_FACE_VERTICES);
-
 function handleUseMtl(state: State): void {
     const { tokenizer } = state;
     if (readInlineToken(tokenizer)) {
@@ -225,7 +226,7 @@ function handleFace(state: State): void {
     const posCount = state.positions.elementCount;
     const normCount = state.normals.elementCount;
 
-    const n = readFaceTokens(tokenizer, _facePos, _faceNorm, MAX_FACE_VERTICES, posCount, normCount);
+    const n = readFaceTokens(tokenizer, state.facePos, state.faceNorm, MAX_FACE_VERTICES, posCount, normCount);
     if (n < 3) {
         state.warnings.push(`Line ${tokenizer.lineNumber}: degenerate face with ${n} vertices, skipped`);
         skipLine(tokenizer);
@@ -237,11 +238,11 @@ function handleFace(state: State): void {
     }
 
     // Fan-triangulate: (0,1,2), (0,2,3), ...
-    const p0 = _facePos[0], n0 = _faceNorm[0];
+    const p0 = state.facePos[0], n0 = state.faceNorm[0];
     const group = state.currentMaterialIdx;
     for (let i = 1; i < n - 1; ++i) {
-        ChunkedArray.add3(state.positionIndices, p0, _facePos[i], _facePos[i + 1]);
-        ChunkedArray.add3(state.normalIndices, n0, _faceNorm[i], _faceNorm[i + 1]);
+        ChunkedArray.add3(state.positionIndices, p0, state.facePos[i], state.facePos[i + 1]);
+        ChunkedArray.add3(state.normalIndices, n0, state.faceNorm[i], state.faceNorm[i + 1]);
         ChunkedArray.add(state.faceGroups, group);
     }
     skipLine(tokenizer);
