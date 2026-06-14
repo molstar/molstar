@@ -10,6 +10,7 @@ import { MSymbol } from '../../language/symbol';
 import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 
 export class QueryRuntimeTable {
+    private addedProps = new Set<string>();
     private map = new Map<string, QuerySymbolRuntime>();
 
     removeSymbol(runtime: QuerySymbolRuntime) {
@@ -24,6 +25,9 @@ export class QueryRuntimeTable {
     }
 
     addCustomProp(desc: CustomPropertyDescriptor<any>) {
+        if (this.addedProps.has(desc.name)) return;
+        this.addedProps.add(desc.name);
+
         if (!desc.symbols) return;
 
         for (const k of Object.keys(desc.symbols)) {
@@ -32,6 +36,8 @@ export class QueryRuntimeTable {
     }
 
     removeCustomProp(desc: CustomPropertyDescriptor<any>) {
+        this.addedProps.delete(desc.name);
+
         if (!desc.symbols) return;
 
         for (const k of Object.keys(desc.symbols)) {
