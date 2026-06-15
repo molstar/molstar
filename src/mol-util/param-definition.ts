@@ -328,9 +328,6 @@ export namespace ParamDefinition {
     export function ValueRef<T>(getOptions: ValueRef['getOptions'], resolveRef: ValueRef<T>['resolveRef'], info?: Info & { defaultRef?: string }) {
         return setInfo<ValueRef<T>>({ type: 'value-ref', defaultValue: Ref(info?.defaultRef), getOptions, resolveRef }, info);
     }
-    export function asValueRef(ref: string) {
-        return { ref, getValue: unsetGetValue } as ValueRef['defaultValue'];
-    }
 
     export interface DataRef<T = any> extends Base<Ref<T>> {
         type: 'data-ref'

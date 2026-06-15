@@ -153,7 +153,7 @@ export const LoadParticles = StateAction.build({
                     .apply(StructureFromModel)
                     .commit();
                 const structureTree = state.build().to(structure.ref)
-                    .apply(ParticlesStructure, { particles: PD.asValueRef(particlesParsed.list.ref) });
+                    .apply(ParticlesStructure, { particles: PD.Ref(particlesParsed.list.ref) });
                 await state.updateTree(structureTree).runInContext(taskCtx);
                 const structureProperties = await ctx.builders.structure.insertStructureProperties(structureTree.ref);
                 await ctx.builders.structure.representation.applyPreset(structureProperties, 'mesoscale', {
@@ -161,7 +161,7 @@ export const LoadParticles = StateAction.build({
                 });
             } else if ('volume' in targetParsed) {
                 const volumeTree = state.build().to(targetParsed.volume.ref)
-                    .apply(ParticlesVolume, { particles: PD.asValueRef(particlesParsed.list.ref) });
+                    .apply(ParticlesVolume, { particles: PD.Ref(particlesParsed.list.ref) });
                 await state.updateTree(volumeTree).runInContext(taskCtx);
                 await applyParticlesVolumeVisuals(ctx, volumeTree.selector);
             } else {
@@ -202,7 +202,7 @@ export const AddParticles = StateAction.build({
 
     if (isStructure) {
         const tree = state.build().to(params.target)
-            .apply(ParticlesStructure, { particles: PD.asValueRef(params.particles) });
+            .apply(ParticlesStructure, { particles: PD.Ref(params.particles) });
 
         await state.updateTree(tree).runInContext(taskCtx);
         const structureProperties = await ctx.builders.structure.insertStructureProperties(tree.ref);
@@ -211,7 +211,7 @@ export const AddParticles = StateAction.build({
         });
     } else {
         const tree = state.build().to(params.target)
-            .apply(ParticlesVolume, { particles: PD.asValueRef(params.particles) });
+            .apply(ParticlesVolume, { particles: PD.Ref(params.particles) });
 
         await state.updateTree(tree).runInContext(taskCtx);
         await applyParticlesVolumeVisuals(ctx, tree.selector);
