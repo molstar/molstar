@@ -9,6 +9,8 @@ Note that since we don't clearly distinguish between a public and private interf
   - Tighten `isBackground` to handle packed transparent depth precisely
   - Enable bloom on transparent background
   - Background-aware blend: screen on transparent background, PMA over on opaque background, additive on geometry
+
+## [v5.10.0] - 2026-06-14
 - Fix exported image artifacts on transparent background with emissive, bloom, or antialiasing
 - Fix cel-shaded ambient color being stripped to luminance (now uses full RGB, matching the classic lighting path)
 - Fix empty transforms default in `ShapeFromPly`
@@ -25,13 +27,26 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix aromatic ring detection not accounting for hybridization
 - Add axis param to camera spin/rock animation
 - Fix SSAO half/quarter resolution textures for multi-scale
-- Camera improvements 
+- Camera improvements
   - Add the option to approximate "least obstructed direction" when focusing camera, accessibe via `PluginContext.managers.camera.focusLoci` with `optimizeDirection` option
   - Add `CameraFocusOptions.zoomOut` option that zooms out to to make the entire scene visible before focusing on the target
   - Add easing support in camera transtion
 - Non-covalent interactions: water bridge support
+- Add OBJ format support
+    - Positions, normals, faces
+    - Groups from usemtl directive
+    - Vertex color extension
+    - Sideload MTL files (diffuse color only)
 - Download Structure From AlphaFoldDB allows IDs with version suffix (version is ignored)
 - Add `loadUrl` method and GET params to Viewer app
+- Add binary PLY format variants support
+- Add `extensions/plugin` with several QoL improvements
+  - Standalone useful loading functions previously avaiable only in the `Viewer` class
+  - Standalong plugin interactivity helper function previously available only via the `Viewer` class
+  - View models (and hooks) for more straightforward usage in React (and in other UI libraries)
+- Add `examples/react` that showcases few ways the Mol* can be used together with React
+- Fix default representation plugin option, which resulted in represenations not being shown automatically when using the default plugin spec
+- Track added custom props in `QueryRuntimeTable` to prevent excess "symbol already added" messages when creating multiple instances of a pluing
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty

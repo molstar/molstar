@@ -306,27 +306,34 @@ export namespace ParamDefinition {
     }
     function _defaultObjectListCtor(this: ObjectList) { return getDefaultValues(this.element) as any; }
 
-
     function unsetGetValue() {
         throw new Error('getValue not set. Fix runtime.');
     }
 
+    export interface Ref<T = any> {
+        ref: string,
+        getValue: () => T
+    }
+    export function Ref<T>(ref = ''): Ref<T> {
+        return { ref, getValue: unsetGetValue as any };
+    }
+
     // getValue needs to be assigned by a runtime because it might not be serializable
-    export interface ValueRef<T = any> extends Base<{ ref: string, getValue: () => T }> {
+    export interface ValueRef<T = any> extends Base<Ref<T>> {
         type: 'value-ref',
         resolveRef: (ref: string, getData: (ref: string) => any) => T,
         // a provider because the list changes over time
         getOptions: (ctx: any) => Select<string>['options'],
     }
     export function ValueRef<T>(getOptions: ValueRef['getOptions'], resolveRef: ValueRef<T>['resolveRef'], info?: Info & { defaultRef?: string }) {
-        return setInfo<ValueRef<T>>({ type: 'value-ref', defaultValue: { ref: info?.defaultRef ?? '', getValue: unsetGetValue as any }, getOptions, resolveRef }, info);
+        return setInfo<ValueRef<T>>({ type: 'value-ref', defaultValue: Ref(info?.defaultRef), getOptions, resolveRef }, info);
     }
 
-    export interface DataRef<T = any> extends Base<{ ref: string, getValue: () => T }> {
+    export interface DataRef<T = any> extends Base<Ref<T>> {
         type: 'data-ref'
     }
     export function DataRef<T>(info?: Info & { defaultRef?: string }) {
-        return setInfo<DataRef<T>>({ type: 'data-ref', defaultValue: { ref: info?.defaultRef ?? '', getValue: unsetGetValue as any } }, info);
+        return setInfo<DataRef<T>>({ type: 'data-ref', defaultValue: Ref(info?.defaultRef) }, info);
     }
 
     export interface Converted<T, C> extends Base<T> {
