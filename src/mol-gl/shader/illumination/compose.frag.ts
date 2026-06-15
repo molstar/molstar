@@ -305,6 +305,7 @@ void main() {
             alpha = bloom.a + alpha * (1.0 - bloom.a);
         } else {
             color.rgb += bloom.rgb;
+            alpha += bloom.a;
         }
     #endif
 
