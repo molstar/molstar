@@ -62,9 +62,34 @@ export const ObjProvider = DataFormatProvider({
     }
 });
 
+export const VtpProvider = DataFormatProvider({
+    label: 'VTP',
+    description: 'VTK PolyData (VTP)',
+    category: ShapeFormatCategory,
+    binaryExtensions: ['vtp'],
+    parse: async (plugin, data) => {
+        const format = plugin.state.data.build()
+            .to(data)
+            .apply(StateTransforms.Data.ParseVtp, {}, { state: { isGhost: true } });
+
+        const shape = format.apply(StateTransforms.Model.ShapeFromVtp);
+
+        await format.commit();
+
+        return { format: format.selector, shape: shape.selector };
+    },
+    visuals(plugin: PluginContext, data: { shape: StateObjectRef<PluginStateObject.Shape.Provider> }) {
+        const repr = plugin.state.data.build()
+            .to(data.shape)
+            .apply(StateTransforms.Representation.ShapeRepresentation3D);
+        return repr.commit();
+    }
+});
+
 export const BuiltInShapeFormats = [
     ['ply', PlyProvider] as const,
     ['obj', ObjProvider] as const,
+    ['vtp', VtpProvider] as const,
 ] as const;
 
 export type BuildInShapeFormat = (typeof BuiltInShapeFormats)[number][0]
