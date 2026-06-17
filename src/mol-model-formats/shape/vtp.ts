@@ -18,6 +18,7 @@ import { ColorScale } from '../../mol-util/color/scale';
 import { ColorListOptionsScale, ColorListName } from '../../mol-util/color/lists';
 import { ValueCell } from '../../mol-util/value-cell';
 import { deepClone } from '../../mol-util/object';
+import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 
 // --- Params ---
 
@@ -69,6 +70,7 @@ export function createVtpShapeParams(vtpFile?: VtpFile) {
         domainMin: PD.Numeric(defMin, {}, { label: 'Domain Min' }),
         domainMax: PD.Numeric(defMax, {}, { label: 'Domain Max' }),
         uniformColor: PD.Color(ColorNames.grey, { label: 'Uniform Color' }),
+        scale: PD.Numeric(1, { min: 1, max: 100, step: 0.1 }, { label: 'Scale', description: 'Uniform scale factor applied to the mesh.' }),
     };
 }
 
@@ -175,7 +177,8 @@ function makeColorFn(vtpFile: VtpFile, props: PD.Values<VtpShapeParams>): (gid: 
     return () => uniformColor;
 }
 
-function createShape(vtpFile: VtpFile, mesh: Mesh, colorFn: (gid: number) => Color): Shape<Mesh> {
+function createShape(vtpFile: VtpFile, mesh: Mesh, colorFn: (gid: number) => Color, scale: number): Shape<Mesh> {
+    const transform = Mat4.fromUniformScaling(Mat4(), scale);
     return Shape.create(
         'vtp-mesh', vtpFile, mesh,
         colorFn,
@@ -184,7 +187,8 @@ function createShape(vtpFile: VtpFile, mesh: Mesh, colorFn: (gid: number) => Col
             if (gid < 0) return '';
             const tri = Math.floor(gid / 3);
             return `Triangle ${tri}`;
-        }
+        },
+        [transform]
     );
 }
 
@@ -203,14 +207,15 @@ function makeShapeGetter() {
             _props.domainMin !== props.domainMin ||
             _props.domainMax !== props.domainMax ||
             _props.uniformColor !== props.uniformColor;
+        const needsNewScale = !_props || _props.scale !== props.scale;
 
         if (needsNewMesh) {
             _mesh = await buildMesh(ctx, vtpFile, shape?.geometry);
         }
 
-        if (needsNewMesh || needsNewColor) {
+        if (needsNewMesh || needsNewColor || needsNewScale) {
             const colorFn = makeColorFn(vtpFile, props);
-            _shape = createShape(vtpFile, _mesh, colorFn);
+            _shape = createShape(vtpFile, _mesh, colorFn, props.scale);
         }
 
         _vtpFile = vtpFile;
