@@ -71,29 +71,33 @@ function attrValue(attrStr: string, name: string): string | undefined {
     return m ? m[1] : undefined;
 }
 
-function parseDataArrayAttrs(attrStr: string): VtpDataArrayDescriptor | null {
-    const offsetStr = attrValue(attrStr, 'offset');
-    if (offsetStr === undefined) return null;
-    return {
-        name: attrValue(attrStr, 'Name') ?? '',
-        type: attrValue(attrStr, 'type') ?? 'Float32',
-        numberOfComponents: parseInt(attrValue(attrStr, 'NumberOfComponents') ?? '1'),
-        offset: parseInt(offsetStr),
-        rangeMin: parseFloat(attrValue(attrStr, 'RangeMin') ?? '0'),
-        rangeMax: parseFloat(attrValue(attrStr, 'RangeMax') ?? '1'),
-    };
-}
-
 function extractSectionArrays(header: string, sectionName: string): VtpDataArrayDescriptor[] {
     const re = new RegExp(`<${sectionName}(?:\\s[^>]*)?>([\\s\\S]*?)</${sectionName}>`, 'i');
     const sm = header.match(re);
     if (!sm) return [];
     const results: VtpDataArrayDescriptor[] = [];
-    const daRe = /<DataArray\s+([^>]*?)\/?>/g;
+    // Match self-closing (<DataArray .../>) or opening tag + text content.
+    // For inline binary the text node (base64) always precedes any child elements (<InformationKey>, etc.),
+    // so [A-Za-z0-9+/=\s]* captures the base64 and stops at the first '<' without needing </DataArray>.
+    const daRe = /<DataArray\s+([^>]*?)(?:\/>|>([A-Za-z0-9+/=\s]*))/g;
     let m;
     while ((m = daRe.exec(sm[1])) !== null) {
-        const desc = parseDataArrayAttrs(m[1]);
-        if (desc) results.push(desc);
+        const attrStr = m[1];
+        const rawContent = m[2];
+        const offsetStr = attrValue(attrStr, 'offset');
+        const b64 = rawContent ? rawContent.replace(/\s/g, '') : '';
+        // Skip if no data source at all
+        if (offsetStr === undefined && b64.length === 0) continue;
+        const desc: VtpDataArrayDescriptor = {
+            name: attrValue(attrStr, 'Name') ?? '',
+            type: attrValue(attrStr, 'type') ?? 'Float32',
+            numberOfComponents: parseInt(attrValue(attrStr, 'NumberOfComponents') ?? '1'),
+            offset: offsetStr !== undefined ? parseInt(offsetStr) : -1,
+            rangeMin: parseFloat(attrValue(attrStr, 'RangeMin') ?? '0'),
+            rangeMax: parseFloat(attrValue(attrStr, 'RangeMax') ?? '1'),
+        };
+        if (b64.length > 0) desc.inlineBase64 = b64;
+        results.push(desc);
     }
     return results;
 }
@@ -101,6 +105,7 @@ function extractSectionArrays(header: string, sectionName: string): VtpDataArray
 interface ParsedHeader {
     nPoints: number;
     nCells: number;
+    byteOrder: string;
     compressor: string;
     headerType: string;
     pointDataArrays: VtpDataArrayDescriptor[];
@@ -117,6 +122,7 @@ function parseHeader(header: string): ParsedHeader {
     return {
         nPoints: parseInt(pieceMatch[1]),
         nCells: parseInt(pieceMatch[2]),
+        byteOrder: attrValue(vtkAttrs, 'byte_order') ?? 'LittleEndian',
         compressor: attrValue(vtkAttrs, 'compressor') ?? '',
         headerType: attrValue(vtkAttrs, 'header_type') ?? 'UInt32',
         pointDataArrays: extractSectionArrays(header, 'PointData'),
@@ -151,17 +157,22 @@ function decodeBase64Slice(rawB64: string, charPos: number, nBytes: number): Uin
 async function decompressVtkBlockB64(
     ctx: RuntimeContext,
     rawB64: string,
-    charOffset: number
+    charOffset: number,
+    headerType: 'UInt32' | 'UInt64' = 'UInt32'
 ): Promise<Uint8Array> {
-    // 1. Read first 12 bytes to get nblocks, blockSize, lastSize
-    const minHdr = decodeBase64Slice(rawB64, charOffset, 12);
-    const dvMin = new DataView(minHdr.buffer, minHdr.byteOffset, 12);
-    const nblocks = dvMin.getUint32(0, true);
-    const blockSize = dvMin.getUint32(4, true);
-    const lastSize = dvMin.getUint32(8, true);
+    const hdrItemBytes = headerType === 'UInt64' ? 8 : 4;
 
-    // 2. Read full header (adds nblocks * 4 bytes for compressed sizes)
-    const totalHdrBytes = 12 + nblocks * 4;
+    // 1. Read first 3 header items (nblocks, blockSize, lastSize)
+    const minHdrBytes = 3 * hdrItemBytes;
+    const minHdr = decodeBase64Slice(rawB64, charOffset, minHdrBytes);
+    const dvMin = new DataView(minHdr.buffer, minHdr.byteOffset, minHdrBytes);
+    // For UInt64 we read the low 32 bits (little-endian; high bits are 0 for practical sizes)
+    const nblocks = dvMin.getUint32(0, true);
+    const blockSize = dvMin.getUint32(hdrItemBytes, true);
+    const lastSize = dvMin.getUint32(2 * hdrItemBytes, true);
+
+    // 2. Read full header (adds nblocks * hdrItemBytes bytes for compressed sizes)
+    const totalHdrBytes = (3 + nblocks) * hdrItemBytes;
     const hdrRaw = decodeBase64Slice(rawB64, charOffset, totalHdrBytes);
     const hdrChars = Math.ceil(totalHdrBytes / 3) * 4;
 
@@ -171,7 +182,7 @@ async function decompressVtkBlockB64(
     const compSizes = new Uint32Array(nblocks);
     let totalCompressed = 0;
     for (let i = 0; i < nblocks; i++) {
-        compSizes[i] = dvHdr.getUint32(12 + i * 4, true);
+        compSizes[i] = dvHdr.getUint32((3 + i) * hdrItemBytes, true);
         totalCompressed += compSizes[i];
     }
 
@@ -208,21 +219,30 @@ async function decompressVtkBlockRaw(
     ctx: RuntimeContext,
     rawData: Uint8Array,
     rawByteStart: number,
-    byteOffset: number
+    byteOffset: number,
+    headerType: 'UInt32' | 'UInt64' = 'UInt32',
+    hasCompressor = true
 ): Promise<Uint8Array> {
+    const hdrItemBytes = headerType === 'UInt64' ? 8 : 4;
     const absBase = rawByteStart + byteOffset;
     const dv = new DataView(rawData.buffer, rawData.byteOffset, rawData.byteLength);
 
+    if (!hasCompressor) {
+        // Uncompressed raw AppendedData: [nbytes (hdrItemBytes)][raw data bytes]
+        const nbytes = dv.getUint32(absBase, true); // low 32 bits safe for practical sizes
+        return new Uint8Array(rawData.buffer, rawData.byteOffset + absBase + hdrItemBytes, nbytes).slice();
+    }
+
     const nblocks = dv.getUint32(absBase, true);
-    const blockSize = dv.getUint32(absBase + 4, true);
-    const lastSize = dv.getUint32(absBase + 8, true);
+    const blockSize = dv.getUint32(absBase + hdrItemBytes, true);
+    const lastSize = dv.getUint32(absBase + 2 * hdrItemBytes, true);
 
     if (nblocks === 0) return new Uint8Array(0);
 
-    const hdrBytes = 12 + nblocks * 4;
+    const hdrBytes = (3 + nblocks) * hdrItemBytes;
     const compSizes = new Uint32Array(nblocks);
     for (let i = 0; i < nblocks; i++) {
-        compSizes[i] = dv.getUint32(absBase + 12 + i * 4, true);
+        compSizes[i] = dv.getUint32(absBase + (3 + i) * hdrItemBytes, true);
     }
 
     const totalUncompressed = lastSize > 0
@@ -250,13 +270,28 @@ async function decompressVtkBlockRaw(
 
 async function decompressBlock(
     ctx: RuntimeContext,
-    info: AppendedInfo,
-    desc: VtpDataArrayDescriptor
+    info: AppendedInfo | null,
+    desc: VtpDataArrayDescriptor,
+    headerType: 'UInt32' | 'UInt64',
+    hasCompressor: boolean
 ): Promise<Uint8Array> {
+    if (desc.inlineBase64) {
+        if (!hasCompressor) {
+            // Uncompressed inline: [nbytes (hdrItemBytes)][raw data]
+            const hdrItemBytes = headerType === 'UInt64' ? 8 : 4;
+            const binary = atob(desc.inlineBase64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            return bytes.slice(hdrItemBytes);
+        }
+        // Compressed inline: same block structure as AppendedData base64, starting at char 0
+        return decompressVtkBlockB64(ctx, desc.inlineBase64, 0, headerType);
+    }
+    if (!info) throw new Error(`No data source for array "${desc.name}"`);
     if (info.encoding === 'base64') {
-        return decompressVtkBlockB64(ctx, info.rawB64, desc.offset);
+        return decompressVtkBlockB64(ctx, info.rawB64, desc.offset, headerType);
     } else {
-        return decompressVtkBlockRaw(ctx, info.rawData, info.rawByteStart, desc.offset);
+        return decompressVtkBlockRaw(ctx, info.rawData, info.rawByteStart, desc.offset, headerType, hasCompressor);
     }
 }
 
@@ -264,6 +299,20 @@ async function decompressBlock(
 
 function decodeFloat32(raw: Uint8Array, count: number): Float32Array {
     return new Float32Array(raw.buffer, raw.byteOffset, count);
+}
+
+function decodePositions(raw: Uint8Array, type: string, count: number): Float32Array {
+    if (type === 'Float32') return decodeFloat32(raw, count);
+    // Decode any other type through Float64 then downcast — precision loss is acceptable for visualization
+    return new Float32Array(decodeToFloat64(raw, type, count));
+}
+
+function decodeConnectivity(raw: Uint8Array, type: string): Int32Array {
+    if (type === 'Int64' || type === 'UInt64') {
+        return decodeInt64AsInt32(raw, raw.byteLength / 8);
+    }
+    // Int32, UInt32 — 4 bytes per value
+    return new Int32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4);
 }
 
 function decodeInt64AsInt32(raw: Uint8Array, count: number): Int32Array {
@@ -279,7 +328,11 @@ function decodeToFloat64(raw: Uint8Array, type: string, count: number): Float64A
     switch (type) {
         case 'Float32': { const f32 = decodeFloat32(raw, count); for (let i = 0; i < count; i++) out[i] = f32[i]; break; }
         case 'Float64': for (let i = 0; i < count; i++) out[i] = dv.getFloat64(i * 8, true); break;
-        case 'Int32': for (let i = 0; i < count; i++) out[i] = dv.getInt32(i * 4, true); break;
+        case 'Int8':   for (let i = 0; i < count; i++) out[i] = dv.getInt8(i); break;
+        case 'UInt8':  for (let i = 0; i < count; i++) out[i] = dv.getUint8(i); break;
+        case 'Int16':  for (let i = 0; i < count; i++) out[i] = dv.getInt16(i * 2, true); break;
+        case 'UInt16': for (let i = 0; i < count; i++) out[i] = dv.getUint16(i * 2, true); break;
+        case 'Int32':  for (let i = 0; i < count; i++) out[i] = dv.getInt32(i * 4, true); break;
         case 'UInt32': for (let i = 0; i < count; i++) out[i] = dv.getUint32(i * 4, true); break;
         case 'Int64': case 'UInt64':
             for (let i = 0; i < count; i++) {
@@ -323,27 +376,39 @@ function buildTriangles(rawConn: Int32Array, offsets: Int32Array, nCells: number
 async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Result<VtpFile>> {
     ctx.update({ message: 'Parsing VTP header...', current: 0, max: 100 });
 
+    // For AppendedData files the XML header fits in 64 KB.
+    // For inline binary the whole file is ASCII (base64 in XML), so decode it all.
     const previewLen = Math.min(data.length, 65536);
-    const headerText = new TextDecoder('ascii').decode(data.subarray(0, previewLen));
+    const headerPreview = new TextDecoder('ascii').decode(data.subarray(0, previewLen));
+    const isInline = headerPreview.indexOf('<AppendedData') === -1;
+    const headerText = isInline
+        ? new TextDecoder('ascii').decode(data)
+        : headerPreview;
+
     const hdr = parseHeader(headerText);
 
+    if (hdr.byteOrder === 'BigEndian') {
+        throw new Error('BigEndian VTP files are not supported.');
+    }
     if (hdr.compressor && !hdr.compressor.includes('ZLib') && !hdr.compressor.includes('zlib')) {
         throw new Error(`Unsupported VTP compressor: "${hdr.compressor}". Only vtkZLibDataCompressor is supported.`);
     }
-    if (hdr.headerType !== 'UInt32') {
-        throw new Error(`Unsupported VTP header_type: "${hdr.headerType}". Only UInt32 is supported.`);
+    if (hdr.headerType !== 'UInt32' && hdr.headerType !== 'UInt64') {
+        throw new Error(`Unsupported VTP header_type: "${hdr.headerType}". Only UInt32 and UInt64 are supported.`);
     }
+    const headerType = hdr.headerType as 'UInt32' | 'UInt64';
+    const hasCompressor = !!hdr.compressor;
 
     ctx.update({ message: 'Locating binary section...', current: 5, max: 100 });
-    const info = extractAppendedInfo(data, headerText);
+    const info = isInline ? null : extractAppendedInfo(data, headerText);
 
     // Points positions
     const pointsDesc = hdr.pointsArrays.find(d => d.name === 'Points');
     if (!pointsDesc) throw new Error('VTP file missing Points DataArray');
 
     ctx.update({ message: 'Decompressing positions...', current: 10, max: 100 });
-    const posRaw = await decompressBlock(ctx, info, pointsDesc);
-    const positions = decodeFloat32(posRaw, hdr.nPoints * 3);
+    const posRaw = await decompressBlock(ctx, info, pointsDesc, headerType, hasCompressor);
+    const positions = decodePositions(posRaw, pointsDesc.type, hdr.nPoints * 3);
 
     // Polys connectivity + offsets
     const connDesc = hdr.polysArrays.find(d => d.name === 'connectivity');
@@ -351,11 +416,11 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
     if (!connDesc || !offsetsDesc) throw new Error('VTP file missing Polys connectivity/offsets DataArrays');
 
     ctx.update({ message: 'Decompressing topology...', current: 20, max: 100 });
-    const connRaw = await decompressBlock(ctx, info, connDesc);
-    const offsetsRaw = await decompressBlock(ctx, info, offsetsDesc);
+    const connRaw = await decompressBlock(ctx, info, connDesc, headerType, hasCompressor);
+    const offsetsRaw = await decompressBlock(ctx, info, offsetsDesc, headerType, hasCompressor);
 
-    const rawConn = decodeInt64AsInt32(connRaw, connRaw.byteLength / 8);
-    const rawOffsets = decodeInt64AsInt32(offsetsRaw, hdr.nCells);
+    const rawConn = decodeConnectivity(connRaw, connDesc.type);
+    const rawOffsets = decodeConnectivity(offsetsRaw, offsetsDesc.type);
 
     const connectivity = buildTriangles(rawConn, rawOffsets, hdr.nCells);
     const numberOfTriangles = connectivity.length / 3;
@@ -366,7 +431,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
     for (let i = 0; i < scalarPD.length; i++) {
         const desc = scalarPD[i];
         ctx.update({ message: `Point data: ${desc.name}...`, current: 30 + Math.floor(i / Math.max(1, scalarPD.length) * 30), max: 100 });
-        const raw = await decompressBlock(ctx, info, desc);
+        const raw = await decompressBlock(ctx, info, desc, headerType, hasCompressor);
         const values = decodeToFloat64(raw, desc.type, hdr.nPoints);
         pointData.set(desc.name, { desc, values });
     }
@@ -377,7 +442,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
     for (let i = 0; i < scalarCD.length; i++) {
         const desc = scalarCD[i];
         ctx.update({ message: `Cell data: ${desc.name}...`, current: 60 + Math.floor(i / Math.max(1, scalarCD.length) * 35), max: 100 });
-        const raw = await decompressBlock(ctx, info, desc);
+        const raw = await decompressBlock(ctx, info, desc, headerType, hasCompressor);
         const values = decodeToFloat64(raw, desc.type, hdr.nCells);
         cellData.set(desc.name, { desc, values });
     }

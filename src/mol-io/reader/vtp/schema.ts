@@ -9,10 +9,12 @@ export interface VtpDataArrayDescriptor {
     /** VTK type string: "Float32", "Float64", "Int32", "Int64", "UInt32", etc. */
     type: string;
     numberOfComponents: number;
-    /** Byte offset into the appended data section (after the `_` marker) */
+    /** Byte/char offset into the appended data section (after the `_` marker). -1 for inline binary. */
     offset: number;
     rangeMin: number;
     rangeMax: number;
+    /** Base64 content of the DataArray element (inline binary format only). */
+    inlineBase64?: string;
 }
 
 export interface VtpScalarArray {

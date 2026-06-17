@@ -70,6 +70,30 @@ describe('VTP parser', () => {
         expect(mc.desc.rangeMax).toBeCloseTo(3.88, 1);
     });
 
+    it('parses earth.vtp (inline binary, UInt64 header, PointData Float64)', async () => {
+        const filePath = '/Users/ludovicautin/Downloads/earth.vtp';
+        if (!fs.existsSync(filePath)) { console.warn('Skipping: file not found'); return; }
+
+        const data = new Uint8Array(fs.readFileSync(filePath));
+        const result = await parseVtp(data).run();
+
+        expect(result.isError).toBe(false);
+        if (result.isError) return;
+
+        const vtp = result.result;
+        expect(vtp.numberOfPoints).toBe(40962);
+        expect(vtp.numberOfCells).toBe(81920);
+        expect(vtp.positions.length).toBe(vtp.numberOfPoints * 3);
+        expect(vtp.connectivity.length).toBe(vtp.numberOfTriangles * 3);
+
+        expect(vtp.pointData.size).toBe(1);
+        const bd = vtp.pointData.get('bottomDepth')!;
+        expect(bd).toBeDefined();
+        expect(bd.values.length).toBe(vtp.numberOfPoints);
+        expect(bd.desc.rangeMin).toBeCloseTo(-9753, 0);
+        expect(bd.desc.rangeMax).toBeCloseTo(5984, 0);
+    });
+
     it('parses scaled_cleaned.vtp (with CellData attributes)', async () => {
         const filePath = path.join(VTP_EXAMPLES_DIR, 'YTC042_2_lam10_ts_004_labels_IMM.scaled_cleaned.vtp');
         if (!fs.existsSync(filePath)) { console.warn('Skipping: file not found'); return; }
