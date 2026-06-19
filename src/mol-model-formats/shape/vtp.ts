@@ -61,6 +61,15 @@ function defaultAttrKey(vtpFile?: VtpFile): string {
     return UNIFORM_KEY;
 }
 
+function scalarRange(values: Float64Array): [number, number] {
+    let min = Infinity, max = -Infinity;
+    for (let i = 0; i < values.length; i++) {
+        if (values[i] < min) min = values[i];
+        if (values[i] > max) max = values[i];
+    }
+    return [min === Infinity ? 0 : min, max === -Infinity ? 1 : max];
+}
+
 function magnitudeRange(values: Float64Array, nComp: number): [number, number] {
     const n = values.length / nComp;
     let min = Infinity, max = -Infinity;
@@ -80,8 +89,12 @@ function defaultDomain(vtpFile: VtpFile | undefined, key: string): [number, numb
     if (key.startsWith('cell:')) arr = vtpFile.cellData.get(key.slice(5));
     else if (key.startsWith('point:')) arr = vtpFile.pointData.get(key.slice(6));
     if (!arr) return [0, 1];
-    if (arr.desc.numberOfComponents === 1) return [arr.desc.rangeMin, arr.desc.rangeMax];
-    return magnitudeRange(arr.values, arr.desc.numberOfComponents);
+    const nComp = arr.desc.numberOfComponents;
+    if (nComp > 1) return magnitudeRange(arr.values, nComp);
+    // Use VTK-provided range when available; otherwise compute from data.
+    // Many writers (Python VTK, SurfaceMorphometrics) omit RangeMin/RangeMax.
+    if (arr.desc.hasRange) return [arr.desc.rangeMin, arr.desc.rangeMax];
+    return scalarRange(arr.values);
 }
 
 export function createVtpShapeParams(vtpFile?: VtpFile) {

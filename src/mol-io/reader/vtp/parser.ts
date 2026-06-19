@@ -113,14 +113,17 @@ function extractSectionArrays(header: string, sectionName: string): VtpDataArray
         if (fmt === 'appended' && offsetStr === undefined) continue;
         if (fmt === 'binary' && b64.length === 0) continue;
 
+        const rangeMinStr = attrValue(attrStr, 'RangeMin');
+        const rangeMaxStr = attrValue(attrStr, 'RangeMax');
         const desc: VtpDataArrayDescriptor = {
             name: attrValue(attrStr, 'Name') ?? '',
             type: attrValue(attrStr, 'type') ?? 'Float32',
             numberOfComponents: parseInt(attrValue(attrStr, 'NumberOfComponents') ?? '1', 10),
             format: fmt,
             offset: offsetStr !== undefined ? parseInt(offsetStr, 10) : -1,
-            rangeMin: parseFloat(attrValue(attrStr, 'RangeMin') ?? '0'),
-            rangeMax: parseFloat(attrValue(attrStr, 'RangeMax') ?? '1'),
+            hasRange: rangeMinStr !== undefined && rangeMaxStr !== undefined,
+            rangeMin: parseFloat(rangeMinStr ?? '0'),
+            rangeMax: parseFloat(rangeMaxStr ?? '1'),
             ...(b64.length > 0 ? { inlineBase64: b64 } : {}),
             ...(asciiText !== undefined ? { asciiText } : {}),
         };

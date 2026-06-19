@@ -15,6 +15,8 @@ export interface VtpDataArrayDescriptor {
     readonly offset: number;
     readonly rangeMin: number;
     readonly rangeMax: number;
+    /** True if RangeMin/RangeMax were explicitly present in the XML (absent in many writers). */
+    readonly hasRange: boolean;
     /** Base64 content of the DataArray element (inline binary format only). */
     readonly inlineBase64?: string;
     /** Raw text content of the DataArray element (ascii format only). */
