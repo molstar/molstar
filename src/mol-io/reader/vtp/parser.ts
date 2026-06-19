@@ -179,9 +179,18 @@ async function decompressVtkBlockB64(
     ctx: RuntimeContext,
     rawB64: string,
     charOffset: number,
-    headerType: 'UInt32' | 'UInt64' = 'UInt32'
+    headerType: 'UInt32' | 'UInt64' = 'UInt32',
+    hasCompressor = true
 ): Promise<Uint8Array> {
     const hdrItemBytes = headerType === 'UInt64' ? 8 : 4;
+
+    if (!hasCompressor) {
+        // Uncompressed: [nbytes (hdrItemBytes)][raw data bytes]
+        const hdr = decodeBase64Slice(rawB64, charOffset, hdrItemBytes);
+        const nbytes = new DataView(hdr.buffer, hdr.byteOffset, hdrItemBytes).getUint32(0, true);
+        const hdrChars = Math.ceil(hdrItemBytes / 3) * 4;
+        return decodeBase64Slice(rawB64, charOffset + hdrChars, nbytes);
+    }
 
     // 1. Read first 3 header items (nblocks, blockSize, lastSize)
     const minHdrBytes = 3 * hdrItemBytes;
@@ -310,7 +319,7 @@ async function decompressBlock(
     }
     if (!info) throw new Error(`No data source for array "${desc.name}"`);
     if (info.encoding === 'base64') {
-        return decompressVtkBlockB64(ctx, info.rawB64, desc.offset, headerType);
+        return decompressVtkBlockB64(ctx, info.rawB64, desc.offset, headerType, hasCompressor);
     } else {
         return decompressVtkBlockRaw(ctx, info.rawData, info.rawByteStart, desc.offset, headerType, hasCompressor);
     }

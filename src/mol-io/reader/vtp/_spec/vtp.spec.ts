@@ -164,6 +164,7 @@ function buildRawAppended(header: string, footer: string, arrays: (Float32Array 
 
 describe('VTP parser', () => {
     it('parses a minimal triangle', async () => {
+        expect.assertions(11);
         const result = await parseVtp(makeTriangleVtp()).run();
         expect(result.isError).toBe(false);
         if (result.isError) return;
@@ -181,11 +182,10 @@ describe('VTP parser', () => {
 
         expect(vtp.pointData.size).toBe(0);
         expect(vtp.cellData.size).toBe(0);
-
-        expect.assertions(11);
     });
 
     it('fan-triangulates a quad into 2 triangles', async () => {
+        expect.assertions(11);
         const result = await parseVtp(makeQuadVtp()).run();
         expect(result.isError).toBe(false);
         if (result.isError) return;
@@ -203,11 +203,10 @@ describe('VTP parser', () => {
         expect(vtp.connectivity[3]).toBe(0);
         expect(vtp.connectivity[4]).toBe(2);
         expect(vtp.connectivity[5]).toBe(3);
-
-        expect.assertions(11);
     });
 
     it('parses CellData scalar array', async () => {
+        expect.assertions(8);
         const result = await parseVtp(makeCellDataVtp()).run();
         expect(result.isError).toBe(false);
         if (result.isError) return;
@@ -224,11 +223,10 @@ describe('VTP parser', () => {
         expect(curv.values[0]).toBeCloseTo(0.5);
         expect(curv.desc.rangeMin).toBeCloseTo(-1.0);
         expect(curv.desc.rangeMax).toBeCloseTo(1.0);
-
-        expect.assertions(8);
     });
 
     it('triangleCellIndex maps quad fan-triangles to their originating cells', async () => {
+        expect.assertions(10);
         const result = await parseVtp(makeQuadCellDataVtp()).run();
         expect(result.isError).toBe(false);
         if (result.isError) return;
@@ -251,7 +249,5 @@ describe('VTP parser', () => {
         if (!cellval) return;
         expect(cellval.values[0]).toBeCloseTo(0.25);
         expect(cellval.values[1]).toBeCloseTo(0.75);
-
-        expect.assertions(10);
     });
 });
