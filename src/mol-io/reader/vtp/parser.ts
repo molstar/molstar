@@ -25,7 +25,7 @@ interface AppendedInfo {
 function findBytesPosition(data: Uint8Array, tag: string, from = 0): number {
     const tagBytes = tag.split('').map(c => c.charCodeAt(0));
     const tlen = tagBytes.length;
-    for (let i = from, il = data.length - tlen; i < il; i++) {
+    for (let i = from, il = data.length - tlen; i <= il; i++) {
         let match = true;
         for (let j = 0; j < tlen; j++) {
             if (data[i + j] !== tagBytes[j]) { match = false; break; }
@@ -35,19 +35,20 @@ function findBytesPosition(data: Uint8Array, tag: string, from = 0): number {
     return -1;
 }
 
-function extractAppendedInfo(data: Uint8Array, headerText: string): AppendedInfo {
-    const encMatch = headerText.match(/<AppendedData\s+encoding="([^"]+)"/i);
-    const encoding = encMatch ? encMatch[1].toLowerCase() : 'raw';
-
+function extractAppendedInfo(data: Uint8Array): AppendedInfo {
     const tagPos = findBytesPosition(data, '<AppendedData');
     if (tagPos === -1) throw new Error('AppendedData section not found');
 
     let pos = tagPos;
     while (pos < data.length && data[pos] !== 0x3E) pos++;
+    // Decode the opening tag text to read the encoding attribute.
+    const tagText = new TextDecoder('ascii').decode(data.subarray(tagPos, pos + 1));
+    const encMatch = tagText.match(/encoding="([^"]+)"/i);
+    const encoding = encMatch ? encMatch[1].toLowerCase() : 'raw';
     pos++; // skip '>'
     while (pos < data.length && (data[pos] === 0x20 || data[pos] === 0x09 || data[pos] === 0x0A || data[pos] === 0x0D)) pos++;
-    if (data[pos] !== 0x5F) {
-        throw new Error(`Expected '_' before appended data, got 0x${data[pos].toString(16)}`);
+    if (pos >= data.length || data[pos] !== 0x5F) {
+        throw new Error(`Expected '_' before appended data, got 0x${data[pos]?.toString(16) ?? 'EOF'}`);
     }
     const dataStart = pos + 1;
 
@@ -66,13 +67,19 @@ function extractAppendedInfo(data: Uint8Array, headerText: string): AppendedInfo
 
 // --- XML header parsing ---
 
+const _attrValueRegexCache = new Map<string, RegExp>();
 function attrValue(attrStr: string, name: string): string | undefined {
-    const m = attrStr.match(new RegExp(name + '=["\']([^"\']*)["\']'));
+    let re = _attrValueRegexCache.get(name);
+    if (!re) {
+        re = new RegExp(name + '=["\']([^"\']*)["\']');
+        _attrValueRegexCache.set(name, re);
+    }
+    const m = attrStr.match(re);
     return m ? m[1] : undefined;
 }
 
 function extractSectionArrays(header: string, sectionName: string): VtpDataArrayDescriptor[] {
-    const re = new RegExp(`<${sectionName}(?:\\s[^>]*)?>([\\s\\S]*?)</${sectionName}>`, 'i');
+    const re = new RegExp(`<${sectionName}(?:\\s[^>]*)?>([\\s\\S]*?)</${sectionName}>`);
     const sm = header.match(re);
     if (!sm) return [];
     const results: VtpDataArrayDescriptor[] = [];
@@ -95,8 +102,8 @@ function extractSectionArrays(header: string, sectionName: string): VtpDataArray
             offset: offsetStr !== undefined ? parseInt(offsetStr) : -1,
             rangeMin: parseFloat(attrValue(attrStr, 'RangeMin') ?? '0'),
             rangeMax: parseFloat(attrValue(attrStr, 'RangeMax') ?? '1'),
+            ...(b64.length > 0 ? { inlineBase64: b64 } : {}),
         };
-        if (b64.length > 0) desc.inlineBase64 = b64;
         results.push(desc);
     }
     return results;
@@ -115,13 +122,19 @@ interface ParsedHeader {
 }
 
 function parseHeader(header: string): ParsedHeader {
-    const pieceMatch = header.match(/NumberOfPoints="(\d+)"[^>]*NumberOfPolys="(\d+)"/);
-    if (!pieceMatch) throw new Error('Cannot parse NumberOfPoints/NumberOfPolys from VTP header');
+    const pieceMatch = header.match(/<Piece\s([^>]*)>/);
+    if (!pieceMatch) throw new Error('Cannot find Piece element in VTP header');
+    const pieceAttrs = pieceMatch[1];
+    const nPointsStr = attrValue(pieceAttrs, 'NumberOfPoints');
+    const nPolysStr = attrValue(pieceAttrs, 'NumberOfPolys');
+    if (nPointsStr === undefined || nPolysStr === undefined) {
+        throw new Error('Cannot parse NumberOfPoints/NumberOfPolys from VTP Piece element');
+    }
     const vtkFileMatch = header.match(/<VTKFile\s+([^>]*)>/);
     const vtkAttrs = vtkFileMatch ? vtkFileMatch[1] : '';
     return {
-        nPoints: parseInt(pieceMatch[1]),
-        nCells: parseInt(pieceMatch[2]),
+        nPoints: parseInt(nPointsStr),
+        nCells: parseInt(nPolysStr),
         byteOrder: attrValue(vtkAttrs, 'byte_order') ?? 'LittleEndian',
         compressor: attrValue(vtkAttrs, 'compressor') ?? '',
         headerType: attrValue(vtkAttrs, 'header_type') ?? 'UInt32',
@@ -311,14 +324,16 @@ function decodeConnectivity(raw: Uint8Array, type: string): Int32Array {
     if (type === 'Int64' || type === 'UInt64') {
         return decodeInt64AsInt32(raw, raw.byteLength / 8);
     }
-    // Int32, UInt32 — 4 bytes per value
-    return new Int32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4);
+    if (type === 'Int32' || type === 'UInt32') {
+        return new Int32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4);
+    }
+    throw new Error(`Unsupported VTP connectivity type: "${type}". Expected Int32, UInt32, Int64, or UInt64.`);
 }
 
 function decodeInt64AsInt32(raw: Uint8Array, count: number): Int32Array {
     const dv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
     const out = new Int32Array(count);
-    for (let i = 0; i < count; i++) out[i] = dv.getInt32(i * 8, true);
+    for (let i = 0; i < count; i++) out[i] = dv.getUint32(i * 8, true);
     return out;
 }
 
@@ -341,7 +356,7 @@ function decodeToFloat64(raw: Uint8Array, type: string, count: number): Float64A
                 out[i] = hi * 0x100000000 + lo;
             }
             break;
-        default: for (let i = 0; i < count; i++) out[i] = dv.getInt32(i * 4, true); break;
+        default: throw new Error(`Unsupported VTP scalar type: "${type}".`);
     }
     return out;
 }
@@ -354,7 +369,7 @@ function buildTriangles(rawConn: Int32Array, offsets: Int32Array, nCells: number
     let nTris = 0;
     for (let i = 0; i < nCells; i++) {
         const start = i > 0 ? offsets[i - 1] : 0;
-        nTris += offsets[i] - start - 2;
+        nTris += Math.max(0, offsets[i] - start - 2);
     }
     const tris = new Int32Array(3 * nTris);
     let ti = 0;
@@ -376,14 +391,13 @@ function buildTriangles(rawConn: Int32Array, offsets: Int32Array, nCells: number
 async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Result<VtpFile>> {
     ctx.update({ message: 'Parsing VTP header...', current: 0, max: 100 });
 
-    // For AppendedData files the XML header fits in 64 KB.
-    // For inline binary the whole file is ASCII (base64 in XML), so decode it all.
-    const previewLen = Math.min(data.length, 65536);
-    const headerPreview = new TextDecoder('ascii').decode(data.subarray(0, previewLen));
-    const isInline = headerPreview.indexOf('<AppendedData') === -1;
-    const headerText = isInline
-        ? new TextDecoder('ascii').decode(data)
-        : headerPreview;
+    // Locate <AppendedData bytewise so header size is unbounded.
+    // For inline VTP (no AppendedData) decode the whole file; it is pure ASCII base64-in-XML.
+    const appendedTagPos = findBytesPosition(data, '<AppendedData');
+    const isInline = appendedTagPos === -1;
+    const headerText = new TextDecoder('ascii').decode(
+        isInline ? data : data.subarray(0, appendedTagPos)
+    );
 
     const hdr = parseHeader(headerText);
 
@@ -400,10 +414,10 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
     const hasCompressor = !!hdr.compressor;
 
     ctx.update({ message: 'Locating binary section...', current: 5, max: 100 });
-    const info = isInline ? null : extractAppendedInfo(data, headerText);
+    const info = isInline ? null : extractAppendedInfo(data);
 
     // Points positions
-    const pointsDesc = hdr.pointsArrays.find(d => d.name === 'Points');
+    const pointsDesc = hdr.pointsArrays.find(d => d.name === 'Points') ?? hdr.pointsArrays[0];
     if (!pointsDesc) throw new Error('VTP file missing Points DataArray');
 
     ctx.update({ message: 'Decompressing positions...', current: 10, max: 100 });
@@ -427,6 +441,10 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
 
     // PointData scalar arrays
     const pointData = new Map<string, VtpScalarArray>();
+    const skippedPD = hdr.pointDataArrays.filter(d => d.numberOfComponents !== 1);
+    if (skippedPD.length > 0) {
+        console.warn(`VTP: skipping ${skippedPD.length} PointData array(s) with numberOfComponents > 1: ${skippedPD.map(d => d.name).join(', ')}`);
+    }
     const scalarPD = hdr.pointDataArrays.filter(d => d.numberOfComponents === 1);
     for (let i = 0; i < scalarPD.length; i++) {
         const desc = scalarPD[i];
@@ -438,6 +456,10 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
 
     // CellData scalar arrays
     const cellData = new Map<string, VtpScalarArray>();
+    const skippedCD = hdr.cellDataArrays.filter(d => d.numberOfComponents !== 1);
+    if (skippedCD.length > 0) {
+        console.warn(`VTP: skipping ${skippedCD.length} CellData array(s) with numberOfComponents > 1: ${skippedCD.map(d => d.name).join(', ')}`);
+    }
     const scalarCD = hdr.cellDataArrays.filter(d => d.numberOfComponents === 1);
     for (let i = 0; i < scalarCD.length; i++) {
         const desc = scalarCD[i];

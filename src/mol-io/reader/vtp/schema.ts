@@ -5,39 +5,33 @@
  */
 
 export interface VtpDataArrayDescriptor {
-    name: string;
+    readonly name: string;
     /** VTK type string: "Float32", "Float64", "Int32", "Int64", "UInt32", etc. */
-    type: string;
-    numberOfComponents: number;
+    readonly type: string;
+    readonly numberOfComponents: number;
     /** Byte/char offset into the appended data section (after the `_` marker). -1 for inline binary. */
-    offset: number;
-    rangeMin: number;
-    rangeMax: number;
+    readonly offset: number;
+    readonly rangeMin: number;
+    readonly rangeMax: number;
     /** Base64 content of the DataArray element (inline binary format only). */
-    inlineBase64?: string;
+    readonly inlineBase64?: string;
 }
 
 export interface VtpScalarArray {
-    desc: VtpDataArrayDescriptor;
-    /** Scalar values (one per point or cell), always stored as Float64 */
-    values: Float64Array;
+    readonly desc: VtpDataArrayDescriptor;
+    readonly values: Float64Array;
 }
 
 export interface VtpFile {
-    numberOfPoints: number;
-    /** Number of cells before fan-triangulation */
-    numberOfCells: number;
+    readonly numberOfPoints: number;
+    readonly numberOfCells: number;
     /** Vertex positions: [x0,y0,z0, x1,y1,z1, ...], length = 3 * numberOfPoints */
-    positions: Float32Array;
-    /**
-     * Triangle connectivity after fan-triangulation: [v0,v1,v2, ...],
-     * length = 3 * numberOfTriangles.
-     */
-    connectivity: Int32Array;
-    /** Total number of triangles (≥ numberOfCells for quads). */
-    numberOfTriangles: number;
+    readonly positions: Float32Array;
+    /** Triangle connectivity after fan-triangulation: [v0,v1,v2, ...], length = 3 * numberOfTriangles */
+    readonly connectivity: Int32Array;
+    readonly numberOfTriangles: number;
     /** Per-vertex (PointData) scalar arrays. Key = array name. */
-    pointData: Map<string, VtpScalarArray>;
+    readonly pointData: ReadonlyMap<string, VtpScalarArray>;
     /** Per-cell (CellData) scalar arrays. Key = array name. */
-    cellData: Map<string, VtpScalarArray>;
+    readonly cellData: ReadonlyMap<string, VtpScalarArray>;
 }

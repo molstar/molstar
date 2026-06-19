@@ -1334,13 +1334,14 @@ const ShapeFromVtp = PluginStateTransform.BuiltIn({
     to: SO.Shape.Provider,
     params(a) {
         return {
+            transforms: PD.Optional(PD.Value([Mat4.identity()], { isHidden: true })),
             label: PD.Optional(PD.Text('', { isHidden: true }))
         };
     }
 })({
     apply({ a, params }) {
         return Task.create('Create shape from VTP', async ctx => {
-            const shape = await shapeFromVtp(a.data).runInContext(ctx);
+            const shape = await shapeFromVtp(a.data, params).runInContext(ctx);
             const props = { label: params.label || 'VTP Shape' };
             return new SO.Shape.Provider(shape, props);
         });

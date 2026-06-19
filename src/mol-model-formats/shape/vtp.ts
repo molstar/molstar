@@ -20,6 +20,13 @@ import { ValueCell } from '../../mol-util/value-cell';
 import { deepClone } from '../../mol-util/object';
 import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 
+export type VtpData = {
+    source: VtpFile,
+    transforms?: Mat4[],
+}
+
+const _identityTransforms = [Mat4.identity()];
+
 // --- Params ---
 
 const UNIFORM_KEY = 'uniform::';
@@ -62,15 +69,14 @@ export function createVtpShapeParams(vtpFile?: VtpFile) {
 
     return {
         ...Mesh.Params,
-        doubleSided: PD.Boolean(true, { label: 'Double Sided', description: 'Render both sides of the mesh surface.' }),
-        interior: { ...Mesh.Params.interior, defaultValue: { ...Mesh.Params.interior.defaultValue, colorStrength: 0 } },
+        doubleSided: { ...Mesh.Params.doubleSided, defaultValue: true },
         attribute: PD.Select(defKey, attrOptions, { label: 'Color Attribute' }),
         smoothColor: PD.Boolean(true, { label: 'Smooth Color', description: 'Interpolate cell data to vertices for smooth color gradients.' }),
         colormap: PD.Select('red-yellow-blue' as ColorListName, ColorListOptionsScale, { label: 'Colormap' }),
         domainMin: PD.Numeric(defMin, {}, { label: 'Domain Min' }),
         domainMax: PD.Numeric(defMax, {}, { label: 'Domain Max' }),
         uniformColor: PD.Color(ColorNames.grey, { label: 'Uniform Color' }),
-        scale: PD.Numeric(1, { min: 1, max: 100, step: 0.1 }, { label: 'Scale', description: 'Uniform scale factor applied to the mesh.' }),
+        scale: PD.Numeric(1, { min: 0.01, max: 100, step: 0.01 }, { label: 'Scale', description: 'Uniform scale factor applied to the mesh.' }),
     };
 }
 
@@ -78,9 +84,6 @@ export const VtpShapeParams = createVtpShapeParams();
 export type VtpShapeParams = typeof VtpShapeParams;
 
 // --- Mesh building ---
-// Non-shared vertices: 3 unique verts per triangle, aGroup = rendered-vertex index.
-// PointData lookup: pointData[connectivity[gid]]
-// CellData lookup:  cellData[Math.floor(gid / 3)]
 
 async function buildMesh(ctx: RuntimeContext, vtpFile: VtpFile, mesh?: Mesh): Promise<Mesh> {
     const { positions, connectivity, numberOfTriangles } = vtpFile;
@@ -122,7 +125,6 @@ async function buildMesh(ctx: RuntimeContext, vtpFile: VtpFile, mesh?: Mesh): Pr
 
 // --- Color lookup ---
 
-// Average per-cell (face) scalar values onto vertices for smooth interpolation.
 function cellToVertexAverage(vtpFile: VtpFile, cellValues: Float64Array): Float64Array {
     const { connectivity, numberOfPoints } = vtpFile;
     const nTris = connectivity.length / 3;
@@ -151,7 +153,7 @@ function makeColorFn(vtpFile: VtpFile, props: PD.Values<VtpShapeParams>): (gid: 
         return () => uniformColor;
     }
 
-    const scale = ColorScale.create({ listOrName: colormap, domain: [domainMin, domainMax] });
+    const colorScale = ColorScale.create({ listOrName: colormap, domain: [domainMin, domainMax] });
 
     if (attribute.startsWith('cell:')) {
         const name = attribute.slice(5);
@@ -160,9 +162,9 @@ function makeColorFn(vtpFile: VtpFile, props: PD.Values<VtpShapeParams>): (gid: 
         if (smoothColor) {
             const smoothed = cellToVertexAverage(vtpFile, arr.values);
             const { connectivity } = vtpFile;
-            return (gid: number) => scale.color(smoothed[connectivity[gid]]);
+            return (gid: number) => colorScale.color(smoothed[connectivity[gid]]);
         }
-        return (gid: number) => scale.color(arr.values[Math.floor(gid / 3)]);
+        return (gid: number) => colorScale.color(arr.values[Math.floor(gid / 3)]);
     }
 
     if (attribute.startsWith('point:')) {
@@ -171,35 +173,37 @@ function makeColorFn(vtpFile: VtpFile, props: PD.Values<VtpShapeParams>): (gid: 
         if (!arr) return () => uniformColor;
         const { values } = arr;
         const { connectivity } = vtpFile;
-        return (gid: number) => scale.color(values[connectivity[gid]]);
+        return (gid: number) => colorScale.color(values[connectivity[gid]]);
     }
 
     return () => uniformColor;
 }
 
-function createShape(vtpFile: VtpFile, mesh: Mesh, colorFn: (gid: number) => Color, scale: number): Shape<Mesh> {
-    const transform = Mat4.fromUniformScaling(Mat4(), scale);
+function createShape(vtpData: VtpData, mesh: Mesh, colorFn: (gid: number) => Color, scale: number): Shape<Mesh> {
+    const scaleT = Mat4.fromUniformScaling(Mat4(), scale);
+    const baseTransforms = vtpData.transforms ?? _identityTransforms;
+    const transforms = baseTransforms.map(t => Mat4.mul(Mat4(), t, scaleT));
     return Shape.create(
-        'vtp-mesh', vtpFile, mesh,
+        'vtp-mesh', vtpData.source, mesh,
         colorFn,
         () => 1,
         (gid: number) => {
             if (gid < 0) return '';
-            const tri = Math.floor(gid / 3);
-            return `Triangle ${tri}`;
+            return `Triangle ${Math.floor(gid / 3)}`;
         },
-        [transform]
+        transforms
     );
 }
 
 function makeShapeGetter() {
-    let _vtpFile: VtpFile | undefined;
+    let _vtpData: VtpData | undefined;
     let _props: PD.Values<VtpShapeParams> | undefined;
-    let _shape: Shape<Mesh>;
-    let _mesh: Mesh;
+    let _shape: Shape<Mesh> | undefined;
+    let _mesh: Mesh | undefined;
+    let _colorFn: ((gid: number) => Color) | undefined;
 
-    const getShape = async (ctx: RuntimeContext, vtpFile: VtpFile, props: PD.Values<VtpShapeParams>, shape?: Shape<Mesh>) => {
-        const needsNewMesh = !_vtpFile || _vtpFile !== vtpFile;
+    const getShape = async (ctx: RuntimeContext, vtpData: VtpData, props: PD.Values<VtpShapeParams>, shape?: Shape<Mesh>) => {
+        const needsNewMesh = !_vtpData || _vtpData.source !== vtpData.source;
         const needsNewColor = needsNewMesh || !_props ||
             _props.attribute !== props.attribute ||
             _props.smoothColor !== props.smoothColor ||
@@ -207,30 +211,35 @@ function makeShapeGetter() {
             _props.domainMin !== props.domainMin ||
             _props.domainMax !== props.domainMax ||
             _props.uniformColor !== props.uniformColor;
-        const needsNewScale = !_props || _props.scale !== props.scale;
+        const needsNewShape = needsNewMesh || needsNewColor ||
+            _vtpData?.transforms !== vtpData.transforms ||
+            !_props || _props.scale !== props.scale;
 
         if (needsNewMesh) {
-            _mesh = await buildMesh(ctx, vtpFile, shape?.geometry);
+            _mesh = await buildMesh(ctx, vtpData.source, shape?.geometry);
         }
 
-        if (needsNewMesh || needsNewColor || needsNewScale) {
-            const colorFn = makeColorFn(vtpFile, props);
-            _shape = createShape(vtpFile, _mesh, colorFn, props.scale);
+        if (needsNewColor) {
+            _colorFn = makeColorFn(vtpData.source, props);
         }
 
-        _vtpFile = vtpFile;
+        if (needsNewShape) {
+            _shape = createShape(vtpData, _mesh!, _colorFn!, props.scale);
+        }
+
+        _vtpData = vtpData;
         _props = deepClone(props);
-        return _shape;
+        return _shape!;
     };
 
     return getShape;
 }
 
-export function shapeFromVtp(source: VtpFile) {
-    return Task.create<ShapeProvider<VtpFile, Mesh, VtpShapeParams>>('Shape Provider', async () => {
+export function shapeFromVtp(source: VtpFile, params?: { transforms?: Mat4[] }) {
+    return Task.create<ShapeProvider<VtpData, Mesh, VtpShapeParams>>('Shape Provider', async () => {
         return {
             label: 'VTP Mesh',
-            data: source,
+            data: { source, transforms: params?.transforms },
             params: createVtpShapeParams(source),
             getShape: makeShapeGetter(),
             geometryUtils: Mesh.Utils
