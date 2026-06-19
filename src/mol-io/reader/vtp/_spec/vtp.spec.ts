@@ -98,6 +98,48 @@ function makeCellDataVtp(): Uint8Array {
     return buildRawAppended(header, footer, [pos, conn, offs, curv]);
 }
 
+// Builds a VTP with 2 quads and per-cell CellData to exercise triangleCellIndex
+// for non-triangle polygons.  Each quad fans into 2 triangles, so 4 triangles total.
+// Cell 0 → triangles 0,1; cell 1 → triangles 2,3.
+function makeQuadCellDataVtp(): Uint8Array {
+    // 6 unique points laid out as two quads sharing an edge:
+    //   quad0: v0(0,0,0) v1(1,0,0) v2(1,1,0) v3(0,1,0)
+    //   quad1: v4(2,0,0) v5(2,1,0); reuses v1,v2
+    // connectivity: [0,1,2,3] [1,4,5,2]  offsets: [4, 8]
+    // Layout: positions offset=0 (block=4+72=76), connectivity offset=76 (block=4+32=36),
+    //         offsets offset=112 (block=4+8=12), cellval offset=124 (block=4+8=12)
+    const header =
+        '<?xml version="1.0"?>\n' +
+        '<VTKFile type="PolyData" version="0.1" byte_order="LittleEndian" header_type="UInt32">\n' +
+        '  <PolyData>\n' +
+        '    <Piece NumberOfPoints="6" NumberOfPolys="2">\n' +
+        '      <CellData>\n' +
+        '        <DataArray type="Float32" Name="cellval" NumberOfComponents="1" format="appended" offset="124" RangeMin="0.0" RangeMax="1.0"/>\n' +
+        '      </CellData>\n' +
+        '      <Points>\n' +
+        '        <DataArray type="Float32" Name="Points" NumberOfComponents="3" format="appended" offset="0"/>\n' +
+        '      </Points>\n' +
+        '      <Polys>\n' +
+        '        <DataArray type="Int32" Name="connectivity" format="appended" offset="76"/>\n' +
+        '        <DataArray type="Int32" Name="offsets" format="appended" offset="112"/>\n' +
+        '      </Polys>\n' +
+        '    </Piece>\n' +
+        '  </PolyData>\n' +
+        '  <AppendedData encoding="raw">\n_';
+    const footer = '\n  </AppendedData>\n</VTKFile>\n';
+
+    // 6 points × 3 floats = 18 Float32 = 72 bytes; block = 4+72 = 76
+    const pos = new Float32Array([0,0,0, 1,0,0, 1,1,0, 0,1,0, 2,0,0, 2,1,0]);
+    // connectivity: 8 Int32 = 32 bytes; block = 4+32 = 36; offset=76
+    const conn = new Int32Array([0,1,2,3, 1,4,5,2]);
+    // offsets: 2 Int32 = 8 bytes; block = 4+8 = 12; offset=112
+    const offs = new Int32Array([4, 8]);
+    // cellval: 2 Float32 = 8 bytes; block = 4+8 = 12; offset=120
+    const cellval = new Float32Array([0.25, 0.75]);
+
+    return buildRawAppended(header, footer, [pos, conn, offs, cellval]);
+}
+
 function buildRawAppended(header: string, footer: string, arrays: (Float32Array | Int32Array)[]): Uint8Array {
     const blocks = arrays.map(arr => {
         const data = new Uint8Array(arr.buffer, arr.byteOffset, arr.byteLength);
@@ -184,5 +226,32 @@ describe('VTP parser', () => {
         expect(curv.desc.rangeMax).toBeCloseTo(1.0);
 
         expect.assertions(8);
+    });
+
+    it('triangleCellIndex maps quad fan-triangles to their originating cells', async () => {
+        const result = await parseVtp(makeQuadCellDataVtp()).run();
+        expect(result.isError).toBe(false);
+        if (result.isError) return;
+
+        const vtp = result.result;
+        // 2 quads × 2 triangles each = 4 triangles
+        expect(vtp.numberOfTriangles).toBe(4);
+        expect(vtp.triangleCellIndex.length).toBe(4);
+
+        // Triangles 0 and 1 originate from cell 0
+        expect(vtp.triangleCellIndex[0]).toBe(0);
+        expect(vtp.triangleCellIndex[1]).toBe(0);
+        // Triangles 2 and 3 originate from cell 1
+        expect(vtp.triangleCellIndex[2]).toBe(1);
+        expect(vtp.triangleCellIndex[3]).toBe(1);
+
+        // CellData must have 2 entries with correct values
+        const cellval = vtp.cellData.get('cellval');
+        expect(cellval).toBeDefined();
+        if (!cellval) return;
+        expect(cellval.values[0]).toBeCloseTo(0.25);
+        expect(cellval.values[1]).toBeCloseTo(0.75);
+
+        expect.assertions(10);
     });
 });

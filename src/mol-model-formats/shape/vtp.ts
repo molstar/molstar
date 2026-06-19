@@ -70,8 +70,9 @@ export function createVtpShapeParams(vtpFile?: VtpFile) {
     return {
         ...Mesh.Params,
         doubleSided: { ...Mesh.Params.doubleSided, defaultValue: true },
+        interior: { ...Mesh.Params.interior, defaultValue: { ...Mesh.Params.interior.defaultValue, colorStrength: 0 } },
         attribute: PD.Select(defKey, attrOptions, { label: 'Color Attribute' }),
-        smoothColor: PD.Boolean(true, { label: 'Smooth Color', description: 'Interpolate cell data to vertices for smooth color gradients.' }),
+        smoothColor: PD.Boolean(true, { label: 'Smooth Color', description: 'Interpolate per-cell data to vertices for smooth color gradients (no effect for per-vertex attributes).' }),
         colormap: PD.Select('red-yellow-blue' as ColorListName, ColorListOptionsScale, { label: 'Colormap' }),
         domainMin: PD.Numeric(defMin, {}, { label: 'Domain Min' }),
         domainMax: PD.Numeric(defMax, {}, { label: 'Domain Max' }),
@@ -126,12 +127,12 @@ async function buildMesh(ctx: RuntimeContext, vtpFile: VtpFile, mesh?: Mesh): Pr
 // --- Color lookup ---
 
 function cellToVertexAverage(vtpFile: VtpFile, cellValues: Float64Array): Float64Array {
-    const { connectivity, numberOfPoints } = vtpFile;
+    const { connectivity, triangleCellIndex, numberOfPoints } = vtpFile;
     const nTris = connectivity.length / 3;
     const sum = new Float64Array(numberOfPoints);
     const count = new Uint32Array(numberOfPoints);
     for (let i = 0; i < nTris; i++) {
-        const val = cellValues[i];
+        const val = cellValues[triangleCellIndex[i]];
         const v0 = connectivity[3 * i];
         const v1 = connectivity[3 * i + 1];
         const v2 = connectivity[3 * i + 2];
@@ -164,7 +165,8 @@ function makeColorFn(vtpFile: VtpFile, props: PD.Values<VtpShapeParams>): (gid: 
             const { connectivity } = vtpFile;
             return (gid: number) => colorScale.color(smoothed[connectivity[gid]]);
         }
-        return (gid: number) => colorScale.color(arr.values[Math.floor(gid / 3)]);
+        const { triangleCellIndex } = vtpFile;
+        return (gid: number) => colorScale.color(arr.values[triangleCellIndex[Math.floor(gid / 3)]]);
     }
 
     if (attribute.startsWith('point:')) {

@@ -1326,6 +1326,8 @@ const ShapeFromPly = PluginStateTransform.BuiltIn({
     }
 });
 
+const _vtpIdentityTransforms = [Mat4.identity()];
+
 type ShapeFromVtp = typeof ShapeFromVtp
 const ShapeFromVtp = PluginStateTransform.BuiltIn({
     name: 'shape-from-vtp',
@@ -1334,7 +1336,7 @@ const ShapeFromVtp = PluginStateTransform.BuiltIn({
     to: SO.Shape.Provider,
     params(a) {
         return {
-            transforms: PD.Optional(PD.Value([Mat4.identity()], { isHidden: true })),
+            transforms: PD.Optional(PD.Value(_vtpIdentityTransforms, { isHidden: true })),
             label: PD.Optional(PD.Text('', { isHidden: true }))
         };
     }

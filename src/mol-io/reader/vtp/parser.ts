@@ -98,8 +98,8 @@ function extractSectionArrays(header: string, sectionName: string): VtpDataArray
         const desc: VtpDataArrayDescriptor = {
             name: attrValue(attrStr, 'Name') ?? '',
             type: attrValue(attrStr, 'type') ?? 'Float32',
-            numberOfComponents: parseInt(attrValue(attrStr, 'NumberOfComponents') ?? '1'),
-            offset: offsetStr !== undefined ? parseInt(offsetStr) : -1,
+            numberOfComponents: parseInt(attrValue(attrStr, 'NumberOfComponents') ?? '1', 10),
+            offset: offsetStr !== undefined ? parseInt(offsetStr, 10) : -1,
             rangeMin: parseFloat(attrValue(attrStr, 'RangeMin') ?? '0'),
             rangeMax: parseFloat(attrValue(attrStr, 'RangeMax') ?? '1'),
             ...(b64.length > 0 ? { inlineBase64: b64 } : {}),
@@ -133,8 +133,8 @@ function parseHeader(header: string): ParsedHeader {
     const vtkFileMatch = header.match(/<VTKFile\s+([^>]*)>/);
     const vtkAttrs = vtkFileMatch ? vtkFileMatch[1] : '';
     return {
-        nPoints: parseInt(nPointsStr),
-        nCells: parseInt(nPolysStr),
+        nPoints: parseInt(nPointsStr, 10),
+        nCells: parseInt(nPolysStr, 10),
         byteOrder: attrValue(vtkAttrs, 'byte_order') ?? 'LittleEndian',
         compressor: attrValue(vtkAttrs, 'compressor') ?? '',
         headerType: attrValue(vtkAttrs, 'header_type') ?? 'UInt32',
@@ -365,14 +365,18 @@ function decodeToFloat64(raw: Uint8Array, type: string, count: number): Float64A
 // offsets[i] = cumulative vertex count through cell i; cell i uses
 // rawConn[offsets[i-1]..offsets[i]-1] (with offsets[-1] = 0).
 
-function buildTriangles(rawConn: Int32Array, offsets: Int32Array, nCells: number): Int32Array {
+function buildTriangles(
+    rawConn: Int32Array, offsets: Int32Array, nCells: number
+): { connectivity: Int32Array; triangleCellIndex: Int32Array } {
     let nTris = 0;
     for (let i = 0; i < nCells; i++) {
         const start = i > 0 ? offsets[i - 1] : 0;
         nTris += Math.max(0, offsets[i] - start - 2);
     }
     const tris = new Int32Array(3 * nTris);
+    const cellIdx = new Int32Array(nTris);
     let ti = 0;
+    let triIdx = 0;
     for (let i = 0; i < nCells; i++) {
         const start = i > 0 ? offsets[i - 1] : 0;
         const end = offsets[i];
@@ -381,9 +385,10 @@ function buildTriangles(rawConn: Int32Array, offsets: Int32Array, nCells: number
             tris[ti++] = v0;
             tris[ti++] = rawConn[j];
             tris[ti++] = rawConn[j + 1];
+            cellIdx[triIdx++] = i;
         }
     }
-    return tris;
+    return { connectivity: tris, triangleCellIndex: cellIdx };
 }
 
 // --- Main parser ---
@@ -436,7 +441,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
     const rawConn = decodeConnectivity(connRaw, connDesc.type);
     const rawOffsets = decodeConnectivity(offsetsRaw, offsetsDesc.type);
 
-    const connectivity = buildTriangles(rawConn, rawOffsets, hdr.nCells);
+    const { connectivity, triangleCellIndex } = buildTriangles(rawConn, rawOffsets, hdr.nCells);
     const numberOfTriangles = connectivity.length / 3;
 
     // PointData scalar arrays
@@ -475,6 +480,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
         positions,
         connectivity,
         numberOfTriangles,
+        triangleCellIndex,
         pointData,
         cellData,
     });

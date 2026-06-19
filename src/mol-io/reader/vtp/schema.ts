@@ -30,6 +30,8 @@ export interface VtpFile {
     /** Triangle connectivity after fan-triangulation: [v0,v1,v2, ...], length = 3 * numberOfTriangles */
     readonly connectivity: Int32Array;
     readonly numberOfTriangles: number;
+    /** Maps triangle index → originating VTK cell index, length = numberOfTriangles */
+    readonly triangleCellIndex: Int32Array;
     /** Per-vertex (PointData) scalar arrays. Key = array name. */
     readonly pointData: ReadonlyMap<string, VtpScalarArray>;
     /** Per-cell (CellData) scalar arrays. Key = array name. */
