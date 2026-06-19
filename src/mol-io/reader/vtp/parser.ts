@@ -68,21 +68,21 @@ function extractAppendedInfo(data: Uint8Array): AppendedInfo {
 // --- XML header parsing ---
 
 const _ATTR_RE: Record<string, RegExp> = {
-    Name:               /Name=["']([^"']*)["']/,
-    type:               /type=["']([^"']*)["']/,
-    format:             /format=["']([^"']*)["']/,
+    Name: /Name=["']([^"']*)["']/,
+    type: /type=["']([^"']*)["']/,
+    format: /format=["']([^"']*)["']/,
     NumberOfComponents: /NumberOfComponents=["']([^"']*)["']/,
-    offset:             /offset=["']([^"']*)["']/,
-    RangeMin:           /RangeMin=["']([^"']*)["']/,
-    RangeMax:           /RangeMax=["']([^"']*)["']/,
-    NumberOfPoints:     /NumberOfPoints=["']([^"']*)["']/,
-    NumberOfPolys:      /NumberOfPolys=["']([^"']*)["']/,
-    NumberOfVerts:      /NumberOfVerts=["']([^"']*)["']/,
-    NumberOfLines:      /NumberOfLines=["']([^"']*)["']/,
-    NumberOfStrips:     /NumberOfStrips=["']([^"']*)["']/,
-    byte_order:         /byte_order=["']([^"']*)["']/,
-    compressor:         /compressor=["']([^"']*)["']/,
-    header_type:        /header_type=["']([^"']*)["']/,
+    offset: /offset=["']([^"']*)["']/,
+    RangeMin: /RangeMin=["']([^"']*)["']/,
+    RangeMax: /RangeMax=["']([^"']*)["']/,
+    NumberOfPoints: /NumberOfPoints=["']([^"']*)["']/,
+    NumberOfPolys: /NumberOfPolys=["']([^"']*)["']/,
+    NumberOfVerts: /NumberOfVerts=["']([^"']*)["']/,
+    NumberOfLines: /NumberOfLines=["']([^"']*)["']/,
+    NumberOfStrips: /NumberOfStrips=["']([^"']*)["']/,
+    byte_order: /byte_order=["']([^"']*)["']/,
+    compressor: /compressor=["']([^"']*)["']/,
+    header_type: /header_type=["']([^"']*)["']/,
 };
 function attrValue(attrStr: string, name: string): string | undefined {
     const re = _ATTR_RE[name] ?? new RegExp(name + '=["\']([^"\']*)["\']');
@@ -385,11 +385,11 @@ function decodeToFloat64(raw: Uint8Array, type: string, count: number): Float64A
     switch (type) {
         case 'Float32': { const f32 = decodeFloat32(raw, count); for (let i = 0; i < count; i++) out[i] = f32[i]; break; }
         case 'Float64': for (let i = 0; i < count; i++) out[i] = dv.getFloat64(i * 8, true); break;
-        case 'Int8':   for (let i = 0; i < count; i++) out[i] = dv.getInt8(i); break;
-        case 'UInt8':  for (let i = 0; i < count; i++) out[i] = dv.getUint8(i); break;
-        case 'Int16':  for (let i = 0; i < count; i++) out[i] = dv.getInt16(i * 2, true); break;
+        case 'Int8': for (let i = 0; i < count; i++) out[i] = dv.getInt8(i); break;
+        case 'UInt8': for (let i = 0; i < count; i++) out[i] = dv.getUint8(i); break;
+        case 'Int16': for (let i = 0; i < count; i++) out[i] = dv.getInt16(i * 2, true); break;
         case 'UInt16': for (let i = 0; i < count; i++) out[i] = dv.getUint16(i * 2, true); break;
-        case 'Int32':  for (let i = 0; i < count; i++) out[i] = dv.getInt32(i * 4, true); break;
+        case 'Int32': for (let i = 0; i < count; i++) out[i] = dv.getInt32(i * 4, true); break;
         case 'UInt32': for (let i = 0; i < count; i++) out[i] = dv.getUint32(i * 4, true); break;
         case 'Int64': case 'UInt64':
             for (let i = 0; i < count; i++) {
