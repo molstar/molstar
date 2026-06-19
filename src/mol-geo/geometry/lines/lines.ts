@@ -21,13 +21,15 @@ import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere } fr
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Theme } from '../../../mol-theme/theme';
 import { Color } from '../../../mol-util/color';
-import { BaseGeometry } from '../base';
+import { BaseGeometry, resolveInstanceGranularity } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { hashFnv32a } from '../../../mol-data/util';
 import { createEmptyClipping } from '../clipping-data';
 import { createEmptySubstance } from '../substance-data';
 import { createEmptyEmissive } from '../emissive-data';
+import { createEmptyWiggle } from '../wiggle-data';
+import { getAnimationParam, createAnimationValues, updateAnimationValues } from '../animation';
 
 /** Wide line */
 export interface Lines {
@@ -188,6 +190,7 @@ export namespace Lines {
         ...BaseGeometry.Params,
         sizeFactor: PD.Numeric(2, { min: 0, max: 10, step: 0.1 }),
         lineSizeAttenuation: PD.Boolean(false),
+        animation: getAnimationParam(),
     };
     export type Params = typeof Params
 
@@ -229,7 +232,7 @@ export namespace Lines {
 
         const color = createColors(locationIt, positionIt, theme.color);
         const size = createSizes(locationIt, positionIt, theme.size);
-        const marker = props.instanceGranularity
+        const marker = resolveInstanceGranularity(props.instanceGranularity, groupCount, instanceCount)
             ? createMarkers(instanceCount, 'instance')
             : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();
@@ -237,6 +240,7 @@ export namespace Lines {
         const emissive = createEmptyEmissive();
         const material = createEmptySubstance();
         const clipping = createEmptyClipping();
+        const wiggle = createEmptyWiggle();
 
         const counts = { drawCount: lines.lineCount * 2 * 3, vertexCount: lines.vertexCount, groupCount, instanceCount };
 
@@ -262,6 +266,7 @@ export namespace Lines {
             ...emissive,
             ...material,
             ...clipping,
+            ...wiggle,
             ...transform,
 
             ...BaseGeometry.createValues(props, counts),
@@ -269,6 +274,7 @@ export namespace Lines {
             dLineSizeAttenuation: ValueCell.create(props.lineSizeAttenuation),
             uDoubleSided: ValueCell.create(true),
             dFlipSided: ValueCell.create(false),
+            ...createAnimationValues(props.animation),
 
             stripCount: lines.stripCount,
             stripOffsets: lines.stripBuffer,
@@ -285,6 +291,7 @@ export namespace Lines {
         BaseGeometry.updateValues(values, props);
         ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor);
         ValueCell.updateIfChanged(values.dLineSizeAttenuation, props.lineSizeAttenuation);
+        updateAnimationValues(values, props.animation);
     }
 
     function updateBoundingSphere(values: LinesValues, lines: Lines) {

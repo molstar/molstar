@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -18,7 +18,7 @@ export async function readCcp4Header(file: FileHandle): Promise<{ header: Ccp4He
     // 53  MAP         Character string 'MAP ' to identify file type
     const MAP = String.fromCharCode(
         buffer.readUInt8(52 * 4), buffer.readUInt8(52 * 4 + 1),
-        buffer.readUInt8(52 * 4 + 2), buffer.readUInt8(52 * 4 + 3)
+        buffer.readUInt8(52 * 4 + 2), buffer.readUInt8(52 * 4 + 3) || 32 // null as space
     );
     if (MAP !== 'MAP ') {
         throw new Error('ccp4 format error, missing "MAP " string');

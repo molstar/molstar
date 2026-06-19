@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -24,6 +24,7 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Substance } from '../../mol-theme/substance';
 import { LocationCallback } from '../util';
 import { Emissive } from '../../mol-theme/emissive';
+import { Wiggle } from '../../mol-theme/wiggle';
 
 export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number, structure: Structure, props: PD.Values<P>, webgl?: WebGLContext) => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0;
@@ -137,6 +138,11 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
             // Remap loci from equivalent structure to the current structure
             const remappedClipping = Clipping.remap(state.clipping, _structure);
             visual.setClipping(remappedClipping);
+        }
+        if (state.wiggle !== undefined && visual) {
+            // Remap loci from equivalent structure to the current structure
+            const remappedWiggle = Wiggle.remap(state.wiggle, _structure);
+            visual.setWiggle(remappedWiggle, webgl);
         }
         if (state.themeStrength !== undefined && visual) visual.setThemeStrength(state.themeStrength);
         if (state.transform !== undefined && visual) visual.setTransform(state.transform);

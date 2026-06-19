@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -28,6 +28,7 @@ import { SetUtils } from '../mol-util/set';
 import { cantorPairing } from '../mol-data/util';
 import { Substance } from '../mol-theme/substance';
 import { Emissive } from '../mol-theme/emissive';
+import { Wiggle } from '../mol-theme/wiggle';
 import { Location } from '../mol-model/location';
 
 export type RepresentationProps = { [k: string]: any }
@@ -202,10 +203,12 @@ namespace Representation {
         emissive: Emissive
         /** Per group material applied to the representation's renderobjects */
         substance: Substance
+        /** Per group wiggle applied to the representation's renderobjects */
+        wiggle: Wiggle
         /** Bit mask of per group clipping applied to the representation's renderobjects */
         clipping: Clipping
-        /** Strength of the representations overpaint, transparency, emmissive, substance*/
-        themeStrength: { overpaint: number, transparency: number, emissive: number, substance: number }
+        /** Strength of the representations overpaint, transparency, emissive, substance, wiggle */
+        themeStrength: { overpaint: number, transparency: number, emissive: number, substance: number, wiggle: number }
         /** Controls if the representation's renderobjects are synced automatically with GPU or not */
         syncManually: boolean
         /** A transformation applied to the representation's renderobjects */
@@ -225,8 +228,9 @@ namespace Representation {
             transparency: Transparency.Empty,
             emissive: Emissive.Empty,
             substance: Substance.Empty,
+            wiggle: Wiggle.Empty,
             clipping: Clipping.Empty,
-            themeStrength: { overpaint: 1, transparency: 1, emissive: 1, substance: 1 },
+            themeStrength: { overpaint: 1, transparency: 1, emissive: 1, substance: 1, wiggle: 1 },
             markerActions: MarkerActions.All
         };
     }
@@ -239,6 +243,7 @@ namespace Representation {
         if (update.transparency !== undefined) state.transparency = update.transparency;
         if (update.emissive !== undefined) state.emissive = update.emissive;
         if (update.substance !== undefined) state.substance = update.substance;
+        if (update.wiggle !== undefined) state.wiggle = update.wiggle;
         if (update.clipping !== undefined) state.clipping = update.clipping;
         if (update.themeStrength !== undefined) state.themeStrength = update.themeStrength;
         if (update.syncManually !== undefined) state.syncManually = update.syncManually;
@@ -490,6 +495,9 @@ namespace Representation {
                     // TODO
                 }
                 if (state.substance !== undefined) {
+                    // TODO
+                }
+                if (state.wiggle !== undefined) {
                     // TODO
                 }
                 if (state.clipping !== undefined) {

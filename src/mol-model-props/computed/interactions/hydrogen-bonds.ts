@@ -20,7 +20,7 @@ import { FeatureType, FeatureGroup, InteractionType } from './common';
 import { ContactProvider } from './contacts';
 import { MoleculeType, ProteinBackboneAtoms } from '../../../mol-model/structure/model/types';
 
-const GeometryParams = {
+export const GeometryParams = {
     distanceMax: PD.Numeric(3.5, { min: 1, max: 5, step: 0.1 }),
     backbone: PD.Boolean(true, { description: 'Include backbone-to-backbone hydrogen bonds' }),
     accAngleDevMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal acceptor angle' }),
@@ -29,7 +29,7 @@ const GeometryParams = {
     accOutOfPlaneAngleMax: PD.Numeric(90, { min: 0, max: 180, step: 1 }),
     donOutOfPlaneAngleMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }),
 };
-type GeometryParams = typeof GeometryParams
+export type GeometryParams = typeof GeometryParams
 type GeometryProps = PD.Values<GeometryParams>
 
 const HydrogenBondsParams = {
@@ -208,7 +208,7 @@ function isWeakHydrogenBond(ti: FeatureType, tj: FeatureType) {
     );
 }
 
-function getGeometryOptions(props: GeometryProps) {
+export function getGeometryOptions(props: GeometryProps) {
     return {
         ignoreHydrogens: props.ignoreHydrogens,
         includeBackbone: props.backbone,
@@ -218,7 +218,7 @@ function getGeometryOptions(props: GeometryProps) {
         maxDonOutOfPlaneAngle: degToRad(props.donOutOfPlaneAngleMax),
     };
 }
-type GeometryOptions = ReturnType<typeof getGeometryOptions>
+export type GeometryOptions = ReturnType<typeof getGeometryOptions>
 
 function getHydrogenBondsOptions(props: HydrogenBondsProps) {
     return {
@@ -232,7 +232,7 @@ type HydrogenBondsOptions = ReturnType<typeof getHydrogenBondsOptions>
 
 const deg120InRad = degToRad(120);
 
-function checkGeometry(structure: Structure, don: Features.Info, acc: Features.Info, opts: GeometryOptions): true | undefined {
+export function checkGeometry(structure: Structure, don: Features.Info, acc: Features.Info, opts: GeometryOptions): true | undefined {
     const donIndex = don.members[don.offsets[don.feature]];
     const accIndex = acc.members[acc.offsets[acc.feature]];
 

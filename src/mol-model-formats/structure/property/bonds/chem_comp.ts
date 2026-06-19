@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -76,7 +76,7 @@ export namespace ComponentBond {
             const aromatic = pdbx_aromatic_flag.value(i) === 'y';
             const key = pdbx_ordinal.value(i);
 
-            if (entry.id !== id) {
+            if (entry.compId !== id) {
                 entry = addEntry(id);
             }
 
@@ -96,25 +96,48 @@ export namespace ComponentBond {
         return entries;
     }
 
+    function getNormalized<T>(map: Map<string, T>, compId: string, atomId: string, isHydrogen: boolean) {
+        // handle deuterium -> hydrogen mapping for CCD bonds
+        // in DOD deuterium bonds are explicitly defined
+        if (isHydrogen && atomId.startsWith('D') && compId !== 'DOD') {
+            atomId = 'H' + atomId.substring(1);
+        }
+        return map.get(atomId);
+    }
+
+    export class Pairs {
+        readonly map: Map<string, { order: number, flags: number, key: number }> = new Map();
+
+        get(otherAtomId: string, isHydrogen: boolean) {
+            return getNormalized(this.map, this.compId, otherAtomId, isHydrogen);
+        }
+
+        constructor(readonly atomId: string, readonly compId: string) { }
+    }
+
     export class Entry {
-        readonly map: Map<string, Map<string, { order: number, flags: number, key: number }>> = new Map();
+        readonly map: Map<string, Pairs> = new Map();
 
         add(a: string, b: string, order: number, flags: number, key: number, swap = true) {
             const e = this.map.get(a);
             if (e !== void 0) {
-                const f = e.get(b);
+                const f = e.map.get(b);
                 if (f === void 0) {
-                    e.set(b, { order, flags, key });
+                    e.map.set(b, { order, flags, key });
                 }
             } else {
-                const map = new Map<string, { order: number, flags: number, key: number }>();
-                map.set(b, { order, flags, key });
-                this.map.set(a, map);
+                const pairs = new Pairs(a, this.compId);
+                pairs.map.set(b, { order, flags, key });
+                this.map.set(a, pairs);
             }
 
             if (swap) this.add(b, a, order, flags, key, false);
         }
 
-        constructor(public readonly id: string) { }
+        get(a: string, isHydrogen: boolean): Pairs | undefined {
+            return getNormalized(this.map, this.compId, a, isHydrogen);
+        }
+
+        constructor(public readonly compId: string) { }
     }
 }

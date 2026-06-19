@@ -28,6 +28,7 @@ import { StructureGroup } from './visual/util/common';
 import { Substance } from '../../mol-theme/substance';
 import { LocationCallback } from '../util';
 import { Emissive } from '../../mol-theme/emissive';
+import { Wiggle } from '../../mol-theme/wiggle';
 import { HashMap } from '../../mol-util/map';
 import { hash2 } from '../../mol-data/util';
 
@@ -236,7 +237,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     }
 
     function setVisualState(visual: UnitsVisual<P>, group: Unit.SymmetryGroup, state: Partial<StructureRepresentationState>) {
-        const { visible, alphaFactor, pickable, overpaint, transparency, emissive, substance, clipping, themeStrength, transform, unitTransforms } = state;
+        const { visible, alphaFactor, pickable, overpaint, transparency, emissive, substance, clipping, wiggle, themeStrength, transform, unitTransforms } = state;
 
         if (visible !== undefined) visual.setVisibility(visible);
         if (alphaFactor !== undefined) visual.setAlphaFactor(alphaFactor);
@@ -246,6 +247,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         if (emissive !== undefined) visual.setEmissive(emissive, webgl);
         if (substance !== undefined) visual.setSubstance(substance, webgl);
         if (clipping !== undefined) visual.setClipping(clipping);
+        if (wiggle !== undefined) visual.setWiggle(wiggle, webgl);
         if (themeStrength !== undefined) visual.setThemeStrength(themeStrength);
         if (transform !== undefined) {
             if (transform !== _state.transform || !Mat4.areEqual(transform, _state.transform, EPSILON)) {
@@ -263,7 +265,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     }
 
     function setState(state: Partial<StructureRepresentationState>) {
-        const { visible, alphaFactor, pickable, overpaint, transparency, emissive, substance, clipping, themeStrength, transform, unitTransforms, syncManually, markerActions } = state;
+        const { visible, alphaFactor, pickable, overpaint, transparency, emissive, substance, clipping, wiggle, themeStrength, transform, unitTransforms, syncManually, markerActions } = state;
         const newState: Partial<StructureRepresentationState> = {};
 
         if (visible !== undefined) newState.visible = visible;
@@ -283,6 +285,9 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         }
         if (clipping !== undefined && _structure) {
             newState.clipping = Clipping.remap(clipping, _structure);
+        }
+        if (wiggle !== undefined && _structure) {
+            newState.wiggle = Wiggle.remap(wiggle, _structure);
         }
         if (themeStrength !== undefined) newState.themeStrength = themeStrength;
         if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) {

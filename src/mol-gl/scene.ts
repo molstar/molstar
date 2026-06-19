@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -92,12 +92,16 @@ interface Scene extends Object3D {
     readonly markerAverage: number
     /** Emissive average of primitive renderables */
     readonly emissiveAverage: number
+    /** Wiggle average of primitive renderables */
+    readonly wiggleAverage: number
     /** Opacity average of primitive renderables */
     readonly opacityAverage: number
     /** Transparency minimum, excluding fully opaque, of primitive renderables */
     readonly transparencyMin: number
     /** Is `true` if any primitive renderable (possibly) has any opaque part */
     readonly hasOpaque: boolean
+    /** Is `true` if any primitive renderable has animation enabled */
+    readonly hasAnimation: boolean
 }
 
 namespace Scene {
@@ -119,15 +123,19 @@ namespace Scene {
 
         let markerAverageDirty = true;
         let emissiveAverageDirty = true;
+        let wiggleAverageDirty = true;
         let opacityAverageDirty = true;
         let transparencyMinDirty = true;
         let hasOpaqueDirty = true;
+        let hasAnimationDirty = true;
 
         let markerAverage = 0;
         let emissiveAverage = 0;
+        let wiggleAverage = 0;
         let opacityAverage = 0;
         let transparencyMin = 0;
         let hasOpaque = false;
+        let hasAnimation = false;
 
         const object3d = Object3D.create();
         const { view, position, direction, up } = object3d;
@@ -185,9 +193,11 @@ namespace Scene {
             renderables.sort(renderableSort);
             markerAverageDirty = true;
             emissiveAverageDirty = true;
+            wiggleAverageDirty = true;
             opacityAverageDirty = true;
             transparencyMinDirty = true;
             hasOpaqueDirty = true;
+            hasAnimationDirty = true;
             return true;
         }
 
@@ -211,9 +221,11 @@ namespace Scene {
                 boundingSphereVisibleDirty = true;
                 markerAverageDirty = true;
                 emissiveAverageDirty = true;
+                wiggleAverageDirty = true;
                 opacityAverageDirty = true;
                 transparencyMinDirty = true;
                 hasOpaqueDirty = true;
+                hasAnimationDirty = true;
                 visibleHash = newVisibleHash;
                 return true;
             } else {
@@ -243,6 +255,18 @@ namespace Scene {
                 count += 1;
             }
             return count > 0 ? emissiveAverage / count : 0;
+        }
+
+        function calculateWiggleAverage() {
+            if (primitives.length === 0) return 0;
+            let count = 0;
+            let wiggleAverage = 0;
+            for (let i = 0, il = primitives.length; i < il; ++i) {
+                if (!primitives[i].state.visible) continue;
+                wiggleAverage += primitives[i].values.wiggleAverage.ref.value;
+                count += 1;
+            }
+            return count > 0 ? wiggleAverage / count : 0;
         }
 
         function calculateOpacityAverage() {
@@ -301,6 +325,22 @@ namespace Scene {
             return false;
         }
 
+        function calculateHasAnimation() {
+            for (let i = 0, il = primitives.length; i < il; ++i) {
+                const p = primitives[i];
+                if (!p.state.visible) continue;
+
+                if ((p.values.uWiggleAmplitude?.ref.value > 0 || p.values.wiggleAverage.ref.value > 0) &&
+                    p.values.uWiggleSpeed?.ref.value > 0 &&
+                    p.values.uWiggleFrequency?.ref.value > 0) return true;
+
+                if (p.values.uTumbleAmplitude?.ref.value > 0 &&
+                    p.values.uTumbleSpeed?.ref.value > 0 &&
+                    p.values.uTumbleFrequency?.ref.value > 0) return true;
+            }
+            return false;
+        }
+
         return {
             view, position, direction, up,
 
@@ -341,9 +381,11 @@ namespace Scene {
                 }
                 markerAverageDirty = true;
                 emissiveAverageDirty = true;
+                wiggleAverageDirty = true;
                 opacityAverageDirty = true;
                 transparencyMinDirty = true;
                 hasOpaqueDirty = true;
+                hasAnimationDirty = true;
             },
             add: (o: GraphicsRenderObject) => commitQueue.add(o),
             remove: (o: GraphicsRenderObject) => commitQueue.remove(o),
@@ -401,6 +443,13 @@ namespace Scene {
                 }
                 return emissiveAverage;
             },
+            get wiggleAverage() {
+                if (wiggleAverageDirty) {
+                    wiggleAverage = calculateWiggleAverage();
+                    wiggleAverageDirty = false;
+                }
+                return wiggleAverage;
+            },
             get opacityAverage() {
                 if (opacityAverageDirty) {
                     opacityAverage = calculateOpacityAverage();
@@ -421,6 +470,13 @@ namespace Scene {
                     hasOpaqueDirty = false;
                 }
                 return hasOpaque;
+            },
+            get hasAnimation() {
+                if (hasAnimationDirty) {
+                    hasAnimation = calculateHasAnimation();
+                    hasAnimationDirty = false;
+                }
+                return hasAnimation;
             },
         };
     }

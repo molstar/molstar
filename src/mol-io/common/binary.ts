@@ -23,10 +23,12 @@ export function uint8ToString(array: Uint8Array) {
     if (array.length > ChunkSize) {
         const c = [];
         for (let i = 0; i < array.length; i += ChunkSize) {
+            // @ts-ignore
             c.push(String.fromCharCode.apply(null, array.subarray(i, i + ChunkSize)));
         }
         return c.join('');
     } else {
+        // @ts-ignore
         return String.fromCharCode.apply(null, array);
     }
 }

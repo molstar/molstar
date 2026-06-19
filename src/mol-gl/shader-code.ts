@@ -62,6 +62,7 @@ import { clip_instance } from './shader/chunks/clip-instance.glsl';
 import { clip_pixel } from './shader/chunks/clip-pixel.glsl';
 import { color_frag_params } from './shader/chunks/color-frag-params.glsl';
 import { color_vert_params } from './shader/chunks/color-vert-params.glsl';
+import { common_animation } from './shader/chunks/common-animation.glsl';
 import { common_clip } from './shader/chunks/common-clip.glsl';
 import { common_frag_params } from './shader/chunks/common-frag-params.glsl';
 import { common_vert_params } from './shader/chunks/common-vert-params.glsl';
@@ -97,6 +98,7 @@ const ShaderChunks: { [k: string]: string } = {
     clip_pixel,
     color_frag_params,
     color_vert_params,
+    common_animation,
     common_clip,
     common_frag_params,
     common_vert_params,

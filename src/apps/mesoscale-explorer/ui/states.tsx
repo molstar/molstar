@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,7 +8,7 @@ import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { MmcifProvider } from '../../../mol-plugin-state/formats/trajectory';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { Button, ExpandGroup, IconButton } from '../../../mol-plugin-ui/controls/common';
-import { GetAppSvg, HelpOutlineSvg, MagicWandSvg, TourSvg, Icon, OpenInBrowserSvg } from '../../../mol-plugin-ui/controls/icons';
+import { AnimationSvg, GetAppSvg, HelpOutlineSvg, MagicWandSvg, TourSvg, Icon, OpenInBrowserSvg } from '../../../mol-plugin-ui/controls/icons';
 import { CollapsableControls, PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { ApplyActionControl } from '../../../mol-plugin-ui/state/apply-action';
 import { LocalStateSnapshotList, LocalStateSnapshotParams, LocalStateSnapshots } from '../../../mol-plugin-ui/state/snapshots';
@@ -24,7 +24,7 @@ import { createCellpackHierarchy } from '../data/cellpack/preset';
 import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
-import { getAllEntities, getEntityLabel, MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateStyle } from '../data/state';
+import { getAllEntities, getAllGroups, getEntityLabel, MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateStyle } from '../data/state';
 import { isTimingMode } from '../../../mol-util/debug';
 import { now } from '../../../mol-util/now';
 import { readFromFile } from '../../../mol-util/data-source';
@@ -774,6 +774,113 @@ export class MesoQuickStyles extends PluginUIComponent {
                 </Button>
                 <Button noOverflow title='Enable DOF and shiny material' onClick={() => this.shinyDof()} style={{ width: 'auto' }}>
                     Shiny-DOF
+                </Button>
+            </div>
+        </>;
+    }
+}
+
+export class MesoProceduralAnimationControls extends CollapsableControls {
+    defaultState() {
+        return {
+            isCollapsed: true,
+            header: 'Procedural Animation',
+            brand: { accent: 'gray' as const, svg: AnimationSvg }
+        };
+    }
+
+    renderControls() {
+        return <>
+            <MesoProceduralAnimation />
+        </>;
+    }
+}
+
+class MesoProceduralAnimation extends PluginUIComponent {
+    private isMembrane(cell: { transform: { tags?: string[] } }) {
+        return cell.transform.tags?.some(t => t.includes('mem')) ?? false;
+    }
+
+    async dynamics() {
+        const update = this.plugin.state.data.build();
+        const entities = getAllEntities(this.plugin);
+        const groups = getAllGroups(this.plugin);
+
+        for (const entity of entities) {
+            const membrane = this.isMembrane(entity);
+            update.to(entity).update(old => {
+                if (old.type) {
+                    old.type.params.animation = {
+                        ...old.type.params.animation,
+                        wiggleMode: 'position',
+                        wiggleSpeed: 7,
+                        wiggleAmplitude: 1,
+                        wiggleFrequency: 0.2,
+                        tumbleSpeed: 1,
+                        tumbleAmplitude: membrane ? 0 : 4,
+                        tumbleFrequency: 0.2,
+                    };
+                }
+            });
+        }
+
+        for (const group of groups) {
+            const membrane = this.isMembrane(group);
+            update.to(group).update(old => {
+                old.animation = {
+                    ...old.animation,
+                    wiggleMode: 'position',
+                    wiggleSpeed: 7,
+                    wiggleAmplitude: 1,
+                    wiggleFrequency: 0.2,
+                    tumbleSpeed: 1,
+                    tumbleAmplitude: membrane ? 0 : 4,
+                    tumbleFrequency: 0.2,
+                };
+            });
+        }
+
+        await update.commit();
+    }
+
+    async clear() {
+        const update = this.plugin.state.data.build();
+        const entities = getAllEntities(this.plugin);
+        const groups = getAllGroups(this.plugin);
+
+        for (const entity of entities) {
+            update.to(entity).update(old => {
+                if (old.type) {
+                    old.type.params.animation = {
+                        ...old.type.params.animation,
+                        wiggleAmplitude: 0,
+                        tumbleAmplitude: 0,
+                    };
+                }
+            });
+        }
+
+        for (const group of groups) {
+            update.to(group).update(old => {
+                old.animation = {
+                    ...old.animation,
+                    wiggleAmplitude: 0,
+                    tumbleAmplitude: 0,
+                };
+            });
+        }
+
+        await update.commit();
+    }
+
+    render() {
+        return <>
+            <div className='msp-flex-row'>
+                <Button noOverflow title='Enable wiggle for all entities and tumble for non-membrane entities' onClick={() => this.dynamics()} style={{ width: 'auto' }}>
+                    Dynamics
+                </Button>
+                <Button noOverflow title='Set wiggle and tumble amplitude to zero for all entities' onClick={() => this.clear()} style={{ width: 'auto' }}>
+                    Clear
                 </Button>
             </div>
         </>;

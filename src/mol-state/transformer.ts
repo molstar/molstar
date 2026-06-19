@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Task } from '../mol-task';
@@ -118,6 +119,16 @@ namespace Transformer {
 
         /** Custom conversion to and from JSON */
         readonly customSerialization?: { toJSON(params: P, obj?: B): any, fromJSON(data: any): P }
+
+        /**
+         * Derive sibling-like state-tree dependencies (other cells' refs) from the
+         * current parameter values. Returned refs are merged with explicit
+         * `dependsOn` and any refs auto-collected from `PD.ValueRef` / `PD.DataRef`
+         * parameters to form the effective dependency set used by reconciliation.
+         *
+         * Return an empty array or undefined to opt out.
+         */
+        getDependencies?(params: P): StateTransform.Ref[] | undefined
     }
 
     export interface Definition<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> extends DefinitionBase<A, B, P> {

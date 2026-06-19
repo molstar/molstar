@@ -61,7 +61,7 @@ export class MolEncoder extends LigandEncoder {
 
             // no data for metal ions
             if (!bondMap?.map) return;
-            bondMap.map.get(label_atom_id1)!.forEach((bond, label_atom_id2) => {
+            bondMap.map.get(label_atom_id1)!.map.forEach((bond, label_atom_id2) => {
                 const atom2 = atoms.get(label_atom_id2);
                 if (!atom2) return;
 

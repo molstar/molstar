@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -18,6 +18,7 @@ import { getColorListFromName, ColorListName } from './color/lists';
 import { Asset } from './assets';
 import { ColorListEntry } from './color/color';
 import { EPSILON } from '../mol-math/linear-algebra/3d/common';
+import { arraySetAdd } from './array';
 
 export namespace ParamDefinition {
     export interface Info {
@@ -295,34 +296,44 @@ export namespace ParamDefinition {
         type: 'object-list',
         element: Params,
         ctor(): T,
-        getLabel(t: T): string
+        getLabel(t: T): string,
+        presets?: Select<T[]>['options']
     }
-    export function ObjectList<T>(element: For<T>, getLabel: (e: T) => string, info?: Info & { defaultValue?: T[], ctor?: () => T }): ObjectList<Normalize<T>> {
-        return setInfo<ObjectList<Normalize<T>>>({ type: 'object-list', element: element as any as Params, getLabel, ctor: _defaultObjectListCtor, defaultValue: (info?.defaultValue) || [] }, info);
+    export function ObjectList<T>(element: For<T>, getLabel: (e: T) => string, info?: Info & { defaultValue?: T[], ctor?: () => T, presets?: Select<T[]>['options'] }): ObjectList<Normalize<T>> {
+        const ret = setInfo<ObjectList<Normalize<T>>>({ type: 'object-list', element: element as any as Params, getLabel, ctor: _defaultObjectListCtor, defaultValue: (info?.defaultValue) || [] }, info);
+        if (info?.presets) ret.presets = info.presets as any;
+        return ret;
     }
     function _defaultObjectListCtor(this: ObjectList) { return getDefaultValues(this.element) as any; }
-
 
     function unsetGetValue() {
         throw new Error('getValue not set. Fix runtime.');
     }
 
+    export interface Ref<T = any> {
+        ref: string,
+        getValue: () => T
+    }
+    export function Ref<T>(ref = ''): Ref<T> {
+        return { ref, getValue: unsetGetValue as any };
+    }
+
     // getValue needs to be assigned by a runtime because it might not be serializable
-    export interface ValueRef<T = any> extends Base<{ ref: string, getValue: () => T }> {
+    export interface ValueRef<T = any> extends Base<Ref<T>> {
         type: 'value-ref',
         resolveRef: (ref: string, getData: (ref: string) => any) => T,
         // a provider because the list changes over time
         getOptions: (ctx: any) => Select<string>['options'],
     }
     export function ValueRef<T>(getOptions: ValueRef['getOptions'], resolveRef: ValueRef<T>['resolveRef'], info?: Info & { defaultRef?: string }) {
-        return setInfo<ValueRef<T>>({ type: 'value-ref', defaultValue: { ref: info?.defaultRef ?? '', getValue: unsetGetValue as any }, getOptions, resolveRef }, info);
+        return setInfo<ValueRef<T>>({ type: 'value-ref', defaultValue: Ref(info?.defaultRef), getOptions, resolveRef }, info);
     }
 
-    export interface DataRef<T = any> extends Base<{ ref: string, getValue: () => T }> {
+    export interface DataRef<T = any> extends Base<Ref<T>> {
         type: 'data-ref'
     }
     export function DataRef<T>(info?: Info & { defaultRef?: string }) {
-        return setInfo<DataRef<T>>({ type: 'data-ref', defaultValue: { ref: info?.defaultRef ?? '', getValue: unsetGetValue as any } }, info);
+        return setInfo<DataRef<T>>({ type: 'data-ref', defaultValue: Ref(info?.defaultRef) }, info);
     }
 
     export interface Converted<T, C> extends Base<T> {
@@ -440,6 +451,47 @@ export namespace ParamDefinition {
         for (const n of Object.keys(params)) {
             resolveRefValue(params[n], values?.[n], getData);
         }
+    }
+
+    function collectRefValue(p: Any, value: any, out: string[]): string[] {
+        if (value === undefined || value === null) return out;
+
+        if (p.type === 'value-ref' || p.type === 'data-ref') {
+            const v = value as ValueRef['defaultValue'];
+            if (v && typeof v.ref === 'string' && v.ref) {
+                arraySetAdd(out, v.ref);
+            }
+        } else if (p.type === 'group') {
+            collectRefsImpl(p.params, value, out);
+        } else if (p.type === 'mapped') {
+            const v = value as NamedParams;
+            if (!v) return out;
+            const param = p.map(v.name);
+            collectRefValue(param, v.params, out);
+        } else if (p.type === 'object-list') {
+            if (!hasValueRef(p.element)) return out;
+            for (const e of value) {
+                collectRefsImpl(p.element, e, out);
+            }
+        }
+        return out;
+    }
+
+    function collectRefsImpl(params: Params, values: any, out: string[]): string[] {
+        for (const n of Object.keys(params)) {
+            collectRefValue(params[n], values?.[n], out);
+        }
+        return out;
+    }
+
+    /**
+     * Collect all non-empty `ref` strings of `value-ref` and `data-ref` parameter
+     * values into a set. Used by `mol-state` to derive transform dependencies from
+     * parameter values.
+     */
+    export function collectRefs(params: Params, values: any, out: string[]): string[] {
+        if (!params || !values) return out;
+        return collectRefsImpl(params, values, out);
     }
 
     export function setDefaultValues<T extends Params>(params: T, defaultValues: Values<T>) {

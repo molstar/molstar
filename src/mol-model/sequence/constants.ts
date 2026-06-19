@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 export type AminoAlphabet =
@@ -81,5 +82,10 @@ export function getRnaOneLetterCode(residueName: string): NuclecicAlphabet {
 
 export function getDnaOneLetterCode(residueName: string): NuclecicAlphabet {
     const code = DnaOneLetterCodes[residueName];
+    return code || 'X';
+}
+
+export function getNucleicOneLetterCode(residueName: string): NuclecicAlphabet {
+    const code = RnaOneLetterCodes[residueName] || DnaOneLetterCodes[residueName];
     return code || 'X';
 }

@@ -48,6 +48,10 @@ export namespace Vec3 {
         return out;
     }
 
+    export function is(a: any): a is Vec3 {
+        return Array.isArray(a) && a.length === 3;
+    }
+
     export function isFinite(a: Vec3): boolean {
         return _isFinite(a[0]) && _isFinite(a[1]) && _isFinite(a[2]);
     }

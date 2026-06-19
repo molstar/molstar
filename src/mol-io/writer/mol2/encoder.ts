@@ -52,7 +52,7 @@ export class Mol2Encoder extends LigandEncoder {
             }
 
             if (bondMap?.map) {
-                bondMap.map.get(label_atom_id1)!.forEach((bond, label_atom_id2) => {
+                bondMap.map.get(label_atom_id1)!.map.forEach((bond, label_atom_id2) => {
                     const atom2 = atoms.get(label_atom_id2);
                     if (!atom2) return;
 
@@ -132,7 +132,7 @@ export class Mol2Encoder extends LigandEncoder {
         if (type_symbol1 === 'P') return 'P.3'; // 1.4, 4mpo/ligand?encoding=mol2&auth_seq_id=203 (PO4)
         if (type_symbol1 === 'Co' || type_symbol1 === 'Ru') return type_symbol1 + '.oh'; // 1.5
 
-        const bonds = bondMap.map.get(label_atom_id1)!;
+        const bonds = bondMap.map.get(label_atom_id1)!.map;
         const numBonds = bonds.size;
 
         if (type_symbol1 === 'Ti' || type_symbol1 === 'Cr') { // 1.10
@@ -192,7 +192,7 @@ export class Mol2Encoder extends LigandEncoder {
         let result = iter.next();
         while (!result.done) {
             const label_atom_id = result.value;
-            const adjacentBonds = bondMap.map.get(label_atom_id)!;
+            const adjacentBonds = bondMap.map.get(label_atom_id)!.map;
             if (this.count(adjacentBonds, this, (_k, v) => v.order > 1 || BondType.is(BondType.Flag.Aromatic, v.flags))) {
                 // TODO check accurately for 2nd criterion with coordinates
                 return true;
@@ -207,7 +207,7 @@ export class Mol2Encoder extends LigandEncoder {
     private isOC(nonmets: BondMap, bondMap: ComponentBond.Entry): boolean {
         const nonmet = nonmets.entries().next()!.value as [string, { order: number, flags: number }];
         if (!nonmet[0].startsWith('C')) return false;
-        const carbonBonds = bondMap.map.get(nonmet[0])!;
+        const carbonBonds = bondMap.map.get(nonmet[0])!.map;
         if (carbonBonds.size !== 3) return false;
 
         let count = 0;
@@ -216,7 +216,7 @@ export class Mol2Encoder extends LigandEncoder {
         while (!result.done) {
             const label_atom_id = result.value;
             if (label_atom_id.startsWith('O')) {
-                const adjacentBonds = bondMap.map.get(label_atom_id)!;
+                const adjacentBonds = bondMap.map.get(label_atom_id)!.map;
                 if (this.count(adjacentBonds, this, (k, _v, ctx) => ctx.isNonMetalBond(k)) === 1) count++;
             }
             result = iter.next();
@@ -229,7 +229,7 @@ export class Mol2Encoder extends LigandEncoder {
     private isOP(nonmets: BondMap, bondMap: ComponentBond.Entry): boolean {
         const nonmet = nonmets.entries().next()!.value as [string, { order: number, flags: number }];
         if (!nonmet[0].startsWith('P')) return false;
-        const phosphorusBonds = bondMap.map.get(nonmet[0])!;
+        const phosphorusBonds = bondMap.map.get(nonmet[0])!.map;
         if (phosphorusBonds.size < 2) return false;
 
         let count = 0;
@@ -238,7 +238,7 @@ export class Mol2Encoder extends LigandEncoder {
         while (!result.done) {
             const label_atom_id = result.value;
             if (label_atom_id.startsWith('O')) {
-                const adjacentBonds = bondMap.map.get(label_atom_id)!;
+                const adjacentBonds = bondMap.map.get(label_atom_id)!.map;
                 if (this.count(adjacentBonds, this, (k, _v, ctx) => ctx.isNonMetalBond(k)) === 1) count++;
             }
             result = iter.next();
@@ -255,7 +255,7 @@ export class Mol2Encoder extends LigandEncoder {
             const label_atom_id = result1.value;
             if (!label_atom_id.startsWith('N')) return false;
 
-            const adjacentBonds = bondMap.map.get(label_atom_id)!;
+            const adjacentBonds = bondMap.map.get(label_atom_id)!.map;
             if (adjacentBonds.size < 2) return false;
 
             const iter2 = adjacentBonds.keys();
@@ -277,7 +277,7 @@ export class Mol2Encoder extends LigandEncoder {
         while (!result.done) {
             const label_atom_id = result.value;
             if (label_atom_id.startsWith('O')) {
-                const adjacentBonds = bondMap.map.get(label_atom_id)!;
+                const adjacentBonds = bondMap.map.get(label_atom_id)!.map;
                 if (this.count(adjacentBonds, this, (k, _v, ctx) => ctx.isNonMetalBond(k))) count++;
             }
             result = iter.next();
@@ -292,7 +292,7 @@ export class Mol2Encoder extends LigandEncoder {
         while (!result.done) {
             const label_atom_id = result.value;
             if (label_atom_id.startsWith('C')) {
-                const adjacentBonds = bondMap.map.get(label_atom_id)!;
+                const adjacentBonds = bondMap.map.get(label_atom_id)!.map;
                 if (this.count(adjacentBonds, this, (k, v) => k.startsWith('O') || k.startsWith('S') && v.order === 2)) return true;
             }
             result = iter.next();

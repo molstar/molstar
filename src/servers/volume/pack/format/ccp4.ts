@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -8,7 +8,7 @@
 import { FileHandle } from '../../../../mol-io/common/file-handle';
 import { readCcp4Header, readCcp4Slices, getCcp4DataOffset, getCcp4ValueType } from '../../../../mol-io/reader/ccp4/parser';
 import { Header, Provider, Data } from '../format';
-import { getCcp4Origin } from '../../../../mol-model-formats/volume/ccp4';
+import { getCcp4Origin, getCcp4Size } from '../../../../mol-model-formats/volume/ccp4';
 import { Ccp4Header } from '../../../../mol-io/reader/ccp4/schema';
 
 async function readHeader(name: string, file: FileHandle) {
@@ -22,7 +22,7 @@ async function readHeader(name: string, file: FileHandle) {
         extent: [ccp4Header.NC, ccp4Header.NR, ccp4Header.NS],
         origin: getCcp4Origin(ccp4Header),
         spacegroupNumber: ccp4Header.ISPG,
-        cellSize: [ccp4Header.xLength, ccp4Header.yLength, ccp4Header.zLength],
+        cellSize: getCcp4Size(ccp4Header),
         cellAngles: [ccp4Header.alpha, ccp4Header.beta, ccp4Header.gamma],
         littleEndian,
         dataOffset: getCcp4DataOffset(ccp4Header),

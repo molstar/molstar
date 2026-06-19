@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { PluginContext } from '../../mol-plugin/context';
@@ -76,7 +77,10 @@ const DownloadStructure = StateAction.build({
                 }, { isFlat: true, label: 'SWISS-MODEL', description: 'Loads the best homology model or experimental structure' }),
                 'alphafolddb': PD.Group({
                     provider: PD.Group({
-                        id: PD.Text('Q8W3K0', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
+                        id: PD.Text('Q8W3K0', {
+                            label: 'ID(s)',
+                            description: 'One or more comma/space separated IDs. Each ID can be either UniProt accession (e.g. Q14676, Q14676-2) or AlphaFoldDB model entity ID (e.g. AF-Q14676-F1, AF-Q14676-2-F1, AF-0000000066074510). Version suffixes (e.g. -v1) will be ignored and the newest model version will be downloaded.',
+                        }),
                         encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
                     }, { pivot: 'id' }),
                     options
@@ -152,7 +156,11 @@ const DownloadStructure = StateAction.build({
         case 'alphafolddb':
             downloadParams = await getDownloadParams(src.params.provider.id,
                 async id => {
-                    const url = `https://www.alphafold.ebi.ac.uk/api/prediction/${id.toUpperCase()}`;
+                    // id = UniProt accession: Q14676, Q14676-4
+                    // id = model entity ID: AF-Q14676-F1, AF-Q14676-4-F1, AF-0000000066074510
+                    // id = model entity ID + version to be ignored: AF-Q14676-4-F1-v6, AF-0000000066074510-v1
+                    const cleanId = id.replace(/-v\d+$/i, '').toUpperCase(); // Ignore version suffix (e.g. "-v6") because it is not a part of the ID, but displayed on AFDB page and people often copy-paste it
+                    const url = `https://www.alphafold.ebi.ac.uk/api/prediction/${cleanId}`;
                     const info = await plugin.runTask(plugin.fetch({ url, type: 'json' }));
                     if (Array.isArray(info) && info.length > 0) {
                         const prop = src.params.provider.encoding === 'bcif' ? 'bcifUrl' : 'cifUrl';
@@ -436,12 +444,12 @@ export const LoadTrajectory = StateAction.build({
 
             //
 
-            const dependsOn = [model.ref, coordinates.ref];
+            // dependsOn is auto-derived from the `getDependencies` hook on TrajectoryFromModelAndCoordinates
             const traj = state.build().toRoot()
                 .apply(TrajectoryFromModelAndCoordinates, {
                     modelRef: model.ref,
                     coordinatesRef: coordinates.ref
-                }, { dependsOn })
+                })
                 .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
 
             await state.updateTree(traj).runInContext(taskCtx);

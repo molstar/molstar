@@ -72,6 +72,25 @@ export function getColorSmoothingProps(smoothColors: PD.Values<ColorSmoothingPar
 
 //
 
+export type InstanceGranularityValue = true | false | 'auto'
+export const InstanceGranularityOptions: [InstanceGranularityValue, string][] = [[true, 'On'], [false, 'Off'], ['auto', 'Auto']];
+
+/**
+ * Threshold (in `groupCount * instanceCount`, e.g. number of marker-texture
+ * slots) above which `instanceGranularity: 'auto'` resolves to `true`.
+ */
+export const AutoInstanceGranularityThreshold = 50_000_000;
+
+/**
+ * Resolves the `instanceGranularity` param value to a boolean.
+ */
+export function resolveInstanceGranularity(value: InstanceGranularityValue, groupCount: number, instanceCount: number): boolean {
+    if (value === 'auto') return groupCount * instanceCount > AutoInstanceGranularityThreshold;
+    return value;
+}
+
+//
+
 export namespace BaseGeometry {
     export const MaterialCategory: PD.Info = { category: 'Material' };
     export const ShadingCategory: PD.Info = { category: 'Shading' };
@@ -88,7 +107,7 @@ export namespace BaseGeometry {
         clip: PD.Group(Clip.Params),
         emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
         density: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }, { description: 'Density value to estimate object thickness.' }),
-        instanceGranularity: PD.Boolean(false, { description: 'Use instance granularity for marker, transparency, clipping, overpaint, substance data to save memory.' }),
+        instanceGranularity: PD.Select<InstanceGranularityValue>('auto', InstanceGranularityOptions, { description: 'Use instance granularity for marker, transparency, clipping, overpaint, substance data to save memory. When set to `auto`, granularity is enabled if `groupCount * instanceCount` exceeds `AutoInstanceGranularityThreshold`.' }),
         lod: PD.Vec3(Vec3(), undefined, { ...CullingLodCategory, description: 'Level of detail.', fieldLabels: { x: 'Min Distance', y: 'Max Distance', z: 'Overlap (Shader)' } }),
         cellSize: PD.Numeric(200, { min: 0, max: 5000, step: 100 }, { ...CullingLodCategory, description: 'Instance grid cell size.' }),
         batchSize: PD.Numeric(2000, { min: 0, max: 50000, step: 500 }, { ...CullingLodCategory, description: 'Instance grid batch size.' }),
@@ -130,7 +149,7 @@ export namespace BaseGeometry {
             uClipObjectScale: ValueCell.create(clip.objects.scale),
             uClipObjectTransform: ValueCell.create(clip.objects.transform),
 
-            instanceGranularity: ValueCell.create(props.instanceGranularity),
+            instanceGranularity: ValueCell.create(resolveInstanceGranularity(props.instanceGranularity, counts.groupCount, counts.instanceCount)),
             uLod: ValueCell.create(Vec4.create(props.lod[0], props.lod[1], props.lod[2], 0)),
         };
     }
@@ -153,7 +172,7 @@ export namespace BaseGeometry {
         ValueCell.update(values.uClipObjectScale, clip.objects.scale);
         ValueCell.update(values.uClipObjectTransform, clip.objects.transform);
 
-        ValueCell.updateIfChanged(values.instanceGranularity, props.instanceGranularity);
+        ValueCell.updateIfChanged(values.instanceGranularity, resolveInstanceGranularity(props.instanceGranularity, values.uGroupCount.ref.value, values.instanceCount.ref.value));
         ValueCell.update(values.uLod, Vec4.set(values.uLod.ref.value, props.lod[0], props.lod[1], props.lod[2], 0));
     }
 

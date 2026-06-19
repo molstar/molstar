@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'CifCore' schema file. Dictionary versions: CifCore 3.3.0.
+ * Code-generated 'CifCore' schema file. Dictionary versions: CifCore 3.4.0.
  *
  * @author molstar/ciftools package
  */
@@ -576,7 +576,7 @@ export const CifCore_Schema = {
          * U(equiv) = (1/3) sum~i~[sum~j~(U^ij^ a*~i~ a*~j~ a~i~.a~j~)]
          *
          * a  = the real-space cell vectors
-         * a* = the reciprocal-space cell lengths
+         * a* = the reciprocals of the direct-space cell lengths
          * Ref: Fischer, R. X. & Tillmanns, E. (1988). Acta Cryst. C44, 775-776.
          */
         u_iso_or_equiv: float,
@@ -600,7 +600,7 @@ export const CifCore_Schema = {
          * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
          * h = the Miller indices
-         * a* = the reciprocal-space cell lengths
+         * a* = the reciprocals of the direct-space cell lengths
          *
          * The unique elements of the real symmetric matrix are entered by row.
          *
@@ -619,7 +619,7 @@ export const CifCore_Schema = {
          * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
          * h = the Miller indices
-         * a* = the reciprocal-space cell lengths
+         * a* = the reciprocals of the direct-space cell lengths
          *
          * The unique elements of the real symmetric matrix are entered by row.
          *
@@ -638,7 +638,7 @@ export const CifCore_Schema = {
          * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
          * h = the Miller indices
-         * a* = the reciprocal-space cell lengths
+         * a* = the reciprocals of the direct-space cell lengths
          *
          * The unique elements of the real symmetric matrix are entered by row.
          *
@@ -657,7 +657,7 @@ export const CifCore_Schema = {
          * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
          * h = the Miller indices
-         * a* = the reciprocal-space cell lengths
+         * a* = the reciprocals of the direct-space cell lengths
          *
          * The unique elements of the real symmetric matrix are entered by row.
          *
@@ -676,7 +676,7 @@ export const CifCore_Schema = {
          * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
          * h = the Miller indices
-         * a* = the reciprocal-space cell lengths
+         * a* = the reciprocals of the direct-space cell lengths
          *
          * The unique elements of the real symmetric matrix are entered by row.
          *
@@ -695,7 +695,7 @@ export const CifCore_Schema = {
          * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
          * h = the Miller indices
-         * a* = the reciprocal-space cell lengths
+         * a* = the reciprocals of the direct-space cell lengths
          *
          * The unique elements of the real symmetric matrix are entered by row.
          *
@@ -714,7 +714,7 @@ export const CifCore_Schema = {
          * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
          * h = the Miller indices
-         * a* = the reciprocal-space cell lengths
+         * a* = the reciprocals of the direct-space cell lengths
          *
          * The unique elements of the real symmetric matrix are entered by row.
          *

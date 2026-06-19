@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2025 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -155,7 +155,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
     const key: number[] = [];
 
     let lastResidue = -1;
-    let componentMap: Map<string, Map<string, { flags: number, order: number, key: number }>> | undefined = void 0;
+    let componentEntry: ComponentBond.Entry | undefined = void 0;
 
     let isWatery = true, isDictionaryBased = true, isSequenced = true;
 
@@ -202,22 +202,22 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
                 const entitySeq = byEntityKey[index.getEntityFromChain(chainIndex[aI])];
                 if (entitySeq && entitySeq.sequence.microHet.has(seqIdA)) {
                     // compute for sequence positions with micro-heterogeneity
-                    componentMap = void 0;
+                    componentEntry = void 0;
                 } else {
-                    componentMap = component.entries.get(compId)!.map;
+                    componentEntry = component.entries.get(compId)!;
                 }
             } else {
-                componentMap = void 0;
+                componentEntry = void 0;
             }
         }
         lastResidue = raI;
 
         const aeI = getElementIdx(elemA);
+        const isHa = isHydrogen(aeI);
         const atomIdA = label_atom_id.value(aI);
-        const componentPairs = componentMap ? componentMap.get(atomIdA) : void 0;
+        const componentPairs = componentEntry ? componentEntry.get(atomIdA, isHa) : void 0;
 
         const { indices, count, squaredDistances } = query3d.find(x[aI], y[aI], z[aI], maxRadius);
-        const isHa = isHydrogen(aeI);
         const thresholdA = getElementThreshold(aeI);
         const altA = label_alt_id.value(aI);
         const metalA = MetalsSet.has(aeI);
@@ -248,7 +248,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
             const rbI = residueIndex[bI];
             // handle "component dictionary" bonds.
             if (raI === rbI && componentPairs) {
-                const e = componentPairs.get(label_atom_id.value(bI)!);
+                const e = componentPairs.get(label_atom_id.value(bI), isHb);
                 if (e) {
                     atomA[atomA.length] = _aI;
                     atomB[atomB.length] = _bI;

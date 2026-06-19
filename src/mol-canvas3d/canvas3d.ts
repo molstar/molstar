@@ -53,6 +53,8 @@ import { RayHelper } from './helper/ray-helper';
 import { produce } from '../mol-util/produce';
 import { ShaderManager } from './helper/shader-manager';
 import { toFixed } from '../mol-util/number';
+import type { CameraTransitionManager } from './camera/transition';
+import { EasingFunction } from '../mol-math/easing';
 
 export const CameraFogParams = {
     intensity: PD.Numeric(15, { min: 1, max: 100, step: 1 }),
@@ -321,6 +323,13 @@ namespace Canvas3DContext {
 
 export { Canvas3D };
 
+export interface Canvas3DCameraResetOptions {
+    durationMs?: number,
+    snapshot?: Camera.SnapshotProvider,
+    keyframes?: CameraTransitionManager.TransitionKeyframes,
+    easing?: EasingFunction,
+}
+
 interface Canvas3D {
     readonly webgl: WebGLContext,
 
@@ -371,7 +380,7 @@ interface Canvas3D {
     /** performs handleResize on the next animation frame */
     requestResize(): void
     /** Focuses camera on scene's bounding sphere, centered and zoomed. */
-    requestCameraReset(options?: { durationMs?: number, snapshot?: Camera.SnapshotProvider }): void
+    requestCameraReset(options?: Canvas3DCameraResetOptions): void
     readonly camera: Camera
     readonly boundingSphere: Readonly<Sphere3D>
     readonly boundingSphereVisible: Readonly<Sphere3D>
@@ -498,8 +507,12 @@ namespace Canvas3D {
         });
 
         let cameraResetRequested = false;
-        let nextCameraResetDuration: number | undefined = void 0;
-        let nextCameraResetSnapshot: Camera.SnapshotProvider | undefined = void 0;
+        const nextCameraResetOptions: Canvas3DCameraResetOptions = {
+            durationMs: undefined,
+            snapshot: undefined,
+            keyframes: undefined,
+            easing: undefined,
+        };
         let resizeRequested = false;
 
         //
@@ -675,7 +688,8 @@ namespace Canvas3D {
             const xrChanged = xrManager.update(xrFrame);
             if (!xrChanged && xrFrame) return false;
 
-            const shouldRender = force || cameraChanged || resized || forceNextRender || xrChanged;
+            const activeAnimation = renderer.props.enableAnimation && scene.hasAnimation;
+            const shouldRender = force || cameraChanged || resized || forceNextRender || xrChanged || activeAnimation;
             forceNextRender = false;
 
             if (passes.illumination.supported && p.illumination.enabled && !xrFrame) {
@@ -754,6 +768,7 @@ namespace Canvas3D {
             if (webgl.xr.session && !options?.xrFrame) return;
 
             currentTime = t;
+            renderer.setTime((currentTime - startTime) / 1000);
             commit(options?.isSynchronous);
 
             // update the controler before the camera transition
@@ -876,15 +891,18 @@ namespace Canvas3D {
             }
 
             if (radius > 0) {
-                const duration = nextCameraResetDuration === undefined ? p.cameraResetDurationMs : nextCameraResetDuration;
+                const duration = nextCameraResetOptions.durationMs === undefined ? p.cameraResetDurationMs : nextCameraResetOptions.durationMs;
                 const focus = camera.getFocus(center, radius);
-                const next = typeof nextCameraResetSnapshot === 'function' ? nextCameraResetSnapshot(scene, camera) : nextCameraResetSnapshot;
+                const next = typeof nextCameraResetOptions.snapshot === 'function' ? nextCameraResetOptions.snapshot(scene, camera) : nextCameraResetOptions.snapshot;
                 const snapshot = next ? { ...focus, ...next } : focus;
-                camera.setState({ ...snapshot, radiusMax: getSceneRadius() }, duration);
+                camera.setState({ ...snapshot, radiusMax: getSceneRadius() }, duration, { keyframes: nextCameraResetOptions.keyframes, easing: nextCameraResetOptions.easing });
             }
 
-            nextCameraResetDuration = void 0;
-            nextCameraResetSnapshot = void 0;
+            nextCameraResetOptions.durationMs = void 0;
+            nextCameraResetOptions.snapshot = void 0;
+            nextCameraResetOptions.keyframes = void 0;
+            nextCameraResetOptions.easing = void 0;
+
             cameraResetRequested = false;
         }
 
@@ -894,7 +912,7 @@ namespace Canvas3D {
         function shouldResetCamera() {
             if (camera.state.radiusMax === 0) return true;
 
-            if (camera.transition.inTransition || nextCameraResetSnapshot) return false;
+            if (camera.transition.inTransition || nextCameraResetOptions.snapshot) return false;
 
             let cameraSphereOverlapsNone = true, isEmpty = true;
             Sphere3D.set(cameraSphere, camera.state.target, camera.state.radius);
@@ -936,7 +954,7 @@ namespace Canvas3D {
             if (!p.camera.manualReset && (reprCount.value === 0 || shouldResetCamera())) {
                 cameraResetRequested = true;
             }
-            if (oldBoundingSphereVisible.radius === 0) nextCameraResetDuration = 0;
+            if (oldBoundingSphereVisible.radius === 0) nextCameraResetOptions.durationMs = 0;
 
             if (!p.camera.manualReset) camera.setState({ radiusMax: getSceneRadius() }, 0);
             reprCount.next(reprRenderObjects.size);
@@ -1220,7 +1238,7 @@ namespace Canvas3D {
             syncVisibility: () => {
                 if (camera.state.radiusMax === 0) {
                     cameraResetRequested = true;
-                    nextCameraResetDuration = 0;
+                    nextCameraResetOptions.durationMs = 0;
                 }
 
                 if (scene.syncVisibility()) {
@@ -1249,8 +1267,7 @@ namespace Canvas3D {
                 resizeRequested = true;
             },
             requestCameraReset: options => {
-                nextCameraResetDuration = options?.durationMs;
-                nextCameraResetSnapshot = options?.snapshot;
+                Object.assign(nextCameraResetOptions, options);
                 cameraResetRequested = true;
             },
             camera,

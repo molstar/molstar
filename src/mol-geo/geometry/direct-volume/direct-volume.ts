@@ -17,7 +17,7 @@ import { ValueCell } from '../../../mol-util';
 import { Color } from '../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Box } from '../../primitive/box';
-import { BaseGeometry } from '../base';
+import { BaseGeometry, resolveInstanceGranularity } from '../base';
 import { createColors } from '../color-data';
 import { GeometryUtils } from '../geometry';
 import { createMarkers } from '../marker-data';
@@ -29,6 +29,7 @@ import { createEmptyClipping } from '../clipping-data';
 import { Grid } from '../../../mol-model/volume';
 import { createEmptySubstance } from '../substance-data';
 import { createEmptyEmissive } from '../emissive-data';
+import { createEmptyWiggle } from '../wiggle-data';
 
 const VolumeBox = Box();
 
@@ -227,7 +228,7 @@ export namespace DirectVolume {
         const positionIt = createPositionIterator(directVolume, transform);
 
         const color = createColors(locationIt, positionIt, theme.color);
-        const marker = props.instanceGranularity
+        const marker = resolveInstanceGranularity(props.instanceGranularity, groupCount, instanceCount)
             ? createMarkers(instanceCount, 'instance')
             : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();
@@ -235,6 +236,7 @@ export namespace DirectVolume {
         const emissive = createEmptyEmissive();
         const material = createEmptySubstance();
         const clipping = createEmptyClipping();
+        const wiggle = createEmptyWiggle();
 
         const [x, y, z] = gridDimension.ref.value;
         const counts = { drawCount: VolumeBox.indices.length, vertexCount: x * y * z, groupCount, instanceCount };
@@ -255,6 +257,7 @@ export namespace DirectVolume {
             ...emissive,
             ...material,
             ...clipping,
+            ...wiggle,
             ...transform,
             ...BaseGeometry.createValues(props, counts),
 

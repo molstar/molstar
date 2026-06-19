@@ -5,8 +5,62 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-## [v5.8.1] - 2026-04-03
+## [v5.10.0] - 2026-06-14
+- Fix exported image artifacts on transparent background with emissive, bloom, or antialiasing
+- Fix cel-shaded ambient color being stripped to luminance (now uses full RGB, matching the classic lighting path)
+- Fix empty transforms default in `ShapeFromPly`
+- Use morton order for spheres in dot visual with lod-levels
+- Add `Camera.changed` event and rotation/translation setter/getter
+- Add `instanceGranularity: 'auto'` as a memory guard
+- Honor `instanceGranularity` in `Visual.getLoci`
+- Add mesoscale representation preset
+- Add presets option to `ObjectList` param definition
+- Fix memory leak in `State.dispose()` not invoking transformer `dispose` callbacks for live cells
+- Adds File/Open and drag-and-drop support for Kinemage files in the viewer app
+- Fix bugs in ModelServer surroundingLigands endpoint, resulting in omitWater not honored
+- Fix `Volume` and `Isosurface` getBoundingSphere ignoring instances
+- Fix aromatic ring detection not accounting for hybridization
+- Add axis param to camera spin/rock animation
+- Fix SSAO half/quarter resolution textures for multi-scale
+- Camera improvements
+  - Add the option to approximate "least obstructed direction" when focusing camera, accessibe via `PluginContext.managers.camera.focusLoci` with `optimizeDirection` option
+  - Add `CameraFocusOptions.zoomOut` option that zooms out to to make the entire scene visible before focusing on the target
+  - Add easing support in camera transtion
+- Non-covalent interactions: water bridge support
+- Add OBJ format support
+    - Positions, normals, faces
+    - Groups from usemtl directive
+    - Vertex color extension
+    - Sideload MTL files (diffuse color only)
+- Download Structure From AlphaFoldDB allows IDs with version suffix (version is ignored)
+- Add `loadUrl` method and GET params to Viewer app
+- Add binary PLY format variants support
+- Add `extensions/plugin` with several QoL improvements
+  - Standalone useful loading functions previously avaiable only in the `Viewer` class
+  - Standalong plugin interactivity helper function previously available only via the `Viewer` class
+  - View models (and hooks) for more straightforward usage in React (and in other UI libraries)
+- Add `examples/react` that showcases few ways the Mol* can be used together with React
+- Fix default representation plugin option, which resulted in represenations not being shown automatically when using the default plugin spec
+- Track added custom props in `QueryRuntimeTable` to prevent excess "symbol already added" messages when creating multiple instances of a pluing
+
+## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty
+- Add 8K UHD option to `ViewportScreenshotHelper`
+- Handle MRC files with empty length header fields
+- Handle CCD bonds with Deuterium atoms
+- [Breaking] ComponentBond.Entry.map now returns ComponentBond.Pairs
+- Fix volume slice marking performance regression
+- Add GPU procedural animation (wiggle & tumble)
+    - Per-vertex wiggle via fbm noise (position & group mode)
+    - Per-instance tumble via fbm noise (rotation + translation)
+    - `Wiggle` theme layer for data-driven per-group wiggle
+    - `enableAnimation` Canvas3D param for global toggle
+- Add `AnimateTime` built-in for, e.g., exporting procedural animation
+- Add Procedural Animation panels
+    - Viewer: structure dynamics & uncertainty
+    - Mesoscale Explorer: entity dynamics
+- Fix `GraphQLClient` missing required headers
+- [Breaking] Use Record instead of Array for headers (assets & data-source utils)
 
 ## [v5.8.0] - 2026-04-03
 - Dependencies: remove `utils.promisify`, `node-fetch` (#1797)

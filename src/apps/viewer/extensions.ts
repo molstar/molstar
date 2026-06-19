@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Russ Taylor <russ@reliasolve.com>
  */
 
 import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
@@ -28,6 +29,11 @@ import { ZenodoImport } from '../../extensions/zenodo';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { MVSData } from '../../extensions/mvs/mvs-data';
 import * as MVSUtil from '../../extensions/mvs/util';
+import { KinemageExtension } from '../../extensions/kinemage/behavior';
+import * as interactivity from '../../extensions/plugin/interactivity';
+import * as loaders from '../../extensions/plugin/loaders';
+import { PluginViewModel } from '../../extensions/plugin/view-model';
+import { PluginUIViewModel } from '../../extensions/plugin/ui-view-model';
 
 export const ExtensionMap = {
     // Mol* built-in extensions
@@ -39,6 +45,7 @@ export const ExtensionMap = {
     'geo-export': PluginSpec.Behavior(GeometryExport),
     'zenodo-import': PluginSpec.Behavior(ZenodoImport),
     'wwpdb-chemical-component-dictionary': PluginSpec.Behavior(wwPDBChemicalComponentDictionary),
+    'kinemage': PluginSpec.Behavior(KinemageExtension),
 
     // 3rd party extensions
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
@@ -67,5 +74,13 @@ export const PluginExtensions = {
         qualityAssessment: {
             config: MAQualityAssessmentConfig
         }
-    }
+    },
+    plugin: {
+        interactivity,
+        loaders,
+        models: {
+            PluginViewModel,
+            PluginUIViewModel,
+        },
+    },
 };

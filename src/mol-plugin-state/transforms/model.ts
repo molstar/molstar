@@ -10,8 +10,7 @@
 import { parseDcd } from '../../mol-io/reader/dcd/parser';
 import { parseGRO } from '../../mol-io/reader/gro/parser';
 import { parsePDB } from '../../mol-io/reader/pdb/parser';
-import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
-import { shapeFromPly } from '../../mol-model-formats/shape/ply';
+import { Vec3 } from '../../mol-math/linear-algebra';
 import { coordinatesFromDcd } from '../../mol-model-formats/structure/dcd';
 import { trajectoryFromGRO } from '../../mol-model-formats/structure/gro';
 import { trajectoryFromCCD, trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
@@ -22,7 +21,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
 import { Expression } from '../../mol-script/language/expression';
 import { Script } from '../../mol-script/script';
-import { StateObject, StateTransformer } from '../../mol-state';
+import { StateObject, StateTransform, StateTransformer } from '../../mol-state';
 import { RuntimeContext, Task } from '../../mol-task';
 import { deepEqual } from '../../mol-util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -93,7 +92,6 @@ export { StructureComplexElement };
 export { StructureComponent };
 export { CustomModelProperties };
 export { CustomStructureProperties };
-export { ShapeFromPly };
 
 type CoordinatesFromDcd = typeof CoordinatesFromDcd
 const CoordinatesFromDcd = PluginStateTransform.BuiltIn({
@@ -247,6 +245,12 @@ const TrajectoryFromModelAndCoordinates = PluginStateTransform.BuiltIn({
         coordinatesRef: PD.Text('', { isHidden: true }),
     }
 })({
+    getDependencies: ({ modelRef, coordinatesRef }: { modelRef: string, coordinatesRef: string }) => {
+        const deps: StateTransform.Ref[] = [];
+        if (modelRef) deps.push(modelRef as StateTransform.Ref);
+        if (coordinatesRef) deps.push(coordinatesRef as StateTransform.Ref);
+        return deps;
+    },
     apply({ params, dependencies }) {
         return Task.create('Create trajectory from model/topology and coordinates', async ctx => {
             const coordinates = dependencies![params.coordinatesRef].data as Coordinates;
@@ -1295,25 +1299,3 @@ async function attachStructureProps(structure: Structure, ctx: PluginContext, ta
         }
     }
 }
-
-type ShapeFromPly = typeof ShapeFromPly
-const ShapeFromPly = PluginStateTransform.BuiltIn({
-    name: 'shape-from-ply',
-    display: { name: 'Shape from PLY', description: 'Create Shape from PLY data' },
-    from: SO.Format.Ply,
-    to: SO.Shape.Provider,
-    params(a) {
-        return {
-            transforms: PD.Optional(PD.Value<Mat4[]>([], { isHidden: true })),
-            label: PD.Optional(PD.Text('', { isHidden: true }))
-        };
-    }
-})({
-    apply({ a, params }) {
-        return Task.create('Create shape from PLY', async ctx => {
-            const shape = await shapeFromPly(a.data, params).runInContext(ctx);
-            const props = { label: params.label || 'Shape' };
-            return new SO.Shape.Provider(shape, props);
-        });
-    }
-});

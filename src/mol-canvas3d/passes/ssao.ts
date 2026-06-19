@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -484,27 +484,45 @@ export class SsaoPass {
             if (isTimingMode) this.webgl.timer.markEnd('SSAO.downsample');
         }
 
-        if (isTimingMode) this.webgl.timer.mark('SSAO.half');
         if (multiScale) {
+            // half-resolution viewport (matches dimensions of depthHalfTarget*)
+            const hsx = Math.floor(sx * 0.5);
+            const hsy = Math.floor(sy * 0.5);
+            const hsw = Math.ceil(sw * 0.5);
+            const hsh = Math.ceil(sh * 0.5);
+            state.viewport(hsx, hsy, hsw, hsh);
+            state.scissor(hsx, hsy, hsw, hsh);
+
+            if (isTimingMode) this.webgl.timer.mark('SSAO.half');
             this.depthHalfTargetOpaque.bind();
             this.depthHalfRenderableOpaque.render();
-        }
-        if (multiScale && includeTransparent) {
-            this.depthHalfTargetTransparent.bind();
-            this.depthHalfRenderableTransparent.render();
-        }
-        if (isTimingMode) this.webgl.timer.markEnd('SSAO.half');
+            if (includeTransparent) {
+                this.depthHalfTargetTransparent.bind();
+                this.depthHalfRenderableTransparent.render();
+            }
+            if (isTimingMode) this.webgl.timer.markEnd('SSAO.half');
 
-        if (isTimingMode) this.webgl.timer.mark('SSAO.quarter');
-        if (multiScale) {
+            // quarter-resolution viewport (matches dimensions of depthQuarterTarget*)
+            const qsx = Math.floor(sx * 0.25);
+            const qsy = Math.floor(sy * 0.25);
+            const qsw = Math.ceil(sw * 0.25);
+            const qsh = Math.ceil(sh * 0.25);
+            state.viewport(qsx, qsy, qsw, qsh);
+            state.scissor(qsx, qsy, qsw, qsh);
+
+            if (isTimingMode) this.webgl.timer.mark('SSAO.quarter');
             this.depthQuarterTargetOpaque.bind();
             this.depthQuarterRenderableOpaque.render();
+            if (includeTransparent) {
+                this.depthQuarterTargetTransparent.bind();
+                this.depthQuarterRenderableTransparent.render();
+            }
+            if (isTimingMode) this.webgl.timer.markEnd('SSAO.quarter');
+
+            // restore full-scale viewport for SSAO + blur passes
+            state.viewport(sx, sy, sw, sh);
+            state.scissor(sx, sy, sw, sh);
         }
-        if (multiScale && includeTransparent) {
-            this.depthQuarterTargetTransparent.bind();
-            this.depthQuarterRenderableTransparent.render();
-        }
-        if (isTimingMode) this.webgl.timer.markEnd('SSAO.quarter');
 
         if (isTimingMode) this.webgl.timer.mark('SSAO.opaque');
         this.ssaoDepthTexture.attachFramebuffer(this.framebuffer, 'color0');

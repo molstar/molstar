@@ -1,13 +1,13 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Viewport, cameraProject, cameraUnproject } from './camera/util';
-import { CameraTransitionManager } from './camera/transition';
-import { BehaviorSubject } from 'rxjs';
+import { CameraTransitionManager, CameraTransitionOptions } from './camera/transition';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { Scene } from '../mol-gl/scene';
 import { assertUnreachable } from '../mol-util/type-helpers';
 import { Ray3D } from '../mol-math/geometry/primitives/ray3d';
@@ -15,6 +15,7 @@ import { Mat4 } from '../mol-math/linear-algebra/3d/mat4';
 import { Vec4 } from '../mol-math/linear-algebra/3d/vec4';
 import { Vec3 } from '../mol-math/linear-algebra/3d/vec3';
 import { EPSILON } from '../mol-math/linear-algebra/3d/common';
+import { Euler } from '../mol-math/linear-algebra/3d/euler';
 
 export type { ICamera };
 
@@ -42,6 +43,12 @@ interface ICamera {
 }
 
 const tmpClip = Vec4();
+const tmpForward = Vec3();
+const tmpRight = Vec3();
+const tmpUp = Vec3();
+const tmpBack = Vec3();
+const tmpDelta = Vec3();
+const tmpRotMat = Mat4.identity();
 
 export class Camera implements ICamera {
     readonly view: Mat4 = Mat4.identity();
@@ -70,6 +77,8 @@ export class Camera implements ICamera {
 
     readonly transition: CameraTransitionManager = new CameraTransitionManager(this);
     readonly stateChanged = new BehaviorSubject<Partial<Camera.Snapshot>>(this.state);
+    /** Fires whenever update() produces a changed view/projection (covers all mutations, including direct ones from controls). */
+    readonly changed = new Subject<void>();
 
     get position() { return this.state.position; }
     set position(v: Vec3) { Vec3.copy(this.state.position, v); }
@@ -123,13 +132,18 @@ export class Camera implements ICamera {
 
             Mat4.copy(this.prevView, this.view);
             Mat4.copy(this.prevProjection, this.projection);
+            this.changed.next();
         }
 
         return changed;
     }
 
-    setState(snapshot: Partial<Camera.Snapshot>, durationMs?: number) {
-        this.transition.apply(snapshot, durationMs);
+    setState(
+        snapshot: Partial<Camera.Snapshot>,
+        durationMs?: number,
+        options?: CameraTransitionOptions
+    ) {
+        this.transition.apply(snapshot, durationMs, undefined, options);
         this.stateChanged.next(snapshot);
     }
 
@@ -235,6 +249,57 @@ export class Camera implements ICamera {
             Vec3.normalize(out.direction, Vec3.sub(out.direction, out.direction, out.origin));
         }
         return out;
+    }
+
+    /** How much the camera is rotated around its target. Uses 'ZYX' order. */
+    getRotation(out: Euler) {
+        const { position, target, up } = this.state;
+        Vec3.normalize(tmpForward, Vec3.sub(tmpForward, target, position));
+        Vec3.normalize(tmpRight, Vec3.cross(tmpRight, tmpForward, up));
+        Vec3.cross(tmpUp, tmpRight, tmpForward);
+
+        Mat4.setIdentity(tmpRotMat);
+        tmpRotMat[0] = tmpRight[0]; tmpRotMat[1] = tmpRight[1]; tmpRotMat[2] = tmpRight[2];
+        tmpRotMat[4] = tmpUp[0]; tmpRotMat[5] = tmpUp[1]; tmpRotMat[6] = tmpUp[2];
+        tmpRotMat[8] = -tmpForward[0]; tmpRotMat[9] = -tmpForward[1]; tmpRotMat[10] = -tmpForward[2];
+
+        return Euler.fromMat4(out, tmpRotMat, 'ZYX');
+    }
+
+    /** Set the camera rotation around its target. Expects 'ZYX' order. */
+    setRotation(rotation: Euler, durationMs?: number) {
+        const snapshot = this.state as Camera.Snapshot;
+        const distance = Vec3.distance(snapshot.position, snapshot.target);
+
+        Mat4.fromEuler(tmpRotMat, rotation, 'ZYX');
+
+        // back = R * (0,0,1) → column 2 of R
+        Vec3.set(tmpBack, tmpRotMat[8], tmpRotMat[9], tmpRotMat[10]);
+        // up = R * (0,1,0) → column 1 of R
+        Vec3.set(tmpUp, tmpRotMat[4], tmpRotMat[5], tmpRotMat[6]);
+
+        const state = Camera.copySnapshot(Camera.createDefaultSnapshot(), snapshot);
+        Vec3.scaleAndAdd(state.position, snapshot.target, tmpBack, distance);
+        Vec3.copy(state.up, tmpUp);
+
+        this.setState(state, durationMs);
+    }
+
+    /** Translation of the camera target relative to world origin (0, 0, 0) */
+    getTranslation(out: Vec3) {
+        return Vec3.copy(out, this.state.target);
+    }
+
+    /** Set the camera target to the given translation, moving position by the same delta so orientation/distance are preserved */
+    setTranslation(translation: Vec3, durationMs?: number) {
+        const snapshot = this.state as Camera.Snapshot;
+        Vec3.sub(tmpDelta, translation, snapshot.target);
+
+        const state = Camera.copySnapshot(Camera.createDefaultSnapshot(), snapshot);
+        Vec3.add(state.position, snapshot.position, tmpDelta);
+        Vec3.copy(state.target, translation);
+
+        this.setState(state, durationMs);
     }
 
     constructor(state?: Partial<Camera.Snapshot>, viewport = Viewport.create(0, 0, 128, 128)) {

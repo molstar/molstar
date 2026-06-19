@@ -49,3 +49,6 @@
 * Assembly symmetries
     * 5M30 (Assembly 1, C3 local and pseudo)
     * 1RB8 (Assembly 1, I global)
+* Deuterium atoms
+    * 3CWH (XUL with D and DOD)
+    * 8TT8 (HOH and other with D)
