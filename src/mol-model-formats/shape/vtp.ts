@@ -34,32 +34,54 @@ const UNIFORM_KEY = 'uniform::';
 function buildAttrOptions(vtpFile?: VtpFile): PD.SelectOption<string>[] {
     const opts: PD.SelectOption<string>[] = [[UNIFORM_KEY, 'Uniform color']];
     if (!vtpFile) return opts;
-    for (const [name] of vtpFile.pointData) {
-        opts.push([`point:${name}`, `Point: ${name}`]);
+    for (const [name, arr] of vtpFile.pointData) {
+        const nComp = arr.desc.numberOfComponents;
+        const label = nComp > 1 ? `Point: ${name} (mag)` : `Point: ${name}`;
+        opts.push([`point:${name}`, label]);
     }
-    for (const [name] of vtpFile.cellData) {
-        opts.push([`cell:${name}`, `Cell: ${name}`]);
+    for (const [name, arr] of vtpFile.cellData) {
+        const nComp = arr.desc.numberOfComponents;
+        const label = nComp > 1 ? `Cell: ${name} (mag)` : `Cell: ${name}`;
+        opts.push([`cell:${name}`, label]);
     }
     return opts;
 }
 
 function defaultAttrKey(vtpFile?: VtpFile): string {
     if (!vtpFile) return UNIFORM_KEY;
+    // Prefer 1-component arrays first (direct scalar mapping)
+    for (const [name, arr] of vtpFile.cellData) {
+        if (arr.desc.numberOfComponents === 1) return `cell:${name}`;
+    }
+    for (const [name, arr] of vtpFile.pointData) {
+        if (arr.desc.numberOfComponents === 1) return `point:${name}`;
+    }
     if (vtpFile.cellData.size > 0) return `cell:${vtpFile.cellData.keys().next().value}`;
     if (vtpFile.pointData.size > 0) return `point:${vtpFile.pointData.keys().next().value}`;
     return UNIFORM_KEY;
 }
 
+function magnitudeRange(values: Float64Array, nComp: number): [number, number] {
+    const n = values.length / nComp;
+    let min = Infinity, max = -Infinity;
+    for (let i = 0; i < n; i++) {
+        let mag2 = 0;
+        for (let c = 0; c < nComp; c++) mag2 += values[i * nComp + c] ** 2;
+        const mag = Math.sqrt(mag2);
+        if (mag < min) min = mag;
+        if (mag > max) max = mag;
+    }
+    return [min === Infinity ? 0 : min, max === -Infinity ? 1 : max];
+}
+
 function defaultDomain(vtpFile: VtpFile | undefined, key: string): [number, number] {
     if (!vtpFile || key === UNIFORM_KEY) return [0, 1];
-    if (key.startsWith('cell:')) {
-        const arr = vtpFile.cellData.get(key.slice(5));
-        if (arr) return [arr.desc.rangeMin, arr.desc.rangeMax];
-    } else if (key.startsWith('point:')) {
-        const arr = vtpFile.pointData.get(key.slice(6));
-        if (arr) return [arr.desc.rangeMin, arr.desc.rangeMax];
-    }
-    return [0, 1];
+    let arr;
+    if (key.startsWith('cell:')) arr = vtpFile.cellData.get(key.slice(5));
+    else if (key.startsWith('point:')) arr = vtpFile.pointData.get(key.slice(6));
+    if (!arr) return [0, 1];
+    if (arr.desc.numberOfComponents === 1) return [arr.desc.rangeMin, arr.desc.rangeMax];
+    return magnitudeRange(arr.values, arr.desc.numberOfComponents);
 }
 
 export function createVtpShapeParams(vtpFile?: VtpFile) {
@@ -152,6 +174,12 @@ function cellToVertexAverage(vtpFile: VtpFile, cellValues: Float64Array): Float6
     return smoothed;
 }
 
+function vecMag(values: Float64Array, baseIdx: number, nComp: number): number {
+    let mag2 = 0;
+    for (let c = 0; c < nComp; c++) mag2 += values[baseIdx + c] ** 2;
+    return Math.sqrt(mag2);
+}
+
 function makeColorFn(vtpFile: VtpFile, props: PD.Values<VtpShapeParams>): (gid: number) => Color {
     const { attribute, uniformColor, colormap, domainMin, domainMax, smoothColor } = props;
 
@@ -165,22 +193,33 @@ function makeColorFn(vtpFile: VtpFile, props: PD.Values<VtpShapeParams>): (gid: 
         const name = attribute.slice(5);
         const arr = vtpFile.cellData.get(name);
         if (!arr) return () => uniformColor;
-        if (smoothColor) {
-            const smoothed = cellToVertexAverage(vtpFile, arr.values);
-            const { connectivity } = vtpFile;
-            return (gid: number) => colorScale.color(smoothed[connectivity[gid]]);
-        }
+        const nComp = arr.desc.numberOfComponents;
         const { triangleCellIndex } = vtpFile;
-        return (gid: number) => colorScale.color(arr.values[triangleCellIndex[Math.floor(gid / 3)]]);
+        if (nComp === 1) {
+            if (smoothColor) {
+                const smoothed = cellToVertexAverage(vtpFile, arr.values);
+                const { connectivity } = vtpFile;
+                return (gid: number) => colorScale.color(smoothed[connectivity[gid]]);
+            }
+            return (gid: number) => colorScale.color(arr.values[triangleCellIndex[Math.floor(gid / 3)]]);
+        }
+        // multi-component: magnitude per cell, no smooth (averaging magnitudes not meaningful)
+        const { values } = arr;
+        return (gid: number) => colorScale.color(vecMag(values, triangleCellIndex[Math.floor(gid / 3)] * nComp, nComp));
     }
 
     if (attribute.startsWith('point:')) {
         const name = attribute.slice(6);
         const arr = vtpFile.pointData.get(name);
         if (!arr) return () => uniformColor;
-        const { values } = arr;
+        const nComp = arr.desc.numberOfComponents;
         const { connectivity } = vtpFile;
-        return (gid: number) => colorScale.color(values[connectivity[gid]]);
+        if (nComp === 1) {
+            return (gid: number) => colorScale.color(arr.values[connectivity[gid]]);
+        }
+        // multi-component: magnitude per vertex
+        const { values } = arr;
+        return (gid: number) => colorScale.color(vecMag(values, connectivity[gid] * nComp, nComp));
     }
 
     return () => uniformColor;

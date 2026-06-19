@@ -70,12 +70,16 @@ function extractAppendedInfo(data: Uint8Array): AppendedInfo {
 const _ATTR_RE: Record<string, RegExp> = {
     Name:               /Name=["']([^"']*)["']/,
     type:               /type=["']([^"']*)["']/,
+    format:             /format=["']([^"']*)["']/,
     NumberOfComponents: /NumberOfComponents=["']([^"']*)["']/,
     offset:             /offset=["']([^"']*)["']/,
     RangeMin:           /RangeMin=["']([^"']*)["']/,
     RangeMax:           /RangeMax=["']([^"']*)["']/,
     NumberOfPoints:     /NumberOfPoints=["']([^"']*)["']/,
     NumberOfPolys:      /NumberOfPolys=["']([^"']*)["']/,
+    NumberOfVerts:      /NumberOfVerts=["']([^"']*)["']/,
+    NumberOfLines:      /NumberOfLines=["']([^"']*)["']/,
+    NumberOfStrips:     /NumberOfStrips=["']([^"']*)["']/,
     byte_order:         /byte_order=["']([^"']*)["']/,
     compressor:         /compressor=["']([^"']*)["']/,
     header_type:        /header_type=["']([^"']*)["']/,
@@ -92,25 +96,33 @@ function extractSectionArrays(header: string, sectionName: string): VtpDataArray
     if (!sm) return [];
     const results: VtpDataArrayDescriptor[] = [];
     // Match self-closing (<DataArray .../>) or opening tag + text content.
-    // For inline binary the text node (base64) always precedes any child elements (<InformationKey>, etc.),
-    // so [A-Za-z0-9+/=\s]* captures the base64 and stops at the first '<' without needing </DataArray>.
-    const daRe = /<DataArray\s+([^>]*?)(?:\/>|>([A-Za-z0-9+/=\s]*))/g;
+    // [^<]* captures everything up to the next tag — handles both ASCII numeric content
+    // and inline base64 (which never contains '<'). Stops before <InformationKey>, etc.
+    const daRe = /<DataArray\s+([^>]*?)(?:\/>|>([^<]*))/g;
     let m;
     while ((m = daRe.exec(sm[1])) !== null) {
         const attrStr = m[1];
-        const rawContent = m[2];
+        const rawContent = m[2] ?? '';
         const offsetStr = attrValue(attrStr, 'offset');
-        const b64 = rawContent ? rawContent.replace(/\s/g, '') : '';
-        // Skip if no data source at all
-        if (offsetStr === undefined && b64.length === 0) continue;
+        const fmt = (attrValue(attrStr, 'format') ?? 'binary') as 'ascii' | 'binary' | 'appended';
+
+        const b64 = fmt === 'binary' ? rawContent.replace(/\s/g, '') : '';
+        const asciiText = fmt === 'ascii' ? rawContent : undefined;
+
+        // Skip if no usable data source
+        if (fmt === 'appended' && offsetStr === undefined) continue;
+        if (fmt === 'binary' && b64.length === 0) continue;
+
         const desc: VtpDataArrayDescriptor = {
             name: attrValue(attrStr, 'Name') ?? '',
             type: attrValue(attrStr, 'type') ?? 'Float32',
             numberOfComponents: parseInt(attrValue(attrStr, 'NumberOfComponents') ?? '1', 10),
+            format: fmt,
             offset: offsetStr !== undefined ? parseInt(offsetStr, 10) : -1,
             rangeMin: parseFloat(attrValue(attrStr, 'RangeMin') ?? '0'),
             rangeMax: parseFloat(attrValue(attrStr, 'RangeMax') ?? '1'),
             ...(b64.length > 0 ? { inlineBase64: b64 } : {}),
+            ...(asciiText !== undefined ? { asciiText } : {}),
         };
         results.push(desc);
     }
@@ -120,6 +132,9 @@ function extractSectionArrays(header: string, sectionName: string): VtpDataArray
 interface ParsedHeader {
     nPoints: number;
     nCells: number;
+    nVerts: number;
+    nLines: number;
+    nStrips: number;
     byteOrder: string;
     compressor: string;
     headerType: string;
@@ -143,6 +158,9 @@ function parseHeader(header: string): ParsedHeader {
     return {
         nPoints: parseInt(nPointsStr, 10),
         nCells: parseInt(nPolysStr, 10),
+        nVerts: parseInt(attrValue(pieceAttrs, 'NumberOfVerts') ?? '0', 10),
+        nLines: parseInt(attrValue(pieceAttrs, 'NumberOfLines') ?? '0', 10),
+        nStrips: parseInt(attrValue(pieceAttrs, 'NumberOfStrips') ?? '0', 10),
         byteOrder: attrValue(vtkAttrs, 'byte_order') ?? 'LittleEndian',
         compressor: attrValue(vtkAttrs, 'compressor') ?? '',
         headerType: attrValue(vtkAttrs, 'header_type') ?? 'UInt32',
@@ -382,6 +400,45 @@ function decodeToFloat64(raw: Uint8Array, type: string, count: number): Float64A
     return out;
 }
 
+// --- ASCII format helpers ---
+
+function parseAsciiFloat32(text: string, count: number): Float32Array {
+    const trimmed = text.trim();
+    const out = new Float32Array(count);
+    if (!trimmed) return out;
+    const tokens = trimmed.split(/\s+/);
+    for (let i = 0; i < count && i < tokens.length; i++) out[i] = parseFloat(tokens[i]);
+    return out;
+}
+
+function parseAsciiFloat64(text: string, count: number): Float64Array {
+    const trimmed = text.trim();
+    const out = new Float64Array(count);
+    if (!trimmed) return out;
+    const tokens = trimmed.split(/\s+/);
+    for (let i = 0; i < count && i < tokens.length; i++) out[i] = parseFloat(tokens[i]);
+    return out;
+}
+
+function parseAsciiInts(text: string, count: number): Int32Array {
+    const trimmed = text.trim();
+    const out = new Int32Array(count);
+    if (!trimmed) return out;
+    const tokens = trimmed.split(/\s+/);
+    for (let i = 0; i < count && i < tokens.length; i++) out[i] = parseInt(tokens[i], 10);
+    return out;
+}
+
+// For connectivity: count is not known upfront (= offsets[last]), so parse all tokens.
+function parseAsciiIntsAll(text: string): Int32Array {
+    const trimmed = text.trim();
+    if (!trimmed) return new Int32Array(0);
+    const tokens = trimmed.split(/\s+/);
+    const out = new Int32Array(tokens.length);
+    for (let i = 0; i < tokens.length; i++) out[i] = parseInt(tokens[i], 10);
+    return out;
+}
+
 // --- Fan-triangulate connectivity from VTP Polys offsets ---
 // offsets[i] = cumulative vertex count through cell i; cell i uses
 // rawConn[offsets[i-1]..offsets[i]-1] (with offsets[-1] = 0).
@@ -436,6 +493,9 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
     if (hdr.headerType !== 'UInt32' && hdr.headerType !== 'UInt64') {
         throw new Error(`Unsupported VTP header_type: "${hdr.headerType}". Only UInt32 and UInt64 are supported.`);
     }
+    if (hdr.nVerts + hdr.nLines + hdr.nStrips > 0) {
+        console.warn(`VTP: file contains ${hdr.nVerts} verts, ${hdr.nLines} lines, ${hdr.nStrips} strips — only Polys are rendered.`);
+    }
     const headerType = hdr.headerType as 'UInt32' | 'UInt64';
     const hasCompressor = !!hdr.compressor;
 
@@ -446,52 +506,66 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
     const pointsDesc = hdr.pointsArrays.find(d => d.name === 'Points') ?? hdr.pointsArrays[0];
     if (!pointsDesc) throw new Error('VTP file missing Points DataArray');
 
-    ctx.update({ message: 'Decompressing positions...', current: 10, max: 100 });
-    const posRaw = await decompressBlock(ctx, info, pointsDesc, headerType, hasCompressor);
-    const positions = decodePositions(posRaw, pointsDesc.type, hdr.nPoints * 3);
+    ctx.update({ message: 'Decoding positions...', current: 10, max: 100 });
+    let positions: Float32Array;
+    if (pointsDesc.format === 'ascii') {
+        positions = parseAsciiFloat32(pointsDesc.asciiText ?? '', hdr.nPoints * 3);
+    } else {
+        const posRaw = await decompressBlock(ctx, info, pointsDesc, headerType, hasCompressor);
+        positions = decodePositions(posRaw, pointsDesc.type, hdr.nPoints * 3);
+    }
 
     // Polys connectivity + offsets
     const connDesc = hdr.polysArrays.find(d => d.name === 'connectivity');
     const offsetsDesc = hdr.polysArrays.find(d => d.name === 'offsets');
     if (!connDesc || !offsetsDesc) throw new Error('VTP file missing Polys connectivity/offsets DataArrays');
 
-    ctx.update({ message: 'Decompressing topology...', current: 20, max: 100 });
-    const connRaw = await decompressBlock(ctx, info, connDesc, headerType, hasCompressor);
-    const offsetsRaw = await decompressBlock(ctx, info, offsetsDesc, headerType, hasCompressor);
-
-    const rawConn = decodeConnectivity(connRaw, connDesc.type);
-    const rawOffsets = decodeConnectivity(offsetsRaw, offsetsDesc.type);
+    ctx.update({ message: 'Decoding topology...', current: 20, max: 100 });
+    let rawConn: Int32Array;
+    let rawOffsets: Int32Array;
+    if (connDesc.format === 'ascii') {
+        // For ASCII connectivity, count = offsets[last] which we don't know yet — parse all tokens.
+        rawConn = parseAsciiIntsAll(connDesc.asciiText ?? '');
+        rawOffsets = parseAsciiInts(offsetsDesc.asciiText ?? '', hdr.nCells);
+    } else {
+        const connRaw = await decompressBlock(ctx, info, connDesc, headerType, hasCompressor);
+        const offsetsRaw = await decompressBlock(ctx, info, offsetsDesc, headerType, hasCompressor);
+        rawConn = decodeConnectivity(connRaw, connDesc.type);
+        rawOffsets = decodeConnectivity(offsetsRaw, offsetsDesc.type);
+    }
 
     const { connectivity, triangleCellIndex } = buildTriangles(rawConn, rawOffsets, hdr.nCells);
     const numberOfTriangles = connectivity.length / 3;
 
-    // PointData scalar arrays
+    // PointData arrays (all numberOfComponents supported; multi-component values are interleaved)
     const pointData = new Map<string, VtpScalarArray>();
-    const skippedPD = hdr.pointDataArrays.filter(d => d.numberOfComponents !== 1);
-    if (skippedPD.length > 0) {
-        console.warn(`VTP: skipping ${skippedPD.length} PointData array(s) with numberOfComponents > 1: ${skippedPD.map(d => d.name).join(', ')}`);
-    }
-    const scalarPD = hdr.pointDataArrays.filter(d => d.numberOfComponents === 1);
-    for (let i = 0; i < scalarPD.length; i++) {
-        const desc = scalarPD[i];
-        ctx.update({ message: `Point data: ${desc.name}...`, current: 30 + Math.floor(i / Math.max(1, scalarPD.length) * 30), max: 100 });
-        const raw = await decompressBlock(ctx, info, desc, headerType, hasCompressor);
-        const values = decodeToFloat64(raw, desc.type, hdr.nPoints);
+    for (let i = 0; i < hdr.pointDataArrays.length; i++) {
+        const desc = hdr.pointDataArrays[i];
+        const totalCount = hdr.nPoints * desc.numberOfComponents;
+        ctx.update({ message: `Point data: ${desc.name}...`, current: 30 + Math.floor(i / Math.max(1, hdr.pointDataArrays.length) * 30), max: 100 });
+        let values: Float64Array;
+        if (desc.format === 'ascii') {
+            values = parseAsciiFloat64(desc.asciiText ?? '', totalCount);
+        } else {
+            const raw = await decompressBlock(ctx, info, desc, headerType, hasCompressor);
+            values = decodeToFloat64(raw, desc.type, totalCount);
+        }
         pointData.set(desc.name, { desc, values });
     }
 
-    // CellData scalar arrays
+    // CellData arrays (all numberOfComponents supported; multi-component values are interleaved)
     const cellData = new Map<string, VtpScalarArray>();
-    const skippedCD = hdr.cellDataArrays.filter(d => d.numberOfComponents !== 1);
-    if (skippedCD.length > 0) {
-        console.warn(`VTP: skipping ${skippedCD.length} CellData array(s) with numberOfComponents > 1: ${skippedCD.map(d => d.name).join(', ')}`);
-    }
-    const scalarCD = hdr.cellDataArrays.filter(d => d.numberOfComponents === 1);
-    for (let i = 0; i < scalarCD.length; i++) {
-        const desc = scalarCD[i];
-        ctx.update({ message: `Cell data: ${desc.name}...`, current: 60 + Math.floor(i / Math.max(1, scalarCD.length) * 35), max: 100 });
-        const raw = await decompressBlock(ctx, info, desc, headerType, hasCompressor);
-        const values = decodeToFloat64(raw, desc.type, hdr.nCells);
+    for (let i = 0; i < hdr.cellDataArrays.length; i++) {
+        const desc = hdr.cellDataArrays[i];
+        const totalCount = hdr.nCells * desc.numberOfComponents;
+        ctx.update({ message: `Cell data: ${desc.name}...`, current: 60 + Math.floor(i / Math.max(1, hdr.cellDataArrays.length) * 35), max: 100 });
+        let values: Float64Array;
+        if (desc.format === 'ascii') {
+            values = parseAsciiFloat64(desc.asciiText ?? '', totalCount);
+        } else {
+            const raw = await decompressBlock(ctx, info, desc, headerType, hasCompressor);
+            values = decodeToFloat64(raw, desc.type, totalCount);
+        }
         cellData.set(desc.name, { desc, values });
     }
 

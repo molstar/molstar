@@ -9,16 +9,24 @@ export interface VtpDataArrayDescriptor {
     /** VTK type string: "Float32", "Float64", "Int32", "Int64", "UInt32", etc. */
     readonly type: string;
     readonly numberOfComponents: number;
-    /** Byte/char offset into the appended data section (after the `_` marker). -1 for inline binary. */
+    /** Encoding format of this DataArray element. */
+    readonly format: 'ascii' | 'binary' | 'appended';
+    /** Byte/char offset into the appended data section (after the `_` marker). -1 for inline/ascii. */
     readonly offset: number;
     readonly rangeMin: number;
     readonly rangeMax: number;
     /** Base64 content of the DataArray element (inline binary format only). */
     readonly inlineBase64?: string;
+    /** Raw text content of the DataArray element (ascii format only). */
+    readonly asciiText?: string;
 }
 
 export interface VtpScalarArray {
     readonly desc: VtpDataArrayDescriptor;
+    /**
+     * Flat decoded values. For scalar arrays (numberOfComponents=1) length = nElems.
+     * For multi-component arrays length = nElems * numberOfComponents.
+     */
     readonly values: Float64Array;
 }
 
@@ -32,8 +40,8 @@ export interface VtpFile {
     readonly numberOfTriangles: number;
     /** Maps triangle index → originating VTK cell index, length = numberOfTriangles */
     readonly triangleCellIndex: Int32Array;
-    /** Per-vertex (PointData) scalar arrays. Key = array name. */
+    /** Per-vertex (PointData) arrays. Key = array name. */
     readonly pointData: ReadonlyMap<string, VtpScalarArray>;
-    /** Per-cell (CellData) scalar arrays. Key = array name. */
+    /** Per-cell (CellData) arrays. Key = array name. */
     readonly cellData: ReadonlyMap<string, VtpScalarArray>;
 }

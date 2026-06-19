@@ -162,6 +162,69 @@ function buildRawAppended(header: string, footer: string, arrays: (Float32Array 
     return out;
 }
 
+function makeAsciiTriangleVtp(): Uint8Array {
+    const xml = [
+        '<?xml version="1.0"?>',
+        '<VTKFile type="PolyData" version="0.1" byte_order="LittleEndian">',
+        '  <PolyData>',
+        '    <Piece NumberOfPoints="3" NumberOfVerts="0" NumberOfLines="0" NumberOfStrips="0" NumberOfPolys="1">',
+        '      <Points>',
+        '        <DataArray type="Float32" NumberOfComponents="3" format="ascii">',
+        '          0.0 0.0 0.0  1.0 0.0 0.0  0.0 1.0 0.0',
+        '        </DataArray>',
+        '      </Points>',
+        '      <CellData Scalars="val">',
+        '        <DataArray type="Float32" Name="val" NumberOfComponents="1" format="ascii" RangeMin="0.5" RangeMax="0.5">',
+        '          0.5',
+        '        </DataArray>',
+        '      </CellData>',
+        '      <Polys>',
+        '        <DataArray type="Int32" Name="connectivity" format="ascii">',
+        '          0 1 2',
+        '        </DataArray>',
+        '        <DataArray type="Int32" Name="offsets" format="ascii">',
+        '          3',
+        '        </DataArray>',
+        '      </Polys>',
+        '    </Piece>',
+        '  </PolyData>',
+        '</VTKFile>',
+    ].join('\n');
+    return new TextEncoder().encode(xml);
+}
+
+function makeAsciiMultiComponentVtp(): Uint8Array {
+    // Single triangle with a 3-component PointData vector (normals)
+    const xml = [
+        '<?xml version="1.0"?>',
+        '<VTKFile type="PolyData" version="0.1" byte_order="LittleEndian">',
+        '  <PolyData>',
+        '    <Piece NumberOfPoints="3" NumberOfVerts="0" NumberOfLines="0" NumberOfStrips="0" NumberOfPolys="1">',
+        '      <Points>',
+        '        <DataArray type="Float32" NumberOfComponents="3" format="ascii">',
+        '          0.0 0.0 0.0  1.0 0.0 0.0  0.0 1.0 0.0',
+        '        </DataArray>',
+        '      </Points>',
+        '      <PointData>',
+        '        <DataArray type="Float32" Name="normals" NumberOfComponents="3" format="ascii">',
+        '          0.0 0.0 1.0  0.0 0.0 1.0  0.0 0.0 1.0',
+        '        </DataArray>',
+        '      </PointData>',
+        '      <Polys>',
+        '        <DataArray type="Int32" Name="connectivity" format="ascii">',
+        '          0 1 2',
+        '        </DataArray>',
+        '        <DataArray type="Int32" Name="offsets" format="ascii">',
+        '          3',
+        '        </DataArray>',
+        '      </Polys>',
+        '    </Piece>',
+        '  </PolyData>',
+        '</VTKFile>',
+    ].join('\n');
+    return new TextEncoder().encode(xml);
+}
+
 describe('VTP parser', () => {
     it('parses a minimal triangle', async () => {
         expect.assertions(11);
@@ -249,5 +312,46 @@ describe('VTP parser', () => {
         if (!cellval) return;
         expect(cellval.values[0]).toBeCloseTo(0.25);
         expect(cellval.values[1]).toBeCloseTo(0.75);
+    });
+
+    it('parses an ASCII-format VTP file', async () => {
+        expect.assertions(9);
+        const result = await parseVtp(makeAsciiTriangleVtp()).run();
+        expect(result.isError).toBe(false);
+        if (result.isError) return;
+
+        const vtp = result.result;
+        expect(vtp.numberOfPoints).toBe(3);
+        expect(vtp.numberOfCells).toBe(1);
+        expect(vtp.numberOfTriangles).toBe(1);
+        expect(vtp.positions[0]).toBeCloseTo(0);
+        expect(vtp.positions[3]).toBeCloseTo(1);
+
+        const val = vtp.cellData.get('val');
+        expect(val).toBeDefined();
+        if (!val) return;
+        expect(val.values[0]).toBeCloseTo(0.5);
+        expect(val.desc.format).toBe('ascii');
+    });
+
+    it('stores multi-component PointData arrays', async () => {
+        expect.assertions(8);
+        const result = await parseVtp(makeAsciiMultiComponentVtp()).run();
+        expect(result.isError).toBe(false);
+        if (result.isError) return;
+
+        const vtp = result.result;
+        const normals = vtp.pointData.get('normals');
+        expect(normals).toBeDefined();
+        if (!normals) return;
+
+        expect(normals.desc.numberOfComponents).toBe(3);
+        // 3 points × 3 components = 9 values
+        expect(normals.values.length).toBe(9);
+        // Each normal is (0,0,1) — third component of first vertex
+        expect(normals.values[0]).toBeCloseTo(0);
+        expect(normals.values[1]).toBeCloseTo(0);
+        expect(normals.values[2]).toBeCloseTo(1);
+        expect(normals.desc.format).toBe('ascii');
     });
 });
