@@ -67,13 +67,21 @@ function extractAppendedInfo(data: Uint8Array): AppendedInfo {
 
 // --- XML header parsing ---
 
-const _attrValueRegexCache = new Map<string, RegExp>();
+const _ATTR_RE: Record<string, RegExp> = {
+    Name:               /Name=["']([^"']*)["']/,
+    type:               /type=["']([^"']*)["']/,
+    NumberOfComponents: /NumberOfComponents=["']([^"']*)["']/,
+    offset:             /offset=["']([^"']*)["']/,
+    RangeMin:           /RangeMin=["']([^"']*)["']/,
+    RangeMax:           /RangeMax=["']([^"']*)["']/,
+    NumberOfPoints:     /NumberOfPoints=["']([^"']*)["']/,
+    NumberOfPolys:      /NumberOfPolys=["']([^"']*)["']/,
+    byte_order:         /byte_order=["']([^"']*)["']/,
+    compressor:         /compressor=["']([^"']*)["']/,
+    header_type:        /header_type=["']([^"']*)["']/,
+};
 function attrValue(attrStr: string, name: string): string | undefined {
-    let re = _attrValueRegexCache.get(name);
-    if (!re) {
-        re = new RegExp(name + '=["\']([^"\']*)["\']');
-        _attrValueRegexCache.set(name, re);
-    }
+    const re = _ATTR_RE[name] ?? new RegExp(name + '=["\']([^"\']*)["\']');
     const m = attrStr.match(re);
     return m ? m[1] : undefined;
 }
@@ -311,7 +319,9 @@ async function decompressBlock(
 // --- Typed array decoding ---
 
 function decodeFloat32(raw: Uint8Array, count: number): Float32Array {
-    return new Float32Array(raw.buffer, raw.byteOffset, count);
+    if (raw.byteOffset % 4 === 0) return new Float32Array(raw.buffer, raw.byteOffset, count);
+    const aligned = raw.slice(0, count * 4);
+    return new Float32Array(aligned.buffer, 0, count);
 }
 
 function decodePositions(raw: Uint8Array, type: string, count: number): Float32Array {
@@ -325,7 +335,9 @@ function decodeConnectivity(raw: Uint8Array, type: string): Int32Array {
         return decodeInt64AsInt32(raw, raw.byteLength / 8);
     }
     if (type === 'Int32' || type === 'UInt32') {
-        return new Int32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4);
+        if (raw.byteOffset % 4 === 0) return new Int32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4);
+        const aligned = raw.slice();
+        return new Int32Array(aligned.buffer, 0, aligned.byteLength / 4);
     }
     throw new Error(`Unsupported VTP connectivity type: "${type}". Expected Int32, UInt32, Int64, or UInt64.`);
 }
@@ -409,7 +421,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
     if (hdr.byteOrder === 'BigEndian') {
         throw new Error('BigEndian VTP files are not supported.');
     }
-    if (hdr.compressor && !hdr.compressor.includes('ZLib') && !hdr.compressor.includes('zlib')) {
+    if (hdr.compressor && hdr.compressor !== 'vtkZLibDataCompressor') {
         throw new Error(`Unsupported VTP compressor: "${hdr.compressor}". Only vtkZLibDataCompressor is supported.`);
     }
     if (hdr.headerType !== 'UInt32' && hdr.headerType !== 'UInt64') {

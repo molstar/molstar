@@ -20,7 +20,7 @@ import { ValueCell } from '../../mol-util/value-cell';
 import { deepClone } from '../../mol-util/object';
 import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 
-export type VtpData = {
+export interface VtpData {
     source: VtpFile,
     transforms?: Mat4[],
 }
@@ -85,6 +85,11 @@ export const VtpShapeParams = createVtpShapeParams();
 export type VtpShapeParams = typeof VtpShapeParams;
 
 // --- Mesh building ---
+// Vertices are intentionally NOT shared (3 unique entries per triangle).
+// This allows each vertex to carry an independent group ID, which is required
+// for flat per-cell CellData coloring: gid/3 = triangle index, gid%3 = vertex
+// within that triangle. Sharing vertices would break CellData flat coloring
+// since a vertex at a cell boundary could only hold one of its cells' values.
 
 async function buildMesh(ctx: RuntimeContext, vtpFile: VtpFile, mesh?: Mesh): Promise<Mesh> {
     const { positions, connectivity, numberOfTriangles } = vtpFile;
@@ -230,7 +235,9 @@ function makeShapeGetter() {
         }
 
         _vtpData = vtpData;
-        _props = deepClone(props);
+        if (needsNewMesh || needsNewColor || needsNewShape) {
+            _props = deepClone(props);
+        }
         return _shape!;
     };
 

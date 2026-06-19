@@ -134,7 +134,7 @@ function makeQuadCellDataVtp(): Uint8Array {
     const conn = new Int32Array([0,1,2,3, 1,4,5,2]);
     // offsets: 2 Int32 = 8 bytes; block = 4+8 = 12; offset=112
     const offs = new Int32Array([4, 8]);
-    // cellval: 2 Float32 = 8 bytes; block = 4+8 = 12; offset=120
+    // cellval: 2 Float32 = 8 bytes; block = 4+8 = 12; offset=124
     const cellval = new Float32Array([0.25, 0.75]);
 
     return buildRawAppended(header, footer, [pos, conn, offs, cellval]);

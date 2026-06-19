@@ -92,4 +92,4 @@ export const BuiltInShapeFormats = [
     ['vtp', VtpProvider] as const,
 ] as const;
 
-export type BuildInShapeFormat = (typeof BuiltInShapeFormats)[number][0]
+export type BuildInShapeFormat = (typeof BuiltInShapeFormats)[number][0];
