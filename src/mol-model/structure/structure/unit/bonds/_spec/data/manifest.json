@@ -1,0 +1,12 @@
+[
+  { "pdbId": "1NCO", "compId": "CHR" },
+  { "pdbId": "1CLA", "compId": "CLM" },
+  { "pdbId": "2AAT", "compId": "PMP" },
+  { "pdbId": "2GBP", "compId": "BGC" },
+  { "pdbId": "3CPP", "compId": "CAM" },
+  { "pdbId": "2TRM", "compId": "BEN" },
+  { "pdbId": "8LDH", "compId": "CIT" },
+  { "pdbId": "8ATC", "compId": "PAL" },
+  { "pdbId": "8RSA", "compId": "ADT" },
+  { "pdbId": "3KLF", "compId": "ZP4" }
+]

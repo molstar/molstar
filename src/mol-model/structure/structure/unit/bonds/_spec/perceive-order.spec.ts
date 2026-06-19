@@ -4,6 +4,8 @@
  * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
 import { Tokenizer } from '../../../../../../mol-io/reader/common/text/tokenizer';
 import { PdbFile } from '../../../../../../mol-io/reader/pdb/schema';
 import { pdbToMmCif } from '../../../../../../mol-model-formats/structure/pdb/to-cif';
@@ -169,4 +171,73 @@ describe('bond-order perception (Sayle)', () => {
         // exactly one double bond (the backbone/table C=O); C-OXT must stay single
         expect(orders.filter(o => o === 2).length).toBe(1);
     });
+});
+
+// --- data-driven validation suite -------------------------------------------
+
+interface ExpectedBond {
+    a: string;
+    b: string;
+    order?: 2 | 3;
+    aromatic?: true;
+}
+interface ManifestEntry { pdbId: string; compId: string; }
+
+const dataDir = path.join(__dirname, 'data');
+
+async function structureFromDataFile(filename: string) {
+    const text = fs.readFileSync(path.join(dataDir, filename), 'utf8');
+    return structureFromPdb(text);
+}
+
+function checkPerceived(structure: Structure, expected: ExpectedBond[]) {
+    const unit = structure.units[0] as Unit.Atomic;
+    const { label_atom_id, label_comp_id } = unit.model.atomicHierarchy.atoms;
+    const nameToLocal = new Map<string, number>();
+    const resname = label_comp_id.value(unit.elements[0]);
+    for (let i = 0; i < unit.elements.length; i++) {
+        nameToLocal.set(label_atom_id.value(unit.elements[i]), i);
+    }
+    const { offset, b, edgeProps } = unit.bonds;
+    for (const exp of expected) {
+        const u = nameToLocal.get(exp.a);
+        const v = nameToLocal.get(exp.b);
+        if (u === undefined || v === undefined) {
+            throw new Error(`atom not found: ${exp.a} or ${exp.b}`);
+        }
+        const bondLabel = `${resname} ${exp.a}-${exp.b}`;
+        let found = false;
+        for (let t = offset[u]; t < offset[u + 1]; t++) {
+            if (b[t] !== v) continue;
+            found = true;
+            if (exp.order !== undefined)
+                expect({ bond: bondLabel, order: edgeProps.order[t] }).toEqual({ bond: bondLabel, order: exp.order });
+            if (exp.aromatic)
+                expect({ bond: bondLabel, aromatic: !!(edgeProps.flags[t] & BondType.Flag.Aromatic) }).toEqual({ bond: bondLabel, aromatic: true });
+        }
+        expect({ bond: bondLabel, found }).toEqual({ bond: bondLabel, found: true });
+    }
+}
+
+const manifestPath = path.join(dataDir, 'manifest.json');
+const manifest: ManifestEntry[] = fs.existsSync(manifestPath)
+    ? JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+    : [];
+
+describe('bond-order perception (data)', () => {
+    for (const { pdbId, compId } of manifest) {
+        const stem = `${pdbId}_${compId}`;
+        const pdbPath = path.join(dataDir, `${stem}.pdb`);
+        if (!fs.existsSync(pdbPath)) {
+            it.skip(`${pdbId} / ${compId} — run build-data.mjs to generate data`, () => {});
+            continue;
+        }
+        it(`${pdbId} / ${compId}`, async () => {
+            const structure = await structureFromDataFile(`${stem}.pdb`);
+            const expected: ExpectedBond[] = JSON.parse(
+                fs.readFileSync(path.join(dataDir, `${stem}_expected.json`), 'utf8')
+            );
+            checkPerceived(structure, expected);
+        });
+    }
 });
