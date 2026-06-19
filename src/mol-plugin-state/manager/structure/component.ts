@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Himanshu Raj <himanshuraj6771@gmail.com>
  */
 
 import { VisualQualityOptions } from '../../../mol-geo/geometry/base';
