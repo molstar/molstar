@@ -311,7 +311,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                         : void 0;
                 const sizeTheme = params.size === 'default'
                     ? createStructureSizeThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name)
-                    : params.color
+                    : params.size
                         ? createStructureSizeThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name, params.size, params.sizeParams)
                         : void 0;
 
