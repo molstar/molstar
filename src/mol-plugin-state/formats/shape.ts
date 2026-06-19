@@ -72,7 +72,7 @@ export const VtpProvider = DataFormatProvider({
             .to(data)
             .apply(StateTransforms.Data.ParseVtp, {}, { state: { isGhost: true } });
 
-        const shape = format.apply(StateTransforms.Model.ShapeFromVtp);
+        const shape = format.apply(StateTransforms.Shape.ShapeFromVtp);
 
         await format.commit();
 
