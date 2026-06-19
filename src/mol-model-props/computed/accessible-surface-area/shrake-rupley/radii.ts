@@ -3,6 +3,7 @@
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { MaxAsa, ShrakeRupleyContext, VdWLookup } from './common';
@@ -40,22 +41,22 @@ export function assignRadiusForHeavyAtoms(ctx: ShrakeRupleyContext) {
             if (prevResidueIdx !== residueIdx) ++serialResidueIdx;
             prevResidueIdx = residueIdx;
 
-            const element = type_symbol(l);
-            const elementIdx = getElementIdx(element);
-
-            // skip hydrogen atoms
-            if (isHydrogen(elementIdx)) {
-                atomRadiusType[mj] = 0;
-                serialResidueIndex[mj] = -1;
-                continue;
-            }
-
             const atomId = label_atom_id(l);
             const moleculeType = getElementMoleculeType(unit, eI);
             // skip water and optionally non-polymer groups
             if (moleculeType === MoleculeType.Water || (!ctx.nonPolymer && !isPolymer(moleculeType))) {
                 atomRadiusType[mj] = 0;
                 serialResidueIndex[mj] = -1;
+                continue;
+            }
+
+            const element = type_symbol(l);
+            const elementIdx = getElementIdx(element);
+
+            // skip hydrogen atoms for computation (parent atoms implicitly account for hydrogens), assign color from residue
+            if (isHydrogen(elementIdx)) {
+                atomRadiusType[mj] = 0;
+                serialResidueIndex[mj] = serialResidueIdx;
                 continue;
             }
 
