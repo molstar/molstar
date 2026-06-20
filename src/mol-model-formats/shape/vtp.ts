@@ -107,10 +107,10 @@ export function createVtpShapeParams(vtpFile?: VtpFile) {
         doubleSided: { ...Mesh.Params.doubleSided, defaultValue: true },
         interior: { ...Mesh.Params.interior, defaultValue: { ...Mesh.Params.interior.defaultValue, colorStrength: 0 } },
         attribute: PD.Select(defKey, attrOptions, { label: 'Color Attribute' }),
-        smoothColor: PD.Boolean(false, { label: 'Smooth Color', description: 'Interpolate per-cell data to vertices for smooth color gradients (no effect for per-vertex attributes).' }),
         colormap: PD.Select('viridis' as ColorListName, ColorListOptionsScale, { label: 'Colormap' }),
-        domainMin: PD.Numeric(defMin, {}, { label: 'Domain Min' }),
-        domainMax: PD.Numeric(defMax, {}, { label: 'Domain Max' }),
+        // domainMin/domainMax are kept for state serialization but are auto-computed from data.
+        domainMin: PD.Numeric(defMin, {}, { label: 'Domain Min', isHidden: true }),
+        domainMax: PD.Numeric(defMax, {}, { label: 'Domain Max', isHidden: true }),
         uniformColor: PD.Color(ColorNames.grey, { label: 'Uniform Color' }),
         scale: PD.Numeric(1, { min: 0.01, max: 100, step: 0.01 }, { label: 'Scale', description: 'Uniform scale factor applied to the mesh.' }),
     };
@@ -193,85 +193,57 @@ function vecMag(values: Float64Array, baseIdx: number, nComp: number): number {
     return Math.sqrt(mag2);
 }
 
-function makeColorFn(vtpFile: VtpFile, props: PD.Values<VtpShapeParams>): (gid: number) => Color {
-    const { attribute, uniformColor, colormap, domainMin, domainMax, smoothColor } = props;
-
-    if (attribute === UNIFORM_KEY) {
-        return () => uniformColor;
-    }
-
-    const colorScale = ColorScale.create({ listOrName: colormap, domain: [domainMin, domainMax] });
+// Compute per-vertex scalar values from a VTP attribute, matching smgui exactly:
+//   - CellData (per-triangle): average cell values to vertices via weighted neighbour sum
+//   - CellData multi-component: compute per-cell magnitude first, then average to vertices
+//   - PointData (per-vertex): use values directly (already at vertex level)
+//   - PointData multi-component: compute per-vertex magnitude
+// Returns null for UNIFORM_KEY or missing attributes.
+function computeVertexValues(vtpFile: VtpFile, attribute: string): Float64Array | null {
+    if (attribute === UNIFORM_KEY) return null;
 
     if (attribute.startsWith('cell:')) {
-        const name = attribute.slice(5);
-        const arr = vtpFile.cellData.get(name);
-        if (!arr) return () => uniformColor;
+        const arr = vtpFile.cellData.get(attribute.slice(5));
+        if (!arr) return null;
         const nComp = arr.desc.numberOfComponents;
-        const { triangleCellIndex } = vtpFile;
         if (nComp === 1) {
-            if (smoothColor) {
-                const smoothed = cellToVertexAverage(vtpFile, arr.values);
-                // Domain must be recomputed from smoothed values: averaging compresses the
-                // raw [min, max] range, so using the raw domain would place all smoothed
-                // values in the middle of the colormap.
-                const [sMin, sMax] = scalarRange(smoothed);
-                const smoothScale = ColorScale.create({ listOrName: colormap, domain: [sMin, sMax] });
-                const { connectivity } = vtpFile;
-                return (gid: number) => smoothScale.color(smoothed[connectivity[gid]]);
-            }
-            return (gid: number) => colorScale.color(arr.values[triangleCellIndex[Math.floor(gid / 3)]]);
+            return cellToVertexAverage(vtpFile, arr.values);
         }
-        // multi-component: magnitude per cell, no smooth (averaging magnitudes not meaningful)
-        const { values } = arr;
-        return (gid: number) => colorScale.color(vecMag(values, triangleCellIndex[Math.floor(gid / 3)] * nComp, nComp));
+        // multi-component cell data: magnitude per cell, then average to vertices
+        const nCells = arr.values.length / nComp;
+        const cellMag = new Float64Array(nCells);
+        for (let i = 0; i < nCells; i++) cellMag[i] = vecMag(arr.values, i * nComp, nComp);
+        return cellToVertexAverage(vtpFile, cellMag);
     }
 
     if (attribute.startsWith('point:')) {
-        const name = attribute.slice(6);
-        const arr = vtpFile.pointData.get(name);
-        if (!arr) return () => uniformColor;
+        const arr = vtpFile.pointData.get(attribute.slice(6));
+        if (!arr) return null;
         const nComp = arr.desc.numberOfComponents;
-        const { connectivity, numberOfTriangles } = vtpFile;
-
-        if (nComp === 1) {
-            if (smoothColor) {
-                // Per-vertex lookup: shows fine-grained per-vertex variation.
-                return (gid: number) => colorScale.color(arr.values[connectivity[gid]]);
-            }
-            // Default: flat per-triangle average of the 3 corner vertex values.
-            // For smoothly-varying per-vertex data (e.g. v_n, curvature), adjacent
-            // triangles have nearly identical averages → visually smooth surface.
-            // (True Gouraud shading is not available through the group-ID texture
-            // mechanism used here, so flat-averaged is the best approximation.)
-            const triAvg = new Float64Array(numberOfTriangles);
-            for (let i = 0; i < numberOfTriangles; i++) {
-                triAvg[i] = (arr.values[connectivity[3 * i]] + arr.values[connectivity[3 * i + 1]] + arr.values[connectivity[3 * i + 2]]) / 3;
-            }
-            const [avgMin, avgMax] = scalarRange(triAvg);
-            const avgScale = ColorScale.create({ listOrName: colormap, domain: [avgMin, avgMax] });
-            return (gid: number) => avgScale.color(triAvg[Math.floor(gid / 3)]);
-        }
-
-        // multi-component: magnitude
-        const { values } = arr;
-        if (smoothColor) {
-            // Per-vertex magnitude (fine-grained variation).
-            return (gid: number) => colorScale.color(vecMag(values, connectivity[gid] * nComp, nComp));
-        }
-        // Default: flat per-triangle average of vertex magnitudes.
-        const triAvg = new Float64Array(numberOfTriangles);
-        for (let i = 0; i < numberOfTriangles; i++) {
-            const m0 = vecMag(values, connectivity[3 * i] * nComp, nComp);
-            const m1 = vecMag(values, connectivity[3 * i + 1] * nComp, nComp);
-            const m2 = vecMag(values, connectivity[3 * i + 2] * nComp, nComp);
-            triAvg[i] = (m0 + m1 + m2) / 3;
-        }
-        const [avgMin, avgMax] = scalarRange(triAvg);
-        const avgScale = ColorScale.create({ listOrName: colormap, domain: [avgMin, avgMax] });
-        return (gid: number) => avgScale.color(triAvg[Math.floor(gid / 3)]);
+        if (nComp === 1) return arr.values;
+        // multi-component point data: per-vertex magnitude
+        const nPts = arr.values.length / nComp;
+        const mag = new Float64Array(nPts);
+        for (let i = 0; i < nPts; i++) mag[i] = vecMag(arr.values, i * nComp, nComp);
+        return mag;
     }
 
-    return () => uniformColor;
+    return null;
+}
+
+// Build a color function from pre-computed per-vertex scalar values.
+// Domain is derived from the values themselves (not from stale state props),
+// with a safety clamp so that near-constant arrays (e.g. unit normal magnitudes)
+// still produce a valid, non-degenerate colormap range.
+function makeColorFn(vtpFile: VtpFile, colormap: ColorListName, uniformColor: Color, attribute: string, vertexValues: Float64Array | null): (gid: number) => Color {
+    if (attribute === UNIFORM_KEY || !vertexValues) return () => uniformColor;
+
+    let [lo, hi] = scalarRange(vertexValues);
+    if (hi - lo < 1e-9) hi = lo + 1e-9; // prevent degenerate domain (e.g. unit-magnitude vectors)
+
+    const colorScale = ColorScale.create({ listOrName: colormap, domain: [lo, hi] });
+    const { connectivity } = vtpFile;
+    return (gid: number) => colorScale.color(vertexValues[connectivity[gid]]);
 }
 
 function createShape(vtpData: VtpData, mesh: Mesh, colorFn: (gid: number) => Color, scale: number): Shape<Mesh> {
@@ -296,20 +268,15 @@ function makeShapeGetter() {
     let _shape: Shape<Mesh> | undefined;
     let _mesh: Mesh | undefined;
     let _colorFn: ((gid: number) => Color) | undefined;
-    // Effective domain persisted in the closure so that secondary param changes
-    // (e.g. smoothColor toggle) reuse the correct domain rather than the stale
-    // domainMin/domainMax stored in the state transform's props.
-    let _computedDomainMin = 0;
-    let _computedDomainMax = 1;
+    // Cached per-vertex values. Only recomputed when the attribute or underlying data changes.
+    let _vertexValues: Float64Array | null = null;
 
     const getShape = async (ctx: RuntimeContext, vtpData: VtpData, props: PD.Values<VtpShapeParams>, shape?: Shape<Mesh>) => {
         const needsNewMesh = !_vtpData || _vtpData.source !== vtpData.source;
-        const needsNewColor = needsNewMesh || !_props ||
-            _props.attribute !== props.attribute ||
-            _props.smoothColor !== props.smoothColor ||
+        const attributeChanged = !_props || _props.attribute !== props.attribute || needsNewMesh;
+        const needsNewColor = needsNewMesh || attributeChanged ||
+            !_props ||
             _props.colormap !== props.colormap ||
-            _props.domainMin !== props.domainMin ||
-            _props.domainMax !== props.domainMax ||
             _props.uniformColor !== props.uniformColor;
         const needsNewShape = needsNewMesh || needsNewColor ||
             _vtpData?.transforms !== vtpData.transforms ||
@@ -319,15 +286,14 @@ function makeShapeGetter() {
             _mesh = await buildMesh(ctx, vtpData.source, shape?.geometry);
         }
 
+        if (attributeChanged) {
+            // Convert attribute data to per-original-vertex scalars (smgui approach):
+            // CellData → average neighbours to vertices; PointData → use directly.
+            _vertexValues = computeVertexValues(vtpData.source, props.attribute);
+        }
+
         if (needsNewColor) {
-            // Recompute domain only when the attribute (or underlying data) changes.
-            // Store it in the closure so subsequent toggles (smoothColor, colormap, etc.)
-            // continue to use the correct domain for the current attribute.
-            const attributeChanged = !_props || _props.attribute !== props.attribute || needsNewMesh;
-            if (attributeChanged) {
-                [_computedDomainMin, _computedDomainMax] = defaultDomain(vtpData.source, props.attribute);
-            }
-            _colorFn = makeColorFn(vtpData.source, { ...props, domainMin: _computedDomainMin, domainMax: _computedDomainMax });
+            _colorFn = makeColorFn(vtpData.source, props.colormap as ColorListName, props.uniformColor, props.attribute, _vertexValues);
         }
 
         if (needsNewShape) {
