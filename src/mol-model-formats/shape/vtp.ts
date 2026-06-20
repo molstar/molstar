@@ -107,7 +107,7 @@ export function createVtpShapeParams(vtpFile?: VtpFile) {
         doubleSided: { ...Mesh.Params.doubleSided, defaultValue: true },
         interior: { ...Mesh.Params.interior, defaultValue: { ...Mesh.Params.interior.defaultValue, colorStrength: 0 } },
         attribute: PD.Select(defKey, attrOptions, { label: 'Color Attribute' }),
-        smoothColor: PD.Boolean(true, { label: 'Smooth Color', description: 'Interpolate per-cell data to vertices for smooth color gradients (no effect for per-vertex attributes).' }),
+        smoothColor: PD.Boolean(false, { label: 'Smooth Color', description: 'Interpolate per-cell data to vertices for smooth color gradients (no effect for per-vertex attributes).' }),
         colormap: PD.Select('viridis' as ColorListName, ColorListOptionsScale, { label: 'Colormap' }),
         domainMin: PD.Numeric(defMin, {}, { label: 'Domain Min' }),
         domainMax: PD.Numeric(defMax, {}, { label: 'Domain Max' }),
@@ -211,8 +211,13 @@ function makeColorFn(vtpFile: VtpFile, props: PD.Values<VtpShapeParams>): (gid: 
         if (nComp === 1) {
             if (smoothColor) {
                 const smoothed = cellToVertexAverage(vtpFile, arr.values);
+                // Domain must be recomputed from smoothed values: averaging compresses the
+                // raw [min, max] range, so using the raw domain would place all smoothed
+                // values in the middle of the colormap.
+                const [sMin, sMax] = scalarRange(smoothed);
+                const smoothScale = ColorScale.create({ listOrName: colormap, domain: [sMin, sMax] });
                 const { connectivity } = vtpFile;
-                return (gid: number) => colorScale.color(smoothed[connectivity[gid]]);
+                return (gid: number) => smoothScale.color(smoothed[connectivity[gid]]);
             }
             return (gid: number) => colorScale.color(arr.values[triangleCellIndex[Math.floor(gid / 3)]]);
         }
