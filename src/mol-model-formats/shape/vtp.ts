@@ -31,18 +31,62 @@ const _identityTransforms = [Mat4.identity()];
 
 const UNIFORM_KEY = 'uniform::';
 
+function fmtStat(x: number): string {
+    if (!isFinite(x)) return x.toString();
+    const abs = Math.abs(x);
+    if (abs === 0) return '0';
+    if (abs < 0.001 || abs >= 1e5) return x.toExponential(2);
+    return x.toPrecision(3);
+}
+
+function computeAttrStatsText(vtpFile: VtpFile, attrKey: string): string {
+    if (attrKey === UNIFORM_KEY) return '';
+    let rawVals: Float64Array | undefined;
+    let nComp = 1;
+    let name = '';
+    if (attrKey.startsWith('point:')) {
+        name = attrKey.slice(6);
+        const arr = vtpFile.pointData.get(name);
+        if (!arr) return '';
+        rawVals = arr.values; nComp = arr.desc.numberOfComponents;
+    } else if (attrKey.startsWith('cell:')) {
+        name = attrKey.slice(5);
+        const arr = vtpFile.cellData.get(name);
+        if (!arr) return '';
+        rawVals = arr.values; nComp = arr.desc.numberOfComponents;
+    }
+    if (!rawVals) return '';
+    const n = rawVals.length / nComp;
+    let min = Infinity, max = -Infinity, sum = 0, sumSq = 0;
+    for (let i = 0; i < n; i++) {
+        let v: number;
+        if (nComp === 1) {
+            v = rawVals[i];
+        } else {
+            let mag2 = 0;
+            for (let c = 0; c < nComp; c++) mag2 += rawVals[i * nComp + c] ** 2;
+            v = Math.sqrt(mag2);
+        }
+        if (v < min) min = v;
+        if (v > max) max = v;
+        sum += v; sumSq += v * v;
+    }
+    const mean = sum / n;
+    const std = Math.sqrt(Math.max(0, sumSq / n - mean * mean));
+    const typeStr = nComp > 1 ? `${nComp}-comp magnitude` : 'scalar';
+    return `${name}  (${typeStr}, n=${n})\nmin: ${fmtStat(min)}   max: ${fmtStat(max)}\nmean: ${fmtStat(mean)}   σ: ${fmtStat(std)}`;
+}
+
 function buildAttrOptions(vtpFile?: VtpFile): PD.SelectOption<string>[] {
     const opts: PD.SelectOption<string>[] = [[UNIFORM_KEY, 'Uniform color']];
     if (!vtpFile) return opts;
     for (const [name, arr] of vtpFile.pointData) {
         const nComp = arr.desc.numberOfComponents;
-        const label = nComp > 1 ? `Point: ${name} (mag)` : `Point: ${name}`;
-        opts.push([`point:${name}`, label]);
+        opts.push([`point:${name}`, nComp > 1 ? `Point: ${name} (mag)` : `Point: ${name}`]);
     }
     for (const [name, arr] of vtpFile.cellData) {
         const nComp = arr.desc.numberOfComponents;
-        const label = nComp > 1 ? `Cell: ${name} (mag)` : `Cell: ${name}`;
-        opts.push([`cell:${name}`, label]);
+        opts.push([`cell:${name}`, nComp > 1 ? `Cell: ${name} (mag)` : `Cell: ${name}`]);
     }
     return opts;
 }
@@ -101,6 +145,7 @@ export function createVtpShapeParams(vtpFile?: VtpFile) {
     const attrOptions = buildAttrOptions(vtpFile);
     const defKey = defaultAttrKey(vtpFile);
     const [defMin, defMax] = defaultDomain(vtpFile, defKey);
+    const defStats = vtpFile ? computeAttrStatsText(vtpFile, defKey) : '';
 
     return {
         ...Mesh.Params,
@@ -108,9 +153,9 @@ export function createVtpShapeParams(vtpFile?: VtpFile) {
         interior: { ...Mesh.Params.interior, defaultValue: { ...Mesh.Params.interior.defaultValue, colorStrength: 0 } },
         attribute: PD.Select(defKey, attrOptions, { label: 'Color Attribute' }),
         colormap: PD.Select('viridis' as ColorListName, ColorListOptionsScale, { label: 'Colormap' }),
-        // domainMin/domainMax are kept for state serialization but are auto-computed from data.
         domainMin: PD.Numeric(defMin, {}, { label: 'Domain Min', isHidden: true }),
         domainMax: PD.Numeric(defMax, {}, { label: 'Domain Max', isHidden: true }),
+        statsText: PD.Text(defStats, { label: 'Statistics', multiline: true }),
         uniformColor: PD.Color(ColorNames.grey, { label: 'Uniform Color' }),
         scale: PD.Numeric(1, { min: 0.01, max: 100, step: 0.01 }, { label: 'Scale', description: 'Uniform scale factor applied to the mesh.' }),
     };
@@ -187,19 +232,60 @@ function cellToVertexAverage(vtpFile: VtpFile, cellValues: Float64Array): Float6
     return smoothed;
 }
 
+// Average multi-component cell vectors to vertices, then return the magnitude of each vertex vector.
+// Matching smgui _cell_to_vertex_interpolation_vector: averaging direction vectors, not their magnitudes,
+// so that crease/boundary vertices (where adjacent face normals cancel) get low magnitude values.
+function cellToVertexAverageMag(vtpFile: VtpFile, cellVectors: Float64Array, nComp: number): Float64Array {
+    const { connectivity, triangleCellIndex, numberOfPoints } = vtpFile;
+    const nTris = connectivity.length / 3;
+    const sum = new Float64Array(numberOfPoints * nComp);
+    const count = new Uint32Array(numberOfPoints);
+    for (let i = 0; i < nTris; i++) {
+        const ci = triangleCellIndex[i];
+        const v0 = connectivity[3 * i];
+        const v1 = connectivity[3 * i + 1];
+        const v2 = connectivity[3 * i + 2];
+        for (let c = 0; c < nComp; c++) {
+            const val = cellVectors[ci * nComp + c];
+            sum[v0 * nComp + c] += val;
+            sum[v1 * nComp + c] += val;
+            sum[v2 * nComp + c] += val;
+        }
+        count[v0]++; count[v1]++; count[v2]++;
+    }
+    const result = new Float64Array(numberOfPoints);
+    for (let v = 0; v < numberOfPoints; v++) {
+        if (count[v] > 0) {
+            let mag2 = 0;
+            for (let c = 0; c < nComp; c++) {
+                const avg = sum[v * nComp + c] / count[v];
+                mag2 += avg * avg;
+            }
+            result[v] = Math.sqrt(mag2);
+        }
+    }
+    return result;
+}
+
 function vecMag(values: Float64Array, baseIdx: number, nComp: number): number {
     let mag2 = 0;
     for (let c = 0; c < nComp; c++) mag2 += values[baseIdx + c] ** 2;
     return Math.sqrt(mag2);
 }
 
+interface VertexResult {
+    values: Float64Array;
+    isMagnitude: boolean; // true for multi-component (magnitude) attributes
+}
+
 // Compute per-vertex scalar values from a VTP attribute, matching smgui exactly:
-//   - CellData (per-triangle): average cell values to vertices via weighted neighbour sum
-//   - CellData multi-component: compute per-cell magnitude first, then average to vertices
-//   - PointData (per-vertex): use values directly (already at vertex level)
-//   - PointData multi-component: compute per-vertex magnitude
+//   - CellData scalar: average cell scalars to vertices
+//   - CellData multi-component: average raw vectors to vertices first, then compute magnitude
+//     (matches smgui _cell_to_vertex_interpolation_vector → norm; crease vertices cancel → low magnitude)
+//   - PointData scalar: use values directly
+//   - PointData multi-component: compute per-vertex magnitude directly
 // Returns null for UNIFORM_KEY or missing attributes.
-function computeVertexValues(vtpFile: VtpFile, attribute: string): Float64Array | null {
+function computeVertexValues(vtpFile: VtpFile, attribute: string): VertexResult | null {
     if (attribute === UNIFORM_KEY) return null;
 
     if (attribute.startsWith('cell:')) {
@@ -207,43 +293,42 @@ function computeVertexValues(vtpFile: VtpFile, attribute: string): Float64Array 
         if (!arr) return null;
         const nComp = arr.desc.numberOfComponents;
         if (nComp === 1) {
-            return cellToVertexAverage(vtpFile, arr.values);
+            return { values: cellToVertexAverage(vtpFile, arr.values), isMagnitude: false };
         }
-        // multi-component cell data: magnitude per cell, then average to vertices
-        const nCells = arr.values.length / nComp;
-        const cellMag = new Float64Array(nCells);
-        for (let i = 0; i < nCells; i++) cellMag[i] = vecMag(arr.values, i * nComp, nComp);
-        return cellToVertexAverage(vtpFile, cellMag);
+        // Average vectors to vertices first, then take magnitude — crease vertices get lower values
+        return { values: cellToVertexAverageMag(vtpFile, arr.values, nComp), isMagnitude: true };
     }
 
     if (attribute.startsWith('point:')) {
         const arr = vtpFile.pointData.get(attribute.slice(6));
         if (!arr) return null;
         const nComp = arr.desc.numberOfComponents;
-        if (nComp === 1) return arr.values;
+        if (nComp === 1) return { values: arr.values, isMagnitude: false };
         // multi-component point data: per-vertex magnitude
         const nPts = arr.values.length / nComp;
         const mag = new Float64Array(nPts);
         for (let i = 0; i < nPts; i++) mag[i] = vecMag(arr.values, i * nComp, nComp);
-        return mag;
+        return { values: mag, isMagnitude: true };
     }
 
     return null;
 }
 
 // Build a color function from pre-computed per-vertex scalar values.
-// Domain is derived from the values themselves (not from stale state props),
-// with a safety clamp so that near-constant arrays (e.g. unit normal magnitudes)
-// still produce a valid, non-degenerate colormap range.
-function makeColorFn(vtpFile: VtpFile, colormap: ColorListName, uniformColor: Color, attribute: string, vertexValues: Float64Array | null): (gid: number) => Color {
-    if (attribute === UNIFORM_KEY || !vertexValues) return () => uniformColor;
+// Domain is [min, max] (matching smgui). For magnitude attributes where all values are
+// nearly identical (e.g. PointData unit normals, range < 1% of max), fall back to [0, max]
+// so the entire colormap is used and values map to the high end (yellow in viridis).
+function makeColorFn(vtpFile: VtpFile, colormap: ColorListName, uniformColor: Color, attribute: string, result: VertexResult | null): (gid: number) => Color {
+    if (attribute === UNIFORM_KEY || !result) return () => uniformColor;
 
-    let [lo, hi] = scalarRange(vertexValues);
-    if (hi - lo < 1e-9) hi = lo + 1e-9; // prevent degenerate domain (e.g. unit-magnitude vectors)
+    const { values, isMagnitude } = result;
+    let [lo, hi] = scalarRange(values);
+    if (isMagnitude && hi > 0 && (hi - lo) / hi < 0.01) lo = 0; // degenerate unit-vector case
+    if (hi - lo < 1e-9) hi = lo + 1e-9; // prevent degenerate domain
 
     const colorScale = ColorScale.create({ listOrName: colormap, domain: [lo, hi] });
     const { connectivity } = vtpFile;
-    return (gid: number) => colorScale.color(vertexValues[connectivity[gid]]);
+    return (gid: number) => colorScale.color(values[connectivity[gid]]);
 }
 
 function createShape(vtpData: VtpData, mesh: Mesh, colorFn: (gid: number) => Color, scale: number): Shape<Mesh> {
@@ -268,8 +353,9 @@ function makeShapeGetter() {
     let _shape: Shape<Mesh> | undefined;
     let _mesh: Mesh | undefined;
     let _colorFn: ((gid: number) => Color) | undefined;
-    // Cached per-vertex values. Only recomputed when the attribute or underlying data changes.
-    let _vertexValues: Float64Array | null = null;
+    let _vertexResult: VertexResult | null = null;
+    let _lastStatsAttr: string | undefined;
+    let _lastStatsText: string = '';
 
     const getShape = async (ctx: RuntimeContext, vtpData: VtpData, props: PD.Values<VtpShapeParams>, shape?: Shape<Mesh>) => {
         const needsNewMesh = !_vtpData || _vtpData.source !== vtpData.source;
@@ -287,13 +373,15 @@ function makeShapeGetter() {
         }
 
         if (attributeChanged) {
-            // Convert attribute data to per-original-vertex scalars (smgui approach):
-            // CellData → average neighbours to vertices; PointData → use directly.
-            _vertexValues = computeVertexValues(vtpData.source, props.attribute);
+            _vertexResult = computeVertexValues(vtpData.source, props.attribute);
+            if (props.attribute !== _lastStatsAttr) {
+                _lastStatsText = computeAttrStatsText(vtpData.source, props.attribute);
+                _lastStatsAttr = props.attribute;
+            }
         }
 
         if (needsNewColor) {
-            _colorFn = makeColorFn(vtpData.source, props.colormap as ColorListName, props.uniformColor, props.attribute, _vertexValues);
+            _colorFn = makeColorFn(vtpData.source, props.colormap as ColorListName, props.uniformColor, props.attribute, _vertexResult);
         }
 
         if (needsNewShape) {
@@ -307,17 +395,26 @@ function makeShapeGetter() {
         return _shape!;
     };
 
-    return getShape;
+    const getStats = () => ({ text: _lastStatsText, attr: _lastStatsAttr });
+    return { getShape, getStats };
 }
 
 export function shapeFromVtp(source: VtpFile, params?: { transforms?: Mat4[] }) {
     return Task.create<ShapeProvider<VtpData, Mesh, VtpShapeParams>>('Shape Provider', async () => {
-        return {
+        const getter = makeShapeGetter();
+        const provider: ShapeProvider<VtpData, Mesh, VtpShapeParams> & { onParamsUpdate?: (props: PD.Values<VtpShapeParams>) => Record<string, unknown> | null } = {
             label: 'VTP Mesh',
             data: { source, transforms: params?.transforms },
             params: createVtpShapeParams(source),
-            getShape: makeShapeGetter(),
-            geometryUtils: Mesh.Utils
+            getShape: getter.getShape,
+            geometryUtils: Mesh.Utils,
+            onParamsUpdate(props: PD.Values<VtpShapeParams>) {
+                const { text, attr } = getter.getStats();
+                if (!attr || props.attribute !== attr) return null;
+                if ((props as any).statsText === text) return null; // already up to date
+                return { statsText: text };
+            }
         };
+        return provider;
     });
 }

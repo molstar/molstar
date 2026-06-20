@@ -1191,11 +1191,29 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
             return new SO.Shape.Representation3D({ repr, sourceData: a.data }, { label: a.data.label });
         });
     },
-    update({ a, b, newParams }) {
+    update({ a, b, newParams, spine }, globalContext: PluginContext) {
+        // Capture ref synchronously while spine.current is still set to this cell
+        const ref = (spine as any).current?.transform.ref as string | undefined;
         return Task.create('Shape Representation', async ctx => {
             const props = { ...b.data.repr.props, ...newParams };
             await b.data.repr.createOrUpdate(props, a.data.data).runInContext(ctx);
             b.data.sourceData = a.data;
+
+            // Optional derived-params hook (e.g., VTP stats text update)
+            const hook = (a.data as any).onParamsUpdate;
+            if (globalContext && ref && typeof hook === 'function') {
+                const extra = hook(newParams);
+                if (extra) {
+                    const attrSnapshot = (newParams as any).attribute;
+                    setTimeout(() => {
+                        const state = globalContext.state.data;
+                        const cell = state.cells.get(ref);
+                        if (!cell || (cell.params as any)?.values?.attribute !== attrSnapshot) return;
+                        globalContext.state.updateTransform(state, ref, { ...(cell.params as any).values, ...extra }, false);
+                    }, 0);
+                }
+            }
+
             return StateTransformer.UpdateResult.Updated;
         });
     }
