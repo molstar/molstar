@@ -41,10 +41,10 @@ function extractAppendedInfo(data: Uint8Array): AppendedInfo {
 
     let pos = tagPos;
     while (pos < data.length && data[pos] !== 0x3E) pos++;
-    // Decode the opening tag text to read the encoding attribute.
+    // Read the encoding attribute without regex.
     const tagText = new TextDecoder('ascii').decode(data.subarray(tagPos, pos + 1));
-    const encMatch = tagText.match(/encoding="([^"]+)"/i);
-    const encoding = encMatch ? encMatch[1].toLowerCase() : 'raw';
+    const { attrs: appendedAttrs } = readAttrs(tagText, '<AppendedData'.length);
+    const encoding = (appendedAttrs.get('encoding') ?? 'raw').toLowerCase();
     pos++; // skip '>'
     while (pos < data.length && (data[pos] === 0x20 || data[pos] === 0x09 || data[pos] === 0x0A || data[pos] === 0x0D)) pos++;
     if (pos >= data.length || data[pos] !== 0x5F) {
@@ -65,60 +65,100 @@ function extractAppendedInfo(data: Uint8Array): AppendedInfo {
     }
 }
 
-// --- XML header parsing ---
+// --- Tokenizer helpers (replace regex-based XML attribute parsing) ---
 
-const _ATTR_RE: Record<string, RegExp> = {
-    Name: /Name=["']([^"']*)["']/,
-    type: /type=["']([^"']*)["']/,
-    format: /format=["']([^"']*)["']/,
-    NumberOfComponents: /NumberOfComponents=["']([^"']*)["']/,
-    offset: /offset=["']([^"']*)["']/,
-    RangeMin: /RangeMin=["']([^"']*)["']/,
-    RangeMax: /RangeMax=["']([^"']*)["']/,
-    NumberOfPoints: /NumberOfPoints=["']([^"']*)["']/,
-    NumberOfPolys: /NumberOfPolys=["']([^"']*)["']/,
-    NumberOfVerts: /NumberOfVerts=["']([^"']*)["']/,
-    NumberOfLines: /NumberOfLines=["']([^"']*)["']/,
-    NumberOfStrips: /NumberOfStrips=["']([^"']*)["']/,
-    byte_order: /byte_order=["']([^"']*)["']/,
-    compressor: /compressor=["']([^"']*)["']/,
-    header_type: /header_type=["']([^"']*)["']/,
-};
-function attrValue(attrStr: string, name: string): string | undefined {
-    const re = _ATTR_RE[name] ?? new RegExp(name + '=["\']([^"\']*)["\']');
-    const m = attrStr.match(re);
-    return m ? m[1] : undefined;
+function isWS(c: number): boolean {
+    return c === 32 || c === 9 || c === 10 || c === 13;
 }
 
-function extractSectionArrays(header: string, sectionName: string): VtpDataArrayDescriptor[] {
-    const re = new RegExp(`<${sectionName}(?:\\s[^>]*)?>([\\s\\S]*?)</${sectionName}>`);
-    const sm = header.match(re);
-    if (!sm) return [];
+// Find '<tagName' followed by whitespace, '>', or '/' starting from `from`.
+// The char-after guard prevents 'Points' from matching '<PointData>'.
+function findTagStart(src: string, tagName: string, from: number): number {
+    const needle = '<' + tagName;
+    const nl = needle.length;
+    outer: for (let i = from, il = src.length - nl; i <= il; i++) {
+        if (src.charCodeAt(i) !== 60) continue;
+        for (let j = 1; j < nl; j++) {
+            if (src.charCodeAt(i + j) !== needle.charCodeAt(j)) continue outer;
+        }
+        const after = src.charCodeAt(i + nl);
+        if (isWS(after) || after === 62 || after === 47) return i;
+    }
+    return -1;
+}
+
+// Parse attribute name="value" pairs from the body of an opening tag (the part after
+// the tag name).  Returns attrs and the position of the closing '>' or '/'.
+function readAttrs(src: string, pos: number): { attrs: Map<string, string>, tagEnd: number } {
+    const attrs = new Map<string, string>();
+    const len = src.length;
+    while (pos < len) {
+        while (pos < len && isWS(src.charCodeAt(pos))) pos++;
+        const c = src.charCodeAt(pos);
+        if (c === 62 || c === 47) break; // '>' or '/'
+        const ns = pos;
+        while (pos < len && src.charCodeAt(pos) !== 61 && !isWS(src.charCodeAt(pos)) && src.charCodeAt(pos) !== 62 && src.charCodeAt(pos) !== 47) pos++;
+        const name = src.slice(ns, pos);
+        while (pos < len && isWS(src.charCodeAt(pos))) pos++;
+        if (pos < len && src.charCodeAt(pos) === 61) pos++; // '='
+        while (pos < len && isWS(src.charCodeAt(pos))) pos++;
+        if (pos < len && (src.charCodeAt(pos) === 34 || src.charCodeAt(pos) === 39)) {
+            const q = src.charCodeAt(pos++);
+            const vs = pos;
+            while (pos < len && src.charCodeAt(pos) !== q) pos++;
+            if (name) attrs.set(name, src.slice(vs, pos));
+            if (pos < len) pos++;
+        }
+    }
+    return { attrs, tagEnd: pos };
+}
+
+// --- XML header parsing ---
+
+function parseDataArraysInSection(header: string, sectionName: string): VtpDataArrayDescriptor[] {
+    const sStart = findTagStart(header, sectionName, 0);
+    if (sStart === -1) return [];
+    let pos = sStart + 1 + sectionName.length;
+    while (pos < header.length && header.charCodeAt(pos) !== 62) pos++;
+    pos++; // skip '>'
+    const sEnd = header.indexOf('</' + sectionName + '>', pos);
+    if (sEnd === -1) return [];
+
     const results: VtpDataArrayDescriptor[] = [];
-    // Match self-closing (<DataArray .../>) or opening tag + text content.
-    // [^<]* captures everything up to the next tag — handles both ASCII numeric content
-    // and inline base64 (which never contains '<'). Stops before <InformationKey>, etc.
-    const daRe = /<DataArray\s+([^>]*?)(?:\/>|>([^<]*))/g;
-    let m;
-    while ((m = daRe.exec(sm[1])) !== null) {
-        const attrStr = m[1];
-        const rawContent = m[2] ?? '';
-        const offsetStr = attrValue(attrStr, 'offset');
-        const fmt = (attrValue(attrStr, 'format') ?? 'binary') as 'ascii' | 'binary' | 'appended';
+    while (pos < sEnd) {
+        const daStart = findTagStart(header, 'DataArray', pos);
+        if (daStart === -1 || daStart >= sEnd) break;
+        const { attrs, tagEnd } = readAttrs(header, daStart + '<DataArray'.length);
+        let content = '';
+        let nextPos: number;
+        if (header.charCodeAt(tagEnd) === 47) {
+            nextPos = tagEnd + 2; // '/>'
+        } else {
+            nextPos = tagEnd + 1;
+            const closeDA = header.indexOf('</DataArray>', nextPos);
+            if (closeDA !== -1) {
+                content = header.slice(nextPos, closeDA);
+                nextPos = closeDA + '</DataArray>'.length;
+            } else {
+                nextPos = sEnd;
+            }
+        }
+        pos = nextPos;
 
-        const b64 = fmt === 'binary' ? rawContent.replace(/\s/g, '') : '';
-        const asciiText = fmt === 'ascii' ? rawContent : undefined;
+        const fmt = (attrs.get('format') ?? 'binary') as 'ascii' | 'binary' | 'appended';
+        const offsetStr = attrs.get('offset');
+        const b64 = fmt === 'binary' ? content.replace(/\s/g, '') : '';
+        const asciiText = fmt === 'ascii' ? content : undefined;
 
-        // Skip if no usable data source
         if (fmt === 'appended' && offsetStr === undefined) continue;
         if (fmt === 'binary' && b64.length === 0) continue;
 
-        const rangeMinStr = attrValue(attrStr, 'RangeMin');
-        const rangeMaxStr = attrValue(attrStr, 'RangeMax');
-        const desc: VtpDataArrayDescriptor = {
-            name: attrValue(attrStr, 'Name') ?? '',
-            type: attrValue(attrStr, 'type') ?? 'Float32',
-            numberOfComponents: parseInt(attrValue(attrStr, 'NumberOfComponents') ?? '1', 10),
+        const rangeMinStr = attrs.get('RangeMin');
+        const rangeMaxStr = attrs.get('RangeMax');
+        results.push({
+            name: attrs.get('Name') ?? '',
+            type: attrs.get('type') ?? 'Float32',
+            numberOfComponents: parseInt(attrs.get('NumberOfComponents') ?? '1', 10),
             format: fmt,
             offset: offsetStr !== undefined ? parseInt(offsetStr, 10) : -1,
             hasRange: rangeMinStr !== undefined && rangeMaxStr !== undefined,
@@ -126,8 +166,7 @@ function extractSectionArrays(header: string, sectionName: string): VtpDataArray
             rangeMax: parseFloat(rangeMaxStr ?? '1'),
             ...(b64.length > 0 ? { inlineBase64: b64 } : {}),
             ...(asciiText !== undefined ? { asciiText } : {}),
-        };
-        results.push(desc);
+        });
     }
     return results;
 }
@@ -148,29 +187,32 @@ interface ParsedHeader {
 }
 
 function parseHeader(header: string): ParsedHeader {
-    const pieceMatch = header.match(/<Piece\s([^>]*)>/);
-    if (!pieceMatch) throw new Error('Cannot find Piece element in VTP header');
-    const pieceAttrs = pieceMatch[1];
-    const nPointsStr = attrValue(pieceAttrs, 'NumberOfPoints');
-    const nPolysStr = attrValue(pieceAttrs, 'NumberOfPolys');
-    if (nPointsStr === undefined || nPolysStr === undefined) {
+    const vtkStart = findTagStart(header, 'VTKFile', 0);
+    if (vtkStart === -1) throw new Error('Cannot find VTKFile element in VTP header');
+    const { attrs: vtkAttrs } = readAttrs(header, vtkStart + '<VTKFile'.length);
+
+    const pieceStart = findTagStart(header, 'Piece', 0);
+    if (pieceStart === -1) throw new Error('Cannot find Piece element in VTP header');
+    const { attrs: pieceAttrs } = readAttrs(header, pieceStart + '<Piece'.length);
+
+    const nPointsStr = pieceAttrs.get('NumberOfPoints');
+    const nPolysStr = pieceAttrs.get('NumberOfPolys');
+    if (!nPointsStr || !nPolysStr) {
         throw new Error('Cannot parse NumberOfPoints/NumberOfPolys from VTP Piece element');
     }
-    const vtkFileMatch = header.match(/<VTKFile\s+([^>]*)>/);
-    const vtkAttrs = vtkFileMatch ? vtkFileMatch[1] : '';
     return {
         nPoints: parseInt(nPointsStr, 10),
         nCells: parseInt(nPolysStr, 10),
-        nVerts: parseInt(attrValue(pieceAttrs, 'NumberOfVerts') ?? '0', 10),
-        nLines: parseInt(attrValue(pieceAttrs, 'NumberOfLines') ?? '0', 10),
-        nStrips: parseInt(attrValue(pieceAttrs, 'NumberOfStrips') ?? '0', 10),
-        byteOrder: attrValue(vtkAttrs, 'byte_order') ?? 'LittleEndian',
-        compressor: attrValue(vtkAttrs, 'compressor') ?? '',
-        headerType: attrValue(vtkAttrs, 'header_type') ?? 'UInt32',
-        pointDataArrays: extractSectionArrays(header, 'PointData'),
-        cellDataArrays: extractSectionArrays(header, 'CellData'),
-        pointsArrays: extractSectionArrays(header, 'Points'),
-        polysArrays: extractSectionArrays(header, 'Polys'),
+        nVerts: parseInt(pieceAttrs.get('NumberOfVerts') ?? '0', 10),
+        nLines: parseInt(pieceAttrs.get('NumberOfLines') ?? '0', 10),
+        nStrips: parseInt(pieceAttrs.get('NumberOfStrips') ?? '0', 10),
+        byteOrder: vtkAttrs.get('byte_order') ?? 'LittleEndian',
+        compressor: vtkAttrs.get('compressor') ?? '',
+        headerType: vtkAttrs.get('header_type') ?? 'UInt32',
+        pointDataArrays: parseDataArraysInSection(header, 'PointData'),
+        cellDataArrays: parseDataArraysInSection(header, 'CellData'),
+        pointsArrays: parseDataArraysInSection(header, 'Points'),
+        polysArrays: parseDataArraysInSection(header, 'Polys'),
     };
 }
 
@@ -404,41 +446,51 @@ function decodeToFloat64(raw: Uint8Array, type: string, count: number): Float64A
 }
 
 // --- ASCII format helpers ---
+// Scan-based tokenizer: avoids the intermediate array that split() would create.
+// Each token is sliced only when parseFloat/parseInt is called; no other copies.
+
+function parseAsciiNumbers(text: string, out: Float32Array | Float64Array | Int32Array, count: number, asInt: boolean): void {
+    let pos = 0, n = 0;
+    const len = text.length;
+    while (pos < len && n < count) {
+        while (pos < len && isWS(text.charCodeAt(pos))) pos++;
+        if (pos >= len) break;
+        const start = pos;
+        while (pos < len && !isWS(text.charCodeAt(pos))) pos++;
+        if (pos > start) out[n++] = asInt ? parseInt(text.slice(start, pos), 10) : parseFloat(text.slice(start, pos));
+    }
+}
 
 function parseAsciiFloat32(text: string, count: number): Float32Array {
-    const trimmed = text.trim();
     const out = new Float32Array(count);
-    if (!trimmed) return out;
-    const tokens = trimmed.split(/\s+/);
-    for (let i = 0; i < count && i < tokens.length; i++) out[i] = parseFloat(tokens[i]);
+    parseAsciiNumbers(text, out, count, false);
     return out;
 }
 
 function parseAsciiFloat64(text: string, count: number): Float64Array {
-    const trimmed = text.trim();
     const out = new Float64Array(count);
-    if (!trimmed) return out;
-    const tokens = trimmed.split(/\s+/);
-    for (let i = 0; i < count && i < tokens.length; i++) out[i] = parseFloat(tokens[i]);
+    parseAsciiNumbers(text, out, count, false);
     return out;
 }
 
 function parseAsciiInts(text: string, count: number): Int32Array {
-    const trimmed = text.trim();
     const out = new Int32Array(count);
-    if (!trimmed) return out;
-    const tokens = trimmed.split(/\s+/);
-    for (let i = 0; i < count && i < tokens.length; i++) out[i] = parseInt(tokens[i], 10);
+    parseAsciiNumbers(text, out, count, true);
     return out;
 }
 
-// For connectivity: count is not known upfront (= offsets[last]), so parse all tokens.
+// For ASCII connectivity: count is not known upfront, so two-pass to avoid over-allocation.
 function parseAsciiIntsAll(text: string): Int32Array {
-    const trimmed = text.trim();
-    if (!trimmed) return new Int32Array(0);
-    const tokens = trimmed.split(/\s+/);
-    const out = new Int32Array(tokens.length);
-    for (let i = 0; i < tokens.length; i++) out[i] = parseInt(tokens[i], 10);
+    let count = 0, pos = 0;
+    const len = text.length;
+    while (pos < len) {
+        while (pos < len && isWS(text.charCodeAt(pos))) pos++;
+        if (pos >= len) break;
+        count++;
+        while (pos < len && !isWS(text.charCodeAt(pos))) pos++;
+    }
+    const out = new Int32Array(count);
+    parseAsciiNumbers(text, out, count, true);
     return out;
 }
 
