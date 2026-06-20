@@ -8,6 +8,7 @@ import { ReaderResult as Result } from '../result';
 import { Task, RuntimeContext } from '../../../mol-task';
 import { inflate } from '../../../mol-util/zip/zip';
 import { VtpFile, VtpDataArrayDescriptor, VtpScalarArray } from './schema';
+import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../common/text/number-parser';
 
 // --- Locate AppendedData section ---
 
@@ -457,7 +458,7 @@ function parseAsciiNumbers(text: string, out: Float32Array | Float64Array | Int3
         if (pos >= len) break;
         const start = pos;
         while (pos < len && !isWS(text.charCodeAt(pos))) pos++;
-        if (pos > start) out[n++] = asInt ? parseInt(text.slice(start, pos), 10) : parseFloat(text.slice(start, pos));
+        if (pos > start) out[n++] = asInt ? fastParseInt(text, start, pos) : fastParseFloat(text, start, pos);
     }
 }
 
