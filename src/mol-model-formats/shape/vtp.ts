@@ -108,7 +108,7 @@ export function createVtpShapeParams(vtpFile?: VtpFile) {
         interior: { ...Mesh.Params.interior, defaultValue: { ...Mesh.Params.interior.defaultValue, colorStrength: 0 } },
         attribute: PD.Select(defKey, attrOptions, { label: 'Color Attribute' }),
         smoothColor: PD.Boolean(true, { label: 'Smooth Color', description: 'Interpolate per-cell data to vertices for smooth color gradients (no effect for per-vertex attributes).' }),
-        colormap: PD.Select('red-yellow-blue' as ColorListName, ColorListOptionsScale, { label: 'Colormap' }),
+        colormap: PD.Select('viridis' as ColorListName, ColorListOptionsScale, { label: 'Colormap' }),
         domainMin: PD.Numeric(defMin, {}, { label: 'Domain Min' }),
         domainMax: PD.Numeric(defMax, {}, { label: 'Domain Max' }),
         uniformColor: PD.Color(ColorNames.grey, { label: 'Uniform Color' }),
@@ -279,7 +279,17 @@ function makeShapeGetter() {
         }
 
         if (needsNewColor) {
-            _colorFn = makeColorFn(vtpData.source, props);
+            // When the attribute changes, recompute domain from data so the new
+            // attribute's values map across the full colormap regardless of
+            // what domainMin/domainMax were set to for the previous attribute.
+            const attributeChanged = !_props || _props.attribute !== props.attribute || needsNewMesh;
+            const effectiveProps = attributeChanged
+                ? (() => {
+                    const [newMin, newMax] = defaultDomain(vtpData.source, props.attribute);
+                    return { ...props, domainMin: newMin, domainMax: newMax };
+                })()
+                : props;
+            _colorFn = makeColorFn(vtpData.source, effectiveProps);
         }
 
         if (needsNewShape) {
