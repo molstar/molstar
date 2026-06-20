@@ -44,7 +44,7 @@ float getDepthOpaque(const in vec2 coords) {
 }
 
 float getDepthTransparent(const in vec2 coords) {
-    #if defined(dTransparentOutline) || defined(dOcclusionEnable)
+    #if defined(dTransparentOutline) || defined(dOcclusionEnable) || defined(dBloomEnable)
         return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords)).x;
     #else
         return 1.0;
