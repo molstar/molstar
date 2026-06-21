@@ -92,7 +92,7 @@ describe('decodeInt64AsInt32', () => {
     it('takes low 32 bits of each int64 (little-endian)', () => {
         const buf = new ArrayBuffer(16);
         const dv = new DataView(buf);
-        dv.setUint32(0, 42, true);  dv.setUint32(4, 0, true);
+        dv.setUint32(0, 42, true); dv.setUint32(4, 0, true);
         dv.setUint32(8, 999, true); dv.setUint32(12, 0, true);
         const out = decodeInt64AsInt32(new Uint8Array(buf), 2);
         expect(out[0]).toBe(42);
@@ -152,8 +152,8 @@ describe('decodeToFloat64', () => {
     it('Int64 small values', () => {
         const buf = new ArrayBuffer(16);
         const dv = new DataView(buf);
-        dv.setUint32(0, 7, true);  dv.setInt32(4, 0, true);
-        dv.setUint32(8, 0, true);  dv.setInt32(12, -1, true); // -4294967296
+        dv.setUint32(0, 7, true); dv.setInt32(4, 0, true);
+        dv.setUint32(8, 0, true); dv.setInt32(12, -1, true); // -4294967296
         const out = decodeToFloat64(new Uint8Array(buf), 'Int64', 2);
         expect(out[0]).toBe(7);
         expect(out[1]).toBe(-4294967296);
