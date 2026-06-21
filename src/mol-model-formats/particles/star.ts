@@ -178,6 +178,29 @@ function resolvePixelSize(particles: Particles, optics: Optics | undefined, opti
     return { fixed: opticsCol.value(0), perRow: undefined, perGroup: undefined };
 }
 
+function buildStarAttrMaps(count: number, rowCount: number, defs: Array<[string, string, Float32Array | undefined]>) {
+    const attributes = new Map<string, Float32Array>();
+    const attributeInfo = new Map<string, { label: string, min: number, max: number }>();
+    for (const [key, label, buf] of defs) {
+        if (!buf) continue;
+        const arr = count === rowCount ? buf : buf.slice(0, count);
+        let min = Infinity, max = -Infinity;
+        for (let i = 0; i < count; i++) {
+            const v = arr[i];
+            if (isFinite(v)) {
+                if (v < min) min = v;
+                if (v > max) max = v;
+            }
+        }
+        if (!isFinite(min)) continue;
+        attributes.set(key, arr);
+        attributeInfo.set(key, { label, min, max });
+    }
+    return attributes.size > 0
+        ? { attributes, attributeInfo }
+        : { attributes: undefined, attributeInfo: undefined };
+}
+
 export function createParticleListFromRelionStar(data: RelionStarFile, options: RelionParticleListOptions = {}): ParticleList {
     const { particleBlock, particles, optics } = data;
     const coordinateColumns = getTripletColumnsFromSpecs(particles, RelionCoordinateSpecs);
@@ -204,6 +227,15 @@ export function createParticleListFromRelionStar(data: RelionStarFile, options: 
     const _keys = new Int32Array(rowCount);
     const _coordinates = new Float32Array(rowCount * 3);
     const _rotations = hasRotations ? new Float32Array(rowCount * 4) : undefined;
+
+    const _classCol = particles.rlnClassNumber;
+    const _scoreCol = particles.rlnMaxValueProbDistribution;
+    const _logCol = particles.rlnLogLikeliContribution;
+    const _normCol = particles.rlnNormCorrection;
+    const _classAttr = _classCol.isDefined ? new Float32Array(rowCount) : undefined;
+    const _scoreAttr = _scoreCol.isDefined ? new Float32Array(rowCount) : undefined;
+    const _logAttr = _logCol.isDefined ? new Float32Array(rowCount) : undefined;
+    const _normAttr = _normCol.isDefined ? new Float32Array(rowCount) : undefined;
 
     const position = Vec3();
     const originShift = Vec3();
@@ -251,6 +283,11 @@ export function createParticleListFromRelionStar(data: RelionStarFile, options: 
 
         _keys[count] = row;
 
+        if (_classAttr) _classAttr[count] = _classCol.value(row);
+        if (_scoreAttr) _scoreAttr[count] = _scoreCol.value(row);
+        if (_logAttr) _logAttr[count] = _logCol.value(row);
+        if (_normAttr) _normAttr[count] = _normCol.value(row);
+
         const cOffset = count * 3;
         _coordinates[cOffset + 0] = position[0];
         _coordinates[cOffset + 1] = position[1];
@@ -291,6 +328,13 @@ export function createParticleListFromRelionStar(data: RelionStarFile, options: 
     const coordinates = count === rowCount ? _coordinates : _coordinates.slice(0, count * 3);
     const rotations = _rotations && (count === rowCount ? _rotations : _rotations.slice(0, count * 4));
 
+    const { attributes, attributeInfo } = buildStarAttrMaps(count, rowCount, [
+        ['class', 'Class', _classAttr],
+        ['score', 'Score', _scoreAttr],
+        ['logLikelihood', 'Log-Likelihood', _logAttr],
+        ['normCorrection', 'Norm Correction', _normAttr],
+    ]);
+
     return {
         label: buildRelionLabel(particleBlock.header, options.tomograms, options.micrographs),
         count,
@@ -298,6 +342,8 @@ export function createParticleListFromRelionStar(data: RelionStarFile, options: 
         targets: new Int32Array(count),
         coordinates,
         rotations,
+        attributes,
+        attributeInfo,
         getParticleLabel: (index: number) => {
             const row = keys[index];
             const tomoName = tomoNameCol.isDefined ? tomoNameCol.value(row) : undefined;

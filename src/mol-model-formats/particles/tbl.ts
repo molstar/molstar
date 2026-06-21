@@ -39,6 +39,29 @@ function buildDynamoLabel(tomos?: ReadonlyArray<number>) {
     return 'Dynamo particles';
 }
 
+function buildTblAttrMaps(count: number, rowCount: number, defs: Array<[string, string, Float32Array | undefined]>) {
+    const attributes = new Map<string, Float32Array>();
+    const attributeInfo = new Map<string, { label: string, min: number, max: number }>();
+    for (const [key, label, buf] of defs) {
+        if (!buf) continue;
+        const arr = count === rowCount ? buf : buf.slice(0, count);
+        let min = Infinity, max = -Infinity;
+        for (let i = 0; i < count; i++) {
+            const v = arr[i];
+            if (isFinite(v)) {
+                if (v < min) min = v;
+                if (v > max) max = v;
+            }
+        }
+        if (!isFinite(min)) continue;
+        attributes.set(key, arr);
+        attributeInfo.set(key, { label, min, max });
+    }
+    return attributes.size > 0
+        ? { attributes, attributeInfo }
+        : { attributes: undefined, attributeInfo: undefined };
+}
+
 export function getDynamoTblTomogramIds(data: DynamoTblFile) {
     const tomograms = new Set<number>();
     const tomo = data.fields.tomo;
@@ -63,6 +86,12 @@ export function createParticleListFromDynamoTbl(data: DynamoTblFile, options: Dy
     const _keys = new Int32Array(rowCount);
     const _coordinates = new Float32Array(rowCount * 3);
     const _rotations = new Float32Array(rowCount * 4);
+
+    const ccCol = data.fields.cc;
+    const cc2Col = data.fields.cc2;
+    const _ccAttr = ccCol.isDefined ? new Float32Array(rowCount) : undefined;
+    const _cc2Attr = cc2Col.isDefined ? new Float32Array(rowCount) : undefined;
+    const _classAttr = classCol.isDefined ? new Float32Array(rowCount) : undefined;
 
     const rotation = Mat4();
     const quaternion = Quat();
@@ -91,6 +120,10 @@ export function createParticleListFromDynamoTbl(data: DynamoTblFile, options: Dy
         _rotations[qOffset + 2] = quaternion[2];
         _rotations[qOffset + 3] = quaternion[3];
 
+        if (_ccAttr && ccCol.valueKind(row) === Column.ValueKinds.Present) _ccAttr[count] = ccCol.value(row);
+        if (_cc2Attr && cc2Col.valueKind(row) === Column.ValueKinds.Present) _cc2Attr[count] = cc2Col.value(row);
+        if (_classAttr && classCol.valueKind(row) === Column.ValueKinds.Present) _classAttr[count] = classCol.value(row);
+
         _keys[count] = row;
         ++count;
     }
@@ -105,6 +138,12 @@ export function createParticleListFromDynamoTbl(data: DynamoTblFile, options: Dy
     const coordinates = count === rowCount ? _coordinates : _coordinates.slice(0, count * 3);
     const rotations = count === rowCount ? _rotations : _rotations.slice(0, count * 4);
 
+    const { attributes, attributeInfo } = buildTblAttrMaps(count, rowCount, [
+        ['cc', 'CC', _ccAttr],
+        ['cc2', 'CC2', _cc2Attr],
+        ['class', 'Class', _classAttr],
+    ]);
+
     return {
         label: options.label ?? buildDynamoLabel(options.tomos),
         count,
@@ -112,6 +151,8 @@ export function createParticleListFromDynamoTbl(data: DynamoTblFile, options: Dy
         targets: new Int32Array(count),
         coordinates,
         rotations,
+        attributes,
+        attributeInfo,
         getParticleLabel: (index: number) => {
             const row = keys[index];
             const parts: string[] = [`#${row + 1}`];

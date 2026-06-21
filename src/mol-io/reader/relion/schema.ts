@@ -64,6 +64,12 @@ export const RelionStar_Schema = {
 
         /** Class number for which a particle has its highest probability */
         rlnClassNumber: int,
+        /** Maximum value of probability distribution over classes */
+        rlnMaxValueProbDistribution: float,
+        /** Contribution to the log-likelihood for this particle */
+        rlnLogLikeliContribution: float,
+        /** Normalisation correction factor for this particle */
+        rlnNormCorrection: float,
         /** ID (i.e. a unique number) for a particle */
         rlnParticleId: int,
         /** Name for a particle */
@@ -135,6 +141,9 @@ export const RelionStar_Aliases: CifAliases = {
     'particles.rlnCenteredCoordinateZAngst': ['rlnCenteredCoordinateZAngst', 'rlnCenteredCoordinateZAngstrom'],
 
     'particles.rlnClassNumber': ['rlnClassNumber'],
+    'particles.rlnMaxValueProbDistribution': ['rlnMaxValueProbDistribution'],
+    'particles.rlnLogLikeliContribution': ['rlnLogLikeliContribution'],
+    'particles.rlnNormCorrection': ['rlnNormCorrection'],
     'particles.rlnParticleId': ['rlnParticleId'],
     'particles.rlnParticleName': ['rlnParticleName'],
     'particles.rlnOriginalParticleName': ['rlnOriginalParticleName'],

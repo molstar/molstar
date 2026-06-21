@@ -47,6 +47,7 @@ import { ColorThemeCategory } from './color/categories';
 import { CartoonColorThemeProvider } from './color/cartoon';
 import { FormalChargeColorThemeProvider } from './color/formal-charge';
 import { ExternalStructureColorThemeProvider } from './color/external-structure';
+import { ParticleAttributeColorThemeProvider } from './color/particle-attribute';
 import { ParticleCompartmentColorThemeProvider } from './color/particle-compartment';
 import { ParticleEntityColorThemeProvider } from './color/particle-entity';
 import { ParticleIndexColorThemeProvider } from './color/particle-index';
@@ -202,6 +203,7 @@ namespace ColorTheme {
         'operator-hkl': OperatorHklColorThemeProvider,
         'operator-name': OperatorNameColorThemeProvider,
         'partial-charge': PartialChargeColorThemeProvider,
+        'particle-attribute': ParticleAttributeColorThemeProvider,
         'particle-compartment': ParticleCompartmentColorThemeProvider,
         'particle-entity': ParticleEntityColorThemeProvider,
         'particle-index': ParticleIndexColorThemeProvider,

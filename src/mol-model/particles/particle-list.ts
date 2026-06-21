@@ -81,9 +81,20 @@ export interface ParticleList {
     /** Optional per-particle bounding sphere radii in angstrom (length = `count`). */
     readonly radii?: Float32Array
 
-    readonly getParticleLabel: (index: number) => string
+    /**
+     * Named per-particle scalar attributes, indexed by particle position (length = count).
+     * Keys are short identifiers (e.g. 'cc', 'class', 'score').
+     */
+    readonly attributes?: ReadonlyMap<string, Float32Array>
 
-    // TODO: add common data fields, anything format-specific should be accessed via `sourceData`
+    /** Metadata for each key in `attributes`. */
+    readonly attributeInfo?: ReadonlyMap<string, {
+        readonly label: string
+        readonly min: number
+        readonly max: number
+    }>
+
+    readonly getParticleLabel: (index: number) => string
 
     readonly sourceData: ModelFormat
 
