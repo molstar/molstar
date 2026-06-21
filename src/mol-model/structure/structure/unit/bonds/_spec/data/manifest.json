@@ -8,5 +8,6 @@
   { "pdbId": "8LDH", "compId": "CIT" },
   { "pdbId": "8ATC", "compId": "PAL" },
   { "pdbId": "8RSA", "compId": "ADT" },
-  { "pdbId": "3KLF", "compId": "ZP4" }
+  { "pdbId": "3KLF", "compId": "ZP4" },
+  { "pdbId": "4GTP", "compId": "7TP" }
 ]

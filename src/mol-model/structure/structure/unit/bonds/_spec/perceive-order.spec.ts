@@ -177,7 +177,9 @@ describe('bond-order perception (Sayle)', () => {
 
 interface ExpectedBond {
     a: string;
-    b: string;
+    /** Single atom name, or an array when any of the listed partners is equally valid
+     *  (e.g. interchangeable nitro O, carboxylate O detected from CCD by build-data.mjs). */
+    b: string | string[];
     order?: 2 | 3;
     aromatic?: true;
 }
@@ -199,23 +201,51 @@ function checkPerceived(structure: Structure, expected: ExpectedBond[]) {
         nameToLocal.set(label_atom_id.value(unit.elements[i]), i);
     }
     const { offset, b, edgeProps } = unit.bonds;
+
+    // Set of every atom-pair the CCD considers non-single (double / triple / aromatic),
+    // as a sorted "min|max" local-index key. Interchangeable partners contribute all
+    // their variants. Used by the reverse check to reject spurious perceived multiples.
+    const expectedKey = (i: number, j: number) => `${Math.min(i, j)}|${Math.max(i, j)}`;
+    const expectedPairs = new Set<string>();
+
     for (const exp of expected) {
+        const bNames = Array.isArray(exp.b) ? exp.b : [exp.b];
+        const bondLabel = `${resname} ${exp.a}-(${bNames.join('|')})`;
         const u = nameToLocal.get(exp.a);
-        const v = nameToLocal.get(exp.b);
-        if (u === undefined || v === undefined) {
-            throw new Error(`atom not found: ${exp.a} or ${exp.b}`);
-        }
-        const bondLabel = `${resname} ${exp.a}-${exp.b}`;
+        if (u === undefined) throw new Error(`atom not found: ${exp.a}`);
+        const vs = bNames.map(name => {
+            const v = nameToLocal.get(name);
+            if (v === undefined) throw new Error(`atom not found: ${name}`);
+            return v;
+        });
+        for (const v of vs) expectedPairs.add(expectedKey(u, v));
+        // For interchangeable partners, succeed as soon as any partner has the expected bond.
         let found = false;
-        for (let t = offset[u]; t < offset[u + 1]; t++) {
-            if (b[t] !== v) continue;
-            found = true;
-            if (exp.order !== undefined)
-                expect({ bond: bondLabel, order: edgeProps.order[t] }).toEqual({ bond: bondLabel, order: exp.order });
-            if (exp.aromatic)
-                expect({ bond: bondLabel, aromatic: !!(edgeProps.flags[t] & BondType.Flag.Aromatic) }).toEqual({ bond: bondLabel, aromatic: true });
+        for (const v of vs) {
+            for (let t = offset[u]; t < offset[u + 1]; t++) {
+                if (b[t] !== v) continue;
+                if (exp.order !== undefined && edgeProps.order[t] !== exp.order) continue;
+                if (exp.aromatic && !(edgeProps.flags[t] & BondType.Flag.Aromatic)) continue;
+                found = true;
+            }
+            if (found) break;
         }
         expect({ bond: bondLabel, found }).toEqual({ bond: bondLabel, found: true });
+    }
+
+    // Reverse check: perception must not invent multiple bonds the CCD doesn't have.
+    // (A perceived order>1 inside an aromatic ring is allowed against the expected aromatic
+    // pair — our Kekule may differ from the CCD's, but it stays within the same ring bonds.)
+    const nameOf = (i: number) => label_atom_id.value(unit.elements[i]);
+    for (let u = 0; u < unit.elements.length; u++) {
+        for (let t = offset[u]; t < offset[u + 1]; t++) {
+            const v = b[t];
+            if (u >= v) continue;
+            if (edgeProps.order[t] <= 1) continue;
+            const spurious = !expectedPairs.has(expectedKey(u, v));
+            const bondLabel = `${resname} ${nameOf(u)}=${nameOf(v)} (order ${edgeProps.order[t]})`;
+            expect({ bond: bondLabel, spurious }).toEqual({ bond: bondLabel, spurious: false });
+        }
     }
 }
 
