@@ -6,6 +6,7 @@
 
 import { Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { ParticleList } from '../../mol-model/particles/particle-list';
+import { CustomProperties } from '../../mol-model/custom-property';
 import { ArtiatomiEmFile } from '../../mol-io/reader/artiatomi/em';
 import { degToRad } from '../../mol-math/misc';
 import { ModelFormat } from '../format';
@@ -182,6 +183,7 @@ export function createParticleListFromArtiatomiEm(data: ArtiatomiEmFile, options
         label: buildArtiatomiLabel(options.label, options.tomos),
         count,
         keys: finalKeys,
+        targets: new Int32Array(count),
         coordinates: finalCoords,
         rotations: finalRotations,
         getParticleLabel: (index: number) => {
@@ -197,6 +199,8 @@ export function createParticleListFromArtiatomiEm(data: ArtiatomiEmFile, options
             return parts.join(' | ');
         },
         sourceData: ArtiatomiEmFormat.create(data),
+        customProperties: new CustomProperties(),
+        _propertyData: Object.create(null),
     };
 }
 

@@ -7,6 +7,7 @@
 
 import { Mat4, Quat } from '../../mol-math/linear-algebra';
 import { ParticleList } from '../../mol-model/particles/particle-list';
+import { CustomProperties } from '../../mol-model/custom-property';
 import { CryoEtDataPortalNdjsonFile } from '../../mol-io/reader/cryoet/ndjson';
 import { ModelFormat } from '../format';
 
@@ -98,6 +99,7 @@ export function createParticleListFromCryoEtDataPortalNdjson(data: CryoEtDataPor
         label: buildCryoEtLabel(options.type),
         count,
         keys,
+        targets: new Int32Array(count),
         coordinates,
         rotations,
         getParticleLabel: (index: number) => {
@@ -106,6 +108,8 @@ export function createParticleListFromCryoEtDataPortalNdjson(data: CryoEtDataPor
             return `#${i + 1} | ${record.type}`;
         },
         sourceData: CryoEtDataPortalNdjsonFormat.create(data),
+        customProperties: new CustomProperties(),
+        _propertyData: Object.create(null),
     };
 }
 

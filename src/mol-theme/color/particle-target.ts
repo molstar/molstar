@@ -19,12 +19,12 @@ import { Volume } from '../../mol-model/volume';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xCCCCCC);
-const Description = 'Gives every particle a unique color based on its index in the particle list.';
+const Description = 'Gives every unique particle target a distinct color.';
 
-export const ParticleIndexColorThemeParams = {
+export const ParticleTargetColorThemeParams = {
     ...getPaletteParams({ type: 'colors', colorList: DefaultList }),
 };
-export type ParticleIndexColorThemeParams = typeof ParticleIndexColorThemeParams
+export type ParticleTargetColorThemeParams = typeof ParticleTargetColorThemeParams
 
 function getParticleList(ctx: ThemeDataContext): ParticleList | undefined {
     if (ctx.particles) return ctx.particles;
@@ -39,12 +39,26 @@ function getParticleList(ctx: ThemeDataContext): ParticleList | undefined {
     return undefined;
 }
 
-export function getParticleIndexColorThemeParams(ctx: ThemeDataContext) {
-    const params = PD.clone(ParticleIndexColorThemeParams);
+function buildTargetColorIndex(particles: ParticleList): { colorIndex: Int32Array, targetCount: number } {
+    const { count, targets } = particles;
+    const targetSet = new Map<number, number>();
+    for (let i = 0; i < count; ++i) {
+        const t = targets[i];
+        if (!targetSet.has(t)) targetSet.set(t, targetSet.size);
+    }
+    const colorIndex = new Int32Array(count);
+    for (let i = 0; i < count; ++i) {
+        colorIndex[i] = targetSet.get(targets[i])!;
+    }
+    return { colorIndex, targetCount: targetSet.size };
+}
+
+export function getParticleTargetColorThemeParams(ctx: ThemeDataContext) {
+    const params = PD.clone(ParticleTargetColorThemeParams);
     const particles = getParticleList(ctx);
     if (particles) {
-        const { count } = particles;
-        if (count > ColorLists[DefaultList].list.length) {
+        const { targetCount } = buildTargetColorIndex(particles);
+        if (targetCount > ColorLists[DefaultList].list.length) {
             params.palette.defaultValue.name = 'colors';
             params.palette.defaultValue.params = {
                 ...params.palette.defaultValue.params,
@@ -55,17 +69,20 @@ export function getParticleIndexColorThemeParams(ctx: ThemeDataContext) {
     return params;
 }
 
-export function ParticleIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<ParticleIndexColorThemeParams>): ColorTheme<ParticleIndexColorThemeParams> {
+export function ParticleTargetColorTheme(ctx: ThemeDataContext, props: PD.Values<ParticleTargetColorThemeParams>): ColorTheme<ParticleTargetColorThemeParams> {
     let color: LocationColor;
     let legend: ScaleLegend | TableLegend | undefined;
 
     const particles = getParticleList(ctx);
     if (particles) {
-        const { count } = particles;
-        const palette = getPalette(count, props);
+        const { colorIndex, targetCount } = buildTargetColorIndex(particles);
+        const palette = getPalette(targetCount, props);
         legend = palette.legend;
 
-        const pick = (index: number) => index >= 0 && index < count ? palette.color(index) : DefaultColor;
+        const pick = (particleIndex: number) => {
+            const ci = colorIndex[particleIndex];
+            return ci !== undefined ? palette.color(ci) : DefaultColor;
+        };
 
         color = (location: Location): Color => {
             if (Particle.isLocation(location)) {
@@ -88,7 +105,7 @@ export function ParticleIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<
     }
 
     return {
-        factory: ParticleIndexColorTheme,
+        factory: ParticleTargetColorTheme,
         granularity: 'instance',
         color,
         props,
@@ -97,12 +114,12 @@ export function ParticleIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<
     };
 }
 
-export const ParticleIndexColorThemeProvider: ColorTheme.Provider<ParticleIndexColorThemeParams, 'particle-index'> = {
-    name: 'particle-index',
-    label: 'Particle Index',
+export const ParticleTargetColorThemeProvider: ColorTheme.Provider<ParticleTargetColorThemeParams, 'particle-target'> = {
+    name: 'particle-target',
+    label: 'Particle Target',
     category: ColorThemeCategory.Particle,
-    factory: ParticleIndexColorTheme,
-    getParams: getParticleIndexColorThemeParams,
-    defaultValues: PD.getDefaultValues(ParticleIndexColorThemeParams),
+    factory: ParticleTargetColorTheme,
+    getParams: getParticleTargetColorThemeParams,
+    defaultValues: PD.getDefaultValues(ParticleTargetColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!getParticleList(ctx)
 };

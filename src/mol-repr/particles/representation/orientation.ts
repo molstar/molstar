@@ -5,129 +5,179 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Subject } from 'rxjs';
-import { Task } from '../../../mol-task';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
-import { Representation, RepresentationContext, RepresentationParamsGetter } from '../../representation';
+import { Theme, ThemeRegistryContext } from '../../../mol-theme/theme';
+import { ColorTheme } from '../../../mol-theme/color';
+import { SizeTheme } from '../../../mol-theme/size';
+import { UniformColorTheme } from '../../../mol-theme/color/uniform';
+import { UniformSizeTheme } from '../../../mol-theme/size/uniform';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
 import { Spheres } from '../../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../../mol-geo/geometry/spheres/spheres-builder';
-import { MarkerAction, MarkerActions } from '../../../mol-util/marker-action';
-import { ThemeRegistryContext, Theme } from '../../../mol-theme/theme';
-import { Particle, ParticleList, getParticleTransforms } from '../../../mol-model/particles/particle-list';
-import { GraphicsRenderObject, createRenderObject, getNextMaterialId } from '../../../mol-gl/render-object';
-import { createTransform } from '../../../mol-geo/geometry/transform-data';
+import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
+import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
+import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
+import { sphereVertexCount } from '../../../mol-geo/primitive/sphere';
+import { Vec3 } from '../../../mol-math/linear-algebra/3d/vec3';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { UniformColorTheme } from '../../../mol-theme/color/uniform';
-import { UniformSizeTheme } from '../../../mol-theme/size/uniform';
-import { ColorTheme } from '../../../mol-theme/color';
-import { SizeTheme } from '../../../mol-theme/size';
+import { Particle, ParticleList } from '../../../mol-model/particles/particle-list';
 import { PickingId } from '../../../mol-geo/geometry/picking';
-import { Loci as ModelLoci, EmptyLoci, isEveryLoci } from '../../../mol-model/loci';
+import { Loci, EmptyLoci } from '../../../mol-model/loci';
 import { Interval, OrderedSet } from '../../../mol-data/int';
-import { Visual } from '../../visual';
+import { VisualUpdateState } from '../../util';
+import { VisualContext } from '../../visual';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
+import { WebGLContext } from '../../../mol-gl/webgl/context';
+import { Location } from '../../../mol-model/location';
+import { Representation, RepresentationContext, RepresentationParamsGetter } from '../../representation';
 import { ParticleRepresentation, ParticleRepresentationProvider } from '../representation';
+import { ParticleVisual, ParticleKey } from '../visual';
 
-const AxisColorByGroup = [ColorNames.red, ColorNames.green, ColorNames.blue] as const;
+// ---- Shared constants -------------------------------------------------------
 
 const AxisLengthOptions = { min: 0.1, max: 1000, step: 0.1 } as const;
 const PointSizeOptions = { min: 0.1, max: 100, step: 0.1 } as const;
 
-export const BaseOrientationParticlesParams = {
+// ---- Position visual (sphere at world origin, instanced per particle) --------
+
+export const PositionParticlesParams = {
     ...Spheres.Params,
-    ...Lines.Params,
+    ...Mesh.Params,
+    tryUseImpostor: PD.Boolean(true),
+    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     pointSize: PD.Numeric(1, PointSizeOptions, { description: 'Radius used for the particle position marker.' }),
-    axisLength: PD.Numeric(10, AxisLengthOptions, { description: 'Length of the particle orientation axes.' }),
     positionColor: PD.Color(ColorNames.white),
-    xColor: PD.Color(ColorNames.red),
-    yColor: PD.Color(ColorNames.green),
-    zColor: PD.Color(ColorNames.blue),
 };
+export type PositionParticlesParams = typeof PositionParticlesParams;
+export type PositionParticlesProps = PD.Values<PositionParticlesParams>;
 
-const OrientationParticlesVisualKinds = ['position', 'orientation'] as const;
-type OrientationParticlesVisualKind = typeof OrientationParticlesVisualKinds[number]
-
-export const OrientationParticlesParams = {
-    ...BaseOrientationParticlesParams,
-    visuals: PD.MultiSelect(['position', 'orientation'] as OrientationParticlesVisualKind[], PD.arrayToOptions(OrientationParticlesVisualKinds as unknown as OrientationParticlesVisualKind[])),
-};
-
-export type OrientationParticlesParams = typeof OrientationParticlesParams
-export type OrientationParticlesProps = PD.Values<OrientationParticlesParams>
-
-export function getOrientationParticlesParams(ctx: ThemeRegistryContext, data: ParticleList) {
-    const hasRotations = !!data.rotations;
-    const visualKinds: OrientationParticlesVisualKind[] = hasRotations
-        ? ['position', 'orientation']
-        : ['position'];
-    const defaultVisuals: OrientationParticlesVisualKind[] = hasRotations
-        ? ['position', 'orientation']
-        : ['position'];
+function positionOverrideTheme(theme: Theme, props: PositionParticlesProps): Theme {
+    const colorFromTheme = theme.color.factory !== ColorTheme.EmptyFactory;
+    const sizeFromTheme = theme.size.factory !== SizeTheme.EmptyFactory;
     return {
-        ...BaseOrientationParticlesParams,
-        visuals: PD.MultiSelect(defaultVisuals, PD.arrayToOptions(visualKinds)),
+        color: colorFromTheme ? theme.color : UniformColorTheme({} as any, { value: props.positionColor, lightness: 0, saturation: 0 }),
+        size: sizeFromTheme ? theme.size : UniformSizeTheme({} as any, { value: props.pointSize }),
     };
 }
 
-function getAxisColor(props: OrientationParticlesProps, groupId: number) {
-    switch (groupId) {
-        case 0: return props.xColor;
-        case 1: return props.yColor;
-        case 2: return props.zColor;
-        default: return AxisColorByGroup[groupId % AxisColorByGroup.length];
-    }
-}
+// Impostor (Spheres geometry – GPU billboard) ---------------------------------
 
-function createPositionGeometry(spheres?: Spheres) {
+function createPositionSphereImpostor(_ctx: VisualContext, _particles: ParticleList, _theme: Theme, _props: PositionParticlesProps, spheres?: Spheres): Spheres {
     const builder = SpheresBuilder.create(1, 1, spheres);
     builder.add(0, 0, 0, 0);
     return builder.getSpheres();
 }
 
-function createOrientationGeometry(axisLength: number, lines?: Lines) {
-    const builder = LinesBuilder.create(3, 3, lines);
-    builder.add(0, 0, 0, axisLength, 0, 0, 0);
-    builder.add(0, 0, 0, 0, axisLength, 0, 1);
-    builder.add(0, 0, 0, 0, 0, axisLength, 2);
-    return builder.getLines();
+export function PositionParticlesImpostorVisual(materialId: number): ParticleVisual<PositionParticlesParams> {
+    return ParticleVisual<Spheres, PositionParticlesParams>({
+        defaultProps: PD.getDefaultValues(PositionParticlesParams),
+        createGeometry: createPositionSphereImpostor,
+        createLocationIterator: createPositionLocationIterator,
+        getLoci: getPositionLoci,
+        eachLocation: eachPositionLoci,
+        setUpdateState: (state: VisualUpdateState, _np: ParticleList, _cp: ParticleList, newProps: PositionParticlesProps, currentProps: PositionParticlesProps) => {
+            if (newProps.pointSize !== currentProps.pointSize) state.updateSize = true;
+            if (newProps.positionColor !== currentProps.positionColor) state.updateColor = true;
+        },
+        overrideTheme: positionOverrideTheme,
+        geometryUtils: Spheres.Utils,
+        mustRecreate: (_key: ParticleKey, props: PositionParticlesProps, webgl?: WebGLContext) => {
+            return !props.tryUseImpostor || !webgl;
+        },
+    }, materialId);
 }
 
-function particleTransformArray(data: ParticleList): Float32Array {
-    const transforms = getParticleTransforms(data);
-    const arr = new Float32Array(transforms.length * 16);
-    for (let i = 0; i < transforms.length; ++i) arr.set(transforms[i], i * 16);
-    return arr;
+// Mesh (Sphere mesh – CPU tessellation) ---------------------------------------
+
+function createPositionSphereMesh(_ctx: VisualContext, _particles: ParticleList, _theme: Theme, props: PositionParticlesProps, mesh?: Mesh): Mesh {
+    const { detail, pointSize } = props;
+    const vertexCount = sphereVertexCount(detail);
+    const builderState = MeshBuilder.createState(vertexCount, Math.ceil(vertexCount / 2), mesh);
+    builderState.currentGroup = 0;
+    addSphere(builderState, Vec3(), pointSize, detail);
+    return MeshBuilder.getMesh(builderState);
 }
 
-type CarriedLocation = Particle.Location & { groupIndex: number }
-
-function createCarriedLocation(data: ParticleList): CarriedLocation {
-    return Object.assign(Particle.Location(data, 0), { groupIndex: 0 });
+export function PositionParticlesMeshVisual(materialId: number): ParticleVisual<PositionParticlesParams> {
+    return ParticleVisual<Mesh, PositionParticlesParams>({
+        defaultProps: PD.getDefaultValues(PositionParticlesParams),
+        createGeometry: createPositionSphereMesh,
+        createLocationIterator: createPositionLocationIterator,
+        getLoci: getPositionLoci,
+        eachLocation: eachPositionLoci,
+        setUpdateState: (state: VisualUpdateState, _np: ParticleList, _cp: ParticleList, newProps: PositionParticlesProps, currentProps: PositionParticlesProps) => {
+            state.createGeometry = newProps.detail !== currentProps.detail || newProps.pointSize !== currentProps.pointSize;
+            if (newProps.positionColor !== currentProps.positionColor) state.updateColor = true;
+        },
+        overrideTheme: positionOverrideTheme,
+        geometryUtils: Mesh.Utils,
+        mustRecreate: (_key: ParticleKey, props: PositionParticlesProps, webgl?: WebGLContext) => {
+            return props.tryUseImpostor && !!webgl;
+        },
+    }, materialId);
 }
 
-function createParticleLocationIterator(groupCount: number, instanceCount: number, location: CarriedLocation) {
-    return LocationIterator(groupCount, instanceCount, 1, (groupIndex, instanceIndex) => {
+/** Dispatch: returns an impostor visual when WebGL + required extensions are available, mesh otherwise. */
+export function PositionParticlesVisual(materialId: number, _particles: ParticleList, props: PD.Values<PositionParticlesParams>, webgl?: WebGLContext): ParticleVisual<PositionParticlesParams> {
+    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth && webgl.extensions.textureFloat
+        ? PositionParticlesImpostorVisual(materialId)
+        : PositionParticlesMeshVisual(materialId);
+}
+
+// Shared helpers for position visuals -----------------------------------------
+
+function createPositionLocationIterator(particles: ParticleList, _geometry: Spheres | Mesh): LocationIterator {
+    const { count } = particles;
+    const location = Particle.Location(particles, 0);
+    return LocationIterator(1, count, 1, (_groupIndex, instanceIndex) => {
         location.index = instanceIndex;
-        location.groupIndex = groupIndex;
         return location;
     });
 }
 
-function axisColorTheme(props: OrientationParticlesProps): ColorTheme<{}> {
-    const c0 = getAxisColor(props, 0);
-    const c1 = getAxisColor(props, 1);
-    const c2 = getAxisColor(props, 2);
+function getPositionLoci(pickingId: PickingId, particles: ParticleList, _props: PositionParticlesProps, id: number, _geometry: Spheres | Mesh): Loci {
+    const { objectId, instanceId } = pickingId;
+    if (id !== objectId) return EmptyLoci;
+    if (instanceId < 0 || instanceId >= particles.count) return EmptyLoci;
+    return Particle.Loci(particles, OrderedSet.ofSingleton(instanceId as any));
+}
+
+function eachPositionLoci(loci: Loci, particles: ParticleList, _props: PositionParticlesProps, apply: (interval: Interval) => boolean, _geometry: Spheres | Mesh): boolean {
+    if (!Particle.isLoci(loci)) return false;
+    if (Particle.isLociEmpty(loci)) return false;
+    if (loci.particles !== particles) return false;
+    let changed = false;
+    OrderedSet.forEach(loci.indices, idx => {
+        if (apply(Interval.ofSingleton(idx))) changed = true;
+    });
+    return changed;
+}
+
+// ---- Axes visual (3 orientation lines, instanced per particle) ---------------
+
+export const AxesParticlesParams = {
+    ...Lines.Params,
+    axisLength: PD.Numeric(10, AxisLengthOptions, { description: 'Length of the particle orientation axes.' }),
+    xColor: PD.Color(ColorNames.red),
+    yColor: PD.Color(ColorNames.green),
+    zColor: PD.Color(ColorNames.blue),
+};
+export type AxesParticlesParams = typeof AxesParticlesParams;
+export type AxesParticlesProps = PD.Values<AxesParticlesParams>;
+
+type AxesLocation = Particle.Location & { groupIndex: number }
+
+function axisColorTheme(props: AxesParticlesProps): ColorTheme<{}> {
+    const colors = [props.xColor, props.yColor, props.zColor] as const;
     const theme: ColorTheme<{}> = {
         factory: (() => theme) as any,
         granularity: 'group',
-        color: (location) => {
+        color: (location: Location) => {
             const g = (location as any).groupIndex as number | undefined;
-            if (g === 0) return c0;
-            if (g === 1) return c1;
-            if (g === 2) return c2;
+            if (g !== undefined && g >= 0 && g < 3) return colors[g];
             return Color(0xCCCCCC);
         },
         props: {},
@@ -135,236 +185,112 @@ function axisColorTheme(props: OrientationParticlesProps): ColorTheme<{}> {
     return theme;
 }
 
-function uniformColorTheme(color: Color): ColorTheme<any> {
-    return UniformColorTheme({} as any, { value: color, lightness: 0, saturation: 0 });
+function createAxesGeometry(_ctx: VisualContext, _particles: ParticleList, _theme: Theme, props: AxesParticlesProps, lines?: Lines): Lines {
+    const { axisLength } = props;
+    const builder = LinesBuilder.create(3, 3, lines);
+    builder.add(0, 0, 0, axisLength, 0, 0, 0); // X axis, group 0
+    builder.add(0, 0, 0, 0, axisLength, 0, 1); // Y axis, group 1
+    builder.add(0, 0, 0, 0, 0, axisLength, 2); // Z axis, group 2
+    return builder.getLines();
 }
 
-function uniformSize(value: number) {
-    return UniformSizeTheme({} as any, { value });
+function createAxesLocationIterator(particles: ParticleList, _geometry: Lines): LocationIterator {
+    const { count } = particles;
+    const location = Object.assign(Particle.Location(particles, 0), { groupIndex: 0 }) as AxesLocation;
+    return LocationIterator(3, count, 1, (groupIndex, instanceIndex) => {
+        location.index = instanceIndex;
+        location.groupIndex = groupIndex;
+        return location;
+    });
 }
+
+function getAxesLoci(pickingId: PickingId, particles: ParticleList, _props: AxesParticlesProps, id: number, _geometry: Lines): Loci {
+    const { objectId, instanceId } = pickingId;
+    if (id !== objectId) return EmptyLoci;
+    if (instanceId < 0 || instanceId >= particles.count) return EmptyLoci;
+    return Particle.Loci(particles, OrderedSet.ofSingleton(instanceId as any));
+}
+
+function eachAxesLoci(loci: Loci, particles: ParticleList, _props: AxesParticlesProps, apply: (interval: Interval) => boolean, _geometry: Lines): boolean {
+    if (!Particle.isLoci(loci)) return false;
+    if (Particle.isLociEmpty(loci)) return false;
+    if (loci.particles !== particles) return false;
+    let changed = false;
+    OrderedSet.forEach(loci.indices, idx => {
+        // Each particle maps to 3 consecutive group slots (one per axis).
+        const start = idx * 3;
+        if (apply(Interval.ofBounds(start, start + 3))) changed = true;
+    });
+    return changed;
+}
+
+export function AxesParticlesVisual(materialId: number, _particles?: ParticleList, _props?: PD.Values<AxesParticlesParams>, _webgl?: WebGLContext): ParticleVisual<AxesParticlesParams> {
+    return ParticleVisual<Lines, AxesParticlesParams>({
+        defaultProps: PD.getDefaultValues(AxesParticlesParams),
+        createGeometry: createAxesGeometry,
+        createLocationIterator: createAxesLocationIterator,
+        getLoci: getAxesLoci,
+        eachLocation: eachAxesLoci,
+        setUpdateState: (state: VisualUpdateState, _np: ParticleList, _cp: ParticleList, newProps: AxesParticlesProps, currentProps: AxesParticlesProps) => {
+            state.createGeometry = newProps.axisLength !== currentProps.axisLength;
+            if (newProps.xColor !== currentProps.xColor ||
+                newProps.yColor !== currentProps.yColor ||
+                newProps.zColor !== currentProps.zColor) {
+                state.updateColor = true;
+            }
+        },
+        overrideTheme: (_theme: Theme, props: AxesParticlesProps): Theme => ({
+            color: axisColorTheme(props),
+            size: UniformSizeTheme({} as any, { value: 1 }),
+        }),
+        geometryUtils: Lines.Utils,
+    }, materialId);
+}
+
+// ---- Combined OrientationParticles representation ---------------------------
+
+const OrientationParticlesVisualKinds = ['position', 'axes'] as const;
+type OrientationParticlesVisualKind = typeof OrientationParticlesVisualKinds[number];
+
+export const OrientationParticlesParams = {
+    ...PositionParticlesParams,
+    ...AxesParticlesParams,
+    visuals: PD.MultiSelect(['position', 'axes'] as OrientationParticlesVisualKind[], PD.arrayToOptions(OrientationParticlesVisualKinds as unknown as OrientationParticlesVisualKind[])),
+};
+export type OrientationParticlesParams = typeof OrientationParticlesParams;
+export type OrientationParticlesProps = PD.Values<OrientationParticlesParams>;
+
+export function getOrientationParticlesParams(_ctx: ThemeRegistryContext, data: ParticleList) {
+    const hasRotations = !!data.rotations;
+    const visualKinds: OrientationParticlesVisualKind[] = hasRotations
+        ? ['position', 'axes']
+        : ['position'];
+    const defaultVisuals: OrientationParticlesVisualKind[] = hasRotations
+        ? ['position', 'axes']
+        : ['position'];
+    return {
+        ...OrientationParticlesParams,
+        visuals: PD.MultiSelect(defaultVisuals, PD.arrayToOptions(visualKinds)),
+    };
+}
+
+function getAllLoci(particles: ParticleList): Loci {
+    const { count } = particles;
+    if (count === 0) return EmptyLoci;
+    return Particle.Loci(particles, OrderedSet.ofBounds(0, count) as any);
+}
+
+const OrientationVisuals = {
+    'position': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<ParticleList, PositionParticlesParams>) =>
+        ParticleRepresentation('Position', ctx, getParams, PositionParticlesVisual, getAllLoci),
+    'axes': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<ParticleList, AxesParticlesParams>) =>
+        ParticleRepresentation('Axes', ctx, getParams, AxesParticlesVisual, getAllLoci),
+};
 
 export type OrientationParticlesRepresentation = ParticleRepresentation<OrientationParticlesParams>
 
-interface VisualEntry {
-    kind: OrientationParticlesVisualKind
-    renderObject: GraphicsRenderObject
-    geometryVersion: number
-}
-
 export function OrientationParticlesRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<ParticleList, OrientationParticlesParams>): OrientationParticlesRepresentation {
-    let version = 0;
-    const updated = new Subject<number>();
-    const geometryState = new Representation.GeometryState();
-    const materialId = getNextMaterialId();
-    const renderObjects: GraphicsRenderObject[] = [];
-    const _state = Representation.createState();
-    let _theme = Theme.createEmpty();
-    _state.markerActions = MarkerActions.Highlighting;
-
-    let _data: ParticleList | undefined = undefined;
-    let _params: OrientationParticlesParams = OrientationParticlesParams;
-    let _props: OrientationParticlesProps = PD.getDefaultValues(OrientationParticlesParams);
-    const entries = new Map<OrientationParticlesVisualKind, VisualEntry>();
-    let dirty = true;
-
-    function disposeEntries() {
-        for (const e of entries.values()) {
-            e.renderObject.state.disposed = true;
-        }
-        entries.clear();
-    }
-
-    function buildPositionEntry(data: ParticleList, props: OrientationParticlesProps): VisualEntry | undefined {
-        const spheres = createPositionGeometry();
-        const transformArr = particleTransformArray(data);
-        const instanceCount = transformArr.length / 16 | 0;
-        if (instanceCount === 0) return undefined;
-        const transform = createTransform(transformArr, instanceCount, spheres.boundingSphere, props.cellSize, props.batchSize);
-        const carry = createCarriedLocation(data);
-        const locationIt = createParticleLocationIterator(1, instanceCount, carry);
-        const colorFromTheme = _theme.color.factory !== ColorTheme.EmptyFactory;
-        const sizeFromTheme = _theme.size.factory !== SizeTheme.EmptyFactory;
-        const theme: Theme = {
-            color: colorFromTheme ? _theme.color : uniformColorTheme(props.positionColor),
-            size: sizeFromTheme ? _theme.size : uniformSize(props.pointSize),
-        };
-        const values = Spheres.Utils.createValues(spheres, transform, locationIt, theme, props);
-        const state = Spheres.Utils.createRenderableState(props);
-        const renderObject = createRenderObject('spheres', values, state, materialId);
-        return { kind: 'position', renderObject, geometryVersion: 0 };
-    }
-
-    function buildOrientationEntry(data: ParticleList, props: OrientationParticlesProps): VisualEntry | undefined {
-        const lines = createOrientationGeometry(props.axisLength);
-        const transformArr = particleTransformArray(data);
-        const instanceCount = transformArr.length / 16 | 0;
-        if (instanceCount === 0) return undefined;
-        const transform = createTransform(transformArr, instanceCount, lines.boundingSphere, props.cellSize, props.batchSize);
-        const carry = createCarriedLocation(data);
-        const locationIt = createParticleLocationIterator(3, instanceCount, carry);
-        const theme: Theme = {
-            color: axisColorTheme(props),
-            size: uniformSize(1),
-        };
-        const values = Lines.Utils.createValues(lines, transform, locationIt, theme, props);
-        const state = Lines.Utils.createRenderableState(props);
-        const renderObject = createRenderObject('lines', values, state, materialId);
-        return { kind: 'orientation', renderObject, geometryVersion: 0 };
-    }
-
-    function rebuild() {
-        disposeEntries();
-        renderObjects.length = 0;
-        if (!_data) return;
-        const enabled = new Set(_props.visuals as OrientationParticlesVisualKind[]);
-        if (enabled.has('position')) {
-            const e = buildPositionEntry(_data, _props);
-            if (e) entries.set('position', e);
-        }
-        if (enabled.has('orientation') && _data.rotations) {
-            const e = buildOrientationEntry(_data, _props);
-            if (e) entries.set('orientation', e);
-        }
-        for (const e of entries.values()) {
-            renderObjects.push(e.renderObject);
-            geometryState.add(e.renderObject.id, e.geometryVersion);
-        }
-        geometryState.snapshot();
-        applyCurrentState();
-    }
-
-    function applyCurrentState() {
-        for (const e of entries.values()) {
-            Visual.setVisibility(e.renderObject, _state.visible);
-            Visual.setAlphaFactor(e.renderObject, _state.alphaFactor);
-            Visual.setPickable(e.renderObject, _state.pickable);
-            Visual.setColorOnly(e.renderObject, _state.colorOnly);
-            Visual.setThemeStrength(e.renderObject, _state.themeStrength);
-            Visual.setTransform(e.renderObject, _state.transform);
-        }
-    }
-
-    function createOrUpdate(props: Partial<OrientationParticlesProps> = {}, data?: ParticleList) {
-        if (data && data !== _data) {
-            _params = getParams(ctx, data);
-            _data = data;
-            dirty = true;
-        }
-        const next = { ..._props, ...props } as OrientationParticlesProps;
-        // Any prop change triggers a rebuild; the geometry is trivial (1 sphere + 3 lines).
-        if (JSON.stringify(next) !== JSON.stringify(_props)) dirty = true;
-        _props = next;
-
-        return Task.create('Creating or updating Orientation Particles representation', async _runtime => {
-            if (dirty && _data) {
-                rebuild();
-                dirty = false;
-            }
-            updated.next(version++);
-        });
-    }
-
-    function lociApplyFor(blockSize: number): Visual.LociApply {
-        return (l, apply) => {
-            if (Particle.isLoci(l)) {
-                let c = false;
-                OrderedSet.forEach(l.indices, p => {
-                    const start = p * blockSize;
-                    if (apply(Interval.ofBounds(start, start + blockSize))) c = true;
-                });
-                return c;
-            }
-            return false;
-        };
-    }
-
-    function mark(loci: ModelLoci, action: MarkerAction) {
-        if (entries.size === 0) return false;
-        if (!MarkerActions.is(_state.markerActions, action)) return false;
-
-        let remapped: ModelLoci = loci;
-        if (Particle.isLoci(loci) && _data) {
-            remapped = Particle.remapLoci(loci, _data);
-            if (Particle.isLociEmpty(remapped as Particle.Loci)) return false;
-        } else if (!isEveryLoci(loci)) {
-            return false;
-        }
-
-        let changed = false;
-        for (const e of entries.values()) {
-            const values: any = e.renderObject.values;
-            const instanceGranularity: boolean = values.instanceGranularity.ref.value;
-            const groupCount: number = values.uGroupCount.ref.value;
-            const blockSize = instanceGranularity ? 1 : groupCount;
-            if (Visual.mark(e.renderObject, remapped, action, lociApplyFor(blockSize))) changed = true;
-        }
-        return changed;
-    }
-
-    function setState(state: Partial<Representation.State>) {
-        Representation.updateState(_state, state);
-        applyCurrentState();
-    }
-
-    function setTheme(t: Theme) {
-        _theme = t;
-        dirty = true;
-    }
-
-    function destroy() {
-        disposeEntries();
-        renderObjects.length = 0;
-        _data = undefined;
-    }
-
-    return {
-        label: 'Orientation Particles',
-        updated,
-        get groupCount() {
-            let n = 0;
-            for (const e of entries.values()) {
-                const v: any = e.renderObject.values;
-                n += v.uGroupCount.ref.value * v.instanceCount.ref.value;
-            }
-            return n;
-        },
-        get renderObjects() { return renderObjects; },
-        get props() { return _props; },
-        get params() { return _params; },
-        get state() { return _state; },
-        get theme() { return _theme; },
-        get geometryVersion() { return geometryState.version; },
-        createOrUpdate,
-        setState,
-        setTheme,
-        getLoci: (pickingId: PickingId): ModelLoci => {
-            if (!_data) return EmptyLoci;
-            for (const e of entries.values()) {
-                if (e.renderObject.id !== pickingId.objectId) continue;
-                const idx = pickingId.instanceId;
-                if (idx < 0 || idx >= _data.count) return EmptyLoci;
-                return Particle.Loci(_data, OrderedSet.ofSingleton(idx));
-            }
-            return EmptyLoci;
-        },
-        getAllLoci: (): ModelLoci[] => {
-            if (!_data) return [];
-            const { count } = _data;
-            if (count === 0) return [];
-            return [Particle.Loci(_data, OrderedSet.ofBounds(0, count))];
-        },
-        eachLocation: (cb) => {
-            if (!_data) return;
-            const { count } = _data;
-            const location = Particle.Location(_data, 0);
-            for (let i = 0; i < count; ++i) {
-                location.index = i;
-                cb(location, false);
-            }
-        },
-        mark,
-        destroy,
-    };
+    return Representation.createMulti('Orientation Particles', ctx, getParams, Representation.StateBuilder, OrientationVisuals as unknown as Representation.Def<ParticleList, OrientationParticlesParams>);
 }
 
 export const OrientationParticlesRepresentationProvider = ParticleRepresentationProvider({
@@ -378,3 +304,4 @@ export const OrientationParticlesRepresentationProvider = ParticleRepresentation
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (data: ParticleList) => data.count > 0,
 });
+

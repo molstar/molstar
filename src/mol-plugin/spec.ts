@@ -70,6 +70,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateActions.DataFormat.OpenFiles),
         PluginSpec.Action(StateActions.Structure.LoadTrajectory),
         PluginSpec.Action(StateActions.Particles.LoadParticles),
+        PluginSpec.Action(StateActions.Particles.LoadMmcifAsParticles),
         PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
         PluginSpec.Action(StateActions.Structure.EnableStructureCustomProps),
 
@@ -125,6 +126,8 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateTransforms.Particles.ParticleListFromDynamoTbl),
         PluginSpec.Action(StateTransforms.Particles.ParticleListFromCryoEtDataPortalNdjson),
         PluginSpec.Action(StateTransforms.Particles.ParticleListFromArtiatomiEm),
+        PluginSpec.Action(StateTransforms.Particles.ParticleListFromMmcifAssembly),
+        PluginSpec.Action(StateTransforms.Particles.ParticleListWithStructures),
         PluginSpec.Action(StateTransforms.Particles.ParticlesRepresentation3D),
     ],
     behaviors: [

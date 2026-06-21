@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -47,7 +47,10 @@ import { ColorThemeCategory } from './color/categories';
 import { CartoonColorThemeProvider } from './color/cartoon';
 import { FormalChargeColorThemeProvider } from './color/formal-charge';
 import { ExternalStructureColorThemeProvider } from './color/external-structure';
+import { ParticleCompartmentColorThemeProvider } from './color/particle-compartment';
+import { ParticleEntityColorThemeProvider } from './color/particle-entity';
 import { ParticleIndexColorThemeProvider } from './color/particle-index';
+import { ParticleTargetColorThemeProvider } from './color/particle-target';
 import { ColorListEntry } from '../mol-util/color/color';
 import { getPrecision } from '../mol-util/number';
 import { SortedArray } from '../mol-data/int/sorted-array';
@@ -199,7 +202,10 @@ namespace ColorTheme {
         'operator-hkl': OperatorHklColorThemeProvider,
         'operator-name': OperatorNameColorThemeProvider,
         'partial-charge': PartialChargeColorThemeProvider,
+        'particle-compartment': ParticleCompartmentColorThemeProvider,
+        'particle-entity': ParticleEntityColorThemeProvider,
         'particle-index': ParticleIndexColorThemeProvider,
+        'particle-target': ParticleTargetColorThemeProvider,
         'polymer-id': PolymerIdColorThemeProvider,
         'polymer-index': PolymerIndexColorThemeProvider,
         'residue-charge': ResidueChargeColorThemeProvider,

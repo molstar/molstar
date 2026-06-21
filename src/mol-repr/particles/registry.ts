@@ -8,6 +8,7 @@ import { ParticleList } from '../../mol-model/particles/particle-list';
 import { objectForEach } from '../../mol-util/object';
 import { Representation, RepresentationProvider, RepresentationRegistry } from '../representation';
 import { OrientationParticlesRepresentationProvider } from './representation/orientation';
+import { ParticlesStructureRepresentationProvider } from './representation/structure';
 
 export class ParticleRepresentationRegistry extends RepresentationRegistry<ParticleList, Representation.State> {
     constructor() {
@@ -22,6 +23,7 @@ export class ParticleRepresentationRegistry extends RepresentationRegistry<Parti
 export namespace ParticleRepresentationRegistry {
     export const BuiltIn = {
         'orientation': OrientationParticlesRepresentationProvider,
+        'particles-structure': ParticlesStructureRepresentationProvider,
     };
 
     type _BuiltIn = typeof BuiltIn

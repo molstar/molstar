@@ -37,7 +37,7 @@ export const MmcifProvider: TrajectoryFormatProvider = {
     parse: async (plugin, data, params) => {
         const state = plugin.state.data;
         const cif = state.build().to(data)
-            .apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } });
+            .apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: false } }); // TODO: for testing
         const trajectory = await cif
             .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { tags: params?.trajectoryTags })
             .commit({ revertOnError: true });

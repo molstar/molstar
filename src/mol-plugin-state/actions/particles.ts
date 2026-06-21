@@ -19,6 +19,7 @@ import { VolumeFormatCategory } from '../formats/volume';
 import { ParticlesFormatCategory } from '../formats/particles';
 import { createVolumeRepresentationParams } from '../helpers/volume-representation-params';
 import { Volume } from '../../mol-model/volume';
+import { Structure, Trajectory } from '../../mol-model/structure';
 
 async function applyParticlesVolumeVisuals(plugin: PluginContext, volume: StateObjectSelector<PluginStateObject.Volume.Data>) {
     const typeParams: { isoValue?: Volume.IsoValue, instanceGranularity: boolean } = { instanceGranularity: true };
@@ -172,6 +173,88 @@ export const LoadParticles = StateAction.build({
             ctx.log.error(`Error loading particles`);
         }
     }).runInContext(taskCtx);
+}));
+
+export const LoadMmcifAsParticles = StateAction.build({
+    display: { name: 'Load mmCIF as Particles', description: 'Load an mmCIF file, extract assembly operators as a particle list, and display a structure-based particle representation.' },
+    from: PluginStateObject.Root,
+    params: {
+        source: PD.MappedStatic('file', {
+            file: PD.Group({
+                file: PD.File({ accept: '.cif,.bcif,.mmcif', label: 'mmCIF File' }),
+            }, { isFlat: true }),
+            url: PD.Group({
+                url: PD.Url(''),
+                isBinary: PD.Boolean(false),
+            }, { isFlat: true }),
+        }, { options: [['url', 'URL'], ['file', 'File']] as ['url' | 'file', string][] }),
+        assemblyId: PD.Text('1', { description: 'Assembly ID from _pdbx_struct_assembly.id.' }),
+    }
+})(({ params, state }, ctx: PluginContext) => Task.create('Load mmCIF as Particles', async taskCtx => {
+    // 1. Download or read the mmCIF data.
+    let data: StateObjectSelector;
+    if (params.source.name === 'url') {
+        data = await ctx.builders.data.download({ url: params.source.params.url, isBinary: params.source.params.isBinary });
+    } else {
+        if (!params.source.params.file) {
+            ctx.log.error('No mmCIF file selected');
+            return;
+        }
+        const isBinary = (params.source.params.file.file?.name ?? '').toLowerCase().endsWith('.bcif');
+        const result = await ctx.builders.data.readFile({ file: params.source.params.file, isBinary });
+        data = result.data;
+    }
+
+    // 2. Parse CIF (ghost node – not shown in the state tree UI).
+    const cif = await state.build()
+        .to(data)
+        .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
+        .commit({ revertOnError: true });
+
+    // 3. Create particle list from mmCIF assembly.
+    const particles = await state.build()
+        .to(cif)
+        .apply(StateTransforms.Particles.ParticleListFromMmcifAssembly, {
+            assemblyId: params.assemblyId,
+            asymIds: [],
+        })
+        .commit({ revertOnError: true });
+
+    // 4. Build a structure from the same CIF data (trajectory → model → structure).
+    const trajectory = await state.build()
+        .to(cif)
+        .apply(StateTransforms.Model.TrajectoryFromMmCif)
+        .commit({ revertOnError: true });
+    const model = await state.build()
+        .to(trajectory)
+        .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
+        .commit({ revertOnError: true });
+    const structure = await state.build()
+        .to(model)
+        .apply(StateTransforms.Model.StructureFromModel)
+        .commit({ revertOnError: true });
+
+    // 5. Associate reference structures with the particle list.
+    //    - targetMapping variants use the model-0 `structure` (chain-split).
+    //    - targetModels variants (petworld) use the `trajectory` (one structure per model).
+    const decorated = await state.build()
+        .to(particles)
+        .apply(StateTransforms.Particles.ParticleListWithStructures, {
+            trajectory: PD.Ref<Trajectory>(trajectory.ref),
+            structure: PD.Ref<Structure>(structure.ref),
+            structures: [],
+        })
+        .commit({ revertOnError: true });
+
+    // 6. Show the ParticlesStructureRepresentation.
+    await state.build()
+        .to(decorated)
+        .apply(StateTransforms.Particles.ParticlesRepresentation3D, {
+            type: { name: 'particles-structure', params: {} },
+            colorTheme: { name: 'particle-entity', params: {} },
+            sizeTheme: { name: 'uniform', params: { value: 1.6 } },
+        })
+        .commit({ revertOnError: true });
 }));
 
 export const AddParticles = StateAction.build({

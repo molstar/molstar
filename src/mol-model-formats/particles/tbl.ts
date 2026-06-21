@@ -7,6 +7,7 @@
 
 import { Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { ParticleList } from '../../mol-model/particles/particle-list';
+import { CustomProperties } from '../../mol-model/custom-property';
 import { DynamoTblFile } from '../../mol-io/reader/dynamo/tbl';
 import { Column } from '../../mol-data/db';
 import { degToRad } from '../../mol-math/misc';
@@ -108,6 +109,7 @@ export function createParticleListFromDynamoTbl(data: DynamoTblFile, options: Dy
         label: options.label ?? buildDynamoLabel(options.tomos),
         count,
         keys,
+        targets: new Int32Array(count),
         coordinates,
         rotations,
         getParticleLabel: (index: number) => {
@@ -120,6 +122,8 @@ export function createParticleListFromDynamoTbl(data: DynamoTblFile, options: Dy
             return parts.join(' | ');
         },
         sourceData: DynamoTblFormat.create(data),
+        customProperties: new CustomProperties(),
+        _propertyData: Object.create(null),
     };
 }
 

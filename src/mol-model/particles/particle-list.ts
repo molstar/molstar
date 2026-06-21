@@ -10,6 +10,7 @@ import { Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { Sphere3D } from '../../mol-math/geometry';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { ModelFormat } from '../../mol-model-formats/format';
+import { CustomProperties, CustomPropertyDescriptor } from '../custom-property';
 
 export interface ParticleList {
     readonly entryId?: string
@@ -20,17 +21,77 @@ export interface ParticleList {
     /** Unique keys for each particle for mapping to source data. */
     readonly keys: Int32Array
 
+    /**
+     * Per-particle target index (length = `count`). Each value identifies which
+     * target structure (or later volume) this particle belongs to.  Use 0 for
+     * single-target data.  The distinct values in this array correspond to the
+     * keys of `targetMapping` when present.
+     */
+    readonly targets: Int32Array
+
+    /**
+     * Optional mapping from each unique target ID in `targets` to the list of
+     * canonical chain IDs (label_asym_id values) that make up the reference
+     * structure for that target.  Used by `buildTargetStructuresFromMapping`
+     * in `src/mol-model/particles/particle-structure-registry.ts` to automatically
+     * split a parent structure into per-target sub-structures.
+     */
+    readonly targetMapping?: ReadonlyMap<number, ReadonlyArray<string>>
+
+    /**
+     * Optional mapping from each unique target ID in `targets` to a trajectory model index.
+     * When present, each target's reference structure is the full structure built from that
+     * trajectory model, rather than a chain-split sub-structure of a single parent structure.
+     * Used by the petworld mmCIF variant where each molecule type is stored as a separate model
+     * (`pdbx_PDB_model_num`) and chain IDs are reused across models. Takes precedence over
+     * `targetMapping`.
+     */
+    readonly targetModels?: ReadonlyMap<number, number>
+
+    /**
+     * Optional per-particle compartment index (length = `count`). Each value identifies
+     * which compartment this particle belongs to. A value of -1 means "no compartment".
+     * The distinct non-negative values correspond to keys of `compartmentInfo`.
+     */
+    readonly compartments?: Int32Array
+
+    /**
+     * Optional mapping from each unique compartment index in `compartments` to the
+     * compartment name/path string (e.g. `"root.mge.surface.proteins"`).
+     */
+    readonly compartmentInfo?: ReadonlyMap<number, string>
+
+    /**
+     * Optional per-particle entity index (length = `count`). Each value identifies
+     * which entity (molecule type) this particle belongs to. A value of -1 means "no entity".
+     * The distinct non-negative values correspond to keys of `entityInfo`.
+     */
+    readonly entities?: Int32Array
+
+    /**
+     * Optional mapping from each unique entity index in `entities` to the entity
+     * name string (e.g. `"MG_191_192_NAP"`).
+     */
+    readonly entityInfo?: ReadonlyMap<number, string>
+
     /** Particle positions in angstrom, packed as `[x0, y0, z0, x1, y1, z1, ...]`. */
     readonly coordinates: Float32Array
     /** Optional per-particle orientations as unit quaternions, packed as `[x0, y0, z0, w0, ...]`. */
     readonly rotations?: Float32Array
+    /** Optional per-particle bounding sphere radii in angstrom (length = `count`). */
+    readonly radii?: Float32Array
 
     readonly getParticleLabel: (index: number) => string
 
     // TODO: add common data fields, anything format-specific should be accessed via `sourceData`
 
     readonly sourceData: ModelFormat
+
+    customProperties: CustomProperties
+    _propertyData: { [name: string]: any }
 }
+
+const TargetStructuresDescriptor = CustomPropertyDescriptor({ name: 'particle-target-structures' });
 
 export function getParticleTransforms(data: ParticleList) {
     const particleCount = data.count;
@@ -120,24 +181,38 @@ export namespace Particle {
     export function getBoundingSphere(loci: Loci, boundingSphere?: Sphere3D): Sphere3D {
         if (!boundingSphere) boundingSphere = Sphere3D();
         const { particles, indices } = loci;
-        const { coordinates } = particles;
+        const { coordinates, radii } = particles;
         if (OrderedSet.isEmpty(indices)) {
             boundingSphere.center[0] = boundingSphere.center[1] = boundingSphere.center[2] = 0;
             boundingSphere.radius = 0;
             return boundingSphere;
         }
         _boundaryHelper.reset();
-        OrderedSet.forEach(indices, v => {
-            const i = v * 3;
-            Vec3.set(_tmpPos, coordinates[i], coordinates[i + 1], coordinates[i + 2]);
-            _boundaryHelper.includePosition(_tmpPos);
-        });
-        _boundaryHelper.finishedIncludeStep();
-        OrderedSet.forEach(indices, v => {
-            const i = v * 3;
-            Vec3.set(_tmpPos, coordinates[i], coordinates[i + 1], coordinates[i + 2]);
-            _boundaryHelper.radiusPosition(_tmpPos);
-        });
+        if (radii) {
+            OrderedSet.forEach(indices, v => {
+                const i = v * 3;
+                Vec3.set(_tmpPos, coordinates[i], coordinates[i + 1], coordinates[i + 2]);
+                _boundaryHelper.includePositionRadius(_tmpPos, radii[v]);
+            });
+            _boundaryHelper.finishedIncludeStep();
+            OrderedSet.forEach(indices, v => {
+                const i = v * 3;
+                Vec3.set(_tmpPos, coordinates[i], coordinates[i + 1], coordinates[i + 2]);
+                _boundaryHelper.radiusPositionRadius(_tmpPos, radii[v]);
+            });
+        } else {
+            OrderedSet.forEach(indices, v => {
+                const i = v * 3;
+                Vec3.set(_tmpPos, coordinates[i], coordinates[i + 1], coordinates[i + 2]);
+                _boundaryHelper.includePosition(_tmpPos);
+            });
+            _boundaryHelper.finishedIncludeStep();
+            OrderedSet.forEach(indices, v => {
+                const i = v * 3;
+                Vec3.set(_tmpPos, coordinates[i], coordinates[i + 1], coordinates[i + 2]);
+                _boundaryHelper.radiusPosition(_tmpPos);
+            });
+        }
         const sphere = _boundaryHelper.getSphere();
         Sphere3D.copy(boundingSphere, sphere);
         return boundingSphere;
@@ -151,5 +226,19 @@ export namespace Particle {
             return loci.particles.getParticleLabel(index);
         }
         return `${size} Particles`;
+    }
+
+    export function setTargetStructures(
+        particles: ParticleList,
+        map: ReadonlyMap<number, import('../structure').Structure>
+    ): void {
+        particles.customProperties.add(TargetStructuresDescriptor);
+        particles._propertyData[TargetStructuresDescriptor.name] = map;
+    }
+
+    export function getTargetStructures(
+        particles: ParticleList
+    ): ReadonlyMap<number, import('../structure').Structure> | undefined {
+        return particles._propertyData[TargetStructuresDescriptor.name];
     }
 }

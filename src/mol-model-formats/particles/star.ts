@@ -8,6 +8,7 @@
 import { Column } from '../../mol-data/db';
 import { Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { ParticleList } from '../../mol-model/particles/particle-list';
+import { CustomProperties } from '../../mol-model/custom-property';
 import { RelionStarFile } from '../../mol-io/reader/relion/star';
 import { RelionStar_Database } from '../../mol-io/reader/relion/schema';
 import { degToRad } from '../../mol-math/misc';
@@ -294,6 +295,7 @@ export function createParticleListFromRelionStar(data: RelionStarFile, options: 
         label: buildRelionLabel(particleBlock.header, options.tomograms, options.micrographs),
         count,
         keys,
+        targets: new Int32Array(count),
         coordinates,
         rotations,
         getParticleLabel: (index: number) => {
@@ -306,6 +308,8 @@ export function createParticleListFromRelionStar(data: RelionStarFile, options: 
             return label.join(' | ');
         },
         sourceData: RelionStarFormat.create(data),
+        customProperties: new CustomProperties(),
+        _propertyData: Object.create(null),
     };
 }
 

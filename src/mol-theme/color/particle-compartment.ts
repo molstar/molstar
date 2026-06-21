@@ -19,12 +19,12 @@ import { Volume } from '../../mol-model/volume';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xCCCCCC);
-const Description = 'Gives every particle a unique color based on its index in the particle list.';
+const Description = 'Gives every unique particle compartment a distinct color.';
 
-export const ParticleIndexColorThemeParams = {
+export const ParticleCompartmentColorThemeParams = {
     ...getPaletteParams({ type: 'colors', colorList: DefaultList }),
 };
-export type ParticleIndexColorThemeParams = typeof ParticleIndexColorThemeParams
+export type ParticleCompartmentColorThemeParams = typeof ParticleCompartmentColorThemeParams
 
 function getParticleList(ctx: ThemeDataContext): ParticleList | undefined {
     if (ctx.particles) return ctx.particles;
@@ -39,12 +39,30 @@ function getParticleList(ctx: ThemeDataContext): ParticleList | undefined {
     return undefined;
 }
 
-export function getParticleIndexColorThemeParams(ctx: ThemeDataContext) {
-    const params = PD.clone(ParticleIndexColorThemeParams);
+function buildCompartmentColorIndex(particles: ParticleList): { colorIndex: Int32Array, compartmentCount: number } {
+    const { count, compartments } = particles;
+    const colorIndex = new Int32Array(count).fill(-1);
+    if (!compartments) return { colorIndex, compartmentCount: 0 };
+
+    // Map raw compartment indices to dense sequential palette indices.
+    const compartmentSet = new Map<number, number>();
+    for (let i = 0; i < count; ++i) {
+        const c = compartments[i];
+        if (c >= 0 && !compartmentSet.has(c)) compartmentSet.set(c, compartmentSet.size);
+    }
+    for (let i = 0; i < count; ++i) {
+        const c = compartments[i];
+        if (c >= 0) colorIndex[i] = compartmentSet.get(c)!;
+    }
+    return { colorIndex, compartmentCount: compartmentSet.size };
+}
+
+export function getParticleCompartmentColorThemeParams(ctx: ThemeDataContext) {
+    const params = PD.clone(ParticleCompartmentColorThemeParams);
     const particles = getParticleList(ctx);
     if (particles) {
-        const { count } = particles;
-        if (count > ColorLists[DefaultList].list.length) {
+        const { compartmentCount } = buildCompartmentColorIndex(particles);
+        if (compartmentCount > ColorLists[DefaultList].list.length) {
             params.palette.defaultValue.name = 'colors';
             params.palette.defaultValue.params = {
                 ...params.palette.defaultValue.params,
@@ -55,17 +73,20 @@ export function getParticleIndexColorThemeParams(ctx: ThemeDataContext) {
     return params;
 }
 
-export function ParticleIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<ParticleIndexColorThemeParams>): ColorTheme<ParticleIndexColorThemeParams> {
+export function ParticleCompartmentColorTheme(ctx: ThemeDataContext, props: PD.Values<ParticleCompartmentColorThemeParams>): ColorTheme<ParticleCompartmentColorThemeParams> {
     let color: LocationColor;
     let legend: ScaleLegend | TableLegend | undefined;
 
     const particles = getParticleList(ctx);
     if (particles) {
-        const { count } = particles;
-        const palette = getPalette(count, props);
+        const { colorIndex, compartmentCount } = buildCompartmentColorIndex(particles);
+        const palette = getPalette(compartmentCount, props);
         legend = palette.legend;
 
-        const pick = (index: number) => index >= 0 && index < count ? palette.color(index) : DefaultColor;
+        const pick = (particleIndex: number) => {
+            const ci = colorIndex[particleIndex];
+            return ci >= 0 ? palette.color(ci) : DefaultColor;
+        };
 
         color = (location: Location): Color => {
             if (Particle.isLocation(location)) {
@@ -88,7 +109,7 @@ export function ParticleIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<
     }
 
     return {
-        factory: ParticleIndexColorTheme,
+        factory: ParticleCompartmentColorTheme,
         granularity: 'instance',
         color,
         props,
@@ -97,12 +118,12 @@ export function ParticleIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<
     };
 }
 
-export const ParticleIndexColorThemeProvider: ColorTheme.Provider<ParticleIndexColorThemeParams, 'particle-index'> = {
-    name: 'particle-index',
-    label: 'Particle Index',
+export const ParticleCompartmentColorThemeProvider: ColorTheme.Provider<ParticleCompartmentColorThemeParams, 'particle-compartment'> = {
+    name: 'particle-compartment',
+    label: 'Particle Compartment',
     category: ColorThemeCategory.Particle,
-    factory: ParticleIndexColorTheme,
-    getParams: getParticleIndexColorThemeParams,
-    defaultValues: PD.getDefaultValues(ParticleIndexColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!getParticleList(ctx)
+    factory: ParticleCompartmentColorTheme,
+    getParams: getParticleCompartmentColorThemeParams,
+    defaultValues: PD.getDefaultValues(ParticleCompartmentColorThemeParams),
+    isApplicable: (ctx: ThemeDataContext) => !!getParticleList(ctx)?.compartments
 };
