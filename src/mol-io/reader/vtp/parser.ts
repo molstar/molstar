@@ -13,13 +13,9 @@ import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../commo
 // --- Locate AppendedData section ---
 
 interface AppendedInfo {
-    /** Raw base64 (or raw binary) text/bytes after the '_' marker */
-    rawB64: string;
-    /** Encoding: "base64" or "raw" */
     encoding: string;
-    /** Byte position of '_' + 1 in the original Uint8Array (for raw mode) */
+    /** Byte position of '_' + 1 in the original Uint8Array */
     rawByteStart: number;
-    /** Original Uint8Array (for raw mode) */
     rawData: Uint8Array;
 }
 
@@ -53,17 +49,7 @@ function extractAppendedInfo(data: Uint8Array): AppendedInfo {
     }
     const dataStart = pos + 1;
 
-    if (encoding === 'base64') {
-        const endTagPos = findBytesPosition(data, '</AppendedData>', dataStart);
-        if (endTagPos < 0) throw new Error('</AppendedData> not found');
-        const rawB64 = new TextDecoder('ascii').decode(
-            new Uint8Array(data.buffer, data.byteOffset + dataStart, endTagPos - dataStart)
-        );
-        return { rawB64, encoding, rawByteStart: dataStart, rawData: data };
-    } else {
-        // raw: offsets are byte offsets
-        return { rawB64: '', encoding: 'raw', rawByteStart: dataStart, rawData: data };
-    }
+    return { encoding, rawByteStart: dataStart, rawData: data };
 }
 
 // --- Tokenizer helpers (replace regex-based XML attribute parsing) ---
@@ -223,55 +209,74 @@ function parseHeader(header: string): ParsedHeader {
 //   1. The compressed-block header  (nblocks, blockSize, lastSize, compSize[i])
 //   2. All compressed blocks concatenated
 //
-// The DataArray XML `offset` attribute is the CHARACTER position of the first chunk in
-// the raw base64 text (after '_').  Knowing the number of bytes to decode lets us compute
-// the exact character span (ceil(nBytes/3)*4) without scanning for '='.
+// The DataArray XML `offset` attribute is a byte offset in the base64 ASCII stream after '_'.
+// Since base64 is ASCII (1 char == 1 byte), the character offset equals the byte offset.
+// We decode base64 directly from the source without going through atob or string copies.
 
-function decodeBase64Slice(rawB64: string, charPos: number, nBytes: number): Uint8Array {
-    if (nBytes === 0) return new Uint8Array(0);
-    const nChars = Math.ceil(nBytes / 3) * 4;
-    const slice = rawB64.slice(charPos, charPos + nChars);
-    const binary = atob(slice);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes;
+const B64_DECODE = new Int8Array(256).fill(-1);
+'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.split('').forEach((c, i) => (B64_DECODE[c.charCodeAt(0)] = i));
+
+// Decode nOut bytes of base64 from a Uint8Array (appended path — no string copy).
+function decodeB64Bytes(src: Uint8Array, srcStart: number, nOut: number): Uint8Array {
+    if (nOut === 0) return new Uint8Array(0);
+    const out = new Uint8Array(nOut);
+    let si = srcStart, di = 0;
+    while (di < nOut) {
+        const a = B64_DECODE[src[si++]], b = B64_DECODE[src[si++]];
+        const c = B64_DECODE[src[si++]], d = B64_DECODE[src[si++]];
+        if (a < 0 || b < 0) break;
+        if (di < nOut) out[di++] = (a << 2) | (b >> 4);
+        if (c >= 0 && di < nOut) out[di++] = ((b & 0xF) << 4) | (c >> 2);
+        if (d >= 0 && di < nOut) out[di++] = ((c & 0x3) << 6) | d;
+    }
+    return out;
 }
 
-// --- Zlib block decompression (base64 path) ---
+// Decode nOut bytes of base64 from a string with start index (inline path — avoids atob).
+function decodeB64Str(src: string, srcStart: number, nOut: number): Uint8Array {
+    if (nOut === 0) return new Uint8Array(0);
+    const out = new Uint8Array(nOut);
+    let si = srcStart, di = 0;
+    while (di < nOut) {
+        const a = B64_DECODE[src.charCodeAt(si++)], b = B64_DECODE[src.charCodeAt(si++)];
+        const c = B64_DECODE[src.charCodeAt(si++)], d = B64_DECODE[src.charCodeAt(si++)];
+        if (a < 0 || b < 0) break;
+        if (di < nOut) out[di++] = (a << 2) | (b >> 4);
+        if (c >= 0 && di < nOut) out[di++] = ((b & 0xF) << 4) | (c >> 2);
+        if (d >= 0 && di < nOut) out[di++] = ((c & 0x3) << 6) | d;
+    }
+    return out;
+}
 
-async function decompressVtkBlockB64(
+// --- Zlib block decompression (base64 paths) ---
+// Two variants: bytes (appended — no string) and str (inline — avoids atob).
+
+async function decompressVtkBlockB64Bytes(
     ctx: RuntimeContext,
-    rawB64: string,
-    charOffset: number,
+    rawData: Uint8Array,
+    rawByteStart: number,
+    byteOffset: number,
     headerType: 'UInt32' | 'UInt64' = 'UInt32',
     hasCompressor = true
 ): Promise<Uint8Array> {
     const hdrItemBytes = headerType === 'UInt64' ? 8 : 4;
+    const base = rawByteStart + byteOffset;
 
     if (!hasCompressor) {
-        // Uncompressed: [nbytes (hdrItemBytes)][raw data bytes]
-        const hdr = decodeBase64Slice(rawB64, charOffset, hdrItemBytes);
+        const hdr = decodeB64Bytes(rawData, base, hdrItemBytes);
         const nbytes = new DataView(hdr.buffer, hdr.byteOffset, hdrItemBytes).getUint32(0, true);
-        const hdrChars = Math.ceil(hdrItemBytes / 3) * 4;
-        return decodeBase64Slice(rawB64, charOffset + hdrChars, nbytes);
+        return decodeB64Bytes(rawData, base + Math.ceil(hdrItemBytes / 3) * 4, nbytes);
     }
 
-    // 1. Read first 3 header items (nblocks, blockSize, lastSize)
-    const minHdrBytes = 3 * hdrItemBytes;
-    const minHdr = decodeBase64Slice(rawB64, charOffset, minHdrBytes);
-    const dvMin = new DataView(minHdr.buffer, minHdr.byteOffset, minHdrBytes);
-    // For UInt64 we read the low 32 bits (little-endian; high bits are 0 for practical sizes)
+    const minHdr = decodeB64Bytes(rawData, base, 3 * hdrItemBytes);
+    const dvMin = new DataView(minHdr.buffer, minHdr.byteOffset, 3 * hdrItemBytes);
     const nblocks = dvMin.getUint32(0, true);
     const blockSize = dvMin.getUint32(hdrItemBytes, true);
     const lastSize = dvMin.getUint32(2 * hdrItemBytes, true);
-
-    // 2. Read full header (adds nblocks * hdrItemBytes bytes for compressed sizes)
-    const totalHdrBytes = (3 + nblocks) * hdrItemBytes;
-    const hdrRaw = decodeBase64Slice(rawB64, charOffset, totalHdrBytes);
-    const hdrChars = Math.ceil(totalHdrBytes / 3) * 4;
-
     if (nblocks === 0) return new Uint8Array(0);
 
+    const totalHdrBytes = (3 + nblocks) * hdrItemBytes;
+    const hdrRaw = decodeB64Bytes(rawData, base, totalHdrBytes);
     const dvHdr = new DataView(hdrRaw.buffer, hdrRaw.byteOffset, hdrRaw.byteLength);
     const compSizes = new Uint32Array(nblocks);
     let totalCompressed = 0;
@@ -280,30 +285,63 @@ async function decompressVtkBlockB64(
         totalCompressed += compSizes[i];
     }
 
-    // 3. Decode all compressed blocks as one contiguous base64 slice
-    const dataCharOffset = charOffset + hdrChars;
-    const compData = decodeBase64Slice(rawB64, dataCharOffset, totalCompressed);
-
-    // 4. Decompress each zlib block
-    const totalUncompressed = lastSize > 0
-        ? (nblocks - 1) * blockSize + lastSize
-        : nblocks * blockSize;
-
+    const compData = decodeB64Bytes(rawData, base + Math.ceil(totalHdrBytes / 3) * 4, totalCompressed);
+    const totalUncompressed = lastSize > 0 ? (nblocks - 1) * blockSize + lastSize : nblocks * blockSize;
     const result = new Uint8Array(totalUncompressed);
-    let compOffset = 0;
-    let outOffset = 0;
-
+    let compOff = 0, outOff = 0;
     for (let i = 0; i < nblocks; i++) {
         const csize = compSizes[i];
-        const blockView = new Uint8Array(
-            compData.buffer, compData.byteOffset + compOffset, csize
-        ) as Uint8Array<ArrayBuffer>;
-        const inflated = await inflate(ctx, blockView);
-        result.set(inflated, outOffset);
-        outOffset += inflated.length;
-        compOffset += csize;
+        const inflated = await inflate(ctx, new Uint8Array(compData.buffer, compData.byteOffset + compOff, csize) as Uint8Array<ArrayBuffer>);
+        result.set(inflated, outOff);
+        outOff += inflated.length;
+        compOff += csize;
+    }
+    return result;
+}
+
+async function decompressVtkBlockB64Str(
+    ctx: RuntimeContext,
+    src: string,
+    charOffset: number,
+    headerType: 'UInt32' | 'UInt64' = 'UInt32',
+    hasCompressor = true
+): Promise<Uint8Array> {
+    const hdrItemBytes = headerType === 'UInt64' ? 8 : 4;
+
+    if (!hasCompressor) {
+        const hdr = decodeB64Str(src, charOffset, hdrItemBytes);
+        const nbytes = new DataView(hdr.buffer, hdr.byteOffset, hdrItemBytes).getUint32(0, true);
+        return decodeB64Str(src, charOffset + Math.ceil(hdrItemBytes / 3) * 4, nbytes);
     }
 
+    const minHdr = decodeB64Str(src, charOffset, 3 * hdrItemBytes);
+    const dvMin = new DataView(minHdr.buffer, minHdr.byteOffset, 3 * hdrItemBytes);
+    const nblocks = dvMin.getUint32(0, true);
+    const blockSize = dvMin.getUint32(hdrItemBytes, true);
+    const lastSize = dvMin.getUint32(2 * hdrItemBytes, true);
+    if (nblocks === 0) return new Uint8Array(0);
+
+    const totalHdrBytes = (3 + nblocks) * hdrItemBytes;
+    const hdrRaw = decodeB64Str(src, charOffset, totalHdrBytes);
+    const dvHdr = new DataView(hdrRaw.buffer, hdrRaw.byteOffset, hdrRaw.byteLength);
+    const compSizes = new Uint32Array(nblocks);
+    let totalCompressed = 0;
+    for (let i = 0; i < nblocks; i++) {
+        compSizes[i] = dvHdr.getUint32((3 + i) * hdrItemBytes, true);
+        totalCompressed += compSizes[i];
+    }
+
+    const compData = decodeB64Str(src, charOffset + Math.ceil(totalHdrBytes / 3) * 4, totalCompressed);
+    const totalUncompressed = lastSize > 0 ? (nblocks - 1) * blockSize + lastSize : nblocks * blockSize;
+    const result = new Uint8Array(totalUncompressed);
+    let compOff = 0, outOff = 0;
+    for (let i = 0; i < nblocks; i++) {
+        const csize = compSizes[i];
+        const inflated = await inflate(ctx, new Uint8Array(compData.buffer, compData.byteOffset + compOff, csize) as Uint8Array<ArrayBuffer>);
+        result.set(inflated, outOff);
+        outOff += inflated.length;
+        compOff += csize;
+    }
     return result;
 }
 
@@ -370,20 +408,11 @@ async function decompressBlock(
     hasCompressor: boolean
 ): Promise<Uint8Array> {
     if (desc.inlineBase64) {
-        if (!hasCompressor) {
-            // Uncompressed inline: [nbytes (hdrItemBytes)][raw data]
-            const hdrItemBytes = headerType === 'UInt64' ? 8 : 4;
-            const binary = atob(desc.inlineBase64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-            return bytes.slice(hdrItemBytes);
-        }
-        // Compressed inline: same block structure as AppendedData base64, starting at char 0
-        return decompressVtkBlockB64(ctx, desc.inlineBase64, 0, headerType);
+        return decompressVtkBlockB64Str(ctx, desc.inlineBase64, 0, headerType, hasCompressor);
     }
     if (!info) throw new Error(`No data source for array "${desc.name}"`);
     if (info.encoding === 'base64') {
-        return decompressVtkBlockB64(ctx, info.rawB64, desc.offset, headerType, hasCompressor);
+        return decompressVtkBlockB64Bytes(ctx, info.rawData, info.rawByteStart, desc.offset, headerType, hasCompressor);
     } else {
         return decompressVtkBlockRaw(ctx, info.rawData, info.rawByteStart, desc.offset, headerType, hasCompressor);
     }
