@@ -54,13 +54,45 @@ function defaultValence(el: ElementSymbol): number {
 // Atom geometry (from bond angles) is represented with the shared `AtomGeometry` enum:
 //   Terminal = terminal, Linear = sp, Trigonal = sp2, Tetrahedral = sp3.
 
-// Sayle step 9c reference multiple-bond lengths (Angstrom)
-const TripleMaxSq = 1.6384; // ~C#C 1.25, C#N 1.22 + tolerance = 1.28
-const DoubleMaxSq = 2.0164; // ~C=C 1.38, C=O 1.28, N=N 1.32 + tolerance = 1.42
+// Loose double-bond length cap (1.42^2) for the kekulization passes (step 8 aromatic, step 9a
+// conjugated): those bonds run up to ~1.40 A, so the per-element step-9c table below would
+// wrongly reject them.
+const DoubleMaxSq = 2.0164;
+
+// Step 9c per-bond-type reference lengths (Angstrom), from Sayle "PDB: Cruft to Content". A bond
+// of the given order is accepted when its length is at or below the reference. Pairs absent here
+// (e.g. C=N) are never assigned a localized multiple bond by 9c.
+//   triples: C#C 1.25, C#N 1.22 ; doubles: C=C 1.38, C=O 1.28, C=S 1.70, N=N 1.32
+function multipleBondMaxSq(elA: ElementSymbol, elB: ElementSymbol, order: number): number | undefined {
+    const a = elA < elB ? elA : elB;
+    const b = elA < elB ? elB : elA;
+    if (order === 3) {
+        if (a === Elements.C && b === Elements.C) return 1.5625; // 1.25^2
+        if (a === Elements.C && b === Elements.N) return 1.4884; // 1.22^2
+        return undefined;
+    }
+    if (order === 2) {
+        if (a === Elements.C && b === Elements.C) return 1.9044; // 1.38^2
+        if (a === Elements.C && b === Elements.O) return 1.6384; // 1.28^2
+        if (a === Elements.C && b === Elements.S) return 2.8900; // 1.70^2
+        if (a === Elements.N && b === Elements.N) return 1.7424; // 1.32^2
+        return undefined;
+    }
+    return undefined;
+}
 
 // Sayle thresholds for geometries (minimal angles rather than ideal angles)
 const SP_ANGLE = degToRad(155);
 const SP2_ANGLE = degToRad(115);
+
+// Max average |torsion| (degrees) for a ring to count as planar (sp2).
+const Torsion5MaxDeg = 7.5;
+const Torsion6MaxDeg = 12;
+// Max deviation from 0°/180° of the substituent dihedral across a candidate double bond for it
+// to count as planar (`isBondPlanar`). Looser than the ring threshold: a real double inside a
+// distorted ring still twists locally (e.g. the chlorin C1=C12 dihedral is ~10.6°), while a
+// pyramidal sp3 centre sits near ±60°.
+const BondPlanarMaxDeg = 30;
 
 const tmpVecA = Vec3();
 const tmpVecB = Vec3();
@@ -136,10 +168,28 @@ interface State {
     neighbours: number[][]
     /** geometry (from bond angles) per local atom, as `AtomGeometry` */
     geometry: Int8Array
+    /** average heavy-neighbour bond angle (radians) per local atom; 0 for degree < 2 */
+    angle: Float32Array
     /** remaining open valence per local atom */
     open: Int8Array
     /** 1 if the atom belongs to a ring within the residue */
     inRing: Uint8Array
+    /** `Ambiguity` bit-flags per local atom (geometry that can't be decided) */
+    ambiguous: Uint8Array
+}
+
+/**
+ * Cases where an atom's sp2/sp3 hybridization can't be decided from coordinates alone, so it
+ * may take a double if a genuine sp2 neighbour and the bond geometry support it. Bit-flags so
+ * more cases can be added later.
+ */
+const enum Ambiguity {
+    None = 0,
+    /** degree-2 atom in a non-planar 5-ring: the ~108° angle can't tell sp2 from sp3 */
+    Sp2OrSp3InRing5 = 1,
+    /** degree-2 atom whose single angle sits just below the sp2 threshold (e.g. an aromatic-ring
+     *  aldehyde C at 114.7°): too close to call sp2 vs sp3 from one angle */
+    Sp2OrSp3Borderline = 2,
 }
 
 function pos(state: State, local: number, out: Vec3) {
@@ -191,8 +241,10 @@ function State(unit: Unit.Atomic, bonds: IntraUnitBonds, start: number, end: num
         unit, bonds, start, end, x, y, z,
         el, hCount, heavyDegree, neighbours,
         geometry: new Int8Array(n),
+        angle: new Float32Array(n),
         open: new Int8Array(n),
         inRing: new Uint8Array(n),
+        ambiguous: new Uint8Array(n),
     };
 }
 
@@ -223,6 +275,7 @@ function assignHybridization(state: State) {
             }
         }
         const avg = count > 0 ? sum / count : 0;
+        state.angle[i] = avg;
         if (max > SP_ANGLE) state.geometry[i] = AtomGeometry.Linear;
         else if (avg > SP2_ANGLE) state.geometry[i] = AtomGeometry.Trigonal;
         else state.geometry[i] = AtomGeometry.Tetrahedral;
@@ -245,11 +298,62 @@ function applyRingPlanarity(state: State, rings: number[][]) {
             sum += Math.abs(radToDeg(Vec3.dihedralAngle(tmpVecA, tmpVecB, tmpVecC, tmpVecD)));
         }
         const avg = sum / len;
-        const threshold = len === 5 ? 7.5 : 12;
+        const threshold = len === 5 ? Torsion5MaxDeg : Torsion6MaxDeg;
         if (avg < threshold) {
             for (const a of seq) state.geometry[a] = AtomGeometry.Trigonal;
         }
     }
+}
+
+// A degree-2 atom is ambiguous when its single angle falls in this band just below the sp2
+// threshold: too close to call sp2 vs sp3 from one angle (an aromatic-ring aldehyde C is ~114.7°,
+// a hydroxymethyl ~115.2°). 5° wide; the step-9c distance then decides.
+const BorderlineAngleMin = SP2_ANGLE - degToRad(5);
+
+/**
+ * 6c: flag degree-2 atoms whose sp2/sp3 hybridization can't be decided from one bond angle, so a
+ * missing H hides the real coordination. Two cases:
+ *  - in a non-planar 5-ring: the ~108° angle is dictated by ring geometry (e.g. the chlorin
+ *    methine C12 in CHR, a real sp2 =CH- that looks Tetrahedral);
+ *  - a degree-2 atom whose angle sits just below the sp2 threshold (e.g. an aromatic-ring aldehyde
+ *    C at 114.7°, mis-read Tetrahedral).
+ * A *planar* 5-ring was already promoted to Trigonal by `applyRingPlanarity`, so anything still
+ * Tetrahedral is genuinely undecidable. Run after `applyRingPlanarity`.
+ */
+function markAmbiguous(state: State, rings: number[][]) {
+    for (const seq of rings) {
+        if (seq.length !== 5) continue;
+        for (const a of seq) {
+            if (state.heavyDegree[a] === 2 && state.geometry[a] === AtomGeometry.Tetrahedral) {
+                state.ambiguous[a] |= Ambiguity.Sp2OrSp3InRing5;
+            }
+        }
+    }
+    const n = state.end - state.start;
+    for (let i = 0; i < n; i++) {
+        if (state.heavyDegree[i] === 2 && state.geometry[i] === AtomGeometry.Tetrahedral &&
+            state.angle[i] >= BorderlineAngleMin) {
+            state.ambiguous[i] |= Ambiguity.Sp2OrSp3Borderline;
+        }
+    }
+}
+
+/**
+ * Whether the bond u-v looks like a planar (sp2-sp2) double: the substituents on either end are
+ * roughly coplanar across the bond. Picks one heavy neighbour on each side (other than the bond
+ * partner) and tests the n_u-u-v-n_v torsion against ~0°/180° within `BondPlanarMaxDeg`. Returns
+ * true when a side has no such neighbour (planarity can't be disproven, e.g. a terminal partner).
+ */
+function isBondPlanar(state: State, u: number, v: number) {
+    const nu = state.neighbours[u].find(w => w !== v);
+    const nv = state.neighbours[v].find(w => w !== u);
+    if (nu === undefined || nv === undefined) return true;
+    pos(state, nu, tmpVecA);
+    pos(state, u, tmpVecB);
+    pos(state, v, tmpVecC);
+    pos(state, nv, tmpVecD);
+    const deg = Math.abs(radToDeg(Vec3.dihedralAngle(tmpVecA, tmpVecB, tmpVecC, tmpVecD)));
+    return deg <= BondPlanarMaxDeg || deg >= 180 - BondPlanarMaxDeg;
 }
 
 /**
@@ -398,6 +502,40 @@ const FunctionalGroups: FunctionalGroup[] = [
     ] },
 ];
 
+type ExoSpec =
+    | { order: 0 } // no exocyclic heavy bond (implicit H / 2-connected)
+    | { order: 1 | 2; el: 'O' | '*' }; // exocyclic single/double; partner O-specific or any heavy
+
+interface AromaticAtomConfig {
+    name: string;
+    el: Elements; // C | N | O | S | SE
+    charge?: 1; // the two N+ motifs (recorded, not acted on)
+    ringDoubles: 0 | 1; // # in-ring double bonds (each ring atom has exactly 2 ring bonds)
+    exo: ExoSpec;
+    electrons: number | [number, number]; // π contribution; [lo,hi] = ambiguous
+}
+
+const AromaticAtomConfigs: AromaticAtomConfig[] = [
+    { name: '*C(*)*', el: Elements.C, ringDoubles: 0, exo: { order: 1, el: '*' }, electrons: 1 },
+    { name: '*C(*)=*', el: Elements.C, ringDoubles: 1, exo: { order: 1, el: '*' }, electrons: 1 },
+    { name: '*C(=*)*', el: Elements.C, ringDoubles: 0, exo: { order: 2, el: '*' }, electrons: 1 },
+    { name: '*C*', el: Elements.C, ringDoubles: 0, exo: { order: 0 }, electrons: 1 },
+    { name: '*C=*', el: Elements.C, ringDoubles: 1, exo: { order: 0 }, electrons: 1 },
+    { name: '*C(O)*', el: Elements.C, ringDoubles: 0, exo: { order: 1, el: 'O' }, electrons: [0,1] },
+    { name: '*C(=O)*', el: Elements.C, ringDoubles: 0, exo: { order: 2, el: 'O' }, electrons: 0 },
+    { name: '*C(O)=*', el: Elements.C, ringDoubles: 1, exo: { order: 1, el: 'O' }, electrons: 1 },
+    { name: '*N=*', el: Elements.N, ringDoubles: 1, exo: { order: 0 }, electrons: 1 },
+    { name: '*N(=O)N', el: Elements.N, ringDoubles: 0, exo: { order: 2, el: 'O' }, electrons: 1 },
+    { name: '*N(=*)=*', el: Elements.N, ringDoubles: 1, exo: { order: 2, el: '*' }, electrons: 1 },
+    { name: '*[N+](*)*', el: Elements.N, ringDoubles: 0, exo: { order: 1, el: '*' }, charge: 1, electrons: 1 },
+    { name: '*[N+](*)=*', el: Elements.N, ringDoubles: 1, exo: { order: 1, el: '*' }, charge: 1,electrons: 1 },
+    { name: '*N*', el: Elements.N, ringDoubles: 0, exo: { order: 0 }, electrons: [1,2] },
+    { name: '*N(*)*', el: Elements.N, ringDoubles: 0, exo: { order: 1, el: '*' }, electrons: 2 },
+    { name: '*O*', el: Elements.O, ringDoubles: 0, exo: { order: 0 }, electrons: 2 },
+    { name: '*S*', el: Elements.S, ringDoubles: 0, exo: { order: 0 }, electrons: 2 },
+    { name: '*[Se]*', el: Elements.SE, ringDoubles: 0, exo: { order: 0 }, electrons: 2 },
+];
+
 function matchEl(spec: ElSpec, el: ElementSymbol) { return spec === '*' ? !isHydrogenElement(el) : spec === el; }
 
 function connectivityOk(c: NeighborConnectivity, isTerminal: boolean) {
@@ -407,7 +545,7 @@ function connectivityOk(c: NeighborConnectivity, isTerminal: boolean) {
 function applyFunctionalGroups(state: State) {
     const n = state.end - state.start;
     for (let i = 0; i < n; i++) {
-        // If the center already has a multiple bond (e.g. a backbone C=O or phosphate
+         // If the center already has a multiple bond (e.g. a backbone C=O or phosphate
         // P=O from the order table), its pi system is already placed - don't add another.
         if (hasMultipleBond(state, i)) continue;
         const el = state.el[i];
@@ -463,9 +601,11 @@ function assignSlots(state: State, i: number, specs: neighbourspec[]): number[] 
             const isTerminal = state.heavyDegree[v] <= 1;
             if (!connectivityOk(spec.connectivity, isTerminal)) continue;
             const d2 = distSq(state, i, v);
-            // higher orders prefer shorter bonds; lower orders prefer longer
-            // TODO: is negative distance necessary? What happens in the case of multiple double bonds?
-            const key = spec.order > 1 ? d2 : -d2;
+            // higher orders prefer shorter bonds; lower orders prefer longer.
+            // Ring neighbours beat non-ring neighbours for double-bond slots (Sayle step 7
+            // heuristic): a ring atom takes its pi bond in-ring. -2 undercuts any d² > 0.
+            const ringBonus = (spec.order > 1 && state.inRing[v]) ? -2 : 0;
+            const key = spec.order > 1 ? d2 + ringBonus : -d2;
             if (key < bestDistSq) { bestDistSq = key; best = k; }
         }
         if (best < 0) return undefined;
@@ -518,16 +658,24 @@ function isPerceivableBond(state: State, u: number, v: number) {
  * single bonds may become double, letting us run aromatic ring bonds first (step 8)
  * before the remaining bonds (step 9a).
  */
-function matchDoubleBonds(state: State, bondEligible: (u: number, v: number) => boolean) {
+function matchDoubleBonds(state: State, bondEligible: (u: number, v: number) => boolean, requireSp2 = true) {
     computeOpenValence(state);
     const n = state.end - state.start;
 
-    // An atom can accept a double bond if it has open valence, no existing multiple
-    // bond, and is sp2 or terminal. Each contributes exactly one pi bond (the Kekule
-    // constraint) - this avoids over-assigning when implicit hydrogens are missing.
+    const isSp2 = (i: number) =>
+        state.geometry[i] === AtomGeometry.Trigonal || state.geometry[i] === AtomGeometry.Terminal;
+
+    // An atom can accept a double bond if it has open valence and no existing multiple bond.
+    // For step 8 (aromatic Kekule) both endpoints must be sp2/terminal. For step 9a (conjugated /
+    // ring kekulization) an endpoint must be a genuine sp2 (Trigonal) or a geometrically
+    // undecidable ambiguous atom — Terminal is excluded here (carbonyls and other terminal-atom
+    // doubles are handled by the step-9c distance table), as are genuine sp3 (Tetrahedral) and sp
+    // (Linear) atoms.
     const canAccept = (i: number) =>
         state.open[i] > 0 && !hasMultipleBond(state, i) &&
-        (state.geometry[i] === AtomGeometry.Trigonal || state.geometry[i] === AtomGeometry.Terminal);
+        (requireSp2
+            ? isSp2(i)
+            : state.geometry[i] === AtomGeometry.Trigonal || state.ambiguous[i] !== 0);
 
     // vertices = all atoms that can accept one double bond; carbons first so
     // heteroatoms tend to be left unmatched (lone-pair donors, e.g. pyrrole N / furan O)
@@ -542,8 +690,19 @@ function matchDoubleBonds(state: State, bondEligible: (u: number, v: number) => 
         for (const v of state.neighbours[u]) {
             if (!canAccept(v)) continue;
             if (!isPerceivableBond(state, u, v)) continue;
-            if (distSq(state, u, v) > DoubleMaxSq) continue;
+            const d2 = distSq(state, u, v);
+            if (d2 > DoubleMaxSq) continue;
             if (!bondEligible(u, v)) continue;
+            if (!requireSp2) {
+                // A π bond needs a genuine sp2 (Trigonal) anchor; an ambiguous atom is never an
+                // anchor, so two undecidable atoms can't pair up on their own.
+                const uTri = state.geometry[u] === AtomGeometry.Trigonal;
+                const vTri = state.geometry[v] === AtomGeometry.Trigonal;
+                if (!uTri && !vTri) continue;
+                // An ambiguous endpoint must additionally look like a planar (sp2-sp2) double:
+                // its substituents are coplanar across the bond (e.g. the chlorin C1=C12).
+                if ((state.ambiguous[u] || state.ambiguous[v]) && !isBondPlanar(state, u, v)) continue;
+            }
             list.push(v);
         }
         adj.set(u, list);
@@ -565,21 +724,49 @@ function kekulize(state: State) {
         (getFlags(bonds, start + u, start + v) & BondType.Flag.Aromatic) !== 0;
     matchDoubleBonds(state, isAromaticBond);
 
-    // step 9a: assign all remaining double bonds (exocyclic, aliphatic, non-aromatic rings)
-    matchDoubleBonds(state, () => true);
+    // step 9a: kekulize remaining conjugated / non-aromatic-ring double bonds (non-terminal sp2
+    // or ambiguous atoms) by maximum matching.
+    matchDoubleBonds(state, () => true, false);
 
-    // 9c: triple bonds for sp / terminal atoms via distance test
+    // step 9c: final distance pass for bonds still with unfilled valence and no incident multiple
+    // bond. Which reference length to test is chosen by hybridization (Sayle): sp–sp / sp–terminal
+    // → triple; sp2–sp2 / sp2–terminal → double; terminal–terminal → both. Element-specific
+    // thresholds come from `multipleBondMaxSq`; pairs absent from the table are never assigned.
+    // (This approximates Sayle's full refinement of remaining valences, not an exhaustive search.)
     computeOpenValence(state);
-    const spOrTerminal = (i: number) => geometry[i] === AtomGeometry.Linear || geometry[i] === AtomGeometry.Terminal;
+    type Kind = 'sp' | 'sp2' | 'term' | 'none';
+    const kind = (i: number): Kind => {
+        if (geometry[i] === AtomGeometry.Linear) return 'sp';
+        if (geometry[i] === AtomGeometry.Trigonal || state.ambiguous[i] !== 0) return 'sp2';
+        if (geometry[i] === AtomGeometry.Terminal) return 'term';
+        return 'none';
+    };
     for (let u = 0; u < n; u++) {
-        if (!spOrTerminal(u) || open[u] < 2 || hasMultipleBond(state, u)) continue;
         for (const v of neighbours[u]) {
-            if (open[v] < 2 || !spOrTerminal(v)) continue;
+            if (u >= v) continue;
+            if (hasMultipleBond(state, u) || hasMultipleBond(state, v)) continue;
             if (!isPerceivableBond(state, u, v)) continue;
-            if (distSq(state, u, v) > TripleMaxSq) continue;
-            setBond(bonds, start + u, start + v, 3, BondType.Flag.Computed);
-            computeOpenValence(state);
-            break;
+            const ku = kind(u), kv = kind(v);
+            if (ku === 'none' || kv === 'none') continue;
+            // candidate orders by hybridization pair
+            let orders: number[];
+            if (ku === 'sp' && kv === 'sp') orders = [3];
+            else if ((ku === 'sp' && kv === 'term') || (ku === 'term' && kv === 'sp')) orders = [3];
+            else if (ku === 'sp2' && kv === 'sp2') orders = [2];
+            else if ((ku === 'sp2' && kv === 'term') || (ku === 'term' && kv === 'sp2')) orders = [2];
+            else if (ku === 'term' && kv === 'term') orders = [3, 2];
+            else continue; // mixed sp/sp2 — not covered by the table rules
+            for (const order of orders) {
+                if (open[u] < order - 1 || open[v] < order - 1) continue;
+                const maxSq = multipleBondMaxSq(state.el[u], state.el[v], order);
+                if (maxSq === undefined || distSq(state, u, v) > maxSq) continue;
+                // an ambiguous endpoint forming a double must look like a planar sp2-sp2 bond
+                // (no-op when the partner is terminal — there is no second substituent to test)
+                if (order === 2 && (state.ambiguous[u] || state.ambiguous[v]) && !isBondPlanar(state, u, v)) continue;
+                setBond(bonds, start + u, start + v, order, BondType.Flag.Computed);
+                computeOpenValence(state);
+                break;
+            }
         }
     }
 }
@@ -773,6 +960,7 @@ export function perceiveBondOrders(unit: Unit.Atomic, bonds: IntraUnitBonds) {
 
         assignHybridization(state);
         applyRingPlanarity(state, localRings5or6);
+        markAmbiguous(state, localRings5or6);
         applyFunctionalGroups(state);
         perceiveAromaticRings(state, localRings5or6);
         kekulize(state);
