@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Himanshu Raj <himanshuraj6771@gmail.com>
  */
 
 import { VisualQualityOptions } from '../../../mol-geo/geometry/base';
@@ -311,7 +312,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                         : void 0;
                 const sizeTheme = params.size === 'default'
                     ? createStructureSizeThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name)
-                    : params.color
+                    : params.size
                         ? createStructureSizeThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name, params.size, params.sizeParams)
                         : void 0;
 
