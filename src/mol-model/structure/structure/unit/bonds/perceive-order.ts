@@ -584,24 +584,57 @@ function kekulize(state: State) {
     }
 }
 
-/** Maximum matching via depth-first backtracking with a (loose) bound. Small inputs only. */
+/**
+ * Maximum matching of the demand vertices over `adj`. Solved per connected component: a maximum
+ * matching of a disjoint union is the union of the components' maximum matchings, so this keeps
+ * the exact result while reducing the exponential backtracking to small independent subproblems
+ * (e.g. a ligand's several separate aromatic rings instead of all their atoms at once).
+ */
 function matchDemand(demand: number[], adj: Map<number, number[]>): Map<number, number> {
     const matched = new Map<number, number>();
-    if (demand.length > 60) return greedyMatch(demand, adj); // safety valve
+    const inDemand = new Set(demand);
+    const seen = new Set<number>();
+    for (const s of demand) {
+        if (seen.has(s)) continue;
+        // collect the connected component of `s` (over demand-internal edges)
+        const comp: number[] = [];
+        const stack = [s];
+        seen.add(s);
+        while (stack.length) {
+            const u = stack.pop()!;
+            comp.push(u);
+            for (const v of adj.get(u)!) {
+                if (inDemand.has(v) && !seen.has(v)) { seen.add(v); stack.push(v); }
+            }
+        }
+        matchComponent(comp, adj, matched);
+    }
+    return matched;
+}
+
+/** Exact maximum matching of one component via depth-first backtracking with a (loose) bound. */
+function matchComponent(comp: number[], adj: Map<number, number[]>, matched: Map<number, number>) {
+    if (comp.length > 60) { // safety valve for pathological components
+        for (const u of comp) {
+            if (matched.has(u)) continue;
+            for (const v of adj.get(u)!) { if (!matched.has(v)) { matched.set(u, v); matched.set(v, u); break; } }
+        }
+        return;
+    }
 
     let best = new Map<number, number>();
     let bestSize = -1;
-    const maxSize = Math.floor(demand.length / 2);
+    const maxSize = Math.floor(comp.length / 2);
     const cur = new Map<number, number>();
 
     function rec(idx: number, size: number) {
         if (bestSize >= maxSize) return; // can't do better than a perfect matching
-        if (size + (demand.length - idx) <= bestSize) return; // prune
-        if (idx >= demand.length) {
+        if (size + (comp.length - idx) <= bestSize) return; // prune
+        if (idx >= comp.length) {
             if (size > bestSize) { bestSize = size; best = new Map(cur); }
             return;
         }
-        const u = demand[idx];
+        const u = comp[idx];
         if (cur.has(u)) { rec(idx + 1, size); return; }
         for (const v of adj.get(u)!) {
             if (cur.has(v)) continue;
@@ -614,20 +647,6 @@ function matchDemand(demand: number[], adj: Map<number, number[]>): Map<number, 
     }
     rec(0, 0);
     for (const [u, v] of best) matched.set(u, v);
-    return matched;
-}
-
-function greedyMatch(demand: number[], adj: Map<number, number[]>): Map<number, number> {
-    const matched = new Map<number, number>();
-    for (const u of demand) {
-        if (matched.has(u)) continue;
-        for (const v of adj.get(u)!) {
-            if (matched.has(v)) continue;
-            matched.set(u, v); matched.set(v, u);
-            break;
-        }
-    }
-    return matched;
 }
 
 // --- pattern cache (compute once per residue type) ------------------------
