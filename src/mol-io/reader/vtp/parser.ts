@@ -9,6 +9,8 @@ import { Task, RuntimeContext } from '../../../mol-task';
 import { inflate } from '../../../mol-util/zip/zip';
 import { VtpFile, VtpDataArrayDescriptor, VtpScalarArray } from './schema';
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../common/text/number-parser';
+import { StringLike } from '../../common/string-like';
+import { decodeB64Bytes, decodeB64Str, decodeToFloat64, decodePositions, decodeConnectivity } from '../common/decode';
 
 // --- Locate AppendedData section ---
 
@@ -38,7 +40,6 @@ function extractAppendedInfo(data: Uint8Array): AppendedInfo {
 
     let pos = tagPos;
     while (pos < data.length && data[pos] !== 0x3E) pos++;
-    // Read the encoding attribute without regex.
     const tagText = new TextDecoder('ascii').decode(data.subarray(tagPos, pos + 1));
     const { attrs: appendedAttrs } = readAttrs(tagText, '<AppendedData'.length);
     const encoding = (appendedAttrs.get('encoding') ?? 'raw').toLowerCase();
@@ -166,7 +167,7 @@ interface ParsedHeader {
     nStrips: number;
     byteOrder: string;
     compressor: string;
-    headerType: string;
+    headerType: 'UInt32' | 'UInt64';
     pointDataArrays: VtpDataArrayDescriptor[];
     cellDataArrays: VtpDataArrayDescriptor[];
     pointsArrays: VtpDataArrayDescriptor[];
@@ -195,7 +196,7 @@ function parseHeader(header: string): ParsedHeader {
         nStrips: parseInt(pieceAttrs.get('NumberOfStrips') ?? '0', 10),
         byteOrder: vtkAttrs.get('byte_order') ?? 'LittleEndian',
         compressor: vtkAttrs.get('compressor') ?? '',
-        headerType: vtkAttrs.get('header_type') ?? 'UInt32',
+        headerType: vtkAttrs.get('header_type') === 'UInt64' ? 'UInt64' : 'UInt32',
         pointDataArrays: parseDataArraysInSection(header, 'PointData'),
         cellDataArrays: parseDataArraysInSection(header, 'CellData'),
         pointsArrays: parseDataArraysInSection(header, 'Points'),
@@ -208,45 +209,8 @@ function parseHeader(header: string): ParsedHeader {
 // VTK base64 appended: each DataArray's binary block is split into two base64-encoded chunks:
 //   1. The compressed-block header  (nblocks, blockSize, lastSize, compSize[i])
 //   2. All compressed blocks concatenated
-//
 // The DataArray XML `offset` attribute is a byte offset in the base64 ASCII stream after '_'.
 // Since base64 is ASCII (1 char == 1 byte), the character offset equals the byte offset.
-// We decode base64 directly from the source without going through atob or string copies.
-
-const B64_DECODE = new Int8Array(256).fill(-1);
-'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.split('').forEach((c, i) => (B64_DECODE[c.charCodeAt(0)] = i));
-
-// Decode nOut bytes of base64 from a Uint8Array (appended path — no string copy).
-function decodeB64Bytes(src: Uint8Array, srcStart: number, nOut: number): Uint8Array {
-    if (nOut === 0) return new Uint8Array(0);
-    const out = new Uint8Array(nOut);
-    let si = srcStart, di = 0;
-    while (di < nOut) {
-        const a = B64_DECODE[src[si++]], b = B64_DECODE[src[si++]];
-        const c = B64_DECODE[src[si++]], d = B64_DECODE[src[si++]];
-        if (a < 0 || b < 0) break;
-        if (di < nOut) out[di++] = (a << 2) | (b >> 4);
-        if (c >= 0 && di < nOut) out[di++] = ((b & 0xF) << 4) | (c >> 2);
-        if (d >= 0 && di < nOut) out[di++] = ((c & 0x3) << 6) | d;
-    }
-    return out;
-}
-
-// Decode nOut bytes of base64 from a string with start index (inline path — avoids atob).
-function decodeB64Str(src: string, srcStart: number, nOut: number): Uint8Array {
-    if (nOut === 0) return new Uint8Array(0);
-    const out = new Uint8Array(nOut);
-    let si = srcStart, di = 0;
-    while (di < nOut) {
-        const a = B64_DECODE[src.charCodeAt(si++)], b = B64_DECODE[src.charCodeAt(si++)];
-        const c = B64_DECODE[src.charCodeAt(si++)], d = B64_DECODE[src.charCodeAt(si++)];
-        if (a < 0 || b < 0) break;
-        if (di < nOut) out[di++] = (a << 2) | (b >> 4);
-        if (c >= 0 && di < nOut) out[di++] = ((b & 0xF) << 4) | (c >> 2);
-        if (d >= 0 && di < nOut) out[di++] = ((c & 0x3) << 6) | d;
-    }
-    return out;
-}
 
 // --- Zlib block decompression (base64 paths) ---
 // Two variants: bytes (appended — no string) and str (inline — avoids atob).
@@ -301,7 +265,7 @@ async function decompressVtkBlockB64Bytes(
 
 async function decompressVtkBlockB64Str(
     ctx: RuntimeContext,
-    src: string,
+    src: StringLike,
     charOffset: number,
     headerType: 'UInt32' | 'UInt64' = 'UInt32',
     hasCompressor = true
@@ -418,68 +382,12 @@ async function decompressBlock(
     }
 }
 
-// --- Typed array decoding ---
-
-function decodeFloat32(raw: Uint8Array, count: number): Float32Array {
-    if (raw.byteOffset % 4 === 0) return new Float32Array(raw.buffer, raw.byteOffset, count);
-    const aligned = raw.slice(0, count * 4);
-    return new Float32Array(aligned.buffer, 0, count);
-}
-
-function decodePositions(raw: Uint8Array, type: string, count: number): Float32Array {
-    if (type === 'Float32') return decodeFloat32(raw, count);
-    // Decode any other type through Float64 then downcast — precision loss is acceptable for visualization
-    return new Float32Array(decodeToFloat64(raw, type, count));
-}
-
-function decodeConnectivity(raw: Uint8Array, type: string): Int32Array {
-    if (type === 'Int64' || type === 'UInt64') {
-        return decodeInt64AsInt32(raw, raw.byteLength / 8);
-    }
-    if (type === 'Int32' || type === 'UInt32') {
-        if (raw.byteOffset % 4 === 0) return new Int32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4);
-        const aligned = raw.slice();
-        return new Int32Array(aligned.buffer, 0, aligned.byteLength / 4);
-    }
-    throw new Error(`Unsupported VTP connectivity type: "${type}". Expected Int32, UInt32, Int64, or UInt64.`);
-}
-
-function decodeInt64AsInt32(raw: Uint8Array, count: number): Int32Array {
-    const dv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
-    const out = new Int32Array(count);
-    for (let i = 0; i < count; i++) out[i] = dv.getUint32(i * 8, true);
-    return out;
-}
-
-function decodeToFloat64(raw: Uint8Array, type: string, count: number): Float64Array {
-    const dv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
-    const out = new Float64Array(count);
-    switch (type) {
-        case 'Float32': { const f32 = decodeFloat32(raw, count); for (let i = 0; i < count; i++) out[i] = f32[i]; break; }
-        case 'Float64': for (let i = 0; i < count; i++) out[i] = dv.getFloat64(i * 8, true); break;
-        case 'Int8': for (let i = 0; i < count; i++) out[i] = dv.getInt8(i); break;
-        case 'UInt8': for (let i = 0; i < count; i++) out[i] = dv.getUint8(i); break;
-        case 'Int16': for (let i = 0; i < count; i++) out[i] = dv.getInt16(i * 2, true); break;
-        case 'UInt16': for (let i = 0; i < count; i++) out[i] = dv.getUint16(i * 2, true); break;
-        case 'Int32': for (let i = 0; i < count; i++) out[i] = dv.getInt32(i * 4, true); break;
-        case 'UInt32': for (let i = 0; i < count; i++) out[i] = dv.getUint32(i * 4, true); break;
-        case 'Int64': case 'UInt64':
-            for (let i = 0; i < count; i++) {
-                const lo = dv.getUint32(i * 8, true);
-                const hi = dv.getInt32(i * 8 + 4, true);
-                out[i] = hi * 0x100000000 + lo;
-            }
-            break;
-        default: throw new Error(`Unsupported VTP scalar type: "${type}".`);
-    }
-    return out;
-}
 
 // --- ASCII format helpers ---
 // Scan-based tokenizer: avoids the intermediate array that split() would create.
 // Each token is sliced only when parseFloat/parseInt is called; no other copies.
 
-function parseAsciiNumbers(text: string, out: Float32Array | Float64Array | Int32Array, count: number, asInt: boolean): void {
+function parseAsciiNumbers(text: StringLike, out: Float32Array | Float64Array | Int32Array, count: number, asInt: boolean): void {
     let pos = 0, n = 0;
     const len = text.length;
     while (pos < len && n < count) {
@@ -491,26 +399,26 @@ function parseAsciiNumbers(text: string, out: Float32Array | Float64Array | Int3
     }
 }
 
-function parseAsciiFloat32(text: string, count: number): Float32Array {
+function parseAsciiFloat32(text: StringLike, count: number): Float32Array {
     const out = new Float32Array(count);
     parseAsciiNumbers(text, out, count, false);
     return out;
 }
 
-function parseAsciiFloat64(text: string, count: number): Float64Array {
+function parseAsciiFloat64(text: StringLike, count: number): Float64Array {
     const out = new Float64Array(count);
     parseAsciiNumbers(text, out, count, false);
     return out;
 }
 
-function parseAsciiInts(text: string, count: number): Int32Array {
+function parseAsciiInts(text: StringLike, count: number): Int32Array {
     const out = new Int32Array(count);
     parseAsciiNumbers(text, out, count, true);
     return out;
 }
 
 // For ASCII connectivity: count is not known upfront, so two-pass to avoid over-allocation.
-function parseAsciiIntsAll(text: string): Int32Array {
+function parseAsciiIntsAll(text: StringLike): Int32Array {
     let count = 0, pos = 0;
     const len = text.length;
     while (pos < len) {
@@ -575,13 +483,10 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
     if (hdr.compressor && hdr.compressor !== 'vtkZLibDataCompressor') {
         throw new Error(`Unsupported VTP compressor: "${hdr.compressor}". Only vtkZLibDataCompressor is supported.`);
     }
-    if (hdr.headerType !== 'UInt32' && hdr.headerType !== 'UInt64') {
-        throw new Error(`Unsupported VTP header_type: "${hdr.headerType}". Only UInt32 and UInt64 are supported.`);
-    }
     if (hdr.nVerts + hdr.nLines + hdr.nStrips > 0) {
         console.warn(`VTP: file contains ${hdr.nVerts} verts, ${hdr.nLines} lines, ${hdr.nStrips} strips — only Polys are rendered.`);
     }
-    const headerType = hdr.headerType as 'UInt32' | 'UInt64';
+    const headerType = hdr.headerType;
     const hasCompressor = !!hdr.compressor;
 
     ctx.update({ message: 'Locating binary section...', current: 5, max: 100 });

@@ -141,7 +141,7 @@ function defaultDomain(vtpFile: VtpFile | undefined, key: string): [number, numb
     return scalarRange(arr.values);
 }
 
-export function createVtpShapeParams(vtpFile?: VtpFile) {
+export function createVtpShapeParams(vtpFile?: VtpFile, getStats?: () => string) {
     const attrOptions = buildAttrOptions(vtpFile);
     const defKey = defaultAttrKey(vtpFile);
     const [defMin, defMax] = defaultDomain(vtpFile, defKey);
@@ -151,11 +151,12 @@ export function createVtpShapeParams(vtpFile?: VtpFile) {
         ...Mesh.Params,
         doubleSided: { ...Mesh.Params.doubleSided, defaultValue: true },
         interior: { ...Mesh.Params.interior, defaultValue: { ...Mesh.Params.interior.defaultValue, colorStrength: 0 } },
-        attribute: PD.Select(defKey, attrOptions, { label: 'Color Attribute' }),
+        attribute: PD.Select(defKey, attrOptions, { label: 'Color Attribute', help: () => {
+            return { description: getStats ? getStats() : defStats };
+        } }),
         colormap: PD.Select('viridis' as ColorListName, ColorListOptionsScale, { label: 'Colormap' }),
         domainMin: PD.Numeric(defMin, {}, { label: 'Domain Min', isHidden: true }),
         domainMax: PD.Numeric(defMax, {}, { label: 'Domain Max', isHidden: true }),
-        statsText: PD.Text(defStats, { label: 'Statistics', multiline: true }),
         uniformColor: PD.Color(ColorNames.grey, { label: 'Uniform Color' }),
         scale: PD.Numeric(1, { min: 0.01, max: 100, step: 0.01 }, { label: 'Scale', description: 'Uniform scale factor applied to the mesh.' }),
     };
@@ -335,6 +336,7 @@ function createShape(vtpData: VtpData, mesh: Mesh, colorFn: (gid: number) => Col
     const scaleT = Mat4.fromUniformScaling(Mat4(), scale);
     const baseTransforms = vtpData.transforms ?? _identityTransforms;
     const transforms = baseTransforms.map(t => Mat4.mul(Mat4(), t, scaleT));
+    const groupCount = vtpData.source.numberOfTriangles * 3;
     return Shape.create(
         'vtp-mesh', vtpData.source, mesh,
         colorFn,
@@ -343,7 +345,8 @@ function createShape(vtpData: VtpData, mesh: Mesh, colorFn: (gid: number) => Col
             if (gid < 0) return '';
             return `Triangle ${Math.floor(gid / 3)}`;
         },
-        transforms
+        transforms,
+        groupCount
     );
 }
 
@@ -402,18 +405,12 @@ function makeShapeGetter() {
 export function shapeFromVtp(source: VtpFile, params?: { transforms?: Mat4[] }) {
     return Task.create<ShapeProvider<VtpData, Mesh, VtpShapeParams>>('Shape Provider', async () => {
         const getter = makeShapeGetter();
-        const provider: ShapeProvider<VtpData, Mesh, VtpShapeParams> & { onParamsUpdate?: (props: PD.Values<VtpShapeParams>) => Record<string, unknown> | null } = {
+        const provider: ShapeProvider<VtpData, Mesh, VtpShapeParams> = {
             label: 'VTP Mesh',
             data: { source, transforms: params?.transforms },
-            params: createVtpShapeParams(source),
+            params: createVtpShapeParams(source, () => getter.getStats().text),
             getShape: getter.getShape,
             geometryUtils: Mesh.Utils,
-            onParamsUpdate(props: PD.Values<VtpShapeParams>) {
-                const { text, attr } = getter.getStats();
-                if (!attr || props.attribute !== attr) return null;
-                if ((props as any).statsText === text) return null; // already up to date
-                return { statsText: text };
-            }
         };
         return provider;
     });
