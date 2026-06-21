@@ -308,7 +308,7 @@ function applyRingPlanarity(state: State, rings: number[][]) {
 // A degree-2 atom is ambiguous when its single angle falls in this band just below the sp2
 // threshold: too close to call sp2 vs sp3 from one angle (an aromatic-ring aldehyde C is ~114.7°,
 // a hydroxymethyl ~115.2°). 5° wide; the step-9c distance then decides.
-const BorderlineAngleMin = SP2_ANGLE - degToRad(5);
+const BorderlineAngleMin = SP2_ANGLE - degToRad(2);
 
 /**
  * 6c: flag degree-2 atoms whose sp2/sp3 hybridization can't be decided from one bond angle, so a
@@ -479,7 +479,7 @@ const FunctionalGroups: FunctionalGroup[] = [
     // *S(=O)(*)=O
     { name: 'sulfonyl', center: { el: Elements.S, geometry: AtomGeometry.Tetrahedral }, neighbours: [
         { el: '*', connectivity: 'connected', order: 1 },
-        { el: '*', connectivity: 'connected', order: 1 },
+        { el: '*', connectivity: 'either', order: 1 },
         { el: Elements.O, connectivity: 'terminal', order: 2 },
         { el: Elements.O, connectivity: 'terminal', order: 2 },
     ] },
