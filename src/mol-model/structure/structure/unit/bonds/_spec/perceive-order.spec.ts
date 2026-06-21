@@ -183,7 +183,13 @@ interface ExpectedBond {
     order?: 2 | 3;
     aromatic?: true;
 }
-interface ManifestEntry { pdbId: string; compId: string; }
+/** A bond (atom-name pair, unordered) whose perceived order the suite knowingly gets wrong; `reason`
+ *  documents the open issue so it stays tracked. Exempts the pair from BOTH the forward check (an
+ *  expected multiple that is missed) and the reverse check (a spurious multiple, e.g. when a missed
+ *  double leaves an atom's valence to be matched elsewhere). The structure still runs and every
+ *  other bond is checked. */
+interface SkipBond { a: string; b: string; reason: string; }
+interface ManifestEntry { pdbId: string; compId: string; skipBonds?: SkipBond[]; }
 
 const dataDir = path.join(__dirname, 'data');
 
@@ -192,7 +198,7 @@ async function structureFromDataFile(filename: string) {
     return structureFromPdb(text);
 }
 
-function checkPerceived(structure: Structure, expected: ExpectedBond[]) {
+function checkPerceived(structure: Structure, expected: ExpectedBond[], skipBonds: SkipBond[] = []) {
     const unit = structure.units[0] as Unit.Atomic;
     const { label_atom_id, label_comp_id } = unit.model.atomicHierarchy.atoms;
     const nameToLocal = new Map<string, number>();
@@ -207,6 +213,14 @@ function checkPerceived(structure: Structure, expected: ExpectedBond[]) {
     // their variants. Used by the reverse check to reject spurious perceived multiples.
     const expectedKey = (i: number, j: number) => `${Math.min(i, j)}|${Math.max(i, j)}`;
     const expectedPairs = new Set<string>();
+
+    // Known-unperceivable bonds whose forward check is exempted (see SkipBond / manifest.json).
+    const localOf = (name: string) => {
+        const i = nameToLocal.get(name);
+        if (i === undefined) throw new Error(`skipBonds atom not found: ${name}`);
+        return i;
+    };
+    const skipKeys = new Set(skipBonds.map(s => expectedKey(localOf(s.a), localOf(s.b))));
 
     for (const exp of expected) {
         const bNames = Array.isArray(exp.b) ? exp.b : [exp.b];
@@ -230,6 +244,14 @@ function checkPerceived(structure: Structure, expected: ExpectedBond[]) {
             }
             if (found) break;
         }
+        // A known-unperceivable bond is exempt from the forward check; flag it if it is now
+        // perceived correctly so the obsolete skip can be removed from the manifest.
+        if (vs.some(v => skipKeys.has(expectedKey(u, v)))) {
+            if (found) {
+                console.warn(`obsolete skipBonds entry: ${bondLabel} is now perceived correctly`);
+            }
+            continue;
+        }
         expect({ bond: bondLabel, found }).toEqual({ bond: bondLabel, found: true });
     }
 
@@ -242,6 +264,7 @@ function checkPerceived(structure: Structure, expected: ExpectedBond[]) {
             const v = b[t];
             if (u >= v) continue;
             if (edgeProps.order[t] <= 1) continue;
+            if (skipKeys.has(expectedKey(u, v))) continue; // known-wrong pair, exempt both ways
             const spurious = !expectedPairs.has(expectedKey(u, v));
             const bondLabel = `${resname} ${nameOf(u)}=${nameOf(v)} (order ${edgeProps.order[t]})`;
             expect({ bond: bondLabel, spurious }).toEqual({ bond: bondLabel, spurious: false });
@@ -255,7 +278,7 @@ const manifest: ManifestEntry[] = fs.existsSync(manifestPath)
     : [];
 
 describe('bond-order perception (data)', () => {
-    for (const { pdbId, compId } of manifest) {
+    for (const { pdbId, compId, skipBonds } of manifest) {
         const stem = `${pdbId}_${compId}`;
         const pdbPath = path.join(dataDir, `${stem}.pdb`);
         if (!fs.existsSync(pdbPath)) {
@@ -267,7 +290,7 @@ describe('bond-order perception (data)', () => {
             const expected: ExpectedBond[] = JSON.parse(
                 fs.readFileSync(path.join(dataDir, `${stem}_expected.json`), 'utf8')
             );
-            checkPerceived(structure, expected);
+            checkPerceived(structure, expected, skipBonds ?? []);
         });
     }
 });

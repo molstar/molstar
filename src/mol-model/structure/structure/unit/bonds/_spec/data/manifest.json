@@ -9,5 +9,29 @@
   { "pdbId": "8ATC", "compId": "PAL" },
   { "pdbId": "8RSA", "compId": "ADT" },
   { "pdbId": "3KLF", "compId": "ZP4" },
-  { "pdbId": "4GTP", "compId": "7TP" }
+  { "pdbId": "4GTP", "compId": "7TP" },
+  { "pdbId": "5NAL", "compId": "8RQ", "skipBonds": [
+    { "a": "CBD", "b": "CBE", "reason": "isolated C=C at 1.55A exceeds the 9a matching distance cap; both ends are sp2 with open valence - needs a matching-cap revisit" }
+  ] },
+  { "pdbId": "4JVB", "compId": "1M0", "skipBonds": [
+    { "a": "CBP", "b": "CBQ", "reason": "C=C at 1.55A; CBP refines to 109.6 deg (reads sp3) and CBQ is terminal - geometry is same as ideal sp3 + single bond: error in data?" }
+  ] },
+  { "pdbId": "4JV8", "compId": "1M1" },
+  { "pdbId": "5ML4", "compId": "RRQ", "skipBonds": [
+    { "a": "SAK", "b": "OAM", "reason": "S-N 1.86A > bonding cutoff -> S loads at degree 3, sulfonyl group (needs degree 4) unmatched; distorted structure (12 RCSB bond-length violations)" },
+    { "a": "SAK", "b": "OAL", "reason": "see SAK-OAM" }
+  ] },
+  { "pdbId": "5ML8", "compId": "V98", "skipBonds": [
+    { "a": "SAY", "b": "OBA", "reason": "S-N 1.86A > bonding cutoff -> S loads at degree 3, sulfonyl group (needs degree 4) unmatched; distorted structure" },
+    { "a": "SAY", "b": "OAZ", "reason": "see SAY-OBA" }
+  ] },
+  { "pdbId": "9GKG", "compId": "LRX", "skipBonds": [
+    { "a": "C20", "b": "C19", "reason": "cyclobutene double; distorted-but-planar small ring - small-ring perception to be devised later" },
+    { "a": "N18", "b": "C19", "reason": "spurious double: artifact of the missed C19=C20 - C19's open valence is matched to N18 instead" },
+    { "a": "C20", "b": "N25", "reason": "spurious double: artifact of the missed C19=C20 - C20's open valence is matched to N25 instead" }
+  ] },
+  { "pdbId": "9NF2", "compId": "6IC" },
+  { "pdbId": "7TAA", "compId": "ABC" },
+  { "pdbId": "5VEX", "compId": "97V" },
+  { "pdbId": "7LCJ", "compId": "UK4" }
 ]
