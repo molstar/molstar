@@ -515,22 +515,30 @@ interface AromaticAtomConfig {
     electrons: number | [number, number]; // π contribution; [lo,hi] = ambiguous
 }
 
+// Ordered so that within a same (el, ringDoubles, exo.order) group an element-specific `exo.el`
+// precedes its `'*'` sibling, and the neutral pyrrole N precedes the charged N+ — so a single
+// first-match pass (ignoring charge) picks the right one. See `typeRingAtom`.
 const AromaticAtomConfigs: AromaticAtomConfig[] = [
-    { name: '*C(*)*', el: Elements.C, ringDoubles: 0, exo: { order: 1, el: '*' }, electrons: 1 },
-    { name: '*C(*)=*', el: Elements.C, ringDoubles: 1, exo: { order: 1, el: '*' }, electrons: 1 },
-    { name: '*C(=*)*', el: Elements.C, ringDoubles: 0, exo: { order: 2, el: '*' }, electrons: 1 },
+    // carbon, ringDoubles 0
     { name: '*C*', el: Elements.C, ringDoubles: 0, exo: { order: 0 }, electrons: 1 },
-    { name: '*C=*', el: Elements.C, ringDoubles: 1, exo: { order: 0 }, electrons: 1 },
-    { name: '*C(O)*', el: Elements.C, ringDoubles: 0, exo: { order: 1, el: 'O' }, electrons: [0,1] },
+    { name: '*C(O)*', el: Elements.C, ringDoubles: 0, exo: { order: 1, el: 'O' }, electrons: [0, 1] },
+    { name: '*C(*)*', el: Elements.C, ringDoubles: 0, exo: { order: 1, el: '*' }, electrons: 1 },
     { name: '*C(=O)*', el: Elements.C, ringDoubles: 0, exo: { order: 2, el: 'O' }, electrons: 0 },
+    { name: '*C(=*)*', el: Elements.C, ringDoubles: 0, exo: { order: 2, el: '*' }, electrons: 1 },
+    // carbon, ringDoubles 1
+    { name: '*C=*', el: Elements.C, ringDoubles: 1, exo: { order: 0 }, electrons: 1 },
     { name: '*C(O)=*', el: Elements.C, ringDoubles: 1, exo: { order: 1, el: 'O' }, electrons: 1 },
-    { name: '*N=*', el: Elements.N, ringDoubles: 1, exo: { order: 0 }, electrons: 1 },
+    { name: '*C(*)=*', el: Elements.C, ringDoubles: 1, exo: { order: 1, el: '*' }, electrons: 1 },
+    // nitrogen, ringDoubles 0  (neutral *N(*)* before charged *[N+](*)*)
+    { name: '*N*', el: Elements.N, ringDoubles: 0, exo: { order: 0 }, electrons: [1, 2] },
     { name: '*N(=O)N', el: Elements.N, ringDoubles: 0, exo: { order: 2, el: 'O' }, electrons: 1 },
-    { name: '*N(=*)=*', el: Elements.N, ringDoubles: 1, exo: { order: 2, el: '*' }, electrons: 1 },
-    { name: '*[N+](*)*', el: Elements.N, ringDoubles: 0, exo: { order: 1, el: '*' }, charge: 1, electrons: 1 },
-    { name: '*[N+](*)=*', el: Elements.N, ringDoubles: 1, exo: { order: 1, el: '*' }, charge: 1,electrons: 1 },
-    { name: '*N*', el: Elements.N, ringDoubles: 0, exo: { order: 0 }, electrons: [1,2] },
     { name: '*N(*)*', el: Elements.N, ringDoubles: 0, exo: { order: 1, el: '*' }, electrons: 2 },
+    { name: '*[N+](*)*', el: Elements.N, ringDoubles: 0, exo: { order: 1, el: '*' }, charge: 1, electrons: 1 },
+    // nitrogen, ringDoubles 1
+    { name: '*N=*', el: Elements.N, ringDoubles: 1, exo: { order: 0 }, electrons: 1 },
+    { name: '*N(=*)=*', el: Elements.N, ringDoubles: 1, exo: { order: 2, el: '*' }, electrons: 1 },
+    { name: '*[N+](*)=*', el: Elements.N, ringDoubles: 1, exo: { order: 1, el: '*' }, charge: 1, electrons: 1 },
+    // chalcogens
     { name: '*O*', el: Elements.O, ringDoubles: 0, exo: { order: 0 }, electrons: 2 },
     { name: '*S*', el: Elements.S, ringDoubles: 0, exo: { order: 0 }, electrons: 2 },
     { name: '*[Se]*', el: Elements.SE, ringDoubles: 0, exo: { order: 0 }, electrons: 2 },
@@ -617,21 +625,102 @@ function assignSlots(state: State, i: number, specs: neighbourspec[]): number[] 
 
 // --- Step 8 / 9a: aromatic perception + Kekule ----------------------------
 
+type RingAtomType = { electrons: number, ambiguous: 'C' | 'N' | null };
+
+/**
+ * Type a ring atom against `AromaticAtomConfigs` and return its π-electron contribution (Sayle §8).
+ * Charge is ignored — matching is purely on element, in-ring double count and the exocyclic bond.
+ * An ambiguous config (`[lo,hi]`) seeds the running contribution at 1 and is resolved by 8a–8e.
+ * Returns null when no configuration matches (the ring is then not aromatic).
+ */
+function typeRingAtom(state: State, ringSet: Set<number>, a: number): RingAtomType | null {
+    const el = state.el[a];
+
+    // in-ring double bonds already on this atom (e.g. placed by a step-7 functional group)
+    let ringDoubles = 0;
+    // exocyclic bond (at most one for an sp2 ring atom); prefer a double if present
+    let exoOrder = 0;
+    let exoPartner: ElementSymbol | undefined;
+    for (const v of state.neighbours[a]) {
+        if (ringSet.has(v)) {
+            if (getOrder(state.bonds, state.start + a, state.start + v) > 1) ringDoubles++;
+            continue;
+        }
+        let o = getOrder(state.bonds, state.start + a, state.start + v);
+        if (o <= 1) {
+            const maxSq = multipleBondMaxSq(el, state.el[v], 2);
+            o = (maxSq !== undefined && distSq(state, a, v) <= maxSq) ? 2 : 1;
+        }
+        if (o > exoOrder) { exoOrder = o; exoPartner = state.el[v]; }
+    }
+    const partnerIsO = exoPartner === Elements.O;
+
+    for (const cfg of AromaticAtomConfigs) {
+        if (cfg.el !== el || cfg.ringDoubles !== ringDoubles || cfg.exo.order !== exoOrder) continue;
+        if (cfg.exo.order !== 0 && cfg.exo.el !== '*' && !(cfg.exo.el === 'O' && partnerIsO)) continue;
+        const e = cfg.electrons;
+        if (Array.isArray(e)) return { electrons: 1, ambiguous: el === Elements.C ? 'C' : 'N' };
+        return { electrons: e, ambiguous: null };
+    }
+    return null;
+}
+
 function perceiveAromaticRings(state: State, rings: number[][]) {
+    computeOpenValence(state);
     for (const seq of rings) {
         const len = seq.length;
         if (len !== 5 && len !== 6) continue;
-        // all ring atoms must be sp2 (trigonal) and ring bonds still perceivable
+        // candidate gate: every ring atom must be sp2 (planar) — non-planar rings stay Tetrahedral
         let ok = true;
         for (const a of seq) {
             if (state.geometry[a] !== AtomGeometry.Trigonal) { ok = false; break; }
         }
         if (!ok) continue;
-        // mark ring bonds aromatic (only the perceivable ones)
+
+        // type each ring atom (Sayle §8 configurations)
+        const ringSet = new Set(seq);
+        const typed: (RingAtomType | null)[] = seq.map(a => typeRingAtom(state, ringSet, a));
+        if (typed.some(t => t === null)) continue; // an atom matched no configuration
+
+        const isSaturated = (i: number) => state.open[i] === 0 || hasMultipleBond(state, i);
+        // 8a: an ambiguous atom whose both ring neighbours cannot take a ring double resolves to its
+        // ring-single form (ambiguous N → pyrrole 2; ambiguous C → exocyclic carbonyl 0).
+        for (let i = 0; i < len; i++) {
+            const t = typed[i]!;
+            if (!t.ambiguous) continue;
+            const prev = seq[(i + len - 1) % len], next = seq[(i + 1) % len];
+            if (isSaturated(prev) && isSaturated(next)) {
+                t.electrons = t.ambiguous === 'N' ? 2 : 0;
+                t.ambiguous = null;
+            }
+        }
+
+        const sum = () => typed.reduce((s, t) => s + t!.electrons, 0);
+        // 8b: count ≡ 1 (mod 4) and an ambiguous N → pyrrole-like (1→2)
+        if (sum() % 4 === 1) {
+            const t = typed.find(t => t!.ambiguous === 'N');
+            if (t) { t.electrons = 2; t.ambiguous = null; }
+        }
+        // 8c: count ≡ 3 (mod 4) and an ambiguous C → exocyclic double (1→0)
+        if (sum() % 4 === 3) {
+            const t = typed.find(t => t!.ambiguous === 'C');
+            if (t) { t.electrons = 0; t.ambiguous = null; }
+        }
+        // 8d (charge an N to reach the count) is a no-op: we do not infer formal charge.
+
+        // 8e: Hückel 4n+2 → flag every ring bond aromatic and reset it to a single, so the aromatic
+        // Kekulé pass (`matchDoubleBonds(isAromaticBond)`) re-places the doubles freely. A Computed
+        // in-ring double already placed by a functional group (only guanidine forces an in-ring
+        // double, and it is symmetric) is released here so it can be reassigned; an authoritative
+        // (non-Computed) order is left untouched. Exocyclic doubles (e.g. carbonyls) are never
+        // touched - this loop only visits ring bonds.
+        if (sum() % 4 !== 2) continue;
         for (let i = 0; i < len; i++) {
             const u = seq[i], v = seq[(i + 1) % len];
             const flags = getFlags(state.bonds, state.start + u, state.start + v);
-            if (isPerceivable(flags, getOrder(state.bonds, state.start + u, state.start + v))) {
+            const order = getOrder(state.bonds, state.start + u, state.start + v);
+            const releasableDouble = order > 1 && (flags & BondType.Flag.Computed) !== 0 && BondType.isCovalent(flags);
+            if (isPerceivable(flags, order) || releasableDouble) {
                 setBond(state.bonds, state.start + u, state.start + v, 1, BondType.Flag.Aromatic);
             }
         }
@@ -724,15 +813,14 @@ function kekulize(state: State) {
         (getFlags(bonds, start + u, start + v) & BondType.Flag.Aromatic) !== 0;
     matchDoubleBonds(state, isAromaticBond);
 
-    // step 9a: kekulize remaining conjugated / non-aromatic-ring double bonds (non-terminal sp2
-    // or ambiguous atoms) by maximum matching.
-    matchDoubleBonds(state, () => true, false);
-
-    // step 9c: final distance pass for bonds still with unfilled valence and no incident multiple
-    // bond. Which reference length to test is chosen by hybridization (Sayle): sp–sp / sp–terminal
-    // → triple; sp2–sp2 / sp2–terminal → double; terminal–terminal → both. Element-specific
-    // thresholds come from `multipleBondMaxSq`; pairs absent from the table are never assigned.
-    // (This approximates Sayle's full refinement of remaining valences, not an exhaustive search.)
+    // step 9b/9c: localized distance pass for bonds with an sp or terminal endpoint — carbonyls
+    // (sp2 C = terminal O), triples (sp–sp / sp–terminal) and other terminal multiples. The
+    // reference length is chosen by hybridization (Sayle): sp–sp / sp–terminal → triple; sp2–
+    // terminal → double; terminal–terminal → both. Element-specific thresholds from
+    // `multipleBondMaxSq`; pairs absent from the table are never assigned. This runs BEFORE the 9a
+    // matching so an exocyclic carbonyl claims its carbon (e.g. p-benzoquinone keeps its two C=O
+    // instead of the matching turning all six ring carbons into a benzene-like Kekule). Pairs of
+    // two non-terminal sp2 atoms are left to the 9a matching, which resolves conjugation globally.
     computeOpenValence(state);
     type Kind = 'sp' | 'sp2' | 'term' | 'none';
     const kind = (i: number): Kind => {
@@ -747,28 +835,28 @@ function kekulize(state: State) {
             if (hasMultipleBond(state, u) || hasMultipleBond(state, v)) continue;
             if (!isPerceivableBond(state, u, v)) continue;
             const ku = kind(u), kv = kind(v);
-            if (ku === 'none' || kv === 'none') continue;
-            // candidate orders by hybridization pair
+            // candidate orders by hybridization pair; at least one endpoint must be sp/terminal
+            // (two non-terminal sp2 atoms are handled by the 9a matching below)
             let orders: number[];
             if (ku === 'sp' && kv === 'sp') orders = [3];
             else if ((ku === 'sp' && kv === 'term') || (ku === 'term' && kv === 'sp')) orders = [3];
-            else if (ku === 'sp2' && kv === 'sp2') orders = [2];
             else if ((ku === 'sp2' && kv === 'term') || (ku === 'term' && kv === 'sp2')) orders = [2];
             else if (ku === 'term' && kv === 'term') orders = [3, 2];
-            else continue; // mixed sp/sp2 — not covered by the table rules
+            else continue;
             for (const order of orders) {
                 if (open[u] < order - 1 || open[v] < order - 1) continue;
                 const maxSq = multipleBondMaxSq(state.el[u], state.el[v], order);
                 if (maxSq === undefined || distSq(state, u, v) > maxSq) continue;
-                // an ambiguous endpoint forming a double must look like a planar sp2-sp2 bond
-                // (no-op when the partner is terminal — there is no second substituent to test)
-                if (order === 2 && (state.ambiguous[u] || state.ambiguous[v]) && !isBondPlanar(state, u, v)) continue;
                 setBond(bonds, start + u, start + v, order, BondType.Flag.Computed);
                 computeOpenValence(state);
                 break;
             }
         }
     }
+
+    // step 9a: kekulize remaining conjugated / non-aromatic-ring double bonds (non-terminal sp2
+    // or ambiguous atoms) by maximum matching.
+    matchDoubleBonds(state, () => true, false);
 }
 
 /**

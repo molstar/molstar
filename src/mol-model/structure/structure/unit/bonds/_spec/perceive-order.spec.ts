@@ -66,6 +66,43 @@ describe('bond-order perception (Sayle)', () => {
         expect(aromaticCount).toBe(6);
     });
 
+    it('rejects a quinone ring (4 pi e-) and perceives carbonyls + localized C=C', async () => {
+        // p-benzoquinone: all six ring carbons are sp2, but C1/C4 bear an exocyclic C=O, so the
+        // ring has only 4 pi electrons (2 carbonyl C contribute 0, 4 CH contribute 1) -> not
+        // aromatic by Hückel. Perception must NOT flag it aromatic, and must give two C=O plus two
+        // ring C=C, not a benzene-like Kekule.
+        const structure = await structureFromPdb([
+            'HETATM    1  C1  QUI A   1       1.400   0.000   0.000  1.00  0.00           C  ',
+            'HETATM    2  C2  QUI A   1       0.700   1.212   0.000  1.00  0.00           C  ',
+            'HETATM    3  C3  QUI A   1      -0.700   1.212   0.000  1.00  0.00           C  ',
+            'HETATM    4  C4  QUI A   1      -1.400   0.000   0.000  1.00  0.00           C  ',
+            'HETATM    5  C5  QUI A   1      -0.700  -1.212   0.000  1.00  0.00           C  ',
+            'HETATM    6  C6  QUI A   1       0.700  -1.212   0.000  1.00  0.00           C  ',
+            'HETATM    7  O1  QUI A   1       2.620   0.000   0.000  1.00  0.00           O  ',
+            'HETATM    8  O4  QUI A   1      -2.620   0.000   0.000  1.00  0.00           O  ',
+            'END                                                                             ',
+        ].join('\n'));
+        const unit = structure.units[0] as Unit.Atomic;
+        const { label_atom_id } = unit.model.atomicHierarchy.atoms;
+        const local = new Map<string, number>();
+        for (let i = 0; i < unit.elements.length; i++) local.set(label_atom_id.value(unit.elements[i]), i);
+        const { offset, b, edgeProps } = unit.bonds;
+        const orderOf = (x: string, y: string) => {
+            const u = local.get(x)!, v = local.get(y)!;
+            for (let t = offset[u]; t < offset[u + 1]; t++) if (b[t] === v) return edgeProps.order[t];
+            return 0;
+        };
+        // both carbonyls are double
+        expect(orderOf('C1', 'O1')).toBe(2);
+        expect(orderOf('C4', 'O4')).toBe(2);
+        // each carbonyl carbon has no in-ring double (its pi went to the O)
+        expect(orderOf('C1', 'C2') + orderOf('C1', 'C6')).toBe(2); // two single ring bonds
+        // exactly four double bonds total (2 C=O + 2 ring C=C), and no aromatic flags
+        const { orders, aromaticCount } = intraBondOrders(structure);
+        expect(orders.filter(o => o === 2).length).toBe(4);
+        expect(aromaticCount).toBe(0);
+    });
+
     it('perceives orders for CONECT-derived connectivity (no explicit orders)', async () => {
         // benzene whose bonds come from CONECT records (basic connectivity only).
         // These become struct_conn covalent bonds without pdbx_value_order, which must
