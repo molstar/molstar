@@ -340,7 +340,11 @@ export class PostprocessingPass {
             this.renderable.update();
         }
 
-        const { state } = this.webgl;
+        // premultiplied scene composited over the background (cleared color or environment) with
+        // premultiplied-over — keeps transparency weight (vs SRC_ALPHA's color*a^2) and lets bloom occlude
+        const compositeBackground = this.background.isEnabled(props) || (bloomEnable && !this.transparentBackground);
+
+        const { gl, state } = this.webgl;
         const { x, y, width, height } = camera.viewport;
 
         // don't render occlusion if offset is given,
@@ -369,6 +373,11 @@ export class PostprocessingPass {
         this.background.update(camera, props.background);
         this.background.clear(props.background, this.transparentBackground, backgroundColor);
         this.background.render(props.background);
+
+        if (compositeBackground) {
+            state.enable(gl.BLEND);
+            state.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        }
 
         this.renderable.render();
         if (isTimingMode) this.webgl.timer.markEnd('PostprocessingPass.render');

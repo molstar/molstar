@@ -61,10 +61,10 @@ void main(void) {
 
         gl_FragColor = mix(outputColor, texel, alpha);
     #elif defined(dMode_emissive)
-        // Un-premultiplied surface color so bright bg doesn't bleach the halo.
+        // un-premultiply each layer's color so fog/bright bg can't dim or bleach the halo
         vec3 bloomRgb = transparentTexel.a > 0.0
             ? transparentTexel.rgb / transparentTexel.a
-            : opaqueTexel.rgb;
+            : (opaqueTexel.a > 0.0 ? opaqueTexel.rgb / opaqueTexel.a : opaqueTexel.rgb);
         gl_FragColor = vec4(bloomRgb * emissive, emissive);
     #endif
 }

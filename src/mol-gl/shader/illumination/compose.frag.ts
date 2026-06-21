@@ -305,7 +305,8 @@ void main() {
             alpha = bloom.a + alpha * (1.0 - bloom.a);
         } else {
             color.rgb += bloom.rgb;
-            alpha += bloom.a;
+            // clamp so premultiplied-over's (1 - alpha) stays >= 0 (no background subtraction)
+            alpha = min(alpha + bloom.a, 1.0);
         }
     #endif
 

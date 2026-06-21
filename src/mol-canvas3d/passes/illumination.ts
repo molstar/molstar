@@ -479,7 +479,11 @@ export class IlluminationPass {
 
         // compose
 
-        ValueCell.updateIfChanged(this.composeRenderable.values.uTransparentBackground, props.transparentBackground || this.drawPass.postprocessing.background.isEnabled(props.postprocessing));
+        // premultiplied scene composited over the background (cleared color or environment) with
+        // premultiplied-over — keeps transparency weight (vs SRC_ALPHA's color*a^2) and lets bloom occlude
+        const backgroundVariant = this.drawPass.postprocessing.background.isEnabled(props.postprocessing);
+        const compositeBackground = backgroundVariant || (bloomActive && !props.transparentBackground);
+        ValueCell.updateIfChanged(this.composeRenderable.values.uTransparentBackground, props.transparentBackground || compositeBackground);
         if (this.composeRenderable.values.dDenoise.ref.value !== props.illumination.denoise) {
             ValueCell.update(this.composeRenderable.values.dDenoise, props.illumination.denoise);
             needsUpdateCompose = true;
@@ -489,6 +493,10 @@ export class IlluminationPass {
             : lerp(props.illumination.denoiseThreshold[1], props.illumination.denoiseThreshold[0], clamp(this.iteration / (this.getMaxIterations(props.illumination) / 2), 0, 1));
         ValueCell.updateIfChanged(this.composeRenderable.values.uDenoiseThreshold, denoiseThreshold);
         if (needsUpdateCompose) this.composeRenderable.update();
+        if (compositeBackground) {
+            state.enable(gl.BLEND);
+            state.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        }
         this.composeRenderable.render();
 
         //

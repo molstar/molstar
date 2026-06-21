@@ -431,7 +431,7 @@ export class DrawPass {
         renderer.setViewport(x, y, width, height);
         renderer.update(camera, scene);
 
-        if (transparentBackground && !antialiasingEnabled && toDrawingBuffer) {
+        if (transparentBackground && !antialiasingEnabled && toDrawingBuffer && !postprocessingEnabled) {
             this.drawTarget.bind();
             renderer.clear(false);
         }
@@ -541,7 +541,13 @@ export class DrawPass {
         const { renderer, camera, scene, helper } = ctx;
 
         this.postprocessing.setTransparentBackground(props.transparentBackground);
-        const transparentBackground = props.transparentBackground || this.postprocessing.background.isEnabled(props.postprocessing);
+        const pp = props.postprocessing;
+        const backgroundEnabled = this.postprocessing.background.isEnabled(pp);
+        // premultiplied scene so bloom can composite the solid background last
+        const bloomCompositesBackground = !props.transparentBackground && !backgroundEnabled &&
+            BloomPass.isEnabled(pp) && pp.bloom.name === 'on' &&
+            !(pp.bloom.params.mode === 'emissive' && scene.emissiveAverage === 0);
+        const transparentBackground = props.transparentBackground || backgroundEnabled || bloomCompositesBackground;
 
         renderer.setTransparentBackground(transparentBackground);
         renderer.setDrawingBufferSize(this.colorTarget.getWidth(), this.colorTarget.getHeight());

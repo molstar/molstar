@@ -317,7 +317,7 @@ type CompositeRenderable = ComputeRenderable<Values<typeof CompositeSchema>>
 function getCompositeRenderable(ctx: WebGLContext, width: number, height: number, blurTexture1: Texture, blurTexture2: Texture, blurTexture3: Texture, blurTexture4: Texture, blurTexture5: Texture): CompositeRenderable {
     const values: Values<typeof CompositeSchema> = {
         ...QuadValues,
-        uTexSizeInv: ValueCell.create(Vec2.create(width, height)),
+        uTexSizeInv: ValueCell.create(Vec2.create(1 / width, 1 / height)),
 
         tBlur1: ValueCell.create(blurTexture1),
         tBlur2: ValueCell.create(blurTexture2),
