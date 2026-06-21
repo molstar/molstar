@@ -10,9 +10,7 @@
   { "pdbId": "8RSA", "compId": "ADT" },
   { "pdbId": "3KLF", "compId": "ZP4" },
   { "pdbId": "4GTP", "compId": "7TP" },
-  { "pdbId": "5NAL", "compId": "8RQ", "skipBonds": [
-    { "a": "CBD", "b": "CBE", "reason": "isolated C=C at 1.55A exceeds the 9a matching distance cap; both ends are sp2 with open valence - needs a matching-cap revisit" }
-  ] },
+  { "pdbId": "5NAL", "compId": "8RQ" },
   { "pdbId": "4JVB", "compId": "1M0", "skipBonds": [
     { "a": "CBP", "b": "CBQ", "reason": "C=C at 1.55A; CBP refines to 109.6 deg (reads sp3) and CBQ is terminal - geometry is same as ideal sp3 + single bond: error in data?" }
   ] },

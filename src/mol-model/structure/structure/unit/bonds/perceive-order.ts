@@ -89,10 +89,11 @@ const SP2_ANGLE = degToRad(115);
 const Torsion5MaxDeg = 7.5;
 const Torsion6MaxDeg = 12;
 // Max deviation from 0°/180° of the substituent dihedral across a candidate double bond for it
-// to count as planar (`isBondPlanar`). Looser than the ring threshold: a real double inside a
-// distorted ring still twists locally (e.g. the chlorin C1=C12 dihedral is ~10.6°), while a
-// pyramidal sp3 centre sits near ±60°.
-const BondPlanarMaxDeg = 30;
+// to count as planar (`isBondPlanar`); same tolerance as the 6-ring torsion gate. A real double
+// stays nearly coplanar even when distorted (chlorin C1=C12 ~10.6°, 8RQ CBD=CBE ~3.75°), while a
+// twisted single across two sp2 centres (8RQ CBC-CBD ~27°) or a pyramidal sp3 centre (~±60°) is
+// rejected.
+const BondPlanarMaxDeg = Torsion6MaxDeg;
 
 const tmpVecA = Vec3();
 const tmpVecB = Vec3();
@@ -747,7 +748,7 @@ function isPerceivableBond(state: State, u: number, v: number) {
  * single bonds may become double, letting us run aromatic ring bonds first (step 8)
  * before the remaining bonds (step 9a).
  */
-function matchDoubleBonds(state: State, bondEligible: (u: number, v: number) => boolean, requireSp2 = true) {
+function matchDoubleBonds(state: State, bondEligible: (u: number, v: number) => boolean, requireSp2 = true, planarFallback = false) {
     computeOpenValence(state);
     const n = state.end - state.start;
 
@@ -759,12 +760,15 @@ function matchDoubleBonds(state: State, bondEligible: (u: number, v: number) => 
     // ring kekulization) an endpoint must be a genuine sp2 (Trigonal) or a geometrically
     // undecidable ambiguous atom — Terminal is excluded here (carbonyls and other terminal-atom
     // doubles are handled by the step-9c distance table), as are genuine sp3 (Tetrahedral) and sp
-    // (Linear) atoms.
+    // (Linear) atoms. The step-9d planar fallback restricts acceptors to genuine sp2 (Trigonal),
+    // hence non-terminal, so the planarity test below is always well-defined.
     const canAccept = (i: number) =>
         state.open[i] > 0 && !hasMultipleBond(state, i) &&
         (requireSp2
             ? isSp2(i)
-            : state.geometry[i] === AtomGeometry.Trigonal || state.ambiguous[i] !== 0);
+            : planarFallback
+                ? state.geometry[i] === AtomGeometry.Trigonal
+                : state.geometry[i] === AtomGeometry.Trigonal || state.ambiguous[i] !== 0);
 
     // vertices = all atoms that can accept one double bond; carbons first so
     // heteroatoms tend to be left unmatched (lone-pair donors, e.g. pyrrole N / furan O)
@@ -779,18 +783,26 @@ function matchDoubleBonds(state: State, bondEligible: (u: number, v: number) => 
         for (const v of state.neighbours[u]) {
             if (!canAccept(v)) continue;
             if (!isPerceivableBond(state, u, v)) continue;
-            const d2 = distSq(state, u, v);
-            if (d2 > DoubleMaxSq) continue;
             if (!bondEligible(u, v)) continue;
-            if (!requireSp2) {
-                // A π bond needs a genuine sp2 (Trigonal) anchor; an ambiguous atom is never an
-                // anchor, so two undecidable atoms can't pair up on their own.
-                const uTri = state.geometry[u] === AtomGeometry.Trigonal;
-                const vTri = state.geometry[v] === AtomGeometry.Trigonal;
-                if (!uTri && !vTri) continue;
-                // An ambiguous endpoint must additionally look like a planar (sp2-sp2) double:
-                // its substituents are coplanar across the bond (e.g. the chlorin C1=C12).
-                if ((state.ambiguous[u] || state.ambiguous[v]) && !isBondPlanar(state, u, v)) continue;
+            if (planarFallback) {
+                // step 9d: no distance cap — a stretched isolated double (e.g. a 1.55 A C=C in a
+                // distorted structure) is missed by the distance-capped passes. Both endpoints are
+                // genuine sp2 with open valence; require their substituents to be coplanar across
+                // the bond so a real π bond is distinguished from a long single bond.
+                if (!isBondPlanar(state, u, v)) continue;
+            } else {
+                const d2 = distSq(state, u, v);
+                if (d2 > DoubleMaxSq) continue;
+                if (!requireSp2) {
+                    // A π bond needs a genuine sp2 (Trigonal) anchor; an ambiguous atom is never an
+                    // anchor, so two undecidable atoms can't pair up on their own.
+                    const uTri = state.geometry[u] === AtomGeometry.Trigonal;
+                    const vTri = state.geometry[v] === AtomGeometry.Trigonal;
+                    if (!uTri && !vTri) continue;
+                    // An ambiguous endpoint must additionally look like a planar (sp2-sp2) double:
+                    // its substituents are coplanar across the bond (e.g. the chlorin C1=C12).
+                    if ((state.ambiguous[u] || state.ambiguous[v]) && !isBondPlanar(state, u, v)) continue;
+                }
             }
             list.push(v);
         }
@@ -857,6 +869,12 @@ function kekulize(state: State) {
     // step 9a: kekulize remaining conjugated / non-aromatic-ring double bonds (non-terminal sp2
     // or ambiguous atoms) by maximum matching.
     matchDoubleBonds(state, () => true, false);
+
+    // step 9d: planarity-gated fallback for stretched isolated doubles the distance-capped passes
+    // miss (e.g. a 1.55 A C=C between two sp2 carbons in a distorted structure). Restricted to
+    // pairs of genuine sp2 (Trigonal, non-terminal) atoms that still need a double and are coplanar
+    // across the bond, so a real π bond is recovered without turning long single bonds into doubles.
+    matchDoubleBonds(state, () => true, false, true);
 }
 
 /**
