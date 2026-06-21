@@ -297,95 +297,101 @@ function computeOpenValence(state: State) {
 
 type NeighborConnectivity = 'terminal' | 'connected' | 'either';
 interface neighbourspec { el: ElSpec; connectivity: NeighborConnectivity; order: number; }
-interface FunctionalGroup { name: string; center: { el: ElSpec; }; neighbours: neighbourspec[]; }
+// `geometry` is the center's hybridization required by the depiction (Sayle): a carbonyl/
+// nitro/amidine center is sp2 (Trigonal), a nitrile / azide-middle is sp (Linear), a
+// phosphate / sulfonyl is sp3 (Tetrahedral). It is enforced before slot assignment so e.g. an
+// aminomethyl R-CH2-NH2 (Trigonal C) cannot match the nitrile R-C#N (Linear C).
+interface FunctionalGroup { name: string; center: { el: ElSpec; geometry: AtomGeometry }; neighbours: neighbourspec[]; }
 
 const FunctionalGroups: FunctionalGroup[] = [
     // *N(*)C=O
-    { name: 'formamide', center: { el: Elements.C }, neighbours: [
+    { name: 'formamide', center: { el: Elements.C, geometry: AtomGeometry.Trigonal }, neighbours: [
         { el: Elements.O, connectivity: 'terminal', order: 2 },
         { el: Elements.N, connectivity: 'either', order: 1 },
         // H?
     ] },
     // CC(=O)O
-    { name: 'carboxylic acid', center: { el: Elements.C }, neighbours: [
+    { name: 'carboxylic acid', center: { el: Elements.C, geometry: AtomGeometry.Trigonal }, neighbours: [
         { el: Elements.C, connectivity: 'connected', order: 1 },
         { el: Elements.O, connectivity: 'terminal', order: 2 },
         { el: Elements.O, connectivity: 'terminal', order: 1 },
     ] },
     // *C(=O)O*
-    { name: 'ester', center: { el: Elements.C }, neighbours: [
+    { name: 'ester', center: { el: Elements.C, geometry: AtomGeometry.Trigonal }, neighbours: [
         { el: '*', connectivity: 'connected', order: 1 },
         { el: Elements.O, connectivity: 'terminal', order: 2 },
         { el: Elements.O, connectivity: 'connected', order: 1 },
     ] },
     // *C(=O)S*
-    { name: 'thioester', center: { el: Elements.C }, neighbours: [
+    { name: 'thioester', center: { el: Elements.C, geometry: AtomGeometry.Trigonal }, neighbours: [
         { el: '*', connectivity: 'connected', order: 1 },
         { el: Elements.O, connectivity: 'terminal', order: 2 },
         { el: Elements.S, connectivity: 'connected', order: 1 },
     ] },
-    // *C(=O)N*
-    { name: 'amide', center: { el: Elements.C }, neighbours: [
-        { el: Elements.C, connectivity: 'connected', order: 1 },
+    // *C(=O)N* — covers amide (C-C(=O)-N, incl. acetamide with a terminal methyl),
+    // urea (N-C(=O)-N, e.g. the C2 carbonyl of uracil/thymine) and carbamate (O-C(=O)-N).
+    // Note: this differs from the depiction in the original article which hinted at a carbonyl substituent
+    { name: 'amide', center: { el: Elements.C, geometry: AtomGeometry.Trigonal }, neighbours: [
+        { el: '*', connectivity: 'either', order: 1 },
         { el: Elements.O, connectivity: 'terminal', order: 2 },
         { el: Elements.N, connectivity: 'either', order: 1 },
     ] },
     // *C(=S)S*
-    { name: 'dithioester', center: { el: Elements.C }, neighbours: [
+    { name: 'dithioester', center: { el: Elements.C, geometry: AtomGeometry.Trigonal }, neighbours: [
         { el: '*', connectivity: 'connected', order: 1 },
         { el: Elements.S, connectivity: 'terminal', order: 2 },
         { el: Elements.S, connectivity: 'connected', order: 1 },
     ] },
     // *C(=S)N*
-    { name: 'thioamide', center: { el: Elements.C }, neighbours: [
+    { name: 'thioamide', center: { el: Elements.C, geometry: AtomGeometry.Trigonal }, neighbours: [
         { el: '*', connectivity: 'connected', order: 1 },
         { el: Elements.S, connectivity: 'terminal', order: 2 },
         { el: Elements.N, connectivity: 'connected', order: 1 },
     ] },
     // *NC(=N*)N*
-    { name: 'guanidinium', center: { el: Elements.C }, neighbours: [
+    { name: 'guanidinium', center: { el: Elements.C, geometry: AtomGeometry.Trigonal }, neighbours: [
         { el: Elements.N, connectivity: 'either', order: 2 },
         { el: Elements.N, connectivity: 'either', order: 1 },
         { el: Elements.N, connectivity: 'connected', order: 1 },
     ] },
     // *C(=N)N
-    { name: 'amidine', center: { el: Elements.C }, neighbours: [
+    { name: 'amidine', center: { el: Elements.C, geometry: AtomGeometry.Trigonal }, neighbours: [
         { el: '*', connectivity: 'connected', order: 1 },
         { el: Elements.N, connectivity: 'terminal', order: 2 },
         { el: Elements.N, connectivity: 'terminal', order: 1 },
     ] },
     // *N=[N+]=[N-]
-    { name: 'azide', center: { el: Elements.N }, neighbours: [
+    { name: 'azide', center: { el: Elements.N, geometry: AtomGeometry.Linear }, neighbours: [
         { el: Elements.N, connectivity: 'terminal', order: 2 },
         { el: Elements.N, connectivity: 'connected', order: 2 },
     ] },
     // *P(=O)(*)*
-    { name: 'phosphoryl', center: { el: Elements.P }, neighbours: [
+    { name: 'phosphoryl', center: { el: Elements.P, geometry: AtomGeometry.Tetrahedral }, neighbours: [
         { el: '*', connectivity: 'either', order: 1 },
         { el: '*', connectivity: 'either', order: 1 },
         { el: '*', connectivity: 'either', order: 1 },
         { el: Elements.O, connectivity: 'terminal', order: 2 },
     ] },
     // *S(=O)(*)=O
-    { name: 'sulfonyl', center: { el: Elements.S }, neighbours: [
+    { name: 'sulfonyl', center: { el: Elements.S, geometry: AtomGeometry.Tetrahedral }, neighbours: [
         { el: '*', connectivity: 'connected', order: 1 },
         { el: '*', connectivity: 'connected', order: 1 },
         { el: Elements.O, connectivity: 'terminal', order: 2 },
         { el: Elements.O, connectivity: 'terminal', order: 2 },
     ] },
     // *[N+](=O)[O-]
-    { name: 'nitro', center: { el: Elements.N }, neighbours: [
+    { name: 'nitro', center: { el: Elements.N, geometry: AtomGeometry.Trigonal }, neighbours: [
         { el: '*', connectivity: 'connected', order: 1 },
         { el: Elements.O, connectivity: 'terminal', order: 2 },
         { el: Elements.O, connectivity: 'terminal', order: 1 },
     ] },
     // *C#N
-    { name: 'nitrile', center: { el: Elements.C }, neighbours: [
+    { name: 'nitrile', center: { el: Elements.C, geometry: AtomGeometry.Linear }, neighbours: [
         { el: '*', connectivity: 'connected', order: 1 },
         { el: Elements.N, connectivity: 'terminal', order: 3 },
     ] },
     // *[Se](=O)O
-    { name: 'seleninic acid', center: { el: Elements.SE }, neighbours: [
+    { name: 'seleninic acid', center: { el: Elements.SE, geometry: AtomGeometry.Tetrahedral }, neighbours: [
         { el: '*', connectivity: 'connected', order: 1 },
         { el: Elements.O, connectivity: 'terminal', order: 2 },
         { el: Elements.O, connectivity: 'terminal', order: 1 },
@@ -401,28 +407,30 @@ function connectivityOk(c: NeighborConnectivity, isTerminal: boolean) {
 function applyFunctionalGroups(state: State) {
     const n = state.end - state.start;
     for (let i = 0; i < n; i++) {
-        // TODO: should not exclude ring centers, but should prioritize ring matches for double bonds assignments.
-        // These motifs are non-cyclic functional groups. A ring atom gets its multiple
-        // bond from aromatic / Kekule perception, so skip ring centers (e.g. an
-        // aromatic ring carbon bonded to ring N + an exocyclic amino N must not be
-        // mistaken for guanidinium and push a double onto the exocyclic nitrogen).
-        if (state.inRing[i]) continue;
         // If the center already has a multiple bond (e.g. a backbone C=O or phosphate
         // P=O from the order table), its pi system is already placed - don't add another.
         if (hasMultipleBond(state, i)) continue;
         const el = state.el[i];
         const nb = state.neighbours[i];
+
+        // Skip common cases that are not in patterns
+        if (el === Elements.C && state.geometry[i] !== AtomGeometry.Trigonal) continue;
+        if (el === Elements.O) continue;
+
         for (const g of FunctionalGroups) {
             if (g.center.el !== el) continue;
+            // The depiction fixes the center hybridization; enforce it so e.g. an aminomethyl
+            // R-CH2-NH2 (Trigonal C) cannot match the nitrile R-C#N (Linear C).
+            if (state.geometry[i] !== g.center.geometry) continue;
             if (nb.length !== g.neighbours.length) continue; // exact heavy degree
             const slots = assignSlots(state, i, g.neighbours);
             if (!slots) continue;
             for (let k = 0; k < slots.length; k++) {
                 const v = nb[slots[k]];
+                const order = g.neighbours[k].order;
                 // only upgrade bonds whose order is not authoritative
-                if (g.neighbours[k].order > 1 && isPerceivableBond(state, i, v)) {
-                    setBond(state.bonds, state.start + i, state.start + v, g.neighbours[k].order, BondType.Flag.Computed);
-                }
+                if (order <= 1 || !isPerceivableBond(state, i, v)) continue;
+                setBond(state.bonds, state.start + i, state.start + v, order, BondType.Flag.Computed);
             }
             break;
         }
