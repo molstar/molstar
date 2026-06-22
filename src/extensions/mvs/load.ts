@@ -57,7 +57,7 @@ export interface MVSLoadOptions {
     /** Base for resolving relative URLs/URIs. May itself be a relative URL (relative to the window URL). */
     sourceUrl?: string,
     /** The index of the snapshot to apply initially. Defaults to 0. */
-    defaultSnapshotIndex?: number;
+    defaultSnapshotIndex?: number,
 
     doNotReportErrors?: boolean
 }
