@@ -236,8 +236,8 @@ void main(void) {
             color.a = bloom.a + color.a * (1.0 - bloom.a);
         } else {
             color.rgb += bloom.rgb;
-            // clamp so premultiplied-over's (1 - alpha) stays >= 0 (no background subtraction)
-            color.a = min(color.a + bloom.a, 1.0);
+            // alpha just covers premultiplied rgb so un-premultiply stays lossless (no glow-induced opacity)
+            color.a = min(max(color.a, max(color.r, max(color.g, color.b))), 1.0);
         }
     #endif
 
