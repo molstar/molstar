@@ -5,6 +5,7 @@
  */
 
 import { StringLike } from '../../common/string-like';
+import { TypedArray } from '../../../mol-util/type-helpers';
 
 // --- Base64 ---
 
@@ -56,33 +57,33 @@ export function decodeInt64AsInt32(raw: Uint8Array, count: number): Int32Array {
     return out;
 }
 
-export function decodeToFloat64(raw: Uint8Array, type: string, count: number): Float64Array {
+export function decodeTyped(raw: Uint8Array, type: string, count: number): TypedArray {
     const dv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
-    const out = new Float64Array(count);
     switch (type) {
-        case 'Float32': { const f32 = decodeFloat32(raw, count); for (let i = 0; i < count; i++) out[i] = f32[i]; break; }
-        case 'Float64': for (let i = 0; i < count; i++) out[i] = dv.getFloat64(i * 8, true); break;
-        case 'Int8': for (let i = 0; i < count; i++) out[i] = dv.getInt8(i); break;
-        case 'UInt8': for (let i = 0; i < count; i++) out[i] = dv.getUint8(i); break;
-        case 'Int16': for (let i = 0; i < count; i++) out[i] = dv.getInt16(i * 2, true); break;
-        case 'UInt16': for (let i = 0; i < count; i++) out[i] = dv.getUint16(i * 2, true); break;
-        case 'Int32': for (let i = 0; i < count; i++) out[i] = dv.getInt32(i * 4, true); break;
-        case 'UInt32': for (let i = 0; i < count; i++) out[i] = dv.getUint32(i * 4, true); break;
-        case 'Int64': case 'UInt64':
+        case 'Float32': return decodeFloat32(raw, count);
+        case 'Float64': { const out = new Float64Array(count); for (let i = 0; i < count; i++) out[i] = dv.getFloat64(i * 8, true); return out; }
+        case 'Int8': { const out = new Int8Array(count); for (let i = 0; i < count; i++) out[i] = dv.getInt8(i); return out; }
+        case 'UInt8': { const out = new Uint8Array(count); for (let i = 0; i < count; i++) out[i] = dv.getUint8(i); return out; }
+        case 'Int16': { const out = new Int16Array(count); for (let i = 0; i < count; i++) out[i] = dv.getInt16(i * 2, true); return out; }
+        case 'UInt16': { const out = new Uint16Array(count); for (let i = 0; i < count; i++) out[i] = dv.getUint16(i * 2, true); return out; }
+        case 'Int32': { const out = new Int32Array(count); for (let i = 0; i < count; i++) out[i] = dv.getInt32(i * 4, true); return out; }
+        case 'UInt32': { const out = new Uint32Array(count); for (let i = 0; i < count; i++) out[i] = dv.getUint32(i * 4, true); return out; }
+        case 'Int64': case 'UInt64': {
+            const out = new Float64Array(count);
             for (let i = 0; i < count; i++) {
                 const lo = dv.getUint32(i * 8, true);
                 const hi = dv.getInt32(i * 8 + 4, true);
                 out[i] = hi * 0x100000000 + lo;
             }
-            break;
+            return out;
+        }
         default: throw new Error(`Unsupported scalar type: "${type}".`);
     }
-    return out;
 }
 
 export function decodePositions(raw: Uint8Array, type: string, count: number): Float32Array {
     if (type === 'Float32') return decodeFloat32(raw, count);
-    return new Float32Array(decodeToFloat64(raw, type, count));
+    return new Float32Array(decodeTyped(raw, type, count));
 }
 
 export function decodeConnectivity(raw: Uint8Array, type: string): Int32Array {

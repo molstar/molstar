@@ -23,13 +23,16 @@ export interface VtpDataArrayDescriptor {
     readonly asciiText?: string;
 }
 
+import { TypedArray } from '../../../mol-util/type-helpers';
+
 export interface VtpScalarArray {
     readonly desc: VtpDataArrayDescriptor;
     /**
-     * Flat decoded values. For scalar arrays (numberOfComponents=1) length = nElems.
+     * Flat decoded values in the native VTK type. For scalar arrays (numberOfComponents=1) length = nElems.
      * For multi-component arrays length = nElems * numberOfComponents.
+     * Int64/UInt64 are represented as Float64Array.
      */
-    readonly values: Float64Array;
+    readonly values: TypedArray;
 }
 
 export interface VtpFile {

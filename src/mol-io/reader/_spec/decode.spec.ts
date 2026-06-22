@@ -7,7 +7,7 @@
 import {
     B64_DECODE,
     decodeB64Bytes, decodeB64Str,
-    decodeFloat32, decodeInt64AsInt32, decodeToFloat64,
+    decodeFloat32, decodeInt64AsInt32, decodeTyped,
     decodePositions, decodeConnectivity,
 } from '../common/decode';
 
@@ -100,66 +100,75 @@ describe('decodeInt64AsInt32', () => {
     });
 });
 
-describe('decodeToFloat64', () => {
-    it('Float32', () => {
+describe('decodeTyped', () => {
+    it('Float32 returns Float32Array', () => {
         const raw = new Uint8Array(new Float32Array([1.0, -2.0]).buffer);
-        const out = decodeToFloat64(raw, 'Float32', 2);
+        const out = decodeTyped(raw, 'Float32', 2);
+        expect(out).toBeInstanceOf(Float32Array);
         expect(out[0]).toBeCloseTo(1.0);
         expect(out[1]).toBeCloseTo(-2.0);
     });
-    it('Float64', () => {
+    it('Float64 returns Float64Array', () => {
         const raw = new Uint8Array(new Float64Array([Math.PI, Math.E]).buffer);
-        const out = decodeToFloat64(raw, 'Float64', 2);
+        const out = decodeTyped(raw, 'Float64', 2);
+        expect(out).toBeInstanceOf(Float64Array);
         expect(out[0]).toBeCloseTo(Math.PI, 10);
         expect(out[1]).toBeCloseTo(Math.E, 10);
     });
-    it('Int8', () => {
+    it('Int8 returns Int8Array', () => {
         const raw = new Uint8Array(new Int8Array([-1, 127]).buffer);
-        const out = decodeToFloat64(raw, 'Int8', 2);
+        const out = decodeTyped(raw, 'Int8', 2);
+        expect(out).toBeInstanceOf(Int8Array);
         expect(out[0]).toBe(-1);
         expect(out[1]).toBe(127);
     });
-    it('UInt8', () => {
+    it('UInt8 returns Uint8Array', () => {
         const raw = new Uint8Array([0, 255]);
-        const out = decodeToFloat64(raw, 'UInt8', 2);
+        const out = decodeTyped(raw, 'UInt8', 2);
+        expect(out).toBeInstanceOf(Uint8Array);
         expect(out[0]).toBe(0);
         expect(out[1]).toBe(255);
     });
-    it('Int16', () => {
+    it('Int16 returns Int16Array', () => {
         const raw = new Uint8Array(new Int16Array([-32768, 32767]).buffer);
-        const out = decodeToFloat64(raw, 'Int16', 2);
+        const out = decodeTyped(raw, 'Int16', 2);
+        expect(out).toBeInstanceOf(Int16Array);
         expect(out[0]).toBe(-32768);
         expect(out[1]).toBe(32767);
     });
-    it('UInt16', () => {
+    it('UInt16 returns Uint16Array', () => {
         const raw = new Uint8Array(new Uint16Array([0, 65535]).buffer);
-        const out = decodeToFloat64(raw, 'UInt16', 2);
+        const out = decodeTyped(raw, 'UInt16', 2);
+        expect(out).toBeInstanceOf(Uint16Array);
         expect(out[0]).toBe(0);
         expect(out[1]).toBe(65535);
     });
-    it('Int32', () => {
+    it('Int32 returns Int32Array', () => {
         const raw = new Uint8Array(new Int32Array([-1, 100]).buffer);
-        const out = decodeToFloat64(raw, 'Int32', 2);
+        const out = decodeTyped(raw, 'Int32', 2);
+        expect(out).toBeInstanceOf(Int32Array);
         expect(out[0]).toBe(-1);
         expect(out[1]).toBe(100);
     });
-    it('UInt32', () => {
+    it('UInt32 returns Uint32Array', () => {
         const raw = new Uint8Array(new Uint32Array([0, 4294967295]).buffer);
-        const out = decodeToFloat64(raw, 'UInt32', 2);
+        const out = decodeTyped(raw, 'UInt32', 2);
+        expect(out).toBeInstanceOf(Uint32Array);
         expect(out[0]).toBe(0);
         expect(out[1]).toBe(4294967295);
     });
-    it('Int64 small values', () => {
+    it('Int64 returns Float64Array', () => {
         const buf = new ArrayBuffer(16);
         const dv = new DataView(buf);
         dv.setUint32(0, 7, true); dv.setInt32(4, 0, true);
         dv.setUint32(8, 0, true); dv.setInt32(12, -1, true); // -4294967296
-        const out = decodeToFloat64(new Uint8Array(buf), 'Int64', 2);
+        const out = decodeTyped(new Uint8Array(buf), 'Int64', 2);
+        expect(out).toBeInstanceOf(Float64Array);
         expect(out[0]).toBe(7);
         expect(out[1]).toBe(-4294967296);
     });
     it('throws for unknown type', () => {
-        expect(() => decodeToFloat64(new Uint8Array(4), 'Bogus', 1)).toThrow();
+        expect(() => decodeTyped(new Uint8Array(4), 'Bogus', 1)).toThrow();
     });
 });
 

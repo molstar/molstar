@@ -10,7 +10,8 @@ import { inflate } from '../../../mol-util/zip/zip';
 import { VtpFile, VtpDataArrayDescriptor, VtpScalarArray } from './schema';
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../common/text/number-parser';
 import { StringLike } from '../../common/string-like';
-import { decodeB64Bytes, decodeB64Str, decodeToFloat64, decodePositions, decodeConnectivity } from '../common/decode';
+import { decodeB64Bytes, decodeB64Str, decodeTyped, decodePositions, decodeConnectivity } from '../common/decode';
+import { TypedArray } from '../../../mol-util/type-helpers';
 
 // --- Locate AppendedData section ---
 
@@ -533,12 +534,12 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
         const desc = hdr.pointDataArrays[i];
         const totalCount = hdr.nPoints * desc.numberOfComponents;
         ctx.update({ message: `Point data: ${desc.name}...`, current: 30 + Math.floor(i / Math.max(1, hdr.pointDataArrays.length) * 30), max: 100 });
-        let values: Float64Array;
+        let values: TypedArray;
         if (desc.format === 'ascii') {
             values = parseAsciiFloat64(desc.asciiText ?? '', totalCount);
         } else {
             const raw = await decompressBlock(ctx, info, desc, headerType, hasCompressor);
-            values = decodeToFloat64(raw, desc.type, totalCount);
+            values = decodeTyped(raw, desc.type, totalCount);
         }
         pointData.set(desc.name, { desc, values });
     }
@@ -549,12 +550,12 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
         const desc = hdr.cellDataArrays[i];
         const totalCount = hdr.nCells * desc.numberOfComponents;
         ctx.update({ message: `Cell data: ${desc.name}...`, current: 60 + Math.floor(i / Math.max(1, hdr.cellDataArrays.length) * 35), max: 100 });
-        let values: Float64Array;
+        let values: TypedArray;
         if (desc.format === 'ascii') {
             values = parseAsciiFloat64(desc.asciiText ?? '', totalCount);
         } else {
             const raw = await decompressBlock(ctx, info, desc, headerType, hasCompressor);
-            values = decodeToFloat64(raw, desc.type, totalCount);
+            values = decodeTyped(raw, desc.type, totalCount);
         }
         cellData.set(desc.name, { desc, values });
     }

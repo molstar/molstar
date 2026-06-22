@@ -19,6 +19,7 @@ import { ColorListOptionsScale, ColorListName } from '../../mol-util/color/lists
 import { ValueCell } from '../../mol-util/value-cell';
 import { deepClone } from '../../mol-util/object';
 import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
+import { TypedArray } from '../../mol-util/type-helpers';
 
 export interface VtpData {
     source: VtpFile,
@@ -29,8 +30,6 @@ const _identityTransforms = [Mat4.identity()];
 
 // --- Params ---
 
-const UNIFORM_KEY = 'uniform::';
-
 function fmtStat(x: number): string {
     if (!isFinite(x)) return x.toString();
     const abs = Math.abs(x);
@@ -40,8 +39,7 @@ function fmtStat(x: number): string {
 }
 
 function computeAttrStatsText(vtpFile: VtpFile, attrKey: string): string {
-    if (attrKey === UNIFORM_KEY) return '';
-    let rawVals: Float64Array | undefined;
+    let rawVals: TypedArray | undefined;
     let nComp = 1;
     let name = '';
     if (attrKey.startsWith('point:')) {
@@ -78,8 +76,8 @@ function computeAttrStatsText(vtpFile: VtpFile, attrKey: string): string {
 }
 
 function buildAttrOptions(vtpFile?: VtpFile): PD.SelectOption<string>[] {
-    const opts: PD.SelectOption<string>[] = [[UNIFORM_KEY, 'Uniform color']];
-    if (!vtpFile) return opts;
+    if (!vtpFile) return [['', 'No attributes']];
+    const opts: PD.SelectOption<string>[] = [];
     for (const [name, arr] of vtpFile.pointData) {
         const nComp = arr.desc.numberOfComponents;
         opts.push([`point:${name}`, nComp > 1 ? `Point: ${name} (mag)` : `Point: ${name}`]);
@@ -88,11 +86,11 @@ function buildAttrOptions(vtpFile?: VtpFile): PD.SelectOption<string>[] {
         const nComp = arr.desc.numberOfComponents;
         opts.push([`cell:${name}`, nComp > 1 ? `Cell: ${name} (mag)` : `Cell: ${name}`]);
     }
-    return opts;
+    return opts.length > 0 ? opts : [['', 'No attributes']];
 }
 
 function defaultAttrKey(vtpFile?: VtpFile): string {
-    if (!vtpFile) return UNIFORM_KEY;
+    if (!vtpFile) return '';
     // Prefer 1-component arrays first (direct scalar mapping)
     for (const [name, arr] of vtpFile.cellData) {
         if (arr.desc.numberOfComponents === 1) return `cell:${name}`;
@@ -102,10 +100,10 @@ function defaultAttrKey(vtpFile?: VtpFile): string {
     }
     if (vtpFile.cellData.size > 0) return `cell:${vtpFile.cellData.keys().next().value}`;
     if (vtpFile.pointData.size > 0) return `point:${vtpFile.pointData.keys().next().value}`;
-    return UNIFORM_KEY;
+    return '';
 }
 
-function scalarRange(values: Float64Array): [number, number] {
+function scalarRange(values: TypedArray): [number, number] {
     let min = Infinity, max = -Infinity;
     for (let i = 0; i < values.length; i++) {
         if (values[i] < min) min = values[i];
@@ -114,51 +112,35 @@ function scalarRange(values: Float64Array): [number, number] {
     return [min === Infinity ? 0 : min, max === -Infinity ? 1 : max];
 }
 
-function magnitudeRange(values: Float64Array, nComp: number): [number, number] {
-    const n = values.length / nComp;
-    let min = Infinity, max = -Infinity;
-    for (let i = 0; i < n; i++) {
-        let mag2 = 0;
-        for (let c = 0; c < nComp; c++) mag2 += values[i * nComp + c] ** 2;
-        const mag = Math.sqrt(mag2);
-        if (mag < min) min = mag;
-        if (mag > max) max = mag;
-    }
-    return [min === Infinity ? 0 : min, max === -Infinity ? 1 : max];
-}
-
-function defaultDomain(vtpFile: VtpFile | undefined, key: string): [number, number] {
-    if (!vtpFile || key === UNIFORM_KEY) return [0, 1];
-    let arr;
-    if (key.startsWith('cell:')) arr = vtpFile.cellData.get(key.slice(5));
-    else if (key.startsWith('point:')) arr = vtpFile.pointData.get(key.slice(6));
-    if (!arr) return [0, 1];
-    const nComp = arr.desc.numberOfComponents;
-    if (nComp > 1) return magnitudeRange(arr.values, nComp);
-    // Use VTK-provided range when available; otherwise compute from data.
-    // Many writers (Python VTK, SurfaceMorphometrics) omit RangeMin/RangeMax.
-    if (arr.desc.hasRange) return [arr.desc.rangeMin, arr.desc.rangeMax];
-    return scalarRange(arr.values);
-}
 
 export function createVtpShapeParams(vtpFile?: VtpFile, getStats?: () => string) {
     const attrOptions = buildAttrOptions(vtpFile);
     const defKey = defaultAttrKey(vtpFile);
-    const [defMin, defMax] = defaultDomain(vtpFile, defKey);
-    const defStats = vtpFile ? computeAttrStatsText(vtpFile, defKey) : '';
+    const defStats = vtpFile && defKey ? computeAttrStatsText(vtpFile, defKey) : '';
+    const hasAttrs = (vtpFile?.pointData.size ?? 0) + (vtpFile?.cellData.size ?? 0) > 0;
 
     return {
         ...Mesh.Params,
         doubleSided: { ...Mesh.Params.doubleSided, defaultValue: true },
         interior: { ...Mesh.Params.interior, defaultValue: { ...Mesh.Params.interior.defaultValue, colorStrength: 0 } },
-        attribute: PD.Select(defKey, attrOptions, { label: 'Color Attribute', help: () => {
-            return { description: getStats ? getStats() : defStats };
-        } }),
-        colormap: PD.Select('viridis' as ColorListName, ColorListOptionsScale, { label: 'Colormap' }),
-        domainMin: PD.Numeric(defMin, {}, { label: 'Domain Min', isHidden: true }),
-        domainMax: PD.Numeric(defMax, {}, { label: 'Domain Max', isHidden: true }),
-        uniformColor: PD.Color(ColorNames.grey, { label: 'Uniform Color' }),
-        scale: PD.Numeric(1, { min: 0.01, max: 100, step: 0.01 }, { label: 'Scale', description: 'Uniform scale factor applied to the mesh.' }),
+        colorTheme: PD.MappedStatic(hasAttrs ? 'attribute' : 'uniform', {
+            attribute: PD.Group({
+                name: PD.Select(defKey, attrOptions, { help: () => {
+                    return { description: getStats ? getStats() : defStats };
+                } }),
+                colors: PD.Select('viridis' as ColorListName, ColorListOptionsScale),
+                domain: PD.MappedStatic('auto', {
+                    custom: PD.Interval([-1, 1], { step: 0.001 }),
+                    auto: PD.Group({
+                        symmetric: PD.Boolean(false, { description: 'If true the automatic range is determined as [-|max|, |max|].' })
+                    })
+                })
+            }),
+            uniform: PD.Group({
+                color: PD.Color(ColorNames.grey, { label: 'Uniform Color' })
+            })
+        }, { isEssential: true }),
+        scale: PD.Numeric(1, { min: 0.01, max: 100, step: 0.01 }, { label: 'Scale', isEssential: true, description: 'Uniform scale factor applied to the mesh.' }),
     };
 }
 
@@ -166,45 +148,39 @@ export const VtpShapeParams = createVtpShapeParams();
 export type VtpShapeParams = typeof VtpShapeParams;
 
 // --- Mesh building ---
-// Vertices are intentionally NOT shared (3 unique entries per triangle).
-// This allows each vertex to carry an independent group ID, which is required
-// for flat per-cell CellData coloring: gid/3 = triangle index, gid%3 = vertex
-// within that triangle. Sharing vertices would break CellData flat coloring
-// since a vertex at a cell boundary could only hold one of its cells' values.
 
 async function buildMesh(ctx: RuntimeContext, vtpFile: VtpFile, mesh?: Mesh): Promise<Mesh> {
-    const { positions, connectivity, numberOfTriangles } = vtpFile;
-    const nVerts = numberOfTriangles * 3;
+    const { positions, connectivity, numberOfPoints, numberOfTriangles } = vtpFile;
 
-    const builderState = MeshBuilder.createState(nVerts, numberOfTriangles, mesh);
+    const builderState = MeshBuilder.createState(numberOfPoints, numberOfTriangles, mesh);
     const { vertices, indices, groups } = builderState;
 
     const chunkSize = 50000;
 
-    for (let ti = 0, il = numberOfTriangles; ti < il; ti += chunkSize) {
-        const end = Math.min(ti + chunkSize, il);
-        for (let i = ti; i < end; i++) {
-            const v0 = connectivity[3 * i];
-            const v1 = connectivity[3 * i + 1];
-            const v2 = connectivity[3 * i + 2];
-
-            const gBase = 3 * i;
-            ChunkedArray.add3(vertices, positions[3 * v0], positions[3 * v0 + 1], positions[3 * v0 + 2]);
-            ChunkedArray.add(groups, gBase);
-            ChunkedArray.add3(vertices, positions[3 * v1], positions[3 * v1 + 1], positions[3 * v1 + 2]);
-            ChunkedArray.add(groups, gBase + 1);
-            ChunkedArray.add3(vertices, positions[3 * v2], positions[3 * v2 + 1], positions[3 * v2 + 2]);
-            ChunkedArray.add(groups, gBase + 2);
-
-            ChunkedArray.add3(indices, gBase, gBase + 1, gBase + 2);
+    for (let i = 0, il = numberOfPoints; i < il; i += chunkSize) {
+        const end = Math.min(i + chunkSize, il);
+        for (let v = i; v < end; v++) {
+            ChunkedArray.add3(vertices, positions[3 * v], positions[3 * v + 1], positions[3 * v + 2]);
+            ChunkedArray.add(groups, v);
         }
-
         if (ctx.shouldUpdate) {
-            await ctx.update({ message: 'Building VTP mesh...', current: ti, max: numberOfTriangles });
+            await ctx.update({ message: 'Building VTP mesh...', current: i, max: numberOfPoints + numberOfTriangles });
+        }
+    }
+
+    for (let i = 0, il = numberOfTriangles; i < il; i += chunkSize) {
+        const end = Math.min(i + chunkSize, il);
+        for (let t = i; t < end; t++) {
+            ChunkedArray.add3(indices, connectivity[3 * t], connectivity[3 * t + 1], connectivity[3 * t + 2]);
+        }
+        if (ctx.shouldUpdate) {
+            await ctx.update({ message: 'Building VTP mesh...', current: numberOfPoints + i, max: numberOfPoints + numberOfTriangles });
         }
     }
 
     const m = MeshBuilder.getMesh(builderState);
+    // Requires consistent CCW winding. Files with alternating CW/CCW faces
+    // (e.g. some lat/lon sphere exports) will show pinwheel shading artifacts.
     Mesh.computeNormals(m);
     ValueCell.updateIfChanged(m.varyingGroup, true);
     return m;
@@ -212,7 +188,7 @@ async function buildMesh(ctx: RuntimeContext, vtpFile: VtpFile, mesh?: Mesh): Pr
 
 // --- Color lookup ---
 
-function cellToVertexAverage(vtpFile: VtpFile, cellValues: Float64Array): Float64Array {
+function cellToVertexAverage(vtpFile: VtpFile, cellValues: TypedArray): Float64Array {
     const { connectivity, triangleCellIndex, numberOfPoints } = vtpFile;
     const nTris = connectivity.length / 3;
     const sum = new Float64Array(numberOfPoints);
@@ -236,7 +212,7 @@ function cellToVertexAverage(vtpFile: VtpFile, cellValues: Float64Array): Float6
 // Average multi-component cell vectors to vertices, then return the magnitude of each vertex vector.
 // Matching smgui _cell_to_vertex_interpolation_vector: averaging direction vectors, not their magnitudes,
 // so that crease/boundary vertices (where adjacent face normals cancel) get low magnitude values.
-function cellToVertexAverageMag(vtpFile: VtpFile, cellVectors: Float64Array, nComp: number): Float64Array {
+function cellToVertexAverageMag(vtpFile: VtpFile, cellVectors: TypedArray, nComp: number): Float64Array {
     const { connectivity, triangleCellIndex, numberOfPoints } = vtpFile;
     const nTris = connectivity.length / 3;
     const sum = new Float64Array(numberOfPoints * nComp);
@@ -268,14 +244,14 @@ function cellToVertexAverageMag(vtpFile: VtpFile, cellVectors: Float64Array, nCo
     return result;
 }
 
-function vecMag(values: Float64Array, baseIdx: number, nComp: number): number {
+function vecMag(values: TypedArray, baseIdx: number, nComp: number): number {
     let mag2 = 0;
     for (let c = 0; c < nComp; c++) mag2 += values[baseIdx + c] ** 2;
     return Math.sqrt(mag2);
 }
 
 interface VertexResult {
-    values: Float64Array;
+    values: TypedArray;
     isMagnitude: boolean; // true for multi-component (magnitude) attributes
 }
 
@@ -285,9 +261,9 @@ interface VertexResult {
 //     (matches smgui _cell_to_vertex_interpolation_vector → norm; crease vertices cancel → low magnitude)
 //   - PointData scalar: use values directly
 //   - PointData multi-component: compute per-vertex magnitude directly
-// Returns null for UNIFORM_KEY or missing attributes.
+// Returns null for unknown or missing attributes.
 function computeVertexValues(vtpFile: VtpFile, attribute: string): VertexResult | null {
-    if (attribute === UNIFORM_KEY) return null;
+    if (!attribute) return null;
 
     if (attribute.startsWith('cell:')) {
         const arr = vtpFile.cellData.get(attribute.slice(5));
@@ -316,37 +292,44 @@ function computeVertexValues(vtpFile: VtpFile, attribute: string): VertexResult 
 }
 
 // Build a color function from pre-computed per-vertex scalar values.
-// Domain is [min, max] (matching smgui). For magnitude attributes where all values are
-// nearly identical (e.g. PointData unit normals, range < 1% of max), fall back to [0, max]
-// so the entire colormap is used and values map to the high end (yellow in viridis).
-function makeColorFn(vtpFile: VtpFile, colormap: ColorListName, uniformColor: Color, attribute: string, result: VertexResult | null): (gid: number) => Color {
-    if (attribute === UNIFORM_KEY || !result) return () => uniformColor;
+// Auto domain matches smgui [min, max]. For magnitude attributes where all values are
+// nearly identical (e.g. PointData unit normals, range < 1% of max), fall back to [0, max].
+function makeColorFn(vtpFile: VtpFile, colorTheme: PD.Values<VtpShapeParams>['colorTheme'], result: VertexResult | null): (gid: number) => Color {
+    if (colorTheme.name === 'uniform') return () => colorTheme.params.color;
+    if (!result) return () => ColorNames.grey;
 
     const { values, isMagnitude } = result;
-    let [lo, hi] = scalarRange(values);
-    if (isMagnitude && hi > 0 && (hi - lo) / hi < 0.01) lo = 0; // degenerate unit-vector case
+    const { colors, domain } = colorTheme.params;
+
+    let lo: number, hi: number;
+    if (domain.name === 'custom') {
+        [lo, hi] = domain.params;
+    } else {
+        [lo, hi] = scalarRange(values);
+        if (isMagnitude && hi > 0 && (hi - lo) / hi < 0.01) lo = 0; // degenerate unit-vector case
+        if (domain.params.symmetric) {
+            const absMax = Math.max(Math.abs(lo), Math.abs(hi));
+            lo = -absMax; hi = absMax;
+        }
+    }
     if (hi - lo < 1e-9) hi = lo + 1e-9; // prevent degenerate domain
 
-    const colorScale = ColorScale.create({ listOrName: colormap, domain: [lo, hi] });
-    const { connectivity } = vtpFile;
-    return (gid: number) => colorScale.color(values[connectivity[gid]]);
+    const colorScale = ColorScale.create({ listOrName: colors, domain: [lo, hi] });
+    return (gid: number) => colorScale.color(values[gid]);
 }
 
-function createShape(vtpData: VtpData, mesh: Mesh, colorFn: (gid: number) => Color, scale: number): Shape<Mesh> {
-    const scaleT = Mat4.fromUniformScaling(Mat4(), scale);
+function createShape(vtpData: VtpData, mesh: Mesh, colorFn: (gid: number) => Color, props: PD.Values<VtpShapeParams>): Shape<Mesh> {
+    const scaleT = Mat4.fromUniformScaling(Mat4(), props.scale);
     const baseTransforms = vtpData.transforms ?? _identityTransforms;
     const transforms = baseTransforms.map(t => Mat4.mul(Mat4(), t, scaleT));
-    const groupCount = vtpData.source.numberOfTriangles * 3;
+    const { numberOfPoints } = vtpData.source;
     return Shape.create(
         'vtp-mesh', vtpData.source, mesh,
         colorFn,
         () => 1,
-        (gid: number) => {
-            if (gid < 0) return '';
-            return `Triangle ${Math.floor(gid / 3)}`;
-        },
+        (gid: number) => gid >= 0 ? `Vertex ${gid}` : '',
         transforms,
-        groupCount
+        numberOfPoints
     );
 }
 
@@ -361,12 +344,18 @@ function makeShapeGetter() {
     let _lastStatsText: string = '';
 
     const getShape = async (ctx: RuntimeContext, vtpData: VtpData, props: PD.Values<VtpShapeParams>, shape?: Shape<Mesh>) => {
+        const params = VtpShapeParams;
         const needsNewMesh = !_vtpData || _vtpData.source !== vtpData.source;
-        const attributeChanged = !_props || _props.attribute !== props.attribute || needsNewMesh;
-        const needsNewColor = needsNewMesh || attributeChanged ||
-            !_props ||
-            _props.colormap !== props.colormap ||
-            _props.uniformColor !== props.uniformColor;
+
+        const newAttrKey = props.colorTheme.name === 'attribute' ? props.colorTheme.params.name : null;
+        const oldAttrKey = _props
+            ? (_props.colorTheme.name === 'attribute' ? _props.colorTheme.params.name : null)
+            : undefined;
+        const attributeChanged = needsNewMesh || newAttrKey !== oldAttrKey;
+
+        const colorThemeChanged = !_props || !PD.isParamEqual(params.colorTheme, _props.colorTheme, props.colorTheme);
+        const needsNewColor = needsNewMesh || attributeChanged || colorThemeChanged;
+
         const needsNewShape = needsNewMesh || needsNewColor ||
             _vtpData?.transforms !== vtpData.transforms ||
             !_props || _props.scale !== props.scale;
@@ -376,19 +365,22 @@ function makeShapeGetter() {
         }
 
         if (attributeChanged) {
-            _vertexResult = computeVertexValues(vtpData.source, props.attribute);
-            if (props.attribute !== _lastStatsAttr) {
-                _lastStatsText = computeAttrStatsText(vtpData.source, props.attribute);
-                _lastStatsAttr = props.attribute;
+            _vertexResult = newAttrKey ? computeVertexValues(vtpData.source, newAttrKey) : null;
+            if (newAttrKey && newAttrKey !== _lastStatsAttr) {
+                _lastStatsText = computeAttrStatsText(vtpData.source, newAttrKey);
+                _lastStatsAttr = newAttrKey;
+            } else if (!newAttrKey) {
+                _lastStatsText = '';
+                _lastStatsAttr = undefined;
             }
         }
 
         if (needsNewColor) {
-            _colorFn = makeColorFn(vtpData.source, props.colormap as ColorListName, props.uniformColor, props.attribute, _vertexResult);
+            _colorFn = makeColorFn(vtpData.source, props.colorTheme, _vertexResult);
         }
 
         if (needsNewShape) {
-            _shape = createShape(vtpData, _mesh!, _colorFn!, props.scale);
+            _shape = createShape(vtpData, _mesh!, _colorFn!, props);
         }
 
         _vtpData = vtpData;
