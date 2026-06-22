@@ -4,6 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Aliaksei Chareshneu <chareshneu.tech@gmail.com>
+ * @author Marek Eibel <108737044+kerrambit@users.noreply.github.com>
  */
 
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
