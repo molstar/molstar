@@ -10,7 +10,7 @@ import { inflate } from '../../../mol-util/zip/zip';
 import { VtpFile, VtpDataArrayDescriptor, VtpScalarArray } from './schema';
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../common/text/number-parser';
 import { StringLike } from '../../common/string-like';
-import { decodeB64Bytes, decodeB64Str, decodeTyped, decodePositions, decodeConnectivity } from '../common/decode';
+import { decodeB64Bytes, decodeB64Str } from '../common/decode';
 import { TypedArray } from '../../../mol-util/type-helpers';
 
 // --- Locate AppendedData section ---
@@ -20,6 +20,63 @@ interface AppendedInfo {
     /** Byte position of '_' + 1 in the original Uint8Array */
     rawByteStart: number;
     rawData: Uint8Array;
+}
+
+
+// --- Typed-array decoders ---
+
+function decodeFloat32(raw: Uint8Array, count: number): Float32Array {
+    if (raw.byteOffset % 4 === 0) return new Float32Array(raw.buffer, raw.byteOffset, count);
+    const aligned = raw.slice(0, count * 4);
+    return new Float32Array(aligned.buffer, 0, count);
+}
+
+function decodeInt64AsInt32(raw: Uint8Array, count: number): Int32Array {
+    const dv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
+    const out = new Int32Array(count);
+    for (let i = 0; i < count; i++) out[i] = dv.getUint32(i * 8, true);
+    return out;
+}
+
+function decodeTyped(raw: Uint8Array, type: string, count: number): TypedArray {
+    const dv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
+    switch (type) {
+        case 'Float32': return decodeFloat32(raw, count);
+        case 'Float64': { const out = new Float64Array(count); for (let i = 0; i < count; i++) out[i] = dv.getFloat64(i * 8, true); return out; }
+        case 'Int8': { const out = new Int8Array(count); for (let i = 0; i < count; i++) out[i] = dv.getInt8(i); return out; }
+        case 'UInt8': { const out = new Uint8Array(count); for (let i = 0; i < count; i++) out[i] = dv.getUint8(i); return out; }
+        case 'Int16': { const out = new Int16Array(count); for (let i = 0; i < count; i++) out[i] = dv.getInt16(i * 2, true); return out; }
+        case 'UInt16': { const out = new Uint16Array(count); for (let i = 0; i < count; i++) out[i] = dv.getUint16(i * 2, true); return out; }
+        case 'Int32': { const out = new Int32Array(count); for (let i = 0; i < count; i++) out[i] = dv.getInt32(i * 4, true); return out; }
+        case 'UInt32': { const out = new Uint32Array(count); for (let i = 0; i < count; i++) out[i] = dv.getUint32(i * 4, true); return out; }
+        case 'Int64': case 'UInt64': {
+            const out = new Float64Array(count);
+            for (let i = 0; i < count; i++) {
+                const lo = dv.getUint32(i * 8, true);
+                const hi = dv.getInt32(i * 8 + 4, true);
+                out[i] = hi * 0x100000000 + lo;
+            }
+            return out;
+        }
+        default: throw new Error(`Unsupported scalar type: "${type}".`);
+    }
+}
+
+function decodePositions(raw: Uint8Array, type: string, count: number): Float32Array {
+    if (type === 'Float32') return decodeFloat32(raw, count);
+    return new Float32Array(decodeTyped(raw, type, count));
+}
+
+function decodeConnectivity(raw: Uint8Array, type: string): Int32Array {
+    if (type === 'Int64' || type === 'UInt64') {
+        return decodeInt64AsInt32(raw, raw.byteLength / 8);
+    }
+    if (type === 'Int32' || type === 'UInt32') {
+        if (raw.byteOffset % 4 === 0) return new Int32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4);
+        const aligned = raw.slice();
+        return new Int32Array(aligned.buffer, 0, aligned.byteLength / 4);
+    }
+    throw new Error(`Unsupported connectivity type: "${type}". Expected Int32, UInt32, Int64, or UInt64.`);
 }
 
 function findBytesPosition(data: Uint8Array, tag: string, from = 0): number {
@@ -60,8 +117,10 @@ function isWS(c: number): boolean {
     return c === 32 || c === 9 || c === 10 || c === 13;
 }
 
-// Find '<tagName' followed by whitespace, '>', or '/' starting from `from`.
-// The char-after guard prevents 'Points' from matching '<PointData>'.
+/*
+Find '<tagName' followed by whitespace, '>', or '/' starting from `from`.
+The char-after guard prevents 'Points' from matching '<PointData>'.
+*/
 function findTagStart(src: string, tagName: string, from: number): number {
     const needle = '<' + tagName;
     const nl = needle.length;
@@ -76,8 +135,10 @@ function findTagStart(src: string, tagName: string, from: number): number {
     return -1;
 }
 
-// Parse attribute name="value" pairs from the body of an opening tag (the part after
-// the tag name).  Returns attrs and the position of the closing '>' or '/'.
+/*
+Parse attribute name="value" pairs from the body of an opening tag (the part after
+the tag name).  Returns attrs and the position of the closing '>' or '/'.
+*/
 function readAttrs(src: string, pos: number): { attrs: Map<string, string>, tagEnd: number } {
     const attrs = new Map<string, string>();
     const len = src.length;
@@ -205,17 +266,18 @@ function parseHeader(header: string): ParsedHeader {
     };
 }
 
-// --- Base64 helpers for VTK appended format ---
-//
-// VTK base64 appended: each DataArray's binary block is split into two base64-encoded chunks:
-//   1. The compressed-block header  (nblocks, blockSize, lastSize, compSize[i])
-//   2. All compressed blocks concatenated
-// The DataArray XML `offset` attribute is a byte offset in the base64 ASCII stream after '_'.
-// Since base64 is ASCII (1 char == 1 byte), the character offset equals the byte offset.
+/*
+ --- Base64 helpers for VTK appended format ---
 
-// --- Zlib block decompression (base64 paths) ---
-// Two variants: bytes (appended — no string) and str (inline — avoids atob).
+VTK base64 appended: each DataArray's binary block is split into two base64-encoded chunks:
+   1. The compressed-block header  (nblocks, blockSize, lastSize, compSize[i])
+   2. All compressed blocks concatenated
+The DataArray XML `offset` attribute is a byte offset in the base64 ASCII stream after '_'.
+Since base64 is ASCII (1 char == 1 byte), the character offset equals the byte offset.
 
+--- Zlib block decompression (base64 paths) ---
+Two variants: bytes (appended — no string) and str (inline — avoids atob).
+*/
 async function decompressVtkBlockB64Bytes(
     ctx: RuntimeContext,
     rawData: Uint8Array,
@@ -384,10 +446,11 @@ async function decompressBlock(
 }
 
 
-// --- ASCII format helpers ---
-// Scan-based tokenizer: avoids the intermediate array that split() would create.
-// Each token is sliced only when parseFloat/parseInt is called; no other copies.
-
+/*
+ --- ASCII format helpers ---
+Scan-based tokenizer: avoids the intermediate array that split() would create.
+Each token is sliced only when parseFloat/parseInt is called; no other copies.
+*/
 function parseAsciiNumbers(text: StringLike, out: Float32Array | Float64Array | Int32Array, count: number, asInt: boolean): void {
     let pos = 0, n = 0;
     const len = text.length;
@@ -433,10 +496,11 @@ function parseAsciiIntsAll(text: StringLike): Int32Array {
     return out;
 }
 
-// --- Fan-triangulate connectivity from VTP Polys offsets ---
-// offsets[i] = cumulative vertex count through cell i; cell i uses
-// rawConn[offsets[i-1]..offsets[i]-1] (with offsets[-1] = 0).
-
+/*
+--- Fan-triangulate connectivity from VTP Polys offsets ---
+offsets[i] = cumulative vertex count through cell i; cell i uses
+rawConn[offsets[i-1]..offsets[i]-1] (with offsets[-1] = 0).
+*/
 function buildTriangles(
     rawConn: Int32Array, offsets: Int32Array, nCells: number
 ): { connectivity: Int32Array; triangleCellIndex: Int32Array } {
