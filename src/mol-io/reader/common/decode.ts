@@ -5,7 +5,6 @@
  */
 
 import { StringLike } from '../../common/string-like';
-import { TypedArray } from '../../../mol-util/type-helpers';
 
 // --- Base64 ---
 

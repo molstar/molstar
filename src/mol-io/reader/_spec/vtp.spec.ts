@@ -4,11 +4,11 @@
  * @author Ludovic Autin <autin@scripps.edu>
  */
 
-import { parseVtp } from '../parser';
+import { parseVtp } from '../vtp/parser';
 
-// Builds a minimal uncompressed raw-appended VTP in memory.
-// Layout: positions at offset 0, connectivity at offset 40, offsets at offset 56.
-// Each block: [UInt32 nbytes LE][raw data bytes].
+/* Builds a minimal uncompressed raw-appended VTP in memory.
+ * Layout: positions at offset 0, connectivity at offset 40, offsets at offset 56.
+ * Each block: [UInt32 nbytes LE][raw data bytes]. */
 function makeTriangleVtp(): Uint8Array {
     const header =
         '<?xml version="1.0"?>\n' +
@@ -68,8 +68,8 @@ function makeQuadVtp(): Uint8Array {
 
 // Builds a VTP with one triangle and one CellData Float32 scalar.
 function makeCellDataVtp(): Uint8Array {
-    // Layout: positions offset=0 (block=40), connectivity offset=40 (block=16),
-    //         offsets offset=56 (block=8), curvature offset=64 (block=8)
+    /* Layout: positions offset=0 (block=40), connectivity offset=40 (block=16),
+     *          offsets offset=56 (block=8), curvature offset=64 (block=8) */
     const header =
         '<?xml version="1.0"?>\n' +
         '<VTKFile type="PolyData" version="0.1" byte_order="LittleEndian" header_type="UInt32">\n' +
@@ -98,16 +98,16 @@ function makeCellDataVtp(): Uint8Array {
     return buildRawAppended(header, footer, [pos, conn, offs, curv]);
 }
 
-// Builds a VTP with 2 quads and per-cell CellData to exercise triangleCellIndex
-// for non-triangle polygons.  Each quad fans into 2 triangles, so 4 triangles total.
-// Cell 0 → triangles 0,1; cell 1 → triangles 2,3.
+/* Builds a VTP with 2 quads and per-cell CellData to exercise triangleCellIndex
+ * for non-triangle polygons. Each quad fans into 2 triangles, so 4 triangles total.
+ * Cell 0 → triangles 0,1; cell 1 → triangles 2,3. */
 function makeQuadCellDataVtp(): Uint8Array {
-    // 6 unique points laid out as two quads sharing an edge:
-    //   quad0: v0(0,0,0) v1(1,0,0) v2(1,1,0) v3(0,1,0)
-    //   quad1: v4(2,0,0) v5(2,1,0); reuses v1,v2
-    // connectivity: [0,1,2,3] [1,4,5,2]  offsets: [4, 8]
-    // Layout: positions offset=0 (block=4+72=76), connectivity offset=76 (block=4+32=36),
-    //         offsets offset=112 (block=4+8=12), cellval offset=124 (block=4+8=12)
+    /* 6 unique points laid out as two quads sharing an edge:
+     *   quad0: v0(0,0,0) v1(1,0,0) v2(1,1,0) v3(0,1,0)
+     *   quad1: v4(2,0,0) v5(2,1,0); reuses v1,v2
+     * connectivity: [0,1,2,3] [1,4,5,2]  offsets: [4, 8]
+     * Layout: positions offset=0 (block=4+72=76), connectivity offset=76 (block=4+32=36),
+     *         offsets offset=112 (block=4+8=12), cellval offset=124 (block=4+8=12) */
     const header =
         '<?xml version="1.0"?>\n' +
         '<VTKFile type="PolyData" version="0.1" byte_order="LittleEndian" header_type="UInt32">\n' +
