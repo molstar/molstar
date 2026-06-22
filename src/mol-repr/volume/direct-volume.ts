@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
+import { Vec2, Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { Box3D } from '../../mol-math/geometry';
 import { Grid, Volume } from '../../mol-model/volume';
 import { RuntimeContext } from '../../mol-task';
@@ -158,6 +158,8 @@ export type DirectVolumeParams = typeof DirectVolumeParams
 export function getDirectVolumeParams(ctx: ThemeRegistryContext, volume: Volume) {
     const params = PD.clone(DirectVolumeParams);
     params.controlPoints.getVolume = () => volume;
+    params.controlPoints.defaultValue = computeRampControlPoints(volume);
+    params.controlPoints.getPresets = () => buildPresets(volume);
     return params;
 }
 export type DirectVolumeProps = PD.Values<DirectVolumeParams>
@@ -195,3 +197,312 @@ export const DirectVolumeRepresentationProvider = VolumeRepresentationProvider({
     locationKinds: ['position-location', 'direct-location'],
     isApplicable: (volume: Volume) => !Volume.isEmpty(volume) && !Volume.Segmentation.get(volume)
 });
+
+//
+
+const PeakAlpha = 0.05;
+const PeakRamp = 0.005;
+const MinPeakX = 0.05;
+const MaxPeakX = 0.95;
+
+/**
+ * Compute data-aware default control points from the volume's histogram.
+ *
+ * Strategy:
+ *   - signed volumes (min < 0): symmetric ramps on both sides of 0
+ *     (−3σ → −σ on the negative side, +σ → +3σ on the positive side).
+ *   - unsigned volumes: a smooth ramp from μ → μ+σ → min(p99, μ+3σ)
+ *
+ * Robust stats are computed from the cached histogram with the bin
+ * containing 0 excluded (typical for masked/padded density maps).
+ */
+function computeRampControlPoints(volume: Volume): Vec2[] {
+    const { grid } = volume;
+    const { min, max } = grid.stats;
+    const range = max - min;
+    if (range <= 0 || !isFinite(range)) {
+        return fallbackControlPoints();
+    }
+
+    const robust = Grid.getRobustStats(grid, { ignoreZero: true });
+    const { mean, sigma, p99 } = robust;
+    if (!isFinite(sigma) || sigma <= 0 || robust.count === 0) {
+        return fallbackControlPoints();
+    }
+
+    const toX = (v: number) => clamp((v - min) / range, 0.001, 0.999);
+
+    if (min < 0) {
+        // Signed volume: mirrored ramps around 0.
+        const points: Vec2[] = [];
+        const negOuter = toX(Math.min(mean - 3 * sigma, -sigma));
+        const negInner = toX(-sigma);
+        const zero = toX(0);
+        const posInner = toX(sigma);
+        const posOuter = toX(Math.max(mean + 3 * sigma, sigma));
+        const xs = [negOuter, negInner, zero, posInner, posOuter].sort((a, b) => a - b);
+        // Negative ramp: alpha PeakAlpha at outer, falls to 0 at zero.
+        points.push(Vec2.create(xs[0], PeakAlpha));
+        points.push(Vec2.create(xs[1], PeakAlpha * 0.5));
+        points.push(Vec2.create(xs[2], 0));
+        // Positive ramp: 0 at zero, rises to PeakAlpha at outer.
+        points.push(Vec2.create(xs[3], PeakAlpha * 0.5));
+        points.push(Vec2.create(xs[4], PeakAlpha));
+        return points;
+    }
+
+    // Unsigned: ramp from μ up to ~p99 (capped at μ+3σ).
+    const xStart = toX(mean);
+    const xMid = toX(mean + sigma);
+    const xEnd = toX(Math.min(mean + 3 * sigma, p99));
+    const ramp = buildRampPoints(xStart, xMid, xEnd, PeakAlpha);
+
+    return ramp;
+}
+
+/**
+ * Build a ramp described by three monotonic x positions:
+ *   xStart -> alpha 0
+ *   xMid   -> alpha maxAlpha/2
+ *   xEnd   -> alpha maxAlpha (then plateau briefly and close to 0)
+ */
+function buildRampPoints(xStart: number, xMid: number, xEnd: number, maxAlpha: number): Vec2[] {
+    const eps = 0.002;
+    const a = clamp(xStart, 0.001, 0.997);
+    let b = clamp(xMid, a + eps, 0.998);
+    let c = clamp(xEnd, b + eps, 0.999);
+    // Avoid collapsed ramps when sigma is tiny relative to range.
+    if (c - a < 3 * eps) {
+        b = a + eps;
+        c = a + 2 * eps;
+    }
+    const points: Vec2[] = [];
+    points.push(Vec2.create(a, 0));
+    points.push(Vec2.create(b, maxAlpha * 0.5));
+    points.push(Vec2.create(c, maxAlpha));
+    // Plateau plus close so the upper end of the volume range stays opaque
+    // until very near the top of the data range.
+    const dEnd = clamp(c + eps, c + 0.0001, 0.9995);
+    points.push(Vec2.create(dEnd, maxAlpha));
+    return points;
+}
+
+function fallbackControlPoints(): Vec2[] {
+    return [
+        Vec2.create(0.19, 0.0), Vec2.create(0.2, PeakAlpha), Vec2.create(0.25, PeakAlpha), Vec2.create(0.26, 0.0),
+        Vec2.create(0.79, 0.0), Vec2.create(0.8, PeakAlpha), Vec2.create(0.85, PeakAlpha), Vec2.create(0.86, 0.0),
+    ];
+}
+
+/**
+ * Build a single narrow peak (iso-surface-like) at `mean + sigmaOffset*sigma`.
+ * `halfWidth` is in normalized [0,1] x-space; `alpha` is the peak height.
+ */
+function buildSinglePeak(volume: Volume, sigmaOffset: number, halfWidth: number, alpha: number): Vec2[] {
+    const { min, max } = volume.grid.stats;
+    const range = max - min;
+    if (range <= 0 || !isFinite(range)) {
+        return fallbackControlPoints();
+    }
+    const robust = Grid.getRobustStats(volume.grid, { ignoreZero: true });
+    const { mean, sigma } = robust;
+    if (!isFinite(sigma) || sigma <= 0 || robust.count === 0) {
+        return fallbackControlPoints();
+    }
+    const cx = clamp((mean + sigmaOffset * sigma - min) / range, MinPeakX, MaxPeakX);
+    const dx = clamp(halfWidth, PeakRamp + 0.001, 0.2);
+    const x0 = clamp(cx - dx, 0.001, 0.999);
+    const x1 = clamp(cx - dx + PeakRamp, 0.001, 0.999);
+    const x2 = clamp(cx + dx - PeakRamp, 0.001, 0.999);
+    const x3 = clamp(cx + dx, 0.001, 0.999);
+    if (!(x0 < x1 && x1 < x2 && x2 < x3)) return fallbackControlPoints();
+    return [
+        Vec2.create(x0, 0),
+        Vec2.create(x1, alpha),
+        Vec2.create(x2, alpha),
+        Vec2.create(x3, 0),
+    ];
+}
+
+/** Sharp iso-surface-like peak around mean+2σ. */
+function computeSharpSurfaceControlPoints(volume: Volume): Vec2[] {
+    return buildSinglePeak(volume, 2, 0.012, PeakAlpha);
+}
+
+/** Narrow high-contour peak at mean+3σ with stronger alpha. */
+function computeHighContourControlPoints(volume: Volume): Vec2[] {
+    return buildSinglePeak(volume, 3, 0.015, 0.08);
+}
+
+/**
+ * Wide soft ramp starting at the mean, plateauing around mean+σ; reveals
+ * weak density (low-resolution maps, partial occupancy).
+ */
+function computeLowContourControlPoints(volume: Volume): Vec2[] {
+    const { grid } = volume;
+    const { min, max } = grid.stats;
+    const range = max - min;
+    if (range <= 0 || !isFinite(range)) {
+        return fallbackControlPoints();
+    }
+    const robust = Grid.getRobustStats(grid, { ignoreZero: true });
+    const { mean, sigma } = robust;
+    if (!isFinite(sigma) || sigma <= 0 || robust.count === 0) {
+        return fallbackControlPoints();
+    }
+    const toX = (v: number) => clamp((v - min) / range, 0.001, 0.999);
+    const xStart = toX(mean - 0.5 * sigma);
+    const xMid = toX(mean + 0.5 * sigma);
+    const xEnd = toX(mean + 1.5 * sigma);
+    return buildRampPoints(xStart, xMid, xEnd, PeakAlpha);
+}
+
+/**
+ * Tomogram-style preset: emphasizes low values (typical of cryo-ET where
+ * matter is darker than background prior to inversion). Builds a ramp
+ * descending from p1 → mean−σ.
+ */
+function computeTomogramControlPoints(volume: Volume): Vec2[] {
+    const { grid } = volume;
+    const { min, max } = grid.stats;
+    const range = max - min;
+    if (range <= 0 || !isFinite(range)) return fallbackControlPoints();
+
+    const robust = Grid.getRobustStats(grid, { ignoreZero: true });
+    const { mean, sigma, p1 } = robust;
+    if (!isFinite(sigma) || sigma <= 0 || robust.count === 0) return fallbackControlPoints();
+
+    const toX = (v: number) => clamp((v - min) / range, 0.001, 0.999);
+    // Mirror of the unsigned ramp, descending from low values.
+    const xStart = toX(Math.max(mean - 3 * sigma, p1));
+    const xMid = toX(mean - sigma);
+    const xEnd = toX(mean);
+    const a = clamp(xStart, 0.001, 0.997);
+    const b = clamp(xMid, a + 0.002, 0.998);
+    const c = clamp(xEnd, b + 0.002, 0.999);
+    return [
+        Vec2.create(a, PeakAlpha),
+        Vec2.create(b, PeakAlpha * 0.5),
+        Vec2.create(c, 0),
+    ];
+}
+
+/**
+ * Symmetric narrow peaks at ±3σ for signed difference maps (Fo−Fc, mFo−DFc).
+ * Falls back to the default control points when the volume is unsigned.
+ */
+function computeDifferenceMapControlPoints(volume: Volume): Vec2[] {
+    const { grid } = volume;
+    const { min, max } = grid.stats;
+    const range = max - min;
+    if (range <= 0 || !isFinite(range) || min >= 0) {
+        return fallbackControlPoints();
+    }
+    const robust = Grid.getRobustStats(grid, { ignoreZero: true });
+    const { mean, sigma } = robust;
+    if (!isFinite(sigma) || sigma <= 0 || robust.count === 0) {
+        return fallbackControlPoints();
+    }
+    const toX = (v: number) => clamp((v - min) / range, MinPeakX, MaxPeakX);
+    const xs = [toX(mean - 3 * sigma), toX(mean + 3 * sigma)];
+    xs.sort((a, b) => a - b);
+
+    const points: Vec2[] = [];
+    let dx = 0.012;
+    if (xs[1] - xs[0] < 2 * (dx + PeakRamp)) {
+        dx = Math.max(PeakRamp + 0.001, (xs[1] - xs[0]) / 2 - PeakRamp);
+    }
+    for (const cx of xs) {
+        const x = clamp(cx, MinPeakX, MaxPeakX);
+        const x0 = clamp(x - dx, 0.001, 0.999);
+        const x1 = clamp(x - dx + PeakRamp, 0.001, 0.999);
+        const x2 = clamp(x + dx - PeakRamp, 0.001, 0.999);
+        const x3 = clamp(x + dx, 0.001, 0.999);
+        points.push(Vec2.create(x0, 0));
+        points.push(Vec2.create(x1, PeakAlpha));
+        points.push(Vec2.create(x2, PeakAlpha));
+        points.push(Vec2.create(x3, 0));
+    }
+    return points;
+}
+
+/**
+ * Linear ramp from p1 → p99 with monotonically increasing alpha. Suited for
+ * data normalized to [0,1] like occupancy or probability/mask volumes.
+ */
+function computeOccupancyControlPoints(volume: Volume): Vec2[] {
+    const { grid } = volume;
+    const { min, max } = grid.stats;
+    const range = max - min;
+    if (range <= 0 || !isFinite(range)) return fallbackControlPoints();
+
+    const robust = Grid.getRobustStats(grid, { ignoreZero: true });
+    const { p1, p99 } = robust;
+    if (!isFinite(p99 - p1) || p99 <= p1) return fallbackControlPoints();
+
+    const toX = (v: number) => clamp((v - min) / range, 0.001, 0.999);
+    const a = toX(p1);
+    const c = toX(p99);
+    const b = clamp((a + c) * 0.5, a + 0.002, c - 0.002);
+    const points: Vec2[] = [
+        Vec2.create(a, 0),
+        Vec2.create(b, PeakAlpha * 0.5),
+        Vec2.create(c, PeakAlpha),
+    ];
+    // Hold alpha near the top of the range so the most-occupied voxels stay
+    // visible instead of fading out above p99.
+    if (c < 0.997) points.push(Vec2.create(0.999, PeakAlpha));
+    return points;
+}
+
+/**
+ * Soft, low-alpha ramp covering [μ, p99] for cloudy/accumulation-style
+ * rendering (MO densities, mesoscale fields).
+ */
+function computeWideVolumetricControlPoints(volume: Volume): Vec2[] {
+    const { grid } = volume;
+    const { min, max } = grid.stats;
+    const range = max - min;
+    if (range <= 0 || !isFinite(range)) return fallbackControlPoints();
+
+    const robust = Grid.getRobustStats(grid, { ignoreZero: true });
+    const { mean, sigma, p99 } = robust;
+    if (!isFinite(sigma) || sigma <= 0) return fallbackControlPoints();
+
+    const toX = (v: number) => clamp((v - min) / range, 0.001, 0.999);
+    const xStart = toX(Math.max(mean - sigma, min));
+    const xMid = toX(mean + sigma);
+    const xEnd = toX(p99);
+    return buildRampPoints(xStart, xMid, xEnd, 0.02);
+}
+
+/**
+ * Build the list of presets exposed via the LineGraph control. Presets that
+ * don't apply to the current volume (e.g. difference-map preset on an
+ * unsigned volume) are filtered out rather than producing degenerate ramps.
+ */
+function buildPresets(volume: Volume): [Vec2[], string][] {
+    const { min, max } = volume.grid.stats;
+    const isSigned = min < 0;
+    const presets: [Vec2[], string][] = [
+        [computeRampControlPoints(volume), 'Ramp (auto)'],
+        [computeSharpSurfaceControlPoints(volume), 'Sharp surface (~+2σ)'],
+        [computeHighContourControlPoints(volume), 'High contour (~+3σ)'],
+        [computeLowContourControlPoints(volume), 'Low contour (~+1σ)'],
+    ];
+    // Tomogram preset: include when the data has meaningful negative spread
+    // (signed maps, or unsigned but strongly left-skewed).
+    if (isSigned || (isFinite(max - min) && volume.grid.stats.mean - min > max - volume.grid.stats.mean)) {
+        presets.push([computeTomogramControlPoints(volume), 'Tomogram (inverted)']);
+    }
+    if (isSigned) {
+        presets.push([computeDifferenceMapControlPoints(volume), 'Difference map (±3σ)']);
+    }
+    presets.push([computeOccupancyControlPoints(volume), 'Occupancy / probability']);
+    presets.push([computeWideVolumetricControlPoints(volume), 'Wide volumetric']);
+    return presets;
+}
+
+function clamp(v: number, lo: number, hi: number) {
+    return v < lo ? lo : v > hi ? hi : v;
+}

@@ -168,7 +168,7 @@ export namespace DirectVolume {
         controlPoints: PD.LineGraph([
             Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
             Vec2.create(0.79, 0.0), Vec2.create(0.8, 0.05), Vec2.create(0.85, 0.05), Vec2.create(0.86, 0.0),
-        ], { isEssential: true }),
+        ], { isEssential: true, yAxis: { scale: 'log' } }),
         stepsPerCell: PD.Numeric(3, { min: 1, max: 10, step: 1 }),
         jumpLength: PD.Numeric(0, { min: 0, max: 20, step: 0.1 }),
     };
