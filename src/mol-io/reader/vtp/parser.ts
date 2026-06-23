@@ -117,10 +117,10 @@ function isWS(c: number): boolean {
     return c === 32 || c === 9 || c === 10 || c === 13;
 }
 
-/*
-Find '<tagName' followed by whitespace, '>', or '/' starting from `from`.
-The char-after guard prevents 'Points' from matching '<PointData>'.
-*/
+/**
+ * Find '<tagName' followed by whitespace, '>', or '/' starting from `from`.
+ * The char-after guard prevents 'Points' from matching '<PointData>'.
+ */
 function findTagStart(src: string, tagName: string, from: number): number {
     const needle = '<' + tagName;
     const nl = needle.length;
@@ -135,10 +135,10 @@ function findTagStart(src: string, tagName: string, from: number): number {
     return -1;
 }
 
-/*
-Parse attribute name="value" pairs from the body of an opening tag (the part after
-the tag name).  Returns attrs and the position of the closing '>' or '/'.
-*/
+/**
+ * Parse attribute name="value" pairs from the body of an opening tag (the part after
+ * the tag name).  Returns attrs and the position of the closing '>' or '/'.
+ */
 function readAttrs(src: string, pos: number): { attrs: Map<string, string>, tagEnd: number } {
     const attrs = new Map<string, string>();
     const len = src.length;
@@ -266,18 +266,18 @@ function parseHeader(header: string): ParsedHeader {
     };
 }
 
-/*
- --- Base64 helpers for VTK appended format ---
-
-VTK base64 appended: each DataArray's binary block is split into two base64-encoded chunks:
-   1. The compressed-block header  (nblocks, blockSize, lastSize, compSize[i])
-   2. All compressed blocks concatenated
-The DataArray XML `offset` attribute is a byte offset in the base64 ASCII stream after '_'.
-Since base64 is ASCII (1 char == 1 byte), the character offset equals the byte offset.
-
---- Zlib block decompression (base64 paths) ---
-Two variants: bytes (appended — no string) and str (inline — avoids atob).
-*/
+/**
+ * --- Base64 helpers for VTK appended format ---
+ *
+ * VTK base64 appended: each DataArray's binary block is split into two base64-encoded chunks:
+ *    1. The compressed-block header  (nblocks, blockSize, lastSize, compSize[i])
+ *    2. All compressed blocks concatenated
+ * The DataArray XML `offset` attribute is a byte offset in the base64 ASCII stream after '_'.
+ * Since base64 is ASCII (1 char == 1 byte), the character offset equals the byte offset.
+ *
+ * --- Zlib block decompression (base64 paths) ---
+ * Two variants: bytes (appended — no string) and str (inline — avoids atob).
+ */
 async function decompressVtkBlockB64Bytes(
     ctx: RuntimeContext,
     rawData: Uint8Array,
@@ -446,11 +446,11 @@ async function decompressBlock(
 }
 
 
-/*
- --- ASCII format helpers ---
-Scan-based tokenizer: avoids the intermediate array that split() would create.
-Each token is sliced only when parseFloat/parseInt is called; no other copies.
-*/
+/**
+ * --- ASCII format helpers ---
+ * Scan-based tokenizer: avoids the intermediate array that split() would create.
+ * Each token is sliced only when parseFloat/parseInt is called; no other copies.
+ */
 function parseAsciiNumbers(text: StringLike, out: Float32Array | Float64Array | Int32Array, count: number, asInt: boolean): void {
     let pos = 0, n = 0;
     const len = text.length;
@@ -496,11 +496,11 @@ function parseAsciiIntsAll(text: StringLike): Int32Array {
     return out;
 }
 
-/*
---- Fan-triangulate connectivity from VTP Polys offsets ---
-offsets[i] = cumulative vertex count through cell i; cell i uses
-rawConn[offsets[i-1]..offsets[i]-1] (with offsets[-1] = 0).
-*/
+/**
+ * Fan-triangulate connectivity from VTP Polys offsets.
+ * offsets[i] = cumulative vertex count through cell i; cell i uses
+ * rawConn[offsets[i-1]..offsets[i]-1] (with offsets[-1] = 0).
+ */
 function buildTriangles(
     rawConn: Int32Array, offsets: Int32Array, nCells: number
 ): { connectivity: Int32Array; triangleCellIndex: Int32Array } {

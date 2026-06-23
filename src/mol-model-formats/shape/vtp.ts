@@ -209,11 +209,11 @@ function cellToVertexAverage(vtpFile: VtpFile, cellValues: TypedArray): Float64A
     return smoothed;
 }
 
-/*
-Average multi-component cell vectors to vertices, then return the magnitude of each vertex vector.
-Matching smgui _cell_to_vertex_interpolation_vector: averaging direction vectors, not their magnitudes,
-so that crease/boundary vertices (where adjacent face normals cancel) get low magnitude values.
-*/
+/**
+ * Average multi-component cell vectors to vertices, then return the magnitude of each vertex vector.
+ * Matching smgui _cell_to_vertex_interpolation_vector: averaging direction vectors, not their magnitudes,
+ * so that crease/boundary vertices (where adjacent face normals cancel) get low magnitude values.
+ */
 function cellToVertexAverageMag(vtpFile: VtpFile, cellVectors: TypedArray, nComp: number): Float64Array {
     const { connectivity, triangleCellIndex, numberOfPoints } = vtpFile;
     const nTris = connectivity.length / 3;
@@ -257,15 +257,15 @@ interface VertexResult {
     isMagnitude: boolean; // true for multi-component (magnitude) attributes
 }
 
-/*
- Compute per-vertex scalar values from a VTP attribute, matching smgui exactly:
-   - CellData scalar: average cell scalars to vertices
-   - CellData multi-component: average raw vectors to vertices first, then compute magnitude
-     (matches smgui _cell_to_vertex_interpolation_vector → norm; crease vertices cancel → low magnitude)
-   - PointData scalar: use values directly
-   - PointData multi-component: compute per-vertex magnitude directly
-Returns null for unknown or missing attributes.
-*/
+/**
+ * Compute per-vertex scalar values from a VTP attribute, matching smgui exactly:
+ *   - CellData scalar: average cell scalars to vertices
+ *   - CellData multi-component: average raw vectors to vertices first, then compute magnitude
+ *     (matches smgui _cell_to_vertex_interpolation_vector → norm; crease vertices cancel → low magnitude)
+ *   - PointData scalar: use values directly
+ *   - PointData multi-component: compute per-vertex magnitude directly
+ * Returns null for unknown or missing attributes.
+ */
 function computeVertexValues(vtpFile: VtpFile, attribute: string): VertexResult | null {
     if (!attribute) return null;
 
@@ -295,11 +295,11 @@ function computeVertexValues(vtpFile: VtpFile, attribute: string): VertexResult 
     return null;
 }
 
-/*
-Build a color function from pre-computed per-vertex scalar values.
-Auto domain matches smgui [min, max]. For magnitude attributes where all values are
-nearly identical (e.g. PointData unit normals, range < 1% of max), fall back to [0, max].
-*/
+/**
+ * Build a color function from pre-computed per-vertex scalar values.
+ * Auto domain matches smgui [min, max]. For magnitude attributes where all values are
+ * nearly identical (e.g. PointData unit normals, range < 1% of max), fall back to [0, max].
+ */
 function makeColorFn(vtpFile: VtpFile, colorTheme: PD.Values<VtpShapeParams>['colorTheme'], result: VertexResult | null): (gid: number) => Color {
     if (colorTheme.name === 'uniform') return () => colorTheme.params.color;
     if (!result) return () => ColorNames.grey;
