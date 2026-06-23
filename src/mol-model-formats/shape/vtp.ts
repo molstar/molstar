@@ -19,7 +19,6 @@ import { ColorListOptionsScale, ColorListName } from '../../mol-util/color/lists
 import { ValueCell } from '../../mol-util/value-cell';
 import { deepClone } from '../../mol-util/object';
 import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
-import { TypedArray } from '../../mol-util/type-helpers';
 
 export interface VtpData {
     source: VtpFile,
@@ -39,19 +38,19 @@ function fmtStat(x: number): string {
 }
 
 function computeAttrStatsText(vtpFile: VtpFile, attrKey: string): string {
-    let rawVals: TypedArray | undefined;
+    let rawVals: ArrayLike<number> | undefined;
     let nComp = 1;
     let name = '';
     if (attrKey.startsWith('point:')) {
         name = attrKey.slice(6);
         const arr = vtpFile.pointData.get(name);
         if (!arr) return '';
-        rawVals = arr.values; nComp = arr.desc.numberOfComponents;
+        rawVals = arr.values.toArray(); nComp = arr.numberOfComponents;
     } else if (attrKey.startsWith('cell:')) {
         name = attrKey.slice(5);
         const arr = vtpFile.cellData.get(name);
         if (!arr) return '';
-        rawVals = arr.values; nComp = arr.desc.numberOfComponents;
+        rawVals = arr.values.toArray(); nComp = arr.numberOfComponents;
     }
     if (!rawVals) return '';
     const n = rawVals.length / nComp;
@@ -79,11 +78,11 @@ function buildAttrOptions(vtpFile?: VtpFile): PD.SelectOption<string>[] {
     if (!vtpFile) return [['', 'No attributes']];
     const opts: PD.SelectOption<string>[] = [];
     for (const [name, arr] of vtpFile.pointData) {
-        const nComp = arr.desc.numberOfComponents;
+        const nComp = arr.numberOfComponents;
         opts.push([`point:${name}`, nComp > 1 ? `Point: ${name} (mag)` : `Point: ${name}`]);
     }
     for (const [name, arr] of vtpFile.cellData) {
-        const nComp = arr.desc.numberOfComponents;
+        const nComp = arr.numberOfComponents;
         opts.push([`cell:${name}`, nComp > 1 ? `Cell: ${name} (mag)` : `Cell: ${name}`]);
     }
     return opts.length > 0 ? opts : [['', 'No attributes']];
@@ -93,17 +92,17 @@ function defaultAttrKey(vtpFile?: VtpFile): string {
     if (!vtpFile) return '';
     // Prefer 1-component arrays first (direct scalar mapping)
     for (const [name, arr] of vtpFile.cellData) {
-        if (arr.desc.numberOfComponents === 1) return `cell:${name}`;
+        if (arr.numberOfComponents === 1) return `cell:${name}`;
     }
     for (const [name, arr] of vtpFile.pointData) {
-        if (arr.desc.numberOfComponents === 1) return `point:${name}`;
+        if (arr.numberOfComponents === 1) return `point:${name}`;
     }
     if (vtpFile.cellData.size > 0) return `cell:${vtpFile.cellData.keys().next().value}`;
     if (vtpFile.pointData.size > 0) return `point:${vtpFile.pointData.keys().next().value}`;
     return '';
 }
 
-function scalarRange(values: TypedArray): [number, number] {
+function scalarRange(values: ArrayLike<number>): [number, number] {
     let min = Infinity, max = -Infinity;
     for (let i = 0; i < values.length; i++) {
         if (values[i] < min) min = values[i];
@@ -188,7 +187,7 @@ async function buildMesh(ctx: RuntimeContext, vtpFile: VtpFile, mesh?: Mesh): Pr
 
 // --- Color lookup ---
 
-function cellToVertexAverage(vtpFile: VtpFile, cellValues: TypedArray): Float64Array {
+function cellToVertexAverage(vtpFile: VtpFile, cellValues: ArrayLike<number>): Float64Array {
     const { connectivity, triangleCellIndex, numberOfPoints } = vtpFile;
     const nTris = connectivity.length / 3;
     const sum = new Float64Array(numberOfPoints);
@@ -214,7 +213,7 @@ function cellToVertexAverage(vtpFile: VtpFile, cellValues: TypedArray): Float64A
  * Matching smgui _cell_to_vertex_interpolation_vector: averaging direction vectors, not their magnitudes,
  * so that crease/boundary vertices (where adjacent face normals cancel) get low magnitude values.
  */
-function cellToVertexAverageMag(vtpFile: VtpFile, cellVectors: TypedArray, nComp: number): Float64Array {
+function cellToVertexAverageMag(vtpFile: VtpFile, cellVectors: ArrayLike<number>, nComp: number): Float64Array {
     const { connectivity, triangleCellIndex, numberOfPoints } = vtpFile;
     const nTris = connectivity.length / 3;
     const sum = new Float64Array(numberOfPoints * nComp);
@@ -246,14 +245,14 @@ function cellToVertexAverageMag(vtpFile: VtpFile, cellVectors: TypedArray, nComp
     return result;
 }
 
-function vecMag(values: TypedArray, baseIdx: number, nComp: number): number {
+function vecMag(values: ArrayLike<number>, baseIdx: number, nComp: number): number {
     let mag2 = 0;
     for (let c = 0; c < nComp; c++) mag2 += values[baseIdx + c] ** 2;
     return Math.sqrt(mag2);
 }
 
 interface VertexResult {
-    values: TypedArray;
+    values: ArrayLike<number>;
     isMagnitude: boolean; // true for multi-component (magnitude) attributes
 }
 
@@ -272,23 +271,25 @@ function computeVertexValues(vtpFile: VtpFile, attribute: string): VertexResult 
     if (attribute.startsWith('cell:')) {
         const arr = vtpFile.cellData.get(attribute.slice(5));
         if (!arr) return null;
-        const nComp = arr.desc.numberOfComponents;
+        const nComp = arr.numberOfComponents;
+        const vals = arr.values.toArray();
         if (nComp === 1) {
-            return { values: cellToVertexAverage(vtpFile, arr.values), isMagnitude: false };
+            return { values: cellToVertexAverage(vtpFile, vals), isMagnitude: false };
         }
         // Average vectors to vertices first, then take magnitude — crease vertices get lower values
-        return { values: cellToVertexAverageMag(vtpFile, arr.values, nComp), isMagnitude: true };
+        return { values: cellToVertexAverageMag(vtpFile, vals, nComp), isMagnitude: true };
     }
 
     if (attribute.startsWith('point:')) {
         const arr = vtpFile.pointData.get(attribute.slice(6));
         if (!arr) return null;
-        const nComp = arr.desc.numberOfComponents;
-        if (nComp === 1) return { values: arr.values, isMagnitude: false };
+        const nComp = arr.numberOfComponents;
+        const vals = arr.values.toArray();
+        if (nComp === 1) return { values: vals, isMagnitude: false };
         // multi-component point data: per-vertex magnitude
-        const nPts = arr.values.length / nComp;
+        const nPts = vals.length / nComp;
         const mag = new Float64Array(nPts);
-        for (let i = 0; i < nPts; i++) mag[i] = vecMag(arr.values, i * nComp, nComp);
+        for (let i = 0; i < nPts; i++) mag[i] = vecMag(vals, i * nComp, nComp);
         return { values: mag, isMagnitude: true };
     }
 

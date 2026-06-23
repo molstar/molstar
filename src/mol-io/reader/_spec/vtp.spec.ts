@@ -282,10 +282,10 @@ describe('VTP parser', () => {
         expect(curv).toBeDefined();
         if (!curv) return;
 
-        expect(curv.values.length).toBe(1);
-        expect(curv.values[0]).toBeCloseTo(0.5);
-        expect(curv.desc.rangeMin).toBeCloseTo(-1.0);
-        expect(curv.desc.rangeMax).toBeCloseTo(1.0);
+        expect(curv.values.rowCount).toBe(1);
+        expect(curv.values.value(0)).toBeCloseTo(0.5);
+        expect(curv.rangeMin).toBeCloseTo(-1.0);
+        expect(curv.rangeMax).toBeCloseTo(1.0);
     });
 
     it('triangleCellIndex maps quad fan-triangles to their originating cells', async () => {
@@ -310,12 +310,12 @@ describe('VTP parser', () => {
         const cellval = vtp.cellData.get('cellval');
         expect(cellval).toBeDefined();
         if (!cellval) return;
-        expect(cellval.values[0]).toBeCloseTo(0.25);
-        expect(cellval.values[1]).toBeCloseTo(0.75);
+        expect(cellval.values.value(0)).toBeCloseTo(0.25);
+        expect(cellval.values.value(1)).toBeCloseTo(0.75);
     });
 
     it('parses an ASCII-format VTP file', async () => {
-        expect.assertions(9);
+        expect.assertions(8);
         const result = await parseVtp(makeAsciiTriangleVtp()).run();
         expect(result.isError).toBe(false);
         if (result.isError) return;
@@ -330,12 +330,11 @@ describe('VTP parser', () => {
         const val = vtp.cellData.get('val');
         expect(val).toBeDefined();
         if (!val) return;
-        expect(val.values[0]).toBeCloseTo(0.5);
-        expect(val.desc.format).toBe('ascii');
+        expect(val.values.value(0)).toBeCloseTo(0.5);
     });
 
     it('stores multi-component PointData arrays', async () => {
-        expect.assertions(8);
+        expect.assertions(7);
         const result = await parseVtp(makeAsciiMultiComponentVtp()).run();
         expect(result.isError).toBe(false);
         if (result.isError) return;
@@ -345,13 +344,12 @@ describe('VTP parser', () => {
         expect(normals).toBeDefined();
         if (!normals) return;
 
-        expect(normals.desc.numberOfComponents).toBe(3);
+        expect(normals.numberOfComponents).toBe(3);
         // 3 points × 3 components = 9 values
-        expect(normals.values.length).toBe(9);
+        expect(normals.values.rowCount).toBe(9);
         // Each normal is (0,0,1) — third component of first vertex
-        expect(normals.values[0]).toBeCloseTo(0);
-        expect(normals.values[1]).toBeCloseTo(0);
-        expect(normals.values[2]).toBeCloseTo(1);
-        expect(normals.desc.format).toBe('ascii');
+        expect(normals.values.value(0)).toBeCloseTo(0);
+        expect(normals.values.value(1)).toBeCloseTo(0);
+        expect(normals.values.value(2)).toBeCloseTo(1);
     });
 });

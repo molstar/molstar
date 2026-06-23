@@ -4,35 +4,44 @@
  * @author Ludovic Autin <autin@scripps.edu>
  */
 
-export interface VtpDataArrayDescriptor {
-    readonly name: string;
-    /** VTK type string: "Float32", "Float64", "Int32", "Int64", "UInt32", etc. */
-    readonly type: string;
-    readonly numberOfComponents: number;
-    /** Encoding format of this DataArray element. */
-    readonly format: 'ascii' | 'binary' | 'appended';
-    /** Byte/char offset into the appended data section (after the `_` marker). -1 for inline/ascii. */
-    readonly offset: number;
-    readonly rangeMin: number;
-    readonly rangeMax: number;
-    /** True if RangeMin/RangeMax were explicitly present in the XML (absent in many writers). */
-    readonly hasRange: boolean;
-    /** Base64 content of the DataArray element (inline binary format only). */
-    readonly inlineBase64?: string;
-    /** Raw text content of the DataArray element (ascii format only). */
-    readonly asciiText?: string;
+/** Scalar element types supported by VTK DataArray elements. */
+export type VtkDataType =
+    | 'Float32' | 'Float64'
+    | 'Int8' | 'UInt8'
+    | 'Int16' | 'UInt16'
+    | 'Int32' | 'UInt32'
+    | 'Int64' | 'UInt64';
+
+const VtkDataTypeSet: ReadonlySet<string> = new Set<VtkDataType>([
+    'Float32', 'Float64', 'Int8', 'UInt8', 'Int16', 'UInt16', 'Int32', 'UInt32', 'Int64', 'UInt64',
+]);
+
+/** Narrow a raw VTK `type` attribute to a VtkDataType, falling back to 'Float32' if unrecognized. */
+export function toVtkDataType(type: string | undefined): VtkDataType {
+    return type !== undefined && VtkDataTypeSet.has(type) ? type as VtkDataType : 'Float32';
 }
 
-import { TypedArray } from '../../../mol-util/type-helpers';
+import { Column } from '../../../mol-data/db';
 
+/**
+ * Decoded data array surfaced to consumers. Only the metadata downstream code needs is retained;
+ * the transient parsing descriptor (raw base64/ascii source, byte offsets, encoding format) is kept
+ * private to the parser so its potentially large source strings can be garbage-collected after decode.
+ */
 export interface VtpScalarArray {
-    readonly desc: VtpDataArrayDescriptor;
+    readonly name: string;
+    readonly type: VtkDataType;
+    readonly numberOfComponents: number;
+    /** Value range as declared in the XML (RangeMin/RangeMax). undefined when the writer omitted it (many do). */
+    readonly rangeMin: number | undefined;
+    readonly rangeMax: number | undefined;
     /**
-     * Flat decoded values in the native VTK type. For scalar arrays (numberOfComponents=1) length = nElems.
-     * For multi-component arrays length = nElems * numberOfComponents.
-     * Int64/UInt64 are represented as Float64Array.
+     * Flat decoded values as a Column. For scalar arrays (numberOfComponents=1) rowCount = nElems.
+     * For multi-component arrays rowCount = nElems * numberOfComponents.
+     * Backed by a typed array for now; the Column interface lets us defer full decoding later
+     * without changing this contract. Int64/UInt64 are represented as Float64-backed values.
      */
-    readonly values: TypedArray;
+    readonly values: Column<number>;
 }
 
 export interface VtpFile {

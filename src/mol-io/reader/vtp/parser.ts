@@ -7,11 +7,50 @@
 import { ReaderResult as Result } from '../result';
 import { Task, RuntimeContext } from '../../../mol-task';
 import { inflate } from '../../../mol-util/zip/zip';
-import { VtpFile, VtpDataArrayDescriptor, VtpScalarArray } from './schema';
+import { VtpFile, VtpScalarArray, VtkDataType, toVtkDataType } from './schema';
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../common/text/number-parser';
 import { StringLike } from '../../common/string-like';
 import { decodeB64Bytes, decodeB64Str } from '../common/decode';
-import { TypedArray } from '../../../mol-util/type-helpers';
+import { TypedArray, assertUnreachable } from '../../../mol-util/type-helpers';
+import { Column } from '../../../mol-data/db';
+
+/**
+ * Parser-internal data array descriptor. Transient: holds the raw (undecoded) source and encoding
+ * details needed only during decode. Not surfaced on VtpFile so its large inlineBase64/asciiText
+ * strings can be garbage-collected after parsing.
+ */
+interface VtpDataArrayDescriptor {
+    readonly name: string;
+    readonly type: VtkDataType;
+    readonly numberOfComponents: number;
+    /** Encoding format of this DataArray element. */
+    readonly format: 'ascii' | 'binary' | 'appended';
+    /** Byte/char offset into the appended data section (after the `_` marker). -1 for inline/ascii. */
+    readonly offset: number;
+    /** Value range as declared in the XML (RangeMin/RangeMax). undefined when the writer omitted it (many do). */
+    readonly rangeMin: number | undefined;
+    readonly rangeMax: number | undefined;
+    /** Base64 content of the DataArray element (inline binary format only). */
+    readonly inlineBase64?: string;
+    /** Raw text content of the DataArray element (ascii format only). */
+    readonly asciiText?: string;
+}
+
+/**
+ * Copy the metadata consumers need into a slim VtpScalarArray, dropping the transient descriptor.
+ * Values are exposed as a float Column — they only ever drive color-scale math, which is float
+ * regardless of the source integer/float type (preserved separately in `type`).
+ */
+function toScalarArray(desc: VtpDataArrayDescriptor, values: TypedArray): VtpScalarArray {
+    return {
+        name: desc.name,
+        type: desc.type,
+        numberOfComponents: desc.numberOfComponents,
+        rangeMin: desc.rangeMin,
+        rangeMax: desc.rangeMax,
+        values: Column.ofFloatArray(values),
+    };
+}
 
 // --- Locate AppendedData section ---
 
@@ -38,7 +77,7 @@ function decodeInt64AsInt32(raw: Uint8Array, count: number): Int32Array {
     return out;
 }
 
-function decodeTyped(raw: Uint8Array, type: string, count: number): TypedArray {
+function decodeTyped(raw: Uint8Array, type: VtkDataType, count: number): TypedArray {
     const dv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
     switch (type) {
         case 'Float32': return decodeFloat32(raw, count);
@@ -58,16 +97,16 @@ function decodeTyped(raw: Uint8Array, type: string, count: number): TypedArray {
             }
             return out;
         }
-        default: throw new Error(`Unsupported scalar type: "${type}".`);
+        default: return assertUnreachable(type);
     }
 }
 
-function decodePositions(raw: Uint8Array, type: string, count: number): Float32Array {
+function decodePositions(raw: Uint8Array, type: VtkDataType, count: number): Float32Array {
     if (type === 'Float32') return decodeFloat32(raw, count);
     return new Float32Array(decodeTyped(raw, type, count));
 }
 
-function decodeConnectivity(raw: Uint8Array, type: string): Int32Array {
+function decodeConnectivity(raw: Uint8Array, type: VtkDataType): Int32Array {
     if (type === 'Int64' || type === 'UInt64') {
         return decodeInt64AsInt32(raw, raw.byteLength / 8);
     }
@@ -207,13 +246,12 @@ function parseDataArraysInSection(header: string, sectionName: string): VtpDataA
         const rangeMaxStr = attrs.get('RangeMax');
         results.push({
             name: attrs.get('Name') ?? '',
-            type: attrs.get('type') ?? 'Float32',
+            type: toVtkDataType(attrs.get('type')),
             numberOfComponents: parseInt(attrs.get('NumberOfComponents') ?? '1', 10),
             format: fmt,
             offset: offsetStr !== undefined ? parseInt(offsetStr, 10) : -1,
-            hasRange: rangeMinStr !== undefined && rangeMaxStr !== undefined,
-            rangeMin: parseFloat(rangeMinStr ?? '0'),
-            rangeMax: parseFloat(rangeMaxStr ?? '1'),
+            rangeMin: rangeMinStr !== undefined ? parseFloat(rangeMinStr) : undefined,
+            rangeMax: rangeMaxStr !== undefined ? parseFloat(rangeMaxStr) : undefined,
             ...(b64.length > 0 ? { inlineBase64: b64 } : {}),
             ...(asciiText !== undefined ? { asciiText } : {}),
         });
@@ -605,7 +643,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
             const raw = await decompressBlock(ctx, info, desc, headerType, hasCompressor);
             values = decodeTyped(raw, desc.type, totalCount);
         }
-        pointData.set(desc.name, { desc, values });
+        pointData.set(desc.name, toScalarArray(desc, values));
     }
 
     // CellData arrays (all numberOfComponents supported; multi-component values are interleaved)
@@ -621,7 +659,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
             const raw = await decompressBlock(ctx, info, desc, headerType, hasCompressor);
             values = decodeTyped(raw, desc.type, totalCount);
         }
-        cellData.set(desc.name, { desc, values });
+        cellData.set(desc.name, toScalarArray(desc, values));
     }
 
     return Result.success({
