@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
 import { Column, Table } from '../../../mol-data/db';
