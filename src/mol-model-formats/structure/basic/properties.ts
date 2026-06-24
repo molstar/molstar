@@ -1,15 +1,15 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Table } from '../../../mol-data/db';
+import { Column, Table } from '../../../mol-data/db';
 import { Model } from '../../../mol-model/structure/model/model';
 import { AtomicHierarchy } from '../../../mol-model/structure/model/properties/atomic';
 import { ChemicalComponent, MissingResidue, StructAsym } from '../../../mol-model/structure/model/properties/common';
-import { getDefaultChemicalComponent, getMoleculeType, MoleculeType } from '../../../mol-model/structure/model/types';
+import { getComponentType, getDefaultChemicalComponent, getMoleculeType, MoleculeType } from '../../../mol-model/structure/model/types';
 import { SaccharideCompIdMap, SaccharideComponent, SaccharideComponentMap, SaccharidesSnfgMap, UnknownSaccharideComponent } from '../../../mol-model/structure/structure/carbohydrates/constants';
 import { memoize1 } from '../../../mol-util/memoize';
 import { BasicData } from './schema';
@@ -41,9 +41,15 @@ export function getChemicalComponentMap(data: BasicData): Model['properties']['c
     const map = new Map<string, ChemicalComponent>();
 
     if (data.chem_comp._rowCount > 0) {
-        const { id } = data.chem_comp;
+        const { id, type } = data.chem_comp;
         for (let i = 0, il = id.rowCount; i < il; ++i) {
-            map.set(id.value(i), Table.getRow(data.chem_comp, i));
+            const _id = id.value(i);
+            const row = Table.getRow(data.chem_comp, i);
+            // some tools like gemmi list `chem_comp` rows without a meaningful `type`
+            if (type.valueKind(i) !== Column.ValueKinds.Present) {
+                row.type = getComponentType(_id);
+            }
+            map.set(_id, row);
         }
     } else {
         const uniqueNames = getUniqueComponentNames(data);
