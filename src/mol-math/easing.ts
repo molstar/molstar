@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-26 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  *
  * adapted from https://github.com/d3/d3-ease
  */
@@ -103,3 +104,33 @@ export function sinInOut(t: number) {
 }
 
 //
+
+export const EasingFunctions = {
+    'linear': (t: number) => t,
+    'bounce-in': bounceIn,
+    'bounce-out': bounceOut,
+    'bounce-in-out': bounceInOut,
+    'circle-in': circleIn,
+    'circle-out': circleOut,
+    'circle-in-out': circleInOut,
+    'cubic-in': cubicIn,
+    'cubic-out': cubicOut,
+    'cubic-in-out': cubicInOut,
+    'exp-in': expIn,
+    'exp-out': expOut,
+    'exp-in-out': expInOut,
+    'quad-in': quadIn,
+    'quad-out': quadOut,
+    'quad-in-out': quadInOut,
+    'sin-in': sinIn,
+    'sin-out': sinOut,
+    'sin-in-out': sinInOut,
+};
+
+export type EasingKind = keyof typeof EasingFunctions;
+export type EasingFunction = EasingKind | ((t: number) => number);
+
+export function getEasingFn(easing: EasingFunction | undefined): (t: number) => number {
+    if (!easing) return EasingFunctions.linear;
+    return typeof easing === 'function' ? easing : EasingFunctions[easing] ?? EasingFunctions.linear;
+}

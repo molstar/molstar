@@ -71,6 +71,10 @@ namespace Quat {
         return out;
     }
 
+    export function is(a: any): a is Quat {
+        return Array.isArray(a) && a.length === 4;
+    }
+
     export function setAxisAngle(out: Quat, axis: Vec3, rad: number) {
         rad = rad * 0.5;
         const s = Math.sin(rad);

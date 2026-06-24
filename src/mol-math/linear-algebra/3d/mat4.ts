@@ -110,6 +110,10 @@ namespace Mat4 {
         return areEqual(m, _id, typeof eps === 'undefined' ? EPSILON : eps);
     }
 
+    export function is(a: any): a is Mat4 {
+        return Array.isArray(a) && a.length === 16;
+    }
+
     export function hasNaN(m: Mat4) {
         for (let i = 0; i < 16; i++) if (Number.isNaN(m[i])) return true;
         return false;
