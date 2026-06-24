@@ -46,6 +46,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `examples/react` that showcases few ways the Mol* can be used together with React
 - Fix default representation plugin option, which resulted in represenations not being shown automatically when using the default plugin spec
 - Track added custom props in `QueryRuntimeTable` to prevent excess "symbol already added" messages when creating multiple instances of a pluing
+- Handle empty `chem_comp.type`
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty
