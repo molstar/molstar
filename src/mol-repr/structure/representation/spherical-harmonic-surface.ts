@@ -1,12 +1,25 @@
 /**
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
+ * @author Ludovic Autin <autin@scripps.edu>
+ *
  * Spherical Harmonic Surface representation: a molecular surface approximated by
  * a real spherical-harmonic expansion of the radial function r(theta, phi). The
  * `sphericalHarmonicL` parameter controls the level of detail.
+ *
+ * A single expansion is single-valued in r about one center, so it only
+ * represents star-convex shapes. Non-star-shaped inputs (elongated or
+ * multi-domain) can be decomposed into several star-shaped lobes via the
+ * `maxLobes` parameter, fit separately and blended into one watertight surface;
+ * see the visual module for details.
+ *
+ * Three visual flavours: per-unit (one envelope per chain, instanced across the
+ * assembly natively), structure (one merged envelope over the whole input), and
+ * assembly (one envelope fit to the asymmetric unit and replicated across the
+ * assembly operators).
  */
 
-import { SphericalHarmonicSurfaceMeshVisual, SphericalHarmonicSurfaceMeshParams, StructureSphericalHarmonicSurfaceMeshVisual, ProtomerSphericalHarmonicSurfaceMeshVisual, ResidueSphericalHarmonicSurfaceMeshVisual } from '../visual/spherical-harmonic-surface-mesh';
+import { SphericalHarmonicSurfaceMeshVisual, SphericalHarmonicSurfaceMeshParams, StructureSphericalHarmonicSurfaceMeshVisual, AssemblySphericalHarmonicSurfaceMeshVisual } from '../visual/spherical-harmonic-surface-mesh';
 import { UnitsRepresentation } from '../units-representation';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { ComplexRepresentation, StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
@@ -18,8 +31,7 @@ import { BaseGeometry } from '../../../mol-geo/geometry/base';
 const SphericalHarmonicSurfaceVisuals = {
     'spherical-harmonic-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, SphericalHarmonicSurfaceMeshParams>) => UnitsRepresentation('Spherical harmonic surface mesh', ctx, getParams, SphericalHarmonicSurfaceMeshVisual),
     'structure-spherical-harmonic-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, SphericalHarmonicSurfaceMeshParams>) => ComplexRepresentation('Structure spherical harmonic surface mesh', ctx, getParams, StructureSphericalHarmonicSurfaceMeshVisual),
-    'protomer-spherical-harmonic-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, SphericalHarmonicSurfaceMeshParams>) => ComplexRepresentation('Protomer spherical harmonic surface mesh', ctx, getParams, ProtomerSphericalHarmonicSurfaceMeshVisual),
-    'residue-spherical-harmonic-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, SphericalHarmonicSurfaceMeshParams>) => ComplexRepresentation('Residue spherical harmonic surface mesh', ctx, getParams, ResidueSphericalHarmonicSurfaceMeshVisual),
+    'assembly-spherical-harmonic-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, SphericalHarmonicSurfaceMeshParams>) => ComplexRepresentation('Assembly spherical harmonic surface mesh', ctx, getParams, AssemblySphericalHarmonicSurfaceMeshVisual),
 };
 
 export const SphericalHarmonicSurfaceParams = {
@@ -41,7 +53,7 @@ export function SphericalHarmonicSurfaceRepresentation(ctx: RepresentationContex
 export const SphericalHarmonicSurfaceRepresentationProvider = StructureRepresentationProvider({
     name: 'spherical-harmonic-surface',
     label: 'Spherical Harmonic Surface',
-    description: 'Displays a molecular surface approximated by a spherical harmonic expansion.',
+    description: 'Displays a smooth surface envelope approximated by a spherical harmonic expansion of the molecular surface (star-convex per lobe; raise maxLobes to split elongated or multi-domain shapes into blended star-shaped lobes).',
     factory: SphericalHarmonicSurfaceRepresentation,
     getParams: getSphericalHarmonicSurfaceParams,
     defaultValues: PD.getDefaultValues(SphericalHarmonicSurfaceParams),
