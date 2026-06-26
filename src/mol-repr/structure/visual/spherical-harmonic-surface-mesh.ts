@@ -45,6 +45,7 @@ import { getBoundary } from '../../../mol-math/geometry/boundary';
 import { OrderedSet } from '../../../mol-data/int';
 import { fitSphericalHarmonics, fitSphericalHarmonicLobes, reconstructRadius, shTermCount, SphericalHarmonicLobe } from '../../../mol-math/geometry/spherical-harmonics';
 import { SizeTheme } from '../../../mol-theme/size';
+import { isTimingMode } from '../../../mol-util/debug';
 
 export const SphericalHarmonicSurfaceMeshParams = {
     ...UnitsMeshParams,
@@ -100,6 +101,15 @@ function surfaceCacheKey(id: string, props: SphericalHarmonicSurfaceMeshProps) {
         props.includeParent, props.floodfill,
     ].join('|');
 }
+
+/**
+ * Cap on the number of atom-cloud points gathered for the fit and the group transfer. A smooth
+ * degree-L envelope is determined by far fewer points (the fit strides to 8192 internally) and the
+ * per-vertex group transfer is approximate, so for large structures the cloud is uniformly strided:
+ * building the point arrays and the group-transfer `GridLookup3D` over every atom (millions for e.g.
+ * 3J3Q) is the dominant cost of the atom-fit path and is unnecessary. Uniform stride preserves shape.
+ */
+const MaxFitCloudPoints = 50000;
 
 const MinRadius = 1e-3;
 /** Reconstruction radius is clamped to `rMax * RadiusMargin` so an ill-conditioned fit cannot send vertices far outside the data (which would blow up the bounding sphere and cull the surface). */
@@ -331,6 +341,7 @@ async function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMe
     const fitKey = `${L}|${maxLobes}|${regularization}`;
     let lobes = meta.shFitKey === fitKey ? meta.shFitLobes : undefined;
     if (!lobes) {
+        if (isTimingMode) console.time(`SphericalHarmonicSurface fit (${shVertices.length / 3} pts, L=${L}, lobes<=${maxLobes})`);
         if (maxLobes <= 1) {
             const { coeffs, rMax } = fitSphericalHarmonics(shVertices, shCenter, L, undefined, regularization);
             lobes = [{ center: [shCenter[0], shCenter[1], shCenter[2]], coeffs, rMax }];
@@ -344,6 +355,7 @@ async function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMe
             const thickness = Math.max(3, shBoundingSphere.radius * 0.33);
             lobes = fitSphericalHarmonicLobes(shVertices, L, { maxLobes, tolerance: 0.3, thickness, regularization }).lobes;
         }
+        if (isTimingMode) console.timeEnd(`SphericalHarmonicSurface fit (${shVertices.length / 3} pts, L=${L}, lobes<=${maxLobes})`);
     }
 
     const surface = lobes.length <= 1
@@ -459,10 +471,13 @@ function getUnitAtomArrays(structure: Structure, unit: Unit, sizeTheme: SizeThem
     const { elements } = unit;
     const l = StructureElement.Location.create(structure, unit);
     const xs: number[] = [], ys: number[] = [], zs: number[] = [], rs: number[] = [], ids: number[] = [];
+    const stride = Math.max(1, Math.floor(elements.length / MaxFitCloudPoints));
+    let kept = 0;
     for (let j = 0, jl = elements.length; j < jl; ++j) {
         const eI = elements[j];
         if (ignoreHydrogens && isHydrogen(structure, unit, eI, ignoreHydrogensVariant)) continue;
         if (traceOnly && !isTrace(unit, eI)) continue;
+        if ((kept++ % stride) !== 0) continue; // uniformly subsample to MaxFitCloudPoints
         xs.push(x[eI]); ys.push(y[eI]); zs.push(z[eI]);
         l.element = eI;
         rs.push(sizeTheme.size(l) + probeRadius);
@@ -477,6 +492,10 @@ function getUnitsAtomArrays(structure: Structure, units: ReadonlyArray<Unit>, si
     const { getSerialIndex } = structure.serialMapping;
     const l = StructureElement.Location.create(structure);
     const xs: number[] = [], ys: number[] = [], zs: number[] = [], rs: number[] = [], ids: number[] = [];
+    let total = 0;
+    for (const unit of units) total += unit.elements.length;
+    const stride = Math.max(1, Math.floor(total / MaxFitCloudPoints));
+    let kept = 0;
     for (const unit of units) {
         const { elements, conformation: c } = unit;
         l.unit = unit;
@@ -484,6 +503,7 @@ function getUnitsAtomArrays(structure: Structure, units: ReadonlyArray<Unit>, si
             const eI = elements[j];
             if (ignoreHydrogens && isHydrogen(structure, unit, eI, ignoreHydrogensVariant)) continue;
             if (traceOnly && !isTrace(unit, eI)) continue;
+            if ((kept++ % stride) !== 0) continue; // uniformly subsample to MaxFitCloudPoints
             xs.push(c.x(eI)); ys.push(c.y(eI)); zs.push(c.z(eI));
             l.element = eI;
             rs.push(sizeTheme.size(l) + probeRadius);
@@ -619,8 +639,10 @@ async function createStructureSphericalHarmonicSurfaceMesh(ctx: VisualContext, s
     }
 
     if (props.fitSource === 'atoms') {
+        if (isTimingMode) console.time('SphericalHarmonicSurface atom cloud');
         const { xs, ys, zs, rs, ids } = getStructureAtomArrays(structure, theme.size, props);
         const cloud = buildAtomCloud(xs, ys, zs, rs, ids);
+        if (isTimingMode) console.timeEnd('SphericalHarmonicSurface atom cloud');
         return reconstructFromAtomCloud(cloud, props, props.resolution, cacheKey, ctx, mesh);
     }
 
