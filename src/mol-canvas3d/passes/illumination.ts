@@ -444,7 +444,7 @@ export class IlluminationPass {
                     renderer.clear(false, true, true);
                     renderer.renderEmissiveOpaque(scene.primitives, camera);
                     if (params.transparency && scene.opacityAverage < 1) {
-                        renderer.renderEmissiveTransparent(scene.primitives, camera);
+                        renderer.renderEmissiveTransparent(scene.primitives, camera, this.drawPass.depthTextureTransparent);
                     }
                 }
                 if (scene.opacityAverage >= 1) {

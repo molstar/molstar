@@ -116,6 +116,11 @@ export const assign_material_color = `
         float viewZ = depthToViewZ(uIsOrtho, fragmentDepth, uNear, uFar);
         emissiveAlpha *= 1.0 - smoothstep(uFogNear, uFogFar, abs(viewZ));
     }
+    // dim emitters behind a transparent blocker by its coverage (tDepth packs front depth+alpha)
+    vec2 emissiveBlocker = unpackRGBAToDepthWithAlpha(texture2D(tDepth, gl_FragCoord.xy / uDrawingBufferSize));
+    if (fragmentDepth > emissiveBlocker.x + 0.0001) {
+        emissiveAlpha *= 1.0 - emissiveBlocker.y;
+    }
     // glow with the object's own color so emissive isn't double-counted via the lit buffer
     #if defined(dUsePalette)
         vec3 emissiveColor = texture2D(tPalette, vec2(vPaletteV, 0.5)).rgb;

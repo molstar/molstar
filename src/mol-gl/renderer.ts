@@ -73,7 +73,7 @@ interface Renderer {
     renderMarkingDepth: (group: Scene.Group, camera: ICamera) => void
     renderMarkingMask: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderEmissiveOpaque: (group: Scene.Group, camera: ICamera) => void
-    renderEmissiveTransparent: (group: Scene.Group, camera: ICamera) => void
+    renderEmissiveTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture) => void
     renderTracing: (group: Scene.Group, camera: ICamera) => void
     renderBlended: (group: Scene, camera: ICamera) => void
     renderOpaque: (group: Scene.Group, camera: ICamera) => void
@@ -657,7 +657,7 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderEmissiveOpaque');
         };
 
-        const renderEmissiveTransparent = (group: Scene.Group, camera: ICamera) => {
+        const renderEmissiveTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderEmissiveTransparent');
             const blendMinMax = ctx.extensions.blendMinMax;
             state.enable(gl.BLEND);
@@ -667,7 +667,8 @@ namespace Renderer {
             state.enable(gl.DEPTH_TEST);
             state.depthMask(false);
 
-            updateInternal(group, camera, null, Mask.Transparent, false);
+            // tDepth = front transparent depth+alpha; emissive shader dims emitters behind it
+            updateInternal(group, camera, depthTexture, Mask.Transparent, false);
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {

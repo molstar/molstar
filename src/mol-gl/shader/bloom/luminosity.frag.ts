@@ -49,6 +49,10 @@ void main(void) {
     vec2 coords = gl_FragCoord.xy * uTexSizeInv;
     vec4 opaqueTexel = texture2D(tColorOpaque, coords);
     vec4 transparentTexel = texture2D(tColorTransparent, coords);
+    // fog illumination's un-fogged opaque seed by the opaque depth, matching standard's per-layer fog
+    if (!uOpaqueFogged) {
+        opaqueTexel.rgb *= 1.0 - smoothstep(uFogNear, uFogFar, abs(depthToViewZ(uIsOrtho, getDepthOpaque(coords), uNear, uFar)));
+    }
     // PMA OVER composite, matches postprocessing's final transparency blend.
     vec4 texel = transparentTexel + opaqueTexel * (1.0 - transparentTexel.a);
     float emissive = texture2D(tEmissive, coords).a;
@@ -62,11 +66,6 @@ void main(void) {
     vec4 outputColor = vec4(uDefaultColor.rgb, uDefaultOpacity);
 
     #if defined(dMode_luminosity)
-        // fog the seed; standard's buffer is already fogged (uOpaqueFogged), illumination's isn't
-        if (!uOpaqueFogged) {
-            float viewZ = depthToViewZ(uIsOrtho, depth, uNear, uFar);
-            texel.rgb *= 1.0 - smoothstep(uFogNear, uFogFar, abs(viewZ));
-        }
         vec3 luma = vec3(0.299, 0.587, 0.114);
         float v = dot(texel.xyz, luma);
         float alpha = smoothstep(uLuminosityThreshold, uLuminosityThreshold + uSmoothWidth, v);
