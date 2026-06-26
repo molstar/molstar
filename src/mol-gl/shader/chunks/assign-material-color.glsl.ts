@@ -111,7 +111,26 @@ export const assign_material_color = `
     #if defined(dXrayShaded)
         emissiveAlpha = calcXrayShadedAlpha(emissiveAlpha, normal);
     #endif
-    vec4 material = vec4(emissive * emissiveAlpha);
+    // fade emissive bloom with fog so the glow dims into the background like the geometry
+    if (uFog) {
+        float viewZ = depthToViewZ(uIsOrtho, fragmentDepth, uNear, uFar);
+        emissiveAlpha *= 1.0 - smoothstep(uFogNear, uFogFar, abs(viewZ));
+    }
+    // glow with the object's own color so emissive isn't double-counted via the lit buffer
+    #if defined(dUsePalette)
+        vec3 emissiveColor = texture2D(tPalette, vec2(vPaletteV, 0.5)).rgb;
+    #elif defined(dColorType_uniform)
+        vec3 emissiveColor = uColor;
+    #elif defined(dColorType_varying)
+        vec3 emissiveColor = vColor.rgb;
+    #else
+        vec3 emissiveColor = vec3(1.0);
+    #endif
+    #ifdef dOverpaint
+        emissiveColor = mix(emissiveColor, vOverpaint.rgb, vOverpaint.a);
+    #endif
+    float e = emissive * emissiveAlpha;
+    vec4 material = vec4(emissiveColor * e, e);
 #endif
 
 // apply per-group transparency

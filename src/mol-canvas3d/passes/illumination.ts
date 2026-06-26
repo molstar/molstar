@@ -453,7 +453,8 @@ export class IlluminationPass {
                     this.drawPass.depthTargetTransparent.bind();
                     renderer.clearDepth(true);
                 }
-                bloom.update(this.tracing.colorTextureOpaque, this.transparentTarget.texture, bloom.emissiveTarget.texture, this.drawPass.depthTextureOpaque, this.drawPass.depthTextureTransparent, params);
+                // seed luminosity bloom from the shaded (lit) color, like the standard path's colorTarget
+                bloom.update(this.tracing.shadedTextureOpaque, this.transparentTarget.texture, bloom.emissiveTarget.texture, this.drawPass.depthTextureOpaque, this.drawPass.depthTextureTransparent, params, camera, false);
                 bloom.render(camera.viewport);
                 bloomActive = true;
             }

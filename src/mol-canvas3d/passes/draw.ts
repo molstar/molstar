@@ -200,7 +200,7 @@ export class DrawPass {
             renderer.clearDepth(true);
         }
 
-        bloom.update(this.colorTarget.texture, this.transparentColorTarget.texture, bloom.emissiveTarget.texture, this.depthTextureOpaque, this.depthTextureTransparent, params);
+        bloom.update(this.colorTarget.texture, this.transparentColorTarget.texture, bloom.emissiveTarget.texture, this.depthTextureOpaque, this.depthTextureTransparent, params, camera, true);
         bloom.render(camera.viewport);
         return true;
     }

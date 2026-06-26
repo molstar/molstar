@@ -17,7 +17,7 @@ export const apply_light_color = `
         }
     #endif
 
-    #if defined(dRenderVariant_color)
+    #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
         material.rgb += material.rgb * emissive;
     #endif
 
@@ -103,7 +103,7 @@ export const apply_light_color = `
     #endif
     outgoingLight = clamp(outgoingLight, 0.01, 0.99); // prevents black artifacts on specular highlight with transparent background
 
-    #if defined(dRenderVariant_color)
+    #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
         outgoingLight += color.rgb * emissive;
     #endif
 

@@ -291,23 +291,9 @@ void main() {
 
     #ifdef dBloomEnable
         vec4 bloom = texture2D(tBloom, coords);
-        // Bg: screen if transparent (no darkening), PMA OVER if opaque (screen is invisible on bright bg). Geometry: additive.
-        bool bloomBg = isBackground(opaqueDepth);
-        #ifdef dBlendTransparency
-            bloomBg = bloomBg && isBackground(transparentDepth);
-        #endif
-        if (bloomBg) {
-            if (uTransparentBackground) {
-                color.rgb = 1.0 - (1.0 - color.rgb) * (1.0 - bloom.rgb);
-            } else {
-                color.rgb = bloom.rgb + color.rgb * (1.0 - bloom.a);
-            }
-            alpha = bloom.a + alpha * (1.0 - bloom.a);
-        } else {
-            color.rgb += bloom.rgb;
-            // alpha just covers premultiplied rgb so un-premultiply stays lossless (no glow-induced opacity)
-            alpha = min(max(alpha, max(color.r, max(color.g, color.b))), 1.0);
-        }
+        // additive glow over geometry and background alike; alpha just covers the premultiplied rgb
+        color.rgb += bloom.rgb;
+        alpha = min(max(alpha, max(color.r, max(color.g, color.b))), 1.0);
     #endif
 
     gl_FragColor = vec4(color.rgb, alpha);

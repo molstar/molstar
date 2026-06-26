@@ -19,6 +19,7 @@ import { ValueCell } from '../../mol-util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
 import { Viewport } from '../camera/util';
+import { ICamera } from '../camera';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { isTimingMode } from '../../mol-util/debug';
 import { composite_frag } from '../../mol-gl/shader/bloom/composite.frag';
@@ -108,7 +109,7 @@ export class BloomPass {
         }
     }
 
-    update(colorOpaque: Texture, colorTransparent: Texture, emissive: Texture, depthOpaque: Texture, depthTransparent: Texture, props: BloomProps) {
+    update(colorOpaque: Texture, colorTransparent: Texture, emissive: Texture, depthOpaque: Texture, depthTransparent: Texture, props: BloomProps, camera: ICamera, opaqueFogged: boolean) {
         let luminosityNeedsUpdate = false;
 
         if (this.luminosityRenderable.values.tColorOpaque.ref.value !== colorOpaque) {
@@ -142,6 +143,12 @@ export class BloomPass {
         }
 
         ValueCell.updateIfChanged(this.luminosityRenderable.values.uLuminosityThreshold, props.threshold);
+        ValueCell.updateIfChanged(this.luminosityRenderable.values.uNear, camera.near);
+        ValueCell.updateIfChanged(this.luminosityRenderable.values.uFar, camera.far);
+        ValueCell.updateIfChanged(this.luminosityRenderable.values.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0);
+        ValueCell.updateIfChanged(this.luminosityRenderable.values.uFogNear, camera.fogNear);
+        ValueCell.updateIfChanged(this.luminosityRenderable.values.uFogFar, camera.fogFar);
+        ValueCell.updateIfChanged(this.luminosityRenderable.values.uOpaqueFogged, opaqueFogged);
 
         if (luminosityNeedsUpdate) {
             this.luminosityRenderable.update();
@@ -216,6 +223,12 @@ const LuminositySchema = {
     uDefaultOpacity: UniformSpec('f'),
     uLuminosityThreshold: UniformSpec('f'),
     uSmoothWidth: UniformSpec('f'),
+    uNear: UniformSpec('f'),
+    uFar: UniformSpec('f'),
+    uIsOrtho: UniformSpec('f'),
+    uFogNear: UniformSpec('f'),
+    uFogFar: UniformSpec('f'),
+    uOpaqueFogged: UniformSpec('b'),
     dMode: DefineSpec('string', ['luminosity', 'emissive']),
 };
 const LuminosityShaderCode = ShaderCode('Bloom Luminosity', quad_vert, luminosity_frag);
@@ -238,6 +251,12 @@ function getLuminosityRenderable(ctx: WebGLContext, colorOpaqueTexture: Texture,
         uDefaultOpacity: ValueCell.create(0),
         uLuminosityThreshold: ValueCell.create(0),
         uSmoothWidth: ValueCell.create(1),
+        uNear: ValueCell.create(1),
+        uFar: ValueCell.create(10000),
+        uIsOrtho: ValueCell.create(0),
+        uFogNear: ValueCell.create(10000),
+        uFogFar: ValueCell.create(10000),
+        uOpaqueFogged: ValueCell.create(true),
         dMode: ValueCell.create('emissive'),
     };
 

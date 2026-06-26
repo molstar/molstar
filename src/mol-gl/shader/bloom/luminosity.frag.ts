@@ -15,6 +15,13 @@ uniform float uDefaultOpacity;
 uniform float uLuminosityThreshold;
 uniform float uSmoothWidth;
 
+uniform float uNear;
+uniform float uFar;
+uniform float uIsOrtho;
+uniform float uFogNear;
+uniform float uFogFar;
+uniform bool uOpaqueFogged;
+
 #include common
 
 float getDepthOpaque(const in vec2 coords) {
@@ -55,17 +62,19 @@ void main(void) {
     vec4 outputColor = vec4(uDefaultColor.rgb, uDefaultOpacity);
 
     #if defined(dMode_luminosity)
+        // fog the seed; standard's buffer is already fogged (uOpaqueFogged), illumination's isn't
+        if (!uOpaqueFogged) {
+            float viewZ = depthToViewZ(uIsOrtho, depth, uNear, uFar);
+            texel.rgb *= 1.0 - smoothstep(uFogNear, uFogFar, abs(viewZ));
+        }
         vec3 luma = vec3(0.299, 0.587, 0.114);
         float v = dot(texel.xyz, luma);
         float alpha = smoothstep(uLuminosityThreshold, uLuminosityThreshold + uSmoothWidth, v);
 
         gl_FragColor = mix(outputColor, texel, alpha);
     #elif defined(dMode_emissive)
-        // un-premultiply each layer's color so fog/bright bg can't dim or bleach the halo
-        vec3 bloomRgb = transparentTexel.a > 0.0
-            ? transparentTexel.rgb / transparentTexel.a
-            : (opaqueTexel.a > 0.0 ? opaqueTexel.rgb / opaqueTexel.a : opaqueTexel.rgb);
-        gl_FragColor = vec4(bloomRgb * emissive, emissive);
+        // the prepass already holds the fogged emissive color, free of lighting/exposure
+        gl_FragColor = texture2D(tEmissive, coords);
     #endif
 }
 `;
