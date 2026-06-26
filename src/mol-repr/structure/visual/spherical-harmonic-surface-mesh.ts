@@ -149,6 +149,35 @@ function shDispose(geometry: Mesh) {
     (geometry.meta as SphericalHarmonicSurfaceMeta).colorTexture?.destroy();
 }
 
+/**
+ * Mean triangle edge length of the reconstructed mesh, used as the color-smoothing grid spacing.
+ *
+ * The reconstructed SH surface is far coarser than the molecular-surface grid it was fit from (a
+ * detail-3 icosphere has ~640 vertices spread over the whole envelope, vs. one marching-cubes vertex
+ * per `resolution` Angstrom). Reusing that fine base resolution as the smoothing grid spacing builds a
+ * grid whose cells *between* the sparse reconstructed vertices are never splatted into, so they stay at
+ * 0 (black) and trilinear interpolation bleeds that black across the surface. Matching the grid to the
+ * actual vertex spacing keeps every cell near the surface covered (and, when the envelope is coarse
+ * enough that the spacing exceeds the smoothing cutoff, disables smoothing entirely — also black-free).
+ */
+function estimateVertexSpacing(mesh: Mesh): number {
+    const triangleCount = mesh.triangleCount;
+    if (triangleCount === 0) return 1;
+    const vb = mesh.vertexBuffer.ref.value;
+    const ib = mesh.indexBuffer.ref.value;
+    const sampleStride = Math.max(1, Math.floor(triangleCount / 1000));
+    const a = Vec3(), b = Vec3(), c = Vec3();
+    let sum = 0, n = 0;
+    for (let t = 0; t < triangleCount; t += sampleStride) {
+        Vec3.fromArray(a, vb, ib[t * 3] * 3);
+        Vec3.fromArray(b, vb, ib[t * 3 + 1] * 3);
+        Vec3.fromArray(c, vb, ib[t * 3 + 2] * 3);
+        sum += Vec3.distance(a, b) + Vec3.distance(b, c) + Vec3.distance(c, a);
+        n += 3;
+    }
+    return n > 0 ? sum / n : 1;
+}
+
 /** Copy the group id of the nearest original surface vertex onto each reconstructed vertex. */
 function transferGroups(vertices: Float32Array, vertexCount: number, shLookup: GridLookup3D, shGroups: Float32Array, out: Float32Array) {
     for (let i = 0; i < vertexCount; ++i) {
@@ -337,6 +366,11 @@ async function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMe
     // cache the fit for detail-only re-tessellation
     newMeta.shFitKey = fitKey;
     newMeta.shFitLobes = lobes;
+    // color smoothing must use the reconstructed mesh's own vertex spacing, NOT the (fine) base
+    // surface resolution carried over above - otherwise the smoothing grid is full of empty (black)
+    // cells between the sparse reconstructed vertices. Set unconditionally: on the mesh-reuse path
+    // newMeta === meta, so the Object.assign above is skipped and the stale base resolution remains.
+    newMeta.resolution = estimateVertexSpacing(surface);
     return surface;
 }
 
@@ -672,10 +706,13 @@ async function createAssemblySphericalHarmonicSurfaceMesh(ctx: VisualContext, st
     } else {
         ValueCell.updateIfChanged(combined.varyingGroup, true);
     }
-    // keep the envelope scratch and the resolution (for color smoothing) on the bound mesh's meta
+    // keep the envelope scratch and the color-smoothing resolution on the bound mesh's meta.
+    // Use the envelope's per-copy vertex spacing (set by reconstructSphericalHarmonicMesh), not
+    // props.resolution: replication doesn't change per-copy edge length, and the fine base
+    // resolution would leave the smoothing grid full of black cells (see estimateVertexSpacing).
     const cmeta = combined.meta as SphericalHarmonicSurfaceMeta;
     cmeta.shAsuMesh = envelope;
-    cmeta.resolution = props.resolution;
+    cmeta.resolution = (envelope.meta as SphericalHarmonicSurfaceMeta).resolution;
     return combined;
 }
 
