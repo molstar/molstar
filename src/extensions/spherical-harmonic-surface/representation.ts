@@ -26,14 +26,14 @@
  *   operators (e.g. a protomer fit once, drawn as the full symmetric assembly).
  */
 
-import { SphericalHarmonicSurfaceMeshVisual, SphericalHarmonicSurfaceMeshParams, StructureSphericalHarmonicSurfaceMeshVisual, AssemblySphericalHarmonicSurfaceMeshVisual } from '../visual/spherical-harmonic-surface-mesh';
-import { UnitsRepresentation } from '../units-representation';
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { ComplexRepresentation, StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
-import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
-import { ThemeRegistryContext } from '../../../mol-theme/theme';
-import { Structure } from '../../../mol-model/structure';
-import { BaseGeometry } from '../../../mol-geo/geometry/base';
+import { SphericalHarmonicSurfaceMeshVisual, SphericalHarmonicSurfaceMeshParams, StructureSphericalHarmonicSurfaceMeshVisual, AssemblySphericalHarmonicSurfaceMeshVisual } from './mesh';
+import { UnitsRepresentation } from '../../mol-repr/structure/units-representation';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { ComplexRepresentation, StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../../mol-repr/structure/representation';
+import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../mol-repr/representation';
+import { ThemeRegistryContext } from '../../mol-theme/theme';
+import { Structure } from '../../mol-model/structure';
+import { BaseGeometry } from '../../mol-geo/geometry/base';
 
 const SphericalHarmonicSurfaceVisuals = {
     'spherical-harmonic-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, SphericalHarmonicSurfaceMeshParams>) => UnitsRepresentation('Spherical harmonic surface mesh', ctx, getParams, SphericalHarmonicSurfaceMeshVisual),

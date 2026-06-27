@@ -28,33 +28,33 @@
  * blended into one watertight surface through a marching-cubes implicit field.
  */
 
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
-import { VisualContext } from '../../visual';
-import { Unit, Structure, StructureElement } from '../../../mol-model/structure';
-import { Theme } from '../../../mol-theme/theme';
-import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
-import { computeMarchingCubesMesh } from '../../../mol-geo/util/marching-cubes/algorithm';
-import { ElementIterator, getElementLoci, eachElement, getSerialElementLoci, eachSerialElement } from './util/element';
-import { VisualUpdateState } from '../../util';
-import { getConformation, isHydrogen, isTrace } from './util/common';
-import { Sphere3D } from '../../../mol-math/geometry';
-import { MeshValues } from '../../../mol-gl/renderable/mesh';
-import { Texture } from '../../../mol-gl/webgl/texture';
-import { WebGLContext } from '../../../mol-gl/webgl/context';
-import { applyMeshColorSmoothing } from '../../../mol-geo/geometry/mesh/color-smoothing';
-import { BaseGeometry, ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
-import { ValueCell } from '../../../mol-util';
-import { ComplexMeshVisual, ComplexVisual } from '../complex-visual';
-import { Tensor } from '../../../mol-math/linear-algebra/tensor';
-import { Mat3, Mat4, Vec3 } from '../../../mol-math/linear-algebra';
-import { Sphere } from '../../../mol-geo/primitive/sphere';
-import { getBoundary } from '../../../mol-math/geometry/boundary';
-import { OrderedSet } from '../../../mol-data/int';
-import { fitSphericalHarmonics, fitSphericalHarmonicLobes, reconstructRadius, shTermCount, SphericalHarmonicLobe } from '../../../mol-math/geometry/spherical-harmonics';
-import { SizeTheme } from '../../../mol-theme/size';
-import { isTimingMode } from '../../../mol-util/debug';
-import { now } from '../../../mol-util/now';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../../mol-repr/structure/units-visual';
+import { VisualContext } from '../../mol-repr/visual';
+import { Unit, Structure, StructureElement } from '../../mol-model/structure';
+import { Theme } from '../../mol-theme/theme';
+import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { computeMarchingCubesMesh } from '../../mol-geo/util/marching-cubes/algorithm';
+import { ElementIterator, getElementLoci, eachElement, getSerialElementLoci, eachSerialElement } from '../../mol-repr/structure/visual/util/element';
+import { VisualUpdateState } from '../../mol-repr/util';
+import { getConformation, isHydrogen, isTrace } from '../../mol-repr/structure/visual/util/common';
+import { Sphere3D } from '../../mol-math/geometry';
+import { MeshValues } from '../../mol-gl/renderable/mesh';
+import { Texture } from '../../mol-gl/webgl/texture';
+import { WebGLContext } from '../../mol-gl/webgl/context';
+import { applyMeshColorSmoothing } from '../../mol-geo/geometry/mesh/color-smoothing';
+import { BaseGeometry, ColorSmoothingParams, getColorSmoothingProps } from '../../mol-geo/geometry/base';
+import { ValueCell } from '../../mol-util';
+import { ComplexMeshVisual, ComplexVisual } from '../../mol-repr/structure/complex-visual';
+import { Tensor } from '../../mol-math/linear-algebra/tensor';
+import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
+import { Sphere } from '../../mol-geo/primitive/sphere';
+import { getBoundary } from '../../mol-math/geometry/boundary';
+import { OrderedSet } from '../../mol-data/int';
+import { fitSphericalHarmonics, fitSphericalHarmonicLobes, reconstructRadius, shTermCount, SphericalHarmonicLobe } from '../../mol-math/geometry/spherical-harmonics';
+import { SizeTheme } from '../../mol-theme/size';
+import { isTimingMode } from '../../mol-util/debug';
+import { now } from '../../mol-util/now';
 
 /**
  * Aggregate timing for the build path. `UnitsVisual` builds one geometry per unique unit/group, so
@@ -82,7 +82,7 @@ export const SphericalHarmonicSurfaceMeshParams = {
     ignoreHydrogens: PD.Boolean(false, { description: 'Exclude hydrogen atoms from the shape envelope.' }),
     ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
     traceOnly: PD.Boolean(false, { description: 'Use only trace atoms (e.g. CA, P) for the shape envelope.' }),
-    radiusOffset: PD.Numeric(1.4, { min: 0, max: 10, step: 0.1 }, { description: 'Extra radius added to each atom when building the shape envelope; larger gives a thicker, rounder surface (analogous to a probe radius).' }),
+    radiusOffset: PD.Numeric(5, { min: 0, max: 10, step: 0.1 }, { description: 'Extra radius added to each atom when building the shape envelope; larger gives a thicker, rounder surface (analogous to a probe radius).' }),
     sphericalHarmonicL: PD.Numeric(8, { min: 2, max: 20, step: 1 }, { description: 'Maximum spherical harmonic degree. Higher values follow the shape envelope more closely (but cannot recover concavities: the fit is single-valued in radius about the center).' }),
     reconstructionDetail: PD.Numeric(3, { min: 1, max: 5, step: 1 }, { description: 'Triangulation detail of the reconstructed sphere mesh.' }),
     maxLobes: PD.Numeric(1, { min: 1, max: 8, step: 1 }, { description: 'Split non-star-shaped inputs (elongated or multi-domain) into up to this many star-shaped lobes, fit separately, and blend into one watertight surface. 1 keeps a single radial envelope.' }),
