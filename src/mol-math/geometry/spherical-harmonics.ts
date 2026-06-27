@@ -211,6 +211,15 @@ export function fitSphericalHarmonics(points: ArrayLike<number>, center: ArrayLi
         }
     }
 
+    // With Tikhonov regularization the normal matrix is SPD, so solve it exactly via Cholesky -
+    // several times faster than the SVD pseudo-inverse, and since the fit runs once per unit the
+    // solve dominates build/update time on large multi-chain structures. Fall back to the truncated
+    // SVD pseudo-inverse when unregularized (and possibly rank-deficient) or if Cholesky fails.
+    if (regularization > 0) {
+        const chol = choleskySolveSymmetric(A.data, K, rhs);
+        if (chol) return { coeffs: chol, L, rMax };
+    }
+
     // Solve A x = rhs via truncated SVD pseudo-inverse: x = V diag(1/w) U^T rhs
     const W = Matrix.create(1, K, Float64Array);
     const U = Matrix.create(K, K, Float64Array);
@@ -240,6 +249,45 @@ export function fitSphericalHarmonics(points: ArrayLike<number>, center: ArrayLi
     }
 
     return { coeffs, L, rMax };
+}
+
+/**
+ * Solve a symmetric positive-definite system `A x = rhs` (A row-major, K x K) by Cholesky
+ * factorization. Returns `undefined` if A is not positive definite (a non-positive pivot from
+ * round-off, or a rank-deficient/unregularized system), letting the caller fall back to SVD.
+ *
+ * For the regularized normal equations this is exact and several times faster than the SVD
+ * pseudo-inverse - and the fit runs once per unit, so the solve dominates representation
+ * build/update time on large multi-chain structures.
+ */
+function choleskySolveSymmetric(A: ArrayLike<number>, K: number, rhs: ArrayLike<number>): Float64Array | undefined {
+    const Lm = new Float64Array(K * K); // lower-triangular Cholesky factor
+    for (let i = 0; i < K; ++i) {
+        for (let j = 0; j <= i; ++j) {
+            let sum = A[i * K + j];
+            for (let k = 0; k < j; ++k) sum -= Lm[i * K + k] * Lm[j * K + k];
+            if (i === j) {
+                if (!(sum > 0)) return undefined; // not positive definite (also catches NaN)
+                Lm[i * K + i] = Math.sqrt(sum);
+            } else {
+                Lm[i * K + j] = sum / Lm[j * K + j];
+            }
+        }
+    }
+    const x = new Float64Array(K);
+    // forward substitution L y = rhs (y accumulated in x)
+    for (let i = 0; i < K; ++i) {
+        let sum = rhs[i];
+        for (let k = 0; k < i; ++k) sum -= Lm[i * K + k] * x[k];
+        x[i] = sum / Lm[i * K + i];
+    }
+    // back substitution L^T x = y
+    for (let i = K - 1; i >= 0; --i) {
+        let sum = x[i];
+        for (let k = i + 1; k < K; ++k) sum -= Lm[k * K + i] * x[k];
+        x[i] = sum / Lm[i * K + i];
+    }
+    return x;
 }
 
 /** Reconstruct the radius from fitted coefficients at the given direction. */

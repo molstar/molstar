@@ -3,10 +3,20 @@
  *
  * @author Ludovic Autin <autin@scripps.edu>
  *
- * Spherical-harmonic surface visual: reuses Mol*'s molecular-surface mesh, fits
- * a real spherical-harmonic expansion of the radial function r(theta, phi) about
- * the surface centroid, and reconstructs a smooth closed mesh from the fitted
- * coefficients. The parameter `sphericalHarmonicL` controls the level of detail.
+ * Spherical-harmonic surface visual: fits a real spherical-harmonic expansion of
+ * the radial function r(theta, phi) about the centroid of an atom cloud (each atom
+ * pushed outward by its size + radiusOffset), and reconstructs a smooth closed mesh
+ * from the fitted coefficients. The parameter `sphericalHarmonicL` controls the
+ * level of detail.
+ *
+ * The fit is to atom positions, not to a computed molecular surface: at the low
+ * degrees used here (L ~ 6-15) the truncated single-center expansion is low-pass,
+ * well below the ~probe-radius (1.4 A) detail that distinguishes the solvent-excluded
+ * surface from a vdW+probe atom envelope, so fitting the molecular surface yields the
+ * same low-order coefficients at far higher cost. Surface-based SH / 3D-Zernike is
+ * only needed for shape-complementarity docking or property mapping onto the real
+ * surface, not for a coarse shape envelope (Ritchie & Kemp 1999, J Comput Chem
+ * 20:383; Duncan & Olson 1993, Biopolymers 33:219).
  *
  * Note: a single-center radial expansion can only represent star-convex surfaces
  * (those single-valued in r from the centroid). Pockets, concavities and
@@ -24,17 +34,16 @@ import { VisualContext } from '../../visual';
 import { Unit, Structure, StructureElement } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
-import { CommonMolecularSurfaceCalculationParams, computeStructureMolecularSurface, computeUnitMolecularSurface } from './util/molecular-surface';
 import { computeMarchingCubesMesh } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { ElementIterator, getElementLoci, eachElement, getSerialElementLoci, eachSerialElement } from './util/element';
 import { VisualUpdateState } from '../../util';
-import { CommonSurfaceParams, getConformation, isHydrogen, isTrace } from './util/common';
+import { getConformation, isHydrogen, isTrace } from './util/common';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { Texture } from '../../../mol-gl/webgl/texture';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { applyMeshColorSmoothing } from '../../../mol-geo/geometry/mesh/color-smoothing';
-import { ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
+import { BaseGeometry, ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
 import { ValueCell } from '../../../mol-util';
 import { ComplexMeshVisual, ComplexVisual } from '../complex-visual';
 import { Tensor } from '../../../mol-math/linear-algebra/tensor';
@@ -46,17 +55,40 @@ import { OrderedSet } from '../../../mol-data/int';
 import { fitSphericalHarmonics, fitSphericalHarmonicLobes, reconstructRadius, shTermCount, SphericalHarmonicLobe } from '../../../mol-math/geometry/spherical-harmonics';
 import { SizeTheme } from '../../../mol-theme/size';
 import { isTimingMode } from '../../../mol-util/debug';
+import { now } from '../../../mol-util/now';
+
+/**
+ * Aggregate timing for the build path. `UnitsVisual` builds one geometry per unique unit/group, so
+ * per-unit logs would be unreadable on a large assembly; instead accumulate across the burst of
+ * `createGeometry` calls and flush one summary line shortly after the build settles. The unit count
+ * is the decisive number (few instanced groups vs. thousands of distinct chains). isTimingMode-gated,
+ * so it is inert in normal use.
+ */
+const shBuildTiming = { units: 0, points: 0, ms: 0, timer: undefined as ReturnType<typeof setTimeout> | undefined };
+function shAccumulateTiming(start: number, points: number) {
+    if (!isTimingMode) return;
+    shBuildTiming.units += 1;
+    shBuildTiming.points += points;
+    shBuildTiming.ms += now() - start;
+    if (shBuildTiming.timer !== undefined) clearTimeout(shBuildTiming.timer);
+    shBuildTiming.timer = setTimeout(() => {
+        console.log(`[SH surface] built ${shBuildTiming.units} unit(s), ${shBuildTiming.points} fit pts total in ${shBuildTiming.ms.toFixed(1)}ms (${(shBuildTiming.ms / shBuildTiming.units).toFixed(2)}ms/unit)`);
+        shBuildTiming.units = 0; shBuildTiming.points = 0; shBuildTiming.ms = 0; shBuildTiming.timer = undefined;
+    }, 300);
+}
 
 export const SphericalHarmonicSurfaceMeshParams = {
     ...UnitsMeshParams,
-    ...CommonMolecularSurfaceCalculationParams,
-    ...CommonSurfaceParams,
     ...ColorSmoothingParams,
-    sphericalHarmonicL: PD.Numeric(8, { min: 2, max: 20, step: 1 }, { description: 'Maximum spherical harmonic degree. Higher values follow the surface envelope more closely (but cannot recover concavities: the fit is single-valued in radius about the center).' }),
+    ignoreHydrogens: PD.Boolean(false, { description: 'Exclude hydrogen atoms from the shape envelope.' }),
+    ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
+    traceOnly: PD.Boolean(false, { description: 'Use only trace atoms (e.g. CA, P) for the shape envelope.' }),
+    radiusOffset: PD.Numeric(1.4, { min: 0, max: 20, step: 0.1 }, { description: 'Extra radius added to each atom when building the shape envelope; larger gives a thicker, rounder surface (analogous to a probe radius).' }),
+    sphericalHarmonicL: PD.Numeric(8, { min: 2, max: 20, step: 1 }, { description: 'Maximum spherical harmonic degree. Higher values follow the shape envelope more closely (but cannot recover concavities: the fit is single-valued in radius about the center).' }),
     reconstructionDetail: PD.Numeric(3, { min: 1, max: 5, step: 1 }, { description: 'Triangulation detail of the reconstructed sphere mesh.' }),
-    fitSource: PD.Select('surface', [['surface', 'Molecular surface'], ['atoms', 'Atom positions']] as const, { description: 'Fit the spherical harmonics to the molecular surface, or directly to atom positions (faster, blobbier, no surface step).' }),
     maxLobes: PD.Numeric(1, { min: 1, max: 8, step: 1 }, { description: 'Split non-star-shaped inputs (elongated or multi-domain) into up to this many star-shaped lobes, fit separately, and blend into one watertight surface. 1 keeps a single radial envelope.' }),
     regularization: PD.Numeric(0.01, { min: 0, max: 0.5, step: 0.005 }, { description: 'Tikhonov smoothness prior on the spherical-harmonic fit (per-band l(l+1) damping). Higher values give a rounder, more stable surface; lower values follow the samples more closely but can ring or blow up on sparse/clustered clouds (e.g. trace-only). 0 disables it.' }),
+    resolution: PD.Numeric(0.5, { min: 0.1, max: 20, step: 0.1 }, { description: 'Grid spacing for the multi-lobe blend field (only used when maxLobes > 1).', ...BaseGeometry.CustomQualityParamInfo }),
 };
 export type SphericalHarmonicSurfaceMeshParams = typeof SphericalHarmonicSurfaceMeshParams
 export type SphericalHarmonicSurfaceMeshProps = PD.Values<SphericalHarmonicSurfaceMeshParams>
@@ -77,11 +109,6 @@ type SphericalHarmonicSurfaceMeta = {
     // scratch mesh holding the single ASU envelope for the assembly flavour, before it is replicated
     // across the assembly operators into the bound mesh (kept off the render object, reused).
     shAsuMesh?: Mesh
-    // throwaway mesh holding the molecular-surface base for the 'surface' fit source; kept OFF the
-    // render object (the bound mesh must only ever hold the final reconstruction) and reused across
-    // recomputes. Mixing the base into the bound mesh briefly desyncs its vertex/index buffers
-    // mid-update -> out-of-range index fetch -> the surface vanishes.
-    shBaseMesh?: Mesh
 }
 
 // memoized sphere triangulations per detail level
@@ -93,12 +120,11 @@ function getSphere(detail: number) {
     return s;
 }
 
-/** Props that affect the base molecular surface (i.e. everything except L and reconstruction detail). */
+/** Props that affect the base atom cloud (i.e. everything except L and reconstruction detail). */
 function surfaceCacheKey(id: string, props: SphericalHarmonicSurfaceMeshProps) {
     return [
-        id, props.fitSource, props.probeRadius, props.resolution, props.probePositions,
+        id, props.radiusOffset, props.resolution,
         props.ignoreHydrogens, props.ignoreHydrogensVariant, props.traceOnly,
-        props.includeParent, props.floodfill,
     ].join('|');
 }
 
@@ -115,20 +141,16 @@ const MinRadius = 1e-3;
 /** Reconstruction radius is clamped to `rMax * RadiusMargin` so an ill-conditioned fit cannot send vertices far outside the data (which would blow up the bounding sphere and cull the surface). */
 const RadiusMargin = 1.15;
 
-/** True if any base-surface prop shared by the unit/structure surface flavours changed. */
+/** True if any prop affecting the geometry changed (everything but pure shading/color props). */
 function surfaceGeometryChanged(newProps: SphericalHarmonicSurfaceMeshProps, currentProps: SphericalHarmonicSurfaceMeshProps): boolean {
     return (
         newProps.resolution !== currentProps.resolution ||
-        newProps.probeRadius !== currentProps.probeRadius ||
-        newProps.probePositions !== currentProps.probePositions ||
+        newProps.radiusOffset !== currentProps.radiusOffset ||
         newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
         newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
         newProps.traceOnly !== currentProps.traceOnly ||
-        newProps.includeParent !== currentProps.includeParent ||
-        newProps.floodfill !== currentProps.floodfill ||
         newProps.sphericalHarmonicL !== currentProps.sphericalHarmonicL ||
         newProps.reconstructionDetail !== currentProps.reconstructionDetail ||
-        newProps.fitSource !== currentProps.fitSource ||
         newProps.maxLobes !== currentProps.maxLobes ||
         newProps.regularization !== currentProps.regularization
     );
@@ -341,7 +363,6 @@ async function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMe
     const fitKey = `${L}|${maxLobes}|${regularization}`;
     let lobes = meta.shFitKey === fitKey ? meta.shFitLobes : undefined;
     if (!lobes) {
-        if (isTimingMode) console.time(`SphericalHarmonicSurface fit (${shVertices.length / 3} pts, L=${L}, lobes<=${maxLobes})`);
         if (maxLobes <= 1) {
             const { coeffs, rMax } = fitSphericalHarmonics(shVertices, shCenter, L, undefined, regularization);
             lobes = [{ center: [shCenter[0], shCenter[1], shCenter[2]], coeffs, rMax }];
@@ -355,7 +376,6 @@ async function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMe
             const thickness = Math.max(3, shBoundingSphere.radius * 0.33);
             lobes = fitSphericalHarmonicLobes(shVertices, L, { maxLobes, tolerance: 0.3, thickness, regularization }).lobes;
         }
-        if (isTimingMode) console.timeEnd(`SphericalHarmonicSurface fit (${shVertices.length / 3} pts, L=${L}, lobes<=${maxLobes})`);
     }
 
     const surface = lobes.length <= 1
@@ -388,7 +408,7 @@ async function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMe
 
 /**
  * Populate the base cache in `meta` from an explicit point cloud (interleaved xyz) and per-point
- * group ids. Used by both the surface path (marching-cubes vertices) and the atom-cloud path.
+ * group ids.
  */
 function populateCacheFromPoints(meta: SphericalHarmonicSurfaceMeta, points: Float32Array, groups: Float32Array, center: Vec3, boundingSphere: Sphere3D, resolution: number, cacheKey: string) {
     const n = points.length / 3;
@@ -415,18 +435,10 @@ function populateCacheFromPoints(meta: SphericalHarmonicSurfaceMeta, points: Flo
     meta.shFitLobes = undefined;
 }
 
-/** Populate the base-surface cache in `targetMeta` from a freshly computed molecular `surface` mesh. */
-function populateCacheFromSurface(targetMeta: SphericalHarmonicSurfaceMeta, surface: Mesh, center: Vec3, boundingSphere: Sphere3D, resolution: number, cacheKey: string) {
-    const vertexCount = surface.vertexCount;
-    const points = surface.vertexBuffer.ref.value.slice(0, vertexCount * 3);
-    const groups = surface.groupBuffer.ref.value.slice(0, vertexCount);
-    populateCacheFromPoints(targetMeta, points, groups, center, boundingSphere, resolution, cacheKey);
-}
-
 /**
  * Build an SH-fitting point cloud from atom positions: each atom is pushed outward by its radius
- * (size + probe) along the centroid->atom direction so the fit tracks the surface envelope rather
- * than the (inward-biased) atom centers. `ids[i]` is the group id carried to the reconstructed mesh.
+ * (size + radiusOffset) along the centroid->atom direction so the fit tracks the surface envelope
+ * rather than the (inward-biased) atom centers. `ids[i]` is the group id carried to the reconstructed mesh.
  */
 function buildAtomCloud(xs: number[], ys: number[], zs: number[], rs: number[], ids: ArrayLike<number>) {
     const n = xs.length;
@@ -466,7 +478,7 @@ function reconstructFromAtomCloud(cloud: ReturnType<typeof buildAtomCloud>, prop
 
 /** Atom arrays (model coords) for one unit, with group id = index into unit.elements. */
 function getUnitAtomArrays(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, props: SphericalHarmonicSurfaceMeshProps) {
-    const { probeRadius, ignoreHydrogens, ignoreHydrogensVariant, traceOnly } = props;
+    const { radiusOffset, ignoreHydrogens, ignoreHydrogensVariant, traceOnly } = props;
     const { x, y, z } = getConformation(unit);
     const { elements } = unit;
     const l = StructureElement.Location.create(structure, unit);
@@ -480,7 +492,7 @@ function getUnitAtomArrays(structure: Structure, unit: Unit, sizeTheme: SizeThem
         if ((kept++ % stride) !== 0) continue; // uniformly subsample to MaxFitCloudPoints
         xs.push(x[eI]); ys.push(y[eI]); zs.push(z[eI]);
         l.element = eI;
-        rs.push(sizeTheme.size(l) + probeRadius);
+        rs.push(sizeTheme.size(l) + radiusOffset);
         ids.push(j);
     }
     return { xs, ys, zs, rs, ids };
@@ -488,7 +500,7 @@ function getUnitAtomArrays(structure: Structure, unit: Unit, sizeTheme: SizeThem
 
 /** Atom arrays (world coords) for the given `units`, with group id = serial element index in `structure`. */
 function getUnitsAtomArrays(structure: Structure, units: ReadonlyArray<Unit>, sizeTheme: SizeTheme<any>, props: SphericalHarmonicSurfaceMeshProps) {
-    const { probeRadius, ignoreHydrogens, ignoreHydrogensVariant, traceOnly } = props;
+    const { radiusOffset, ignoreHydrogens, ignoreHydrogensVariant, traceOnly } = props;
     const { getSerialIndex } = structure.serialMapping;
     const l = StructureElement.Location.create(structure);
     const xs: number[] = [], ys: number[] = [], zs: number[] = [], rs: number[] = [], ids: number[] = [];
@@ -506,7 +518,7 @@ function getUnitsAtomArrays(structure: Structure, units: ReadonlyArray<Unit>, si
             if ((kept++ % stride) !== 0) continue; // uniformly subsample to MaxFitCloudPoints
             xs.push(c.x(eI)); ys.push(c.y(eI)); zs.push(c.z(eI));
             l.element = eI;
-            rs.push(sizeTheme.size(l) + probeRadius);
+            rs.push(sizeTheme.size(l) + radiusOffset);
             ids.push(getSerialIndex(unit, eI));
         }
     }
@@ -579,38 +591,20 @@ function replicateMesh(envelope: Mesh, transforms: ReadonlyArray<Mat4>, mesh?: M
 //
 
 async function createSphericalHarmonicSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: SphericalHarmonicSurfaceMeshProps, mesh?: Mesh): Promise<Mesh> {
+    const start = isTimingMode ? now() : 0;
     const cacheKey = surfaceCacheKey(`unit-${unit.id}`, props);
     const meta = mesh?.meta as SphericalHarmonicSurfaceMeta | undefined;
     if (mesh && meta && meta.shCacheKey === cacheKey && meta.shVertices) {
-        return reconstructSphericalHarmonicMesh(meta, props, ctx, mesh);
+        const result = await reconstructSphericalHarmonicMesh(meta, props, ctx, mesh);
+        shAccumulateTiming(start, meta.shVertices.length / 3);
+        return result;
     }
 
-    if (props.fitSource === 'atoms') {
-        const { xs, ys, zs, rs, ids } = getUnitAtomArrays(structure, unit, theme.size, props);
-        const cloud = buildAtomCloud(xs, ys, zs, rs, ids);
-        return reconstructFromAtomCloud(cloud, props, props.resolution, cacheKey, ctx, mesh);
-    }
-
-    const { transform, field, idField, resolution, maxRadius } = await computeUnitMolecularSurface(structure, unit, theme.size, props).runInContext(ctx.runtime);
-    const params = {
-        isoLevel: props.probeRadius,
-        scalarField: props.floodfill !== 'off' ? Tensor.createFloodfilled(field, props.probeRadius, props.floodfill) : field,
-        idField,
-    };
-    // the molecular-surface base goes into a throwaway mesh (reused via meta), never the bound mesh
-    const target = mesh ?? Mesh.createEmpty();
-    const tmeta = target.meta as SphericalHarmonicSurfaceMeta;
-    const base = await computeMarchingCubesMesh(params, tmeta.shBaseMesh).runAsChild(ctx.runtime);
-    tmeta.shBaseMesh = base;
-    if (props.includeParent) {
-        const iterations = Math.ceil(2 / props.resolution);
-        Mesh.smoothEdges(base, { iterations, maxNewEdgeLength: Math.sqrt(2) });
-    }
-    Mesh.transform(base, transform);
-
-    const boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxRadius);
-    populateCacheFromSurface(tmeta, base, unit.boundary.sphere.center as Vec3, boundingSphere, resolution, cacheKey);
-    return reconstructSphericalHarmonicMesh(tmeta, props, ctx, target);
+    const { xs, ys, zs, rs, ids } = getUnitAtomArrays(structure, unit, theme.size, props);
+    const cloud = buildAtomCloud(xs, ys, zs, rs, ids);
+    const result = await reconstructFromAtomCloud(cloud, props, props.resolution, cacheKey, ctx, mesh);
+    shAccumulateTiming(start, xs.length);
+    return result;
 }
 
 export function SphericalHarmonicSurfaceMeshVisual(materialId: number): UnitsVisual<SphericalHarmonicSurfaceMeshParams> {
@@ -632,40 +626,20 @@ export function SphericalHarmonicSurfaceMeshVisual(materialId: number): UnitsVis
 //
 
 async function createStructureSphericalHarmonicSurfaceMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: SphericalHarmonicSurfaceMeshProps, mesh?: Mesh): Promise<Mesh> {
+    const start = isTimingMode ? now() : 0;
     const cacheKey = surfaceCacheKey(`structure-${structure.hashCode}`, props);
     const meta = mesh?.meta as SphericalHarmonicSurfaceMeta | undefined;
     if (mesh && meta && meta.shCacheKey === cacheKey && meta.shVertices) {
-        return reconstructSphericalHarmonicMesh(meta, props, ctx, mesh);
+        const result = await reconstructSphericalHarmonicMesh(meta, props, ctx, mesh);
+        shAccumulateTiming(start, meta.shVertices.length / 3);
+        return result;
     }
 
-    if (props.fitSource === 'atoms') {
-        if (isTimingMode) console.time('SphericalHarmonicSurface atom cloud');
-        const { xs, ys, zs, rs, ids } = getStructureAtomArrays(structure, theme.size, props);
-        const cloud = buildAtomCloud(xs, ys, zs, rs, ids);
-        if (isTimingMode) console.timeEnd('SphericalHarmonicSurface atom cloud');
-        return reconstructFromAtomCloud(cloud, props, props.resolution, cacheKey, ctx, mesh);
-    }
-
-    const { transform, field, idField, resolution, maxRadius } = await computeStructureMolecularSurface(structure, theme.size, props).runInContext(ctx.runtime);
-    const params = {
-        isoLevel: props.probeRadius,
-        scalarField: props.floodfill !== 'off' ? Tensor.createFloodfilled(field, props.probeRadius, props.floodfill) : field,
-        idField,
-    };
-    // the molecular-surface base goes into a throwaway mesh (reused via meta), never the bound mesh
-    const target = mesh ?? Mesh.createEmpty();
-    const tmeta = target.meta as SphericalHarmonicSurfaceMeta;
-    const base = await computeMarchingCubesMesh(params, tmeta.shBaseMesh).runAsChild(ctx.runtime);
-    tmeta.shBaseMesh = base;
-    if (props.includeParent) {
-        const iterations = Math.ceil(2 / props.resolution);
-        Mesh.smoothEdges(base, { iterations, maxNewEdgeLength: Math.sqrt(2) });
-    }
-    Mesh.transform(base, transform);
-
-    const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, maxRadius);
-    populateCacheFromSurface(tmeta, base, structure.boundary.sphere.center as Vec3, boundingSphere, resolution, cacheKey);
-    return reconstructSphericalHarmonicMesh(tmeta, props, ctx, target);
+    const { xs, ys, zs, rs, ids } = getStructureAtomArrays(structure, theme.size, props);
+    const cloud = buildAtomCloud(xs, ys, zs, rs, ids);
+    const result = await reconstructFromAtomCloud(cloud, props, props.resolution, cacheKey, ctx, mesh);
+    shAccumulateTiming(start, xs.length);
+    return result;
 }
 
 export function StructureSphericalHarmonicSurfaceMeshVisual(materialId: number): ComplexVisual<SphericalHarmonicSurfaceMeshParams> {

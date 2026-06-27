@@ -92,6 +92,40 @@ describe('spherical-harmonics', () => {
         }
     });
 
+    it('regularized fit (Cholesky path) reconstructs a known low-degree shape accurately', () => {
+        const L = 4;
+        const K = shTermCount(L);
+        // a low-degree, well-conditioned truth shape (dominant l=0 keeps the radius strictly positive)
+        const truth = new Float64Array(K);
+        truth[shIndex(0, 0)] = 10;
+        truth[shIndex(1, 0)] = -0.7;
+        truth[shIndex(2, 2)] = 0.9;
+        truth[shIndex(3, -2)] = -0.4;
+
+        const n = 2000;
+        const pts = new Float32Array(n * 3);
+        const golden = Math.PI * (3 - Math.sqrt(5));
+        for (let i = 0; i < n; ++i) {
+            const z = 1 - (2 * i + 1) / n;
+            const theta = Math.acos(z);
+            const phi = i * golden;
+            const r = reconstructRadius(truth, L, theta, phi);
+            const s = Math.sin(theta);
+            pts[i * 3] = r * s * Math.cos(phi);
+            pts[i * 3 + 1] = r * s * Math.sin(phi);
+            pts[i * 3 + 2] = r * Math.cos(theta);
+        }
+
+        // regularization > 0 routes through the Cholesky solve; with dense samples and light damping
+        // the reconstruction tracks the truth radius closely at arbitrary directions
+        const { coeffs } = fitSphericalHarmonics(pts, [0, 0, 0], L, undefined, 0.001);
+        for (let i = 0; i < 50; ++i) {
+            const theta = Math.acos(1 - (2 * i + 1) / 50);
+            const phi = i * golden;
+            expect(reconstructRadius(coeffs, L, theta, phi)).toBeCloseTo(reconstructRadius(truth, L, theta, phi), 1);
+        }
+    });
+
     it('regularization tames an under-determined (sparse, clustered) fit', () => {
         const L = 8; // K = 81 coefficients
         // 20 points strung along x with jitter: far fewer than K, ill-conditioned
