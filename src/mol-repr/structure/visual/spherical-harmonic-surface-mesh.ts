@@ -83,7 +83,7 @@ export const SphericalHarmonicSurfaceMeshParams = {
     ignoreHydrogens: PD.Boolean(false, { description: 'Exclude hydrogen atoms from the shape envelope.' }),
     ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
     traceOnly: PD.Boolean(false, { description: 'Use only trace atoms (e.g. CA, P) for the shape envelope.' }),
-    radiusOffset: PD.Numeric(1.4, { min: 0, max: 20, step: 0.1 }, { description: 'Extra radius added to each atom when building the shape envelope; larger gives a thicker, rounder surface (analogous to a probe radius).' }),
+    radiusOffset: PD.Numeric(1.4, { min: 0, max: 10, step: 0.1 }, { description: 'Extra radius added to each atom when building the shape envelope; larger gives a thicker, rounder surface (analogous to a probe radius).' }),
     sphericalHarmonicL: PD.Numeric(8, { min: 2, max: 20, step: 1 }, { description: 'Maximum spherical harmonic degree. Higher values follow the shape envelope more closely (but cannot recover concavities: the fit is single-valued in radius about the center).' }),
     reconstructionDetail: PD.Numeric(3, { min: 1, max: 5, step: 1 }, { description: 'Triangulation detail of the reconstructed sphere mesh.' }),
     maxLobes: PD.Numeric(1, { min: 1, max: 8, step: 1 }, { description: 'Split non-star-shaped inputs (elongated or multi-domain) into up to this many star-shaped lobes, fit separately, and blend into one watertight surface. 1 keeps a single radial envelope.' }),
