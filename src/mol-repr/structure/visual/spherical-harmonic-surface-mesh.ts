@@ -633,6 +633,12 @@ export function SphericalHarmonicSurfaceMeshVisual(materialId: number): UnitsVis
 
 //
 
+/**
+ * Structure flavour: fit ONE envelope to every atom of the whole structure merged together, for a
+ * deliberately coarse single-object outline of the entire complex (vs. the per-chain units flavour or
+ * the symmetry-replicated assembly flavour). Star-convex, so it reads as a smooth bounding shape of
+ * the input rather than a faithful multi-chain surface.
+ */
 async function createStructureSphericalHarmonicSurfaceMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: SphericalHarmonicSurfaceMeshProps, mesh?: Mesh): Promise<Mesh> {
     const start = isTimingMode ? now() : 0;
     const cacheKey = surfaceCacheKey(`structure-${structure.hashCode}`, props);

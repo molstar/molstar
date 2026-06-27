@@ -16,10 +16,14 @@
  * `maxLobes` parameter, fit separately and blended into one watertight surface;
  * see the visual module for details.
  *
- * Three visual flavours: per-unit (one envelope per chain, instanced across the
- * assembly natively), structure (one merged envelope over the whole input), and
- * assembly (one envelope fit to the asymmetric unit and replicated across the
- * assembly operators).
+ * Three visual flavours, differing only in which atoms each envelope is fit to:
+ * - per-unit (default): one envelope per chain, instanced across the assembly natively.
+ * - structure: a single envelope over the whole input merged together - a deliberately
+ *   coarse overall shape of the entire complex (e.g. a quick globular outline of a capsid
+ *   or assembly as one object). Star-convex like the others, so it is a smooth bounding
+ *   shape, not a per-chain surface.
+ * - assembly: one envelope fit to the asymmetric unit and replicated across the assembly
+ *   operators (e.g. a protomer fit once, drawn as the full symmetric assembly).
  */
 
 import { SphericalHarmonicSurfaceMeshVisual, SphericalHarmonicSurfaceMeshParams, StructureSphericalHarmonicSurfaceMeshVisual, AssemblySphericalHarmonicSurfaceMeshVisual } from '../visual/spherical-harmonic-surface-mesh';
