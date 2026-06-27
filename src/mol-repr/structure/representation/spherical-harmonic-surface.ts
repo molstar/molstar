@@ -3,9 +3,12 @@
  *
  * @author Ludovic Autin <autin@scripps.edu>
  *
- * Spherical Harmonic Surface representation: a molecular surface approximated by
- * a real spherical-harmonic expansion of the radial function r(theta, phi). The
- * `sphericalHarmonicL` parameter controls the level of detail.
+ * Spherical Harmonic Surface representation: a smooth shape envelope approximated by
+ * a real spherical-harmonic expansion of the radial function r(theta, phi), fit to an
+ * atom cloud (each atom pushed out by its size + radiusOffset). The `sphericalHarmonicL`
+ * parameter controls the level of detail. At these low degrees the expansion is low-pass,
+ * so fitting atoms is equivalent to fitting the molecular surface at far lower cost
+ * (Ritchie & Kemp 1999; Duncan & Olson 1993).
  *
  * A single expansion is single-valued in r about one center, so it only
  * represents star-convex shapes. Non-star-shaped inputs (elongated or
@@ -53,7 +56,7 @@ export function SphericalHarmonicSurfaceRepresentation(ctx: RepresentationContex
 export const SphericalHarmonicSurfaceRepresentationProvider = StructureRepresentationProvider({
     name: 'spherical-harmonic-surface',
     label: 'Spherical Harmonic Surface',
-    description: 'Displays a smooth surface envelope approximated by a spherical harmonic expansion of the molecular surface (star-convex per lobe; raise maxLobes to split elongated or multi-domain shapes into blended star-shaped lobes).',
+    description: 'Displays a smooth shape envelope approximated by a spherical harmonic expansion of the atom positions (star-convex per lobe; raise maxLobes to split elongated or multi-domain shapes into blended star-shaped lobes).',
     factory: SphericalHarmonicSurfaceRepresentation,
     getParams: getSphericalHarmonicSurfaceParams,
     defaultValues: PD.getDefaultValues(SphericalHarmonicSurfaceParams),

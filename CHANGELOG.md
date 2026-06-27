@@ -4,13 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
-- Add Spherical Harmonic Surface representation (smooth star-convex surface envelope of the molecular surface)
-  - Add `maxLobes` to auto-decompose genuinely non-star-shaped inputs into star-shaped lobes, blended into one watertight surface via a marching-cubes implicit field
-  - Add Tikhonov `regularization` (per-band l(l+1) damping) to stabilize the fit on sparse/clustered clouds (e.g. trace-only) and clamp reconstruction overshoot, fixing the blank/disappearing surface when changing quality, trace-only or other options
-  - Derive the bounding sphere from the reconstructed vertices instead of the atom boundary (the radial surface can exceed it, which culled the mesh)
-  - Fix the surface vanishing on a parameter change: compute the molecular-surface base into a separate cached mesh instead of the render object's mesh, so the bound mesh is only ever swapped to the final reconstruction atomically (previously it briefly held the base surface across an await, desyncing its vertex/index buffers)
-  - Add an `assembly-spherical-harmonic-surface-mesh` visual that fits one envelope to the asymmetric unit and replicates it across the assembly operators (one protomer fit once, drawn N times), instead of one merged blob over the whole assembly
-  - Fix black patches with per-element color themes (atom type, residue name, secondary structure): set the color-smoothing grid spacing from the reconstructed mesh's vertex spacing instead of the (much finer) base molecular-surface resolution, which had left empty/black cells between the sparse reconstructed vertices
+- Add Spherical Harmonic Surface representation: a smooth star-convex shape envelope fit to atom positions via a real spherical-harmonic expansion, with per-unit/structure/assembly visuals and `maxLobes` splitting for non-star-shaped inputs
 - Fix size-only representation theme updates in `updateRepresentationsTheme`.
 - Fix ASA coloring for hydrogens
 
