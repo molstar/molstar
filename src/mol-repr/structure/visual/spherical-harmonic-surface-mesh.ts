@@ -49,7 +49,6 @@ import { ComplexMeshVisual, ComplexVisual } from '../complex-visual';
 import { Tensor } from '../../../mol-math/linear-algebra/tensor';
 import { Mat3, Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { Sphere } from '../../../mol-geo/primitive/sphere';
-import { GridLookup3D } from '../../../mol-math/geometry/lookup3d/grid';
 import { getBoundary } from '../../../mol-math/geometry/boundary';
 import { OrderedSet } from '../../../mol-data/int';
 import { fitSphericalHarmonics, fitSphericalHarmonicLobes, reconstructRadius, shTermCount, SphericalHarmonicLobe } from '../../../mol-math/geometry/spherical-harmonics';
@@ -101,7 +100,6 @@ type SphericalHarmonicSurfaceMeta = {
     shCenter?: Vec3
     shVertices?: Float32Array
     shGroups?: Float32Array
-    shLookup?: GridLookup3D
     shBoundingSphere?: Sphere3D
     // cache of the fitted lobes, keyed by `${L}|${maxLobes}` so a detail-only change re-tessellates without refitting
     shFitKey?: string
@@ -131,9 +129,9 @@ function surfaceCacheKey(id: string, props: SphericalHarmonicSurfaceMeshProps) {
 /**
  * Cap on the number of atom-cloud points gathered for the fit and the group transfer. A smooth
  * degree-L envelope is determined by far fewer points (the fit strides to 8192 internally) and the
- * per-vertex group transfer is approximate, so for large structures the cloud is uniformly strided:
- * building the point arrays and the group-transfer `GridLookup3D` over every atom (millions for e.g.
- * 3J3Q) is the dominant cost of the atom-fit path and is unnecessary. Uniform stride preserves shape.
+ * per-vertex group transfer is over a coarse envelope anyway, so for large structures the cloud is
+ * uniformly strided: building the point arrays and running the brute-force group transfer over every
+ * atom (millions for e.g. 3J3Q) would be wasteful. Uniform stride preserves the overall shape.
  */
 const MaxFitCloudPoints = 50000;
 
@@ -210,11 +208,26 @@ function estimateVertexSpacing(mesh: Mesh): number {
     return n > 0 ? sum / n : 1;
 }
 
-/** Copy the group id of the nearest original surface vertex onto each reconstructed vertex. */
-function transferGroups(vertices: Float32Array, vertexCount: number, shLookup: GridLookup3D, shGroups: Float32Array, out: Float32Array) {
+/**
+ * Copy the group id of the nearest atom-cloud point onto each reconstructed vertex (the group drives
+ * per-vertex coloring and picking). The nearest is found by brute-force scan over the full cloud
+ * rather than a spatial-lookup query: the reconstructed vertices sit out on the smooth envelope,
+ * outside the atom bounding box, where a `GridLookup3D` expands its search in grid-cell shells - both
+ * slow (~17 ms/build, 78% of the build on the 1356-chain 3J3Q) and only approximate for such
+ * out-of-box queries. A linear scan over a few thousand points is faster here and returns the exact
+ * Euclidean nearest. The full cloud is used (no sample cap) so the assignment stays exact.
+ */
+function transferGroups(vertices: Float32Array, vertexCount: number, cloud: Float32Array, cloudGroups: Float32Array, out: Float32Array) {
+    const pointCount = cloud.length / 3;
     for (let i = 0; i < vertexCount; ++i) {
-        const res = shLookup.nearest(vertices[i * 3], vertices[i * 3 + 1], vertices[i * 3 + 2], 1);
-        out[i] = res.count > 0 ? shGroups[res.indices[0]] : 0;
+        const vx = vertices[i * 3], vy = vertices[i * 3 + 1], vz = vertices[i * 3 + 2];
+        let best = Infinity, bi = -1;
+        for (let j = 0; j < pointCount; ++j) {
+            const dx = cloud[j * 3] - vx, dy = cloud[j * 3 + 1] - vy, dz = cloud[j * 3 + 2] - vz;
+            const d = dx * dx + dy * dy + dz * dz;
+            if (d < best) { best = d; bi = j; }
+        }
+        out[i] = bi >= 0 ? cloudGroups[bi] : 0;
     }
 }
 
@@ -222,7 +235,7 @@ function transferGroups(vertices: Float32Array, vertexCount: number, shLookup: G
  * Single star-shaped lobe → analytic icosphere blob (fast, instanceable): scale
  * each unit-sphere direction by the reconstructed radius about the lobe center.
  */
-function reconstructIcosphereBlob(lobe: SphericalHarmonicLobe, L: number, props: SphericalHarmonicSurfaceMeshProps, shLookup: GridLookup3D, shGroups: Float32Array, mesh?: Mesh): Mesh {
+function reconstructIcosphereBlob(lobe: SphericalHarmonicLobe, L: number, props: SphericalHarmonicSurfaceMeshProps, cloud: Float32Array, shGroups: Float32Array, mesh?: Mesh): Mesh {
     const K = shTermCount(L);
     const { center, coeffs } = lobe;
 
@@ -251,7 +264,7 @@ function reconstructIcosphereBlob(lobe: SphericalHarmonicLobe, L: number, props:
         else if (r > rClamp) r = rClamp;
         vertices[i * 3] = cx + r * dx; vertices[i * 3 + 1] = cy + r * dy; vertices[i * 3 + 2] = cz + r * dz;
     }
-    transferGroups(vertices, vertexCount, shLookup, shGroups, groups);
+    transferGroups(vertices, vertexCount, cloud, shGroups, groups);
 
     const surface = Mesh.create(vertices, indices, normals, groups, vertexCount, triangleCount, mesh);
     Mesh.computeNormals(surface);
@@ -271,7 +284,7 @@ const MaxFieldDim = 64;
  * instead of producing the seam crease / internal walls of overlaid blobs. The
  * field is marching-cubed once at iso-level 0.
  */
-async function reconstructLobesField(lobes: SphericalHarmonicLobe[], L: number, props: SphericalHarmonicSurfaceMeshProps, shLookup: GridLookup3D, shGroups: Float32Array, boundingSphere: Sphere3D, ctx: VisualContext, mesh?: Mesh): Promise<Mesh> {
+async function reconstructLobesField(lobes: SphericalHarmonicLobe[], L: number, props: SphericalHarmonicSurfaceMeshProps, cloud: Float32Array, shGroups: Float32Array, boundingSphere: Sphere3D, ctx: VisualContext, mesh?: Mesh): Promise<Mesh> {
     const R = boundingSphere.radius + FieldPad + props.resolution;
     const c = boundingSphere.center;
     const min = Vec3.create(c[0] - R, c[1] - R, c[2] - R);
@@ -336,7 +349,7 @@ async function reconstructLobesField(lobes: SphericalHarmonicLobe[], L: number, 
     const vb = surface.vertexBuffer.ref.value;
     const gb = surface.groupBuffer.ref.value;
     const groups = gb.length >= vertexCount ? gb : new Float32Array(vertexCount);
-    transferGroups(vb, vertexCount, shLookup, shGroups, groups);
+    transferGroups(vb, vertexCount, cloud, shGroups, groups);
     ValueCell.update(surface.groupBuffer, groups);
 
     return surface;
@@ -351,8 +364,8 @@ async function reconstructLobesField(lobes: SphericalHarmonicLobe[], L: number, 
  * watertight surface via a marching-cubes implicit field.
  */
 async function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMeta, props: SphericalHarmonicSurfaceMeshProps, ctx: VisualContext, mesh?: Mesh): Promise<Mesh> {
-    const { shVertices, shGroups, shLookup, shCenter, shBoundingSphere } = meta;
-    if (!shVertices || !shGroups || !shLookup || !shCenter || !shBoundingSphere || shVertices.length === 0) {
+    const { shVertices, shGroups, shCenter, shBoundingSphere } = meta;
+    if (!shVertices || !shGroups || !shCenter || !shBoundingSphere || shVertices.length === 0) {
         return Mesh.createEmpty(mesh);
     }
 
@@ -387,8 +400,8 @@ async function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMe
     }
 
     const surface = lobes.length <= 1
-        ? reconstructIcosphereBlob(lobes[0], L, props, shLookup, shGroups, mesh)
-        : await reconstructLobesField(lobes, L, props, shLookup, shGroups, shBoundingSphere, ctx, mesh);
+        ? reconstructIcosphereBlob(lobes[0], L, props, shVertices, shGroups, mesh)
+        : await reconstructLobesField(lobes, L, props, shVertices, shGroups, shBoundingSphere, ctx, mesh);
 
     if (ctx.webgl && !ctx.webgl.isWebGL2) {
         Mesh.uniformTriangleGroup(surface);
@@ -419,23 +432,10 @@ async function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMe
  * group ids.
  */
 function populateCacheFromPoints(meta: SphericalHarmonicSurfaceMeta, points: Float32Array, groups: Float32Array, center: Vec3, boundingSphere: Sphere3D, resolution: number, cacheKey: string) {
-    const n = points.length / 3;
-    const x = new Float32Array(n);
-    const y = new Float32Array(n);
-    const z = new Float32Array(n);
-    for (let i = 0; i < n; ++i) {
-        x[i] = points[i * 3];
-        y[i] = points[i * 3 + 1];
-        z[i] = points[i * 3 + 2];
-    }
-    const position = { x, y, z, indices: OrderedSet.ofRange(0, n) };
-    const shLookup = n > 0 ? GridLookup3D(position, getBoundary(position)) : undefined;
-
     meta.shCacheKey = cacheKey;
     meta.shCenter = Vec3.clone(center);
     meta.shVertices = points;
     meta.shGroups = groups;
-    meta.shLookup = shLookup;
     meta.shBoundingSphere = Sphere3D.clone(boundingSphere);
     meta.resolution = resolution;
     // the point cloud changed: invalidate the cached fit so it is recomputed
