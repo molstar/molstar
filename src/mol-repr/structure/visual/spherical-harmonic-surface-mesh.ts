@@ -360,11 +360,19 @@ async function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMe
     const maxLobes = Math.max(1, Math.round(props.maxLobes));
     const regularization = props.regularization;
 
+    // Cap the points used for the least-squares fit. The fit cost is O(points * K^2), K = (L+1)^2,
+    // and it runs once per unit, so for large chains (e.g. ~1800-atom CA in 3J3Q x ~1356 chains) the
+    // accumulation dominates build/update time. A smooth degree-L envelope is over-determined by far
+    // fewer points (~10 * K), so striding the cloud to that cap is near-lossless (sub-0.5 A on a
+    // ~20 A envelope) while cutting the fit several-fold. Scales with L so high degrees keep enough
+    // samples. The full cloud is still used for the per-vertex group transfer (accurate coloring).
+    const maxFitPoints = Math.min(8192, Math.max(512, shTermCount(L) * 10));
+
     const fitKey = `${L}|${maxLobes}|${regularization}`;
     let lobes = meta.shFitKey === fitKey ? meta.shFitLobes : undefined;
     if (!lobes) {
         if (maxLobes <= 1) {
-            const { coeffs, rMax } = fitSphericalHarmonics(shVertices, shCenter, L, undefined, regularization);
+            const { coeffs, rMax } = fitSphericalHarmonics(shVertices, shCenter, L, maxFitPoints, regularization);
             lobes = [{ center: [shCenter[0], shCenter[1], shCenter[2]], coeffs, rMax }];
         } else {
             // Split only genuinely non-star-shaped clouds (crescents, rings, centroid-outside
@@ -374,7 +382,7 @@ async function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMe
             // star-shaped blob looks "re-entrant". Empirically ~R/3 with tolerance ~0.3 keeps a
             // solid ball at one lobe while a true gap (~R) still triggers.
             const thickness = Math.max(3, shBoundingSphere.radius * 0.33);
-            lobes = fitSphericalHarmonicLobes(shVertices, L, { maxLobes, tolerance: 0.3, thickness, regularization }).lobes;
+            lobes = fitSphericalHarmonicLobes(shVertices, L, { maxLobes, tolerance: 0.3, thickness, maxPoints: maxFitPoints, regularization }).lobes;
         }
     }
 
