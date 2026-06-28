@@ -342,7 +342,7 @@ export async function loadMVSFromUrl(plugin: PluginContext, url: string, format:
 /** Load MolViewSpec from `data`.
  * If `format` is 'mvsj', `data` must be a string or a Uint8Array containing a UTF8-encoded string.
  * If `format` is 'mvsx', `data` must be a Uint8Array or a string containing base64-encoded binary data prefixed with 'base64,'. */
-export async function loadMvsData(plugin: PluginContext, data: string | Uint8Array<ArrayBuffer>, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, keepCameraOrientation?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+export async function loadMvsData(plugin: PluginContext, data: string | Uint8Array<ArrayBuffer>, format: 'mvsj' | 'mvsx', options?: MVSLoadOptions) {
     await plugin.initialized;
     return loadMVSData(plugin, data, format, options);
 }

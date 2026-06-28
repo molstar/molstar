@@ -2,6 +2,7 @@
  * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { CopyRenderable, QuadSchema, QuadValues, createCopyRenderable } from '../../mol-gl/compute/util';
@@ -148,7 +149,7 @@ export class IlluminationPass {
 
         this.copyRenderable = createCopyRenderable(webgl, this.transparentTarget.texture);
 
-        this.composeRenderable = getComposeRenderable(webgl, this.tracing.accumulateTarget.texture, this.tracing.normalTextureOpaque, this.tracing.colorTextureOpaque, this.drawPass.depthTextureOpaque, this.drawPass.depthTargetTransparent.texture, this.drawPass.postprocessing.outline.target.texture, this.transparentTarget.texture, this.drawPass.postprocessing.ssao.ssaoDepthTexture, this.drawPass.postprocessing.ssao.ssaoDepthTransparentTexture, false);
+        this.composeRenderable = getComposeRenderable(webgl, this.tracing.accumulateTarget.texture, this.tracing.normalTextureOpaque, this.tracing.colorTextureOpaque, this.drawPass.depthTextureOpaque, this.drawPass.depthTargetTransparent.texture, this.drawPass.postprocessing.outline.target.texture, this.transparentTarget.texture, this.drawPass.postprocessing.ssao.ssaoDepthTexture, this.drawPass.postprocessing.ssao.ssaoDepthTransparentTexture, this.drawPass.postprocessing.bloom.compositeTarget.texture, false);
 
         this.multiSampleComposeTarget = webgl.createRenderTarget(width, height, false, 'float32');
         this.multiSampleHoldTarget = webgl.createRenderTarget(width, height, false);
@@ -173,8 +174,9 @@ export class IlluminationPass {
         const outlineEnabled = PostprocessingPass.isTransparentOutlineEnabled(props.postprocessing) && !props.illumination.ignoreOutline;
         const dofEnabled = DofPass.isEnabled(props.postprocessing);
         const ssaoEnabled = PostprocessingPass.isTransparentSsaoEnabled(scene, props.postprocessing);
+        const bloomEnabled = BloomPass.isEnabled(props.postprocessing);
 
-        if (outlineEnabled || dofEnabled || ssaoEnabled) {
+        if (outlineEnabled || dofEnabled || ssaoEnabled || bloomEnabled) {
             this.drawPass.depthTargetTransparent.bind();
             renderer.clearDepth(true);
         }
@@ -224,7 +226,7 @@ export class IlluminationPass {
                 }
             }
 
-            if (outlineEnabled || dofEnabled || ssaoEnabled) {
+            if (outlineEnabled || dofEnabled || ssaoEnabled || bloomEnabled) {
                 this.drawPass.depthTargetTransparent.bind();
                 if (scene.opacityAverage < 1) {
                     renderer.renderDepthTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque);
@@ -423,6 +425,46 @@ export class IlluminationPass {
             needsUpdateCompose = true;
         }
 
+        // bloom composite — compose applies it inline below
+
+        renderer.setDrawingBufferSize(this.tracing.composeTarget.getWidth(), this.tracing.composeTarget.getHeight());
+        renderer.setPixelRatio(this.webgl.pixelRatio);
+        renderer.setViewport(x, y, width, height);
+        renderer.update(camera, scene);
+
+        let bloomActive = false;
+        if (bloomEnabled && props.postprocessing.bloom.name === 'on') {
+            const params = props.postprocessing.bloom.params;
+            const bloom = this.drawPass.postprocessing.bloom;
+            const emissiveBloom = params.mode === 'emissive';
+            const skip = emissiveBloom && scene.emissiveAverage === 0;
+
+            if (!skip) {
+                if (emissiveBloom) {
+                    bloom.emissiveTarget.bind();
+                    renderer.clear(false, true, true);
+                    renderer.renderEmissiveOpaque(scene.primitives, camera);
+                    if (params.transparency && scene.opacityAverage < 1) {
+                        renderer.renderEmissiveTransparent(scene.primitives, camera, this.drawPass.depthTextureTransparent);
+                    }
+                }
+                if (scene.opacityAverage >= 1) {
+                    this.transparentTarget.bind();
+                    renderer.clear(false, false, true);
+                    this.drawPass.depthTargetTransparent.bind();
+                    renderer.clearDepth(true);
+                }
+                // seed luminosity bloom from the shaded (lit) color, like the standard path's colorTarget
+                bloom.update(this.tracing.shadedTextureOpaque, this.transparentTarget.texture, bloom.emissiveTarget.texture, this.drawPass.depthTextureOpaque, this.drawPass.depthTextureTransparent, params, camera, false);
+                bloom.render(camera.viewport);
+                bloomActive = true;
+            }
+        }
+        if (this.composeRenderable.values.dBloomEnable.ref.value !== bloomActive) {
+            needsUpdateCompose = true;
+            ValueCell.update(this.composeRenderable.values.dBloomEnable, bloomActive);
+        }
+
         // background
 
         const _toDrawingBuffer = toDrawingBuffer && !antialiasingEnabled && !dofEnabled;
@@ -439,7 +481,11 @@ export class IlluminationPass {
 
         // compose
 
-        ValueCell.updateIfChanged(this.composeRenderable.values.uTransparentBackground, props.transparentBackground || this.drawPass.postprocessing.background.isEnabled(props.postprocessing));
+        // premultiplied scene composited over the background (cleared color or environment) with
+        // premultiplied-over — keeps transparency weight (vs SRC_ALPHA's color*a^2) and lets bloom occlude
+        const backgroundVariant = this.drawPass.postprocessing.background.isEnabled(props.postprocessing);
+        const compositeBackground = backgroundVariant || (bloomActive && !props.transparentBackground);
+        ValueCell.updateIfChanged(this.composeRenderable.values.uTransparentBackground, props.transparentBackground || compositeBackground);
         if (this.composeRenderable.values.dDenoise.ref.value !== props.illumination.denoise) {
             ValueCell.update(this.composeRenderable.values.dDenoise, props.illumination.denoise);
             needsUpdateCompose = true;
@@ -449,44 +495,31 @@ export class IlluminationPass {
             : lerp(props.illumination.denoiseThreshold[1], props.illumination.denoiseThreshold[0], clamp(this.iteration / (this.getMaxIterations(props.illumination) / 2), 0, 1));
         ValueCell.updateIfChanged(this.composeRenderable.values.uDenoiseThreshold, denoiseThreshold);
         if (needsUpdateCompose) this.composeRenderable.update();
+        if (compositeBackground) {
+            state.enable(gl.BLEND);
+            state.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        }
         this.composeRenderable.render();
 
         //
 
-        renderer.setDrawingBufferSize(this.tracing.composeTarget.getWidth(), this.tracing.composeTarget.getHeight());
-        renderer.setPixelRatio(this.webgl.pixelRatio);
-        renderer.setViewport(x, y, width, height);
-        renderer.update(camera, scene);
-
-        //
-
-        let targetIsDrawingbuffer = false;
         let swapTarget = this.outputTarget;
 
         if (antialiasingEnabled) {
             const _toDrawingBuffer = toDrawingBuffer && !dofEnabled;
             this.drawPass.antialiasing.render(camera, this.tracing.composeTarget.texture, _toDrawingBuffer ? true : this.outputTarget, props.postprocessing);
 
-            if (_toDrawingBuffer) {
-                targetIsDrawingbuffer = true;
-            } else {
+            if (!_toDrawingBuffer) {
                 this._colorTarget = this.outputTarget;
                 swapTarget = this.tracing.composeTarget;
             }
         }
 
-        if (bloomEnabled && props.postprocessing.bloom.name === 'on') {
-            const _toDrawingBuffer = (toDrawingBuffer && !dofEnabled) || targetIsDrawingbuffer;
-            this.drawPass.bloom.update(this.tracing.colorTextureOpaque, this.tracing.normalTextureOpaque, this.drawPass.depthTextureOpaque, props.postprocessing.bloom.params);
-            this.drawPass.bloom.render(camera.viewport, _toDrawingBuffer ? undefined : this._colorTarget);
-        }
-
         if (dofEnabled && props.postprocessing.dof.name === 'on') {
-            const _toDrawingBuffer = toDrawingBuffer || targetIsDrawingbuffer;
             this.drawPass.dof.update(camera, this._colorTarget.texture, this.drawPass.depthTextureOpaque, this.drawPass.depthTargetTransparent.texture, props.postprocessing.dof.params, scene.boundingSphereVisible);
-            this.drawPass.dof.render(camera.viewport, _toDrawingBuffer ? undefined : swapTarget);
+            this.drawPass.dof.render(camera.viewport, toDrawingBuffer ? undefined : swapTarget);
 
-            if (!_toDrawingBuffer) {
+            if (!toDrawingBuffer) {
                 this._colorTarget = swapTarget;
             }
         }
@@ -636,6 +669,8 @@ const ComposeSchema = {
     tDepthOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tOutlines: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tBloom: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+    dBloomEnable: DefineSpec('boolean'),
     uTexSize: UniformSpec('v2'),
 
     dDenoise: DefineSpec('boolean'),
@@ -659,7 +694,7 @@ const ComposeSchema = {
 const ComposeShaderCode = ShaderCode('compose', quad_vert, compose_frag);
 type ComposeRenderable = ComputeRenderable<Values<typeof ComposeSchema>>
 
-function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture, normalTexture: Texture, shadedTexture: Texture, depthTextureOpaque: Texture, depthTextureTransparent: Texture, outlinesTexture: Texture, transparentColorTexture: Texture, ssaoDepthOpaqueTexture: Texture, ssaoDepthTransparentTexture: Texture, transparentOutline: boolean): ComposeRenderable {
+function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture, normalTexture: Texture, shadedTexture: Texture, depthTextureOpaque: Texture, depthTextureTransparent: Texture, outlinesTexture: Texture, transparentColorTexture: Texture, ssaoDepthOpaqueTexture: Texture, ssaoDepthTransparentTexture: Texture, bloomTexture: Texture, transparentOutline: boolean): ComposeRenderable {
     const values: Values<typeof ComposeSchema> = {
         ...QuadValues,
         tColor: ValueCell.create(colorTexture),
@@ -672,6 +707,8 @@ function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture, normalTe
         tDepthOpaque: ValueCell.create(depthTextureOpaque),
         tDepthTransparent: ValueCell.create(depthTextureTransparent),
         tOutlines: ValueCell.create(outlinesTexture),
+        tBloom: ValueCell.create(bloomTexture),
+        dBloomEnable: ValueCell.create(false),
         uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
 
         dDenoise: ValueCell.create(true),

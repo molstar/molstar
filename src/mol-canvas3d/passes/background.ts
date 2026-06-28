@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { QuadPositions, } from '../../mol-gl/compute/util';
@@ -333,7 +334,10 @@ export class BackgroundPass {
             state.enable(gl.BLEND);
             state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         } else {
-            state.clearColor(0, 0, 0, 1);
+            // no environment: clear to the opaque background color so a premultiplied scene
+            // can composite over it (overwritten anyway when the scene is opaque)
+            Color.toVec3Normalized(this.bgColor, backgroundColor);
+            state.clearColor(this.bgColor[0], this.bgColor[1], this.bgColor[2], 1);
             gl.clear(gl.COLOR_BUFFER_BIT);
         }
     }
