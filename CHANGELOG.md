@@ -11,6 +11,8 @@ Note that since we don't clearly distinguish between a public and private interf
   - Background-aware blend: screen on transparent background, PMA over on opaque background, additive on geometry
 - Fix size-only representation theme updates in `updateRepresentationsTheme`.
 - Fix ASA coloring for hydrogens
+- Add `defaultSnapshotIndex` argument to `MVSLoadOptions` to enable loading a snapshot other than the first one by default
+- Fix `loaders.loadMvs*` options type
 
 ## [v5.10.0] - 2026-06-14
 - Fix exported image artifacts on transparent background with emissive, bloom, or antialiasing
@@ -49,6 +51,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `examples/react` that showcases few ways the Mol* can be used together with React
 - Fix default representation plugin option, which resulted in represenations not being shown automatically when using the default plugin spec
 - Track added custom props in `QueryRuntimeTable` to prevent excess "symbol already added" messages when creating multiple instances of a pluing
+- Handle empty `chem_comp.type`
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty

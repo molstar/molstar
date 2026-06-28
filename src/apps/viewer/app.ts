@@ -7,7 +7,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { MolstarLoadingExtension } from '../../extensions/mvs/load';
+import { MVSLoadOptions } from '../../extensions/mvs/load';
 import { applyStructureInteractivity, StructureInteractivityOptions } from '../../extensions/plugin/interactivity';
 import * as loaders from '../../extensions/plugin/loaders';
 import { Volume } from '../../mol-model/volume';
@@ -180,14 +180,14 @@ export class Viewer {
         return loaders.loadTrajectory(this.plugin, params);
     }
 
-    loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, keepCameraOrientation?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+    loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx', options?: MVSLoadOptions) {
         return loaders.loadMVSFromUrl(this.plugin, url, format, options);
     }
 
     /** Load MolViewSpec from `data`.
      * If `format` is 'mvsj', `data` must be a string or a Uint8Array containing a UTF8-encoded string.
      * If `format` is 'mvsx', `data` must be a Uint8Array or a string containing base64-encoded binary data prefixed with 'base64,'. */
-    loadMvsData(data: string | Uint8Array<ArrayBuffer>, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, keepCameraOrientation?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+    loadMvsData(data: string | Uint8Array<ArrayBuffer>, format: 'mvsj' | 'mvsx', options?: MVSLoadOptions) {
         return loaders.loadMvsData(this.plugin, data, format, options);
     }
 

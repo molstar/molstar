@@ -4,6 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Aliaksei Chareshneu <chareshneu.tech@gmail.com>
+ * @author Marek Eibel <108737044+kerrambit@users.noreply.github.com>
  */
 
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
@@ -55,6 +56,8 @@ export interface MVSLoadOptions {
     sanityChecks?: boolean,
     /** Base for resolving relative URLs/URIs. May itself be a relative URL (relative to the window URL). */
     sourceUrl?: string,
+    /** The index of the snapshot to apply initially. Defaults to 0. */
+    defaultSnapshotIndex?: number,
 
     doNotReportErrors?: boolean
 }
@@ -115,7 +118,11 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
         }
 
         if (entries.length > 0) {
-            await PluginCommands.State.Snapshots.Apply(plugin, { id: entries[0].snapshot.id });
+            let indexToApply = options.defaultSnapshotIndex ?? 0;
+            if (indexToApply < 0 || indexToApply >= entries.length) {
+                indexToApply = 0;
+            }
+            await PluginCommands.State.Snapshots.Apply(plugin, { id: entries[indexToApply].snapshot.id });
         }
     } catch (err) {
         plugin.log.error(`${err}`);
