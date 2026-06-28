@@ -224,6 +224,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         const coordinateSystem = pivot?.transform?.cell.obj?.data.coordinateSystem;
 
         const mccsAlignTask = Task.create('Ligand Superposition', async ctx => {
+            let aligned = 0;
             for (let i = 1; i < entries.length; i++) {
                 if (ctx.shouldUpdate) await ctx.update(`Superposing ligand ${i} of ${entries.length - 1}...`);
 
@@ -238,13 +239,19 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
                 }
 
                 await this.transform(trgEntry.cell, result.bTransform, coordinateSystem);
+                aligned++;
 
                 const labelA = stripTags(refEntry.label);
                 const labelB = stripTags(trgEntry.label);
                 this.plugin.log.info(`Ligand superposed [${labelA}] and [${labelB}] via ${result.method} using ${result.atomCount} atoms (RMSD ${result.rmsd.toFixed(2)} Å).`);
             }
 
-            await this.cameraReset();
+            // focus the aligned ligands; the reference is the pivot, so every target now sits on it
+            if (aligned > 0 && !StructureElement.Loci.isEmpty(refLoci)) {
+                this.plugin.managers.camera.focusLoci(refLoci);
+            } else {
+                await this.cameraReset();
+            }
         });
 
         await this.plugin.runTask(mccsAlignTask, { useOverlay: true });
