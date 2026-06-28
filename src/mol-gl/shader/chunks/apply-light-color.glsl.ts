@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -17,7 +17,7 @@ export const apply_light_color = `
         }
     #endif
 
-    #if defined(dRenderVariant_color)
+    #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
         material.rgb += material.rgb * emissive;
     #endif
 
@@ -103,7 +103,7 @@ export const apply_light_color = `
     #endif
     outgoingLight = clamp(outgoingLight, 0.01, 0.99); // prevents black artifacts on specular highlight with transparent background
 
-    #if defined(dRenderVariant_color)
+    #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
         outgoingLight += color.rgb * emissive;
     #endif
 

@@ -11,6 +11,7 @@ import { CIF } from '../../mol-io/reader/cif';
 import * as DSN6 from '../../mol-io/reader/dsn6/parser';
 import * as PLY from '../../mol-io/reader/ply/parser';
 import * as OBJ from '../../mol-io/reader/obj/parser';
+import * as VTP from '../../mol-io/reader/vtp/parser';
 import { parsePsf } from '../../mol-io/reader/psf/parser';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObject, StateTransformer } from '../../mol-state';
@@ -46,6 +47,7 @@ export { ParsePrmtop };
 export { ParseTop };
 export { ParsePly };
 export { ParseObj };
+export { ParseVtp };
 export { ParseCcp4 };
 export { ParseDsn6 };
 export { ParseDx };
@@ -423,6 +425,22 @@ const ParseObj = PluginStateTransform.BuiltIn({
             const parsed = await OBJ.parseObj(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             return new SO.Format.Obj(parsed.result, { label: 'OBJ Data' });
+        });
+    }
+});
+
+type ParseVtp = typeof ParseVtp
+const ParseVtp = PluginStateTransform.BuiltIn({
+    name: 'parse-vtp',
+    display: { name: 'Parse VTP', description: 'Parse VTP (VTK PolyData) from Binary data' },
+    from: [SO.Data.Binary],
+    to: SO.Format.Vtp
+})({
+    apply({ a }) {
+        return Task.create('Parse VTP', async ctx => {
+            const parsed = await VTP.parseVtp(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            return new SO.Format.Vtp(parsed.result, { label: 'VTP Data' });
         });
     }
 });

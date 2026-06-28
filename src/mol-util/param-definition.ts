@@ -233,13 +233,23 @@ export namespace ParamDefinition {
         return setInfo<Interval>(setRange({ type: 'interval', defaultValue }, range), info);
     }
 
+    export interface LineGraphYAxis {
+        scale?: 'linear' | 'log',
+        /** Lower bound for log scale (alpha values below this are clamped for display only). Default 1e-3. */
+        logMin?: number
+    }
     export interface LineGraph extends Base<Vec2Data[]> {
         type: 'line-graph',
-        getVolume?: () => unknown
+        getVolume?: () => unknown,
+        yAxis?: LineGraphYAxis,
+        /** Optional preset provider. Called lazily when the user opens the presets menu so presets can be derived from current data (e.g. volume stats). */
+        getPresets?: () => Select<Vec2Data[]>['options']
     }
-    export function LineGraph(defaultValue: Vec2Data[], info?: Info & { getVolume?: (binCount?: number) => unknown }): LineGraph {
+    export function LineGraph(defaultValue: Vec2Data[], info?: Info & { getVolume?: () => unknown, yAxis?: LineGraphYAxis, getPresets?: () => Select<Vec2Data[]>['options'] }): LineGraph {
         const ret = setInfo<LineGraph>({ type: 'line-graph', defaultValue }, info);
         if (info?.getVolume) ret.getVolume = info.getVolume;
+        if (info?.yAxis) ret.yAxis = info.yAxis;
+        if (info?.getPresets) ret.getPresets = info.getPresets;
         return ret;
     }
 
