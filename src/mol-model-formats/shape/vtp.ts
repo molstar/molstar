@@ -301,7 +301,7 @@ function computeVertexValues(vtpFile: VtpFile, attribute: string): VertexResult 
  * Auto domain matches smgui [min, max]. For magnitude attributes where all values are
  * nearly identical (e.g. PointData unit normals, range < 1% of max), fall back to [0, max].
  */
-function makeColorFn(vtpFile: VtpFile, colorTheme: PD.Values<VtpShapeParams>['colorTheme'], result: VertexResult | null): (gid: number) => Color {
+function makeColorFn(colorTheme: PD.Values<VtpShapeParams>['colorTheme'], result: VertexResult | null): (gid: number) => Color {
     if (colorTheme.name === 'uniform') return () => colorTheme.params.color;
     if (!result) return () => ColorNames.grey;
 
@@ -383,7 +383,7 @@ function makeShapeGetter() {
         }
 
         if (needsNewColor) {
-            _colorFn = makeColorFn(vtpData.source, props.colorTheme, _vertexResult);
+            _colorFn = makeColorFn(props.colorTheme, _vertexResult);
         }
 
         if (needsNewShape) {
