@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
-- Add `spherical-harmonic-surface` extension: a structure representation showing a smooth star-convex shape envelope fit to atom positions via a real spherical-harmonic expansion (math in `mol-math/geometry`), with per-unit/structure/assembly visuals and `maxLobes` splitting for non-star-shaped inputs
+- Add `spherical-harmonic-surface` extension: a smooth shape-envelope representation fit to atom positions via a real spherical-harmonic expansion, with optional lobe splitting for non-star-shaped chains
 - Fix size-only representation theme updates in `updateRepresentationsTheme`.
 - Fix ASA coloring for hydrogens
 

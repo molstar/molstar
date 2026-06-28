@@ -4,7 +4,7 @@
  * @author Ludovic Autin <autin@scripps.edu>
  */
 
-import { assocLegendre, realSph, shIndex, shTermCount, fitSphericalHarmonics, reconstructRadius, starShapeViolation, fitSphericalHarmonicLobes } from '../spherical-harmonics';
+import { assocLegendre, realSph, shIndex, shTermCount, fitSphericalHarmonics, reconstructRadius, fitSphericalHarmonicLobesByLabel, kmeansLabels } from '../spherical-harmonics';
 
 /** Fibonacci-sphere surface points of radius R about (cx, cy, cz), written into `out` from `offset`. */
 function sphereCloud(n: number, R: number, cx: number, cy: number, cz: number, out: Float32Array, offset = 0) {
@@ -161,53 +161,74 @@ describe('spherical-harmonics', () => {
         expect(reg.rMax).toBeCloseTo(dataMax, 5);
     });
 
-    it('starShapeViolation is ~0 for a single sphere and high for a separated dumbbell', () => {
+    it('kmeansLabels separates a dumbbell into two compact clusters (deterministic)', () => {
         const n = 2000;
-        const sphere = new Float32Array(n * 3);
-        sphereCloud(n, 10, 0, 0, 0, sphere);
-        expect(starShapeViolation(sphere, [0, 0, 0], 2)).toBeCloseTo(0, 5);
-
-        // two R=8 spheres centered at x = +-20 (clearly separated): radially multi-valued about the origin
+        // two R=8 spheres centered at x = +-20
         const dumbbell = new Float32Array(2 * n * 3);
         sphereCloud(n, 8, -20, 0, 0, dumbbell, 0);
         sphereCloud(n, 8, 20, 0, 0, dumbbell, n * 3);
-        expect(starShapeViolation(dumbbell, [0, 0, 0], 2)).toBeGreaterThan(0.15);
+
+        const labels = kmeansLabels(dumbbell, 2, { seed: 1 });
+        // every point of one input sphere shares a label, distinct from the other sphere's label
+        const a = labels[0], b = labels[2 * n - 1];
+        expect(a).not.toBe(b);
+        for (let i = 0; i < n; ++i) expect(labels[i]).toBe(a);
+        for (let i = n; i < 2 * n; ++i) expect(labels[i]).toBe(b);
+
+        // deterministic for a fixed seed
+        const labels2 = kmeansLabels(dumbbell, 2, { seed: 1 });
+        for (let i = 0; i < 2 * n; ++i) expect(labels2[i]).toBe(labels[i]);
     });
 
-    it('fitSphericalHarmonicLobes keeps a star-shaped cloud as one lobe but splits a dumbbell', () => {
+    it('fitSphericalHarmonicLobesByLabel on k-means clusters gives compact per-lobe envelopes', () => {
         const n = 2000;
         const L = 6;
-
-        // a single sphere stays one lobe regardless of maxLobes (no spurious over-split)
-        const sphere = new Float32Array(n * 3);
-        sphereCloud(n, 10, 0, 0, 0, sphere);
-        expect(fitSphericalHarmonicLobes(sphere, L, { maxLobes: 4 }).lobes.length).toBe(1);
-
-        // a bumpy-but-star-shaped blob (single-valued radius) also stays one lobe,
-        // even though a radial-fit residual at low L would be large
-        const bumpy = new Float32Array(n * 3);
-        const golden = Math.PI * (3 - Math.sqrt(5));
-        for (let i = 0; i < n; ++i) {
-            const z = 1 - (2 * i + 1) / n;
-            const theta = Math.acos(z);
-            const phi = i * golden;
-            const r = 10 + 1.5 * Math.sin(2 * phi); // modest, low-frequency bumps
-            const s = Math.sin(theta);
-            bumpy[i * 3] = r * s * Math.cos(phi);
-            bumpy[i * 3 + 1] = r * s * Math.sin(phi);
-            bumpy[i * 3 + 2] = r * Math.cos(theta);
-        }
-        expect(fitSphericalHarmonicLobes(bumpy, L, { maxLobes: 4 }).lobes.length).toBe(1);
-
-        // a separated dumbbell splits into two star-shaped lobes
         const dumbbell = new Float32Array(2 * n * 3);
         sphereCloud(n, 8, -20, 0, 0, dumbbell, 0);
         sphereCloud(n, 8, 20, 0, 0, dumbbell, n * 3);
-        const split = fitSphericalHarmonicLobes(dumbbell, L, { maxLobes: 4 });
-        expect(split.lobes.length).toBe(2);
-        // each lobe centers near one of the two sphere centers (|x| ~ 20)
-        for (const lobe of split.lobes) {
+
+        const labels = kmeansLabels(dumbbell, 2, { seed: 1 });
+        const { lobes } = fitSphericalHarmonicLobesByLabel(dumbbell, labels, L, { regularization: 0.01 });
+        expect(lobes.length).toBe(2);
+        // each lobe is the size of one R=8 sphere, not the whole ~48 A span
+        for (const lobe of lobes) {
             expect(Math.abs(lobe.center[0])).toBeGreaterThan(10);
+            expect(lobe.rMax).toBeLessThan(16);
         }
+    });
+
+    it('radii inflation keeps the lobe centered (center independent of offset, rMax grows with it)', () => {
+        const n = 2000;
+        const L = 6;
+        // a single off-origin sphere; an asymmetric cloud would drift its center if inflated in 3D first
+        const sphere = new Float32Array(n * 3);
+        sphereCloud(n, 10, 30, -5, 12, sphere);
+        const labels = new Int32Array(n); // one lobe
+
+        const base = fitSphericalHarmonicLobesByLabel(sphere, labels, L, { regularization: 0.01 }).lobes[0];
+        const inflated = fitSphericalHarmonicLobesByLabel(sphere, labels, L, { regularization: 0.01, radii: new Float32Array(n).fill(5) }).lobes[0];
+        // center unchanged by the 5 A inflation
+        for (let d = 0; d < 3; ++d) expect(inflated.center[d]).toBeCloseTo(base.center[d], 6);
+        // surface grows by ~the offset
+        expect(inflated.rMax - base.rMax).toBeGreaterThan(4);
+        expect(inflated.rMax - base.rMax).toBeLessThan(6);
+    });
+
+    it('fitSphericalHarmonicLobesByLabel fits one lobe per label, centered on its subset', () => {
+        const n = 1000;
+        const L = 6;
+
+        // two separated spheres, one label each
+        const points = new Float32Array(2 * n * 3);
+        sphereCloud(n, 8, -20, 0, 0, points, 0);
+        sphereCloud(n, 8, 20, 0, 0, points, n * 3);
+        const labels = new Int32Array(2 * n);
+        for (let i = n; i < 2 * n; ++i) labels[i] = 1;
+
+        const fit = fitSphericalHarmonicLobesByLabel(points, labels, L);
+        expect(fit.lobes.length).toBe(2);
+        // labels are partitioned by Map insertion order: lobe 0 = label 0 (x ~ -20), lobe 1 = label 1 (x ~ +20)
+        expect(fit.lobes[0].center[0]).toBeLessThan(-10);
+        expect(fit.lobes[1].center[0]).toBeGreaterThan(10);
     });
 });

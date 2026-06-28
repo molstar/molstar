@@ -16,7 +16,6 @@
 
 import { Matrix } from '../linear-algebra/matrix/matrix';
 import { svd } from '../linear-algebra/matrix/svd';
-import { PrincipalAxes } from '../linear-algebra/matrix/principal-axes';
 
 /** Number of (l, m) terms for an expansion up to (and including) degree L. */
 export function shTermCount(L: number): number {
@@ -299,77 +298,9 @@ export function reconstructRadius(coeffs: ArrayLike<number>, L: number, theta: n
     return r;
 }
 
-/**
- * Non-star-shapedness of a point cloud about `center`: the fraction of populated
- * direction bins that contain a radial GAP wider than `thickness` — an empty
- * shell of radius along the ray, i.e. the surface is crossed, left, and re-entered.
- *
- * A radial gap (not the min-max spread) is the defect that actually breaks a
- * single-center radial expansion. It works on both a thin surface shell and a
- * solid atom cloud: a star-shaped blob is radially filled from the center out
- * (no gap), whereas a concavity, C-shape, or a lobe seen past an empty region
- * leaves a gap. Using the spread instead would flag every solid cloud (interior
- * points reach r≈0) and every bumpy-but-star-shaped blob, over-splitting both.
- * It is also independent of the expansion degree L.
- *
- * Bins use an equal-area layout: latitude by cos(theta) in [-1, 1] and longitude
- * by phi in [-pi, pi].
- */
-export function starShapeViolation(points: ArrayLike<number>, center: ArrayLike<number>, thickness: number, nLat = 12, nLon = 24): number {
-    const cx = center[0], cy = center[1], cz = center[2];
-    const nBins = nLat * nLon;
-    const binRadii: number[][] = [];
-    for (let b = 0; b < nBins; ++b) binRadii.push([]);
-
-    const n = Math.floor(points.length / 3);
-    const twoPi = 2 * Math.PI;
-    for (let i = 0; i < n; ++i) {
-        const dx = points[i * 3] - cx, dy = points[i * 3 + 1] - cy, dz = points[i * 3 + 2] - cz;
-        const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (r <= 1e-12) continue;
-        const ct = Math.min(1, Math.max(-1, dz / r)); // cos(theta)
-        const phi = Math.atan2(dy, dx); // [-pi, pi]
-        let li = Math.floor(((ct + 1) / 2) * nLat); if (li >= nLat) li = nLat - 1; else if (li < 0) li = 0;
-        let oi = Math.floor(((phi + Math.PI) / twoPi) * nLon); if (oi >= nLon) oi = nLon - 1; else if (oi < 0) oi = 0;
-        binRadii[li * nLon + oi].push(r);
-    }
-
-    // A bin needs enough samples for a radial gap to mean "empty region" rather than
-    // "sparse sampling"; sparse/solid clouds (e.g. atom positions, ~handful per bin)
-    // are simply not judged, so they are never spuriously split.
-    const minBinCount = 6;
-    let populated = 0, violating = 0;
-    for (let b = 0; b < nBins; ++b) {
-        const radii = binRadii[b];
-        if (radii.length < minBinCount) continue;
-        ++populated;
-        radii.sort((p, q) => p - q);
-        let maxGap = 0;
-        for (let i = 1; i < radii.length; ++i) {
-            const gap = radii[i] - radii[i - 1];
-            if (gap > maxGap) maxGap = gap;
-        }
-        if (maxGap > thickness) ++violating;
-    }
-    return populated > 0 ? violating / populated : 0;
-}
-
 /** One star-shaped lobe: a radial SH expansion about its own center. */
 export interface SphericalHarmonicLobe { center: number[], coeffs: Float64Array, rMax: number }
 export interface SphericalHarmonicLobesFit { lobes: SphericalHarmonicLobe[], L: number }
-
-export interface FitSphericalHarmonicLobesOptions {
-    /** Maximum number of lobes to split into (1 = single envelope). */
-    maxLobes?: number
-    /** Multi-valued-bin fraction above which a lobe is split (see `starShapeViolation`). */
-    tolerance?: number
-    /** Radial-extent threshold (length units) for the violation metric. */
-    thickness?: number
-    /** Sample cap forwarded to `fitSphericalHarmonics`. */
-    maxPoints?: number
-    /** Tikhonov regularization forwarded to `fitSphericalHarmonics`. */
-    regularization?: number
-}
 
 /** Gather a subset of an interleaved xyz cloud into a flat array and its centroid. */
 function gatherSubset(points: ArrayLike<number>, idx: ArrayLike<number>): { flat: Float64Array, center: number[] } {
@@ -385,70 +316,149 @@ function gatherSubset(points: ArrayLike<number>, idx: ArrayLike<number>): { flat
     return { flat, center: m > 0 ? [cx / m, cy / m, cz / m] : [0, 0, 0] };
 }
 
-/** Bisect a point subset by the sign of its projection onto its longest principal axis. */
-function bisectSubset(flat: Float64Array, idx: ArrayLike<number>): [Int32Array, Int32Array] | undefined {
-    const m = idx.length;
-    if (m < 2) return undefined;
-    const axes = PrincipalAxes.calculateMomentsAxes(flat);
-    const ox = axes.origin[0], oy = axes.origin[1], oz = axes.origin[2];
-    let ax = axes.dirA[0], ay = axes.dirA[1], az = axes.dirA[2];
-    const len = Math.sqrt(ax * ax + ay * ay + az * az);
-    if (len < 1e-9) return undefined;
-    ax /= len; ay /= len; az /= len;
-
-    const left: number[] = [], right: number[] = [];
-    for (let i = 0; i < m; ++i) {
-        const p = i * 3;
-        const proj = (flat[p] - ox) * ax + (flat[p + 1] - oy) * ay + (flat[p + 2] - oz) * az;
-        if (proj < 0) left.push(idx[i]); else right.push(idx[i]);
-    }
-    if (left.length === 0 || right.length === 0) return undefined;
-    return [Int32Array.from(left), Int32Array.from(right)];
+/** Small deterministic PRNG (mulberry32) for seeded, reproducible k-means++ initialization. */
+function mulberry32(seed: number): () => number {
+    let a = seed >>> 0;
+    return () => {
+        a = (a + 0x6D2B79F5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
 }
 
 /**
- * Fit a point cloud to one or more star-shaped radial SH lobes.
+ * Partition an interleaved xyz cloud into `k` spatial clusters by k-means (k-means++ seeded init,
+ * Lloyd iterations) and return a per-point cluster label. Deterministic for a given `seed`, so the
+ * same cloud yields the same partition (the fit caches on it). Spatial clusters give locally compact,
+ * star-convex lobes - for a threaded chain (e.g. rRNA) far more compact per cluster than contiguous
+ * sequence runs.
  *
- * A single-center radial expansion only represents star-shaped (radially
- * single-valued) shapes; concave, elongated or multi-domain clouds fold onto the
- * outermost crossing. When the directional multi-valuedness (`starShapeViolation`)
- * of a lobe exceeds `tolerance`, the lobe is bisected along its longest principal
- * axis and each half refit, repeated until every lobe is star-shaped enough or
- * `maxLobes` is reached.
+ * The Lloyd iterations (the O(points * k * iterations) cost) run on a strided subsample of at most
+ * `maxSamples` points to find the cluster centers; every point is then labelled by its nearest center
+ * in a single final pass. Subsampling a large cloud changes the centers negligibly but cuts the
+ * dominant cost several-fold (e.g. a 63k-atom rRNA chain).
  */
-export function fitSphericalHarmonicLobes(points: ArrayLike<number>, L: number, options: FitSphericalHarmonicLobesOptions = {}): SphericalHarmonicLobesFit {
-    const maxLobes = Math.max(1, Math.round(options.maxLobes ?? 1));
-    const tolerance = options.tolerance ?? 0.15;
-    const thickness = options.thickness ?? 2;
-    const maxPoints = options.maxPoints ?? 8192;
-    const regularization = options.regularization ?? 0;
-
+export function kmeansLabels(points: ArrayLike<number>, k: number, options: { maxIterations?: number, seed?: number, maxSamples?: number } = {}): Int32Array {
     const n = Math.floor(points.length / 3);
+    const labels = new Int32Array(n);
+    const K = Math.min(Math.max(1, Math.round(k)), n);
+    if (K <= 1 || n === 0) return labels;
 
-    type Work = { idx: Int32Array, flat: Float64Array, center: number[], coeffs: Float64Array, rMax: number, violation: number };
-    const buildLobe = (idx: Int32Array): Work => {
-        const { flat, center } = gatherSubset(points, idx);
-        const { coeffs, rMax } = fitSphericalHarmonics(flat, center, L, maxPoints, regularization);
-        const violation = starShapeViolation(flat, center, thickness);
-        return { idx, flat, center, coeffs, rMax, violation };
-    };
+    const maxIterations = options.maxIterations ?? 20;
+    const maxSamples = options.maxSamples ?? 8192;
+    const rand = mulberry32((options.seed ?? 0x9e3779b9) >>> 0);
 
-    const all = new Int32Array(n);
-    for (let i = 0; i < n; ++i) all[i] = i;
-    const lobes: Work[] = n > 0 ? [buildLobe(all)] : [];
-
-    while (lobes.length > 0 && lobes.length < maxLobes) {
-        // pick the worst star-shape violator that is still worth splitting
-        let wi = -1, wv = tolerance;
-        for (let i = 0; i < lobes.length; ++i) {
-            if (lobes[i].violation > wv && lobes[i].idx.length >= 4) { wv = lobes[i].violation; wi = i; }
-        }
-        if (wi < 0) break;
-
-        const split = bisectSubset(lobes[wi].flat, lobes[wi].idx);
-        if (!split) { lobes[wi].violation = 0; continue; } // can't split this one; leave it
-        lobes.splice(wi, 1, buildLobe(split[0]), buildLobe(split[1]));
+    // strided subsample that the iterative center search runs on (all points are labelled at the end)
+    const stride = Math.max(1, Math.floor(n / maxSamples));
+    const sn = Math.floor((n + stride - 1) / stride);
+    const sample = new Float64Array(sn * 3);
+    for (let s = 0; s < sn; ++s) {
+        const i = s * stride;
+        sample[s * 3] = points[i * 3]; sample[s * 3 + 1] = points[i * 3 + 1]; sample[s * 3 + 2] = points[i * 3 + 2];
     }
 
-    return { lobes: lobes.map(l => ({ center: l.center, coeffs: l.coeffs, rMax: l.rMax })), L };
+    // k-means++ seeding: spread initial centers by squared-distance probability
+    const centers = new Float64Array(K * 3);
+    const d2 = new Float64Array(sn).fill(Infinity);
+    let pick = Math.floor(rand() * sn);
+    for (let c = 0; c < K; ++c) {
+        centers[c * 3] = sample[pick * 3]; centers[c * 3 + 1] = sample[pick * 3 + 1]; centers[c * 3 + 2] = sample[pick * 3 + 2];
+        if (c === K - 1) break;
+        let sum = 0;
+        for (let i = 0; i < sn; ++i) {
+            const dx = sample[i * 3] - centers[c * 3], dy = sample[i * 3 + 1] - centers[c * 3 + 1], dz = sample[i * 3 + 2] - centers[c * 3 + 2];
+            const dd = dx * dx + dy * dy + dz * dz;
+            if (dd < d2[i]) d2[i] = dd;
+            sum += d2[i];
+        }
+        let target = rand() * sum;
+        pick = sn - 1;
+        for (let i = 0; i < sn; ++i) { target -= d2[i]; if (target <= 0) { pick = i; break; } }
+    }
+
+    // Lloyd iterations on the subsample
+    const sLabels = new Int32Array(sn);
+    const sums = new Float64Array(K * 3);
+    const counts = new Int32Array(K);
+    for (let it = 0; it < maxIterations; ++it) {
+        let changed = false;
+        for (let i = 0; i < sn; ++i) {
+            let best = Infinity, bi = 0;
+            for (let c = 0; c < K; ++c) {
+                const dx = sample[i * 3] - centers[c * 3], dy = sample[i * 3 + 1] - centers[c * 3 + 1], dz = sample[i * 3 + 2] - centers[c * 3 + 2];
+                const dd = dx * dx + dy * dy + dz * dz;
+                if (dd < best) { best = dd; bi = c; }
+            }
+            if (sLabels[i] !== bi) { sLabels[i] = bi; changed = true; }
+        }
+        if (!changed && it > 0) break;
+        sums.fill(0); counts.fill(0);
+        for (let i = 0; i < sn; ++i) {
+            const c = sLabels[i];
+            sums[c * 3] += sample[i * 3]; sums[c * 3 + 1] += sample[i * 3 + 1]; sums[c * 3 + 2] += sample[i * 3 + 2];
+            counts[c]++;
+        }
+        for (let c = 0; c < K; ++c) {
+            if (counts[c] > 0) { centers[c * 3] = sums[c * 3] / counts[c]; centers[c * 3 + 1] = sums[c * 3 + 1] / counts[c]; centers[c * 3 + 2] = sums[c * 3 + 2] / counts[c]; }
+        }
+    }
+
+    // label every point by its nearest final center
+    for (let i = 0; i < n; ++i) {
+        let best = Infinity, bi = 0;
+        for (let c = 0; c < K; ++c) {
+            const dx = points[i * 3] - centers[c * 3], dy = points[i * 3 + 1] - centers[c * 3 + 1], dz = points[i * 3 + 2] - centers[c * 3 + 2];
+            const dd = dx * dx + dy * dy + dz * dz;
+            if (dd < best) { best = dd; bi = c; }
+        }
+        labels[i] = bi;
+    }
+    return labels;
+}
+
+/**
+ * Fit one star-shaped radial SH lobe per distinct label: points sharing the same `labels[i]`
+ * form one lobe. The caller decides the partition (e.g. contiguous sequence runs, k-means clusters).
+ *
+ * Each lobe is centered on the centroid of its (original) points. When `radii` is given, every point
+ * is inflated outward from that centroid by its radius *after* the centroid is computed, so the fitted
+ * envelope tracks the outer surface (atom size + probe) while the center stays put. Inflating the
+ * points in 3D *before* the centroid would shift the center proportionally to the offset on an
+ * asymmetric cluster, drifting the lobe off the atoms - so the inflation must follow the centroid.
+ */
+export function fitSphericalHarmonicLobesByLabel(points: ArrayLike<number>, labels: ArrayLike<number>, L: number, options: { maxPoints?: number, regularization?: number, radii?: ArrayLike<number> } = {}): SphericalHarmonicLobesFit {
+    const maxPoints = options.maxPoints ?? 8192;
+    const regularization = options.regularization ?? 0;
+    const radii = options.radii;
+    const n = Math.floor(points.length / 3);
+
+    const byLabel = new Map<number, number[]>();
+    for (let i = 0; i < n; ++i) {
+        const lbl = labels[i];
+        let arr = byLabel.get(lbl);
+        if (!arr) { arr = []; byLabel.set(lbl, arr); }
+        arr.push(i);
+    }
+
+    const lobes: SphericalHarmonicLobe[] = [];
+    for (const idxArr of byLabel.values()) {
+        const idx = Int32Array.from(idxArr);
+        const { flat, center } = gatherSubset(points, idx);
+        if (radii) {
+            const cx = center[0], cy = center[1], cz = center[2];
+            for (let t = 0; t < idx.length; ++t) {
+                const p = t * 3;
+                const dx = flat[p] - cx, dy = flat[p + 1] - cy, dz = flat[p + 2] - cz;
+                const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                if (len > 1e-3) {
+                    const s = radii[idx[t]] / len; // displace by `radius` along the centroid->point ray
+                    flat[p] += dx * s; flat[p + 1] += dy * s; flat[p + 2] += dz * s;
+                }
+            }
+        }
+        const { coeffs, rMax } = fitSphericalHarmonics(flat, center, L, maxPoints, regularization);
+        lobes.push({ center, coeffs, rMax });
+    }
+    return { lobes, L };
 }

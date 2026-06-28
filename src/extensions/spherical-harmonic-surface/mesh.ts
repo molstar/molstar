@@ -23,15 +23,18 @@
  * multi-domain shapes fold back on a radial ray and collapse to the outermost
  * crossing, so a single lobe is best understood as a smooth surface *envelope*
  * rather than a faithful molecular surface. To handle non-star-shaped inputs the
- * cloud can be decomposed into several star-shaped lobes (`maxLobes`); a single
- * lobe is reconstructed as an analytic icosphere blob, while multiple lobes are
+ * cloud can be decomposed into several star-shaped lobes (the `lobes` param: by
+ * contiguous residue sequence per chain, by spatial k-means clusters, or auto - a target
+ * lobe size that sets the per-chain count for uniform blobs). Each lobe is
+ * reconstructed as an analytic icosphere blob and the lobes are combined either as
+ * overlapping blobs (the default, no marching cubes) or, with `watertight` on,
  * blended into one watertight surface through a marching-cubes implicit field.
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../../mol-repr/structure/units-visual';
 import { VisualContext } from '../../mol-repr/visual';
-import { Unit, Structure, StructureElement } from '../../mol-model/structure';
+import { Unit, Structure, StructureElement, ElementIndex } from '../../mol-model/structure';
 import { Theme } from '../../mol-theme/theme';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from '../../mol-geo/util/marching-cubes/algorithm';
@@ -51,7 +54,7 @@ import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { Sphere } from '../../mol-geo/primitive/sphere';
 import { getBoundary } from '../../mol-math/geometry/boundary';
 import { OrderedSet } from '../../mol-data/int';
-import { fitSphericalHarmonics, fitSphericalHarmonicLobes, reconstructRadius, shTermCount, SphericalHarmonicLobe } from '../../mol-math/geometry/spherical-harmonics';
+import { fitSphericalHarmonicLobesByLabel, kmeansLabels, reconstructRadius, shTermCount, SphericalHarmonicLobe } from '../../mol-math/geometry/spherical-harmonics';
 import { SizeTheme } from '../../mol-theme/size';
 import { isTimingMode } from '../../mol-util/debug';
 import { now } from '../../mol-util/now';
@@ -76,6 +79,32 @@ function shAccumulateTiming(start: number, points: number) {
     }, 300);
 }
 
+/** Default target atoms per auto lobe: most chains fall under this (one lobe), large chains (e.g. rRNA) split. */
+export const DefaultTargetAtoms = 3000;
+/** Fallback slider max for `auto.targetAtoms` when no structure is available; the representation overrides it with the biggest chain's atom count. */
+const DefaultMaxTargetAtoms = 50000;
+
+/**
+ * The `lobes` param: how to split a chain/structure into star-convex lobes before fitting. `auto`
+ * (the default) sizes the per-chain lobe count from a target atoms-per-lobe, so small chains stay a
+ * single envelope and only large chains split. `maxTargetAtoms` bounds the target slider - the
+ * representation passes the biggest chain's atom count so the range matches the loaded data.
+ */
+export function LobesParam(maxTargetAtoms: number) {
+    return PD.MappedStatic('auto', {
+        'single': PD.EmptyGroup(),
+        'sequence': PD.Group({
+            divisions: PD.Numeric(4, { min: 1, max: 50, step: 1 }, { description: 'Divide each chain into this many contiguous residue-sequence segments, fitting one star-convex lobe per segment. Higher values follow a threaded chain (e.g. rRNA) more closely; 1 is a single envelope.' }),
+        }, { isFlat: true }),
+        'kmeans': PD.Group({
+            clusters: PD.Numeric(4, { min: 1, max: 32, step: 1 }, { description: 'Cluster atoms into this many spatial groups (k-means), fitting one star-convex lobe per cluster. Compact lobes that follow a threaded chain (e.g. rRNA) at far fewer pieces than sequence division.' }),
+        }, { isFlat: true }),
+        'auto': PD.Group({
+            targetAtoms: PD.Numeric(DefaultTargetAtoms, { min: DefaultTargetAtoms, max: Math.max(DefaultTargetAtoms, maxTargetAtoms), step: 50 }, { description: 'Target atoms per lobe (never below 3000). Each chain is split (by k-means) into round(chainAtoms / targetAtoms) lobes, so lobes are uniform across chains: chains up to ~1.5x this stay a single envelope, larger chains (e.g. rRNA) split into k-means lobes. Max is the biggest chain in the loaded structure.' }),
+        }, { isFlat: true }),
+    }, { description: 'Split a chain/structure into star-convex lobes before fitting: auto (default - uniform lobe size, per-chain count from a target; single envelope for small chains), a single radial envelope, by residue sequence (per chain), or by a fixed number of spatial k-means clusters.' });
+}
+
 export const SphericalHarmonicSurfaceMeshParams = {
     ...UnitsMeshParams,
     ...ColorSmoothingParams,
@@ -85,9 +114,10 @@ export const SphericalHarmonicSurfaceMeshParams = {
     radiusOffset: PD.Numeric(5, { min: 0, max: 10, step: 0.1 }, { description: 'Extra radius added to each atom when building the shape envelope; larger gives a thicker, rounder surface (analogous to a probe radius).' }),
     sphericalHarmonicL: PD.Numeric(8, { min: 2, max: 20, step: 1 }, { description: 'Maximum spherical harmonic degree. Higher values follow the shape envelope more closely (but cannot recover concavities: the fit is single-valued in radius about the center).' }),
     reconstructionDetail: PD.Numeric(3, { min: 1, max: 5, step: 1 }, { description: 'Triangulation detail of the reconstructed sphere mesh.' }),
-    maxLobes: PD.Numeric(1, { min: 1, max: 8, step: 1 }, { description: 'Split non-star-shaped inputs (elongated or multi-domain) into up to this many star-shaped lobes, fit separately, and blend into one watertight surface. 1 keeps a single radial envelope.' }),
+    lobes: LobesParam(DefaultMaxTargetAtoms),
+    watertight: PD.Boolean(false, { description: 'Blend the lobes into one watertight surface via marching cubes. Off: overlapping star-convex blobs (no grid / no marching cubes).' }),
     regularization: PD.Numeric(0.01, { min: 0, max: 0.5, step: 0.005 }, { description: 'Tikhonov smoothness prior on the spherical-harmonic fit (per-band l(l+1) damping). Higher values give a rounder, more stable surface; lower values follow the samples more closely but can ring or blow up on sparse/clustered clouds (e.g. trace-only). 0 disables it.' }),
-    resolution: PD.Numeric(0.5, { min: 0.1, max: 20, step: 0.1 }, { description: 'Grid spacing for the multi-lobe blend field (only used when maxLobes > 1).', ...BaseGeometry.CustomQualityParamInfo }),
+    resolution: PD.Numeric(0.5, { min: 0.1, max: 20, step: 0.1 }, { description: 'Grid spacing for the watertight multi-lobe blend field (only used when watertight blend is on with more than one lobe).', ...BaseGeometry.CustomQualityParamInfo }),
 };
 export type SphericalHarmonicSurfaceMeshParams = typeof SphericalHarmonicSurfaceMeshParams
 export type SphericalHarmonicSurfaceMeshProps = PD.Values<SphericalHarmonicSurfaceMeshParams>
@@ -100,8 +130,16 @@ type SphericalHarmonicSurfaceMeta = {
     shCenter?: Vec3
     shVertices?: Float32Array
     shGroups?: Float32Array
+    // per-cloud-point chain ordinal and normalized residue position within that chain ([0,1)),
+    // used by the `sequence` lobe mode to label points into contiguous residue-run segments.
+    // Stored independently of the division count so changing it re-fits without rebuilding the cloud.
+    shSeqChain?: Int32Array
+    shSeqFrac?: Float32Array
+    // per-cloud-point radius (atom size + radiusOffset); the lobe fit inflates each point outward by
+    // this amount about its lobe centroid so the envelope wraps the atoms without drifting off-center.
+    shRadii?: Float32Array
     shBoundingSphere?: Sphere3D
-    // cache of the fitted lobes, keyed by `${L}|${maxLobes}` so a detail-only change re-tessellates without refitting
+    // cache of the fitted lobes, keyed by `${L}|${mode}|${k}|${reg}` so a detail- or blend-only change re-tessellates without refitting
     shFitKey?: string
     shFitLobes?: SphericalHarmonicLobe[]
     // scratch mesh holding the single ASU envelope for the assembly flavour, before it is replicated
@@ -149,9 +187,26 @@ function surfaceGeometryChanged(newProps: SphericalHarmonicSurfaceMeshProps, cur
         newProps.traceOnly !== currentProps.traceOnly ||
         newProps.sphericalHarmonicL !== currentProps.sphericalHarmonicL ||
         newProps.reconstructionDetail !== currentProps.reconstructionDetail ||
-        newProps.maxLobes !== currentProps.maxLobes ||
+        lobesChanged(newProps.lobes, currentProps.lobes) ||
+        newProps.watertight !== currentProps.watertight ||
         newProps.regularization !== currentProps.regularization
     );
+}
+
+type LobesMode = 'single' | 'sequence' | 'kmeans' | 'auto';
+
+/** Lobe config: the splitting mode, the fixed lobe count `k` (sequence/kmeans), and the auto target atoms-per-lobe. */
+function lobesConfig(lobes: SphericalHarmonicSurfaceMeshProps['lobes']): { mode: LobesMode, k: number, target: number } {
+    if (lobes.name === 'sequence') return { mode: 'sequence', k: Math.max(1, Math.round(lobes.params.divisions)), target: 0 };
+    if (lobes.name === 'kmeans') return { mode: 'kmeans', k: Math.max(1, Math.round(lobes.params.clusters)), target: 0 };
+    if (lobes.name === 'auto') return { mode: 'auto', k: 0, target: Math.max(1, Math.round(lobes.params.targetAtoms)) };
+    return { mode: 'single', k: 1, target: 0 };
+}
+
+/** True if the lobe mode or its active count/target changed (MappedStatic identity is not stable). */
+function lobesChanged(a: SphericalHarmonicSurfaceMeshProps['lobes'], b: SphericalHarmonicSurfaceMeshProps['lobes']): boolean {
+    const ca = lobesConfig(a), cb = lobesConfig(b);
+    return ca.mode !== cb.mode || ca.k !== cb.k || ca.target !== cb.target;
 }
 
 /** Shared color-smoothing branch of `setUpdateState` (identical for every flavour). */
@@ -210,59 +265,122 @@ function estimateVertexSpacing(mesh: Mesh): number {
 
 /**
  * Copy the group id of the nearest atom-cloud point onto each reconstructed vertex (the group drives
- * per-vertex coloring and picking). The nearest is found by brute-force scan over the full cloud
- * rather than a spatial-lookup query: the reconstructed vertices sit out on the smooth envelope,
- * outside the atom bounding box, where a `GridLookup3D` expands its search in grid-cell shells - both
- * slow (~17 ms/build, 78% of the build on the 1356-chain 3J3Q) and only approximate for such
- * out-of-box queries. A linear scan over a few thousand points is faster here and returns the exact
- * Euclidean nearest. The full cloud is used (no sample cap) so the assignment stays exact.
+ * per-vertex coloring and picking), via an exact uniform-grid nearest search over the full cloud.
+ *
+ * A plain brute-force scan is O(vertices * cloud) and becomes the build floor once a chain is split
+ * into many lobes (each lobe adds ~640 vertices): e.g. a 64-lobe rRNA was ~5 s of pure transfer.
+ * This bins the cloud into a uniform grid (~1 atom/cell) and, per vertex, expands cell rings from the
+ * vertex's cell until the nearest found atom is closer than the next ring can be - exact (returns the
+ * true Euclidean nearest, 0% deviation vs brute force) but ~130x faster on the 64-lobe case. Note this
+ * is a purpose-built grid with exact ring termination, not `GridLookup3D.nearest`, whose cell-order
+ * heap is both slower per call and only approximate for queries starting outside the data box.
  */
 function transferGroups(vertices: Float32Array, vertexCount: number, cloud: Float32Array, cloudGroups: Float32Array, out: Float32Array) {
     const pointCount = cloud.length / 3;
+    if (pointCount === 0) { out.fill(0, 0, vertexCount); return; }
+
+    // cloud bounding box
+    let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    for (let j = 0; j < pointCount; ++j) {
+        const x = cloud[j * 3], y = cloud[j * 3 + 1], z = cloud[j * 3 + 2];
+        if (x < minX) minX = x; if (y < minY) minY = y; if (z < minZ) minZ = z;
+        if (x > maxX) maxX = x; if (y > maxY) maxY = y; if (z > maxZ) maxZ = z;
+    }
+    // cell size ~ one atom per cell; clamped so degenerate clouds don't make a huge grid
+    const h = Math.max(2, Math.cbrt(((maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1)) / pointCount));
+    const nx = Math.max(1, Math.floor((maxX - minX) / h) + 1);
+    const ny = Math.max(1, Math.floor((maxY - minY) / h) + 1);
+    const nz = Math.max(1, Math.floor((maxZ - minZ) / h) + 1);
+    const cellIndex = (x: number, y: number, z: number) => {
+        let cx = Math.floor((x - minX) / h); cx = cx < 0 ? 0 : cx >= nx ? nx - 1 : cx;
+        let cy = Math.floor((y - minY) / h); cy = cy < 0 ? 0 : cy >= ny ? ny - 1 : cy;
+        let cz = Math.floor((z - minZ) / h); cz = cz < 0 ? 0 : cz >= nz ? nz - 1 : cz;
+        return (cx * ny + cy) * nz + cz;
+    };
+
+    // CSR bucketing of atoms into cells
+    const cellOf = new Int32Array(pointCount);
+    const start = new Int32Array(nx * ny * nz + 1);
+    for (let j = 0; j < pointCount; ++j) { const c = cellIndex(cloud[j * 3], cloud[j * 3 + 1], cloud[j * 3 + 2]); cellOf[j] = c; start[c + 1]++; }
+    for (let c = 0; c < nx * ny * nz; ++c) start[c + 1] += start[c];
+    const items = new Int32Array(pointCount);
+    const cursor = start.slice(0, nx * ny * nz);
+    for (let j = 0; j < pointCount; ++j) { const c = cellOf[j]; items[cursor[c]++] = j; }
+
+    const maxRing = Math.max(nx, ny, nz);
     for (let i = 0; i < vertexCount; ++i) {
         const vx = vertices[i * 3], vy = vertices[i * 3 + 1], vz = vertices[i * 3 + 2];
-        let best = Infinity, bi = -1;
-        for (let j = 0; j < pointCount; ++j) {
-            const dx = cloud[j * 3] - vx, dy = cloud[j * 3 + 1] - vy, dz = cloud[j * 3 + 2] - vz;
-            const d = dx * dx + dy * dy + dz * dz;
-            if (d < best) { best = d; bi = j; }
+        let cx = Math.floor((vx - minX) / h); cx = cx < 0 ? 0 : cx >= nx ? nx - 1 : cx;
+        let cy = Math.floor((vy - minY) / h); cy = cy < 0 ? 0 : cy >= ny ? ny - 1 : cy;
+        let cz = Math.floor((vz - minZ) / h); cz = cz < 0 ? 0 : cz >= nz ? nz - 1 : cz;
+        let best = Infinity, bg = 0;
+        for (let ring = 0; ring <= maxRing; ++ring) {
+            const xlo = Math.max(0, cx - ring), xhi = Math.min(nx - 1, cx + ring);
+            const ylo = Math.max(0, cy - ring), yhi = Math.min(ny - 1, cy + ring);
+            const zlo = Math.max(0, cz - ring), zhi = Math.min(nz - 1, cz + ring);
+            for (let gx = xlo; gx <= xhi; ++gx) for (let gy = ylo; gy <= yhi; ++gy) for (let gz = zlo; gz <= zhi; ++gz) {
+                // only the shell of Chebyshev distance == ring (inner rings already scanned)
+                if (Math.abs(gx - cx) !== ring && Math.abs(gy - cy) !== ring && Math.abs(gz - cz) !== ring) continue;
+                const c = (gx * ny + gy) * nz + gz;
+                for (let t = start[c], e = start[c + 1]; t < e; ++t) {
+                    const j = items[t];
+                    const dx = cloud[j * 3] - vx, dy = cloud[j * 3 + 1] - vy, dz = cloud[j * 3 + 2] - vz;
+                    const d = dx * dx + dy * dy + dz * dz;
+                    if (d < best) { best = d; bg = cloudGroups[j]; }
+                }
+            }
+            // any atom in ring+1 or beyond is at least (ring*h) away, so we can stop once that exceeds best
+            const reach = ring * h;
+            if (best < Infinity && reach * reach >= best) break;
         }
-        out[i] = bi >= 0 ? cloudGroups[bi] : 0;
+        out[i] = bg;
     }
 }
 
 /**
- * Single star-shaped lobe → analytic icosphere blob (fast, instanceable): scale
- * each unit-sphere direction by the reconstructed radius about the lobe center.
+ * Star-shaped lobes → analytic icosphere blobs, one per lobe, concatenated into a single mesh
+ * (no grid / no marching cubes). Each blob scales the unit-sphere directions by the lobe's
+ * reconstructed radius about its center; neighbouring lobes simply overlap (not a watertight union),
+ * which reads as a smooth lumpy surface following the chain - the cheap MC-free reconstruction path.
+ * One lobe degrades to a single radial envelope.
  */
-function reconstructIcosphereBlob(lobe: SphericalHarmonicLobe, L: number, props: SphericalHarmonicSurfaceMeshProps, cloud: Float32Array, shGroups: Float32Array, mesh?: Mesh): Mesh {
+function reconstructBlobs(lobes: ReadonlyArray<SphericalHarmonicLobe>, L: number, props: SphericalHarmonicSurfaceMeshProps, cloud: Float32Array, shGroups: Float32Array, mesh?: Mesh): Mesh {
     const K = shTermCount(L);
-    const { center, coeffs } = lobe;
-
     const sphere = getSphere(props.reconstructionDetail);
     const sv = sphere.vertices;
-    const vertexCount = sv.length / 3;
-    const indices = sphere.indices instanceof Uint32Array ? sphere.indices : Uint32Array.from(sphere.indices);
-    const triangleCount = indices.length / 3;
+    const baseVertexCount = sv.length / 3;
+    const baseIndices = sphere.indices instanceof Uint32Array ? sphere.indices : Uint32Array.from(sphere.indices);
+    const baseTriangleCount = baseIndices.length / 3;
+    const nL = lobes.length;
 
+    const vertexCount = baseVertexCount * nL;
+    const triangleCount = baseTriangleCount * nL;
     const vertices = new Float32Array(vertexCount * 3);
     const groups = new Float32Array(vertexCount);
     const normals = new Float32Array(vertexCount * 3);
+    const indices = new Uint32Array(triangleCount * 3);
 
     const basisScratch = new Float64Array(K);
     const legendreScratch = new Float64Array(((L + 1) * (L + 2)) / 2);
-    const cx = center[0], cy = center[1], cz = center[2];
-    const rClamp = lobe.rMax * RadiusMargin;
 
-    for (let i = 0; i < vertexCount; ++i) {
-        // sphere vertices are unit length (radius 1), so they are direction vectors
-        const dx = sv[i * 3], dy = sv[i * 3 + 1], dz = sv[i * 3 + 2];
-        const theta = Math.acos(Math.min(1, Math.max(-1, dz)));
-        const phi = Math.atan2(dy, dx);
-        let r = reconstructRadius(coeffs, L, theta, phi, basisScratch, legendreScratch);
-        if (!(r > MinRadius)) r = MinRadius; // also catches NaN
-        else if (r > rClamp) r = rClamp;
-        vertices[i * 3] = cx + r * dx; vertices[i * 3 + 1] = cy + r * dy; vertices[i * 3 + 2] = cz + r * dz;
+    for (let li = 0; li < nL; ++li) {
+        const lobe = lobes[li];
+        const cx = lobe.center[0], cy = lobe.center[1], cz = lobe.center[2];
+        const rClamp = lobe.rMax * RadiusMargin;
+        const voff = li * baseVertexCount * 3;
+        const ioff = li * baseTriangleCount * 3;
+        const vBase = li * baseVertexCount;
+        for (let i = 0; i < baseVertexCount; ++i) {
+            // sphere vertices are unit length (radius 1), so they are direction vectors
+            const dx = sv[i * 3], dy = sv[i * 3 + 1], dz = sv[i * 3 + 2];
+            const theta = Math.acos(Math.min(1, Math.max(-1, dz)));
+            const phi = Math.atan2(dy, dx);
+            let r = reconstructRadius(lobe.coeffs, L, theta, phi, basisScratch, legendreScratch);
+            if (!(r > MinRadius)) r = MinRadius; // also catches NaN
+            else if (r > rClamp) r = rClamp;
+            vertices[voff + i * 3] = cx + r * dx; vertices[voff + i * 3 + 1] = cy + r * dy; vertices[voff + i * 3 + 2] = cz + r * dz;
+        }
+        for (let i = 0, il = baseTriangleCount * 3; i < il; ++i) indices[ioff + i] = baseIndices[i] + vBase;
     }
     transferGroups(vertices, vertexCount, cloud, shGroups, groups);
 
@@ -272,17 +390,31 @@ function reconstructIcosphereBlob(lobe: SphericalHarmonicLobe, L: number, props:
 }
 
 const FieldPad = 1.5;
-/** Smooth-union blend width (length units) for the multi-lobe implicit field. */
-const FieldBlend = 2.0;
-/** Cap on the multi-lobe field grid edge so cost (O(dim^3 * lobes)) stays bounded and independent of the quality/resolution slider. */
+/** Cap on the multi-lobe field grid edge so cost (O(dim^3 * lobes)) stays bounded and independent of the quality/resolution slider. The smooth-max field gives smooth shading even at this coarse spacing, so it is kept low for speed (only multi-lobe chains reach this path). */
 const MaxFieldDim = 64;
 
 /**
- * Multiple lobes → one watertight surface. Each lobe contributes an inside-ness
- * scalar f = r_fit(dir) - |p - center| (positive inside its SH envelope); the
- * lobes are combined with a soft-max (log-sum-exp) so neighbours blend smoothly
- * instead of producing the seam crease / internal walls of overlaid blobs. The
- * field is marching-cubed once at iso-level 0.
+ * Polynomial smooth-max (Inigo Quilez's smooth-min, negated): a rounded `max(a, b)` that blends only
+ * within `k` of the crossover and is exact (== max) beyond it. Unlike a log-sum-exp soft-max it is
+ * LOCAL - no `log(nLobes)/beta` bias, so empty regions stay outside (no spurious halo) - it just
+ * rounds the seam where two lobes meet and keeps the field gradient continuous (smooth normals).
+ */
+function smoothMax(a: number, b: number, k: number): number {
+    if (k <= 0) return a > b ? a : b;
+    const h = Math.max(0, Math.min(1, 0.5 + 0.5 * (a - b) / k));
+    return a * h + b * (1 - h) + k * h * (1 - h);
+}
+
+/**
+ * Multiple lobes → one watertight surface. Each lobe contributes an inside-ness scalar
+ * f = r_fit(dir) - |p - center| (positive inside its SH envelope); the lobes are combined by a
+ * smooth-max (their rounded union) and the field is marching-cubed once at iso-level 0.
+ *
+ * The smooth-max rounds the seam creases where lobes meet and, by keeping the field gradient
+ * continuous, gives smooth shading instead of the faceted ridges of a hard `max`. NB: a log-sum-exp
+ * soft-max was tried and rejected - its `log(nLobes)/beta` bias inflates the field where lobes are
+ * comparable, adding a halo of spurious zero-crossings (measured +57% vertices on an 8-lobe rRNA);
+ * the polynomial smooth-max is local and halo-free.
  */
 async function reconstructLobesField(lobes: SphericalHarmonicLobe[], L: number, props: SphericalHarmonicSurfaceMeshProps, cloud: Float32Array, shGroups: Float32Array, boundingSphere: Sphere3D, ctx: VisualContext, mesh?: Mesh): Promise<Mesh> {
     const R = boundingSphere.radius + FieldPad + props.resolution;
@@ -297,10 +429,12 @@ async function reconstructLobesField(lobes: SphericalHarmonicLobe[], L: number, 
     const K = shTermCount(L);
     const basisScratch = new Float64Array(K);
     const legendreScratch = new Float64Array(((L + 1) * (L + 2)) / 2);
-    const beta = 1 / FieldBlend;
+
+    // Seam-rounding width for the smooth-max union: a few Angstrom, but at least ~2 grid cells so it
+    // is actually resolved by the field (and capped so it never over-rounds small lobes).
+    const blend = Math.max(2, Math.min(6, 2 * resolution));
 
     const nL = lobes.length;
-    const fScratch = new Float64Array(nL); // per-lobe inside-ness at the current cell
     const rClamp = lobes.map(l => l.rMax * RadiusMargin);
     for (let i = 0; i < dimN; ++i) {
         const px = min[0] + i * resolution;
@@ -308,32 +442,30 @@ async function reconstructLobesField(lobes: SphericalHarmonicLobe[], L: number, 
             const py = min[1] + j * resolution;
             for (let k = 0; k < dimN; ++k) {
                 const pz = min[2] + k * resolution;
-                // f per lobe (computed once), combined via soft-max:
-                // F = fmax + log(sum exp(beta (f - fmax))) / beta
-                let fmax = -Infinity;
+                // rounded union inside-ness: F = smooth-max over lobes of (r_fit(dir) - |p - center|)
+                let acc = 0; let has = false;
                 for (let li = 0; li < nL; ++li) {
                     const ctr = lobes[li].center;
                     const dx = px - ctr[0], dy = py - ctr[1], dz = pz - ctr[2];
                     const rr = Math.sqrt(dx * dx + dy * dy + dz * dz);
                     // Far outside this lobe's radius the cell is unambiguously outside it, so the
-                    // exact (negative) inside-ness doesn't affect the soft-max union; skip the
-                    // expensive SH evaluation and use the cheap monotonic estimate rMax - rr.
+                    // exact (negative) inside-ness doesn't affect the union; skip the expensive
+                    // SH evaluation and use the cheap monotonic estimate rMax - rr.
                     let f: number;
-                    if (rr > rClamp[li]) {
+                    if (rr > rClamp[li] + blend) {
                         f = rClamp[li] - rr;
                     } else {
                         const theta = rr > 1e-9 ? Math.acos(Math.min(1, Math.max(-1, dz / rr))) : 0;
                         const phi = Math.atan2(dy, dx);
                         let rfit = reconstructRadius(lobes[li].coeffs, L, theta, phi, basisScratch, legendreScratch);
-                        if (rfit > rClamp[li]) rfit = rClamp[li];
+                        if (!(rfit > MinRadius)) rfit = MinRadius; // clamp ringing/NaN low so it can't punch holes
+                        else if (rfit > rClamp[li]) rfit = rClamp[li];
                         f = rfit - rr;
                     }
-                    fScratch[li] = f;
-                    if (f > fmax) fmax = f;
+                    acc = has ? smoothMax(acc, f, blend) : f;
+                    has = true;
                 }
-                let sum = 0;
-                for (let li = 0; li < nL; ++li) sum += Math.exp(beta * (fScratch[li] - fmax));
-                space.set(data, i, j, k, fmax + Math.log(sum) / beta);
+                space.set(data, i, j, k, acc);
             }
         }
     }
@@ -355,13 +487,86 @@ async function reconstructLobesField(lobes: SphericalHarmonicLobe[], L: number, 
     return surface;
 }
 
+/** Cap on auto lobes per chain so the per-vertex group transfer (O(lobes * verts * cloud)) stays bounded. */
+const MaxAutoLobesPerChain = 64;
+
 /**
- * Reconstruct the SH surface from the cached base surface stored in `meta`.
+ * Auto labels: split each chain (by `seqChain`) into round(chainAtoms / targetAtoms) k-means clusters,
+ * so every lobe is about `targetAtoms` atoms - uniform blob size with a per-chain count (small chains
+ * stay one lobe, large chains split into many). Labels are unique across chains.
+ */
+function autoLabels(verts: Float32Array, seqChain: Int32Array | undefined, targetAtoms: number): Int32Array {
+    const n = verts.length / 3;
+    const labels = new Int32Array(n);
+    const byChain = new Map<number, number[]>();
+    for (let i = 0; i < n; ++i) {
+        const c = seqChain ? seqChain[i] : 0;
+        let arr = byChain.get(c);
+        if (!arr) { arr = []; byChain.set(c, arr); }
+        arr.push(i);
+    }
+
+    let base = 0;
+    for (const idxArr of byChain.values()) {
+        const m = idxArr.length;
+        const kChain = Math.max(1, Math.min(MaxAutoLobesPerChain, Math.round(m / targetAtoms)));
+        if (kChain <= 1) {
+            for (const i of idxArr) labels[i] = base;
+            base += 1;
+            continue;
+        }
+        const sub = new Float32Array(m * 3);
+        for (let t = 0; t < m; ++t) {
+            const i = idxArr[t];
+            sub[t * 3] = verts[i * 3]; sub[t * 3 + 1] = verts[i * 3 + 1]; sub[t * 3 + 2] = verts[i * 3 + 2];
+        }
+        const subLabels = kmeansLabels(sub, kChain);
+        for (let t = 0; t < m; ++t) labels[idxArr[t]] = base + subLabels[t];
+        base += kChain;
+    }
+    return labels;
+}
+
+/**
+ * Fit the cloud into one or more star-shaped lobes per the chosen mode:
+ * - `single`: one radial envelope about the cloud centroid.
+ * - `sequence`: one lobe per contiguous residue-sequence segment (k per chain), labelled from the
+ *   per-point chain/residue-fraction stored on the cloud - locally star-convex pieces that follow a
+ *   threaded chain (e.g. rRNA) better than a single shell, but a contiguous run is not spatially
+ *   compact so it needs many divisions on a heavily threaded chain.
+ * - `kmeans`: k spatial clusters - compact, star-convex lobes at far fewer pieces than sequence.
+ * - `auto`: a per-chain k-means count derived from `target` atoms-per-lobe, for uniform lobe size.
+ */
+function fitLobes(meta: SphericalHarmonicSurfaceMeta, mode: LobesMode, k: number, target: number, L: number, maxFitPoints: number, regularization: number): SphericalHarmonicLobe[] {
+    const { shVertices, shRadii, shSeqChain, shSeqFrac } = meta;
+    const verts = shVertices!;
+    const n = verts.length / 3;
+
+    let labels: Int32Array;
+    if (mode === 'auto') {
+        labels = autoLabels(verts, shSeqChain, target);
+    } else if (k > 1 && mode === 'sequence' && shSeqChain && shSeqFrac) {
+        labels = new Int32Array(n);
+        for (let i = 0; i < n; ++i) {
+            const run = Math.min(k - 1, Math.floor(shSeqFrac[i] * k));
+            labels[i] = shSeqChain[i] * k + run;
+        }
+    } else if (k > 1 && mode === 'kmeans') {
+        labels = kmeansLabels(verts, k);
+    } else {
+        labels = new Int32Array(n); // single lobe
+    }
+
+    return fitSphericalHarmonicLobesByLabel(verts, labels, L, { radii: shRadii, maxPoints: maxFitPoints, regularization }).lobes;
+}
+
+/**
+ * Reconstruct the SH surface from the cached base cloud stored in `meta`.
  *
- * Fits one or more star-shaped lobes (cached by `${L}|${maxLobes}`, so a
- * detail-only change re-tessellates without refitting). A single lobe is
- * rendered as an analytic icosphere blob; multiple lobes are blended into one
- * watertight surface via a marching-cubes implicit field.
+ * Fits one or more star-shaped lobes (cached by mode+count, so a detail- or blend-only change
+ * re-tessellates without refitting). Lobes are combined either as overlapping icosphere blobs
+ * (the MC-free default) or, when `watertight` is on, blended into one watertight surface via a
+ * marching-cubes implicit field.
  */
 async function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMeta, props: SphericalHarmonicSurfaceMeshProps, ctx: VisualContext, mesh?: Mesh): Promise<Mesh> {
     const { shVertices, shGroups, shCenter, shBoundingSphere } = meta;
@@ -370,7 +575,7 @@ async function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMe
     }
 
     const L = Math.round(props.sphericalHarmonicL);
-    const maxLobes = Math.max(1, Math.round(props.maxLobes));
+    const { mode, k, target } = lobesConfig(props.lobes);
     const regularization = props.regularization;
 
     // Cap the points used for the least-squares fit. The fit cost is O(points * K^2), K = (L+1)^2,
@@ -381,27 +586,19 @@ async function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMe
     // samples. The full cloud is still used for the per-vertex group transfer (accurate coloring).
     const maxFitPoints = Math.min(8192, Math.max(512, shTermCount(L) * 10));
 
-    const fitKey = `${L}|${maxLobes}|${regularization}`;
+    // The lobe fit is cached by mode+count (watertight is NOT here: it only changes how the cached
+    // lobes are combined, not the fit), so toggling the blend re-tessellates without refitting.
+    const fitKey = `${L}|${mode}|${k}|${target}|${regularization}`;
     let lobes = meta.shFitKey === fitKey ? meta.shFitLobes : undefined;
     if (!lobes) {
-        if (maxLobes <= 1) {
-            const { coeffs, rMax } = fitSphericalHarmonics(shVertices, shCenter, L, maxFitPoints, regularization);
-            lobes = [{ center: [shCenter[0], shCenter[1], shCenter[2]], coeffs, rMax }];
-        } else {
-            // Split only genuinely non-star-shaped clouds (crescents, rings, centroid-outside
-            // shapes) - NOT ordinary compact or two-domain blobs, which a single radial shell
-            // already represents. The gap threshold scales with the cloud radius because a solid
-            // cloud's interior sampling leaves gaps ~proportional to its size; below this even a
-            // star-shaped blob looks "re-entrant". Empirically ~R/3 with tolerance ~0.3 keeps a
-            // solid ball at one lobe while a true gap (~R) still triggers.
-            const thickness = Math.max(3, shBoundingSphere.radius * 0.33);
-            lobes = fitSphericalHarmonicLobes(shVertices, L, { maxLobes, tolerance: 0.3, thickness, maxPoints: maxFitPoints, regularization }).lobes;
-        }
+        lobes = fitLobes(meta, mode, k, target, L, maxFitPoints, regularization);
     }
 
     const surface = lobes.length <= 1
-        ? reconstructIcosphereBlob(lobes[0], L, props, shVertices, shGroups, mesh)
-        : await reconstructLobesField(lobes, L, props, shVertices, shGroups, shBoundingSphere, ctx, mesh);
+        ? reconstructBlobs(lobes, L, props, shVertices, shGroups, mesh)
+        : props.watertight
+            ? await reconstructLobesField(lobes, L, props, shVertices, shGroups, shBoundingSphere, ctx, mesh)
+            : reconstructBlobs(lobes, L, props, shVertices, shGroups, mesh);
 
     if (ctx.webgl && !ctx.webgl.isWebGL2) {
         Mesh.uniformTriangleGroup(surface);
@@ -428,15 +625,18 @@ async function reconstructSphericalHarmonicMesh(meta: SphericalHarmonicSurfaceMe
 }
 
 /**
- * Populate the base cache in `meta` from an explicit point cloud (interleaved xyz) and per-point
- * group ids.
+ * Populate the base cache in `meta` from a built atom cloud (positions, group ids and per-point
+ * sequence labels).
  */
-function populateCacheFromPoints(meta: SphericalHarmonicSurfaceMeta, points: Float32Array, groups: Float32Array, center: Vec3, boundingSphere: Sphere3D, resolution: number, cacheKey: string) {
+function populateCacheFromPoints(meta: SphericalHarmonicSurfaceMeta, cloud: ReturnType<typeof buildAtomCloud>, resolution: number, cacheKey: string) {
     meta.shCacheKey = cacheKey;
-    meta.shCenter = Vec3.clone(center);
-    meta.shVertices = points;
-    meta.shGroups = groups;
-    meta.shBoundingSphere = Sphere3D.clone(boundingSphere);
+    meta.shCenter = Vec3.clone(cloud.center);
+    meta.shVertices = cloud.points;
+    meta.shGroups = cloud.groups;
+    meta.shSeqChain = cloud.chains;
+    meta.shSeqFrac = cloud.fracs;
+    meta.shRadii = cloud.radii;
+    meta.shBoundingSphere = Sphere3D.clone(cloud.boundingSphere);
     meta.resolution = resolution;
     // the point cloud changed: invalidate the cached fit so it is recomputed
     meta.shFitKey = undefined;
@@ -444,44 +644,51 @@ function populateCacheFromPoints(meta: SphericalHarmonicSurfaceMeta, points: Flo
 }
 
 /**
- * Build an SH-fitting point cloud from atom positions: each atom is pushed outward by its radius
- * (size + radiusOffset) along the centroid->atom direction so the fit tracks the surface envelope
- * rather than the (inward-biased) atom centers. `ids[i]` is the group id carried to the reconstructed mesh.
+ * Build an SH-fitting point cloud from atom positions. The atoms are stored at their true positions
+ * together with a per-atom radius (size + radiusOffset); the outward inflation that makes the fit
+ * track the surface envelope (rather than the inward-biased atom centers) is applied per lobe at fit
+ * time, *about that lobe's own centroid*, so a larger offset thickens the envelope without drifting
+ * its center off the atoms. `ids[i]` is the group id carried to the reconstructed mesh.
  */
-function buildAtomCloud(xs: number[], ys: number[], zs: number[], rs: number[], ids: ArrayLike<number>) {
+function buildAtomCloud(xs: number[], ys: number[], zs: number[], rs: number[], ids: ArrayLike<number>, seqChain: ArrayLike<number>, seqFrac: ArrayLike<number>) {
     const n = xs.length;
     const position = { x: xs, y: ys, z: zs, radius: rs, indices: OrderedSet.ofRange(0, n) };
     const boundary = getBoundary(position);
-    const center = boundary.sphere.center;
-    const cx = center[0], cy = center[1], cz = center[2];
 
     const points = new Float32Array(n * 3);
     const groups = new Float32Array(n);
+    const chains = new Int32Array(n);
+    const fracs = new Float32Array(n);
+    const radii = new Float32Array(n);
     let maxRadius = 0;
     for (let i = 0; i < n; ++i) {
-        const dx = xs[i] - cx, dy = ys[i] - cy, dz = zs[i] - cz;
-        const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        const r = rs[i];
-        if (r > maxRadius) maxRadius = r;
-        if (len > 1e-3) {
-            const push = r / len; // push outward by the atom radius
-            points[i * 3] = xs[i] + dx * push;
-            points[i * 3 + 1] = ys[i] + dy * push;
-            points[i * 3 + 2] = zs[i] + dz * push;
-        } else {
-            points[i * 3] = xs[i]; points[i * 3 + 1] = ys[i]; points[i * 3 + 2] = zs[i];
-        }
+        points[i * 3] = xs[i]; points[i * 3 + 1] = ys[i]; points[i * 3 + 2] = zs[i];
         groups[i] = ids[i];
+        chains[i] = seqChain[i];
+        fracs[i] = seqFrac[i];
+        radii[i] = rs[i];
+        if (rs[i] > maxRadius) maxRadius = rs[i];
     }
     const boundingSphere = Sphere3D.expand(Sphere3D(), boundary.sphere, maxRadius);
-    return { points, groups, center: Vec3.clone(center), boundingSphere, maxRadius };
+    return { points, groups, chains, fracs, radii, center: Vec3.clone(boundary.sphere.center), boundingSphere, maxRadius };
 }
 
 /** Reconstruct an SH blob directly from an atom point cloud (no molecular surface). */
 function reconstructFromAtomCloud(cloud: ReturnType<typeof buildAtomCloud>, props: SphericalHarmonicSurfaceMeshProps, resolution: number, cacheKey: string, ctx: VisualContext, mesh?: Mesh): Promise<Mesh> {
     const target = mesh ?? Mesh.createEmpty();
-    populateCacheFromPoints(target.meta as SphericalHarmonicSurfaceMeta, cloud.points, cloud.groups, cloud.center, cloud.boundingSphere, resolution, cacheKey);
+    populateCacheFromPoints(target.meta as SphericalHarmonicSurfaceMeta, cloud, resolution, cacheKey);
     return reconstructSphericalHarmonicMesh(target.meta as SphericalHarmonicSurfaceMeta, props, ctx, target);
+}
+
+/** Normalized residue position ([0,1)) of element `eI` within the contiguous residue range of `unit`. */
+function residueFraction(unit: Unit, eI: ElementIndex): number {
+    if (!Unit.isAtomic(unit)) return 0;
+    const ri = unit.residueIndex;
+    const els = unit.elements;
+    const first = ri[els[0]];
+    const last = ri[els[els.length - 1]];
+    const span = last - first;
+    return span > 0 ? (ri[eI] - first) / (span + 1) : 0;
 }
 
 /** Atom arrays (model coords) for one unit, with group id = index into unit.elements. */
@@ -491,6 +698,7 @@ function getUnitAtomArrays(structure: Structure, unit: Unit, sizeTheme: SizeThem
     const { elements } = unit;
     const l = StructureElement.Location.create(structure, unit);
     const xs: number[] = [], ys: number[] = [], zs: number[] = [], rs: number[] = [], ids: number[] = [];
+    const chains: number[] = [], fracs: number[] = [];
     const stride = Math.max(1, Math.floor(elements.length / MaxFitCloudPoints));
     let kept = 0;
     for (let j = 0, jl = elements.length; j < jl; ++j) {
@@ -502,8 +710,10 @@ function getUnitAtomArrays(structure: Structure, unit: Unit, sizeTheme: SizeThem
         l.element = eI;
         rs.push(sizeTheme.size(l) + radiusOffset);
         ids.push(j);
+        chains.push(0); // one unit = one chain
+        fracs.push(residueFraction(unit, eI));
     }
-    return { xs, ys, zs, rs, ids };
+    return { xs, ys, zs, rs, ids, chains, fracs };
 }
 
 /** Atom arrays (world coords) for the given `units`, with group id = serial element index in `structure`. */
@@ -512,10 +722,12 @@ function getUnitsAtomArrays(structure: Structure, units: ReadonlyArray<Unit>, si
     const { getSerialIndex } = structure.serialMapping;
     const l = StructureElement.Location.create(structure);
     const xs: number[] = [], ys: number[] = [], zs: number[] = [], rs: number[] = [], ids: number[] = [];
+    const chains: number[] = [], fracs: number[] = [];
     let total = 0;
     for (const unit of units) total += unit.elements.length;
     const stride = Math.max(1, Math.floor(total / MaxFitCloudPoints));
     let kept = 0;
+    let chainOrdinal = 0;
     for (const unit of units) {
         const { elements, conformation: c } = unit;
         l.unit = unit;
@@ -528,9 +740,12 @@ function getUnitsAtomArrays(structure: Structure, units: ReadonlyArray<Unit>, si
             l.element = eI;
             rs.push(sizeTheme.size(l) + radiusOffset);
             ids.push(getSerialIndex(unit, eI));
+            chains.push(chainOrdinal);
+            fracs.push(residueFraction(unit, eI));
         }
+        chainOrdinal++;
     }
-    return { xs, ys, zs, rs, ids };
+    return { xs, ys, zs, rs, ids, chains, fracs };
 }
 
 /** Atom arrays (world coords) for the whole structure, with group id = serial element index. */
@@ -608,8 +823,8 @@ async function createSphericalHarmonicSurfaceMesh(ctx: VisualContext, unit: Unit
         return result;
     }
 
-    const { xs, ys, zs, rs, ids } = getUnitAtomArrays(structure, unit, theme.size, props);
-    const cloud = buildAtomCloud(xs, ys, zs, rs, ids);
+    const { xs, ys, zs, rs, ids, chains, fracs } = getUnitAtomArrays(structure, unit, theme.size, props);
+    const cloud = buildAtomCloud(xs, ys, zs, rs, ids, chains, fracs);
     const result = await reconstructFromAtomCloud(cloud, props, props.resolution, cacheKey, ctx, mesh);
     shAccumulateTiming(start, xs.length);
     return result;
@@ -649,8 +864,8 @@ async function createStructureSphericalHarmonicSurfaceMesh(ctx: VisualContext, s
         return result;
     }
 
-    const { xs, ys, zs, rs, ids } = getStructureAtomArrays(structure, theme.size, props);
-    const cloud = buildAtomCloud(xs, ys, zs, rs, ids);
+    const { xs, ys, zs, rs, ids, chains, fracs } = getStructureAtomArrays(structure, theme.size, props);
+    const cloud = buildAtomCloud(xs, ys, zs, rs, ids, chains, fracs);
     const result = await reconstructFromAtomCloud(cloud, props, props.resolution, cacheKey, ctx, mesh);
     shAccumulateTiming(start, xs.length);
     return result;
@@ -694,10 +909,10 @@ async function createAssemblySphericalHarmonicSurfaceMesh(ctx: VisualContext, st
 
     // fit one ASU envelope from its atom cloud into a scratch mesh (kept off the render object)
     const cacheKey = surfaceCacheKey(`assembly-${structure.hashCode}-${operIds[0]}`, props);
-    const { xs, ys, zs, rs, ids } = getUnitsAtomArrays(structure, baseUnits, theme.size, props);
-    const cloud = buildAtomCloud(xs, ys, zs, rs, ids);
+    const { xs, ys, zs, rs, ids, chains, fracs } = getUnitsAtomArrays(structure, baseUnits, theme.size, props);
+    const cloud = buildAtomCloud(xs, ys, zs, rs, ids, chains, fracs);
     const scratch = tmeta.shAsuMesh ?? Mesh.createEmpty();
-    populateCacheFromPoints(scratch.meta as SphericalHarmonicSurfaceMeta, cloud.points, cloud.groups, cloud.center, cloud.boundingSphere, props.resolution, cacheKey);
+    populateCacheFromPoints(scratch.meta as SphericalHarmonicSurfaceMeta, cloud, props.resolution, cacheKey);
     const envelope = await reconstructSphericalHarmonicMesh(scratch.meta as SphericalHarmonicSurfaceMeta, props, ctx, scratch);
     tmeta.shAsuMesh = envelope;
 

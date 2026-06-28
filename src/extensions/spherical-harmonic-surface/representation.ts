@@ -12,8 +12,11 @@
  *
  * A single expansion is single-valued in r about one center, so it only
  * represents star-convex shapes. Non-star-shaped inputs (elongated or
- * multi-domain) can be decomposed into several star-shaped lobes via the
- * `maxLobes` parameter, fit separately and blended into one watertight surface;
+ * multi-domain, e.g. a threaded rRNA chain) can be decomposed into several
+ * star-shaped lobes via the `lobes` parameter - either by contiguous residue
+ * sequence (per chain), by spatial k-means clusters, or auto (a target lobe size that
+ * sets the per-chain count for uniform blobs) - each fit separately and
+ * combined as overlapping blobs (no marching cubes) or a watertight blend;
  * see the visual module for details.
  *
  * Three visual flavours, differing only in which atoms each envelope is fit to:
@@ -26,7 +29,7 @@
  *   operators (e.g. a protomer fit once, drawn as the full symmetric assembly).
  */
 
-import { SphericalHarmonicSurfaceMeshVisual, SphericalHarmonicSurfaceMeshParams, StructureSphericalHarmonicSurfaceMeshVisual, AssemblySphericalHarmonicSurfaceMeshVisual } from './mesh';
+import { SphericalHarmonicSurfaceMeshVisual, SphericalHarmonicSurfaceMeshParams, StructureSphericalHarmonicSurfaceMeshVisual, AssemblySphericalHarmonicSurfaceMeshVisual, LobesParam } from './mesh';
 import { UnitsRepresentation } from '../../mol-repr/structure/units-representation';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ComplexRepresentation, StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../../mol-repr/structure/representation';
@@ -49,7 +52,13 @@ export const SphericalHarmonicSurfaceParams = {
 };
 export type SphericalHarmonicSurfaceParams = typeof SphericalHarmonicSurfaceParams
 export function getSphericalHarmonicSurfaceParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return SphericalHarmonicSurfaceParams;
+    // size the auto target-atoms slider to the biggest chain in the loaded structure (O(units), cheap)
+    let maxChainAtoms = 0;
+    for (const unit of structure.units) if (unit.elements.length > maxChainAtoms) maxChainAtoms = unit.elements.length;
+    return {
+        ...SphericalHarmonicSurfaceParams,
+        lobes: LobesParam(maxChainAtoms),
+    };
 }
 
 export type SphericalHarmonicSurfaceRepresentation = StructureRepresentation<SphericalHarmonicSurfaceParams>
@@ -60,7 +69,7 @@ export function SphericalHarmonicSurfaceRepresentation(ctx: RepresentationContex
 export const SphericalHarmonicSurfaceRepresentationProvider = StructureRepresentationProvider({
     name: 'spherical-harmonic-surface',
     label: 'Spherical Harmonic Surface',
-    description: 'Displays a smooth shape envelope approximated by a spherical harmonic expansion of the atom positions (star-convex per lobe; raise maxLobes to split elongated or multi-domain shapes into blended star-shaped lobes).',
+    description: 'Displays a smooth shape envelope approximated by a spherical harmonic expansion of the atom positions (star-convex per lobe; split a chain into per-sequence, k-means, or auto (uniform-size) lobes to follow elongated or threaded shapes, as overlapping blobs or a watertight blend).',
     factory: SphericalHarmonicSurfaceRepresentation,
     getParams: getSphericalHarmonicSurfaceParams,
     defaultValues: PD.getDefaultValues(SphericalHarmonicSurfaceParams),
