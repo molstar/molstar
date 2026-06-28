@@ -173,8 +173,6 @@ function ignoreDefine(name: string, variant: string, defines: ShaderDefines): bo
         }
     } else {
         const ignore = [
-            'dColorType', 'dUsePalette',
-            'dOverpaintType', 'dOverpaint',
             'dSubstanceType', 'dSubstance',
             'dColorMarker', 'dCelShaded',
             'dLightCount',
@@ -183,7 +181,8 @@ function ignoreDefine(name: string, variant: string, defines: ShaderDefines): bo
             ignore.push('dXrayShaded');
         }
         if (variant !== 'emissive') {
-            ignore.push('dEmissiveType', 'dEmissive');
+            // emissive bloom seeds from the object's color, so keep the color/overpaint/emissive defines for it
+            ignore.push('dColorType', 'dUsePalette', 'dOverpaintType', 'dOverpaint', 'dEmissiveType', 'dEmissive');
         }
         return ignore.includes(name);
     }
