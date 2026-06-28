@@ -81,6 +81,8 @@ function shAccumulateTiming(start: number, points: number) {
 
 /** Default target atoms per auto lobe: most chains fall under this (one lobe), large chains (e.g. rRNA) split. */
 export const DefaultTargetAtoms = 3000;
+/** Lower bound for the auto target-atoms slider (lets the user force finer splitting). */
+const MinTargetAtoms = 100;
 /** Fallback slider max for `auto.targetAtoms` when no structure is available; the representation overrides it with the biggest chain's atom count. */
 const DefaultMaxTargetAtoms = 50000;
 
@@ -100,7 +102,7 @@ export function LobesParam(maxTargetAtoms: number) {
             clusters: PD.Numeric(4, { min: 1, max: 32, step: 1 }, { description: 'Cluster atoms into this many spatial groups (k-means), fitting one star-convex lobe per cluster. Compact lobes that follow a threaded chain (e.g. rRNA) at far fewer pieces than sequence division.' }),
         }, { isFlat: true }),
         'auto': PD.Group({
-            targetAtoms: PD.Numeric(DefaultTargetAtoms, { min: DefaultTargetAtoms, max: Math.max(DefaultTargetAtoms, maxTargetAtoms), step: 50 }, { description: 'Target atoms per lobe (never below 3000). Each chain is split (by k-means) into round(chainAtoms / targetAtoms) lobes, so lobes are uniform across chains: chains up to ~1.5x this stay a single envelope, larger chains (e.g. rRNA) split into k-means lobes. Max is the biggest chain in the loaded structure.' }),
+            targetAtoms: PD.Numeric(DefaultTargetAtoms, { min: MinTargetAtoms, max: Math.max(DefaultTargetAtoms, maxTargetAtoms), step: 50 }, { description: 'Target atoms per lobe (default 3000, regardless of chain sizes). Each chain is split (by k-means) into round(chainAtoms / targetAtoms) lobes, so lobes are uniform across chains: chains up to ~1.5x this stay a single envelope, larger chains (e.g. rRNA) split into k-means lobes. Lower the value to force finer splitting; max is the biggest chain in the loaded structure.' }),
         }, { isFlat: true }),
     }, { description: 'Split a chain/structure into star-convex lobes before fitting: auto (default - uniform lobe size, per-chain count from a target; single envelope for small chains), a single radial envelope, by residue sequence (per chain), or by a fixed number of spatial k-means clusters.' });
 }
