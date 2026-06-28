@@ -23,6 +23,7 @@ import { Texture } from '../../mol-gl/webgl/texture';
 import { Interval } from '../../mol-data/int/interval';
 import { OrderedSet } from '../../mol-data/int/ordered-set';
 import { VolumeVisual } from './visual';
+import { clamp } from '../../mol-math/interpolate';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D();
@@ -158,8 +159,8 @@ export type DirectVolumeParams = typeof DirectVolumeParams
 export function getDirectVolumeParams(ctx: ThemeRegistryContext, volume: Volume) {
     const params = PD.clone(DirectVolumeParams);
     params.controlPoints.getVolume = () => volume;
-    params.controlPoints.defaultValue = computeRampControlPoints(volume);
-    params.controlPoints.getPresets = () => buildPresets(volume);
+    params.controlPoints.defaultValue = computeRampControlPoints(volume.grid);
+    params.controlPoints.getPresets = () => buildPresets(volume.grid);
     return params;
 }
 export type DirectVolumeProps = PD.Values<DirectVolumeParams>
@@ -216,8 +217,7 @@ const MaxPeakX = 0.95;
  * Robust stats are computed from the cached histogram with the bin
  * containing 0 excluded (typical for masked/padded density maps).
  */
-function computeRampControlPoints(volume: Volume): Vec2[] {
-    const { grid } = volume;
+function computeRampControlPoints(grid: Grid): Vec2[] {
     const { min, max } = grid.stats;
     const range = max - min;
     if (range <= 0 || !isFinite(range)) {
@@ -298,13 +298,13 @@ function fallbackControlPoints(): Vec2[] {
  * Build a single narrow peak (iso-surface-like) at `mean + sigmaOffset*sigma`.
  * `halfWidth` is in normalized [0,1] x-space; `alpha` is the peak height.
  */
-function buildSinglePeak(volume: Volume, sigmaOffset: number, halfWidth: number, alpha: number): Vec2[] {
-    const { min, max } = volume.grid.stats;
+function buildSinglePeak(grid: Grid, sigmaOffset: number, halfWidth: number, alpha: number): Vec2[] {
+    const { min, max } = grid.stats;
     const range = max - min;
     if (range <= 0 || !isFinite(range)) {
         return fallbackControlPoints();
     }
-    const robust = Grid.getRobustStats(volume.grid, { ignoreZero: true });
+    const robust = Grid.getRobustStats(grid, { ignoreZero: true });
     const { mean, sigma } = robust;
     if (!isFinite(sigma) || sigma <= 0 || robust.count === 0) {
         return fallbackControlPoints();
@@ -325,21 +325,20 @@ function buildSinglePeak(volume: Volume, sigmaOffset: number, halfWidth: number,
 }
 
 /** Sharp iso-surface-like peak around mean+2σ. */
-function computeSharpSurfaceControlPoints(volume: Volume): Vec2[] {
-    return buildSinglePeak(volume, 2, 0.012, PeakAlpha);
+function computeSharpSurfaceControlPoints(grid: Grid): Vec2[] {
+    return buildSinglePeak(grid, 2, 0.012, PeakAlpha);
 }
 
 /** Narrow high-contour peak at mean+3σ with stronger alpha. */
-function computeHighContourControlPoints(volume: Volume): Vec2[] {
-    return buildSinglePeak(volume, 3, 0.015, 0.08);
+function computeHighContourControlPoints(grid: Grid): Vec2[] {
+    return buildSinglePeak(grid, 3, 0.015, 0.08);
 }
 
 /**
  * Wide soft ramp starting at the mean, plateauing around mean+σ; reveals
  * weak density (low-resolution maps, partial occupancy).
  */
-function computeLowContourControlPoints(volume: Volume): Vec2[] {
-    const { grid } = volume;
+function computeLowContourControlPoints(grid: Grid): Vec2[] {
     const { min, max } = grid.stats;
     const range = max - min;
     if (range <= 0 || !isFinite(range)) {
@@ -362,8 +361,7 @@ function computeLowContourControlPoints(volume: Volume): Vec2[] {
  * matter is darker than background prior to inversion). Builds a ramp
  * descending from p1 → mean−σ.
  */
-function computeTomogramControlPoints(volume: Volume): Vec2[] {
-    const { grid } = volume;
+function computeTomogramControlPoints(grid: Grid): Vec2[] {
     const { min, max } = grid.stats;
     const range = max - min;
     if (range <= 0 || !isFinite(range)) return fallbackControlPoints();
@@ -391,8 +389,7 @@ function computeTomogramControlPoints(volume: Volume): Vec2[] {
  * Symmetric narrow peaks at ±3σ for signed difference maps (Fo−Fc, mFo−DFc).
  * Falls back to the default control points when the volume is unsigned.
  */
-function computeDifferenceMapControlPoints(volume: Volume): Vec2[] {
-    const { grid } = volume;
+function computeDifferenceMapControlPoints(grid: Grid): Vec2[] {
     const { min, max } = grid.stats;
     const range = max - min;
     if (range <= 0 || !isFinite(range) || min >= 0) {
@@ -430,8 +427,7 @@ function computeDifferenceMapControlPoints(volume: Volume): Vec2[] {
  * Linear ramp from p1 → p99 with monotonically increasing alpha. Suited for
  * data normalized to [0,1] like occupancy or probability/mask volumes.
  */
-function computeOccupancyControlPoints(volume: Volume): Vec2[] {
-    const { grid } = volume;
+function computeOccupancyControlPoints(grid: Grid): Vec2[] {
     const { min, max } = grid.stats;
     const range = max - min;
     if (range <= 0 || !isFinite(range)) return fallbackControlPoints();
@@ -459,8 +455,7 @@ function computeOccupancyControlPoints(volume: Volume): Vec2[] {
  * Soft, low-alpha ramp covering [μ, p99] for cloudy/accumulation-style
  * rendering (MO densities, mesoscale fields).
  */
-function computeWideVolumetricControlPoints(volume: Volume): Vec2[] {
-    const { grid } = volume;
+function computeWideVolumetricControlPoints(grid: Grid): Vec2[] {
     const { min, max } = grid.stats;
     const range = max - min;
     if (range <= 0 || !isFinite(range)) return fallbackControlPoints();
@@ -481,28 +476,27 @@ function computeWideVolumetricControlPoints(volume: Volume): Vec2[] {
  * don't apply to the current volume (e.g. difference-map preset on an
  * unsigned volume) are filtered out rather than producing degenerate ramps.
  */
-function buildPresets(volume: Volume): [Vec2[], string][] {
-    const { min, max } = volume.grid.stats;
+function buildPresets(grid: Grid): [Vec2[], string][] {
+    const cached = (grid as any)._directVolumeControlPointsPresets as [Vec2[], string][] | undefined;
+    if (cached) return cached;
+    const { min, max } = grid.stats;
     const isSigned = min < 0;
     const presets: [Vec2[], string][] = [
-        [computeRampControlPoints(volume), 'Ramp (auto)'],
-        [computeSharpSurfaceControlPoints(volume), 'Sharp surface (~+2σ)'],
-        [computeHighContourControlPoints(volume), 'High contour (~+3σ)'],
-        [computeLowContourControlPoints(volume), 'Low contour (~+1σ)'],
+        [computeRampControlPoints(grid), 'Ramp (auto)'],
+        [computeSharpSurfaceControlPoints(grid), 'Sharp surface (~+2σ)'],
+        [computeHighContourControlPoints(grid), 'High contour (~+3σ)'],
+        [computeLowContourControlPoints(grid), 'Low contour (~+1σ)'],
     ];
     // Tomogram preset: include when the data has meaningful negative spread
     // (signed maps, or unsigned but strongly left-skewed).
-    if (isSigned || (isFinite(max - min) && volume.grid.stats.mean - min > max - volume.grid.stats.mean)) {
-        presets.push([computeTomogramControlPoints(volume), 'Tomogram (inverted)']);
+    if (isSigned || (isFinite(max - min) && grid.stats.mean - min > max - grid.stats.mean)) {
+        presets.push([computeTomogramControlPoints(grid), 'Tomogram (inverted)']);
     }
     if (isSigned) {
-        presets.push([computeDifferenceMapControlPoints(volume), 'Difference map (±3σ)']);
+        presets.push([computeDifferenceMapControlPoints(grid), 'Difference map (±3σ)']);
     }
-    presets.push([computeOccupancyControlPoints(volume), 'Occupancy / probability']);
-    presets.push([computeWideVolumetricControlPoints(volume), 'Wide volumetric']);
+    presets.push([computeOccupancyControlPoints(grid), 'Occupancy / probability']);
+    presets.push([computeWideVolumetricControlPoints(grid), 'Wide volumetric']);
+    (grid as any)._directVolumeControlPointsPresets = presets;
     return presets;
-}
-
-function clamp(v: number, lo: number, hi: number) {
-    return v < lo ? lo : v > hi ? hi : v;
 }
