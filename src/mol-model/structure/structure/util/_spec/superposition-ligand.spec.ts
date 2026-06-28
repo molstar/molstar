@@ -5,6 +5,7 @@
  */
 
 import { ElementIndex } from '../../../model';
+import { BondType } from '../../../model/types';
 import {
     DefaultLigandMccsOptions, findMccsCliques, findMccsPairs,
     LigandGraph, LigandGraphEdge, LigandGraphVertex
@@ -17,7 +18,7 @@ import {
  * test against a real structure.
  */
 
-type Bond = [number, number, number?]; // [a, b, order = 1]
+type Bond = [number, number, number?, number?]; // [a, b, order = 1, flags = 0]
 
 function makeGraph(elements: string[], bonds: Bond[]): LigandGraph {
     const vertices: LigandGraphVertex[] = elements.map((elementSymbol, index) => ({
@@ -28,13 +29,25 @@ function makeGraph(elements: string[], bonds: Bond[]): LigandGraph {
     }));
 
     const adj: Map<number, LigandGraphEdge>[] = elements.map(() => new Map<number, LigandGraphEdge>());
-    for (const [a, b, order] of bonds) {
+    for (const [a, b, order, flags] of bonds) {
         const o = order ?? 1;
-        adj[a].set(b, { a, b, order: o, flags: 0, key: -1 });
-        adj[b].set(a, { a: b, b: a, order: o, flags: 0, key: -1 });
+        const f = flags ?? 0;
+        adj[a].set(b, { a, b, order: o, flags: f, key: -1 });
+        adj[b].set(a, { a: b, b: a, order: o, flags: f, key: -1 });
     }
 
     return { structure: undefined, unit: undefined, compId: 'LIG', residueKey: 0, vertices, adj } as unknown as LigandGraph;
+}
+
+const AR = BondType.Flag.Aromatic;
+
+/** A monocycle of `n` aromatic carbons with the given per-bond Kekulé orders (length n). */
+function aromaticRing(kekuleOrders: number[]): LigandGraph {
+    const n = kekuleOrders.length;
+    const elements = new Array<string>(n).fill('C');
+    const bonds: Bond[] = [];
+    for (let i = 0; i < n; i++) bonds.push([i, (i + 1) % n, kekuleOrders[i], AR]);
+    return makeGraph(elements, bonds);
 }
 
 /** A monocycle of `n` carbons with the given bond order. */
@@ -140,6 +153,24 @@ describe('Ligand MCCS', () => {
         const b = carbonRing(6, 1);
 
         expect(() => findMccsCliques(a, b, { maxTimeMs: 0, maxIterations: 1 })).not.toThrow();
+    });
+
+    it('matches aromatic rings across differing Kekulé bond-order assignments', () => {
+        // two benzene rings flagged aromatic but with opposite single/double placements
+        const a = aromaticRing([2, 1, 2, 1, 2, 1]);
+        const b = aromaticRing([1, 2, 1, 2, 1, 2]);
+
+        const pairs = findMccsPairs(a, b); // default edgeTest is aromatic-aware
+        expect(pairs!.length).toBe(6);
+    });
+
+    it('does not match an aromatic ring to an aliphatic ring of equal bond orders', () => {
+        // identical integer orders, but only one ring is flagged aromatic
+        const aromatic = aromaticRing([1, 1, 1, 1, 1, 1]);
+        const aliphatic = carbonRing(6, 1); // no aromatic flag
+
+        const cliques = findMccsCliques(aromatic, aliphatic);
+        expect(cliques).toHaveLength(0);
     });
 
     it('returns nothing when the overlap is below minMatchedAtoms', () => {

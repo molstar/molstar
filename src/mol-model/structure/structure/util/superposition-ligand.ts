@@ -6,6 +6,7 @@
 
 import { OrderedSet, SortedArray } from '../../../../mol-data/int';
 import { ElementIndex } from '../../model';
+import { BondType } from '../../model/types';
 import { Mat4 } from '../../../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../../../mol-task';
 import { Structure, StructureElement, StructureProperties, Unit } from '../../structure';
@@ -71,6 +72,11 @@ export interface LigandMccsOptions {
 export const DefaultLigandMccsOptions: LigandMccsOptions = {
     vertexTest: (a, b) => a.elementSymbol === b.elementSymbol,
     edgeTest: (a, b) => {
+        // aromatic bonds match each other regardless of the (arbitrary) Kekulé order the CCD assigns,
+        // but an aromatic bond is not compatible with an aliphatic one
+        const aArom = (a.flags & BondType.Flag.Aromatic) !== 0;
+        const bArom = (b.flags & BondType.Flag.Aromatic) !== 0;
+        if (aArom || bArom) return aArom === bArom;
         // unknown/0 bond orders are treated as compatible
         const ao = a.order | 0, bo = b.order | 0;
         if (ao > 0 && bo > 0) return ao === bo;
@@ -141,18 +147,22 @@ export function buildLigandGraphFromLoci(loci: StructureElement.Loci): LigandGra
     }
 
     indices.sort((a, b) => a - b);
-    const vertices: LigandGraphVertex[] = indices.map((uIdx, i) => {
-        loc.element = uIdx;
+
+    // intra-unit bonds are keyed by unit-local UnitIndex, not the global ElementIndex, so track both
+    const unitIndices: number[] = new Array(indices.length);
+    const unitIndexToVertex = new Map<number, number>();
+    const vertices: LigandGraphVertex[] = indices.map((el, i) => {
+        loc.element = el;
+        const uIndex = SortedArray.indexOf(unit.elements, el);
+        unitIndices[i] = uIndex;
+        unitIndexToVertex.set(uIndex, i);
         return {
             index: i,
-            element: uIdx,
+            element: el,
             atomName: StructureProperties.atom.label_atom_id(loc),
             elementSymbol: StructureProperties.atom.type_symbol(loc)
         };
     });
-
-    const mapElToV = new Map<number, number>();
-    for (let i = 0; i < vertices.length; i++) mapElToV.set(vertices[i].element, i);
 
     const adj: Map<number, LigandGraphEdge>[] = [];
     for (let i = 0; i < vertices.length; i++) adj.push(new Map());
@@ -161,14 +171,13 @@ export function buildLigandGraphFromLoci(loci: StructureElement.Loci): LigandGra
     const { order, flags, key } = edgeProps;
 
     for (let vi = 0; vi < vertices.length; vi++) {
-        const aEl = vertices[vi].element;
-        const start = offset[aEl];
-        const end = offset[aEl + 1];
+        const uIndex = unitIndices[vi];
+        const start = offset[uIndex];
+        const end = offset[uIndex + 1];
 
         for (let ei = start; ei < end; ei++) {
-            const bEl = b[ei];
-            const vj = mapElToV.get(bEl);
-            if (vj === void 0) continue;
+            const vj = unitIndexToVertex.get(b[ei]); // b[ei] is a UnitIndex
+            if (vj === void 0) continue; // neighbor outside the selected ligand
 
             const edge: LigandGraphEdge = {
                 a: vi,
