@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -19,6 +19,7 @@ uniform sampler2D tDepthOpaque;
 uniform sampler2D tDepthTransparent;
 uniform sampler2D tShadows;
 uniform sampler2D tOutlines;
+uniform sampler2D tBloom;
 uniform vec2 uTexSize;
 
 uniform float uNear;
@@ -54,7 +55,8 @@ float getDepthTransparent(const in vec2 coords) {
 }
 
 bool isBackground(const in float depth) {
-    return depth == 1.0;
+    // (2^24 - 1) / 2^24, max of 24-bit packed depth; also passes raw fp32.
+    return depth >= 0.99999994;
 }
 
 int squaredOutlineScale = dOutlineScale * dOutlineScale;
@@ -216,6 +218,13 @@ void main(void) {
                 color = transparentColor + color * (1.0 - alpha);
             }
         }
+    #endif
+
+    #ifdef dBloomEnable
+        vec4 bloom = texture2D(tBloom, coords);
+        // additive glow over geometry and background alike; alpha just covers the premultiplied rgb
+        color.rgb += bloom.rgb;
+        color.a = min(max(color.a, max(color.r, max(color.g, color.b))), 1.0);
     #endif
 
     gl_FragColor = color;
