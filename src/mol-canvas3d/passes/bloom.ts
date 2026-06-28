@@ -355,4 +355,3 @@ function getCompositeRenderable(ctx: WebGLContext, width: number, height: number
 
     return createComputeRenderable(renderItem, values);
 }
-
