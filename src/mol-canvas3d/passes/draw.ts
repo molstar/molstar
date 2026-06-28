@@ -64,7 +64,6 @@ export class DrawPass {
     readonly marking: MarkingPass;
     readonly postprocessing: PostprocessingPass;
     readonly antialiasing: AntialiasingPass;
-    readonly bloom: BloomPass;
     readonly dof: DofPass;
 
     private transparencyMode: TransparencyMode = 'blended';
@@ -111,7 +110,6 @@ export class DrawPass {
         this.marking = new MarkingPass(webgl, width, height);
         this.postprocessing = new PostprocessingPass(webgl, assetManager, this);
         this.antialiasing = new AntialiasingPass(webgl, width, height);
-        this.bloom = new BloomPass(webgl, width, height);
         this.dof = new DofPass(webgl, width, height);
 
         this.copyFboTarget = createCopyRenderable(webgl, this.colorTarget.texture);
@@ -134,7 +132,6 @@ export class DrawPass {
             this.marking.getByteCount() +
             this.postprocessing.getByteCount() +
             this.antialiasing.getByteCount() +
-            this.bloom.getByteCount() +
             this.dof.getByteCount()
         );
     }
@@ -176,7 +173,36 @@ export class DrawPass {
         this.postprocessing.setSize(width, height);
         this.antialiasing.setSize(width, height);
         this.dof.setSize(width, height);
-        this.bloom.setSize(width, height);
+    }
+
+    private _renderBloom(renderer: Renderer, camera: ICamera, scene: Scene, postprocessingProps: PostprocessingProps): boolean {
+        if (!BloomPass.isEnabled(postprocessingProps) || postprocessingProps.bloom.name !== 'on') return false;
+        const bloom = this.postprocessing.bloom;
+        const params = postprocessingProps.bloom.params;
+        const emissiveBloom = params.mode === 'emissive';
+        if (emissiveBloom && scene.emissiveAverage === 0) return false;
+
+        if (emissiveBloom) {
+            bloom.emissiveTarget.bind();
+            // (0,0,0,0) clear; default white clear would break the MAX blend in renderEmissiveTransparent.
+            renderer.clear(false, true, true);
+            renderer.renderEmissiveOpaque(scene.primitives, camera);
+            if (params.transparency && scene.opacityAverage < 1) {
+                renderer.renderEmissiveTransparent(scene.primitives, camera, this.depthTextureTransparent);
+            }
+        }
+
+        // Clear transparent buffers when opaque-only so luminosity doesn't sample stale halos.
+        if (scene.opacityAverage >= 1) {
+            this.transparentColorTarget.bind();
+            renderer.clear(false, false, true);
+            this.depthTargetTransparent.bind();
+            renderer.clearDepth(true);
+        }
+
+        bloom.update(this.colorTarget.texture, this.transparentColorTarget.texture, bloom.emissiveTarget.texture, this.depthTextureOpaque, this.depthTextureTransparent, params, camera, true);
+        bloom.render(camera.viewport);
+        return true;
     }
 
     private _renderDpoit(renderer: Renderer, camera: ICamera, scene: Scene, iterations: number, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
@@ -230,7 +256,7 @@ export class DrawPass {
         }
 
         if (PostprocessingPass.isEnabled(postprocessingProps)) {
-            this.postprocessing.render(camera, scene, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light, renderer.ambientColor);
+            this.postprocessing.render(camera, scene, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light, renderer.ambientColor, this._renderBloom(renderer, camera, scene, postprocessingProps));
         }
 
         // render transparent volumes
@@ -276,7 +302,7 @@ export class DrawPass {
         }
 
         if (PostprocessingPass.isEnabled(postprocessingProps)) {
-            this.postprocessing.render(camera, scene, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light, renderer.ambientColor);
+            this.postprocessing.render(camera, scene, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light, renderer.ambientColor, this._renderBloom(renderer, camera, scene, postprocessingProps));
         }
 
         // render volumes
@@ -358,7 +384,7 @@ export class DrawPass {
                     this.colorTarget.depthRenderbuffer?.detachFramebuffer(this.postprocessing.target.framebuffer);
                 }
 
-                this.postprocessing.render(camera, scene, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light, renderer.ambientColor);
+                this.postprocessing.render(camera, scene, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light, renderer.ambientColor, this._renderBloom(renderer, camera, scene, postprocessingProps));
 
                 if (!this.packedDepth) {
                     this.depthTextureOpaque.attachFramebuffer(this.postprocessing.target.framebuffer, 'depth');
@@ -400,13 +426,12 @@ export class DrawPass {
         const antialiasingEnabled = AntialiasingPass.isEnabled(props.postprocessing);
         const markingEnabled = MarkingPass.isEnabled(props.marking);
         const dofEnabled = DofPass.isEnabled(props.postprocessing);
-        const bloomEnabled = BloomPass.isEnabled(props.postprocessing);
 
         const { x, y, width, height } = camera.viewport;
         renderer.setViewport(x, y, width, height);
         renderer.update(camera, scene);
 
-        if (transparentBackground && !antialiasingEnabled && toDrawingBuffer) {
+        if (transparentBackground && !antialiasingEnabled && toDrawingBuffer && !postprocessingEnabled) {
             this.drawTarget.bind();
             renderer.clear(false);
         }
@@ -508,22 +533,6 @@ export class DrawPass {
             }
         }
 
-        if (bloomEnabled && props.postprocessing.bloom.name === 'on') {
-            const emissiveBloom = props.postprocessing.bloom.params.mode === 'emissive';
-
-            if (emissiveBloom && scene.emissiveAverage > 0) {
-                this.bloom.emissiveTarget.bind();
-                renderer.clear(false, true);
-                renderer.update(camera, scene);
-                renderer.renderEmissive(scene.primitives, camera);
-            }
-
-            if (!emissiveBloom || scene.emissiveAverage > 0) {
-                this.bloom.update(this.colorTarget.texture, this.bloom.emissiveTarget.texture, this.depthTargetOpaque?.texture || this.depthTextureOpaque, props.postprocessing.bloom.params);
-                this.bloom.render(camera.viewport, toDrawingBuffer ? undefined : this.getColorTarget(props.postprocessing));
-            }
-        }
-
         this.webgl.gl.flush();
     }
 
@@ -532,7 +541,13 @@ export class DrawPass {
         const { renderer, camera, scene, helper } = ctx;
 
         this.postprocessing.setTransparentBackground(props.transparentBackground);
-        const transparentBackground = props.transparentBackground || this.postprocessing.background.isEnabled(props.postprocessing);
+        const pp = props.postprocessing;
+        const backgroundEnabled = this.postprocessing.background.isEnabled(pp);
+        // premultiplied scene so bloom can composite the solid background last
+        const bloomCompositesBackground = !props.transparentBackground && !backgroundEnabled &&
+            BloomPass.isEnabled(pp) && pp.bloom.name === 'on' &&
+            !(pp.bloom.params.mode === 'emissive' && scene.emissiveAverage === 0);
+        const transparentBackground = props.transparentBackground || backgroundEnabled || bloomCompositesBackground;
 
         renderer.setTransparentBackground(transparentBackground);
         renderer.setDrawingBufferSize(this.colorTarget.getWidth(), this.colorTarget.getHeight());

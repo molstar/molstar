@@ -311,10 +311,11 @@ export class BoolControl extends SimpleParam<PD.BooleanParam> {
     }
 }
 
-export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGraph>, { isExpanded: boolean, isOverPoint: boolean, message: string }> {
+export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGraph>, { isExpanded: boolean, isOverPoint: boolean, showPresets: boolean, message: string }> {
     state = {
         isExpanded: false,
         isOverPoint: false,
+        showPresets: false,
         message: `${this.props.param.defaultValue.length} points`,
     };
 
@@ -355,14 +356,36 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
         e.currentTarget.blur();
     };
 
+    toggleShowPresets = (e: React.MouseEvent<HTMLButtonElement>) => {
+        this.setState({ showPresets: !this.state.showPresets });
+        e.currentTarget.blur();
+    };
+
+    onSelectPreset: ActionMenu.OnSelect = item => {
+        this.setState({ showPresets: false });
+        if (!item) return;
+        this.onChange(item.value as PD.LineGraph['defaultValue']);
+    };
+
     render() {
         const label = this.props.param.label || camelCaseToWords(this.props.name);
+        const hasPresets = !!this.props.param.getPresets;
+        const presetItems = hasPresets && this.state.showPresets
+            ? ActionMenu.createItemsFromSelectOptions(this.props.param.getPresets!())
+            : null;
         return <>
-            <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{`${this.state.message}`}</button>} />
+            <ControlRow label={label} control={<div style={{ display: 'flex', textAlignLast: 'center' }}>
+                <button onClick={this.toggleExpanded} disabled={this.props.isDisabled} style={{ flex: '1 1 auto', overflow: 'hidden', textOverflow: 'ellipsis' }}>{`${this.state.message}`}</button>
+                {hasPresets && <IconButton svg={BookmarksOutlinedSvg} onClick={this.toggleShowPresets} toggleState={this.state.showPresets} title='Presets' disabled={this.props.isDisabled} flex />}
+            </div>} />
+            {presetItems && <div className='msp-control-offset'>
+                <ActionMenu items={presetItems} onSelect={this.onSelectPreset} />
+            </div>}
             <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none', marginTop: 1 }}>
                 <LineGraphComponent
                     data={this.props.value}
                     volume={this.props.param.getVolume?.()}
+                    yAxis={this.props.param.yAxis}
                     onChange={this.onChange}
                     onHover={this.onHover}
                     onDrag={this.onDrag} />

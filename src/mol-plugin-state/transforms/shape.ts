@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ludovic Autin <autin@scripps.edu>
  */
 
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
@@ -13,6 +14,7 @@ import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { parseMtl } from '../../mol-io/reader/obj/mtl-parser';
 import { shapeFromObj } from '../../mol-model-formats/shape/obj';
 import { shapeFromPly } from '../../mol-model-formats/shape/ply';
+import { shapeFromVtp } from '../../mol-model-formats/shape/vtp';
 import { Shape } from '../../mol-model/shape';
 import { Task } from '../../mol-task';
 import { Asset } from '../../mol-util/assets';
@@ -127,5 +129,30 @@ const ShapeFromObj = PluginStateTransform.BuiltIn({
     },
     dispose({ cache }) {
         ((cache as any)?.mtlAsset as Asset.Wrapper | undefined)?.dispose();
+    }
+});
+
+const _vtpIdentityTransforms = [Mat4.identity()];
+
+export { ShapeFromVtp };
+type ShapeFromVtp = typeof ShapeFromVtp
+const ShapeFromVtp = PluginStateTransform.BuiltIn({
+    name: 'shape-from-vtp',
+    display: { name: 'Shape from VTP', description: 'Create Shape from VTP (VTK PolyData) file' },
+    from: SO.Format.Vtp,
+    to: SO.Shape.Provider,
+    params(a) {
+        return {
+            transforms: PD.Optional(PD.Value(_vtpIdentityTransforms, { isHidden: true })),
+            label: PD.Optional(PD.Text('', { isHidden: true }))
+        };
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Create shape from VTP', async ctx => {
+            const shape = await shapeFromVtp(a.data, params).runInContext(ctx);
+            const props = { label: params.label || 'VTP Shape' };
+            return new SO.Shape.Provider(shape, props);
+        });
     }
 });

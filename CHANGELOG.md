@@ -5,8 +5,20 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Add `spherical-harmonic-surface` extension: a smooth shape-envelope representation fit to atom positions via a real spherical-harmonic expansion, with optional lobe splitting for non-star-shaped chains
+- Add VTK PolyData `.vtp` file format support
+- Bloom on transparent and emissive geometry
+  - Move bloom into the postprocessing/illumination pass (composited inline)
+  - Tighten `isBackground` to handle packed transparent depth precisely
+  - Enable bloom on transparent background
+  - Background-aware blend: screen on transparent background, PMA over on opaque background, additive on geometry
 - Fix size-only representation theme updates in `updateRepresentationsTheme`.
 - Fix ASA coloring for hydrogens
+- Add `histogramPercentile`, `histogramRobustStats`, `downsampleHistogram` to `mol-math/histogram`
+- Direct-volume transfer function improvements
+    - Add data-aware default control points and preset library
+    - Use log-scale on y-axis in control-points UI
+- Add `defaultSnapshotIndex` argument to `MVSLoadOptions` to enable loading a snapshot other than the first one by default
+- Fix `loaders.loadMvs*` options type
 
 ## [v5.10.0] - 2026-06-14
 - Fix exported image artifacts on transparent background with emissive, bloom, or antialiasing
@@ -45,6 +57,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `examples/react` that showcases few ways the Mol* can be used together with React
 - Fix default representation plugin option, which resulted in represenations not being shown automatically when using the default plugin spec
 - Track added custom props in `QueryRuntimeTable` to prevent excess "symbol already added" messages when creating multiple instances of a pluing
+- Handle empty `chem_comp.type`
 
 ## [v5.9.0] - 2026-05-03
 - Fix edge case when `PluginSpec.animations` is empty
