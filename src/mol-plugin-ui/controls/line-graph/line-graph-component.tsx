@@ -1,15 +1,24 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Paul Luna <paulluna0215@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 import { PointComponent } from './point-component';
 
 import * as React from 'react';
 import { Vec2 } from '../../../mol-math/linear-algebra';
 import { Grid } from '../../../mol-model/volume';
+import { downsampleHistogram } from '../../../mol-math/histogram';
 import { arrayMax } from '../../../mol-util/array';
+
+interface LineGraphYAxisOptions {
+    scale?: 'linear' | 'log',
+    logMin?: number
+}
+
+const DefaultLogMin = 1e-3;
 
 interface LineGraphComponentState {
     points: Vec2[],
@@ -80,6 +89,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const points = this.renderPoints();
         const lines = this.renderLines();
         const histogram = this.renderHistogram();
+        const axes = this.renderAxes();
 
         return ([
             <div key="LineGraph">
@@ -98,6 +108,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
 
                     <g stroke="black" fill="black">
                         {histogram}
+                        {axes}
                         {lines}
                         {points}
                     </g>
@@ -111,6 +122,26 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
 
     componentDidMount() {
         this.gElement = document.getElementsByClassName('ghost-points')[0] as SVGElement;
+    }
+
+    componentDidUpdate(prevProps: any) {
+        // Re-sync internal points when the parent provides a new `data` array
+        // (e.g. when the user picks a preset). The constructor seeds points
+        // only once, so changes from outside need to be merged in here.
+        if (prevProps.data !== this.props.data) {
+            const points: Vec2[] = [Vec2.create(0, 0), Vec2.create(1, 0)];
+            for (const p of this.props.data) points.push(p);
+            points.sort((a, b) => {
+                if (a[0] === b[0]) {
+                    if (a[0] === 0) return a[1] - b[1];
+                    if (a[1] === 1) return b[1] - a[1];
+                    return a[1] - b[1];
+                }
+                return a[0] - b[0];
+            });
+            this.selected = undefined;
+            this.setState({ points });
+        }
     }
 
     private change(points: Vec2[]) {
@@ -301,12 +332,44 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         document.removeEventListener('mouseup', this.handlePointUpdate, true);
     }
 
+    private get yAxisOptions(): LineGraphYAxisOptions {
+        return (this.props.yAxis as LineGraphYAxisOptions | undefined) ?? {};
+    }
+
+    private get isLogY() {
+        return this.yAxisOptions.scale === 'log';
+    }
+
+    private get logMin() {
+        return this.yAxisOptions.logMin ?? DefaultLogMin;
+    }
+
+    /** Map a stored y in [0,1] to a display fraction in [0,1]. */
+    private yToDisplay(y: number) {
+        if (!this.isLogY) return y;
+        const lo = this.logMin;
+        if (y <= lo) return 0;
+        if (y >= 1) return 1;
+        const logLo = Math.log10(lo);
+        return (Math.log10(y) - logLo) / (0 - logLo); // log10(1) = 0
+    }
+
+    /** Inverse of yToDisplay: display fraction in [0,1] to stored y in [0,1]. */
+    private yFromDisplay(d: number) {
+        if (!this.isLogY) return d;
+        const lo = this.logMin;
+        if (d <= 0) return 0;
+        if (d >= 1) return 1;
+        const logLo = Math.log10(lo);
+        return Math.pow(10, logLo + d * (0 - logLo));
+    }
+
     private normalizePoint(point: Vec2) {
         const offset = this.padding / 2;
         const maxX = this.width + offset;
         const maxY = this.height + offset;
         const normalizedX = (point[0] * (maxX - offset)) + offset;
-        const normalizedY = (point[1] * (maxY - offset)) + offset;
+        const normalizedY = (this.yToDisplay(point[1]) * (maxY - offset)) + offset;
         const reverseY = (this.height + this.padding) - normalizedY;
         const newPoint = Vec2.create(normalizedX, reverseY);
         return newPoint;
@@ -319,7 +382,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const unNormalizedX = (point[0] - min) / (maxX - min);
 
         // we have to take into account that we reversed y when we first normalized it.
-        const unNormalizedY = ((this.height + this.padding) - point[1] - min) / (maxY - min);
+        const displayY = ((this.height + this.padding) - point[1] - min) / (maxY - min);
+        const unNormalizedY = this.yFromDisplay(displayY);
 
         return Vec2.create(unNormalizedX, unNormalizedY);
     }
@@ -333,19 +397,59 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     private renderHistogram() {
         if (!this.props.volume) return null;
 
-        const histogram = Grid.getHistogram(this.props.volume.grid, 40);
+        // Reuse the histogram computed for robust stats (same bin count) and
+        // down-bin it for display, avoiding a second full scan of the volume.
+        const fine = Grid.getHistogram(this.props.volume.grid, Grid.RobustStatsBinCount);
+        const histogram = downsampleHistogram(fine, 40);
         const bars = [];
         const N = histogram.counts.length;
         const w = this.width / N;
         const offset = this.padding / 2;
         const max = arrayMax(histogram.counts) || 1;
+        const isLog = this.isLogY;
+        // For log scaling, compress counts in [1, max] to [0, 1]; counts of 0 map to 0.
+        const logMax = isLog ? Math.log10(Math.max(2, max)) : 0;
         for (let i = 0; i < N; i++) {
-            const x = this.width * i / (N - 1) + offset;
+            const x = this.width * (i + 0.5) / N + offset;
             const y1 = this.height + offset;
-            const y2 = this.height * (1 - histogram.counts[i] / max) + offset;
+            const c = histogram.counts[i];
+            let frac: number;
+            if (isLog) {
+                frac = c > 0 ? Math.log10(c) / logMax : 0;
+                if (frac < 0) frac = 0;
+                else if (frac > 1) frac = 1;
+            } else {
+                frac = c / max;
+            }
+            const y2 = this.height * (1 - frac) + offset;
             bars.push(<line key={`histogram${i}`} x1={x} x2={x} y1={y1} y2={y2} stroke="#ded9ca" strokeWidth={w} />);
         }
         return bars;
+    }
+
+    private renderAxes() {
+        const offset = 0; // this.padding / 2;
+        const elements: React.ReactNode[] = [];
+        const ticks: { y: number, label: string }[] = this.isLogY
+            ? [
+                { y: this.logMin, label: this.logMin.toString() },
+                { y: 0.01, label: '0.01' },
+                { y: 0.1, label: '0.1' },
+                { y: 1, label: '1' },
+            ]
+            : [
+                { y: 0, label: '0' },
+                { y: 0.5, label: '0.5' },
+                { y: 1, label: '1' },
+            ];
+        for (let i = 0; i < ticks.length; i++) {
+            const { y, label } = ticks[i];
+            const py = this.normalizePoint(Vec2.create(0, y))[1];
+            elements.push(
+                <text key={`ticklbl${i}`} x={offset + 4} y={py - 4} textAnchor="start" fontSize="22" fill="#888" stroke="none">{label}</text>
+            );
+        }
+        return elements;
     }
 
     private renderPoints() {
@@ -373,27 +477,13 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     private renderLines() {
-        const points: Vec2[] = [];
-        const lines = [];
-        let maxX: number;
-        let maxY: number;
-        let normalizedX: number;
-        let normalizedY: number;
-        let reverseY: number;
-
-        const o = this.padding / 2;
+        const data: Vec2[] = [];
         for (const point of this.state.points) {
-            maxX = this.width + o;
-            maxY = this.height + this.padding;
-            normalizedX = (point[0] * (maxX - o)) + o;
-            normalizedY = (point[1] * (maxY - o)) + o;
-            reverseY = this.height + this.padding - normalizedY;
-            points.push(Vec2.create(normalizedX, reverseY));
+            data.push(this.normalizePoint(point));
         }
 
-        const data = points;
+        const lines = [];
         const size = data.length;
-
         for (let i = 0; i < size - 1; i++) {
             const x1 = data[i][0];
             const y1 = data[i][1];

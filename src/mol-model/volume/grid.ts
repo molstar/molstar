@@ -7,7 +7,7 @@
 
 import { SpacegroupCell, Box3D, Sphere3D } from '../../mol-math/geometry';
 import { Tensor, Mat4, Vec3 } from '../../mol-math/linear-algebra';
-import { Histogram, calculateHistogram } from '../../mol-math/histogram';
+import { Histogram, HistogramRobustStats, calculateHistogram, histogramRobustStats } from '../../mol-math/histogram';
 import { lerp } from '../../mol-math/interpolate';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
@@ -103,14 +103,35 @@ namespace Grid {
      * Cached on the Grid object.
      */
     export function getHistogram(grid: Grid, binCount: number) {
-        let histograms = (grid as any)._historams as { [binCount: number]: Histogram };
+        let histograms = (grid as any)._histograms as { [binCount: number]: Histogram };
         if (!histograms) {
-            histograms = (grid as any)._historams = { };
+            histograms = (grid as any)._histograms = { };
         }
         if (!histograms[binCount]) {
             histograms[binCount] = calculateHistogram(grid.cells.data, binCount, { min: grid.stats.min, max: grid.stats.max });
         }
         return histograms[binCount];
+    }
+
+    /** Default bin count for histogram-derived robust statistics. */
+    export const RobustStatsBinCount = 1024;
+
+    /**
+     * Compute robust summary statistics (percentiles, mean, sigma) from the
+     * cached histogram. Set `ignoreZero` to skip the histogram bin that
+     * contains exact zero values (typical for masked/padded density maps).
+     * Cached on the Grid object.
+     */
+    export function getRobustStats(grid: Grid, opts?: { ignoreZero?: boolean, binCount?: number }): HistogramRobustStats {
+        const binCount = opts?.binCount ?? RobustStatsBinCount;
+        const ignoreZero = !!opts?.ignoreZero;
+        const key = `${binCount}|${ignoreZero ? 1 : 0}`;
+        let cache = (grid as any)._robustStats as { [key: string]: HistogramRobustStats };
+        if (!cache) cache = (grid as any)._robustStats = {};
+        if (!cache[key]) {
+            cache[key] = histogramRobustStats(getHistogram(grid, binCount), { ignoreZero });
+        }
+        return cache[key];
     }
 
     export function makeGetTrilinearlyInterpolated(grid: Grid, transform: 'none' | 'relative') {
