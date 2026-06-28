@@ -1299,4 +1299,3 @@ async function attachStructureProps(structure: Structure, ctx: PluginContext, ta
         }
     }
 }
-

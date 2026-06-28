@@ -4,6 +4,8 @@
  * @author Ludovic Autin <autin@scripps.edu>
  */
 
+import { Column } from '../../../mol-data/db';
+
 /** Scalar element types supported by VTK DataArray elements. */
 export type VtkDataType =
     | 'Float32' | 'Float64'
@@ -20,8 +22,6 @@ const VtkDataTypeSet: ReadonlySet<string> = new Set<VtkDataType>([
 export function toVtkDataType(type: string | undefined): VtkDataType {
     return type !== undefined && VtkDataTypeSet.has(type) ? type as VtkDataType : 'Float32';
 }
-
-import { Column } from '../../../mol-data/db';
 
 /**
  * Decoded data array surfaced to consumers. Only the metadata downstream code needs is retained;
