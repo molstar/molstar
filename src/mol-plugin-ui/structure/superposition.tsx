@@ -524,7 +524,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
     superposeByDbMapping() {
         return <>
             <Button icon={SuperposeChainsSvg} title='Superpose structures using intersection of residues from SIFTS UNIPROT mapping.' className='msp-btn msp-btn-block' onClick={this.superposeDb} style={{ marginTop: '1px' }} disabled={this.state.isBusy}>
-                Uniprot
+                UniProt
             </Button>
         </>;
     }
@@ -539,7 +539,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
                 <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />Add 1 selection{this.toggleHint()} per
                     structure (2+ structures total). Selections must be confined to a single ligand residue. Fast path matches atom names when compound name matches.</div>
             </div>}
-            {entries.length > 1 && <Button title='Superpose structures by selected ligands (atom-name fast path, then MCCS).' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeMccs} style={{ marginTop: '1px' }}>
+            {entries.length > 1 && <Button title='Superpose structures by selected ligands (atom-name fast path, then Maximum Common Connected Subgraph).' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeMccs} style={{ marginTop: '1px' }}>
                 Superpose
             </Button>}
         </>;
@@ -558,7 +558,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
                 <ToggleButton icon={TuneSvg} label='' title='Options for chain- and UniProt-based superposition (sequence-guided alignment, trace/CA-only).' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isBusy} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             <div className='msp-flex-row'>
-                {this.state.canUseLigands && <ToggleButton icon={SuperposeAtomsSvg} label='Ligands' title='Superpose ligands by atom-name match (identical compound) or maximum common substructure (MCCS) otherwise. Select one ligand residue per structure; 2+ structures.' toggle={this.toggleByMccs} isSelected={this.state.action === 'byMccs'} disabled={this.state.isBusy} />}
+                {this.state.canUseLigands && <ToggleButton icon={SuperposeAtomsSvg} label='Ligands' title='Superpose ligands by atom-name match (identical compound) or maximum common connected subgraph (MCCS) otherwise. Select one ligand residue per structure; 2+ structures.' toggle={this.toggleByMccs} isSelected={this.state.action === 'byMccs'} disabled={this.state.isBusy} />}
                 <ToggleButton icon={SuperposeAtomsSvg} label='Atoms' title='Superpose by manually selected atoms, paired in selection order. Pick the same atoms, in the same order, in each structure (1+ per structure).' toggle={this.toggleByAtoms} isSelected={this.state.action === 'byAtoms'} disabled={this.state.isBusy} />
             </div>
             {this.state.action === 'byChains' && this.addByChains()}

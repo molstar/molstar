@@ -552,17 +552,35 @@ export interface LigandSuperposeResult {
     atomCount: number;
     rmsd: number;
     bTransform: Mat4;
+    /**
+     * matched atoms as model ElementIndex, paired 1:1 (by array position) with `targetElements`
+     */
+    referenceElements: ElementIndex[];
+    /** matched atoms in the target ligand as model ElementIndex, paired 1:1 with `referenceElements` */
+    targetElements: ElementIndex[];
+}
+
+interface PairedSuperposition {
+    rmsd: number;
+    bTransform: Mat4;
+    referenceElements: ElementIndex[];
+    targetElements: ElementIndex[];
 }
 
 /** Superpose target onto reference using a fixed atom correspondence; returns the RMSD-minimizing transform. */
-function superposeFromPairs(gA: LigandGraph, gB: LigandGraph, pairs: Array<[number, number]>): { rmsd: number, bTransform: Mat4 } | undefined {
+function superposeFromPairs(gA: LigandGraph, gB: LigandGraph, pairs: Array<[number, number]>): PairedSuperposition | undefined {
     if (pairs.length === 0) return;
 
     const aOrder: number[] = [];
     const bOrder: number[] = [];
+    const referenceElements: ElementIndex[] = [];
+    const targetElements: ElementIndex[] = [];
     for (let i = 0; i < pairs.length; i++) {
-        aOrder.push(pairs[i][0]);
-        bOrder.push(pairs[i][1]);
+        const [ai, bi] = pairs[i];
+        aOrder.push(ai);
+        bOrder.push(bi);
+        referenceElements.push(gA.vertices[ai].element);
+        targetElements.push(gB.vertices[bi].element);
     }
 
     const lociA = lociFromVertexOrder(gA, aOrder);
@@ -571,7 +589,7 @@ function superposeFromPairs(gA: LigandGraph, gB: LigandGraph, pairs: Array<[numb
     const results = superpose([lociA, lociB]);
     if (!results.length) return;
     const { bTransform, rmsd } = results[0];
-    return { bTransform, rmsd };
+    return { bTransform, rmsd, referenceElements, targetElements };
 }
 
 /**
@@ -596,7 +614,7 @@ export function superposeLigandsByMccs(
     const namePairs = matchLigandsByAtomName(gA, gB);
     if (namePairs && namePairs.length >= opts.minMatchedAtoms) {
         const res = superposeFromPairs(gA, gB, namePairs);
-        if (res) return { method: 'atom-name', atomCount: namePairs.length, rmsd: res.rmsd, bTransform: res.bTransform };
+        if (res) return { method: 'atom-name', atomCount: namePairs.length, ...res };
     }
 
     // MCCS: superpose each maximum-size correspondence and keep the lowest-RMSD pose
@@ -606,7 +624,7 @@ export function superposeLigandsByMccs(
         const res = superposeFromPairs(gA, gB, pairs);
         if (!res) continue;
         if (!best || res.rmsd < best.rmsd) {
-            best = { method: 'mccs', atomCount: pairs.length, rmsd: res.rmsd, bTransform: res.bTransform };
+            best = { method: 'mccs', atomCount: pairs.length, ...res };
         }
     }
     return best;
