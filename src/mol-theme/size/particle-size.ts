@@ -13,7 +13,8 @@ import { ThemeDataContext } from '../../mol-theme/theme';
 const Description = `Assigns a size based on the per-particle bounding sphere radius stored in the particle list. Falls back to a uniform default size when no radius data is available.`;
 
 export const ParticleSizeThemeParams = {
-    defaultSize: PD.Numeric(1.0, { min: 0, max: 100, step: 0.1 }),
+    scale: PD.Numeric(1.0, { min: 0, max: 100, step: 0.1 }),
+    defaultSize: PD.Numeric(1.0, { min: 0, max: 1000, step: 0.1 }),
 };
 export type ParticleSizeThemeParams = typeof ParticleSizeThemeParams
 export function getParticleSizeThemeParams(ctx: ThemeDataContext) {
@@ -22,11 +23,12 @@ export function getParticleSizeThemeParams(ctx: ThemeDataContext) {
 
 export function ParticleSizeTheme(ctx: ThemeDataContext, props: PD.Values<ParticleSizeThemeParams>): SizeTheme<ParticleSizeThemeParams> {
     function size(location: Location): number {
+        let s = props.defaultSize;
         if (Particle.isLocation(location)) {
             const { particles, index } = location;
-            return particles.radii?.[index] || props.defaultSize;
+            s = particles.radii?.[index] || props.defaultSize;
         }
-        return props.defaultSize;
+        return s * props.scale;
     }
 
     return {
