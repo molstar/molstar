@@ -85,6 +85,8 @@ export interface ArtiatomiMotivelistOptions {
     /** If given, only particles whose tomogram number (row 5 in TomoParticle convention) matches are included. */
     readonly tomos?: ReadonlyArray<number>
     readonly label?: string
+    /** Uniform particle radius in angstrom assigned to every particle. Leave 0 or undefined to omit radii. */
+    readonly particleRadius?: number
 }
 
 /** Return the sorted set of unique tomogram IDs from the motivelist (row 5, TomoParticle convention). */
@@ -205,6 +207,10 @@ export function createParticleListFromArtiatomiEm(data: ArtiatomiEmFile, options
         emAttributeInfo.set(key, { label, min, max });
     }
 
+    const radii = options.particleRadius && options.particleRadius > 0
+        ? new Float32Array(count).fill(options.particleRadius)
+        : undefined;
+
     return {
         label: buildArtiatomiLabel(options.label, options.tomos),
         count,
@@ -212,6 +218,7 @@ export function createParticleListFromArtiatomiEm(data: ArtiatomiEmFile, options
         targets: new Int32Array(count),
         coordinates: finalCoords,
         rotations: finalRotations,
+        radii,
         attributes: emAttributes.size > 0 ? emAttributes : undefined,
         attributeInfo: emAttributeInfo.size > 0 ? emAttributeInfo : undefined,
         getParticleLabel: (index: number) => {

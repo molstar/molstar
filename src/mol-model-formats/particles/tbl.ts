@@ -28,6 +28,8 @@ export interface DynamoParticleListOptions {
     readonly tomos?: ReadonlyArray<number>
     /** Override pixel size (Å/pixel) used to convert pixel-space coordinates to angstrom. */
     readonly pixelSize?: number
+    /** Uniform particle radius in angstrom assigned to every particle. Leave 0 or undefined to omit radii. */
+    readonly particleRadius?: number
 }
 
 function buildDynamoLabel(tomos?: ReadonlyArray<number>) {
@@ -144,6 +146,10 @@ export function createParticleListFromDynamoTbl(data: DynamoTblFile, options: Dy
         ['class', 'Class', _classAttr],
     ]);
 
+    const radii = options.particleRadius && options.particleRadius > 0
+        ? new Float32Array(count).fill(options.particleRadius)
+        : undefined;
+
     return {
         label: options.label ?? buildDynamoLabel(options.tomos),
         count,
@@ -151,6 +157,7 @@ export function createParticleListFromDynamoTbl(data: DynamoTblFile, options: Dy
         targets: new Int32Array(count),
         coordinates,
         rotations,
+        radii,
         attributes,
         attributeInfo,
         getParticleLabel: (index: number) => {

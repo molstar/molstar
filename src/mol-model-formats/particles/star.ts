@@ -124,6 +124,8 @@ export interface RelionParticleListOptions {
     readonly micrographs?: ReadonlyArray<string>
     /** Override pixel size (Å/pixel) used to convert pixel-space coordinates to angstrom. */
     readonly pixelSize?: number
+    /** Uniform particle radius in angstrom assigned to every particle. Leave 0 or undefined to omit radii. */
+    readonly particleRadius?: number
 }
 
 function buildRelionLabel(particleBlockHeader: string, tomograms?: ReadonlyArray<string>, micrographs?: ReadonlyArray<string>) {
@@ -335,6 +337,10 @@ export function createParticleListFromRelionStar(data: RelionStarFile, options: 
         ['normCorrection', 'Norm Correction', _normAttr],
     ]);
 
+    const radii = options.particleRadius && options.particleRadius > 0
+        ? new Float32Array(count).fill(options.particleRadius)
+        : undefined;
+
     return {
         label: buildRelionLabel(particleBlock.header, options.tomograms, options.micrographs),
         count,
@@ -342,6 +348,7 @@ export function createParticleListFromRelionStar(data: RelionStarFile, options: 
         targets: new Int32Array(count),
         coordinates,
         rotations,
+        radii,
         attributes,
         attributeInfo,
         getParticleLabel: (index: number) => {

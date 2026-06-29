@@ -32,6 +32,8 @@ export interface CryoEtDataPortalParticleListOptions {
      */
     readonly pixelSize: number
     readonly type?: string
+    /** Uniform particle radius in angstrom assigned to every particle. Leave 0 or undefined to omit radii. */
+    readonly particleRadius?: number
 }
 
 function buildCryoEtLabel(type?: string) {
@@ -95,6 +97,10 @@ export function createParticleListFromCryoEtDataPortalNdjson(data: CryoEtDataPor
         ++count;
     }
 
+    const radii = options.particleRadius && options.particleRadius > 0
+        ? new Float32Array(count).fill(options.particleRadius)
+        : undefined;
+
     return {
         label: buildCryoEtLabel(options.type),
         count,
@@ -102,6 +108,7 @@ export function createParticleListFromCryoEtDataPortalNdjson(data: CryoEtDataPor
         targets: new Int32Array(count),
         coordinates,
         rotations,
+        radii,
         getParticleLabel: (index: number) => {
             const i = keys[index];
             const record = data.records[i];

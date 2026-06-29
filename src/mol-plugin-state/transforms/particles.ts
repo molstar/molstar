@@ -41,6 +41,7 @@ const ParticleListFromRelionStar = PluginStateTransform.BuiltIn({
                 tomograms: PD.MultiSelect<string>([], [], { description: 'Empty selection includes all tomograms.' }),
                 micrographs: PD.MultiSelect<string>([], [], { description: 'Empty selection includes all micrographs. Combined with the tomogram filter using AND.' }),
                 pixelSize: PD.Optional(PD.Numeric(0, { min: 0, step: 0.001 }, { description: 'Override pixel size in Å/pixel for converting pixel-space coordinates to angstrom. Leave 0 to auto-detect from STAR optics/particle metadata.' })),
+                particleRadius: PD.Numeric(0, { min: 0, step: 0.1 }, { description: 'Uniform particle radius in angstrom. Leave 0 to omit.' }),
             };
         }
         let tomoNames: string[] = [];
@@ -59,6 +60,7 @@ const ParticleListFromRelionStar = PluginStateTransform.BuiltIn({
             tomograms: PD.MultiSelect<string>(tomoDefault, tomoOptions, { description: 'Empty selection includes all tomograms.' }),
             micrographs: PD.MultiSelect<string>(micrographDefault, micrographOptions, { description: 'Empty selection includes all micrographs. Combined with the tomogram filter using AND.' }),
             pixelSize: PD.Optional(PD.Numeric(0, { min: 0, step: 0.001 }, { description: 'Override pixel size in Å/pixel for converting pixel-space coordinates to angstrom. Leave 0 to auto-detect from STAR optics/particle metadata.' })),
+            particleRadius: PD.Numeric(0, { min: 0, step: 0.1 }, { description: 'Uniform particle radius in angstrom. Leave 0 to omit.' }),
         };
     }
 })({
@@ -71,6 +73,7 @@ const ParticleListFromRelionStar = PluginStateTransform.BuiltIn({
                 tomograms: params.tomograms,
                 micrographs: params.micrographs,
                 pixelSize: params.pixelSize && params.pixelSize > 0 ? params.pixelSize : void 0,
+                particleRadius: params.particleRadius > 0 ? params.particleRadius : void 0,
             });
 
             return new SO.Particle.List(list, { label: list.label || 'Particles', description: 'RELION Particle List' });
@@ -89,6 +92,7 @@ const ParticleListFromDynamoTbl = PluginStateTransform.BuiltIn({
             return {
                 tomos: PD.MultiSelect<string>([], [], { description: 'Empty selection includes all tomograms.' }),
                 pixelSize: PD.Optional(PD.Numeric(0, { min: 0, step: 0.001 }, { description: 'Override pixel size in Å/pixel for converting pixel-space coordinates to angstrom. Leave 0 to auto-detect from the table’s `apix` field.' })),
+                particleRadius: PD.Numeric(0, { min: 0, step: 0.1 }, { description: 'Uniform particle radius in angstrom. Leave 0 to omit.' }),
             };
         }
         const ids = getDynamoTblTomogramIds(a.data);
@@ -97,6 +101,7 @@ const ParticleListFromDynamoTbl = PluginStateTransform.BuiltIn({
         return {
             tomos: PD.MultiSelect<string>(defaultValue, options, { description: 'Empty selection includes all tomograms.' }),
             pixelSize: PD.Optional(PD.Numeric(0, { min: 0, step: 0.001 }, { description: 'Override pixel size in Å/pixel for converting pixel-space coordinates to angstrom. Leave 0 to auto-detect from the table’s `apix` field.' })),
+            particleRadius: PD.Numeric(0, { min: 0, step: 0.1 }, { description: 'Uniform particle radius in angstrom. Leave 0 to omit.' }),
         };
     }
 })({
@@ -105,6 +110,7 @@ const ParticleListFromDynamoTbl = PluginStateTransform.BuiltIn({
             const list = createParticleListFromDynamoTbl(a.data, {
                 tomos: params.tomos.map(v => Number(v)),
                 pixelSize: params.pixelSize && params.pixelSize > 0 ? params.pixelSize : void 0,
+                particleRadius: params.particleRadius > 0 ? params.particleRadius : void 0,
             });
             return new SO.Particle.List(list, { label: list.label || 'Particles', description: 'Dynamo Particle List' });
         });
@@ -120,6 +126,7 @@ const ParticleListFromCryoEtDataPortalNdjson = PluginStateTransform.BuiltIn({
     params: {
         pixelSize: PD.Numeric(1, { min: 0, step: 0.001 }, { description: 'Pixel size in Å/pixel used to convert pixel-space NDJSON coordinates to angstrom. Required because CryoET Data Portal NDJSON does not encode distance units.' }),
         type: PD.Optional(PD.Text('')),
+        particleRadius: PD.Numeric(0, { min: 0, step: 0.1 }, { description: 'Uniform particle radius in angstrom. Leave 0 to omit.' }),
     }
 })({
     apply({ a, params }) {
@@ -127,6 +134,7 @@ const ParticleListFromCryoEtDataPortalNdjson = PluginStateTransform.BuiltIn({
             const list = createParticleListFromCryoEtDataPortalNdjson(a.data, {
                 pixelSize: params.pixelSize,
                 type: params.type || void 0,
+                particleRadius: params.particleRadius > 0 ? params.particleRadius : void 0,
             });
             return new SO.Particle.List(list, { label: list.label || 'Particles', description: 'CryoET NDJSON Particle List' });
         });
@@ -144,6 +152,7 @@ const ParticleListFromArtiatomiEm = PluginStateTransform.BuiltIn({
             return {
                 tomos: PD.MultiSelect<string>([], [], { description: 'Empty selection includes all tomograms.' }),
                 pixelSize: PD.Numeric(1, { min: 0, step: 0.001 }, { description: 'Pixel size in Å/pixel used to convert voxel-space coordinates to angstrom. Required because Artiatomi EM files do not encode distance units.' }),
+                particleRadius: PD.Numeric(0, { min: 0, step: 0.1 }, { description: 'Uniform particle radius in angstrom. Leave 0 to omit.' }),
             };
         }
         const ids = getArtiatomiMotivelistTomogramIds(a.data);
@@ -152,6 +161,7 @@ const ParticleListFromArtiatomiEm = PluginStateTransform.BuiltIn({
         return {
             tomos: PD.MultiSelect<string>(defaultValue, options, { description: 'Empty selection includes all tomograms.' }),
             pixelSize: PD.Numeric(1, { min: 0, step: 0.001 }, { description: 'Pixel size in Å/pixel used to convert voxel-space coordinates to angstrom. Required because Artiatomi EM files do not encode distance units.' }),
+            particleRadius: PD.Numeric(0, { min: 0, step: 0.1 }, { description: 'Uniform particle radius in angstrom. Leave 0 to omit.' }),
         };
     }
 })({
@@ -160,7 +170,8 @@ const ParticleListFromArtiatomiEm = PluginStateTransform.BuiltIn({
             const list = createParticleListFromArtiatomiEm(a.data, {
                 tomos: params.tomos.map(v => Number(v)),
                 pixelSize: params.pixelSize,
-                label: a.label
+                label: a.label,
+                particleRadius: params.particleRadius > 0 ? params.particleRadius : void 0,
             });
             return new SO.Particle.List(list, { label: list.label || 'Particles', description: 'Artiatomi EM Particle List' });
         });
