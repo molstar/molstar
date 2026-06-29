@@ -18,8 +18,9 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Theme } from '../../mol-theme/theme';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { Structure, Trajectory } from '../../mol-model/structure';
-import { ParticleList, Particle } from '../../mol-model/particles/particle-list';
+import { ParticleList, Particle, ParticleTarget } from '../../mol-model/particles/particle-list';
 import { buildTargetStructuresFromMapping } from '../../mol-model/particles/structure-mapping';
+import { ShapeProvider } from '../../mol-model/shape/provider';
 
 export { ParticleListFromRelionStar };
 export { ParticleListFromDynamoTbl };
@@ -241,10 +242,20 @@ function getTrajectoryRefOptions(ctx: PluginContext): [string, string][] {
     return out;
 }
 
-type ParticleListWithStructures = typeof ParticleListWithStructures
-const ParticleListWithStructures = PluginStateTransform.BuiltIn({
-    name: 'particle-list-with-structures',
-    display: { name: 'Particle List with Structures', description: 'Associate reference structures with a particle list for structure-based representation.' },
+function getShapeRefOptions(ctx: PluginContext): [string, string][] {
+    const out: [string, string][] = [];
+    (ctx.state.data.cells as Map<string, any>).forEach((cell: any) => {
+        if (cell.obj instanceof SO.Shape.Provider) {
+            out.push([cell.transform.ref, cell.obj.label ?? '<shape>']);
+        }
+    });
+    return out;
+}
+
+type ParticleListWithTargets = typeof ParticleListWithTargets
+const ParticleListWithTargets = PluginStateTransform.BuiltIn({
+    name: 'particle-list-with-targets',
+    display: { name: 'Particle List with Targets', description: 'Associate reference structures and shapes with a particle list for target-based representation.' },
     isDecorator: true,
     from: SO.Particle.List,
     to: SO.Particle.List,
@@ -283,6 +294,17 @@ const ParticleListWithStructures = PluginStateTransform.BuiltIn({
                 description: 'Reference structures mapped per particle target ID.',
                 isHidden: hasMappedTargets || hasModelTargets,
             }),
+            // Explicit per-target shape mapping (e.g. meshes from OBJ).
+            shapes: PD.ObjectList({
+                targetId: PD.Numeric(0, { min: 0, step: 1 }, { description: 'Target ID in the particle list this shape maps to (matches ParticleList.targets).' }),
+                shape: PD.ValueRef<ShapeProvider<any, any, any>>(
+                    getShapeRefOptions,
+                    (ref, getData) => getData(ref) as ShapeProvider<any, any, any>,
+                ),
+            }, e => `Target ${e.targetId}`, {
+                description: 'Reference shapes mapped per particle target ID.',
+                isHidden: hasMappedTargets || hasModelTargets,
+            }),
         };
     },
 })({
@@ -293,49 +315,59 @@ const ParticleListWithStructures = PluginStateTransform.BuiltIn({
         for (const e of params.structures) {
             if (e.structure.ref) deps.push(e.structure.ref as StateTransform.Ref);
         }
+        for (const e of params.shapes) {
+            if (e.shape.ref) deps.push(e.shape.ref as StateTransform.Ref);
+        }
         return deps;
     },
     apply({ a, params }) {
-        return Task.create('Associate structures with particle list', async _ctx => {
-            let resolvedMap: ReadonlyMap<number, Structure>;
+        return Task.create('Associate targets with particle list', async _ctx => {
+            const targetMap = new Map<number, ParticleTarget>();
 
+            // Structure targets: from trajectory models, a chain-split parent, or explicit refs.
             if (a.data.targetModels) {
-                // targetModels path: build one reference structure per trajectory model.
                 try {
                     const trajectory = params.trajectory.getValue();
-                    const map = new Map<number, Structure>();
                     for (const [targetId, modelIndex] of a.data.targetModels) {
                         const model = await Task.resolveInContext(trajectory.getFrameAtIndex(modelIndex), _ctx);
-                        map.set(targetId, Structure.ofModel(model));
+                        targetMap.set(targetId, { kind: 'structure', structure: Structure.ofModel(model) });
                     }
-                    resolvedMap = map;
                 } catch {
-                    resolvedMap = new Map();
+                    // leave structure targets empty on failure
                 }
             } else if (a.data.targetMapping) {
-                // targetMapping path: split the single parent structure by chain IDs
                 try {
                     const parentStructure = params.structure.getValue();
-                    resolvedMap = buildTargetStructuresFromMapping(parentStructure, a.data.targetMapping);
+                    const map = buildTargetStructuresFromMapping(parentStructure, a.data.targetMapping);
+                    for (const [targetId, structure] of map) targetMap.set(targetId, { kind: 'structure', structure });
                 } catch {
-                    resolvedMap = new Map();
+                    // leave structure targets empty on failure
                 }
             } else {
-                // Explicit per-target mapping path
-                const targetStructures = new Map<number, Structure>();
                 for (const entry of params.structures) {
                     try {
                         const s = entry.structure.getValue();
-                        if (s) targetStructures.set(entry.targetId, s);
+                        if (s) targetMap.set(entry.targetId, { kind: 'structure', structure: s });
                     } catch {
                         // ref not resolved yet; skip
                     }
                 }
-                resolvedMap = targetStructures;
+            }
+
+            // Shape targets: explicit per-target refs resolved to concrete shapes.
+            for (const entry of params.shapes) {
+                try {
+                    const provider = entry.shape.getValue();
+                    if (!provider) continue;
+                    const shape = await provider.getShape(_ctx, provider.data, PD.getDefaultValues(provider.params));
+                    targetMap.set(entry.targetId, { kind: 'shape', shape });
+                } catch {
+                    // ref not resolved yet; skip
+                }
             }
 
             const particles: ParticleList = { ...a.data };
-            Particle.setTargetStructures(particles, resolvedMap);
+            Particle.setParticleTargets(particles, targetMap);
             return new SO.Particle.List(particles, { label: a.label, description: a.description });
         });
     },

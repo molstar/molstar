@@ -239,18 +239,19 @@ export const LoadMmcifAsParticles = StateAction.build({
     //    - targetModels variants (petworld) use the `trajectory` (one structure per model).
     const decorated = await state.build()
         .to(particles)
-        .apply(StateTransforms.Particles.ParticleListWithStructures, {
+        .apply(StateTransforms.Particles.ParticleListWithTargets, {
             trajectory: PD.Ref<Trajectory>(trajectory.ref),
             structure: PD.Ref<Structure>(structure.ref),
             structures: [],
+            shapes: [],
         })
         .commit({ revertOnError: true });
 
-    // 6. Show the ParticlesStructureRepresentation.
+    // 6. Show the ParticleTargetRepresentation.
     await state.build()
         .to(decorated)
         .apply(StateTransforms.Particles.ParticlesRepresentation3D, {
-            type: { name: 'particles-structure', params: {} },
+            type: { name: 'target', params: {} },
             colorTheme: { name: 'particle-entity', params: {} },
             sizeTheme: { name: 'uniform', params: { value: 1.6 } },
         })

@@ -11,6 +11,7 @@ import { Sphere3D } from '../../mol-math/geometry';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { ModelFormat } from '../../mol-model-formats/format';
 import { CustomProperties, CustomPropertyDescriptor } from '../custom-property';
+import { Boundary } from '../../mol-math/geometry/boundary';
 
 export interface ParticleList {
     readonly entryId?: string
@@ -102,7 +103,14 @@ export interface ParticleList {
     _propertyData: { [name: string]: any }
 }
 
-const TargetStructuresDescriptor = CustomPropertyDescriptor({ name: 'particle-target-structures' });
+/**
+ * A reference object instanced at each particle of a given target id. Each particle has
+ * exactly one target id (see `ParticleList.targets`); the distinct target ids map to these
+ * targets via `Particle.setParticleTargets` / `Particle.getParticleTargets`.
+ */
+export type ParticleTarget =
+    | { readonly kind: 'structure', readonly structure: import('../structure/structure').Structure }
+    | { readonly kind: 'shape', readonly shape: import('../shape/shape').Shape }
 
 export function getParticleTransforms(data: ParticleList) {
     const particleCount = data.count;
@@ -239,17 +247,66 @@ export namespace Particle {
         return `${size} Particles`;
     }
 
-    export function setTargetStructures(
+    const ParticleTargetsDescriptor = CustomPropertyDescriptor({ name: 'particle-targets' });
+    export function setParticleTargets(
         particles: ParticleList,
-        map: ReadonlyMap<number, import('../structure').Structure>
+        map: ReadonlyMap<number, ParticleTarget>
     ): void {
-        particles.customProperties.add(TargetStructuresDescriptor);
-        particles._propertyData[TargetStructuresDescriptor.name] = map;
+        particles.customProperties.add(ParticleTargetsDescriptor);
+        particles._propertyData[ParticleTargetsDescriptor.name] = map;
+    }
+    export function getParticleTargets(
+        particles: ParticleList
+    ): ReadonlyMap<number, ParticleTarget> | undefined {
+        return particles._propertyData[ParticleTargetsDescriptor.name];
     }
 
-    export function getTargetStructures(
-        particles: ParticleList
-    ): ReadonlyMap<number, import('../structure').Structure> | undefined {
-        return particles._propertyData[TargetStructuresDescriptor.name];
+    export const BoundaryDescriptor: CustomPropertyDescriptor<Boundary> = CustomPropertyDescriptor({ name: 'particle-boundary' });
+    export function setBoundary(particles: ParticleList, boundary: Boundary): void {
+        particles.customProperties.add(BoundaryDescriptor);
+        particles._propertyData[BoundaryDescriptor.name] = boundary;
+    }
+    const boundaryHelperCoarse = new BoundaryHelper('14');
+    const boundaryHelperFine = new BoundaryHelper('98');
+    function getBoundaryHelper(count: number) {
+        return count > 10_000 ? boundaryHelperCoarse : boundaryHelperFine;
+    }
+    export function getBoundary(particles: ParticleList): Boundary {
+        if (!particles._propertyData[BoundaryDescriptor.name]) {
+            // Compute boundary from particle positions and radii, and store it in the particle list for later retrieval.
+            // loop over positions and radii to compute the boundary
+            const { count, coordinates, radii } = particles;
+            const boundaryHelper = getBoundaryHelper(count);
+            const _tmpPos = Vec3();
+            boundaryHelper.reset();
+            if (radii) {
+                for (let i = 0; i < count; i++) {
+                    const cOffset = i * 3;
+                    Vec3.set(_tmpPos, coordinates[cOffset], coordinates[cOffset + 1], coordinates[cOffset + 2]);
+                    boundaryHelper.includePositionRadius(_tmpPos, radii[i]);
+                }
+                boundaryHelper.finishedIncludeStep();
+                for (let i = 0; i < count; i++) {
+                    const cOffset = i * 3;
+                    Vec3.set(_tmpPos, coordinates[cOffset], coordinates[cOffset + 1], coordinates[cOffset + 2]);
+                    boundaryHelper.radiusPositionRadius(_tmpPos, radii[i]);
+                }
+            } else {
+                for (let i = 0; i < count; i++) {
+                    const cOffset = i * 3;
+                    Vec3.set(_tmpPos, coordinates[cOffset], coordinates[cOffset + 1], coordinates[cOffset + 2]);
+                    boundaryHelper.includePosition(_tmpPos);
+                }
+                boundaryHelper.finishedIncludeStep();
+                for (let i = 0; i < count; i++) {
+                    const cOffset = i * 3;
+                    Vec3.set(_tmpPos, coordinates[cOffset], coordinates[cOffset + 1], coordinates[cOffset + 2]);
+                    boundaryHelper.radiusPosition(_tmpPos);
+                }
+            }
+            const sphere = boundaryHelper.getSphere();
+            particles._propertyData[BoundaryDescriptor.name] = { box: boundaryHelper.getBox(), sphere };
+        };
+        return particles._propertyData[BoundaryDescriptor.name];
     }
 }

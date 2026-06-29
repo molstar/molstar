@@ -61,6 +61,7 @@ function createParticleRenderObject<G extends Geometry>(particles: ParticleList,
         : createParticleTransform(particles, geometry.boundingSphere, props.cellSize, props.batchSize);
     const values = createValues(geometry, transform, locationIt, theme, props);
     const state = createRenderableState(props);
+    ValueCell.update(values.boundingSphere, Particle.getBoundary(particles).sphere);
     return createRenderObject(geometry.kind, values, state, materialId);
 }
 

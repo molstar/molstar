@@ -20,7 +20,7 @@ interface ParticleFormatData {
 function particleVisuals(plugin: PluginContext, data: ParticleFormatData) {
     const repr = plugin.state.data.build()
         .to(data.list)
-        .apply(StateTransforms.Particles.ParticlesRepresentation3D);
+        .apply(StateTransforms.Particles.ParticlesRepresentation3D, { type: { name: 'spacefill', params: {} } });
     return repr.commit();
 }
 
