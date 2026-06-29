@@ -18,6 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Use log-scale on y-axis in control-points UI
 - Add `defaultSnapshotIndex` argument to `MVSLoadOptions` to enable loading a snapshot other than the first one by default
 - Fix `loaders.loadMvs*` options type
+- Read simulation box from gro and lammps files
 
 ## [v5.10.0] - 2026-06-14
 - Fix exported image artifacts on transparent background with emissive, bloom, or antialiasing

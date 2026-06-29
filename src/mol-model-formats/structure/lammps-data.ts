@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,6 +7,7 @@
  */
 
 import { Column, Table } from '../../mol-data/db';
+import { Vec3 } from '../../mol-math/linear-algebra';
 import { Model } from '../../mol-model/structure/model';
 import { LammpsDataFile, lammpsUnitStyles, UnitStyle } from '../../mol-io/reader/lammps/schema';
 import { Trajectory, ArrayTrajectory } from '../../mol-model/structure';
@@ -19,6 +20,7 @@ import { ComponentBuilder } from './common/component';
 import { EntityBuilder } from './common/entity';
 import { IndexPairBonds } from './property/bonds/index-pair';
 import { AtomPartialCharge } from './property/partial-charge';
+import { ModelSymmetry } from './property/symmetry';
 
 async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: UnitStyle = 'real') {
     const { atoms, bonds } = mol;
@@ -108,6 +110,15 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
             data: atoms.charge,
             type: 'NO_CHARGES'
         });
+
+        if (mol.box) {
+            const [lx, ly, lz] = mol.box.length;
+            const symmetry = ModelSymmetry.fromCell(
+                Vec3.create(lx * scale, ly * scale, lz * scale),
+                Vec3.create(Math.PI / 2, Math.PI / 2, Math.PI / 2)
+            );
+            ModelSymmetry.Provider.set(first, symmetry);
+        }
 
         models.push(first);
     }

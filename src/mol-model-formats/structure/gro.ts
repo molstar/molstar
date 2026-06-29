@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,6 +9,7 @@ import { Task } from '../../mol-task';
 import { ModelFormat } from '../format';
 import { GroFile, GroAtoms } from '../../mol-io/reader/gro/schema';
 import { Column, Table } from '../../mol-data/db';
+import { Vec3 } from '../../mol-math/linear-algebra';
 import { guessElementSymbolString } from './util';
 import { MoleculeType, getMoleculeType } from '../../mol-model/structure/model/types';
 import { ComponentBuilder } from './common/component';
@@ -18,6 +19,7 @@ import { BasicData, BasicSchema, createBasic } from './basic/schema';
 import { createModels } from './basic/parser';
 import { Trajectory } from '../../mol-model/structure';
 import { ArrayTrajectory } from '../../mol-model/structure/trajectory';
+import { ModelSymmetry } from './property/symmetry';
 
 function getBasic(atoms: GroAtoms, modelNum: number): BasicData {
     const auth_atom_id = atoms.atomName;
@@ -118,8 +120,8 @@ namespace GroFormat {
     }
 }
 
-// TODO reuse static model parts when hierarchy is identical
-//      need to pass all gro.structures as one table into createModels
+// TODO: reuse static model parts when hierarchy is identical
+//       need to pass all gro.structures as one table into createModels
 
 export function trajectoryFromGRO(gro: GroFile): Task<Trajectory> {
     return Task.create('Parse GRO', async ctx => {
@@ -129,7 +131,16 @@ export function trajectoryFromGRO(gro: GroFile): Task<Trajectory> {
             const basic = getBasic(gro.structures[i].atoms, i + 1);
             const m = await createModels(basic, format, ctx);
             if (m.frameCount === 1) {
-                models.push(m.representative);
+                const model = m.representative;
+                const [bx, by, bz] = gro.structures[i].header.box;
+                if (bx !== 0 && by !== 0 && bz !== 0) {
+                    const symmetry = ModelSymmetry.fromCell(
+                        Vec3.create(bx * 10, by * 10, bz * 10),
+                        Vec3.create(Math.PI / 2, Math.PI / 2, Math.PI / 2)
+                    );
+                    ModelSymmetry.Provider.set(model, symmetry);
+                }
+                models.push(model);
             }
         }
         return new ArrayTrajectory(models);
