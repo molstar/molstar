@@ -27,7 +27,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { stripTags } from '../../mol-util/string';
 import { CollapsableControls, PurePluginUIComponent } from '../base';
 import { Button, IconButton, ToggleButton } from '../controls/common';
-import { ArrowDownwardSvg, ArrowUpwardSvg, DeleteOutlinedSvg, HelpOutlineSvg, Icon, SuperposeAtomsSvg, SuperposeChainsSvg, SuperpositionSvg, TuneSvg } from '../controls/icons';
+import { ArrowDownwardSvg, ArrowUpwardSvg, DeleteOutlinedSvg, HelpOutlineSvg, Icon, SuperposeAtomsSvg, SuperposeChainsSvg, SuperposeLigandsSvg, SuperpositionSvg, TuneSvg } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { ToggleSelectionModeButton } from './selection';
 
@@ -558,7 +558,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
                 <ToggleButton icon={TuneSvg} label='' title='Options for chain- and UniProt-based superposition (sequence-guided alignment, trace/CA-only).' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isBusy} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             <div className='msp-flex-row'>
-                {this.state.canUseLigands && <ToggleButton icon={SuperposeAtomsSvg} label='Ligands' title='Superpose ligands by atom-name match (identical compound) or maximum common connected subgraph (MCCS) otherwise. Select one ligand residue per structure; 2+ structures.' toggle={this.toggleByMccs} isSelected={this.state.action === 'byMccs'} disabled={this.state.isBusy} />}
+                {this.state.canUseLigands && <ToggleButton icon={SuperposeLigandsSvg} label='Ligands' title='Superpose ligands by atom-name match (identical compound) or maximum common connected subgraph (MCCS) otherwise. Select one ligand residue per structure; 2+ structures.' toggle={this.toggleByMccs} isSelected={this.state.action === 'byMccs'} disabled={this.state.isBusy} />}
                 <ToggleButton icon={SuperposeAtomsSvg} label='Atoms' title='Superpose by manually selected atoms, paired in selection order. Pick the same atoms, in the same order, in each structure (1+ per structure).' toggle={this.toggleByAtoms} isSelected={this.state.action === 'byAtoms'} disabled={this.state.isBusy} />
             </div>
             {this.state.action === 'byChains' && this.addByChains()}
