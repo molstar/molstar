@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -184,6 +184,7 @@ export interface LammpsDataFile {
         readonly atomIdA: Column<number>
         readonly atomIdB: Column<number>
     }
+    readonly box?: LammpsBox
 }
 
 export interface LammpsBox {

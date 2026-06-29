@@ -18,6 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Use log-scale on y-axis in control-points UI
 - Add `defaultSnapshotIndex` argument to `MVSLoadOptions` to enable loading a snapshot other than the first one by default
 - Fix `loaders.loadMvs*` options type
+- Read simulation box from gro and lammps files
 - Rework Superposition panel
 - Add Ligand alignments by maximum common connected subgraphs (MCCS)
 
