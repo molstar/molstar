@@ -523,7 +523,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
 
     superposeByDbMapping() {
         return <>
-            <Button icon={SuperposeChainsSvg} title='Superpose structures using intersection of residues from SIFTS UNIPROT mapping.' className='msp-btn msp-btn-block' onClick={this.superposeDb} style={{ marginTop: '1px' }} disabled={this.state.isBusy}>
+            <Button icon={SuperposeChainsSvg} title='Superpose structures using intersection of residues from SIFTS UNIPROT mapping.' onClick={this.superposeDb} disabled={this.state.isBusy}>
                 UniProt
             </Button>
         </>;
