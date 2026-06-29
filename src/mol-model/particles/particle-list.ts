@@ -83,6 +83,18 @@ export interface ParticleList {
     readonly radii?: Float32Array
 
     /**
+     * Optional polyline (fiber) connectivity over particles, stored in compressed-sparse-row
+     * form. Fiber `f` (for `0 <= f < count`) is the ordered polyline through the particles
+     * `indices[offsets[f]]` .. `indices[offsets[f + 1]) - 1]`. Used by formats such as
+     * Simularium where an agent expands into a chain of particles. Currently informational
+     */
+    readonly fibers?: {
+        readonly count: number
+        readonly offsets: Int32Array
+        readonly indices: Int32Array
+    }
+
+    /**
      * Named per-particle scalar attributes, indexed by particle position (length = count).
      * Keys are short identifiers (e.g. 'cc', 'class', 'score').
      */

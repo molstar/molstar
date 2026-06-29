@@ -32,6 +32,7 @@ import { utf8ReadLong } from '../../mol-io/common/utf8';
 import { parseDynamoTbl } from '../../mol-io/reader/dynamo/tbl';
 import { parseCryoEtDataPortalNdjson } from '../../mol-io/reader/cryoet/ndjson';
 import { parseArtiatomiEm } from '../../mol-io/reader/artiatomi/em';
+import { parseSimularium } from '../../mol-io/reader/simularium/parser';
 
 
 export { Download };
@@ -54,6 +55,7 @@ export { ParseDx };
 export { ParseDynamoTbl };
 export { ParseCryoEtDataPortalNdjson };
 export { ParseArtiatomiEm };
+export { ParseSimularium };
 export { ImportString };
 export { ImportJson };
 export { ParseJson };
@@ -489,6 +491,22 @@ const ParseArtiatomiEm = PluginStateTransform.BuiltIn({
             const parsed = await parseArtiatomiEm(a.data).run();
             if (parsed.isError) throw new Error(parsed.message);
             return new SO.Format.ArtiatomiEm(parsed.result, { label: a.label || 'Artiatomi EM' });
+        });
+    }
+});
+
+type ParseSimularium = typeof ParseSimularium
+const ParseSimularium = PluginStateTransform.BuiltIn({
+    name: 'parse-simularium',
+    display: { name: 'Parse Simularium', description: 'Parse a Simularium trajectory (JSON or binary) from Binary data' },
+    from: [SO.Data.Binary],
+    to: SO.Format.Simularium
+})({
+    apply({ a }) {
+        return Task.create('Parse Simularium', async ctx => {
+            const parsed = await parseSimularium(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            return new SO.Format.Simularium(parsed.result, { label: a.label || 'Simularium' });
         });
     }
 });

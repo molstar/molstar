@@ -10,6 +10,7 @@ import { createParticleListFromCryoEtDataPortalNdjson } from '../../mol-model-fo
 import { createParticleListFromRelionStar } from '../../mol-model-formats/particles/star';
 import { createParticleListFromDynamoTbl, getDynamoTblTomogramIds } from '../../mol-model-formats/particles/tbl';
 import { createParticleListFromArtiatomiEm, getArtiatomiMotivelistTomogramIds } from '../../mol-model-formats/particles/em';
+import { createSimulariumParticleTrajectory, getSimulariumAgentTypeNames, getSimulariumFrameCount } from '../../mol-model-formats/particles/simularium';
 import { createParticleListFromMmcifAssembly, getAssemblyIdsFromMmcif, getAsymIdsFromMmcif } from '../../mol-model-formats/particles/mmcif';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateTransform, StateTransformer } from '../../mol-state';
@@ -26,8 +27,10 @@ export { ParticleListFromRelionStar };
 export { ParticleListFromDynamoTbl };
 export { ParticleListFromCryoEtDataPortalNdjson };
 export { ParticleListFromArtiatomiEm };
+export { ParticleTrajectoryFromSimularium };
+export { ParticleListFromTrajectory };
 export { ParticleListFromMmcifAssembly };
-export { ParticleListWithStructures };
+export { ParticleListWithTargets };
 export { ParticlesRepresentation3D };
 
 type ParticleListFromRelionStar = typeof ParticleListFromRelionStar
@@ -177,6 +180,60 @@ const ParticleListFromArtiatomiEm = PluginStateTransform.BuiltIn({
             return new SO.Particle.List(list, { label: list.label || 'Particles', description: 'Artiatomi EM Particle List' });
         });
     }
+});
+
+type ParticleTrajectoryFromSimularium = typeof ParticleTrajectoryFromSimularium
+const ParticleTrajectoryFromSimularium = PluginStateTransform.BuiltIn({
+    name: 'particle-trajectory-from-simularium',
+    display: { name: 'Particle Trajectory from Simularium', description: 'Create a ParticleTrajectory wrapping all frames of a Simularium file.' },
+    from: SO.Format.Simularium,
+    to: SO.Particle.Trajectory,
+    params: a => {
+        if (!a) {
+            return {
+                types: PD.MultiSelect<string>([], [], { description: 'Agent types to include. Empty selection includes all types.' }),
+                scale: PD.Numeric(0, { min: 0, step: 0.001 }, { description: 'Spatial scale to angstrom. Leave 0 to auto-detect from the file spatial units.' }),
+            };
+        }
+        const typeOptions = getSimulariumAgentTypeNames(a.data).map(t => [String(t.id), t.name] as [string, string]);
+        return {
+            types: PD.MultiSelect<string>([], typeOptions, { description: 'Agent types to include. Empty selection includes all types.' }),
+            scale: PD.Numeric(0, { min: 0, step: 0.001 }, { description: 'Spatial scale to angstrom. Leave 0 to auto-detect from the file spatial units.' }),
+        };
+    }
+})({
+    apply({ a, params }) {
+        const traj = createSimulariumParticleTrajectory(a.data, {
+            scale: params.scale && params.scale > 0 ? params.scale : void 0,
+            typeFilter: params.types.length > 0 ? params.types.map(v => Number(v)) : void 0,
+        });
+        const frameCount = getSimulariumFrameCount(a.data);
+        return new SO.Particle.Trajectory(traj, { label: a.label, description: `${frameCount} frame${frameCount !== 1 ? 's' : ''}` });
+    }
+});
+
+type ParticleListFromTrajectory = typeof ParticleListFromTrajectory
+const ParticleListFromTrajectory = PluginStateTransform.BuiltIn({
+    name: 'particle-list-from-trajectory',
+    display: { name: 'Particle List from Trajectory', description: 'Extract a single frame from a ParticleTrajectory.' },
+    from: SO.Particle.Trajectory,
+    to: SO.Particle.List,
+    params: a => ({
+        frameIndex: PD.Numeric(0, { min: 0, max: a ? Math.max(0, a.data.frameCount - 1) : 0, step: 1 }, { description: 'Index of the trajectory frame to display.' }),
+    })
+})({
+    apply({ a, params }) {
+        const list = a.data.getFrameAtIndex(Math.max(0, Math.min(params.frameIndex, a.data.frameCount - 1)));
+        return new SO.Particle.List(list, { label: list.label || 'Particles', description: `Frame ${params.frameIndex + 1} of ${a.data.frameCount}` });
+    },
+    // update({ a, b, oldParams, newParams }) {
+    //     if (oldParams.frameIndex === newParams.frameIndex) return StateTransformer.UpdateResult.Unchanged;
+    //     const list = a.data.getFrameAtIndex(Math.max(0, Math.min(newParams.frameIndex, a.data.frameCount - 1)));
+    //     b.data = list;
+    //     b.label = list.label || 'Particles';
+    //     b.description = `Frame ${newParams.frameIndex + 1} of ${a.data.frameCount}`;
+    //     return StateTransformer.UpdateResult.Updated;
+    // }
 });
 
 type ParticleListFromMmcifAssembly = typeof ParticleListFromMmcifAssembly

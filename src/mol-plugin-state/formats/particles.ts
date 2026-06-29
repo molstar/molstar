@@ -109,11 +109,35 @@ export const ArtiatomiEmParticlesProvider = DataFormatProvider({
     visuals: particleVisuals,
 });
 
+export const SimulariumParticlesProvider = DataFormatProvider({
+    label: 'Simularium Particles',
+    description: 'Simularium Particles',
+    category: ParticlesFormatCategory,
+    binaryExtensions: ['simularium'],
+    parse: async (plugin, data, params?: { label?: string, frameIndex?: number }) => {
+        const format = plugin.state.data.build()
+            .to(data)
+            .apply(StateTransforms.Data.ParseSimularium, void 0, { state: { isGhost: false } });
+
+        const trajectory = format.apply(StateTransforms.Particles.ParticleTrajectoryFromSimularium);
+
+        const list = trajectory.apply(StateTransforms.Particles.ParticleListFromTrajectory, {
+            frameIndex: params?.frameIndex ?? 0,
+        });
+
+        await format.commit({ revertOnError: true });
+
+        return { format: format.selector, trajectory: trajectory.selector, list: list.selector };
+    },
+    visuals: particleVisuals,
+});
+
 export const BuiltInParticlesFormats = [
     ['relion_star_particles', RelionStarParticlesProvider] as const,
     ['dynamo_tbl_particles', DynamoTblParticlesProvider] as const,
     ['cryoet_ndjson_particles', CryoEtDataPortalNdjsonParticlesProvider] as const,
     ['artiatomi_em_particles', ArtiatomiEmParticlesProvider] as const,
+    ['simularium_particles', SimulariumParticlesProvider] as const,
 ] as const;
 
 export type BuiltInParticlesFormat = (typeof BuiltInParticlesFormats)[number][0]

@@ -5,7 +5,7 @@
  */
 
 import { PluginContext } from '../../mol-plugin/context';
-import { StateAction, StateObjectSelector } from '../../mol-state';
+import { State, StateAction, StateObjectSelector } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject } from '../objects';
@@ -14,12 +14,14 @@ import { ModelFromTrajectory, StructureFromModel, ParticlesStructure } from '../
 import { ParticlesVolume } from '../transforms/volume';
 import { Asset } from '../../mol-util/assets';
 import { getFileNameInfo } from '../../mol-util/file-info';
-import { TrajectoryFormatCategory } from '../formats/trajectory';
+import { BuiltInTrajectoryFormat, TrajectoryFormatCategory } from '../formats/trajectory';
 import { VolumeFormatCategory } from '../formats/volume';
 import { ParticlesFormatCategory } from '../formats/particles';
 import { createVolumeRepresentationParams } from '../helpers/volume-representation-params';
 import { Volume } from '../../mol-model/volume';
 import { Structure, Trajectory } from '../../mol-model/structure';
+import { PluginConfig } from '../../mol-plugin/config';
+import { getSimulariumAgentGeometries, getSimulariumFrameCount, getSimulariumSphereAgentTypes, SimulariumAgentGeometry } from '../../mol-model-formats/particles/simularium';
 
 async function applyParticlesVolumeVisuals(plugin: PluginContext, volume: StateObjectSelector<PluginStateObject.Volume.Data>) {
     const typeParams: { isoValue?: Volume.IsoValue, instanceGranularity: boolean } = { instanceGranularity: true };
@@ -299,5 +301,188 @@ export const AddParticles = StateAction.build({
 
         await state.updateTree(tree).runInContext(taskCtx);
         await applyParticlesVolumeVisuals(ctx, tree.selector);
+    }
+}));
+
+type SimulariumPdbSource = { url: string, isBinary: boolean, format: BuiltInTrajectoryFormat };
+
+/**
+ * Resolve a Simularium PDB geometry `url` into download parameters, mirroring the
+ * `DownloadStructure` action: a value matching a 4-character PDB id is fetched from
+ * the default PDB provider, otherwise the value is treated as a direct URL and the
+ * format is inferred from its extension.
+ */
+function resolveSimulariumPdbSource(ctx: PluginContext, url: string): SimulariumPdbSource {
+    const id = url.trim();
+    if (/^[1-9][a-z0-9]{3}$/i.test(id)) {
+        const provider = ctx.config.get(PluginConfig.Download.DefaultPdbProvider) || 'pdbe';
+        const downloadUrl = provider === 'rcsb'
+            ? `https://models.rcsb.org/${id.toUpperCase()}.bcif`
+            : `https://www.ebi.ac.uk/pdbe/entry-files/download/${id.toLowerCase()}.bcif`;
+        return { url: downloadUrl, isBinary: true, format: 'mmcif' };
+    }
+    switch (getFileNameInfo(id).ext) {
+        case 'bcif': return { url: id, isBinary: true, format: 'mmcif' };
+        case 'cif': case 'mmcif': return { url: id, isBinary: false, format: 'mmcif' };
+        case 'pdb': case 'ent': return { url: id, isBinary: false, format: 'pdb' };
+        default: return { url: id, isBinary: false, format: 'mmcif' };
+    }
+}
+
+/** Load the per-agent-type PDB structures and OBJ meshes and instance them at each particle. */
+async function loadSimulariumGeometries(ctx: PluginContext, state: State, simulariumRef: string, frameIndex: number, scale: number, pdbGeometries: SimulariumAgentGeometry[], objGeometries: SimulariumAgentGeometry[], sphereAgentTypes: { id: number, name: string }[], sphereFiles: Asset.File[]) {
+    const geometries = [...pdbGeometries, ...objGeometries];
+
+    // Resolve which sphere agent types actually have a matching file supplied.
+    const matchedSphereTypes = sphereAgentTypes.filter(t =>
+        sphereFiles.some(f => getFileNameInfo(f.file?.name ?? '').base === t.name)
+    );
+
+    // A single particle list holding the particles of every geometry agent type. Each
+    // particle's target id is its Simularium type id, so the per-target structures and
+    // shapes below are instanced on the matching particles.
+    const trajNode = await state.build().to(simulariumRef)
+        .apply(StateTransforms.Particles.ParticleTrajectoryFromSimularium, {
+            scale,
+            types: [...geometries, ...matchedSphereTypes].map(g => String(g.id)),
+        })
+        .commit({ revertOnError: true });
+
+    const list = await state.build().to(trajNode.ref)
+        .apply(StateTransforms.Particles.ParticleListFromTrajectory, {
+            frameIndex,
+        })
+        .commit({ revertOnError: true });
+
+    // Group node to collect all reference geometries, collapsed by default.
+    const group = await state.build().toRoot()
+        .apply(StateTransforms.Misc.CreateGroup, { label: 'Simularium Geometries' }, { state: { isCollapsed: true } })
+        .commit({ revertOnError: true });
+
+    // PDB structures (from a PDB id or direct URL, like DownloadStructure), mapped to
+    // their agent type id (= particle target id).
+    const structures: { targetId: number, structure: PD.Ref<Structure> }[] = [];
+    for (const geometry of pdbGeometries) {
+        const src = resolveSimulariumPdbSource(ctx, geometry.url);
+        const data = await state.build().to(group.ref)
+            .apply(StateTransforms.Data.Download, { url: Asset.Url(src.url), isBinary: src.isBinary, label: geometry.name }, { state: { isGhost: true } })
+            .commit({ revertOnError: true });
+        const trajectory = await ctx.builders.structure.parseTrajectory(data, src.format);
+        const model = await ctx.builders.structure.createModel(trajectory);
+        const structure = await ctx.builders.structure.createStructure(model, { name: 'model', params: {} });
+        structures.push({ targetId: geometry.id, structure: PD.Ref<Structure>(structure.ref) });
+    }
+
+    // OBJ meshes loaded as shapes, mapped to their agent type id. The shape target scales
+    // each mesh instance by the per-particle radius (see ParticleTargetRepresentation).
+    const shapes: { targetId: number, shape: PD.Ref<any> }[] = [];
+    for (const geometry of objGeometries) {
+        const obj = await state.build().to(group.ref)
+            .apply(StateTransforms.Data.Download, { url: Asset.Url(geometry.url), isBinary: false, label: geometry.name }, { state: { isGhost: true } })
+            .apply(StateTransforms.Data.ParseObj, undefined, { state: { isGhost: true } })
+            .commit({ revertOnError: true });
+        const shape = await state.build().to(obj.ref)
+            .apply(StateTransforms.Shape.ShapeFromObj, { label: geometry.name })
+            .commit({ revertOnError: true });
+        shapes.push({ targetId: geometry.id, shape: PD.Ref<any>(shape.ref) });
+    }
+
+    // SPHERE structures from user-supplied files, matched by file base name to agent type name.
+    for (const file of sphereFiles) {
+        const info = getFileNameInfo(file.file?.name ?? '');
+        const match = sphereAgentTypes.find(t => t.name === info.base);
+        if (!match) {
+            ctx.log.warn(`LoadSimulariumGeometries: no SPHERE agent type matches file '${info.name}' (expected base name to match a typeMapping entry).`);
+            continue;
+        }
+        const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
+        const data = await state.build().toRoot()
+            .apply(StateTransforms.Data.ReadFile, { file, isBinary, label: info.name }, { state: { isGhost: true } })
+            .commit({ revertOnError: true });
+        const provider = ctx.dataFormats.auto(info, data.cell?.obj!);
+        if (!provider) {
+            ctx.log.warn(`LoadSimulariumGeometries: could not find a data provider for '${info.ext}'.`);
+            continue;
+        }
+        const parsed = await provider.parse(ctx, data);
+        if (!parsed || !('trajectory' in parsed)) {
+            ctx.log.warn(`LoadSimulariumGeometries: expected a structure format for '${info.name}'.`);
+            continue;
+        }
+        const model = await ctx.builders.structure.createModel(parsed.trajectory);
+        const structure = await ctx.builders.structure.createStructure(model, { name: 'model', params: {} });
+        structures.push({ targetId: match.id, structure: PD.Ref<Structure>(structure.ref) });
+    }
+
+    // Associate the reference structures and shapes with the particle list via the target
+    // mapping, then render them instanced at each particle position.
+    const decorated = await state.build().to(list.ref)
+        .apply(StateTransforms.Particles.ParticleListWithTargets, {
+            trajectory: PD.Ref<Trajectory>(''),
+            structure: PD.Ref<Structure>(''),
+            structures,
+            shapes,
+        })
+        .commit({ revertOnError: true });
+    await state.build().to(decorated.ref)
+        .apply(StateTransforms.Particles.ParticlesRepresentation3D, {
+            type: { name: 'target', params: {} },
+            colorTheme: { name: 'particle-entity', params: {} },
+            sizeTheme: { name: 'uniform', params: { value: 1.6 } },
+        })
+        .commit({ revertOnError: true });
+}
+
+export const LoadSimulariumGeometries = StateAction.build({
+    display: { name: 'Load Simularium Geometries', description: 'Load the PDB structures and OBJ meshes referenced by agent types in a Simularium file and replicate them at each particle position. Optionally supply structure files for SPHERE-type agents, matched by file base name to the agent type name.' },
+    from: PluginStateObject.Format.Simularium,
+    params(a, ctx: PluginContext) {
+        const frameCount = a ? getSimulariumFrameCount(a.data) : 1;
+        const sphereTypes = a ? getSimulariumSphereAgentTypes(a.data) : [];
+
+        const structureExts: string[] = [];
+        if (ctx) {
+            for (const { provider } of ctx.dataFormats.list) {
+                if (provider.category === TrajectoryFormatCategory) {
+                    if (provider.binaryExtensions) structureExts.push(...provider.binaryExtensions);
+                    if (provider.stringExtensions) structureExts.push(...provider.stringExtensions);
+                }
+            }
+        }
+        const accept = structureExts.length > 0
+            ? structureExts.map(e => `.${e}`).join(',')
+            : '.cif,.bcif,.pdb,.ent,.mmcif';
+
+        const sphereDescription = sphereTypes.length > 0
+            ? `One file per SPHERE agent type; the file base name must match the agent type name. Known SPHERE types: ${sphereTypes.map(t => t.name).join(', ')}.`
+            : 'One file per SPHERE agent type; the file base name must match the agent type name.';
+
+        return {
+            frameIndex: PD.Numeric(0, { min: 0, max: Math.max(0, frameCount - 1), step: 1 }, { description: 'Index of the trajectory frame to display.' }),
+            scale: PD.Numeric(0, { min: 0, step: 0.001 }, { description: 'Spatial scale to angstrom. Leave 0 to auto-detect from the file spatial units.' }),
+            sphereFiles: PD.FileList({ accept, label: 'SPHERE Structure Files', description: sphereDescription }),
+        };
+    }
+})(({ a, ref, params, state }, ctx: PluginContext) => Task.create('Load Simularium Geometries', async () => {
+    const file = a.data;
+    const geometries = getSimulariumAgentGeometries(file);
+    const sphereAgentTypes = getSimulariumSphereAgentTypes(file);
+    const sphereFiles = params.sphereFiles ?? [];
+
+    if (geometries.length === 0 && sphereFiles.length === 0) {
+        ctx.log.warn('Simularium file has no PDB or OBJ agent geometries and no SPHERE structure files were provided.');
+        return;
+    }
+
+    const pdbGeometries = geometries.filter(g => g.displayType === 'PDB');
+    const objGeometries = geometries.filter(g => g.displayType === 'OBJ');
+
+    // All PDB structures, OBJ shapes, and SPHERE structures share a single particle list
+    // and one representation.
+    try {
+        await loadSimulariumGeometries(ctx, state, ref, params.frameIndex, params.scale, pdbGeometries, objGeometries, sphereAgentTypes, sphereFiles);
+    } catch (e) {
+        console.error(e);
+        ctx.log.warn('Could not load the Simularium geometries.');
     }
 }));

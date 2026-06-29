@@ -9,6 +9,7 @@ import { Ccp4File } from '../mol-io/reader/ccp4/schema';
 import { CifFile } from '../mol-io/reader/cif';
 import { ArtiatomiEmFile } from '../mol-io/reader/artiatomi/em';
 import { CryoEtDataPortalNdjsonFile } from '../mol-io/reader/cryoet/ndjson';
+import { SimulariumFile } from '../mol-io/reader/simularium/schema';
 import { DcdFile } from '../mol-io/reader/dcd/parser';
 import { DynamoTblFile } from '../mol-io/reader/dynamo/tbl';
 import { Dsn6File } from '../mol-io/reader/dsn6/schema';
@@ -17,6 +18,7 @@ import { ObjFile } from '../mol-io/reader/obj/schema';
 import { VtpFile } from '../mol-io/reader/vtp/schema';
 import { PsfFile } from '../mol-io/reader/psf/parser';
 import { ParticleList } from '../mol-model/particles/particle-list';
+import { ParticleTrajectory } from '../mol-model/particles/particle-trajectory';
 import { ShapeProvider } from '../mol-model/shape/provider';
 import { Coordinates as _Coordinates, Model as _Model, Structure as _Structure, Trajectory as _Trajectory, StructureElement, Topology as _Topology } from '../mol-model/structure';
 import { Volume as _Volume } from '../mol-model/volume';
@@ -84,6 +86,7 @@ export namespace PluginStateObject {
         export class ArtiatomiEm extends Create<ArtiatomiEmFile>({ name: 'Artiatomi EM File', typeClass: 'Data' }) { }
         export class DynamoTbl extends Create<DynamoTblFile>({ name: 'Dynamo TBL File', typeClass: 'Data' }) { }
         export class CryoEtDataPortalNdjson extends Create<CryoEtDataPortalNdjsonFile>({ name: 'CryoET Data Portal NDJSON File', typeClass: 'Data' }) { }
+        export class Simularium extends Create<SimulariumFile>({ name: 'Simularium File', typeClass: 'Data' }) { }
         export class Cube extends Create<CubeFile>({ name: 'Cube File', typeClass: 'Data' }) { }
         export class Psf extends Create<PsfFile>({ name: 'PSF File', typeClass: 'Data' }) { }
         export class Prmtop extends Create<PrmtopFile>({ name: 'PRMTOP File', typeClass: 'Data' }) { }
@@ -164,6 +167,7 @@ export namespace PluginStateObject {
     }
 
     export namespace Particle {
+        export class Trajectory extends Create<ParticleTrajectory>({ name: 'Particle Trajectory', typeClass: 'Object' }) { }
         export class List extends Create<ParticleList>({ name: 'Particle List', typeClass: 'Object' }) { }
         export class Representation3D extends CreateRepresentation3D<ParticleRepresentation<any>, ParticleList>({ name: 'Particle 3D' }) { }
     }
