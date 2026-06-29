@@ -4,14 +4,14 @@
  * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
-import { OrderedSet, SortedArray } from '../../../../mol-data/int';
+import { SortedArray } from '../../../../mol-data/int';
 import { ElementIndex } from '../../model';
 import { BondType } from '../../model/types';
+import { IntAdjacencyGraph } from '../../../../mol-math/graph';
 import { Mat4 } from '../../../../mol-math/linear-algebra';
+import { MinimizeRmsd, RmsdTransformState } from '../../../../mol-math/linear-algebra/3d/minimize-rmsd';
 import { RuntimeContext } from '../../../../mol-task';
 import { Structure, StructureElement, StructureProperties, Unit } from '../../structure';
-import { superpose } from './superposition';
-import { UnitIndex } from '../element/util';
 
 /**
  * Ligand MCCS utilities:
@@ -25,13 +25,11 @@ export interface LigandGraphVertex {
     readonly elementSymbol: string;
 }
 
-export interface LigandGraphEdge {
-    readonly a: number;
-    readonly b: number;
-    readonly order: number;
-    readonly flags: number;
-    readonly key: number;
-}
+/** Bond order and BondType flags, stored as parallel per-edge arrays on the adjacency graph. */
+export type LigandBondProps = { readonly order: ArrayLike<number>, readonly flags: ArrayLike<number> };
+
+/** Local-vertex-indexed adjacency of one ligand residue (an induced subgraph of `unit.bonds`). */
+export type LigandBondGraph = IntAdjacencyGraph<number, LigandBondProps>;
 
 export interface LigandGraph {
     readonly structure: Structure;
@@ -39,11 +37,11 @@ export interface LigandGraph {
     readonly compId: string;
     readonly residueKey: number;
     readonly vertices: readonly LigandGraphVertex[];
-    readonly adj: readonly Map<number, LigandGraphEdge>[];
+    readonly bonds: LigandBondGraph;
 }
 
 export type LigandMccsVertexTest = (a: LigandGraphVertex, b: LigandGraphVertex) => boolean;
-export type LigandMccsEdgeTest = (a: LigandGraphEdge, b: LigandGraphEdge) => boolean;
+export type LigandMccsEdgeTest = (orderA: number, flagsA: number, orderB: number, flagsB: number) => boolean;
 
 export interface LigandMccsOptions {
     /** Whether atom i of A may be paired with atom j of B (default: same element symbol). */
@@ -71,14 +69,14 @@ export interface LigandMccsOptions {
 
 export const DefaultLigandMccsOptions: LigandMccsOptions = {
     vertexTest: (a, b) => a.elementSymbol === b.elementSymbol,
-    edgeTest: (a, b) => {
+    edgeTest: (orderA, flagsA, orderB, flagsB) => {
         // aromatic bonds match each other regardless of the (arbitrary) Kekulé order the CCD assigns,
         // but an aromatic bond is not compatible with an aliphatic one
-        const aArom = (a.flags & BondType.Flag.Aromatic) !== 0;
-        const bArom = (b.flags & BondType.Flag.Aromatic) !== 0;
+        const aArom = (flagsA & BondType.Flag.Aromatic) !== 0;
+        const bArom = (flagsB & BondType.Flag.Aromatic) !== 0;
         if (aArom || bArom) return aArom === bArom;
         // unknown/0 bond orders are treated as compatible
-        const ao = a.order | 0, bo = b.order | 0;
+        const ao = orderA | 0, bo = orderB | 0;
         if (ao > 0 && bo > 0) return ao === bo;
         return true;
     },
@@ -164,47 +162,32 @@ export function buildLigandGraphFromLoci(loci: StructureElement.Loci): LigandGra
         };
     });
 
-    const adj: Map<number, LigandGraphEdge>[] = [];
-    for (let i = 0; i < vertices.length; i++) adj.push(new Map());
-
+    // collect the ligand's intra-residue bonds as local-vertex edge pairs (each undirected edge once)
     const { offset, b, edgeProps } = unit.bonds;
-    const { order, flags, key } = edgeProps;
+    const srcOrder = edgeProps.order, srcFlags = edgeProps.flags;
 
+    const xs: number[] = [], ys: number[] = [], orders: number[] = [], flags: number[] = [];
     for (let vi = 0; vi < vertices.length; vi++) {
         const uIndex = unitIndices[vi];
-        const start = offset[uIndex];
-        const end = offset[uIndex + 1];
-
-        for (let ei = start; ei < end; ei++) {
+        for (let ei = offset[uIndex], end = offset[uIndex + 1]; ei < end; ei++) {
             const vj = unitIndexToVertex.get(b[ei]); // b[ei] is a UnitIndex
-            if (vj === void 0) continue; // neighbor outside the selected ligand
-
-            const edge: LigandGraphEdge = {
-                a: vi,
-                b: vj,
-                order: order[ei],
-                flags: flags[ei],
-                key: key ? key[ei] : -1
-            };
-
-            if (!adj[vi].has(vj)) adj[vi].set(vj, edge);
-            if (!adj[vj].has(vi)) adj[vj].set(vi, { ...edge, a: vj, b: vi });
+            if (vj === void 0 || vj <= vi) continue; // neighbor outside the ligand, or already added (vj < vi)
+            xs.push(vi); ys.push(vj);
+            orders.push(srcOrder[ei]); flags.push(srcFlags[ei]);
         }
     }
 
-    return { structure: loci.structure, unit, compId, residueKey, vertices, adj };
-}
-
-function lociFromVertexOrder(graph: LigandGraph, vertexOrder: readonly number[]): StructureElement.Loci {
-    // one element per atom so the A/B atom correspondence (and thus the RMSD pairing) is preserved
-    // in order; grouping all indices into a single OrderedSet would re-sort them and break it
-    const elements: StructureElement.Loci['elements'][0][] = [];
-    for (let i = 0; i < vertexOrder.length; i++) {
-        const v = graph.vertices[vertexOrder[i]];
-        const uIdx = SortedArray.indexOf(graph.unit.elements, v.element) as UnitIndex;
-        elements.push({ unit: graph.unit, indices: OrderedSet.ofSingleton(uIdx) });
+    const builder = new IntAdjacencyGraph.EdgeBuilder(vertices.length, xs, ys);
+    const order = new Int32Array(builder.slotCount);
+    const flag = new Int32Array(builder.slotCount);
+    for (let i = 0; i < builder.edgeCount; i++) {
+        builder.addNextEdge();
+        builder.assignProperty(order, orders[i]);
+        builder.assignProperty(flag, flags[i]);
     }
-    return StructureElement.Loci(graph.structure, elements);
+    const bonds = builder.createGraph({ order, flags: flag });
+
+    return { structure: loci.structure, unit, compId, residueKey, vertices, bonds };
 }
 
 /** Fast path: same compId -> match by atom name (preferring same element symbol). */
@@ -278,6 +261,8 @@ class BitSet {
         return b;
     }
 
+    zero() { this.words.fill(0); }
+
     set(i: number) { this.words[i >>> 5] |= (1 << (i & 31)); }
     clear(i: number) { this.words[i >>> 5] &= ~(1 << (i & 31)); }
     get(i: number): boolean { return (this.words[i >>> 5] & (1 << (i & 31))) !== 0; }
@@ -322,6 +307,22 @@ function bitCount(n: number): number {
     return (((n + (n >>> 4)) & 0x0f0f0f0f) * 0x01010101) >>> 24;
 }
 
+/** LIFO pool of fixed-size BitSets so the (heavily recursive) clique search does not allocate per call. */
+class BitSetPool {
+    private readonly free: BitSet[] = [];
+    constructor(private readonly nbits: number) {}
+    acquire(): BitSet {
+        const b = this.free.pop();
+        return b !== void 0 ? b : new BitSet(this.nbits);
+    }
+    acquireCopy(src: BitSet): BitSet {
+        const b = this.acquire();
+        b.words.set(src.words);
+        return b;
+    }
+    release(b: BitSet) { this.free.push(b); }
+}
+
 /**
  * Compatibility (modular product) graph. Vertices are atom pairs (pairA[k] in A, pairB[k] in B)
  * that pass the vertex test. Two vertices are joined by a c-edge when their atoms are bonded in
@@ -344,6 +345,7 @@ function isHydrogenVertex(v: LigandGraphVertex): boolean {
 /** BFS all-pairs shortest paths (edge count) within a ligand graph; -1 marks unreachable. */
 function ligandShortestPaths(g: LigandGraph): Int32Array[] {
     const n = g.vertices.length;
+    const { offset, b } = g.bonds;
     const dist: Int32Array[] = new Array(n);
     const queue = new Int32Array(n);
     for (let s = 0; s < n; s++) {
@@ -354,7 +356,8 @@ function ligandShortestPaths(g: LigandGraph): Int32Array[] {
         while (head < tail) {
             const u = queue[head++];
             const du = d[u];
-            for (const w of g.adj[u].keys()) {
+            for (let t = offset[u], end = offset[u + 1]; t < end; t++) {
+                const w = b[t];
                 if (d[w] < 0) { d[w] = du + 1; queue[tail++] = w; }
             }
         }
@@ -388,6 +391,10 @@ function buildCompatGraph(a: LigandGraph, b: LigandGraph, opts: LigandMccsOption
     const distA = useD ? ligandShortestPaths(a) : undefined;
     const distB = useD ? ligandShortestPaths(b) : undefined;
 
+    const aBonds = a.bonds, bBonds = b.bonds;
+    const aOrder = aBonds.edgeProps.order, aFlags = aBonds.edgeProps.flags;
+    const bOrder = bBonds.edgeProps.order, bFlags = bBonds.edgeProps.flags;
+
     for (let i = 0; i < n; i++) {
         const ai = pairA[i], bi = pairB[i];
         for (let j = i + 1; j < n; j++) {
@@ -396,13 +403,13 @@ function buildCompatGraph(a: LigandGraph, b: LigandGraph, opts: LigandMccsOption
             // 1:1 constraint: a given atom may not be matched twice within one clique
             if (ai === aj || bi === bj) continue;
 
-            const ea = a.adj[ai].get(aj);
-            const eb = b.adj[bi].get(bj);
-            const adjA = ea !== void 0;
-            const adjB = eb !== void 0;
+            const eaIdx = aBonds.getDirectedEdgeIndex(ai, aj);
+            const ebIdx = bBonds.getDirectedEdgeIndex(bi, bj);
+            const adjA = eaIdx >= 0;
+            const adjB = ebIdx >= 0;
 
             let cEdge = false;
-            if (adjA && adjB) cEdge = opts.edgeTest(ea!, eb!);
+            if (adjA && adjB) cEdge = opts.edgeTest(aOrder[eaIdx], aFlags[eaIdx], bOrder[ebIdx], bFlags[ebIdx]);
 
             let dEdge = false;
             if (!cEdge && useD && !adjA && !adjB) {
@@ -452,6 +459,7 @@ function enumerateConnectedCliques(g: CompatGraph, opts: LigandMccsOptions, coll
 
     const all = BitSet.full(n);
     const t = new BitSet(n); // already-processed seeds, so each maximal clique is found once
+    const pool = new BitSetPool(n);
 
     const deadline = Date.now() + opts.maxTimeMs;
     const maxIter = opts.maxIterations;
@@ -479,37 +487,44 @@ function enumerateConnectedCliques(g: CompatGraph, opts: LigandMccsOptions, coll
             return;
         }
 
-        const pIter = P.clone();
+        // scratch sets are drawn from a pool and returned at the end of each iteration/frame
+        const pIter = pool.acquireCopy(P);
         for (let ui = pIter.nextSetBit(0); ui >= 0; ui = pIter.nextSetBit(ui + 1)) {
             P.clear(ui);
 
             const dN = dAdj[ui], cN = cadj[ui], neigh = adj[ui];
 
-            const rNew = R.clone(); rNew.set(ui);
-            const qNew = Q.clone(); qNew.and(dN);
-            const pNew = P.clone(); pNew.and(neigh);
-            const qCapC = Q.clone(); qCapC.and(cN); pNew.or(qCapC);
-            const yNew = Y.clone(); yNew.and(dN);
-            const xNew = X.clone(); xNew.and(neigh);
-            const yCapC = Y.clone(); yCapC.and(cN); xNew.or(yCapC);
+            const rNew = pool.acquireCopy(R); rNew.set(ui);
+            const qNew = pool.acquireCopy(Q); qNew.and(dN);
+            const yNew = pool.acquireCopy(Y); yNew.and(dN);
+            const pNew = pool.acquireCopy(P); pNew.and(neigh);
+            const xNew = pool.acquireCopy(X); xNew.and(neigh);
+            const tmp = pool.acquireCopy(Q); tmp.and(cN); pNew.or(tmp); // P' = (P ∩ neigh) ∪ (Q ∩ cN)
+            tmp.words.set(Y.words); tmp.and(cN); xNew.or(tmp); // X' = (X ∩ neigh) ∪ (Y ∩ cN)
+            pool.release(tmp);
 
             cClique(rNew, pNew, qNew, xNew, yNew);
 
+            pool.release(xNew); pool.release(pNew); pool.release(yNew); pool.release(qNew); pool.release(rNew);
+
             X.set(ui);
-            if (checkAbort()) return;
+            if (checkAbort()) break;
         }
+        pool.release(pIter);
     };
 
     for (let ui = 0; ui < n; ui++) {
-        const r = new BitSet(n); r.set(ui);
         const dN = dAdj[ui], cN = cadj[ui];
 
-        const q = all.clone(); q.andNot(t); q.and(dN);
-        const p = all.clone(); p.andNot(t); p.and(cN);
-        const y = dN.clone(); y.and(t);
-        const x = cN.clone(); x.and(t);
+        const r = pool.acquire(); r.zero(); r.set(ui);
+        const q = pool.acquireCopy(all); q.andNot(t); q.and(dN);
+        const p = pool.acquireCopy(all); p.andNot(t); p.and(cN);
+        const y = pool.acquireCopy(dN); y.and(t);
+        const x = pool.acquireCopy(cN); x.and(t);
 
         cClique(r, p, q, x, y);
+
+        pool.release(x); pool.release(y); pool.release(p); pool.release(q); pool.release(r);
 
         t.set(ui);
         if (checkAbort()) break;
@@ -560,36 +575,27 @@ export interface LigandSuperposeResult {
     targetElements: ElementIndex[];
 }
 
-interface PairedSuperposition {
-    rmsd: number;
-    bTransform: Mat4;
-    referenceElements: ElementIndex[];
-    targetElements: ElementIndex[];
+type MutablePositions = { x: Float64Array, y: Float64Array, z: Float64Array };
+
+/** Write the paired atom coordinates into reused position buffers, in correspondence order. */
+function fillPairPositions(gA: LigandGraph, gB: LigandGraph, pairs: Array<[number, number]>, posA: MutablePositions, posB: MutablePositions) {
+    const ca = gA.unit.conformation, cb = gB.unit.conformation;
+    for (let i = 0; i < pairs.length; i++) {
+        const ea = gA.vertices[pairs[i][0]].element;
+        const eb = gB.vertices[pairs[i][1]].element;
+        posA.x[i] = ca.x(ea); posA.y[i] = ca.y(ea); posA.z[i] = ca.z(ea);
+        posB.x[i] = cb.x(eb); posB.y[i] = cb.y(eb); posB.z[i] = cb.z(eb);
+    }
 }
 
-/** Superpose target onto reference using a fixed atom correspondence; returns the RMSD-minimizing transform. */
-function superposeFromPairs(gA: LigandGraph, gB: LigandGraph, pairs: Array<[number, number]>): PairedSuperposition | undefined {
-    if (pairs.length === 0) return;
-
-    const aOrder: number[] = [];
-    const bOrder: number[] = [];
-    const referenceElements: ElementIndex[] = [];
-    const targetElements: ElementIndex[] = [];
+function pairsToElements(gA: LigandGraph, gB: LigandGraph, pairs: Array<[number, number]>) {
+    const referenceElements: ElementIndex[] = new Array(pairs.length);
+    const targetElements: ElementIndex[] = new Array(pairs.length);
     for (let i = 0; i < pairs.length; i++) {
-        const [ai, bi] = pairs[i];
-        aOrder.push(ai);
-        bOrder.push(bi);
-        referenceElements.push(gA.vertices[ai].element);
-        targetElements.push(gB.vertices[bi].element);
+        referenceElements[i] = gA.vertices[pairs[i][0]].element;
+        targetElements[i] = gB.vertices[pairs[i][1]].element;
     }
-
-    const lociA = lociFromVertexOrder(gA, aOrder);
-    const lociB = lociFromVertexOrder(gB, bOrder);
-
-    const results = superpose([lociA, lociB]);
-    if (!results.length) return;
-    const { bTransform, rmsd } = results[0];
-    return { bTransform, rmsd, referenceElements, targetElements };
+    return { referenceElements, targetElements };
 }
 
 /**
@@ -613,19 +619,40 @@ export function superposeLigandsByMccs(
     // fast path: identical compId -> match by atom name
     const namePairs = matchLigandsByAtomName(gA, gB);
     if (namePairs && namePairs.length >= opts.minMatchedAtoms) {
-        const res = superposeFromPairs(gA, gB, namePairs);
-        if (res) return { method: 'atom-name', atomCount: namePairs.length, ...res };
+        const n = namePairs.length;
+        const posA = MinimizeRmsd.Positions.empty(n);
+        const posB = MinimizeRmsd.Positions.empty(n);
+        fillPairPositions(gA, gB, namePairs, posA, posB);
+        const { bTransform, rmsd } = MinimizeRmsd.compute({ a: posA, b: posB, length: n });
+        const { referenceElements, targetElements } = pairsToElements(gA, gB, namePairs);
+        return { method: 'atom-name', atomCount: n, rmsd, bTransform, referenceElements, targetElements };
     }
 
-    // MCCS: superpose each maximum-size correspondence and keep the lowest-RMSD pose
-    let best: LigandSuperposeResult | undefined;
-    for (const pairs of findMccsCliques(gA, gB, opts)) {
-        if (pairs.length < opts.minMatchedAtoms) continue;
-        const res = superposeFromPairs(gA, gB, pairs);
-        if (!res) continue;
-        if (!best || res.rmsd < best.rmsd) {
-            best = { method: 'mccs', atomCount: pairs.length, ...res };
+    // MCCS: superpose each maximum-size correspondence and keep the lowest-RMSD pose. Every clique
+    // shares the maximum size, so one set of reused buffers (and a reused RMSD state) fits all of them.
+    const cliques = findMccsCliques(gA, gB, opts);
+    if (cliques.length === 0) return;
+
+    const n = cliques[0].length;
+    const posA = MinimizeRmsd.Positions.empty(n);
+    const posB = MinimizeRmsd.Positions.empty(n);
+    const result: MinimizeRmsd.Result = { bTransform: Mat4.zero(), rmsd: 0, nAlignedElements: 0 };
+    const state = new RmsdTransformState({ a: posA, b: posB, length: n }, result);
+
+    let bestRmsd = Number.POSITIVE_INFINITY;
+    let bestPairs: Array<[number, number]> | undefined;
+    const bestTransform = Mat4.zero();
+    for (const pairs of cliques) {
+        fillPairPositions(gA, gB, pairs, posA, posB);
+        MinimizeRmsd.compute({ a: posA, b: posB, length: n }, result, state);
+        if (result.rmsd < bestRmsd) {
+            bestRmsd = result.rmsd;
+            Mat4.copy(bestTransform, result.bTransform);
+            bestPairs = pairs;
         }
     }
-    return best;
+    if (!bestPairs) return;
+
+    const { referenceElements, targetElements } = pairsToElements(gA, gB, bestPairs);
+    return { method: 'mccs', atomCount: bestPairs.length, rmsd: bestRmsd, bTransform: bestTransform, referenceElements, targetElements };
 }

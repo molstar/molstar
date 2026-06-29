@@ -4,18 +4,19 @@
  * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
+import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
 import { ElementIndex } from '../../../model';
 import { BondType } from '../../../model/types';
 import {
     DefaultLigandMccsOptions, findMccsCliques, findMccsPairs,
-    LigandGraph, LigandGraphEdge, LigandGraphVertex
+    LigandGraph, LigandGraphVertex
 } from '../superposition-ligand';
 
 /**
- * The MCCS matcher operates purely on a LigandGraph's `vertices` and `adj`, so it can be exercised
+ * The MCCS matcher operates purely on a LigandGraph's `vertices` and `bonds`, so it can be exercised
  * with hand-built graphs (no Structure/Unit needed). The subsequent superpose/RMSD step reuses the
- * already-tested `superpose`/`MinimizeRmsd` machinery and is best covered by an in-app integration
- * test against a real structure.
+ * already-tested `MinimizeRmsd` machinery and is best covered by an in-app integration test against
+ * a real structure.
  */
 
 type Bond = [number, number, number?, number?]; // [a, b, order = 1, flags = 0]
@@ -28,15 +29,19 @@ function makeGraph(elements: string[], bonds: Bond[]): LigandGraph {
         elementSymbol
     }));
 
-    const adj: Map<number, LigandGraphEdge>[] = elements.map(() => new Map<number, LigandGraphEdge>());
-    for (const [a, b, order, flags] of bonds) {
-        const o = order ?? 1;
-        const f = flags ?? 0;
-        adj[a].set(b, { a, b, order: o, flags: f, key: -1 });
-        adj[b].set(a, { a: b, b: a, order: o, flags: f, key: -1 });
+    const xs = bonds.map(e => e[0]);
+    const ys = bonds.map(e => e[1]);
+    const builder = new IntAdjacencyGraph.EdgeBuilder(elements.length, xs, ys);
+    const order = new Int32Array(builder.slotCount);
+    const flags = new Int32Array(builder.slotCount);
+    for (let i = 0; i < builder.edgeCount; i++) {
+        builder.addNextEdge();
+        builder.assignProperty(order, bonds[i][2] ?? 1);
+        builder.assignProperty(flags, bonds[i][3] ?? 0);
     }
+    const graph = builder.createGraph({ order, flags });
 
-    return { structure: undefined, unit: undefined, compId: 'LIG', residueKey: 0, vertices, adj } as unknown as LigandGraph;
+    return { structure: undefined, unit: undefined, compId: 'LIG', residueKey: 0, vertices, bonds: graph } as unknown as LigandGraph;
 }
 
 const AR = BondType.Flag.Aromatic;
@@ -65,7 +70,7 @@ function chain(elements: string[]): LigandGraph {
     return makeGraph(elements, bonds);
 }
 
-const strictBondOrder = (a: LigandGraphEdge, b: LigandGraphEdge) => (a.order | 0) === (b.order | 0);
+const strictBondOrder = (orderA: number, flagsA: number, orderB: number, flagsB: number) => (orderA | 0) === (orderB | 0);
 
 describe('Ligand MCCS', () => {
     it('benzene vs toluene: ring MCCS of size 6', () => {
