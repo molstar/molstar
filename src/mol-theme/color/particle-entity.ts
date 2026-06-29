@@ -40,15 +40,23 @@ function getParticleList(ctx: ThemeDataContext): ParticleList | undefined {
 }
 
 function buildEntityColorIndex(particles: ParticleList): { colorIndex: Int32Array, entityCount: number } {
-    const { count, entities } = particles;
+    const { count, entities, entityInfo } = particles;
     const colorIndex = new Int32Array(count).fill(-1);
     if (!entities) return { colorIndex, entityCount: 0 };
 
     // Map raw entity indices to dense sequential palette indices.
     const entitySet = new Map<number, number>();
-    for (let i = 0; i < count; ++i) {
-        const e = entities[i];
-        if (e >= 0 && !entitySet.has(e)) entitySet.set(e, entitySet.size);
+    if (entityInfo) {
+        entityInfo.forEach((_, entityIdx) => {
+            if (entityIdx >= 0 && !entitySet.has(entityIdx)) {
+                entitySet.set(entityIdx, entitySet.size);
+            }
+        });
+    } else {
+        for (let i = 0; i < count; ++i) {
+            const e = entities[i];
+            if (e >= 0 && !entitySet.has(e)) entitySet.set(e, entitySet.size);
+        }
     }
     for (let i = 0; i < count; ++i) {
         const e = entities[i];
@@ -125,5 +133,5 @@ export const ParticleEntityColorThemeProvider: ColorTheme.Provider<ParticleEntit
     factory: ParticleEntityColorTheme,
     getParams: getParticleEntityColorThemeParams,
     defaultValues: PD.getDefaultValues(ParticleEntityColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!getParticleList(ctx)?.entities
+    isApplicable: (ctx: ThemeDataContext) => !!getParticleList(ctx)
 };

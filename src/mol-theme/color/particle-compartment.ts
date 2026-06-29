@@ -125,5 +125,5 @@ export const ParticleCompartmentColorThemeProvider: ColorTheme.Provider<Particle
     factory: ParticleCompartmentColorTheme,
     getParams: getParticleCompartmentColorThemeParams,
     defaultValues: PD.getDefaultValues(ParticleCompartmentColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!getParticleList(ctx)?.compartments
+    isApplicable: (ctx: ThemeDataContext) => !!getParticleList(ctx)
 };
