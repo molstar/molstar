@@ -19,6 +19,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `defaultSnapshotIndex` argument to `MVSLoadOptions` to enable loading a snapshot other than the first one by default
 - Fix `loaders.loadMvs*` options type
 - Read simulation box from gro and lammps files
+- Add FFT to mol-math
+- Add SF-CIF and MTZ structure factors file formats support
+- Add support for calculating volumes from structure factors
 
 ## [v5.10.0] - 2026-06-14
 - Fix exported image artifacts on transparent background with emissive, bloom, or antialiasing
