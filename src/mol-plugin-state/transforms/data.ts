@@ -13,6 +13,7 @@ import * as PLY from '../../mol-io/reader/ply/parser';
 import * as OBJ from '../../mol-io/reader/obj/parser';
 import * as VTP from '../../mol-io/reader/vtp/parser';
 import { parsePsf } from '../../mol-io/reader/psf/parser';
+import { parseMtz } from '../../mol-io/reader/mtz/parser';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObject, StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
@@ -47,6 +48,7 @@ export { ParseObj };
 export { ParseVtp };
 export { ParseCcp4 };
 export { ParseDsn6 };
+export { ParseMtz };
 export { ParseDx };
 export { ImportString };
 export { ImportJson };
@@ -467,6 +469,22 @@ const ParseDsn6 = PluginStateTransform.BuiltIn({
             const parsed = await DSN6.parse(a.data, a.label).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             return new SO.Format.Dsn6(parsed.result);
+        });
+    }
+});
+
+type ParseMtz = typeof ParseMtz
+const ParseMtz = PluginStateTransform.BuiltIn({
+    name: 'parse-mtz',
+    display: { name: 'Parse MTZ', description: 'Parse CCP4 MTZ reflection file from Binary data' },
+    from: [SO.Data.Binary],
+    to: SO.Format.Mtz
+})({
+    apply({ a }) {
+        return Task.create('Parse MTZ', async ctx => {
+            const parsed = await parseMtz(a.data, a.label).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            return new SO.Format.Mtz(parsed.result);
         });
     }
 });

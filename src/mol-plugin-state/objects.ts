@@ -7,6 +7,7 @@
 
 import { Ccp4File } from '../mol-io/reader/ccp4/schema';
 import { CifFile } from '../mol-io/reader/cif';
+import { MtzFile } from '../mol-io/reader/mtz/schema';
 import { DcdFile } from '../mol-io/reader/dcd/parser';
 import { Dsn6File } from '../mol-io/reader/dsn6/schema';
 import { PlyFile } from '../mol-io/reader/ply/schema';
@@ -86,6 +87,7 @@ export namespace PluginStateObject {
         export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4/MRC/MAP File', typeClass: 'Data' }) { }
         export class Dsn6 extends Create<Dsn6File>({ name: 'DSN6/BRIX File', typeClass: 'Data' }) { }
         export class Dx extends Create<DxFile>({ name: 'DX File', typeClass: 'Data' }) { }
+        export class Mtz extends Create<MtzFile>({ name: 'MTZ File', typeClass: 'Data' }) { }
 
         export type BlobEntry = { id: string } & (
             { kind: 'json', data: unknown } |
