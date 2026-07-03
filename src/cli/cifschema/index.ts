@@ -176,7 +176,7 @@ const parser = new argparse.ArgumentParser({
 });
 parser.add_argument('--preset', '-p', {
     default: '',
-    choices: ['', 'mmCIF', 'CCD', 'BIRD', 'CifCore'],
+    choices: ['', 'mmCIF', 'CCD', 'BIRD', 'SF', 'CifCore'],
     help: 'Preset name'
 });
 parser.add_argument('--name', '-n', {
@@ -213,7 +213,7 @@ parser.add_argument('--addAliases', '-aa', {
 });
 interface Args {
     name: string
-    preset: '' | 'mmCIF' | 'CCD' | 'BIRD' | 'CifCore'
+    preset: '' | 'mmCIF' | 'CCD' | 'BIRD' | 'SF' | 'CifCore'
     forceDicDownload: boolean
     dic: '' | 'mmCIF' | 'CifCore'
     dicPath: string,
@@ -242,6 +242,11 @@ switch (args.preset) {
         args.name = 'BIRD';
         args.dic = 'mmCIF';
         args.fieldNamesPath = path.resolve(__dirname, '../../../../data/cif-field-names/bird-field-names.csv');
+        break;
+    case 'SF':
+        args.name = 'SF';
+        args.dic = 'mmCIF';
+        args.fieldNamesPath = path.resolve(__dirname, '../../../../data/cif-field-names/sf-field-names.csv');
         break;
     case 'CifCore':
         args.name = 'CifCore';

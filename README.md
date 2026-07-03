@@ -118,7 +118,8 @@ and navigate to `build/viewer`
     node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/mmcif.ts -p mmCIF
     node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/ccd.ts -p CCD
     node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/bird.ts -p BIRD
-    node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/cif-core.ts -p CifCore -aa
+    node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/sf.ts -p SF
+    node ./lib/commonjs/cli/`cifsch`ema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/cif-core.ts -p CifCore -aa
 
 **Lipid names**
 
