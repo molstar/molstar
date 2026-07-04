@@ -232,7 +232,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
                 const trgSel = trgEntry.ligands[0];
                 const trgLoci = StructureElement.Loci.remap(trgSel.loci, this.getRootStructure(trgSel.loci.structure));
 
-                const result = superposeLigandsByMccs(refLoci, trgLoci, DefaultLigandMccsOptions, ctx);
+                const result = superposeLigandsByMccs(refLoci, trgLoci, DefaultLigandMccsOptions);
                 if (!result) {
                     this.plugin.log.warn(`Ligand superposition: insufficient overlap for ${stripTags(trgEntry.label)}.`);
                     continue;
@@ -244,6 +244,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
                 const labelA = stripTags(refEntry.label);
                 const labelB = stripTags(trgEntry.label);
                 this.plugin.log.info(`Ligand superposed [${labelA}] and [${labelB}] via ${result.method} using ${result.atomCount} atoms (RMSD ${result.rmsd.toFixed(2)} Å).`);
+                if (result.truncated) this.plugin.log.warn(`Ligand superposition: MCCS search for [${labelB}] hit its time budget; the alignment may not be optimal.`);
             }
 
             // focus the aligned ligands; the reference is the pivot, so every target now sits on it

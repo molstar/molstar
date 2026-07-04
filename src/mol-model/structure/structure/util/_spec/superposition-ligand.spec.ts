@@ -153,11 +153,17 @@ describe('Ligand MCCS', () => {
         expect(first).toEqual(second);
     });
 
-    it('honors a tiny search budget without throwing', () => {
+    it('honors a tiny search budget without throwing, and reports truncation via status', () => {
         const a = carbonRing(6, 1);
         const b = carbonRing(6, 1);
 
-        expect(() => findMccsCliques(a, b, { maxTimeMs: 0, maxIterations: 1 })).not.toThrow();
+        const clipped = { truncated: false };
+        expect(() => findMccsCliques(a, b, { maxIterations: 1, minMatchedAtoms: 1 }, clipped)).not.toThrow();
+        expect(clipped.truncated).toBe(true); // budget hit -> best-so-far
+
+        const full = { truncated: false };
+        findMccsCliques(a, b, { minMatchedAtoms: 1 }, full);
+        expect(full.truncated).toBe(false); // completed within budget
     });
 
     it('matches aromatic rings across differing Kekulé bond-order assignments', () => {

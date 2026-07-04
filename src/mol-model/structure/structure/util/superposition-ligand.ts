@@ -10,7 +10,6 @@ import { BondType } from '../../model/types';
 import { IntAdjacencyGraph } from '../../../../mol-math/graph';
 import { Mat4 } from '../../../../mol-math/linear-algebra';
 import { MinimizeRmsd, RmsdTransformState } from '../../../../mol-math/linear-algebra/3d/minimize-rmsd';
-import { RuntimeContext } from '../../../../mol-task';
 import { BitSet } from '../../../../mol-util/bit-set';
 import { Structure, StructureElement, StructureProperties, Unit } from '../../structure';
 
@@ -378,9 +377,10 @@ class CliqueCollector {
  * of Bron-Kerbosch). c-edges keep the match a single connected fragment; d-edges may appear inside a
  * clique but never seed connectivity. Bounded by a wall-clock and a recursion-step budget.
  */
-function enumerateConnectedCliques(g: CompatGraph, opts: LigandMccsOptions, collector: CliqueCollector) {
+/** Returns true if the search stopped on its time/iteration budget (the result is a best-so-far, not proven maximal). */
+function enumerateConnectedCliques(g: CompatGraph, opts: LigandMccsOptions, collector: CliqueCollector): boolean {
     const n = g.n;
-    if (n === 0) return;
+    if (n === 0) return false;
 
     const minK = Math.max(1, opts.minMatchedAtoms);
     const adj = g.adj, cadj = g.cadj;
@@ -460,6 +460,7 @@ function enumerateConnectedCliques(g: CompatGraph, opts: LigandMccsOptions, coll
         t.set(ui);
         if (checkAbort()) break;
     }
+    return aborted;
 }
 
 function cliqueToPairs(g: CompatGraph, clique: number[]): Array<[number, number]> {
@@ -468,18 +469,27 @@ function cliqueToPairs(g: CompatGraph, clique: number[]): Array<[number, number]
     return pairs;
 }
 
+/** Optional out-parameter reporting whether the MCCS search hit its time/iteration budget. */
+export interface LigandMccsStatus {
+    truncated: boolean;
+}
+
 /**
  * Enumerate the maximum-size MCCS atom correspondences between two ligand graphs. Several equally
  * sized candidates may be returned (symmetry-related mappings, e.g. ring flips) so the caller can
  * pick the best pose by RMSD. Each correspondence is a list of [aVertexIndex, bVertexIndex] pairs.
+ *
+ * The search is best-effort: it stops at `maxTimeMs`/`maxIterations` and returns the best cliques
+ * found so far. Pass `status` to learn whether that budget was hit (`status.truncated`).
  */
-export function findMccsCliques(a: LigandGraph, b: LigandGraph, options: Partial<LigandMccsOptions> = {}): Array<Array<[number, number]>> {
+export function findMccsCliques(a: LigandGraph, b: LigandGraph, options: Partial<LigandMccsOptions> = {}, status?: LigandMccsStatus): Array<Array<[number, number]>> {
     const opts: LigandMccsOptions = { ...DefaultLigandMccsOptions, ...options };
     const g = buildCompatGraph(a, b, opts);
     if (g.n === 0) return [];
 
     const collector = new CliqueCollector(opts.maxCliquesForPose);
-    enumerateConnectedCliques(g, opts, collector);
+    const truncated = enumerateConnectedCliques(g, opts, collector);
+    if (status) status.truncated = truncated;
     if (collector.bestSize < opts.minMatchedAtoms) return [];
 
     return collector.cliques.map(clique => cliqueToPairs(g, clique));
@@ -504,6 +514,8 @@ export interface LigandSuperposeResult {
     referenceElements: ElementIndex[];
     /** matched atoms in the target ligand as model ElementIndex, paired 1:1 with `referenceElements` */
     targetElements: ElementIndex[];
+    /** true if the MCCS search hit its time/iteration budget, so the result may not be the true maximum (always false for the atom-name fast path) */
+    truncated: boolean;
 }
 
 type MutablePositions = { x: Float64Array, y: Float64Array, z: Float64Array };
@@ -538,8 +550,7 @@ function pairsToElements(gA: LigandGraph, gB: LigandGraph, pairs: Array<[number,
 export function superposeLigandsByMccs(
     reference: StructureElement.Loci,
     target: StructureElement.Loci,
-    options: Partial<LigandMccsOptions> = {},
-    ctx?: RuntimeContext
+    options: Partial<LigandMccsOptions> = {}
 ): LigandSuperposeResult | undefined {
     const opts: LigandMccsOptions = { ...DefaultLigandMccsOptions, ...options };
 
@@ -556,12 +567,13 @@ export function superposeLigandsByMccs(
         fillPairPositions(gA, gB, namePairs, posA, posB);
         const { bTransform, rmsd } = MinimizeRmsd.compute({ a: posA, b: posB, length: n });
         const { referenceElements, targetElements } = pairsToElements(gA, gB, namePairs);
-        return { method: 'atom-name', atomCount: n, rmsd, bTransform, referenceElements, targetElements };
+        return { method: 'atom-name', atomCount: n, rmsd, bTransform, referenceElements, targetElements, truncated: false };
     }
 
     // MCCS: superpose each maximum-size correspondence and keep the lowest-RMSD pose. Every clique
     // shares the maximum size, so one set of reused buffers (and a reused RMSD state) fits all of them.
-    const cliques = findMccsCliques(gA, gB, opts);
+    const status: LigandMccsStatus = { truncated: false };
+    const cliques = findMccsCliques(gA, gB, opts, status);
     if (cliques.length === 0) return;
 
     const n = cliques[0].length;
@@ -585,5 +597,5 @@ export function superposeLigandsByMccs(
     if (!bestPairs) return;
 
     const { referenceElements, targetElements } = pairsToElements(gA, gB, bestPairs);
-    return { method: 'mccs', atomCount: bestPairs.length, rmsd: bestRmsd, bTransform: bestTransform, referenceElements, targetElements };
+    return { method: 'mccs', atomCount: bestPairs.length, rmsd: bestRmsd, bTransform: bestTransform, referenceElements, targetElements, truncated: status.truncated };
 }
