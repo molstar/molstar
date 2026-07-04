@@ -23,8 +23,18 @@
                 var r = new RegExp(name + '=' + '(' + regex + ')[&]?', 'i');
                 return decodeURIComponent(((window.location.search || '').match(r) || [])[1] || '');
             }
-            var pdbqt = getParam('pdbqt', '[^&]+').trim() || '../../examples/ace2.pdbqt';
-            var mol2 = getParam('mol2', '[^&]+').trim() || '../../examples/ace2-hit.mol2';
+            function isValidUrl(url) {
+                try {
+                    var u = new URL(url, window.location.href);
+                    return u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'file:';
+                } catch (e) {
+                    return false;
+                }
+            }
+            var pdbqt = getParam('pdbqt', '[^&]+').trim();
+            var mol2 = getParam('mol2', '[^&]+').trim();
+            if (!isValidUrl(pdbqt)) pdbqt = '../../examples/ace2.pdbqt';
+            if (!isValidUrl(mol2)) mol2 = '../../examples/ace2-hit.mol2';
 
             DockingViewer.create('app', [0x33DD22, 0x1133EE], true).then(viewer => {
                 viewer.loadStructuresFromUrlsAndMerge([
