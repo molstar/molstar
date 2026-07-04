@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,6 +22,8 @@ export type TransformData = {
     transform: ValueCell<Float32Array>,
     /** additional per-instance transform, see aTransform */
     extraTransform: ValueCell<Float32Array>,
+    /** whether extraTransform is used, see aTransform */
+    hasExtraTransform: ValueCell<boolean>,
 
     uInstanceCount: ValueCell<number>,
     instanceCount: ValueCell<number>,
@@ -56,9 +58,9 @@ export function createTransform(transformArray: Float32Array, instanceCount: num
         const aTransform = transformData.aTransform.ref.value.length >= instanceCount * 16 ? transformData.aTransform.ref.value : new Float32Array(instanceCount * 16);
         ValueCell.update(transformData.aTransform, aTransform);
 
-        // Note that this sets `extraTransform` to identity transforms
         const extraTransform = transformData.extraTransform.ref.value.length >= instanceCount * 16 ? transformData.extraTransform.ref.value : new Float32Array(instanceCount * 16);
-        ValueCell.update(transformData.extraTransform, fillIdentityTransform(extraTransform, instanceCount));
+        ValueCell.update(transformData.extraTransform, extraTransform);
+        ValueCell.updateIfChanged(transformData.hasExtraTransform, false);
 
         const aInstance = transformData.aInstance.ref.value.length >= instanceCount ? transformData.aInstance.ref.value : new Float32Array(instanceCount);
         ValueCell.update(transformData.aInstance, fillSerial(aInstance, instanceCount));
@@ -69,7 +71,8 @@ export function createTransform(transformArray: Float32Array, instanceCount: num
             aTransform: ValueCell.create(new Float32Array(instanceCount * 16)),
             matrix: ValueCell.create(Mat4.identity()),
             transform: ValueCell.create(new Float32Array(transformArray)),
-            extraTransform: ValueCell.create(fillIdentityTransform(new Float32Array(instanceCount * 16), instanceCount)),
+            extraTransform: ValueCell.create(new Float32Array(instanceCount * 16)),
+            hasExtraTransform: ValueCell.create(false),
             uInstanceCount: ValueCell.create(instanceCount),
             instanceCount: ValueCell.create(instanceCount),
             aInstance: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
@@ -107,10 +110,32 @@ export function updateTransformData(transformData: TransformData, invariantBound
     const matrix = transformData.matrix.ref.value;
     const transform = transformData.transform.ref.value;
     const extraTransform = transformData.extraTransform.ref.value;
+    const hasExtraTransform = transformData.hasExtraTransform.ref.value;
+    const matrixIsIdentity = Mat4.isIdentity(matrix);
+
+    if (!hasExtraTransform && matrixIsIdentity) {
+        for (let i = 0, il = instanceCount * 16; i < il; i++) {
+            aTransform[i] = transform[i];
+        }
+    } else if (!hasExtraTransform && !matrixIsIdentity) {
+        for (let i = 0; i < instanceCount; i++) {
+            const i16 = i * 16;
+            Mat4.mulOffset(aTransform, matrix, transform, i16, 0, i16);
+        }
+    } else if (hasExtraTransform && matrixIsIdentity) {
+        for (let i = 0; i < instanceCount; i++) {
+            const i16 = i * 16;
+            Mat4.mulOffset(aTransform, extraTransform, transform, i16, i16, i16);
+        }
+    } else {
+        for (let i = 0; i < instanceCount; i++) {
+            const i16 = i * 16;
+            Mat4.mulOffset(aTransform, extraTransform, transform, i16, i16, i16);
+            Mat4.mulOffset(aTransform, matrix, aTransform, i16, 0, i16);
+        }
+    }
+
     for (let i = 0; i < instanceCount; i++) {
-        const i16 = i * 16;
-        Mat4.mulOffset(aTransform, extraTransform, transform, i16, i16, i16);
-        Mat4.mulOffset(aTransform, matrix, aTransform, i16, 0, i16);
         aInstance[i] = i;
     }
 
