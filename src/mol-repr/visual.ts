@@ -13,7 +13,7 @@ import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { WebGLContext } from '../mol-gl/webgl/context';
 import { Theme } from '../mol-theme/theme';
 import { Mat4 } from '../mol-math/linear-algebra';
-import { updateTransformData, fillIdentityTransform } from '../mol-geo/geometry/transform-data';
+import { updateTransformData } from '../mol-geo/geometry/transform-data';
 import { calculateTransformBoundingSphere } from '../mol-gl/renderable/util';
 import { ValueCell } from '../mol-util';
 import { Overpaint } from '../mol-theme/overpaint';
@@ -465,9 +465,9 @@ namespace Visual {
         if (instanceTransforms) {
             values.extraTransform.ref.value.set(instanceTransforms);
             ValueCell.update(values.extraTransform, values.extraTransform.ref.value);
+            ValueCell.updateIfChanged(values.hasExtraTransform, true);
         } else if (instanceTransforms === null) {
-            fillIdentityTransform(values.extraTransform.ref.value, values.instanceCount.ref.value);
-            ValueCell.update(values.extraTransform, values.extraTransform.ref.value);
+            ValueCell.updateIfChanged(values.hasExtraTransform, false);
         }
         updateTransformData(values, values.invariantBoundingSphere.ref.value, values.instanceGrid.ref.value.cellSize, values.instanceGrid.ref.value.batchSize);
         const boundingSphere = calculateTransformBoundingSphere(values.invariantBoundingSphere.ref.value, values.transform.ref.value, values.instanceCount.ref.value, 0);
