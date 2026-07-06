@@ -58,10 +58,16 @@ function spacefillOverrideTheme(theme: Theme, props: SpacefillParticlesProps): T
 
 // ---- Impostor visual --------------------------------------------------------
 
-function createSpacefillSphereImpostor(_ctx: VisualContext, _particles: ParticleList, _theme: Theme, _props: SpacefillParticlesProps, spheres?: Spheres): Spheres {
-    const builder = SpheresBuilder.create(1, 1, spheres);
-    builder.add(0, 0, 0, 0);
-    return builder.getSpheres();
+function createSpacefillSphereImpostor(_ctx: VisualContext, particles: ParticleList, _theme: Theme, _props: SpacefillParticlesProps, spheres?: Spheres): Spheres {
+    const { count, coordinates } = particles;
+    const builder = SpheresBuilder.create(Math.max(1, count), Math.max(1, Math.ceil(count / 10)), spheres);
+    for (let i = 0; i < count; ++i) {
+        const o = i * 3;
+        builder.add(coordinates[o], coordinates[o + 1], coordinates[o + 2], i);
+    }
+    const result = builder.getSpheres();
+    result.setBoundingSphere(Particle.getBoundary(particles).sphere);
+    return result;
 }
 
 export function SpacefillParticlesImpostorVisual(materialId: number): ParticleVisual<SpacefillParticlesParams> {
@@ -71,7 +77,9 @@ export function SpacefillParticlesImpostorVisual(materialId: number): ParticleVi
         createLocationIterator: createSpacefillLocationIterator,
         getLoci: getSpacefillLoci,
         eachLocation: eachSpacefillLoci,
-        setUpdateState: (state: VisualUpdateState, _np: ParticleList, _cp: ParticleList, newProps: SpacefillParticlesProps, currentProps: SpacefillParticlesProps) => {
+        setUpdateState: (state: VisualUpdateState, newParticles: ParticleList, currentParticles: ParticleList, newProps: SpacefillParticlesProps, currentProps: SpacefillParticlesProps) => {
+            // sphere positions are baked from particle coordinates, so any new particle data requires rebuilding the geometry
+            if (newParticles !== currentParticles) state.createGeometry = true;
             if (newProps.pointSize !== currentProps.pointSize) state.updateSize = true;
             if (newProps.positionColor !== currentProps.positionColor) state.updateColor = true;
         },
@@ -85,13 +93,24 @@ export function SpacefillParticlesImpostorVisual(materialId: number): ParticleVi
 
 // ---- Mesh visual ------------------------------------------------------------
 
-function createSpacefillSphereMesh(_ctx: VisualContext, _particles: ParticleList, _theme: Theme, props: SpacefillParticlesProps, mesh?: Mesh): Mesh {
-    const { detail, pointSize } = props;
-    const vertexCount = sphereVertexCount(detail);
-    const builderState = MeshBuilder.createState(vertexCount, Math.ceil(vertexCount / 2), mesh);
-    builderState.currentGroup = 0;
-    addSphere(builderState, Vec3(), pointSize, detail);
-    return MeshBuilder.getMesh(builderState);
+function createSpacefillSphereMesh(_ctx: VisualContext, particles: ParticleList, theme: Theme, props: SpacefillParticlesProps, mesh?: Mesh): Mesh {
+    const { count, coordinates } = particles;
+    const { detail } = props;
+    const perSphereVertexCount = sphereVertexCount(detail);
+    const vertexCount = Math.max(1, perSphereVertexCount * count);
+    const builderState = MeshBuilder.createState(vertexCount, Math.ceil(vertexCount / 10), mesh);
+    const location = Particle.Location(particles);
+    const center = Vec3();
+    for (let i = 0; i < count; ++i) {
+        location.index = i;
+        const radius = theme.size.size(location);
+        Vec3.fromArray(center, coordinates, i * 3);
+        builderState.currentGroup = i;
+        addSphere(builderState, center, radius, detail);
+    }
+    const m = MeshBuilder.getMesh(builderState);
+    m.setBoundingSphere(Particle.getBoundary(particles).sphere);
+    return m;
 }
 
 export function SpacefillParticlesMeshVisual(materialId: number): ParticleVisual<SpacefillParticlesParams> {
@@ -101,8 +120,14 @@ export function SpacefillParticlesMeshVisual(materialId: number): ParticleVisual
         createLocationIterator: createSpacefillLocationIterator,
         getLoci: getSpacefillLoci,
         eachLocation: eachSpacefillLoci,
-        setUpdateState: (state: VisualUpdateState, _np: ParticleList, _cp: ParticleList, newProps: SpacefillParticlesProps, currentProps: SpacefillParticlesProps) => {
-            state.createGeometry = newProps.detail !== currentProps.detail || newProps.pointSize !== currentProps.pointSize;
+        setUpdateState: (state: VisualUpdateState, newParticles: ParticleList, currentParticles: ParticleList, newProps: SpacefillParticlesProps, currentProps: SpacefillParticlesProps, newTheme: Theme, currentTheme: Theme) => {
+            // sphere positions and radii are baked from particle coordinates/theme, so any new particle data or size theme change requires rebuilding the geometry
+            if (newParticles !== currentParticles ||
+                newProps.detail !== currentProps.detail ||
+                newProps.pointSize !== currentProps.pointSize ||
+                !SizeTheme.areEqual(newTheme.size, currentTheme.size)) {
+                state.createGeometry = true;
+            }
             if (newProps.positionColor !== currentProps.positionColor) state.updateColor = true;
         },
         overrideTheme: spacefillOverrideTheme,
@@ -125,17 +150,17 @@ export function SpacefillParticlesVisual(materialId: number, _particles: Particl
 function createSpacefillLocationIterator(particles: ParticleList, _geometry: Spheres | Mesh): LocationIterator {
     const { count } = particles;
     const location = Particle.Location(particles, 0);
-    return LocationIterator(1, count, 1, (_groupIndex, instanceIndex) => {
-        location.index = instanceIndex;
+    return LocationIterator(count, 1, 1, (groupIndex: number) => {
+        location.index = groupIndex;
         return location;
-    });
+    }, true /* nonInstanceable */);
 }
 
 function getSpacefillLoci(pickingId: PickingId, particles: ParticleList, _props: SpacefillParticlesProps, id: number, _geometry: Spheres | Mesh): Loci {
-    const { objectId, instanceId } = pickingId;
+    const { objectId, groupId } = pickingId;
     if (id !== objectId) return EmptyLoci;
-    if (instanceId < 0 || instanceId >= particles.count) return EmptyLoci;
-    return Particle.Loci(particles, OrderedSet.ofSingleton(instanceId as any));
+    if (groupId < 0 || groupId >= particles.count) return EmptyLoci;
+    return Particle.Loci(particles, OrderedSet.ofSingleton(groupId as any));
 }
 
 function eachSpacefillLoci(loci: Loci, particles: ParticleList, _props: SpacefillParticlesProps, apply: (interval: Interval) => boolean, _geometry: Spheres | Mesh): boolean {

@@ -21,7 +21,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { StateSelection, StateTransform, StateTransformer } from '../../mol-state';
 import { volumeFromSegmentationData } from '../../mol-model-formats/volume/segmentation';
 import { getTransformFromParams, TransformParam, transformParamsNeedCentroid } from './helpers';
-import { getParticleTransforms, ParticleList } from '../../mol-model/particles/particle-list';
+import { getParticleTransformsAsMat4, ParticleList } from '../../mol-model/particles/particle-list';
 
 export { VolumeFromCcp4 };
 export { VolumeFromDsn6 };
@@ -353,7 +353,7 @@ const ParticlesVolume = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         return Task.create('Create volume from volume and particles', async ctx => {
             const particles = params.particles.getValue();
-            const transforms = getParticleTransforms(particles);
+            const transforms = getParticleTransformsAsMat4(particles);
             // Center the volume on each particle position by composing each
             // particle's rotation/translation with a translation that brings
             // the volume's grid centroid to the origin.

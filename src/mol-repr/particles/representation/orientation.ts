@@ -25,8 +25,11 @@ import { ParticleRepresentation, ParticleRepresentationProvider } from '../repre
 import { ParticleVisual } from '../visual';
 import { Location } from '../../../mol-model/location';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
+import { Vec3 } from '../../../mol-math/linear-algebra/3d/vec3';
+import { Mat4 } from '../../../mol-math/linear-algebra/3d/mat4';
+import { Quat } from '../../../mol-math/linear-algebra/3d/quat';
 
-// ---- Axes visual (3 orientation lines, instanced per particle) ---------------
+// ---- Axes visual (3 orientation lines per particle, baked/non-instanced) -----
 
 const AxisLengthOptions = { min: 0.1, max: 1000, step: 0.1 } as const;
 
@@ -57,30 +60,58 @@ function axisColorTheme(props: AxesParticlesProps): ColorTheme<{}> {
     return theme;
 }
 
-function createAxesGeometry(_ctx: VisualContext, _particles: ParticleList, _theme: Theme, props: AxesParticlesProps, lines?: Lines): Lines {
+const _m = Mat4();
+const _q = Quat();
+const _pos = Vec3();
+const _end = Vec3();
+
+function createAxesGeometry(_ctx: VisualContext, particles: ParticleList, _theme: Theme, props: AxesParticlesProps, lines?: Lines): Lines {
+    const { count, coordinates, rotations } = particles;
     const { axisLength } = props;
-    const builder = LinesBuilder.create(3, 3, lines);
-    builder.add(0, 0, 0, axisLength, 0, 0, 0); // X axis, group 0
-    builder.add(0, 0, 0, 0, axisLength, 0, 1); // Y axis, group 1
-    builder.add(0, 0, 0, 0, 0, axisLength, 2); // Z axis, group 2
-    return builder.getLines();
+    const segmentCount = Math.max(1, count * 3);
+    const builder = LinesBuilder.create(segmentCount, Math.max(1, Math.ceil(segmentCount / 10)), lines);
+
+    for (let i = 0; i < count; ++i) {
+        Vec3.fromArray(_pos, coordinates, i * 3);
+
+        if (rotations) {
+            const o = i * 4;
+            Quat.set(_q, rotations[o], rotations[o + 1], rotations[o + 2], rotations[o + 3]);
+            Mat4.fromQuat(_m, _q);
+        } else {
+            Mat4.setIdentity(_m);
+        }
+        const basis = Mat4.extractBasis(_m);
+
+        Vec3.scaleAndAdd(_end, _pos, basis.x, axisLength);
+        builder.add(_pos[0], _pos[1], _pos[2], _end[0], _end[1], _end[2], i * 3 + 0);
+        Vec3.scaleAndAdd(_end, _pos, basis.y, axisLength);
+        builder.add(_pos[0], _pos[1], _pos[2], _end[0], _end[1], _end[2], i * 3 + 1);
+        Vec3.scaleAndAdd(_end, _pos, basis.z, axisLength);
+        builder.add(_pos[0], _pos[1], _pos[2], _end[0], _end[1], _end[2], i * 3 + 2);
+    }
+
+    const result = builder.getLines();
+    result.setBoundingSphere(Particle.getBoundary(particles).sphere);
+    return result;
 }
 
 function createAxesLocationIterator(particles: ParticleList, _geometry: Lines): LocationIterator {
     const { count } = particles;
     const location = Object.assign(Particle.Location(particles, 0), { groupIndex: 0 }) as AxesLocation;
-    return LocationIterator(3, count, 1, (groupIndex, instanceIndex) => {
-        location.index = instanceIndex;
-        location.groupIndex = groupIndex;
+    return LocationIterator(count * 3, 1, 1, (groupIndex: number) => {
+        location.index = Math.floor(groupIndex / 3);
+        location.groupIndex = groupIndex % 3;
         return location;
-    });
+    }, true /* nonInstanceable */);
 }
 
 function getAxesLoci(pickingId: PickingId, particles: ParticleList, _props: AxesParticlesProps, id: number, _geometry: Lines): Loci {
-    const { objectId, instanceId } = pickingId;
+    const { objectId, groupId } = pickingId;
     if (id !== objectId) return EmptyLoci;
-    if (instanceId < 0 || instanceId >= particles.count) return EmptyLoci;
-    return Particle.Loci(particles, OrderedSet.ofSingleton(instanceId as any));
+    const particleIdx = Math.floor(groupId / 3);
+    if (groupId < 0 || particleIdx >= particles.count) return EmptyLoci;
+    return Particle.Loci(particles, OrderedSet.ofSingleton(particleIdx as any));
 }
 
 function eachAxesLoci(loci: Loci, particles: ParticleList, _props: AxesParticlesProps, apply: (interval: Interval) => boolean, _geometry: Lines): boolean {
@@ -103,8 +134,11 @@ export function AxesParticlesVisual(materialId: number, _particles?: ParticleLis
         createLocationIterator: createAxesLocationIterator,
         getLoci: getAxesLoci,
         eachLocation: eachAxesLoci,
-        setUpdateState: (state: VisualUpdateState, _np: ParticleList, _cp: ParticleList, newProps: AxesParticlesProps, currentProps: AxesParticlesProps) => {
-            state.createGeometry = newProps.axisLength !== currentProps.axisLength;
+        setUpdateState: (state: VisualUpdateState, newParticles: ParticleList, currentParticles: ParticleList, newProps: AxesParticlesProps, currentProps: AxesParticlesProps) => {
+            // axis lines are baked from particle coordinates/rotations, so any new particle data requires rebuilding the geometry
+            if (newParticles !== currentParticles || newProps.axisLength !== currentProps.axisLength) {
+                state.createGeometry = true;
+            }
             if (newProps.xColor !== currentProps.xColor ||
                 newProps.yColor !== currentProps.yColor ||
                 newProps.zColor !== currentProps.zColor) {

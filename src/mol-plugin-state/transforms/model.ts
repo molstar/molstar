@@ -17,7 +17,7 @@ import { trajectoryFromCCD, trajectoryFromMmCIF } from '../../mol-model-formats/
 import { trajectoryFromPDB } from '../../mol-model-formats/structure/pdb';
 import { topologyFromPsf } from '../../mol-model-formats/structure/psf';
 import { Coordinates, Model, Queries, QueryContext, Structure, StructureElement, StructureQuery, StructureSelection as Sel, Topology, ArrayTrajectory, Trajectory, Frame } from '../../mol-model/structure';
-import { getParticleTransforms, ParticleList } from '../../mol-model/particles/particle-list';
+import { getParticleTransformsAsMat4, ParticleList } from '../../mol-model/particles/particle-list';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
 import { Expression } from '../../mol-script/language/expression';
@@ -284,14 +284,14 @@ const ParticlesStructure = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         return Task.create('Create structure from structure and particles', async ctx => {
             const particles = params.particles.getValue();
-            const transforms = getParticleTransforms(particles);
+            const transforms = getParticleTransformsAsMat4(particles);
             // Center the structure on each particle position by composing each
             // particle's rotation/translation with a translation that brings
             // the structure's centroid to the origin.
             const center = a.data.boundary.sphere.center;
             const offset = Mat4.fromTranslation(Mat4(), Vec3.negate(Vec3(), center));
-            for (const t of transforms) Mat4.mul(t, t, offset);
-            const instanced = Structure.instances(a.data, transforms.map((transform, i) => ({ transform, group: i })), true);
+            // `transforms` is cached on `particles`, so clone rather than mutate in place.
+            const instanced = Structure.instances(a.data, transforms.map((transform, i) => ({ transform: Mat4.mul(Mat4(), transform, offset), group: i })), true);
             Structure.ParticleList.set(instanced, particles);
             return new SO.Molecule.Structure(instanced, { label: a.label, description: `${transforms.length} particle${transforms.length === 1 ? '' : 's'}` });
         });

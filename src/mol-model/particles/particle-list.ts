@@ -12,6 +12,7 @@ import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { ModelFormat } from '../../mol-model-formats/format';
 import { CustomProperties, CustomPropertyDescriptor } from '../custom-property';
 import { Boundary } from '../../mol-math/geometry/boundary';
+import { fillIdentityTransform } from '../../mol-geo/geometry/transform-data';
 
 export interface ParticleList {
     readonly entryId?: string
@@ -124,34 +125,87 @@ export type ParticleTarget =
     | { readonly kind: 'structure', readonly structure: import('../structure/structure').Structure }
     | { readonly kind: 'shape', readonly shape: import('../shape/shape').Shape }
 
-export function getParticleTransforms(data: ParticleList) {
-    const particleCount = data.count;
-    const transforms: Mat4[] = [];
-    const { rotations } = data;
+const ParticleTransformsDescriptor = CustomPropertyDescriptor({ name: 'particle-transforms' });
+const ParticleTransformsAsMat4Descriptor = CustomPropertyDescriptor({ name: 'particle-transforms-as-mat4' });
 
-    for (let i = 0; i < particleCount; ++i) {
-        const cOffset = i * 3;
+/**
+ * Per-particle transforms as a flat array, 16 consecutive floats (column-major mat4) per
+ * particle. Computed once and cached on the `ParticleList`.
+ */
+export function getParticleTransforms(data: ParticleList): Float32Array {
+    if (!data._propertyData[ParticleTransformsDescriptor.name]) {
+        const particleCount = data.count;
+        const transformArray = new Float32Array(particleCount * 16);
+        const { rotations, coordinates } = data;
 
-        let transform: Mat4;
+        let hasRotations = false;
         if (rotations) {
-            const qOffset = i * 4;
-            const q = Quat.create(
-                rotations[qOffset + 0],
-                rotations[qOffset + 1],
-                rotations[qOffset + 2],
-                rotations[qOffset + 3],
-            );
-            transform = Mat4.fromQuat(Mat4(), q);
-        } else {
-            transform = Mat4.identity();
+            for (let i = 0; i < particleCount; ++i) {
+                const o = i * 4;
+                if (rotations[o + 0] !== 0 || rotations[o + 1] !== 0 || rotations[o + 2] !== 0 || rotations[o + 3] !== 1) {
+                    hasRotations = true;
+                    break;
+                }
+            }
         }
-        transform[12] = data.coordinates[cOffset + 0];
-        transform[13] = data.coordinates[cOffset + 1];
-        transform[14] = data.coordinates[cOffset + 2];
-        transforms.push(transform);
-    }
 
-    return transforms;
+        if (rotations && hasRotations) {
+            const m = Mat4.identity();
+            const q = Quat();
+            for (let i = 0; i < particleCount; ++i) {
+                const cOffset = i * 3;
+                const qOffset = i * 4;
+                Quat.set(q,
+                    rotations[qOffset + 0],
+                    rotations[qOffset + 1],
+                    rotations[qOffset + 2],
+                    rotations[qOffset + 3],
+                );
+                Mat4.fromQuat(m, q);
+                m[12] = coordinates[cOffset + 0];
+                m[13] = coordinates[cOffset + 1];
+                m[14] = coordinates[cOffset + 2];
+                for (let j = 0; j < 16; j++) {
+                    transformArray[i * 16 + j] = m[j];
+                }
+                // transformArray.set(m, i * 16);
+            }
+        } else {
+            fillIdentityTransform(transformArray, particleCount);
+            for (let i = 0; i < particleCount; ++i) {
+                const cOffset = i * 3;
+                transformArray[i * 16 + 12] = coordinates[cOffset + 0];
+                transformArray[i * 16 + 13] = coordinates[cOffset + 1];
+                transformArray[i * 16 + 14] = coordinates[cOffset + 2];
+            }
+        }
+
+        data.customProperties.add(ParticleTransformsDescriptor);
+        data._propertyData[ParticleTransformsDescriptor.name] = transformArray;
+    }
+    return data._propertyData[ParticleTransformsDescriptor.name];
+}
+
+/**
+ * Per-particle transforms as `Mat4` instances. Computed from `getParticleTransforms` and
+ * cached on the `ParticleList`.
+ *
+ * Note: the returned matrices are shared/cached, do not mutate them in place; clone before
+ * mutating (e.g. `Mat4.mul(Mat4(), transform, offset)`).
+ */
+export function getParticleTransformsAsMat4(data: ParticleList): Mat4[] {
+    if (!data._propertyData[ParticleTransformsAsMat4Descriptor.name]) {
+        const transformArray = getParticleTransforms(data);
+        const particleCount = data.count;
+        const transforms: Mat4[] = new Array(particleCount);
+        for (let i = 0; i < particleCount; ++i) {
+            transforms[i] = Mat4.fromArray(Mat4(), transformArray, i * 16);
+        }
+
+        data.customProperties.add(ParticleTransformsAsMat4Descriptor);
+        data._propertyData[ParticleTransformsAsMat4Descriptor.name] = transforms;
+    }
+    return data._propertyData[ParticleTransformsAsMat4Descriptor.name];
 }
 
 export namespace Particle {

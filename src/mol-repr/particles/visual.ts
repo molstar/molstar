@@ -45,13 +45,8 @@ export type ParticleKey = { particles: ParticleList }
 export interface ParticleVisual<P extends ParticleParams> extends Visual<ParticleKey, P> { }
 
 export function createParticleTransform(particles: ParticleList, invariantBoundingSphere: Sphere3D, cellSize: number, batchSize: number, transformData?: TransformData) {
-    const transforms = getParticleTransforms(particles);
-    const instanceCount = transforms.length;
-    const transformArray = new Float32Array(instanceCount * 16);
-    for (let i = 0; i < instanceCount; ++i) {
-        transformArray.set(transforms[i], i * 16);
-    }
-    return createTransform(transformArray, instanceCount, invariantBoundingSphere, cellSize, batchSize, transformData);
+    const transformArray = getParticleTransforms(particles);
+    return createTransform(transformArray, particles.count, invariantBoundingSphere, cellSize, batchSize, transformData);
 }
 
 function createParticleRenderObject<G extends Geometry>(particles: ParticleList, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>, materialId: number) {
@@ -82,6 +77,13 @@ interface ParticleVisualBuilder<P extends ParticleParams, G extends Geometry> {
     createLocationIterator(particles: ParticleList, geometry: G): LocationIterator
     getLoci(pickingId: PickingId, particles: ParticleList, props: PD.Values<P>, id: number, geometry: G): Loci
     eachLocation(loci: Loci, particles: ParticleList, props: PD.Values<P>, apply: (interval: Interval) => boolean, geometry: G): boolean
+    /**
+     * Note: a new `ParticleList` reference does not automatically trigger `createGeometry`.
+     * If `createGeometry` builds geometry from per-particle data directly (e.g. baked
+     * positions), set `state.createGeometry = true` here when `newParticles !== currentParticles`.
+     * Otherwise (e.g. geometry is an instanced template), leave it to the base
+     * implementation to only refresh the transform/color/size.
+     */
     setUpdateState(state: VisualUpdateState, newParticles: ParticleList, currentParticles: ParticleList, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
     /** Optional hook to override the theme before geometry creation and color/size updates. */
     overrideTheme?: (theme: Theme, props: PD.Values<P>) => Theme
@@ -126,16 +128,25 @@ export function ParticleVisual<G extends Geometry, P extends ParticleParams & Ge
 
         if (!renderObject) {
             updateState.createNew = true;
-        } else if (newParticles !== currentParticles) {
-            updateState.createNew = true;
-        }
-
-        if (updateState.createNew) {
             updateState.createGeometry = true;
             return;
         }
 
         setUpdateState(updateState, newParticles, currentParticles, newProps, currentProps, newTheme, currentTheme);
+
+        if (newParticles !== currentParticles) {
+            // A new `ParticleList` does not necessarily mean the geometry must be
+            // rebuilt from scratch (e.g. a new trajectory frame with the same topology
+            // but different coordinates). Refresh transform/color/size unconditionally,
+            // but leave the decision of whether the geometry itself needs to be
+            // recreated (e.g. because it bakes per-particle positions, like fiber
+            // curves) to `setUpdateState` above - mirroring how `ComplexVisual` only
+            // recreates geometry when the structure is not equivalent or its
+            // hierarchy changed, instead of on every new `Structure` reference.
+            updateState.updateTransform = true;
+            updateState.updateColor = true;
+            updateState.updateSize = true;
+        }
 
         if (!ColorTheme.areEqual(newTheme.color, currentTheme.color)) {
             updateState.updateColor = true;

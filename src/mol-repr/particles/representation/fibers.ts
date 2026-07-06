@@ -257,8 +257,10 @@ export function FibersLinesVisual(materialId: number, _particles?: ParticleList,
         createLocationIterator: createFibersLocationIterator,
         getLoci: getFibersLoci,
         eachLocation: eachFibers,
-        setUpdateState: (state: VisualUpdateState, _np: ParticleList, _cp: ParticleList, newProps: FibersLinesProps, currentProps: FibersLinesProps) => {
-            if (newProps.linearSegments !== currentProps.linearSegments ||
+        setUpdateState: (state: VisualUpdateState, newParticles: ParticleList, currentParticles: ParticleList, newProps: FibersLinesProps, currentProps: FibersLinesProps) => {
+            // fiber curves are baked from particle coordinates, so any new particle data requires rebuilding the geometry
+            if (newParticles !== currentParticles ||
+                newProps.linearSegments !== currentProps.linearSegments ||
                 newProps.useLineStrips !== currentProps.useLineStrips) {
                 state.createGeometry = true;
             }
@@ -334,8 +336,10 @@ export function FibersTubeMeshVisual(materialId: number, _particles?: ParticleLi
         createLocationIterator: createFibersLocationIterator,
         getLoci: getFibersLoci,
         eachLocation: eachFibers,
-        setUpdateState: (state: VisualUpdateState, _np: ParticleList, _cp: ParticleList, newProps: FibersTubeMeshProps, currentProps: FibersTubeMeshProps) => {
-            if (newProps.tubeSizeFactor !== currentProps.tubeSizeFactor ||
+        setUpdateState: (state: VisualUpdateState, newParticles: ParticleList, currentParticles: ParticleList, newProps: FibersTubeMeshProps, currentProps: FibersTubeMeshProps) => {
+            // fiber tubes are baked from particle coordinates, so any new particle data requires rebuilding the geometry
+            if (newParticles !== currentParticles ||
+                newProps.tubeSizeFactor !== currentProps.tubeSizeFactor ||
                 newProps.linearSegments !== currentProps.linearSegments ||
                 newProps.radialSegments !== currentProps.radialSegments) {
                 state.createGeometry = true;

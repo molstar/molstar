@@ -5,7 +5,8 @@
  */
 
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { ParticleList, Particle, ParticleTarget, getParticleTransforms } from '../../../../mol-model/particles/particle-list';
+import { ValueCell } from '../../../../mol-util/value-cell';
+import { ParticleList, Particle, ParticleTarget, getParticleTransformsAsMat4 } from '../../../../mol-model/particles/particle-list';
 import { Theme } from '../../../../mol-theme/theme';
 import { GraphicsRenderObject, createRenderObject } from '../../../../mol-gl/render-object';
 import { Loci as ModelLoci, isEveryLoci } from '../../../../mol-model/loci';
@@ -129,7 +130,9 @@ export function createFilteredParticleTransform(
     scaleByRadius: boolean,
     transformData?: TransformData
 ): TransformData {
-    const transforms = getParticleTransforms(filtered);
+    // `filtered` is a freshly built, single-use `ParticleList` (see `makeFilteredParticleList`),
+    // so mutating its cached transforms in place below is safe.
+    const transforms = getParticleTransformsAsMat4(filtered);
     const instanceCount = transforms.length;
     const transformArray = new Float32Array(instanceCount * 16);
 
@@ -286,8 +289,17 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
             if (updateState.updateMatrix && filtered.count > 0) {
                 createFilteredParticleTransform(filtered, geometry!.boundingSphere, props.cellSize, props.batchSize, scaleByRadius, renderObject.values as unknown as TransformData);
                 const geomUtils = Geometry.getUtils(geometry!);
-                geomUtils.updateBoundingSphere(renderObject.values as any, geometry!);
+                // TODO: needs update? how to do efficeintly? geomUtils is too slow
+                // geomUtils.updateBoundingSphere(renderObject.values as any, geometry!);
                 positionIt = geomUtils.createPositionIterator(geometry!, renderObject.values as any);
+                if ('lodLevels' in renderObject.values) {
+                    // instanceGrid (and its cellCount) was just rebuilt above; bump the `lodLevels`
+                    // version to force `renderable.cull` to resize/refresh its per-level multidraw
+                    // data (`mdbDataList`) instead of reusing stale, potentially undersized arrays -
+                    // otherwise cells beyond the old cellCount are silently dropped from culling,
+                    // which can leave the wrong (smaller) LOD level's spheres rendered.
+                    ValueCell.update(renderObject.values.lodLevels, renderObject.values.lodLevels.ref.value);
+                }
             }
 
             if (updateState.updateColor) {
@@ -299,7 +311,6 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
                 locationIt = createLocIt(particles, particleIndices);
                 createSizes(locationIt, positionIt, theme.size, renderObject.values as SizeValues);
             }
-
             const geomUtils = Geometry.getUtils(geometry!);
             geomUtils.updateValues(renderObject.values as any, props as any);
             geomUtils.updateRenderableState(renderObject.state, props as any);
