@@ -13,10 +13,11 @@ import {
 } from '../superposition-ligand';
 
 /**
- * The MCCS matcher operates purely on a LigandGraph's `vertices` and `bonds`, so it can be exercised
- * with hand-built graphs (no Structure/Unit needed). The subsequent superpose/RMSD step reuses the
- * already-tested `MinimizeRmsd` machinery and is best covered by an in-app integration test against
- * a real structure.
+ * These cover the ligand-domain layer: the default vertex/edge tests (element identity, aromatic-aware
+ * bond matching), hydrogen skipping, and the atom-count gate. The generic graph algorithm underneath
+ * (connectivity, symmetry, d-edges, budget/truncation) is tested in mol-math/graph/_spec/mccs.spec.ts.
+ * Graphs are hand-built LigandGraphs (no Structure/Unit needed); the RMSD/superpose step reuses the
+ * already-tested MinimizeRmsd machinery and is best covered by an in-app integration test.
  */
 
 type Bond = [number, number, number?, number?]; // [a, b, order = 1, flags = 0]
@@ -55,7 +56,7 @@ function aromaticRing(kekuleOrders: number[]): LigandGraph {
     return makeGraph(elements, bonds);
 }
 
-/** A monocycle of `n` carbons with the given bond order. */
+/** A monocycle of `n` carbons with the given bond order (not aromatic-flagged). */
 function carbonRing(n: number, order: number): LigandGraph {
     const elements = new Array<string>(n).fill('C');
     const bonds: Bond[] = [];
@@ -70,10 +71,8 @@ function chain(elements: string[]): LigandGraph {
     return makeGraph(elements, bonds);
 }
 
-const strictBondOrder = (orderA: number, flagsA: number, orderB: number, flagsB: number) => (orderA | 0) === (orderB | 0);
-
 describe('Ligand MCCS', () => {
-    it('benzene vs toluene: ring MCCS of size 6', () => {
+    it('matches a shared ring (benzene vs toluene) via the default options', () => {
         const benzene = carbonRing(6, 1);
         const toluene = makeGraph(
             ['C', 'C', 'C', 'C', 'C', 'C', 'C'],
@@ -85,103 +84,35 @@ describe('Ligand MCCS', () => {
         expect(pairs!.length).toBe(6);
     });
 
-    it('benzene vs cyclohexane: no MCCS when bond orders must match (aromatic vs aliphatic)', () => {
-        const benzene = carbonRing(6, 2); // stand-in for aromatic
-        const cyclohexane = carbonRing(6, 1);
-
-        const cliques = findMccsCliques(benzene, cyclohexane, {
-            vertexTest: (a, b) => a.elementSymbol === b.elementSymbol,
-            edgeTest: strictBondOrder
-        });
-        // no c-edges survive the bond-order test, so the only c-connected cliques are singletons
-        expect(cliques).toHaveLength(0);
-    });
-
-    it('identical benzene: full ring match with symmetry-related candidates', () => {
-        const a = carbonRing(6, 1);
-        const b = carbonRing(6, 1);
-
-        const cliques = findMccsCliques(a, b);
-        expect(cliques.length).toBeGreaterThan(1); // ring symmetry -> several equally-sized mappings
-        expect(cliques[0]).toHaveLength(6);
-    });
-
-    it('linear chain C-C-C-O matches itself fully', () => {
-        const a = chain(['C', 'C', 'C', 'O']);
-        const b = chain(['C', 'C', 'C', 'O']);
-
-        const pairs = findMccsPairs(a, b);
-        expect(pairs!.length).toBe(4);
-    });
-
-    it('element mismatch trims the correspondence (C-C-C-N vs C-C-C-O)', () => {
+    it('default vertex test is element identity (C-C-C-N vs C-C-C-O trims to the shared backbone)', () => {
         const a = chain(['C', 'C', 'C', 'N']);
         const b = chain(['C', 'C', 'C', 'O']);
 
         const pairs = findMccsPairs(a, b);
-        expect(pairs!.length).toBe(3); // shared C-C-C backbone; terminal N/O are incompatible
+        expect(pairs!.length).toBe(3); // shared C-C-C; terminal N/O are different elements
     });
 
-    it('pathCutoff 0 disables d-edges, collapsing a ring to a single bond', () => {
-        const a = carbonRing(6, 1);
-        const b = carbonRing(6, 1);
-
-        const cliques = findMccsCliques(a, b, { pathCutoff: 0, minMatchedAtoms: 1 });
-        // without d-edges a clique must be a complete subgraph; a 6-cycle has no triangle
-        expect(cliques[0]).toHaveLength(2);
-    });
-
-    it('does not bridge disconnected fragments (connected-only)', () => {
-        // two separate C-C dimers in each graph
-        const a = makeGraph(['C', 'C', 'C', 'C'], [[0, 1], [2, 3]]);
-        const b = makeGraph(['C', 'C', 'C', 'C'], [[0, 1], [2, 3]]);
-
-        const cliques = findMccsCliques(a, b, { minMatchedAtoms: 1 });
-        // cross-fragment pairs are unreachable -> no d-edges across the gap -> max connected match is one dimer
-        expect(cliques[0]).toHaveLength(2);
-    });
-
-    it('is deterministic across runs', () => {
-        const a = carbonRing(6, 1);
-        const toluene = makeGraph(
-            ['C', 'C', 'C', 'C', 'C', 'C', 'C'],
-            [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0], [0, 6]]
-        );
-
-        const first = JSON.stringify(findMccsPairs(a, toluene));
-        const second = JSON.stringify(findMccsPairs(a, toluene));
-        expect(first).toEqual(second);
-    });
-
-    it('honors a tiny search budget without throwing, and reports truncation via status', () => {
-        const a = carbonRing(6, 1);
-        const b = carbonRing(6, 1);
-
-        const clipped = { truncated: false };
-        expect(() => findMccsCliques(a, b, { maxIterations: 1, minMatchedAtoms: 1 }, clipped)).not.toThrow();
-        expect(clipped.truncated).toBe(true); // budget hit -> best-so-far
-
-        const full = { truncated: false };
-        findMccsCliques(a, b, { minMatchedAtoms: 1 }, full);
-        expect(full.truncated).toBe(false); // completed within budget
-    });
-
-    it('matches aromatic rings across differing Kekulé bond-order assignments', () => {
+    it('default edge test matches aromatic rings across differing Kekulé assignments', () => {
         // two benzene rings flagged aromatic but with opposite single/double placements
         const a = aromaticRing([2, 1, 2, 1, 2, 1]);
         const b = aromaticRing([1, 2, 1, 2, 1, 2]);
 
-        const pairs = findMccsPairs(a, b); // default edgeTest is aromatic-aware
-        expect(pairs!.length).toBe(6);
+        expect(findMccsPairs(a, b)!.length).toBe(6);
     });
 
-    it('does not match an aromatic ring to an aliphatic ring of equal bond orders', () => {
-        // identical integer orders, but only one ring is flagged aromatic
-        const aromatic = aromaticRing([1, 1, 1, 1, 1, 1]);
-        const aliphatic = carbonRing(6, 1); // no aromatic flag
+    it('default edge test does not match an aromatic ring to an aliphatic ring of equal bond orders', () => {
+        const aromatic = aromaticRing([1, 1, 1, 1, 1, 1]); // flagged aromatic
+        const aliphatic = carbonRing(6, 1); // same integer orders, not aromatic
 
-        const cliques = findMccsCliques(aromatic, aliphatic);
-        expect(cliques).toHaveLength(0);
+        expect(findMccsCliques(aromatic, aliphatic)).toHaveLength(0);
+    });
+
+    it('ignoreHydrogens (default) excludes hydrogens from the correspondence', () => {
+        const a = makeGraph(['C', 'C', 'H'], [[0, 1], [1, 2]]);
+        const b = makeGraph(['C', 'C', 'H'], [[0, 1], [1, 2]]);
+
+        expect(findMccsPairs(a, b, { minMatchedAtoms: 1 })!.length).toBe(2); // H skipped
+        expect(findMccsPairs(a, b, { minMatchedAtoms: 1, ignoreHydrogens: false })!.length).toBe(3); // H included
     });
 
     it('returns nothing when the overlap is below minMatchedAtoms', () => {

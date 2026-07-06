@@ -8,9 +8,9 @@ import { SortedArray } from '../../../../mol-data/int';
 import { ElementIndex } from '../../model';
 import { BondType } from '../../model/types';
 import { IntAdjacencyGraph } from '../../../../mol-math/graph';
+import { Mccs } from '../../../../mol-math/graph/mccs';
 import { Mat4 } from '../../../../mol-math/linear-algebra';
 import { MinimizeRmsd, RmsdTransformState } from '../../../../mol-math/linear-algebra/3d/minimize-rmsd';
-import { BitSet } from '../../../../mol-util/bit-set';
 import { Structure, StructureElement, StructureProperties, Unit } from '../../structure';
 
 /**
@@ -237,236 +237,9 @@ export function matchLigandsByAtomName(a: LigandGraph, b: LigandGraph): Array<[n
     return pairs;
 }
 
-/** LIFO pool of fixed-size BitSets so the (heavily recursive) clique search does not allocate per call. */
-class BitSetPool {
-    private readonly free: BitSet[] = [];
-    constructor(private readonly nbits: number) {}
-    acquire(): BitSet {
-        const b = this.free.pop();
-        return b !== void 0 ? b : new BitSet(this.nbits);
-    }
-    acquireCopy(src: BitSet): BitSet {
-        const b = this.acquire();
-        b.words.set(src.words);
-        return b;
-    }
-    release(b: BitSet) { this.free.push(b); }
-}
-
-/**
- * Compatibility (modular product) graph. Vertices are atom pairs (pairA[k] in A, pairB[k] in B)
- * that pass the vertex test. Two vertices are joined by a c-edge when their atoms are bonded in
- * both ligands with compatible bonds, or by a d-edge when they are non-bonded in both with similar
- * topological distance. A c-connected clique of this graph is a connected common substructure.
- */
-interface CompatGraph {
-    readonly n: number;
-    readonly pairA: Int32Array;
-    readonly pairB: Int32Array;
-    readonly adj: BitSet[]; // c-edges and d-edges
-    readonly cadj: BitSet[]; // c-edges only
-}
-
 function isHydrogenVertex(v: LigandGraphVertex): boolean {
     const s = v.elementSymbol.toUpperCase();
     return s === 'H' || s === 'D';
-}
-
-/** BFS all-pairs shortest paths (edge count) within a ligand graph; -1 marks unreachable. */
-function ligandShortestPaths(g: LigandGraph): Int32Array[] {
-    const n = g.vertices.length;
-    const { offset, b } = g.bonds;
-    const dist: Int32Array[] = new Array(n);
-    const queue = new Int32Array(n);
-    for (let s = 0; s < n; s++) {
-        const d = new Int32Array(n).fill(-1);
-        let head = 0, tail = 0;
-        queue[tail++] = s;
-        d[s] = 0;
-        while (head < tail) {
-            const u = queue[head++];
-            const du = d[u];
-            for (let t = offset[u], end = offset[u + 1]; t < end; t++) {
-                const w = b[t];
-                if (d[w] < 0) { d[w] = du + 1; queue[tail++] = w; }
-            }
-        }
-        dist[s] = d;
-    }
-    return dist;
-}
-
-function buildCompatGraph(a: LigandGraph, b: LigandGraph, opts: LigandMccsOptions): CompatGraph {
-    const nA = a.vertices.length, nB = b.vertices.length;
-    const ignoreH = opts.ignoreHydrogens;
-
-    const pa: number[] = [], pb: number[] = [];
-    for (let i = 0; i < nA; i++) {
-        if (ignoreH && isHydrogenVertex(a.vertices[i])) continue;
-        for (let j = 0; j < nB; j++) {
-            if (ignoreH && isHydrogenVertex(b.vertices[j])) continue;
-            if (opts.vertexTest(a.vertices[i], b.vertices[j])) { pa.push(i); pb.push(j); }
-        }
-    }
-
-    const n = pa.length;
-    const pairA = Int32Array.from(pa);
-    const pairB = Int32Array.from(pb);
-
-    const adj: BitSet[] = new Array(n);
-    const cadj: BitSet[] = new Array(n);
-    for (let i = 0; i < n; i++) { adj[i] = new BitSet(n); cadj[i] = new BitSet(n); }
-
-    const useD = opts.pathCutoff > 0;
-    const distA = useD ? ligandShortestPaths(a) : undefined;
-    const distB = useD ? ligandShortestPaths(b) : undefined;
-
-    const aBonds = a.bonds, bBonds = b.bonds;
-    const aOrder = aBonds.edgeProps.order, aFlags = aBonds.edgeProps.flags;
-    const bOrder = bBonds.edgeProps.order, bFlags = bBonds.edgeProps.flags;
-
-    for (let i = 0; i < n; i++) {
-        const ai = pairA[i], bi = pairB[i];
-        for (let j = i + 1; j < n; j++) {
-            const aj = pairA[j], bj = pairB[j];
-
-            // 1:1 constraint: a given atom may not be matched twice within one clique
-            if (ai === aj || bi === bj) continue;
-
-            const eaIdx = aBonds.getDirectedEdgeIndex(ai, aj);
-            const ebIdx = bBonds.getDirectedEdgeIndex(bi, bj);
-            const adjA = eaIdx >= 0;
-            const adjB = ebIdx >= 0;
-
-            let cEdge = false;
-            if (adjA && adjB) cEdge = opts.edgeTest(aOrder[eaIdx], aFlags[eaIdx], bOrder[ebIdx], bFlags[ebIdx]);
-
-            let dEdge = false;
-            if (!cEdge && useD && !adjA && !adjB) {
-                const dA = distA![ai][aj];
-                const dB = distB![bi][bj];
-                if (dA >= 0 && dB >= 0 && Math.abs(dA - dB) <= opts.pathCutoff) dEdge = true;
-            }
-
-            if (cEdge || dEdge) {
-                adj[i].set(j); adj[j].set(i);
-                if (cEdge) { cadj[i].set(j); cadj[j].set(i); }
-            }
-        }
-    }
-
-    return { n, pairA, pairB, adj, cadj };
-}
-
-/** Retains every maximum-size clique encountered (up to a cap) for downstream RMSD pose selection. */
-class CliqueCollector {
-    bestSize = 0;
-    cliques: number[][] = [];
-    private readonly cap: number;
-    constructor(cap: number) { this.cap = Math.max(1, cap); }
-    offer(clique: number[]) {
-        const size = clique.length;
-        if (size < this.bestSize) return;
-        if (size > this.bestSize) { this.bestSize = size; this.cliques = [clique]; return; }
-        if (this.cliques.length < this.cap) this.cliques.push(clique);
-    }
-}
-
-/**
- * Enumerate maximal c-connected cliques of the compatibility graph (Koch's connected-clique variant
- * of Bron-Kerbosch). c-edges keep the match a single connected fragment; d-edges may appear inside a
- * clique but never seed connectivity. Bounded by a wall-clock and a recursion-step budget.
- */
-/** Returns true if the search stopped on its time/iteration budget (the result is a best-so-far, not proven maximal). */
-function enumerateConnectedCliques(g: CompatGraph, opts: LigandMccsOptions, collector: CliqueCollector): boolean {
-    const n = g.n;
-    if (n === 0) return false;
-
-    const minK = Math.max(1, opts.minMatchedAtoms);
-    const adj = g.adj, cadj = g.cadj;
-
-    const dAdj: BitSet[] = new Array(n);
-    for (let i = 0; i < n; i++) { const d = adj[i].clone(); d.andNot(cadj[i]); dAdj[i] = d; }
-
-    const all = BitSet.full(n);
-    const t = new BitSet(n); // already-processed seeds, so each maximal clique is found once
-    const pool = new BitSetPool(n);
-
-    const deadline = Date.now() + opts.maxTimeMs;
-    const maxIter = opts.maxIterations;
-    let iters = 0;
-    let aborted = false;
-
-    const checkAbort = () => {
-        if (aborted) return true;
-        if ((maxIter > 0 && iters > maxIter) || Date.now() > deadline) { aborted = true; return true; }
-        return false;
-    };
-
-    const cClique = (R: BitSet, P: BitSet, Q: BitSet, X: BitSet, Y: BitSet) => {
-        if (checkAbort()) return;
-        iters++;
-
-        if (P.isEmpty() && X.isEmpty()) {
-            const size = R.cardinality();
-            if (size >= minK) {
-                const clique: number[] = new Array(size);
-                let idx = 0;
-                for (let v = R.nextSetBit(0); v >= 0; v = R.nextSetBit(v + 1)) clique[idx++] = v;
-                collector.offer(clique);
-            }
-            return;
-        }
-
-        // scratch sets are drawn from a pool and returned at the end of each iteration/frame
-        const pIter = pool.acquireCopy(P);
-        for (let ui = pIter.nextSetBit(0); ui >= 0; ui = pIter.nextSetBit(ui + 1)) {
-            P.clear(ui);
-
-            const dN = dAdj[ui], cN = cadj[ui], neigh = adj[ui];
-
-            const rNew = pool.acquireCopy(R); rNew.set(ui);
-            const qNew = pool.acquireCopy(Q); qNew.and(dN);
-            const yNew = pool.acquireCopy(Y); yNew.and(dN);
-            const pNew = pool.acquireCopy(P); pNew.and(neigh);
-            const xNew = pool.acquireCopy(X); xNew.and(neigh);
-            const tmp = pool.acquireCopy(Q); tmp.and(cN); pNew.or(tmp); // P' = (P ∩ neigh) ∪ (Q ∩ cN)
-            tmp.words.set(Y.words); tmp.and(cN); xNew.or(tmp); // X' = (X ∩ neigh) ∪ (Y ∩ cN)
-            pool.release(tmp);
-
-            cClique(rNew, pNew, qNew, xNew, yNew);
-
-            pool.release(xNew); pool.release(pNew); pool.release(yNew); pool.release(qNew); pool.release(rNew);
-
-            X.set(ui);
-            if (checkAbort()) break;
-        }
-        pool.release(pIter);
-    };
-
-    for (let ui = 0; ui < n; ui++) {
-        const dN = dAdj[ui], cN = cadj[ui];
-
-        const r = pool.acquire(); r.zero(); r.set(ui);
-        const q = pool.acquireCopy(all); q.andNot(t); q.and(dN);
-        const p = pool.acquireCopy(all); p.andNot(t); p.and(cN);
-        const y = pool.acquireCopy(dN); y.and(t);
-        const x = pool.acquireCopy(cN); x.and(t);
-
-        cClique(r, p, q, x, y);
-
-        pool.release(x); pool.release(y); pool.release(p); pool.release(q); pool.release(r);
-
-        t.set(ui);
-        if (checkAbort()) break;
-    }
-    return aborted;
-}
-
-function cliqueToPairs(g: CompatGraph, clique: number[]): Array<[number, number]> {
-    const pairs: Array<[number, number]> = clique.map(ci => [g.pairA[ci], g.pairB[ci]] as [number, number]);
-    pairs.sort((p, q) => p[0] - q[0]);
-    return pairs;
 }
 
 /** Optional out-parameter reporting whether the MCCS search hit its time/iteration budget. */
@@ -484,15 +257,25 @@ export interface LigandMccsStatus {
  */
 export function findMccsCliques(a: LigandGraph, b: LigandGraph, options: Partial<LigandMccsOptions> = {}, status?: LigandMccsStatus): Array<Array<[number, number]>> {
     const opts: LigandMccsOptions = { ...DefaultLigandMccsOptions, ...options };
-    const g = buildCompatGraph(a, b, opts);
-    if (g.n === 0) return [];
 
-    const collector = new CliqueCollector(opts.maxCliquesForPose);
-    const truncated = enumerateConnectedCliques(g, opts, collector);
-    if (status) status.truncated = truncated;
-    if (collector.bestSize < opts.minMatchedAtoms) return [];
+    // adapt the ligand-domain options to the generic MCCS predicates: fold hydrogen skipping + the
+    // element-based vertex test into vertexTest(i, j), and read bond order/flags for edgeTest(ea, eb)
+    const ignoreH = opts.ignoreHydrogens;
+    const aOrder = a.bonds.edgeProps.order, aFlags = a.bonds.edgeProps.flags;
+    const bOrder = b.bonds.edgeProps.order, bFlags = b.bonds.edgeProps.flags;
 
-    return collector.cliques.map(clique => cliqueToPairs(g, clique));
+    return Mccs.find(a.bonds, b.bonds, {
+        vertexTest: (ia, ib) => {
+            if (ignoreH && (isHydrogenVertex(a.vertices[ia]) || isHydrogenVertex(b.vertices[ib]))) return false;
+            return opts.vertexTest(a.vertices[ia], b.vertices[ib]);
+        },
+        edgeTest: (ea, eb) => opts.edgeTest(aOrder[ea], aFlags[ea], bOrder[eb], bFlags[eb]),
+        pathCutoff: opts.pathCutoff,
+        maxTimeMs: opts.maxTimeMs,
+        maxIterations: opts.maxIterations,
+        minMatchedVertices: opts.minMatchedAtoms,
+        maxCliques: opts.maxCliquesForPose
+    }, status);
 }
 
 /** Convenience wrapper returning a single (the first) maximum MCCS correspondence. */
