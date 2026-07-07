@@ -115,30 +115,6 @@ class BitSetPool {
     release(b: BitSet) { this.free.push(b); }
 }
 
-/** BFS all-pairs shortest paths (edge count) within a graph; -1 marks unreachable. */
-function graphShortestPaths(g: Graph): Int32Array[] {
-    const n = g.vertexCount;
-    const { offset, b } = g;
-    const dist: Int32Array[] = new Array(n);
-    const queue = new Int32Array(n);
-    for (let s = 0; s < n; s++) {
-        const d = new Int32Array(n).fill(-1);
-        let head = 0, tail = 0;
-        queue[tail++] = s;
-        d[s] = 0;
-        while (head < tail) {
-            const u = queue[head++];
-            const du = d[u];
-            for (let t = offset[u], end = offset[u + 1]; t < end; t++) {
-                const w = b[t];
-                if (d[w] < 0) { d[w] = du + 1; queue[tail++] = w; }
-            }
-        }
-        dist[s] = d;
-    }
-    return dist;
-}
-
 function buildCompatGraph(a: Graph, b: Graph, opts: Mccs.Options): CompatGraph {
     const nA = a.vertexCount, nB = b.vertexCount;
 
@@ -158,8 +134,8 @@ function buildCompatGraph(a: Graph, b: Graph, opts: Mccs.Options): CompatGraph {
     for (let i = 0; i < n; i++) { adj[i] = new BitSet(n); cadj[i] = new BitSet(n); }
 
     const useD = opts.pathCutoff > 0;
-    const distA = useD ? graphShortestPaths(a) : undefined;
-    const distB = useD ? graphShortestPaths(b) : undefined;
+    const distA = useD ? IntAdjacencyGraph.graphShortestPaths(a) : undefined;
+    const distB = useD ? IntAdjacencyGraph.graphShortestPaths(b) : undefined;
 
     for (let i = 0; i < n; i++) {
         const ai = pairA[i], bi = pairB[i];
