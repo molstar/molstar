@@ -387,6 +387,8 @@ export const BaseSchema = {
     transform: ValueSpec('float32'),
     /** additional per-instance transform, see aTransform */
     extraTransform: ValueSpec('float32'),
+    /** whether extraTransform is used, see aTransform */
+    hasExtraTransform: ValueSpec('boolean'),
     /** denotes reflection in transform */
     hasReflection: ValueSpec('boolean'),
     /** use instance granularity for marker, transparency, clipping, overpaint, substance */

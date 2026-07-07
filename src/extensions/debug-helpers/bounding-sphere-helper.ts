@@ -65,6 +65,7 @@ export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperPro
                 matrix: ro.values.matrix,
                 transform: ro.values.transform,
                 extraTransform: ro.values.extraTransform,
+                hasExtraTransform: ro.values.hasExtraTransform,
                 uInstanceCount: ro.values.uInstanceCount,
                 instanceCount: ro.values.instanceCount,
                 aInstance: ro.values.aInstance,
