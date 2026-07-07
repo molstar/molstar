@@ -2,13 +2,12 @@
  * Copyright (c) 2018-2026 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Camera } from '../camera';
-import { lerp } from '../../mol-math/interpolate';
-import { Quat } from '../../mol-math/linear-algebra/3d/quat';
-import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { EasingFunction, getEasingFn } from '../../mol-math/easing';
+import { Camera } from '../camera';
+import { getTransitionFn, TransitionShape } from './transition-functions';
 
 export { CameraTransitionManager };
 
@@ -16,7 +15,9 @@ export interface CameraTransitionOptions {
     /** If present, approximates the transion between, [current] -> [keyframes] -> -> [target] */
     keyframes?: CameraTransitionManager.TransitionKeyframes,
     /** Global easing, if easing is specified for keyframes, the "end" frame value is used  */
-    easing?: EasingFunction
+    easing?: EasingFunction,
+    /** Defines shape of the camera trajectory during transition */
+    shape?: TransitionShape,
 }
 
 class CameraTransitionManager {
@@ -101,17 +102,11 @@ class CameraTransitionManager {
 }
 
 namespace CameraTransitionManager {
-    export type TransitionKeyframes = { t: number, snapshot: Partial<Camera.Snapshot>, easing?: EasingFunction }[]
-    export type TransitionFunc = (out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot, options?: { keyframes?: TransitionKeyframes }) => void
+    export type TransitionKeyframes = { t: number, snapshot: Partial<Camera.Snapshot>, easing?: EasingFunction, shape?: TransitionShape }[]
+    export type TransitionFunc = (out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot, options?: CameraTransitionOptions) => void
 
-    const _rotUp = Quat.identity();
-    const _rotDist = Quat.identity();
-
-    const _sourcePosition = Vec3();
-    const _targetPosition = Vec3();
-
-    let _tempSource: Camera.Snapshot | undefined = void 0;
-    let _tempTarget: Camera.Snapshot | undefined = void 0;
+    let _tempSource: Camera.Snapshot | undefined = undefined;
+    let _tempTarget: Camera.Snapshot | undefined = undefined;
 
     export function defaultTransition(
         out: Camera.Snapshot,
@@ -126,6 +121,7 @@ namespace CameraTransitionManager {
         let tStart = 0;
         let tEnd = 1;
         let easingKind = options?.easing;
+        let shapeKind = options?.shape;
 
         const keyframes = options?.keyframes;
         if (keyframes && keyframes.length > 0) {
@@ -143,6 +139,7 @@ namespace CameraTransitionManager {
                     targetPartial = keyframe.snapshot;
                     tEnd = keyframe.t;
                     easingKind = keyframe.easing ?? easingKind;
+                    shapeKind = keyframe.shape ?? shapeKind;
                     break;
                 }
             }
@@ -159,45 +156,7 @@ namespace CameraTransitionManager {
         Camera.copySnapshot(_tempTarget, target_);
         Camera.copySnapshot(_tempTarget, targetPartial);
 
-        const source = _tempSource;
-        const target = _tempTarget;
-
-        Camera.copySnapshot(out, target);
-
-        // Rotate up
-        Quat.slerp(_rotUp, Quat.Identity, Quat.rotationTo(_rotUp, source.up, target.up), t);
-        Vec3.transformQuat(out.up, source.up, _rotUp);
-
-        // Lerp target, position & radius
-        Vec3.lerp(out.target, source.target, target.target, t);
-
-        // Interpolate distance
-        const distSource = Vec3.distance(source.target, source.position);
-        const distTarget = Vec3.distance(target.target, target.position);
-        const dist = lerp(distSource, distTarget, t);
-
-        // Rotate between source and targer direction
-        Vec3.sub(_sourcePosition, source.position, source.target);
-        Vec3.normalize(_sourcePosition, _sourcePosition);
-
-        Vec3.sub(_targetPosition, target.position, target.target);
-        Vec3.normalize(_targetPosition, _targetPosition);
-
-        Quat.rotationTo(_rotDist, _sourcePosition, _targetPosition);
-        Quat.slerp(_rotDist, Quat.Identity, _rotDist, t);
-
-        Vec3.transformQuat(_sourcePosition, _sourcePosition, _rotDist);
-        Vec3.scale(_sourcePosition, _sourcePosition, dist);
-
-        Vec3.add(out.position, out.target, _sourcePosition);
-
-        // Interpolate radius
-        out.radius = lerp(source.radius, target.radius, t);
-        // TODO take change of `clipFar` into account
-        out.radiusMax = lerp(source.radiusMax, target.radiusMax, t);
-
-        // Interpolate fov & fog
-        out.fov = lerp(source.fov, target.fov, t);
-        out.fog = lerp(source.fog, target.fog, t);
+        const transition = getTransitionFn(shapeKind);
+        transition(out, t, _tempSource, _tempTarget);
     }
 }

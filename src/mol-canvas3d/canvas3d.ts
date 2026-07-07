@@ -54,6 +54,7 @@ import { produce } from '../mol-util/produce';
 import { ShaderManager } from './helper/shader-manager';
 import { toFixed } from '../mol-util/number';
 import type { CameraTransitionManager } from './camera/transition';
+import type { TransitionShape } from './camera/transition-functions';
 import { EasingFunction } from '../mol-math/easing';
 
 export const CameraFogParams = {
@@ -328,6 +329,7 @@ export interface Canvas3DCameraResetOptions {
     snapshot?: Camera.SnapshotProvider,
     keyframes?: CameraTransitionManager.TransitionKeyframes,
     easing?: EasingFunction,
+    shape?: TransitionShape,
 }
 
 interface Canvas3D {
@@ -512,6 +514,7 @@ namespace Canvas3D {
             snapshot: undefined,
             keyframes: undefined,
             easing: undefined,
+            shape: undefined,
         };
         let resizeRequested = false;
 
@@ -895,13 +898,14 @@ namespace Canvas3D {
                 const focus = camera.getFocus(center, radius);
                 const next = typeof nextCameraResetOptions.snapshot === 'function' ? nextCameraResetOptions.snapshot(scene, camera) : nextCameraResetOptions.snapshot;
                 const snapshot = next ? { ...focus, ...next } : focus;
-                camera.setState({ ...snapshot, radiusMax: getSceneRadius() }, duration, { keyframes: nextCameraResetOptions.keyframes, easing: nextCameraResetOptions.easing });
+                camera.setState({ ...snapshot, radiusMax: getSceneRadius() }, duration, { keyframes: nextCameraResetOptions.keyframes, easing: nextCameraResetOptions.easing, shape:nextCameraResetOptions.shape });
             }
 
             nextCameraResetOptions.durationMs = void 0;
             nextCameraResetOptions.snapshot = void 0;
             nextCameraResetOptions.keyframes = void 0;
             nextCameraResetOptions.easing = void 0;
+            nextCameraResetOptions.shape = void 0;
 
             cameraResetRequested = false;
         }
