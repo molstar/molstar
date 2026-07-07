@@ -93,8 +93,10 @@ interface CompatGraph {
     readonly n: number;
     readonly pairA: Int32Array;
     readonly pairB: Int32Array;
-    readonly adj: BitSet[]; // c-edges and d-edges
-    readonly cadj: BitSet[]; // c-edges only
+    /** c-edges and d-edges */
+    readonly adj: BitSet[];
+    /** c-edges only */
+    readonly cadj: BitSet[];
 }
 
 /** LIFO pool of fixed-size BitSets so the (heavily recursive) clique search does not allocate per call. */
