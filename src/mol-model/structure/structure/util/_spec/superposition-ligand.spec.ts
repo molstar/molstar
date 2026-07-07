@@ -20,7 +20,7 @@ import {
  * already-tested MinimizeRmsd machinery and is best covered by an in-app integration test.
  */
 
-type Bond = [number, number, number?, number?]; // [a, b, order = 1, flags = 0]
+type Bond = [a: number, b: number, order?: number, flags?: number];
 
 function makeGraph(elements: string[], bonds: Bond[]): LigandGraph {
     const vertices: LigandGraphVertex[] = elements.map((elementSymbol, index) => ({
