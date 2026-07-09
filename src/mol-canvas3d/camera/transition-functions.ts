@@ -18,21 +18,21 @@ const _sourcePosition = Vec3();
 const _targetPosition = Vec3();
 
 
-/** Simple linear transition with constant speed */
-export function transition_linear(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
+/** Linear transition allowing different transition quotient for distances (`t_trans`) and angles (`t_rot`). */
+function transition_linear_internal(out: Camera.Snapshot, t_trans: number, t_rot: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
     Camera.copySnapshot(out, target);
 
     // Rotate up
-    Quat.slerp(_rotUp, Quat.Identity, Quat.rotationTo(_rotUp, source.up, target.up), t);
+    Quat.slerp(_rotUp, Quat.Identity, Quat.rotationTo(_rotUp, source.up, target.up), t_rot);
     Vec3.transformQuat(out.up, source.up, _rotUp);
 
-    // Lerp target, position & radius
-    Vec3.lerp(out.target, source.target, target.target, t);
+    // Interpolate target
+    Vec3.lerp(out.target, source.target, target.target, t_trans);
 
     // Interpolate distance
     const distSource = Vec3.distance(source.target, source.position);
     const distTarget = Vec3.distance(target.target, target.position);
-    const dist = lerp(distSource, distTarget, t);
+    const dist = lerp(distSource, distTarget, t_trans);
 
     // Rotate between source and target direction
     Vec3.sub(_sourcePosition, source.position, source.target);
@@ -42,7 +42,7 @@ export function transition_linear(out: Camera.Snapshot, t: number, source: Camer
     Vec3.normalize(_targetPosition, _targetPosition);
 
     Quat.rotationTo(_rotDist, _sourcePosition, _targetPosition);
-    Quat.slerp(_rotDist, Quat.Identity, _rotDist, t);
+    Quat.slerp(_rotDist, Quat.Identity, _rotDist, t_rot);
 
     Vec3.transformQuat(_sourcePosition, _sourcePosition, _rotDist);
     Vec3.scale(_sourcePosition, _sourcePosition, dist);
@@ -50,25 +50,26 @@ export function transition_linear(out: Camera.Snapshot, t: number, source: Camer
     Vec3.add(out.position, out.target, _sourcePosition);
 
     // Interpolate radius
-    out.radius = lerp(source.radius, target.radius, t);
-    // TODO take change of `clipFar` into account
-    out.radiusMax = lerp(source.radiusMax, target.radiusMax, t);
+    out.radius = lerp(source.radius, target.radius, t_trans);
+    out.radiusMax = lerp(source.radiusMax, target.radiusMax, t_trans);
 
     // Interpolate fov & fog
-    out.fov = lerp(source.fov, target.fov, t);
-    out.fog = lerp(source.fog, target.fog, t);
+    out.fov = lerp(source.fov, target.fov, t_rot);
+    out.fog = lerp(source.fog, target.fog, t_rot);
 }
 
-/** Linear transition with speed adjusted by visible sphere radius (move slower where zoomed-in more) */
+/** Simple linear transition with constant speed. */
+export function transition_linear(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
+    return transition_linear_internal(out, t, t, source, target);
+}
+
+/** Linear transition with translational speed adjusted by visible sphere radius (move slower where zoomed-in more, so that translational speed/radius is roughly constant).
+ * Rotational speed is constant. */
 export function transition_linear_constRelSpeed(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
-    const distSource = Vec3.distance(source.target, source.position);
-    const distTarget = Vec3.distance(target.target, target.position);
-    const q = constRelSpeedQuotientAdj_linRadIntp(t, distSource, distTarget);
-    // console.log('adj', q, t, `, R ${distSource}->${distTarget}`)
-    // TODO calculate from vis.radius, not dist
-    // TODO only apply constRelSpeedLinRadIntpT2Q to position and distance interpolation, not needed for angles
-    // TODO ensure constRelSpeedQuotientAdj_linRadIntp works fine for zero radius
-    return transition_linear(out, q, source, target);
+    const rVisSource = visibleSphereRadius(source);
+    const rVisTarget = visibleSphereRadius(target);
+    const t_trans = constRelSpeedQuotientAdj_linRadIntp(t, rVisSource + 1, rVisTarget + 1); // Adding 1 angstrom to avoid log(0)
+    return transition_linear_internal(out, t_trans, t, source, target);
 }
 
 export function transition_leaping(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
@@ -85,7 +86,6 @@ export function transition_leaping(out: Camera.Snapshot, t: number, source: Came
 
     // Interpolate radius
     out.radius = swellingRadiusInterpolationSmart(source.radius, target.radius, shift, t);
-    // TODO take change of `clipFar` into account
     out.radiusMax = swellingRadiusInterpolationSmart(source.radiusMax, target.radiusMax, shift, t);
 
     // Interpolate fov & fog
@@ -132,6 +132,7 @@ export function getTransitionFn(shape: TransitionShape | undefined): CameraTrans
 
 
 /** Sphere radius "interpolation" method which increases the radius during transition so that for some t (0<=t<=1) the interpolated sphere will contain both source and target spheres.
+ * Assumes that target itself uses linear interpolation.
  * `r0`, `r1` - radius of source (t=0) and target (t=1) sphere;
  * `dist` - distance between centers of source and target sphere. */
 function swellingRadiusInterpolationCubic(r0: number, r1: number, dist: number, t: number): number {
