@@ -34,15 +34,19 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
     const cz = new Float32Array(count);
     const model_num = new Int32Array(count);
 
-    let offset = 0;
+    // A LAMMPS `.data` file may list atoms in any order (rows are not necessarily sorted by atom id),
+    // while the Bonds section references atoms by id. Map each id to its row so bonds connect the
+    // correct atoms (handles any unique-id scheme, not just contiguous 1..count).
+    const rowOfId = new Map<number, number>();
     for (let j = 0; j < count; j++) {
-        type_symbols[offset] = atoms.atomType.value(j).toString();
-        cx[offset] = atoms.x.value(j) * scale;
-        cy[offset] = atoms.y.value(j) * scale;
-        cz[offset] = atoms.z.value(j) * scale;
-        id[offset] = atoms.atomId.value(j) - 1;
-        model_num[offset] = 0;
-        offset++;
+        const atomId = atoms.atomId.value(j);
+        type_symbols[j] = atoms.atomType.value(j).toString();
+        cx[j] = atoms.x.value(j) * scale;
+        cy[j] = atoms.y.value(j) * scale;
+        cz[j] = atoms.z.value(j) * scale;
+        id[j] = atomId - 1;
+        model_num[j] = 0;
+        rowOfId.set(atomId, j);
     }
 
     const MOL = Column.ofConst('MOL', count, Column.Schema.str);
@@ -94,11 +98,20 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
     if (_models.frameCount > 0) {
         const first = _models.representative;
         if (bonds.count !== 0) {
-            const indexA = Column.ofIntArray(Column.mapToArray(bonds.atomIdA, x => x - 1, Int32Array));
-            const indexB = Column.ofIntArray(Column.mapToArray(bonds.atomIdB, x => x - 1, Int32Array));
-            const key = bonds.bondId;
-            const order = Column.ofConst(1, bonds.count, Column.Schema.int);
-            const flag = Column.ofConst(BondType.Flag.Covalent, bonds.count, Column.Schema.int);
+            // resolve bond atom ids to atom rows via `rowOfId`; drop a bond that references an
+            // unknown atom id rather than silently pointing it at row 0
+            const ia: number[] = [], ib: number[] = [], keys: number[] = [];
+            for (let i = 0; i < bonds.count; i++) {
+                const a = rowOfId.get(bonds.atomIdA.value(i));
+                const b = rowOfId.get(bonds.atomIdB.value(i));
+                if (a === undefined || b === undefined) continue;
+                ia.push(a); ib.push(b); keys.push(bonds.bondId.value(i));
+            }
+            const indexA = Column.ofIntArray(new Int32Array(ia));
+            const indexB = Column.ofIntArray(new Int32Array(ib));
+            const key = Column.ofIntArray(new Int32Array(keys));
+            const order = Column.ofConst(1, ia.length, Column.Schema.int);
+            const flag = Column.ofConst(BondType.Flag.Covalent, ia.length, Column.Schema.int);
             const pairBonds = IndexPairBonds.fromData(
                 { pairs: { key, indexA, indexB, order, flag }, count: atoms.count },
                 { maxDistance: Infinity }

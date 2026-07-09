@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
-- Fix LAMMPS trajectory atom ordering
+- Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
 - Add VTK PolyData `.vtp` file format support
 - Bloom on transparent and emissive geometry
   - Move bloom into the postprocessing/illumination pass (composited inline)
