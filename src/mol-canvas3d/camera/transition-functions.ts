@@ -162,7 +162,7 @@ function swellingRadiusInterpolationSmart(r0: number, r1: number, dist: number, 
     const overlapFactor = relativeSphereOverlap(r0, r1, dist);
     if (overlapFactor <= 0) return swellingRadiusInterpolationCubic(r0, r1, dist, t); // spheres not overlapping
     if (overlapFactor >= 1) return lerp(r0, r1, t); // either sphere contains the center of the other
-    return lerp(swellingRadiusInterpolationCubic(r0, r1, dist, t), lerp(r0, r1, t) + (1 - overlapFactor), overlapFactor);
+    return lerp(swellingRadiusInterpolationCubic(r0, r1, dist, t), lerp(r0, r1, t), overlapFactor);
 }
 /** Arbitrary measure of how much two spheres overlap (>0 when spheres do not overlap, >=1 when at least of the spheres contains the center of the other) */
 function relativeSphereOverlap(r0: number, r1: number, dist: number): number {
