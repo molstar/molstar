@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -11,6 +11,7 @@ import { LammpsTrajectoryFile, lammpsUnitStyles, UnitStyle } from '../../mol-io/
 import { Model } from '../../mol-model/structure/model';
 import { RuntimeContext, Task } from '../../mol-task';
 import { Column, Table } from '../../mol-data/db';
+import { Vec3 } from '../../mol-math/linear-algebra';
 import { Trajectory } from '../../mol-model/structure';
 import { BasicSchema, createBasic } from './basic/schema';
 import { ComponentBuilder } from './common/component';
@@ -18,6 +19,7 @@ import { EntityBuilder } from './common/entity';
 import { createModels } from './basic/parser';
 import { MoleculeType } from '../../mol-model/structure/model/types';
 import { ModelFormat } from '../format';
+import { ModelSymmetry } from './property/symmetry';
 
 export function coordinatesFromLammpsTrajectory(file: LammpsTrajectoryFile, unitsStyle: UnitStyle = 'real'): Task<Coordinates> {
     return Task.create('Parse Lammps Trajectory', async ctx => {
@@ -147,6 +149,17 @@ async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsSt
     });
     const _models = await createModels(basic, LammpsTrajectoryFormat.create(mol), ctx);
     const first = _models.representative;
+
+    if (mol.bounds.length > 0) {
+        const bounds = mol.bounds[0];
+        const [lx, ly, lz] = bounds.length;
+        const symmetry = ModelSymmetry.fromCell(
+            Vec3.create(lx * scale, ly * scale, lz * scale),
+            Vec3.create(Math.PI / 2, Math.PI / 2, Math.PI / 2)
+        );
+        ModelSymmetry.Provider.set(first, symmetry);
+    }
+
     const coordinates = await coordinatesFromLammpsTrajectory(mol, unitsStyle).runInContext(ctx);
     return Model.trajectoryFromModelAndCoordinates(first, coordinates);
 }
