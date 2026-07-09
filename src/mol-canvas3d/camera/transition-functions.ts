@@ -34,7 +34,7 @@ export function transition_linear(out: Camera.Snapshot, t: number, source: Camer
     const distTarget = Vec3.distance(target.target, target.position);
     const dist = lerp(distSource, distTarget, t);
 
-    // Rotate between source and targer direction
+    // Rotate between source and target direction
     Vec3.sub(_sourcePosition, source.position, source.target);
     Vec3.normalize(_sourcePosition, _sourcePosition);
 
@@ -57,7 +57,6 @@ export function transition_linear(out: Camera.Snapshot, t: number, source: Camer
     // Interpolate fov & fog
     out.fov = lerp(source.fov, target.fov, t);
     out.fog = lerp(source.fog, target.fog, t);
-
 }
 
 /** Linear transition with speed adjusted by visible sphere radius (move slower where zoomed-in more) */
@@ -68,6 +67,7 @@ export function transition_linear_constRelSpeed(out: Camera.Snapshot, t: number,
     // console.log('adj', q, t, `, R ${distSource}->${distTarget}`)
     // TODO calculate from vis.radius, not dist
     // TODO only apply constRelSpeedLinRadIntpT2Q to position and distance interpolation, not needed for angles
+    // TODO ensure constRelSpeedQuotientAdj_linRadIntp works fine for zero radius
     return transition_linear(out, q, source, target);
 }
 
@@ -99,7 +99,7 @@ export function transition_leaping(out: Camera.Snapshot, t: number, source: Came
     const rVis = swellingRadiusInterpolationSmart(rVisSource, rVisTarget, shift, t);
     const dist = cameraTargetDistance(rVis, out.mode, out.fov);
 
-    // Rotate between source and targer direction
+    // Rotate between source and target direction
     Vec3.sub(_sourcePosition, source.position, source.target);
     Vec3.normalize(_sourcePosition, _sourcePosition);
 
@@ -113,6 +113,7 @@ export function transition_leaping(out: Camera.Snapshot, t: number, source: Came
     Vec3.scale(_sourcePosition, _sourcePosition, dist);
 
     Vec3.add(out.position, out.target, _sourcePosition);
+    // TODO: try applying correction similar to constRelSpeedQuotientAdj_linRadIntp (maybe calculating correction from linear function would be sufficient)
 }
 
 

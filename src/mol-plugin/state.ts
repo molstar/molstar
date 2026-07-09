@@ -28,6 +28,8 @@ import { PluginContext } from './context';
 import { AnimateStateSnapshotTransition } from '../mol-plugin-state/animation/built-in/state-snapshots';
 import { Scheduler } from '../mol-task';
 import { memoizeLatest } from '../mol-util/memoize';
+import { TransitionFunctions, TransitionShape } from '../mol-canvas3d/camera/transition-functions';
+import { EasingFunctions, EasingKind } from '../mol-math/easing';
 
 export { PluginState };
 
@@ -67,7 +69,9 @@ class PluginState extends PluginComponent {
             camera: p.camera ? {
                 current: this.plugin.canvas3d!.camera.getSnapshot(),
                 transitionStyle: p.cameraTransition!.name,
-                transitionDurationInMs: p?.cameraTransition?.name === 'animate' ? p.cameraTransition.params.durationInMs : void 0
+                transitionDurationInMs: p?.cameraTransition?.name === 'animate' ? p.cameraTransition.params.durationInMs : void 0,
+                transitionEasing: p?.cameraTransition?.name === 'animate' ? p.cameraTransition.params.easing : void 0,
+                transitionShape: p?.cameraTransition?.name === 'animate' ? p.cameraTransition.params.shape : void 0,
             } : void 0,
             canvas3dContext: p.canvas3dContext ? { props: this.plugin.canvas3dContext?.props } : void 0,
             canvas3d: p.canvas3d ? { props: this.plugin.canvas3d?.props } : void 0,
@@ -118,11 +122,16 @@ class PluginState extends PluginComponent {
             PluginCommands.Camera.Reset(this.plugin, {
                 snapshot: snapshot.camera.current,
                 durationMs: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionDurationInMs : undefined,
+                easing: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionEasing : undefined,
+                shape: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionShape : undefined,
+
             });
         } else if (snapshot.camera?.focus) {
             PluginCommands.Camera.FocusObject(this.plugin, {
                 ...snapshot.camera.focus,
                 durationMs: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionDurationInMs : undefined,
+                easing: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionEasing : undefined,
+                shape: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionShape : undefined,
             });
         }
 
@@ -157,6 +166,8 @@ class PluginState extends PluginComponent {
             PluginCommands.Camera.Reset(this.plugin, {
                 snapshot: frame.camera.current,
                 durationMs: frame.camera.transitionStyle === 'animate' ? frame.camera.transitionDurationInMs : undefined,
+                easing: frame.camera.transitionStyle === 'animate' ? frame.camera.transitionEasing : undefined,
+                shape: frame.camera.transitionStyle === 'animate' ? frame.camera.transitionShape : undefined,
             });
         }
 
@@ -221,6 +232,8 @@ namespace PluginState {
         cameraTransition: PD.MappedStatic('animate', {
             animate: PD.Group({
                 durationInMs: PD.Numeric(250, { min: 100, max: 5000, step: 500 }, { label: 'Duration in ms' }),
+                easing: PD.Select('linear', Object.keys(EasingFunctions).map(key => [key as EasingKind, key]), { label: 'Easing', description: 'Transition easing function. Adjusts transition speed near the beginning and end of the transition to create smoother camera motion.' }),
+                shape: PD.Select('linear', Object.keys(TransitionFunctions).map(key => [key as TransitionShape, key]), { label: 'Shape', description: 'Transition trajectory shape. linear: interpolates along a straight line; linear-relative: like linear but moves relatively slower when zoomed-in more; leap: zooms out during the transtion to capture both initial and final target (becomes linear if targets are near).' }),
             }),
             instant: PD.Group({})
         }, { options: [['animate', 'Animate'], ['instant', 'Instant']] }),
@@ -239,7 +252,9 @@ namespace PluginState {
             current?: Camera.Snapshot,
             focus?: SnapshotFocusInfo,
             transitionStyle: CameraTransitionStyle,
-            transitionDurationInMs?: number
+            transitionDurationInMs?: number,
+            transitionEasing?: EasingKind,
+            transitionShape?: TransitionShape,
         },
         canvas3d?: {
             props?: Canvas3DProps
