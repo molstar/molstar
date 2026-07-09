@@ -29,17 +29,29 @@ import { ModelSymmetry } from './property/symmetry';
  * (destination index = id - 1) to keep all frames consistent with each other and
  * with the topology. Without this, coordinates land on the wrong atoms.
  *
- * Returns the source-row -> canonical-index permutation, or `undefined` when the
- * ids are not a contiguous 1..count set (in which case callers keep file order).
+ * Returns the source-row -> canonical-index permutation, or `undefined` when no
+ * reordering is needed (rows already in id order) or the ids are not a contiguous
+ * 1..count set - in both cases callers keep file order. Allocates the permutation
+ * only once a row is found out of order, in a single pass (`atomId.value` parses a
+ * token, so it is read exactly once per row).
  */
 function getCanonicalOrder(frame: LammpsFrame): Int32Array | undefined {
     const { count, atomId } = frame;
-    const order = new Int32Array(count);
-    const seen = new Uint8Array(count);
+    let order: Int32Array | undefined;
+    let seen: Uint8Array | undefined;
     for (let j = 0; j < count; j++) {
         const dst = atomId.value(j) - 1;
-        if (dst < 0 || dst >= count || seen[dst]) return undefined;
-        seen[dst] = 1;
+        if (dst < 0 || dst >= count) return undefined;
+        if (!order) {
+            // still in the leading identity run - nothing to permute yet
+            if (dst === j) continue;
+            // first out-of-order row: allocate and backfill the identity prefix [0, j)
+            order = new Int32Array(count);
+            seen = new Uint8Array(count);
+            for (let k = 0; k < j; k++) { order[k] = k; seen[k] = 1; }
+        }
+        if (seen![dst]) return undefined; // seen is set with order
+        seen![dst] = 1;
         order[j] = dst;
     }
     return order;
