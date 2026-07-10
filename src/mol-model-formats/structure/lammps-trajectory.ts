@@ -43,8 +43,10 @@ function getCanonicalOrder(frame: LammpsFrame): Int32Array | undefined {
         const dst = atomId.value(j) - 1;
         if (dst < 0 || dst >= count) return undefined;
         if (!order) {
-            // still in the leading identity run - nothing to permute yet
+            // in order so far (id === row + 1): nothing to permute yet
             if (dst === j) continue;
+            // out of order, but dst falls in the already-filled prefix [0, j): duplicate id, reject
+            if (dst < j) return undefined;
             // first out-of-order row: allocate and backfill the identity prefix [0, j)
             order = new Int32Array(count);
             seen = new Uint8Array(count);
