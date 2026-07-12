@@ -32,22 +32,24 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
     const cx = new Float32Array(count);
     const cy = new Float32Array(count);
     const cz = new Float32Array(count);
-    const model_num = new Int32Array(count);
 
-    // A LAMMPS `.data` file may list atoms in any order (rows are not necessarily sorted by atom id),
-    // while the Bonds section references atoms by id. Map each id to its row so bonds connect the
-    // correct atoms (handles any unique-id scheme, not just contiguous 1..count).
-    const rowOfId = new Map<number, number>();
+    // A LAMMPS `.data` file may list atoms in any order (rows are not necessarily sorted by atom
+    // id), while the Bonds section references atoms by id. Record each id's row so bonds connect
+    // the correct atoms. Atom ids are positive and, for a data file, on the order of 1..count, so
+    // an array indexed by id (with a -1 sentinel for holes) is smaller and faster than a Map; this
+    // deliberately assumes `maxId` stays close to `count` (true for a real data file).
+    let maxId = 0;
     for (let j = 0; j < count; j++) {
         const atomId = atoms.atomId.value(j);
         type_symbols[j] = atoms.atomType.value(j).toString();
         cx[j] = atoms.x.value(j) * scale;
         cy[j] = atoms.y.value(j) * scale;
         cz[j] = atoms.z.value(j) * scale;
-        id[j] = atomId - 1;
-        model_num[j] = 0;
-        rowOfId.set(atomId, j);
+        id[j] = atomId;
+        if (atomId > maxId) maxId = atomId;
     }
+    const rowOfId = new Int32Array(maxId + 1).fill(-1);
+    for (let j = 0; j < count; j++) rowOfId[id[j]] = j;
 
     const MOL = Column.ofConst('MOL', count, Column.Schema.str);
     const asym_id = Column.ofLambda({
@@ -78,7 +80,7 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
         occupancy: Column.ofConst(1, count, Column.Schema.float),
         type_symbol,
 
-        pdbx_PDB_model_num: Column.ofIntArray(model_num),
+        pdbx_PDB_model_num: Column.ofConst(0, count, Column.Schema.int),
     }, count);
 
     const entityBuilder = new EntityBuilder();
@@ -98,13 +100,15 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
     if (_models.frameCount > 0) {
         const first = _models.representative;
         if (bonds.count !== 0) {
-            // resolve bond atom ids to atom rows via `rowOfId`; drop a bond that references an
-            // unknown atom id rather than silently pointing it at row 0
+            // resolve bond atom ids to atom rows via `rowOfId`, dropping a bond that references an
+            // unknown atom id (past the table, or a -1 hole in the id range) rather than silently
+            // pointing it at row 0
             const ia: number[] = [], ib: number[] = [], keys: number[] = [];
             for (let i = 0; i < bonds.count; i++) {
-                const a = rowOfId.get(bonds.atomIdA.value(i));
-                const b = rowOfId.get(bonds.atomIdB.value(i));
-                if (a === undefined || b === undefined) continue;
+                const idA = bonds.atomIdA.value(i), idB = bonds.atomIdB.value(i);
+                if (idA > maxId || idB > maxId) continue;
+                const a = rowOfId[idA], b = rowOfId[idB];
+                if (a < 0 || b < 0) continue;
                 ia.push(a); ib.push(b); keys.push(bonds.bondId.value(i));
             }
             const indexA = Column.ofIntArray(new Int32Array(ia));
