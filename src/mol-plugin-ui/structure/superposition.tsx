@@ -2,7 +2,7 @@
  * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.org>
+ * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
