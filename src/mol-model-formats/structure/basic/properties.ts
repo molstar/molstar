@@ -59,15 +59,16 @@ function addMissingResiduesFromEntityPolySeq(data: BasicData, map: Map<string, M
 
     // collect the (model_num, asym_id, seq_id) triples that have coordinates
     const observed = new Set<string>();
-    const models = new Set<number>();
+    const _models = new Set<number>();
     const { label_asym_id, label_seq_id, pdbx_PDB_model_num } = data.atom_site;
     for (let i = 0, il = label_asym_id.rowCount; i < il; ++i) {
         if (label_seq_id.valueKind(i) !== Column.ValueKinds.Present) continue;
         const model_num = pdbx_PDB_model_num.value(i);
-        models.add(model_num);
+        _models.add(model_num);
         observed.add(getKey(model_num, label_asym_id.value(i), label_seq_id.value(i)));
     }
-    if (models.size === 0) models.add(1);
+    if (_models.size === 0) _models.add(1);
+    const models = Array.from(_models);
 
     const { entity_id, num } = data.entity_poly_seq;
     for (let i = 0, il = entity_id.rowCount; i < il; ++i) {
