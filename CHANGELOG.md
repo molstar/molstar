@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Add `variant` option (rectangle/circle) to the best-fit `Plane` (#358)
 - Add VTK PolyData `.vtp` file format support
 - Bloom on transparent and emissive geometry
   - Move bloom into the postprocessing/illumination pass (composited inline)
@@ -19,8 +20,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `defaultSnapshotIndex` argument to `MVSLoadOptions` to enable loading a snapshot other than the first one by default
 - Fix `loaders.loadMvs*` options type
 - Read simulation box from gro and lammps files
-- Rework Superposition panel
+- Rework Superposition UI panel
 - Add Ligand alignments by maximum common connected subgraphs (MCCS)
+- Handle unobserved residues from `entity_poly_seq` (#965)
 
 ## [v5.10.0] - 2026-06-14
 - Fix exported image artifacts on transparent background with emissive, bloom, or antialiasing
