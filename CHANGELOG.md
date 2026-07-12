@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
+- Add `variant` option (rectangle/circle) to the best-fit `Plane` (#358)
 - Add VTK PolyData `.vtp` file format support
 - Bloom on transparent and emissive geometry
   - Move bloom into the postprocessing/illumination pass (composited inline)
@@ -20,6 +21,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `defaultSnapshotIndex` argument to `MVSLoadOptions` to enable loading a snapshot other than the first one by default
 - Fix `loaders.loadMvs*` options type
 - Read simulation box from gro and lammps files
+- Rework Superposition UI panel
+- Add Ligand alignments by maximum common connected subgraphs (MCCS)
+- Handle unobserved residues from `entity_poly_seq` (#965)
 
 ## [v5.10.0] - 2026-06-14
 - Fix exported image artifacts on transparent background with emissive, bloom, or antialiasing

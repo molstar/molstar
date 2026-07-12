@@ -22,9 +22,17 @@ export function getMissingResidues(data: BasicData): Model['properties']['missin
     };
 
     const c = data.pdbx_unobs_or_zero_occ_residues;
-    for (let i = 0, il = c._rowCount; i < il; ++i) {
-        const key = getKey(c.PDB_model_num.value(i), c.label_asym_id.value(i), c.label_seq_id.value(i));
-        map.set(key, { polymer_flag: c.polymer_flag.value(i), occupancy_flag: c.occupancy_flag.value(i) });
+    if (c._rowCount > 0) {
+        for (let i = 0, il = c._rowCount; i < il; ++i) {
+            const key = getKey(c.PDB_model_num.value(i), c.label_asym_id.value(i), c.label_seq_id.value(i));
+            map.set(key, { polymer_flag: c.polymer_flag.value(i), occupancy_flag: c.occupancy_flag.value(i) });
+        }
+    } else if (data.entity_poly_seq._rowCount > 0) {
+        // `pdbx_unobs_or_zero_occ_residues` is not always present (e.g., files converted
+        // from other formats). In that case, derive missing residues by comparing the
+        // full polymer sequence in `entity_poly_seq` against the residues that actually
+        // have coordinates in `atom_site`.
+        addMissingResiduesFromEntityPolySeq(data, map, getKey);
     }
 
     return {
@@ -36,6 +44,47 @@ export function getMissingResidues(data: BasicData): Model['properties']['missin
         },
         size: map.size
     };
+}
+
+function addMissingResiduesFromEntityPolySeq(data: BasicData, map: Map<string, MissingResidue>, getKey: (model_num: number, asym_id: string, seq_id: number) => string) {
+    // map entity_id to the asym_ids (chains) that belong to it
+    const entityAsymIds = new Map<string, string[]>();
+    const { id: struct_asym_id, entity_id: struct_asym_entity_id } = data.struct_asym;
+    for (let i = 0, il = struct_asym_id.rowCount; i < il; ++i) {
+        const entity_id = struct_asym_entity_id.value(i);
+        const asym_id = struct_asym_id.value(i);
+        if (entityAsymIds.has(entity_id)) entityAsymIds.get(entity_id)!.push(asym_id);
+        else entityAsymIds.set(entity_id, [asym_id]);
+    }
+
+    // collect the (model_num, asym_id, seq_id) triples that have coordinates
+    const observed = new Set<string>();
+    const _models = new Set<number>();
+    const { label_asym_id, label_seq_id, pdbx_PDB_model_num } = data.atom_site;
+    for (let i = 0, il = label_asym_id.rowCount; i < il; ++i) {
+        if (label_seq_id.valueKind(i) !== Column.ValueKinds.Present) continue;
+        const model_num = pdbx_PDB_model_num.value(i);
+        _models.add(model_num);
+        observed.add(getKey(model_num, label_asym_id.value(i), label_seq_id.value(i)));
+    }
+    if (_models.size === 0) _models.add(1);
+    const models = Array.from(_models);
+
+    const { entity_id, num } = data.entity_poly_seq;
+    for (let i = 0, il = entity_id.rowCount; i < il; ++i) {
+        const asym_ids = entityAsymIds.get(entity_id.value(i));
+        if (!asym_ids) continue;
+
+        const seq_id = num.value(i);
+        for (const asym_id of asym_ids) {
+            for (const model_num of models) {
+                const key = getKey(model_num, asym_id, seq_id);
+                if (!observed.has(key)) {
+                    map.set(key, { polymer_flag: 'y', occupancy_flag: 1 });
+                }
+            }
+        }
+    }
 }
 
 export function getChemicalComponentMap(data: BasicData): Model['properties']['chemicalComponentMap'] {
