@@ -23,6 +23,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Rework Superposition UI panel
 - Add Ligand alignments by maximum common connected subgraphs (MCCS)
 - Handle unobserved residues from `entity_poly_seq` (#965)
+- Refine step for coarse BoundaryHelper instances (#1455)
 
 ## [v5.10.0] - 2026-06-14
 - Fix exported image artifacts on transparent background with emissive, bloom, or antialiasing
