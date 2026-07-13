@@ -201,6 +201,11 @@ function molstarTreeToEntry(
         // fully load camera
         snapshot.camera = createPluginStateSnapshotCamera(plugin, context, { previousTransitionDurationMs: metadata.previousTransitionDurationMs });
     }
+    if (snapshot.camera) {
+        const { molstar_transition_easing, molstar_transition_shape } = tree.custom ?? {};
+        if (molstar_transition_easing) snapshot.camera.transitionEasing = molstar_transition_easing;
+        if (molstar_transition_shape) snapshot.camera.transitionShape = molstar_transition_shape;
+    }
     snapshot.durationInMs = metadata.linger_duration_ms + (metadata.previousTransitionDurationMs ?? 0);
     snapshot.structureFocus = {}; // avoid structure focus persisting through states (causes weird behaviors, e.g. when turning on Volume Streaming)
 
