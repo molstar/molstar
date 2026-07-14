@@ -28,7 +28,6 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
     const count = atoms.count;
     const scale = lammpsUnitStyles[unitsStyle].scale;
     const type_symbols = new Array<string>(count);
-    const id = new Int32Array(count);
     const cx = new Float32Array(count);
     const cy = new Float32Array(count);
     const cz = new Float32Array(count);
@@ -45,11 +44,10 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
         cx[j] = atoms.x.value(j) * scale;
         cy[j] = atoms.y.value(j) * scale;
         cz[j] = atoms.z.value(j) * scale;
-        id[j] = atomId;
         if (atomId > maxId) maxId = atomId;
     }
     const rowOfId = new Int32Array(maxId + 1).fill(-1);
-    for (let j = 0; j < count; j++) rowOfId[id[j]] = j;
+    for (let j = 0; j < count; j++) rowOfId[atoms.atomId.value(j)] = j;
 
     const MOL = Column.ofConst('MOL', count, Column.Schema.str);
     const asym_id = Column.ofLambda({
@@ -69,7 +67,7 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
         Cartn_x: Column.ofFloatArray(cx),
         Cartn_y: Column.ofFloatArray(cy),
         Cartn_z: Column.ofFloatArray(cz),
-        id: Column.ofIntArray(id),
+        id: atoms.atomId,
 
         label_asym_id: asym_id,
         label_atom_id: type_symbol,
