@@ -6,6 +6,11 @@ export const assign_material_color = `
     }
 #endif
 
+// optional per-fragment opacity multiplier; defaults to 1.0
+#ifndef dHasMaterialOpacity
+    float materialOpacity = 1.0;
+#endif
+
 #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
     #if defined(dUsePalette)
         vec4 material = vec4(texture2D(tPalette, vec2(vPaletteV, 0.5)).rgb, uAlpha);
@@ -53,17 +58,17 @@ export const assign_material_color = `
                 if (vTransparency < 0.1) dta = 1.0; // hard cutoff to avoid artifacts
             #endif
 
-            if (uAlpha * dta < 1.0) {
+            if (uAlpha * materialOpacity * dta < 1.0) {
                 discard;
             }
         #else
-            if (uAlpha < 1.0) {
+            if (uAlpha * materialOpacity < 1.0) {
                 discard;
             }
         #endif
         material = packDepthToRGBA(fragmentDepth);
     } else if (uRenderMask == MaskTransparent) {
-        float alpha = uAlpha;
+        float alpha = uAlpha * materialOpacity;
         #if defined(dTransparency)
             float dta = 1.0 - vTransparency;
             alpha *= dta;
