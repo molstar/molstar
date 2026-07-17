@@ -17,6 +17,10 @@ const _rotDist = Quat.identity();
 const _sourcePosition = Vec3();
 const _targetPosition = Vec3();
 
+/** Amount artificially added to the visible sphere radius in calculations for constant relative speed (dtarget / dt = (r + CONST_REL_SPEED_OFFSET) * const),
+ * to avoid issues related to zero radius (1/0, log(0)) */
+const CONST_REL_SPEED_OFFSET = 1;
+
 
 /** Linear transition allowing different transition quotient for distances (`t_trans`) and angles (`t_rot`). */
 function transition_linear_internal(out: Camera.Snapshot, t_trans: number, t_rot: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
@@ -58,21 +62,25 @@ function transition_linear_internal(out: Camera.Snapshot, t_trans: number, t_rot
     out.fog = lerp(source.fog, target.fog, t_rot);
 }
 
-/** Simple linear transition with constant speed. */
+/** Simple linear transition with constant absolute speed. */
 export function transition_linear(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
     return transition_linear_internal(out, t, t, source, target);
 }
 
-/** Linear transition with translational speed adjusted by visible sphere radius (move slower where zoomed-in more, so that translational speed/radius is roughly constant).
- * Rotational speed is constant. */
-export function transition_linear_constRelSpeed(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
+/** Linear transition with constant speed relative to visible sphere radius (move slower where zoomed-in more, dtarget / dt = (r + CONST_REL_SPEED_OFFSET) * const).
+ * Rotational component of the transition has constant speed. */
+export function transition_linear_relative(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
     const rVisSource = visibleSphereRadius(source);
     const rVisTarget = visibleSphereRadius(target);
-    const t_trans = constRelSpeedQuotientAdj_linRadIntp(t, rVisSource + 1, rVisTarget + 1); // Adding 1 angstrom to avoid log(0)
+    const t_trans = constRelSpeedQuotientAdj_linRadIntp(rVisSource + CONST_REL_SPEED_OFFSET, rVisTarget + CONST_REL_SPEED_OFFSET, t);
     return transition_linear_internal(out, t_trans, t, source, target);
 }
 
-export function transition_leaping(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
+/** "Leaping" camera transition with constant absolute speed.
+ * Visible sphere radius increases during the transition so that for some t (0<=t<=1) the interpolated sphere will contain both source and target spheres.
+ * When source and target spheres overlap, the transition is partially or fully linearized to avoid disturbing zoom-out.
+ * Camera target position and rotational component of the transition use linear interpolation. */
+export function transition_leap(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
     Camera.copySnapshot(out, target);
 
     // Rotate up
@@ -85,8 +93,8 @@ export function transition_leaping(out: Camera.Snapshot, t: number, source: Came
     const shift = Vec3.distance(source.target, target.target);
 
     // Interpolate radius
-    out.radius = swellingRadiusInterpolationSmart(source.radius, target.radius, shift, t);
-    out.radiusMax = swellingRadiusInterpolationSmart(source.radiusMax, target.radiusMax, shift, t);
+    out.radius = leapingRadiusInterpolationSmart(source.radius, target.radius, shift, t);
+    out.radiusMax = leapingRadiusInterpolationSmart(source.radiusMax, target.radiusMax, shift, t);
 
     // Interpolate fov & fog
     out.fov = lerp(source.fov, target.fov, t);
@@ -96,7 +104,7 @@ export function transition_leaping(out: Camera.Snapshot, t: number, source: Came
     // Interpolate distance (indirectly via visible sphere radius)
     const rVisSource = visibleSphereRadius(source);
     const rVisTarget = visibleSphereRadius(target);
-    const rVis = swellingRadiusInterpolationSmart(rVisSource, rVisTarget, shift, t);
+    const rVis = leapingRadiusInterpolationSmart(rVisSource, rVisTarget, shift, t);
     const dist = cameraTargetDistance(rVis, out.mode, out.fov);
 
     // Rotate between source and target direction
@@ -113,14 +121,60 @@ export function transition_leaping(out: Camera.Snapshot, t: number, source: Came
     Vec3.scale(_sourcePosition, _sourcePosition, dist);
 
     Vec3.add(out.position, out.target, _sourcePosition);
-    // TODO: try applying correction similar to constRelSpeedQuotientAdj_linRadIntp (maybe calculating correction from linear function would be sufficient)
+}
+
+/** "Leaping" camera transition with constant speed relative to visible sphere radius (move slower where zoomed-in more, dtarget / dt = (r + CONST_REL_SPEED_OFFSET) * const).
+ * Rotational component of the transition uses linear interpolation. */
+function transition_leap_relative(out: Camera.Snapshot, t_rot: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
+    Camera.copySnapshot(out, target);
+
+    // Rotate up
+    Quat.slerp(_rotUp, Quat.Identity, Quat.rotationTo(_rotUp, source.up, target.up), t_rot);
+    Vec3.transformQuat(out.up, source.up, _rotUp);
+
+    // Interpolate distance (indirectly via visible sphere radius)
+    const shift = Vec3.distance(source.target, target.target);
+    const rVisSource = visibleSphereRadius(source);
+    const rVisTarget = visibleSphereRadius(target);
+    let { r: rVis, q: t_trans } = getRadiusAndQuotientWithOffset(rVisSource, rVisTarget, shift, t_rot);
+    const dist = cameraTargetDistance(rVis, out.mode, out.fov);
+    const rCorrection = rVis / lerp(rVisSource, rVisTarget, t_rot);
+
+    // Interpolate target
+    Vec3.lerp(out.target, source.target, target.target, t_trans);
+
+    // Interpolate radius
+    out.radius = lerp(source.radius, target.radius, t_rot) * rCorrection;
+    out.radiusMax = lerp(source.radiusMax, target.radiusMax, t_rot) * rCorrection;
+
+    // Interpolate fov & fog
+    out.fov = lerp(source.fov, target.fov, t_rot);
+    out.fog = lerp(source.fog, target.fog, t_rot);
+    // TODO fix Canvas3D.setProps() setting FOV instantly before transition starts!
+    // TODO update fov before using it in dist
+
+    // Rotate between source and target direction
+    Vec3.sub(_sourcePosition, source.position, source.target);
+    Vec3.normalize(_sourcePosition, _sourcePosition);
+
+    Vec3.sub(_targetPosition, target.position, target.target);
+    Vec3.normalize(_targetPosition, _targetPosition);
+
+    Quat.rotationTo(_rotDist, _sourcePosition, _targetPosition);
+    Quat.slerp(_rotDist, Quat.Identity, _rotDist, t_rot);
+
+    Vec3.transformQuat(_sourcePosition, _sourcePosition, _rotDist);
+    Vec3.scale(_sourcePosition, _sourcePosition, dist);
+
+    Vec3.add(out.position, out.target, _sourcePosition);
 }
 
 
 export const TransitionFunctions = {
     'linear': transition_linear,
-    'linear-relative': transition_linear_constRelSpeed,
-    'leap': transition_leaping,
+    'linear-relative': transition_linear_relative,
+    'leap': transition_leap,
+    'leap-relative': transition_leap_relative,
 } satisfies Record<string, CameraTransitionManager.TransitionFunc>;
 
 export type TransitionShape = keyof typeof TransitionFunctions;
@@ -133,44 +187,44 @@ export function getTransitionFn(shape: TransitionShape | undefined): CameraTrans
 
 /** Sphere radius "interpolation" method which increases the radius during transition so that for some t (0<=t<=1) the interpolated sphere will contain both source and target spheres.
  * Assumes that target itself uses linear interpolation.
- * `r0`, `r1` - radius of source (t=0) and target (t=1) sphere;
+ * `rA`, `rB` - radius of source (t=0) and target (t=1) sphere;
  * `dist` - distance between centers of source and target sphere. */
-function swellingRadiusInterpolationCubic(r0: number, r1: number, dist: number, t: number): number {
+function leapingRadiusInterpolationCubic(rA: number, rB: number, dist: number, t: number): number {
     if (dist === 0) {
-        return lerp(r0, r1, t);
+        return lerp(rA, rB, t);
     }
-    if (r1 >= dist + r0) { // Sphere 1 fully contains sphere 0
-        const alpha = dist / (r1 - r0);
-        return lerp(r0, r1, niceCubic(t, alpha));
+    if (rB >= dist + rA) { // Sphere 1 fully contains sphere 0
+        const alpha = dist / (rB - rA);
+        return lerp(rA, rB, niceCubic(t, alpha));
     }
-    if (r0 >= dist + r1) { // Sphere 0 fully contains sphere 1
-        const alpha = dist / (r0 - r1);
-        return lerp(r1, r0, niceCubic(1 - t, alpha));
+    if (rA >= dist + rB) { // Sphere 0 fully contains sphere 1
+        const alpha = dist / (rA - rB);
+        return lerp(rB, rA, niceCubic(1 - t, alpha));
     }
-    const tmax = (dist - r0 + r1) / 2 / dist;
-    const rmax = (dist + r0 + r1) / 2;
+    const tmax = (dist - rA + rB) / 2 / dist;
+    const rmax = (dist + rA + rB) / 2;
     if (t <= tmax) {
-        return lerp(r0, rmax, niceCubic(t / tmax));
+        return lerp(rA, rmax, niceCubic(t / tmax));
     } else {
-        return lerp(r1, rmax, niceCubic((1 - t) / (1 - tmax)));
+        return lerp(rB, rmax, niceCubic((1 - t) / (1 - tmax)));
     }
 }
-/** Sphere radius "interpolation" method similar to swellingRadiusInterpolationCubic,
- * but swells less when source and target sphere overlap, and becomes linear when either sphere contains the center of the other
+/** Sphere radius "interpolation" method similar to `leapingRadiusInterpolationCubic`,
+ * but the radius increases less when the source and target spheres overlap, and becomes linear when at least one of the spheres contains the center of the other
  * (this is to avoid disturbing zoom-out when the source and target are near). */
-function swellingRadiusInterpolationSmart(r0: number, r1: number, dist: number, t: number): number {
-    const overlapFactor = relativeSphereOverlap(r0, r1, dist);
-    if (overlapFactor <= 0) return swellingRadiusInterpolationCubic(r0, r1, dist, t); // spheres not overlapping
-    if (overlapFactor >= 1) return lerp(r0, r1, t); // either sphere contains the center of the other
-    return lerp(swellingRadiusInterpolationCubic(r0, r1, dist, t), lerp(r0, r1, t), overlapFactor);
+function leapingRadiusInterpolationSmart(rA: number, rB: number, dist: number, t: number): number {
+    const overlapFactor = relativeSphereOverlap(rA, rB, dist);
+    if (overlapFactor <= 0) return leapingRadiusInterpolationCubic(rA, rB, dist, t); // spheres not overlapping
+    if (overlapFactor >= 1) return lerp(rA, rB, t); // one of the spheres contains the center of the other
+    return lerp(leapingRadiusInterpolationCubic(rA, rB, dist, t), lerp(rA, rB, t), overlapFactor);
 }
 /** Arbitrary measure of how much two spheres overlap (>0 when spheres do not overlap, >=1 when at least of the spheres contains the center of the other) */
-function relativeSphereOverlap(r0: number, r1: number, dist: number): number {
-    const overlap = r0 + r1 - dist;
-    if (r0 === 0 || r1 === 0) {
+function relativeSphereOverlap(rA: number, rB: number, dist: number): number {
+    const overlap = rA + rB - dist;
+    if (rA === 0 || rB === 0) {
         return overlap >= 0 ? Infinity : -Infinity;
     }
-    return overlap / Math.min(r0, r1);
+    return overlap / Math.min(rA, rB);
 }
 /** Auxiliary cubic function that goes from y(0)=0 to y(1)=1.
  * When alpha=1, it is a curve with inflection point in 0 and stationary point in 1.
@@ -197,11 +251,99 @@ function cameraTargetDistance(visRadius: number, mode: Camera.Mode, fov: number)
 
 /** This adjustment to transition quotient (0-1) ensures that transition speed relative to radius is constant during the transition.
  * Only to be applied to position and radius interpolation, not needed for angles.
- * This function assumes linear interpolation of radius. For other interpolation methods, more complicated formula will be needed. */
-function constRelSpeedQuotientAdj_linRadIntp(t: number, r0: number, r1: number): number {
-    if (Math.abs((r0 - r1) / (r0 + r1)) <= 1e-3) {
-        // Special case for r0===r1
+ * This function assumes linear interpolation of radius. For other interpolation methods, more complicated formula is needed. */
+function constRelSpeedQuotientAdj_linRadIntp(rA: number, rB: number, t: number): number {
+    if (isZero((rA - rB) / (rA + rB))) {
+        // Special case for rA===rB
         return t;
     }
-    return r0 / (r1 - r0) * ((r1 / r0) ** t - 1); // = a / b * ((1 + b / a) ** t - 1), where a = r0, b = r1 - r0
+    return rA / (rB - rA) * ((rB / rA) ** t - 1); // = a / b * ((1 + b / a) ** t - 1), where a = rA, b = rB - rA
 }
+
+function isZero(x: number) {
+    return Math.abs(x) <= 0.001;
+}
+
+/** Exponential function `r * Math.exp(k * x)` with added "hump" so that derivation in x=1 is increased (alpha>0) or decreased (alpha<0).  */
+function fx(r: number, k: number, alpha: number, x: number) {
+    return r * Math.exp(k * x) * (1 + alpha / 2 * x ** 3 - alpha / 2 * x);
+}
+
+/** Integral of `fx` */
+function integralFx(r: number, k: number, alpha: number, x: number) {
+    return r * Math.exp(k * x) * (
+        alpha / (2 * k) * x ** 3
+        - 3 * alpha / (2 * k ** 2) * x ** 2
+        + (3 * alpha / k ** 3 - alpha / (2 * k)) * x
+        + 1 / k + alpha / (2 * k ** 2) - 3 * alpha / k ** 4);
+}
+
+/** Compute visible sphere radius `r` and transition quotient `q` (for camera target interpolation) at time `t` (0<=t<=1)
+ * for leap-relative transition. Avoid issues with zero radius by adding `CONST_REL_SPEED_OFFSET`. */
+function getRadiusAndQuotientWithOffset(rA: number, rB: number, dist: number, t: number) {
+    const { r, q } = getRadiusAndQuotient(rA + CONST_REL_SPEED_OFFSET, rB + CONST_REL_SPEED_OFFSET, dist, t);
+    return { r: r - CONST_REL_SPEED_OFFSET, q };
+}
+
+/** Compute visible sphere radius `r` and transition quotient `q` (for camera target interpolation) at time `t` (0<=t<=1)
+ * for leap-relative transition, without adding radius offset. Assumes initial and final radii (`rA`, `rB`) are non-zero. */
+function getRadiusAndQuotient(rA: number, rB: number, dist: number, t: number) {
+    const overlap = relativeSphereOverlap(rA, rB, dist);
+    /** Non-linearity coefficient (0 -> purely linear transition, 1 -> purely leaping transition) */
+    const beta = Math.max(0, Math.min(1, 1 - overlap));
+    if (beta === 0) {
+        // Linear
+        if (isZero(rA - rB)) {
+            return { r: lerp(rA, rB, t), q: t };
+        } else {
+            const log_rA = Math.log(rA);
+            const log_rB = Math.log(rB);
+            const k0 = log_rB - log_rA;
+            const alpha = 0;
+            const r = fx(rA, k0, alpha, t);
+            const F0 = integralFx(rA, k0, alpha, 0);
+            const F1 = integralFx(rA, k0, alpha, 1);
+            const c = 1 / (F1 - F0);
+            const q = c * (integralFx(rA, k0, alpha, t) - F0);
+            return { r, q };
+        }
+    } else {
+        // Leaping
+        /** Maximum radius if the transition were fully leaping (beta=1) */
+        const rC_ideal = (dist + rA + rB) / 2;
+        const log_rA = Math.log(rA);
+        const log_rB = Math.log(rB);
+        const log_rC_ideal = Math.log(rC_ideal);
+        /** Time where maximum radius happens */
+        const tau = (log_rC_ideal - log_rA) / ((log_rC_ideal - log_rA) + (log_rC_ideal - log_rB));
+        /** Real maximum radius (partially linearized) */
+        const log_rC = lerp(lerp(log_rA, log_rB, tau), log_rC_ideal, beta);
+        const k0 = log_rB - log_rA;
+        const kA = log_rC - log_rA;
+        const kB = log_rC - log_rB;
+        const alphaA = k0 * (1 - beta) * tau - kA;
+        const alphaB = -k0 * (1 - beta) * (1 - tau) - kB;
+
+        const FA0 = integralFx(rA, kA, alphaA, 0);
+        const FA1 = integralFx(rA, kA, alphaA, 1);
+        const FB0 = integralFx(rB, kB, alphaB, 0);
+        const FB1 = integralFx(rB, kB, alphaB, 1);
+        const c = 1 / (tau * (FA1 - FA0) + (1 - tau) * (FB1 - FB0));
+        if (t <= tau) {
+            const x = t / tau;
+            const r = fx(rA, kA, alphaA, x);
+            const q = c * tau * (integralFx(rA, kA, alphaA, x) - FA0);
+            return { r, q };
+        } else {
+            const x = (1 - t) / (1 - tau);
+            const r = fx(rB, kB, alphaB, x);
+            const q = 1 - c * (1 - tau) * (integralFx(rB, kB, alphaB, x) - FB0);
+            return { r, q };
+        }
+    }
+}
+
+
+// TODO: add easing and shape params to src/mol-plugin/behavior/dynamic/camera.ts (durationMs) and src/mol-canvas3d/canvas3d.ts (cameraResetDurationMs)
+// TODO: consider setting default transition to sin-in-out leap-relative 500ms
+// TODO: add docs for leap-relative
