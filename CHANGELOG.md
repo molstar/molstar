@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Add `spherical-harmonic-surface` extension: a smooth shape-envelope representation fit to atom positions via a real spherical-harmonic expansion, with optional lobe splitting for non-star-shaped chains
 - Add `variant` option (rectangle/circle) to the best-fit `Plane` (#358)
 - Add VTK PolyData `.vtp` file format support
 - Bloom on transparent and emissive geometry
