@@ -49,7 +49,7 @@ export function getLineParams(ctx: ThemeRegistryContext, structure: Structure) {
     if (size >= Structure.Size.Huge) {
         params = PD.clone(params);
         params.visuals.defaultValue = ['intra-bond', 'element-point', 'element-cross'];
-    } else if (structure.unitSymmetryGroups.length > 1000) {
+    } else if (structure.unitSymmetryGroups.length > 500) {
         params = PD.clone(params);
         params.visuals.defaultValue = ['structure-intra-bond', 'structure-element-point', 'structure-element-cross'];
     }
