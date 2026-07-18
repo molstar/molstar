@@ -52,6 +52,7 @@ import { getPrecision } from '../mol-util/number';
 import { SortedArray } from '../mol-data/int/sorted-array';
 import { normalize } from '../mol-math/interpolate';
 import { VolumeInstanceColorThemeProvider } from './color/volume-instance';
+import { VolumeWindowingColorThemeProvider } from './color/volume-windowing';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -213,6 +214,7 @@ namespace ColorTheme {
         'volume-instance': VolumeInstanceColorThemeProvider,
         'volume-segment': VolumeSegmentColorThemeProvider,
         'volume-value': VolumeValueColorThemeProvider,
+        'volume-windowing': VolumeWindowingColorThemeProvider,
     };
     type _BuiltIn = typeof BuiltIn
     export type BuiltIn = keyof _BuiltIn
