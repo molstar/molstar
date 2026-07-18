@@ -345,6 +345,9 @@ export namespace ParamDefinition {
     export function DataRef<T>(info?: Info & { defaultRef?: string }) {
         return setInfo<DataRef<T>>({ type: 'data-ref', defaultValue: Ref(info?.defaultRef) }, info);
     }
+    export function asDataRef(ref: string) {
+        return { ref, getValue: unsetGetValue } as DataRef['defaultValue'];
+    }
 
     export interface Converted<T, C> extends Base<T> {
         type: 'converted',
