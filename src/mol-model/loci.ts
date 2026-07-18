@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -157,7 +157,7 @@ namespace Loci {
         if (loci.kind === 'structure-loci') {
             return Sphere3D.copy(boundingSphere, loci.structure.boundary.sphere);
         } else if (loci.kind === 'element-loci') {
-            return Sphere3D.copy(boundingSphere, StructureElement.Loci.getBoundary(loci).sphere);
+            return StructureElement.Loci.getBoundingSphere(loci, boundingSphere);
         } else if (loci.kind === 'bond-loci') {
             return Bond.getBoundingSphere(loci, boundingSphere);
         } else if (loci.kind === 'shape-loci') {

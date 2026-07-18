@@ -1,13 +1,14 @@
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3 } from '../linear-algebra/3d/vec3';
+import { ReadonlyVec3, Vec3 } from '../linear-algebra/3d/vec3';
 import { CentroidHelper } from './centroid-helper';
 import { Sphere3D } from '../geometry/primitives/sphere3d';
 import { Box3D } from './primitives/box3d';
+import { memoize1 } from '../../mol-util/memoize';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3dot = Vec3.dot;
@@ -18,8 +19,8 @@ const v3scaleAndAdd = Vec3.scaleAndAdd;
 // implementing http://www.ep.liu.se/ecp/034/009/ecp083409.pdf
 
 export class BoundaryHelper {
-    private dir: Vec3[];
-    private dirLength: number;
+    private readonly dir: ReadonlyArray<Vec3>;
+    private readonly dirLength: number;
 
     private minDist: number[] = [];
     private maxDist: number[] = [];
@@ -76,10 +77,45 @@ export class BoundaryHelper {
     }
 
     finishedIncludeStep() {
+        if (this.dirLength < 49) {
+            this.refineExtrema();
+        }
+
         for (let i = 0; i < this.extrema.length; i++) {
             this.centroidHelper.includeStep(this.extrema[i]);
         }
         this.centroidHelper.finishedIncludeStep();
+    }
+
+    private refineExtrema() {
+        const dir98 = getEposDir('98');
+        const minDist: number[] = [];
+        const maxDist: number[] = [];
+        const extrema: Vec3[] = [];
+
+        for (let i = 0, il = dir98.length; i < il; ++i) {
+            minDist[i] = Infinity;
+            maxDist[i] = -Infinity;
+            extrema[i * 2] = Vec3();
+            extrema[i * 2 + 1] = Vec3();
+
+            const di = dir98[i];
+            for (let j = 0, jl = this.extrema.length; j < jl; ++j) {
+                const p = this.extrema[j];
+                const d = v3dot(di, p);
+
+                if (d < minDist[i]) {
+                    minDist[i] = d;
+                    v3copy(extrema[i * 2], p);
+                }
+                if (d > maxDist[i]) {
+                    maxDist[i] = d;
+                    v3copy(extrema[i * 2 + 1], p);
+                }
+            }
+        }
+
+        this.extrema = extrema;
     }
 
     radiusSphere(s: Sphere3D) {
@@ -109,6 +145,9 @@ export class BoundaryHelper {
     }
 
     reset() {
+        // discard any extrema added by a previous `refineExtrema` call
+        this.extrema.length = this.dirLength * 2;
+
         for (let i = 0; i < this.dirLength; ++i) {
             this.minDist[i] = Infinity;
             this.maxDist[i] = -Infinity;
@@ -127,7 +166,7 @@ export class BoundaryHelper {
 
 type EposQuality = '6' | '14' | '26' | '98'
 
-function getEposDir(quality: EposQuality) {
+const getEposDir = memoize1((quality: EposQuality): ReadonlyArray<ReadonlyVec3> => {
     let dir: number[][];
     switch (quality) {
         case '6': dir = [...Type001]; break;
@@ -139,7 +178,7 @@ function getEposDir(quality: EposQuality) {
         const v = Vec3.create(a[0], a[1], a[2]);
         return Vec3.normalize(v, v);
     });
-}
+});
 
 const Type001 = [
     [1, 0, 0], [0, 1, 0], [0, 0, 1]

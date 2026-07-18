@@ -149,8 +149,9 @@ function createBoundingSphereMesh(boundingSphere: Sphere3D, mesh?: Mesh) {
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh);
     if (boundingSphere.radius) {
         addSphere(builderState, boundingSphere.center, boundingSphere.radius, detail);
+        const er = boundingSphere.radius * 0.01;
         if (Sphere3D.hasExtrema(boundingSphere)) {
-            for (const e of boundingSphere.extrema) addSphere(builderState, e, 1.0, 0);
+            for (const e of boundingSphere.extrema) addSphere(builderState, e, er, 0);
         }
     }
     return MeshBuilder.getMesh(builderState);

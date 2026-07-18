@@ -8,7 +8,7 @@
 
 import { UniqueArray } from '../../../../mol-data/generic';
 import { OrderedSet, SortedArray, Interval } from '../../../../mol-data/int';
-import { Mat4, Vec3 } from '../../../../mol-math/linear-algebra';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
 import { Structure } from '../structure';
 import { Unit } from '../unit';
@@ -612,38 +612,65 @@ export namespace Loci {
 
     const boundaryHelper = new BoundaryHelper('98');
     const tempPosBoundary = Vec3();
-    export function getBoundary(loci: Loci, transform?: Mat4, result?: { box?: Box3D, sphere?: Sphere3D }): Boundary {
+    const tempSphereBoundary = Sphere3D();
+
+    /**
+     * Get the boundary sphere of a whole unit (in the same frame as `Unit.conformation.position`),
+     * reusing the cached, invariant-frame `Unit.boundary` instead of visiting every element.
+     */
+    function getWholeUnitBoundarySphere(unit: Unit): Sphere3D {
+        const { isIdentity, matrix } = unit.conformation.operator;
+        const { sphere } = unit.boundary;
+        return isIdentity ? sphere : Sphere3D.transform(tempSphereBoundary, sphere, matrix);
+    }
+
+    export function getBoundingSphere(loci: Loci, boundingSphere?: Sphere3D): Sphere3D {
+        // reuse structure boundary if the loci covers the whole structure
+        if (isWholeStructure(loci)) {
+            return Sphere3D.copy(boundingSphere || Sphere3D(), loci.structure.boundary.sphere);
+        }
+
         boundaryHelper.reset();
 
         for (const e of loci.elements) {
+            // reuse unit boundary if the loci element covers the whole unit
+            if (isWholeUnit(e)) {
+                boundaryHelper.includeSphere(getWholeUnitBoundarySphere(e.unit));
+                continue;
+            }
+
             const { indices } = e;
             const { elements, conformation } = e.unit;
             for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
                 const eI = elements[OrderedSet.getAt(indices, i)];
                 conformation.position(eI, tempPosBoundary);
-                if (transform) Vec3.transformMat4(tempPosBoundary, tempPosBoundary, transform);
                 boundaryHelper.includePositionRadius(tempPosBoundary, conformation.r(eI));
             }
         }
         boundaryHelper.finishedIncludeStep();
         for (const e of loci.elements) {
+            // reuse unit boundary if the loci element covers the whole unit
+            if (isWholeUnit(e)) {
+                boundaryHelper.radiusSphere(getWholeUnitBoundarySphere(e.unit));
+                continue;
+            }
+
             const { indices } = e;
             const { elements, conformation } = e.unit;
             for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
                 const eI = elements[OrderedSet.getAt(indices, i)];
                 conformation.position(eI, tempPosBoundary);
-                if (transform) Vec3.transformMat4(tempPosBoundary, tempPosBoundary, transform);
                 boundaryHelper.radiusPositionRadius(tempPosBoundary, conformation.r(eI));
             }
         }
 
-        if (result) {
-            if (result.box) boundaryHelper.getBox(result.box);
-            if (result.sphere) boundaryHelper.getSphere(result.sphere);
-            return result as any;
-        }
+        return boundaryHelper.getSphere(boundingSphere);
+    }
 
-        return { box: boundaryHelper.getBox(), sphere: boundaryHelper.getSphere() };
+    export function getBoundary(loci: Loci, boundary?: Boundary): Boundary {
+        const sphere = getBoundingSphere(loci, boundary?.sphere);
+        const box = Box3D.fromSphere3D(boundary?.box || Box3D(), sphere);
+        return { sphere, box };
     }
 
     const tempPos = Vec3();
