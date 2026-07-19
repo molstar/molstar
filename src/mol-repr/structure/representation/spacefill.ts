@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -36,7 +36,7 @@ export function getSpacefillParams(ctx: ThemeRegistryContext, structure: Structu
         }
         params = CoarseGrainedSpacefillParams;
     }
-    if (structure.unitSymmetryGroups.length > 5000) {
+    if (structure.unitSymmetryGroups.length > 500) {
         params = PD.clone(params);
         params.visuals.defaultValue = ['structure-element-sphere'];
     }

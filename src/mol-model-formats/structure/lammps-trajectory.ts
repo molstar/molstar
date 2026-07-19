@@ -7,7 +7,7 @@
  */
 
 import { Coordinates, Frame, Time } from '../../mol-model/structure/coordinates';
-import { LammpsTrajectoryFile, lammpsUnitStyles, UnitStyle } from '../../mol-io/reader/lammps/schema';
+import { LammpsFrame, LammpsTrajectoryFile, lammpsUnitStyles, UnitStyle } from '../../mol-io/reader/lammps/schema';
 import { Model } from '../../mol-model/structure/model';
 import { RuntimeContext, Task } from '../../mol-task';
 import { Column, Table } from '../../mol-data/db';
@@ -20,6 +20,49 @@ import { createModels } from './basic/parser';
 import { MoleculeType } from '../../mol-model/structure/model/types';
 import { ModelFormat } from '../format';
 import { ModelSymmetry } from './property/symmetry';
+
+/**
+ * A LAMMPS dump may list atoms in a different order in every frame: LAMMPS splits
+ * the simulation box across processors (spatial domain decomposition) and writes
+ * each processor's atoms as they arrive, so the per-frame order follows how atoms
+ * are distributed and migrate between domains rather than their id. That order also
+ * generally does not match a separately-loaded topology (e.g. a sorted `.data`
+ * file). Each atom row carries its `id`, so we scatter every frame into canonical
+ * id order (row for `id` lands at 0-based array slot `id - 1`) to keep all frames
+ * consistent with each other and with the topology. Without this, coordinates land
+ * on the wrong atoms.
+ * (Dumps written with `dump_modify sort id` are already ordered and hit the
+ * identity fast-path below.)
+ *
+ * Returns the source-row -> canonical-index permutation, or `undefined` when no
+ * reordering is needed (rows already in id order) or the ids are not a contiguous
+ * 1..count set - in both cases callers keep file order. Allocates the permutation
+ * only once a row is found out of order, in a single pass (`atomId.value` parses a
+ * token, so it is read exactly once per row).
+ */
+export function getCanonicalOrder(frame: Pick<LammpsFrame, 'count' | 'atomId'>): Int32Array | undefined {
+    const { count, atomId } = frame;
+    let order: Int32Array | undefined;
+    let seen: Uint8Array | undefined;
+    for (let j = 0; j < count; j++) {
+        const dst = atomId.value(j) - 1;
+        if (dst < 0 || dst >= count) return undefined;
+        if (!order) {
+            // in order so far (id === row + 1): nothing to permute yet
+            if (dst === j) continue;
+            // out of order, but dst falls in the already-filled prefix [0, j): duplicate id, reject
+            if (dst < j) return undefined;
+            // first out-of-order row: allocate and backfill the identity prefix [0, j)
+            order = new Int32Array(count);
+            seen = new Uint8Array(count);
+            for (let k = 0; k < j; k++) { order[k] = k; seen[k] = 1; }
+        }
+        if (seen![dst]) return undefined; // seen is set with order
+        seen![dst] = 1;
+        order[j] = dst;
+    }
+    return order;
+}
 
 export function coordinatesFromLammpsTrajectory(file: LammpsTrajectoryFile, unitsStyle: UnitStyle = 'real'): Task<Coordinates> {
     return Task.create('Parse Lammps Trajectory', async ctx => {
@@ -42,19 +85,23 @@ export function coordinatesFromLammpsTrajectory(file: LammpsTrajectoryFile, unit
                 offset_pos.y = box.lower[1];
                 offset_pos.z = box.lower[2];
             }
-            const count = file.frames[i].count;
+            const frame = file.frames[i];
+            const count = frame.count;
+            const order = getCanonicalOrder(frame);
             const cx = new Float32Array(count);
             const cy = new Float32Array(count);
             const cz = new Float32Array(count);
-            let offset = 0;
+            // fold the loop-invariant `* scale` into the per-frame scale/offset factors
+            const sx = offset_scale.x * scale, sy = offset_scale.y * scale, sz = offset_scale.z * scale;
+            const ox = offset_pos.x * scale, oy = offset_pos.y * scale, oz = offset_pos.z * scale;
             for (let j = 0; j < count; j++) {
-                cx[offset] = (file.frames[i].x.value(j) * offset_scale.x + offset_pos.x) * scale;
-                cy[offset] = (file.frames[i].y.value(j) * offset_scale.y + offset_pos.y) * scale;
-                cz[offset] = (file.frames[i].z.value(j) * offset_scale.z + offset_pos.z) * scale;
-                offset++;
+                const dst = order ? order[j] : j;
+                cx[dst] = frame.x.value(j) * sx + ox;
+                cy[dst] = frame.y.value(j) * sy + oy;
+                cz[dst] = frame.z.value(j) * sz + oz;
             }
             frames.push({
-                elementCount: file.frames[i].count,
+                elementCount: count,
                 x: cx,
                 y: cy,
                 z: cz,
@@ -85,29 +132,31 @@ async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsSt
         offset_pos.z = box.lower[2];
     }
     const type_symbols = new Array<string>(count);
+    const asym_ids = new Array<string>(count);
     const id = new Int32Array(count);
     const cx = new Float32Array(count);
     const cy = new Float32Array(count);
     const cz = new Float32Array(count);
-    const model_num = new Int32Array(count);
 
-    let offset = 0;
+    // fold the loop-invariant `* scale` into the scale/offset factors
+    const sx = offset_scale.x * scale, sy = offset_scale.y * scale, sz = offset_scale.z * scale;
+    const ox = offset_pos.x * scale, oy = offset_pos.y * scale, oz = offset_pos.z * scale;
+
+    // Build the topology in canonical id order so it stays aligned with the
+    // per-frame coordinates produced by coordinatesFromLammpsTrajectory.
+    const order = getCanonicalOrder(atoms);
     for (let j = 0; j < count; j++) {
-        type_symbols[offset] = atoms.atomType.value(j).toString();
-        cx[offset] = (atoms.x.value(j) * offset_scale.x + offset_pos.x) * scale;
-        cy[offset] = (atoms.y.value(j) * offset_scale.y + offset_pos.y) * scale;
-        cz[offset] = (atoms.z.value(j) * offset_scale.z + offset_pos.z) * scale;
-        id[offset] = atoms.atomId.value(j);
-        model_num[offset] = 0;
-        offset++;
+        const dst = order ? order[j] : j;
+        type_symbols[dst] = atoms.atomType.value(j).toString();
+        asym_ids[dst] = atoms.moleculeId.value(j).toString();
+        cx[dst] = atoms.x.value(j) * sx + ox;
+        cy[dst] = atoms.y.value(j) * sy + oy;
+        cz[dst] = atoms.z.value(j) * sz + oz;
+        id[dst] = atoms.atomId.value(j);
     }
 
     const MOL = Column.ofConst('MOL', count, Column.Schema.str);
-    const asym_id = Column.ofLambda({
-        value: (row: number) => atoms.moleculeId.value(row).toString(),
-        rowCount: count,
-        schema: Column.Schema.str,
-    });
+    const asym_id = Column.ofStringArray(asym_ids);
     const seq_id = Column.ofConst(1, count, Column.Schema.int);
 
     const type_symbol = Column.ofStringArray(type_symbols);
@@ -131,7 +180,7 @@ async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsSt
         occupancy: Column.ofConst(1, count, Column.Schema.float),
         type_symbol,
 
-        pdbx_PDB_model_num: Column.ofIntArray(model_num),
+        pdbx_PDB_model_num: Column.ofConst(0, count, Column.Schema.int),
     }, count);
 
     const entityBuilder = new EntityBuilder();

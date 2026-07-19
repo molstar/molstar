@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
 import { arrayPickIndices, cantorPairing } from '../../mol-data/util';
@@ -411,6 +412,30 @@ export namespace IntAdjacencyGraph {
         }
 
         return areVertexSetsConnectedImpl(graph, verticesA, verticesB, maxDistance, visited);
+    }
+
+    /** BFS all-pairs shortest paths (edge count) within a graph; -1 marks unreachable. */
+    export function graphShortestPaths(g: IntAdjacencyGraph<any, any>): Int32Array[] {
+        const n = g.vertexCount;
+        const { offset, b } = g;
+        const dist: Int32Array[] = new Array(n);
+        const queue = new Int32Array(n);
+        for (let s = 0; s < n; s++) {
+            const d = new Int32Array(n).fill(-1);
+            let head = 0, tail = 0;
+            queue[tail++] = s;
+            d[s] = 0;
+            while (head < tail) {
+                const u = queue[head++];
+                const du = d[u];
+                for (let t = offset[u], end = offset[u + 1]; t < end; t++) {
+                    const w = b[t];
+                    if (d[w] < 0) { d[w] = du + 1; queue[tail++] = w; }
+                }
+            }
+            dist[s] = d;
+        }
+        return dist;
     }
 }
 

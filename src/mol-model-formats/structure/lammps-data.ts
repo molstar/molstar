@@ -28,22 +28,26 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
     const count = atoms.count;
     const scale = lammpsUnitStyles[unitsStyle].scale;
     const type_symbols = new Array<string>(count);
-    const id = new Int32Array(count);
     const cx = new Float32Array(count);
     const cy = new Float32Array(count);
     const cz = new Float32Array(count);
-    const model_num = new Int32Array(count);
 
-    let offset = 0;
+    // A LAMMPS `.data` file may list atoms in any order (rows are not necessarily sorted by atom
+    // id), while the Bonds section references atoms by id. Record each id's row so bonds connect
+    // the correct atoms. Atom ids are positive and, for a data file, on the order of 1..count, so
+    // an array indexed by id (with a -1 sentinel for holes) is smaller and faster than a Map; this
+    // deliberately assumes `maxId` stays close to `count` (true for a real data file).
+    let maxId = 0;
     for (let j = 0; j < count; j++) {
-        type_symbols[offset] = atoms.atomType.value(j).toString();
-        cx[offset] = atoms.x.value(j) * scale;
-        cy[offset] = atoms.y.value(j) * scale;
-        cz[offset] = atoms.z.value(j) * scale;
-        id[offset] = atoms.atomId.value(j) - 1;
-        model_num[offset] = 0;
-        offset++;
+        const atomId = atoms.atomId.value(j);
+        type_symbols[j] = atoms.atomType.value(j).toString();
+        cx[j] = atoms.x.value(j) * scale;
+        cy[j] = atoms.y.value(j) * scale;
+        cz[j] = atoms.z.value(j) * scale;
+        if (atomId > maxId) maxId = atomId;
     }
+    const rowOfId = new Int32Array(maxId + 1).fill(-1);
+    for (let j = 0; j < count; j++) rowOfId[atoms.atomId.value(j)] = j;
 
     const MOL = Column.ofConst('MOL', count, Column.Schema.str);
     const asym_id = Column.ofLambda({
@@ -63,7 +67,7 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
         Cartn_x: Column.ofFloatArray(cx),
         Cartn_y: Column.ofFloatArray(cy),
         Cartn_z: Column.ofFloatArray(cz),
-        id: Column.ofIntArray(id),
+        id: atoms.atomId,
 
         label_asym_id: asym_id,
         label_atom_id: type_symbol,
@@ -74,7 +78,7 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
         occupancy: Column.ofConst(1, count, Column.Schema.float),
         type_symbol,
 
-        pdbx_PDB_model_num: Column.ofIntArray(model_num),
+        pdbx_PDB_model_num: Column.ofConst(0, count, Column.Schema.int),
     }, count);
 
     const entityBuilder = new EntityBuilder();
@@ -94,11 +98,22 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
     if (_models.frameCount > 0) {
         const first = _models.representative;
         if (bonds.count !== 0) {
-            const indexA = Column.ofIntArray(Column.mapToArray(bonds.atomIdA, x => x - 1, Int32Array));
-            const indexB = Column.ofIntArray(Column.mapToArray(bonds.atomIdB, x => x - 1, Int32Array));
-            const key = bonds.bondId;
-            const order = Column.ofConst(1, bonds.count, Column.Schema.int);
-            const flag = Column.ofConst(BondType.Flag.Covalent, bonds.count, Column.Schema.int);
+            // resolve bond atom ids to atom rows via `rowOfId`, dropping a bond that references an
+            // unknown atom id (past the table, or a -1 hole in the id range) rather than silently
+            // pointing it at row 0
+            const ia: number[] = [], ib: number[] = [], keys: number[] = [];
+            for (let i = 0; i < bonds.count; i++) {
+                const idA = bonds.atomIdA.value(i), idB = bonds.atomIdB.value(i);
+                if (idA > maxId || idB > maxId) continue;
+                const a = rowOfId[idA], b = rowOfId[idB];
+                if (a < 0 || b < 0) continue;
+                ia.push(a); ib.push(b); keys.push(bonds.bondId.value(i));
+            }
+            const indexA = Column.ofIntArray(new Int32Array(ia));
+            const indexB = Column.ofIntArray(new Int32Array(ib));
+            const key = Column.ofIntArray(new Int32Array(keys));
+            const order = Column.ofConst(1, ia.length, Column.Schema.int);
+            const flag = Column.ofConst(BondType.Flag.Covalent, ia.length, Column.Schema.int);
             const pairBonds = IndexPairBonds.fromData(
                 { pairs: { key, indexA, indexB, order, flag }, count: atoms.count },
                 { maxDistance: Infinity }

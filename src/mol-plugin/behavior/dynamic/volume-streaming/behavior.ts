@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -341,7 +341,10 @@ export namespace VolumeStreaming {
             if (transform) Mat4.invert(this._invTransform, transform);
 
             const extendedLoci = StructureElement.Loci.extendToWholeResidues(loci);
-            const box = StructureElement.Loci.getBoundary(extendedLoci, transform && !Number.isNaN(this._invTransform[0]) ? this._invTransform : void 0).box;
+            const box = StructureElement.Loci.getBoundary(extendedLoci).box;
+            if (transform && !Number.isNaN(this._invTransform[0])) {
+                Box3D.transform(box, box, this._invTransform);
+            }
 
             if (StructureElement.Loci.size(extendedLoci) === 1) {
                 Box3D.expand(box, box, Vec3.create(1, 1, 1));

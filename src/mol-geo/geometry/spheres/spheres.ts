@@ -412,6 +412,8 @@ export namespace Spheres {
     }
 
     function updateValues(values: SpheresValues, props: PD.Values<Params>) {
+        const prevSizeFactor = values.uSizeFactor.ref.value;
+
         BaseGeometry.updateValues(values, props);
         ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor);
         ValueCell.updateIfChanged(values.uDoubleSided, props.doubleSided);
@@ -429,7 +431,7 @@ export namespace Spheres {
         updateAnimationValues(values, props.animation);
 
         const lodLevels = getLodLevels(values.lodLevels.ref.value as LodLevelsValue);
-        if (!areLodLevelsEqual(props.lodLevels, lodLevels)) {
+        if (!areLodLevelsEqual(props.lodLevels, lodLevels) || props.sizeFactor !== prevSizeFactor) {
             const count = values.uVertexCount.ref.value / 6;
             const strides = getStrides(props.lodLevels, props.sizeFactor);
             const offsets = getStrideOffsetsAndSetPositionGroup(values.tPositionGroup.ref.value, values.centerBuffer.ref.value, values.groupBuffer.ref.value, count, strides);

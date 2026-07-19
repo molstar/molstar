@@ -4,12 +4,17 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
+- Add `variant` option (rectangle/circle) to the best-fit `Plane` (#358)
 - Add VTK PolyData `.vtp` file format support
 - Bloom on transparent and emissive geometry
   - Move bloom into the postprocessing/illumination pass (composited inline)
   - Tighten `isBackground` to handle packed transparent depth precisely
   - Enable bloom on transparent background
   - Background-aware blend: screen on transparent background, PMA over on opaque background, additive on geometry
+  - Occlude emissive bloom behind opaque foreground (e.g. opaque label backgrounds) by reusing the opaque depth (#1881)
+  - Dim emitters behind transparent foreground by its coverage
+  - Text label backgrounds occlude/dim emitters using their own opacity
 - Fix size-only representation theme updates in `updateRepresentationsTheme`.
 - Fix ASA coloring for hydrogens
 - Add `histogramPercentile`, `histogramRobustStats`, `downsampleHistogram` to `mol-math/histogram`
@@ -22,6 +27,13 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add FFT to mol-math
 - Add SF-CIF and MTZ structure factors file formats support
 - Add support for calculating volumes from structure factors
+- Rework Superposition UI panel
+- Add Ligand alignments by maximum common connected subgraphs (MCCS)
+- Handle unobserved residues from `entity_poly_seq` (#965)
+- Refine step for coarse BoundaryHelper instances (#1455)
+- Refactor `StructureElement.Loci.getBoundary`
+    - Add `.getBoundingSphere`, reuse whole structure/unit boundary
+    - [Breaking] remove transform argument
 
 ## [v5.10.0] - 2026-06-14
 - Fix exported image artifacts on transparent background with emissive, bloom, or antialiasing
