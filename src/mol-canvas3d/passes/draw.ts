@@ -175,6 +175,26 @@ export class DrawPass {
         this.dof.setSize(width, height);
     }
 
+    renderEmissiveBloom(renderer: Renderer, camera: ICamera, scene: Scene, transparency: boolean): void {
+        const bloom = this.postprocessing.bloom;
+        bloom.emissiveTarget.bind();
+        // (0,0,0,0) clear so the MAX blend in renderEmissiveTransparent isn't polluted by a white clear
+        renderer.clear(false, true, true);
+        // occlude emitters against real opaque depth so glow can't bleed through opaque foreground; packed depth builds its own
+        const occludeWithOpaqueDepth = !this.packedDepth;
+        if (occludeWithOpaqueDepth) {
+            this.depthTextureOpaque.attachFramebuffer(bloom.emissiveTarget.framebuffer, 'depth');
+        }
+        renderer.renderEmissiveOpaque(scene.primitives, camera, this.depthTextureTransparent, occludeWithOpaqueDepth);
+        if (transparency && scene.opacityAverage < 1) {
+            renderer.renderEmissiveTransparent(scene.primitives, camera, this.depthTextureTransparent);
+        }
+        if (occludeWithOpaqueDepth) {
+            this.depthTextureOpaque.detachFramebuffer(bloom.emissiveTarget.framebuffer, 'depth');
+            bloom.emissiveTarget.depthRenderbuffer?.attachFramebuffer(bloom.emissiveTarget.framebuffer);
+        }
+    }
+
     private _renderBloom(renderer: Renderer, camera: ICamera, scene: Scene, postprocessingProps: PostprocessingProps): boolean {
         if (!BloomPass.isEnabled(postprocessingProps) || postprocessingProps.bloom.name !== 'on') return false;
         const bloom = this.postprocessing.bloom;
@@ -183,13 +203,7 @@ export class DrawPass {
         if (emissiveBloom && scene.emissiveAverage === 0) return false;
 
         if (emissiveBloom) {
-            bloom.emissiveTarget.bind();
-            // (0,0,0,0) clear; default white clear would break the MAX blend in renderEmissiveTransparent.
-            renderer.clear(false, true, true);
-            renderer.renderEmissiveOpaque(scene.primitives, camera);
-            if (params.transparency && scene.opacityAverage < 1) {
-                renderer.renderEmissiveTransparent(scene.primitives, camera, this.depthTextureTransparent);
-            }
+            this.renderEmissiveBloom(renderer, camera, scene, params.transparency);
         }
 
         // Clear transparent buffers when opaque-only so luminosity doesn't sample stale halos.

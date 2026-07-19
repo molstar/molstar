@@ -12,6 +12,9 @@ Note that since we don't clearly distinguish between a public and private interf
   - Tighten `isBackground` to handle packed transparent depth precisely
   - Enable bloom on transparent background
   - Background-aware blend: screen on transparent background, PMA over on opaque background, additive on geometry
+  - Occlude emissive bloom behind opaque foreground (e.g. opaque label backgrounds) by reusing the opaque depth (#1881)
+  - Dim emitters behind transparent foreground by its coverage
+  - Text label backgrounds occlude/dim emitters using their own opacity
 - Fix size-only representation theme updates in `updateRepresentationsTheme`.
 - Fix ASA coloring for hydrogens
 - Add `histogramPercentile`, `histogramRobustStats`, `downsampleHistogram` to `mol-math/histogram`
