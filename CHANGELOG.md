@@ -24,6 +24,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `defaultSnapshotIndex` argument to `MVSLoadOptions` to enable loading a snapshot other than the first one by default
 - Fix `loaders.loadMvs*` options type
 - Read simulation box from gro and lammps files
+- Add FFT to mol-math
+- Add SF-CIF and MTZ structure factors file formats support
+- Add support for calculating volumes from structure factors
 - Rework Superposition UI panel
 - Add Ligand alignments by maximum common connected subgraphs (MCCS)
 - Handle unobserved residues from `entity_poly_seq` (#965)
