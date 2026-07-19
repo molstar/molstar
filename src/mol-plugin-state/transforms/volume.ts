@@ -23,6 +23,7 @@ import { volumeFromSegmentationData } from '../../mol-model-formats/volume/segme
 import { volumeFromStructureFactors, StructureFactorMapType } from '../../mol-model-formats/volume/structure-factors';
 import { volumeFromMtz } from '../../mol-model-formats/volume/mtz';
 import { getTransformFromParams, TransformParam, transformParamsNeedCentroid } from './helpers';
+import { getParticleTransformsAsMat4, ParticleList } from '../../mol-model/particles/particle-list';
 
 export { VolumeFromCcp4 };
 export { VolumeFromDsn6 };
@@ -35,6 +36,7 @@ export { VolumeFromStructureFactorsCif };
 export { VolumeFromMtz };
 export { VolumeTransform };
 export { VolumeInstances };
+export { ParticlesVolume };
 export { CustomVolumeProperties };
 
 type VolumeFromCcp4 = typeof VolumeFromCcp4
@@ -423,6 +425,47 @@ const VolumeInstances = PluginStateTransform.BuiltIn({
         }, {
             label: a.label,
             description: `${a.description} [Instanced]`,
+        });
+    },
+});
+
+type ParticlesVolume = typeof ParticlesVolume
+const ParticlesVolume = PluginStateTransform.BuiltIn({
+    name: 'particles-volume',
+    display: { name: 'Particles Volume', description: 'Create a volume with instances at each particle position and orientation.' },
+    from: SO.Volume.Data,
+    to: SO.Volume.Data,
+    isDecorator: true,
+    params: {
+        particles: PD.ValueRef<ParticleList>(
+            (ctx: PluginContext) => {
+                const particles = ctx.state.data.select(StateSelection.Generators.rootsOfType(SO.Particle.List)).filter(c => c.obj?.data);
+                return particles.map(v => [v.transform.ref, v.obj?.label ?? '<unknown>'] as [string, string]);
+            },
+            (ref, getData) => getData(ref),
+        ),
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Create volume from volume and particles', async ctx => {
+            const particles = params.particles.getValue();
+            const transforms = getParticleTransformsAsMat4(particles);
+            // Center the volume on each particle position by composing each
+            // particle's rotation/translation with a translation that brings
+            // the volume's grid centroid to the origin.
+            const center = Grid.getBoundingSphere(a.data.grid).center;
+            const offset = Mat4.fromTranslation(Mat4(), Vec3.negate(Vec3(), center));
+            const instances = transforms.map((t, i) => ({ transform: Mat4.mul(Mat4(), t, offset), group: i }));
+            const volume: Volume = {
+                ...a.data,
+                instances,
+                _localPropertyData: Object.create(null),
+            };
+            Volume.ParticleList.set(volume, particles);
+            return new SO.Volume.Data(volume, {
+                label: a.label,
+                description: `${transforms.length} particle${transforms.length === 1 ? '' : 's'}`,
+            });
         });
     },
 });

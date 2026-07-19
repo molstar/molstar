@@ -13,6 +13,7 @@ import { Column } from '../mol-data/db/column';
 import { Vec3 } from '../mol-math/linear-algebra';
 import { radToDeg } from '../mol-math/misc';
 import { Volume } from '../mol-model/volume';
+import { Particle } from '../mol-model/particles/particle-list';
 
 export type LabelGranularity = 'element' | 'conformation' | 'residue' | 'chain' | 'structure'
 
@@ -80,6 +81,11 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
             return [
                 `${loci.volume.label || 'Volume'}`,
                 `${segmentCount === 1 ? `Segment ${firstSegment}` : `${segmentCount} Segments`}`
+            ].join(' | ');
+        case 'particle-loci':
+            return [
+                loci.particles.label || 'Particles',
+                Particle.getLabel(loci),
             ].join(' | ');
     }
 }

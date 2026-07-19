@@ -17,11 +17,12 @@ import { trajectoryFromCCD, trajectoryFromMmCIF } from '../../mol-model-formats/
 import { trajectoryFromPDB } from '../../mol-model-formats/structure/pdb';
 import { topologyFromPsf } from '../../mol-model-formats/structure/psf';
 import { Coordinates, Model, Queries, QueryContext, Structure, StructureElement, StructureQuery, StructureSelection as Sel, Topology, ArrayTrajectory, Trajectory, Frame } from '../../mol-model/structure';
+import { getParticleTransformsAsMat4, ParticleList } from '../../mol-model/particles/particle-list';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
 import { Expression } from '../../mol-script/language/expression';
 import { Script } from '../../mol-script/script';
-import { StateObject, StateTransform, StateTransformer } from '../../mol-state';
+import { StateObject, StateSelection, StateTransform, StateTransformer } from '../../mol-state';
 import { RuntimeContext, Task } from '../../mol-task';
 import { deepEqual } from '../../mol-util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -55,6 +56,7 @@ import { coordinatesFromNctraj } from '../../mol-model-formats/structure/nctraj'
 import { topologyFromPrmtop } from '../../mol-model-formats/structure/prmtop';
 import { topologyFromTop } from '../../mol-model-formats/structure/top';
 import { getTransformFromParams, TransformParam, transformParamsNeedCentroid } from './helpers';
+import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 
 export { CoordinatesFromDcd };
 export { CoordinatesFromXtc };
@@ -65,6 +67,7 @@ export { TopologyFromPsf };
 export { TopologyFromPrmtop };
 export { TopologyFromTop };
 export { TrajectoryFromModelAndCoordinates };
+export { ParticlesStructure };
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
 export { TrajectoryFromPDB };
@@ -258,6 +261,43 @@ const TrajectoryFromModelAndCoordinates = PluginStateTransform.BuiltIn({
             const props = { label: 'Trajectory', description: `${trajectory.frameCount} model${trajectory.frameCount === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(trajectory, props);
         });
+    }
+});
+
+type ParticlesStructure = typeof ParticlesStructure
+const ParticlesStructure = PluginStateTransform.BuiltIn({
+    name: 'particles-structure',
+    display: { name: 'Particles Structure', description: 'Create a structure with instances at each particle position and orientation.' },
+    isDecorator: true,
+    from: SO.Molecule.Structure,
+    to: SO.Molecule.Structure,
+    params: {
+        particles: PD.ValueRef<ParticleList>(
+            (ctx: PluginContext) => {
+                const particles = ctx.state.data.select(StateSelection.Generators.rootsOfType(SO.Particle.List)).filter(c => c.obj?.data);
+                return particles.map(v => [v.transform.ref, v.obj?.label ?? '<unknown>'] as [string, string]);
+            },
+            (ref, getData) => getData(ref),
+        ),
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Create structure from structure and particles', async ctx => {
+            const particles = params.particles.getValue();
+            const transforms = getParticleTransformsAsMat4(particles);
+            // Center the structure on each particle position by composing each
+            // particle's rotation/translation with a translation that brings
+            // the structure's centroid to the origin.
+            const center = a.data.boundary.sphere.center;
+            const offset = Mat4.fromTranslation(Mat4(), Vec3.negate(Vec3(), center));
+            // `transforms` is cached on `particles`, so clone rather than mutate in place.
+            const instanced = Structure.instances(a.data, transforms.map((transform, i) => ({ transform: Mat4.mul(Mat4(), transform, offset), group: i })), true);
+            Structure.ParticleList.set(instanced, particles);
+            return new SO.Molecule.Structure(instanced, { label: a.label, description: `${transforms.length} particle${transforms.length === 1 ? '' : 's'}` });
+        });
+    },
+    dispose({ b }) {
+        b?.data.customPropertyDescriptors.dispose();
     }
 });
 
