@@ -49,8 +49,8 @@ async function predictMembraneOrientation(req: express.Request, res: express.Res
     try {
         const ctx = { runtime: SyncRuntimeContext, assetManager };
 
-        const entryId = req.params.id;
-        const assemblyId = req.query.assemblyId as string ?? '1';
+        const entryId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const assemblyId = (Array.isArray(req.query.assemblyId) ? req.query.assemblyId[0] : req.query.assemblyId) as string ?? '1';
         const p = parseParams(req);
         ConsoleLogger.log('predictMembraneOrientation', `${entryId}-${assemblyId} with params: ${JSON.stringify(p)}`);
 
