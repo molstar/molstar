@@ -13,12 +13,20 @@ import { ModelFormat } from '../../mol-model-formats/format';
 import { CustomProperties, CustomPropertyDescriptor } from '../custom-property';
 import { Boundary } from '../../mol-math/geometry/boundary';
 import { fillIdentityTransform } from '../../mol-geo/geometry/transform-data';
+import { Cell } from '../../mol-math/geometry/spacegroup/cell';
 
 export interface ParticleList {
     readonly entryId?: string
     readonly label?: string
 
     readonly count: number
+
+    /**
+     * Optional periodic/bounding cell for the particle system (e.g. the simulation box
+     * size of a Simularium trajectory). Used to show a `ModelUnitcell3D`-like unit cell
+     * shape via `ParticleListUnitcell3D`.
+     */
+    readonly cell?: Cell
 
     /** Unique keys for each particle for mapping to source data. */
     readonly keys: Int32Array
@@ -261,46 +269,50 @@ export namespace Particle {
         return Loci(particles, OrderedSet.ofSortedArray(filtered));
     }
 
-    const _boundaryHelper = new BoundaryHelper('98');
+    const boundaryHelperCoarse = new BoundaryHelper('14');
+    const boundaryHelperFine = new BoundaryHelper('98');
+    function getBoundaryHelper(count: number) {
+        return count > 10_000 ? boundaryHelperCoarse : boundaryHelperFine;
+    }
     const _tmpPos = Vec3();
+
     export function getBoundingSphere(loci: Loci, boundingSphere?: Sphere3D): Sphere3D {
-        if (!boundingSphere) boundingSphere = Sphere3D();
         const { particles, indices } = loci;
         const { coordinates, radii } = particles;
-        if (OrderedSet.isEmpty(indices)) {
-            boundingSphere.center[0] = boundingSphere.center[1] = boundingSphere.center[2] = 0;
-            boundingSphere.radius = 0;
-            return boundingSphere;
+        if (isLociEmpty(loci)) {
+            return boundingSphere ? Sphere3D.setZero(boundingSphere) : Sphere3D();
+        } else if (lociSize(loci) === particles.count) {
+            const sphere = getBoundary(particles).sphere;
+            return boundingSphere ? Sphere3D.copy(sphere, boundingSphere) : sphere;
         }
-        _boundaryHelper.reset();
+        const boundaryHelper = getBoundaryHelper(OrderedSet.size(indices));
+        boundaryHelper.reset();
         if (radii) {
             OrderedSet.forEach(indices, v => {
                 const i = v * 3;
                 Vec3.set(_tmpPos, coordinates[i], coordinates[i + 1], coordinates[i + 2]);
-                _boundaryHelper.includePositionRadius(_tmpPos, radii[v]);
+                boundaryHelper.includePositionRadius(_tmpPos, radii[v]);
             });
-            _boundaryHelper.finishedIncludeStep();
+            boundaryHelper.finishedIncludeStep();
             OrderedSet.forEach(indices, v => {
                 const i = v * 3;
                 Vec3.set(_tmpPos, coordinates[i], coordinates[i + 1], coordinates[i + 2]);
-                _boundaryHelper.radiusPositionRadius(_tmpPos, radii[v]);
+                boundaryHelper.radiusPositionRadius(_tmpPos, radii[v]);
             });
         } else {
             OrderedSet.forEach(indices, v => {
                 const i = v * 3;
                 Vec3.set(_tmpPos, coordinates[i], coordinates[i + 1], coordinates[i + 2]);
-                _boundaryHelper.includePosition(_tmpPos);
+                boundaryHelper.includePosition(_tmpPos);
             });
-            _boundaryHelper.finishedIncludeStep();
+            boundaryHelper.finishedIncludeStep();
             OrderedSet.forEach(indices, v => {
                 const i = v * 3;
                 Vec3.set(_tmpPos, coordinates[i], coordinates[i + 1], coordinates[i + 2]);
-                _boundaryHelper.radiusPosition(_tmpPos);
+                boundaryHelper.radiusPosition(_tmpPos);
             });
         }
-        const sphere = _boundaryHelper.getSphere();
-        Sphere3D.copy(boundingSphere, sphere);
-        return boundingSphere;
+        return boundaryHelper.getSphere(boundingSphere);
     }
 
     export function getLabel(loci: Loci): string {
@@ -332,18 +344,12 @@ export namespace Particle {
         particles.customProperties.add(BoundaryDescriptor);
         particles._propertyData[BoundaryDescriptor.name] = boundary;
     }
-    const boundaryHelperCoarse = new BoundaryHelper('14');
-    const boundaryHelperFine = new BoundaryHelper('98');
-    function getBoundaryHelper(count: number) {
-        return count > 10_000 ? boundaryHelperCoarse : boundaryHelperFine;
-    }
     export function getBoundary(particles: ParticleList): Boundary {
         if (!particles._propertyData[BoundaryDescriptor.name]) {
             // Compute boundary from particle positions and radii, and store it in the particle list for later retrieval.
             // loop over positions and radii to compute the boundary
             const { count, coordinates, radii } = particles;
             const boundaryHelper = getBoundaryHelper(count);
-            const _tmpPos = Vec3();
             boundaryHelper.reset();
             if (radii) {
                 for (let i = 0; i < count; i++) {

@@ -121,6 +121,8 @@ export function makeFilteredParticleList(particles: ParticleList, targetId: numb
  * by `-center` so that the geometry renders centred on the particle position. When `scaleByRadius`
  * is set (e.g. for shape targets), each instance is additionally scaled by the particle radius;
  * the scaling is applied before the center subtraction so the basis already accounts for it.
+ * The bounding sphere used for grid/culling purposes is likewise inflated by the largest radius
+ * in play, since it is otherwise unaware of the per-instance scale (see `calcInstanceGrid`).
  */
 export function createFilteredParticleTransform(
     filtered: ParticleList,
@@ -137,9 +139,11 @@ export function createFilteredParticleTransform(
     const transformArray = new Float32Array(instanceCount * 16);
 
     const { radii } = filtered;
+    let maxRadius = 1;
     if (scaleByRadius && radii) {
         for (let i = 0; i < instanceCount; i++) {
             const r = radii[i] > 0 ? radii[i] : 1;
+            if (r > maxRadius) maxRadius = r;
             Mat4.scaleUniformly(transforms[i], transforms[i], r);
         }
     }
@@ -155,7 +159,17 @@ export function createFilteredParticleTransform(
         const offset = i * 16;
         for (let j = 0; j < 16; j++) transformArray[offset + j] = t[j];
     }
-    return createTransform(transformArray, instanceCount, invariantBoundingSphere, cellSize, batchSize, transformData);
+
+    // `calcInstanceGrid` (used inside `createTransform`) builds its grid/culling bounds from
+    // `invariantBoundingSphere.radius` alone and does not account for any scale baked into the
+    // per-instance transform matrices. Since scaling-by-radius applies such a scale above, the
+    // sphere passed on for grid/culling purposes must be inflated by the largest radius used,
+    // otherwise larger particles get under-sized cells/LOD bounds and can be culled incorrectly.
+    const gridBoundingSphere = scaleByRadius && maxRadius !== 1
+        ? Sphere3D.create(center, invariantBoundingSphere.radius * maxRadius)
+        : invariantBoundingSphere;
+
+    return createTransform(transformArray, instanceCount, gridBoundingSphere, cellSize, batchSize, transformData);
 }
 
 // ---- Per-target geometry dispatch ------------------------------------------

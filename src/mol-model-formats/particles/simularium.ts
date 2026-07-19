@@ -15,6 +15,7 @@ import { objectForEach } from '../../mol-util/object';
 import { Box3D } from '../../mol-math/geometry/primitives/box3d';
 import { Sphere3D } from '../../mol-math/geometry/primitives/sphere3d';
 import { Boundary } from '../../mol-math/geometry/boundary';
+import { Cell } from '../../mol-math/geometry/spacegroup/cell';
 
 export interface SimulariumParticleListOptions {
     /** Index of the trajectory frame to convert into a particle list. */
@@ -216,6 +217,14 @@ export function createParticleListFromSimularium(file: SimulariumFile, options: 
     const title = trajectoryInfo.trajectoryTitle;
     const label = title ? `${title} (frame ${frame.frameNumber})` : `Simularium particles (frame ${frame.frameNumber})`;
 
+    // the simulation box is an orthogonal (rectangular) cell centered on the origin
+    const cell = trajectoryInfo.size
+        ? Cell.create(
+            Vec3.create(trajectoryInfo.size.x * scale, trajectoryInfo.size.y * scale, trajectoryInfo.size.z * scale),
+            Vec3.create(Math.PI / 2, Math.PI / 2, Math.PI / 2)
+        )
+        : undefined;
+
     const particleList: ParticleList = {
         label,
         count,
@@ -226,6 +235,7 @@ export function createParticleListFromSimularium(file: SimulariumFile, options: 
         coordinates,
         rotations,
         radii,
+        cell,
         fibers: fiberCount > 0 ? { count: fiberCount, offsets: fiberOffsets, indices: fiberIndices } : undefined,
         getParticleLabel: (index: number) => {
             const t = particleTypeId[index];
@@ -240,10 +250,14 @@ export function createParticleListFromSimularium(file: SimulariumFile, options: 
     // set the particle boundary to the size of the simulation box if available
     if (trajectoryInfo.size) {
         const { x, y, z } = trajectoryInfo.size;
+        let maxRadius = 0;
+        for (let i = 0; i < count; ++i) {
+            if (radii[i] > maxRadius) maxRadius = radii[i];
+        }
         // box around origin with the given size, scaled to angstrom
         const box = Box3D.create(
-            Vec3.create(-x * scale / 2, -y * scale / 2, -z * scale / 2),
-            Vec3.create(x * scale / 2, y * scale / 2, z * scale / 2)
+            Vec3.create(-x * scale / 2 - maxRadius, -y * scale / 2 - maxRadius, -z * scale / 2 - maxRadius),
+            Vec3.create(x * scale / 2 + maxRadius, y * scale / 2 + maxRadius, z * scale / 2 + maxRadius)
         );
         const sphere = Sphere3D.fromBox3D(Sphere3D(), box);
         const boundary: Boundary = { box, sphere };

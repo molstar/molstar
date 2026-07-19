@@ -13,15 +13,17 @@ import { createParticleListFromArtiatomiEm, getArtiatomiMotivelistTomogramIds } 
 import { createSimulariumParticleTrajectory, getSimulariumAgentTypeNames, getSimulariumFrameCount } from '../../mol-model-formats/particles/simularium';
 import { createParticleListFromMmcifAssembly, getAssemblyIdsFromMmcif, getAsymIdsFromMmcif } from '../../mol-model-formats/particles/mmcif';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateTransform, StateTransformer } from '../../mol-state';
+import { StateObject, StateTransform, StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Theme } from '../../mol-theme/theme';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
-import { Structure, Trajectory } from '../../mol-model/structure';
+import { Structure, Symmetry, Trajectory } from '../../mol-model/structure';
 import { ParticleList, Particle, ParticleTarget } from '../../mol-model/particles/particle-list';
 import { buildTargetStructuresFromMapping } from '../../mol-model/particles/structure-mapping';
 import { ShapeProvider } from '../../mol-model/shape/provider';
+import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
+import { UnitcellParams, UnitcellRepresentation, getUnitcellDataFromSymmetry } from '../../mol-repr/shape/model/unitcell';
 
 export { ParticleListFromRelionStar };
 export { ParticleListFromDynamoTbl };
@@ -32,6 +34,7 @@ export { ParticleListFromTrajectory };
 export { ParticleListFromMmcifAssembly };
 export { ParticleListWithTargets };
 export { ParticlesRepresentation3D };
+export { ParticleListUnitcell3D };
 
 type ParticleListFromRelionStar = typeof ParticleListFromRelionStar
 const ParticleListFromRelionStar = PluginStateTransform.BuiltIn({
@@ -504,6 +507,49 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
             const props = { ...b.data.repr.props, ...newParams.type.params };
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.data.sourceData = a.data;
+            return StateTransformer.UpdateResult.Updated;
+        });
+    }
+});
+
+type ParticleListUnitcell3D = typeof ParticleListUnitcell3D
+const ParticleListUnitcell3D = PluginStateTransform.BuiltIn({
+    name: 'particle-list-unitcell-3d',
+    display: 'Particle List Unit Cell',
+    from: SO.Particle.List,
+    to: SO.Shape.Representation3D,
+    params: () => ({
+        ...UnitcellParams,
+    })
+})({
+    isApplicable: a => !!a.data.cell,
+    canAutoUpdate({ oldParams, newParams }) {
+        return true;
+    },
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Particle List Unit Cell', async ctx => {
+            const { cell } = a.data;
+            if (!cell) return StateObject.Null;
+
+            const symmetry = ModelSymmetry.fromCell(cell.size, cell.anglesInRadians);
+            const center = Particle.getBoundary(a.data).sphere.center;
+            const data = getUnitcellDataFromSymmetry(symmetry, center, params);
+            const repr = UnitcellRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => UnitcellParams);
+            await repr.createOrUpdate(params, data).runInContext(ctx);
+            return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: 'Unit Cell', description: Symmetry.getUnitcellLabel(symmetry) });
+        });
+    },
+    update({ a, b, newParams }) {
+        return Task.create('Particle List Unit Cell', async ctx => {
+            const { cell } = a.data;
+            if (!cell) return StateTransformer.UpdateResult.Null;
+
+            const symmetry = ModelSymmetry.fromCell(cell.size, cell.anglesInRadians);
+            const props = { ...b.data.repr.props, ...newParams };
+            const center = Particle.getBoundary(a.data).sphere.center;
+            const data = getUnitcellDataFromSymmetry(symmetry, center, props);
+            await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
+            b.data.sourceData = data;
             return StateTransformer.UpdateResult.Updated;
         });
     }
