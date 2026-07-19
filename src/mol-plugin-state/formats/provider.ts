@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -27,7 +27,7 @@ export interface DataFormatProvider<P = any, R = any, V = any> {
 
 export function DataFormatProvider<P extends DataFormatProvider>(provider: P): P { return provider; }
 
-type CifVariants = 'dscif' | 'segcif' | 'coreCif' | -1
+type CifVariants = 'dscif' | 'segcif' | 'sfcif' | 'coreCif' | -1
 export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLike): CifVariants {
     if (info.ext === 'bcif') {
         try {
@@ -38,9 +38,14 @@ export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLik
             // Assumes volseg-volume-server only serves segments
             if (file.encoder.startsWith('volseg-volume-server')) return 'segcif';
 
-            if (bcifHasCategory(file, 'volume_data_3d_info')) {
-                if (bcifHasCategory(file, 'volume_data_3d')) return 'dscif';
-                if (bcifHasCategory(file, 'segmentation_data_3d')) return 'segcif';
+            if (bcifHasCategory(file, '_volume_data_3d_info')) {
+                if (bcifHasCategory(file, '_volume_data_3d')) return 'dscif';
+                if (bcifHasCategory(file, '_segmentation_data_3d')) return 'segcif';
+            }
+            if (bcifHasCategory(file, '_refln')) {
+                if (bcifHasColumn(file, '_refln', 'pdbx_FWT') || bcifHasColumn(file, '_refln', 'pdbx_DELFWT')) {
+                    return 'sfcif';
+                }
             }
         } catch (e) {
             console.error(e);
@@ -55,6 +60,9 @@ export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLik
             if (cifHasCategory(str, 'segmentation_data_3d')) return 'segcif';
         }
 
+        // Structure factor CIF: has _refln category with map coefficients
+        if (str.includes('_refln.pdbx_FWT') || str.includes('_refln.pdbx_DELFWT')) return 'sfcif';
+
         if (str.includes('atom_site_fract_x') || str.includes('atom_site.fract_x')) return 'coreCif';
     }
     return -1;
@@ -68,6 +76,19 @@ function bcifHasCategory(file: EncodedFile, categoryName: string): boolean {
     for (const block of file.dataBlocks) {
         for (const category of block.categories) {
             if (category.name === categoryName) return true;
+        }
+    }
+    return false;
+}
+
+function bcifHasColumn(file: EncodedFile, categoryName: string, columnName: string): boolean {
+    for (const block of file.dataBlocks) {
+        for (const category of block.categories) {
+            if (category.name === categoryName) {
+                for (const field of category.columns) {
+                    if (field.name === columnName) return true;
+                }
+            }
         }
     }
     return false;

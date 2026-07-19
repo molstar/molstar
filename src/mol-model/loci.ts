@@ -164,7 +164,7 @@ namespace Loci {
         if (loci.kind === 'structure-loci') {
             return Sphere3D.copy(boundingSphere, loci.structure.boundary.sphere);
         } else if (loci.kind === 'element-loci') {
-            return Sphere3D.copy(boundingSphere, StructureElement.Loci.getBoundary(loci).sphere);
+            return StructureElement.Loci.getBoundingSphere(loci, boundingSphere);
         } else if (loci.kind === 'bond-loci') {
             return Bond.getBoundingSphere(loci, boundingSphere);
         } else if (loci.kind === 'shape-loci') {

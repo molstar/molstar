@@ -96,14 +96,20 @@ export const MVSDownloadPrimitiveData = MVSTransform({
             if (node.kind !== 'primitives') {
                 throw new Error(`Expected primitives node from ${params.uri}, got ${node.kind}`);
             }
+            // NOTE: `addParamDefaults` results are assigned to local variables (rather than being
+            // used directly as object literal properties) to avoid contextual-type-driven generic
+            // inference issues with TypeScript 7 (the expected `params` field type would otherwise
+            // leak into the generic parameter inference for `addParamDefaults`).
+            const primitivesParams = addParamDefaults<typeof MVSTreeSchema.nodes.primitives.params>(MVSTreeSchema.nodes.primitives.params, node.params || {});
             const nodeWithDefaults: MolstarSubtree<'primitives'> = {
                 ...node,
-                params: addParamDefaults(MVSTreeSchema.nodes.primitives.params, node.params || {}),
+                params: primitivesParams,
                 children: node.children?.map((child: any) => {
                     if (child.kind === 'primitive') {
+                        const childParams = addParamDefaults<typeof MVSTreeSchema.nodes.primitive.params>(MVSTreeSchema.nodes.primitive.params, child.params || {});
                         return {
                             ...child,
-                            params: addParamDefaults(MVSTreeSchema.nodes.primitive.params, child.params || {})
+                            params: childParams
                         };
                     }
                     return child;

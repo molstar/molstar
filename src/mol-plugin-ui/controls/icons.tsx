@@ -204,9 +204,13 @@ export function LightModeSvg() { return _LightMode; }
 const _HeadsetVR = <svg width='16px' height='16px' viewBox='0 0 16 16'><path d='M8 1.248c1.857 0 3.526.641 4.65 1.794a5 5 0 0 1 2.518 1.09C13.907 1.482 11.295 0 8 0 4.75 0 2.12 1.48.844 4.122a5 5 0 0 1 2.289-1.047C4.236 1.872 5.974 1.248 8 1.248'/><path d='M12 12a4 4 0 0 1-2.786-1.13l-.002-.002a1.6 1.6 0 0 0-.276-.167A2.2 2.2 0 0 0 8 10.5c-.414 0-.729.103-.935.201a1.6 1.6 0 0 0-.277.167l-.002.002A4 4 0 1 1 4 4h8a4 4 0 0 1 0 8'/></svg>;
 export function HeadsetVRSvg() { return _HeadsetVR; }
 
+const _BenzeneRing = <svg width='24px' height='24px' viewBox='0 0 24 24'><path fillRule='evenodd' clipRule='evenodd' d='M12 2 L20.66 7 L20.66 17 L12 22 L3.34 17 L3.34 7 Z M12 4.5 L18.5 8.25 L18.5 15.75 L12 19.5 L5.5 15.75 L5.5 8.25 Z' /></svg>;
+export function BenzeneRingSvg() { return _BenzeneRing; }
+
 // Aliases
 
 export const SelectionModeSvg = CursorDefaultOutlineSvg;
 export const SuperposeAtomsSvg = ScatterPlotSvg;
 export const SuperposeChainsSvg = LinearScaleSvg;
+export const SuperposeLigandsSvg = BenzeneRingSvg;
 export const SuperpositionSvg = FlipToFrontSvg;

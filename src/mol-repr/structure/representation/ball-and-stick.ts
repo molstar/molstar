@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -45,7 +45,7 @@ export function getBallAndStickParams(ctx: ThemeRegistryContext, structure: Stru
     if (size >= Structure.Size.Huge) {
         params = PD.clone(params);
         params.visuals.defaultValue = ['element-sphere', 'intra-bond'];
-    } else if (structure.unitSymmetryGroups.length > 5000) {
+    } else if (structure.unitSymmetryGroups.length > 500) {
         params = PD.clone(params);
         params.visuals.defaultValue = ['structure-element-sphere', 'structure-intra-bond'];
     }

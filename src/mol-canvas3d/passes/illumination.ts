@@ -441,12 +441,7 @@ export class IlluminationPass {
 
             if (!skip) {
                 if (emissiveBloom) {
-                    bloom.emissiveTarget.bind();
-                    renderer.clear(false, true, true);
-                    renderer.renderEmissiveOpaque(scene.primitives, camera);
-                    if (params.transparency && scene.opacityAverage < 1) {
-                        renderer.renderEmissiveTransparent(scene.primitives, camera, this.drawPass.depthTextureTransparent);
-                    }
+                    this.drawPass.renderEmissiveBloom(renderer, camera, scene, params.transparency);
                 }
                 if (scene.opacityAverage >= 1) {
                     this.transparentTarget.bind();

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -49,7 +49,7 @@ export function getLineParams(ctx: ThemeRegistryContext, structure: Structure) {
     if (size >= Structure.Size.Huge) {
         params = PD.clone(params);
         params.visuals.defaultValue = ['intra-bond', 'element-point', 'element-cross'];
-    } else if (structure.unitSymmetryGroups.length > 5000) {
+    } else if (structure.unitSymmetryGroups.length > 500) {
         params = PD.clone(params);
         params.visuals.defaultValue = ['structure-intra-bond', 'structure-element-point', 'structure-element-cross'];
     }

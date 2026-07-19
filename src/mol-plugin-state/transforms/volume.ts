@@ -20,6 +20,8 @@ import { Grid, Volume } from '../../mol-model/volume';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateSelection, StateTransform, StateTransformer } from '../../mol-state';
 import { volumeFromSegmentationData } from '../../mol-model-formats/volume/segmentation';
+import { volumeFromStructureFactors, StructureFactorMapType } from '../../mol-model-formats/volume/structure-factors';
+import { volumeFromMtz } from '../../mol-model-formats/volume/mtz';
 import { getTransformFromParams, TransformParam, transformParamsNeedCentroid } from './helpers';
 import { getParticleTransformsAsMat4, ParticleList } from '../../mol-model/particles/particle-list';
 
@@ -30,6 +32,8 @@ export { VolumeFromDx };
 export { AssignColorVolume };
 export { VolumeFromDensityServerCif };
 export { VolumeFromSegmentationCif };
+export { VolumeFromStructureFactorsCif };
+export { VolumeFromMtz };
 export { VolumeTransform };
 export { VolumeInstances };
 export { ParticlesVolume };
@@ -199,6 +203,98 @@ const VolumeFromSegmentationCif = PluginStateTransform.BuiltIn({
             const volume = await volumeFromSegmentationData(segmentationCif, { segmentLabels, ownerId: params.ownerId }).runInContext(ctx);
             const [x, y, z] = volume.grid.cells.space.dimensions;
             const props = { label: segmentationCif.volume_data_3d_info.name.value(0), description: `Segmentation ${x}\u00D7${y}\u00D7${z}` };
+            return new SO.Volume.Data(volume, props);
+        });
+    },
+    dispose({ b }) {
+        b?.data.customProperties.dispose();
+    }
+});
+
+type VolumeFromStructureFactorsCif = typeof VolumeFromStructureFactorsCif
+const VolumeFromStructureFactorsCif = PluginStateTransform.BuiltIn({
+    name: 'volume-from-structure-factors-cif',
+    display: { name: 'Volume from Structure Factors CIF', description: 'Compute electron density map from structure factor reflection data (pdbx_FWT/pdbx_PHWT or pdbx_DELFWT/pdbx_DELPHWT)' },
+    from: SO.Format.Cif,
+    to: SO.Volume.Data,
+    params(a) {
+        const blockOptions: [string, string][] = a
+            ? a.data.blocks.map(b => [b.header, b.header] as [string, string])
+            : [];
+        return {
+            blockHeader: PD.Optional(blockOptions.length > 0
+                ? PD.Select(blockOptions[0][0], blockOptions, { description: 'Header of the data block to use' })
+                : PD.Text(void 0, { description: 'Header of the block to parse. Defaults to first block.' })),
+            entryId: PD.Text(''),
+            mapType: PD.Select<StructureFactorMapType>('2fo-fc', [['2fo-fc', '2Fo-Fc (pdbx_FWT/PHWT)'], ['fo-fc', 'Fo-Fc (pdbx_DELFWT/DELPHWT)']]),
+        };
+    }
+})({
+    isApplicable: a => a.data.blocks.length > 0,
+    apply({ a, params }) {
+        return Task.create('Parse structure factors CIF', async ctx => {
+            const header = params.blockHeader || a.data.blocks[0].header;
+            const block = a.data.blocks.find(b => b.header === header);
+            if (!block) throw new Error(`Data block '${header}' not found.`);
+            const sfCif = CIF.schema.SF(block);
+            const volume = await volumeFromStructureFactors(sfCif, {
+                entryId: params.entryId,
+                mapType: params.mapType,
+            }).runInContext(ctx);
+            const [x, y, z] = volume.grid.cells.space.dimensions;
+            const label = params.entryId || header;
+            const mapLabel = params.mapType === 'fo-fc' ? 'Fo-Fc' : '2Fo-Fc';
+            const props = { label, description: `${mapLabel} Volume ${x}\u00D7${y}\u00D7${z}` };
+            return new SO.Volume.Data(volume, props);
+        });
+    },
+    dispose({ b }) {
+        b?.data.customProperties.dispose();
+    }
+});
+
+type VolumeFromMtz = typeof VolumeFromMtz
+const VolumeFromMtz = PluginStateTransform.BuiltIn({
+    name: 'volume-from-mtz',
+    display: { name: 'Volume from MTZ', description: 'Compute electron density map from MTZ reflection data' },
+    from: SO.Format.Mtz,
+    to: SO.Volume.Data,
+    params(a) {
+        if (!a) {
+            return {
+                ampLabel: PD.Text('FWT', { description: 'Column label of the structure-factor amplitude (type F)' }),
+                phiLabel: PD.Text('PHWT', { description: 'Column label of the phase in degrees (type P)' }),
+                entryId: PD.Text(''),
+            };
+        }
+        const fCols = a.data.header.columns
+            .filter(c => c.type === 'F')
+            .map(c => [c.label, c.label] as [string, string]);
+        const pCols = a.data.header.columns
+            .filter(c => c.type === 'P')
+            .map(c => [c.label, c.label] as [string, string]);
+        return {
+            ampLabel: fCols.length > 0
+                ? PD.Select(fCols[0][0], fCols, { description: 'Structure-factor amplitude column (type F)' })
+                : PD.Text('FWT', { description: 'Structure-factor amplitude column label (type F)' }),
+            phiLabel: pCols.length > 0
+                ? PD.Select(pCols[0][0], pCols, { description: 'Phase column in degrees (type P)' })
+                : PD.Text('PHWT', { description: 'Phase column label in degrees (type P)' }),
+            entryId: PD.Text(''),
+        };
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Compute volume from MTZ', async ctx => {
+            const volume = await volumeFromMtz(a.data, {
+                ampLabel: params.ampLabel,
+                phiLabel: params.phiLabel,
+                entryId: params.entryId || undefined,
+                label: params.entryId || a.data.name || undefined,
+            }).runInContext(ctx);
+            const [x, y, z] = volume.grid.cells.space.dimensions;
+            const label = params.entryId || a.data.name || 'Volume';
+            const props = { label, description: `Volume ${x}\u00D7${y}\u00D7${z}` };
             return new SO.Volume.Data(volume, props);
         });
     },

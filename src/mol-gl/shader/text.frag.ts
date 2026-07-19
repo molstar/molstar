@@ -32,8 +32,8 @@ void main(){
     // determine if this is a background or glyph fragment
     bool isBackground = vTexCoord.x > 1.0;
 
-    // discard background for non-visual variants (depth, pick, marking, emissive)
-    #if !defined(dRenderVariant_color) && !defined(dRenderVariant_tracing)
+    // discard background for pick/marking/emissive, but keep it in depth
+    #if !defined(dRenderVariant_color) && !defined(dRenderVariant_tracing) && !defined(dRenderVariant_depth)
         if (isBackground) discard;
     #endif
 
@@ -49,6 +49,9 @@ void main(){
         gl_FragDepthEXT = fragmentDepth;
     #endif
 
+    // background writes its own opacity into depth alpha; glyphs stay opaque
+    #define dHasMaterialOpacity
+    float materialOpacity = isBackground ? uBackgroundOpacity : 1.0;
     #include assign_material_color
 
     if (isBackground) {

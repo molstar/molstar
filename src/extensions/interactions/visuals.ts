@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -68,8 +68,8 @@ export function buildInteractionsShape(interactions: StructureInteractions, para
 
     const colors = new Map<number, Color>();
 
-    const bA = { sphere: Sphere3D.zero() };
-    const bB = { sphere: Sphere3D.zero() };
+    const sA = Sphere3D();
+    const sB = Sphere3D();
 
     const pA = Vec3();
     const pB = Vec3();
@@ -118,14 +118,14 @@ export function buildInteractionsShape(interactions: StructureInteractions, para
 
         colors.set(mesh.currentGroup, params.styles[interaction.info.kind].color);
 
-        StructureElement.Loci.getBoundary(interaction.a, undefined, bA);
-        StructureElement.Loci.getBoundary(interaction.b, undefined, bB);
+        StructureElement.Loci.getBoundingSphere(interaction.a, sA);
+        StructureElement.Loci.getBoundingSphere(interaction.b, sB);
 
-        Vec3.sub(dir, bB.sphere.center, bA.sphere.center);
+        Vec3.sub(dir, sB.center, sA.center);
         Vec3.normalize(dir, dir);
 
-        Vec3.copy(pA, bA.sphere.center);
-        Vec3.copy(pB, bB.sphere.center);
+        Vec3.copy(pA, sA.center);
+        Vec3.copy(pB, sB.center);
 
         if (interaction.info.kind === 'hydrogen-bond' || interaction.info.kind === 'weak-hydrogen-bond') {
             const hydrogenStyle = params.styles[interaction.info.kind];
