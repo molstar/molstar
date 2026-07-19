@@ -224,7 +224,7 @@ const VolumeFromStructureFactorsCif = PluginStateTransform.BuiltIn({
                 ? PD.Select(blockOptions[0][0], blockOptions, { description: 'Header of the data block to use' })
                 : PD.Text(void 0, { description: 'Header of the block to parse. Defaults to first block.' })),
             entryId: PD.Text(''),
-            mapType: PD.Select<StructureFactorMapType>('2fo-fc', [['2fo-fc', '2Fo-Fc (pdbx_FWT/PHWT)'], ['fo-fc', 'Fo-Fc (pdbx_DELFWT/DELPHWT)'], ['patterson', 'Patterson (F_meas_au²)']] as [StructureFactorMapType, string][]),
+            mapType: PD.Select<StructureFactorMapType>('2fo-fc', [['2fo-fc', '2Fo-Fc (pdbx_FWT/PHWT)'], ['fo-fc', 'Fo-Fc (pdbx_DELFWT/DELPHWT)']]),
         };
     }
 })({

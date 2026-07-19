@@ -410,7 +410,6 @@ export const MtzProvider = DataFormatProvider({
         const b = plugin.build().to(mtzCell);
         const mtz = mtzCell.obj!.data;
         const pairs = detectMtzColumnPairs(mtz.header);
-        console.log({ pairs, header: mtz.header })
 
         if (pairs.length === 0) {
             throw new Error('MTZ file does not contain any recognised amplitude+phase column pairs (FWT/PHWT, DELFWT/DELPHWT, 2FOFCWT/PH2FOFCWT, FOFCWT/PHFOFCWT).');
