@@ -340,8 +340,8 @@ export const SfcifProvider = DataFormatProvider({
             const reflnCat = block.categories['refln'];
             if (!(reflnCat?.rowCount > 0)) continue;
 
-            const has2fofcCoeffs = (reflnCat.getField('pdbx_FWT')?.rowCount ?? 0) > 0;
-            const hasFofcCoeffs = (reflnCat.getField('pdbx_DELFWT')?.rowCount ?? 0) > 0;
+            const has2fofcCoeffs = (reflnCat.getField('pdbx_FWT')?.rowCount ?? 0) > 0 && (reflnCat.getField('pdbx_PHWT')?.rowCount ?? 0) > 0;
+            const hasFofcCoeffs = (reflnCat.getField('pdbx_DELFWT')?.rowCount ?? 0) > 0 && (reflnCat.getField('pdbx_DELPHWT')?.rowCount ?? 0) > 0;
             if (!has2fofcCoeffs && !hasFofcCoeffs) continue;
 
             if (has2fofcCoeffs) {

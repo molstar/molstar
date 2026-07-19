@@ -55,8 +55,16 @@ export function volumeFromStructureFactors(
         const kArr = refln.index_k.toArray({ array: Int16Array });
         const lArr = refln.index_l.toArray({ array: Int16Array });
 
-        const ampCol = (mapType === '2fo-fc' ? refln.pdbx_FWT : refln.pdbx_DELFWT).toArray({ array: Float32Array });
-        const phiCol = (mapType === '2fo-fc' ? refln.pdbx_PHWT : refln.pdbx_DELPHWT).toArray({ array: Float32Array });
+        const ampColumn = mapType === '2fo-fc' ? refln.pdbx_FWT : refln.pdbx_DELFWT;
+        const phiColumn = mapType === '2fo-fc' ? refln.pdbx_PHWT : refln.pdbx_DELPHWT;
+        if (!ampColumn.isDefined || !phiColumn.isDefined) {
+            const ampName = mapType === '2fo-fc' ? 'pdbx_FWT' : 'pdbx_DELFWT';
+            const phiName = mapType === '2fo-fc' ? 'pdbx_PHWT' : 'pdbx_DELPHWT';
+            throw new Error(`Structure factor CIF is missing required _refln.${ampName}/_refln.${phiName} map coefficients.`);
+        }
+
+        const ampCol = ampColumn.toArray({ array: Float32Array });
+        const phiCol = phiColumn.toArray({ array: Float32Array });
 
         // 3–5. Compute density via shared helper
         const { density, N0, N1, N2 } = await computeElectronDensityFromReflections(
