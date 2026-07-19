@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -42,6 +42,13 @@ namespace Sphere3D {
     export function set(out: Sphere3D, center: Vec3, radius: number) {
         Vec3.copy(out.center, center);
         out.radius = radius;
+        return out;
+    }
+
+    export function setZero(out: Sphere3D) {
+        Vec3.set(out.center, 0, 0, 0);
+        out.radius = 0;
+        out.extrema = void 0;
         return out;
     }
 

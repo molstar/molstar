@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -30,6 +30,12 @@ namespace Box3D {
     export function set(out: Box3D, min: Vec3, max: Vec3): Box3D {
         Vec3.copy(out.min, min);
         Vec3.copy(out.max, max);
+        return out;
+    }
+
+    export function setZero(out: Box3D) {
+        Vec3.set(out.min, 0, 0, 0);
+        Vec3.set(out.max, 0, 0, 0);
         return out;
     }
 
