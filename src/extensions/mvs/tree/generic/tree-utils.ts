@@ -150,10 +150,11 @@ export function condenseTree<T extends Tree>(root: T, condenseNodes?: Set<Kind<T
 
 /** Create a copy of the tree where missing optional params for each node are added based on `defaults`. */
 export function addDefaults<S extends TreeSchema>(tree: TreeFor<S>, treeSchema: S): TreeFor<TreeSchemaWithAllRequired<S>> {
-    type TTree = TreeFor<S>;
-    const rules: ConversionRules<TTree, TTree> = {};
+    // NOTE: `rules` and `convertTree` below are typed against the non-generic `Tree` (rather than
+    // `TreeFor<S>`) to avoid excessively deep type instantiation when `S` is a generic type parameter.
+    const rules: ConversionRules<Tree, Tree> = {};
     for (const kind in treeSchema.nodes) {
-        rules[kind as Kind<Subtree<TTree>>] = node => ({
+        rules[kind] = node => ({
             subtree: [{
                 kind: node.kind,
                 params: addParamDefaults(treeSchema.nodes[kind].params, node.params as any),
@@ -162,7 +163,7 @@ export function addDefaults<S extends TreeSchema>(tree: TreeFor<S>, treeSchema: 
             } as Node as any]
         });
     }
-    return convertTree(tree, rules) as any;
+    return convertTree(tree as Tree, rules) as any;
 }
 
 /** Resolve any URI params in a tree, in place. URI params are those listed in `uriParamNames`.
