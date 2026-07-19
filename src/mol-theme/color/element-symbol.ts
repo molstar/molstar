@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Hakan Akgül <hakan-akgul@outlook.com>
  */
 
 import { ElementSymbol } from '../../mol-model/structure/model/types';
