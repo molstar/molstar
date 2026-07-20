@@ -110,13 +110,30 @@ export function realSph(L: number, theta: number, phi: number, out?: Float64Arra
     const norm = getNormFactors(L);
     const sqrt2 = Math.SQRT2;
 
+    // m = 0 band: no azimuthal (phi) dependence
     for (let l = 0; l <= L; ++l) {
-        // m = 0
         y[shIndex(l, 0)] = norm[legendreIndex(l, 0)] * p[legendreIndex(l, 0)];
-        for (let m = 1; m <= l; ++m) {
-            const k = norm[legendreIndex(l, m)] * p[legendreIndex(l, m)] * sqrt2;
-            y[shIndex(l, m)] = k * Math.cos(m * phi);
-            y[shIndex(l, -m)] = k * Math.sin(m * phi);
+    }
+
+    // cos(m phi)/sin(m phi) via the angle-addition recurrence from a single cos(phi)/sin(phi)
+    // evaluation, instead of calling Math.cos/Math.sin(m * phi) directly for every (l, m) pair -
+    // the original loop nested m inside l, so it recomputed the SAME cos(m phi)/sin(m phi)
+    // (which does not depend on l at all) once per l >= m, i.e. up to O(L^2) redundant
+    // transcendental calls. This brings it down to 2 `Math.cos`/`Math.sin` calls total plus O(L)
+    // cheap multiply-adds.
+    if (L > 0) {
+        const cos1 = Math.cos(phi), sin1 = Math.sin(phi);
+        let cm = 1, sm = 0; // cos(0 * phi), sin(0 * phi)
+        for (let m = 1; m <= L; ++m) {
+            const cmNext = cos1 * cm - sin1 * sm;
+            const smNext = sin1 * cm + cos1 * sm;
+            cm = cmNext; sm = smNext;
+
+            for (let l = m; l <= L; ++l) {
+                const k = norm[legendreIndex(l, m)] * p[legendreIndex(l, m)] * sqrt2;
+                y[shIndex(l, m)] = k * cm;
+                y[shIndex(l, -m)] = k * sm;
+            }
         }
     }
     return y;
