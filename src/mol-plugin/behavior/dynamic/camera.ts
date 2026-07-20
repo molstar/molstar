@@ -14,6 +14,8 @@ import { Binding } from '../../../mol-util/binding';
 import { PluginCommands } from '../../commands';
 import { CameraHelperAxis, isCameraAxesLoci } from '../../../mol-canvas3d/helper/camera-helper';
 import { Vec3 } from '../../../mol-math/linear-algebra';
+import { TransitionShapeParamDefinition } from '../../../mol-canvas3d/camera/transition-functions';
+import { EasingParamDefinition } from '../../../mol-math/easing';
 
 const B = ButtonsType;
 const M = ModifiersKeys;
@@ -68,6 +70,8 @@ const FocusLociParams = {
     minRadius: PD.Numeric(8, { min: 1, max: 50, step: 1 }),
     extraRadius: PD.Numeric(4, { min: 1, max: 50, step: 1 }, { description: 'Value added to the bounding-sphere radius of the Loci' }),
     durationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'Camera transition duration' }),
+    easing: EasingParamDefinition,
+    shape: TransitionShapeParamDefinition,
 
     bindings: PD.Value(DefaultFocusLociBindings, { isHidden: true }),
 };
@@ -90,7 +94,7 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                     : (this.params.bindings.clickResetCameraOnEmpty ?? DefaultClickResetCameraOnEmpty);
 
                 if (Loci.isEmpty(current.loci) && Binding.match(resetBinding, button, modifiers)) {
-                    PluginCommands.Camera.Reset(this.ctx, { });
+                    PluginCommands.Camera.Reset(this.ctx, {});
                     return;
                 }
 

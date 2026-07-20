@@ -7,6 +7,7 @@
 
 import { lerp } from '../../mol-math/interpolate';
 import { Quat, Vec3 } from '../../mol-math/linear-algebra';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Camera } from '../camera';
 import { CameraTransitionManager } from './transition';
 
@@ -136,7 +137,7 @@ function transition_leap_relative(out: Camera.Snapshot, t_rot: number, source: C
     const shift = Vec3.distance(source.target, target.target);
     const rVisSource = visibleSphereRadius(source);
     const rVisTarget = visibleSphereRadius(target);
-    let { r: rVis, q: t_trans } = getRadiusAndQuotientWithOffset(rVisSource, rVisTarget, shift, t_rot);
+    const { r: rVis, q: t_trans } = getRadiusAndQuotientWithOffset(rVisSource, rVisTarget, shift, t_rot);
     const dist = cameraTargetDistance(rVis, out.mode, out.fov);
     const rCorrection = rVis / lerp(rVisSource, rVisTarget, t_rot);
 
@@ -183,6 +184,12 @@ export function getTransitionFn(shape: TransitionShape | undefined): CameraTrans
     if (!shape) return TransitionFunctions.linear;
     return TransitionFunctions[shape] ?? TransitionFunctions.linear;
 }
+
+export const TransitionShapeParamDefinition: PD.Select<TransitionShape> = PD.Select(
+    'linear',
+    Object.keys(TransitionFunctions).map(key => [key as TransitionShape, key]),
+    { description: 'Camera transition trajectory shape. "linear": interpolates along a straight line with constant absolute speed; "linear-relative": like "linear" but moves relatively slower when zoomed-in more; "leap": zooms out during the transtion to capture both the initial and the final camera target (becomes linear if the targets are near); "leap-relative": like "leap" but moves relatively slower when zoomed-in more.' }
+);
 
 
 /** Sphere radius "interpolation" method which increases the radius during transition so that for some t (0<=t<=1) the interpolated sphere will contain both source and target spheres.
@@ -346,4 +353,3 @@ function getRadiusAndQuotient(rA: number, rB: number, dist: number, t: number) {
 
 // TODO: add easing and shape params to src/mol-plugin/behavior/dynamic/camera.ts (durationMs) and src/mol-canvas3d/canvas3d.ts (cameraResetDurationMs)
 // TODO: consider setting default transition to sin-in-out leap-relative 500ms
-// TODO: add docs for leap-relative
