@@ -15,11 +15,14 @@ import { Mat4 } from '../linear-algebra/3d/mat4';
 import { Tensor } from '../linear-algebra/tensor';
 import { PrincipalAxes } from '../linear-algebra/matrix/principal-axes';
 import { fasterExp } from '../approx';
+import { fitSphericalHarmonics, reconstructRadius, toSpherical, SphericalCoord, shTermCount } from './spherical-harmonics';
 
 export const DefaultBlobSurfaceProps = {
     blobSize: 30,
     method: 'grid' as 'grid' | 'clustering',
     clusterIterations: 2,
+    shape: 'ellipsoid' as 'ellipsoid' | 'sh',
+    shDegree: 2,
     resolution: 2,
     radiusOffset: 0,
     smoothness: 1.5,
@@ -29,6 +32,7 @@ export type BlobSurfaceProps = typeof DefaultBlobSurfaceProps
 export type BlobSurfaceData = { radiusFactor: number } & DensityData
 
 interface EllipsoidBlob {
+    kind: 'ellipsoid'
     center: Vec3
     /** orthonormal local axis directions */
     u0: Vec3, u1: Vec3, u2: Vec3
@@ -38,8 +42,31 @@ interface EllipsoidBlob {
     atomId: number
 }
 
-function blobMaxExtent(blob: EllipsoidBlob) {
-    return Math.max(blob.a0, blob.a1, blob.a2);
+interface SHBlob {
+    kind: 'sh'
+    center: Vec3
+    /** max supported degree of the fitted real spherical-harmonics radial boundary `R(theta, phi)` */
+    degree: number
+    coeffs: Float64Array
+    /** hard ceiling for `R(theta, phi)` (also used for padding): a small fixed margin over the
+     * largest observed per-atom target radius, bounding any fit overshoot in unsampled directions */
+    maxR: number
+    /** representative atom id (nearest to `center`), same convention as `PositionData.id` */
+    atomId: number
+}
+
+/** margin applied over the largest observed per-atom target radius when clamping/padding an SH blob's `R(theta, phi)` */
+const SH_OVERSHOOT_CLAMP = 1.25;
+
+/** scale-invariant Tikhonov regularization strength passed to `fitSphericalHarmonics` - keeps
+ * sparse/degenerate groups (fewer atoms than SH coefficients, single-atom groups, collinear
+ * atoms) well-defined instead of exploding, at the cost of some smoothing on well-sampled groups */
+const SH_REGULARIZATION = 0.05;
+
+type Blob = EllipsoidBlob | SHBlob
+
+function blobMaxExtent(blob: Blob) {
+    return blob.kind === 'ellipsoid' ? Math.max(blob.a0, blob.a1, blob.a2) : blob.maxR;
 }
 
 /**
@@ -187,7 +214,7 @@ function groupAtomsByClustering(position: PositionData, boundary: Boundary, blob
  * the group's atom radii) to one group of atoms. Groups with a single atom fall back to an
  * isotropic sphere (no covariance to fit).
  */
-function fitEllipsoidBlobFromGroup(position: PositionData, radius: (index: number) => number, radiusOffset: number, group: AtomGroup): EllipsoidBlob {
+function fitEllipsoidBlobFromGroup(position: PositionData, radius: (index: number) => number, radiusOffset: number, group: AtomGroup): Blob {
     const { indices, x, y, z, id } = position;
     const m = group.count;
 
@@ -237,7 +264,64 @@ function fitEllipsoidBlobFromGroup(position: PositionData, radius: (index: numbe
         a2 = (s2 > 1e-6 ? s2 : 0) + avgRadius;
     }
 
-    return { center, u0, u1, u2, a0, a1, a2, atomId };
+    return { kind: 'ellipsoid', center, u0, u1, u2, a0, a1, a2, atomId };
+}
+
+/**
+ * Fits a spherical-harmonics radial boundary `R(theta, phi)` (about the group's centroid) to one
+ * group of atoms via `fitSphericalHarmonics` (`./spherical-harmonics`), generalizing the
+ * ellipsoid's fixed quadratic boundary into an angularly-varying one that can (for `degree > 2`)
+ * hug non-ellipsoidal, even mildly concave, local atom-cluster shapes. Each atom contributes one
+ * sample point placed at `center + direction * targetRadius` (`targetRadius` = distance to the
+ * atom + its own radius + `radiusOffset`), so the fit already sees the desired inflated boundary
+ * directly as its sample radii, rather than the bare atom positions. `fitSphericalHarmonics`'s
+ * Tikhonov regularization (`SH_REGULARIZATION`) keeps degenerate/sparse groups (fewer atoms than
+ * SH coefficients, collinear atoms, single-atom groups, etc.) well-defined instead of
+ * oscillating/overfitting.
+ */
+function fitSHBlobFromGroup(position: PositionData, radius: (index: number) => number, radiusOffset: number, group: AtomGroup, degree: number): Blob {
+    const { indices, x, y, z, id } = position;
+    const m = group.count;
+
+    const center = Vec3();
+    for (let k = 0; k < group.count; ++k) {
+        const t = group.array[group.offset + k];
+        const i = OrderedSet.getAt(indices, t);
+        center[0] += x[i]; center[1] += y[i]; center[2] += z[i];
+    }
+    Vec3.scale(center, center, 1 / m);
+
+    // inflated sample points `center + direction * targetRadius`, so `fitSphericalHarmonics`
+    // (which samples r = |point - center|) sees the desired boundary radius directly
+    const samples = new Float64Array(m * 3);
+    let reprT = group.array[group.offset];
+    let bestDistSq = Infinity;
+
+    for (let k = 0; k < group.count; ++k) {
+        const t = group.array[group.offset + k];
+        const i = OrderedSet.getAt(indices, t);
+        const dx = x[i] - center[0], dy = y[i] - center[1], dz = z[i] - center[2];
+        const dSq = dx * dx + dy * dy + dz * dz;
+        if (dSq < bestDistSq) {
+            bestDistSq = dSq;
+            reprT = t;
+        }
+
+        const dist = Math.sqrt(dSq);
+        const targetR = dist + radius(i) + radiusOffset;
+        const ux = dist > 1e-8 ? dx / dist : 1, uy = dist > 1e-8 ? dy / dist : 0, uz = dist > 1e-8 ? dz / dist : 0;
+        samples[k * 3] = center[0] + ux * targetR;
+        samples[k * 3 + 1] = center[1] + uy * targetR;
+        samples[k * 3 + 2] = center[2] + uz * targetR;
+    }
+
+    const fit = fitSphericalHarmonics(samples, center, degree, undefined, SH_REGULARIZATION);
+    const atomId = id ? id[reprT] : reprT;
+
+    // hard ceiling (used both for grid padding and, in computeBlobSurface, to clamp R(theta, phi)
+    // itself) over the max observed target radius - bounds any residual fit overshoot in
+    // unsampled directions to a small, fixed margin regardless of degree/sample distribution
+    return { kind: 'sh', center, degree, coeffs: fit.coeffs, maxR: fit.rMax * SH_OVERSHOOT_CLAMP, atomId };
 }
 
 /**
@@ -248,14 +332,16 @@ function fitEllipsoidBlobFromGroup(position: PositionData, radius: (index: numbe
  * each group's atoms are fit to either an ellipsoid (`shape: 'ellipsoid'`) or a
  * spherical-harmonics radial boundary (`shape: 'sh'`).
  */
-function fitBlobs(position: PositionData, boundary: Boundary, radius: (index: number) => number, props: BlobSurfaceProps): { blobs: EllipsoidBlob[], maxSemiAxis: number } {
-    const { blobSize, radiusOffset, method, clusterIterations } = props;
+function fitBlobs(position: PositionData, boundary: Boundary, radius: (index: number) => number, props: BlobSurfaceProps): { blobs: Blob[], maxSemiAxis: number } {
+    const { blobSize, radiusOffset, method, clusterIterations, shape, shDegree } = props;
 
     const groups = method === 'clustering'
         ? groupAtomsByClustering(position, boundary, blobSize, clusterIterations)
         : groupAtomsByGrid(position, boundary, blobSize);
 
-    const blobs = groups.map(group => fitEllipsoidBlobFromGroup(position, radius, radiusOffset, group));
+    const blobs: Blob[] = shape === 'sh'
+        ? groups.map(group => fitSHBlobFromGroup(position, radius, radiusOffset, group, shDegree))
+        : groups.map(group => fitEllipsoidBlobFromGroup(position, radius, radiusOffset, group));
 
     let maxSemiAxis = 0;
     for (const b of blobs) {
@@ -289,7 +375,7 @@ function ellipsoidWorldPad(out: Vec3, u0: Vec3, u1: Vec3, u2: Vec3, a0: number, 
  * that affordable instead of also depending on a coarse resolution to avoid blowing up cell count.
  */
 export function computeBlobSurface(position: PositionData, boundary: Boundary, radius: (index: number) => number, props: BlobSurfaceProps): BlobSurfaceData {
-    const { resolution, smoothness } = props;
+    const { resolution, smoothness, shDegree } = props;
     const alpha = smoothness;
     const scaleFactor = 1 / resolution;
 
@@ -310,7 +396,11 @@ export function computeBlobSurface(position: PositionData, boundary: Boundary, r
         if (maxExtent > maxSemiAxis) maxSemiAxis = maxExtent;
 
         const padVec = Vec3();
-        ellipsoidWorldPad(padVec, blob.u0, blob.u1, blob.u2, blob.a0, blob.a1, blob.a2, cutoff);
+        if (blob.kind === 'ellipsoid') {
+            ellipsoidWorldPad(padVec, blob.u0, blob.u1, blob.u2, blob.a0, blob.a1, blob.a2, cutoff);
+        } else {
+            Vec3.set(padVec, maxExtent * cutoff, maxExtent * cutoff, maxExtent * cutoff);
+        }
         blobPads.push(padVec);
 
         for (let axis = 0; axis < 3; ++axis) {
@@ -350,10 +440,14 @@ export function computeBlobSurface(position: PositionData, boundary: Boundary, r
     const gridz = fillGridDim(dim[2], min[2], resolution);
 
     const densData = space.create();
+    const sphericalScratch: SphericalCoord = { r: 0, theta: 0, phi: 0 };
+    const shBasisScratch = new Float64Array(shTermCount(shDegree));
+    const legendreScratch = new Float64Array(((shDegree + 1) * (shDegree + 2)) / 2);
 
     for (let bi = 0; bi < blobs.length; ++bi) {
         const blob = blobs[bi];
         const { center, atomId } = blob;
+        const maxExtent = blobMaxExtent(blob);
         const padVec = blobPads[bi];
 
         const iax = Math.floor(scaleFactor * (center[0] - min[0]));
@@ -371,30 +465,66 @@ export function computeBlobSurface(position: PositionData, boundary: Boundary, r
         const endY = Math.min(dimY, iay + ngy + 2);
         const endZ = Math.min(dimZ, iaz + ngz + 2);
 
-        const { u0, u1, u2, a0, a1, a2 } = blob;
-        const a0Sq = a0 * a0, a1Sq = a1 * a1, a2Sq = a2 * a2;
+        if (blob.kind === 'ellipsoid') {
+            const { u0, u1, u2, a0, a1, a2 } = blob;
+            const a0Sq = a0 * a0, a1Sq = a1 * a1, a2Sq = a2 * a2;
 
-        for (let xi = begX; xi < endX; ++xi) {
-            const dx = gridx[xi] - center[0];
-            const xIdx = xi * iuv;
-            for (let yi = begY; yi < endY; ++yi) {
-                const dy = gridy[yi] - center[1];
-                const xyIdx = yi * iu + xIdx;
-                for (let zi = begZ; zi < endZ; ++zi) {
-                    const dz = gridz[zi] - center[2];
+            for (let xi = begX; xi < endX; ++xi) {
+                const dx = gridx[xi] - center[0];
+                const xIdx = xi * iuv;
+                for (let yi = begY; yi < endY; ++yi) {
+                    const dy = gridy[yi] - center[1];
+                    const xyIdx = yi * iu + xIdx;
+                    for (let zi = begZ; zi < endZ; ++zi) {
+                        const dz = gridz[zi] - center[2];
 
-                    const l0 = dx * u0[0] + dy * u0[1] + dz * u0[2];
-                    const l1 = dx * u1[0] + dy * u1[1] + dz * u1[2];
-                    const l2 = dx * u2[0] + dy * u2[1] + dz * u2[2];
-                    const q = (l0 * l0) / a0Sq + (l1 * l1) / a1Sq + (l2 * l2) / a2Sq;
+                        const l0 = dx * u0[0] + dy * u0[1] + dz * u0[2];
+                        const l1 = dx * u1[0] + dy * u1[1] + dz * u1[2];
+                        const l2 = dx * u2[0] + dy * u2[1] + dz * u2[2];
+                        const q = (l0 * l0) / a0Sq + (l1 * l1) / a1Sq + (l2 * l2) / a2Sq;
 
-                    if (q <= cutoffSq) {
-                        const dens = fasterExp(-alpha * q);
-                        const idx = zi + xyIdx;
-                        data[idx] += dens;
-                        if (dens > densData[idx]) {
-                            densData[idx] = dens;
-                            idData[idx] = atomId;
+                        if (q <= cutoffSq) {
+                            const dens = fasterExp(-alpha * q);
+                            const idx = zi + xyIdx;
+                            data[idx] += dens;
+                            if (dens > densData[idx]) {
+                                densData[idx] = dens;
+                                idData[idx] = atomId;
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            const { degree, coeffs } = blob;
+            const minR = 1e-3;
+
+            for (let xi = begX; xi < endX; ++xi) {
+                const dx = gridx[xi] - center[0];
+                const xIdx = xi * iuv;
+                for (let yi = begY; yi < endY; ++yi) {
+                    const dy = gridy[yi] - center[1];
+                    const xyIdx = yi * iu + xIdx;
+                    for (let zi = begZ; zi < endZ; ++zi) {
+                        const dz = gridz[zi] - center[2];
+
+                        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                        if (dist > maxExtent * cutoff) continue;
+
+                        toSpherical(dx, dy, dz, sphericalScratch);
+                        let r = reconstructRadius(coeffs, degree, sphericalScratch.theta, sphericalScratch.phi, shBasisScratch, legendreScratch);
+                        if (r < minR) r = minR;
+                        else if (r > maxExtent) r = maxExtent; // hard ceiling: no lobe beyond a small margin over the real data extent
+
+                        const q = (dist * dist) / (r * r);
+                        if (q <= cutoffSq) {
+                            const dens = fasterExp(-alpha * q);
+                            const idx = zi + xyIdx;
+                            data[idx] += dens;
+                            if (dens > densData[idx]) {
+                                densData[idx] = dens;
+                                idData[idx] = atomId;
+                            }
                         }
                     }
                 }

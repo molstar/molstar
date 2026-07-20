@@ -36,6 +36,9 @@ function shouldUpdateGeometry(newProps: BlobDensityProps, currentProps: BlobDens
         newProps.blobMethod.name !== currentProps.blobMethod.name ||
         (newProps.blobMethod.name === 'clustering' && currentProps.blobMethod.name === 'clustering' &&
             newProps.blobMethod.params.iterations !== currentProps.blobMethod.params.iterations) ||
+        newProps.blobShape.name !== currentProps.blobShape.name ||
+        (newProps.blobShape.name === 'sphericalHarmonics' && currentProps.blobShape.name === 'sphericalHarmonics' &&
+            newProps.blobShape.params.degree !== currentProps.blobShape.params.degree) ||
         newProps.resolution !== currentProps.resolution ||
         newProps.resolutionFactor !== currentProps.resolutionFactor ||
         newProps.radiusOffset !== currentProps.radiusOffset ||
