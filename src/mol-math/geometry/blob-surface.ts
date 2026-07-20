@@ -23,6 +23,7 @@ export const DefaultBlobSurfaceProps = {
     clusterIterations: 2,
     shape: 'ellipsoid' as 'ellipsoid' | 'sh',
     shDegree: 2,
+    shRegularization: 0.05,
     resolution: 2,
     radiusOffset: 0,
     smoothness: 1.5,
@@ -57,11 +58,6 @@ interface SHBlob {
 
 /** margin applied over the largest observed per-atom target radius when clamping/padding an SH blob's `R(theta, phi)` */
 const SH_OVERSHOOT_CLAMP = 1.25;
-
-/** scale-invariant Tikhonov regularization strength passed to `fitSphericalHarmonics` - keeps
- * sparse/degenerate groups (fewer atoms than SH coefficients, single-atom groups, collinear
- * atoms) well-defined instead of exploding, at the cost of some smoothing on well-sampled groups */
-const SH_REGULARIZATION = 0.05;
 
 type Blob = EllipsoidBlob | SHBlob
 
@@ -275,11 +271,11 @@ function fitEllipsoidBlobFromGroup(position: PositionData, radius: (index: numbe
  * sample point placed at `center + direction * targetRadius` (`targetRadius` = distance to the
  * atom + its own radius + `radiusOffset`), so the fit already sees the desired inflated boundary
  * directly as its sample radii, rather than the bare atom positions. `fitSphericalHarmonics`'s
- * Tikhonov regularization (`SH_REGULARIZATION`) keeps degenerate/sparse groups (fewer atoms than
+ * Tikhonov regularization (`regularization`) keeps degenerate/sparse groups (fewer atoms than
  * SH coefficients, collinear atoms, single-atom groups, etc.) well-defined instead of
  * oscillating/overfitting.
  */
-function fitSHBlobFromGroup(position: PositionData, radius: (index: number) => number, radiusOffset: number, group: AtomGroup, degree: number): Blob {
+function fitSHBlobFromGroup(position: PositionData, radius: (index: number) => number, radiusOffset: number, group: AtomGroup, degree: number, regularization: number): Blob {
     const { indices, x, y, z, id } = position;
     const m = group.count;
 
@@ -315,7 +311,7 @@ function fitSHBlobFromGroup(position: PositionData, radius: (index: number) => n
         samples[k * 3 + 2] = center[2] + uz * targetR;
     }
 
-    const fit = fitSphericalHarmonics(samples, center, degree, undefined, SH_REGULARIZATION);
+    const fit = fitSphericalHarmonics(samples, center, degree, undefined, regularization);
     const atomId = id ? id[reprT] : reprT;
 
     // hard ceiling (used both for grid padding and, in computeBlobSurface, to clamp R(theta, phi)
@@ -333,14 +329,14 @@ function fitSHBlobFromGroup(position: PositionData, radius: (index: number) => n
  * spherical-harmonics radial boundary (`shape: 'sh'`).
  */
 function fitBlobs(position: PositionData, boundary: Boundary, radius: (index: number) => number, props: BlobSurfaceProps): { blobs: Blob[], maxSemiAxis: number } {
-    const { blobSize, radiusOffset, method, clusterIterations, shape, shDegree } = props;
+    const { blobSize, radiusOffset, method, clusterIterations, shape, shDegree, shRegularization } = props;
 
     const groups = method === 'clustering'
         ? groupAtomsByClustering(position, boundary, blobSize, clusterIterations)
         : groupAtomsByGrid(position, boundary, blobSize);
 
     const blobs: Blob[] = shape === 'sh'
-        ? groups.map(group => fitSHBlobFromGroup(position, radius, radiusOffset, group, shDegree))
+        ? groups.map(group => fitSHBlobFromGroup(position, radius, radiusOffset, group, shDegree, shRegularization))
         : groups.map(group => fitEllipsoidBlobFromGroup(position, radius, radiusOffset, group));
 
     let maxSemiAxis = 0;

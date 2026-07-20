@@ -38,7 +38,8 @@ function shouldUpdateGeometry(newProps: BlobDensityProps, currentProps: BlobDens
             newProps.blobMethod.params.iterations !== currentProps.blobMethod.params.iterations) ||
         newProps.blobShape.name !== currentProps.blobShape.name ||
         (newProps.blobShape.name === 'sphericalHarmonics' && currentProps.blobShape.name === 'sphericalHarmonics' &&
-            newProps.blobShape.params.degree !== currentProps.blobShape.params.degree) ||
+            (newProps.blobShape.params.degree !== currentProps.blobShape.params.degree ||
+                newProps.blobShape.params.regularization !== currentProps.blobShape.params.regularization)) ||
         newProps.resolution !== currentProps.resolution ||
         newProps.resolutionFactor !== currentProps.resolutionFactor ||
         newProps.radiusOffset !== currentProps.radiusOffset ||

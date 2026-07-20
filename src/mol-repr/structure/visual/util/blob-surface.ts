@@ -27,7 +27,8 @@ export const BlobDensityParams = {
     blobShape: PD.MappedStatic('ellipsoid', {
         ellipsoid: PD.Group({}),
         sphericalHarmonics: PD.Group({
-            degree: PD.Numeric(2, { min: 0, max: 12, step: 1 }, { description: 'Max degree of the fitted spherical-harmonics radial boundary. Higher degrees can hug non-ellipsoidal, even mildly concave, blob shapes more closely, at extra cost.' })
+            degree: PD.Numeric(2, { min: 0, max: 12, step: 1 }, { description: 'Max degree of the fitted spherical-harmonics radial boundary. Higher degrees can hug non-ellipsoidal, even mildly concave, blob shapes more closely, at extra cost.' }),
+            regularization: PD.Numeric(0.05, { min: 0, max: 1, step: 0.01 }, { description: 'Tikhonov regularization strength for the spherical-harmonics fit. Higher values relax degenerate/sparse groups (e.g. single-atom blobs, high degrees) toward a smooth mean-radius sphere instead of oscillating/overfitting; 0 disables it.' })
         })
     }, { description: 'Shape fitted to each group of atoms. "ellipsoid" fits a fixed quadratic boundary (fast). "sphericalHarmonics" fits an angularly-varying radial boundary that can better follow non-ellipsoidal blob shapes.' }),
     radiusOffset: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, { description: 'Extra/offset radius added to the atoms/coarse elements for blob calculation. Useful to create coarse, low resolution surfaces.' }),
@@ -52,6 +53,7 @@ function getBlobDensityData(position: PositionData, boundary: Boundary, radius: 
         clusterIterations: blobMethod.name === 'clustering' ? blobMethod.params.iterations : 0,
         shape: blobShape.name === 'sphericalHarmonics' ? 'sh' : 'ellipsoid',
         shDegree: blobShape.name === 'sphericalHarmonics' ? blobShape.params.degree : 0,
+        shRegularization: blobShape.name === 'sphericalHarmonics' ? blobShape.params.regularization : 0,
         resolution,
         radiusOffset,
         smoothness
