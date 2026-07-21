@@ -64,12 +64,12 @@ class CameraTransitionManager {
         }
 
         this.inTransition = true;
-        this.func = transition || CameraTransitionManager.defaultTransition;
-        this._options = options;
 
         if (!this.inTransition || durationMs > 0) {
             this.start = this.t;
             this.durationMs = durationMs;
+            this.func = transition || CameraTransitionManager.defaultTransition;
+            this._options = options;
         }
     }
 
