@@ -42,10 +42,11 @@ function transition_linear_internal(out: Camera.Snapshot, tTrans: number, tRot: 
     // Interpolate target
     Vec3.lerp(out.target, source.target, target.target, tTrans);
 
-    // Interpolate distance
-    const distSource = Vec3.distance(source.target, source.position);
-    const distTarget = Vec3.distance(target.target, target.position);
-    const dist = lerp(distSource, distTarget, tTrans);
+    // Interpolate distance (indirectly via visible sphere radius, for a more natural transition when FOV changes)
+    const rVisSource = visibleSphereRadius(source);
+    const rVisTarget = visibleSphereRadius(target);
+    const rVis = lerp(rVisSource, rVisTarget, tTrans);
+    const dist = cameraTargetDistance(rVis, out.mode, out.fov);
 
     // Interpolate direction and up
     interpolateCameraRotation(out, tRot, dist, source, target);
@@ -92,7 +93,6 @@ export function transition_leap(out: Camera.Snapshot, t: number, source: Camera.
     // Interpolate fov & fog
     out.fov = lerp(source.fov, target.fov, t);
     out.fog = lerp(source.fog, target.fog, t);
-    // TODO fix Canvas3D.setProps() setting FOV instantly before transition starts!
 
     // Interpolate distance (indirectly via visible sphere radius)
     const shift = Vec3.distance(source.target, target.target);
@@ -120,7 +120,6 @@ function transition_leap_relative(out: Camera.Snapshot, t: number, source: Camer
     // Interpolate fov & fog
     out.fov = lerp(source.fov, target.fov, t);
     out.fog = lerp(source.fog, target.fog, t);
-    // TODO fix Canvas3D.setProps() setting FOV instantly before transition starts!
 
     // Interpolate distance (indirectly via visible sphere radius)
     const shift = Vec3.distance(source.target, target.target);
@@ -328,3 +327,4 @@ function getRadiusAndQuotient(rA: number, rB: number, dist: number, t: number) {
 
 
 // TODO: consider setting default transition to sin-in-out leap-relative 500ms
+// TODO: produce test files
