@@ -12,56 +12,10 @@ import { Camera } from '../camera';
 import { CameraTransitionManager } from './transition';
 
 
-const _rotUp = Quat.identity();
-const _rotDist = Quat.identity();
-
-const _sourcePosition = Vec3();
-const _targetPosition = Vec3();
-
 /** Amount artificially added to the visible sphere radius in calculations for constant relative speed (dtarget / dt = (r + CONST_REL_SPEED_OFFSET) * const),
  * to avoid issues related to zero radius (1/0, log(0)) */
 const CONST_REL_SPEED_OFFSET = 1;
 
-
-/** Linear transition allowing different transition quotient for distances (`t_trans`) and angles (`t_rot`). */
-function transition_linear_internal(out: Camera.Snapshot, t_trans: number, t_rot: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
-    Camera.copySnapshot(out, target);
-
-    // Rotate up
-    Quat.slerp(_rotUp, Quat.Identity, Quat.rotationTo(_rotUp, source.up, target.up), t_rot);
-    Vec3.transformQuat(out.up, source.up, _rotUp);
-
-    // Interpolate target
-    Vec3.lerp(out.target, source.target, target.target, t_trans);
-
-    // Interpolate distance
-    const distSource = Vec3.distance(source.target, source.position);
-    const distTarget = Vec3.distance(target.target, target.position);
-    const dist = lerp(distSource, distTarget, t_trans);
-
-    // Rotate between source and target direction
-    Vec3.sub(_sourcePosition, source.position, source.target);
-    Vec3.normalize(_sourcePosition, _sourcePosition);
-
-    Vec3.sub(_targetPosition, target.position, target.target);
-    Vec3.normalize(_targetPosition, _targetPosition);
-
-    Quat.rotationTo(_rotDist, _sourcePosition, _targetPosition);
-    Quat.slerp(_rotDist, Quat.Identity, _rotDist, t_rot);
-
-    Vec3.transformQuat(_sourcePosition, _sourcePosition, _rotDist);
-    Vec3.scale(_sourcePosition, _sourcePosition, dist);
-
-    Vec3.add(out.position, out.target, _sourcePosition);
-
-    // Interpolate radius
-    out.radius = lerp(source.radius, target.radius, t_trans);
-    out.radiusMax = lerp(source.radiusMax, target.radiusMax, t_trans);
-
-    // Interpolate fov & fog
-    out.fov = lerp(source.fov, target.fov, t_rot);
-    out.fog = lerp(source.fog, target.fog, t_rot);
-}
 
 /** Simple linear transition with constant absolute speed. */
 export function transition_linear(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
@@ -73,8 +27,59 @@ export function transition_linear(out: Camera.Snapshot, t: number, source: Camer
 export function transition_linear_relative(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
     const rVisSource = visibleSphereRadius(source);
     const rVisTarget = visibleSphereRadius(target);
-    const t_trans = constRelSpeedQuotientAdj_linRadIntp(rVisSource + CONST_REL_SPEED_OFFSET, rVisTarget + CONST_REL_SPEED_OFFSET, t);
-    return transition_linear_internal(out, t_trans, t, source, target);
+    const tTrans = constRelSpeedQuotientAdj_linRadIntp(rVisSource + CONST_REL_SPEED_OFFSET, rVisTarget + CONST_REL_SPEED_OFFSET, t);
+    return transition_linear_internal(out, tTrans, t, source, target);
+}
+
+/** Linear transition allowing different transition quotient for distances (`tTrans`) and angles (`tRot`). */
+function transition_linear_internal(out: Camera.Snapshot, tTrans: number, tRot: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
+    Camera.copySnapshot(out, target);
+
+    // Interpolate fov & fog (use tRot as these are scale-independent)
+    out.fov = lerp(source.fov, target.fov, tRot);
+    out.fog = lerp(source.fog, target.fog, tRot);
+
+    // Interpolate target
+    Vec3.lerp(out.target, source.target, target.target, tTrans);
+
+    // Interpolate distance
+    const distSource = Vec3.distance(source.target, source.position);
+    const distTarget = Vec3.distance(target.target, target.position);
+    const dist = lerp(distSource, distTarget, tTrans);
+
+    // Interpolate direction and up
+    interpolateCameraRotation(out, tRot, dist, source, target);
+
+    // Interpolate radius
+    out.radius = lerp(source.radius, target.radius, tTrans);
+    out.radiusMax = lerp(source.radiusMax, target.radiusMax, tTrans);
+}
+
+const _sourceDirection = Vec3();
+const _targetDirection = Vec3();
+const _rotUp = Quat.identity();
+const _rotDist = Quat.identity();
+
+/** Interpolate camera direction and up, set camera distance from its target to `dist`. */
+function interpolateCameraRotation(out: Camera.Snapshot, t: number, dist: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
+    // Rotate up
+    Quat.rotationTo(_rotUp, source.up, target.up)
+    Quat.slerp(_rotUp, Quat.Identity, _rotUp, t);
+    Vec3.transformQuat(out.up, source.up, _rotUp);
+
+    // Rotate between source and target direction
+    Vec3.sub(_sourceDirection, source.position, source.target);
+    Vec3.normalize(_sourceDirection, _sourceDirection);
+
+    Vec3.sub(_targetDirection, target.position, target.target);
+    Vec3.normalize(_targetDirection, _targetDirection);
+
+    Quat.rotationTo(_rotDist, _sourceDirection, _targetDirection);
+    Quat.slerp(_rotDist, Quat.Identity, _rotDist, t);
+    Vec3.transformQuat(_sourceDirection, _sourceDirection, _rotDist);
+
+    Vec3.scale(_sourceDirection, _sourceDirection, dist);
+    Vec3.add(out.position, out.target, _sourceDirection);
 }
 
 /** "Leaping" camera transition with constant absolute speed.
@@ -84,18 +89,33 @@ export function transition_linear_relative(out: Camera.Snapshot, t: number, sour
 export function transition_leap(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
     Camera.copySnapshot(out, target);
 
-    // Rotate up
-    Quat.slerp(_rotUp, Quat.Identity, Quat.rotationTo(_rotUp, source.up, target.up), t);
-    Vec3.transformQuat(out.up, source.up, _rotUp);
+    // Interpolate fov & fog
+    out.fov = lerp(source.fov, target.fov, t);
+    out.fog = lerp(source.fog, target.fog, t);
+    // TODO fix Canvas3D.setProps() setting FOV instantly before transition starts!
+
+    // Interpolate distance (indirectly via visible sphere radius)
+    const shift = Vec3.distance(source.target, target.target);
+    const rVisSource = visibleSphereRadius(source);
+    const rVisTarget = visibleSphereRadius(target);
+    const rVis = leapingRadiusInterpolationSmart(rVisSource, rVisTarget, shift, t);
+    const dist = cameraTargetDistance(rVis, out.mode, out.fov);
 
     // Interpolate target
     Vec3.lerp(out.target, source.target, target.target, t);
 
-    const shift = Vec3.distance(source.target, target.target);
+    // Interpolate direction and up
+    interpolateCameraRotation(out, t, dist, source, target);
 
     // Interpolate radius
     out.radius = leapingRadiusInterpolationSmart(source.radius, target.radius, shift, t);
     out.radiusMax = leapingRadiusInterpolationSmart(source.radiusMax, target.radiusMax, shift, t);
+}
+
+/** "Leaping" camera transition with constant speed relative to visible sphere radius (move slower where zoomed-in more, dtarget / dt = (r + CONST_REL_SPEED_OFFSET) * const).
+ * Rotational component of the transition uses linear interpolation. */
+function transition_leap_relative(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
+    Camera.copySnapshot(out, target);
 
     // Interpolate fov & fog
     out.fov = lerp(source.fov, target.fov, t);
@@ -103,71 +123,22 @@ export function transition_leap(out: Camera.Snapshot, t: number, source: Camera.
     // TODO fix Canvas3D.setProps() setting FOV instantly before transition starts!
 
     // Interpolate distance (indirectly via visible sphere radius)
-    const rVisSource = visibleSphereRadius(source);
-    const rVisTarget = visibleSphereRadius(target);
-    const rVis = leapingRadiusInterpolationSmart(rVisSource, rVisTarget, shift, t);
-    const dist = cameraTargetDistance(rVis, out.mode, out.fov);
-
-    // Rotate between source and target direction
-    Vec3.sub(_sourcePosition, source.position, source.target);
-    Vec3.normalize(_sourcePosition, _sourcePosition);
-
-    Vec3.sub(_targetPosition, target.position, target.target);
-    Vec3.normalize(_targetPosition, _targetPosition);
-
-    Quat.rotationTo(_rotDist, _sourcePosition, _targetPosition);
-    Quat.slerp(_rotDist, Quat.Identity, _rotDist, t);
-
-    Vec3.transformQuat(_sourcePosition, _sourcePosition, _rotDist);
-    Vec3.scale(_sourcePosition, _sourcePosition, dist);
-
-    Vec3.add(out.position, out.target, _sourcePosition);
-}
-
-/** "Leaping" camera transition with constant speed relative to visible sphere radius (move slower where zoomed-in more, dtarget / dt = (r + CONST_REL_SPEED_OFFSET) * const).
- * Rotational component of the transition uses linear interpolation. */
-function transition_leap_relative(out: Camera.Snapshot, t_rot: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
-    Camera.copySnapshot(out, target);
-
-    // Rotate up
-    Quat.slerp(_rotUp, Quat.Identity, Quat.rotationTo(_rotUp, source.up, target.up), t_rot);
-    Vec3.transformQuat(out.up, source.up, _rotUp);
-
-    // Interpolate distance (indirectly via visible sphere radius)
     const shift = Vec3.distance(source.target, target.target);
     const rVisSource = visibleSphereRadius(source);
     const rVisTarget = visibleSphereRadius(target);
-    const { r: rVis, q: t_trans } = getRadiusAndQuotientWithOffset(rVisSource, rVisTarget, shift, t_rot);
+    const { r: rVis, q: tTrans } = getRadiusAndQuotientWithOffset(rVisSource, rVisTarget, shift, t);
     const dist = cameraTargetDistance(rVis, out.mode, out.fov);
-    const rCorrection = rVis / lerp(rVisSource, rVisTarget, t_rot);
+    const rCorrection = rVis / lerp(rVisSource, rVisTarget, t);
 
     // Interpolate target
-    Vec3.lerp(out.target, source.target, target.target, t_trans);
+    Vec3.lerp(out.target, source.target, target.target, tTrans);
+
+    // Interpolate direction and up
+    interpolateCameraRotation(out, t, dist, source, target);
 
     // Interpolate radius
-    out.radius = lerp(source.radius, target.radius, t_rot) * rCorrection;
-    out.radiusMax = lerp(source.radiusMax, target.radiusMax, t_rot) * rCorrection;
-
-    // Interpolate fov & fog
-    out.fov = lerp(source.fov, target.fov, t_rot);
-    out.fog = lerp(source.fog, target.fog, t_rot);
-    // TODO fix Canvas3D.setProps() setting FOV instantly before transition starts!
-    // TODO update fov before using it in dist
-
-    // Rotate between source and target direction
-    Vec3.sub(_sourcePosition, source.position, source.target);
-    Vec3.normalize(_sourcePosition, _sourcePosition);
-
-    Vec3.sub(_targetPosition, target.position, target.target);
-    Vec3.normalize(_targetPosition, _targetPosition);
-
-    Quat.rotationTo(_rotDist, _sourcePosition, _targetPosition);
-    Quat.slerp(_rotDist, Quat.Identity, _rotDist, t_rot);
-
-    Vec3.transformQuat(_sourcePosition, _sourcePosition, _rotDist);
-    Vec3.scale(_sourcePosition, _sourcePosition, dist);
-
-    Vec3.add(out.position, out.target, _sourcePosition);
+    out.radius = lerp(source.radius, target.radius, t) * rCorrection;
+    out.radiusMax = lerp(source.radiusMax, target.radiusMax, t) * rCorrection;
 }
 
 
@@ -218,6 +189,7 @@ function leapingRadiusInterpolationCubic(rA: number, rB: number, dist: number, t
         return lerp(rB, rmax, niceCubic((1 - t) / (1 - tmax)));
     }
 }
+
 /** Sphere radius "interpolation" method similar to `leapingRadiusInterpolationCubic`,
  * but the radius increases less when the source and target spheres overlap, and becomes linear when at least one of the spheres contains the center of the other
  * (this is to avoid disturbing zoom-out when the source and target are near). */
@@ -227,6 +199,7 @@ function leapingRadiusInterpolationSmart(rA: number, rB: number, dist: number, t
     if (overlapFactor >= 1) return lerp(rA, rB, t); // one of the spheres contains the center of the other
     return lerp(leapingRadiusInterpolationCubic(rA, rB, dist, t), lerp(rA, rB, t), overlapFactor);
 }
+
 /** Arbitrary measure of how much two spheres overlap (>0 when spheres do not overlap, >=1 when at least of the spheres contains the center of the other) */
 function relativeSphereOverlap(rA: number, rB: number, dist: number): number {
     const overlap = rA + rB - dist;
@@ -235,6 +208,7 @@ function relativeSphereOverlap(rA: number, rB: number, dist: number): number {
     }
     return overlap / Math.min(rA, rB);
 }
+
 /** Auxiliary cubic function that goes from y(0)=0 to y(1)=1.
  * When alpha=1, it is a curve with inflection point in 0 and stationary point in 1.
  * When alpha=0, it becomes a linear function. */
