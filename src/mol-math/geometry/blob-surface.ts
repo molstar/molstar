@@ -15,7 +15,7 @@ import { Mat4 } from '../linear-algebra/3d/mat4';
 import { Tensor } from '../linear-algebra/tensor';
 import { PrincipalAxes } from '../linear-algebra/matrix/principal-axes';
 import { fasterExp } from '../approx';
-import { fitSphericalHarmonics, reconstructRadius, toSpherical, SphericalCoord, shTermCount } from './spherical-harmonics';
+import { fitSphericalHarmonics, toSpherical, SphericalCoord, buildRadiusLUT, sampleRadiusLUT, RadiusLUT } from './spherical-harmonics';
 
 export const DefaultBlobSurfaceProps = {
     blobSize: 30,
@@ -437,8 +437,14 @@ export function computeBlobSurface(position: PositionData, boundary: Boundary, r
 
     const densData = space.create();
     const sphericalScratch: SphericalCoord = { r: 0, theta: 0, phi: 0 };
-    const shBasisScratch = new Float64Array(shTermCount(shDegree));
-    const legendreScratch = new Float64Array(((shDegree + 1) * (shDegree + 2)) / 2);
+    // Angular resolution for the SH radius lookup table (see `buildRadiusLUT`'s docstring for why
+    // this exists): roughly 2*shDegree+1 samples per axis are enough to resolve degree-`shDegree`
+    // angular detail without aliasing: a bit of oversampling on top of that keeps the bilinear
+    // interpolation smooth. `shDegree` is one prop shared by every SH blob in this call, so the
+    // table dimensions (and thus its `values` buffer) can be reused across all of them.
+    const shLUTnTheta = 6 * (shDegree + 1);
+    const shLUTnPhi = 12 * (shDegree + 1);
+    let shLUT: RadiusLUT | undefined;
 
     for (let bi = 0; bi < blobs.length; ++bi) {
         const blob = blobs[bi];
@@ -494,6 +500,10 @@ export function computeBlobSurface(position: PositionData, boundary: Boundary, r
         } else {
             const { degree, coeffs } = blob;
             const minR = 1e-3;
+            // one O(tableSize * degree^2) build per blob instead of an O(degree^2) reconstruction
+            // per voxel - see `buildRadiusLUT`'s docstring; `shLUT` (sized once for `shDegree`,
+            // shared by every SH blob) is reused/overwritten in place across blobs
+            shLUT = buildRadiusLUT(coeffs, degree, shLUTnTheta, shLUTnPhi, minR, maxExtent, shLUT);
 
             for (let xi = begX; xi < endX; ++xi) {
                 const dx = gridx[xi] - center[0];
@@ -508,9 +518,8 @@ export function computeBlobSurface(position: PositionData, boundary: Boundary, r
                         if (dist > maxExtent * cutoff) continue;
 
                         toSpherical(dx, dy, dz, sphericalScratch);
-                        let r = reconstructRadius(coeffs, degree, sphericalScratch.theta, sphericalScratch.phi, shBasisScratch, legendreScratch);
-                        if (r < minR) r = minR;
-                        else if (r > maxExtent) r = maxExtent; // hard ceiling: no lobe beyond a small margin over the real data extent
+                        const r = sampleRadiusLUT(shLUT, sphericalScratch.theta, sphericalScratch.phi);
+                        // r is already clamped to [minR, maxExtent] - baked into the LUT at build time
 
                         const q = (dist * dist) / (r * r);
                         if (q <= cutoffSq) {

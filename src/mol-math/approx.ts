@@ -218,3 +218,15 @@ export function fastAtan2(y: number, x: number) {
     t = y < 0.0 ? -t : t;
     return t;
 }
+
+/**
+ * Code by Nicholas Chapman
+ * https://www.forwardscattering.org/post/66
+ */
+export function fastAcos(x: number) {
+    if (x < 0.0) {
+        return Math.PI - ((x * 0.124605335 + 0.1570634) * (0.99418175 + x) + Math.sqrt(2.0 + 2.0 * x));
+    } else {
+        return (x * -0.124605335 + 0.1570634) * (0.99418175 - x) + Math.sqrt(2.0 - 2.0 * x);
+    }
+}
