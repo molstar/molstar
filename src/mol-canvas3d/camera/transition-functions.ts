@@ -185,11 +185,13 @@ export function getTransitionFn(shape: TransitionShape | undefined): CameraTrans
     return TransitionFunctions[shape] ?? TransitionFunctions.linear;
 }
 
-export const TransitionShapeParamDefinition: PD.Select<TransitionShape> = PD.Select(
-    'linear',
-    Object.keys(TransitionFunctions).map(key => [key as TransitionShape, key]),
-    { description: 'Camera transition trajectory shape. "linear": interpolates along a straight line with constant absolute speed; "linear-relative": like "linear" but moves relatively slower when zoomed-in more; "leap": zooms out during the transtion to capture both the initial and the final camera target (becomes linear if the targets are near); "leap-relative": like "leap" but moves relatively slower when zoomed-in more.' }
-);
+export function TransitionShapeParamDefinition(defaultValue: TransitionShape): PD.Select<TransitionShape> {
+    return PD.Select(
+        defaultValue,
+        Object.keys(TransitionFunctions).map(key => [key as TransitionShape, key]),
+        { description: 'Camera transition trajectory shape. "linear": interpolates along a straight line with constant absolute speed; "linear-relative": like "linear" but moves relatively slower when zoomed-in more; "leap": zooms out during the transtion to capture both the initial and the final camera target (becomes linear if the targets are near); "leap-relative": like "leap" but moves relatively slower when zoomed-in more.' }
+    );
+}
 
 
 /** Sphere radius "interpolation" method which increases the radius during transition so that for some t (0<=t<=1) the interpolated sphere will contain both source and target spheres.
@@ -351,5 +353,4 @@ function getRadiusAndQuotient(rA: number, rB: number, dist: number, t: number) {
 }
 
 
-// TODO: add easing and shape params to src/mol-plugin/behavior/dynamic/camera.ts (durationMs) and src/mol-canvas3d/canvas3d.ts (cameraResetDurationMs)
 // TODO: consider setting default transition to sin-in-out leap-relative 500ms

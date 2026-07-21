@@ -137,8 +137,10 @@ export function getEasingFn(easing: EasingFunction | undefined): (t: number) => 
     return typeof easing === 'function' ? easing : EasingFunctions[easing] ?? EasingFunctions.linear;
 }
 
-export const EasingParamDefinition: PD.Select<EasingKind> = PD.Select(
-    'linear',
-    Object.keys(EasingFunctions).map(key => [key as EasingKind, key]),
-    { description: 'Transition easing function. Adjusts transition speed near the beginning and end of the transition to create smoother camera motion.' }
-);
+export function EasingParamDefinition(defaultValue: EasingKind): PD.Select<EasingKind> {
+    return PD.Select(
+        defaultValue,
+        Object.keys(EasingFunctions).map(key => [key as EasingKind, key]),
+        { description: 'Transition easing function. Adjusts transition speed near the beginning and end of the transition to create smoother camera motion.' }
+    );
+}

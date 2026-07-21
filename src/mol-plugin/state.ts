@@ -232,8 +232,8 @@ namespace PluginState {
         cameraTransition: PD.MappedStatic('animate', {
             animate: PD.Group({
                 durationInMs: PD.Numeric(250, { min: 100, max: 5000, step: 500 }, { label: 'Duration in ms' }),
-                easing: EasingParamDefinition,
-                shape: TransitionShapeParamDefinition,
+                easing: EasingParamDefinition('linear'),
+                shape: TransitionShapeParamDefinition('linear'),
             }),
             instant: PD.Group({})
         }, { options: [['animate', 'Animate'], ['instant', 'Instant']] }),

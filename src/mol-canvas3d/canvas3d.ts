@@ -97,8 +97,8 @@ export const Canvas3DParams = {
     }),
 
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
-    cameraResetEasing: EasingParamDefinition,
-    cameraResetShape: TransitionShapeParamDefinition,
+    cameraResetEasing: EasingParamDefinition('linear'),
+    cameraResetShape: TransitionShapeParamDefinition('linear'),
     sceneRadiusFactor: PD.Numeric(1, { min: 1, max: 10, step: 0.1 }),
     transparentBackground: PD.Boolean(false),
     checkeredTransparentBackground: PD.Boolean(false),

@@ -70,8 +70,8 @@ const FocusLociParams = {
     minRadius: PD.Numeric(8, { min: 1, max: 50, step: 1 }),
     extraRadius: PD.Numeric(4, { min: 1, max: 50, step: 1 }, { description: 'Value added to the bounding-sphere radius of the Loci' }),
     durationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'Camera transition duration' }),
-    easing: EasingParamDefinition,
-    shape: TransitionShapeParamDefinition,
+    easing: EasingParamDefinition('linear'),
+    shape: TransitionShapeParamDefinition('linear'),
 
     bindings: PD.Value(DefaultFocusLociBindings, { isHidden: true }),
 };
