@@ -7,7 +7,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { MVSData } from '../../extensions/mvs';
+import { MVSData, type Snapshot } from '../../extensions/mvs';
 import { MVSLoadOptions } from '../../extensions/mvs/load';
 import { applyStructureInteractivity, StructureInteractivityOptions } from '../../extensions/plugin/interactivity';
 import * as loaders from '../../extensions/plugin/loaders';
@@ -233,12 +233,11 @@ export class Viewer {
 /** Demonstration of usage of MVS builder */
 function builderDemo2() {
     function foo(title: string, zoomRes: number | [number, number] | undefined, shape?: TransitionShape, easing?: EasingKind) {
-        // const transitionDuration = 1250;
         const transitionDuration = 1000;
         const builder = MVSData.createBuilder();
         const struct = builder
-            // .download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/download/1tqn_updated.cif' })
-            .download({ url: '/tmp/1tqn_updated.cif' })
+            .download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/download/1tqn_updated.cif' })
+            // .download({ url: '/tmp/1tqn_updated.cif' })
             .parse({ format: 'mmcif' })
             .modelStructure();
         struct.component().representation()
@@ -247,86 +246,50 @@ function builderDemo2() {
             .color({ selector: { beg_label_seq_id: 125, end_label_seq_id: 145 }, color: '#FFCCCC' })
             .color({ selector: { label_seq_id: 145 }, color: '#FF0D0D' })
             .color({ selector: { label_seq_id: 275 }, color: '#00AA0D' });
-        // builder.animation({ duration_ms: transitionDuration })
-        //     .interpolate({
-        //         start_ms: 0,
-        //         duration_ms: transitionDuration/2,
-        //         target_ref: 'color',
-        //         property: 'color',
-        //         kind: 'color',
-        //         start: '#ffffff',
-        //         end: '#00ff00',
-        //     })
-        //     .interpolate({
-        //         start_ms: transitionDuration/2,
-        //         duration_ms: transitionDuration/2,
-        //         target_ref: 'color',
-        //         property: 'color',
-        //         kind: 'color',
-        //         start: '#00ff00',
-        //         end: '#ffffff',
-        //     });
         if (Array.isArray(zoomRes)) {
-            struct.component({ selector: { beg_label_seq_id: zoomRes[0], end_label_seq_id: zoomRes[1] } }).focus();
+            struct
+                .component({ selector: { beg_label_seq_id: zoomRes[0], end_label_seq_id: zoomRes[1] } })
+                .focus();
         } else if (typeof zoomRes === 'number') {
-            struct.component({ selector: { label_seq_id: zoomRes } }).focus({ radius: 5 });
+            struct
+                .component({ selector: { label_seq_id: zoomRes } })
+                .focus(
+                    zoomRes === 7 ? { direction: [0, -1, -0.1], up: [-0.1, 1, 0] }
+                        : zoomRes === 275 ? { direction: [0, 0, -1], up: [-0.3, 1, 0] }
+                            : zoomRes === 145 ? { direction: [0, 1, -0.1], up: [0.1, 1, 0] }
+                                : undefined
+                );
         }
         builder.extendRootCustomState({
             molstar_transition_shape: shape,
             molstar_transition_easing: easing,
         });
-        return builder.getSnapshot({ title, linger_duration_ms: 1250, transition_duration_ms: transitionDuration });
+        const zoomDesc = Array.isArray(zoomRes) ? `Residues ${zoomRes.join('-')}` : typeof zoomRes === 'number' ? `Residue ${zoomRes}` : 'Whole structure';
+        const description = `### *${shape}* transition with *${easing}* easing \n\n${zoomDesc}`
+        return builder.getSnapshot({ title, linger_duration_ms: 1250, transition_duration_ms: transitionDuration, description });
     }
-    // camera_transitions-shapes.mvsj:
-    // const snapshots = [
-    //     foo('All linear', undefined, 'linear'),
-    //     foo('Res 7 leap', 7, 'leap'),
-    //     foo('Res 145 leap', 145, 'leap'),
-    //     foo('Res 7 leap', 7, 'leap'),
-    //     foo('Res 145 linear', 145, 'linear'),
-    //     foo('Res 7 linear', 7, 'linear'),
-    //     foo('All linear', undefined, 'linear'),
-    //     foo('Res 7 linear', 7, 'linear'),
-    //     foo('All linear-relative', undefined, 'linear-relative'),
-    //     foo('Res 7 linear-relative', 7, 'linear-relative'),
-    // ];
 
-    // camera_transitions-easings.mvsj:
-    // const snapshots = [
-    //     foo('All linear', undefined, 'linear'),
-    //     foo('Res 7 linear', 7, 'linear'),
-    //     foo('All linear', undefined, 'linear'),
-    //     foo('Res 7 sin-in-out', 7, 'linear', 'sin-in-out'),
-    //     foo('All sin-in-out', undefined, 'linear', 'sin-in-out'),
-    //     foo('Res 7 cubic-in-out', 7, 'linear', 'cubic-in-out'),
-    //     foo('All cubic-in-out', undefined, 'linear', 'cubic-in-out'),
-    // ];
-
+    const shape: TransitionShape = 'linear';
     const ease: EasingKind = 'linear';
-    // const ease: EasingKind = 'sin-in-out';
-    const snapshots = [
-        // foo('All linear', undefined, 'linear', ease),
-        // foo('Res 7 linear', 7, 'linear', ease),
-        // foo('Res 145 linear', 145, 'linear', ease),
-
-        // foo('All linear-relative', undefined, 'linear-relative', ease),
-        // foo('Res 7 linear-relative', 7, 'linear-relative', ease),
-        // foo('Res 145 linear-relative', 145, 'linear-relative', ease),
-
-        foo('All leap', undefined, 'leap', ease),
-        foo('Res 7 leap', 7, 'leap', ease),
-        foo('Res 145 leap', 145, 'leap', ease),
-        foo('Res 275 leap', 275, 'leap', ease),
-        foo('Res range leap', [125, 145], 'leap', ease),
-
-        foo('All leap-relative', undefined, 'leap-relative', ease),
-        foo('Res 7 leap-relative', 7, 'leap-relative', ease),
-        foo('Res 145 leap-relative', 145, 'leap-relative', ease),
-        foo('Res 143 leap-relative', 143, 'leap-relative', ease),
-        foo('Res 140 leap-relative', 140, 'leap-relative', ease),
-        foo('Res 130 leap-relative', 130, 'leap-relative', ease),
-        foo('Res 275 leap-relative', 275, 'leap-relative', ease),
-        foo('Res range leap-relative', [125, 145], 'leap-relative', ease),
+    const snapshots: Snapshot[] = [
     ];
+    for (const shape of ['linear', 'linear-relative', 'leap', 'leap-relative'] as const) {
+        snapshots.push(
+            foo(`${shape} All`, undefined, shape, ease),
+            foo(`${shape} Blue`, 7, shape, ease),
+            foo(`${shape} Green`, 275, shape, ease),
+            foo(`${shape} Red`, 145, shape, ease),
+            foo(`${shape} Pink`, [125, 145], shape, ease),
+        );
+    }
+    // for (const ease of ['linear', 'sin-in-out', 'cubic-in-out'] as const) {
+    //     snapshots.push(
+    //         foo(`${ease} All`, undefined, shape, ease),
+    //         foo(`${ease} Blue`, 7, shape, ease),
+    //         foo(`${ease} Green`, 275, shape, ease),
+    //         foo(`${ease} Red`, 145, shape, ease),
+    //         foo(`${ease} Pink`, [125, 145], shape, ease),
+    //     );
+    // }
     return MVSData.createMultistate(snapshots);
 }
