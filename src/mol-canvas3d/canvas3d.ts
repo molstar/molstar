@@ -5,6 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Gianluca Tomasello <giagitom@gmail.com>
  * @author Herman Bergwerf <post@hbergwerf.nl>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { BehaviorSubject, Subject, Subscription, debounceTime, merge } from 'rxjs';
