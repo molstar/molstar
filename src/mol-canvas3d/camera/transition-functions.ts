@@ -64,7 +64,7 @@ const _rotDist = Quat.identity();
 /** Interpolate camera direction and up, set camera distance from its target to `dist`. */
 function interpolateCameraRotation(out: Camera.Snapshot, t: number, dist: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
     // Rotate up
-    Quat.rotationTo(_rotUp, source.up, target.up)
+    Quat.rotationTo(_rotUp, source.up, target.up);
     Quat.slerp(_rotUp, Quat.Identity, _rotUp, t);
     Vec3.transformQuat(out.up, source.up, _rotUp);
 
@@ -324,7 +324,3 @@ function getRadiusAndQuotient(rA: number, rB: number, dist: number, t: number) {
         }
     }
 }
-
-
-// TODO: consider setting default transition to sin-in-out leap-relative 500ms
-// TODO: produce test files
