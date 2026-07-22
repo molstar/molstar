@@ -159,7 +159,7 @@ export function TransitionShapeParamDefinition(defaultValue: TransitionShape): P
     return PD.Select(
         defaultValue,
         Object.keys(TransitionFunctions).map(key => [key as TransitionShape, key]),
-        { description: 'Camera transition trajectory shape. "linear": interpolates along a straight line with constant absolute speed; "linear-relative": like "linear" but moves relatively slower when zoomed-in more; "leap": zooms out during the transtion to capture both the initial and the final camera target (becomes linear if the targets are near); "leap-relative": like "leap" but moves relatively slower when zoomed-in more.' }
+        { description: 'Camera transition trajectory shape. "linear": interpolates along a straight line with constant absolute speed; "linear-relative": like "linear" but moves relatively slower when zoomed-in more; "leap": zooms out during the transition to capture both the initial and the final camera target (becomes linear if the targets are near); "leap-relative": like "leap" but moves relatively slower when zoomed-in more.' }
     );
 }
 
