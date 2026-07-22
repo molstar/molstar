@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { Canvas3DParams } from '../../../mol-canvas3d/canvas3d';
@@ -28,17 +29,20 @@ async function setPartialSnapshot(plugin: PluginContext, entry: Partial<PluginSt
         }
         plugin.canvas3d?.setProps(settings);
     }
+    const instant = first || entry.camera?.transitionStyle === 'instant';
     if (entry.camera?.current) {
         plugin.canvas3d?.requestCameraReset({
             snapshot: entry.camera.current,
-            durationMs: first || entry.camera.transitionStyle === 'instant'
-                ? 0 : entry.camera.transitionDurationInMs,
+            durationMs: instant ? 0 : entry.camera.transitionDurationInMs,
+            easing: instant ? undefined : entry.camera.transitionEasing,
+            shape: instant ? undefined : entry.camera.transitionShape,
         });
     } else if (entry.camera?.focus) {
         plugin.managers.camera.focusObject({
             ...entry.camera.focus,
-            durationMs: first || entry.camera.transitionStyle === 'instant'
-                ? 0 : entry.camera.transitionDurationInMs,
+            durationMs: instant ? 0 : entry.camera.transitionDurationInMs,
+            easing: instant ? undefined : entry.camera.transitionEasing,
+            shape: instant ? undefined : entry.camera.transitionShape,
         });
     }
 }

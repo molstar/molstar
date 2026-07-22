@@ -8,7 +8,10 @@
  */
 
 import { Camera } from '../../mol-canvas3d/camera';
+import { TransitionShape } from '../../mol-canvas3d/camera/transition-functions';
+import { Canvas3DCameraResetOptions } from '../../mol-canvas3d/canvas3d';
 import { GraphicsRenderObject } from '../../mol-gl/render-object';
+import { EasingFunction } from '../../mol-math/easing';
 import { Sphere3D } from '../../mol-math/geometry';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { Mat3 } from '../../mol-math/linear-algebra';
@@ -32,7 +35,9 @@ export const DefaultCameraFocusOptions = {
     zoomOut: false,
     zoomOutOptions: {
         durationFactor: 3.5,
-    }
+    },
+    easing: 'linear' as EasingFunction,
+    shape: 'linear' as TransitionShape,
 };
 
 export const DefaultCameraFocusLociOptions = {
@@ -43,6 +48,8 @@ export const DefaultCameraFocusLociOptions = {
 
 export type CameraFocusOptions = typeof DefaultCameraFocusOptions;
 export type CameraFocusLociOptions = typeof DefaultCameraFocusLociOptions;
+export type TransitionOptions = Pick<Canvas3DCameraResetOptions, 'easing' | 'shape'>;
+
 export class CameraManager {
     private boundaryHelper = new BoundaryHelper('98');
 
@@ -99,7 +106,7 @@ export class CameraManager {
         return sphere;
     }
 
-    private focusLociOptimized(loci: Loci | Loci[], options?: Partial<CameraFocusLociOptions>) {
+    private getFocusLociOptimized(loci: Loci | Loci[], options?: Partial<CameraFocusLociOptions>) {
         const { canvas3d } = this.plugin;
         if (!canvas3d) return;
 
@@ -155,7 +162,7 @@ export class CameraManager {
         return canvas3d.camera.getFocus(sphere.center, radius, undefined, direction);
     }
 
-    private focusLociBase(loci: Loci | Loci[], options?: Partial<CameraFocusOptions>) {
+    private getFocusLociBase(loci: Loci | Loci[], options?: Partial<CameraFocusOptions>) {
         const sphere = this.getFocusSphere(loci);
         if (sphere) {
             return this.getFocusSphereSnapshot(sphere, options);
@@ -168,9 +175,9 @@ export class CameraManager {
         const options_ = { ...DefaultCameraFocusLociOptions, ...options };
         let snapshot: Partial<Camera.Snapshot> | undefined;
         if (options_.optimizeDirection) {
-            snapshot = this.focusLociOptimized(loci, options_);
+            snapshot = this.getFocusLociOptimized(loci, options_);
         } else {
-            snapshot = this.focusLociBase(loci, options_);
+            snapshot = this.getFocusLociBase(loci, options_);
         }
 
         this.focusSnapshot(snapshot, options_);
@@ -217,7 +224,12 @@ export class CameraManager {
 
         const durationMs = options?.durationMs ?? DefaultCameraFocusOptions.durationMs;
         if (!options?.zoomOut) {
-            this.plugin.canvas3d.requestCameraReset({ snapshot, durationMs });
+            this.plugin.canvas3d.requestCameraReset({
+                snapshot,
+                durationMs,
+                easing: options?.easing,
+                shape: options?.shape,
+            });
             return;
         }
 
@@ -235,10 +247,12 @@ export class CameraManager {
         this.plugin.canvas3d.requestCameraReset({
             snapshot,
             durationMs: df * durationMs,
+            easing: options.easing,
+            shape: options.shape,
             keyframes: t > 0.05 ? [
                 { t, snapshot: zoomOut, easing: 'cubic-out' },
                 { t: 1, snapshot, easing: 'cubic-in' },
-            ] : undefined
+            ] : undefined,
         });
     }
 
@@ -250,10 +264,10 @@ export class CameraManager {
         if (!snapshot) return;
 
         this.focusSnapshot(snapshot, options);
-     }
+    }
 
     /** Focus on a set of plugin state object cells (if `options.targets` is non-empty) or on the whole scene (if `options.targets` is empty). */
-    focusObject(options: PluginState.SnapshotFocusInfo & { minRadius?: number, durationMs?: number }) {
+    focusObject(options: PluginState.SnapshotFocusInfo & { minRadius?: number, durationMs?: number } & TransitionOptions) {
         if (!this.plugin.canvas3d) return;
         const snapshot = getFocusSnapshot(this.plugin, {
             ...options,
@@ -264,7 +278,7 @@ export class CameraManager {
     }
 
     /** Align PCA axes of `structures` (default: all loaded structures) to the screen axes. */
-    orientAxes(structures?: Structure[], durationMs?: number) {
+    orientAxes(structures?: Structure[], durationMs?: number, transitionOptions?: TransitionOptions) {
         if (!this.plugin.canvas3d) return;
         if (!structures) {
             const structCells = this.plugin.state.data.selectQ(q => q.ofType(PluginStateObject.Molecule.Structure));
@@ -273,23 +287,23 @@ export class CameraManager {
         }
         const { rotation } = structureLayingTransform(structures);
         const newSnapshot = changeCameraRotation(this.plugin.canvas3d.camera.getSnapshot(), rotation);
-        this.setSnapshot(newSnapshot, durationMs);
+        this.setSnapshot(newSnapshot, durationMs, transitionOptions);
     }
 
     /** Align Cartesian axes to the screen axes (X right, Y up). */
-    resetAxes(durationMs?: number) {
+    resetAxes(durationMs?: number, transitionOptions?: TransitionOptions) {
         if (!this.plugin.canvas3d) return;
         const newSnapshot = changeCameraRotation(this.plugin.canvas3d.camera.getSnapshot(), Mat3.Identity);
-        this.setSnapshot(newSnapshot, durationMs);
+        this.setSnapshot(newSnapshot, durationMs, transitionOptions);
     }
 
-    setSnapshot(snapshot: Partial<Camera.Snapshot>, durationMs?: number) {
+    setSnapshot(snapshot: Partial<Camera.Snapshot>, durationMs?: number, transitionOptions?: TransitionOptions) {
         // TODO: setState and requestCameraReset are very similar now: unify them?
-        this.plugin.canvas3d?.requestCameraReset({ snapshot, durationMs });
+        this.plugin.canvas3d?.requestCameraReset({ snapshot, durationMs, ...transitionOptions });
     }
 
-    reset(snapshot?: Partial<Camera.Snapshot>, durationMs?: number) {
-        this.plugin.canvas3d?.requestCameraReset({ snapshot, durationMs });
+    reset(snapshot?: Partial<Camera.Snapshot>, durationMs?: number, transitionOptions?: TransitionOptions) {
+        this.plugin.canvas3d?.requestCameraReset({ snapshot, durationMs, ...transitionOptions });
     }
 
     constructor(readonly plugin: PluginContext) {

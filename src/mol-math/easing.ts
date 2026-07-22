@@ -7,6 +7,8 @@
  * adapted from https://github.com/d3/d3-ease
  */
 
+import { ParamDefinition as PD } from '../mol-util/param-definition';
+
 const b1 = 4 / 11,
     b2 = 6 / 11,
     b3 = 8 / 11,
@@ -133,4 +135,12 @@ export type EasingFunction = EasingKind | ((t: number) => number);
 export function getEasingFn(easing: EasingFunction | undefined): (t: number) => number {
     if (!easing) return EasingFunctions.linear;
     return typeof easing === 'function' ? easing : EasingFunctions[easing] ?? EasingFunctions.linear;
+}
+
+export function EasingParamDefinition(defaultValue: EasingKind): PD.Select<EasingKind> {
+    return PD.Select(
+        defaultValue,
+        Object.keys(EasingFunctions).map(key => [key as EasingKind, key]),
+        { description: 'Transition easing function. Adjusts transition speed near the beginning and end of the transition to create smoother camera motion.' }
+    );
 }

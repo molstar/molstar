@@ -5,6 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Gianluca Tomasello <giagitom@gmail.com>
  * @author Herman Bergwerf <post@hbergwerf.nl>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { BehaviorSubject, Subject, Subscription, debounceTime, merge } from 'rxjs';
@@ -54,7 +55,8 @@ import { produce } from '../mol-util/produce';
 import { ShaderManager } from './helper/shader-manager';
 import { toFixed } from '../mol-util/number';
 import type { CameraTransitionManager } from './camera/transition';
-import { EasingFunction } from '../mol-math/easing';
+import { TransitionShapeParamDefinition, type TransitionShape } from './camera/transition-functions';
+import { EasingFunction, EasingParamDefinition } from '../mol-math/easing';
 
 export const CameraFogParams = {
     intensity: PD.Numeric(15, { min: 1, max: 100, step: 1 }),
@@ -96,6 +98,8 @@ export const Canvas3DParams = {
     }),
 
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
+    cameraResetEasing: EasingParamDefinition('linear'),
+    cameraResetShape: TransitionShapeParamDefinition('linear'),
     sceneRadiusFactor: PD.Numeric(1, { min: 1, max: 10, step: 0.1 }),
     transparentBackground: PD.Boolean(false),
     checkeredTransparentBackground: PD.Boolean(false),
@@ -328,6 +332,7 @@ export interface Canvas3DCameraResetOptions {
     snapshot?: Camera.SnapshotProvider,
     keyframes?: CameraTransitionManager.TransitionKeyframes,
     easing?: EasingFunction,
+    shape?: TransitionShape,
 }
 
 interface Canvas3D {
@@ -512,6 +517,7 @@ namespace Canvas3D {
             snapshot: undefined,
             keyframes: undefined,
             easing: undefined,
+            shape: undefined,
         };
         let resizeRequested = false;
 
@@ -891,17 +897,20 @@ namespace Canvas3D {
             }
 
             if (radius > 0) {
-                const duration = nextCameraResetOptions.durationMs === undefined ? p.cameraResetDurationMs : nextCameraResetOptions.durationMs;
+                const duration = nextCameraResetOptions.durationMs ?? p.cameraResetDurationMs;
+                const easing = nextCameraResetOptions.easing ?? p.cameraResetEasing;
+                const shape = nextCameraResetOptions.shape ?? p.cameraResetShape;
                 const focus = camera.getFocus(center, radius);
                 const next = typeof nextCameraResetOptions.snapshot === 'function' ? nextCameraResetOptions.snapshot(scene, camera) : nextCameraResetOptions.snapshot;
                 const snapshot = next ? { ...focus, ...next } : focus;
-                camera.setState({ ...snapshot, radiusMax: getSceneRadius() }, duration, { keyframes: nextCameraResetOptions.keyframes, easing: nextCameraResetOptions.easing });
+                camera.setState({ ...snapshot, radiusMax: getSceneRadius() }, duration, { keyframes: nextCameraResetOptions.keyframes, easing, shape });
             }
 
             nextCameraResetOptions.durationMs = void 0;
             nextCameraResetOptions.snapshot = void 0;
             nextCameraResetOptions.keyframes = void 0;
             nextCameraResetOptions.easing = void 0;
+            nextCameraResetOptions.shape = void 0;
 
             cameraResetRequested = false;
         }
@@ -1081,6 +1090,8 @@ namespace Canvas3D {
                     minNear: camera.state.minNear,
                 },
                 cameraResetDurationMs: p.cameraResetDurationMs,
+                cameraResetEasing: p.cameraResetEasing,
+                cameraResetShape: p.cameraResetShape,
                 sceneRadiusFactor: p.sceneRadiusFactor,
                 transparentBackground: p.transparentBackground,
                 checkeredTransparentBackground: p.checkeredTransparentBackground,
@@ -1326,6 +1337,8 @@ namespace Canvas3D {
                     stereoCamera.setProps(p.camera.stereo.params);
                 }
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs;
+                if (props.cameraResetEasing !== undefined) p.cameraResetEasing = props.cameraResetEasing;
+                if (props.cameraResetShape !== undefined) p.cameraResetShape = props.cameraResetShape;
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground;
                 if (props.checkeredTransparentBackground !== undefined) p.checkeredTransparentBackground = props.checkeredTransparentBackground;
                 if (props.dpoitIterations !== undefined) p.dpoitIterations = props.dpoitIterations;

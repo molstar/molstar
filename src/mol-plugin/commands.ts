@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -16,6 +16,8 @@ import { PluginState } from './state';
 import { PluginToast } from './util/toast';
 import { Vec3 } from '../mol-math/linear-algebra';
 import { PluginStateSnapshotManager } from '../mol-plugin-state/manager/snapshots';
+import type { TransitionShape } from '../mol-canvas3d/camera/transition-functions';
+import type { EasingFunction } from '../mol-math/easing';
 
 export const PluginCommands = {
     State: {
@@ -62,12 +64,12 @@ export const PluginCommands = {
         Hide: PluginCommand<{ key: string }>()
     },
     Camera: {
-        Reset: PluginCommand<{ durationMs?: number, snapshot?: Partial<Camera.Snapshot> }>(),
-        SetSnapshot: PluginCommand<{ snapshot: Partial<Camera.Snapshot>, durationMs?: number }>(),
-        Focus: PluginCommand<{ center: Vec3, radius: number, durationMs?: number }>(),
-        FocusObject: PluginCommand<PluginState.SnapshotFocusInfo & { durationMs?: number }>(),
-        OrientAxes: PluginCommand<{ structures?: Structure[], durationMs?: number }>(),
-        ResetAxes: PluginCommand<{ durationMs?: number }>(),
+        Reset: PluginCommand<{ durationMs?: number, easing?: EasingFunction, shape?: TransitionShape, snapshot?: Partial<Camera.Snapshot> }>(),
+        SetSnapshot: PluginCommand<{ snapshot: Partial<Camera.Snapshot>, durationMs?: number, easing?: EasingFunction, shape?: TransitionShape }>(),
+        Focus: PluginCommand<{ center: Vec3, radius: number, durationMs?: number, easing?: EasingFunction, shape?: TransitionShape }>(),
+        FocusObject: PluginCommand<PluginState.SnapshotFocusInfo & { durationMs?: number, easing?: EasingFunction, shape?: TransitionShape }>(),
+        OrientAxes: PluginCommand<{ structures?: Structure[], durationMs?: number, easing?: EasingFunction, shape?: TransitionShape }>(),
+        ResetAxes: PluginCommand<{ durationMs?: number, easing?: EasingFunction, shape?: TransitionShape }>(),
     },
     Canvas3D: {
         SetSettings: PluginCommand<{ settings: Partial<Canvas3DProps> | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void) }>(),
