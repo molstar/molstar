@@ -5,6 +5,14 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Camera improvements
+  - Support multiple camera transition shapes
+  - Add `shape` and `easing` parameters to `PluginState.Snapshot` (MOLJ) and Plugin State > Save Options
+  - Add `shape` and `easing` parameters to `FocusLoci` behavior
+  - Add `cameraResetShape` and `cameraResetEasing` parameters to `Canvas3DParams`
+- MolViewSpec
+  - Support `molstar_transition_shape` and `molstar_transition_easing` customs properties on `root` node
+
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
 - Add `variant` option (rectangle/circle) to the best-fit `Plane` (#358)
