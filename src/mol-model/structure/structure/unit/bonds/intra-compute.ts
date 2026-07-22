@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { BondType } from '../../../model/types';
@@ -260,8 +261,9 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
                     }
                     flags[flags.length] = flag;
                     key[key.length] = e.key;
+                    continue;
                 }
-                continue;
+                if (!isHa && !isHb) continue; // If Hydrogen not in the component dictionary, fallback to distance-based.
             }
 
             const dist = Math.sqrt(squaredDistances[ni]);
