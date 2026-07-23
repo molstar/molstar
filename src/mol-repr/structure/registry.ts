@@ -9,6 +9,7 @@ import { objectForEach } from '../../mol-util/object';
 import { RepresentationRegistry, RepresentationProvider } from '../representation';
 import { StructureRepresentationState } from './representation';
 import { BallAndStickRepresentationProvider } from './representation/ball-and-stick';
+import { BlobSurfaceRepresentationProvider } from './representation/blob-surface';
 import { CarbohydrateRepresentationProvider } from './representation/carbohydrate';
 import { CartoonRepresentationProvider } from './representation/cartoon';
 import { EllipsoidRepresentationProvider } from './representation/ellipsoid';
@@ -40,6 +41,7 @@ export namespace StructureRepresentationRegistry {
         'cartoon': CartoonRepresentationProvider,
         'backbone': BackboneRepresentationProvider,
         'ball-and-stick': BallAndStickRepresentationProvider,
+        'blob-surface': BlobSurfaceRepresentationProvider,
         'carbohydrate': CarbohydrateRepresentationProvider,
         'ellipsoid': EllipsoidRepresentationProvider,
         'gaussian-surface': GaussianSurfaceRepresentationProvider,
