@@ -5,6 +5,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - VTP mesh coloring: add `external-volume` color option (samples a volume at each vertex), plus `best`/`zscale` domain modes and linear/log mapping
+- Fix extra Hydrogens not in chemcomp dict. are disconnected (#1888)
+- Add `NH`, `MC`, `TS`, `OG` to `ElementSymbolColors` so they can be customized in the `element-symbol` color theme's `custom` colors (previously silently ignored, atoms fell back to white, indistinguishable from Hydrogen)
+- Fix `getElementFromAtomicNumber` returning the deprecated `Uut`/`Uup`/`Uus`/`Uuo` placeholder names for atomic numbers 113/115/117/118 instead of the current IUPAC names `Nh`/`Mc`/`Ts`/`Og`
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
