@@ -36,8 +36,10 @@ float getViewZ(const in float depth) {
     #endif
 }
 
-bool isBackground(const in float depth) {
-    return depth == 1.0;
+// packUnitIntervalToRG(1.0) stores (0, 1) in the uint8 target and unpacks to 255/256,
+// never 1.0, so the packed bytes have to be tested instead
+bool isBackgroundPacked(const in vec2 packedDepth) {
+    return packedDepth.x == 0.0 && packedDepth.y == 1.0;
 }
 
 bool isNearClip(const in float depth) {
@@ -66,7 +68,7 @@ void main(void) {
 
     float selfDepth = unpackRGToUnitInterval(packedDepth);
     // (if background and if second pass) or if near clip
-    if ((isBackground(selfDepth) && uBlurDirectionY != 0.0) || isNearClip(selfDepth)) {
+    if ((isBackgroundPacked(packedDepth) && uBlurDirectionY != 0.0) || isNearClip(selfDepth)) {
         gl_FragColor = vec4(packUnitIntervalToRG(1.0), packedDepth);
         return;
     }
@@ -91,7 +93,7 @@ void main(void) {
         vec4 sampleSsaoDepth = texture2D(tSsaoDepth, sampleCoords);
 
         float sampleDepth = unpackRGToUnitInterval(sampleSsaoDepth.zw);
-        if (isBackground(sampleDepth) || isNearClip(sampleDepth)) {
+        if (isBackgroundPacked(sampleSsaoDepth.zw) || isNearClip(sampleDepth)) {
             continue;
         }
 
