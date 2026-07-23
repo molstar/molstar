@@ -41,7 +41,7 @@ function shouldUpdateGeometry(newProps: BlobDensityProps, currentProps: BlobDens
             (newProps.blobShape.params.degree !== currentProps.blobShape.params.degree ||
                 newProps.blobShape.params.regularization !== currentProps.blobShape.params.regularization)) ||
         newProps.resolution !== currentProps.resolution ||
-        newProps.resolutionFactor !== currentProps.resolutionFactor ||
+        newProps.adjustResolution !== currentProps.adjustResolution ||
         newProps.radiusOffset !== currentProps.radiusOffset ||
         newProps.smoothness !== currentProps.smoothness ||
         newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
