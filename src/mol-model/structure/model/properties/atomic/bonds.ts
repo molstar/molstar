@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { AminoAcidNames, BaseNames } from '../../types';
@@ -68,6 +69,16 @@ export function getIntraBondOrderFromTable(compId: string, atomId1: string, atom
     if (AminoAcidNames.has(compId) && atomId1 === 'C' && atomId2 === 'O') return 2;
     if (BaseNames.has(compId) && atomId1 === 'OP1' && atomId2 === 'P') return 2;
     return IntraBondOrderTable.get(`${compId}|${atomId1}|${atomId2}`) || 1;
+}
+
+/**
+ * Set of {compIds} that have a full intra-residue bond-order template in `IntraBondOrderTable`.
+ */
+const IntraBondOrderTableComps = new Set<string>();
+IntraBondOrderTable.forEach((_, key) => IntraBondOrderTableComps.add(key.split('|')[0]));
+
+export function hasIntraBondOrderFromTable(compId: string) {
+    return IntraBondOrderTableComps.has(compId);
 }
 
 /**

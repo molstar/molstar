@@ -22,6 +22,7 @@ import { ElementIndex } from '../../../model/indexing';
 import { equalEps } from '../../../../../mol-math/linear-algebra/3d/common';
 import { Model } from '../../../model/model';
 import { sortedCantorPairing } from '../../../../../mol-data/util';
+import { perceiveBondOrders } from './perceive-order';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3distance = Vec3.distance;
@@ -298,9 +299,15 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
         }
     }
 
-    return getGraph(atomA, atomB, order, flags, key, atomCount, {
+    const bonds = getGraph(atomA, atomB, order, flags, key, atomCount, {
         canRemap: isWatery || (isDictionaryBased && isSequenced),
     });
+
+    if (props.perceiveBondOrders && !isCoarseGrained) {
+        perceiveBondOrders(unit, bonds);
+    }
+
+    return bonds;
 }
 
 function canGetFromIndexPairBonds(unit: Unit.Atomic) {
