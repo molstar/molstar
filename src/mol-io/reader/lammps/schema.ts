@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Himanshu Raj <himanshuraj6771@gmail.com>
  */
 
 import { Column } from '../../../mol-data/db';
@@ -183,6 +184,12 @@ export interface LammpsDataFile {
         readonly bondType: Column<number>
         readonly atomIdA: Column<number>
         readonly atomIdB: Column<number>
+    }
+    readonly masses?: {
+        readonly count: number
+        readonly atomType: Column<number>
+        readonly mass: Column<number>
+        readonly symbol: Column<string>
     }
     readonly box?: LammpsBox
 }
