@@ -36,6 +36,7 @@ import { RuntimeContext, Task } from '../../../mol-task';
 import { computeStructureBoundary } from './util/boundary';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { IntraUnitBondMapping, getIntraUnitBondMapping, getSerialMapping, SerialMapping } from './mapping';
+import { mergeUnitsWithSameOperator } from './util/unit-merging';
 
 /** Internal structure state */
 type State = {
@@ -894,6 +895,29 @@ namespace Structure {
         return create(units, { parent: s });
     }
 
+    /**
+     * Merge units that share the exact same symmetry operator (and model/kind) into a single unit.
+     * Units that don't share their operator with any other unit are left untouched.
+     */
+    export function mergeUnitsByOperator(s: Structure): Structure {
+        const groups = new Map<string, Unit[]>();
+        for (const u of s.units) {
+            const op = u.conformation.operator;
+            const key = `${u.model.id}|${u.kind}|${op.key >= 0 ? `k${op.key}` : `n${op.name}`}`;
+            const group = groups.get(key);
+            if (group) group.push(u);
+            else groups.set(key, [u]);
+        }
+
+        if (groups.size === s.units.length) return s;
+
+        const units: Unit[] = [];
+        groups.forEach(group => {
+            units.push(group.length === 1 ? group[0] : mergeUnitsWithSameOperator(group));
+        });
+
+        return create(units);
+    }
 
     export class StructureBuilder {
         private units: Unit[] = [];

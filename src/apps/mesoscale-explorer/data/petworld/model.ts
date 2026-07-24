@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,8 +17,8 @@ import { arrayFind } from '../../../../mol-data/util';
 import { StateObject, StateTransformer } from '../../../../mol-state';
 import { CifField } from '../../../../mol-io/reader/cif';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { mergeUnits } from '../util';
 import { deepEqual } from '../../../../mol-util';
+import { mergeUnitsWithSameOperator } from '../../../../mol-model/structure/structure/util/unit-merging';
 
 export { StructureFromPetworld };
 type StructureFromPetworld = typeof StructureFromPetworld
@@ -84,7 +84,7 @@ function buildModelsAssembly(trajectory: Trajectory, asmName: string, modelIndex
             l.element = u.elements[0];
             return entitiyIds.includes(StructureProperties.entity.id(l));
         });
-        const unit = mergeUnits(units, 0);
+        const unit = mergeUnitsWithSameOperator(units, 0);
 
         for (const oper of g.operators) {
             assembler.addUnit(unit.kind, unit.model, oper, unit.elements, unit.traits | Unit.Trait.FastBoundary, unit.invariantId);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -19,6 +19,7 @@ import { assertUnreachable } from '../../mol-util/type-helpers';
 
 const CommonStructureParams = {
     dynamicBonds: PD.Optional(PD.Boolean(false, { description: 'Ensure bonds are recalculated upon model changes. Also enables calculation of inter-unit bonds in water molecules and ions.' })),
+    mergeUnits: PD.Optional(PD.Boolean(false, { description: 'Merge structure units that share the same symmetry operator into a single unit.' })),
 };
 type CommonStructureProps = PD.ValuesFor<typeof CommonStructureParams>
 
@@ -109,7 +110,7 @@ export namespace RootStructureDefinition {
         return true;
     }
 
-    async function buildAssembly(plugin: PluginContext, ctx: RuntimeContext, model: Model, id?: string, props?: CommonStructureProps) {
+    async function buildAssembly(plugin: PluginContext, ctx: RuntimeContext, model: Model, id?: string, props?: CommonStructureProps & { merge?: boolean }) {
         let asm: Assembly | undefined = void 0;
 
         const symmetry = ModelSymmetry.Provider.get(model);
@@ -135,28 +136,32 @@ export namespace RootStructureDefinition {
         }
 
         id = asm.id;
-        const s = await StructureSymmetry.buildAssembly(base, id!).runInContext(ctx);
+        let s = await StructureSymmetry.buildAssembly(base, id!).runInContext(ctx);
+        if (props?.mergeUnits) s = Structure.mergeUnitsByOperator(s);
         const objProps = { label: `Assembly ${id}`, description: Structure.elementDescription(s) };
         return new SO.Molecule.Structure(s, objProps);
     }
 
-    async function buildSymmetry(ctx: RuntimeContext, model: Model, ijkMin: Vec3, ijkMax: Vec3, props?: CommonStructureProps) {
+    async function buildSymmetry(ctx: RuntimeContext, model: Model, ijkMin: Vec3, ijkMax: Vec3, props?: CommonStructureProps & { merge?: boolean }) {
         const base = Structure.ofModel(model, props);
-        const s = await StructureSymmetry.buildSymmetryRange(base, ijkMin, ijkMax).runInContext(ctx);
+        let s = await StructureSymmetry.buildSymmetryRange(base, ijkMin, ijkMax).runInContext(ctx);
+        if (props?.mergeUnits) s = Structure.mergeUnitsByOperator(s);
         const objProps = { label: `Symmetry [${ijkMin}] to [${ijkMax}]`, description: Structure.elementDescription(s) };
         return new SO.Molecule.Structure(s, objProps);
     }
 
-    async function buildSymmetryMates(ctx: RuntimeContext, model: Model, radius: number, props?: CommonStructureProps) {
+    async function buildSymmetryMates(ctx: RuntimeContext, model: Model, radius: number, props?: CommonStructureProps & { merge?: boolean }) {
         const base = Structure.ofModel(model, props);
-        const s = await StructureSymmetry.builderSymmetryMates(base, radius).runInContext(ctx);
+        let s = await StructureSymmetry.builderSymmetryMates(base, radius).runInContext(ctx);
+        if (props?.mergeUnits) s = Structure.mergeUnitsByOperator(s);
         const objProps = { label: `Symmetry Mates`, description: Structure.elementDescription(s) };
         return new SO.Molecule.Structure(s, objProps);
     }
 
-    async function buildSymmetryAssembly(ctx: RuntimeContext, model: Model, generators: StructureSymmetry.Generators, symmetry: Symmetry, props?: CommonStructureProps) {
+    async function buildSymmetryAssembly(ctx: RuntimeContext, model: Model, generators: StructureSymmetry.Generators, symmetry: Symmetry, props?: CommonStructureProps & { merge?: boolean }) {
         const base = Structure.ofModel(model, props);
-        const s = await StructureSymmetry.buildSymmetryAssembly(base, generators, symmetry).runInContext(ctx);
+        let s = await StructureSymmetry.buildSymmetryAssembly(base, generators, symmetry).runInContext(ctx);
+        if (props?.mergeUnits) s = Structure.mergeUnitsByOperator(s);
         const objProps = { label: `Symmetry Assembly`, description: Structure.elementDescription(s) };
         return new SO.Molecule.Structure(s, objProps);
     }
