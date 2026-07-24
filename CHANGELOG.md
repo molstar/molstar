@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Added support for molecular atom_style in lammps data files
+- Added element symbol detection in lammps data file
 - Fix extra Hydrogens not in chemcomp dict. are disconnected (#1888)
 - Add `NH`, `MC`, `TS`, `OG` to `ElementSymbolColors` so they can be customized in the `element-symbol` color theme's `custom` colors (previously silently ignored, atoms fell back to white, indistinguishable from Hydrogen)
 - Fix `getElementFromAtomicNumber` returning the deprecated `Uut`/`Uup`/`Uus`/`Uuo` placeholder names for atomic numbers 113/115/117/118 instead of the current IUPAC names `Nh`/`Mc`/`Ts`/`Og`
