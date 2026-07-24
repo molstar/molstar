@@ -48,7 +48,7 @@ export const CommonQueryParamsInfo: QueryParamInfo[] = [
     { name: 'encoding', type: QueryParamType.String, defaultValue: 'cif', description: `Determines the output encoding (text based 'CIF' or binary 'BCIF'). Ligands can also be exported as 'SDF', 'MOL', or 'MOL2'.`, supportedValues: ['cif', 'bcif', 'sdf', 'mol', 'mol2'] },
     { name: 'copy_all_categories', type: QueryParamType.Boolean, defaultValue: false, description: 'If true, copy all categories from the input file.' },
     { name: 'data_source', type: QueryParamType.String, defaultValue: '', description: 'Allows to control how the provided data source ID maps to input file (as specified by the server instance config).' },
-    { name: 'transform', type: QueryParamType.String, description: `Transformation to apply to coordinates in '_atom_site'. Accepts a 4x4 transformation matrix, provided as array of 16 float values.` },
+    { name: 'transform', type: QueryParamType.String, description: `Transformation to apply to coordinates in '_atom_site'. Accepts a 4x4 transformation matrix provided as an array of 16 floating-point values. The matrix must be specified in column-major order, using the element index j x 4 + i (where i is the row index and j is the column index).` },
     { name: 'download', type: QueryParamType.Boolean, defaultValue: false, description: 'If true, browser will download text files.' },
     { name: 'filename', type: QueryParamType.String, defaultValue: '', description: `Controls the filename for downloaded files. Will force download if specified.` }
 ];
