@@ -1,16 +1,26 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { OrderedSet, SortedArray } from '../../../mol-data/int';
-import { Box3D, GridLookup3D, PositionData, Sphere3D } from '../../../mol-math/geometry';
-import { Vec3 } from '../../../mol-math/linear-algebra';
-import { ElementIndex, Unit } from '../../../mol-model/structure';
+import { OrderedSet } from '../../../../mol-data/int/ordered-set';
+import { SortedArray } from '../../../../mol-data/int/sorted-array';
+import { PositionData } from '../../../../mol-math/geometry/common';
+import { GridLookup3D } from '../../../../mol-math/geometry/lookup3d/grid';
+import { Box3D } from '../../../../mol-math/geometry/primitives/box3d';
+import { Sphere3D } from '../../../../mol-math/geometry/primitives/sphere3d';
+import { Vec3 } from '../../../../mol-math/linear-algebra/3d/vec3';
+import { ElementIndex } from '../../model/indexing';
+import { Unit } from '../unit';
 
-export function mergeUnits(units: readonly Unit[], id: number): Unit {
+/**
+ * Merge the elements of units from the same model that are known to share
+ * the same symmetry operator into a single unit.
+ */
+export function mergeUnitsWithSameOperator(units: readonly Unit[], id?: number): Unit {
     const u = units[0];
+    if (id === undefined) id = u.id;
 
     let start = -1 as ElementIndex, end = -1 as ElementIndex;
     let elements = SortedArray.Empty as SortedArray<ElementIndex>;
@@ -45,10 +55,14 @@ export function mergeUnits(units: readonly Unit[], id: number): Unit {
         elements = SortedArray.union(elements, SortedArray.ofRange(start, end));
     }
 
-    return Unit.create(id, id, 0, u.traits | Unit.Trait.MultiChain, u.kind, u.model, u.conformation.operator, elements);
+    return Unit.create(u.id, u.id, u.chainGroupId, u.traits | Unit.Trait.MultiChain, u.kind, u.model, u.conformation.operator, elements);
 }
 
-export function partitionUnits(units: readonly Unit[], cellSize: number) {
+/**
+ * Partition the untransformed units of the same model into a grid and merge
+ * the units in each grid cell that share the same symmetry operator.
+ */
+export function partitionUntransformedUnits(units: readonly Unit[], cellSize: number) {
     const unitCount = units.length;
     const mergedUnits: Unit[] = [];
 
@@ -80,7 +94,7 @@ export function partitionUnits(units: readonly Unit[], cellSize: number) {
         for (let j = start, jl = start + size; j < jl; ++j) {
             cellUnits.push(units[array[j]]);
         }
-        mergedUnits.push(mergeUnits(cellUnits, i));
+        mergedUnits.push(mergeUnitsWithSameOperator(cellUnits, i));
     }
 
     return mergedUnits;
