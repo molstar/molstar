@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Himanshu Raj <himanshuraj6771@gmail.com>
  */
 
 import { Column, Table } from '../../mol-data/db';
@@ -21,9 +22,10 @@ import { EntityBuilder } from './common/entity';
 import { IndexPairBonds } from './property/bonds/index-pair';
 import { AtomPartialCharge } from './property/partial-charge';
 import { ModelSymmetry } from './property/symmetry';
+import { getElementSymbolFromMass } from './common/element-mass';
 
 async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: UnitStyle = 'real') {
-    const { atoms, bonds } = mol;
+    const { atoms, bonds, masses } = mol;
     const models: Model[] = [];
     const count = atoms.count;
     const scale = lammpsUnitStyles[unitsStyle].scale;
@@ -31,6 +33,20 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
     const cx = new Float32Array(count);
     const cy = new Float32Array(count);
     const cz = new Float32Array(count);
+
+    const typeToElement = new Map<number, string>();
+    if (masses && masses.count > 0) {
+        for (let m = 0; m < masses.count; m++) {
+            const aType = masses.atomType.value(m);
+            // prefer the element symbol parsed from the LAMMPS comment (e.g. "1 12.011 # C"),
+            // and only fall back to inferring it from the mass value when no comment was present
+            const parsedSymbol = masses.symbol?.value(m)?.trim();
+            const elem = parsedSymbol || getElementSymbolFromMass(masses.mass.value(m));
+            if (elem) {
+                typeToElement.set(aType, elem);
+            }
+        }
+    }
 
     // A LAMMPS `.data` file may list atoms in any order (rows are not necessarily sorted by atom
     // id), while the Bonds section references atoms by id. Record each id's row so bonds connect
@@ -40,7 +56,9 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
     let maxId = 0;
     for (let j = 0; j < count; j++) {
         const atomId = atoms.atomId.value(j);
-        type_symbols[j] = atoms.atomType.value(j).toString();
+        const atomType = atoms.atomType.value(j);
+        const elem = typeToElement.get(atomType);
+        type_symbols[j] = elem || atomType.toString();
         cx[j] = atoms.x.value(j) * scale;
         cy[j] = atoms.y.value(j) * scale;
         cz[j] = atoms.z.value(j) * scale;

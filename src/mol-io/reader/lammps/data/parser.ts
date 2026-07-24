@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Himanshu Raj <himanshuraj6771@gmail.com>
  */
 
 import { Task, RuntimeContext, chunkedSubtask } from '../../../../mol-task';
@@ -15,7 +16,7 @@ import { LammpsDataFile } from '../schema';
 import { StringLike } from '../../../common/string-like';
 
 
-const { readLine, skipWhitespace, eatValue, eatLine, markStart } = Tokenizer;
+const { readLine, skipWhitespace, eatValue, eatLine, markStart, skipStrictWhitespace } = Tokenizer;
 
 const reWhitespace = /\s+/;
 
@@ -27,7 +28,7 @@ function State(tokenizer: Tokenizer, runtimeCtx: RuntimeContext) {
 }
 type State = ReturnType<typeof State>
 
-async function handleAtoms(state: State, count: number, atom_style: 'full' | 'atomic' | 'bond'): Promise<LammpsDataFile['atoms']> {
+async function handleAtoms(state: State, count: number, atom_style: AtomStyle): Promise<LammpsDataFile['atoms']> {
     const { tokenizer } = state;
     // default atom style is atomic
     // depending on the atom style the number of columns can change
@@ -42,6 +43,7 @@ async function handleAtoms(state: State, count: number, atom_style: 'full' | 'at
         full: [atomId, moleculeId, atomType, charge, x, y, z],
         atomic: [atomId, atomType, x, y, z],
         bond: [atomId, moleculeId, atomType, x, y, z],
+        molecular: [atomId, moleculeId, atomType, x, y, z],
     };
     const n = columns[atom_style].length;
     const { position } = tokenizer;
@@ -121,7 +123,57 @@ async function handleBonds(state: State, count: number): Promise<LammpsDataFile[
     };
 }
 
-const AtomStyles = ['full', 'atomic', 'bond'] as const;
+async function handleMasses(state: State, count: number): Promise<NonNullable<LammpsDataFile['masses']>> {
+    const { tokenizer } = state;
+
+    const atomType = TokenBuilder.create(tokenizer.data, count * 2);
+    const mass = TokenBuilder.create(tokenizer.data, count * 2);
+    const symbol = TokenBuilder.create(tokenizer.data, count * 2);
+
+    const { length } = tokenizer;
+    let itemsAlreadyRead = 0;
+    await chunkedSubtask(state.runtimeCtx, 10, void 0, chunkSize => {
+        const itemsToRead = Math.min(count - itemsAlreadyRead, chunkSize);
+        for (let i = 0; i < itemsToRead; ++i) {
+            for (let j = 0; j < 2; ++j) {
+                skipWhitespace(tokenizer);
+                markStart(tokenizer);
+                eatValue(tokenizer);
+                switch (j) {
+                    case 0: TokenBuilder.addUnchecked(atomType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                    case 1: TokenBuilder.addUnchecked(mass, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                }
+            }
+
+            // optional trailing "# <symbol>" comment, e.g. "1 12.011  # C"
+            skipStrictWhitespace(tokenizer);
+            if (tokenizer.position < tokenizer.length && tokenizer.data.charCodeAt(tokenizer.position) === 35 /* '#' */) {
+                ++tokenizer.position;
+                skipStrictWhitespace(tokenizer);
+                markStart(tokenizer);
+                eatValue(tokenizer);
+                TokenBuilder.addUnchecked(symbol, tokenizer.tokenStart, tokenizer.tokenEnd);
+            } else {
+                // keep column length == count even when no comment is present
+                TokenBuilder.addUnchecked(symbol, tokenizer.position, tokenizer.position);
+            }
+
+            eatLine(tokenizer);
+            markStart(tokenizer);
+        }
+        itemsAlreadyRead += itemsToRead;
+        return itemsToRead;
+    }, ctx => ctx.update({ message: 'Parsing...', current: tokenizer.position, max: length }));
+
+    return {
+        count,
+        atomType: TokenColumn(atomType)(Column.Schema.int),
+        mass: TokenColumn(mass)(Column.Schema.float),
+        symbol: TokenColumn(symbol)(Column.Schema.str),
+    };
+}
+
+const AtomStyles = ['full', 'atomic', 'bond', 'molecular'] as const;
 type AtomStyle = typeof AtomStyles[number];
 
 async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<LammpsDataFile>> {
@@ -130,7 +182,9 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
 
     let atoms = undefined as LammpsDataFile['atoms'] | undefined;
     let bonds = undefined as LammpsDataFile['bonds'] | undefined;
+    let masses = undefined as LammpsDataFile['masses'] | undefined;
     let numAtoms = 0;
+    let numAtomTypes = 0;
     let numBonds = 0;
     let atom_style: AtomStyle = 'full';
     let xlo = NaN, xhi = NaN, ylo = NaN, yhi = NaN, zlo = NaN, zhi = NaN;
@@ -138,7 +192,9 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
     // https://docs.lammps.org/atom_style.html
     while (tokenizer.tokenEnd < tokenizer.length) {
         const line = readLine(state.tokenizer).trim();
-        if (line.includes('atoms')) {
+        if (line.includes('atom types')) {
+            numAtomTypes = parseInt(line.split(reWhitespace)[0]);
+        } else if (line.includes('atoms')) {
             numAtoms = parseInt(line.split(reWhitespace)[0]);
         } else if (line.includes('bonds')) {
             numBonds = parseInt(line.split(reWhitespace)[0]);
@@ -155,7 +211,7 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
             zlo = parseFloat(parts[0]);
             zhi = parseFloat(parts[1]);
         } else if (line.includes('Masses')) {
-            // TODO: support masses
+            masses = await handleMasses(state, numAtomTypes);
         } else if (line.includes('Atoms')) {
             // usually atom style is indicated as a comment after Atoms. e.g. Atoms # full
             const parts = line.split('#');
@@ -187,6 +243,15 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
         };
     }
 
+    if (masses === undefined) {
+        masses = {
+            count: 0,
+            atomType: Column.ofIntArray([]),
+            mass: Column.ofFloatArray([]),
+            symbol: Column.ofStringArray([]),
+        };
+    }
+
     const box = (!isNaN(xlo) && !isNaN(xhi) && !isNaN(ylo) && !isNaN(yhi) && !isNaN(zlo) && !isNaN(zhi))
         ? { lower: [xlo, ylo, zlo] as [number, number, number], length: [xhi - xlo, yhi - ylo, zhi - zlo] as [number, number, number], periodicity: ['p', 'p', 'p'] as [string, string, string] }
         : undefined;
@@ -194,6 +259,7 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
     const result: LammpsDataFile = {
         atoms,
         bonds,
+        masses,
         box,
     };
     return Result.success(result);
