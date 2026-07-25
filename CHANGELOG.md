@@ -13,6 +13,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Generate operators from Hall symbols
     - Introduce change-of-basis settings
     - Move base functionality from `SpacegroupCell` to `Cell`
+- Support non-default CRYSIN setting in MOL2 format
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -81,7 +81,16 @@ export interface Mol2Crysin {
     alpha: number
     beta: number
     gamma: number
+    /**
+     * space_grp (integer) = the space group number.
+     */
     spaceGroup: number
+    /**
+     * setting (integer) = defines the axial orientation with respect to the
+     * standard setting defined in the International Tables for X-Ray Crystallography.
+     * For the setting number value see the tables in
+     * Chapter 3.2 of this manual.
+     */
     setting: number
 }
 
