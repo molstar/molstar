@@ -8,6 +8,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `NH`, `MC`, `TS`, `OG` to `ElementSymbolColors` so they can be customized in the `element-symbol` color theme's `custom` colors (previously silently ignored, atoms fell back to white, indistinguishable from Hydrogen)
 - Fix `getElementFromAtomicNumber` returning the deprecated `Uut`/`Uup`/`Uus`/`Uuo` placeholder names for atomic numbers 113/115/117/118 instead of the current IUPAC names `Nh`/`Mc`/`Ts`/`Og`
 - Add script to generate spacegroup data from CCP4 syminfo.lib
+- Refactor spacegroup construction
+    - Use syminfo.lib spacegroup data as source
+    - Generate operators from Hall symbols
+    - Introduce change-of-basis settings
+    - Move base functionality from `SpacegroupCell` to `Cell`
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
