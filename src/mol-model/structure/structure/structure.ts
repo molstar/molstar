@@ -911,9 +911,24 @@ namespace Structure {
 
         if (groups.size === s.units.length) return s;
 
+        // Groups merged from the same set of original units (e.g. the same chains
+        // repeated at different symmetry operators) must be assigned the same
+        // invariantId so they are correctly recognized as instances of the same
+        // shape by `unitSymmetryGroups`.
+        const invariantIds = new Map<string, number>();
+        let nextInvariantId = 0;
+
         const units: Unit[] = [];
+        let i = 0;
         groups.forEach(group => {
-            units.push(group.length === 1 ? group[0] : mergeUnitsWithSameOperator(group));
+            const compositionKey = `${group[0].model.id}|${group[0].kind}|${group.map(u => u.invariantId).sort((a, b) => a - b).join(',')}`;
+            let invariantId = invariantIds.get(compositionKey);
+            if (invariantId === undefined) {
+                invariantId = nextInvariantId++;
+                invariantIds.set(compositionKey, invariantId);
+            }
+            units.push(mergeUnitsWithSameOperator(group, i, invariantId));
+            ++i;
         });
 
         return create(units);

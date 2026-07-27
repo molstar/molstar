@@ -18,9 +18,10 @@ import { Unit } from '../unit';
  * Merge the elements of units from the same model that are known to share
  * the same symmetry operator into a single unit.
  */
-export function mergeUnitsWithSameOperator(units: readonly Unit[], id?: number): Unit {
+export function mergeUnitsWithSameOperator(units: readonly Unit[], id?: number, invariantId?: number): Unit {
     const u = units[0];
     if (id === undefined) id = u.id;
+    if (invariantId === undefined) invariantId = u.invariantId;
 
     let start = -1 as ElementIndex, end = -1 as ElementIndex;
     let elements = SortedArray.Empty as SortedArray<ElementIndex>;
@@ -55,7 +56,7 @@ export function mergeUnitsWithSameOperator(units: readonly Unit[], id?: number):
         elements = SortedArray.union(elements, SortedArray.ofRange(start, end));
     }
 
-    return Unit.create(u.id, u.id, u.chainGroupId, u.traits | Unit.Trait.MultiChain, u.kind, u.model, u.conformation.operator, elements);
+    return Unit.create(id, invariantId, 0, u.traits | Unit.Trait.MultiChain, u.kind, u.model, u.conformation.operator, elements);
 }
 
 /**
