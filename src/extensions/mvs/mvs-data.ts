@@ -56,7 +56,7 @@ export interface SnapshotMetadata {
      *
      * This parameter is deprecated. The preferred way of setting transition duration is to add a `transition` node with `duration_ms` parameter on the root of the snapshot's tree.
      *
-     * Note: 
+     * Note:
      * `transition_duration_ms` here refers to the transition from the CURRENT to the NEXT snapshot.
      * `duration_ms` in the `transition` node refers to the transition from the PREVIOUS to the CURRENT snapshot.
      */
