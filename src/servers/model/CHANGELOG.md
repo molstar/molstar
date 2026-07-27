@@ -1,3 +1,6 @@
+# Unreleased
+* update documentation for transformation matrix format
+
 # 0.9.13
 * /surroundingLigands: honor `omit_water=true|false` for REST GET requests (boolean parser previously coerced both to `false`)
 * /surroundingLigands: stop leaking the asymmetric unit's water chain into the result when `omit_water=true` (water residues pulled in via struct_conn covale/metalc edges no longer match every other water in the chain)
