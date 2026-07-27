@@ -18,9 +18,8 @@ import { Unit } from '../unit';
  * Merge the elements of units from the same model that are known to share
  * the same symmetry operator into a single unit.
  */
-export function mergeUnitsWithSameOperator(units: readonly Unit[], id?: number, invariantId?: number): Unit {
+export function mergeUnitsWithSameOperator(units: readonly Unit[], id: number, invariantId?: number): Unit {
     const u = units[0];
-    if (id === undefined) id = u.id;
     if (invariantId === undefined) invariantId = u.invariantId;
 
     let start = -1 as ElementIndex, end = -1 as ElementIndex;
