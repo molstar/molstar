@@ -7,7 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix extra Hydrogens not in chemcomp dict. are disconnected (#1888)
 - Add `NH`, `MC`, `TS`, `OG` to `ElementSymbolColors` so they can be customized in the `element-symbol` color theme's `custom` colors (previously silently ignored, atoms fell back to white, indistinguishable from Hydrogen)
 - Fix `getElementFromAtomicNumber` returning the deprecated `Uut`/`Uup`/`Uus`/`Uuo` placeholder names for atomic numbers 113/115/117/118 instead of the current IUPAC names `Nh`/`Mc`/`Ts`/`Og`
-- Add `mergeSameSymmetryUnits` option to root structure transform, merging units with same symmetry operator into a single unit
+- Add `mergeBySymmetry` option to root structure transform, merging units with same symmetry operator into a single unit
 - Add support for multi-chain units in sequence UI
 - Fix `ssao-blur` background test: the RG-packed depth never equals `1.0`, so background samples were blurred into geometry and produced a bright rim at the far-clip cutoff
 
