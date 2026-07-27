@@ -192,8 +192,9 @@ function molstarTreeToEntry(
     snapshot.canvas3d = {
         props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas, animation) : undefined,
     };
+    const snapshotDurationMs = metadata.duration_ms ?? metadata.linger_duration_ms ?? SnapshotMetadata.Defaults.duration_ms;
     const transitionParams = context.transition?.params;
-    const transitionDurationMs = transitionParams?.duration_ms ?? metadata.previousTransitionDurationMs;
+    const transitionDurationMs = transitionParams?.duration_ms ?? metadata.previousTransitionDurationMs ?? 0;
     if (options?.keepCamera) {
         // do nothing
     } else if (options.keepCameraOrientation) {
@@ -207,7 +208,7 @@ function molstarTreeToEntry(
         if (transitionParams?.easing) snapshot.camera.transitionEasing = transitionParams.easing;
         if (transitionParams?.shape) snapshot.camera.transitionShape = transitionParams.shape;
     }
-    snapshot.durationInMs = metadata.linger_duration_ms + (transitionDurationMs ?? 0);
+    snapshot.durationInMs = snapshotDurationMs + transitionDurationMs;
     snapshot.structureFocus = {}; // avoid structure focus persisting through states (causes weird behaviors, e.g. when turning on Volume Streaming)
 
     if (tree.custom?.molstar_on_load_markdown_commands) {

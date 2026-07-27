@@ -47,8 +47,10 @@ export interface SnapshotMetadata {
     description_format?: 'markdown' | 'plaintext',
     /** Unique identifier of this state, useful when working with collections of states. */
     key?: string,
-    /** Timespan for snapshot. */
-    linger_duration_ms: number, // TODO: deprecate, use duration_ms instead
+    /** Timespan for snapshot, in milliseconds. Does not include time of the camera transition. */
+    duration_ms?: number,
+    /** @deprecated Use `duration_ms` instead. */
+    linger_duration_ms?: number,
     /**
      * @deprecated Timespan for the animation to the next snapshot. Leave empty to skip animations.
      *
@@ -60,6 +62,11 @@ export interface SnapshotMetadata {
      */
     transition_duration_ms?: number,
 }
+export const SnapshotMetadata = {
+    Defaults: {
+        duration_ms: 1000,
+    } satisfies SnapshotMetadata,
+};
 
 export interface Snapshot {
     /** Root of the node tree */
@@ -233,8 +240,7 @@ export const MVSData = {
                     description: state.metadata.description,
                     description_format: state.metadata.description_format,
                     key: undefined,
-                    linger_duration_ms: 1000,
-                    transition_duration_ms: 250,
+                    duration_ms: SnapshotMetadata.Defaults.duration_ms,
                 },
                 root: state.root,
             }],
