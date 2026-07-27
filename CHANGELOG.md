@@ -11,7 +11,8 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add `shape` and `easing` parameters to `FocusLoci` behavior
   - Add `cameraResetShape` and `cameraResetEasing` parameters to `Canvas3DParams`
 - MolViewSpec
-  - Support `molstar_transition_shape` and `molstar_transition_easing` customs properties on `root` node
+  - Added `transition` node with params `duration_ms`, `shape`, `easing`
+  - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
