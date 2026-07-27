@@ -138,6 +138,15 @@ export const Matrix = list(float); // TODO impl custom types Matrix3x3 and Matri
 export type LabelAttachments = 'bottom-left' | 'bottom-center' | 'bottom-right' | 'middle-left' | 'middle-center' | 'middle-right' | 'top-left' | 'top-center' | 'top-right';
 export const LabelAttachments = literal<LabelAttachments>('bottom-left', 'bottom-center', 'bottom-right', 'middle-left', 'middle-center', 'middle-right', 'top-left', 'top-center', 'top-right');
 
+/** `shape` parameter values for `transition` node in MVS tree, describes camera transition trajectory shape */
+export type CameraTransitionShapeT = 'linear' | 'linear-relative' | 'leap' | 'leap-relative';
+export const CameraTransitionShapeT = literal<CameraTransitionShapeT>('linear', 'linear-relative', 'leap', 'leap-relative');
+
+/** `easing` parameter values for `transition` node in MVS tree, describes easing function */
+export type EasingT = 'linear' | 'bounce-in' | 'bounce-out' | 'bounce-in-out' | 'circle-in' | 'circle-out' | 'circle-in-out' | 'cubic-in' | 'cubic-out' | 'cubic-in-out' | 'exp-in' | 'exp-out' | 'exp-in-out' | 'quad-in' | 'quad-out' | 'quad-in-out' | 'sin-in' | 'sin-out' | 'sin-in-out';
+export const EasingT = literal<EasingT>('linear', 'bounce-in', 'bounce-out', 'bounce-in-out', 'circle-in', 'circle-out', 'circle-in-out', 'cubic-in', 'cubic-out', 'cubic-in-out', 'exp-in', 'exp-out', 'exp-in-out', 'quad-in', 'quad-out', 'quad-in-out', 'sin-in', 'sin-out', 'sin-in-out');
+
+
 /** Primitives-related types */
 const _PrimitiveComponentExpressionT = partial({
     structure_ref: str,

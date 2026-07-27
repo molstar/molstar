@@ -48,8 +48,16 @@ export interface SnapshotMetadata {
     /** Unique identifier of this state, useful when working with collections of states. */
     key?: string,
     /** Timespan for snapshot. */
-    linger_duration_ms: number,
-    /** Timespan for the animation to the next snapshot. Leave empty to skip animations. */
+    linger_duration_ms: number, // TODO: deprecate, use duration_ms instead
+    /**
+     * @deprecated Timespan for the animation to the next snapshot. Leave empty to skip animations.
+     *
+     * This parameter is deprecated. The preferred way of setting transition duration is to add a `transition` node with `duration_ms` parameter on the root of the snapshot's tree.
+     *
+     * Note: 
+     * `transition_duration_ms` here refers to the transition from the CURRENT to the NEXT snapshot.
+     * `duration_ms` in the `transition` node refers to the transition from the PREVIOUS to the CURRENT snapshot.
+     */
     transition_duration_ms?: number,
 }
 
