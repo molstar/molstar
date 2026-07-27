@@ -7,9 +7,12 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { MVSData, Snapshot } from '../../extensions/mvs';
 import { MVSLoadOptions } from '../../extensions/mvs/load';
 import { applyStructureInteractivity, StructureInteractivityOptions } from '../../extensions/plugin/interactivity';
 import * as loaders from '../../extensions/plugin/loaders';
+import { TransitionShape } from '../../mol-canvas3d/camera/transition-functions';
+import { EasingKind } from '../../mol-math/easing';
 import { Volume } from '../../mol-model/volume';
 import { PluginComponent } from '../../mol-plugin-state/component';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
@@ -65,6 +68,12 @@ export class Viewer {
                 plugin.canvas3d?.setProps({ renderer: { backgroundColor } });
             }
         }
+        setTimeout(() => {
+            const mvs = builderDemo2();
+            const mvsj = MVSData.toMVSJ(mvs);
+            console.log(mvsj)
+            loaders.loadMvsData(plugin, mvsj, 'mvsj');
+        }, 1000)
         return new Viewer(plugin);
     }
 
@@ -219,4 +228,71 @@ export class Viewer {
         this._events.dispose();
         this.plugin.dispose();
     }
+}
+
+
+/** Demonstration of usage of MVS builder */
+function builderDemo2() {
+    function foo(title: string, zoomRes: number | [number, number] | undefined, shape: TransitionShape, easing: EasingKind, withRotation: boolean) {
+        const snapshotDuration = 1250;
+        const transitionDuration = 1000;
+        const builder = MVSData.createBuilder();
+        const struct = builder
+            .download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/download/1tqn_updated.cif' })
+            // .download({ url: '/tmp/1tqn_updated.cif' })
+            .parse({ format: 'mmcif' })
+            .modelStructure();
+        struct.component().representation()
+            .color({ color: '#ffffff', ref: 'color' })
+            .color({ selector: { label_seq_id: 7 }, color: '#3050F8' })
+            .color({ selector: { beg_label_seq_id: 125, end_label_seq_id: 145 }, color: '#FFCCCC' })
+            .color({ selector: { label_seq_id: 145 }, color: '#FF0D0D' })
+            .color({ selector: { label_seq_id: 275 }, color: '#00AA0D' });
+        if (Array.isArray(zoomRes)) {
+            struct
+                .component({ selector: { beg_label_seq_id: zoomRes[0], end_label_seq_id: zoomRes[1] } })
+                .focus();
+        } else if (typeof zoomRes === 'number') {
+            struct
+                .component({ selector: { label_seq_id: zoomRes } })
+                .focus(
+                    !withRotation ? undefined
+                        : zoomRes === 7 ? { direction: [0, -1, -0.1], up: [-0.1, 1, 0] }
+                            : zoomRes === 275 ? { direction: [0, 0, -1], up: [-0.3, 1, 0] }
+                                : zoomRes === 145 ? { direction: [0, 1, -0.1], up: [0.1, 1, 0] }
+                                    : undefined
+                );
+        }
+        builder.transition({ duration_ms: transitionDuration, shape, easing });
+
+        const zoomDesc = Array.isArray(zoomRes) ? `Residues ${zoomRes.join('-')}` : typeof zoomRes === 'number' ? `Residue ${zoomRes}` : 'Whole structure';
+        const description = `### *${shape}* transition with *${easing}* easing \n\n${zoomDesc}`
+        return builder.getSnapshot({ title, duration_ms: snapshotDuration, description });
+    }
+
+    const shape: TransitionShape = 'linear';
+    const ease: EasingKind = 'sin-in-out';
+    const withRotation = true;
+
+    const snapshots: Snapshot[] = [
+    ];
+    for (const shape of ['linear', 'linear-relative', 'leap', 'leap-relative'] as const) {
+        snapshots.push(
+            foo(`${shape} All`, undefined, shape, ease, withRotation),
+            foo(`${shape} Blue`, 7, shape, ease, withRotation),
+            foo(`${shape} Green`, 275, shape, ease, withRotation),
+            foo(`${shape} Red`, 145, shape, ease, withRotation),
+            foo(`${shape} Pink`, [125, 145], shape, ease, withRotation),
+        );
+    }
+    // for (const ease of ['linear', 'sin-in-out', 'quad-in-out', 'cubic-in-out'] as const) {
+    //     snapshots.push(
+    //         foo(`${ease} All`, undefined, shape, ease, withRotation),
+    //         foo(`${ease} Blue`, 7, shape, ease, withRotation),
+    //         foo(`${ease} Green`, 275, shape, ease, withRotation),
+    //         foo(`${ease} Red`, 145, shape, ease, withRotation),
+    //         foo(`${ease} Pink`, [125, 145], shape, ease, withRotation),
+    //     );
+    // }
+    return MVSData.createMultistate(snapshots);
 }
