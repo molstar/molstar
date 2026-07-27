@@ -5,7 +5,7 @@
  */
 
 import { SpacegroupData } from '../tables';
-import { SyminfoEntriesByCcp4Number } from './syminfo-parser';
+import { SyminfoEntriesByCcp4Number } from './utils';
 
 describe('SpacegroupData aliases', () => {
     it('includes every syminfo.lib "symbol old" alias name', () => {

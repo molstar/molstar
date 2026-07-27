@@ -4,15 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mat4 } from '../../../linear-algebra';
+import { Mat4 } from '../../../linear-algebra/3d/mat4';
 import { coordinateExpressionToOperator, transformOperators } from '../common';
 import { operatorsFromHall } from '../notation';
 import { getHallSymbol, SpacegroupData } from '../tables';
-import { SyminfoEntriesByCcp4Number, SyminfoEntriesByNumber, syminfoOperators } from './syminfo-parser';
+import { sameOperatorKeySet, sameOperatorSet, SyminfoEntriesByCcp4Number, SyminfoEntriesByNumber, syminfoOperators } from './utils';
 
 /**
- * Reconstructs operators directly from CCP4 `syminfo.lib` (see `./syminfo.lib` +
- * `./syminfo-parser`), kept as an independent regression oracle now that
+ * Reconstructs operators directly from CCP4 `syminfo.lib` (see `./syminfo.lib`), kept as an independent regression oracle now that
  * Spacegroup.create itself derives operators from Hall symbols (so comparing
  * against Spacegroup.create would be circular).
  */
@@ -20,39 +19,6 @@ function syminfoOperatorsFor(spacegroupNumber: number): Mat4[] {
     const entry = SyminfoEntriesByCcp4Number.get(spacegroupNumber);
     if (!entry) throw new Error(`no syminfo.lib entry with ccp4 number ${spacegroupNumber}`);
     return syminfoOperators(entry);
-}
-
-function opKey(op: ArrayLike<number>): string {
-    const parts: number[] = [];
-    for (const i of [0, 1, 2, 4, 5, 6, 8, 9, 10]) parts.push(Math.round(op[i]));
-    for (const i of [12, 13, 14]) {
-        let v = op[i] % 1;
-        if (v < 0) v += 1;
-        parts.push(Math.round(v * 24) % 24);
-    }
-    return parts.join(',');
-}
-
-function sameOperatorSet(a: ReadonlyArray<ArrayLike<number>>, b: ReadonlyArray<ArrayLike<number>>) {
-    if (a.length !== b.length) return false;
-    const ka = a.map(opKey).sort();
-    const kb = b.map(opKey).sort();
-    return ka.every((k, i) => k === kb[i]);
-}
-
-/**
- * Like `sameOperatorSet`, but ignores duplicate multiplicity. Needed for
- * basisop transforms with a non-unimodular determinant (e.g. the R/H
- * rhombohedral<->hexagonal settings, determinant 3): conjugating the
- * redundant hex-centering copies of an operator legitimately collapses onto
- * the same matrix once wrapped into the smaller rhombohedral cell.
- */
-function sameOperatorKeySet(a: ReadonlyArray<ArrayLike<number>>, b: ReadonlyArray<ArrayLike<number>>) {
-    const ka = new Set(a.map(opKey));
-    const kb = new Set(b.map(opKey));
-    if (ka.size !== kb.size) return false;
-    for (const k of ka) if (!kb.has(k)) return false;
-    return true;
 }
 
 /**

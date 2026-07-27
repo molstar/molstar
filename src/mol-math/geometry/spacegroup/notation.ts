@@ -55,7 +55,7 @@ const HallTranslations: { [k: string]: Vec3 } = {
     w: v3(0, 0, 0.25), d: v3(0.25, 0.25, 0.25),
 };
 
-function negateRotation(r: number[][]): Vec3[] {
+function negateRotation(r: Vec3[]): Vec3[] {
     return [
         v3(-r[0][0], -r[0][1], -r[0][2]),
         v3(-r[1][0], -r[1][1], -r[1][2]),

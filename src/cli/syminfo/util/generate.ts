@@ -72,9 +72,7 @@ ${lines.join('\n')}
 }
 
 /**
- * Generates `src/mol-math/geometry/spacegroup/_spec/syminfo.lib.ts` - the
- * fully-parsed `SyminfoEntry[]` regression oracle consumed by
- * `_spec/syminfo-parser.ts` (test-only, independent of `../../syminfo.ts`).
+ * Generates `src/mol-math/geometry/spacegroup/_spec/syminfo.lib.ts`.
  */
 export function generateSyminfoLibSpecTs(entries: readonly SyminfoEntry[]): string {
     const lines = entries.map(e => {

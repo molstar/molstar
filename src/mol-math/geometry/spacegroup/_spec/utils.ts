@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mat4 } from '../../../linear-algebra';
+import { Mat4, ReadonlyMat4 } from '../../../linear-algebra/3d/mat4';
 import { coordinateExpressionToOperator, wrap01 } from '../common';
 import { SyminfoEntry, syminfoEntries } from './syminfo.lib';
 
@@ -51,3 +51,43 @@ export const SyminfoEntriesByCcp4Number: ReadonlyMap<number, SyminfoEntry> = (fu
     }
     return map;
 }());
+
+/**
+ * Canonical key for a symmetry operator, rounding the rotation part to the
+ * nearest integer and the translation part to the nearest 1/24 (see
+ * `common.ts`'s `GroupDenominator`), so operators that differ only by
+ * floating-point drift compare equal.
+ */
+export function opKey(op: ReadonlyMat4): string {
+    const parts: number[] = [];
+    for (const i of [0, 1, 2, 4, 5, 6, 8, 9, 10]) parts.push(Math.round(op[i]));
+    for (const i of [12, 13, 14]) {
+        let v = op[i] % 1;
+        if (v < 0) v += 1;
+        parts.push(Math.round(v * 24) % 24);
+    }
+    return parts.join(',');
+}
+
+/** Whether two operator lists contain exactly the same operators (as multisets), via `opKey`. */
+export function sameOperatorSet(a: ReadonlyArray<ReadonlyMat4>, b: ReadonlyArray<ReadonlyMat4>) {
+    if (a.length !== b.length) return false;
+    const ka = a.map(opKey).sort();
+    const kb = b.map(opKey).sort();
+    return ka.every((k, i) => k === kb[i]);
+}
+
+/**
+ * Like `sameOperatorSet`, but ignores duplicate multiplicity. Needed for
+ * basisop transforms with a non-unimodular determinant (e.g. the R/H
+ * rhombohedral<->hexagonal settings, determinant 3): conjugating the
+ * redundant hex-centering copies of an operator legitimately collapses onto
+ * the same matrix once wrapped into the smaller rhombohedral cell.
+ */
+export function sameOperatorKeySet(a: ReadonlyArray<ReadonlyMat4>, b: ReadonlyArray<ReadonlyMat4>) {
+    const ka = new Set(a.map(opKey));
+    const kb = new Set(b.map(opKey));
+    if (ka.size !== kb.size) return false;
+    for (const k of ka) if (!kb.has(k)) return false;
+    return true;
+}

@@ -26,8 +26,8 @@ export function wrap01(x: number): number {
  * tetragonal centering transform, determinant 2).
  */
 export function transformOperators(operators: ReadonlyArray<Mat4>, P: Mat4): Mat4[] {
-    const Pinv = Mat4.invert(Mat4(), P);
-    if (!Pinv) throw new Error('non-invertible setting transform');
+    const Pinv = Mat4();
+    if (!Mat4.tryInvert(Pinv, P)) throw new Error('non-invertible setting transform');
 
     const out: Mat4[] = [];
     for (const op of operators) {
