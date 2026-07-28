@@ -206,7 +206,7 @@ function molstarTreeToEntry(
     }
     if (snapshot.camera) {
         if (transitionParams?.easing) snapshot.camera.transitionEasing = transitionParams.easing;
-        if (transitionParams?.shape) snapshot.camera.transitionShape = transitionParams.shape;
+        if (transitionParams?.trajectory) snapshot.camera.transitionTrajectory = transitionParams.trajectory;
     }
     snapshot.durationInMs = snapshotDurationMs + transitionDurationMs;
     snapshot.structureFocus = {}; // avoid structure focus persisting through states (causes weird behaviors, e.g. when turning on Volume Streaming)

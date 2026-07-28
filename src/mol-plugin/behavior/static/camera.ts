@@ -18,20 +18,20 @@ export function registerDefault(ctx: PluginContext) {
 }
 
 export function Reset(ctx: PluginContext) {
-    PluginCommands.Camera.Reset.subscribe(ctx, ({ snapshot, durationMs, easing, shape }) => {
-        ctx.managers.camera.reset(snapshot, durationMs, { easing, shape });
+    PluginCommands.Camera.Reset.subscribe(ctx, ({ snapshot, durationMs, easing, trajectory }) => {
+        ctx.managers.camera.reset(snapshot, durationMs, { easing, trajectory });
     });
 }
 
 export function SetSnapshot(ctx: PluginContext) {
-    PluginCommands.Camera.SetSnapshot.subscribe(ctx, ({ snapshot, durationMs, easing, shape }) => {
-        ctx.managers.camera.setSnapshot(snapshot, durationMs, { easing, shape });
+    PluginCommands.Camera.SetSnapshot.subscribe(ctx, ({ snapshot, durationMs, easing, trajectory }) => {
+        ctx.managers.camera.setSnapshot(snapshot, durationMs, { easing, trajectory });
     });
 }
 
 export function Focus(ctx: PluginContext) {
-    PluginCommands.Camera.Focus.subscribe(ctx, ({ center, radius, durationMs, easing, shape }) => {
-        ctx.managers.camera.focusSphere({ center, radius }, { durationMs, easing, shape });
+    PluginCommands.Camera.Focus.subscribe(ctx, ({ center, radius, durationMs, easing, trajectory }) => {
+        ctx.managers.camera.focusSphere({ center, radius }, { durationMs, easing, trajectory });
         ctx.events.canvas3d.settingsUpdated.next(undefined);
     });
 }
@@ -43,13 +43,13 @@ export function FocusObject(ctx: PluginContext) {
 }
 
 export function OrientAxes(ctx: PluginContext) {
-    PluginCommands.Camera.OrientAxes.subscribe(ctx, ({ structures, durationMs, easing, shape }) => {
-        ctx.managers.camera.orientAxes(structures, durationMs, { easing, shape });
+    PluginCommands.Camera.OrientAxes.subscribe(ctx, ({ structures, durationMs, easing, trajectory }) => {
+        ctx.managers.camera.orientAxes(structures, durationMs, { easing, trajectory });
     });
 }
 
 export function ResetAxes(ctx: PluginContext) {
-    PluginCommands.Camera.ResetAxes.subscribe(ctx, ({ durationMs, easing, shape }) => {
-        ctx.managers.camera.resetAxes(durationMs, { easing, shape });
+    PluginCommands.Camera.ResetAxes.subscribe(ctx, ({ durationMs, easing, trajectory }) => {
+        ctx.managers.camera.resetAxes(durationMs, { easing, trajectory });
     });
 }

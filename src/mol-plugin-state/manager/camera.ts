@@ -8,7 +8,7 @@
  */
 
 import { Camera } from '../../mol-canvas3d/camera';
-import { TransitionShape } from '../../mol-canvas3d/camera/transition-functions';
+import { TransitionTrajectory } from '../../mol-canvas3d/camera/transition-functions';
 import { Canvas3DCameraResetOptions } from '../../mol-canvas3d/canvas3d';
 import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { EasingFunction } from '../../mol-math/easing';
@@ -37,7 +37,7 @@ export const DefaultCameraFocusOptions = {
         durationFactor: 3.5,
     },
     easing: 'linear' as EasingFunction,
-    shape: 'linear' as TransitionShape,
+    trajectory: 'linear' as TransitionTrajectory,
 };
 
 export const DefaultCameraFocusLociOptions = {
@@ -48,7 +48,7 @@ export const DefaultCameraFocusLociOptions = {
 
 export type CameraFocusOptions = typeof DefaultCameraFocusOptions;
 export type CameraFocusLociOptions = typeof DefaultCameraFocusLociOptions;
-export type TransitionOptions = Pick<Canvas3DCameraResetOptions, 'easing' | 'shape'>;
+export type TransitionOptions = Pick<Canvas3DCameraResetOptions, 'easing' | 'trajectory'>;
 
 export class CameraManager {
     private boundaryHelper = new BoundaryHelper('98');
@@ -228,7 +228,7 @@ export class CameraManager {
                 snapshot,
                 durationMs,
                 easing: options?.easing,
-                shape: options?.shape,
+                trajectory: options?.trajectory,
             });
             return;
         }
@@ -248,7 +248,7 @@ export class CameraManager {
             snapshot,
             durationMs: df * durationMs,
             easing: options.easing,
-            shape: options.shape,
+            trajectory: options.trajectory,
             keyframes: t > 0.05 ? [
                 { t, snapshot: zoomOut, easing: 'cubic-out' },
                 { t: 1, snapshot, easing: 'cubic-in' },

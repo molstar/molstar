@@ -148,17 +148,17 @@ export const TransitionFunctions = {
     'leap-relative': transitionLeapRelative,
 } satisfies Record<string, CameraTransitionManager.TransitionFunc>;
 
-export type TransitionShape = keyof typeof TransitionFunctions;
+export type TransitionTrajectory = keyof typeof TransitionFunctions;
 
-export function getTransitionFn(shape: TransitionShape | undefined): CameraTransitionManager.TransitionFunc {
-    if (!shape) return TransitionFunctions.linear;
-    return TransitionFunctions[shape] ?? TransitionFunctions.linear;
+export function getTransitionFn(trajectory: TransitionTrajectory | undefined): CameraTransitionManager.TransitionFunc {
+    if (!trajectory) return TransitionFunctions.linear;
+    return TransitionFunctions[trajectory] ?? TransitionFunctions.linear;
 }
 
-export function TransitionShapeParamDefinition(defaultValue: TransitionShape): PD.Select<TransitionShape> {
+export function TransitionTrajectoryParamDefinition(defaultValue: TransitionTrajectory): PD.Select<TransitionTrajectory> {
     return PD.Select(
         defaultValue,
-        Object.keys(TransitionFunctions).map(key => [key as TransitionShape, key]),
+        Object.keys(TransitionFunctions).map(key => [key as TransitionTrajectory, key]),
         { description: 'Camera transition trajectory shape. "linear": interpolates along a straight line with constant absolute speed; "linear-relative": like "linear" but moves relatively slower when zoomed-in more; "leap": zooms out during the transition to capture both the initial and the final camera target (becomes linear if the targets are near); "leap-relative": like "leap" but moves relatively slower when zoomed-in more.' }
     );
 }

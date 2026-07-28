@@ -16,7 +16,7 @@ import { PluginState } from './state';
 import { PluginToast } from './util/toast';
 import { Vec3 } from '../mol-math/linear-algebra';
 import { PluginStateSnapshotManager } from '../mol-plugin-state/manager/snapshots';
-import type { TransitionShape } from '../mol-canvas3d/camera/transition-functions';
+import type { TransitionTrajectory } from '../mol-canvas3d/camera/transition-functions';
 import type { EasingFunction } from '../mol-math/easing';
 
 export const PluginCommands = {
@@ -64,12 +64,12 @@ export const PluginCommands = {
         Hide: PluginCommand<{ key: string }>()
     },
     Camera: {
-        Reset: PluginCommand<{ durationMs?: number, easing?: EasingFunction, shape?: TransitionShape, snapshot?: Partial<Camera.Snapshot> }>(),
-        SetSnapshot: PluginCommand<{ snapshot: Partial<Camera.Snapshot>, durationMs?: number, easing?: EasingFunction, shape?: TransitionShape }>(),
-        Focus: PluginCommand<{ center: Vec3, radius: number, durationMs?: number, easing?: EasingFunction, shape?: TransitionShape }>(),
-        FocusObject: PluginCommand<PluginState.SnapshotFocusInfo & { durationMs?: number, easing?: EasingFunction, shape?: TransitionShape }>(),
-        OrientAxes: PluginCommand<{ structures?: Structure[], durationMs?: number, easing?: EasingFunction, shape?: TransitionShape }>(),
-        ResetAxes: PluginCommand<{ durationMs?: number, easing?: EasingFunction, shape?: TransitionShape }>(),
+        Reset: PluginCommand<{ durationMs?: number, easing?: EasingFunction, trajectory?: TransitionTrajectory, snapshot?: Partial<Camera.Snapshot> }>(),
+        SetSnapshot: PluginCommand<{ snapshot: Partial<Camera.Snapshot>, durationMs?: number, easing?: EasingFunction, trajectory?: TransitionTrajectory }>(),
+        Focus: PluginCommand<{ center: Vec3, radius: number, durationMs?: number, easing?: EasingFunction, trajectory?: TransitionTrajectory }>(),
+        FocusObject: PluginCommand<PluginState.SnapshotFocusInfo & { durationMs?: number, easing?: EasingFunction, trajectory?: TransitionTrajectory }>(),
+        OrientAxes: PluginCommand<{ structures?: Structure[], durationMs?: number, easing?: EasingFunction, trajectory?: TransitionTrajectory }>(),
+        ResetAxes: PluginCommand<{ durationMs?: number, easing?: EasingFunction, trajectory?: TransitionTrajectory }>(),
     },
     Canvas3D: {
         SetSettings: PluginCommand<{ settings: Partial<Canvas3DProps> | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void) }>(),

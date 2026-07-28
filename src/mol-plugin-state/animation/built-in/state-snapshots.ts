@@ -35,14 +35,14 @@ async function setPartialSnapshot(plugin: PluginContext, entry: Partial<PluginSt
             snapshot: entry.camera.current,
             durationMs: instant ? 0 : entry.camera.transitionDurationInMs,
             easing: instant ? undefined : entry.camera.transitionEasing,
-            shape: instant ? undefined : entry.camera.transitionShape,
+            trajectory: instant ? undefined : entry.camera.transitionTrajectory,
         });
     } else if (entry.camera?.focus) {
         plugin.managers.camera.focusObject({
             ...entry.camera.focus,
             durationMs: instant ? 0 : entry.camera.transitionDurationInMs,
             easing: instant ? undefined : entry.camera.transitionEasing,
-            shape: instant ? undefined : entry.camera.transitionShape,
+            trajectory: instant ? undefined : entry.camera.transitionTrajectory,
         });
     }
 }

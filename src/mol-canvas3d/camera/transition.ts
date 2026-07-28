@@ -7,7 +7,7 @@
 
 import { EasingFunction, getEasingFn } from '../../mol-math/easing';
 import { Camera } from '../camera';
-import { getTransitionFn, TransitionShape } from './transition-functions';
+import { getTransitionFn, TransitionTrajectory } from './transition-functions';
 
 export { CameraTransitionManager };
 
@@ -17,7 +17,7 @@ export interface CameraTransitionOptions {
     /** Global easing, if easing is specified for keyframes, the "end" frame value is used  */
     easing?: EasingFunction,
     /** Defines shape of the camera trajectory during transition */
-    shape?: TransitionShape,
+    trajectory?: TransitionTrajectory,
 }
 
 class CameraTransitionManager {
@@ -102,7 +102,7 @@ class CameraTransitionManager {
 }
 
 namespace CameraTransitionManager {
-    export type TransitionKeyframes = { t: number, snapshot: Partial<Camera.Snapshot>, easing?: EasingFunction, shape?: TransitionShape }[]
+    export type TransitionKeyframes = { t: number, snapshot: Partial<Camera.Snapshot>, easing?: EasingFunction, trajectory?: TransitionTrajectory }[]
     export type TransitionFunc = (out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot, options?: CameraTransitionOptions) => void
 
     let _tempSource: Camera.Snapshot | undefined = undefined;
@@ -121,7 +121,7 @@ namespace CameraTransitionManager {
         let tStart = 0;
         let tEnd = 1;
         let easingKind = options?.easing;
-        let shapeKind = options?.shape;
+        let trajectoryKind = options?.trajectory;
 
         const keyframes = options?.keyframes;
         if (keyframes && keyframes.length > 0) {
@@ -139,7 +139,7 @@ namespace CameraTransitionManager {
                     targetPartial = keyframe.snapshot;
                     tEnd = keyframe.t;
                     easingKind = keyframe.easing ?? easingKind;
-                    shapeKind = keyframe.shape ?? shapeKind;
+                    trajectoryKind = keyframe.trajectory ?? trajectoryKind;
                     break;
                 }
             }
@@ -156,7 +156,7 @@ namespace CameraTransitionManager {
         Camera.copySnapshot(_tempTarget, target_);
         Camera.copySnapshot(_tempTarget, targetPartial);
 
-        const transition = getTransitionFn(shapeKind);
+        const transition = getTransitionFn(trajectoryKind);
         transition(out, t, _tempSource, _tempTarget);
     }
 }

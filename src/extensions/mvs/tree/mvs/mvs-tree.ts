@@ -10,7 +10,7 @@ import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
 import { MVSPrimitiveParams } from './mvs-tree-primitives';
 import { MVSClipParams, MVSRepresentationParams, MVSVolumeRepresentationParams } from './mvs-tree-representations';
-import { CameraTransitionShapeT, ColorT, ComponentExpressionT, ComponentSelectorT, EasingT, LabelAttachments, Matrix, Palette, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
+import { CameraTransitionTrajectoryT, ColorT, ComponentExpressionT, ComponentSelectorT, EasingT, LabelAttachments, Matrix, Palette, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
 
 const SelectorT = union(ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT));
@@ -407,7 +407,7 @@ export const MVSTreeSchema = TreeSchema({
                 /** Duration of the transition from the previous snapshot to this snapshot, in milliseconds. This overrides the deprecated `transition_duration_ms` in the snapshot metadata (which applies to the transition from this snapshot to the next snapshot). */
                 duration_ms: OptionalField(float, 0, 'Duration of the transition from the previous snapshot to this snapshot, in milliseconds. This overrides the deprecated `transition_duration_ms` in the snapshot metadata (which applies to the transition from this snapshot to the next snapshot). Defaults to 0.'),
                 /** Camera transition trajectory shape. "linear": interpolates along a straight line with constant absolute speed; "linear-relative": like "linear" but moves relatively slower when zoomed-in more; "leap": zooms out during the transition to capture both the initial and the final camera target (becomes linear if the targets are near); "leap-relative": like "leap" but moves relatively slower when zoomed-in more. Defaults to "linear". */
-                shape: OptionalField(CameraTransitionShapeT, 'linear', 'Camera transition trajectory shape. "linear": interpolates along a straight line with constant absolute speed; "linear-relative": like "linear" but moves relatively slower when zoomed-in more; "leap": zooms out during the transition to capture both the initial and the final camera target (becomes linear if the targets are near); "leap-relative": like "leap" but moves relatively slower when zoomed-in more. Defaults to "linear".'),
+                trajectory: OptionalField(CameraTransitionTrajectoryT, 'linear', 'Camera transition trajectory shape. "linear": interpolates along a straight line with constant absolute speed; "linear-relative": like "linear" but moves relatively slower when zoomed-in more; "leap": zooms out during the transition to capture both the initial and the final camera target (becomes linear if the targets are near); "leap-relative": like "leap" but moves relatively slower when zoomed-in more. Defaults to "linear".'),
                 /** Transition easing function. Adjusts transition speed near the beginning and end of the transition to create smoother camera motion. Defaults to "linear". */
                 easing: OptionalField(EasingT, 'linear', 'Transition easing function. Adjusts transition speed near the beginning and end of the transition to create smoother camera motion. Defaults to "linear".'),
                 // TODO: update MVS tree schema in docs
