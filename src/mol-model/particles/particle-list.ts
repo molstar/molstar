@@ -6,6 +6,7 @@
  */
 
 import { OrderedSet } from '../../mol-data/int';
+import { Column } from '../../mol-data/db';
 import { Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { Sphere3D } from '../../mol-math/geometry';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
@@ -14,6 +15,20 @@ import { CustomProperties, CustomPropertyDescriptor } from '../custom-property';
 import { Boundary } from '../../mol-math/geometry/boundary';
 import { fillIdentityTransform } from '../../mol-geo/geometry/transform-data';
 import { Cell } from '../../mol-math/geometry/spacegroup/cell';
+
+/**
+ * A single named per-particle scalar attribute (e.g. `'cc'`, `'class'`, `'score'`).
+ *
+ * `column` provides the per-particle values (indexed by particle position, length = `count`).
+ * Formats should reuse an existing `Column` (e.g. via `Column.view`) or provide a lambda-based
+ * accessor instead of copying data whenever possible.
+ */
+export interface ParticleAttribute {
+    readonly column: Column<any>
+    readonly label: string
+    readonly min: number
+    readonly max: number
+}
 
 export interface ParticleList {
     readonly entryId?: string
@@ -87,14 +102,7 @@ export interface ParticleList {
      * Named per-particle scalar attributes, indexed by particle position (length = count).
      * Keys are short identifiers (e.g. 'cc', 'class', 'score').
      */
-    readonly attributes?: ReadonlyMap<string, Float32Array> // TODO: include attributeInfo directle using Columns
-
-    /** Metadata for each key in `attributes`. */
-    readonly attributeInfo?: ReadonlyMap<string, {
-        readonly label: string
-        readonly min: number
-        readonly max: number
-    }>
+    readonly attributes?: ReadonlyMap<string, ParticleAttribute>
 
     readonly getParticleLabel: (index: number) => string
 

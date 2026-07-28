@@ -6,7 +6,7 @@
  */
 
 import { Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
-import { ParticleList } from '../../mol-model/particles/particle-list';
+import { ParticleAttribute, ParticleList } from '../../mol-model/particles/particle-list';
 import { CustomProperties } from '../../mol-model/custom-property';
 import { DynamoTblFile } from '../../mol-io/reader/dynamo/tbl';
 import { Column } from '../../mol-data/db';
@@ -41,27 +41,36 @@ function buildDynamoLabel(tomos?: ReadonlyArray<number>) {
     return 'Dynamo particles';
 }
 
-function buildTblAttrMaps(count: number, rowCount: number, defs: Array<[string, string, Float32Array | undefined]>) {
-    const attributes = new Map<string, Float32Array>();
-    const attributeInfo = new Map<string, { label: string, min: number, max: number }>();
-    for (const [key, label, buf] of defs) {
-        if (!buf) continue;
-        const arr = count === rowCount ? buf : buf.slice(0, count);
-        let min = Infinity, max = -Infinity;
-        for (let i = 0; i < count; i++) {
-            const v = arr[i];
-            if (isFinite(v)) {
-                if (v < min) min = v;
-                if (v > max) max = v;
-            }
+/**
+ * Build a `ParticleAttribute` for a single column by viewing it through `keys` (the mapping
+ * from output particle index to source row). `Column.view` returns the original column
+ * unchanged (no copy) when `keys` is the identity map, i.e. when no rows were filtered out.
+ */
+function buildAttributeColumn(col: Column<number>, keys: ArrayLike<number>): { column: Column<number>, min: number, max: number } | undefined {
+    if (!col.isDefined) return;
+    const column = Column.view(col, keys);
+    const count = keys.length;
+    let min = Infinity, max = -Infinity;
+    for (let i = 0; i < count; i++) {
+        if (column.valueKind(i) !== Column.ValueKinds.Present) continue;
+        const v = column.value(i);
+        if (isFinite(v)) {
+            if (v < min) min = v;
+            if (v > max) max = v;
         }
-        if (!isFinite(min)) continue;
-        attributes.set(key, arr);
-        attributeInfo.set(key, { label, min, max });
     }
-    return attributes.size > 0
-        ? { attributes, attributeInfo }
-        : { attributes: undefined, attributeInfo: undefined };
+    if (!isFinite(min)) return;
+    return { column, min, max };
+}
+
+function buildTblAttrMaps(keys: ArrayLike<number>, defs: Array<[string, string, Column<number>]>): ReadonlyMap<string, ParticleAttribute> | undefined {
+    const attributes = new Map<string, ParticleAttribute>();
+    for (const [key, label, col] of defs) {
+        const built = buildAttributeColumn(col, keys);
+        if (!built) continue;
+        attributes.set(key, { label, ...built });
+    }
+    return attributes.size > 0 ? attributes : undefined;
 }
 
 export function getDynamoTblTomogramIds(data: DynamoTblFile) {
@@ -91,9 +100,6 @@ export function createParticleListFromDynamoTbl(data: DynamoTblFile, options: Dy
 
     const ccCol = data.fields.cc;
     const cc2Col = data.fields.cc2;
-    const _ccAttr = ccCol.isDefined ? new Float32Array(rowCount) : undefined;
-    const _cc2Attr = cc2Col.isDefined ? new Float32Array(rowCount) : undefined;
-    const _classAttr = classCol.isDefined ? new Float32Array(rowCount) : undefined;
 
     const rotation = Mat4();
     const quaternion = Quat();
@@ -122,10 +128,6 @@ export function createParticleListFromDynamoTbl(data: DynamoTblFile, options: Dy
         _rotations[qOffset + 2] = quaternion[2];
         _rotations[qOffset + 3] = quaternion[3];
 
-        if (_ccAttr && ccCol.valueKind(row) === Column.ValueKinds.Present) _ccAttr[count] = ccCol.value(row);
-        if (_cc2Attr && cc2Col.valueKind(row) === Column.ValueKinds.Present) _cc2Attr[count] = cc2Col.value(row);
-        if (_classAttr && classCol.valueKind(row) === Column.ValueKinds.Present) _classAttr[count] = classCol.value(row);
-
         _keys[count] = row;
         ++count;
     }
@@ -140,10 +142,10 @@ export function createParticleListFromDynamoTbl(data: DynamoTblFile, options: Dy
     const coordinates = count === rowCount ? _coordinates : _coordinates.slice(0, count * 3);
     const rotations = count === rowCount ? _rotations : _rotations.slice(0, count * 4);
 
-    const { attributes, attributeInfo } = buildTblAttrMaps(count, rowCount, [
-        ['cc', 'CC', _ccAttr],
-        ['cc2', 'CC2', _cc2Attr],
-        ['class', 'Class', _classAttr],
+    const attributes = buildTblAttrMaps(keys, [
+        ['cc', 'CC', ccCol],
+        ['cc2', 'CC2', cc2Col],
+        ['class', 'Class', classCol],
     ]);
 
     const radii = options.particleRadius && options.particleRadius > 0
@@ -159,7 +161,6 @@ export function createParticleListFromDynamoTbl(data: DynamoTblFile, options: Dy
         rotations,
         radii,
         attributes,
-        attributeInfo,
         getParticleLabel: (index: number) => {
             const row = keys[index];
             const parts: string[] = [`#${row + 1}`];

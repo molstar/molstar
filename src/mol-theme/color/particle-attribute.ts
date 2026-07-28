@@ -35,10 +35,16 @@ export type ParticleAttributeColorThemeParams = typeof ParticleAttributeColorThe
 export function getParticleAttributeColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(ParticleAttributeColorThemeParams);
     const particles = getParticleList(ctx);
-    if (particles?.attributeInfo && particles.attributeInfo.size > 0) {
+    if (particles?.attributes && particles.attributes.size > 0) {
         const options: [string, string][] = [];
-        particles.attributeInfo.forEach((info, key) => options.push([key, info.label]));
-        params.attribute = PD.Select(options[0][0], options);
+        particles.attributes.forEach((attr, key) => {
+            if (['number', 'float'].includes(attr.column.schema.valueType)) {
+                options.push([key, attr.label]);
+            }
+        });
+        if (options.length > 0) {
+            params.attribute = PD.Select(options[0][0], options);
+        }
     }
     return params;
 }
@@ -48,14 +54,13 @@ export function ParticleAttributeColorTheme(ctx: ThemeDataContext, props: PD.Val
     let legend: ScaleLegend | TableLegend | undefined;
 
     const particles = getParticleList(ctx);
-    if (particles?.attributes && particles.attributeInfo) {
-        const attrData = particles.attributes.get(props.attribute);
-        const attrInfo = particles.attributeInfo.get(props.attribute);
+    if (particles?.attributes) {
+        const attr = particles.attributes.get(props.attribute);
 
-        if (attrData && attrInfo) {
+        if (attr) {
             const domain: [number, number] = props.domain.name === 'custom'
                 ? props.domain.params as [number, number]
-                : [attrInfo.min, attrInfo.max];
+                : [attr.min, attr.max];
 
             const scale = ColorScale.create({
                 reverse: false,
@@ -65,8 +70,8 @@ export function ParticleAttributeColorTheme(ctx: ThemeDataContext, props: PD.Val
             legend = scale.legend;
 
             const pick = (index: number): Color => {
-                if (index < 0 || index >= attrData.length) return DefaultColor;
-                return scale.color(attrData[index]);
+                if (index < 0 || index >= attr.column.rowCount) return DefaultColor;
+                return scale.color(attr.column.value(index));
             };
 
             color = (location: Location): Color => {

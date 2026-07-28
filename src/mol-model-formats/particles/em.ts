@@ -5,9 +5,10 @@
  */
 
 import { Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
-import { ParticleList } from '../../mol-model/particles/particle-list';
+import { ParticleAttribute, ParticleList } from '../../mol-model/particles/particle-list';
 import { CustomProperties } from '../../mol-model/custom-property';
 import { ArtiatomiEmFile } from '../../mol-io/reader/artiatomi/em';
+import { Column } from '../../mol-data/db';
 import { degToRad } from '../../mol-math/misc';
 import { ModelFormat } from '../format';
 
@@ -132,8 +133,6 @@ export function createParticleListFromArtiatomiEm(data: ArtiatomiEmFile, options
     const keys = new Int32Array(acceptedCount);
     const coordinates = new Float32Array(acceptedCount * 3);
     const rotations = new Float32Array(acceptedCount * 4);
-    const ccAttr = new Float32Array(acceptedCount);
-    const classAttr = new Float32Array(acceptedCount);
 
     const rotation = Mat4();
     const quaternion = Quat();
@@ -175,9 +174,6 @@ export function createParticleListFromArtiatomiEm(data: ArtiatomiEmFile, options
         rotations[qOffset + 2] = quaternion[2];
         rotations[qOffset + 3] = quaternion[3];
 
-        ccAttr[count] = vals[base + ROW_CC];
-        classAttr[count] = vals[base + ROW_CLASS];
-
         keys[count] = p;
         count++;
     }
@@ -185,26 +181,38 @@ export function createParticleListFromArtiatomiEm(data: ArtiatomiEmFile, options
     const finalKeys = count === particleCount ? keys : keys.slice(0, count);
     const finalCoords = count === particleCount ? coordinates : coordinates.slice(0, count * 3);
     const finalRotations = count === particleCount ? rotations : rotations.slice(0, count * 4);
-    const finalCcAttr = count === particleCount ? ccAttr : ccAttr.slice(0, count);
-    const finalClassAttr = count === particleCount ? classAttr : classAttr.slice(0, count);
 
-    const emAttributes = new Map<string, Float32Array>();
-    const emAttributeInfo = new Map<string, { label: string, min: number, max: number }>();
-    for (const [key, label, arr] of [
-        ['cc', 'CC', finalCcAttr],
-        ['class', 'Class', finalClassAttr],
-    ] as Array<[string, string, Float32Array]>) {
+    /**
+     * Build a `ParticleAttribute` that reads directly from the raw motivelist buffer via
+     * `finalKeys`, without copying data into a new typed array.
+     */
+    const buildEmAttribute = (rowOffset: number): { column: Column<number>, min: number, max: number } | undefined => {
+        const attrCount = finalKeys.length;
+        const column = Column.ofLambda({
+            value: (i: number) => vals[finalKeys[i] * ArtiatomiMotivelistRowCount + rowOffset],
+            rowCount: attrCount,
+            schema: Column.Schema.float,
+        });
         let min = Infinity, max = -Infinity;
-        for (let i = 0; i < count; i++) {
-            const v = arr[i];
+        for (let i = 0; i < attrCount; i++) {
+            const v = column.value(i);
             if (isFinite(v)) {
                 if (v < min) min = v;
                 if (v > max) max = v;
             }
         }
-        if (!isFinite(min)) continue;
-        emAttributes.set(key, arr);
-        emAttributeInfo.set(key, { label, min, max });
+        if (!isFinite(min)) return;
+        return { column, min, max };
+    };
+
+    const emAttributes = new Map<string, ParticleAttribute>();
+    for (const [key, label, rowOffset] of [
+        ['cc', 'CC', ROW_CC],
+        ['class', 'Class', ROW_CLASS],
+    ] as Array<[string, string, number]>) {
+        const built = buildEmAttribute(rowOffset);
+        if (!built) continue;
+        emAttributes.set(key, { label, ...built });
     }
 
     const radii = options.particleRadius && options.particleRadius > 0
@@ -220,7 +228,6 @@ export function createParticleListFromArtiatomiEm(data: ArtiatomiEmFile, options
         rotations: finalRotations,
         radii,
         attributes: emAttributes.size > 0 ? emAttributes : undefined,
-        attributeInfo: emAttributeInfo.size > 0 ? emAttributeInfo : undefined,
         getParticleLabel: (index: number) => {
             const p = finalKeys[index];
             const base = p * ArtiatomiMotivelistRowCount;
