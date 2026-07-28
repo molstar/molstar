@@ -205,28 +205,28 @@ const ParticleTrajectoryFromSimularium = PluginStateTransform.BuiltIn({
     }
 });
 
+const plus1 = (v: number) => v + 1, minus1 = (v: number) => v - 1;
 type ParticleListFromTrajectory = typeof ParticleListFromTrajectory
 const ParticleListFromTrajectory = PluginStateTransform.BuiltIn({
     name: 'particle-list-from-trajectory',
     display: { name: 'Particle List from Trajectory', description: 'Extract a single frame from a ParticleTrajectory.' },
     from: SO.Particle.Trajectory,
     to: SO.Particle.List,
-    params: a => ({
-        frameIndex: PD.Numeric(0, { min: 0, max: a ? Math.max(0, a.data.frameCount - 1) : 0, step: 1 }, { description: 'Index of the trajectory frame to display.' }),
-    })
+    params: a => {
+        if (!a) {
+            return { frameIndex: PD.Numeric(0, {}, { description: 'Zero-based index of the frame', immediateUpdate: true }) };
+        }
+        return { frameIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.frameCount, step: 1 }, { description: 'Frame Index', immediateUpdate: true })) };
+    }
 })({
+    isApplicable: a => a.data.frameCount > 0,
     apply({ a, params }) {
-        const list = a.data.getFrameAtIndex(Math.max(0, Math.min(params.frameIndex, a.data.frameCount - 1)));
-        return new SO.Particle.List(list, { label: list.label || 'Particles', description: `Frame ${params.frameIndex + 1} of ${a.data.frameCount}` });
-    },
-    // update({ a, b, oldParams, newParams }) {
-    //     if (oldParams.frameIndex === newParams.frameIndex) return StateTransformer.UpdateResult.Unchanged;
-    //     const list = a.data.getFrameAtIndex(Math.max(0, Math.min(newParams.frameIndex, a.data.frameCount - 1)));
-    //     b.data = list;
-    //     b.label = list.label || 'Particles';
-    //     b.description = `Frame ${newParams.frameIndex + 1} of ${a.data.frameCount}`;
-    //     return StateTransformer.UpdateResult.Updated;
-    // }
+        return Task.create('Particle List from Trajectory', async ctx => {
+            const idx = Math.max(0, Math.min(params.frameIndex, a.data.frameCount - 1));
+            const list = await Task.resolveInContext(a.data.getFrameAtIndex(idx), ctx);
+            return new SO.Particle.List(list, { label: list.label || 'Particles', description: `Frame ${params.frameIndex + 1} of ${a.data.frameCount}` });
+        });
+    }
 });
 
 type ParticlesRepresentation3D = typeof ParticlesRepresentation3D

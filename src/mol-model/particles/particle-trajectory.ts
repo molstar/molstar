@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { Task } from '../../mol-task/task';
 import { ParticleList } from './particle-list';
 
 /**
@@ -17,7 +18,7 @@ export interface ParticleTrajectory {
     readonly representative: ParticleList
 
     /** Return the particle list for the given frame index (0-based). */
-    getFrameAtIndex(i: number): ParticleList
+    getFrameAtIndex(i: number): ParticleList | Task<ParticleList>
 }
 
 export class ArrayParticleTrajectory implements ParticleTrajectory {
