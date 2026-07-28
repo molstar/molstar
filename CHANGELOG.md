@@ -7,6 +7,13 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix extra Hydrogens not in chemcomp dict. are disconnected (#1888)
 - Add `NH`, `MC`, `TS`, `OG` to `ElementSymbolColors` so they can be customized in the `element-symbol` color theme's `custom` colors (previously silently ignored, atoms fell back to white, indistinguishable from Hydrogen)
 - Fix `getElementFromAtomicNumber` returning the deprecated `Uut`/`Uup`/`Uus`/`Uuo` placeholder names for atomic numbers 113/115/117/118 instead of the current IUPAC names `Nh`/`Mc`/`Ts`/`Og`
+- Add script to generate spacegroup data from CCP4 syminfo.lib
+- Refactor spacegroup construction
+    - Use syminfo.lib spacegroup data as source
+    - Generate operators from Hall symbols
+    - Introduce change-of-basis settings
+    - Move base functionality from `SpacegroupCell` to `Cell`
+- Support non-default CRYSIN setting in MOL2 format (#338)
 - Fix `ssao-blur` background test: the RG-packed depth never equals `1.0`, so background samples were blurred into geometry and produced a bright rim at the far-clip cutoff
 
 ## [v5.11.0] - 2026-07-18

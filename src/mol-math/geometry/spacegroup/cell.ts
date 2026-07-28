@@ -1,16 +1,21 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3 } from '../../linear-algebra';
+import { Mat4, Vec3 } from '../../linear-algebra';
 
 export { Cell };
 
 interface Cell {
     readonly size: Vec3
     readonly anglesInRadians: Vec3
+    readonly volume: number,
+    /** Transfrom cartesian -> fractional coordinates within the cell */
+    readonly toFractional: Mat4,
+    /** Transfrom fractional coordinates within the cell -> cartesian */
+    readonly fromFractional: Mat4
 }
 
 function Cell() {
@@ -19,7 +24,31 @@ function Cell() {
 
 namespace Cell {
     export function create(size: Vec3, anglesInRadians: Vec3): Cell {
-        return { size, anglesInRadians };
+        const volume = size[0] * size[1] * size[2];
+
+        const alpha = anglesInRadians[0];
+        const beta = anglesInRadians[1];
+        const gamma = anglesInRadians[2];
+
+        const xScale = size[0], yScale = size[1], zScale = size[2];
+
+        const z1 = Math.cos(beta);
+        const z2 = (Math.cos(alpha) - Math.cos(beta) * Math.cos(gamma)) / Math.sin(gamma);
+        const z3 = Math.sqrt(1.0 - z1 * z1 - z2 * z2);
+
+        const x = [xScale, 0.0, 0.0];
+        const y = [Math.cos(gamma) * yScale, Math.sin(gamma) * yScale, 0.0];
+        const z = [z1 * zScale, z2 * zScale, z3 * zScale];
+
+        const fromFractional = Mat4.ofRows([
+            [x[0], y[0], z[0], 0],
+            [0, y[1], z[1], 0],
+            [0, 0, z[2], 0],
+            [0, 0, 0, 1.0]
+        ]);
+        const toFractional = Mat4.invert(Mat4.zero(), fromFractional);
+
+        return { size, anglesInRadians, volume, toFractional, fromFractional };
     }
 
     export function empty(): Cell {
