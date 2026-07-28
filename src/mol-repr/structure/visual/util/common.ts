@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Unit, Structure, ElementIndex, StructureElement, ResidueIndex } from '../../../../mol-model/structure';
@@ -72,18 +73,21 @@ export function checkCylinderImpostorSupport(webgl?: WebGLContext) {
 /** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
 export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {
     const { elements, model } = unit;
-    if (OrderedSet.indexOf(elements, elementIndex) !== -1) {
-        const { index, offsets } = model.atomicHierarchy.residueAtomSegments;
-        const rI = index[elementIndex];
-        const _indices: number[] = [];
-        for (let i = offsets[rI], il = offsets[rI + 1]; i < il; ++i) {
-            const unitIndex = OrderedSet.indexOf(elements, i);
-            if (unitIndex !== -1) _indices.push(unitIndex);
-        }
-        const indices = OrderedSet.ofSortedArray<StructureElement.UnitIndex>(SortedArray.ofSortedArray(_indices));
-        return StructureElement.Loci(structure, [{ unit, indices }]);
+    const { index, offsets } = model.atomicHierarchy.residueAtomSegments;
+    // Resolve the residue directly from the (model-level) representative element rather than
+    // requiring that element to be a member of the unit. A reduced unit — e.g. a {CA,P} trace
+    // selection — keeps only a subset of each residue's atoms, and for nucleic residues the
+    // representative trace atom (O3', from traceElementIndex) is not among them (only P is). We
+    // still want to mark/pick the residue, so gather whatever of its atoms ARE present in the unit.
+    const rI = index[elementIndex];
+    const _indices: number[] = [];
+    for (let i = offsets[rI], il = offsets[rI + 1]; i < il; ++i) {
+        const unitIndex = OrderedSet.indexOf(elements, i as ElementIndex);
+        if (unitIndex !== -1) _indices.push(unitIndex);
     }
-    return EmptyLoci;
+    if (_indices.length === 0) return EmptyLoci;
+    const indices = OrderedSet.ofSortedArray<StructureElement.UnitIndex>(SortedArray.ofSortedArray(_indices));
+    return StructureElement.Loci(structure, [{ unit, indices }]);
 }
 
 /**
