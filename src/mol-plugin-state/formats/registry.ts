@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -13,6 +13,7 @@ import { BuiltInVolumeFormats } from './volume';
 import { BuiltInShapeFormats } from './shape';
 import { BuiltInTopologyFormats } from './topology';
 import { BuiltInCoordinatesFormats } from './coordinates';
+import { BuiltInParticlesFormats } from './particles';
 
 export class DataFormatRegistry {
     private _list: { name: string, provider: DataFormatProvider }[] = [];
@@ -57,6 +58,7 @@ export class DataFormatRegistry {
         for (const [id, p] of BuiltInTopologyFormats) this.add(id, p);
         for (const [id, p] of BuiltInCoordinatesFormats) this.add(id, p);
         for (const [id, p] of BuiltInShapeFormats) this.add(id, p);
+        for (const [id, p] of BuiltInParticlesFormats) this.add(id, p);
         for (const [id, p] of BuiltInTrajectoryFormats) this.add(id, p);
     };
 
