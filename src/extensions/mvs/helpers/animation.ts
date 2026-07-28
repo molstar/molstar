@@ -17,11 +17,11 @@ import { produce } from '../../../mol-util/produce';
 import { makeContinuousPaletteCheckpoints, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from '../components/annotation-color-theme';
 import { palettePropsFromMVSPalette } from '../load-helpers';
 import { Snapshot } from '../mvs-data';
-import { MVSAnimationEasing, MVSAnimationNode, MVSAnimationSchema } from '../tree/animation/animation-tree';
+import { MVSAnimationNode, MVSAnimationSchema } from '../tree/animation/animation-tree';
 import { Tree } from '../tree/generic/tree-schema';
 import { addDefaults } from '../tree/generic/tree-utils';
 import { MVSTree } from '../tree/mvs/mvs-tree';
-import { ColorT } from '../tree/mvs/param-types';
+import { ColorT, EasingT } from '../tree/mvs/param-types';
 
 export async function generateStateTransition(ctx: RuntimeContext, snapshot: Snapshot, snapshotIndex: number, snapshotCount: number) {
     if (!snapshot.animation) return undefined;
@@ -65,7 +65,7 @@ export async function generateStateTransition(ctx: RuntimeContext, snapshot: Sna
     return { tree, frametimeMs: dt, frames };
 }
 
-const EasingFnMap: Record<MVSAnimationEasing, (t: number) => number> = EasingFunctions;
+const EasingFnMap: Record<EasingT, (t: number) => number> = EasingFunctions;
 
 interface InterpolationCacheEntry {
     paletteFn?: (value: number) => Color,

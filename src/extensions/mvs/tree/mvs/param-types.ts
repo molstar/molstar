@@ -142,7 +142,7 @@ export const LabelAttachments = literal<LabelAttachments>('bottom-left', 'bottom
 export type CameraTransitionTrajectoryT = 'linear' | 'linear-relative' | 'leap' | 'leap-relative';
 export const CameraTransitionTrajectoryT = literal<CameraTransitionTrajectoryT>('linear', 'linear-relative', 'leap', 'leap-relative');
 
-/** `easing` parameter values for `transition` node in MVS tree, describes easing function */
+/** `easing` parameter values for `transition` node in MVS tree and for animations, describes easing function */
 export type EasingT = 'linear' | 'bounce-in' | 'bounce-out' | 'bounce-in-out' | 'circle-in' | 'circle-out' | 'circle-in-out' | 'cubic-in' | 'cubic-out' | 'cubic-in-out' | 'exp-in' | 'exp-out' | 'exp-in-out' | 'quad-in' | 'quad-out' | 'quad-in-out' | 'sin-in' | 'sin-out' | 'sin-in-out';
 export const EasingT = literal<EasingT>('linear', 'bounce-in', 'bounce-out', 'bounce-in-out', 'circle-in', 'circle-out', 'circle-in-out', 'cubic-in', 'cubic-out', 'cubic-in-out', 'exp-in', 'exp-out', 'exp-in-out', 'quad-in', 'quad-out', 'quad-in-out', 'sin-in', 'sin-out', 'sin-in-out');
 
