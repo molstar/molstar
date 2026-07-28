@@ -20,7 +20,7 @@ import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { sphereVertexCount } from '../../../mol-geo/primitive/sphere';
 import { Vec3 } from '../../../mol-math/linear-algebra/3d/vec3';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { Particle, ParticleList } from '../../../mol-model/particles/particle-list';
+import { Particle, ParticleList, getFiberParticleMask } from '../../../mol-model/particles/particle-list';
 import { PickingId } from '../../../mol-geo/geometry/picking';
 import { Loci, EmptyLoci } from '../../../mol-model/loci';
 import { Interval, OrderedSet } from '../../../mol-data/int';
@@ -43,6 +43,7 @@ export const SpacefillParticlesParams = {
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     pointSize: PD.Numeric(1, PointSizeOptions, { description: 'Radius used for the particle position marker.' }),
     positionColor: PD.Color(ColorNames.white),
+    excludeFibers: PD.Boolean(true, { description: 'Do not show fiber sub particles (e.g. shown separately by the Fibers representation); the first particle of each fiber stays visible.' }),
 };
 export type SpacefillParticlesParams = typeof SpacefillParticlesParams;
 export type SpacefillParticlesProps = PD.Values<SpacefillParticlesParams>;
@@ -58,10 +59,12 @@ function spacefillOverrideTheme(theme: Theme, props: SpacefillParticlesProps): T
 
 // ---- Impostor visual --------------------------------------------------------
 
-function createSpacefillSphereImpostor(_ctx: VisualContext, particles: ParticleList, _theme: Theme, _props: SpacefillParticlesProps, spheres?: Spheres): Spheres {
+function createSpacefillSphereImpostor(_ctx: VisualContext, particles: ParticleList, _theme: Theme, props: SpacefillParticlesProps, spheres?: Spheres): Spheres {
     const { count, coordinates } = particles;
+    const fiberMask = props.excludeFibers ? getFiberParticleMask(particles) : undefined;
     const builder = SpheresBuilder.create(Math.max(1, count), Math.max(1, Math.ceil(count / 10)), spheres);
     for (let i = 0; i < count; ++i) {
+        if (fiberMask && fiberMask[i]) continue;
         const o = i * 3;
         builder.add(coordinates[o], coordinates[o + 1], coordinates[o + 2], i);
     }
@@ -80,6 +83,7 @@ export function SpacefillParticlesImpostorVisual(materialId: number): ParticleVi
         setUpdateState: (state: VisualUpdateState, newParticles: ParticleList, currentParticles: ParticleList, newProps: SpacefillParticlesProps, currentProps: SpacefillParticlesProps) => {
             // sphere positions are baked from particle coordinates, so any new particle data requires rebuilding the geometry
             if (newParticles !== currentParticles) state.createGeometry = true;
+            if (newProps.excludeFibers !== currentProps.excludeFibers) state.createGeometry = true;
             if (newProps.pointSize !== currentProps.pointSize) state.updateSize = true;
             if (newProps.positionColor !== currentProps.positionColor) state.updateColor = true;
         },
@@ -96,12 +100,14 @@ export function SpacefillParticlesImpostorVisual(materialId: number): ParticleVi
 function createSpacefillSphereMesh(_ctx: VisualContext, particles: ParticleList, theme: Theme, props: SpacefillParticlesProps, mesh?: Mesh): Mesh {
     const { count, coordinates } = particles;
     const { detail } = props;
+    const fiberMask = props.excludeFibers ? getFiberParticleMask(particles) : undefined;
     const perSphereVertexCount = sphereVertexCount(detail);
     const vertexCount = Math.max(1, perSphereVertexCount * count);
     const builderState = MeshBuilder.createState(vertexCount, Math.ceil(vertexCount / 10), mesh);
     const location = Particle.Location(particles);
     const center = Vec3();
     for (let i = 0; i < count; ++i) {
+        if (fiberMask && fiberMask[i]) continue;
         location.index = i;
         const radius = theme.size.size(location);
         Vec3.fromArray(center, coordinates, i * 3);
@@ -125,6 +131,7 @@ export function SpacefillParticlesMeshVisual(materialId: number): ParticleVisual
             if (newParticles !== currentParticles ||
                 newProps.detail !== currentProps.detail ||
                 newProps.pointSize !== currentProps.pointSize ||
+                newProps.excludeFibers !== currentProps.excludeFibers ||
                 !SizeTheme.areEqual(newTheme.size, currentTheme.size)) {
                 state.createGeometry = true;
             }
@@ -181,10 +188,16 @@ const SpacefillVisuals = {
         ParticleRepresentation('Spacefill', ctx, getParams, SpacefillParticlesVisual, getAllLoci),
 };
 
-function getAllLoci(particles: ParticleList): Loci {
+function getAllLoci(particles: ParticleList, props: SpacefillParticlesProps): Loci {
     const { count } = particles;
     if (count === 0) return EmptyLoci;
-    return Particle.Loci(particles, OrderedSet.ofBounds(0, count) as any);
+    const fiberMask = props.excludeFibers ? getFiberParticleMask(particles) : undefined;
+    if (!fiberMask) return Particle.Loci(particles, OrderedSet.ofBounds(0, count) as any);
+    const indices: number[] = [];
+    for (let i = 0; i < count; ++i) {
+        if (!fiberMask[i]) indices.push(i);
+    }
+    return Particle.Loci(particles, OrderedSet.ofSortedArray(indices));
 }
 
 export const SpacefillParticlesParamsGet = (_ctx: ThemeRegistryContext, _data: ParticleList) => SpacefillParticlesParams;

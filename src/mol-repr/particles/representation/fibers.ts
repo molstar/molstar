@@ -273,7 +273,7 @@ export function FibersLinesVisual(materialId: number, _particles?: ParticleList,
 
 export const FibersTubeMeshParams = {
     ...Mesh.Params,
-    tubeSizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
+    tubeSizeFactor: PD.Numeric(0.8, { min: 0, max: 10, step: 0.01 }),
     linearSegments: PD.Numeric(8, { min: 1, max: 48, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     radialSegments: PD.Numeric(8, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
 };
@@ -352,16 +352,16 @@ export function FibersTubeMeshVisual(materialId: number, _particles?: ParticleLi
 // ---- Combined Fibers representation -----------------------------------------
 
 const FibersVisuals = {
-    'lines': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<ParticleList, FibersLinesParams>) =>
-        ParticleRepresentation('Fibers lines', ctx, getParams, FibersLinesVisual, getAllFibersLoci),
     'tube-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<ParticleList, FibersTubeMeshParams>) =>
         ParticleRepresentation('Fibers tube-mesh', ctx, getParams, FibersTubeMeshVisual, getAllFibersLoci),
+    'lines': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<ParticleList, FibersLinesParams>) =>
+        ParticleRepresentation('Fibers lines', ctx, getParams, FibersLinesVisual, getAllFibersLoci),
 };
 
 export const FibersParams = {
     ...FibersLinesParams,
     ...FibersTubeMeshParams,
-    visuals: PD.MultiSelect(['lines'], PD.objectToOptions(FibersVisuals)),
+    visuals: PD.MultiSelect(['tube-mesh'], PD.objectToOptions(FibersVisuals)),
 };
 export type FibersParams = typeof FibersParams;
 

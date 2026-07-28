@@ -18,10 +18,18 @@ interface ParticleFormatData {
 }
 
 function particleVisuals(plugin: PluginContext, data: ParticleFormatData) {
-    const repr = plugin.state.data.build()
-        .to(data.list)
+    const builder = plugin.state.data.build();
+
+    builder.to(data.list)
         .apply(StateTransforms.Particles.ParticlesRepresentation3D, { type: { name: 'spacefill', params: {} } });
-    return repr.commit();
+
+    const particleList = StateObjectRef.resolveAndCheck(plugin.state.data, data.list)?.obj?.data;
+    if (particleList?.fibers && particleList.fibers.count > 0) {
+        builder.to(data.list)
+            .apply(StateTransforms.Particles.ParticlesRepresentation3D, { type: { name: 'fibers', params: {} } });
+    }
+
+    return builder.commit();
 }
 
 export const RelionStarParticlesProvider = DataFormatProvider({
