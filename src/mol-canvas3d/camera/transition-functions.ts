@@ -18,21 +18,21 @@ const CONST_REL_SPEED_OFFSET = 1;
 
 
 /** Simple linear transition with constant absolute speed. */
-export function transition_linear(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
-    return transition_linear_internal(out, t, t, source, target);
+export function transitionLinear(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
+    return _transitionLinearInternal(out, t, t, source, target);
 }
 
 /** Linear transition with constant speed relative to visible sphere radius (move slower where zoomed-in more, dtarget / dt = (r + CONST_REL_SPEED_OFFSET) * const).
  * Rotational component of the transition has constant speed. */
-export function transition_linear_relative(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
+export function transitionLinearRelative(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
     const rVisSource = visibleSphereRadius(source);
     const rVisTarget = visibleSphereRadius(target);
-    const tTrans = constRelSpeedQuotientAdj_linRadIntp(rVisSource + CONST_REL_SPEED_OFFSET, rVisTarget + CONST_REL_SPEED_OFFSET, t);
-    return transition_linear_internal(out, tTrans, t, source, target);
+    const tTrans = quotientForConstRelSpeedLinRadIntp(rVisSource + CONST_REL_SPEED_OFFSET, rVisTarget + CONST_REL_SPEED_OFFSET, t);
+    return _transitionLinearInternal(out, tTrans, t, source, target);
 }
 
 /** Linear transition allowing different transition quotient for distances (`tTrans`) and angles (`tRot`). */
-function transition_linear_internal(out: Camera.Snapshot, tTrans: number, tRot: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
+function _transitionLinearInternal(out: Camera.Snapshot, tTrans: number, tRot: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
     Camera.copySnapshot(out, target);
 
     // Interpolate fov & fog (use tRot as these are scale-independent)
@@ -87,7 +87,7 @@ function interpolateCameraRotation(out: Camera.Snapshot, t: number, dist: number
  * Visible sphere radius increases during the transition so that for some t (0<=t<=1) the interpolated sphere will contain both source and target spheres.
  * When source and target spheres overlap, the transition is partially or fully linearized to avoid disturbing zoom-out.
  * Camera target position and rotational component of the transition use linear interpolation. */
-export function transition_leap(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
+export function transitionLeap(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
     Camera.copySnapshot(out, target);
 
     // Interpolate fov & fog
@@ -114,7 +114,7 @@ export function transition_leap(out: Camera.Snapshot, t: number, source: Camera.
 
 /** "Leaping" camera transition with constant speed relative to visible sphere radius (move slower where zoomed-in more, dtarget / dt = (r + CONST_REL_SPEED_OFFSET) * const).
  * Rotational component of the transition uses linear interpolation. */
-function transition_leap_relative(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
+function transitionLeapRelative(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
     Camera.copySnapshot(out, target);
 
     // Interpolate fov & fog
@@ -142,10 +142,10 @@ function transition_leap_relative(out: Camera.Snapshot, t: number, source: Camer
 
 
 export const TransitionFunctions = {
-    'linear': transition_linear,
-    'linear-relative': transition_linear_relative,
-    'leap': transition_leap,
-    'leap-relative': transition_leap_relative,
+    'linear': transitionLinear,
+    'linear-relative': transitionLinearRelative,
+    'leap': transitionLeap,
+    'leap-relative': transitionLeapRelative,
 } satisfies Record<string, CameraTransitionManager.TransitionFunc>;
 
 export type TransitionShape = keyof typeof TransitionFunctions;
@@ -234,7 +234,7 @@ function cameraTargetDistance(visRadius: number, mode: Camera.Mode, fov: number)
 /** This adjustment to transition quotient (0-1) ensures that transition speed relative to radius is constant during the transition.
  * Only to be applied to position and radius interpolation, not needed for angles.
  * This function assumes linear interpolation of radius. For other interpolation methods, more complicated formula is needed. */
-function constRelSpeedQuotientAdj_linRadIntp(rA: number, rB: number, t: number): number {
+function quotientForConstRelSpeedLinRadIntp(rA: number, rB: number, t: number): number {
     if (isZero((rA - rB) / (rA + rB))) {
         // Special case for rA===rB
         return t;
