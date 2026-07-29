@@ -90,7 +90,7 @@ export interface ParticleList {
      * Optional polyline (fiber) connectivity over particles, stored in compressed-sparse-row
      * form. Fiber `f` (for `0 <= f < count`) is the ordered polyline through the particles
      * `indices[offsets[f]]` .. `indices[offsets[f + 1]) - 1]`. Used by formats such as
-     * Simularium where an agent expands into a chain of particles. Currently informational
+     * Simularium where an agent expands into a chain of particles.
      */
     readonly fibers?: {
         readonly count: number
@@ -222,6 +222,18 @@ export function getFiberParticleMask(data: ParticleList): Uint8Array | undefined
 }
 
 export namespace Particle {
+    export function is(x: any): x is ParticleList {
+        return (
+            typeof x?.count === 'number' &&
+            x?.keys instanceof Int32Array &&
+            x?.targets instanceof Int32Array &&
+            x?.coordinates instanceof Float32Array &&
+            !!x?.sourceData &&
+            !!x?.customProperties &&
+            !!x?._propertyData
+        );
+    }
+
     /** A single particle within a `ParticleList`. */
     export interface Location {
         readonly kind: 'particle-location'
