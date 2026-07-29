@@ -80,14 +80,13 @@ export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementI
     const rI = index[elementIndex];
     const start = offsets[rI];
     const end = offsets[rI + 1];
-    if (SortedArray.hasRange(elements, start, end - 1)) return EmptyLoci;
+    if (!SortedArray.hasRange(elements, start, end - 1)) return EmptyLoci;
 
     const _indices: number[] = [];
     for (let i = start, il = end; i < il; ++i) {
         const unitIndex = OrderedSet.indexOf(elements, i);
         if (unitIndex !== -1) _indices.push(unitIndex);
     }
-    if (_indices.length === 0) return EmptyLoci;
     const indices = OrderedSet.ofSortedArray<StructureElement.UnitIndex>(SortedArray.ofSortedArray(_indices));
     return StructureElement.Loci(structure, [{ unit, indices }]);
 }
