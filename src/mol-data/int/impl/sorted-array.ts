@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { createRangeArray } from '../../util/array';
@@ -92,6 +93,14 @@ export function findPredecessorIndexInInterval(xs: Nums, query: number, bounds: 
 
 export function findRange(xs: Nums, min: number, max: number) {
     return Interval.ofBounds(findPredecessorIndex(xs, min), findPredecessorIndex(xs, max + 1));
+}
+
+/** Returns true if `xs` contains any value within `[min, max]` (inclusive). */
+export function hasRange(xs: Nums, min: number, max: number) {
+    const l = xs.length;
+    if (l === 0 || max < min || max < xs[0] || min > xs[l - 1]) return false;
+    const idx = findPredecessorIndex(xs, min);
+    return idx < l && xs[idx] <= max;
 }
 
 function binarySearchRange(xs: Nums, value: number, start: number, end: number) {

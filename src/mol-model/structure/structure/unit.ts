@@ -375,6 +375,14 @@ namespace Unit {
             return this.residueIndex[this.elements[elementIndex]];
         }
 
+        /** Check if any element of the unit belongs to the given residue. */
+        hasResidueIndex(residueIndex: ResidueIndex) {
+            const { offsets } = this.model.atomicHierarchy.residueAtomSegments;
+            const start = offsets[residueIndex];
+            const end = offsets[residueIndex + 1];
+            return SortedArray.hasRange(this.elements, start, end - 1);
+        }
+
         constructor(id: number, invariantId: number, chainGroupId: number, traits: Traits, model: Model, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: AtomicProperties) {
             this.id = id;
             this.invariantId = invariantId;
