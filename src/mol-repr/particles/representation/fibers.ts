@@ -187,6 +187,8 @@ export const FibersLinesParams = {
     ...Lines.Params,
     linearSegments: PD.Numeric(8, { min: 1, max: 48, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     useLineStrips: PD.Boolean(true),
+    sizeFactor: PD.Numeric(0.5, { min: 0, max: 10, step: 0.1 }),
+    lineSizeAttenuation: PD.Boolean(true),
 };
 export type FibersLinesParams = typeof FibersLinesParams;
 export type FibersLinesProps = PD.Values<FibersLinesParams>;
@@ -273,7 +275,7 @@ export function FibersLinesVisual(materialId: number, _particles?: ParticleList,
 
 export const FibersTubeMeshParams = {
     ...Mesh.Params,
-    tubeSizeFactor: PD.Numeric(0.8, { min: 0, max: 10, step: 0.01 }),
+    tubeSizeFactor: PD.Numeric(0.5, { min: 0, max: 10, step: 0.01 }),
     linearSegments: PD.Numeric(8, { min: 1, max: 48, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     radialSegments: PD.Numeric(8, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
 };

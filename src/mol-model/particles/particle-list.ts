@@ -198,10 +198,9 @@ export function getParticleTransformsAsMat4(data: ParticleList): Mat4[] {
 const FiberParticleMaskDescriptor = CustomPropertyDescriptor({ name: 'particle-fiber-mask' });
 
 /**
- * Per-particle mask (length = `count`) marking fiber "sub particles", i.e. particles referenced
- * by `fibers.indices` other than the first particle of each fiber (which stays unmasked so it
- * remains visible as the fiber's representative particle). Returns `undefined` if the particle
- * list has no `fibers` data. Computed once and cached on the `ParticleList`.
+ * Per-particle mask (length = `count`) marking fiber particles, i.e. particles referenced
+ * by `fibers.indices`. Returns `undefined` if the particle list has no `fibers` data.
+ * Computed once and cached on the `ParticleList`.
  */
 export function getFiberParticleMask(data: ParticleList): Uint8Array | undefined {
     const { fibers } = data;
@@ -212,8 +211,7 @@ export function getFiberParticleMask(data: ParticleList): Uint8Array | undefined
         for (let f = 0; f < fibers.count; ++f) {
             const start = offsets[f];
             const end = offsets[f + 1];
-            // skip the first particle of the fiber so it stays visible
-            for (let i = start + 1; i < end; ++i) {
+            for (let i = start + 0; i < end; ++i) {
                 mask[indices[i]] = 1;
             }
         }

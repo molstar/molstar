@@ -43,7 +43,7 @@ export const SpacefillParticlesParams = {
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     pointSize: PD.Numeric(1, PointSizeOptions, { description: 'Radius used for the particle position marker.' }),
     positionColor: PD.Color(ColorNames.white),
-    excludeFibers: PD.Boolean(true, { description: 'Do not show fiber sub particles (e.g. shown separately by the Fibers representation); the first particle of each fiber stays visible.' }),
+    excludeFibers: PD.Boolean(true, { description: 'Do not show fiber particles (e.g. shown separately by the Fibers representation).' }),
 };
 export type SpacefillParticlesParams = typeof SpacefillParticlesParams;
 export type SpacefillParticlesProps = PD.Values<SpacefillParticlesParams>;
