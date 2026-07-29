@@ -70,19 +70,21 @@ export function checkCylinderImpostorSupport(webgl?: WebGLContext) {
 
 //
 
-/** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
+/**
+ * Return a Loci for the elements of a whole residue the elementIndex
+ * belongs to. Accounts for whole the residue, not limited to the unit.
+ */
 export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {
     const { elements, model } = unit;
     const { index, offsets } = model.atomicHierarchy.residueAtomSegments;
-    // Resolve the residue directly from the (model-level) representative element rather than
-    // requiring that element to be a member of the unit. A reduced unit — e.g. a {CA,P} trace
-    // selection — keeps only a subset of each residue's atoms, and for nucleic residues the
-    // representative trace atom (O3', from traceElementIndex) is not among them (only P is). We
-    // still want to mark/pick the residue, so gather whatever of its atoms ARE present in the unit.
     const rI = index[elementIndex];
+    const start = offsets[rI];
+    const end = offsets[rI + 1];
+    if (SortedArray.hasRange(elements, start, end - 1)) return EmptyLoci;
+
     const _indices: number[] = [];
-    for (let i = offsets[rI], il = offsets[rI + 1]; i < il; ++i) {
-        const unitIndex = OrderedSet.indexOf(elements, i as ElementIndex);
+    for (let i = start, il = end; i < il; ++i) {
+        const unitIndex = OrderedSet.indexOf(elements, i);
         if (unitIndex !== -1) _indices.push(unitIndex);
     }
     if (_indices.length === 0) return EmptyLoci;

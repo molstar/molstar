@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as Impl from './impl/sorted-array';
@@ -47,6 +48,8 @@ namespace SortedArray {
     export const findPredecessorIndexInInterval: <T extends number = number>(array: SortedArray<T>, x: T, bounds: Interval) => number = Impl.findPredecessorIndexInInterval as any;
     export const findRange: <T extends number = number>(array: SortedArray<T>, min: T, max: T) => Interval = Impl.findRange as any;
     export const intersectionSize: <T extends number = number>(a: SortedArray<T>, b: SortedArray<T>) => number = Impl.intersectionSize as any;
+    /** Returns true if `array` contains any value within `[min, max]` (inclusive), without allocating an `Interval`. */
+    export const hasRange: <T extends number = number>(array: SortedArray<T>, min: T, max: T) => boolean = Impl.hasRange as any;
 
     export const deduplicate: <T extends number = number>(array: SortedArray<T>) => SortedArray<T> = Impl.deduplicate as any;
     /** Returns indices of xs in the array. E.g. indicesOf([10, 11, 12], [10, 12]) ==> [0, 2] */
