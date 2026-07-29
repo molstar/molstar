@@ -23,6 +23,7 @@ import { IndexPairBonds } from './property/bonds/index-pair';
 import { AtomPartialCharge } from './property/partial-charge';
 import { ModelSymmetry } from './property/symmetry';
 import { getElementSymbolFromMass } from './common/element-mass';
+import { AtomicNumbers } from '../../mol-model/structure/model/properties/atomic';
 
 async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: UnitStyle = 'real') {
     const { atoms, bonds, masses } = mol;
@@ -30,20 +31,23 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
     const count = atoms.count;
     const scale = lammpsUnitStyles[unitsStyle].scale;
     const type_symbols = new Array<string>(count);
+    const atom_types = new Array<string>(count);
     const cx = new Float32Array(count);
     const cy = new Float32Array(count);
     const cz = new Float32Array(count);
 
-    const typeToElement = new Map<number, string>();
+    const typeToElement: (string | undefined)[] = [];
     if (masses && masses.count > 0) {
         for (let m = 0; m < masses.count; m++) {
             const aType = masses.atomType.value(m);
-            // prefer the element symbol parsed from the LAMMPS comment (e.g. "1 12.011 # C"),
-            // and only fall back to inferring it from the mass value when no comment was present
-            const parsedSymbol = masses.symbol?.value(m)?.trim();
-            const elem = parsedSymbol || getElementSymbolFromMass(masses.mass.value(m));
+            const mass = masses.mass.value(m);
+            const parsed = masses.symbol?.value(m)?.trim();
+            const elem =
+              parsed && AtomicNumbers[parsed.toUpperCase()] !== undefined
+                ? parsed.toUpperCase()
+                : getElementSymbolFromMass(mass, 5.0);
             if (elem) {
-                typeToElement.set(aType, elem);
+                typeToElement[aType] = elem;
             }
         }
     }
@@ -57,7 +61,8 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
     for (let j = 0; j < count; j++) {
         const atomId = atoms.atomId.value(j);
         const atomType = atoms.atomType.value(j);
-        const elem = typeToElement.get(atomType);
+        const elem = typeToElement[atomType];
+        atom_types[j] = atomType.toString();
         type_symbols[j] = elem || atomType.toString();
         cx[j] = atoms.x.value(j) * scale;
         cy[j] = atoms.y.value(j) * scale;
@@ -76,10 +81,11 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
     const seq_id = Column.ofConst(1, count, Column.Schema.int);
 
     const type_symbol = Column.ofStringArray(type_symbols);
+    const atom_type = Column.ofStringArray(atom_types);
 
     const atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
         auth_asym_id: asym_id,
-        auth_atom_id: type_symbol,
+        auth_atom_id: atom_type,
         auth_comp_id: MOL,
         auth_seq_id: seq_id,
         Cartn_x: Column.ofFloatArray(cx),
@@ -88,7 +94,7 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
         id: atoms.atomId,
 
         label_asym_id: asym_id,
-        label_atom_id: type_symbol,
+        label_atom_id: atom_type,
         label_comp_id: MOL,
         label_seq_id: seq_id,
         label_entity_id: Column.ofConst('1', count, Column.Schema.str),

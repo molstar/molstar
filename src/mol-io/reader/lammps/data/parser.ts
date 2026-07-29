@@ -135,6 +135,13 @@ async function handleMasses(state: State, count: number): Promise<NonNullable<La
     await chunkedSubtask(state.runtimeCtx, 10, void 0, chunkSize => {
         const itemsToRead = Math.min(count - itemsAlreadyRead, chunkSize);
         for (let i = 0; i < itemsToRead; ++i) {
+            // skip any comment lines before the actual data line
+            skipWhitespace(tokenizer);
+            while (tokenizer.position < tokenizer.length &&
+                   tokenizer.data.charCodeAt(tokenizer.position) === 35 /* '#' */) {
+                eatLine(tokenizer);
+                skipWhitespace(tokenizer);
+            }
             for (let j = 0; j < 2; ++j) {
                 skipWhitespace(tokenizer);
                 markStart(tokenizer);
@@ -240,15 +247,6 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
             bondType: Column.ofIntArray([]),
             atomIdA: Column.ofIntArray([]),
             atomIdB: Column.ofIntArray([]),
-        };
-    }
-
-    if (masses === undefined) {
-        masses = {
-            count: 0,
-            atomType: Column.ofIntArray([]),
-            mass: Column.ofFloatArray([]),
-            symbol: Column.ofStringArray([]),
         };
     }
 
