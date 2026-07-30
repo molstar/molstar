@@ -142,7 +142,7 @@ export namespace RootStructureDefinition {
         return new SO.Molecule.Structure(s, objProps);
     }
 
-    async function buildSymmetry(ctx: RuntimeContext, model: Model, ijkMin: Vec3, ijkMax: Vec3, props?: CommonStructureProps & { merge?: boolean }) {
+    async function buildSymmetry(ctx: RuntimeContext, model: Model, ijkMin: Vec3, ijkMax: Vec3, props?: CommonStructureProps) {
         const base = Structure.ofModel(model, props);
         let s = await StructureSymmetry.buildSymmetryRange(base, ijkMin, ijkMax).runInContext(ctx);
         if (props?.mergeBySymmetry) s = Structure.mergeUnitsByOperator(s);
@@ -150,7 +150,7 @@ export namespace RootStructureDefinition {
         return new SO.Molecule.Structure(s, objProps);
     }
 
-    async function buildSymmetryMates(ctx: RuntimeContext, model: Model, radius: number, props?: CommonStructureProps & { merge?: boolean }) {
+    async function buildSymmetryMates(ctx: RuntimeContext, model: Model, radius: number, props?: CommonStructureProps) {
         const base = Structure.ofModel(model, props);
         let s = await StructureSymmetry.builderSymmetryMates(base, radius).runInContext(ctx);
         if (props?.mergeBySymmetry) s = Structure.mergeUnitsByOperator(s);

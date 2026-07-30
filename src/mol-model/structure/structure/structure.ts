@@ -931,7 +931,12 @@ namespace Structure {
             ++i;
         });
 
-        return create(units);
+        return create(units, {
+            dynamicBonds: s.dynamicBonds,
+            label: s.label,
+            masterModel: s.masterModel,
+            representativeModel: s.representativeModel,
+        });
     }
 
     export class StructureBuilder {
