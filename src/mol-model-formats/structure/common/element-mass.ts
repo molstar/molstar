@@ -6,6 +6,9 @@
 import { ElementAtomWeights } from '../../../mol-model/structure/model/properties/atomic/measures';
 import { ElementSymbol, getElementFromAtomicNumber } from '../../../mol-model/structure/model/types';
 
+/**
+ * Array of element symbols and their corresponding atomic masses, sorted by mass.
+ */
 const ElementMassesByMass: [ElementSymbol, number][] = [];
 for (const key in ElementAtomWeights) {
     const mass = ElementAtomWeights[Number(key)];
@@ -13,6 +16,7 @@ for (const key in ElementAtomWeights) {
         ElementMassesByMass.push([getElementFromAtomicNumber(Number(key)), mass]);
     }
 }
+ElementMassesByMass.sort((a, b) => a[1] - b[1]);
 
 /**
  * Resolve the closest matching element symbol for a given atomic mass.

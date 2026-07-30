@@ -68,7 +68,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     }
 
     override getLoci(seqIdx: number) {
-        const query = createResidueQuery(this.data.units[0].chainGroupId, this.data.units[0].conformation.operator.name, this.seqId(seqIdx));
+        const query = createResidueQuery(this.data.units[0].chainGroupId, this.data.units[0].conformation.operator.name, this.asymId, this.seqId(seqIdx));
         return StructureSelection.toLociWithSourceUnits(StructureQuery.run(query, this.data.structure));
     }
 
@@ -97,7 +97,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     }
 }
 
-function createResidueQuery(chainGroupId: number, operatorName: string, label_seq_id: number) {
+function createResidueQuery(chainGroupId: number, operatorName: string, asymId: string, label_seq_id: number) {
     return Queries.generators.atoms({
         unitTest: ctx => {
             return (
@@ -106,6 +106,14 @@ function createResidueQuery(chainGroupId: number, operatorName: string, label_se
             );
         },
         residueTest: ctx => {
+            // `chainGroupId` alone is not enough to identify a chain when the unit is a
+            // `MultiChain` unit (e.g. produced by merging units sharing a symmetry operator),
+            // since all chains merged into such a unit share the same `chainGroupId`.
+            const residueAsymId = ctx.element.unit.kind === Unit.Kind.Atomic
+                ? SP.chain.label_asym_id(ctx.element)
+                : SP.coarse.asym_id(ctx.element);
+            if (residueAsymId !== asymId) return false;
+
             if (ctx.element.unit.kind === Unit.Kind.Atomic) {
                 return SP.residue.label_seq_id(ctx.element) === label_seq_id;
             } else {
