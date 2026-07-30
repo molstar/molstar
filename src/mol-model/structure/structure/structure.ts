@@ -36,6 +36,7 @@ import { RuntimeContext, Task } from '../../../mol-task';
 import { computeStructureBoundary } from './util/boundary';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { IntraUnitBondMapping, getIntraUnitBondMapping, getSerialMapping, SerialMapping } from './mapping';
+import { mergeUnitsWithSameOperator } from './util/unit-merging';
 
 /** Internal structure state */
 type State = {
@@ -894,6 +895,49 @@ namespace Structure {
         return create(units, { parent: s });
     }
 
+    /**
+     * Merge units that share the exact same symmetry operator (and model/kind) into a single unit.
+     * Units that don't share their operator with any other unit are left untouched.
+     */
+    export function mergeUnitsByOperator(s: Structure): Structure {
+        const groups = new Map<string, Unit[]>();
+        for (const u of s.units) {
+            const op = u.conformation.operator;
+            const key = `${u.model.id}|${u.kind}|${op.key >= 0 ? `k${op.key}` : `n${op.name}`}`;
+            const group = groups.get(key);
+            if (group) group.push(u);
+            else groups.set(key, [u]);
+        }
+
+        if (groups.size === s.units.length) return s;
+
+        // Groups merged from the same set of original units (e.g. the same chains
+        // repeated at different symmetry operators) must be assigned the same
+        // invariantId so they are correctly recognized as instances of the same
+        // shape by `unitSymmetryGroups`.
+        const invariantIds = new Map<string, number>();
+        let nextInvariantId = 0;
+
+        const units: Unit[] = [];
+        let i = 0;
+        groups.forEach(group => {
+            const compositionKey = `${group[0].model.id}|${group[0].kind}|${group.map(u => u.invariantId).sort((a, b) => a - b).join(',')}`;
+            let invariantId = invariantIds.get(compositionKey);
+            if (invariantId === undefined) {
+                invariantId = nextInvariantId++;
+                invariantIds.set(compositionKey, invariantId);
+            }
+            units.push(mergeUnitsWithSameOperator(group, i, invariantId));
+            ++i;
+        });
+
+        return create(units, {
+            dynamicBonds: s.dynamicBonds,
+            label: s.label,
+            masterModel: s.masterModel,
+            representativeModel: s.representativeModel,
+        });
+    }
 
     export class StructureBuilder {
         private units: Unit[] = [];
