@@ -17,3 +17,5 @@ tmp/
 
 dev.pem
 dev-key.pem
+
+data/sym/syminfo.lib

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -16,11 +16,13 @@ function getSpacegroup(name: string) {
 
 function checkOperatorsXyz(name: string, expected: string[]) {
     const spacegroup = getSpacegroup(name);
+    const actual: string[] = [];
     for (let i = 0, il = spacegroup.operators.length; i < il; ++i) {
-        const op = spacegroup.operators[i];
-        const actual = Spacegroup.getOperatorXyz(op);
-        expect(actual).toBe(expected[i]);
+        actual.push(Spacegroup.getOperatorXyz(spacegroup.operators[i]));
     }
+    // Compare as sets: Spacegroup.create now derives operators from Hall symbols,
+    // which yields the same operators but in a different order than the legacy tables.
+    expect(actual.slice().sort()).toEqual(expected.slice().sort());
 }
 
 describe('Spacegroup', () => {

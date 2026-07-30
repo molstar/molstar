@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Unit, Structure, ElementIndex, StructureElement, ResidueIndex } from '../../../../mol-model/structure';
@@ -69,21 +70,25 @@ export function checkCylinderImpostorSupport(webgl?: WebGLContext) {
 
 //
 
-/** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
+/**
+ * Return a Loci for the elements of a whole residue the elementIndex
+ * belongs to. Accounts for whole the residue, not limited to the unit.
+ */
 export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {
     const { elements, model } = unit;
-    if (OrderedSet.indexOf(elements, elementIndex) !== -1) {
-        const { index, offsets } = model.atomicHierarchy.residueAtomSegments;
-        const rI = index[elementIndex];
-        const _indices: number[] = [];
-        for (let i = offsets[rI], il = offsets[rI + 1]; i < il; ++i) {
-            const unitIndex = OrderedSet.indexOf(elements, i);
-            if (unitIndex !== -1) _indices.push(unitIndex);
-        }
-        const indices = OrderedSet.ofSortedArray<StructureElement.UnitIndex>(SortedArray.ofSortedArray(_indices));
-        return StructureElement.Loci(structure, [{ unit, indices }]);
+    const { index, offsets } = model.atomicHierarchy.residueAtomSegments;
+    const rI = index[elementIndex];
+    const start = offsets[rI];
+    const end = offsets[rI + 1];
+    if (!SortedArray.hasRange(elements, start, end - 1)) return EmptyLoci;
+
+    const _indices: number[] = [];
+    for (let i = start, il = end; i < il; ++i) {
+        const unitIndex = OrderedSet.indexOf(elements, i);
+        if (unitIndex !== -1) _indices.push(unitIndex);
     }
-    return EmptyLoci;
+    const indices = OrderedSet.ofSortedArray<StructureElement.UnitIndex>(SortedArray.ofSortedArray(_indices));
+    return StructureElement.Loci(structure, [{ unit, indices }]);
 }
 
 /**
