@@ -42,8 +42,7 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
             const aType = masses.atomType.value(m);
             const mass = masses.mass.value(m);
             const parsed = masses.symbol?.value(m)?.trim();
-            const elem =
-              parsed && AtomicNumbers[parsed.toUpperCase()] !== undefined
+            const elem = parsed && AtomicNumbers[parsed.toUpperCase()] !== undefined
                 ? parsed.toUpperCase()
                 : getElementSymbolFromMass(mass, 5.0);
             if (elem) {

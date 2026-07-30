@@ -6,12 +6,13 @@
 import { ElementAtomWeights } from '../../../mol-model/structure/model/properties/atomic/measures';
 import { ElementSymbol, getElementFromAtomicNumber } from '../../../mol-model/structure/model/types';
 
- const ElementMassesByMass: [ElementSymbol, number][] = [];
- for (const key in ElementAtomWeights) {
-   const mass = ElementAtomWeights[Number(key)];
-   if (mass === undefined) continue;
-   ElementMassesByMass.push([getElementFromAtomicNumber(Number(key)), mass]);
- }
+const ElementMassesByMass: [ElementSymbol, number][] = [];
+for (const key in ElementAtomWeights) {
+    const mass = ElementAtomWeights[Number(key)];
+    if (mass !== undefined) {
+        ElementMassesByMass.push([getElementFromAtomicNumber(Number(key)), mass]);
+    }
+}
 
 /**
  * Resolve the closest matching element symbol for a given atomic mass.
@@ -20,8 +21,7 @@ import { ElementSymbol, getElementFromAtomicNumber } from '../../../mol-model/st
  * @param tolerance max allowed percentage difference between the given mass and the closest element mass
  * @returns the closest element symbol within `tolerance`, or `undefined` if none is close enough
  */
- export function getElementSymbolFromMass(mass: number, tolerance = 5.0): ElementSymbol | undefined {
-
+export function getElementSymbolFromMass(mass: number, tolerance = 5.0): ElementSymbol | undefined {
     if (!Number.isFinite(mass) || mass <= 0) return undefined;
 
     let minDiff = Infinity;

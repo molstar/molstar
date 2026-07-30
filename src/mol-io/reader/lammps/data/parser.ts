@@ -137,8 +137,7 @@ async function handleMasses(state: State, count: number): Promise<NonNullable<La
         for (let i = 0; i < itemsToRead; ++i) {
             // skip any comment lines before the actual data line
             skipWhitespace(tokenizer);
-            while (tokenizer.position < tokenizer.length &&
-                   tokenizer.data.charCodeAt(tokenizer.position) === 35 /* '#' */) {
+            while (tokenizer.position < tokenizer.length && tokenizer.data.charCodeAt(tokenizer.position) === 35 /* '#' */) {
                 eatLine(tokenizer);
                 skipWhitespace(tokenizer);
             }

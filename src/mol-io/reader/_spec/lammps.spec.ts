@@ -201,7 +201,7 @@ Atoms # atomic
         });
 
         it('infers element symbol from mass when comment is absent', async () => {
-          const data = `LAMMPS data file
+            const data = `LAMMPS data file
 
 1 atoms
 1 atom types
@@ -215,13 +215,13 @@ Atoms # atomic
 1 1 0 0 0
 `;
 
-          const file = await parse(data);
+            const file = await parse(data);
 
-          expect(file.masses?.symbol.value(0)).toBe('');
+            expect(file.masses?.symbol.value(0)).toBe('');
         });
 
         it('returns empty symbol when mass cannot be matched', async () => {
-    const data = `LAMMPS data file
+            const data = `LAMMPS data file
 
 1 atoms
 1 atom types
@@ -241,7 +241,7 @@ Atoms # atomic
         });
 
         it('infers element symbol from mass', async () => {
-                const data = `LAMMPS data file
+            const data = `LAMMPS data file
 
 1 atoms
 1 atom types
@@ -254,13 +254,13 @@ Atoms # atomic
 
 1 1 0 0 0
 `;
-    const file = await parse(data);
+            const file = await parse(data);
 
-    const traj = await trajectoryFromLammpsData(file).run();
-    const model = traj.representative;
+            const traj = await trajectoryFromLammpsData(file).run();
+            const model = traj.representative;
 
-    expect(model.atomicHierarchy.atoms.type_symbol.value(0)).toBe('C');
-});
+            expect(model.atomicHierarchy.atoms.type_symbol.value(0)).toBe('C');
+        });
     });
 
     describe('box and header counts', () => {
