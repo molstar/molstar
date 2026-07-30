@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Interval } from '../interval';
@@ -58,6 +59,17 @@ describe('sortedArray', () => {
     test('predIndexDuplBig', SortedArray.findPredecessorIndex(aDuplBig, 3), 334);
 
     testI('findRange', SortedArray.findRange(a2468, 2, 4), Interval.ofRange(0, 1));
+
+    test('hasRange-within', SortedArray.hasRange(a2468, 2, 4), true);
+    test('hasRange-partial-overlap-start', SortedArray.hasRange(a2468, 0, 2), true);
+    test('hasRange-partial-overlap-end', SortedArray.hasRange(a2468, 8, 10), true);
+    test('hasRange-gap', SortedArray.hasRange(a2468, 3, 3), false);
+    test('hasRange-below', SortedArray.hasRange(a2468, -2, 1), false);
+    test('hasRange-above', SortedArray.hasRange(a2468, 9, 20), false);
+    test('hasRange-covers-all', SortedArray.hasRange(a2468, 0, 100), true);
+    test('hasRange-single-match', SortedArray.hasRange(a2468, 6, 6), true);
+    test('hasRange-inverted', SortedArray.hasRange(a2468, 5, 2), false);
+    test('hasRange-empty', SortedArray.hasRange(SortedArray.Empty, 0, 10), false);
 
     it('deduplicate', () => {
         compareArrays(SortedArray.deduplicate(SortedArray.ofSortedArray([1, 1, 1, 1])), [1]);
