@@ -14,6 +14,8 @@ for (const key in ElementAtomWeights) {
     }
 }
 
+ElementMassesByMass.sort((a, b) => a[1] - b[1]);
+
 /**
  * Resolve the closest matching element symbol for a given atomic mass.
  *
