@@ -133,6 +133,10 @@ and navigate to `build/viewer`
 
     node --max-old-space-size=8192 lib/commonjs/cli/chem-comp-dict/create-saccharides.js src/mol-model/structure/model/types/saccharides.ts
 
+**Syminfo**
+
+    node lib/commonjs/cli/syminfo
+
 ### Other scripts
 **Create chem comp bond table**
 

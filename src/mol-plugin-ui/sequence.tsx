@@ -24,6 +24,8 @@ import { elementLabel } from '../mol-theme/label';
 import { Icon, HelpOutlineSvg } from './controls/icons';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
 import { arrayEqual } from '../mol-util/array';
+import { Segmentation, SortedArray } from '../mol-data/int';
+import { ElementIndex } from '../mol-model/structure/model/indexing';
 
 const MaxDisplaySequenceLength = 5000;
 // TODO: add virtualized Select controls (at best with a search box)?
@@ -43,21 +45,57 @@ export function splitModelEntityId(modelEntityId: string) {
     return [parseInt(modelIdx), entityId];
 }
 
-export function getSequenceWrapper(state: { structure: Structure, modelEntityId: string, chainGroupId: number, operatorKey: string }, structureSelection: StructureSelectionManager): SequenceWrapper.Any | string {
-    const { structure, modelEntityId, chainGroupId, operatorKey } = state;
+/**
+ * Iterate over the actual chains contained in a unit. Most units correspond to
+ * a single chain, but units with the `MultiChain` trait (e.g. produced by
+ * merging units that share a symmetry operator, or by merging consecutive
+ * water/single-atom-chain units) can contain multiple chains. In that case
+ * `unit.chainGroupId` is the same (0) for every chain, so the model's real
+ * `chainIndex` is used to tell them apart.
+ */
+function* iterateUnitChains(unit: Unit): Generator<{ chainIndex: number, elements: SortedArray<ElementIndex> }> {
+    const { elements } = unit;
+    const segments = Unit.isAtomic(unit)
+        ? unit.model.atomicHierarchy.chainAtomSegments
+        : Unit.isSpheres(unit)
+            ? unit.model.coarseHierarchy.spheres.chainElementSegments
+            : unit.model.coarseHierarchy.gaussians.chainElementSegments;
+
+    if (!Unit.Traits.is(unit.traits, Unit.Trait.MultiChain)) {
+        yield { chainIndex: segments.index[elements[0]], elements };
+        return;
+    }
+
+    const segmentIt = Segmentation.transientSegments(segments, elements);
+    while (segmentIt.hasNext) {
+        const { index: chainIndex, start, end } = segmentIt.move();
+        const chainElements: ElementIndex[] = [];
+        for (let i = start; i < end; ++i) chainElements.push(elements[i]);
+        yield { chainIndex, elements: SortedArray.ofSortedArray(chainElements) };
+    }
+}
+
+export function getSequenceWrapper(state: { structure: Structure, modelEntityId: string, chainIndex: number, operatorKey: string }, structureSelection: StructureSelectionManager): SequenceWrapper.Any | string {
+    const { structure, modelEntityId, chainIndex, operatorKey } = state;
     const l = StructureElement.Location.create(structure);
     const [modelIdx, entityId] = splitModelEntityId(modelEntityId);
 
     const units: Unit[] = [];
 
     for (const unit of structure.units) {
-        StructureElement.Location.set(l, structure, unit, unit.elements[0]);
         if (structure.getModelIndex(unit.model) !== modelIdx) continue;
-        if (SP.entity.id(l) !== entityId) continue;
-        if (unit.chainGroupId !== chainGroupId) continue;
+
+        StructureElement.Location.set(l, structure, unit, unit.elements[0]);
         if (opKey(l) !== operatorKey) continue;
 
-        units.push(unit);
+        for (const chain of iterateUnitChains(unit)) {
+            if (chain.chainIndex !== chainIndex) continue;
+
+            StructureElement.Location.set(l, structure, unit, chain.elements[0]);
+            if (SP.entity.id(l) !== entityId) continue;
+
+            units.push(unit.getChild(chain.elements));
+        }
     }
 
     if (units.length > 0) {
@@ -104,27 +142,30 @@ export function getModelEntityOptions(structure: Structure, polymersOnly = false
     const seen = new Set<string>();
 
     for (const unit of structure.units) {
-        StructureElement.Location.set(l, structure, unit, unit.elements[0]);
-        const id = SP.entity.id(l);
         const modelIdx = structure.getModelIndex(unit.model);
-        const key = `${modelIdx}|${id}`;
-        if (seen.has(key)) continue;
-        if (polymersOnly && SP.entity.type(l) !== 'polymer') continue;
 
-        let description = SP.entity.pdbx_description(l).join(', ');
-        if (structure.models.length) {
-            if (structure.representativeModel) { // indicates model trajectory
-                description += ` (Model ${structure.models[modelIdx].modelNum})`;
-            } else if (description.startsWith('Polymer ')) { // indicates generic entity name
-                description += ` (${structure.models[modelIdx].entry})`;
+        for (const chain of iterateUnitChains(unit)) {
+            StructureElement.Location.set(l, structure, unit, chain.elements[0]);
+            const id = SP.entity.id(l);
+            const key = `${modelIdx}|${id}`;
+            if (seen.has(key)) continue;
+            if (polymersOnly && SP.entity.type(l) !== 'polymer') continue;
+
+            let description = SP.entity.pdbx_description(l).join(', ');
+            if (structure.models.length) {
+                if (structure.representativeModel) { // indicates model trajectory
+                    description += ` (Model ${structure.models[modelIdx].modelNum})`;
+                } else if (description.startsWith('Polymer ')) { // indicates generic entity name
+                    description += ` (${structure.models[modelIdx].entry})`;
+                }
             }
-        }
-        const label = `${id}: ${description}`;
-        options.push([key, label]);
-        seen.add(key);
+            const label = `${id}: ${description}`;
+            options.push([key, label]);
+            seen.add(key);
 
-        if (options.length > MaxSelectOptionsCount) {
-            return [['', 'Too many entities']];
+            if (options.length > MaxSelectOptionsCount) {
+                return [['', 'Too many entities']];
+            }
         }
     }
 
@@ -139,22 +180,23 @@ export function getChainOptions(structure: Structure, modelEntityId: string): [n
     const [modelIdx, entityId] = splitModelEntityId(modelEntityId);
 
     for (const unit of structure.units) {
-        StructureElement.Location.set(l, structure, unit, unit.elements[0]);
         if (structure.getModelIndex(unit.model) !== modelIdx) continue;
-        if (SP.entity.id(l) !== entityId) continue;
 
-        const id = unit.chainGroupId;
-        if (seen.has(id)) continue;
+        for (const chain of iterateUnitChains(unit)) {
+            StructureElement.Location.set(l, structure, unit, chain.elements[0]);
+            if (SP.entity.id(l) !== entityId) continue;
 
-        // TODO handle special case
-        // - more than one chain in a unit
-        const label = elementLabel(l, { granularity: 'chain', hidePrefix: true, htmlStyling: false });
+            const id = chain.chainIndex;
+            if (seen.has(id)) continue;
 
-        options.push([id, label]);
-        seen.add(id);
+            const label = elementLabel(l, { granularity: 'chain', hidePrefix: true, htmlStyling: false });
 
-        if (options.length > MaxSelectOptionsCount) {
-            return [[-1, 'Too many chains']];
+            options.push([id, label]);
+            seen.add(id);
+
+            if (options.length > MaxSelectOptionsCount) {
+                return [[-1, 'Too many chains']];
+            }
         }
     }
 
@@ -162,27 +204,31 @@ export function getChainOptions(structure: Structure, modelEntityId: string): [n
     return options;
 }
 
-export function getOperatorOptions(structure: Structure, modelEntityId: string, chainGroupId: number): [string, string][] {
+export function getOperatorOptions(structure: Structure, modelEntityId: string, chainIndex: number): [string, string][] {
     const options: [string, string][] = [];
     const l = StructureElement.Location.create(structure);
     const seen = new Set<string>();
     const [modelIdx, entityId] = splitModelEntityId(modelEntityId);
 
     for (const unit of structure.units) {
-        StructureElement.Location.set(l, structure, unit, unit.elements[0]);
         if (structure.getModelIndex(unit.model) !== modelIdx) continue;
-        if (SP.entity.id(l) !== entityId) continue;
-        if (unit.chainGroupId !== chainGroupId) continue;
 
-        const id = opKey(l);
-        if (seen.has(id)) continue;
+        for (const chain of iterateUnitChains(unit)) {
+            if (chain.chainIndex !== chainIndex) continue;
 
-        const label = unit.conformation.operator.name;
-        options.push([id, label]);
-        seen.add(id);
+            StructureElement.Location.set(l, structure, unit, chain.elements[0]);
+            if (SP.entity.id(l) !== entityId) continue;
 
-        if (options.length > MaxSelectOptionsCount) {
-            return [['', 'Too many operators']];
+            const id = opKey(l);
+            if (seen.has(id)) continue;
+
+            const label = unit.conformation.operator.name;
+            options.push([id, label]);
+            seen.add(id);
+
+            if (options.length > MaxSelectOptionsCount) {
+                return [['', 'Too many operators']];
+            }
         }
     }
 
@@ -214,14 +260,15 @@ type SequenceViewState = {
     structure: Structure,
     structureRef: string,
     modelEntityId: string,
-    chainGroupId: number,
+    /** Real chain index of the selected chain (not `Unit.chainGroupId`), since a unit can contain more than one chain. */
+    chainIndex: number,
     operatorKey: string,
     mode: SequenceViewMode,
     sequenceViewModeParam: typeof SequenceViewModeParam,
 }
 
 export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceViewMode }, SequenceViewState> {
-    state: SequenceViewState = { structureOptions: { options: [], all: [] }, structure: Structure.Empty, structureRef: '', modelEntityId: '', chainGroupId: -1, operatorKey: '', mode: 'single', sequenceViewModeParam: SequenceViewModeParam };
+    state: SequenceViewState = { structureOptions: { options: [], all: [] }, structure: Structure.Empty, structureRef: '', modelEntityId: '', chainIndex: -1, operatorKey: '', mode: 'single', sequenceViewModeParam: SequenceViewModeParam };
 
     componentDidMount() {
         if (this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure)).length > 0) this.setState(this.getInitialState());
@@ -271,7 +318,7 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
     private getSequenceWrapper(params: SequenceView['params']) {
         return {
             wrapper: getSequenceWrapper(this.state, this.plugin.managers.structure.selection),
-            label: `${PD.optionLabel(params.chain, this.state.chainGroupId)} | ${PD.optionLabel(params.entity, this.state.modelEntityId)}`
+            label: `${PD.optionLabel(params.chain, this.state.chainIndex)} | ${PD.optionLabel(params.entity, this.state.modelEntityId)}`
         };
     }
 
@@ -282,13 +329,13 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
         const wrappers: { wrapper: (string | SequenceWrapper.Any), label: string }[] = [];
 
         for (const [modelEntityId, eLabel] of getModelEntityOptions(structure, this.state.mode === 'polymers')) {
-            for (const [chainGroupId, cLabel] of getChainOptions(structure, modelEntityId)) {
-                for (const [operatorKey] of getOperatorOptions(structure, modelEntityId, chainGroupId)) {
+            for (const [chainIndex, cLabel] of getChainOptions(structure, modelEntityId)) {
+                for (const [operatorKey] of getOperatorOptions(structure, modelEntityId, chainIndex)) {
                     wrappers.push({
                         wrapper: getSequenceWrapper({
                             structure,
                             modelEntityId,
-                            chainGroupId,
+                            chainIndex,
                             operatorKey
                         }, this.plugin.managers.structure.selection),
                         label: `${cLabel} | ${eLabel}`
@@ -305,23 +352,23 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
         const structureRef = structureOptions.options[0][0];
         const structure = this.getStructure(structureRef);
         let modelEntityId = getModelEntityOptions(structure)[0][0];
-        let chainGroupId = getChainOptions(structure, modelEntityId)[0][0];
-        let operatorKey = getOperatorOptions(structure, modelEntityId, chainGroupId)[0][0];
+        let chainIndex = getChainOptions(structure, modelEntityId)[0][0];
+        let operatorKey = getOperatorOptions(structure, modelEntityId, chainIndex)[0][0];
         if (this.state.structure && this.state.structure === structure) {
             modelEntityId = this.state.modelEntityId;
-            chainGroupId = this.state.chainGroupId;
+            chainIndex = this.state.chainIndex;
             operatorKey = this.state.operatorKey;
         }
         const defaultMode = this.plugin.spec.components?.sequenceViewer?.defaultMode;
         const initialMode = this.props.defaultMode ?? defaultMode ?? 'single';
-        return { structureOptions, structure, structureRef, modelEntityId, chainGroupId, operatorKey, mode: initialMode, sequenceViewModeParam: this.state.sequenceViewModeParam };
+        return { structureOptions, structure, structureRef, modelEntityId, chainIndex, operatorKey, mode: initialMode, sequenceViewModeParam: this.state.sequenceViewModeParam };
     }
 
     private get params() {
-        const { structureOptions, structure, modelEntityId, chainGroupId } = this.state;
+        const { structureOptions, structure, modelEntityId, chainIndex } = this.state;
         const entityOptions = getModelEntityOptions(structure);
         const chainOptions = getChainOptions(structure, modelEntityId);
-        const operatorOptions = getOperatorOptions(structure, modelEntityId, chainGroupId);
+        const operatorOptions = getOperatorOptions(structure, modelEntityId, chainIndex);
         return {
             structure: PD.Select(structureOptions.options[0][0], structureOptions.options, { shortLabel: true }),
             entity: PD.Select(entityOptions[0][0], entityOptions, { shortLabel: true }),
@@ -335,7 +382,7 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
         return {
             structure: this.state.structureRef,
             entity: this.state.modelEntityId,
-            chain: this.state.chainGroupId,
+            chain: this.state.chainIndex,
             operator: this.state.operatorKey,
             mode: this.state.mode
         };
@@ -355,17 +402,17 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
                 if (p.name === 'structure') state.structureRef = p.value;
                 state.structure = this.getStructure(state.structureRef);
                 state.modelEntityId = getModelEntityOptions(state.structure)[0][0];
-                state.chainGroupId = getChainOptions(state.structure, state.modelEntityId)[0][0];
-                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainGroupId)[0][0];
+                state.chainIndex = getChainOptions(state.structure, state.modelEntityId)[0][0];
+                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainIndex)[0][0];
                 break;
             case 'entity':
                 state.modelEntityId = p.value;
-                state.chainGroupId = getChainOptions(state.structure, state.modelEntityId)[0][0];
-                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainGroupId)[0][0];
+                state.chainIndex = getChainOptions(state.structure, state.modelEntityId)[0][0];
+                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainIndex)[0][0];
                 break;
             case 'chain':
-                state.chainGroupId = p.value;
-                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainGroupId)[0][0];
+                state.chainIndex = p.value;
+                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainIndex)[0][0];
                 break;
             case 'operator':
                 state.operatorKey = p.value;

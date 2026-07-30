@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,7 +11,6 @@ import { Task } from '../../../../mol-task';
 import { StateObject, StateTransformer } from '../../../../mol-state';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { SymmetryOperator } from '../../../../mol-math/geometry';
-import { mergeUnits, partitionUnits } from '../util';
 import { Assembly, Symmetry } from '../../../../mol-model/structure/model/properties/symmetry';
 import { ModelSymmetry } from '../../../../mol-model-formats/structure/property/symmetry';
 import { SortedArray } from '../../../../mol-data/int';
@@ -19,6 +18,7 @@ import { GenericInstances, getTransforms } from './preset';
 import { Asset } from '../../../../mol-util/assets';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { deepEqual } from '../../../../mol-util';
+import { mergeUnitsWithSameOperator, partitionUntransformedUnits } from '../../../../mol-model/structure/structure/util/unit-merging';
 
 function createModelChainMap(model: Model) {
     const builder = new Structure.StructureBuilder();
@@ -98,12 +98,12 @@ const StructureFromGeneric = PluginStateTransform.BuiltIn({
                 if (asm) {
                     structure = buildAssembly(model, asm);
                 } else {
-                    const mergedUnits = partitionUnits(base.units, params.cellSize);
+                    const mergedUnits = partitionUntransformedUnits(base.units, params.cellSize);
                     structure = Structure.create(mergedUnits, { label });
                 }
             } else {
                 const assembler = Structure.Builder({ label });
-                const unit = mergeUnits(base.units, 0);
+                const unit = mergeUnitsWithSameOperator(base.units, 0);
                 for (let i = 0, il = transforms.length; i < il; ++i) {
                     const t = transforms[i];
                     const op = SymmetryOperator.create(`op-${i}`, t);
