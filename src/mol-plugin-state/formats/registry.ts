@@ -21,6 +21,7 @@ export class DataFormatRegistry {
     private _extensions: Set<string> | undefined = undefined;
     private _binaryExtensions: Set<string> | undefined = undefined;
     private _options: [name: string, label: string, category: string][] | undefined = undefined;
+    private _autoOrder: { name: string, provider: DataFormatProvider }[] | undefined = undefined;
 
     get types(): [name: string, label: string][] {
         return this._list.map(e => [e.name, e.provider.label] as [name: string, label: string]);
@@ -53,6 +54,20 @@ export class DataFormatRegistry {
         return options;
     }
 
+    /**
+     * Providers ordered for `auto()`: higher `priority` first, ties broken by registration
+     * order (stable sort). Explicit priority makes auto-detection independent of the order
+     * providers happen to be registered in the constructor below.
+     */
+    get autoOrder() {
+        if (this._autoOrder) return this._autoOrder;
+        this._autoOrder = this._list
+            .map((entry, index) => ({ entry, index }))
+            .sort((a, b) => (b.entry.provider.priority ?? 0) - (a.entry.provider.priority ?? 0) || a.index - b.index)
+            .map(({ entry }) => entry);
+        return this._autoOrder;
+    }
+
     constructor() {
         for (const [id, p] of BuiltInVolumeFormats) this.add(id, p);
         for (const [id, p] of BuiltInTopologyFormats) this.add(id, p);
@@ -66,6 +81,7 @@ export class DataFormatRegistry {
         this._extensions = undefined;
         this._binaryExtensions = undefined;
         this._options = undefined;
+        this._autoOrder = undefined;
     }
 
     add(name: string, provider: DataFormatProvider) {
@@ -81,8 +97,9 @@ export class DataFormatRegistry {
     }
 
     auto(info: FileNameInfo, dataStateObject: PluginStateObject.Data.Binary | PluginStateObject.Data.String) {
-        for (let i = 0, il = this.list.length; i < il; ++i) {
-            const p = this._list[i].provider;
+        const list = this.autoOrder;
+        for (let i = 0, il = list.length; i < il; ++i) {
+            const p = list[i].provider;
 
             let hasExt = false;
             if (p.binaryExtensions?.includes(info.ext)) hasExt = true;
