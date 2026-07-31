@@ -56,6 +56,12 @@ describe('binary-cif header', () => {
         }
     });
 
+    it('reads a Uint8Array view with a nonzero byte offset', () => {
+        const padded = new Uint8Array(data.length + 17);
+        padded.set(data, 17);
+        expect(decodeBinaryCifHeader(padded.subarray(17))).toEqual(decodeBinaryCifHeader(data));
+    });
+
     it('memoizes per buffer instance', () => {
         expect(getBinaryCifHeader(data)).toBe(getBinaryCifHeader(data));
         expect(getBinaryCifHeader(data)).not.toBe(getBinaryCifHeader(data.slice()));
