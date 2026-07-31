@@ -24,7 +24,7 @@ export interface MsgPackState {
 }
 
 export function createMsgPackState(buffer: Uint8Array): MsgPackState {
-    return { buffer, offset: 0, dataView: new DataView(buffer.buffer) };
+    return { buffer, offset: 0, dataView: new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength) };
 }
 
 /** Decode the value at the current offset and advance past it. */
