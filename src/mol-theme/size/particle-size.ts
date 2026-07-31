@@ -42,7 +42,7 @@ export function ParticleSizeTheme(ctx: ThemeDataContext, props: PD.Values<Partic
 
 export const ParticleSizeThemeProvider: SizeTheme.Provider<ParticleSizeThemeParams, 'particle-size'> = {
     name: 'particle-size',
-    label: 'Particle Radius',
+    label: 'Particle Size',
     category: '',
     factory: ParticleSizeTheme,
     getParams: getParticleSizeThemeParams,
