@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ludovic Autin <autin@scripps.edu>
  */
 
 import { PositionData, DensityData, fillGridDim } from './common';
@@ -14,8 +15,8 @@ import { Vec3 } from '../linear-algebra/3d/vec3';
 import { Mat4 } from '../linear-algebra/3d/mat4';
 import { Tensor } from '../linear-algebra/tensor';
 import { PrincipalAxes } from '../linear-algebra/matrix/principal-axes';
-import { fasterExp } from '../approx';
-import { fitSphericalHarmonics, toSpherical, SphericalCoord, buildRadiusLUT, sampleRadiusLUT, RadiusLUT } from './spherical-harmonics';
+import { fasterExp, fastAcos, fastAtan2 } from '../approx';
+import { fitSphericalHarmonics, buildRadiusLUT, sampleRadiusLUT, RadiusLUT } from './spherical-harmonics';
 
 export const DefaultBlobSurfaceProps = {
     blobSize: 30,
@@ -436,7 +437,6 @@ export function computeBlobSurface(position: PositionData, boundary: Boundary, r
     const gridz = fillGridDim(dim[2], min[2], resolution);
 
     const densData = space.create();
-    const sphericalScratch: SphericalCoord = { r: 0, theta: 0, phi: 0 };
     // Angular resolution for the SH radius lookup table (see `buildRadiusLUT`'s docstring for why
     // this exists): roughly 2*shDegree+1 samples per axis are enough to resolve degree-`shDegree`
     // angular detail without aliasing: a bit of oversampling on top of that keeps the bilinear
@@ -517,8 +517,10 @@ export function computeBlobSurface(position: PositionData, boundary: Boundary, r
                         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
                         if (dist > maxExtent * cutoff) continue;
 
-                        toSpherical(dx, dy, dz, sphericalScratch);
-                        const r = sampleRadiusLUT(shLUT, sphericalScratch.theta, sphericalScratch.phi);
+                        // `dist` is already the radius `toSpherical` would recompute internally,
+                        // so the direction is derived from it directly rather than re-deriving it
+                        const cosTheta = dist > 1e-12 ? dz / dist : 1;
+                        const r = sampleRadiusLUT(shLUT, fastAcos(cosTheta), fastAtan2(dy, dx));
                         // r is already clamped to [minR, maxExtent] - baked into the LUT at build time
 
                         const q = (dist * dist) / (r * r);

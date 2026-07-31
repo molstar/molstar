@@ -15,7 +15,7 @@
  * so an expansion up to degree L has (L + 1)^2 terms.
  */
 
-import { fastAcos, fastAtan2, fastCos, fastSin } from '../approx';
+import { fastAtan2, fastCos, fastSin } from '../approx';
 import { Matrix } from '../linear-algebra/matrix/matrix';
 import { svd } from '../linear-algebra/matrix/svd';
 
@@ -103,7 +103,11 @@ export function getNormFactors(L: number): Float64Array {
 
 /**
  * Evaluate the real SH basis Y_l^m(theta, phi) for all 0 <= l <= L, -l <= m <= l.
- * theta is the polar angle [0, pi], phi the azimuth [-pi, pi].
+ * `cosTheta` is the cosine of the polar angle, in [-1, 1]; phi the azimuth [-pi, pi].
+ * The polar angle is taken as its cosine rather than the angle itself because that is the only
+ * form the associated Legendre recurrences need - callers invariably have it directly (`z / r`
+ * for a direction, or a uniform table axis), so going through `acos` here and `cos` back again
+ * would cost two transcendentals per call to recover a value that was already exact.
  * Results are written into `out` (length shTermCount(L)).
  *
  * Real form:
@@ -111,9 +115,9 @@ export function getNormFactors(L: number): Float64Array {
  *   m = 0:  K_l^0 P_l^0(cos theta)
  *   m < 0:  sqrt(2) K_l^|m| sin(|m| phi) P_l^|m|(cos theta)
  */
-export function realSph(L: number, theta: number, phi: number, out: Float64Array, legendreScratch: Float64Array, norm: Float64Array): Float64Array {
+export function realSph(L: number, cosTheta: number, phi: number, out: Float64Array, legendreScratch: Float64Array, norm: Float64Array): Float64Array {
     const y = out && out.length >= shTermCount(L) ? out : new Float64Array(shTermCount(L));
-    const p = assocLegendre(L, fastCos(theta), legendreScratch);
+    const p = assocLegendre(L, cosTheta, legendreScratch);
     const sqrt2 = Math.SQRT2;
 
     // m = 0 band: no azimuthal (phi) dependence
@@ -145,13 +149,17 @@ export function realSph(L: number, theta: number, phi: number, out: Float64Array
     return y;
 }
 
-/** Spherical coordinates of a point relative to a center. */
-export interface SphericalCoord { r: number, theta: number, phi: number }
+/**
+ * Spherical coordinates of a point relative to a center. The polar angle is kept as its cosine
+ * (`z / r`, clamped) rather than the angle: that is the form `realSph` consumes, and it is exact
+ * and free here, whereas the angle would cost an `acos` only for the callee to undo it.
+ */
+export interface SphericalCoord { r: number, cosTheta: number, phi: number }
 export function toSpherical(x: number, y: number, z: number, out?: SphericalCoord): SphericalCoord {
-    const o = out ?? { r: 0, theta: 0, phi: 0 };
+    const o = out ?? { r: 0, cosTheta: 1, phi: 0 };
     const r = Math.sqrt(x * x + y * y + z * z);
     o.r = r;
-    o.theta = r > 1e-12 ? fastAcos(Math.min(1, Math.max(-1, z / r))) : 0;
+    o.cosTheta = r > 1e-12 ? Math.min(1, Math.max(-1, z / r)) : 1;
     o.phi = fastAtan2(y, x);
     return o;
 }
@@ -193,7 +201,7 @@ export function fitSphericalHarmonics(points: ArrayLike<number>, center: ArrayLi
 
     const basis = new Float64Array(K);
     const legendreScratch = new Float64Array(((L + 1) * (L + 2)) / 2);
-    const sc: SphericalCoord = { r: 0, theta: 0, phi: 0 };
+    const sc: SphericalCoord = { r: 0, cosTheta: 1, phi: 0 };
     let rMax = 0;
     // fetched once and reused for every sample - `realSph` would otherwise redo this lookup
     // (previously a Map.get, now an array index) on every single one of the up to `maxPoints`
@@ -204,7 +212,7 @@ export function fitSphericalHarmonics(points: ArrayLike<number>, center: ArrayLi
         toSpherical(points[i * 3] - cx, points[i * 3 + 1] - cy, points[i * 3 + 2] - cz, sc);
         if (sc.r <= 1e-12) continue;
         if (sc.r > rMax) rMax = sc.r;
-        realSph(L, sc.theta, sc.phi, basis, legendreScratch, norm);
+        realSph(L, sc.cosTheta, sc.phi, basis, legendreScratch, norm);
 
         // accumulate A += basis basis^T (upper triangle) and rhs += basis * r
         for (let a = 0; a < K; ++a) {
@@ -319,9 +327,9 @@ function choleskySolveSymmetric(A: ArrayLike<number>, K: number, rhs: ArrayLike<
 /** Reconstruct the radius from fitted coefficients at the given direction. `norm` can be a
  * precomputed `getNormFactors(L)` result, saving a lookup when called repeatedly for the same
  * `L` (e.g. once per grid voxel while reconstructing a blob's surface). */
-export function reconstructRadius(coeffs: ArrayLike<number>, L: number, theta: number, phi: number, basisScratch: Float64Array, legendreScratch: Float64Array, norm: Float64Array): number {
+export function reconstructRadius(coeffs: ArrayLike<number>, L: number, cosTheta: number, phi: number, basisScratch: Float64Array, legendreScratch: Float64Array, norm: Float64Array): number {
     const K = shTermCount(L);
-    const basis = realSph(L, theta, phi, basisScratch, legendreScratch, norm);
+    const basis = realSph(L, cosTheta, phi, basisScratch, legendreScratch, norm);
     let r = 0;
     for (let i = 0; i < K; ++i) r += coeffs[i] * basis[i];
     return r;
@@ -334,6 +342,12 @@ export interface SphericalHarmonicLobesFit { lobes: SphericalHarmonicLobe[], L: 
 /**
  * A bilinear-interpolatable lookup table of `R(theta, phi)` over a uniform `(nTheta+1) x nPhi`
  * grid spanning `theta` in `[0, pi]` (both poles included) and `phi` in `[-pi, pi)` (wrapping).
+ *
+ * Rows are uniform in `theta`, NOT in `cos(theta)`, even though that would let callers (which hold
+ * a direction, i.e. `z / r`) skip an `acos`: every `m != 0` band carries `sin^|m|(theta) =
+ * (1 - cos^2 theta)^(|m|/2)`, which has a square-root branch point at the poles, so `R` is analytic
+ * in `theta` but not smooth in `cos(theta)`. Interpolating in `cos(theta)` costs ~20x the error
+ * within `|cos theta| > 0.8` at equal table size, and converges too slowly in `nTheta` to buy back.
  */
 export interface RadiusLUT { nTheta: number, nPhi: number, values: Float64Array }
 
@@ -368,10 +382,11 @@ export function buildRadiusLUT(coeffs: ArrayLike<number>, L: number, nTheta: num
     const norm = getNormFactors(L);
 
     for (let it = 0; it <= nTheta; ++it) {
-        const theta = (it / nTheta) * Math.PI;
+        // exact `Math.cos` rather than `fastCos`: this is once per table row, not per lookup
+        const cosTheta = Math.cos((it / nTheta) * Math.PI);
         for (let ip = 0; ip < nPhi; ++ip) {
             const phi = (ip / nPhi) * 2 * Math.PI - Math.PI;
-            realSph(L, theta, phi, basis, legendreScratch, norm);
+            realSph(L, cosTheta, phi, basis, legendreScratch, norm);
 
             let r = 0;
             for (let k = 0; k < K; ++k) r += coeffs[k] * basis[k];

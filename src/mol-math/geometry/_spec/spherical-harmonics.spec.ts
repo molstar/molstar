@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Ludovic Autin <autin@scripps.edu>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { assocLegendre, realSph, shIndex, shTermCount, fitSphericalHarmonics, reconstructRadius, buildRadiusLUT, sampleRadiusLUT, getNormFactors } from '../spherical-harmonics';
@@ -34,7 +35,7 @@ describe('spherical-harmonics', () => {
             const w = Math.sin(theta) * (Math.PI / nTheta) * (2 * Math.PI / nPhi);
             for (let ip = 0; ip < nPhi; ++ip) {
                 const phi = (ip + 0.5) / nPhi * 2 * Math.PI;
-                const y = realSph(L, theta, phi, sphOut, legendreScratch, norm);
+                const y = realSph(L, Math.cos(theta), phi, sphOut, legendreScratch, norm);
                 for (let a = 0; a < K; ++a) {
                     for (let b = 0; b < K; ++b) acc[a * K + b] += y[a] * y[b] * w;
                 }
@@ -71,7 +72,7 @@ describe('spherical-harmonics', () => {
             const z = 1 - (2 * i + 1) / n;
             const theta = Math.acos(z);
             const phi = i * golden;
-            const r = reconstructRadius(truth, L, theta, phi, sphOut, legendreScratch, norm);
+            const r = reconstructRadius(truth, L, z, phi, sphOut, legendreScratch, norm);
             const s = Math.sin(theta);
             pts[i * 3] = r * s * Math.cos(phi);
             pts[i * 3 + 1] = r * s * Math.sin(phi);
@@ -105,7 +106,7 @@ describe('spherical-harmonics', () => {
             const z = 1 - (2 * i + 1) / n;
             const theta = Math.acos(z);
             const phi = i * golden;
-            const r = reconstructRadius(truth, L, theta, phi, sphOut, legendreScratch, norm);
+            const r = reconstructRadius(truth, L, z, phi, sphOut, legendreScratch, norm);
             const s = Math.sin(theta);
             pts[i * 3] = r * s * Math.cos(phi);
             pts[i * 3 + 1] = r * s * Math.sin(phi);
@@ -116,9 +117,9 @@ describe('spherical-harmonics', () => {
         // the reconstruction tracks the truth radius closely at arbitrary directions
         const { coeffs } = fitSphericalHarmonics(pts, [0, 0, 0], L, undefined, 0.001);
         for (let i = 0; i < 50; ++i) {
-            const theta = Math.acos(1 - (2 * i + 1) / 50);
+            const cosTheta = 1 - (2 * i + 1) / 50;
             const phi = i * golden;
-            expect(reconstructRadius(coeffs, L, theta, phi, sphOut, legendreScratch, norm)).toBeCloseTo(reconstructRadius(truth, L, theta, phi, sphOut, legendreScratch, norm), 1);
+            expect(reconstructRadius(coeffs, L, cosTheta, phi, sphOut, legendreScratch, norm)).toBeCloseTo(reconstructRadius(truth, L, cosTheta, phi, sphOut, legendreScratch, norm), 1);
         }
     });
 
@@ -145,8 +146,8 @@ describe('spherical-harmonics', () => {
             const legendreScratch = new Float64Array((L + 1) * (L + 2) / 2);
             const norm = getNormFactors(L);
             for (let i = 0; i < 2000; ++i) {
-                const th = Math.acos(1 - (2 * i + 1) / 2000);
-                m = Math.max(m, reconstructRadius(coeffs, L, th, i * golden, sphOut, legendreScratch, norm));
+                const cosTheta = 1 - (2 * i + 1) / 2000;
+                m = Math.max(m, reconstructRadius(coeffs, L, cosTheta, i * golden, sphOut, legendreScratch, norm));
             }
             return m;
         };
@@ -181,15 +182,16 @@ describe('spherical-harmonics', () => {
 
         const golden = Math.PI * (3 - Math.sqrt(5));
         for (let i = 0; i < 500; ++i) {
-            const theta = Math.acos(1 - (2 * i + 1) / 500);
+            const cosTheta = 1 - (2 * i + 1) / 500;
+            const theta = Math.acos(cosTheta);
             const phi = ((i * golden + Math.PI) % (2 * Math.PI)) - Math.PI;
-            expect(sampleRadiusLUT(lut, theta, phi)).toBeCloseTo(reconstructRadius(truth, L, theta, phi, sphOut, legendreScratch, norm), 1);
+            expect(sampleRadiusLUT(lut, theta, phi)).toBeCloseTo(reconstructRadius(truth, L, cosTheta, phi, sphOut, legendreScratch, norm), 1);
         }
 
         // poles (theta = 0 and theta = pi) and phi wraparound (phi = -pi vs phi = pi) must not throw
         // or produce wildly different values for what are effectively the same/adjacent directions
-        expect(sampleRadiusLUT(lut, 0, 0)).toBeCloseTo(reconstructRadius(truth, L, 0, 0, sphOut, legendreScratch, norm), 1);
-        expect(sampleRadiusLUT(lut, Math.PI, 0)).toBeCloseTo(reconstructRadius(truth, L, Math.PI, 0, sphOut, legendreScratch, norm), 1);
+        expect(sampleRadiusLUT(lut, 0, 0)).toBeCloseTo(reconstructRadius(truth, L, 1, 0, sphOut, legendreScratch, norm), 1);
+        expect(sampleRadiusLUT(lut, Math.PI, 0)).toBeCloseTo(reconstructRadius(truth, L, -1, 0, sphOut, legendreScratch, norm), 1);
         expect(sampleRadiusLUT(lut, Math.PI / 2, -Math.PI)).toBeCloseTo(sampleRadiusLUT(lut, Math.PI / 2, Math.PI), 6);
     });
 
@@ -208,6 +210,6 @@ describe('spherical-harmonics', () => {
         const norm = getNormFactors(L);
 
         expect(lutB.values).toBe(lutA.values); // buffer reused, not reallocated
-        expect(sampleRadiusLUT(lutB, Math.PI / 2, 0)).toBeCloseTo(reconstructRadius(coeffsB, L, Math.PI / 2, 0, sphOut, legendreScratch, norm), 6);
+        expect(sampleRadiusLUT(lutB, Math.PI / 2, 0)).toBeCloseTo(reconstructRadius(coeffsB, L, 0, 0, sphOut, legendreScratch, norm), 6);
     });
 });
