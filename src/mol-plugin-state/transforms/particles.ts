@@ -10,6 +10,7 @@ import { createParticleListFromCryoEtDataPortalNdjson } from '../../mol-model-fo
 import { createParticleListFromRelionStar } from '../../mol-model-formats/particles/star';
 import { createParticleListFromDynamoTbl, getDynamoTblTomogramIds } from '../../mol-model-formats/particles/tbl';
 import { createParticleListFromArtiatomiEm, getArtiatomiMotivelistTomogramIds } from '../../mol-model-formats/particles/em';
+import { createParticleListFromMmcifAssembly, getAssemblyIdsFromMmcif, getAsymIdsFromMmcif, MmcifVariant } from '../../mol-model-formats/particles/mmcif';
 import { createSimulariumParticleTrajectory, getSimulariumAgentTypeNames, getSimulariumFrameCount } from '../../mol-model-formats/particles/simularium';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateTransformer } from '../../mol-state';
@@ -22,6 +23,7 @@ export { ParticleListFromRelionStar };
 export { ParticleListFromDynamoTbl };
 export { ParticleListFromCryoEtDataPortalNdjson };
 export { ParticleListFromArtiatomiEm };
+export { ParticleListFromMmcifAssembly };
 export { ParticleTrajectoryFromSimularium };
 export { ParticleListFromTrajectory };
 export { ParticlesRepresentation3D };
@@ -171,6 +173,74 @@ const ParticleListFromArtiatomiEm = PluginStateTransform.BuiltIn({
                 particleRadius: params.particleRadius > 0 ? params.particleRadius : void 0,
             });
             return new SO.Particle.List(list, { label: list.label || 'Particles', description: 'Artiatomi EM Particle List' });
+        });
+    }
+});
+
+type ParticleListFromMmcifAssembly = typeof ParticleListFromMmcifAssembly
+const ParticleListFromMmcifAssembly = PluginStateTransform.BuiltIn({
+    name: 'particle-list-from-mmcif-assembly',
+    display: { name: 'Particle List from mmCIF Assembly', description: 'Create ParticleList from a mmCIF (CellPack/PetWorld) assembly.' },
+    from: SO.Format.Cif,
+    to: SO.Particle.List,
+    params: a => {
+        const variant = PD.Select<MmcifVariant>('auto', [
+            ['auto', 'Auto'],
+            ['cellpack', 'CellPack'],
+            ['standard', 'Standard'],
+            ['petworld', 'PetWorld'],
+        ], { description: 'mmCIF variant used to interpret entity names/compartments. Auto detects from the file header and categories.' });
+        const label = PD.Optional(PD.Text(''));
+
+        if (!a) {
+            return {
+                assemblyId: PD.Text('', { description: 'Assembly identifier from _pdbx_struct_assembly.id.' }),
+                asymIds: PD.MultiSelect<string>([], [], { description: 'Empty selection includes all chains for the assembly.' }),
+                variant,
+                label,
+            };
+        }
+
+        let assemblyIds: string[] = [];
+        try {
+            assemblyIds = getAssemblyIdsFromMmcif(a.data);
+        } catch {
+            // ignore; apply will surface parse errors
+        }
+        const assemblyOptions = assemblyIds.map(id => [id, id] as [string, string]);
+        const defaultAssemblyId = assemblyIds.length > 0 ? assemblyIds[0] : '';
+
+        let asymIds: string[] = [];
+        try {
+            asymIds = defaultAssemblyId ? getAsymIdsFromMmcif(a.data, defaultAssemblyId) : [];
+        } catch {
+            // ignore; apply will surface parse errors
+        }
+        const asymOptions = asymIds.map(id => [id, id] as [string, string]);
+
+        return {
+            assemblyId: PD.Select(defaultAssemblyId, assemblyOptions, { description: 'Assembly identifier from _pdbx_struct_assembly.id.' }),
+            asymIds: PD.MultiSelect<string>([], asymOptions, { description: 'Empty selection includes all chains for the assembly.' }),
+            variant,
+            label,
+        };
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Create Particle List from mmCIF Assembly', async () => {
+            // Params default to the first assembly ID only when interactively edited; fall back
+            // here too so auto-loading a file (which calls parse() with no params) still works.
+            const assemblyId = params.assemblyId || getAssemblyIdsFromMmcif(a.data)[0];
+            if (!assemblyId) {
+                throw new Error('mmCIF file contains no _pdbx_struct_assembly_gen assemblies; cannot create a particle list.');
+            }
+            const list = createParticleListFromMmcifAssembly(a.data, {
+                assemblyId,
+                asymIds: params.asymIds.length > 0 ? params.asymIds : void 0,
+                variant: params.variant,
+                label: params.label || a.label,
+            });
+            return new SO.Particle.List(list, { label: list.label || 'Particles', description: 'mmCIF Particle List' });
         });
     }
 });

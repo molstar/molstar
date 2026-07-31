@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Ludovic Autin <autin@scripps.edu>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { StateTransforms } from '../transforms';
@@ -9,6 +10,7 @@ import { DataFormatProvider } from './provider';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectRef } from '../../mol-state';
 import { PluginStateObject } from '../objects';
+import { looksLikeMmcifParticles, MmcifVariant } from '../../mol-model-formats/particles/mmcif';
 
 export const ParticlesFormatCategory = 'Particles';
 
@@ -117,6 +119,44 @@ export const ArtiatomiEmParticlesProvider = DataFormatProvider({
     visuals: particleVisuals,
 });
 
+export const MmcifParticlesProvider = DataFormatProvider({
+    label: 'mmCIF Particles',
+    description: 'mmCIF Particles (CellPack / PetWorld assemblies)',
+    category: ParticlesFormatCategory,
+    stringExtensions: ['cif'],
+    binaryExtensions: ['bcif'],
+    /**
+     * Higher than the default (0) mmCIF/CifCore trajectory providers so that CellPack/PetWorld
+     * assemblies are recognized ahead of them during auto-detection, regardless of registration order.
+     */
+    priority: 10,
+    isApplicable: (info, data) => looksLikeMmcifParticles(info, data),
+    parse: async (plugin, data, params?: { label?: string, assemblyId?: string, asymIds?: string[], variant?: MmcifVariant }) => {
+        const format = plugin.state.data.build()
+            .to(data)
+            .apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } });
+
+        const list = format.apply(StateTransforms.Particles.ParticleListFromMmcifAssembly, {
+            assemblyId: params?.assemblyId,
+            asymIds: params?.asymIds,
+            variant: params?.variant,
+            label: params?.label,
+        });
+
+        await format.commit({ revertOnError: true });
+
+        return { format: format.selector, list: list.selector };
+    },
+    visuals: (plugin: PluginContext, data: ParticleFormatData) => {
+        const builder = plugin.state.data.build();
+
+        builder.to(data.list)
+            .apply(StateTransforms.Particles.ParticlesRepresentation3D, { type: { name: 'spacefill', params: {} }, sizeTheme: { name: 'particle-size', params: { scale: 0.5 } } });
+
+        return builder.commit();
+    },
+});
+
 export const SimulariumParticlesProvider = DataFormatProvider({
     label: 'Simularium Particles',
     description: 'Simularium Particles',
@@ -145,6 +185,7 @@ export const BuiltInParticlesFormats = [
     ['dynamo_tbl_particles', DynamoTblParticlesProvider] as const,
     ['cryoet_ndjson_particles', CryoEtDataPortalNdjsonParticlesProvider] as const,
     ['artiatomi_em_particles', ArtiatomiEmParticlesProvider] as const,
+    ['mmcif_particles', MmcifParticlesProvider] as const,
     ['simularium_particles', SimulariumParticlesProvider] as const,
 ] as const;
 
