@@ -21,6 +21,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support non-default CRYSIN setting in MOL2 format (#338)
 - Fix `ssao-blur` background test: the RG-packed depth never equals `1.0`, so background samples were blurred into geometry and produced a bright rim at the far-clip cutoff
 - Fix picking/hover-highlight of the nucleic cartoon polymer-trace on reduced trace structures returning empty: `getResidueLoci` now accounts for whole residue, not limited to unit.
+- Add Spherical Harmonics to mol-math
+- Add `blob-surface` structure representation
+    - Bin atoms to grid or cluster
+    - Fast option fits ellipsoids to bins
+    - Artistic option fits spherical harmonics to bins
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
