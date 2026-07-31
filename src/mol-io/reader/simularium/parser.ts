@@ -60,7 +60,6 @@ function framesFromBundleData(bundleData: any): SimulariumFrame[] {
 function parseJson(data: Uint8Array): Result<SimulariumFile> {
     const text = decodeUtf8(data, 0, data.byteLength);
     const json = JSON.parse(text);
-    console.log('Simularium JSON', json);
 
     const trajectoryInfo = json?.trajectoryInfo as SimulariumTrajectoryInfo | undefined;
     if (!trajectoryInfo) {
@@ -165,7 +164,6 @@ function parseBinary(data: Uint8Array): Result<SimulariumFile> {
 
     if (!trajectoryInfo) return Result.error<SimulariumFile>('No Simularium trajectory info block found.');
     if (!frames) return Result.error<SimulariumFile>('No Simularium spatial data block found.');
-    console.log('Simularium Binary', { trajectoryInfo, frames });
     return Result.success<SimulariumFile>({ trajectoryInfo, frames });
 }
 
