@@ -353,9 +353,10 @@ function buildCellpackStandardParticleList(
         rotations,
         radii,
         getParticleLabel: (index: number) => {
+            const entity = entityInfo.get(entities[index]);
             const chain = labelChainId[index];
             const opCombo = labelOpCombo[index];
-            return `#${index + 1} | assembly ${assemblyId} | chain ${chain} | ops ${opCombo}`;
+            return `#${index + 1} | ${entity} | chain ${chain} | ops ${opCombo}`;
         },
         sourceData: MmcifParticleFormat.create(cifFile),
         customProperties: new CustomProperties(),
@@ -459,7 +460,6 @@ function buildPetworldParticleList(
     const rotations = new Float32Array(totalCount * 4);
     const radii = new Float32Array(totalCount);
 
-    const labelModelNum = new Int32Array(totalCount);
     const labelOpCombo = new Array<string>(totalCount);
 
     const entityNameToIdx = new Map<string, number>();
@@ -473,7 +473,7 @@ function buildPetworldParticleList(
     for (let ei = 0, eil = entries.length; ei < eil; ei++) {
         const entry = entries[ei];
         const targetIdx = modelNumToIndex.get(entry.modelNum)!; // 0-based trajectory model index
-        const modelName = modelNumToName.get(entry.modelNum);
+        const modelName = modelNumToName.get(entry.modelNum) || `Model ${entry.modelNum}`;
 
         const acc = modelAccum.get(entry.modelNum);
         Vec3.set(centroid,
@@ -510,12 +510,9 @@ function buildPetworldParticleList(
             keys[count] = count;
             targets[count] = targetIdx;
 
-            if (modelName !== undefined) {
-                if (!entityNameToIdx.has(modelName)) entityNameToIdx.set(modelName, entityNameToIdx.size);
-                entities[count] = entityNameToIdx.get(modelName)!;
-            }
+            if (!entityNameToIdx.has(modelName)) entityNameToIdx.set(modelName, entityNameToIdx.size);
+            entities[count] = entityNameToIdx.get(modelName)!;
 
-            labelModelNum[count] = entry.modelNum;
             labelOpCombo[count] = combo.join('×');
             count++;
         }
@@ -540,9 +537,9 @@ function buildPetworldParticleList(
         rotations,
         radii,
         getParticleLabel: (index: number) => {
-            const modelNum = labelModelNum[index];
+            const entity = entityInfo.get(entities[index])!;
             const opCombo = labelOpCombo[index];
-            return `#${index + 1} | assembly ${assemblyId} | model ${modelNum} | ops ${opCombo}`;
+            return `#${index + 1} | ${entity} | ops ${opCombo}`;
         },
         sourceData: MmcifParticleFormat.create(cifFile),
         customProperties: new CustomProperties(),
