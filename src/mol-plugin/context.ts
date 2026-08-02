@@ -29,6 +29,7 @@ import { StructureHierarchyManager } from '../mol-plugin-state/manager/structure
 import { StructureHierarchyRef } from '../mol-plugin-state/manager/structure/hierarchy-state';
 import { StructureMeasurementManager } from '../mol-plugin-state/manager/structure/measurement';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
+import { ParticleHierarchyManager } from '../mol-plugin-state/manager/particles/hierarchy';
 import { VolumeHierarchyManager } from '../mol-plugin-state/manager/volume/hierarchy';
 import { MarkdownExtensionManager } from '../mol-plugin-state/manager/markdown-extensions';
 import { AnimateStateSnapshotTransition } from '../mol-plugin-state/animation/built-in/state-snapshots';
@@ -189,6 +190,9 @@ export class PluginContext {
         },
         volume: {
             hierarchy: new VolumeHierarchyManager(this)
+        },
+        particles: {
+            hierarchy: new ParticleHierarchyManager(this)
         },
         interactivity: void 0 as any as InteractivityManager,
         camera: new CameraManager(this),
