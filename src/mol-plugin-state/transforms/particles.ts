@@ -18,6 +18,10 @@ import { Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Theme } from '../../mol-theme/theme';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
+import { StateObject } from '../../mol-state/object';
+import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
+import { getUnitcellDataFromSymmetry, UnitcellParams, UnitcellRepresentation } from '../../mol-repr/shape/model/unitcell';
+import { Symmetry } from '../../mol-model/structure/model/properties/symmetry';
 
 export { ParticleListFromRelionStar };
 export { ParticleListFromDynamoTbl };
