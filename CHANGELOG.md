@@ -27,6 +27,15 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fast option fits ellipsoids to bins
     - Artistic option fits spherical harmonics to bins
 
+- Camera improvements
+  - Support multiple camera transition shapes
+  - Add `transitionTrajectory` and `transitionEasing` parameters to `PluginState.Snapshot` (MOLJ) and Plugin State > Save Options
+  - Add `trajectory` and `easing` parameters to `FocusLoci` behavior
+  - Add `cameraResetTrajectory` and `cameraResetEasing` parameters to `Canvas3DParams`
+- MolViewSpec
+  - Added `transition` node with params `duration_ms`, `trajectory`, `easing`
+  - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
+
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
 - Add `variant` option (rectangle/circle) to the best-fit `Plane` (#358)

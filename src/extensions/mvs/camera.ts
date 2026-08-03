@@ -97,10 +97,10 @@ function adjustSceneRadiusFactor(plugin: PluginContext, cameraTarget: Vec3 | und
 }
 
 /** Create object for PluginState.Snapshot.camera based on tree loading context and MVS snapshot metadata */
-export function createPluginStateSnapshotCamera(plugin: PluginContext, context: MolstarLoadingContext, options: { previousTransitionDurationMs?: number, ignoreCameraOrientation?: boolean }): PluginState.Snapshot['camera'] {
+export function createPluginStateSnapshotCamera(plugin: PluginContext, context: MolstarLoadingContext, options: { incomingTransitionDurationMs?: number, ignoreCameraOrientation?: boolean }): PluginState.Snapshot['camera'] {
     const camera: PluginState.Snapshot['camera'] = {
         transitionStyle: 'animate',
-        transitionDurationInMs: options.previousTransitionDurationMs ?? 0,
+        transitionDurationInMs: options.incomingTransitionDurationMs ?? 0,
     };
     if (context.camera.cameraParams !== undefined) {
         const cam = context.camera.cameraParams;
