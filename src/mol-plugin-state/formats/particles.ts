@@ -25,6 +25,9 @@ function particleVisuals(plugin: PluginContext, data: ParticleFormatData) {
     builder.to(data.list)
         .apply(StateTransforms.Particles.ParticlesRepresentation3D, { type: { name: 'spacefill', params: {} } });
 
+    builder.to(data.list)
+        .apply(StateTransforms.Particles.ParticleListUnitcell3D, { attachment: 'center' });
+
     const particleList = StateObjectRef.resolveAndCheck(plugin.state.data, data.list)?.obj?.data;
     if (particleList?.fibers && particleList.fibers.count > 0) {
         builder.to(data.list)

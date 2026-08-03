@@ -127,6 +127,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateTransforms.Particles.ParticleTrajectoryFromSimularium),
         PluginSpec.Action(StateTransforms.Particles.ParticleListFromTrajectory),
         PluginSpec.Action(StateTransforms.Particles.ParticlesRepresentation3D),
+        PluginSpec.Action(StateTransforms.Particles.ParticleListUnitcell3D),
     ],
     behaviors: [
         PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),
