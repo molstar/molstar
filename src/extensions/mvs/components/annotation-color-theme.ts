@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -13,25 +13,75 @@ import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { MaybeFloatParamDefinition } from '../helpers/param-definition';
-import { decodeColor } from '../helpers/utils';
+import { decodeColor, SplitColor } from '../helpers/utils';
 import { getMVSAnnotationForStructure, MVSAnnotation } from './annotation-prop';
 import { isMVSStructure } from './is-mvs-model-prop';
 
 
+function PDSplitColor(info?: PD.Info) {
+    return PD.MappedStatic('oneColor', {
+        oneColor: PD.Group({
+            color: PD.Color(ColorNames.white, { label: ' ' }),
+        }, { isFlat: true }),
+        splitColor: PD.Group({
+            color1: PD.Color(ColorNames.white, { label: '1' }),
+            color2: PD.Color(ColorNames.white, { label: '2' }),
+        }, { isFlat: true }),
+    }, info);
+}
+function PDOptionalSplitColor(info?: PD.Info) {
+    return PD.MappedStatic('none', {
+        none: PD.EmptyGroup(),
+        oneColor: PD.Group({
+            color: PD.Color(ColorNames.white, { label: ' ' }),
+        }, { isFlat: true }),
+        splitColor: PD.Group({
+            color1: PD.Color(ColorNames.white, { label: '1' }),
+            color2: PD.Color(ColorNames.white, { label: '2' }),
+        }, { isFlat: true }),
+    }, info);
+}
+export type SplitColorProp = PD.Values<{ x: ReturnType<typeof PDSplitColor> }>['x'];
+export type OptionalSplitColorProp = PD.Values<{ x: ReturnType<typeof PDOptionalSplitColor> }>['x'];
+type ColorTuple<T extends OptionalSplitColorProp> = T extends { name: 'none' } ? [undefined, undefined] : [Color, Color];
+
+const FALLBACK_COLOR = ColorNames.black;
+export const SplitColorProp = {
+    fromString(colorString: string): SplitColorProp {
+        if (colorString.includes('/')) {
+            const [c1, c2] = colorString.split('/');
+            return { name: 'splitColor', params: { color1: decodeColor(c1) ?? FALLBACK_COLOR, color2: decodeColor(c2) ?? FALLBACK_COLOR } };
+        } else {
+            return { name: 'oneColor', params: { color: decodeColor(colorString) ?? FALLBACK_COLOR } };
+        }
+    },
+    toString(value: OptionalSplitColorProp): string {
+        if (value.name === 'none') return 'None';
+        if (value.name === 'oneColor') return Color.toHexStyle(value.params.color);
+        else return `${Color.toHexStyle(value.params.color1)}/${Color.toHexStyle(value.params.color2)}`;
+    },
+    toTuple<T extends OptionalSplitColorProp>(value: T): ColorTuple<T> {
+        if (value.name === 'none') return [undefined, undefined] as ColorTuple<T>;
+        if (value.name === 'oneColor') return [value.params.color, value.params.color] as ColorTuple<T>;
+        else return [value.params.color1, value.params.color2] as ColorTuple<T>;
+    },
+};
+
 export const MVSCategoricalPaletteParams = {
     colors: PD.MappedStatic('list', {
-        list: PD.ColorList('category-10', { description: 'List of colors.', presetKind: 'set' }),
+        list: PD.ObjectList({
+            color: PDSplitColor(),
+        }, e => SplitColorProp.toString(e.color), { description: 'List of colors.' }),
         dictionary: PD.ObjectList({
             value: PD.Text(),
-            color: PD.Color(ColorNames.white),
-        }, e => `${e.value}: ${Color.toHexStyle(e.color)}`, { description: 'Mapping of annotation values to colors.' }),
+            color: PDSplitColor(),
+        }, e => `${e.value}: ${SplitColorProp.toString(e.color)}`, { description: 'Mapping of annotation values to colors.' }),
     }),
     repeatColorList: PD.Boolean(false, { hideIf: g => g.colors.name !== 'list', description: 'Repeat color list once all colors are depleted (only applies if `colors` is a list).' }),
     sort: PD.Select('none', [['none', 'None'], ['lexical', 'Lexical'], ['numeric', 'Numeric']] as const, { hideIf: g => g.colors.name !== 'list', description: 'Sort actual annotation values before assigning colors from a list (none = take values in order of their first occurrence).' }),
     sortDirection: PD.Select('ascending', [['ascending', 'Ascending'], ['descending', 'Descending']] as const, { hideIf: g => g.colors.name !== 'list', description: 'Sort direction.' }),
     caseInsensitive: PD.Boolean(false, { description: 'Treat annotation values as case-insensitive strings.' }),
-    setMissingColor: PD.Boolean(false, { description: 'Allow setting a color for missing values.' }),
-    missingColor: PD.Color(ColorNames.white, { hideIf: g => !g.setMissingColor, description: 'Color to use when (a) `colors` is a dictionary and given key is not present, or (b) `color` is a list and there are more actual annotation values than listed colors and `repeat_color_list` is not true.' }),
+    missingColor: PDOptionalSplitColor({ description: 'Color to use when (a) `colors` is a dictionary and given key is not present, or (b) `colors` is a list and there are more actual annotation values than listed colors and `repeat_color_list` is not true.' }),
 };
 export type MVSCategoricalPaletteParams = typeof MVSCategoricalPaletteParams
 export type MVSCategoricalPaletteProps = PD.Values<MVSCategoricalPaletteParams>
@@ -91,21 +141,21 @@ export function MVSAnnotationColorTheme(ctx: ThemeDataContext, props: MVSAnnotat
         if (annotation) {
             const paletteFunction = makePaletteFunction(props.palette, annotation, props.fieldName);
 
-            const colorForStructureElementLocation = (location: StructureElement.Location) => {
+            const colorForStructureElementLocation = (location: StructureElement.Location, isSecondary: boolean) => {
                 const annotValue = annotation?.getValueForLocation(location, props.fieldName);
-                const color = annotValue !== undefined ? paletteFunction(annotValue) : undefined;
+                const color = annotValue !== undefined ? paletteFunction(annotValue, isSecondary) : undefined;
                 return color ?? props.background;
             };
             const auxLocation = StructureElement.Location.create(ctx.structure);
 
-            color = (location: Location) => {
+            color = (location: Location, isSecondary) => {
                 if (StructureElement.Location.is(location)) {
-                    return colorForStructureElementLocation(location);
+                    return colorForStructureElementLocation(location, isSecondary);
                 } else if (Bond.isLocation(location)) {
                     // this will be applied for each bond twice, to get color of each half (a* refers to the adjacent atom, b* to the opposite atom)
                     auxLocation.unit = location.aUnit;
                     auxLocation.element = location.aUnit.elements[location.aIndex];
-                    return colorForStructureElementLocation(auxLocation);
+                    return colorForStructureElementLocation(auxLocation, isSecondary);
                 }
                 return props.background;
             };
@@ -136,21 +186,31 @@ export const MVSAnnotationColorThemeProvider: ColorTheme.Provider<MVSAnnotationC
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && isMVSStructure(ctx.structure),
 };
 
+type PaletteFunction = (value: string, isSecondary: boolean) => Color | undefined;
 
-function makePaletteFunction(props: MVSAnnotationColorThemeProps['palette'], annotation: MVSAnnotation, fieldName: string): (value: string) => Color | undefined {
-    if (props.name === 'direct') return decodeColor;
+function makePaletteFunction(props: MVSAnnotationColorThemeProps['palette'], annotation: MVSAnnotation, fieldName: string): PaletteFunction {
+    if (props.name === 'direct') return paletteFunctionDirect;
     if (props.name === 'categorical') return makePaletteFunctionCategorical(props.params, annotation, fieldName);
     if (props.name === 'discrete') return makePaletteFunctionDiscrete(props.params as MVSDiscretePaletteProps, annotation, fieldName);
     if (props.name === 'continuous') return makePaletteFunctionContinuous(props.params as MVSContinuousPaletteProps, annotation, fieldName);
     throw new Error(`NotImplementedError: makePaletteFunction for ${(props as any).name}`);
 }
 
-function makePaletteFunctionCategorical(props: MVSCategoricalPaletteProps, annotation: MVSAnnotation, fieldName: string): (value: string) => Color | undefined {
-    const colorMap: { [value: string]: Color } = {};
+const paletteFunctionDirect: PaletteFunction = (value, isSecondary) => {
+    const colors = SplitColor.decode(value);
+    if (isSecondary) {
+        return colors.color2 ?? colors.color1;
+    } else {
+        return colors.color1;
+    }
+};
+
+function makePaletteFunctionCategorical(props: MVSCategoricalPaletteProps, annotation: MVSAnnotation, fieldName: string): PaletteFunction {
+    const colorMap: { [value: string]: [Color, Color] | undefined } = {};
     if (props.colors.name === 'dictionary') {
         for (const { value, color } of props.colors.params) {
             const key = props.caseInsensitive ? value.toUpperCase() : value;
-            colorMap[key] = color;
+            colorMap[key] = SplitColorProp.toTuple(color);
         }
     } else if (props.colors.name === 'list') {
         const values = annotation.getDistinctValuesInField(fieldName, props.caseInsensitive);
@@ -158,22 +218,22 @@ function makePaletteFunctionCategorical(props: MVSCategoricalPaletteProps, annot
         else if (props.sort === 'numeric') values.sort((a, b) => Number.parseFloat(a) - Number.parseFloat(b));
         if (props.sortDirection === 'descending') values.reverse();
 
-        const colorList = props.colors.params.colors.map(Color.fromColorListEntry);
+        const colorList = props.colors.params.map(item => SplitColorProp.toTuple(item.color));
         let next = 0;
         for (const value of values) {
             colorMap[value] = colorList[next++];
-            if (next >= colorList.length && props.repeatColorList) next = 0; // else will get index-out-of-range and assign undefined
+            if (next >= colorList.length && props.repeatColorList) next = 0; // else will get index-out-of-range and assign undefined (expected)
         }
     }
-    const missingColor = props.setMissingColor ? props.missingColor : undefined;
+    const missingColor = SplitColorProp.toTuple(props.missingColor);
     if (props.caseInsensitive) {
-        return (value: string) => colorMap[value.toUpperCase()] ?? missingColor;
+        return (value: string, isSecondary) => (colorMap[value.toUpperCase()] ?? missingColor)[isSecondary ? 1 : 0];
     } else {
-        return (value: string) => colorMap[value] ?? missingColor;
+        return (value: string, isSecondary) => (colorMap[value] ?? missingColor)[isSecondary ? 1 : 0];
     }
 }
 
-function makePaletteFunctionDiscrete(props: MVSDiscretePaletteProps, annotation: MVSAnnotation, fieldName: string): (value: string) => Color | undefined {
+function makePaletteFunctionDiscrete(props: MVSDiscretePaletteProps, annotation: MVSAnnotation, fieldName: string): PaletteFunction {
     if (props.colors.length === 0) return () => undefined;
 
     const scale = makeNumericPaletteScale(props, annotation, fieldName);
@@ -190,7 +250,7 @@ function makePaletteFunctionDiscrete(props: MVSDiscretePaletteProps, annotation:
     };
 }
 
-function makePaletteFunctionContinuous(props: MVSContinuousPaletteProps, annotation: MVSAnnotation, fieldName: string): (value: string) => Color | undefined {
+function makePaletteFunctionContinuous(props: MVSContinuousPaletteProps, annotation: MVSAnnotation, fieldName: string): PaletteFunction {
     const { colors, checkpoints } = makeContinuousPaletteCheckpoints(props);
     if (colors.length === 0) return () => undefined;
 

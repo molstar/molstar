@@ -18,7 +18,7 @@ import { Color } from '../../mol-util/color';
 import { ColorListEntry } from '../../mol-util/color/color';
 import { canonicalJsonString } from '../../mol-util/json';
 import { stringToWords } from '../../mol-util/string';
-import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider, MVSCategoricalPaletteProps, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from './components/annotation-color-theme';
+import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider, MVSCategoricalPaletteProps, MVSContinuousPaletteProps, MVSDiscretePaletteProps, SplitColorProp } from './components/annotation-color-theme';
 import { MVSAnnotationLabelProps, MVSAnnotationLabelRepresentationProvider } from './components/annotation-label/representation';
 import { MVSAnnotationSpec } from './components/annotation-prop';
 import { MVSAnnotationStructureComponentProps } from './components/annotation-structure-component';
@@ -31,7 +31,7 @@ import { MvsNamedColorDicts, MvsNamedColorLists } from './helpers/colors';
 import { rowToExpression, rowsToExpression } from './helpers/selections';
 import { ElementOfSet, decodeColor, isDefined, stringHash } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
-import { mvsRefTags, UpdateTarget } from './load-generic';
+import { UpdateTarget, mvsRefTags } from './load-generic';
 import { Subtree, getChildren } from './tree/generic/tree-schema';
 import { dfs, formatObject } from './tree/generic/tree-utils';
 import { MolstarKind, MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree } from './tree/molstar/molstar-tree';
@@ -572,6 +572,7 @@ function appliesColorToWholeRepr(node: MolstarNode<'color' | 'color_from_uri' | 
 }
 
 const FALLBACK_COLOR = decodeColor(DefaultColor)!;
+const FALLBACK_SPLIT_COLOR = SplitColorProp.fromString(DefaultColor);
 
 export function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'color_from_source'>['params']['palette']): MVSAnnotationColorThemeProps['palette'] {
     if (!palette) {
@@ -587,8 +588,7 @@ export function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri'
                 sort: fullParams.sort,
                 sortDirection: fullParams.sort_direction,
                 caseInsensitive: fullParams.case_insensitive,
-                setMissingColor: !!fullParams.missing_color,
-                missingColor: decodeColor(fullParams.missing_color) ?? FALLBACK_COLOR,
+                missingColor: fullParams.missing_color != null ? SplitColorProp.fromString(fullParams.missing_color) : FALLBACK_SPLIT_COLOR,
             } satisfies MVSCategoricalPaletteProps,
         };
     }
@@ -638,21 +638,23 @@ function categoricalPalettePropsFromMVSColors(colors: Required<CategoricalPalett
     if (typeof colors === 'string') {
         if (colors in MvsNamedColorLists) {
             const colorList = MvsNamedColorLists[colors as ColorListNameT];
-            return { name: 'list', params: { kind: 'set', colors: colorList.list } };
+            return { name: 'list', params: colorList.list.map(item => ({ color: { name: 'oneColor', params: { color: Color.fromColorListEntry(item) } } })) };
+            // TODO: allow named color lists with split colors
         }
         if (colors in MvsNamedColorDicts) {
             const colorDict = MvsNamedColorDicts[colors as ColorDictNameT];
-            return { name: 'dictionary', params: Object.entries(colorDict).map(([value, color]) => ({ value, color })) };
+            return { name: 'dictionary', params: Object.entries(colorDict).map(([value, color]) => ({ value, color: { name: 'oneColor', params: { color: color } } })) };
+            // TODO: allow named color dicts with split colors
         }
         console.warn(`Could not find named color palette "${colors}"`);
     }
     if (Array.isArray(colors)) {
-        return { name: 'list', params: { kind: 'set', colors: colors.map(c => decodeColor(c) ?? FALLBACK_COLOR) } };
+        return { name: 'list', params: colors.map(c => ({ color: SplitColorProp.fromString(c) })) };
     }
     if (typeof colors === 'object') {
-        return { name: 'dictionary', params: Object.entries(colors).map(([value, color]) => ({ value, color: decodeColor(color) ?? FALLBACK_COLOR })) };
+        return { name: 'dictionary', params: Object.entries(colors).map(([value, color]) => ({ value, color: SplitColorProp.fromString(color) })) };
     }
-    return { name: 'list', params: { kind: 'set', colors: [] } };
+    return { name: 'list', params: [] };
 }
 
 function discretePalettePropsFromMVSColors(colors: Required<DiscretePalette>['colors'], reverse: boolean): MVSDiscretePaletteProps['colors'] {

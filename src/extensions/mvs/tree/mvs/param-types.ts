@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,6 +7,7 @@
 
 import * as iots from 'io-ts';
 import { ColorNames } from '../../../../mol-util/color/names';
+import { SplitColor } from '../../helpers/utils';
 import { ValueFor, bool, dict, float, int, list, literal, nullable, object, partial, str, tuple, union } from '../generic/field-schema';
 
 /** `format` parameter values for `parse` node in MVS tree */
@@ -213,9 +214,28 @@ function isColorNameT(str: any): str is ColorNameT {
     return str in ColorNames;
 }
 
+
 /** `color` parameter values for `color` node in MVS tree */
-export type ColorT = ColorNameT | HexColorT;
-export const ColorT: iots.Type<ColorT> = union(ColorNameT, HexColorT);
+export const ColorT = new iots.Type<ColorT>(
+    'ColorT',
+    ((value: any) => typeof value === 'string') as any,
+    (value, ctx) => isColorT(value) ? { _tag: 'Right', right: value as ColorT } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid color name` }] },
+    value => value
+);
+export type ColorT = ColorNameT | HexColorT | `${string}/${string}`; // this is far from ideal, maybe just change to string
+function isColorT(str: any): str is ColorT {
+    if (typeof str !== 'string') return false;
+    if (str.includes(SplitColor.SPLIT_COLOR_SEP)) {
+        const parts = str.split(SplitColor.SPLIT_COLOR_SEP);
+        if (parts.length === 2) return isColorT(parts[0]) && isColorT(parts[1]);
+        else return false;
+    } else {
+        return isHexColorT(str) || isColorNameT(str);
+    }
+}
+// /** `color` parameter values for `color` node in MVS tree */
+// export type ColorT = ColorNameT | HexColorT;
+// export const ColorT: iots.Type<ColorT> = union(ColorNameT, HexColorT);
 
 
 // Type helpers

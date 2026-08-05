@@ -107,6 +107,31 @@ export function decodeColor(colorString: string | number | undefined | null): Co
     return _decodeColor(colorString);
 }
 
+export interface SplitColor {
+    color1: Color | undefined,
+    color2: Color | undefined,
+}
+export const SplitColor = {
+    SPLIT_COLOR_SEP: '/',
+    is(value: unknown): value is SplitColor {
+        return typeof value === 'object' && value !== null && 'color1' in value;
+    },
+    decode(colorString: string | number | undefined | null): SplitColor {
+        if (typeof colorString === 'number') {
+            return { color1: Color(colorString), color2: undefined };
+        }
+        if (typeof colorString === 'string') {
+            if (colorString.includes(this.SPLIT_COLOR_SEP)) {
+                const [c1, c2] = colorString.split(this.SPLIT_COLOR_SEP);
+                return { color1: _decodeColor(c1), color2: _decodeColor(c2) };
+            } else {
+                return { color1: _decodeColor(colorString), color2: undefined };
+            }
+        }
+        return { color1: undefined, color2: undefined };
+    },
+};
+
 export function collectMVSReferences<T extends StateObject.Ctor>(type: T[], dependencies: Record<string, StateObject>): Record<string, StateObject.From<T>['data']> {
     const ret: any = {};
 
