@@ -43,19 +43,23 @@ function PDOptionalSplitColor(info?: PD.Info) {
 }
 export type SplitColorProp = PD.Values<{ x: ReturnType<typeof PDSplitColor> }>['x'];
 export type OptionalSplitColorProp = PD.Values<{ x: ReturnType<typeof PDOptionalSplitColor> }>['x'];
-type ColorTuple<T extends OptionalSplitColorProp> = T extends { name: 'none' } ? [undefined, undefined] : [Color, Color];
+type NoneSplitColorProp = Exclude<OptionalSplitColorProp, SplitColorProp>;
+type ColorTuple<T extends OptionalSplitColorProp> = T extends SplitColorProp ? [Color, Color] : [undefined, undefined];
 
 const FALLBACK_COLOR = ColorNames.black;
 export const SplitColorProp = {
-    fromString(colorString: string): SplitColorProp {
+    fromString<T extends string | null>(colorString: T): T extends string ? SplitColorProp : NoneSplitColorProp {
+        if (colorString == null) {
+            return this.none() satisfies NoneSplitColorProp as any;
+        }
         if (colorString.includes('/')) {
             const [c1, c2] = colorString.split('/');
-            return { name: 'splitColor', params: { color1: decodeColor(c1) ?? FALLBACK_COLOR, color2: decodeColor(c2) ?? FALLBACK_COLOR } };
+            return { name: 'splitColor', params: { color1: decodeColor(c1) ?? FALLBACK_COLOR, color2: decodeColor(c2) ?? FALLBACK_COLOR } } satisfies SplitColorProp as any;
         } else {
-            return { name: 'oneColor', params: { color: decodeColor(colorString) ?? FALLBACK_COLOR } };
+            return { name: 'oneColor', params: { color: decodeColor(colorString) ?? FALLBACK_COLOR } } satisfies SplitColorProp as any;
         }
     },
-    none(): OptionalSplitColorProp {
+    none(): NoneSplitColorProp {
         return { name: 'none', params: {} };
     },
     toString(value: OptionalSplitColorProp): string {

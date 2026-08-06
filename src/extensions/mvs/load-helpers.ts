@@ -584,7 +584,7 @@ export function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri'
                 sort: fullParams.sort,
                 sortDirection: fullParams.sort_direction,
                 caseInsensitive: fullParams.case_insensitive,
-                missingColor: fullParams.missing_color != null ? SplitColorProp.fromString(fullParams.missing_color) : SplitColorProp.none(),
+                missingColor: SplitColorProp.fromString(fullParams.missing_color),
             } satisfies MVSCategoricalPaletteProps,
         };
     }
@@ -610,8 +610,8 @@ export function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri'
                 mode: fullParams.mode,
                 xMin: fullParams.value_domain[0],
                 xMax: fullParams.value_domain[1],
-                underflowColor: fullParams.underflow_color === 'auto' ? minColor(colors) : fullParams.underflow_color != null ? SplitColorProp.fromString(fullParams.underflow_color) : SplitColorProp.none(),
-                overflowColor: fullParams.overflow_color === 'auto' ? maxColor(colors) : fullParams.overflow_color != null ? SplitColorProp.fromString(fullParams.overflow_color) : SplitColorProp.none(),
+                underflowColor: fullParams.underflow_color === 'auto' ? minColor(colors) : SplitColorProp.fromString(fullParams.underflow_color),
+                overflowColor: fullParams.overflow_color === 'auto' ? maxColor(colors) : SplitColorProp.fromString(fullParams.overflow_color),
             } satisfies MVSContinuousPaletteProps,
         };
     }
@@ -666,13 +666,13 @@ function discretePalettePropsFromMVSColors(colors: Required<DiscretePalette>['co
     if (Array.isArray(colors) && colors.every(t => typeof t === 'string')) {
         const list = reverse ? colors.slice().reverse() : colors;
         const sectionLength = 1 / colors.length;
-        return list.map((c, i) => ({ color: SplitColorProp.fromString(c), fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
+        return list.map((col, i) => ({ color: SplitColorProp.fromString(col), fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
     }
     if (Array.isArray(colors) && colors.every(t => Array.isArray(t) && t.length === 2)) {
-        return colors.map((t, i) => ({ color: SplitColorProp.fromString(t[0]), fromValue: t[1], toValue: colors[i + 1]?.[1] ?? Infinity }));
+        return colors.map(([col, from], i) => ({ color: SplitColorProp.fromString(col), fromValue: from, toValue: colors[i + 1]?.[1] ?? Infinity }));
     }
     if (Array.isArray(colors) && colors.every(t => Array.isArray(t) && t.length === 3)) {
-        return colors.map(t => ({ color: t[0] != null ? SplitColorProp.fromString(t[0]) : SplitColorProp.none(), fromValue: t[1] ?? -Infinity, toValue: t[2] ?? Infinity }));
+        return colors.map(([col, from, to]) => ({ color: SplitColorProp.fromString(col), fromValue: from ?? -Infinity, toValue: to ?? Infinity }));
     }
     return [];
 }
@@ -693,7 +693,7 @@ function continuousPalettePropsFromMVSColors(colors: Required<ContinuousPalette>
         if (colors.every(t => Array.isArray(t))) {
             // Color list with checkpoints
             // Not applying `reverse` here, as it would have no effect
-            return colors.map(t => ({ color: SplitColorProp.fromString(t[0]), checkpoint: t[1] }));
+            return colors.map(([col, checkpoint]) => ({ color: SplitColorProp.fromString(col), checkpoint: checkpoint }));
         } else {
             // Color list without checkpoints
             const list = reverse ? colors.slice().reverse() : colors;
