@@ -97,7 +97,7 @@ export type MVSCategoricalPaletteProps = PD.Values<MVSCategoricalPaletteParams>
 
 export const MVSDiscretePaletteParams = {
     colors: PD.ObjectList({
-        color: PDSplitColor(),
+        color: PDOptionalSplitColor(),
         fromValue: PD.Numeric(-Infinity),
         toValue: PD.Numeric(Infinity),
     }, e => `${SplitColorProp.toString(e.color)} [${fmtFloat(e.fromValue)}, ${fmtFloat(e.toValue)}]`, { description: 'Mapping of annotation value ranges to colors.' }),

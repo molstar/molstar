@@ -570,8 +570,6 @@ function appliesColorToWholeRepr(node: MolstarNode<'color' | 'color_from_uri' | 
     return !isDefined(node.params.selector) || node.params.selector === 'all';
 }
 
-const NOCOLOR_SPLIT_COLOR: SplitColorProp = { name: 'oneColor', params: { color: NoColor } };
-
 export function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'color_from_source'>['params']['palette']): MVSAnnotationColorThemeProps['palette'] {
     if (!palette) {
         return { name: 'direct', params: {} };
@@ -674,8 +672,7 @@ function discretePalettePropsFromMVSColors(colors: Required<DiscretePalette>['co
         return colors.map((t, i) => ({ color: SplitColorProp.fromString(t[0]), fromValue: t[1], toValue: colors[i + 1]?.[1] ?? Infinity }));
     }
     if (Array.isArray(colors) && colors.every(t => Array.isArray(t) && t.length === 3)) {
-        return colors.map(t => ({ color: t[0] ? SplitColorProp.fromString(t[0]) : NOCOLOR_SPLIT_COLOR, fromValue: t[1] ?? -Infinity, toValue: t[2] ?? Infinity }));
-        // TODO: use none instead of NOCOLOR_SPLIT_COLOR
+        return colors.map(t => ({ color: t[0] != null ? SplitColorProp.fromString(t[0]) : SplitColorProp.none(), fromValue: t[1] ?? -Infinity, toValue: t[2] ?? Infinity }));
     }
     return [];
 }
