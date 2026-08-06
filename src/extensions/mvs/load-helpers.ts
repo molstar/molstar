@@ -573,6 +573,7 @@ function appliesColorToWholeRepr(node: MolstarNode<'color' | 'color_from_uri' | 
 
 const FALLBACK_COLOR = decodeColor(DefaultColor)!;
 const FALLBACK_SPLIT_COLOR = SplitColorProp.fromString(DefaultColor);
+const NOCOLOR_SPLIT_COLOR: SplitColorProp = { name: 'oneColor', params: { color: NoColor } };
 
 export function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'color_from_source'>['params']['palette']): MVSAnnotationColorThemeProps['palette'] {
     if (!palette) {
@@ -657,26 +658,28 @@ function categoricalPalettePropsFromMVSColors(colors: Required<CategoricalPalett
     return { name: 'list', params: [] };
 }
 
+
 function discretePalettePropsFromMVSColors(colors: Required<DiscretePalette>['colors'], reverse: boolean): MVSDiscretePaletteProps['colors'] {
     if (typeof colors === 'string') {
         if (colors in MvsNamedColorLists) {
             const colorList = MvsNamedColorLists[colors];
             const list = reverse ? colorList.list.slice().reverse() : colorList.list;
             const sectionLength = 1 / list.length;
-            return list.map((e, i) => ({ color: Color.fromColorListEntry(e), fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
+            return list.map((e, i) => ({ color: { name: 'oneColor', params: { color: Color.fromColorListEntry(e) } }, fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
+            // TODO: allow named color lists with split colors
         }
         console.warn(`Could not find named color palette "${colors}"`);
     }
     if (Array.isArray(colors) && colors.every(t => typeof t === 'string')) {
         const list = reverse ? colors.slice().reverse() : colors;
         const sectionLength = 1 / colors.length;
-        return list.map((c, i) => ({ color: decodeColor(c) ?? NoColor, fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
+        return list.map((c, i) => ({ color: SplitColorProp.fromString(c), fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
     }
     if (Array.isArray(colors) && colors.every(t => Array.isArray(t) && t.length === 2)) {
-        return colors.map((t, i) => ({ color: decodeColor(t[0]) ?? NoColor, fromValue: t[1], toValue: colors[i + 1]?.[1] ?? Infinity }));
+        return colors.map((t, i) => ({ color: SplitColorProp.fromString(t[0]), fromValue: t[1], toValue: colors[i + 1]?.[1] ?? Infinity }));
     }
     if (Array.isArray(colors) && colors.every(t => Array.isArray(t) && t.length === 3)) {
-        return colors.map(t => ({ color: decodeColor(t[0]) ?? NoColor, fromValue: t[1] ?? -Infinity, toValue: t[2] ?? Infinity }));
+        return colors.map(t => ({ color: t[0] ? SplitColorProp.fromString(t[0]) : NOCOLOR_SPLIT_COLOR, fromValue: t[1] ?? -Infinity, toValue: t[2] ?? Infinity }));
     }
     return [];
 }

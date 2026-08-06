@@ -88,10 +88,10 @@ export type MVSCategoricalPaletteProps = PD.Values<MVSCategoricalPaletteParams>
 
 export const MVSDiscretePaletteParams = {
     colors: PD.ObjectList({
-        color: PD.Color(ColorNames.white),
+        color: PDSplitColor(),
         fromValue: PD.Numeric(-Infinity),
         toValue: PD.Numeric(Infinity),
-    }, e => `${Color.toHexStyle(e.color)} [${e.fromValue}, ${e.toValue}]`, { description: 'Mapping of annotation value ranges to colors.' }),
+    }, e => `${SplitColorProp.toString(e.color)} [${e.fromValue}, ${e.toValue}]`, { description: 'Mapping of annotation value ranges to colors.' }),
     mode: PD.Select('normalized', [['normalized', 'Normalized'], ['absolute', 'Absolute']] as const, { description: 'Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation).' }),
     xMin: MaybeFloatParamDefinition({ hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_min` for normalization of annotation values. If not provided, minimum of the actual values will be used. Only used when `mode` is `"normalized"' }),
     xMax: MaybeFloatParamDefinition({ hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_max` for normalization of annotation values. If not provided, maximum of the actual values will be used. Only used when `mode` is `"normalized"' }),
@@ -222,7 +222,10 @@ function makePaletteFunctionCategorical(props: MVSCategoricalPaletteProps, annot
         let next = 0;
         for (const value of values) {
             colorMap[value] = colorList[next++];
-            if (next >= colorList.length && props.repeatColorList) next = 0; // else will get index-out-of-range and assign undefined (expected)
+            if (next >= colorList.length) {
+                if (props.repeatColorList) next = 0;
+                else break;
+            }
         }
     }
     const missingColor = SplitColorProp.toTuple(props.missingColor);
@@ -236,16 +239,17 @@ function makePaletteFunctionCategorical(props: MVSCategoricalPaletteProps, annot
 function makePaletteFunctionDiscrete(props: MVSDiscretePaletteProps, annotation: MVSAnnotation, fieldName: string): PaletteFunction {
     if (props.colors.length === 0) return () => undefined;
 
+    const bins = props.colors.map(item => ({ ...item, color: SplitColorProp.toTuple(item.color) }));
     const scale = makeNumericPaletteScale(props, annotation, fieldName);
 
-    return (value: string) => {
+    return (value: string, isSecondary: boolean) => {
         const xAbs = parseFloat(value);
         if (isNaN(xAbs)) return undefined;
         const x = scale(xAbs);
 
-        for (let i = props.colors.length - 1; i >= 0; i--) {
-            const { color, fromValue, toValue } = props.colors[i];
-            if (fromValue <= x && x <= toValue) return color;
+        for (let i = bins.length - 1; i >= 0; i--) {
+            const { color, fromValue, toValue } = bins[i];
+            if (fromValue <= x && x <= toValue) return color[isSecondary ? 1 : 0];
         }
     };
 }
