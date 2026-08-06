@@ -55,6 +55,9 @@ export const SplitColorProp = {
             return { name: 'oneColor', params: { color: decodeColor(colorString) ?? FALLBACK_COLOR } };
         }
     },
+    none(): OptionalSplitColorProp {
+        return { name: 'none', params: {} };
+    },
     toString(value: OptionalSplitColorProp): string {
         if (value.name === 'none') return 'None';
         if (value.name === 'oneColor') return Color.toHexStyle(value.params.color);
@@ -66,6 +69,12 @@ export const SplitColorProp = {
         else return [value.params.color1, value.params.color2] as ColorTuple<T>;
     },
 };
+
+function fmtFloat(x: number): string {
+    if (x === Infinity) return '\u221e';
+    if (x === -Infinity) return '-\u221e';
+    return x.toString();
+}
 
 export const MVSCategoricalPaletteParams = {
     colors: PD.MappedStatic('list', {
@@ -91,7 +100,7 @@ export const MVSDiscretePaletteParams = {
         color: PDSplitColor(),
         fromValue: PD.Numeric(-Infinity),
         toValue: PD.Numeric(Infinity),
-    }, e => `${SplitColorProp.toString(e.color)} [${e.fromValue}, ${e.toValue}]`, { description: 'Mapping of annotation value ranges to colors.' }),
+    }, e => `${SplitColorProp.toString(e.color)} [${fmtFloat(e.fromValue)}, ${fmtFloat(e.toValue)}]`, { description: 'Mapping of annotation value ranges to colors.' }),
     mode: PD.Select('normalized', [['normalized', 'Normalized'], ['absolute', 'Absolute']] as const, { description: 'Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation).' }),
     xMin: MaybeFloatParamDefinition({ hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_min` for normalization of annotation values. If not provided, minimum of the actual values will be used. Only used when `mode` is `"normalized"' }),
     xMax: MaybeFloatParamDefinition({ hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_max` for normalization of annotation values. If not provided, maximum of the actual values will be used. Only used when `mode` is `"normalized"' }),
@@ -100,14 +109,15 @@ export type MVSDiscretePaletteParams = typeof MVSDiscretePaletteParams
 export type MVSDiscretePaletteProps = PD.Values<MVSDiscretePaletteParams>
 
 export const MVSContinuousPaletteParams = {
-    colors: PD.ColorList('yellow-green', { description: 'List of colors, with optional checkpoints.', presetKind: 'scale', offsets: true }),
+    colors: PD.ObjectList({
+        color: PDSplitColor(),
+        checkpoint: PD.Numeric(0),
+    }, e => `${SplitColorProp.toString(e.color)} [${fmtFloat(e.checkpoint)}]`, { description: 'List of colors with checkpoints.' }),
     mode: PD.Select('normalized', [['normalized', 'Normalized'], ['absolute', 'Absolute']] as const, { description: 'Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation).' }),
     xMin: MaybeFloatParamDefinition({ hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_min` for normalization of annotation values. If not provided, minimum of the actual values will be used. Only used when `mode` is `"normalized"' }),
     xMax: MaybeFloatParamDefinition({ hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_max` for normalization of annotation values. If not provided, maximum of the actual values will be used. Only used when `mode` is `"normalized"' }),
-    setUnderflowColor: PD.Boolean(false, { description: 'Allow setting a color for values below the lowest checkpoint.' }),
-    underflowColor: PD.Color(ColorNames.white, { hideIf: g => !g.setUnderflowColor, description: 'Color for values below the lowest checkpoint.' }),
-    setOverflowColor: PD.Boolean(false, { description: 'Allow setting a color for values above the highest checkpoint.' }),
-    overflowColor: PD.Color(ColorNames.white, { hideIf: g => !g.setOverflowColor, description: 'Color for values above the highest checkpoint.' }),
+    underflowColor: PDOptionalSplitColor({ description: 'Color for values below the lowest checkpoint.' }),
+    overflowColor: PDOptionalSplitColor({ description: 'Color for values above the highest checkpoint.' }),
 };
 export type MVSContinuousPaletteParams = typeof MVSContinuousPaletteParams
 export type MVSContinuousPaletteProps = PD.Values<MVSContinuousPaletteParams>
@@ -259,23 +269,24 @@ function makePaletteFunctionContinuous(props: MVSContinuousPaletteProps, annotat
     if (colors.length === 0) return () => undefined;
 
     const scale = makeNumericPaletteScale(props, annotation, fieldName);
-    const underflowColor = props.setUnderflowColor ? props.underflowColor : undefined;
-    const overflowColor = props.setOverflowColor ? props.overflowColor : undefined;
+    const underflowColor = SplitColorProp.toTuple(props.underflowColor);
+    const overflowColor = SplitColorProp.toTuple(props.overflowColor);
 
-    return (value: string) => {
+    return (value: string, isSecondary: boolean) => {
+        const secFlag = isSecondary ? 1 : 0;
         const xAbs = parseFloat(value);
         if (isNaN(xAbs)) return undefined;
         const x = scale(xAbs);
         const gteIdx = SortedArray.findPredecessorIndex(checkpoints, x); // Index of the first greater or equal checkpoint
         if (gteIdx === 0) {
-            if (x === checkpoints[0]) return colors[0];
-            else return underflowColor;
+            if (x === checkpoints[0]) return colors[0][secFlag];
+            else return underflowColor[secFlag];
         }
         if (gteIdx === checkpoints.length) {
-            return overflowColor;
+            return overflowColor[secFlag];
         }
         const q = (x - checkpoints[gteIdx - 1]) / (checkpoints[gteIdx] - checkpoints[gteIdx - 1]);
-        return Color.interpolate(colors[gteIdx - 1], colors[gteIdx], q);
+        return Color.interpolate(colors[gteIdx - 1][secFlag], colors[gteIdx][secFlag], q);
     };
 }
 
@@ -306,17 +317,8 @@ function makeNumericPaletteScale(props: MVSContinuousPaletteProps | MVSDiscreteP
 }
 
 export function makeContinuousPaletteCheckpoints(props: MVSContinuousPaletteProps) {
-    if (props.colors.colors.every(x => Array.isArray(x))) {
-        // Explicit checkpoints
-        const sorted = props.colors.colors.sort((a, b) => a[1] - b[1]);
-        const colors = sorted.map(Color.fromColorListEntry);
-        const checkpoints = SortedArray.ofSortedArray(sorted.map(t => t[1]));
-        return { colors, checkpoints };
-    } else {
-        // Auto checkpoints (linspace 0 to 1)
-        const colors = props.colors.colors.map(Color.fromColorListEntry);
-        const n = colors.length - 1;
-        const checkpoints = SortedArray.ofSortedArray(colors.map((_, i) => i / n));
-        return { colors, checkpoints };
-    }
+    const sorted = props.colors.sort((a, b) => a.checkpoint - b.checkpoint);
+    const colors = sorted.map(t => SplitColorProp.toTuple(t.color));
+    const checkpoints = SortedArray.ofSortedArray(sorted.map(t => t.checkpoint));
+    return { colors, checkpoints };
 }
