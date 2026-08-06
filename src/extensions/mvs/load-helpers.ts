@@ -570,7 +570,6 @@ function appliesColorToWholeRepr(node: MolstarNode<'color' | 'color_from_uri' | 
     return !isDefined(node.params.selector) || node.params.selector === 'all';
 }
 
-const FALLBACK_SPLIT_COLOR = SplitColorProp.fromString(DefaultColor);
 const NOCOLOR_SPLIT_COLOR: SplitColorProp = { name: 'oneColor', params: { color: NoColor } };
 
 export function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'color_from_source'>['params']['palette']): MVSAnnotationColorThemeProps['palette'] {
@@ -587,8 +586,7 @@ export function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri'
                 sort: fullParams.sort,
                 sortDirection: fullParams.sort_direction,
                 caseInsensitive: fullParams.case_insensitive,
-                missingColor: fullParams.missing_color != null ? SplitColorProp.fromString(fullParams.missing_color) : FALLBACK_SPLIT_COLOR,
-                // TODO: fix missingColor default (should be none)
+                missingColor: fullParams.missing_color != null ? SplitColorProp.fromString(fullParams.missing_color) : SplitColorProp.none(),
             } satisfies MVSCategoricalPaletteProps,
         };
     }
