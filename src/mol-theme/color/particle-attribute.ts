@@ -38,7 +38,7 @@ export function getParticleAttributeColorThemeParams(ctx: ThemeDataContext) {
     if (particles?.attributes && particles.attributes.size > 0) {
         const options: [string, string][] = [];
         particles.attributes.forEach((attr, key) => {
-            if (['number', 'float'].includes(attr.column.schema.valueType)) {
+            if (['int', 'float'].includes(attr.column.schema.valueType)) {
                 options.push([key, attr.label]);
             }
         });
