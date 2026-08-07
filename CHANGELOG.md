@@ -26,6 +26,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Bin atoms to grid or cluster
     - Fast option fits ellipsoids to bins
     - Artistic option fits spherical harmonics to bins
+- Fix camera reset handling for (temporary) empty scenes (#1903)
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)

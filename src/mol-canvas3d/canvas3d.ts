@@ -883,14 +883,14 @@ namespace Canvas3D {
             const boundingSphere = scene.boundingSphereVisible;
             const { center, radius } = boundingSphere;
 
-            const autoAdjustControls = controls.props.autoAdjustMinMaxDistance;
-            if (autoAdjustControls.name === 'on') {
-                const minDistance = autoAdjustControls.params.minDistanceFactor * radius + autoAdjustControls.params.minDistancePadding;
-                const maxDistance = Math.max(autoAdjustControls.params.maxDistanceFactor * radius, autoAdjustControls.params.maxDistanceMin);
-                controls.setProps({ minDistance, maxDistance });
-            }
-
             if (radius > 0) {
+                const autoAdjustControls = controls.props.autoAdjustMinMaxDistance;
+                if (autoAdjustControls.name === 'on') {
+                    const minDistance = autoAdjustControls.params.minDistanceFactor * radius + autoAdjustControls.params.minDistancePadding;
+                    const maxDistance = Math.max(autoAdjustControls.params.maxDistanceFactor * radius, autoAdjustControls.params.maxDistanceMin);
+                    controls.setProps({ minDistance, maxDistance });
+                }
+
                 const duration = nextCameraResetOptions.durationMs === undefined ? p.cameraResetDurationMs : nextCameraResetOptions.durationMs;
                 const focus = camera.getFocus(center, radius);
                 const next = typeof nextCameraResetOptions.snapshot === 'function' ? nextCameraResetOptions.snapshot(scene, camera) : nextCameraResetOptions.snapshot;
@@ -956,7 +956,9 @@ namespace Canvas3D {
             }
             if (oldBoundingSphereVisible.radius === 0) nextCameraResetOptions.durationMs = 0;
 
-            if (!p.camera.manualReset) camera.setState({ radiusMax: getSceneRadius() }, 0);
+            if (!p.camera.manualReset && scene.boundingSphere.radius > 0) {
+                camera.setState({ radiusMax: getSceneRadius() }, 0);
+            }
             reprCount.next(reprRenderObjects.size);
             if (isDebugMode) consoleStats();
 
