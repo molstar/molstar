@@ -50,6 +50,7 @@ import { ExternalStructureColorThemeProvider } from './color/external-structure'
 import { ParticleAttributeColorThemeProvider } from './color/particle-attribute';
 import { ParticleCompartmentColorThemeProvider } from './color/particle-compartment';
 import { ParticleEntityColorThemeProvider } from './color/particle-entity';
+import { ParticleHierarchyColorThemeProvider } from './color/particle-hierarchy';
 import { ParticleIndexColorThemeProvider } from './color/particle-index';
 import { ColorListEntry } from '../mol-util/color/color';
 import { getPrecision } from '../mol-util/number';
@@ -205,6 +206,7 @@ namespace ColorTheme {
         'particle-attribute': ParticleAttributeColorThemeProvider,
         'particle-compartment': ParticleCompartmentColorThemeProvider,
         'particle-entity': ParticleEntityColorThemeProvider,
+        'particle-hierarchy': ParticleHierarchyColorThemeProvider,
         'particle-index': ParticleIndexColorThemeProvider,
         'polymer-id': PolymerIdColorThemeProvider,
         'polymer-index': PolymerIndexColorThemeProvider,

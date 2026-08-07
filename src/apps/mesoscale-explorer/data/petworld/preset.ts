@@ -11,10 +11,11 @@ import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/
 import { StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { PluginStateObject } from '../../../../mol-plugin-state/objects';
-import { GraphicsMode, MesoscaleGroup, MesoscaleState, getDistinctBaseColors, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
+import { GraphicsMode, MesoscaleGroup, MesoscaleState, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
 import { Task } from '../../../../mol-task';
+import { getDistinctBaseColors } from '../../../../mol-util/color/distinct';
 
 function getSpacefillParams(color: Color, graphics: GraphicsMode) {
     const gmp = getGraphicsModeProps(graphics === 'custom' ? 'quality' : graphics);

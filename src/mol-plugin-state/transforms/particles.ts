@@ -316,6 +316,15 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
         const type = registry.get(registry.default.name);
 
         if (!a) {
+            const colorThemeInfo = {
+                help: (value: { name: string, params: {} }) => {
+                    const { name, params } = value;
+                    const p = themeCtx.colorThemeRegistry.get(name);
+                    const ct = p.factory({}, params);
+                    return { description: ct.description, legend: ct.legend };
+                }
+            };
+
             return {
                 type: PD.Mapped<any>(
                     registry.default.name,
@@ -324,7 +333,8 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
                 colorTheme: PD.Mapped<any>(
                     type.defaultColorTheme.name,
                     themeCtx.colorThemeRegistry.types,
-                    name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({}))
+                    name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({})),
+                    colorThemeInfo
                 ),
                 sizeTheme: PD.Mapped<any>(
                     type.defaultSizeTheme.name,
@@ -335,6 +345,15 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
         }
 
         const dataCtx = { particles: a.data };
+        const colorThemeInfo = {
+            help: (value: { name: string, params: {} }) => {
+                const { name, params } = value;
+                const p = themeCtx.colorThemeRegistry.get(name);
+                const ct = p.factory(dataCtx, params);
+                return { description: ct.description, legend: ct.legend };
+            }
+        };
+
         return ({
             type: PD.Mapped<any>(
                 registry.default.name,
@@ -343,7 +362,8 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
             colorTheme: PD.Mapped<any>(
                 type.defaultColorTheme.name,
                 themeCtx.colorThemeRegistry.getApplicableTypes(dataCtx),
-                name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams(dataCtx))
+                name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams(dataCtx)),
+                colorThemeInfo
             ),
             sizeTheme: PD.Mapped<any>(
                 type.defaultSizeTheme.name,
