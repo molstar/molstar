@@ -102,76 +102,76 @@ export const MvsNamedColorDicts: Record<ColorDictNameT, Record<string, ColorT>> 
 };
 
 
-export const MvsNamedColorLists: Record<ColorListNameT, ColorList> = {
+export const MvsNamedColorLists: Record<ColorListNameT, ColorT[]> = {
     // Sequential single-hue
-    Reds: ColorLists['reds'],
-    Oranges: ColorLists['oranges'],
-    Greens: ColorLists['greens'],
-    Blues: ColorLists['blues'],
-    Purples: ColorLists['purples'],
-    Greys: ColorLists['greys'],
+    Reds: MvsColorList(ColorLists['reds']),
+    Oranges: MvsColorList(ColorLists['oranges']),
+    Greens: MvsColorList(ColorLists['greens']),
+    Blues: MvsColorList(ColorLists['blues']),
+    Purples: MvsColorList(ColorLists['purples']),
+    Greys: MvsColorList(ColorLists['greys']),
 
     // Sequential multi-hue
-    OrRd: ColorLists['orange-red'],
-    BuGn: ColorLists['blue-green'],
-    PuBuGn: ColorLists['purple-blue-green'],
-    GnBu: ColorLists['green-blue'],
-    PuBu: ColorLists['purple-blue'],
-    BuPu: ColorLists['blue-purple'],
-    RdPu: ColorLists['red-purple'],
-    PuRd: ColorLists['purple-red'],
-    YlOrRd: ColorLists['yellow-orange-red'],
-    YlOrBr: ColorLists['yellow-orange-brown'],
-    YlGn: ColorLists['yellow-green'],
-    YlGnBu: ColorLists['yellow-green-blue'],
+    OrRd: MvsColorList(ColorLists['orange-red']),
+    BuGn: MvsColorList(ColorLists['blue-green']),
+    PuBuGn: MvsColorList(ColorLists['purple-blue-green']),
+    GnBu: MvsColorList(ColorLists['green-blue']),
+    PuBu: MvsColorList(ColorLists['purple-blue']),
+    BuPu: MvsColorList(ColorLists['blue-purple']),
+    RdPu: MvsColorList(ColorLists['red-purple']),
+    PuRd: MvsColorList(ColorLists['purple-red']),
+    YlOrRd: MvsColorList(ColorLists['yellow-orange-red']),
+    YlOrBr: MvsColorList(ColorLists['yellow-orange-brown']),
+    YlGn: MvsColorList(ColorLists['yellow-green']),
+    YlGnBu: MvsColorList(ColorLists['yellow-green-blue']),
 
-    Magma: ColorLists['magma'],
-    Inferno: ColorLists['inferno'],
-    Plasma: ColorLists['plasma'],
-    Viridis: ColorLists['viridis'],
-    Cividis: ColorLists['cividis'],
-    Turbo: ColorLists['turbo'],
-    Warm: ColorLists['warm'],
-    Cool: ColorLists['cool'],
-    CubehelixDefault: ColorLists['cubehelix-default'],
+    Magma: MvsColorList(ColorLists['magma']),
+    Inferno: MvsColorList(ColorLists['inferno']),
+    Plasma: MvsColorList(ColorLists['plasma']),
+    Viridis: MvsColorList(ColorLists['viridis']),
+    Cividis: MvsColorList(ColorLists['cividis']),
+    Turbo: MvsColorList(ColorLists['turbo']),
+    Warm: MvsColorList(ColorLists['warm']),
+    Cool: MvsColorList(ColorLists['cool']),
+    CubehelixDefault: MvsColorList(ColorLists['cubehelix-default']),
 
     // Cyclical
-    Rainbow: ColorLists['rainbow'],
-    Sinebow: ColorLists['sinebow'],
+    Rainbow: MvsColorList(ColorLists['rainbow']),
+    Sinebow: MvsColorList(ColorLists['sinebow']),
 
     // Diverging
-    RdBu: ColorLists['red-blue'],
-    RdGy: ColorLists['red-grey'],
-    PiYG: ColorLists['pink-yellow-green'],
-    BrBG: ColorLists['brown-white-green'],
-    PRGn: ColorLists['purple-green'],
-    PuOr: ColorLists['purple-orange'],
-    RdYlGn: ColorLists['red-yellow-green'],
-    RdYlBu: ColorLists['red-yellow-blue'],
-    Spectral: ColorLists['spectral'],
+    RdBu: MvsColorList(ColorLists['red-blue']),
+    RdGy: MvsColorList(ColorLists['red-grey']),
+    PiYG: MvsColorList(ColorLists['pink-yellow-green']),
+    BrBG: MvsColorList(ColorLists['brown-white-green']),
+    PRGn: MvsColorList(ColorLists['purple-green']),
+    PuOr: MvsColorList(ColorLists['purple-orange']),
+    RdYlGn: MvsColorList(ColorLists['red-yellow-green']),
+    RdYlBu: MvsColorList(ColorLists['red-yellow-blue']),
+    Spectral: MvsColorList(ColorLists['spectral']),
 
     // Categorical
-    Category10: ColorLists['category-10'],
-    Observable10: ColorLists['observable-10'],
-    Tableau10: ColorLists['tableau-10'],
+    Category10: MvsColorList(ColorLists['category-10']),
+    Observable10: MvsColorList(ColorLists['observable-10']),
+    Tableau10: MvsColorList(ColorLists['tableau-10']),
 
-    Set1: ColorLists['set-1'],
-    Set2: ColorLists['set-2'],
-    Set3: ColorLists['set-3'],
-    Pastel1: ColorLists['pastel-1'],
-    Pastel2: ColorLists['pastel-2'],
-    Dark2: ColorLists['dark-2'],
-    Paired: ColorLists['paired'],
-    Accent: ColorLists['accent'],
+    Set1: MvsColorList(ColorLists['set-1']),
+    Set2: MvsColorList(ColorLists['set-2']),
+    Set3: MvsColorList(ColorLists['set-3']),
+    Pastel1: MvsColorList(ColorLists['pastel-1']),
+    Pastel2: MvsColorList(ColorLists['pastel-2']),
+    Dark2: MvsColorList(ColorLists['dark-2']),
+    Paired: MvsColorList(ColorLists['paired']),
+    Accent: MvsColorList(ColorLists['accent']),
 
     // Additional lists, not standard for visualization in general, but commonly used for structures
-    Chainbow: ColorLists['turbo-no-black'],
+    Chainbow: MvsColorList(ColorLists['turbo-no-black']),
 };
 
 
-// function MvsColorList(colors: ColorList): ColorT[] {
-//     return colors.list.map(entry => Color.toHexStyle(Color.fromColorListEntry(entry)) as ColorT);
-// }
+function MvsColorList(colors: ColorList): ColorT[] {
+    return colors.list.map(entry => Color.toHexStyle(Color.fromColorListEntry(entry)) as ColorT);
+}
 
 function MvsColorDict(colors: Record<string, Color>): Record<string, ColorT> {
     return mapObjectMap(colors, color => Color.toHexStyle(color) as ColorT);

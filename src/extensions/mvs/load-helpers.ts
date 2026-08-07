@@ -14,7 +14,6 @@ import { VolumeInstances, VolumeTransform } from '../../mol-plugin-state/transfo
 import { StateTransformer } from '../../mol-state';
 import { arrayDistinct } from '../../mol-util/array';
 import { Clip } from '../../mol-util/clip';
-import { Color } from '../../mol-util/color';
 import { canonicalJsonString } from '../../mol-util/json';
 import { stringToWords } from '../../mol-util/string';
 import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider, MVSCategoricalPaletteProps, MVSContinuousPaletteProps, MVSDiscretePaletteProps, OptionalSplitColorProp, SplitColorProp } from './components/annotation-color-theme';
@@ -630,76 +629,75 @@ function objMerge<T extends object, U extends object>(first: T, second: U): T & 
 
 function categoricalPalettePropsFromMVSColors(colors: Required<CategoricalPalette>['colors']): MVSCategoricalPaletteProps['colors'] {
     if (typeof colors === 'string') {
+        // Named color list or dict
         if (colors in MvsNamedColorLists) {
-            const colorList = MvsNamedColorLists[colors as ColorListNameT];
-            return { name: 'list', params: colorList.list.map(item => ({ color: { name: 'oneColor', params: { color: Color.fromColorListEntry(item) } } })) };
-            // TODO: allow named color lists with split colors
+            colors = MvsNamedColorLists[colors as ColorListNameT];
         } else if (colors in MvsNamedColorDicts) {
             colors = MvsNamedColorDicts[colors as ColorDictNameT];
         } else {
             console.warn(`Could not find named color palette "${colors}"`);
+            return { name: 'list', params: [] };
         }
     }
+
     if (Array.isArray(colors)) {
+        // Color list
         return { name: 'list', params: colors.map(c => ({ color: SplitColorProp.fromString(c) })) };
-    }
-    if (typeof colors === 'object') {
+    } else {
+        // Color dict
         return { name: 'dictionary', params: Object.entries(colors).map(([value, color]) => ({ value, color: SplitColorProp.fromString(color) })) };
     }
-    return { name: 'list', params: [] };
 }
 
 
 function discretePalettePropsFromMVSColors(colors: Required<DiscretePalette>['colors'], reverse: boolean): MVSDiscretePaletteProps['colors'] {
     if (typeof colors === 'string') {
+        // Named color list
         if (colors in MvsNamedColorLists) {
-            const colorList = MvsNamedColorLists[colors];
-            const list = reverse ? colorList.list.slice().reverse() : colorList.list;
-            const sectionLength = 1 / list.length;
-            return list.map((e, i) => ({ color: { name: 'oneColor', params: { color: Color.fromColorListEntry(e) } }, fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
-            // TODO: allow named color lists with split colors
+            colors = MvsNamedColorLists[colors as ColorListNameT];
+        } else {
+            console.warn(`Could not find named color palette "${colors}"`);
+            return [];
         }
-        console.warn(`Could not find named color palette "${colors}"`);
     }
-    if (Array.isArray(colors) && colors.every(t => typeof t === 'string')) {
-        const list = reverse ? colors.slice().reverse() : colors;
+
+    if (colors.every(t => typeof t === 'string')) {
+        // Color list without checkpoints
+        if (reverse) colors = colors.slice().reverse();
         const sectionLength = 1 / colors.length;
-        return list.map((col, i) => ({ color: SplitColorProp.fromString(col), fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
-    }
-    if (Array.isArray(colors) && colors.every(t => Array.isArray(t) && t.length === 2)) {
-        return colors.map(([col, from], i) => ({ color: SplitColorProp.fromString(col), fromValue: from, toValue: colors[i + 1]?.[1] ?? Infinity }));
-    }
-    if (Array.isArray(colors) && colors.every(t => Array.isArray(t) && t.length === 3)) {
+        return colors.map((col, i) => ({ color: SplitColorProp.fromString(col), fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
+    } else if (colors.every(t => Array.isArray(t) && t.length === 2)) {
+        // Color list with 1 checkpoint
+        return colors.map(([col, from], i, arr) => ({ color: SplitColorProp.fromString(col), fromValue: from, toValue: arr[i + 1]?.[1] ?? Infinity }));
+    } else if (colors.every(t => Array.isArray(t) && t.length === 3)) {
+        // Color list with 2 checkpoint
         return colors.map(([col, from, to]) => ({ color: SplitColorProp.fromString(col), fromValue: from ?? -Infinity, toValue: to ?? Infinity }));
+    } else {
+        return []; // should be unreachable
     }
-    return [];
 }
 
 function continuousPalettePropsFromMVSColors(colors: Required<ContinuousPalette>['colors'], reverse: boolean): MVSContinuousPaletteProps['colors'] {
     if (typeof colors === 'string') {
         // Named color list
         if (colors in MvsNamedColorLists) {
-            const colorList = MvsNamedColorLists[colors];
-            const list = reverse ? colorList.list.slice().reverse() : colorList.list;
-            const n = list.length - 1;
-            return list.map((col, i) => ({ color: { name: 'oneColor', params: { color: Color.fromColorListEntry(col) } }, checkpoint: i / n }));
-            // TODO: allow named color lists with split colors
-        }
-        console.warn(`Could not find named color palette "${colors}"`);
-    }
-    if (Array.isArray(colors)) {
-        if (colors.every(t => Array.isArray(t))) {
-            // Color list with checkpoints
-            // Not applying `reverse` here, as it would have no effect
-            return colors.map(([col, checkpoint]) => ({ color: SplitColorProp.fromString(col), checkpoint: checkpoint }));
+            colors = MvsNamedColorLists[colors as ColorListNameT];
         } else {
-            // Color list without checkpoints
-            const list = reverse ? colors.slice().reverse() : colors;
-            const n = list.length - 1;
-            return colors.map((col, i) => ({ color: SplitColorProp.fromString(col), checkpoint: i / n }));
+            console.warn(`Could not find named color palette "${colors}"`);
+            return [];
         }
     }
-    return [];
+
+    if (colors.every(t => typeof t === 'string')) {
+        // Color list without checkpoints
+        if (reverse) colors = colors.slice().reverse();
+        const n = colors.length - 1;
+        return colors.map((col, i) => ({ color: SplitColorProp.fromString(col), checkpoint: i / n }));
+    } else {
+        // Color list with checkpoints
+        // Not applying `reverse` here, as it would have no effect
+        return colors.map(([col, checkpoint]) => ({ color: SplitColorProp.fromString(col), checkpoint: checkpoint }));
+    }
 }
 
 /** Return the color with the lowest checkpoint. */
