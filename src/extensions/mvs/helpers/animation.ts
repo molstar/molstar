@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { SortedArray } from '../../../mol-data/int';
@@ -14,7 +15,8 @@ import { deepEqual } from '../../../mol-util';
 import { Color } from '../../../mol-util/color';
 import { decodeColor } from '../../../mol-util/color/utils';
 import { produce } from '../../../mol-util/produce';
-import { makeContinuousPaletteCheckpoints, MVSContinuousPaletteProps, MVSDiscretePaletteProps, SplitColorProp } from '../components/annotation-color-theme';
+import { makeContinuousPaletteCheckpoints, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from '../components/annotation-color-theme';
+import { SplitColorProp } from '../components/split-uniform-color-theme';
 import { palettePropsFromMVSPalette } from '../load-helpers';
 import { Snapshot } from '../mvs-data';
 import { MVSAnimationNode, MVSAnimationSchema } from '../tree/animation/animation-tree';

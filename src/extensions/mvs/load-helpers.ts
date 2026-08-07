@@ -16,7 +16,7 @@ import { arrayDistinct } from '../../mol-util/array';
 import { Clip } from '../../mol-util/clip';
 import { canonicalJsonString } from '../../mol-util/json';
 import { stringToWords } from '../../mol-util/string';
-import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider, MVSCategoricalPaletteProps, MVSContinuousPaletteProps, MVSDiscretePaletteProps, OptionalSplitColorProp, SplitColorProp } from './components/annotation-color-theme';
+import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider, MVSCategoricalPaletteProps, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from './components/annotation-color-theme';
 import { MVSAnnotationLabelProps, MVSAnnotationLabelRepresentationProvider } from './components/annotation-label/representation';
 import { MVSAnnotationSpec } from './components/annotation-prop';
 import { MVSAnnotationStructureComponentProps } from './components/annotation-structure-component';
@@ -25,6 +25,7 @@ import { CustomLabelTextProps } from './components/custom-label/visual';
 import { CustomTooltipsProps } from './components/custom-tooltips-prop';
 import { MultilayerColorThemeName, MultilayerColorThemeProps, NoColor } from './components/multilayer-color-theme';
 import { SelectorAll } from './components/selector';
+import { MVSSplitUniformColorThemeProps, MVSSplitUniformColorThemeProvider, OptionalSplitColorProp, SplitColorProp } from './components/split-uniform-color-theme';
 import { MvsNamedColorDicts, MvsNamedColorLists } from './helpers/colors';
 import { rowToExpression, rowsToExpression } from './helpers/selections';
 import { ElementOfSet, decodeColor, isDefined, stringHash } from './helpers/utils';
@@ -34,7 +35,7 @@ import { Subtree, getChildren } from './tree/generic/tree-schema';
 import { dfs, formatObject } from './tree/generic/tree-utils';
 import { MolstarKind, MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree } from './tree/molstar/molstar-tree';
 import { DefaultColor } from './tree/mvs/mvs-tree';
-import { CategoricalPalette, CategoricalPaletteDefaults, ColorDictNameT, ColorListNameT, ContinuousPalette, ContinuousPaletteDefaults, DiscretePalette, DiscretePaletteDefaults } from './tree/mvs/param-types';
+import { CategoricalPalette, CategoricalPaletteDefaults, ColorDictNameT, ColorListNameT, ColorT, ContinuousPalette, ContinuousPaletteDefaults, DiscretePalette, DiscretePaletteDefaults } from './tree/mvs/param-types';
 
 
 export const AnnotationFromUriKinds = new Set(['color_from_uri', 'component_from_uri', 'label_from_uri', 'tooltip_from_uri'] satisfies MolstarKind[]);
@@ -518,10 +519,11 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
     if (node?.kind === 'representation') {
         const children = getChildren(node).filter(c => c.kind === 'color' || c.kind === 'color_from_uri' || c.kind === 'color_from_source') as MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>[];
         if (children.length === 0) {
-            return {
-                name: 'uniform',
-                params: { value: decodeColor(DefaultColor) },
-            };
+            return uniformColorTheme(DefaultColor);
+            // return {
+            //     name: 'uniform',
+            //     params: { value: decodeColor(DefaultColor) },
+            // };
         } else if (children.length === 1 && hasMolStarUseDefaultColoring(children[0])) {
             return customColoring(children[0].custom);
         } else if (children.length === 1 && appliesColorToWholeRepr(children[0])) {
@@ -545,10 +547,11 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
             return customColoring(node.custom);
         }
 
-        return {
-            name: 'uniform',
-            params: { value: decodeColor(node.params.color) },
-        };
+        return uniformColorTheme(node.params.color);
+        // return {
+        //     name: 'uniform',
+        //     params: { value: decodeColor(node.params.color) },
+        // };
     }
     if (node?.kind === 'color_from_uri' || node?.kind === 'color_from_source') {
         const annotationId = context.annotationMap.get(node);
@@ -567,6 +570,20 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
 
 function appliesColorToWholeRepr(node: MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>): boolean {
     return !isDefined(node.params.selector) || node.params.selector === 'all';
+}
+
+function uniformColorTheme(color: ColorT): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] {
+    if (color.includes('/')) {
+        return {
+            name: MVSSplitUniformColorThemeProvider.name,
+            params: { value: SplitColorProp.fromString(color) } satisfies MVSSplitUniformColorThemeProps,
+        };
+    } else {
+        return {
+            name: 'uniform',
+            params: { value: decodeColor(color) },
+        };
+    }
 }
 
 export function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'color_from_source'>['params']['palette']): MVSAnnotationColorThemeProps['palette'] {

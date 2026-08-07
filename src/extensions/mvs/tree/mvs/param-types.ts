@@ -7,7 +7,6 @@
 
 import * as iots from 'io-ts';
 import { ColorNames } from '../../../../mol-util/color/names';
-import { SplitColor } from '../../helpers/utils';
 import { ValueFor, bool, dict, float, int, list, literal, nullable, object, partial, str, tuple, union } from '../generic/field-schema';
 
 /** `format` parameter values for `parse` node in MVS tree */
@@ -225,8 +224,8 @@ export const ColorT = new iots.Type<ColorT>(
 export type ColorT = ColorNameT | HexColorT | `${string}/${string}`; // This is not ideal, but kinda enough for useful autocomplete and catching typos. Specifying the type more accurately would slow down intellisense (`${ColorNameT | HexColorT}/${ColorNameT | HexColorT}` would cause generating all combinations under the hood).
 function isColorT(str: any): str is ColorT {
     if (typeof str !== 'string') return false;
-    if (str.includes(SplitColor.SPLIT_COLOR_SEP)) {
-        const parts = str.split(SplitColor.SPLIT_COLOR_SEP);
+    if (str.includes('/')) {
+        const parts = str.split('/');
         if (parts.length === 2) return isColorT(parts[0]) && isColorT(parts[1]);
         else return false;
     } else {

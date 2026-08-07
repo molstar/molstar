@@ -13,66 +13,11 @@ import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { MaybeFloatParamDefinition } from '../helpers/param-definition';
-import { decodeColor, SplitColor } from '../helpers/utils';
+import { SplitColor } from '../helpers/utils';
 import { getMVSAnnotationForStructure, MVSAnnotation } from './annotation-prop';
 import { isMVSStructure } from './is-mvs-model-prop';
+import { PDOptionalSplitColor, PDSplitColor, SplitColorProp } from './split-uniform-color-theme';
 
-
-function PDSplitColor(info?: PD.Info) {
-    return PD.MappedStatic('oneColor', {
-        oneColor: PD.Group({
-            color: PD.Color(ColorNames.white, { label: ' ' }),
-        }, { isFlat: true }),
-        splitColor: PD.Group({
-            color1: PD.Color(ColorNames.white, { label: '1' }),
-            color2: PD.Color(ColorNames.white, { label: '2' }),
-        }, { isFlat: true }),
-    }, info);
-}
-function PDOptionalSplitColor(info?: PD.Info) {
-    return PD.MappedStatic('none', {
-        none: PD.EmptyGroup(),
-        oneColor: PD.Group({
-            color: PD.Color(ColorNames.white, { label: ' ' }),
-        }, { isFlat: true }),
-        splitColor: PD.Group({
-            color1: PD.Color(ColorNames.white, { label: '1' }),
-            color2: PD.Color(ColorNames.white, { label: '2' }),
-        }, { isFlat: true }),
-    }, info);
-}
-export type SplitColorProp = PD.Values<{ x: ReturnType<typeof PDSplitColor> }>['x'];
-export type OptionalSplitColorProp = PD.Values<{ x: ReturnType<typeof PDOptionalSplitColor> }>['x'];
-type NoneSplitColorProp = Exclude<OptionalSplitColorProp, SplitColorProp>;
-type ColorTuple<T extends OptionalSplitColorProp> = T extends SplitColorProp ? [Color, Color] : [undefined, undefined];
-
-const FALLBACK_COLOR = ColorNames.black;
-export const SplitColorProp = {
-    fromString<T extends string | null>(colorString: T): T extends string ? SplitColorProp : NoneSplitColorProp {
-        if (colorString == null) {
-            return this.none() satisfies NoneSplitColorProp as any;
-        }
-        if (colorString.includes('/')) {
-            const [c1, c2] = colorString.split('/');
-            return { name: 'splitColor', params: { color1: decodeColor(c1) ?? FALLBACK_COLOR, color2: decodeColor(c2) ?? FALLBACK_COLOR } } satisfies SplitColorProp as any;
-        } else {
-            return { name: 'oneColor', params: { color: decodeColor(colorString) ?? FALLBACK_COLOR } } satisfies SplitColorProp as any;
-        }
-    },
-    none(): NoneSplitColorProp {
-        return { name: 'none', params: {} };
-    },
-    toString(value: OptionalSplitColorProp): string {
-        if (value.name === 'none') return 'None';
-        if (value.name === 'oneColor') return Color.toHexStyle(value.params.color);
-        else return `${Color.toHexStyle(value.params.color1)}/${Color.toHexStyle(value.params.color2)}`;
-    },
-    toTuple<T extends OptionalSplitColorProp>(value: T): ColorTuple<T> {
-        if (value.name === 'none') return [undefined, undefined] as ColorTuple<T>;
-        if (value.name === 'oneColor') return [value.params.color, value.params.color] as ColorTuple<T>;
-        else return [value.params.color1, value.params.color2] as ColorTuple<T>;
-    },
-};
 
 function fmtFloat(x: number): string {
     if (x === Infinity) return '\u221e';
@@ -210,13 +155,16 @@ function makePaletteFunction(props: MVSAnnotationColorThemeProps['palette'], ann
     throw new Error(`NotImplementedError: makePaletteFunction for ${(props as any).name}`);
 }
 
+const _colors: [Color, Color] = [ColorNames.black, ColorNames.black];
+
 const paletteFunctionDirect: PaletteFunction = (value, isSecondary) => {
-    const colors = SplitColor.decode(value);
-    if (isSecondary) {
-        return colors.color2 ?? colors.color1;
-    } else {
-        return colors.color1;
-    }
+    SplitColor.decode(value, _colors);
+    return _colors[isSecondary ? 1 : 0];
+    // if (isSecondary) {
+    //     return colors.color2 ?? colors.color1;
+    // } else {
+    //     return colors.color1;
+    // }
 };
 
 function makePaletteFunctionCategorical(props: MVSCategoricalPaletteProps, annotation: MVSAnnotation, fieldName: string): PaletteFunction {
