@@ -210,7 +210,7 @@ export function ParticleVisual<G extends Geometry, P extends ParticleParams & Ge
             }
 
             if (updateState.updateMatrix) {
-                createParticleTransform(newParticles, geometry.boundingSphere, newProps.cellSize, newProps.batchSize, renderObject.values);
+                createParticleTransform(newParticles, (newGeometry || geometry).boundingSphere, newProps.cellSize, newProps.batchSize, renderObject.values);
             }
 
             if (updateState.createGeometry) {
