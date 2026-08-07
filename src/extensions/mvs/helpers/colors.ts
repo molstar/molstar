@@ -4,32 +4,38 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { SaccharideColors, SaccharideCompIdMap, SaccharideType } from '../../../mol-model/structure/structure/carbohydrates/constants';
 import { ElementSymbolColors } from '../../../mol-theme/color/element-symbol';
 import { ResidueNameColors } from '../../../mol-theme/color/residue-name';
 import { SecondaryStructureColors as SecStrColors } from '../../../mol-theme/color/secondary-structure';
 import { Color } from '../../../mol-util/color';
 import { ColorList } from '../../../mol-util/color/color';
 import { ColorLists } from '../../../mol-util/color/lists';
-import { omitObjectKeys } from '../../../mol-util/object';
-import { ColorDictNameT, ColorListNameT } from '../tree/mvs/param-types';
-import { decodeColor } from './utils';
+import { mapObjectMap, omitObjectKeys } from '../../../mol-util/object';
+import { ColorDictNameT, ColorListNameT, ColorT } from '../tree/mvs/param-types';
 
+
+/** Colors for individual elements, except carbon */
+const ElementSymbolColorDict: Record<string, ColorT> = MvsColorDict(omitObjectKeys(ElementSymbolColors, ['C'])); // ommitting carbon color to allow easier combination of multiple color layers
+
+/** Colors for individual amino acids, based on Jmol */
+const ResidueNameColorDict: Record<string, ColorT> = MvsColorDict(ResidueNameColors);
 
 /** Colors for amino acid groups, based on Clustal (https://www.jalview.org/help/html/colourSchemes/clustal.html) */
-const AminoGroupColors = {
-    aromatic: decodeColor('#15A4A4')!,
-    hydrophobic: decodeColor('#80A0F0')!,
-    polar: decodeColor('#15C015')!,
-    positive: decodeColor('#F01505')!,
-    negative: decodeColor('#C048C0')!,
-    proline: decodeColor('#C0C000')!,
-    cysteine: decodeColor('#F08080')!,
-    glycine: decodeColor('#F09048')!,
+const AminoGroupColors: Record<string, ColorT> = {
+    aromatic: '#15A4A4',
+    hydrophobic: '#80A0F0',
+    polar: '#15C015',
+    positive: '#F01505',
+    negative: '#C048C0',
+    proline: '#C0C000',
+    cysteine: '#F08080',
+    glycine: '#F09048',
 };
 
 /** Colors for individual amino acids, based on Clustal (https://www.jalview.org/help/html/colourSchemes/clustal.html), plus Jmol colors for nucleotides (http://jmol.sourceforge.net/jscolors/) */
-const ResiduePropertyColors = {
-    ...ResidueNameColors,
+const ResiduePropertyColorDict: Record<string, ColorT> = {
+    ...ResidueNameColorDict, // to keep nucleotide coloring
     HIS: AminoGroupColors.aromatic,
     TYR: AminoGroupColors.aromatic,
     ALA: AminoGroupColors.hydrophobic,
@@ -53,7 +59,7 @@ const ResiduePropertyColors = {
 };
 
 /** Colors for secondary structure types, based on Jmol colors (http://jmol.sourceforge.net/jscolors/) */
-const SecondaryStructureColors = {
+const SecondaryStructureColors: Record<string, ColorT> = MvsColorDict({
     // Simple categories
     helix: SecStrColors.alphaHelix,
     strand: SecStrColors.betaStrand,
@@ -69,14 +75,32 @@ const SecondaryStructureColors = {
     P: Color(0xA00000), // Polyproline II helix, Jmol has no color for it
     T: SecStrColors.betaTurn,
     S: SecStrColors.bend,
+});
+
+function makeCarbohydrateSymbolColors(): Record<string, ColorT> {
+    const secondaryColor = Color.toHexStyle(SaccharideColors.Secondary);
+    const out: Record<string, ColorT> = {};
+
+    for (const [compId, comp] of SaccharideCompIdMap) {
+        const primaryColor = Color.toHexStyle(comp.color);
+        const hasSecondary = (
+            comp.type === SaccharideType.Hexosamine // divided cube
+            || comp.type === SaccharideType.Hexuronate // divided diamond
+            || comp.type === SaccharideType.DeoxyhexNAc // divided cone
+        );
+        out[compId] = (hasSecondary ? `${primaryColor}/${secondaryColor}` : primaryColor) as ColorT;
+    }
+    return out;
+}
+
+export const MvsNamedColorDicts: Record<ColorDictNameT, Record<string, ColorT>> = {
+    ElementSymbol: ElementSymbolColorDict,
+    ResidueName: ResidueNameColorDict,
+    ResidueProperties: ResiduePropertyColorDict,
+    SecondaryStructure: SecondaryStructureColors,
+    CarbohydrateSymbol: makeCarbohydrateSymbolColors(),
 };
 
-export const MvsNamedColorDicts: Record<ColorDictNameT, Record<string, Color>> = {
-    ElementSymbol: omitObjectKeys(ElementSymbolColors, ['C']), // ommitting carbon color to allow easier combination of multiple color layers
-    ResidueName: ResidueNameColors,
-    ResidueProperties: ResiduePropertyColors,
-    SecondaryStructure: SecondaryStructureColors,
-};
 
 export const MvsNamedColorLists: Record<ColorListNameT, ColorList> = {
     // Sequential single-hue
@@ -143,3 +167,12 @@ export const MvsNamedColorLists: Record<ColorListNameT, ColorList> = {
     // Additional lists, not standard for visualization in general, but commonly used for structures
     Chainbow: ColorLists['turbo-no-black'],
 };
+
+
+// function MvsColorList(colors: ColorList): ColorT[] {
+//     return colors.list.map(entry => Color.toHexStyle(Color.fromColorListEntry(entry)) as ColorT);
+// }
+
+function MvsColorDict(colors: Record<string, Color>): Record<string, ColorT> {
+    return mapObjectMap(colors, color => Color.toHexStyle(color) as ColorT);
+}

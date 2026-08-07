@@ -634,13 +634,11 @@ function categoricalPalettePropsFromMVSColors(colors: Required<CategoricalPalett
             const colorList = MvsNamedColorLists[colors as ColorListNameT];
             return { name: 'list', params: colorList.list.map(item => ({ color: { name: 'oneColor', params: { color: Color.fromColorListEntry(item) } } })) };
             // TODO: allow named color lists with split colors
+        } else if (colors in MvsNamedColorDicts) {
+            colors = MvsNamedColorDicts[colors as ColorDictNameT];
+        } else {
+            console.warn(`Could not find named color palette "${colors}"`);
         }
-        if (colors in MvsNamedColorDicts) {
-            const colorDict = MvsNamedColorDicts[colors as ColorDictNameT];
-            return { name: 'dictionary', params: Object.entries(colorDict).map(([value, color]) => ({ value, color: { name: 'oneColor', params: { color: color } } })) };
-            // TODO: allow named color dicts with split colors
-        }
-        console.warn(`Could not find named color palette "${colors}"`);
     }
     if (Array.isArray(colors)) {
         return { name: 'list', params: colors.map(c => ({ color: SplitColorProp.fromString(c) })) };
