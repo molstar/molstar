@@ -222,7 +222,7 @@ export const ColorT = new iots.Type<ColorT>(
     (value, ctx) => isColorT(value) ? { _tag: 'Right', right: value as ColorT } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid color name` }] },
     value => value
 );
-export type ColorT = ColorNameT | HexColorT | `${ColorNameT | HexColorT}/${string}`; // This is not ideal, but kinda enough for useful autocomplete and catching typos. Specifying the type more accurately would slow down intellisense (`${ColorNameT | HexColorT}/${ColorNameT | HexColorT}` would cause generating all combinations under the hood).
+export type ColorT = ColorNameT | HexColorT | `${string}/${string}`; // This is not ideal, but kinda enough for useful autocomplete and catching typos. Specifying the type more accurately would slow down intellisense (`${ColorNameT | HexColorT}/${ColorNameT | HexColorT}` would cause generating all combinations under the hood).
 function isColorT(str: any): str is ColorT {
     if (typeof str !== 'string') return false;
     if (str.includes(SplitColor.SPLIT_COLOR_SEP)) {
