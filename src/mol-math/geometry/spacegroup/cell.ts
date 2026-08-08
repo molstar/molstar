@@ -5,6 +5,7 @@
  */
 
 import { Mat4, Vec3 } from '../../linear-algebra';
+import { radToDeg } from '../../misc';
 
 export { Cell };
 
@@ -70,5 +71,21 @@ namespace Cell {
         } else {
             return create(Vec3.create(a, b, c), Vec3.create(alpha, beta, gamma));
         }
+    }
+
+    /** Human readable dimensions and angles, prefixed by `title` */
+    export function getLabel(cell: Cell, title = 'Unit Cell') {
+        const { size, anglesInRadians } = cell;
+        const a = size[0].toFixed(2);
+        const b = size[1].toFixed(2);
+        const c = size[2].toFixed(2);
+        const alpha = radToDeg(anglesInRadians[0]).toFixed(2);
+        const beta = radToDeg(anglesInRadians[1]).toFixed(2);
+        const gamma = radToDeg(anglesInRadians[2]).toFixed(2);
+        return [
+            title,
+            `${a}\u00D7${b}\u00D7${c} \u212B`,
+            `\u03b1=${alpha}\u00B0 \u03b2=${beta}\u00B0 \u03b3=${gamma}\u00B0`
+        ].join(' | ');
     }
 }

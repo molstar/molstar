@@ -42,6 +42,11 @@ namespace SpacegroupCell {
     /** Create a 'P 1' with cellsize [1, 1, 1] */
     export const Zero: SpacegroupCell = create('P 1', Vec3.create(1, 1, 1), Vec3.create(Math.PI / 2, Math.PI / 2, Math.PI / 2));
 
+    /** True if the cell belongs to a known spacegroup */
+    export function is(cell: Cell): cell is SpacegroupCell {
+        return typeof (cell as SpacegroupCell).name === 'string';
+    }
+
     /** True if 'P 1' with cellsize [1, 1, 1] */
     export function isZero(cell?: SpacegroupCell) {
         if (!cell) return true;
@@ -59,6 +64,10 @@ namespace SpacegroupCell {
         const cell = Cell.create(size, anglesInRadians);
 
         return { ...cell, name: entry.names[0] };
+    }
+
+    export function getLabel(cell: SpacegroupCell) {
+        return Cell.getLabel(cell, `Unit Cell <b>${cell.name}</b> #${getSpacegroupNumber(cell.name)}`);
     }
 }
 
