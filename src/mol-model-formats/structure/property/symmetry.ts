@@ -21,7 +21,7 @@ namespace ModelSymmetry {
         name: 'model_symmetry',
     };
 
-    export const Provider = FormatPropertyProvider.create<Symmetry>(Descriptor, { cachePerFormat: true });
+    export const Provider = FormatPropertyProvider.create<Symmetry>(Descriptor, { asDynamic: true, cachePerFormat: true });
 
     type Data = {
         symmetry: Table<mmCIF_Schema['symmetry']>
