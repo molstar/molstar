@@ -25,6 +25,10 @@ export interface Volume {
     readonly grid: Grid
     readonly instances: ReadonlyArray<{
         transform: Mat4
+        /** unique (external) key */
+        key?: number,
+        /** group */
+        group?: number,
     }>
     readonly sourceData: ModelFormat
 
@@ -449,6 +453,15 @@ export namespace Volume {
         },
         get(volume: Volume): Segmentation | undefined {
             return volume._propertyData['__segmentation__'];
+        }
+    };
+
+    export const ParticleList = {
+        set(volume: Volume, particles: import('../particles/particle-list').ParticleList) {
+            volume._propertyData['__particleList__'] = particles;
+        },
+        get(volume: Volume): import('../particles/particle-list').ParticleList | undefined {
+            return volume._propertyData['__particleList__'];
         }
     };
 

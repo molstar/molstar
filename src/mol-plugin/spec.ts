@@ -9,6 +9,7 @@ import { PartialCanvas3DProps } from '../mol-canvas3d/canvas3d';
 import { AnimateAssemblyUnwind } from '../mol-plugin-state/animation/built-in/assembly-unwind';
 import { AnimateCameraSpin } from '../mol-plugin-state/animation/built-in/camera-spin';
 import { AnimateModelIndex } from '../mol-plugin-state/animation/built-in/model-index';
+import { AnimateParticleTrajectory } from '../mol-plugin-state/animation/built-in/particles';
 import { AnimateStateSnapshotTransition, AnimateStateSnapshots } from '../mol-plugin-state/animation/built-in/state-snapshots';
 import { PluginStateAnimation } from '../mol-plugin-state/animation/model';
 import { DataFormatProvider } from '../mol-plugin-state/formats/provider';
@@ -69,6 +70,9 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateActions.DataFormat.DownloadFile),
         PluginSpec.Action(StateActions.DataFormat.OpenFiles),
         PluginSpec.Action(StateActions.Structure.LoadTrajectory),
+        PluginSpec.Action(StateActions.Particles.LoadParticles),
+        PluginSpec.Action(StateActions.Particles.LoadMmcifAsParticles),
+        PluginSpec.Action(StateActions.Particles.LoadSimulariumGeometries),
         PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
         PluginSpec.Action(StateActions.Structure.EnableStructureCustomProps),
 
@@ -87,6 +91,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateTransforms.Model.TrajectoryFromPDB),
         PluginSpec.Action(StateTransforms.Model.TransformStructureConformation),
         PluginSpec.Action(StateTransforms.Model.StructureInstances),
+        PluginSpec.Action(StateTransforms.Model.ParticlesStructure),
         PluginSpec.Action(StateTransforms.Model.StructureFromModel),
         PluginSpec.Action(StateTransforms.Model.StructureFromTrajectory),
         PluginSpec.Action(StateTransforms.Model.ModelFromTrajectory),
@@ -117,6 +122,18 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
         PluginSpec.Action(StateTransforms.Volume.VolumeTransform),
         PluginSpec.Action(StateTransforms.Volume.VolumeInstances),
+        PluginSpec.Action(StateTransforms.Volume.ParticlesVolume),
+
+        PluginSpec.Action(StateTransforms.Particles.ParticleListFromRelionStar),
+        PluginSpec.Action(StateTransforms.Particles.ParticleListFromDynamoTbl),
+        PluginSpec.Action(StateTransforms.Particles.ParticleListFromCryoEtDataPortalNdjson),
+        PluginSpec.Action(StateTransforms.Particles.ParticleListFromArtiatomiEm),
+        PluginSpec.Action(StateTransforms.Particles.ParticleListFromMmcifAssembly),
+        PluginSpec.Action(StateTransforms.Particles.ParticleTrajectoryFromSimularium),
+        PluginSpec.Action(StateTransforms.Particles.ParticleListFromTrajectory),
+        PluginSpec.Action(StateTransforms.Particles.ParticleListWithTargets),
+        PluginSpec.Action(StateTransforms.Particles.ParticlesRepresentation3D),
+        PluginSpec.Action(StateTransforms.Particles.ParticleListUnitcell3D),
     ],
     behaviors: [
         PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),
@@ -140,6 +157,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
     ],
     animations: [
         AnimateModelIndex,
+        AnimateParticleTrajectory,
         AnimateCameraSpin,
         AnimateCameraRock,
         AnimateStateSnapshots,
