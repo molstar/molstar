@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -21,7 +21,7 @@ namespace ModelSymmetry {
         name: 'model_symmetry',
     };
 
-    export const Provider = FormatPropertyProvider.create<Symmetry>(Descriptor);
+    export const Provider = FormatPropertyProvider.create<Symmetry>(Descriptor, { cachePerFormat: true });
 
     type Data = {
         symmetry: Table<mmCIF_Schema['symmetry']>
