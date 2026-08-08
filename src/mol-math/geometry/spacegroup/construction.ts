@@ -6,7 +6,7 @@
  */
 
 import { Vec3, Mat4 } from '../../linear-algebra';
-import { findSpacegroupEntry, operatorsForEntry } from './tables';
+import { findSpacegroupEntry, getSpacegroupNumber, operatorsForEntry, orderForEntry } from './tables';
 import { SymmetryOperator } from '../../geometry/symmetry-operator';
 import { Cell } from './cell';
 
@@ -61,7 +61,7 @@ namespace SpacegroupCell {
             return Zero;
         }
 
-        const cell = Cell.create(size, anglesInRadians);
+        const cell = Cell.create(size, anglesInRadians, orderForEntry(entry));
 
         return { ...cell, name: entry.names[0] };
     }
@@ -97,7 +97,7 @@ namespace Spacegroup {
     export function createWithSetting(cell: SpacegroupCell, name: string, basisop: string, operators: ReadonlyArray<Mat4>): Spacegroup {
         const entry = findSpacegroupEntry(cell.name);
         const num = entry ? (entry.ccp4Number !== 0 ? entry.ccp4Number : entry.itaNumber) : -1;
-        return { name, num, cell, basisop, operators };
+        return { name, num, cell: { ...cell, order: operators.length }, basisop, operators };
     }
 
     const _ijkVec = Vec3();

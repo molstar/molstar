@@ -13,6 +13,8 @@ interface Cell {
     readonly size: Vec3
     readonly anglesInRadians: Vec3
     readonly volume: number,
+    /** Number of symmetry operators of the spacegroup the cell belongs to, 1 for a plain box */
+    readonly order: number,
     /** Transfrom cartesian -> fractional coordinates within the cell */
     readonly toFractional: Mat4,
     /** Transfrom fractional coordinates within the cell -> cartesian */
@@ -24,7 +26,7 @@ function Cell() {
 }
 
 namespace Cell {
-    export function create(size: Vec3, anglesInRadians: Vec3): Cell {
+    export function create(size: Vec3, anglesInRadians: Vec3, order = 1): Cell {
         const alpha = anglesInRadians[0];
         const beta = anglesInRadians[1];
         const gamma = anglesInRadians[2];
@@ -50,7 +52,7 @@ namespace Cell {
         ]);
         const toFractional = Mat4.invert(Mat4.zero(), fromFractional);
 
-        return { size, anglesInRadians, volume, toFractional, fromFractional };
+        return { size, anglesInRadians, volume, order, toFractional, fromFractional };
     }
 
     export function empty(): Cell {

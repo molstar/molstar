@@ -7,7 +7,7 @@
 
 import { Mat4 } from '../../linear-algebra';
 import { coordinateExpressionToOperator, transformOperators } from './common';
-import { hasLongFormChangeOfBasis, operatorsFromHall } from './notation';
+import { centringVectors, hasLongFormChangeOfBasis, operatorsFromHall } from './notation';
 import { RawSpacegroupData } from './syminfo';
 
 /**
@@ -134,6 +134,50 @@ export function getSpacegroupNumber(nameOrNumber: number | string): number {
  */
 export function getHallSymbol(spacegroupNumber: number): string | undefined {
     return SpacegroupEntryByNumber.get(spacegroupNumber)?.hall;
+}
+
+/**
+ * `[first ITA number, point group order]` pairs, ascending - each pair covers
+ * the ITA numbers up to (excluding) the next pair's first number.
+ */
+const PointGroupOrderRanges: readonly (readonly [number, number])[] = [
+    [1, 1], [2, 2], [10, 4], [47, 8], // triclinic, monoclinic, orthorhombic
+    [75, 4], [83, 8], [123, 16], // tetragonal
+    [143, 3], [147, 6], [162, 12], // trigonal
+    [168, 6], [175, 12], [191, 24], // hexagonal
+    [195, 12], [200, 24], [221, 48], // cubic
+];
+
+const PointGroupOrderByItaNumber = (function () {
+    const orders = new Uint8Array(231);
+    for (let i = 0; i < PointGroupOrderRanges.length; i++) {
+        const [start, order] = PointGroupOrderRanges[i];
+        const end = i + 1 < PointGroupOrderRanges.length ? PointGroupOrderRanges[i + 1][0] : orders.length;
+        for (let n = start; n < end; n++) orders[n] = order;
+    }
+    return orders;
+}());
+
+/**
+ * Order of the point group (crystal class) an ITA spacegroup number belongs
+ * to, i.e. the number of distinct rotation parts among its operators.
+ */
+export function pointGroupOrder(itaNumber: number): number {
+    return PointGroupOrderByItaNumber[itaNumber] ?? 0;
+}
+
+/**
+ * Number of symmetry operators of an entry (the multiplicity of the general
+ * position) - its point group order times its lattice centering count. Both
+ * are table lookups, so unlike `operatorsForEntry(entry).length` this builds
+ * no matrices.
+ */
+export function orderForEntry(entry: SpacegroupEntry): number {
+    // the Hall symbol's lattice letter, unlike the Hermann-Mauguin name's, is
+    // 'P' for a rhombohedral-axes description of an R spacegroup
+    const hall = entry.hall.trim();
+    const latticeLetter = hall[0] === '-' ? hall.slice(1).trim()[0] : hall[0];
+    return pointGroupOrder(entry.itaNumber) * centringVectors(latticeLetter).length;
 }
 
 const OperatorsByEntryCache = new Map<SpacegroupEntry, ReadonlyArray<Mat4>>();
