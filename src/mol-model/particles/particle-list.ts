@@ -30,6 +30,18 @@ export interface ParticleAttribute {
     readonly max: number
 }
 
+export interface ParticleCompartmentInfo {
+    /** Compartment name/path (e.g. `"root.mge.surface.proteins"`). */
+    readonly name: string
+}
+
+export interface ParticleEntityInfo {
+    /** Entity name (e.g. `"MG_191_192_NAP"`). */
+    readonly name: string
+    /** Optional functional annotation of the entity (e.g. `"Lipid"`). */
+    readonly function?: string
+}
+
 export interface ParticleList {
     readonly entryId?: string
     readonly label?: string
@@ -62,9 +74,9 @@ export interface ParticleList {
 
     /**
      * Optional mapping from each unique compartment index in `compartments` to the
-     * compartment name/path string (e.g. `"root.mge.surface.proteins"`).
+     * compartment info.
      */
-    readonly compartmentInfo?: ReadonlyMap<number, string>
+    readonly compartmentInfo?: ReadonlyMap<number, ParticleCompartmentInfo>
 
     /**
      * Optional per-particle entity index (length = `count`). Each value identifies
@@ -74,10 +86,9 @@ export interface ParticleList {
     readonly entities?: Int32Array
 
     /**
-     * Optional mapping from each unique entity index in `entities` to the entity
-     * name string (e.g. `"MG_191_192_NAP"`).
+     * Optional mapping from each unique entity index in `entities` to the entity info.
      */
-    readonly entityInfo?: ReadonlyMap<number, string>
+    readonly entityInfo?: ReadonlyMap<number, ParticleEntityInfo>
 
     /** Particle positions in angstrom, packed as `[x0, y0, z0, x1, y1, z1, ...]`. */
     readonly coordinates: Float32Array

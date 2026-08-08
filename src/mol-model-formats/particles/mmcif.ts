@@ -5,7 +5,7 @@
  */
 
 import { Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
-import { ParticleList } from '../../mol-model/particles/particle-list';
+import { ParticleCompartmentInfo, ParticleEntityInfo, ParticleList } from '../../mol-model/particles/particle-list';
 import { CustomProperties } from '../../mol-model/custom-property';
 import { CifBlock, CifFile } from '../../mol-io/reader/cif/data-model';
 import { toDatabase } from '../../mol-io/reader/cif/schema';
@@ -176,8 +176,10 @@ function buildCellpackStandardParticleList(
     //   compartment = all segments except the last  (e.g. "root.mge.surface.proteins")
     //   entity name = last segment                  (e.g. "MG_191_192_NAP")
     // In the 'standard' variant, the full description is used as the entity name with no compartment.
+    // _entity.details holds the functional annotation of the entity, if any.
     const entityToCompartment = new Map<string, string>();
     const entityToName = new Map<string, string>();
+    const entityToFunction = new Map<string, string>();
     for (let i = 0, il = db.entity._rowCount; i < il; i++) {
         const entityId = db.entity.id.value(i);
         const desc = db.entity.pdbx_description.value(i).join(',');
@@ -192,12 +194,15 @@ function buildCellpackStandardParticleList(
         } else {
             if (desc) entityToName.set(entityId, desc);
         }
+        const details = db.entity.details.value(i);
+        if (details) entityToFunction.set(entityId, details);
     }
 
     // Build unique compartment name → index map (populated lazily below).
     const compartmentNameToIdx = new Map<string, number>();
     // Build unique entity name → index map (populated lazily below).
     const entityNameToIdx = new Map<string, number>();
+    const entityNameToFunction = new Map<string, string>();
 
     const keys = new Int32Array(totalCount);
     const targets = new Int32Array(totalCount);
@@ -315,6 +320,8 @@ function buildCellpackStandardParticleList(
                 if (entityName !== undefined) {
                     if (!entityNameToIdx.has(entityName)) {
                         entityNameToIdx.set(entityName, entityNameToIdx.size);
+                        const fn = entityId !== undefined ? entityToFunction.get(entityId) : undefined;
+                        if (fn !== undefined) entityNameToFunction.set(entityName, fn);
                     }
                     entities[count] = entityNameToIdx.get(entityName)!;
                 }
@@ -326,16 +333,16 @@ function buildCellpackStandardParticleList(
         }
     }
 
-    // Build compartmentInfo: compartment index → compartment name.
-    const compartmentInfo = new Map<number, string>();
+    // Build compartmentInfo: compartment index → compartment info.
+    const compartmentInfo = new Map<number, ParticleCompartmentInfo>();
     for (const [name, idx] of compartmentNameToIdx) {
-        compartmentInfo.set(idx, name);
+        compartmentInfo.set(idx, { name });
     }
 
-    // Build entityInfo: entity index → entity name.
-    const entityInfo = new Map<number, string>();
+    // Build entityInfo: entity index → entity info.
+    const entityInfo = new Map<number, ParticleEntityInfo>();
     for (const [name, idx] of entityNameToIdx) {
-        entityInfo.set(idx, name);
+        entityInfo.set(idx, { name, function: entityNameToFunction.get(name) });
     }
 
     const assemblyId = options.assemblyId;
@@ -353,7 +360,7 @@ function buildCellpackStandardParticleList(
         rotations,
         radii,
         getParticleLabel: (index: number) => {
-            const entity = entityInfo.get(entities[index]);
+            const entity = entityInfo.get(entities[index])?.name;
             const chain = labelChainId[index];
             const opCombo = labelOpCombo[index];
             return `#${index + 1} | ${entity} | chain ${chain} | ops ${opCombo}`;
@@ -519,9 +526,9 @@ function buildPetworldParticleList(
     }
 
     // Build entityInfo: entity index → model name.
-    const entityInfo = new Map<number, string>();
+    const entityInfo = new Map<number, ParticleEntityInfo>();
     for (const [name, idx] of entityNameToIdx) {
-        entityInfo.set(idx, name);
+        entityInfo.set(idx, { name });
     }
 
     const assemblyId = options.assemblyId;
@@ -537,7 +544,7 @@ function buildPetworldParticleList(
         rotations,
         radii,
         getParticleLabel: (index: number) => {
-            const entity = entityInfo.get(entities[index])!;
+            const entity = entityInfo.get(entities[index])!.name;
             const opCombo = labelOpCombo[index];
             return `#${index + 1} | ${entity} | ops ${opCombo}`;
         },
