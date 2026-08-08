@@ -24,20 +24,21 @@ function Cell() {
 
 namespace Cell {
     export function create(size: Vec3, anglesInRadians: Vec3): Cell {
-        const volume = size[0] * size[1] * size[2];
-
         const alpha = anglesInRadians[0];
         const beta = anglesInRadians[1];
         const gamma = anglesInRadians[2];
 
+        const ca = Math.cos(alpha), cb = Math.cos(beta), cg = Math.cos(gamma);
+        const volume = size[0] * size[1] * size[2] * Math.sqrt(1.0 - ca * ca - cb * cb - cg * cg + 2.0 * ca * cb * cg);
+
         const xScale = size[0], yScale = size[1], zScale = size[2];
 
-        const z1 = Math.cos(beta);
-        const z2 = (Math.cos(alpha) - Math.cos(beta) * Math.cos(gamma)) / Math.sin(gamma);
+        const z1 = cb;
+        const z2 = (ca - cb * cg) / Math.sin(gamma);
         const z3 = Math.sqrt(1.0 - z1 * z1 - z2 * z2);
 
         const x = [xScale, 0.0, 0.0];
-        const y = [Math.cos(gamma) * yScale, Math.sin(gamma) * yScale, 0.0];
+        const y = [cg * yScale, Math.sin(gamma) * yScale, 0.0];
         const z = [z1 * zScale, z2 * zScale, z3 * zScale];
 
         const fromFractional = Mat4.ofRows([
