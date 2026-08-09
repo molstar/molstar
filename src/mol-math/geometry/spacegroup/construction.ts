@@ -1,32 +1,40 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Vec3, Mat4 } from '../../linear-algebra';
-import { SpacegroupName, TransformData, GroupData, getSpacegroupIndex, OperatorData, SpacegroupNumber } from './tables';
+import { findSpacegroupEntry, operatorsForEntry } from './tables';
 import { SymmetryOperator } from '../../geometry/symmetry-operator';
+import { Cell } from './cell';
 
-interface SpacegroupCell {
-    /** Index into spacegroup data table */
-    readonly index: number,
-    readonly size: Vec3,
-    readonly volume: number,
-    readonly anglesInRadians: Vec3,
-    /** Transfrom cartesian -> fractional coordinates within the cell */
-    readonly toFractional: Mat4,
-    /** Transfrom fractional coordinates within the cell -> cartesian */
-    readonly fromFractional: Mat4
+interface SpacegroupCell extends Cell {
+    /** Hermann-Mauguin spacegroup name (uniquely identifies the spacegroup) */
+    readonly name: string
 }
 
 interface Spacegroup {
     /** Hermann-Mauguin spacegroup name */
     readonly name: string,
-    /** Spacegroup number from International Tables for Crystallography */
+    /**
+     * Spacegroup number - the CCP4-style number (e.g. 1146) when the
+     * resolved setting has one, else its plain ITA number as a fallback
+     * (not unique across the several non-CCP4-numbered settings that can
+     * share one ITA number - see `SpacegroupEntry` in `./tables`).
+     */
     readonly num: number,
     readonly cell: SpacegroupCell,
+    /**
+     * ITA change-of-basis coordinate expression relative to the canonical
+     * (identity `'x,y,z'`) description, in the same xyz-style `basisop`
+     * notation as `SpacegroupEntry.basisop` (e.g. `'x,y,z'`, `'z,x,y'`,
+     * `'x-1/4,y-1/4,z-1/4'`, `'y,x,-z'`, `'x+y,-x+y,z'` - see
+     * `./common`/`./notation`). Used by `createWithSetting` callers such as
+     * MOL2 CRYSIN as well as by `Spacegroup.create`.
+     */
+    readonly basisop: string,
     readonly operators: ReadonlyArray<Mat4>
 }
 
@@ -37,42 +45,20 @@ namespace SpacegroupCell {
     /** True if 'P 1' with cellsize [1, 1, 1] */
     export function isZero(cell?: SpacegroupCell) {
         if (!cell) return true;
-        return cell.index === 0 && cell.size[0] === 1 && cell.size[1] === 1 && cell.size[1] === 1;
+        return cell.name === 'P 1' && cell.size[0] === 1 && cell.size[1] === 1 && cell.size[2] === 1;
     }
 
     /** Returns Zero cell if the spacegroup does not exist */
-    export function create(nameOrNumber: number | string | SpacegroupName, size: Vec3, anglesInRadians: Vec3): SpacegroupCell {
-        const index = getSpacegroupIndex(nameOrNumber);
-        if (index < 0) {
+    export function create(nameOrNumber: number | string, size: Vec3, anglesInRadians: Vec3): SpacegroupCell {
+        const entry = findSpacegroupEntry(nameOrNumber);
+        if (!entry) {
             console.warn(`Unknown spacegroup '${nameOrNumber}', returning a 'P 1' with cellsize [1, 1, 1]`);
             return Zero;
         }
 
-        const volume = size[0] * size[1] * size[2];
+        const cell = Cell.create(size, anglesInRadians);
 
-        const alpha = anglesInRadians[0];
-        const beta = anglesInRadians[1];
-        const gamma = anglesInRadians[2];
-
-        const xScale = size[0], yScale = size[1], zScale = size[2];
-
-        const z1 = Math.cos(beta);
-        const z2 = (Math.cos(alpha) - Math.cos(beta) * Math.cos(gamma)) / Math.sin(gamma);
-        const z3 = Math.sqrt(1.0 - z1 * z1 - z2 * z2);
-
-        const x = [xScale, 0.0, 0.0];
-        const y = [Math.cos(gamma) * yScale, Math.sin(gamma) * yScale, 0.0];
-        const z = [z1 * zScale, z2 * zScale, z3 * zScale];
-
-        const fromFractional = Mat4.ofRows([
-            [x[0], y[0], z[0], 0],
-            [0, y[1], z[1], 0],
-            [0, 0, z[2], 0],
-            [0, 0, 0, 1.0]
-        ]);
-        const toFractional = Mat4.invert(Mat4.zero(), fromFractional)!;
-
-        return { index, size, volume, anglesInRadians, toFractional, fromFractional };
+        return { ...cell, name: entry.names[0] };
     }
 }
 
@@ -81,10 +67,28 @@ namespace Spacegroup {
     export const ZeroP1 = create(SpacegroupCell.Zero);
 
     export function create(cell: SpacegroupCell): Spacegroup {
-        const operators = GroupData[cell.index].map(i => getOperatorMatrix(OperatorData[i]));
-        const name = SpacegroupName[cell.index];
-        const num = SpacegroupNumber[cell.index];
-        return { name, num, cell, operators };
+        const entry = findSpacegroupEntry(cell.name);
+        if (!entry) throw new Error(`missing spacegroup entry for '${cell.name}'`);
+        const num = entry.ccp4Number !== 0 ? entry.ccp4Number : entry.itaNumber;
+        const operators = operatorsForEntry(entry);
+        return { name: cell.name, num, cell, basisop: entry.basisop, operators };
+    }
+
+    /**
+     * Assembles a `Spacegroup` from an already-computed operator list for a
+     * non-default axis setting/description, given its xyz-style `basisop`
+     * change-of-basis coordinate expression (e.g. `'y,x,-z'` or
+     * `'x+y,-x+y,z'` - see the `Spacegroup.basisop` field). `num` is derived
+     * from `cell.name` exactly as in `create`. This is intentionally
+     * agnostic of any particular file format's own setting-numbering scheme
+     * - callers that need to resolve such a scheme (e.g. MOL2 CRYSIN) into
+     * `name` + `basisop` + `operators` should do so themselves and pass the
+     * result here.
+     */
+    export function createWithSetting(cell: SpacegroupCell, name: string, basisop: string, operators: ReadonlyArray<Mat4>): Spacegroup {
+        const entry = findSpacegroupEntry(cell.name);
+        const num = entry ? (entry.ccp4Number !== 0 ? entry.ccp4Number : entry.itaNumber) : -1;
+        return { name, num, cell, basisop, operators };
     }
 
     const _ijkVec = Vec3();
@@ -146,13 +150,6 @@ namespace Spacegroup {
 
         // const operator = setOperatorMatrixRef(spacegroup, spgrOp, i, j, k, ref, Mat4.zero());
         return SymmetryOperator.create(SymmetryOperator.getSymmetryOperatorName(spgrOp, _i, _j, _k), operator, { hkl: Vec3.create(_i, _j, _k), spgrOp });
-    }
-
-    function getOperatorMatrix(ids: number[]) {
-        const r1 = TransformData[ids[0]];
-        const r2 = TransformData[ids[1]];
-        const r3 = TransformData[ids[2]];
-        return Mat4.ofRows([r1, r2, r3, [0, 0, 0, 1]]);
     }
 
     export function getOperatorXyz(op: Mat4) {

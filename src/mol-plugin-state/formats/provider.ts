@@ -5,8 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { EncodedFile } from '../../mol-io/common/binary-cif';
-import { decodeMsgPack } from '../../mol-io/common/msgpack/decode';
+import { binaryCifHasCategory, binaryCifHasColumn, getBinaryCifHeader } from '../../mol-io/common/binary-cif';
 import { StringLike } from '../../mol-io/common/string-like';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectRef } from '../../mol-state';
@@ -20,6 +19,14 @@ export interface DataFormatProvider<P = any, R = any, V = any> {
     category?: string,
     stringExtensions?: string[],
     binaryExtensions?: string[],
+    /**
+     * Controls the order in which `DataFormatRegistry.auto` tries providers that share the
+     * same extension, independent of registration order. Higher values are tried first.
+     * Defaults to 0. Use a positive value for providers with a restrictive `isApplicable`
+     * that should take precedence over more generic fallback providers (e.g. a specialized
+     * variant of a shared file extension).
+     */
+    priority?: number,
     isApplicable?(info: FileNameInfo, data: StringLike | Uint8Array): boolean,
     parse(plugin: PluginContext, data: StateObjectRef<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, params?: P): Promise<R>,
     visuals?(plugin: PluginContext, data: R): Promise<V> | undefined
@@ -31,19 +38,17 @@ type CifVariants = 'dscif' | 'segcif' | 'sfcif' | 'coreCif' | -1
 export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLike): CifVariants {
     if (info.ext === 'bcif') {
         try {
-            // TODO: find a way to run msgpackDecode only once
-            //       now it is run twice, here and during file parsing
-            const file = decodeMsgPack(data as Uint8Array) as EncodedFile;
-            if (file.encoder.startsWith('VolumeServer')) return 'dscif';
+            const header = getBinaryCifHeader(data as Uint8Array);
+            if (header.encoder.startsWith('VolumeServer')) return 'dscif';
             // Assumes volseg-volume-server only serves segments
-            if (file.encoder.startsWith('volseg-volume-server')) return 'segcif';
+            if (header.encoder.startsWith('volseg-volume-server')) return 'segcif';
 
-            if (bcifHasCategory(file, '_volume_data_3d_info')) {
-                if (bcifHasCategory(file, '_volume_data_3d')) return 'dscif';
-                if (bcifHasCategory(file, '_segmentation_data_3d')) return 'segcif';
+            if (binaryCifHasCategory(header, '_volume_data_3d_info')) {
+                if (binaryCifHasCategory(header, '_volume_data_3d')) return 'dscif';
+                if (binaryCifHasCategory(header, '_segmentation_data_3d')) return 'segcif';
             }
-            if (bcifHasCategory(file, '_refln')) {
-                if (bcifHasColumn(file, '_refln', 'pdbx_FWT') || bcifHasColumn(file, '_refln', 'pdbx_DELFWT')) {
+            if (binaryCifHasCategory(header, '_refln')) {
+                if (binaryCifHasColumn(header, '_refln', 'pdbx_FWT') || binaryCifHasColumn(header, '_refln', 'pdbx_DELFWT')) {
                     return 'sfcif';
                 }
             }
@@ -70,26 +75,4 @@ export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLik
 
 function cifHasCategory(file: StringLike, categoryName: string): boolean {
     return file.includes(`_${categoryName}.`);
-}
-
-function bcifHasCategory(file: EncodedFile, categoryName: string): boolean {
-    for (const block of file.dataBlocks) {
-        for (const category of block.categories) {
-            if (category.name === categoryName) return true;
-        }
-    }
-    return false;
-}
-
-function bcifHasColumn(file: EncodedFile, categoryName: string, columnName: string): boolean {
-    for (const block of file.dataBlocks) {
-        for (const category of block.categories) {
-            if (category.name === categoryName) {
-                for (const field of category.columns) {
-                    if (field.name === columnName) return true;
-                }
-            }
-        }
-    }
-    return false;
 }
