@@ -24,8 +24,8 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { CombinedColorControl } from '../controls/color';
-import { Button, ControlGroup, ExpandGroup, IconButton } from '../controls/common';
-import { AddSvg, BlurOnSvg, CheckSvg, CloseSvg, DeleteOutlinedSvg, ErrorSvg, MoreHorizSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg } from '../controls/icons';
+import { Button, ControlGroup, ExpandGroup, IconButton, ToggleButton } from '../controls/common';
+import { AddSvg, BlurOnSvg, BookmarksOutlinedSvg, CheckSvg, CloseSvg, DeleteOutlinedSvg, ErrorSvg, MoreHorizSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg } from '../controls/icons';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { ApplyActionControl } from '../state/apply-action';
 import { UpdateTransformControl } from '../state/update-transform';
@@ -112,10 +112,12 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
     }
 }
 
+const SlicePresetTag = 'preset-volume-xyz-slices';
+
 interface VolumeSourceControlState extends CollapsableState {
     isBusy: boolean,
     loadingLabel?: string,
-    show?: 'hierarchy' | 'add-repr'
+    show?: 'hierarchy' | 'add-repr' | 'preset'
 }
 
 export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceControlState> {
@@ -244,8 +246,64 @@ export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceCo
         (item.value as any)();
     };
 
+    get presetActions(): ActionMenu.Items {
+        return [
+            ActionMenu.Item('XYZ Center Slices', () => this.applySliceXYZPreset(), {
+                description: 'Add X, Y, Z slices at the center of the volume with auto window/level (mean±3σ).'
+            })
+        ];
+    }
+
+    applyPreset: ActionMenu.OnSelect = item => {
+        this.setState({ show: void 0 });
+        if (!item) return;
+        (item.value as () => void)();
+    };
+
+    private async applySliceXYZPreset() {
+        const mng = this.plugin.managers.volume.hierarchy;
+        const selected = mng.selection;
+        if (!selected?.cell.obj?.data) return;
+
+        // Idempotent: do nothing if preset representations already exist
+        const existing = this.plugin.state.data.selectQ(q =>
+            q.byRef(selected.cell.transform.ref).subtree().withTag(SlicePresetTag)
+        );
+        if (existing.length > 0) return;
+
+        const volume = selected.cell.obj.data;
+        const { min, max, mean, sigma } = volume.grid.stats;
+        // IMOD-style auto levels: black = mean − 3σ, white = mean + 3σ, mapped to [0, 255]
+        const range = Math.max(max - min, 1e-10);
+        const blackLevel = Math.round(Math.max(0, Math.min(255, ((mean - 3 * sigma - min) / range) * 255)));
+        const whiteLevel = Math.round(Math.max(0, Math.min(255, ((mean + 3 * sigma - min) / range) * 255)));
+        const levels: [number, number] = [blackLevel, whiteLevel];
+
+        const slices = [
+            { name: 'relativeX' as const, params: 0.5 },
+            { name: 'relativeY' as const, params: 0.5 },
+            { name: 'relativeZ' as const, params: 0.5 },
+        ];
+
+        const builder = this.plugin.state.data.build();
+        for (const dimension of slices) {
+            builder
+                .to(selected.cell)
+                .apply(StateTransforms.Representation.VolumeRepresentation3D,
+                    createVolumeRepresentationParams(this.plugin, volume, {
+                        type: 'slice',
+                        typeParams: { dimension },
+                        color: 'volume-windowing' as any,
+                        colorParams: { levels },
+                    }),
+                    { tags: SlicePresetTag });
+        }
+        await builder.commit({ canUndo: 'Add Slice Preset' });
+    }
+
     toggleHierarchy = () => this.setState({ show: this.state.show !== 'hierarchy' ? 'hierarchy' : void 0 });
     toggleAddRepr = () => this.setState({ show: this.state.show !== 'add-repr' ? 'add-repr' : void 0 });
+    togglePreset = () => this.setState({ show: this.state.show !== 'preset' ? 'preset' : void 0 });
     toggleVisibility = () => {
         const mng = this.plugin.managers.volume.hierarchy;
         const { current } = mng;
@@ -263,10 +321,12 @@ export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceCo
         return <>
             <div className='msp-flex-row' style={{ marginTop: '1px' }}>
                 <Button noOverflow flex onClick={this.toggleHierarchy} disabled={disabled} title={label}>{label}</Button>
-                {!this.isEmpty && selected && <IconButton svg={AddSvg} onClick={this.toggleAddRepr} title='Apply a structure presets to the current hierarchy.' toggleState={this.state.show === 'add-repr'} disabled={disabled} />}
+                {!this.isEmpty && selected && <ToggleButton icon={BookmarksOutlinedSvg} title='Apply a volume preset.' toggle={this.togglePreset} isSelected={this.state.show === 'preset'} disabled={disabled} />}
+                {!this.isEmpty && selected && <IconButton svg={AddSvg} onClick={this.toggleAddRepr} title='Add a representation.' toggleState={this.state.show === 'add-repr'} disabled={disabled} />}
                 {!this.isEmpty && <IconButton svg={VisibilityOutlinedSvg} onClick={this.toggleVisibility} toggleState={false} title='Toggle visibility of all volumes.' disabled={disabled} />}
             </div>
             {this.state.show === 'hierarchy' && <ActionMenu items={this.hierarchyItems} onSelect={this.selectCurrent} />}
+            {this.state.show === 'preset' && <ActionMenu items={this.presetActions} onSelect={this.applyPreset} />}
             {this.state.show === 'add-repr' && <ActionMenu items={this.addActions} onSelect={this.selectAdd} />}
 
             {current.volumes.length > 0 && <div style={{ marginTop: '6px' }}>
