@@ -192,16 +192,23 @@ function molstarTreeToEntry(
     snapshot.canvas3d = {
         props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas, animation) : undefined,
     };
+    const snapshotDurationMs = metadata.duration_ms ?? metadata.linger_duration_ms ?? SnapshotMetadata.Defaults.duration_ms;
+    const transitionParams = context.transition?.params;
+    const transitionDurationMs = transitionParams?.duration_ms ?? metadata.previousTransitionDurationMs ?? 0;
     if (options?.keepCamera) {
         // do nothing
     } else if (options.keepCameraOrientation) {
         // load camera target, keep orientation
-        snapshot.camera = createPluginStateSnapshotCamera(plugin, context, { previousTransitionDurationMs: metadata.previousTransitionDurationMs, ignoreCameraOrientation: true });
+        snapshot.camera = createPluginStateSnapshotCamera(plugin, context, { incomingTransitionDurationMs: transitionDurationMs, ignoreCameraOrientation: true });
     } else {
         // fully load camera
-        snapshot.camera = createPluginStateSnapshotCamera(plugin, context, { previousTransitionDurationMs: metadata.previousTransitionDurationMs });
+        snapshot.camera = createPluginStateSnapshotCamera(plugin, context, { incomingTransitionDurationMs: transitionDurationMs });
     }
-    snapshot.durationInMs = metadata.linger_duration_ms + (metadata.previousTransitionDurationMs ?? 0);
+    if (snapshot.camera) {
+        if (transitionParams?.easing) snapshot.camera.transitionEasing = transitionParams.easing;
+        if (transitionParams?.trajectory) snapshot.camera.transitionTrajectory = transitionParams.trajectory;
+    }
+    snapshot.durationInMs = snapshotDurationMs + transitionDurationMs;
     snapshot.structureFocus = {}; // avoid structure focus persisting through states (causes weird behaviors, e.g. when turning on Volume Streaming)
 
     if (tree.custom?.molstar_on_load_markdown_commands) {
@@ -229,6 +236,7 @@ export interface MolstarLoadingContext {
         focuses: { target: StateObjectSelector, params: MolstarNodeParams<'focus'> }[],
     },
     canvas?: MolstarNode<'canvas'>,
+    transition?: MolstarNode<'transition'>,
 }
 export const MolstarLoadingContext = {
     create(): MolstarLoadingContext {
@@ -478,6 +486,10 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     },
     canvas(updateParent: UpdateTarget, node: MolstarNode<'canvas'>, context: MolstarLoadingContext): UpdateTarget {
         context.canvas = node;
+        return updateParent;
+    },
+    transition(updateParent: UpdateTarget, node: MolstarNode<'transition'>, context: MolstarLoadingContext): UpdateTarget {
+        context.transition = node;
         return updateParent;
     },
     primitives(updateParent: UpdateTarget, tree: MolstarSubtree<'primitives'>, context: MolstarLoadingContext): UpdateTarget {
