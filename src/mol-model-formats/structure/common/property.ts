@@ -46,23 +46,16 @@ interface FormatPropertyProvider<T> {
 }
 
 namespace FormatPropertyProvider {
-    /** Values obtained from the format registry, keyed by source data and property name */
-    const FormatCache = new WeakMap<ModelFormat, { [name: string]: any }>();
-
     export function create<T>(descriptor: CustomPropertyDescriptor, options?: { asDynamic?: boolean, cachePerFormat?: boolean }): FormatPropertyProvider<T> {
         const { name } = descriptor;
         const formatRegistry = new FormatRegistry<T>();
+        const formatCache = new WeakMap<ModelFormat, T | undefined>();
 
         function obtainValue(model: Model, obtain: (model: Model) => T | undefined) {
             if (!options?.cachePerFormat) return obtain(model);
 
-            let cache = FormatCache.get(model.sourceData);
-            if (!cache) {
-                cache = Object.create(null) as { [name: string]: any };
-                FormatCache.set(model.sourceData, cache);
-            }
-            if (!(name in cache)) cache[name] = obtain(model);
-            return cache[name] as T | undefined;
+            if (!formatCache.has(model.sourceData)) formatCache.set(model.sourceData, obtain(model));
+            return formatCache.get(model.sourceData);
         }
 
         return {
