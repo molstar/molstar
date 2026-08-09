@@ -42,7 +42,7 @@ namespace SpacegroupCell {
     /** Create a 'P 1' with cellsize [1, 1, 1] */
     export const Zero: SpacegroupCell = create('P 1', Vec3.create(1, 1, 1), Vec3.create(Math.PI / 2, Math.PI / 2, Math.PI / 2));
 
-    /** True if the cell belongs to a known spacegroup */
+    /** True if the cell is a `SpacegroupCell` */
     export function is(cell: Cell): cell is SpacegroupCell {
         return typeof (cell as SpacegroupCell).name === 'string';
     }
