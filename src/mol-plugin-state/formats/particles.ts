@@ -154,7 +154,11 @@ export const MmcifParticlesProvider = DataFormatProvider({
         const builder = plugin.state.data.build();
 
         builder.to(data.list)
-            .apply(StateTransforms.Particles.ParticlesRepresentation3D, { type: { name: 'spacefill', params: {} }, sizeTheme: { name: 'particle-size', params: { scale: 0.5 } } });
+            .apply(StateTransforms.Particles.ParticlesRepresentation3D, {
+                type: { name: 'spacefill', params: {} },
+                colorTheme: { name: 'particle-entity', params: {} },
+                sizeTheme: { name: 'particle-size', params: { scale: 0.5 } }
+            });
 
         return builder.commit();
     },
