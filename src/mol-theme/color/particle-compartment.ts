@@ -51,7 +51,7 @@ export function getParticleCompartmentColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(ParticleCompartmentColorThemeParams);
     const particles = getParticleList(ctx);
     if (particles) {
-        const { compartmentCount } = buildCompartmentColorIndex(particles);
+        const compartmentCount = particles.compartmentInfo?.size ?? 0;
         if (compartmentCount > ColorLists[DefaultList].list.length) {
             params.palette.defaultValue.name = 'colors';
             params.palette.defaultValue.params = {
@@ -105,5 +105,5 @@ export const ParticleCompartmentColorThemeProvider: ColorTheme.Provider<Particle
     factory: ParticleCompartmentColorTheme,
     getParams: getParticleCompartmentColorThemeParams,
     defaultValues: PD.getDefaultValues(ParticleCompartmentColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!getParticleList(ctx)
+    isApplicable: (ctx: ThemeDataContext) => !!getParticleList(ctx) && ctx.particles?.compartments !== undefined
 };

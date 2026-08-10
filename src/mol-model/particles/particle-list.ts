@@ -390,8 +390,7 @@ export namespace Particle {
                     boundaryHelper.radiusPosition(_tmpPos);
                 }
             }
-            const sphere = boundaryHelper.getSphere();
-            particles._propertyData[BoundaryDescriptor.name] = { box: boundaryHelper.getBox(), sphere };
+            setBoundary(particles, { box: boundaryHelper.getBox(), sphere: boundaryHelper.getSphere() });
         };
         return particles._propertyData[BoundaryDescriptor.name];
     }

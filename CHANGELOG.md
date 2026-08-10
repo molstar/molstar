@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file, following t
 
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
+## TODO: Particles
+
 ## [Unreleased]
 - Added support for molecular atom_style in lammps data files
 - Added element symbol detection in lammps data file
@@ -18,6 +20,15 @@ Note that since we don't clearly distinguish between a public and private interf
     - Generate operators from Hall symbols
     - Introduce change-of-basis settings
     - Move base functionality from `SpacegroupCell` to `Cell`
+- Improve `Cell` handling
+    - Fix volume calculation for non-orthogonal cells
+    - Use as base for `Unitcell` shape
+    - Add `order` property (for AU volume estimation)
+- Add per-format cache for `FormatProperty`
+    - Use for `ModelSymmetry` and `ComponentBond`
+- `ModelSymmetry` improvements
+    - Fix property not being dynamic
+    - Defer Symmetry calculation in ModelSymmetry.fromData
 - Support non-default CRYSIN setting in MOL2 format (#338)
 - Fix `ssao-blur` background test: the RG-packed depth never equals `1.0`, so background samples were blurred into geometry and produced a bright rim at the far-clip cutoff
 - Fix picking/hover-highlight of the nucleic cartoon polymer-trace on reduced trace structures returning empty: `getResidueLoci` now accounts for whole residue, not limited to unit.
@@ -26,6 +37,16 @@ Note that since we don't clearly distinguish between a public and private interf
     - Bin atoms to grid or cluster
     - Fast option fits ellipsoids to bins
     - Artistic option fits spherical harmonics to bins
+- Fix camera reset handling for (temporary) empty scenes (#1903)
+
+- Camera improvements
+  - Support multiple camera transition shapes
+  - Add `transitionTrajectory` and `transitionEasing` parameters to `PluginState.Snapshot` (MOLJ) and Plugin State > Save Options
+  - Add `trajectory` and `easing` parameters to `FocusLoci` behavior
+  - Add `cameraResetTrajectory` and `cameraResetEasing` parameters to `Canvas3DParams`
+- MolViewSpec
+  - Added `transition` node with params `duration_ms`, `trajectory`, `easing`
+  - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)

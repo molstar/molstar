@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -8,7 +8,7 @@
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { Spacegroup, SpacegroupCell, SymmetryOperator } from '../../../mol-math/geometry';
 import { Tensor, Vec3, Mat3 } from '../../../mol-math/linear-algebra';
-import { Symmetry } from '../../../mol-model/structure/model/properties/symmetry';
+import { Symmetry, Assembly } from '../../../mol-model/structure/model/properties/symmetry';
 import { createAssemblies } from './assembly';
 import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 import { FormatPropertyProvider } from '../common/property';
@@ -21,7 +21,7 @@ namespace ModelSymmetry {
         name: 'model_symmetry',
     };
 
-    export const Provider = FormatPropertyProvider.create<Symmetry>(Descriptor);
+    export const Provider = FormatPropertyProvider.create<Symmetry>(Descriptor, { asDynamic: true, cachePerFormat: true });
 
     type Data = {
         symmetry: Table<mmCIF_Schema['symmetry']>
@@ -34,10 +34,35 @@ namespace ModelSymmetry {
     }
 
     export function fromData(data: Data): Symmetry {
-        const assemblies = createAssemblies(data.pdbx_struct_assembly, data.pdbx_struct_assembly_gen, data.pdbx_struct_oper_list);
-        const spacegroup = getSpacegroup(data.symmetry, data.cell);
-        const isNonStandardCrystalFrame = checkNonStandardCrystalFrame(data.atom_sites, spacegroup);
-        return { assemblies, spacegroup, isNonStandardCrystalFrame, ncsOperators: getNcsOperators(data.struct_ncs_oper) };
+        let assemblies: ReadonlyArray<Assembly> | undefined;
+        let spacegroup: Spacegroup | undefined;
+        let ncsOperators: ReadonlyArray<SymmetryOperator> | undefined;
+        let hasNcsOperators = false;
+
+        const _getSpacegroup = () => {
+            if (!spacegroup) spacegroup = getSpacegroup(data.symmetry, data.cell);
+            return spacegroup;
+        };
+
+        return {
+            get assemblies() {
+                if (!assemblies) assemblies = createAssemblies(data.pdbx_struct_assembly, data.pdbx_struct_assembly_gen, data.pdbx_struct_oper_list);
+                return assemblies;
+            },
+            get spacegroup() {
+                return _getSpacegroup();
+            },
+            get isNonStandardCrystalFrame() {
+                return checkNonStandardCrystalFrame(data.atom_sites, _getSpacegroup());
+            },
+            get ncsOperators() {
+                if (!hasNcsOperators) {
+                    ncsOperators = getNcsOperators(data.struct_ncs_oper);
+                    hasNcsOperators = true;
+                }
+                return ncsOperators;
+            },
+        };
     }
 
     export function fromCell(size: Vec3, anglesInRadians: Vec3): Symmetry {

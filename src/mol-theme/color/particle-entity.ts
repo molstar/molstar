@@ -31,6 +31,33 @@ function getParticleList(ctx: ThemeDataContext): ParticleList | undefined {
     return undefined;
 }
 
+function getEntityCount(particles: ParticleList, by: Props['by']): number {
+    const { entities, entityInfo } = particles;
+    if (!entities) return 0;
+
+    if (by === 'function') {
+        const functions = new Set<string>();
+        entityInfo?.forEach((info, entityIdx) => {
+            if (entityIdx >= 0 && info.function !== undefined) functions.add(info.function);
+        });
+        return functions.size;
+    }
+
+    if (entityInfo) {
+        let count = 0;
+        entityInfo.forEach((_, entityIdx) => {
+            if (entityIdx >= 0) ++count;
+        });
+        return count;
+    }
+
+    const entitySet = new Set<number>();
+    for (let i = 0, il = entities.length; i < il; ++i) {
+        if (entities[i] >= 0) entitySet.add(entities[i]);
+    }
+    return entitySet.size;
+}
+
 function buildEntityColorIndex(particles: ParticleList, by: Props['by']): { colorIndex: Int32Array, entityCount: number } {
     const { count, entities, entityInfo } = particles;
     const colorIndex = new Int32Array(count).fill(-1);
@@ -68,7 +95,7 @@ function buildEntityColorIndex(particles: ParticleList, by: Props['by']): { colo
     }
     for (let i = 0; i < count; ++i) {
         const e = entities[i];
-        if (e >= 0) colorIndex[i] = entitySet.get(e)!;
+        if (e >= 0) colorIndex[i] = entitySet.get(e) ?? -1;
     }
     return { colorIndex, entityCount: entitySet.size };
 }
@@ -77,7 +104,7 @@ export function getParticleEntityColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(ParticleEntityColorThemeParams);
     const particles = getParticleList(ctx);
     if (particles) {
-        const { entityCount } = buildEntityColorIndex(particles, params.by.defaultValue);
+        const entityCount = getEntityCount(particles, params.by.defaultValue);
         if (entityCount > ColorLists[DefaultList].list.length) {
             params.palette.defaultValue.name = 'colors';
             params.palette.defaultValue.params = {
@@ -131,5 +158,5 @@ export const ParticleEntityColorThemeProvider: ColorTheme.Provider<ParticleEntit
     factory: ParticleEntityColorTheme,
     getParams: getParticleEntityColorThemeParams,
     defaultValues: PD.getDefaultValues(ParticleEntityColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!getParticleList(ctx)
+    isApplicable: (ctx: ThemeDataContext) => !!getParticleList(ctx) && ctx.particles?.entityInfo !== undefined
 };

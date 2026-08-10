@@ -54,7 +54,7 @@ function resolveScale(file: SimulariumFile, scale?: number): number {
 function agentParticleCount(visType: number, nSubpoints: number): { particles: number, fiberPoints: number } {
     if (visType === SimulariumVisType.FIBER) {
         const fiberPoints = Math.floor(nSubpoints / 3);
-        if (fiberPoints >= 1) return { particles: fiberPoints, fiberPoints };
+        if (fiberPoints >= 2) return { particles: fiberPoints, fiberPoints };
     }
     return { particles: 1, fiberPoints: 0 };
 }

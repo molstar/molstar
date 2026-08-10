@@ -12,7 +12,7 @@ import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { addTube } from '../../../mol-geo/geometry/mesh/builder/tube';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { Particle, ParticleList } from '../../../mol-model/particles/particle-list';
+import { getFiberParticleMask, Particle, ParticleList } from '../../../mol-model/particles/particle-list';
 import { PickingId } from '../../../mol-geo/geometry/picking';
 import { Loci, EmptyLoci } from '../../../mol-model/loci';
 import { Interval, OrderedSet } from '../../../mol-data/int';
@@ -95,7 +95,14 @@ function eachFibers(loci: Loci, particles: ParticleList, _props: any, apply: (in
 function getAllFibersLoci(particles: ParticleList): Loci {
     const { count, fibers } = particles;
     if (count === 0 || !fibers || fibers.count === 0) return EmptyLoci;
-    return Particle.Loci(particles, OrderedSet.ofBounds(0, count) as any);
+    const fiberMask = getFiberParticleMask(particles);
+    if (!fiberMask) return EmptyLoci;
+    const indices: number[] = [];
+    for (let i = 0; i < count; ++i) {
+        if (fiberMask[i]) indices.push(i);
+    }
+    if (indices.length === 0) return EmptyLoci;
+    return Particle.Loci(particles, OrderedSet.ofSortedArray(indices));
 }
 
 // ---- Curve interpolation ----------------------------------------------------

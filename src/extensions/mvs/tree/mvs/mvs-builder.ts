@@ -87,6 +87,11 @@ export class Root extends _Base<'root'> implements FocusMixin, PrimitivesMixin {
         this.addChild('canvas', params);
         return this;
     }
+    /** Add a 'transition' node and return builder pointing to the root. 'transition' node specifies camera transition when entering the current MVS snapshot from the previous snapshot. */
+    transition(params: MVSNodeParams<'transition'> & CustomAndRef): Root {
+        this.addChild('transition', params);
+        return this;
+    }
     /** Add a 'download' node and return builder pointing to it. 'download' node instructs to retrieve a data resource. */
     download(params: MVSNodeParams<'download'> & CustomAndRef): Download {
         return new Download(this._root, this.addChild('download', params));

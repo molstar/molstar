@@ -4,30 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { bool, float, int, list, OptionalField, RequiredField, str, union, nullable, literal, ValueFor, dict } from '../generic/field-schema';
+import { bool, dict, float, int, list, nullable, OptionalField, RequiredField, str, union } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema } from '../generic/tree-schema';
-import { ColorT, ContinuousPalette, DiscretePalette, Matrix, Vector3 } from '../mvs/param-types';
+import { ColorT, ContinuousPalette, DiscretePalette, EasingT, Matrix, Vector3 } from '../mvs/param-types';
 
-type Easing =
-    | 'linear'
-    | 'bounce-in' | 'bounce-out' | 'bounce-in-out'
-    | 'circle-in' | 'circle-out' | 'circle-in-out'
-    | 'cubic-in' | 'cubic-out' | 'cubic-in-out'
-    | 'exp-in' | 'exp-out' | 'exp-in-out'
-    | 'quad-in' | 'quad-out' | 'quad-in-out'
-    | 'sin-in' | 'sin-out' | 'sin-in-out'
-const Easing = literal<Easing>(
-    'linear',
-    'bounce-in', 'bounce-out', 'bounce-in-out',
-    'circle-in', 'circle-out', 'circle-in-out',
-    'cubic-in', 'cubic-out', 'cubic-in-out',
-    'exp-in', 'exp-out', 'exp-in-out',
-    'quad-in', 'quad-out', 'quad-in-out',
-    'sin-in', 'sin-out', 'sin-in-out',
-);
-
-export type MVSAnimationEasing = ValueFor<typeof Easing>;
 
 const _Noise = {
     /** Magnitude of the noise to apply to the interpolated value. */
@@ -55,7 +36,7 @@ const _Frequency = {
 
 const _Easing = {
     /** Easing function to use for the transition. */
-    easing: OptionalField(Easing, 'linear', 'Easing function to use for the transition.'),
+    easing: OptionalField(EasingT, 'linear', 'Easing function to use for the transition.'),
 };
 
 const ScalarInterpolation = {
@@ -118,7 +99,7 @@ const TransformationMatrixInterpolation = {
     /** Magnitude of the noise to apply to the rotation. */
     rotation_noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the rotation.'),
     /** Easing function to use for the rotation. */
-    rotation_easing: OptionalField(Easing, 'linear', 'Easing function to use for the rotation.'),
+    rotation_easing: OptionalField(EasingT, 'linear', 'Easing function to use for the rotation.'),
     /** Determines how many times the rotation interpolation loops. Current T = frequency * t mod 1. */
     rotation_frequency: OptionalField(int, 1, 'Determines how many times the rotation interpolation loops. Current T = frequency * t mod 1.'),
     /** Whether to alternate the direction of the interpolation for frequency > 1. */
@@ -130,7 +111,7 @@ const TransformationMatrixInterpolation = {
     /** Magnitude of the noise to apply to the translation. */
     translation_noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the translation.'),
     /** Easing function to use for the translation. */
-    translation_easing: OptionalField(Easing, 'linear', 'Easing function to use for the translation.'),
+    translation_easing: OptionalField(EasingT, 'linear', 'Easing function to use for the translation.'),
     /** Determines how many times the translation interpolation loops. Current T = frequency * t mod 1. */
     translation_frequency: OptionalField(int, 1, 'Determines how many times the translation interpolation loops. Current T = frequency * t mod 1.'),
     /** Whether to alternate the direction of the interpolation for frequency > 1. */
@@ -142,7 +123,7 @@ const TransformationMatrixInterpolation = {
     /** Magnitude of the noise to apply to the scale. */
     scale_noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the scale.'),
     /** Easing function to use for the scale. */
-    scale_easing: OptionalField(Easing, 'linear', 'Easing function to use for the scale.'),
+    scale_easing: OptionalField(EasingT, 'linear', 'Easing function to use for the scale.'),
     /** Determines how many times the scale interpolation loops. Current T = frequency * t mod 1. */
     scale_frequency: OptionalField(int, 1, 'Determines how many times the scale interpolation loops. Current T = frequency * t mod 1.'),
     /** Whether to alternate the direction of the interpolation for frequency > 1. */

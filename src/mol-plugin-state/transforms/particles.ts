@@ -20,9 +20,8 @@ import { Theme } from '../../mol-theme/theme';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { Particle } from '../../mol-model/particles/particle-list';
 import { StateObject } from '../../mol-state/object';
-import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 import { getUnitcellDataFromSymmetry, UnitcellParams, UnitcellRepresentation } from '../../mol-repr/shape/model/unitcell';
-import { Symmetry } from '../../mol-model/structure/model/properties/symmetry';
+import { Cell } from '../../mol-math/geometry/spacegroup/cell';
 
 export { ParticleListFromRelionStar };
 export { ParticleListFromDynamoTbl };
@@ -423,12 +422,11 @@ const ParticleListUnitcell3D = PluginStateTransform.BuiltIn({
             const { cell } = a.data;
             if (!cell) return StateObject.Null;
 
-            const symmetry = ModelSymmetry.fromCell(cell.size, cell.anglesInRadians);
             const center = Particle.getBoundary(a.data).sphere.center;
-            const data = getUnitcellDataFromSymmetry(symmetry, center, params);
+            const data = getUnitcellDataFromSymmetry(cell, center, params);
             const repr = UnitcellRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => UnitcellParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
-            return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: 'Unit Cell', description: Symmetry.getUnitcellLabel(symmetry) });
+            return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: 'Unit Cell', description: Cell.getLabel(cell) });
         });
     },
     update({ a, b, newParams }) {
@@ -436,12 +434,12 @@ const ParticleListUnitcell3D = PluginStateTransform.BuiltIn({
             const { cell } = a.data;
             if (!cell) return StateTransformer.UpdateResult.Null;
 
-            const symmetry = ModelSymmetry.fromCell(cell.size, cell.anglesInRadians);
             const props = { ...b.data.repr.props, ...newParams };
             const center = Particle.getBoundary(a.data).sphere.center;
-            const data = getUnitcellDataFromSymmetry(symmetry, center, props);
+            const data = getUnitcellDataFromSymmetry(cell, center, props);
             await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
             b.data.sourceData = data;
+            b.description = Cell.getLabel(cell);
             return StateTransformer.UpdateResult.Updated;
         });
     }

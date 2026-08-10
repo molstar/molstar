@@ -200,7 +200,7 @@ export const OrientationParticlesRepresentationProvider = ParticleRepresentation
     factory: OrientationParticlesRepresentation,
     getParams: getOrientationParticlesParams,
     defaultValues: PD.getDefaultValues(OrientationParticlesParams),
-    defaultColorTheme: { name: 'particle-entity' },
+    defaultColorTheme: { name: 'particle-index' },
     defaultSizeTheme: { name: 'particle-size' },
     isApplicable: (data: ParticleList) => data.count > 0 && !!data.rotations,
 });

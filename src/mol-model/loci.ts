@@ -150,7 +150,7 @@ namespace Loci {
             } else if (Bond.isLoci(loci)) {
                 loci = Bond.remapLoci(loci, data);
             }
-        } else if (Particle.isLoci(loci) && data && typeof data === 'object' && 'coordinates' in data && 'rotations' in data) {
+        } else if (Particle.isLoci(loci) && Particle.is(data)) {
             loci = Particle.remapLoci(loci, data as any);
         }
         return loci;

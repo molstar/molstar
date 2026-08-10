@@ -44,7 +44,7 @@ export namespace ComponentBond {
         }
     };
 
-    export const Provider = FormatPropertyProvider.create<ComponentBond>(Descriptor);
+    export const Provider = FormatPropertyProvider.create<ComponentBond>(Descriptor, { cachePerFormat: true });
 
     export function chemCompBondFromTable(model: Model, table: Table<mmCIF_Schema['chem_comp_bond']>): Table<mmCIF_Schema['chem_comp_bond']> {
         return Table.pick(table, mmCIF_Schema.chem_comp_bond, (i: number) => {

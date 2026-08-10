@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -46,9 +46,17 @@ interface FormatPropertyProvider<T> {
 }
 
 namespace FormatPropertyProvider {
-    export function create<T>(descriptor: CustomPropertyDescriptor, options?: { asDynamic?: boolean }): FormatPropertyProvider<T> {
+    export function create<T>(descriptor: CustomPropertyDescriptor, options?: { asDynamic?: boolean, cachePerFormat?: boolean }): FormatPropertyProvider<T> {
         const { name } = descriptor;
         const formatRegistry = new FormatRegistry<T>();
+        const formatCache = new WeakMap<ModelFormat, T | undefined>();
+
+        function obtainValue(model: Model, obtain: (model: Model) => T | undefined) {
+            if (!options?.cachePerFormat) return obtain(model);
+
+            if (!formatCache.has(model.sourceData)) formatCache.set(model.sourceData, obtain(model));
+            return formatCache.get(model.sourceData);
+        }
 
         return {
             descriptor,
@@ -65,7 +73,7 @@ namespace FormatPropertyProvider {
                 const obtain = formatRegistry.get(model.sourceData.kind);
                 if (!obtain) return;
 
-                store[name] = obtain(model);
+                store[name] = obtainValue(model, obtain);
                 model.customProperties.add(descriptor);
                 return store[name];
             },
