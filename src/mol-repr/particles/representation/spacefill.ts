@@ -6,12 +6,8 @@
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { ColorNames } from '../../../mol-util/color/names';
 import { Theme, ThemeRegistryContext } from '../../../mol-theme/theme';
-import { ColorTheme } from '../../../mol-theme/color';
 import { SizeTheme } from '../../../mol-theme/size';
-import { UniformColorTheme } from '../../../mol-theme/color/uniform';
-import { UniformSizeTheme } from '../../../mol-theme/size/uniform';
 import { Spheres } from '../../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../../mol-geo/geometry/spheres/spheres-builder';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
@@ -34,28 +30,15 @@ import { ParticleVisual, ParticleKey } from '../visual';
 
 // ---- Params -----------------------------------------------------------------
 
-const PointSizeOptions = { min: 0.1, max: 100, step: 0.1 } as const;
-
 export const SpacefillParticlesParams = {
     ...Spheres.Params,
     ...Mesh.Params,
     tryUseImpostor: PD.Boolean(true),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
-    pointSize: PD.Numeric(1, PointSizeOptions, { description: 'Radius used for the particle position marker.' }),
-    positionColor: PD.Color(ColorNames.white),
     excludeFibers: PD.Boolean(true, { description: 'Do not show fiber particles (e.g. shown separately by the Fibers representation).' }),
 };
 export type SpacefillParticlesParams = typeof SpacefillParticlesParams;
 export type SpacefillParticlesProps = PD.Values<SpacefillParticlesParams>;
-
-function spacefillOverrideTheme(theme: Theme, props: SpacefillParticlesProps): Theme {
-    const colorFromTheme = theme.color.factory !== ColorTheme.EmptyFactory;
-    const sizeFromTheme = theme.size.factory !== SizeTheme.EmptyFactory;
-    return {
-        color: colorFromTheme ? theme.color : UniformColorTheme({} as any, { value: props.positionColor, lightness: 0, saturation: 0 }),
-        size: sizeFromTheme ? theme.size : UniformSizeTheme({} as any, { value: props.pointSize }),
-    };
-}
 
 // ---- Impostor visual --------------------------------------------------------
 
@@ -84,10 +67,7 @@ export function SpacefillParticlesImpostorVisual(materialId: number): ParticleVi
             // sphere positions are baked from particle coordinates, so any new particle data requires rebuilding the geometry
             if (newParticles !== currentParticles) state.createGeometry = true;
             if (newProps.excludeFibers !== currentProps.excludeFibers) state.createGeometry = true;
-            if (newProps.pointSize !== currentProps.pointSize) state.updateSize = true;
-            if (newProps.positionColor !== currentProps.positionColor) state.updateColor = true;
         },
-        overrideTheme: spacefillOverrideTheme,
         geometryUtils: Spheres.Utils,
         mustRecreate: (_key: ParticleKey, props: SpacefillParticlesProps, webgl?: WebGLContext) => {
             return !props.tryUseImpostor || !webgl;
@@ -130,14 +110,11 @@ export function SpacefillParticlesMeshVisual(materialId: number): ParticleVisual
             // sphere positions and radii are baked from particle coordinates/theme, so any new particle data or size theme change requires rebuilding the geometry
             if (newParticles !== currentParticles ||
                 newProps.detail !== currentProps.detail ||
-                newProps.pointSize !== currentProps.pointSize ||
                 newProps.excludeFibers !== currentProps.excludeFibers ||
                 !SizeTheme.areEqual(newTheme.size, currentTheme.size)) {
                 state.createGeometry = true;
             }
-            if (newProps.positionColor !== currentProps.positionColor) state.updateColor = true;
         },
-        overrideTheme: spacefillOverrideTheme,
         geometryUtils: Mesh.Utils,
         mustRecreate: (_key: ParticleKey, props: SpacefillParticlesProps, webgl?: WebGLContext) => {
             return props.tryUseImpostor && !!webgl;
