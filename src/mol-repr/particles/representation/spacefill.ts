@@ -215,7 +215,7 @@ export const SpacefillParticlesRepresentationProvider = ParticleRepresentationPr
     factory: SpacefillParticlesRepresentation,
     getParams: SpacefillParticlesParamsGet,
     defaultValues: PD.getDefaultValues(SpacefillParticlesParams),
-    defaultColorTheme: { name: 'particle-entity' },
+    defaultColorTheme: { name: 'particle-index' },
     defaultSizeTheme: { name: 'particle-size' },
     isApplicable: (data: ParticleList) => data.count > 0,
 });

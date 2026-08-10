@@ -26,7 +26,7 @@ export function ParticleSizeTheme(ctx: ThemeDataContext, props: PD.Values<Partic
         let s = props.defaultSize;
         if (Particle.isLocation(location)) {
             const { particles, index } = location;
-            s = particles.radii?.[index] || props.defaultSize;
+            s = particles.radii?.[index] ?? props.defaultSize;
         }
         return s * props.scale;
     }

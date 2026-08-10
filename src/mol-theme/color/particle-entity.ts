@@ -50,7 +50,7 @@ function buildEntityColorIndex(particles: ParticleList): { colorIndex: Int32Arra
     }
     for (let i = 0; i < count; ++i) {
         const e = entities[i];
-        if (e >= 0) colorIndex[i] = entitySet.get(e)!;
+        if (e >= 0) colorIndex[i] = entitySet.get(e) ?? -1;
     }
     return { colorIndex, entityCount: entitySet.size };
 }
@@ -59,7 +59,7 @@ export function getParticleEntityColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(ParticleEntityColorThemeParams);
     const particles = getParticleList(ctx);
     if (particles) {
-        const { entityCount } = buildEntityColorIndex(particles);
+        const entityCount = particles.entityInfo?.size ?? 0;
         if (entityCount > ColorLists[DefaultList].list.length) {
             params.palette.defaultValue.name = 'colors';
             params.palette.defaultValue.params = {
@@ -113,5 +113,5 @@ export const ParticleEntityColorThemeProvider: ColorTheme.Provider<ParticleEntit
     factory: ParticleEntityColorTheme,
     getParams: getParticleEntityColorThemeParams,
     defaultValues: PD.getDefaultValues(ParticleEntityColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!getParticleList(ctx)
+    isApplicable: (ctx: ThemeDataContext) => !!getParticleList(ctx) && ctx.particles?.entityInfo !== undefined
 };
