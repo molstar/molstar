@@ -9,8 +9,9 @@ import { ParticleList } from '../../mol-model/particles/particle-list';
 import { CustomProperties } from '../../mol-model/custom-property';
 import { CifBlock, CifFile } from '../../mol-io/reader/cif/data-model';
 import { toDatabase } from '../../mol-io/reader/cif/schema';
-import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
-import { getMatrices, parseOperatorList, expandOperators } from '../structure/property/assembly';
+import { mmCIF_Database, mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
+import { parseOperatorList } from '../structure/property/assembly';
+import { OperatorCombinations, composeOperatorCombination, expandOperatorCombinations, formatOperatorCombination, readParticleOperators } from './operators';
 import { ModelFormat } from '../format';
 import { binaryCifHasColumn, getBinaryCifHeader } from '../../mol-io/common/binary-cif';
 import { StringLike } from '../../mol-io/common/string-like';
@@ -108,6 +109,57 @@ export function createParticleListFromMmcifAssembly(cifFile: CifFile, options: M
     return buildCellpackStandardParticleList(cifFile, block, options, variant);
 }
 
+/** The centroid of a group of `_atom_site` rows and their maximum distance from it. */
+interface AtomSiteBounds {
+    readonly center: Vec3
+    readonly radius: number
+}
+
+/**
+ * Applying the operator of a particle to the centroid of its reference atoms gives a meaningful
+ * position even when the operator has zero translation (pure rotation).
+ */
+function getAtomSiteBounds<K>(db: mmCIF_Database, key: (row: number) => K): Map<K, AtomSiteBounds> {
+    const { Cartn_x, Cartn_y, Cartn_z, _rowCount } = db.atom_site;
+
+    interface Accum { x: number, y: number, z: number, n: number, radiusSq: number }
+    const accums = new Map<K, Accum>();
+
+    for (let i = 0; i < _rowCount; i++) {
+        const k = key(i);
+        let acc = accums.get(k);
+        if (!acc) {
+            acc = { x: 0, y: 0, z: 0, n: 0, radiusSq: 0 };
+            accums.set(k, acc);
+        }
+        acc.x += Cartn_x.value(i);
+        acc.y += Cartn_y.value(i);
+        acc.z += Cartn_z.value(i);
+        acc.n++;
+    }
+
+    for (const acc of accums.values()) {
+        acc.x /= acc.n;
+        acc.y /= acc.n;
+        acc.z /= acc.n;
+    }
+
+    for (let i = 0; i < _rowCount; i++) {
+        const acc = accums.get(key(i))!;
+        const dx = Cartn_x.value(i) - acc.x;
+        const dy = Cartn_y.value(i) - acc.y;
+        const dz = Cartn_z.value(i) - acc.z;
+        const d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 > acc.radiusSq) acc.radiusSq = d2;
+    }
+
+    const bounds = new Map<K, AtomSiteBounds>();
+    for (const [k, acc] of accums) {
+        bounds.set(k, { center: Vec3.create(acc.x, acc.y, acc.z), radius: Math.sqrt(acc.radiusSq) });
+    }
+    return bounds;
+}
+
 function detectMmcifVariant(block: CifBlock): 'cellpack' | 'petworld' | 'standard' {
     if (block.header.toLowerCase().includes('cellpack')) return 'cellpack';
     if (block.categories['pdbx_struct_assembly_gen']?.getField('PDB_model_num')?.isDefined) return 'petworld';
@@ -132,7 +184,7 @@ function buildCellpackStandardParticleList(
         throw new Error('CIF file contains no _pdbx_struct_oper_list entries.');
     }
 
-    const matrices = getMatrices(pdbx_struct_oper_list);
+    const operators = readParticleOperators(block);
 
     const { assembly_id, oper_expression, asym_id_list } = pdbx_struct_assembly_gen;
     const asymFilter = options.asymIds?.length
@@ -142,7 +194,7 @@ function buildCellpackStandardParticleList(
     // Collect matching gen rows and their expanded operator combinations.
     interface GenEntry {
         genIndex: number
-        operCombinations: string[][] // each combination is an array of operator IDs
+        combinations: OperatorCombinations
     }
 
     const entries: GenEntry[] = [];
@@ -152,12 +204,12 @@ function buildCellpackStandardParticleList(
         if (assembly_id.value(i) !== options.assemblyId) continue;
 
         const operList = parseOperatorList(oper_expression.value(i));
-        const combinations = expandOperators(operList);
-        entries.push({ genIndex: i, operCombinations: combinations });
+        const combinations = expandOperatorCombinations(operList, operators);
+        entries.push({ genIndex: i, combinations });
         const chainCount = asymFilter
             ? asym_id_list.value(i).filter(c => asymFilter.has(c)).length
             : asym_id_list.value(i).length;
-        totalCount += chainCount * combinations.length;
+        totalCount += chainCount * combinations.count;
     }
 
     if (totalCount === 0) {
@@ -207,41 +259,16 @@ function buildCellpackStandardParticleList(
     const rotations = new Float32Array(totalCount * 4);
     const radii = new Float32Array(totalCount);
 
-    // Per-particle metadata for labels (stored as flat arrays to avoid object allocation).
-    const labelChainId = new Array<string>(totalCount);
-    const labelOpCombo = new Array<string>(totalCount);
+    // Per-particle metadata for labels, kept as indices so no string is allocated per particle.
+    const labelEntry = new Int32Array(totalCount);
+    const labelCombo = new Int32Array(totalCount);
 
-    // Build per-chain centroid from _atom_site Cartesian coordinates and collect
-    // chain → entity_id mapping at the same time (avoids relying on _struct_asym).
-    // Applying the full operator to the centroid of the reference chains gives a meaningful
-    // particle position even when the operator has zero translation (pure rotation).
-    const { label_asym_id: siteAsymId, label_entity_id: siteEntityId, Cartn_x, Cartn_y, Cartn_z } = db.atom_site;
-    interface ChainAccum { x: number; y: number; z: number; n: number; radiusSq: number }
-    const chainAccum = new Map<string, ChainAccum>();
+    const { label_asym_id: siteAsymId, label_entity_id: siteEntityId } = db.atom_site;
+    const chainBounds = getAtomSiteBounds(db, i => siteAsymId.value(i));
     const chainToEntityId = new Map<string, string>();
     for (let i = 0, il = db.atom_site._rowCount; i < il; i++) {
         const chain = siteAsymId.value(i);
-        let acc = chainAccum.get(chain);
-        if (!acc) {
-            acc = { x: 0, y: 0, z: 0, n: 0, radiusSq: 0 };
-            chainAccum.set(chain, acc);
-            chainToEntityId.set(chain, siteEntityId.value(i));
-        }
-        acc.x += Cartn_x.value(i);
-        acc.y += Cartn_y.value(i);
-        acc.z += Cartn_z.value(i);
-        acc.n++;
-    }
-    // Second pass: compute per-chain max squared distance from centroid (= bounding sphere radius²).
-    for (let i = 0, il = db.atom_site._rowCount; i < il; i++) {
-        const chain = siteAsymId.value(i);
-        const acc = chainAccum.get(chain)!;
-        const cx = acc.x / acc.n, cy = acc.y / acc.n, cz = acc.z / acc.n;
-        const dx = Cartn_x.value(i) - cx;
-        const dy = Cartn_y.value(i) - cy;
-        const dz = Cartn_z.value(i) - cz;
-        const d2 = dx * dx + dy * dy + dz * dz;
-        if (d2 > acc.radiusSq) acc.radiusSq = d2;
+        if (!chainToEntityId.has(chain)) chainToEntityId.set(chain, siteEntityId.value(i));
     }
 
     const combined = Mat4();
@@ -266,22 +293,11 @@ function buildCellpackStandardParticleList(
 
         for (const chain of chainGroup) {
             if (asymFilter && !asymFilter.has(chain)) continue;
-            // Per-chain centroid.
-            const acc = chainAccum.get(chain);
-            Vec3.set(centroid,
-                acc && acc.n > 0 ? acc.x / acc.n : 0,
-                acc && acc.n > 0 ? acc.y / acc.n : 0,
-                acc && acc.n > 0 ? acc.z / acc.n : 0
-            );
+            const bounds = chainBounds.get(chain);
+            Vec3.copy(centroid, bounds ? bounds.center : Vec3.origin);
 
-            for (const combo of entry.operCombinations) {
-                // Multiply matrices left-to-right: first op in combo is outermost.
-                Mat4.setIdentity(combined);
-                for (let k = 0; k < combo.length; k++) {
-                    const m = matrices.get(combo[k]);
-                    if (!m) throw new Error(`Operator '${combo[k]}' not found in _pdbx_struct_oper_list.`);
-                    Mat4.mul(combined, combined, m);
-                }
+            for (let ci = 0, cil = entry.combinations.count; ci < cil; ci++) {
+                composeOperatorCombination(operators, entry.combinations, ci, combined);
 
                 Vec3.transformMat4(position, centroid, combined);
                 Quat.normalize(quaternion, Quat.fromMat4(quaternion, combined));
@@ -297,7 +313,7 @@ function buildCellpackStandardParticleList(
                 rotations[qOffset + 2] = quaternion[2];
                 rotations[qOffset + 3] = quaternion[3];
 
-                radii[count] = Math.sqrt(acc ? acc.radiusSq : 0) * Mat4.getMaxScaleOnAxis(combined);
+                radii[count] = (bounds ? bounds.radius : 0) * Mat4.getMaxScaleOnAxis(combined);
 
                 keys[count] = count;
                 targets[count] = chainToTargetIdx.get(chain)!;
@@ -319,12 +335,15 @@ function buildCellpackStandardParticleList(
                     entities[count] = entityNameToIdx.get(entityName)!;
                 }
 
-                labelChainId[count] = chain;
-                labelOpCombo[count] = combo.join('×');
+                labelEntry[count] = ei;
+                labelCombo[count] = ci;
                 count++;
             }
         }
     }
+
+    const chainMapping = new Map<number, string>();
+    for (const [chain, idx] of chainToTargetIdx) chainMapping.set(idx, chain);
 
     // Build compartmentInfo: compartment index → compartment name.
     const compartmentInfo = new Map<number, string>();
@@ -339,6 +358,9 @@ function buildCellpackStandardParticleList(
     }
 
     const assemblyId = options.assemblyId;
+    // Only the ids are captured below, so the label closure does not retain the matrix array.
+    const operatorIds = operators.ids;
+    const combinations = entries.map(e => e.combinations);
 
     return {
         label: buildMmcifLabel(options.label, assemblyId),
@@ -354,8 +376,8 @@ function buildCellpackStandardParticleList(
         radii,
         getParticleLabel: (index: number) => {
             const entity = entityInfo.get(entities[index]);
-            const chain = labelChainId[index];
-            const opCombo = labelOpCombo[index];
+            const chain = chainMapping.get(targets[index]);
+            const opCombo = formatOperatorCombination(operatorIds, combinations[labelEntry[index]], labelCombo[index]);
             return `#${index + 1} | ${entity} | chain ${chain} | ops ${opCombo}`;
         },
         sourceData: MmcifParticleFormat.create(cifFile),
@@ -376,7 +398,7 @@ function buildPetworldParticleList(
         throw new Error('CIF file contains no _pdbx_struct_oper_list entries.');
     }
 
-    const matrices = getMatrices(pdbx_struct_oper_list);
+    const operators = readParticleOperators(block);
     const { assembly_id, oper_expression } = pdbx_struct_assembly_gen;
 
     // PDB_model_num is a non-standard field absent from the typed mmCIF_Schema; read it via raw categories.
@@ -396,7 +418,7 @@ function buildPetworldParticleList(
     interface GenEntry {
         genIndex: number
         modelNum: number
-        operCombinations: string[][]
+        combinations: OperatorCombinations
     }
 
     const entries: GenEntry[] = [];
@@ -405,10 +427,10 @@ function buildPetworldParticleList(
     for (let i = 0, il = pdbx_struct_assembly_gen._rowCount; i < il; i++) {
         if (assembly_id.value(i) !== options.assemblyId) continue;
         const operList = parseOperatorList(oper_expression.value(i));
-        const combinations = expandOperators(operList);
+        const combinations = expandOperatorCombinations(operList, operators);
         const modelNum = pdbModelNumField.int(i);
-        entries.push({ genIndex: i, modelNum, operCombinations: combinations });
-        totalCount += combinations.length;
+        entries.push({ genIndex: i, modelNum, combinations });
+        totalCount += combinations.count;
     }
 
     if (totalCount === 0) {
@@ -425,34 +447,6 @@ function buildPetworldParticleList(
     const modelNumToIndex = new Map<number, number>();
     distinctModelNums.forEach((mn, idx) => modelNumToIndex.set(mn, idx));
 
-    // Build per-model centroid from _atom_site (aggregate all atoms with matching pdbx_PDB_model_num).
-    const { Cartn_x, Cartn_y, Cartn_z, pdbx_PDB_model_num: siteModelNum } = db.atom_site;
-    interface ModelAccum { x: number; y: number; z: number; n: number; radiusSq: number }
-    const modelAccum = new Map<number, ModelAccum>();
-    for (let i = 0, il = db.atom_site._rowCount; i < il; i++) {
-        const modelNum = siteModelNum.value(i);
-        let acc = modelAccum.get(modelNum);
-        if (!acc) {
-            acc = { x: 0, y: 0, z: 0, n: 0, radiusSq: 0 };
-            modelAccum.set(modelNum, acc);
-        }
-        acc.x += Cartn_x.value(i);
-        acc.y += Cartn_y.value(i);
-        acc.z += Cartn_z.value(i);
-        acc.n++;
-    }
-    // Second pass: compute per-model max squared distance from centroid (= bounding sphere radius²).
-    for (let i = 0, il = db.atom_site._rowCount; i < il; i++) {
-        const modelNum = siteModelNum.value(i);
-        const acc = modelAccum.get(modelNum)!;
-        const cx = acc.x / acc.n, cy = acc.y / acc.n, cz = acc.z / acc.n;
-        const dx = Cartn_x.value(i) - cx;
-        const dy = Cartn_y.value(i) - cy;
-        const dz = Cartn_z.value(i) - cz;
-        const d2 = dx * dx + dy * dy + dz * dz;
-        if (d2 > acc.radiusSq) acc.radiusSq = d2;
-    }
-
     const keys = new Int32Array(totalCount);
     const targets = new Int32Array(totalCount);
     const entities = new Int32Array(totalCount).fill(-1);
@@ -460,9 +454,13 @@ function buildPetworldParticleList(
     const rotations = new Float32Array(totalCount * 4);
     const radii = new Float32Array(totalCount);
 
-    const labelOpCombo = new Array<string>(totalCount);
+    const labelEntry = new Int32Array(totalCount);
+    const labelCombo = new Int32Array(totalCount);
 
     const entityNameToIdx = new Map<string, number>();
+
+    const { pdbx_PDB_model_num: siteModelNum } = db.atom_site;
+    const modelBounds = getAtomSiteBounds(db, i => siteModelNum.value(i));
 
     const combined = Mat4();
     const quaternion = Quat();
@@ -475,21 +473,11 @@ function buildPetworldParticleList(
         const targetIdx = modelNumToIndex.get(entry.modelNum)!; // 0-based trajectory model index
         const modelName = modelNumToName.get(entry.modelNum) || `Model ${entry.modelNum}`;
 
-        const acc = modelAccum.get(entry.modelNum);
-        Vec3.set(centroid,
-            acc && acc.n > 0 ? acc.x / acc.n : 0,
-            acc && acc.n > 0 ? acc.y / acc.n : 0,
-            acc && acc.n > 0 ? acc.z / acc.n : 0
-        );
+        const bounds = modelBounds.get(entry.modelNum);
+        Vec3.copy(centroid, bounds ? bounds.center : Vec3.origin);
 
-        for (const combo of entry.operCombinations) {
-            // Multiply matrices left-to-right: first op in combo is outermost.
-            Mat4.setIdentity(combined);
-            for (let k = 0; k < combo.length; k++) {
-                const m = matrices.get(combo[k]);
-                if (!m) throw new Error(`Operator '${combo[k]}' not found in _pdbx_struct_oper_list.`);
-                Mat4.mul(combined, combined, m);
-            }
+        for (let ci = 0, cil = entry.combinations.count; ci < cil; ci++) {
+            composeOperatorCombination(operators, entry.combinations, ci, combined);
 
             Vec3.transformMat4(position, centroid, combined);
             Quat.normalize(quaternion, Quat.fromMat4(quaternion, combined));
@@ -505,7 +493,7 @@ function buildPetworldParticleList(
             rotations[qOffset + 2] = quaternion[2];
             rotations[qOffset + 3] = quaternion[3];
 
-            radii[count] = Math.sqrt(acc ? acc.radiusSq : 0) * Mat4.getMaxScaleOnAxis(combined);
+            radii[count] = (bounds ? bounds.radius : 0) * Mat4.getMaxScaleOnAxis(combined);
 
             keys[count] = count;
             targets[count] = targetIdx;
@@ -513,7 +501,8 @@ function buildPetworldParticleList(
             if (!entityNameToIdx.has(modelName)) entityNameToIdx.set(modelName, entityNameToIdx.size);
             entities[count] = entityNameToIdx.get(modelName)!;
 
-            labelOpCombo[count] = combo.join('×');
+            labelEntry[count] = ei;
+            labelCombo[count] = ci;
             count++;
         }
     }
@@ -525,6 +514,9 @@ function buildPetworldParticleList(
     }
 
     const assemblyId = options.assemblyId;
+    // Only the ids are captured below, so the label closure does not retain the matrix array.
+    const operatorIds = operators.ids;
+    const combinations = entries.map(e => e.combinations);
 
     return {
         label: buildMmcifLabel(options.label, assemblyId),
@@ -538,7 +530,7 @@ function buildPetworldParticleList(
         radii,
         getParticleLabel: (index: number) => {
             const entity = entityInfo.get(entities[index])!;
-            const opCombo = labelOpCombo[index];
+            const opCombo = formatOperatorCombination(operatorIds, combinations[labelEntry[index]], labelCombo[index]);
             return `#${index + 1} | ${entity} | ops ${opCombo}`;
         },
         sourceData: MmcifParticleFormat.create(cifFile),
