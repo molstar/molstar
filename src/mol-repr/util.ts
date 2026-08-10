@@ -7,7 +7,7 @@
 import { defaults } from '../mol-util';
 import { Structure } from '../mol-model/structure';
 import { VisualQuality } from '../mol-geo/geometry/base';
-import { Box3D, SpacegroupCell } from '../mol-math/geometry';
+import { Box3D } from '../mol-math/geometry';
 import { ModelSymmetry } from '../mol-model-formats/structure/property/symmetry';
 import { Volume } from '../mol-model/volume';
 import { Location } from '../mol-model/location';
@@ -122,15 +122,14 @@ export function getStructureQuality(structure: Structure, tresholds: Partial<Qua
 }
 
 /**
- * Uses cell volume to avoid costly boundary calculation if
- * - single model
- * - non-empty 'P 1' spacegroup
+ * Uses cell volume divided by the number of symmetry operators to avoid
+ * costly boundary calculation if a single model with a non-empty cell.
  */
 function getRootVolume(structure: Structure) {
     if (structure.root.models.length === 1) {
-        const sym = ModelSymmetry.Provider.get(structure.root.model);
-        if (sym && sym.spacegroup.name === 'P 1' && !SpacegroupCell.isZero(sym.spacegroup.cell)) {
-            return sym.spacegroup.cell.volume;
+        const cell = ModelSymmetry.Provider.get(structure.root.model)?.spacegroup.cell;
+        if (cell && cell.volume > 0) {
+            return cell.volume / cell.order;
         }
     }
     return Box3D.volume(structure.root.boundary.box);
