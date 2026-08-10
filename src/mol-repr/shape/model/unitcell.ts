@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model, Symmetry } from '../../../mol-model/structure';
+import { Model } from '../../../mol-model/structure';
 import { ShapeRepresentation } from '../representation';
 import { Shape } from '../../../mol-model/shape';
 import { ColorNames } from '../../../mol-util/color/names';
@@ -16,6 +16,8 @@ import { BoxCage } from '../../../mol-geo/primitive/box';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { transformCage, cloneCage } from '../../../mol-geo/primitive/cage';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { Cell } from '../../../mol-math/geometry/spacegroup/cell';
+import { SpacegroupCell } from '../../../mol-math/geometry/spacegroup/construction';
 import { RepresentationParamsGetter, Representation, RepresentationContext } from '../../representation';
 
 const translate05 = Mat4.fromTranslation(Mat4(), Vec3.create(0.5, 0.5, 0.5));
@@ -25,7 +27,7 @@ const tmpRef = Vec3();
 const tmpTranslate = Mat4();
 
 interface UnitcellData {
-    symmetry: Symmetry
+    cell: Cell
     ref: Vec3
 }
 
@@ -61,7 +63,7 @@ export type UnitcellProps = PD.Values<UnitcellParams>
 function getUnitcellMesh(data: UnitcellData, props: UnitcellProps, mesh?: Mesh) {
     const state = MeshBuilder.createState(256, 128, mesh);
 
-    const { fromFractional } = data.symmetry.spacegroup.cell;
+    const { fromFractional } = data.cell;
 
     Vec3.copy(tmpRef, data.ref);
     if (props.attachment === 'center') {
@@ -73,7 +75,7 @@ function getUnitcellMesh(data: UnitcellData, props: UnitcellProps, mesh?: Mesh) 
     Mat4.fromTranslation(tmpTranslate, tmpRef);
     const cellCage = transformCage(cloneCage(unitCage), tmpTranslate);
 
-    const radius = (Math.cbrt(data.symmetry.spacegroup.cell.volume) / 300) * props.cellScale;
+    const radius = (Math.cbrt(data.cell.volume) / 300) * props.cellScale;
     state.currentGroup = 1;
     MeshBuilder.addCage(state, fromFractional, cellCage, radius, 2, 20);
 
@@ -87,20 +89,24 @@ function getUnitcellMesh(data: UnitcellData, props: UnitcellProps, mesh?: Mesh) 
     return m;
 }
 
+export function getUnitcellLabel(cell: Cell) {
+    return SpacegroupCell.is(cell) ? SpacegroupCell.getLabel(cell) : Cell.getLabel(cell);
+}
+
 function getUnitcellShape(ctx: RuntimeContext, data: UnitcellData, props: UnitcellProps, shape?: Shape<Mesh>) {
     const geo = getUnitcellMesh(data, props, shape && shape.geometry);
-    const label = Symmetry.getUnitcellLabel(data.symmetry);
+    const label = getUnitcellLabel(data.cell);
     return Shape.create(label, data, geo, () => props.cellColor, () => 1, () => label);
 }
 
 //
 
-export function getUnitcellData(model: Model, symmetry: Symmetry, props: UnitcellProps) {
+export function getUnitcellData(model: Model, cell: Cell, props: UnitcellProps) {
     const ref = Vec3();
     if (props.ref === 'model') {
-        Vec3.transformMat4(ref, Model.getCenter(model), symmetry.spacegroup.cell.toFractional);
+        Vec3.transformMat4(ref, Model.getCenter(model), cell.toFractional);
     }
-    return { symmetry, ref };
+    return { cell, ref };
 }
 
 export type UnitcellRepresentation = Representation<UnitcellData, UnitcellParams>

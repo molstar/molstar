@@ -108,6 +108,8 @@ export namespace Model {
         const srcIndexArray = getSourceIndexArray(model);
         const coarseGrained = isCoarseGrained(model);
         const elementCount = model.atomicHierarchy.atoms._rowCount;
+        // fall back to the symmetry of the model if a frame has no cell
+        const symmetry = ModelSymmetry.Provider.get(model);
 
         for (let i = 0, il = frames.length; i < il; ++i) {
             const f = frames[i];
@@ -125,7 +127,8 @@ export namespace Model {
             };
 
             if (f.cell) {
-                const symmetry = ModelSymmetry.fromCell(f.cell.size, f.cell.anglesInRadians);
+                ModelSymmetry.Provider.set(m, ModelSymmetry.fromCell(f.cell.size, f.cell.anglesInRadians));
+            } else if (symmetry) {
                 ModelSymmetry.Provider.set(m, symmetry);
             }
 
