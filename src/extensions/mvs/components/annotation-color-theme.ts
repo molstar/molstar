@@ -158,13 +158,8 @@ function makePaletteFunction(props: MVSAnnotationColorThemeProps['palette'], ann
 const _colors: [Color, Color] = [ColorNames.black, ColorNames.black];
 
 const paletteFunctionDirect: PaletteFunction = (value, isSecondary) => {
-    SplitColor.decode(value, _colors);
+    SplitColor.decodeTo(value, _colors);
     return _colors[isSecondary ? 1 : 0];
-    // if (isSecondary) {
-    //     return colors.color2 ?? colors.color1;
-    // } else {
-    //     return colors.color1;
-    // }
 };
 
 function makePaletteFunctionCategorical(props: MVSCategoricalPaletteProps, annotation: MVSAnnotation, fieldName: string): PaletteFunction {

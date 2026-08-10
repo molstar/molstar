@@ -9,8 +9,8 @@ import { ColorThemeCategory } from '../../../mol-theme/color/categories';
 import type { ThemeDataContext } from '../../../mol-theme/theme';
 import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
-import { decodeColor } from '../../../mol-util/color/utils';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { SplitColor } from '../helpers/utils';
 import { isMVSStructure } from './is-mvs-model-prop';
 
 
@@ -43,16 +43,20 @@ type NoneSplitColorProp = Exclude<OptionalSplitColorProp, SplitColorProp>;
 type ColorTuple<T extends OptionalSplitColorProp> = T extends SplitColorProp ? [Color, Color] : [undefined, undefined];
 
 const FALLBACK_COLOR = ColorNames.black;
+
+const _tmpColors: [Color | undefined, Color | undefined] = [undefined, undefined];
+
 export const SplitColorProp = {
     fromString<T extends string | null>(colorString: T): T extends string ? SplitColorProp : NoneSplitColorProp {
         if (colorString == null) {
             return this.none() satisfies NoneSplitColorProp as any;
         }
-        if (colorString.includes('/')) {
-            const [c1, c2] = colorString.split('/');
-            return { name: 'splitColor', params: { color1: decodeColor(c1) ?? FALLBACK_COLOR, color2: decodeColor(c2) ?? FALLBACK_COLOR } } satisfies SplitColorProp as any;
+        SplitColor.decodeTo(colorString, _tmpColors);
+        if (_tmpColors[0] === _tmpColors[1]) {
+            return { name: 'oneColor', params: { color: _tmpColors[0] ?? FALLBACK_COLOR } } satisfies SplitColorProp as any;
         } else {
-            return { name: 'oneColor', params: { color: decodeColor(colorString) ?? FALLBACK_COLOR } } satisfies SplitColorProp as any;
+            return { name: 'splitColor', params: { color1: _tmpColors[0] ?? FALLBACK_COLOR, color2: _tmpColors[1] ?? FALLBACK_COLOR } } satisfies SplitColorProp as any;
+
         }
     },
     none(): NoneSplitColorProp {

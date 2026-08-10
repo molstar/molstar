@@ -13,10 +13,10 @@ import { EPSILON, Mat3, Mat4, Quat, Vec3 } from '../../../mol-math/linear-algebr
 import { RuntimeContext } from '../../../mol-task';
 import { deepEqual } from '../../../mol-util';
 import { Color } from '../../../mol-util/color';
-import { decodeColor } from '../../../mol-util/color/utils';
 import { produce } from '../../../mol-util/produce';
 import { makeContinuousPaletteCheckpoints, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from '../components/annotation-color-theme';
 import { SplitColorProp } from '../components/split-uniform-color-theme';
+import { decodeColor, SplitColor } from '../helpers/utils';
 import { palettePropsFromMVSPalette } from '../load-helpers';
 import { Snapshot } from '../mvs-data';
 import { MVSAnimationNode, MVSAnimationSchema } from '../tree/animation/animation-tree';
@@ -89,6 +89,8 @@ interface InterpolationCacheEntry {
     paletteFn?: PaletteFunction,
     startColor?: Color | Record<number | string, Color>,
     endColor?: Color | Record<number | string, Color>,
+    startSplitColor?: [Color, Color],
+    endSplitColor?: [Color, Color],
     rotation?: { axis: Vec3, angle: number, start: Quat, end: Quat },
 }
 
@@ -471,6 +473,13 @@ function interpolateColors(start: ColorT | Record<number, ColorT>, end: ColorT |
         return PaletteFunction.getAsHexStyle(cacheEntry.paletteFn, t);
     }
 
+    if (typeof start === 'string' && typeof end === 'string') {
+        const startColor = cacheEntry.startSplitColor ??= SplitColor.decodeStrict(start);
+        const endColor = cacheEntry.endSplitColor ??= SplitColor.decodeStrict(end);
+        return interpolateSplitColor(startColor, endColor, t);
+    }
+    // the rest of this function does not support split coloring (i.e. ignores color after slash)
+
     if (cacheEntry.startColor === undefined) {
         cacheEntry.startColor = decodeColors(start, baseColors);
     }
@@ -506,6 +515,16 @@ function interpolateColors(start: ColorT | Record<number, ColorT>, end: ColorT |
     }
 
     return start;
+}
+
+function interpolateSplitColor(start: [Color, Color], end: [Color, Color], t: number): ColorT {
+    const out0 = Color.interpolate(start[0], end[0], t);
+    if (start[0] === start[1] && end[0] === end[1]) {
+        return SplitColor.toHexStyle(out0);
+    } else {
+        const out1 = Color.interpolate(start[1], end[1], t);
+        return SplitColor.toHexStyle(out0, out1);
+    }
 }
 
 function select(params: any, path: string | (string | number)[], offset: number) {
