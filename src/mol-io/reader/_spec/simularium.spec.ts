@@ -26,7 +26,7 @@ const agents = [
     1001, 1, 1, 0, 0, 0, 0, 0, 0, 1, 6, 10, 0, 0, 20, 0, 0,
 ];
 
-function buildJson(): Uint8Array {
+function buildJson(agentData = agents): Uint8Array {
     const json = {
         trajectoryInfo,
         spatialData: {
@@ -34,7 +34,7 @@ function buildJson(): Uint8Array {
             msgType: 1,
             bundleStart: 0,
             bundleSize: 1,
-            bundleData: [{ frameNumber: 0, time: 0, data: agents }],
+            bundleData: [{ frameNumber: 0, time: 0, data: agentData }],
         },
         plotData: { version: 1, data: [] },
     };
@@ -150,6 +150,19 @@ test('builds particle list with exploded fibers', async () => {
 
     // two distinct entities (A and B)
     expect(list.entityInfo!.size).toBe(2);
+});
+
+test('treats a one-point fiber as an ordinary particle', async () => {
+    const parsed = await parseSimularium(buildJson([
+        1001, 1, 1, 4, 5, 6, 0, 0, 0, 1, 3, 10, 0, 0,
+    ])).run();
+    if (parsed.isError) throw new Error(parsed.message);
+
+    const list = createParticleListFromSimularium(parsed.result, { frameIndex: 0, scale: 1 });
+
+    expect(list.count).toBe(1);
+    expect(Array.from(list.coordinates)).toEqual([4, 5, 6]);
+    expect(list.fibers).toBeUndefined();
 });
 
 test('applies spatial unit auto-scaling (nm to angstrom)', async () => {
