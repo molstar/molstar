@@ -39,14 +39,16 @@ export const ParticleHierarchyColorThemeParams = {
             ['colors', 'Color List'],
             ['generate', 'Generate Distinct'],
         ],
-        description: 'Base colors of the compartments, or of the entities if there are no compartments'
+        description: 'Base colors of the compartments'
     }),
 };
 export type ParticleHierarchyColorThemeParams = typeof ParticleHierarchyColorThemeParams
 type Props = PD.Values<ParticleHierarchyColorThemeParams>
 
-function getParticleList(ctx: ThemeDataContext): ParticleList | undefined {
-    if (ctx.particles) return ctx.particles;
+type HierarchicalParticleList = ParticleList & Required<Pick<ParticleList, 'compartments' | 'entities'>>
+
+function getParticleList(ctx: ThemeDataContext): HierarchicalParticleList | undefined {
+    if (ctx.particles?.compartments && ctx.particles.entities) return ctx.particles as HierarchicalParticleList;
     return undefined;
 }
 
@@ -54,7 +56,7 @@ interface HierarchyColors {
     /** Per-particle index into `colors`, -1 for particles without a compartment. */
     colorIndex: Int32Array
     colors: Color[]
-    /** Base color and label per compartment (per entity group if there are no compartments). */
+    /** Base color and label per compartment. */
     baseColors: Color[]
     baseLabels: string[]
 }
@@ -75,9 +77,8 @@ function getBaseColors(count: number, props: Props): Color[] {
     return colors;
 }
 
-function getEntityGroups(particles: ParticleList, by: Props['by']): EntityGroups | undefined {
+function getEntityGroups(particles: HierarchicalParticleList, by: Props['by']): EntityGroups {
     const { count, entities, entityInfo } = particles;
-    if (!entities) return undefined;
 
     if (by === 'function') {
         // Entities sharing a function are grouped together, entities without one stay ungrouped.
@@ -106,36 +107,11 @@ function getEntityGroups(particles: ParticleList, by: Props['by']): EntityGroups
     return { groups: entities, getLabel: g => entityInfo?.get(g)?.name ?? `Entity ${g}` };
 }
 
-function buildEntityColors(particles: ParticleList, entityGroups: EntityGroups | undefined, props: Props): HierarchyColors {
-    const { count } = particles;
-    const colorIndex = new Int32Array(count).fill(-1);
-    const labels: string[] = [];
-    if (!entityGroups) return { colorIndex, colors: [], baseColors: [], baseLabels: labels };
-
-    const { groups, getLabel } = entityGroups;
-    const groupMap = new Map<number, number>();
-    for (let i = 0; i < count; ++i) {
-        const g = groups[i];
-        if (g >= 0 && !groupMap.has(g)) {
-            groupMap.set(g, groupMap.size);
-            labels.push(getLabel(g));
-        }
-    }
-    for (let i = 0; i < count; ++i) {
-        const g = groups[i];
-        if (g >= 0) colorIndex[i] = groupMap.get(g)!;
-    }
-
-    const colors = getBaseColors(groupMap.size, props);
-    return { colorIndex, colors, baseColors: colors, baseLabels: labels };
-}
-
-function buildHierarchyColors(particles: ParticleList, props: Props): HierarchyColors {
+function buildHierarchyColors(particles: HierarchicalParticleList, props: Props): HierarchyColors {
     const { count, compartments, compartmentInfo } = particles;
     const entityGroups = getEntityGroups(particles, props.by);
-    if (!compartments) return buildEntityColors(particles, entityGroups, props);
 
-    const groups = entityGroups?.groups;
+    const groups = entityGroups.groups;
     const colorIndex = new Int32Array(count).fill(-1);
     const colors: Color[] = [];
     const baseLabels: string[] = [];
@@ -159,7 +135,7 @@ function buildHierarchyColors(particles: ParticleList, props: Props): HierarchyC
             hasNoEntity.push(false);
         }
 
-        const e = groups ? groups[i] : -1;
+        const e = groups[i];
         if (e < 0) {
             hasNoEntity[ci] = true;
         } else if (!entityMaps[ci].has(e)) {
@@ -194,7 +170,7 @@ function buildHierarchyColors(particles: ParticleList, props: Props): HierarchyC
         if (c < 0) continue;
 
         const ci = compartmentMap.get(c)!;
-        const e = groups ? groups[i] : -1;
+        const e = groups[i];
         colorIndex[i] = e < 0
             ? noEntitySlots[ci]
             : entityOffsets[ci] + entityMaps[ci].get(e)!;
@@ -204,7 +180,7 @@ function buildHierarchyColors(particles: ParticleList, props: Props): HierarchyC
 }
 
 export function getParticleHierarchyColorThemeParams(ctx: ThemeDataContext) {
-    return PD.clone(ParticleHierarchyColorThemeParams);
+    return ParticleHierarchyColorThemeParams;
 }
 
 export function ParticleHierarchyColorTheme(ctx: ThemeDataContext, props: Props): ColorTheme<ParticleHierarchyColorThemeParams> {

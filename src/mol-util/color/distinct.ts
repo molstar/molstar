@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -247,7 +247,7 @@ const BaseColors = [0x377eb8, 0xe41a1c, 0x4daf4a, 0x984ea3, 0xff7f00, 0xffff33, 
 export function getDistinctBaseColors(count: number, shift: number, props?: Partial<DistinctColorsProps>): Color[] {
     let colors: Color[];
     if (count <= BaseColors.length) {
-        colors = BaseColors.slice(0, count).map(e => Array.isArray(e) ? e[0] : e);
+        colors = BaseColors.slice(0, count);
     } else {
         colors = distinctColors(count, {
             hue: [1, 360],

@@ -37,19 +37,13 @@ function getEntityCount(particles: ParticleList, by: Props['by']): number {
 
     if (by === 'function') {
         const functions = new Set<string>();
-        entityInfo?.forEach((info, entityIdx) => {
-            if (entityIdx >= 0 && info.function !== undefined) functions.add(info.function);
+        entityInfo?.forEach(info => {
+            if (info.function) functions.add(info.function);
         });
         return functions.size;
     }
 
-    if (entityInfo) {
-        let count = 0;
-        entityInfo.forEach((_, entityIdx) => {
-            if (entityIdx >= 0) ++count;
-        });
-        return count;
-    }
+    if (entityInfo) return entityInfo.size;
 
     const entitySet = new Set<number>();
     for (let i = 0, il = entities.length; i < il; ++i) {
