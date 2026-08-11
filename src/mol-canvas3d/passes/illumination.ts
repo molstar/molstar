@@ -494,7 +494,9 @@ export class IlluminationPass {
             state.enable(gl.BLEND);
             state.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         }
+        if (isTimingMode) this.webgl.timer.mark('IlluminationPass.compose');
         this.composeRenderable.render();
+        if (isTimingMode) this.webgl.timer.markEnd('IlluminationPass.compose');
 
         //
 

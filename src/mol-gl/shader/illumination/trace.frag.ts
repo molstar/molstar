@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -105,14 +105,20 @@ struct RayHitInfo {
 
 //
 
+bool isOutOfBounds(const in vec2 coords) {
+    return coords.x < uBounds.x || coords.x > uBounds.z || coords.y < uBounds.y || coords.y > uBounds.w;
+}
+
 float getDepth(const in vec2 coords) {
-    vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
-    return texture2D(tDepth, c).r;
+    // treat off-screen samples as background so rays escape to the environment
+    // instead of clamping to edge texels (which causes false hits and edge halos)
+    if (isOutOfBounds(coords)) return 1.0;
+    return texture2D(tDepth, coords).r;
 }
 
 float getThickness(const in vec2 coords) {
-    vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
-    return unpackRGBAToDepth(texture2D(tThickness, c));
+    if (isOutOfBounds(coords)) return 1.0;
+    return unpackRGBAToDepth(texture2D(tThickness, coords));
 }
 
 bool isBackground(const in float depth) {
@@ -127,36 +133,38 @@ float getViewZ(const in float depth) {
     #endif
 }
 
-vec2 viewSpaceToScreenSpace(const vec3 position) {
-    vec4 projectedCoord = uProjection * vec4(position, 1.0);
-    projectedCoord.xy /= projectedCoord.w;
-    // [-1, 1] --> [0, 1] (NDC to screen position)
-    projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
-    return projectedCoord.xy;
+vec2 clipToScreenSpace(const in vec4 clip) {
+    // perspective divide, then [-1, 1] --> [0, 1] (NDC to screen position)
+    return clip.xy / clip.w * 0.5 + 0.5;
 }
 
-vec2 binarySearch(inout vec3 dir, inout vec3 hitPos) {
+vec2 binarySearch(inout vec3 dir, inout vec3 hitPos, inout vec4 clipDir, inout vec4 clipPos) {
     float rayHitDepthDifference;
     vec2 coords;
 
     dir *= 0.5;
     hitPos -= dir;
+    clipDir *= 0.5;
+    clipPos -= clipDir;
 
     for (int i = 0; i < dRefineSteps; i++) {
-        coords = viewSpaceToScreenSpace(hitPos);
+        coords = clipToScreenSpace(clipPos);
         float depth = getDepth(coords);
         float z = getViewZ(depth);
         rayHitDepthDifference = z - hitPos.z;
 
         dir *= 0.5;
+        clipDir *= 0.5;
         if (rayHitDepthDifference >= 0.0) {
             hitPos -= dir;
+            clipPos -= clipDir;
         } else {
             hitPos += dir;
+            clipPos += clipDir;
         }
     }
 
-    coords = viewSpaceToScreenSpace(hitPos);
+    coords = clipToScreenSpace(clipPos);
 
     return coords;
 }
@@ -165,20 +173,59 @@ float calculateGrowthFactor(float begin, float end, float steps) {
     return pow(end / begin, 1.0 / steps);
 }
 
-vec2 rayMarch(in vec3 dir, in float thickness, inout vec3 hitPos, out bool missed) {
+vec2 rayMarch(in vec3 dir, in float thickness, inout vec3 hitPos, inout StateType state, out bool missed) {
     float rayHitDepthDifference;
-    vec2 coords;
+    vec2 coords = vec2(0.0);
 
     float begin = float(dFirstStepSize);
-    dir *= begin;
+
+    dir = normalize(dir);
+
+    // ensure the first (smallest) step advances at least one texel on screen so that
+    // consecutive samples never land on the same pixel (sub-pixel steps just waste
+    // work and alias). texelsPerUnit is the perspective-correct screen velocity at the
+    // ray origin (also valid for orthographic). Skip near view-axis rays, which barely
+    // move on screen and would need a step larger than the whole ray to separate.
+    vec4 clipOrigin = uProjection * vec4(hitPos, 1.0);
+    vec4 clipStep = uProjection * vec4(dir, 0.0);
+    float texelsPerUnit = length((clipStep.xy * clipOrigin.w - clipOrigin.xy * clipStep.w) / (clipOrigin.w * clipOrigin.w) * 0.5 * uTexSize);
+    float minStep = 1.0 / max(texelsPerUnit, EPSILON);
+    if (minStep <= uRayDistance) {
+        begin = max(begin, minStep);
+    }
+
     missed = false;
     float gf = calculateGrowthFactor(begin, uRayDistance, float(dSteps));
 
-    for (int i = 1; i < dSteps; i++) {
-        hitPos += dir;
-        dir *= gf;
+    // jitter the ray start by a fraction of the first step to break up the
+    // deterministic stepping pattern into noise the accumulator/denoiser removes
+    float traveled = begin * randomFloat(state);
+    hitPos += dir * traveled;
 
-        coords = viewSpaceToScreenSpace(hitPos);
+    dir *= begin;
+
+    // forward-difference the projection: a view-space line projects to a straight
+    // line in clip space, so the clip position/step can be advanced incrementally
+    // (perspective-correct after the per-sample w divide) instead of recomputing a
+    // full mat4 multiply every step
+    vec4 clipPos = uProjection * vec4(hitPos, 1.0);
+    vec4 clipDir = uProjection * vec4(dir, 0.0);
+
+    for (int i = 1; i < dSteps; i++) {
+        float stepDistance = length(dir);
+        if (traveled + stepDistance > uRayDistance) break;
+
+        hitPos += dir;
+        traveled += stepDistance;
+        clipPos += clipDir;
+        dir *= gf;
+        clipDir *= gf;
+
+        coords = clipToScreenSpace(clipPos);
+        if (isOutOfBounds(coords)) {
+            missed = true;
+            return coords;
+        }
         float depth = getDepth(coords);
         float z = getViewZ(depth);
         rayHitDepthDifference = z - hitPos.z;
@@ -195,7 +242,7 @@ vec2 rayMarch(in vec3 dir, in float thickness, inout vec3 hitPos, out bool misse
             if (dRefineSteps == 0) {
                 return coords;
             } else {
-                return binarySearch(dir, hitPos);
+                return binarySearch(dir, hitPos, clipDir, clipPos);
             }
         }
     }
@@ -207,17 +254,27 @@ vec2 rayMarch(in vec3 dir, in float thickness, inout vec3 hitPos, out bool misse
 
 //
 
-void trace(in vec3 rayPos, in vec3 rayDir, inout RayHitInfo hitInfo) {
+void trace(in vec3 rayPos, in vec3 rayDir, inout RayHitInfo hitInfo, inout StateType state) {
     vec3 hitPos = vec3(rayPos);
     bool missed;
     vec2 coords;
-    coords = rayMarch(rayDir, 0.0, hitPos, missed);
+    coords = rayMarch(rayDir, 0.0, hitPos, state, missed);
 
     hitInfo.missed = missed;
     hitInfo.position = hitPos;
-    hitInfo.normal = -texture2D(tNormal, coords).rgb;
-    hitInfo.color = texture2D(tColor, coords).rgb;
-    hitInfo.emissive = texture2D(tColor, coords).rgb * texture2D(tNormal, coords).a * 2.0;
+    if (missed) {
+        hitInfo.normal = vec3(0.0);
+        hitInfo.color = vec3(0.0);
+        hitInfo.emissive = vec3(0.0);
+        return;
+    }
+
+    vec4 color = texture2D(tColor, coords);
+    vec4 normal = texture2D(tNormal, coords);
+
+    hitInfo.normal = -normal.rgb;
+    hitInfo.color = color.rgb;
+    hitInfo.emissive = color.rgb * normal.a * 2.0;
 
     float depth = getDepth(coords);
     if (isBackground(depth)) {
@@ -243,11 +300,12 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
             vec2 coords = gl_FragCoord.xy / uTexSize;
             float depth = getDepth(coords);
 
+            vec4 normal = texture2D(tNormal, coords);
             hitInfo.missed = false;
             hitInfo.position = screenSpaceToViewSpace(vec3(coords, depth), uInvProjection);
-            hitInfo.normal = -texture2D(tNormal, coords).rgb;
+            hitInfo.normal = -normal.rgb;
             hitInfo.color = texture2D(tShaded, coords).rgb;
-            hitInfo.emissive = texture2D(tColor, coords).rgb * texture2D(tNormal, coords).a;
+            hitInfo.emissive = texture2D(tColor, coords).rgb * normal.a;
 
             // shadow
             #ifdef dShadowEnable
@@ -260,7 +318,7 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
                         missed = false;
                         hitPos = viewPos + hitInfo.normal * RayPosNormalNudge;
                         hitPos += -uLightDirection[i] * (randomFloat(rngState));
-                        rayMarch(-uLightDirection[i] + randomUnitVector(rngState) * uShadowSoftness, uShadowThickness, hitPos, missed);
+                        rayMarch(-uLightDirection[i] + randomUnitVector(rngState) * uShadowSoftness, uShadowThickness, hitPos, rngState, missed);
                         if (missed) directLight += uLightColor[i];
                     }
                     #pragma unroll_loop_end
@@ -273,7 +331,7 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
             }
         } else {
             prevHitInfo = hitInfo;
-            trace(rayPos, rayDir, hitInfo);
+            trace(rayPos, rayDir, hitInfo, rngState);
         }
 
         // if the ray missed, we are done
@@ -310,7 +368,8 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
         rayPos = hitInfo.position + hitInfo.normal * RayPosNormalNudge;
 
         // new ray direction from normal oriented cosine weighted hemisphere sample
-        rayDir = normalize(hitInfo.normal + randomUnitVector(rngState));
+        vec3 sampleDir = hitInfo.normal + randomUnitVector(rngState);
+        rayDir = dot(sampleDir, sampleDir) > EPSILON ? normalize(sampleDir) : hitInfo.normal;
 
         if (bounceIndex == 0) {
             continue;
@@ -323,7 +382,9 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
         // As the throughput gets smaller, the ray is more likely to get terminated early.
         // Survivors have their value boosted to make up for fewer samples being in the average.
         {
-            float p = max(throughput.r, max(throughput.g, throughput.b));
+            float p = min(max(throughput.r, max(throughput.g, throughput.b)), 1.0);
+            if (p <= 0.0)
+                break;
             if (randomFloat(rngState) > p)
                 break;
 
