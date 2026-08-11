@@ -16,6 +16,7 @@ import { ModelFormat } from '../format';
 import { binaryCifHasColumn, getBinaryCifHeader } from '../../mol-io/common/binary-cif';
 import { StringLike } from '../../mol-io/common/string-like';
 import { FileNameInfo } from '../../mol-util/file-info';
+import { RuntimeContext } from '../../mol-task';
 
 export type MmcifVariant = 'auto' | 'cellpack' | 'petworld' | 'standard';
 
@@ -102,12 +103,12 @@ export function getAsymIdsFromMmcif(cifFile: CifFile, assemblyId: string): strin
     return Array.from(ids).sort();
 }
 
-export function createParticleListFromMmcifAssembly(cifFile: CifFile, options: MmcifAssemblyParticleListOptions): ParticleList {
+export async function createParticleListFromMmcifAssembly(cifFile: CifFile, options: MmcifAssemblyParticleListOptions, ctx: RuntimeContext): Promise<ParticleList> {
     const block = cifFile.blocks[0];
     if (!block) throw new Error('CIF file contains no data blocks.');
     const variant = resolveVariant(block, options.variant);
-    if (variant === 'petworld') return buildPetworldParticleList(cifFile, block, options);
-    return buildCellpackStandardParticleList(cifFile, block, options, variant);
+    if (variant === 'petworld') return await buildPetworldParticleList(cifFile, block, options, ctx);
+    return await buildCellpackStandardParticleList(cifFile, block, options, variant, ctx);
 }
 
 /** The centroid of a group of `_atom_site` rows and their maximum distance from it. */
@@ -120,8 +121,9 @@ interface AtomSiteBounds {
  * Applying the operator of a particle to the centroid of its reference atoms gives a meaningful
  * position even when the operator has zero translation (pure rotation).
  */
-function getAtomSiteBounds<K>(db: mmCIF_Database, key: (row: number) => K): Map<K, AtomSiteBounds> {
+async function getAtomSiteBounds<K>(db: mmCIF_Database, key: (row: number) => K, ctx: RuntimeContext): Promise<Map<K, AtomSiteBounds>> {
     const { Cartn_x, Cartn_y, Cartn_z, _rowCount } = db.atom_site;
+    const updateChunk = 10000;
 
     interface Accum { x: number, y: number, z: number, n: number, radiusSq: number }
     const accums = new Map<K, Accum>();
@@ -137,6 +139,9 @@ function getAtomSiteBounds<K>(db: mmCIF_Database, key: (row: number) => K): Map<
         acc.y += Cartn_y.value(i);
         acc.z += Cartn_z.value(i);
         acc.n++;
+        if (i % updateChunk === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Calculating particle bounds', current: i, max: _rowCount * 2 });
+        }
     }
 
     for (const acc of accums.values()) {
@@ -152,6 +157,9 @@ function getAtomSiteBounds<K>(db: mmCIF_Database, key: (row: number) => K): Map<
         const dz = Cartn_z.value(i) - acc.z;
         const d2 = dx * dx + dy * dy + dz * dz;
         if (d2 > acc.radiusSq) acc.radiusSq = d2;
+        if (i % updateChunk === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Calculating particle bounds', current: _rowCount + i, max: _rowCount * 2 });
+        }
     }
 
     const bounds = new Map<K, AtomSiteBounds>();
@@ -172,12 +180,13 @@ function resolveVariant(block: CifBlock, requested?: MmcifVariant): 'cellpack' |
     return requested;
 }
 
-function buildCellpackStandardParticleList(
+async function buildCellpackStandardParticleList(
     cifFile: CifFile,
     block: CifBlock,
     options: MmcifAssemblyParticleListOptions,
-    variant: 'cellpack' | 'standard'
-): ParticleList {
+    variant: 'cellpack' | 'standard',
+    ctx: RuntimeContext
+): Promise<ParticleList> {
     const db = toDatabase(mmCIF_Schema, block);
     const { pdbx_struct_assembly_gen, pdbx_struct_oper_list } = db;
 
@@ -257,11 +266,15 @@ function buildCellpackStandardParticleList(
     const entityNameToIdx = new Map<string, number>();
 
     const { label_asym_id: siteAsymId, label_entity_id: siteEntityId } = db.atom_site;
-    const chainBounds = getAtomSiteBounds(db, i => siteAsymId.value(i));
+    const chainBounds = await getAtomSiteBounds(db, i => siteAsymId.value(i), ctx);
     const chainToEntityId = new Map<string, string>();
+    const updateChunk = 10000;
     for (let i = 0, il = db.atom_site._rowCount; i < il; i++) {
         const chain = siteAsymId.value(i);
         if (!chainToEntityId.has(chain)) chainToEntityId.set(chain, siteEntityId.value(i));
+        if (i % updateChunk === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Mapping particle chains', current: i, max: il });
+        }
     }
 
     let fiberCount = 0;
@@ -363,9 +376,15 @@ function buildCellpackStandardParticleList(
                 labelCombo[count] = ci;
                 if (isFiber) fiberIndices[fiberPosition++] = count;
                 count++;
+                if (count % updateChunk === 0 && ctx.shouldUpdate) {
+                    await ctx.update({ message: 'Building particles', current: count, max: totalCount });
+                }
             }
             if (isFiber) fiberOffsets[++fiberIndex] = fiberPosition;
         }
+    }
+    if (ctx.shouldUpdate) {
+        await ctx.update({ message: 'Building particles', current: count, max: totalCount });
     }
 
     const chainMapping = new Map<number, string>();
@@ -413,11 +432,12 @@ function buildCellpackStandardParticleList(
     };
 }
 
-function buildPetworldParticleList(
+async function buildPetworldParticleList(
     cifFile: CifFile,
     block: CifBlock,
-    options: MmcifAssemblyParticleListOptions
-): ParticleList {
+    options: MmcifAssemblyParticleListOptions,
+    ctx: RuntimeContext
+): Promise<ParticleList> {
     const db = toDatabase(mmCIF_Schema, block);
     const { pdbx_struct_assembly_gen, pdbx_struct_oper_list } = db;
 
@@ -487,12 +507,13 @@ function buildPetworldParticleList(
     const entityNameToIdx = new Map<string, number>();
 
     const { pdbx_PDB_model_num: siteModelNum } = db.atom_site;
-    const modelBounds = getAtomSiteBounds(db, i => siteModelNum.value(i));
+    const modelBounds = await getAtomSiteBounds(db, i => siteModelNum.value(i), ctx);
 
     const combined = Mat4();
     const quaternion = Quat();
     const centroid = Vec3();
     const position = Vec3();
+    const updateChunk = 10000;
 
     let count = 0;
     for (let ei = 0, eil = entries.length; ei < eil; ei++) {
@@ -531,7 +552,13 @@ function buildPetworldParticleList(
             labelEntry[count] = ei;
             labelCombo[count] = ci;
             count++;
+            if (count % updateChunk === 0 && ctx.shouldUpdate) {
+                await ctx.update({ message: 'Building particles', current: count, max: totalCount });
+            }
         }
+    }
+    if (ctx.shouldUpdate) {
+        await ctx.update({ message: 'Building particles', current: count, max: totalCount });
     }
 
     // Build entityInfo: entity index → model name.
