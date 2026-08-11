@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Improve illumination rendering
+    - Add depth-aware denoising
+    - Optimize screen-space ray marching
 - Added support for molecular atom_style in lammps data files
 - Added element symbol detection in lammps data file
 - Fix inconsistent atomic weight for some elements in `ElementAtomWeights`
