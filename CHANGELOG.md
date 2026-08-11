@@ -36,6 +36,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fast option fits ellipsoids to bins
     - Artistic option fits spherical harmonics to bins
 - Fix camera reset handling for (temporary) empty scenes (#1903)
+- Remove `firstStepSize` tracing parameter, derive automatically
 
 - Camera improvements
   - Support multiple camera transition shapes

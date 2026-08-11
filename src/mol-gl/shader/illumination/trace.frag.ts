@@ -52,10 +52,6 @@ uniform mat4 uInvProjection;
 
 //
 
-// after a hit, it moves the ray this far along the normal away from a surface.
-// Helps prevent incorrect intersections when rays bounce off of objects.
-#define RayPosNormalNudge 0.0001
-
 #if __VERSION__ == 100
     #define StateType float
 
@@ -135,6 +131,15 @@ vec2 viewSpaceToScreenSpace(const vec3 position) {
     return projectedCoord.xy;
 }
 
+float getRayOffset(const vec3 position) {
+    vec4 projectedCoord = uProjection * vec4(position, 1.0);
+    projectedCoord.xyz /= projectedCoord.w;
+    projectedCoord.xyz = projectedCoord.xyz * 0.5 + 0.5;
+    float viewportWidth = uTexSize.x * (uBounds.z - uBounds.x);
+    vec3 adjacentPosition = screenSpaceToViewSpace(vec3(projectedCoord.xy + vec2(1.0 / viewportWidth, 0.0), projectedCoord.z), uInvProjection);
+    return max(distance(position, adjacentPosition) * 0.1, 0.0001);
+}
+
 vec2 binarySearch(inout vec3 dir, inout vec3 hitPos) {
     float rayHitDepthDifference;
     vec2 coords;
@@ -169,14 +174,13 @@ vec2 rayMarch(in vec3 dir, in float thickness, inout vec3 hitPos, out bool misse
     float rayHitDepthDifference;
     vec2 coords;
 
-    float begin = float(dFirstStepSize);
+    float begin = getRayOffset(hitPos);
     dir *= begin;
     missed = false;
     float gf = calculateGrowthFactor(begin, uRayDistance, float(dSteps));
 
     for (int i = 1; i < dSteps; i++) {
         hitPos += dir;
-        dir *= gf;
 
         coords = viewSpaceToScreenSpace(hitPos);
         float depth = getDepth(coords);
@@ -198,6 +202,8 @@ vec2 rayMarch(in vec3 dir, in float thickness, inout vec3 hitPos, out bool misse
                 return binarySearch(dir, hitPos);
             }
         }
+
+        dir *= gf;
     }
 
     missed = true;
@@ -258,7 +264,7 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
                     vec3 hitPos;
                     for (int i = 0; i < dLightCount; ++i) {
                         missed = false;
-                        hitPos = viewPos + hitInfo.normal * RayPosNormalNudge;
+                        hitPos = viewPos + hitInfo.normal * getRayOffset(viewPos);
                         hitPos += -uLightDirection[i] * (randomFloat(rngState));
                         rayMarch(-uLightDirection[i] + randomUnitVector(rngState) * uShadowSoftness, uShadowThickness, hitPos, missed);
                         if (missed) directLight += uLightColor[i];
@@ -307,7 +313,7 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
         ret += hitInfo.emissive * throughput;
 
         // update the ray position
-        rayPos = hitInfo.position + hitInfo.normal * RayPosNormalNudge;
+        rayPos = hitInfo.position + hitInfo.normal * getRayOffset(hitInfo.position);
 
         // new ray direction from normal oriented cosine weighted hemisphere sample
         rayDir = normalize(hitInfo.normal + randomUnitVector(rngState));
