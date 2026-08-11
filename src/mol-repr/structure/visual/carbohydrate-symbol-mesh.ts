@@ -234,7 +234,9 @@ function eachCarbohydrate(loci: Loci, structure: Structure, apply: (interval: In
             for (let i = 0, il = elementIndices.length; i < il; ++i) {
                 if (!__elementIndicesSet.has(elementIndices[i])) {
                     __elementIndicesSet.add(elementIndices[i]);
-                    if (apply(Interval.ofSingleton(elementIndices[i] * 2))) changed = true;
+                    const firstGroup = elementIndices[i] * 2;
+                    const groupInterval = Interval.ofRange(firstGroup, firstGroup + 1); // each residue has up to 2 groups
+                    if (apply(groupInterval)) changed = true;
                 }
             }
         });
