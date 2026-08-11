@@ -101,6 +101,7 @@ float getSsaoTransparent(vec2 coords) {
 //  float threshold   - edge sharpening threshold
 
 float NormalWeightStrength = 6.0;
+float DepthWeightStrength = 20.0;
 
 vec4 smartDeNoise(sampler2D tex, vec2 uv) {
     float sigma = 3.0;
@@ -121,9 +122,16 @@ vec4 smartDeNoise(sampler2D tex, vec2 uv) {
 
     vec3 normal = texture2D(tNormal, uv).xyz;
 
+    // depth used as an edge-stopping term so coplanar surfaces at different
+    // depths (similar normals across a silhouette) don't bleed together;
+    // scaled relative to the center distance to stay scene-scale independent
+    float centerViewZ = getViewZ(getDepthOpaque(uv));
+    float invDepthScale = DepthWeightStrength / max(abs(centerViewZ), EPSILON);
+
     for (int x = -6; x <= 6; ++x) {
         for (int y = -6; y <= 6; ++y) {
             vec2 d = vec2(float(x), float(y));
+            if (dot(d, d) > kSigma * kSigma * sigma * sigma) continue;
 
             float blurFactor = exp(-dot(d , d) * invSigmaQx2) * invSigmaQx2PI;
             vec2 uvSample = uv + d / uTexSize;
@@ -132,6 +140,10 @@ vec4 smartDeNoise(sampler2D tex, vec2 uv) {
             float normalW = saturate(dot(normal, normalSample));
             normalW = pow(normalW, NormalWeightStrength);
             blurFactor *= normalW;
+
+            float sampleViewZ = getViewZ(getDepthOpaque(uvSample));
+            float depthW = exp(-abs(sampleViewZ - centerViewZ) * invDepthScale);
+            blurFactor *= depthW;
 
             vec4 walkPx = texture2D(tex, uvSample);
 
@@ -153,7 +165,7 @@ vec4 smartDeNoise(sampler2D tex, vec2 uv) {
 int squaredOutlineScale = dOutlineScale * dOutlineScale;
 void getOutline(const in vec2 coords, out bool hasOpaque, out bool hasTransparent, out float opaqueDepth, out float transparentDepth, out float alpha) {
     vec2 invTexSize = 1.0 / uTexSize;
-    
+
     hasOpaque = false;
     hasTransparent = false;
     opaqueDepth = 1.0;
@@ -174,14 +186,14 @@ void getOutline(const in vec2 coords, out bool hasOpaque, out bool hasTransparen
 
             float sampleFlag = sampleFlagWithAlpha.x;
             float sampleAlpha = clamp(sampleFlagWithAlpha.y * 0.5, 0.01, 1.0);
-            
+
             if ((sampleFlag > 0.20 && sampleFlag < 0.30) || (sampleFlag > 0.70 && sampleFlag < 0.80)) { // transparent || both
                 if (sampleOpaqueDepth < opaqueDepth) {
                     hasOpaque = true;
                     opaqueDepth = sampleOpaqueDepth;
                 }
             }
-            
+
             if ((((sampleFlag > 0.45 && sampleFlag < 0.55) || (sampleFlag > 0.70 && sampleFlag < 0.80))) && sampleTransparentDepth < transparentDepth) { // transparent || both
                 hasTransparent = true;
                 transparentDepth = sampleTransparentDepth;
@@ -255,15 +267,15 @@ void main() {
         if (hasOpaque) {
             float viewDist = abs(getViewZ(outlineOpaqueDepth));
             float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
-            if (!uTransparentBackground) {                    
+            if (!uTransparentBackground) {
                 color.rgb = mix(uOutlineColor, uFogColor, fogFactor);
             } else {
                 alpha = 1.0 - fogFactor;
                 color.rgb = mix(uOutlineColor, vec3(0.0), fogFactor);
             }
-        }  
+        }
 
-        #ifdef dBlendTransparency            
+        #ifdef dBlendTransparency
             if (hasTransparent) {
                 if (hasOpaque && outlineOpaqueDepth < outlineTransparentDepth) {
                     blendTransparency = false;
