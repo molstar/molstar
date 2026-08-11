@@ -61,7 +61,8 @@ export interface MmcifAssemblyParticleListOptions {
     /**
      * Which mmCIF variant to use for building the particle list.
      * - `'auto'` (default): detect automatically from the CIF block header and categories.
-     * - `'cellpack'`: interpret `_entity.pdbx_description` as a dot-separated `compartment.entityName` path.
+    * - `'cellpack'`: interpret `_entity.pdbx_description` as a dot-separated `compartment.entityName` path;
+    *   entities below a `.fibers` compartment use assembly-gen rows as ordered fibers.
      * - `'standard'`: like cellpack but treat `_entity.pdbx_description` as a plain entity name only.
      * - `'petworld'`: read the non-standard `_pdbx_struct_assembly_gen.PDB_model_num` field;
      *   one particle per operator combo per gen row.
@@ -227,17 +228,21 @@ function buildCellpackStandardParticleList(
     // In the 'cellpack' variant, descriptions are dot-separated paths:
     //   compartment = all segments except the last  (e.g. "root.mge.surface.proteins")
     //   entity name = last segment                  (e.g. "MG_191_192_NAP")
-    // In the 'standard' variant, the full description is used as the entity name with no compartment.
+    // CellPack entities whose penultimate segment is "fibers" use each assembly-gen row as
+    // a separate ordered fiber. In the 'standard' variant, the full description is used as
+    // the entity name with no compartment.
     const entityToCompartment = new Map<string, string>();
     const entityToName = new Map<string, string>();
+    const fiberEntityIds = new Set<string>();
     for (let i = 0, il = db.entity._rowCount; i < il; i++) {
         const entityId = db.entity.id.value(i);
         const desc = db.entity.pdbx_description.value(i).join(',');
         if (variant === 'cellpack') {
-            const dotIdx = desc.lastIndexOf('.');
-            if (dotIdx > 0) {
-                entityToCompartment.set(entityId, desc.substring(0, dotIdx));
-                entityToName.set(entityId, desc.substring(dotIdx + 1));
+            const segments = desc.split('.');
+            if (segments.length > 1) {
+                entityToCompartment.set(entityId, segments.slice(0, -1).join('.'));
+                entityToName.set(entityId, segments[segments.length - 1]);
+                if (segments[segments.length - 2] === 'fibers') fiberEntityIds.add(entityId);
             } else if (desc) {
                 entityToName.set(entityId, desc);
             }
@@ -251,18 +256,6 @@ function buildCellpackStandardParticleList(
     // Build unique entity name → index map (populated lazily below).
     const entityNameToIdx = new Map<string, number>();
 
-    const keys = new Int32Array(totalCount);
-    const targets = new Int32Array(totalCount);
-    const compartments = new Int32Array(totalCount).fill(-1);
-    const entities = new Int32Array(totalCount).fill(-1);
-    const coordinates = new Float32Array(totalCount * 3);
-    const rotations = new Float32Array(totalCount * 4);
-    const radii = new Float32Array(totalCount);
-
-    // Per-particle metadata for labels, kept as indices so no string is allocated per particle.
-    const labelEntry = new Int32Array(totalCount);
-    const labelCombo = new Int32Array(totalCount);
-
     const { label_asym_id: siteAsymId, label_entity_id: siteEntityId } = db.atom_site;
     const chainBounds = getAtomSiteBounds(db, i => siteAsymId.value(i));
     const chainToEntityId = new Map<string, string>();
@@ -270,6 +263,34 @@ function buildCellpackStandardParticleList(
         const chain = siteAsymId.value(i);
         if (!chainToEntityId.has(chain)) chainToEntityId.set(chain, siteEntityId.value(i));
     }
+
+    let fiberCount = 0;
+    let fiberPointCount = 0;
+    for (const entry of entries) {
+        if (entry.combinations.count < 2) continue;
+        for (const chain of asym_id_list.value(entry.genIndex)) {
+            if (asymFilter && !asymFilter.has(chain)) continue;
+            const entityId = chainToEntityId.get(chain);
+            if (entityId !== undefined && fiberEntityIds.has(entityId)) {
+                fiberCount++;
+                fiberPointCount += entry.combinations.count;
+            }
+        }
+    }
+
+    const keys = new Int32Array(totalCount);
+    const targets = new Int32Array(totalCount);
+    const compartments = new Int32Array(totalCount).fill(-1);
+    const entities = new Int32Array(totalCount).fill(-1);
+    const coordinates = new Float32Array(totalCount * 3);
+    const rotations = new Float32Array(totalCount * 4);
+    const radii = new Float32Array(totalCount);
+    const fiberOffsets = new Int32Array(fiberCount + 1);
+    const fiberIndices = new Int32Array(fiberPointCount);
+
+    // Per-particle metadata for labels, kept as indices so no string is allocated per particle.
+    const labelEntry = new Int32Array(totalCount);
+    const labelCombo = new Int32Array(totalCount);
 
     const combined = Mat4();
     const quaternion = Quat();
@@ -287,6 +308,8 @@ function buildCellpackStandardParticleList(
     }
 
     let count = 0;
+    let fiberIndex = 0;
+    let fiberPosition = 0;
     for (let ei = 0, eil = entries.length; ei < eil; ei++) {
         const entry = entries[ei];
         const chainGroup = asym_id_list.value(entry.genIndex);
@@ -295,6 +318,8 @@ function buildCellpackStandardParticleList(
             if (asymFilter && !asymFilter.has(chain)) continue;
             const bounds = chainBounds.get(chain);
             Vec3.copy(centroid, bounds ? bounds.center : Vec3.origin);
+            const entityId = chainToEntityId.get(chain);
+            const isFiber = entry.combinations.count >= 2 && entityId !== undefined && fiberEntityIds.has(entityId);
 
             for (let ci = 0, cil = entry.combinations.count; ci < cil; ci++) {
                 composeOperatorCombination(operators, entry.combinations, ci, combined);
@@ -318,7 +343,6 @@ function buildCellpackStandardParticleList(
                 keys[count] = count;
                 targets[count] = chainToTargetIdx.get(chain)!;
 
-                const entityId = chainToEntityId.get(chain);
                 const compartmentName = entityId !== undefined ? entityToCompartment.get(entityId) : undefined;
                 if (compartmentName !== undefined) {
                     if (!compartmentNameToIdx.has(compartmentName)) {
@@ -337,8 +361,10 @@ function buildCellpackStandardParticleList(
 
                 labelEntry[count] = ei;
                 labelCombo[count] = ci;
+                if (isFiber) fiberIndices[fiberPosition++] = count;
                 count++;
             }
+            if (isFiber) fiberOffsets[++fiberIndex] = fiberPosition;
         }
     }
 
@@ -374,6 +400,7 @@ function buildCellpackStandardParticleList(
         coordinates,
         rotations,
         radii,
+        fibers: fiberCount > 0 ? { count: fiberCount, offsets: fiberOffsets, indices: fiberIndices } : undefined,
         getParticleLabel: (index: number) => {
             const entity = entityInfo.get(entities[index]);
             const chain = chainMapping.get(targets[index]);

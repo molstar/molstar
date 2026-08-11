@@ -10,6 +10,7 @@ import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { getMatrices, expandOperators, parseOperatorList } from '../../structure/property/assembly';
 import { composeOperatorCombination, expandOperatorCombinations, formatOperatorCombination, getParticleOperator, getParticleOperatorId, getParticleOperatorIndex, readParticleOperators } from '../operators';
 import { Mat4 } from '../../../mol-math/linear-algebra/3d/mat4';
+import { createParticleListFromMmcifAssembly } from '../mmcif';
 
 const rows = [
     // id, matrix (row-major 3x3), vector
@@ -46,6 +47,62 @@ async function parseBlock(naming: 'brackets' | 'brackets0' | 'underscore', ids?:
     const parsed = await CIF.parseText(makeCif(naming, ids)).run();
     if (parsed.isError) throw new Error(parsed.message);
     return parsed.result.blocks[0];
+}
+
+const cellpackFiberCif = `data_cellpack_test
+loop_
+_entity.id
+_entity.pdbx_description
+1 root.test.fibers.F
+2 root.test.proteins.P
+3 root.test.fiber.N
+
+loop_
+_atom_site.label_asym_id
+_atom_site.label_entity_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+F 1 0 0 0
+P 2 0 0 0
+N 3 0 0 0
+
+loop_
+_pdbx_struct_assembly_gen.assembly_id
+_pdbx_struct_assembly_gen.oper_expression
+_pdbx_struct_assembly_gen.asym_id_list
+1 '(3,1,2)' F
+1 '(4-5)' F
+1 '(6)' F
+1 '(1-2)' P
+1 '(1-2)' N
+
+loop_
+_pdbx_struct_oper_list.id
+_pdbx_struct_oper_list.matrix[1][1]
+_pdbx_struct_oper_list.matrix[1][2]
+_pdbx_struct_oper_list.matrix[1][3]
+_pdbx_struct_oper_list.matrix[2][1]
+_pdbx_struct_oper_list.matrix[2][2]
+_pdbx_struct_oper_list.matrix[2][3]
+_pdbx_struct_oper_list.matrix[3][1]
+_pdbx_struct_oper_list.matrix[3][2]
+_pdbx_struct_oper_list.matrix[3][3]
+_pdbx_struct_oper_list.vector[1]
+_pdbx_struct_oper_list.vector[2]
+_pdbx_struct_oper_list.vector[3]
+1 1 0 0 0 1 0 0 0 1 10 0 0
+2 1 0 0 0 1 0 0 0 1 20 0 0
+3 1 0 0 0 1 0 0 0 1 30 0 0
+4 1 0 0 0 1 0 0 0 1 40 0 0
+5 1 0 0 0 1 0 0 0 1 50 0 0
+6 1 0 0 0 1 0 0 0 1 60 0 0
+`;
+
+async function parseCellpackFiberCif() {
+    const parsed = await CIF.parseText(cellpackFiberCif).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    return parsed.result;
 }
 
 describe('mmcif particle operators', () => {
@@ -148,5 +205,37 @@ describe('mmcif particle operators', () => {
         const ops = readParticleOperators(parsed.result.blocks[0]);
         expect(ops.count).toBe(0);
         expect(ops.data.length).toBe(0);
+    });
+});
+
+describe('CellPack mmCIF fibers', () => {
+    it('uses separate assembly-gen rows as ordered fibers', async () => {
+        const cif = await parseCellpackFiberCif();
+        const list = createParticleListFromMmcifAssembly(cif, { assemblyId: '1', variant: 'cellpack' });
+
+        expect(list.count).toBe(10);
+        expect(list.fibers).toBeDefined();
+        expect(list.fibers!.count).toBe(2);
+        expect(Array.from(list.fibers!.offsets)).toEqual([0, 3, 5]);
+        expect(Array.from(list.fibers!.indices)).toEqual([0, 1, 2, 3, 4]);
+        expect([list.coordinates[0], list.coordinates[3], list.coordinates[6]]).toEqual([30, 10, 20]);
+    });
+
+    it('respects asym filtering and omits singleton fibers', async () => {
+        const cif = await parseCellpackFiberCif();
+        const list = createParticleListFromMmcifAssembly(cif, { assemblyId: '1', asymIds: ['F'], variant: 'cellpack' });
+
+        expect(list.count).toBe(6);
+        expect(list.fibers!.count).toBe(2);
+        expect(Array.from(list.fibers!.offsets)).toEqual([0, 3, 5]);
+    });
+
+    it('does not infer fibers for ordinary entities or the standard variant', async () => {
+        const cif = await parseCellpackFiberCif();
+        const ordinary = createParticleListFromMmcifAssembly(cif, { assemblyId: '1', asymIds: ['P', 'N'], variant: 'cellpack' });
+        const standard = createParticleListFromMmcifAssembly(cif, { assemblyId: '1', asymIds: ['F'], variant: 'standard' });
+
+        expect(ordinary.fibers).toBeUndefined();
+        expect(standard.fibers).toBeUndefined();
     });
 });
