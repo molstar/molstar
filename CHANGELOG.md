@@ -32,12 +32,14 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support non-default CRYSIN setting in MOL2 format (#338)
 - Fix `ssao-blur` background test: the RG-packed depth never equals `1.0`, so background samples were blurred into geometry and produced a bright rim at the far-clip cutoff
 - Fix picking/hover-highlight of the nucleic cartoon polymer-trace on reduced trace structures returning empty: `getResidueLoci` now accounts for whole residue, not limited to unit.
+- Fix stale marker data in `VolumeVisual` when a geometry update changes the group count (e.g. switching `slice` mode), which mismarked unrelated groups and disabled the marking pass scene-wide
 - Add Spherical Harmonics to mol-math
 - Add `blob-surface` structure representation
     - Bin atoms to grid or cluster
     - Fast option fits ellipsoids to bins
     - Artistic option fits spherical harmonics to bins
 - Fix camera reset handling for (temporary) empty scenes (#1903)
+- Remove `firstStepSize` tracing parameter, derive automatically
 
 - Camera improvements
   - Support multiple camera transition shapes

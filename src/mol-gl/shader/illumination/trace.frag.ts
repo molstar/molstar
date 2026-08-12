@@ -135,6 +135,15 @@ vec2 viewSpaceToScreenSpace(const vec3 position) {
     return projectedCoord.xy;
 }
 
+float getRayOffset(const vec3 position) {
+    vec4 projectedCoord = uProjection * vec4(position, 1.0);
+    projectedCoord.xyz /= projectedCoord.w;
+    projectedCoord.xyz = projectedCoord.xyz * 0.5 + 0.5;
+    float viewportWidth = uTexSize.x * (uBounds.z - uBounds.x);
+    vec3 adjacentPosition = screenSpaceToViewSpace(vec3(projectedCoord.xy + vec2(1.0 / viewportWidth, 0.0), projectedCoord.z), uInvProjection);
+    return max(distance(position, adjacentPosition) * 0.1, 0.001);
+}
+
 vec2 binarySearch(inout vec3 dir, inout vec3 hitPos) {
     float rayHitDepthDifference;
     vec2 coords;
@@ -169,7 +178,7 @@ vec2 rayMarch(in vec3 dir, in float thickness, inout vec3 hitPos, out bool misse
     float rayHitDepthDifference;
     vec2 coords;
 
-    float begin = float(dFirstStepSize);
+    float begin = getRayOffset(hitPos);
     dir *= begin;
     missed = false;
     float gf = calculateGrowthFactor(begin, uRayDistance, float(dSteps));
