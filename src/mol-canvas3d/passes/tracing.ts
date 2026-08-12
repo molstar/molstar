@@ -151,8 +151,10 @@ export class TracingPass {
         if (props.thicknessMode === 'auto') {
             this.thicknessTarget.bind();
             state.clearColor(0, 0, 0, 0);
+            state.clearDepth(0);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             renderer.renderDepthOpaqueBack(scene.primitives, camera);
+            state.clearDepth(1);
         }
         if (isTimingMode) this.webgl.timer.markEnd('TracePass.renderInput');
     }

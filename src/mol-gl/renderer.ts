@@ -167,6 +167,7 @@ namespace Renderer {
         None = 0,
         BlendedFront = 1,
         BlendedBack = 2,
+        DepthBack = 3,
     }
 
     const enum Mask {
@@ -366,6 +367,8 @@ namespace Renderer {
                     state.frontFace(gl.CCW);
                     state.cullFace(gl.BACK);
                 }
+            } else if (flag === Flag.DepthBack) {
+                state.disable(gl.CULL_FACE);
             } else if (flag === Flag.BlendedBack) {
                 state.enable(gl.CULL_FACE);
                 if (r.values.dFlipSided?.ref.value) {
@@ -577,7 +580,7 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
                 if (checkOpaque(r)) {
-                    renderObject(r, 'depth', Flag.BlendedBack);
+                    renderObject(r, 'depth', Flag.DepthBack);
                 }
             }
             state.depthFunc(gl.LESS);

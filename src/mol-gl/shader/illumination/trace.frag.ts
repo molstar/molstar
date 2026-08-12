@@ -194,7 +194,7 @@ vec2 rayMarch(in vec3 dir, in float thickness, inout vec3 hitPos, out bool misse
 
         if (thickness == 0.0) {
             #ifdef dThicknessMode_auto
-                thickness = max(uMinThickness, (getViewZ(getThickness(coords)) - z) * uThicknessFactor * texture2D(tColor, coords).a);
+                thickness = max(uMinThickness, (z - getViewZ(getThickness(coords))) * uThicknessFactor * texture2D(tColor, coords).a);
             #else
                 thickness = uThickness;
             #endif
