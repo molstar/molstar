@@ -7,7 +7,8 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { MVSLoadOptions } from '../../extensions/mvs/load';
+import { MVSData } from '../../extensions/mvs';
+import { loadMVS, MVSLoadOptions } from '../../extensions/mvs/load';
 import { applyStructureInteractivity, StructureInteractivityOptions } from '../../extensions/plugin/interactivity';
 import * as loaders from '../../extensions/plugin/loaders';
 import { Volume } from '../../mol-model/volume';
@@ -65,6 +66,11 @@ export class Viewer {
                 plugin.canvas3d?.setProps({ renderer: { backgroundColor } });
             }
         }
+        setTimeout(async () => {
+            const mvs = builderDemo2();
+            console.log(MVSData.toMVSJ(mvs))
+            await loadMVS(plugin, mvs);
+        }, 1000)
         return new Viewer(plugin);
     }
 
@@ -220,3 +226,174 @@ export class Viewer {
         this.plugin.dispose();
     }
 }
+
+/** Demonstration of usage of MVS builder */
+export function builderDemo2() {
+    const builder = MVSData.createBuilder();
+    builder.canvas({ background_color: 'white' });
+    const struct = builder
+        .download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/download/5hwa.bcif' })
+        .parse({ format: 'bcif' })
+        .modelStructure();
+    const cartoon = struct.component().representation({ type: 'cartoon', size_factor: 0.5 });
+    const carb = struct.component({ selector: 'branched' }).representation({ type: 'carbohydrate' });
+
+    carb.color({ color: 'green/lightgreen', ref: 'color1' });
+    // carb.color({ color: 'red/orange', selector: { auth_seq_id: 1 }, ref: 'color2' });
+
+    const anim = builder.animation({ autoplay: true });
+    anim
+        .interpolate({
+            target_ref: 'color1',
+            kind: 'color',
+            property: 'color',
+            start_ms: 1000,
+            duration_ms: 1000,
+            start: 'green/lightgreen',
+            end: 'yellow',
+        }).interpolate({
+            target_ref: 'color1',
+            kind: 'color',
+            property: 'color',
+            start_ms: 3000,
+            duration_ms: 1000,
+            end: '#ff0000/#ffffff',
+        })
+        .interpolate({
+            target_ref: 'color1',
+            kind: 'color',
+            property: 'color',
+            start_ms: 5000,
+            duration_ms: 4000,
+            palette: { kind: 'continuous', colors: ['red/white', 'orange/white', 'yellow/white', 'yellowgreen/white', 'green/black', 'cyan/white', 'blue/black', 'blue/white'] },
+        })
+        .interpolate({
+            target_ref: 'color1',
+            kind: 'color',
+            property: 'color',
+            start_ms: 9000,
+            duration_ms: 10_000,
+            alternate_direction: true,
+            frequency: 10,
+            easing: 'sin-in-out',
+            palette: { kind: 'continuous', colors: ['blue/white', 'white/blue'] },
+        });
+
+    // const annotationUri = `data:text/plain,
+    //     data_annot
+    //     loop_
+    //     _annot.auth_seq_id
+    //     _annot.color
+    //     _annot.elem
+    //     1 green/cyan  S
+    //     2 blue/yellow N
+    //     3 blue/white  N
+    //     4 blue  O
+    //     `;
+
+    // // Direct
+    // carb.colorFromUri({
+    //     uri: annotationUri,
+    //     format: 'cif',
+    //     schema: 'all_atomic',
+    //     category_name: 'annot',
+    //     field_name: 'color',
+    // });
+
+    // // Categorical with dict
+    // carb.colorFromSource({
+    //     schema: 'all_atomic',
+    //     category_name: 'atom_site',
+    //     field_name: 'auth_seq_id',
+    //     palette: {
+    //         kind: 'categorical',
+    //         colors: { 1: 'red', 2: 'orange/cyan' },
+    //         missing_color: 'green/lightgreen',
+    //     },
+    // });
+
+    // // Categorical with named dict
+    // carb.colorFromSource({
+    //     schema: 'all_atomic',
+    //     category_name: 'atom_site',
+    //     field_name: 'label_comp_id',
+    //     palette: {
+    //         kind: 'categorical',
+    //         colors: 'CarbohydrateSymbol',
+    //         missing_color: 'lightgreen/green',
+    //     },
+    // });
+
+    // // Categorical with list
+    // carb.colorFromSource({
+    //     schema: 'all_atomic',
+    //     category_name: 'atom_site',
+    //     field_name: 'auth_seq_id',
+    //     palette: {
+    //         kind: 'categorical',
+    //         colors: ['red', 'pink/cyan'],
+    //         missing_color: 'green/lightgreen',
+    //     },
+    // });
+
+    // // Categorical with named list
+    // carb.colorFromSource({
+    //     schema: 'all_atomic',
+    //     category_name: 'atom_site',
+    //     field_name: 'auth_seq_id',
+    //     palette: {
+    //         kind: 'categorical',
+    //         colors: 'Blues',
+    //         missing_color: 'green/lightgreen',
+    //     },
+    // });
+
+    // // Discrete
+    // carb.colorFromSource({
+    //     schema: 'all_atomic',
+    //     category_name: 'atom_site',
+    //     field_name: 'auth_seq_id',
+    //     palette: {
+    //         kind: 'discrete',
+    //         colors: ['red', 'pink/cyan'],
+    //         value_domain: [1, 4],
+    //         // colors: 'Blues',
+    //         // reverse: true,
+    //     },
+    // });
+
+    // // Discrete with checkpoints
+    // carb.colorFromSource({
+    //     schema: 'all_atomic',
+    //     category_name: 'atom_site',
+    //     field_name: 'auth_seq_id',
+    //     palette: {
+    //         kind: 'discrete',
+    //         colors: [['pink/cyan', null, null], [null, 2, 3], ['orange', 3, 3]],
+    //         mode: 'absolute',
+    //     },
+    // });
+
+    // // Continuous
+    // carb.colorFromSource({
+    //     schema: 'all_atomic',
+    //     category_name: 'atom_site',
+    //     field_name: 'auth_seq_id',
+    //     palette: {
+    //         kind: 'continuous',
+    //         // colors: ['red/darkblue', 'yellow/lightgreen',  'white'],
+    //         // value_domain: [1, 4],
+    //         // colors: 'Blues',
+    //         colors: [['red/darkblue', 2], ['yellow/lightgreen', 3]], mode: 'absolute',
+    //         underflow_color: 'orange/#ffffdd',
+    //         overflow_color: 'cyan/#ddffff',
+    //         // reverse: true,
+    //     },
+    // });
+
+    // carb.color({ color: 'blue/green' });
+    const snapshot = builder.getSnapshot({ linger_duration_ms: 3000 });
+    return MVSData.createMultistate([snapshot, snapshot]);
+}
+
+// TODO: test animations
