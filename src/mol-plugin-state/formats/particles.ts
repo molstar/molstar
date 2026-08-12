@@ -151,6 +151,12 @@ export const MmcifParticlesProvider = DataFormatProvider({
                 sizeTheme: { name: 'particle-size', params: { scale: 0.5 } }
             });
 
+        const particleList = StateObjectRef.resolveAndCheck(plugin.state.data, data.list)?.obj?.data;
+        if (particleList?.fibers && particleList.fibers.count > 0) {
+            builder.to(data.list)
+                .apply(StateTransforms.Particles.ParticlesRepresentation3D, { type: { name: 'fibers', params: {} } });
+        }
+
         return builder.commit();
     },
 });

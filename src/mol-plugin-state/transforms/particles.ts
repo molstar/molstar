@@ -232,19 +232,19 @@ const ParticleListFromMmcifAssembly = PluginStateTransform.BuiltIn({
     }
 })({
     apply({ a, params }) {
-        return Task.create('Create Particle List from mmCIF Assembly', async () => {
+        return Task.create('Create Particle List from mmCIF Assembly', async ctx => {
             // Params default to the first assembly ID only when interactively edited; fall back
             // here too so auto-loading a file (which calls parse() with no params) still works.
             const assemblyId = params.assemblyId || getAssemblyIdsFromMmcif(a.data)[0];
             if (!assemblyId) {
                 throw new Error('mmCIF file contains no _pdbx_struct_assembly_gen assemblies; cannot create a particle list.');
             }
-            const list = createParticleListFromMmcifAssembly(a.data, {
+            const list = await createParticleListFromMmcifAssembly(a.data, {
                 assemblyId,
                 asymIds: params.asymIds.length > 0 ? params.asymIds : void 0,
                 variant: params.variant,
                 label: params.label || a.label,
-            });
+            }, ctx);
             return new SO.Particle.List(list, { label: list.label || 'Particles', description: 'mmCIF Particle List' });
         });
     }

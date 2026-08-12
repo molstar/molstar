@@ -9,12 +9,14 @@ import { ParticleCompartmentInfo, ParticleEntityInfo, ParticleList } from '../..
 import { CustomProperties } from '../../mol-model/custom-property';
 import { CifBlock, CifFile } from '../../mol-io/reader/cif/data-model';
 import { toDatabase } from '../../mol-io/reader/cif/schema';
-import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
-import { getMatrices, parseOperatorList, expandOperators } from '../structure/property/assembly';
+import { mmCIF_Database, mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
+import { parseOperatorList } from '../structure/property/assembly';
+import { OperatorCombinations, composeOperatorCombination, expandOperatorCombinations, formatOperatorCombination, readParticleOperators } from './operators';
 import { ModelFormat } from '../format';
 import { binaryCifHasColumn, getBinaryCifHeader } from '../../mol-io/common/binary-cif';
 import { StringLike } from '../../mol-io/common/string-like';
 import { FileNameInfo } from '../../mol-util/file-info';
+import { RuntimeContext } from '../../mol-task';
 
 export type MmcifVariant = 'auto' | 'cellpack' | 'petworld' | 'standard';
 
@@ -60,7 +62,8 @@ export interface MmcifAssemblyParticleListOptions {
     /**
      * Which mmCIF variant to use for building the particle list.
      * - `'auto'` (default): detect automatically from the CIF block header and categories.
-     * - `'cellpack'`: interpret `_entity.pdbx_description` as a dot-separated `compartment.entityName` path.
+    * - `'cellpack'`: interpret `_entity.pdbx_description` as a dot-separated `compartment.entityName` path;
+    *   entities below a `.fibers` compartment use assembly-gen rows as ordered fibers.
      * - `'standard'`: like cellpack but treat `_entity.pdbx_description` as a plain entity name only.
      * - `'petworld'`: read the non-standard `_pdbx_struct_assembly_gen.PDB_model_num` field;
      *   one particle per operator combo per gen row.
@@ -100,12 +103,70 @@ export function getAsymIdsFromMmcif(cifFile: CifFile, assemblyId: string): strin
     return Array.from(ids).sort();
 }
 
-export function createParticleListFromMmcifAssembly(cifFile: CifFile, options: MmcifAssemblyParticleListOptions): ParticleList {
+export async function createParticleListFromMmcifAssembly(cifFile: CifFile, options: MmcifAssemblyParticleListOptions, ctx: RuntimeContext): Promise<ParticleList> {
     const block = cifFile.blocks[0];
     if (!block) throw new Error('CIF file contains no data blocks.');
     const variant = resolveVariant(block, options.variant);
-    if (variant === 'petworld') return buildPetworldParticleList(cifFile, block, options);
-    return buildCellpackStandardParticleList(cifFile, block, options, variant);
+    if (variant === 'petworld') return await buildPetworldParticleList(cifFile, block, options, ctx);
+    return await buildCellpackStandardParticleList(cifFile, block, options, variant, ctx);
+}
+
+/** The centroid of a group of `_atom_site` rows and their maximum distance from it. */
+interface AtomSiteBounds {
+    readonly center: Vec3
+    readonly radius: number
+}
+
+/**
+ * Applying the operator of a particle to the centroid of its reference atoms gives a meaningful
+ * position even when the operator has zero translation (pure rotation).
+ */
+async function getAtomSiteBounds<K>(db: mmCIF_Database, key: (row: number) => K, ctx: RuntimeContext): Promise<Map<K, AtomSiteBounds>> {
+    const { Cartn_x, Cartn_y, Cartn_z, _rowCount } = db.atom_site;
+    const updateChunk = 10000;
+
+    interface Accum { x: number, y: number, z: number, n: number, radiusSq: number }
+    const accums = new Map<K, Accum>();
+
+    for (let i = 0; i < _rowCount; i++) {
+        const k = key(i);
+        let acc = accums.get(k);
+        if (!acc) {
+            acc = { x: 0, y: 0, z: 0, n: 0, radiusSq: 0 };
+            accums.set(k, acc);
+        }
+        acc.x += Cartn_x.value(i);
+        acc.y += Cartn_y.value(i);
+        acc.z += Cartn_z.value(i);
+        acc.n++;
+        if (i % updateChunk === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Calculating particle bounds', current: i, max: _rowCount * 2 });
+        }
+    }
+
+    for (const acc of accums.values()) {
+        acc.x /= acc.n;
+        acc.y /= acc.n;
+        acc.z /= acc.n;
+    }
+
+    for (let i = 0; i < _rowCount; i++) {
+        const acc = accums.get(key(i))!;
+        const dx = Cartn_x.value(i) - acc.x;
+        const dy = Cartn_y.value(i) - acc.y;
+        const dz = Cartn_z.value(i) - acc.z;
+        const d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 > acc.radiusSq) acc.radiusSq = d2;
+        if (i % updateChunk === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Calculating particle bounds', current: _rowCount + i, max: _rowCount * 2 });
+        }
+    }
+
+    const bounds = new Map<K, AtomSiteBounds>();
+    for (const [k, acc] of accums) {
+        bounds.set(k, { center: Vec3.create(acc.x, acc.y, acc.z), radius: Math.sqrt(acc.radiusSq) });
+    }
+    return bounds;
 }
 
 function detectMmcifVariant(block: CifBlock): 'cellpack' | 'petworld' | 'standard' {
@@ -119,12 +180,13 @@ function resolveVariant(block: CifBlock, requested?: MmcifVariant): 'cellpack' |
     return requested;
 }
 
-function buildCellpackStandardParticleList(
+async function buildCellpackStandardParticleList(
     cifFile: CifFile,
     block: CifBlock,
     options: MmcifAssemblyParticleListOptions,
-    variant: 'cellpack' | 'standard'
-): ParticleList {
+    variant: 'cellpack' | 'standard',
+    ctx: RuntimeContext
+): Promise<ParticleList> {
     const db = toDatabase(mmCIF_Schema, block);
     const { pdbx_struct_assembly_gen, pdbx_struct_oper_list } = db;
 
@@ -132,7 +194,7 @@ function buildCellpackStandardParticleList(
         throw new Error('CIF file contains no _pdbx_struct_oper_list entries.');
     }
 
-    const matrices = getMatrices(pdbx_struct_oper_list);
+    const operators = readParticleOperators(block);
 
     const { assembly_id, oper_expression, asym_id_list } = pdbx_struct_assembly_gen;
     const asymFilter = options.asymIds?.length
@@ -142,7 +204,7 @@ function buildCellpackStandardParticleList(
     // Collect matching gen rows and their expanded operator combinations.
     interface GenEntry {
         genIndex: number
-        operCombinations: string[][] // each combination is an array of operator IDs
+        combinations: OperatorCombinations
     }
 
     const entries: GenEntry[] = [];
@@ -152,12 +214,12 @@ function buildCellpackStandardParticleList(
         if (assembly_id.value(i) !== options.assemblyId) continue;
 
         const operList = parseOperatorList(oper_expression.value(i));
-        const combinations = expandOperators(operList);
-        entries.push({ genIndex: i, operCombinations: combinations });
+        const combinations = expandOperatorCombinations(operList, operators);
+        entries.push({ genIndex: i, combinations });
         const chainCount = asymFilter
             ? asym_id_list.value(i).filter(c => asymFilter.has(c)).length
             : asym_id_list.value(i).length;
-        totalCount += chainCount * combinations.length;
+        totalCount += chainCount * combinations.count;
     }
 
     if (totalCount === 0) {
@@ -171,23 +233,27 @@ function buildCellpackStandardParticleList(
         );
     }
 
-    // Build entity_id → compartment name and entity name from _entity.pdbx_description.
+    // In the 'standard' variant, the full description is used as the entity name with no compartment.
+    // _entity.details holds the functional annotation of the entity, if any.
     // In the 'cellpack' variant, descriptions are dot-separated paths:
     //   compartment = all segments except the last  (e.g. "root.mge.surface.proteins")
     //   entity name = last segment                  (e.g. "MG_191_192_NAP")
-    // In the 'standard' variant, the full description is used as the entity name with no compartment.
-    // _entity.details holds the functional annotation of the entity, if any.
+    // CellPack entities whose penultimate segment is "fibers" use each assembly-gen row as
+    // a separate ordered fiber. In the 'standard' variant, the full description is used as
+    // the entity name with no compartment.
     const entityToCompartment = new Map<string, string>();
     const entityToName = new Map<string, string>();
+    const fiberEntityIds = new Set<string>();
     const entityToFunction = new Map<string, string>();
     for (let i = 0, il = db.entity._rowCount; i < il; i++) {
         const entityId = db.entity.id.value(i);
         const desc = db.entity.pdbx_description.value(i).join(',');
         if (variant === 'cellpack') {
-            const dotIdx = desc.lastIndexOf('.');
-            if (dotIdx > 0) {
-                entityToCompartment.set(entityId, desc.substring(0, dotIdx));
-                entityToName.set(entityId, desc.substring(dotIdx + 1));
+            const segments = desc.split('.');
+            if (segments.length > 1) {
+                entityToCompartment.set(entityId, segments.slice(0, -1).join('.'));
+                entityToName.set(entityId, segments[segments.length - 1]);
+                if (segments[segments.length - 2] === 'fibers') fiberEntityIds.add(entityId);
             } else if (desc) {
                 entityToName.set(entityId, desc);
             }
@@ -204,6 +270,32 @@ function buildCellpackStandardParticleList(
     const entityNameToIdx = new Map<string, number>();
     const entityNameToFunction = new Map<string, string>();
 
+    const { label_asym_id: siteAsymId, label_entity_id: siteEntityId } = db.atom_site;
+    const chainBounds = await getAtomSiteBounds(db, i => siteAsymId.value(i), ctx);
+    const chainToEntityId = new Map<string, string>();
+    const updateChunk = 10000;
+    for (let i = 0, il = db.atom_site._rowCount; i < il; i++) {
+        const chain = siteAsymId.value(i);
+        if (!chainToEntityId.has(chain)) chainToEntityId.set(chain, siteEntityId.value(i));
+        if (i % updateChunk === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Mapping particle chains', current: i, max: il });
+        }
+    }
+
+    let fiberCount = 0;
+    let fiberPointCount = 0;
+    for (const entry of entries) {
+        if (entry.combinations.count < 2) continue;
+        for (const chain of asym_id_list.value(entry.genIndex)) {
+            if (asymFilter && !asymFilter.has(chain)) continue;
+            const entityId = chainToEntityId.get(chain);
+            if (entityId !== undefined && fiberEntityIds.has(entityId)) {
+                fiberCount++;
+                fiberPointCount += entry.combinations.count;
+            }
+        }
+    }
+
     const keys = new Int32Array(totalCount);
     const targets = new Int32Array(totalCount);
     const compartments = new Int32Array(totalCount).fill(-1);
@@ -211,43 +303,12 @@ function buildCellpackStandardParticleList(
     const coordinates = new Float32Array(totalCount * 3);
     const rotations = new Float32Array(totalCount * 4);
     const radii = new Float32Array(totalCount);
+    const fiberOffsets = new Int32Array(fiberCount + 1);
+    const fiberIndices = new Int32Array(fiberPointCount);
 
-    // Per-particle metadata for labels (stored as flat arrays to avoid object allocation).
-    const labelChainId = new Array<string>(totalCount);
-    const labelOpCombo = new Array<string>(totalCount);
-
-    // Build per-chain centroid from _atom_site Cartesian coordinates and collect
-    // chain → entity_id mapping at the same time (avoids relying on _struct_asym).
-    // Applying the full operator to the centroid of the reference chains gives a meaningful
-    // particle position even when the operator has zero translation (pure rotation).
-    const { label_asym_id: siteAsymId, label_entity_id: siteEntityId, Cartn_x, Cartn_y, Cartn_z } = db.atom_site;
-    interface ChainAccum { x: number; y: number; z: number; n: number; radiusSq: number }
-    const chainAccum = new Map<string, ChainAccum>();
-    const chainToEntityId = new Map<string, string>();
-    for (let i = 0, il = db.atom_site._rowCount; i < il; i++) {
-        const chain = siteAsymId.value(i);
-        let acc = chainAccum.get(chain);
-        if (!acc) {
-            acc = { x: 0, y: 0, z: 0, n: 0, radiusSq: 0 };
-            chainAccum.set(chain, acc);
-            chainToEntityId.set(chain, siteEntityId.value(i));
-        }
-        acc.x += Cartn_x.value(i);
-        acc.y += Cartn_y.value(i);
-        acc.z += Cartn_z.value(i);
-        acc.n++;
-    }
-    // Second pass: compute per-chain max squared distance from centroid (= bounding sphere radius²).
-    for (let i = 0, il = db.atom_site._rowCount; i < il; i++) {
-        const chain = siteAsymId.value(i);
-        const acc = chainAccum.get(chain)!;
-        const cx = acc.x / acc.n, cy = acc.y / acc.n, cz = acc.z / acc.n;
-        const dx = Cartn_x.value(i) - cx;
-        const dy = Cartn_y.value(i) - cy;
-        const dz = Cartn_z.value(i) - cz;
-        const d2 = dx * dx + dy * dy + dz * dz;
-        if (d2 > acc.radiusSq) acc.radiusSq = d2;
-    }
+    // Per-particle metadata for labels, kept as indices so no string is allocated per particle.
+    const labelEntry = new Int32Array(totalCount);
+    const labelCombo = new Int32Array(totalCount);
 
     const combined = Mat4();
     const quaternion = Quat();
@@ -265,28 +326,21 @@ function buildCellpackStandardParticleList(
     }
 
     let count = 0;
+    let fiberIndex = 0;
+    let fiberPosition = 0;
     for (let ei = 0, eil = entries.length; ei < eil; ei++) {
         const entry = entries[ei];
         const chainGroup = asym_id_list.value(entry.genIndex);
 
         for (const chain of chainGroup) {
             if (asymFilter && !asymFilter.has(chain)) continue;
-            // Per-chain centroid.
-            const acc = chainAccum.get(chain);
-            Vec3.set(centroid,
-                acc && acc.n > 0 ? acc.x / acc.n : 0,
-                acc && acc.n > 0 ? acc.y / acc.n : 0,
-                acc && acc.n > 0 ? acc.z / acc.n : 0
-            );
+            const bounds = chainBounds.get(chain);
+            Vec3.copy(centroid, bounds ? bounds.center : Vec3.origin);
+            const entityId = chainToEntityId.get(chain);
+            const isFiber = entry.combinations.count >= 2 && entityId !== undefined && fiberEntityIds.has(entityId);
 
-            for (const combo of entry.operCombinations) {
-                // Multiply matrices left-to-right: first op in combo is outermost.
-                Mat4.setIdentity(combined);
-                for (let k = 0; k < combo.length; k++) {
-                    const m = matrices.get(combo[k]);
-                    if (!m) throw new Error(`Operator '${combo[k]}' not found in _pdbx_struct_oper_list.`);
-                    Mat4.mul(combined, combined, m);
-                }
+            for (let ci = 0, cil = entry.combinations.count; ci < cil; ci++) {
+                composeOperatorCombination(operators, entry.combinations, ci, combined);
 
                 Vec3.transformMat4(position, centroid, combined);
                 Quat.normalize(quaternion, Quat.fromMat4(quaternion, combined));
@@ -302,12 +356,11 @@ function buildCellpackStandardParticleList(
                 rotations[qOffset + 2] = quaternion[2];
                 rotations[qOffset + 3] = quaternion[3];
 
-                radii[count] = Math.sqrt(acc ? acc.radiusSq : 0) * Mat4.getMaxScaleOnAxis(combined);
+                radii[count] = (bounds ? bounds.radius : 0) * Mat4.getMaxScaleOnAxis(combined);
 
                 keys[count] = count;
                 targets[count] = chainToTargetIdx.get(chain)!;
 
-                const entityId = chainToEntityId.get(chain);
                 const compartmentName = entityId !== undefined ? entityToCompartment.get(entityId) : undefined;
                 if (compartmentName !== undefined) {
                     if (!compartmentNameToIdx.has(compartmentName)) {
@@ -326,12 +379,23 @@ function buildCellpackStandardParticleList(
                     entities[count] = entityNameToIdx.get(entityName)!;
                 }
 
-                labelChainId[count] = chain;
-                labelOpCombo[count] = combo.join('×');
+                labelEntry[count] = ei;
+                labelCombo[count] = ci;
+                if (isFiber) fiberIndices[fiberPosition++] = count;
                 count++;
+                if (count % updateChunk === 0 && ctx.shouldUpdate) {
+                    await ctx.update({ message: 'Building particles', current: count, max: totalCount });
+                }
             }
+            if (isFiber) fiberOffsets[++fiberIndex] = fiberPosition;
         }
     }
+    if (ctx.shouldUpdate) {
+        await ctx.update({ message: 'Building particles', current: count, max: totalCount });
+    }
+
+    const chainMapping = new Map<number, string>();
+    for (const [chain, idx] of chainToTargetIdx) chainMapping.set(idx, chain);
 
     // Build compartmentInfo: compartment index → compartment info.
     const compartmentInfo = new Map<number, ParticleCompartmentInfo>();
@@ -346,6 +410,9 @@ function buildCellpackStandardParticleList(
     }
 
     const assemblyId = options.assemblyId;
+    // Only the ids are captured below, so the label closure does not retain the matrix array.
+    const operatorIds = operators.ids;
+    const combinations = entries.map(e => e.combinations);
 
     return {
         label: buildMmcifLabel(options.label, assemblyId),
@@ -359,10 +426,11 @@ function buildCellpackStandardParticleList(
         coordinates,
         rotations,
         radii,
+        fibers: fiberCount > 0 ? { count: fiberCount, offsets: fiberOffsets, indices: fiberIndices } : undefined,
         getParticleLabel: (index: number) => {
             const entity = entityInfo.get(entities[index])?.name;
-            const chain = labelChainId[index];
-            const opCombo = labelOpCombo[index];
+            const chain = chainMapping.get(targets[index]);
+            const opCombo = formatOperatorCombination(operatorIds, combinations[labelEntry[index]], labelCombo[index]);
             return `#${index + 1} | ${entity} | chain ${chain} | ops ${opCombo}`;
         },
         sourceData: MmcifParticleFormat.create(cifFile),
@@ -371,11 +439,12 @@ function buildCellpackStandardParticleList(
     };
 }
 
-function buildPetworldParticleList(
+async function buildPetworldParticleList(
     cifFile: CifFile,
     block: CifBlock,
-    options: MmcifAssemblyParticleListOptions
-): ParticleList {
+    options: MmcifAssemblyParticleListOptions,
+    ctx: RuntimeContext
+): Promise<ParticleList> {
     const db = toDatabase(mmCIF_Schema, block);
     const { pdbx_struct_assembly_gen, pdbx_struct_oper_list } = db;
 
@@ -383,7 +452,7 @@ function buildPetworldParticleList(
         throw new Error('CIF file contains no _pdbx_struct_oper_list entries.');
     }
 
-    const matrices = getMatrices(pdbx_struct_oper_list);
+    const operators = readParticleOperators(block);
     const { assembly_id, oper_expression } = pdbx_struct_assembly_gen;
 
     // PDB_model_num is a non-standard field absent from the typed mmCIF_Schema; read it via raw categories.
@@ -403,7 +472,7 @@ function buildPetworldParticleList(
     interface GenEntry {
         genIndex: number
         modelNum: number
-        operCombinations: string[][]
+        combinations: OperatorCombinations
     }
 
     const entries: GenEntry[] = [];
@@ -412,10 +481,10 @@ function buildPetworldParticleList(
     for (let i = 0, il = pdbx_struct_assembly_gen._rowCount; i < il; i++) {
         if (assembly_id.value(i) !== options.assemblyId) continue;
         const operList = parseOperatorList(oper_expression.value(i));
-        const combinations = expandOperators(operList);
+        const combinations = expandOperatorCombinations(operList, operators);
         const modelNum = pdbModelNumField.int(i);
-        entries.push({ genIndex: i, modelNum, operCombinations: combinations });
-        totalCount += combinations.length;
+        entries.push({ genIndex: i, modelNum, combinations });
+        totalCount += combinations.count;
     }
 
     if (totalCount === 0) {
@@ -432,34 +501,6 @@ function buildPetworldParticleList(
     const modelNumToIndex = new Map<number, number>();
     distinctModelNums.forEach((mn, idx) => modelNumToIndex.set(mn, idx));
 
-    // Build per-model centroid from _atom_site (aggregate all atoms with matching pdbx_PDB_model_num).
-    const { Cartn_x, Cartn_y, Cartn_z, pdbx_PDB_model_num: siteModelNum } = db.atom_site;
-    interface ModelAccum { x: number; y: number; z: number; n: number; radiusSq: number }
-    const modelAccum = new Map<number, ModelAccum>();
-    for (let i = 0, il = db.atom_site._rowCount; i < il; i++) {
-        const modelNum = siteModelNum.value(i);
-        let acc = modelAccum.get(modelNum);
-        if (!acc) {
-            acc = { x: 0, y: 0, z: 0, n: 0, radiusSq: 0 };
-            modelAccum.set(modelNum, acc);
-        }
-        acc.x += Cartn_x.value(i);
-        acc.y += Cartn_y.value(i);
-        acc.z += Cartn_z.value(i);
-        acc.n++;
-    }
-    // Second pass: compute per-model max squared distance from centroid (= bounding sphere radius²).
-    for (let i = 0, il = db.atom_site._rowCount; i < il; i++) {
-        const modelNum = siteModelNum.value(i);
-        const acc = modelAccum.get(modelNum)!;
-        const cx = acc.x / acc.n, cy = acc.y / acc.n, cz = acc.z / acc.n;
-        const dx = Cartn_x.value(i) - cx;
-        const dy = Cartn_y.value(i) - cy;
-        const dz = Cartn_z.value(i) - cz;
-        const d2 = dx * dx + dy * dy + dz * dz;
-        if (d2 > acc.radiusSq) acc.radiusSq = d2;
-    }
-
     const keys = new Int32Array(totalCount);
     const targets = new Int32Array(totalCount);
     const entities = new Int32Array(totalCount).fill(-1);
@@ -467,14 +508,19 @@ function buildPetworldParticleList(
     const rotations = new Float32Array(totalCount * 4);
     const radii = new Float32Array(totalCount);
 
-    const labelOpCombo = new Array<string>(totalCount);
+    const labelEntry = new Int32Array(totalCount);
+    const labelCombo = new Int32Array(totalCount);
 
     const entityNameToIdx = new Map<string, number>();
+
+    const { pdbx_PDB_model_num: siteModelNum } = db.atom_site;
+    const modelBounds = await getAtomSiteBounds(db, i => siteModelNum.value(i), ctx);
 
     const combined = Mat4();
     const quaternion = Quat();
     const centroid = Vec3();
     const position = Vec3();
+    const updateChunk = 10000;
 
     let count = 0;
     for (let ei = 0, eil = entries.length; ei < eil; ei++) {
@@ -482,21 +528,11 @@ function buildPetworldParticleList(
         const targetIdx = modelNumToIndex.get(entry.modelNum)!; // 0-based trajectory model index
         const modelName = modelNumToName.get(entry.modelNum) || `Model ${entry.modelNum}`;
 
-        const acc = modelAccum.get(entry.modelNum);
-        Vec3.set(centroid,
-            acc && acc.n > 0 ? acc.x / acc.n : 0,
-            acc && acc.n > 0 ? acc.y / acc.n : 0,
-            acc && acc.n > 0 ? acc.z / acc.n : 0
-        );
+        const bounds = modelBounds.get(entry.modelNum);
+        Vec3.copy(centroid, bounds ? bounds.center : Vec3.origin);
 
-        for (const combo of entry.operCombinations) {
-            // Multiply matrices left-to-right: first op in combo is outermost.
-            Mat4.setIdentity(combined);
-            for (let k = 0; k < combo.length; k++) {
-                const m = matrices.get(combo[k]);
-                if (!m) throw new Error(`Operator '${combo[k]}' not found in _pdbx_struct_oper_list.`);
-                Mat4.mul(combined, combined, m);
-            }
+        for (let ci = 0, cil = entry.combinations.count; ci < cil; ci++) {
+            composeOperatorCombination(operators, entry.combinations, ci, combined);
 
             Vec3.transformMat4(position, centroid, combined);
             Quat.normalize(quaternion, Quat.fromMat4(quaternion, combined));
@@ -512,7 +548,7 @@ function buildPetworldParticleList(
             rotations[qOffset + 2] = quaternion[2];
             rotations[qOffset + 3] = quaternion[3];
 
-            radii[count] = Math.sqrt(acc ? acc.radiusSq : 0) * Mat4.getMaxScaleOnAxis(combined);
+            radii[count] = (bounds ? bounds.radius : 0) * Mat4.getMaxScaleOnAxis(combined);
 
             keys[count] = count;
             targets[count] = targetIdx;
@@ -520,9 +556,16 @@ function buildPetworldParticleList(
             if (!entityNameToIdx.has(modelName)) entityNameToIdx.set(modelName, entityNameToIdx.size);
             entities[count] = entityNameToIdx.get(modelName)!;
 
-            labelOpCombo[count] = combo.join('×');
+            labelEntry[count] = ei;
+            labelCombo[count] = ci;
             count++;
+            if (count % updateChunk === 0 && ctx.shouldUpdate) {
+                await ctx.update({ message: 'Building particles', current: count, max: totalCount });
+            }
         }
+    }
+    if (ctx.shouldUpdate) {
+        await ctx.update({ message: 'Building particles', current: count, max: totalCount });
     }
 
     // Build entityInfo: entity index → model name.
@@ -532,6 +575,9 @@ function buildPetworldParticleList(
     }
 
     const assemblyId = options.assemblyId;
+    // Only the ids are captured below, so the label closure does not retain the matrix array.
+    const operatorIds = operators.ids;
+    const combinations = entries.map(e => e.combinations);
 
     return {
         label: buildMmcifLabel(options.label, assemblyId),
@@ -545,7 +591,7 @@ function buildPetworldParticleList(
         radii,
         getParticleLabel: (index: number) => {
             const entity = entityInfo.get(entities[index])!.name;
-            const opCombo = labelOpCombo[index];
+            const opCombo = formatOperatorCombination(operatorIds, combinations[labelEntry[index]], labelCombo[index]);
             return `#${index + 1} | ${entity} | ops ${opCombo}`;
         },
         sourceData: MmcifParticleFormat.create(cifFile),
