@@ -193,19 +193,22 @@ vec2 rayMarch(in vec3 dir, in float thickness, inout vec3 hitPos, out bool misse
         float z = getViewZ(depth);
         rayHitDepthDifference = z - hitPos.z;
 
-        if (thickness == 0.0) {
-            #ifdef dThicknessMode_auto
-                thickness = max(uMinThickness, (z - getViewZ(getThickness(coords))) * uThicknessFactor * texture2D(tColor, coords).a);
-            #else
-                thickness = uThickness;
-            #endif
-        }
+        if (rayHitDepthDifference >= 0.0) {
+            float t = thickness;
+            if (t == 0.0) {
+                #ifdef dThicknessMode_auto
+                    t = max(uMinThickness, (z - getViewZ(getThickness(coords))) * uThicknessFactor * texture2D(tColor, coords).a);
+                #else
+                    t = uThickness;
+                #endif
+            }
 
-        if (rayHitDepthDifference >= 0.0 && rayHitDepthDifference < max(thickness, stepZ)) {
-            if (dRefineSteps == 0) {
-                return coords;
-            } else {
-                return binarySearch(dir, hitPos);
+            if (rayHitDepthDifference < max(t, stepZ)) {
+                if (dRefineSteps == 0) {
+                    return coords;
+                } else {
+                    return binarySearch(dir, hitPos);
+                }
             }
         }
     }
