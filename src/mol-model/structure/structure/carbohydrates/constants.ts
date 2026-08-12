@@ -91,6 +91,12 @@ export function getSaccharideShape(type: SaccharideType, ringMemberCount: number
     }
 }
 
+/** Decide whether a saccharide shape is divided into two colors. */
+export function isSaccharideShapeDivided(type: SaccharideType): boolean {
+    const shape = getSaccharideShape(type, 0);
+    return shape === SaccharideShape.CrossedCube || shape === SaccharideShape.DividedDiamond || shape === SaccharideShape.DevidedCone;
+}
+
 export type SaccharideComponent = {
     abbr: string
     name: string
