@@ -6,7 +6,7 @@
 
 import { Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { Euler } from '../../mol-math/linear-algebra/3d/euler';
-import { Particle, ParticleEntityInfo, ParticleList } from '../../mol-model/particles/particle-list';
+import { Particle, ParticleEntityInfo, ParticleList, ParticleTarget } from '../../mol-model/particles/particle-list';
 import { ParticleTrajectory } from '../../mol-model/particles/particle-trajectory';
 import { CustomProperties } from '../../mol-model/custom-property';
 import { SimulariumFile, SimulariumAgentBuffer as AB, SimulariumMinValuesPerAgent as MIN_VALUES_PER_AGENT, SimulariumVisType } from '../../mol-io/reader/simularium/schema';
@@ -27,6 +27,11 @@ export interface SimulariumParticleListOptions {
     readonly scale?: number
     /** Agent type ids to include. An empty/omitted list includes all types. */
     readonly typeFilter?: ReadonlyArray<number>
+    /**
+     * Reference objects instanced at each particle, keyed by agent type id (= particle
+     * target id). Resolve them with `resolveSimulariumTargets`.
+     */
+    readonly targets?: ReadonlyMap<number, ParticleTarget>
 }
 
 /** Conversion factor from a Simularium spatial unit name to angstrom. */
@@ -230,6 +235,7 @@ export function createParticleListFromSimularium(file: SimulariumFile, options: 
         count,
         keys,
         targets,
+        targetMapping: options.targets,
         entities,
         entityInfo,
         coordinates,
@@ -275,6 +281,14 @@ export interface SimulariumParticleTrajectoryOptions {
     readonly scale?: number
     /** Agent type ids to include. An empty/omitted list includes all types. */
     readonly typeFilter?: ReadonlyArray<number>
+    /** Reference objects instanced at each particle, keyed by agent type id. */
+    readonly targets?: ReadonlyMap<number, ParticleTarget>
+    /**
+     * Load the geometries referenced by the agent types (see `getSimulariumAgentGeometries`)
+     * and instance them at each particle of the matching type. Merged with `targets`, which
+     * takes precedence.
+     */
+    readonly resolveGeometry?: SimulariumGeometryResolver
 }
 
 /** Lazy `ParticleTrajectory` backed by a `SimulariumFile`. Converts frames on demand. */
@@ -287,18 +301,44 @@ class SimulariumParticleTrajectory implements ParticleTrajectory {
             frameIndex: i,
             scale: this.options.scale && this.options.scale > 0 ? this.options.scale : void 0,
             typeFilter: this.options.typeFilter,
+            targets: this.targets,
         });
     }
 
-    constructor(private file: SimulariumFile, private options: SimulariumParticleTrajectoryOptions) {
+    constructor(private file: SimulariumFile, private options: SimulariumParticleTrajectoryOptions, private targets?: ReadonlyMap<number, ParticleTarget>) {
         this.frameCount = file.frames.length;
         this.representative = this.getFrameAtIndex(0);
     }
 }
 
-/** Create a lazy `ParticleTrajectory` from a `SimulariumFile`. Frames are converted on demand. */
-export function createSimulariumParticleTrajectory(file: SimulariumFile, options: SimulariumParticleTrajectoryOptions = {}): ParticleTrajectory {
-    return new SimulariumParticleTrajectory(file, options);
+/**
+ * Create a lazy `ParticleTrajectory` from a `SimulariumFile`. Frames are converted on demand;
+ * the reference geometries (if any) are resolved once and shared by all frames.
+ */
+export async function createSimulariumParticleTrajectory(file: SimulariumFile, options: SimulariumParticleTrajectoryOptions = {}): Promise<ParticleTrajectory> {
+    let targets = options.targets;
+    if (options.resolveGeometry) {
+        const resolved = await resolveSimulariumTargets(file, options.resolveGeometry);
+        if (targets) for (const [id, target] of targets) resolved.set(id, target);
+        targets = resolved;
+    }
+    return new SimulariumParticleTrajectory(file, options, targets && targets.size > 0 ? targets : undefined);
+}
+
+/**
+ * Resolves the external geometry referenced by an agent type into a reference object
+ * instanced at each particle of that type. Return `undefined` to skip the geometry.
+ */
+export type SimulariumGeometryResolver = (geometry: SimulariumAgentGeometry) => Promise<ParticleTarget | undefined>
+
+/** Resolve all external agent geometries of a file into a target id → target map. */
+export async function resolveSimulariumTargets(file: SimulariumFile, resolve: SimulariumGeometryResolver): Promise<Map<number, ParticleTarget>> {
+    const targets = new Map<number, ParticleTarget>();
+    for (const geometry of getSimulariumAgentGeometries(file)) {
+        const target = await resolve(geometry);
+        if (target) targets.set(geometry.id, target);
+    }
+    return targets;
 }
 
 /** Return the number of frames available in the file. */

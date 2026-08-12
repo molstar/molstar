@@ -10,6 +10,7 @@ import { Representation, RepresentationProvider, RepresentationRegistry } from '
 import { OrientationParticlesRepresentationProvider } from './representation/orientation';
 import { SpacefillParticlesRepresentationProvider } from './representation/spacefill';
 import { FibersRepresentationProvider } from './representation/fibers';
+import { ParticleTargetRepresentationProvider } from './representation/target/representation';
 
 export class ParticleRepresentationRegistry extends RepresentationRegistry<ParticleList, Representation.State> {
     constructor() {
@@ -26,6 +27,7 @@ export namespace ParticleRepresentationRegistry {
         'spacefill': SpacefillParticlesRepresentationProvider,
         'orientation': OrientationParticlesRepresentationProvider,
         'fibers': FibersRepresentationProvider,
+        'target': ParticleTargetRepresentationProvider,
     };
 
     type _BuiltIn = typeof BuiltIn

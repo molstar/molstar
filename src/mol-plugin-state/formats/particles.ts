@@ -8,9 +8,10 @@
 import { StateTransforms } from '../transforms';
 import { DataFormatProvider } from './provider';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectRef } from '../../mol-state';
+import { StateBuilder, StateObjectRef } from '../../mol-state';
 import { PluginStateObject } from '../objects';
 import { looksLikeMmcifParticles, MmcifVariant } from '../../mol-model-formats/particles/mmcif';
+import { getParticleTargetGroups, ParticleList } from '../../mol-model/particles/particle-list';
 
 export const ParticlesFormatCategory = 'Particles';
 
@@ -19,11 +20,58 @@ interface ParticleFormatData {
     list: StateObjectRef<PluginStateObject.Particle.List>
 }
 
-function particleVisuals(plugin: PluginContext, data: ParticleFormatData) {
+/** Whether the particle list has target objects and whether some particles are without one. */
+function getParticleTargetCoverage(particles: ParticleList | undefined) {
+    const mapping = particles?.targetMapping;
+    if (!particles || !mapping || mapping.size === 0) {
+        return { hasTargets: false, hasUntargeted: !!particles && particles.count > 0 };
+    }
+
+    const { targetIds } = getParticleTargetGroups(particles);
+    let hasTargets = false;
+    let hasUntargeted = false;
+    for (let i = 0; i < targetIds.length; ++i) {
+        if (mapping.has(targetIds[i])) hasTargets = true;
+        else hasUntargeted = true;
+    }
+    return { hasTargets, hasUntargeted };
+}
+
+/**
+ * Adds the `target` representation for particles with a reference object and the `spacefill`
+ * representation for the remaining ones, which also covers lists without any target.
+ */
+function addParticleShapeRepresentations(builder: StateBuilder.Root, data: ParticleFormatData, particles: ParticleList | undefined, type: 'spacefill' | 'target', targetProps?: { params?: {}, colorTheme?: { name: string, params: {} }, sizeTheme?: { name: string, params: {} } }) {
+    const { hasTargets, hasUntargeted } = getParticleTargetCoverage(particles);
+    const useTarget = type === 'target' && hasTargets;
+
+    if (useTarget) {
+        builder.to(data.list)
+            .apply(StateTransforms.Particles.ParticlesRepresentation3D, {
+                type: { name: 'target', params: targetProps?.params ?? {} },
+                ...(targetProps?.colorTheme && { colorTheme: targetProps.colorTheme }),
+                ...(targetProps?.sizeTheme && { sizeTheme: targetProps.sizeTheme }),
+            });
+    }
+    if (!useTarget || hasUntargeted) {
+        builder.to(data.list)
+            .apply(StateTransforms.Particles.ParticlesRepresentation3D, { type: { name: 'spacefill', params: { excludeTargets: useTarget } } });
+    }
+}
+
+function particleVisuals(plugin: PluginContext, data: ParticleFormatData, type: 'spacefill' | 'target' = 'spacefill') {
     const builder = plugin.state.data.build();
+    const particleList = StateObjectRef.resolveAndCheck(plugin.state.data, data.list)?.obj?.data;
+
+    addParticleShapeRepresentations(builder, data, particleList, type);
 
     builder.to(data.list)
-        .apply(StateTransforms.Particles.ParticlesRepresentation3D, { type: { name: 'spacefill', params: {} } });
+        .apply(StateTransforms.Particles.ParticleListUnitcell3D, { attachment: 'center' });
+
+    if (particleList?.fibers && particleList.fibers.count > 0) {
+        builder.to(data.list)
+            .apply(StateTransforms.Particles.ParticlesRepresentation3D, { type: { name: 'fibers', params: {} } });
+    }
 
     return builder.commit();
 }
@@ -143,15 +191,14 @@ export const MmcifParticlesProvider = DataFormatProvider({
     },
     visuals: (plugin: PluginContext, data: ParticleFormatData) => {
         const builder = plugin.state.data.build();
-
-        builder.to(data.list)
-            .apply(StateTransforms.Particles.ParticlesRepresentation3D, {
-                type: { name: 'spacefill', params: {} },
-                colorTheme: { name: 'particle-entity', params: {} },
-                sizeTheme: { name: 'particle-size', params: { scale: 0.5 } }
-            });
-
         const particleList = StateObjectRef.resolveAndCheck(plugin.state.data, data.list)?.obj?.data;
+
+        addParticleShapeRepresentations(builder, data, particleList, 'target', {
+            params: { quality: 'lowest' },
+            colorTheme: { name: 'particle-entity', params: {} },
+            sizeTheme: { name: 'particle-size', params: { scale: 1 } },
+        });
+
         if (particleList?.fibers && particleList.fibers.count > 0) {
             builder.to(data.list)
                 .apply(StateTransforms.Particles.ParticlesRepresentation3D, { type: { name: 'fibers', params: {} } });
@@ -166,12 +213,14 @@ export const SimulariumParticlesProvider = DataFormatProvider({
     description: 'Simularium Particles',
     category: ParticlesFormatCategory,
     binaryExtensions: ['simularium'],
-    parse: async (plugin, data, params?: { label?: string, frameIndex?: number }) => {
+    parse: async (plugin, data, params?: { label?: string, frameIndex?: number, loadGeometries?: boolean }) => {
         const format = plugin.state.data.build()
             .to(data)
             .apply(StateTransforms.Data.ParseSimularium, void 0, { state: { isGhost: false } });
 
-        const trajectory = format.apply(StateTransforms.Particles.ParticleTrajectoryFromSimularium);
+        const trajectory = format.apply(StateTransforms.Particles.ParticleTrajectoryFromSimularium, {
+            loadGeometries: params?.loadGeometries ?? true,
+        });
 
         const list = trajectory.apply(StateTransforms.Particles.ParticleListFromTrajectory, {
             frameIndex: params?.frameIndex ?? 0,
@@ -181,27 +230,9 @@ export const SimulariumParticlesProvider = DataFormatProvider({
 
         return { format: format.selector, trajectory: trajectory.selector, list: list.selector };
     },
-    visuals: (plugin: PluginContext, data: ParticleFormatData) => {
-        const builder = plugin.state.data.build();
-
-        builder.to(data.list)
-            .apply(StateTransforms.Particles.ParticlesRepresentation3D, {
-                type: { name: 'spacefill', params: {} },
-                colorTheme: { name: 'particle-entity', params: {} },
-                sizeTheme: { name: 'particle-size', params: {} }
-            });
-
-        builder.to(data.list)
-            .apply(StateTransforms.Particles.ParticleListUnitcell3D, { attachment: 'center' });
-
-        const particleList = StateObjectRef.resolveAndCheck(plugin.state.data, data.list)?.obj?.data;
-        if (particleList?.fibers && particleList.fibers.count > 0) {
-            builder.to(data.list)
-                .apply(StateTransforms.Particles.ParticlesRepresentation3D, { type: { name: 'fibers', params: {} } });
-        }
-
-        return builder.commit();
-    },
+    // The `target` representation instances the geometries referenced by the agent types;
+    // particles without a geometry are added as spacefill spheres.
+    visuals: (plugin: PluginContext, data: ParticleFormatData) => particleVisuals(plugin, data, 'target'),
 });
 
 export const BuiltInParticlesFormats = [

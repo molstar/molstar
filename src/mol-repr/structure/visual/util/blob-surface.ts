@@ -14,7 +14,7 @@ import { SizeTheme } from '../../../../mol-theme/size';
 import { PositionData } from '../../../../mol-math/geometry';
 import { Boundary } from '../../../../mol-math/geometry/boundary';
 
-export const BlobDensityParams = {
+export const BlobSurfaceCoreParams = {
     blobSize: PD.Numeric(30, { min: 4, max: 200, step: 1 }, { description: 'Size of the spatial bins used to coarsen atoms into a small number of "blobs" before surfacing. Higher means fewer, bigger, blobbier blobs.' }),
     blobMethod: PD.MappedStatic('clustering', {
         grid: PD.Group({}),
@@ -33,6 +33,12 @@ export const BlobDensityParams = {
     }, { description: 'Shape fitted to each group of atoms. "ellipsoid" fits a fixed quadratic boundary (fast). "sphericalHarmonics" fits an angularly-varying radial boundary that can better follow non-ellipsoidal blob shapes.' }),
     radiusOffset: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, { description: 'Extra/offset radius added to the atoms/coarse elements for blob calculation. Useful to create coarse, low resolution surfaces.' }),
     smoothness: PD.Numeric(1.5, { min: 1, max: 3, step: 0.1 }, { description: 'Smoothness of the blob surface, lower is smoother.' }),
+};
+export type BlobSurfaceCoreParams = typeof BlobSurfaceCoreParams
+export type BlobSurfaceCoreProps = PD.Values<BlobSurfaceCoreParams>
+
+export const BlobDensityParams = {
+    ...BlobSurfaceCoreParams,
     ...CommonSurfaceParams
 };
 export const DefaultBlobDensityProps = PD.getDefaultValues(BlobDensityParams);

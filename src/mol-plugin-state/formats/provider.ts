@@ -8,9 +8,20 @@
 import { binaryCifHasCategory, binaryCifHasColumn, getBinaryCifHeader } from '../../mol-io/common/binary-cif';
 import { StringLike } from '../../mol-io/common/string-like';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectRef } from '../../mol-state';
+import { StateObject, StateObjectRef, StateTransformer } from '../../mol-state';
+import { RuntimeContext, Task } from '../../mol-task';
 import { FileNameInfo } from '../../mol-util/file-info';
 import { PluginStateObject } from '../objects';
+
+/** Result of `DataFormatProvider.parseRaw`, mirroring the keys of the state-based `parse` result. */
+export interface RawParseResult {
+    trajectory?: PluginStateObject.Molecule.Trajectory['data'],
+    structure?: PluginStateObject.Molecule.Structure['data'],
+    volume?: PluginStateObject.Volume.Data['data'],
+    volumes?: PluginStateObject.Volume.Data['data'][],
+    shape?: PluginStateObject.Shape.Provider['data'],
+    particles?: PluginStateObject.Particle.List['data'],
+}
 
 
 export interface DataFormatProvider<P = any, R = any, V = any> {
@@ -29,10 +40,34 @@ export interface DataFormatProvider<P = any, R = any, V = any> {
     priority?: number,
     isApplicable?(info: FileNameInfo, data: StringLike | Uint8Array): boolean,
     parse(plugin: PluginContext, data: StateObjectRef<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, params?: P): Promise<R>,
+    /**
+     * Parse the data into plain objects without creating state tree nodes. In contrast to `parse`
+     * this can be called from within a state update, e.g. from a transformer.
+     */
+    parseRaw?(plugin: PluginContext, ctx: RuntimeContext, data: StringLike | Uint8Array, params?: P): Promise<RawParseResult>,
     visuals?(plugin: PluginContext, data: R): Promise<V> | undefined
 }
 
 export function DataFormatProvider<P extends DataFormatProvider>(provider: P): P { return provider; }
+
+export function rawDataObject(data: StringLike | Uint8Array) {
+    return data instanceof Uint8Array
+        ? new PluginStateObject.Data.Binary(data as Uint8Array<ArrayBuffer>)
+        : new PluginStateObject.Data.String(data);
+}
+
+/** Applies a transformer directly, without adding nodes to the state tree. */
+export function applyTransformerRaw<A extends StateObject, B extends StateObject, P extends {}>(plugin: PluginContext, ctx: RuntimeContext, transformer: StateTransformer<A, B, P>, a: A, params?: Partial<P>): Promise<B> | B {
+    const p = transformer.createDefaultParams(a, plugin);
+    if (params) {
+        for (const k of Object.keys(params) as (keyof P)[]) {
+            if (params[k] !== undefined) p[k] = params[k]!;
+        }
+    }
+    // no built-in transformer uses the spine, which is only available during a state update
+    const result = transformer.definition.apply({ a, params: p, cache: {}, spine: undefined as any }, plugin);
+    return Task.is(result) ? Task.resolveInContext(result, ctx) : result;
+}
 
 type CifVariants = 'dscif' | 'segcif' | 'sfcif' | 'coreCif' | -1
 export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLike): CifVariants {
