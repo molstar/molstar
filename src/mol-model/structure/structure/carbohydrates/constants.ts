@@ -35,7 +35,12 @@ export const SaccharideColors = ColorMap({
 
 export enum SaccharideType {
     Hexose, HexNAc, Hexosamine, Hexuronate, Deoxyhexose, DeoxyhexNAc, DiDeoxyhexose,
-    Pentose, Deoxynonulosonate, DiDeoxynonulosonate, Unknown, Assigned
+    Pentose, Deoxynonulosonate, DiDeoxynonulosonate,
+    /** Flat Hexagon family, but not unknown */
+    Other,
+    /** Unknown (not in the hardcoded list) */
+    Unknown,
+    Assigned,
 }
 
 const SaccharideTypeNameMap = {
@@ -49,6 +54,7 @@ const SaccharideTypeNameMap = {
     [SaccharideType.Pentose]: 'Pentose',
     [SaccharideType.Deoxynonulosonate]: 'Deoxynonulosonate',
     [SaccharideType.DiDeoxynonulosonate]: 'Di-deoxynonulosonate',
+    [SaccharideType.Other]: 'Other',
     [SaccharideType.Unknown]: 'Unknown',
     [SaccharideType.Assigned]: 'Assigned',
 };
@@ -68,9 +74,10 @@ const SaccharideTypeShapeMap = {
     [SaccharideType.Pentose]: SaccharideShape.FilledStar,
     [SaccharideType.Deoxynonulosonate]: SaccharideShape.FilledDiamond,
     [SaccharideType.DiDeoxynonulosonate]: SaccharideShape.FlatDiamond,
+    [SaccharideType.Other]: SaccharideShape.FlatHexagon,
     [SaccharideType.Unknown]: SaccharideShape.FlatHexagon,
     [SaccharideType.Assigned]: SaccharideShape.Pentagon,
-};
+} satisfies Record<SaccharideType, SaccharideShape>;
 
 export function getSaccharideShape(type: SaccharideType, ringMemberCount: number): SaccharideShape {
     if (type === SaccharideType.Unknown) {
@@ -176,16 +183,16 @@ const Monosaccharides: SaccharideComponent[] = [
     { abbr: 'Aci', name: 'Acinetaminic Acid', color: SaccharideColors.Pink, type: SaccharideType.DiDeoxynonulosonate },
     { abbr: '4eLeg', name: '4-Epilegionaminic Acid', color: SaccharideColors.LightBlue, type: SaccharideType.DiDeoxynonulosonate },
 
-    { abbr: 'Bac', name: 'Bacillosamine', color: SaccharideColors.Blue, type: SaccharideType.Unknown },
-    { abbr: 'LDmanHep', name: 'L-Glycero-D-Manno Heptose', color: SaccharideColors.Green, type: SaccharideType.Unknown },
-    { abbr: 'Kdo', name: 'Keto-Deoxy Octulonic Acid', color: SaccharideColors.Yellow, type: SaccharideType.Unknown },
-    { abbr: 'Dha', name: '3-Deoxy Lyxo-Heptulosaric Acid', color: SaccharideColors.Orange, type: SaccharideType.Unknown },
-    { abbr: 'DDmanHep', name: 'D-Glycero-D-Manno-Heptose', color: SaccharideColors.Pink, type: SaccharideType.Unknown },
-    { abbr: 'MurNAc', name: 'N-Acetyl Muramic Acid', color: SaccharideColors.Purple, type: SaccharideType.Unknown },
-    { abbr: 'MurNGc', name: 'N-Glycolyl Muramic Acid', color: SaccharideColors.LightBlue, type: SaccharideType.Unknown },
-    { abbr: 'Mur', name: 'Muramic Acid', color: SaccharideColors.Brown, type: SaccharideType.Unknown },
-    { abbr: 'K3O', name: 'D-glycero-a-D-talo-oct-2-Ulosonic Acid', color: SaccharideColors.Red, type: SaccharideType.Unknown }, // from GLYCAM
-    { abbr: 'dUA', name: '4-deoxy-4,5-didehydro iduronic acid', color: SaccharideColors.Secondary, type: SaccharideType.Unknown }, // from GLYCAM
+    { abbr: 'Bac', name: 'Bacillosamine', color: SaccharideColors.Blue, type: SaccharideType.Other },
+    { abbr: 'LDmanHep', name: 'L-Glycero-D-Manno Heptose', color: SaccharideColors.Green, type: SaccharideType.Other },
+    { abbr: 'Kdo', name: 'Keto-Deoxy Octulonic Acid', color: SaccharideColors.Yellow, type: SaccharideType.Other },
+    { abbr: 'Dha', name: '3-Deoxy Lyxo-Heptulosaric Acid', color: SaccharideColors.Orange, type: SaccharideType.Other },
+    { abbr: 'DDmanHep', name: 'D-Glycero-D-Manno-Heptose', color: SaccharideColors.Pink, type: SaccharideType.Other },
+    { abbr: 'MurNAc', name: 'N-Acetyl Muramic Acid', color: SaccharideColors.Purple, type: SaccharideType.Other },
+    { abbr: 'MurNGc', name: 'N-Glycolyl Muramic Acid', color: SaccharideColors.LightBlue, type: SaccharideType.Other },
+    { abbr: 'Mur', name: 'Muramic Acid', color: SaccharideColors.Brown, type: SaccharideType.Other },
+    { abbr: 'K3O', name: 'D-glycero-a-D-talo-oct-2-Ulosonic Acid', color: SaccharideColors.Red, type: SaccharideType.Other }, // from GLYCAM
+    { abbr: 'dUA', name: '4-deoxy-4,5-didehydro iduronic acid', color: SaccharideColors.Secondary, type: SaccharideType.Other }, // from GLYCAM
 
     { abbr: 'Api', name: 'Apicose', color: SaccharideColors.Green, type: SaccharideType.Assigned },
     { abbr: 'Fru', name: 'Fructose', color: SaccharideColors.Green, type: SaccharideType.Assigned },
