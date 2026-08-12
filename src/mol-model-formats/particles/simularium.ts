@@ -6,7 +6,7 @@
 
 import { Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { Euler } from '../../mol-math/linear-algebra/3d/euler';
-import { Particle, ParticleList } from '../../mol-model/particles/particle-list';
+import { Particle, ParticleEntityInfo, ParticleList } from '../../mol-model/particles/particle-list';
 import { ParticleTrajectory } from '../../mol-model/particles/particle-trajectory';
 import { CustomProperties } from '../../mol-model/custom-property';
 import { SimulariumFile, SimulariumAgentBuffer as AB, SimulariumMinValuesPerAgent as MIN_VALUES_PER_AGENT, SimulariumVisType } from '../../mol-io/reader/simularium/schema';
@@ -111,14 +111,14 @@ export function createParticleListFromSimularium(file: SimulariumFile, options: 
     const particleInstanceId = new Float64Array(particleCount);
 
     const typeIdToEntityIdx = new Map<number, number>();
-    const entityInfo = new Map<number, string>();
+    const entityInfo = new Map<number, ParticleEntityInfo>();
 
     if (trajectoryInfo.typeMapping) {
         objectForEach(trajectoryInfo.typeMapping, (value, key) => {
             const typeId = Number(key);
             const entityIdx = typeIdToEntityIdx.size;
             typeIdToEntityIdx.set(typeId, entityIdx);
-            entityInfo.set(entityIdx, value.name);
+            entityInfo.set(entityIdx, { name: value.name });
         });
     }
 
@@ -128,7 +128,7 @@ export function createParticleListFromSimularium(file: SimulariumFile, options: 
         if (idx === undefined) {
             idx = typeIdToEntityIdx.size;
             typeIdToEntityIdx.set(t, idx);
-            entityInfo.set(idx, typeName(t));
+            entityInfo.set(idx, { name: typeName(t) });
         }
         return idx;
     };
