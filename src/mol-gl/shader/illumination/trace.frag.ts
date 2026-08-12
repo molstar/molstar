@@ -185,6 +185,7 @@ vec2 rayMarch(in vec3 dir, in float thickness, inout vec3 hitPos, out bool misse
 
     for (int i = 1; i < dSteps; i++) {
         hitPos += dir;
+        float stepZ = abs(dir.z);
         dir *= gf;
 
         coords = viewSpaceToScreenSpace(hitPos);
@@ -200,7 +201,7 @@ vec2 rayMarch(in vec3 dir, in float thickness, inout vec3 hitPos, out bool misse
             #endif
         }
 
-        if (rayHitDepthDifference >= 0.0 && rayHitDepthDifference < thickness) {
+        if (rayHitDepthDifference >= 0.0 && rayHitDepthDifference < max(thickness, stepZ)) {
             if (dRefineSteps == 0) {
                 return coords;
             } else {

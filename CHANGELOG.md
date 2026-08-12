@@ -39,6 +39,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix camera reset handling for (temporary) empty scenes (#1903)
 - Remove `firstStepSize` tracing parameter, derive automatically
 - Fix illumination `auto` thickness mode never being applied
+- Fix illumination ray marching stepping over occluders when the acceptance window is narrower than the current step
 
 - Camera improvements
   - Support multiple camera transition shapes
