@@ -38,6 +38,9 @@ Note that since we don't clearly distinguish between a public and private interf
     - Artistic option fits spherical harmonics to bins
 - Fix camera reset handling for (temporary) empty scenes (#1903)
 - Remove `firstStepSize` tracing parameter, derive automatically
+- Fix illumination `auto` thickness mode never correctly being applied
+- Fix illumination ray marching stepping over occluders when the acceptance window is narrower than the current step
+- Evaluate illumination `auto` thickness at the surface being tested instead of latching it from the shaded pixel
 - Add `.parseRaw` to `DataFormatProvider` for out of state tree parsing
 - Camera improvements
   - Support multiple camera transition shapes
