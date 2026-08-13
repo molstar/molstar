@@ -232,9 +232,6 @@ function isColorT(str: any): str is ColorT {
         return isHexColorT(str) || isColorNameT(str);
     }
 }
-// /** `color` parameter values for `color` node in MVS tree */
-// export type ColorT = ColorNameT | HexColorT;
-// export const ColorT: iots.Type<ColorT> = union(ColorNameT, HexColorT);
 
 
 // Type helpers

@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2025s mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { Color, ColorMap } from '../../../../mol-util/color';
@@ -36,7 +37,7 @@ export const SaccharideColors = ColorMap({
 export enum SaccharideType {
     Hexose, HexNAc, Hexosamine, Hexuronate, Deoxyhexose, DeoxyhexNAc, DiDeoxyhexose,
     Pentose, Deoxynonulosonate, DiDeoxynonulosonate,
-    /** Flat Hexagon family, but not unknown */
+    /** Flat Hexagon shape, but not unknown monosaccharide */
     Other,
     /** Unknown (not in the hardcoded list) */
     Unknown,

@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { SaccharideColors, SaccharideCompIdMap, SaccharideType } from '../../../mol-model/structure/structure/carbohydrates/constants';
+import { isSaccharideShapeDivided, SaccharideColors, SaccharideCompIdMap } from '../../../mol-model/structure/structure/carbohydrates/constants';
 import { ElementSymbolColors } from '../../../mol-theme/color/element-symbol';
 import { ResidueNameColors } from '../../../mol-theme/color/residue-name';
 import { SecondaryStructureColors as SecStrColors } from '../../../mol-theme/color/secondary-structure';
@@ -83,11 +83,7 @@ function makeCarbohydrateSymbolColors(): Record<string, ColorT> {
 
     for (const [compId, comp] of SaccharideCompIdMap) {
         const primaryColor = Color.toHexStyle(comp.color);
-        const hasSecondary = (
-            comp.type === SaccharideType.Hexosamine // divided cube
-            || comp.type === SaccharideType.Hexuronate // divided diamond
-            || comp.type === SaccharideType.DeoxyhexNAc // divided cone
-        );
+        const hasSecondary = isSaccharideShapeDivided(comp.type);
         out[compId] = (hasSecondary ? `${primaryColor}/${secondaryColor}` : primaryColor) as ColorT;
     }
     return out;

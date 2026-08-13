@@ -14,7 +14,7 @@ export function sphereVertexCount(detail: number) {
     return 10 * Math.pow(Math.pow(2, detail), 2) + 2;
 }
 
-/** Create sphere by subdividing an icosahedron,  */
+/** Create sphere by subdividing an icosahedron */
 export function Sphere(detail: number, options?: { subset: 'ring' | 'caps' | undefined }): Primitive {
     const { vertices, indices } = Icosahedron({ subset: options?.subset });
     const sphere = Polyhedron(vertices, indices, { detail, radius: 1 });

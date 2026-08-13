@@ -85,7 +85,6 @@ const PaletteFunction = {
 };
 
 interface InterpolationCacheEntry {
-    // paletteFn?: (value: number) => Color,
     paletteFn?: PaletteFunction,
     startColor?: Color | Record<number | string, Color>,
     endColor?: Color | Record<number | string, Color>,

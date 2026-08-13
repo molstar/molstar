@@ -520,10 +520,6 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
         const children = getChildren(node).filter(c => c.kind === 'color' || c.kind === 'color_from_uri' || c.kind === 'color_from_source') as MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>[];
         if (children.length === 0) {
             return uniformColorTheme(DefaultColor);
-            // return {
-            //     name: 'uniform',
-            //     params: { value: decodeColor(DefaultColor) },
-            // };
         } else if (children.length === 1 && hasMolStarUseDefaultColoring(children[0])) {
             return customColoring(children[0].custom);
         } else if (children.length === 1 && appliesColorToWholeRepr(children[0])) {
@@ -546,12 +542,7 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
         if (hasMolStarUseDefaultColoring(node)) {
             return customColoring(node.custom);
         }
-
         return uniformColorTheme(node.params.color);
-        // return {
-        //     name: 'uniform',
-        //     params: { value: decodeColor(node.params.color) },
-        // };
     }
     if (node?.kind === 'color_from_uri' || node?.kind === 'color_from_source') {
         const annotationId = context.annotationMap.get(node);
@@ -572,6 +563,7 @@ function appliesColorToWholeRepr(node: MolstarNode<'color' | 'color_from_uri' | 
     return !isDefined(node.params.selector) || node.params.selector === 'all';
 }
 
+/** Create parameters for `uniform` (or `mvs-split-uniform`) color theme, supports split coloring. */
 function uniformColorTheme(color: ColorT): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] {
     if (color.includes('/')) {
         return {
