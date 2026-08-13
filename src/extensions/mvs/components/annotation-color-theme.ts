@@ -16,40 +16,34 @@ import { MaybeFloatParamDefinition } from '../helpers/param-definition';
 import { SplitColor } from '../helpers/utils';
 import { getMVSAnnotationForStructure, MVSAnnotation } from './annotation-prop';
 import { isMVSStructure } from './is-mvs-model-prop';
-import { PDOptionalSplitColor, PDSplitColor, SplitColorProp } from './split-uniform-color-theme';
+import { SplitColorProp } from './split-uniform-color-theme';
 
-
-function fmtFloat(x: number): string {
-    if (x === Infinity) return '\u221e';
-    if (x === -Infinity) return '-\u221e';
-    return x.toString();
-}
 
 export const MVSCategoricalPaletteParams = {
     colors: PD.MappedStatic('list', {
         list: PD.ObjectList({
-            color: PDSplitColor(),
+            color: SplitColorProp.PD(),
         }, e => SplitColorProp.toString(e.color), { description: 'List of colors.' }),
         dictionary: PD.ObjectList({
             value: PD.Text(),
-            color: PDSplitColor(),
+            color: SplitColorProp.PD(),
         }, e => `${e.value}: ${SplitColorProp.toString(e.color)}`, { description: 'Mapping of annotation values to colors.' }),
     }),
     repeatColorList: PD.Boolean(false, { hideIf: g => g.colors.name !== 'list', description: 'Repeat color list once all colors are depleted (only applies if `colors` is a list).' }),
     sort: PD.Select('none', [['none', 'None'], ['lexical', 'Lexical'], ['numeric', 'Numeric']] as const, { hideIf: g => g.colors.name !== 'list', description: 'Sort actual annotation values before assigning colors from a list (none = take values in order of their first occurrence).' }),
     sortDirection: PD.Select('ascending', [['ascending', 'Ascending'], ['descending', 'Descending']] as const, { hideIf: g => g.colors.name !== 'list', description: 'Sort direction.' }),
     caseInsensitive: PD.Boolean(false, { description: 'Treat annotation values as case-insensitive strings.' }),
-    missingColor: PDOptionalSplitColor({ description: 'Color to use when (a) `colors` is a dictionary and given key is not present, or (b) `colors` is a list and there are more actual annotation values than listed colors and `repeat_color_list` is not true.' }),
+    missingColor: SplitColorProp.PDOptional({ description: 'Color to use when (a) `colors` is a dictionary and given key is not present, or (b) `colors` is a list and there are more actual annotation values than listed colors and `repeat_color_list` is not true.' }),
 };
 export type MVSCategoricalPaletteParams = typeof MVSCategoricalPaletteParams
 export type MVSCategoricalPaletteProps = PD.Values<MVSCategoricalPaletteParams>
 
 export const MVSDiscretePaletteParams = {
     colors: PD.ObjectList({
-        color: PDOptionalSplitColor(),
+        color: SplitColorProp.PDOptional(),
         fromValue: PD.Numeric(-Infinity),
         toValue: PD.Numeric(Infinity),
-    }, e => `${SplitColorProp.toString(e.color)} [${fmtFloat(e.fromValue)}, ${fmtFloat(e.toValue)}]`, { description: 'Mapping of annotation value ranges to colors.' }),
+    }, e => `${SplitColorProp.toString(e.color)} [${formatFloat(e.fromValue)}, ${formatFloat(e.toValue)}]`, { description: 'Mapping of annotation value ranges to colors.' }),
     mode: PD.Select('normalized', [['normalized', 'Normalized'], ['absolute', 'Absolute']] as const, { description: 'Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation).' }),
     xMin: MaybeFloatParamDefinition({ hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_min` for normalization of annotation values. If not provided, minimum of the actual values will be used. Only used when `mode` is `"normalized"' }),
     xMax: MaybeFloatParamDefinition({ hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_max` for normalization of annotation values. If not provided, maximum of the actual values will be used. Only used when `mode` is `"normalized"' }),
@@ -59,14 +53,14 @@ export type MVSDiscretePaletteProps = PD.Values<MVSDiscretePaletteParams>
 
 export const MVSContinuousPaletteParams = {
     colors: PD.ObjectList({
-        color: PDSplitColor(),
+        color: SplitColorProp.PD(),
         checkpoint: PD.Numeric(0),
-    }, e => `${SplitColorProp.toString(e.color)} [${fmtFloat(e.checkpoint)}]`, { description: 'List of colors with checkpoints.' }),
+    }, e => `${SplitColorProp.toString(e.color)} [${formatFloat(e.checkpoint)}]`, { description: 'List of colors with checkpoints.' }),
     mode: PD.Select('normalized', [['normalized', 'Normalized'], ['absolute', 'Absolute']] as const, { description: 'Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation).' }),
     xMin: MaybeFloatParamDefinition({ hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_min` for normalization of annotation values. If not provided, minimum of the actual values will be used. Only used when `mode` is `"normalized"' }),
     xMax: MaybeFloatParamDefinition({ hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_max` for normalization of annotation values. If not provided, maximum of the actual values will be used. Only used when `mode` is `"normalized"' }),
-    underflowColor: PDOptionalSplitColor({ description: 'Color for values below the lowest checkpoint.' }),
-    overflowColor: PDOptionalSplitColor({ description: 'Color for values above the highest checkpoint.' }),
+    underflowColor: SplitColorProp.PDOptional({ description: 'Color for values below the lowest checkpoint.' }),
+    overflowColor: SplitColorProp.PDOptional({ description: 'Color for values above the highest checkpoint.' }),
 };
 export type MVSContinuousPaletteParams = typeof MVSContinuousPaletteParams
 export type MVSContinuousPaletteProps = PD.Values<MVSContinuousPaletteParams>
@@ -268,4 +262,10 @@ export function makeContinuousPaletteCheckpoints(props: MVSContinuousPaletteProp
     const colors = sorted.map(t => SplitColorProp.toTuple(t.color));
     const checkpoints = SortedArray.ofSortedArray(sorted.map(t => t.checkpoint));
     return { colors, checkpoints };
+}
+
+function formatFloat(x: number): string {
+    if (x === Infinity) return '\u221e';
+    if (x === -Infinity) return '-\u221e';
+    return x.toString();
 }

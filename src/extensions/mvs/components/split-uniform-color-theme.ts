@@ -14,7 +14,8 @@ import { SplitColor } from '../helpers/utils';
 import { isMVSStructure } from './is-mvs-model-prop';
 
 
-export function PDSplitColor(info?: PD.Info) {
+/** Return parameter definition for `SplitColorProp` */
+function PDSplitColor(info?: PD.Info) {
     return PD.MappedStatic('oneColor', {
         oneColor: PD.Group({
             color: PD.Color(ColorNames.white, { label: ' ' }),
@@ -25,7 +26,8 @@ export function PDSplitColor(info?: PD.Info) {
         }, { isFlat: true }),
     }, info);
 }
-export function PDOptionalSplitColor(info?: PD.Info) {
+/** Return parameter definition for `OptionalSplitColorProp` */
+function PDOptionalSplitColor(info?: PD.Info) {
     return PD.MappedStatic('none', {
         none: PD.EmptyGroup(),
         oneColor: PD.Group({
@@ -46,7 +48,10 @@ const FALLBACK_COLOR = ColorNames.black;
 
 const _tmpColors: [Color | undefined, Color | undefined] = [undefined, undefined];
 
+/** Color parameter which allows regular color or split color (or optionally no color) */
 export const SplitColorProp = {
+    PD: PDSplitColor,
+    PDOptional: PDOptionalSplitColor,
     fromString<T extends string | null>(colorString: T): T extends string ? SplitColorProp : NoneSplitColorProp {
         if (colorString == null) {
             return this.none() satisfies NoneSplitColorProp as any;
@@ -76,7 +81,7 @@ export const SplitColorProp = {
 
 
 export const MVSSplitUniformColorThemeParams = {
-    value: PDSplitColor(),
+    value: SplitColorProp.PD(),
 };
 export type MVSSplitUniformColorThemeParams = typeof MVSSplitUniformColorThemeParams;
 export type MVSSplitUniformColorThemeProps = PD.Values<MVSSplitUniformColorThemeParams>;
