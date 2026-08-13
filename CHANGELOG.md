@@ -40,7 +40,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Artistic option fits spherical harmonics to bins
 - Fix camera reset handling for (temporary) empty scenes (#1903)
 - Remove `firstStepSize` tracing parameter, derive automatically
-
+- Add `.parseRaw` to `DataFormatProvider` for out of state tree parsing
 - Camera improvements
   - Support multiple camera transition shapes
   - Add `transitionTrajectory` and `transitionEasing` parameters to `PluginState.Snapshot` (MOLJ) and Plugin State > Save Options

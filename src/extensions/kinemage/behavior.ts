@@ -573,7 +573,7 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
     },
 };
 
-const KINFormatProvider: DataFormatProvider<{}, any, any> = DataFormatProvider({
+const KINFormatProvider: DataFormatProvider = DataFormatProvider({
     label: 'KIN',
     description: 'Kinemage',
     category: 'Miscellaneous',

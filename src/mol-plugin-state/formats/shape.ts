@@ -6,7 +6,7 @@
  */
 
 import { StateTransforms } from '../transforms';
-import { DataFormatProvider } from './provider';
+import { applyTransformerRaw, DataFormatProvider, rawDataObject } from './provider';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectRef } from '../../mol-state';
 import { PluginStateObject } from '../objects';
@@ -29,6 +29,11 @@ export const PlyProvider = DataFormatProvider({
         await format.commit();
 
         return { format: format.selector, shape: shape.selector };
+    },
+    parseRaw: async (plugin, ctx, data) => {
+        const format = await applyTransformerRaw(plugin, ctx, StateTransforms.Data.ParsePly, rawDataObject(data));
+        const shape = await applyTransformerRaw(plugin, ctx, StateTransforms.Shape.ShapeFromPly, format);
+        return { shape: shape.data };
     },
     visuals(plugin: PluginContext, data: { shape: StateObjectRef<PluginStateObject.Shape.Provider> }) {
         const repr = plugin.state.data.build()
@@ -54,6 +59,11 @@ export const ObjProvider = DataFormatProvider({
 
         return { format: format.selector, shape: shape.selector };
     },
+    parseRaw: async (plugin, ctx, data) => {
+        const format = await applyTransformerRaw(plugin, ctx, StateTransforms.Data.ParseObj, rawDataObject(data));
+        const shape = await applyTransformerRaw(plugin, ctx, StateTransforms.Shape.ShapeFromObj, format);
+        return { shape: shape.data };
+    },
     visuals(plugin: PluginContext, data: { shape: StateObjectRef<PluginStateObject.Shape.Provider> }) {
         const repr = plugin.state.data.build()
             .to(data.shape)
@@ -77,6 +87,11 @@ export const VtpProvider = DataFormatProvider({
         await format.commit();
 
         return { format: format.selector, shape: shape.selector };
+    },
+    parseRaw: async (plugin, ctx, data) => {
+        const format = await applyTransformerRaw(plugin, ctx, StateTransforms.Data.ParseVtp, rawDataObject(data));
+        const shape = await applyTransformerRaw(plugin, ctx, StateTransforms.Shape.ShapeFromVtp, format);
+        return { shape: shape.data };
     },
     visuals(plugin: PluginContext, data: { shape: StateObjectRef<PluginStateObject.Shape.Provider> }) {
         const repr = plugin.state.data.build()

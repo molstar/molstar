@@ -1,1 +1,2 @@
 - Remove `checkeredCanvasBackground` from `PluginContext` and `PluginContainer`
+- Fix typo `BuildInVolumeFormat` in `src\mol-plugin-state\formats\volume.ts`
