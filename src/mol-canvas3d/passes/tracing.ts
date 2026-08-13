@@ -54,7 +54,7 @@ export const TracingParams = {
     glow: PD.Boolean(true, { description: 'Bounced rays always get the full light. This produces a slight glowing effect.' }),
     shadowEnable: PD.Boolean(false),
     shadowSoftness: PD.Numeric(0.1, { min: 0.01, max: 1.0, step: 0.01 }),
-    shadowThickness: PD.Numeric(0.5, { min: 0.1, max: 32, step: 0.1 }),
+    shadowThickness: PD.Numeric(0.5, { min: 0.0, max: 32, step: 0.1 }, { description: 'Thickness of the shadow casting geometry. Set to 0.0 for automatic estimation.' }),
 };
 export type TracingProps = PD.Values<typeof TracingParams>
 
