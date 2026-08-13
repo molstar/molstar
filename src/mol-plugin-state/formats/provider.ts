@@ -13,18 +13,7 @@ import { RuntimeContext, Task } from '../../mol-task';
 import { FileNameInfo } from '../../mol-util/file-info';
 import { PluginStateObject } from '../objects';
 
-/** Result of `DataFormatProvider.parseRaw`, mirroring the keys of the state-based `parse` result. */
-export interface RawParseResult {
-    trajectory?: PluginStateObject.Molecule.Trajectory['data'],
-    structure?: PluginStateObject.Molecule.Structure['data'],
-    volume?: PluginStateObject.Volume.Data['data'],
-    volumes?: PluginStateObject.Volume.Data['data'][],
-    shape?: PluginStateObject.Shape.Provider['data'],
-    particles?: PluginStateObject.Particle.List['data'],
-}
-
-
-export interface DataFormatProvider<P = any, R = any, V = any> {
+export interface DataFormatProvider<P = any, R = any, V = any, D = any> {
     label: string,
     description: string,
     category?: string,
@@ -44,8 +33,9 @@ export interface DataFormatProvider<P = any, R = any, V = any> {
      * Parse the data into plain objects without creating state tree nodes. In contrast to `parse`
      * this can be called from within a state update, e.g. from a transformer.
      */
-    parseRaw?(plugin: PluginContext, ctx: RuntimeContext, data: StringLike | Uint8Array, params?: P): Promise<RawParseResult>,
-    visuals?(plugin: PluginContext, data: R): Promise<V> | undefined
+    parseRaw?(plugin: PluginContext, ctx: RuntimeContext, data: StringLike | Uint8Array, params?: P): Promise<D>,
+    visuals?(plugin: PluginContext, data: R): Promise<V> | undefined,
+    defaultData?: D
 }
 
 export function DataFormatProvider<P extends DataFormatProvider>(provider: P): P { return provider; }

@@ -13,7 +13,7 @@ import { RuntimeContext, Task } from '../../mol-task';
 import { Asset } from '../../mol-util/assets';
 import { getFileNameInfo } from '../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { RawParseResult, rawDataObject } from '../formats/provider';
+import { rawDataObject } from '../formats/provider';
 
 /** The registered formats that can be loaded as a reference object for a particle target. */
 function targetFormatProviders(plugin: PluginContext) {
@@ -48,7 +48,7 @@ export interface ParticleTargetEntry {
 }
 
 /** Turn a parsed data object into the reference object of a particle target. */
-async function particleTargetFromParsed(plugin: PluginContext, ctx: RuntimeContext, parsed: RawParseResult, name: string): Promise<ParticleTarget> {
+async function particleTargetFromParsed(plugin: PluginContext, ctx: RuntimeContext, parsed: any, name: string): Promise<ParticleTarget> {
     const volume = parsed.volume ?? parsed.volumes?.[0];
     if (volume) return { kind: 'volume', volume };
 
