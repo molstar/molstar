@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,6 +13,7 @@ import { deepEqual } from '../mol-util';
 import { ShapeGroupSizeThemeProvider } from './size/shape-group';
 import { UncertaintySizeThemeProvider } from './size/uncertainty';
 import { VolumeValueSizeThemeProvider } from './size/volume-value';
+import { ParticleSizeThemeProvider } from './size/particle-size';
 
 export { SizeTheme };
 interface SizeTheme<P extends PD.Params> {
@@ -42,6 +43,7 @@ namespace SizeTheme {
     }
 
     export const BuiltIn = {
+        'particle-size': ParticleSizeThemeProvider,
         'physical': PhysicalSizeThemeProvider,
         'shape-group': ShapeGroupSizeThemeProvider,
         'uncertainty': UncertaintySizeThemeProvider,
