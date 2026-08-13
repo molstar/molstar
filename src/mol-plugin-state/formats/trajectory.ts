@@ -7,7 +7,7 @@
  */
 
 import { StateTransforms } from '../transforms';
-import { guessCifVariant, DataFormatProvider } from './provider';
+import { guessCifVariant, DataFormatProvider, applyTransformerRaw, rawDataObject } from './provider';
 import { StateTransformer, StateObjectRef } from '../../mol-state';
 import { PluginStateObject } from '../objects';
 import { PluginContext } from '../../mol-plugin/context';
@@ -48,6 +48,11 @@ export const MmcifProvider: TrajectoryFormatProvider = {
 
         return { trajectory };
     },
+    parseRaw: async (plugin, ctx, data) => {
+        const cif = await applyTransformerRaw(plugin, ctx, StateTransforms.Data.ParseCif, rawDataObject(data));
+        const trajectory = await applyTransformerRaw(plugin, ctx, StateTransforms.Model.TrajectoryFromMmCif, cif);
+        return { trajectory: trajectory.data };
+    },
     visuals: defaultVisuals
 };
 
@@ -73,16 +78,27 @@ export const CifCoreProvider: TrajectoryFormatProvider = {
         }
         return { trajectory };
     },
+    parseRaw: async (plugin, ctx, data) => {
+        const cif = await applyTransformerRaw(plugin, ctx, StateTransforms.Data.ParseCif, rawDataObject(data));
+        const trajectory = await applyTransformerRaw(plugin, ctx, StateTransforms.Model.TrajectoryFromCifCore, cif);
+        return { trajectory: trajectory.data };
+    },
     visuals: defaultVisuals
 };
 
-function directTrajectory<P extends {}>(transformer: StateTransformer<PluginStateObject.Data.String | PluginStateObject.Data.Binary, PluginStateObject.Molecule.Trajectory, P>, transformerParams?: P): TrajectoryFormatProvider['parse'] {
-    return async (plugin, data, params) => {
-        const state = plugin.state.data;
-        const trajectory = await state.build().to(data)
-            .apply(transformer, transformerParams, { tags: params?.trajectoryTags })
-            .commit({ revertOnError: true });
-        return { trajectory };
+function directTrajectory<P extends {}>(transformer: StateTransformer<PluginStateObject.Data.String | PluginStateObject.Data.Binary, PluginStateObject.Molecule.Trajectory, P>, transformerParams?: P): Pick<TrajectoryFormatProvider, 'parse' | 'parseRaw'> {
+    return {
+        parse: async (plugin, data, params) => {
+            const state = plugin.state.data;
+            const trajectory = await state.build().to(data)
+                .apply(transformer, transformerParams, { tags: params?.trajectoryTags })
+                .commit({ revertOnError: true });
+            return { trajectory };
+        },
+        parseRaw: async (plugin, ctx, data) => {
+            const trajectory = await applyTransformerRaw(plugin, ctx, transformer, rawDataObject(data), transformerParams);
+            return { trajectory: trajectory.data };
+        }
     };
 }
 
@@ -91,7 +107,7 @@ export const PdbProvider: TrajectoryFormatProvider = {
     description: 'PDB',
     category: TrajectoryFormatCategory,
     stringExtensions: ['pdb', 'ent'],
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB),
+    ...directTrajectory(StateTransforms.Model.TrajectoryFromPDB),
     visuals: defaultVisuals
 };
 
@@ -100,7 +116,7 @@ export const PdbqtProvider: TrajectoryFormatProvider = {
     description: 'PDBQT',
     category: TrajectoryFormatCategory,
     stringExtensions: ['pdbqt'],
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB, { variant: 'pdbqt' }),
+    ...directTrajectory(StateTransforms.Model.TrajectoryFromPDB, { variant: 'pdbqt' }),
     visuals: defaultVisuals
 };
 
@@ -109,7 +125,7 @@ export const PqrProvider: TrajectoryFormatProvider = {
     description: 'PQR',
     category: TrajectoryFormatCategory,
     stringExtensions: ['pqr'],
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB, { variant: 'pqr' }),
+    ...directTrajectory(StateTransforms.Model.TrajectoryFromPDB, { variant: 'pqr' }),
     visuals: defaultVisuals
 };
 
@@ -118,7 +134,7 @@ export const XyzProvider: TrajectoryFormatProvider = {
     description: 'XYZ',
     category: TrajectoryFormatCategory,
     stringExtensions: ['xyz'],
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromXYZ),
+    ...directTrajectory(StateTransforms.Model.TrajectoryFromXYZ),
     visuals: defaultVisuals
 };
 
@@ -127,7 +143,7 @@ export const LammpsDataProvider: TrajectoryFormatProvider = {
     description: 'Lammps Data',
     category: TrajectoryFormatCategory,
     stringExtensions: ['data'],
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromLammpsData),
+    ...directTrajectory(StateTransforms.Model.TrajectoryFromLammpsData),
     visuals: defaultVisuals
 };
 
@@ -136,7 +152,7 @@ export const LammpsTrajectoryDataProvider: TrajectoryFormatProvider = {
     description: 'Lammps Trajectory Data',
     category: TrajectoryFormatCategory,
     stringExtensions: ['lammpstrj'],
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromLammpsTrajData),
+    ...directTrajectory(StateTransforms.Model.TrajectoryFromLammpsTrajData),
     visuals: defaultVisuals
 };
 
@@ -146,7 +162,7 @@ export const GroProvider: TrajectoryFormatProvider = {
     category: TrajectoryFormatCategory,
     stringExtensions: ['gro'],
     binaryExtensions: [],
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromGRO),
+    ...directTrajectory(StateTransforms.Model.TrajectoryFromGRO),
     visuals: defaultVisuals
 };
 
@@ -155,7 +171,7 @@ export const MolProvider: TrajectoryFormatProvider = {
     description: 'MOL',
     category: TrajectoryFormatCategory,
     stringExtensions: ['mol'],
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromMOL),
+    ...directTrajectory(StateTransforms.Model.TrajectoryFromMOL),
     visuals: defaultVisuals
 };
 
@@ -164,7 +180,7 @@ export const SdfProvider: TrajectoryFormatProvider = {
     description: 'SDF',
     category: TrajectoryFormatCategory,
     stringExtensions: ['sdf', 'sd'],
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromSDF),
+    ...directTrajectory(StateTransforms.Model.TrajectoryFromSDF),
     visuals: defaultVisuals
 };
 
@@ -173,7 +189,7 @@ export const Mol2Provider: TrajectoryFormatProvider = {
     description: 'MOL2',
     category: TrajectoryFormatCategory,
     stringExtensions: ['mol2'],
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromMOL2),
+    ...directTrajectory(StateTransforms.Model.TrajectoryFromMOL2),
     visuals: defaultVisuals
 };
 
