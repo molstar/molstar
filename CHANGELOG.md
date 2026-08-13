@@ -47,7 +47,6 @@ Note that since we don't clearly distinguish between a public and private interf
 - MolViewSpec
   - Added `transition` node with params `duration_ms`, `trajectory`, `easing`
   - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
-- MolViewSpec
   - Add support for split colors (e.g. 'red/white', applies to carbohydrate symbols and nucleic cartoon)
   - Add CarbohydrateSymbol color palette
 
