@@ -19,7 +19,7 @@ export type ParseFormatT =
     | 'psf' | 'prmtop' | 'top'
     // volumes
     | 'map' | 'dx' | 'dxbin'
-    // geometry
+    // shape
     | 'vtp' | 'ply' | 'obj'
 export const ParseFormatT = literal<ParseFormatT>(
     // trajectory
@@ -46,7 +46,7 @@ export const ParseFormatT = literal<ParseFormatT>(
     'map',
     'dx',
     'dxbin',
-    // geometry
+    // shape
     'vtp',
     'ply',
     'obj',
@@ -62,7 +62,7 @@ export type MolstarParseFormatT =
     | 'psf' | 'prmtop' | 'top'
     // volumes
     | 'map' | 'dx' | 'dxbin'
-    // geometry
+    // shape
     | 'vtp' | 'ply' | 'obj'
 export const MolstarParseFormatT = literal<MolstarParseFormatT>(
     // trajectory
@@ -88,7 +88,7 @@ export const MolstarParseFormatT = literal<MolstarParseFormatT>(
     'map',
     'dx',
     'dxbin',
-    // geometry
+    // shape
     'vtp',
     'ply',
     'obj',

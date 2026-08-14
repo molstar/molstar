@@ -39,7 +39,7 @@ export const ParseFormatMvsToMolstar = {
     map: { format: 'map', is_binary: true },
     dx: { format: 'dx', is_binary: false },
     dxbin: { format: 'dxbin', is_binary: true },
-    // geometry
+    // shape
     vtp: { format: 'vtp', is_binary: true }, // XML, but ParseVtp takes Uint8Array and decodes the header itself
     ply: { format: 'ply', is_binary: true }, // parsePly auto-detects ascii vs binary from the header
     obj: { format: 'obj', is_binary: false },
@@ -160,7 +160,7 @@ const StructureFormatExtensions: Record<ParseFormatT, (FileExtension | '*')[]> =
     map: ['.map', '.ccp4', '.mrc', '.mrcs'],
     dx: ['.dx'],
     dxbin: ['.dxbin'],
-    // geometry
+    // shape
     vtp: ['.vtp'],
     ply: ['.ply'],
     obj: ['.obj'],

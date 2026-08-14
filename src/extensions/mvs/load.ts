@@ -489,7 +489,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             format = 'obj';
             shape = UpdateTarget.apply(updateParent, ShapeFromObj, { transforms });
         } else {
-            console.error(`Unsupported geometry format`);
+            console.error(`Unsupported format for "shape" node`);
             return undefined;
         }
         return UpdateTarget.apply(shape, ShapeRepresentation3D, shapeRepresentationProps(node, format));
