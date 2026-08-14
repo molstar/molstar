@@ -39,6 +39,10 @@ export const ParseFormatMvsToMolstar = {
     map: { format: 'map', is_binary: true },
     dx: { format: 'dx', is_binary: false },
     dxbin: { format: 'dxbin', is_binary: true },
+    // geometry
+    vtp: { format: 'vtp', is_binary: true }, // XML, but ParseVtp takes Uint8Array and decodes the header itself
+    ply: { format: 'ply', is_binary: true }, // parsePly auto-detects ascii vs binary from the header
+    obj: { format: 'obj', is_binary: false },
 } satisfies { [p in ParseFormatT]: { format: MolstarParseFormatT, is_binary: boolean } };
 
 
@@ -156,6 +160,10 @@ const StructureFormatExtensions: Record<ParseFormatT, (FileExtension | '*')[]> =
     map: ['.map', '.ccp4', '.mrc', '.mrcs'],
     dx: ['.dx'],
     dxbin: ['.dxbin'],
+    // geometry
+    vtp: ['.vtp'],
+    ply: ['.ply'],
+    obj: ['.obj'],
 };
 
 /** Run some sanity check on a MVSTree. Return a list of potential problems (`undefined` if there are none) */

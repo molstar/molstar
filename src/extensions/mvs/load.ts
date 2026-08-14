@@ -9,9 +9,10 @@
 
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { Download, ParseCcp4, ParseCif, ParseDx, ParsePrmtop, ParsePsf, ParseTop } from '../../mol-plugin-state/transforms/data';
+import { Download, ParseCcp4, ParseCif, ParseDx, ParseObj, ParsePly, ParsePrmtop, ParsePsf, ParseTop, ParseVtp } from '../../mol-plugin-state/transforms/data';
 import { CoordinatesFromDcd, CoordinatesFromLammpstraj, CoordinatesFromNctraj, CoordinatesFromTrr, CoordinatesFromXtc, CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TopologyFromPrmtop, TopologyFromPsf, TopologyFromTop, TrajectoryFromGRO, TrajectoryFromLammpsTrajData, TrajectoryFromMmCif, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../mol-plugin-state/transforms/model';
-import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { ShapeRepresentation3D, StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { ShapeFromObj, ShapeFromPly, ShapeFromVtp } from '../../mol-plugin-state/transforms/shape';
 import { VolumeFromCcp4, VolumeFromDensityServerCif, VolumeFromDx } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
@@ -34,7 +35,7 @@ import { IsHiddenCustomStateExtension } from './load-extensions/is-hidden-custom
 import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
 import { VolumeStreamingExtension } from './load-extensions/volume-streaming';
 import { LoadingActions, LoadingExtension, loadTreeVirtual, UpdateTarget } from './load-generic';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, clippingForNode, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformAndInstantiateStructure, transformAndInstantiateVolume, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, clippingForNode, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, ShapeFormat, shapeRepresentationProps, shapeTransforms, structureProps, transformAndInstantiateStructure, transformAndInstantiateVolume, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
 import { MVSData, MVSData_States, Snapshot, SnapshotMetadata } from './mvs-data';
 import { MVSAnimationNode, MVSAnimationSchema } from './tree/animation/animation-tree';
 import { validateTree } from './tree/generic/tree-validation';
@@ -289,6 +290,12 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             case 'dx':
             case 'dxbin':
                 return UpdateTarget.apply(updateParent, ParseDx, {});
+            case 'vtp':
+                return UpdateTarget.apply(updateParent, ParseVtp, {});
+            case 'ply':
+                return UpdateTarget.apply(updateParent, ParsePly, {});
+            case 'obj':
+                return UpdateTarget.apply(updateParent, ParseObj, {});
             default:
                 console.error(`Unknown format in "parse" node: "${format}"`);
                 return undefined;
@@ -463,6 +470,28 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             ...volumeRepresentationProps(node),
             colorTheme: volumeColorThemeForNode(node, context),
         });
+    },
+    shape(updateParent: UpdateTarget, node: MolstarSubtree<'shape'>): UpdateTarget | undefined {
+        // Same transformers the plugin's own shape format provider uses, so the resulting state
+        // object is identical to one produced by opening the file through the UI. MVS only
+        // supplies the initial parameter values -- the `volume` node works the same way.
+        const transforms = shapeTransforms(node);
+        let shape: UpdateTarget;
+        let format: ShapeFormat;
+        if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Vtp)) {
+            format = 'vtp';
+            shape = UpdateTarget.apply(updateParent, ShapeFromVtp, { transforms });
+        } else if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Ply)) {
+            format = 'ply';
+            shape = UpdateTarget.apply(updateParent, ShapeFromPly, { transforms });
+        } else if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Obj)) {
+            format = 'obj';
+            shape = UpdateTarget.apply(updateParent, ShapeFromObj, { transforms });
+        } else {
+            console.error(`Unsupported geometry format`);
+            return undefined;
+        }
+        return UpdateTarget.apply(shape, ShapeRepresentation3D, shapeRepresentationProps(node, format));
     },
     color: undefined, // No action needed, already loaded in `representation`
     color_from_uri: undefined, // No action needed, already loaded in `representation`

@@ -126,13 +126,13 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to rotate and/or translate structure coordinates. */
         transform: {
             description: 'This node instructs to rotate and/or translate coordinates OR provide a transformation matrix.',
-            parent: ['structure', 'component', 'volume'],
+            parent: ['structure', 'component', 'volume', 'shape'],
             params: TransformParams,
         },
         /** This node allows instantiation using the provided transformation parameters. */
         instance: {
             description: 'This node allows instantiation using the provided transformation parameters.',
-            parent: ['structure', 'component', 'volume'],
+            parent: ['structure', 'component', 'volume', 'shape'],
             params: TransformParams,
         },
         /** This node instructs to create a component (i.e. a subset of the parent structure). */
@@ -189,10 +189,16 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['volume'],
             params: MVSVolumeRepresentationParams,
         },
+        /** This node instructs to create a mesh from a parsed 3D geometry resource (VTP, PLY, or OBJ). */
+        shape: {
+            description: 'This node instructs to create a mesh from a parsed 3D geometry resource (VTP, PLY, or OBJ). Color is applied via child `color` nodes; format-specific options (e.g. coloring a VTP by one of its data arrays) are carried as prefixed custom properties.',
+            parent: ['parse'],
+            params: SimpleParamsSchema({}),
+        },
         /** This node instructs to apply color to a visual representation. */
         color: {
             description: 'This node instructs to apply color to a visual representation.',
-            parent: ['representation', 'volume_representation'],
+            parent: ['representation', 'volume_representation', 'shape'],
             params: SimpleParamsSchema({
                 /** Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
                 color: OptionalField(ColorT, DefaultColor, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
@@ -231,13 +237,13 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to apply clipping to a visual representation. */
         clip: {
             description: 'This node instructs to apply clipping to a visual representation.',
-            parent: ['representation', 'volume_representation', 'primitives', 'primitives_from_uri'],
+            parent: ['representation', 'volume_representation', 'primitives', 'primitives_from_uri', 'shape'],
             params: MVSClipParams,
         },
         /** This node instructs to apply opacity/transparency to a visual representation. */
         opacity: {
             description: 'This node instructs to apply opacity/transparency to a visual representation.',
-            parent: ['representation', 'volume_representation'],
+            parent: ['representation', 'volume_representation', 'shape'],
             params: SimpleParamsSchema({
                 /** Opacity of a representation. 0.0: fully transparent, 1.0: fully opaque. */
                 opacity: RequiredField(float, 'Opacity of a representation. 0.0: fully transparent, 1.0: fully opaque.'),
@@ -316,7 +322,7 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to set the camera focus to a component (zoom in). */
         focus: {
             description: 'This node instructs to set the camera focus to a component (zoom in).',
-            parent: ['root', 'component', 'component_from_uri', 'component_from_source', 'primitives', 'primitives_from_uri', 'volume', 'volume_representation'],
+            parent: ['root', 'component', 'component_from_uri', 'component_from_source', 'primitives', 'primitives_from_uri', 'volume', 'volume_representation', 'shape'],
             params: SimpleParamsSchema({
                 /** Vector describing the direction of the view (camera position -> focused target). */
                 direction: OptionalField(Vector3, [0, 0, -1], 'Vector describing the direction of the view (camera position -> focused target).'),
