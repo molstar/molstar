@@ -10,7 +10,7 @@ import { Task } from '../../../mol-task';
 import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { shapeRepresentationProps } from '../load-helpers';
+import { shapeRepresentationProps } from '../helpers/load-shape';
 import { MVSData } from '../mvs-data';
 import { convertMvsToMolstar } from '../tree/molstar/conversion';
 import { MVSTree } from '../tree/mvs/mvs-tree';
