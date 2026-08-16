@@ -331,6 +331,7 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
     let positionIt: LocationIterator;
 
     let currentTargetData: unknown;
+    let currentTargetKind: ParticleTarget['kind'] | undefined;
     let currentProps: ParticleTargetProps | undefined;
     let currentTheme: Theme | undefined;
     let currentParticleIndices: OrderedSet<number> | undefined;
@@ -373,16 +374,17 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
             : representationTheme;
 
         const data = targetData(target);
+        const targetKindChanged = currentTargetKind !== undefined && target.kind !== currentTargetKind;
         const targetChanged = data !== currentTargetData;
         const particlesChanged = particleIndices !== currentParticleIndices;
         const scaleByRadius = targetScaleByRadius(target, props);
 
-        const geometryPropsChanged = currentProps ? targetGeometryPropsChanged(target, currentProps, props, webgl) : false;
+        const geometryPropsChanged = currentProps && !targetKindChanged ? targetGeometryPropsChanged(target, currentProps, props, webgl) : false;
         const colorThemeChanged = !currentTheme || !ColorTheme.areEqual(theme.color, currentTheme.color);
         const sizeThemeChanged = !currentTheme || !SizeTheme.areEqual(theme.size, currentTheme.size);
-        const sizeFactorChanged = !!currentProps && targetSizeFactorChanged(target, currentProps, props, webgl);
+        const sizeFactorChanged = !!currentProps && !targetKindChanged && targetSizeFactorChanged(target, currentProps, props, webgl);
 
-        if (!renderObject || targetChanged || (currentProps && targetMustRecreate(target, currentProps, props))) {
+        if (!renderObject || targetKindChanged || targetChanged || (currentProps && targetMustRecreate(target, currentProps, props))) {
             updateState.createNew = true;
         } else {
             updateState.createGeometry = targetChanged || geometryPropsChanged || (sizeThemeChanged && targetSizeThemeAffectsGeometry(target, props, webgl));
@@ -445,6 +447,7 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
         }
 
         currentTargetData = data;
+        currentTargetKind = target.kind;
         currentProps = { ...props };
         currentTheme = theme;
         currentParticleIndices = particleIndices;
@@ -492,6 +495,7 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
         renderObject = undefined;
         geometry = undefined;
         currentTargetData = undefined;
+        currentTargetKind = undefined;
         currentProps = undefined;
         currentTheme = undefined;
         currentParticleIndices = undefined;
