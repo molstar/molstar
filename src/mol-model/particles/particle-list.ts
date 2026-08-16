@@ -59,11 +59,18 @@ export interface ParticleList {
 
     /**
      * Per-particle target index (length = `count`). Each value identifies which
-     * target structure (or later volume) this particle belongs to.  Use 0 for
+     * target structure (or later volume) this particle belongs to. Use 0 for
      * single-target data.  The distinct values in this array correspond to the
      * keys of `targetMapping` when present.
      */
     readonly targets: Int32Array
+
+    /**
+     * Optional mapping from each unique target ID in `targets` to the reference object
+     * instanced at every particle with that target ID. The objects are owned by the
+     * particle list itself and are not part of the plugin state tree.
+     */
+    readonly targetMapping?: ReadonlyMap<number, ParticleTarget>
 
     /**
      * Optional per-particle compartment index (length = `count`). Each value identifies
@@ -123,8 +130,27 @@ export interface ParticleList {
     _propertyData: { [name: string]: any }
 }
 
+/**
+ * A reference object instanced at each particle of a given target id. Each particle has
+ * exactly one target id (see `ParticleList.targets`); the distinct target ids map to these
+ * targets via `ParticleList.targetMapping`.
+ */
+export type ParticleTarget =
+    | { readonly kind: 'structure', readonly structure: import('../structure/structure').Structure }
+    | { readonly kind: 'shape', readonly shape: import('../shape/shape').Shape }
+    | { readonly kind: 'volume', readonly volume: import('../volume/volume').Volume }
+
+export namespace ParticleTarget {
+    export function data(target: ParticleTarget) {
+        switch (target.kind) {
+            case 'structure': return target.structure;
+            case 'shape': return target.shape;
+            case 'volume': return target.volume;
+        }
+    }
+}
+
 const ParticleTransformsDescriptor = CustomPropertyDescriptor({ name: 'particle-transforms' });
-const ParticleTransformsAsMat4Descriptor = CustomPropertyDescriptor({ name: 'particle-transforms-as-mat4' });
 
 /**
  * Per-particle transforms as a flat array, 16 consecutive floats (column-major mat4) per
@@ -184,26 +210,121 @@ export function getParticleTransforms(data: ParticleList): Float32Array {
     return data._propertyData[ParticleTransformsDescriptor.name];
 }
 
-/**
- * Per-particle transforms as `Mat4` instances. Computed from `getParticleTransforms` and
- * cached on the `ParticleList`.
- *
- * Note: the returned matrices are shared/cached, do not mutate them in place; clone before
- * mutating (e.g. `Mat4.mul(Mat4(), transform, offset)`).
- */
-export function getParticleTransformsAsMat4(data: ParticleList): Mat4[] {
-    if (!data._propertyData[ParticleTransformsAsMat4Descriptor.name]) {
-        const transformArray = getParticleTransforms(data);
-        const particleCount = data.count;
-        const transforms: Mat4[] = new Array(particleCount);
-        for (let i = 0; i < particleCount; ++i) {
-            transforms[i] = Mat4.fromArray(Mat4(), transformArray, i * 16);
-        }
+const ParticleTargetGroupsDescriptor = CustomPropertyDescriptor({ name: 'particle-target-groups' });
 
-        data.customProperties.add(ParticleTransformsAsMat4Descriptor);
-        data._propertyData[ParticleTransformsAsMat4Descriptor.name] = transforms;
+/** The particles of a `ParticleList` grouped by their target id. */
+export interface ParticleTargetGroups {
+    /** The distinct target ids, ascending. */
+    readonly targetIds: Int32Array
+    /** The particles of group `g`, as indices into the unfiltered `ParticleList`. */
+    readonly sets: ReadonlyArray<OrderedSet<number>>
+    readonly groupOfTarget: ReadonlyMap<number, number>
+}
+
+/**
+ * Group the particles by target id. Computed once and cached on the `ParticleList`.
+ *
+ * When `targets` is already non-decreasing - the usual case, since formats emit particles
+ * grouped by target - each group is a contiguous range and is returned as an `Interval`,
+ * which needs no per-group storage and makes `OrderedSet.getAt`/`indexOf` arithmetic rather
+ * than a binary search. Otherwise the groups are built with a counting sort.
+ */
+export function getParticleTargetGroups(data: ParticleList): ParticleTargetGroups {
+    if (!data._propertyData[ParticleTargetGroupsDescriptor.name]) {
+        data.customProperties.add(ParticleTargetGroupsDescriptor);
+        data._propertyData[ParticleTargetGroupsDescriptor.name] = computeParticleTargetGroups(data);
     }
-    return data._propertyData[ParticleTransformsAsMat4Descriptor.name];
+    return data._propertyData[ParticleTargetGroupsDescriptor.name];
+}
+
+function computeParticleTargetGroups(data: ParticleList): ParticleTargetGroups {
+    const { targets, count } = data;
+
+    let sorted = true;
+    let maxId = 0;
+    let minId = 0;
+    let runCount = 0;
+    for (let i = 0; i < count; ++i) {
+        const t = targets[i];
+        if (i === 0) {
+            minId = maxId = t;
+            runCount = 1;
+        } else {
+            const p = targets[i - 1];
+            if (t < p) sorted = false;
+            if (t !== p) runCount += 1;
+            if (t < minId) minId = t;
+            if (t > maxId) maxId = t;
+        }
+    }
+
+    const targetIds = new Int32Array(runCount);
+    const sets: OrderedSet<number>[] = new Array(runCount);
+    const groupOfTarget = new Map<number, number>();
+
+    if (count === 0) {
+        return { targetIds, sets, groupOfTarget };
+    }
+
+    if (sorted) {
+        let g = 0;
+        let start = 0;
+        for (let i = 1; i <= count; ++i) {
+            if (i === count || targets[i] !== targets[start]) {
+                targetIds[g] = targets[start];
+                sets[g] = OrderedSet.ofBounds(start, i);
+                groupOfTarget.set(targets[start], g);
+                g += 1;
+                start = i;
+            }
+        }
+        return { targetIds, sets, groupOfTarget };
+    }
+
+    // Counting sort keyed on the target id, offset so that negative ids are handled too.
+    const span = maxId - minId + 1;
+    const useHistogram = span <= 4 * count + 1024;
+    const histogram = useHistogram ? new Int32Array(span) : undefined;
+    if (histogram) {
+        for (let i = 0; i < count; ++i) histogram[targets[i] - minId] += 1;
+        let g = 0;
+        for (let s = 0; s < span; ++s) {
+            if (histogram[s] !== 0) {
+                targetIds[g] = s + minId;
+                groupOfTarget.set(s + minId, g);
+                g += 1;
+            }
+        }
+    } else {
+        const counts = new Map<number, number>();
+        for (let i = 0; i < count; ++i) {
+            const t = targets[i];
+            counts.set(t, (counts.get(t) ?? 0) + 1);
+        }
+        const ids = Array.from(counts.keys()).sort((a, b) => a - b);
+        for (let g = 0; g < ids.length; ++g) {
+            targetIds[g] = ids[g];
+            groupOfTarget.set(ids[g], g);
+        }
+    }
+
+    const groupCount = targetIds.length;
+    const offsets = new Int32Array(groupCount + 1);
+    for (let i = 0; i < count; ++i) offsets[groupOfTarget.get(targets[i])! + 1] += 1;
+    for (let g = 0; g < groupCount; ++g) offsets[g + 1] += offsets[g];
+
+    const indices = new Int32Array(count);
+    const cursor = Int32Array.from(offsets.subarray(0, groupCount));
+    for (let i = 0; i < count; ++i) {
+        const g = groupOfTarget.get(targets[i])!;
+        indices[cursor[g]] = i;
+        cursor[g] += 1;
+    }
+    for (let g = 0; g < groupCount; ++g) {
+        sets[g] = OrderedSet.ofSortedArray(indices.subarray(offsets[g], offsets[g + 1]));
+    }
+
+    return { targetIds, sets, groupOfTarget };
 }
 
 const FiberParticleMaskDescriptor = CustomPropertyDescriptor({ name: 'particle-fiber-mask' });
@@ -351,6 +472,11 @@ export namespace Particle {
             return loci.particles.getParticleLabel(index);
         }
         return `${size} Particles`;
+    }
+
+    /** Return a copy of `particles` with the given per-target reference objects attached. */
+    export function withTargets(particles: ParticleList, targetMapping: ReadonlyMap<number, ParticleTarget>): ParticleList {
+        return { ...particles, targetMapping };
     }
 
     export const BoundaryDescriptor: CustomPropertyDescriptor<Boundary> = CustomPropertyDescriptor({ name: 'particle-boundary' });

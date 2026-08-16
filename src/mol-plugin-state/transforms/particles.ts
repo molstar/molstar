@@ -15,10 +15,12 @@ import { createSimulariumParticleTrajectory, getSimulariumAgentTypeNames, getSim
 import { PluginContext } from '../../mol-plugin/context';
 import { StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
+import { Asset } from '../../mol-util/assets';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Theme } from '../../mol-theme/theme';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
-import { Particle } from '../../mol-model/particles/particle-list';
+import { Particle, ParticleList, ParticleTarget } from '../../mol-model/particles/particle-list';
+import { createSimulariumGeometryResolver, loadParticleTarget, loadParticleTargets, matchParticleTargetFiles, particleTargetFileExtensions, particleTargetFormatOptions, ParticleTargetSource } from '../helpers/particle-targets';
 import { StateObject } from '../../mol-state/object';
 import { getUnitcellDataFromSymmetry, UnitcellParams, UnitcellRepresentation } from '../../mol-repr/shape/model/unitcell';
 import { Cell } from '../../mol-math/geometry/spacegroup/cell';
@@ -31,6 +33,7 @@ export { ParticleListFromMmcifAssembly };
 export { ParticleTrajectoryFromSimularium };
 export { ParticleListFromTrajectory };
 export { ParticlesRepresentation3D };
+export { ParticleListWithTargets };
 export { ParticleListUnitcell3D };
 
 type ParticleListFromRelionStar = typeof ParticleListFromRelionStar
@@ -196,6 +199,7 @@ const ParticleListFromMmcifAssembly = PluginStateTransform.BuiltIn({
             ['petworld', 'PetWorld'],
         ], { description: 'mmCIF variant used to interpret entity names/compartments. Auto detects from the file header and categories.' });
         const label = PD.Optional(PD.Text(''));
+        const resolveTargets = PD.Boolean(true, { description: 'Build the per-target reference structures from the same mmCIF data and instance them at each particle.' });
 
         if (!a) {
             return {
@@ -203,6 +207,7 @@ const ParticleListFromMmcifAssembly = PluginStateTransform.BuiltIn({
                 asymIds: PD.MultiSelect<string>([], [], { description: 'Empty selection includes all chains for the assembly.' }),
                 variant,
                 label,
+                resolveTargets,
             };
         }
 
@@ -228,6 +233,7 @@ const ParticleListFromMmcifAssembly = PluginStateTransform.BuiltIn({
             asymIds: PD.MultiSelect<string>([], asymOptions, { description: 'Empty selection includes all chains for the assembly.' }),
             variant,
             label,
+            resolveTargets,
         };
     }
 })({
@@ -239,12 +245,13 @@ const ParticleListFromMmcifAssembly = PluginStateTransform.BuiltIn({
             if (!assemblyId) {
                 throw new Error('mmCIF file contains no _pdbx_struct_assembly_gen assemblies; cannot create a particle list.');
             }
-            const list = await createParticleListFromMmcifAssembly(a.data, {
+            const list = await createParticleListFromMmcifAssembly(ctx, a.data, {
                 assemblyId,
                 asymIds: params.asymIds.length > 0 ? params.asymIds : void 0,
                 variant: params.variant,
                 label: params.label || a.label,
-            }, ctx);
+                resolveTargets: params.resolveTargets,
+            });
             return new SO.Particle.List(list, { label: list.label || 'Particles', description: 'mmCIF Particle List' });
         });
     }
@@ -261,22 +268,32 @@ const ParticleTrajectoryFromSimularium = PluginStateTransform.BuiltIn({
             return {
                 types: PD.MultiSelect<string>([], [], { description: 'Agent types to include. Empty selection includes all types.' }),
                 scale: PD.Numeric(0, { min: 0, step: 0.001 }, { description: 'Spatial scale to angstrom. Leave 0 to auto-detect from the file spatial units.' }),
+                loadGeometries: PD.Boolean(true, { description: 'Load the PDB structures and OBJ meshes referenced by the agent types and instance them at each particle of the matching type.' }),
             };
         }
         const typeOptions = getSimulariumAgentTypeNames(a.data).map(t => [String(t.id), t.name] as [string, string]);
         return {
             types: PD.MultiSelect<string>([], typeOptions, { description: 'Agent types to include. Empty selection includes all types.' }),
             scale: PD.Numeric(0, { min: 0, step: 0.001 }, { description: 'Spatial scale to angstrom. Leave 0 to auto-detect from the file spatial units.' }),
+            loadGeometries: PD.Boolean(true, { description: 'Load the PDB structures and OBJ meshes referenced by the agent types and instance them at each particle of the matching type.' }),
         };
     }
 })({
-    apply({ a, params }) {
-        const traj = createSimulariumParticleTrajectory(a.data, {
-            scale: params.scale && params.scale > 0 ? params.scale : void 0,
-            typeFilter: params.types.length > 0 ? params.types.map(v => Number(v)) : void 0,
+    apply({ a, params, cache }, plugin: PluginContext) {
+        return Task.create('Particle Trajectory from Simularium', async ctx => {
+            const assets: Asset.Wrapper[] = [];
+            (cache as any).assets = assets;
+            const traj = await createSimulariumParticleTrajectory(a.data, {
+                scale: params.scale && params.scale > 0 ? params.scale : void 0,
+                typeFilter: params.types.length > 0 ? params.types.map(v => Number(v)) : void 0,
+                resolveGeometry: params.loadGeometries ? createSimulariumGeometryResolver(plugin, ctx, assets) : void 0,
+            });
+            const frameCount = getSimulariumFrameCount(a.data);
+            return new SO.Particle.Trajectory(traj, { label: a.label, description: `${frameCount} frame${frameCount !== 1 ? 's' : ''}` });
         });
-        const frameCount = getSimulariumFrameCount(a.data);
-        return new SO.Particle.Trajectory(traj, { label: a.label, description: `${frameCount} frame${frameCount !== 1 ? 's' : ''}` });
+    },
+    dispose({ cache }) {
+        for (const asset of ((cache as any)?.assets as Asset.Wrapper[] | undefined) ?? []) asset.dispose();
     }
 });
 
@@ -401,6 +418,116 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
             return StateTransformer.UpdateResult.Updated;
         });
     }
+});
+
+
+function ParticleListWithTargetsParams(a: SO.Particle.List | undefined, plugin: PluginContext) {
+    const targetIds = a ? Array.from(new Set(Array.from(a.data.targets))).sort((x, y) => x - y) : [];
+    const targetIdDescription = targetIds.length > 0
+        ? `Target ID in the particle list this object maps to. Available IDs: ${targetIds.slice(0, 32).join(', ')}${targetIds.length > 32 ? ', …' : ''}.`
+        : 'Target ID in the particle list this object maps to (matches ParticleList.targets).';
+    const formatOptions = particleTargetFormatOptions(plugin);
+
+    return {
+        files: PD.FileList({
+            accept: particleTargetFileExtensions(plugin),
+            multiple: true,
+            description: 'Reference objects matched to particle targets by exact filename (without extension) and entity name.',
+        }),
+        targets: PD.ObjectList({
+            targetId: PD.Numeric(0, { min: 0, step: 1 }, { description: targetIdDescription }),
+            source: PD.MappedStatic('file', {
+                file: PD.Group({
+                    file: PD.File({ accept: particleTargetFileExtensions(plugin) }),
+                    format: PD.Select('auto', formatOptions),
+                }, { isFlat: true }),
+                url: PD.Group({
+                    url: PD.Url('', { label: 'URL' }),
+                    format: PD.Select('auto', formatOptions),
+                    isBinary: PD.Optional(PD.Boolean(false, { description: 'Leave unset to derive from the file extension.' })),
+                }, { isFlat: true }),
+            }, { options: [['file', 'File'], ['url', 'URL']] as ['url' | 'file', string][] }),
+        }, e => `Target ${e.targetId}`, {
+            description: 'Reference objects instanced at each particle, mapped per particle target ID.',
+        }),
+        includeParent: PD.Boolean(true, { description: 'Keep the reference objects the particle list already provides (e.g. built by its format).' }),
+    };
+}
+
+interface ParticleListWithTargetsCache {
+    assets?: Asset.Wrapper[]
+    sourceTargetMapping?: ParticleList['targetMapping']
+    sourceEntityInfo?: ParticleList['entityInfo']
+}
+
+type ParticleListWithTargets = typeof ParticleListWithTargets
+const ParticleListWithTargets = PluginStateTransform.BuiltIn({
+    name: 'particle-list-with-targets',
+    display: { name: 'Particle List with Targets', description: 'Attach reference structures, shapes, or volumes that are instanced at each particle of the matching target ID.' },
+    isDecorator: true,
+    from: SO.Particle.List,
+    to: SO.Particle.List,
+    params: ParticleListWithTargetsParams,
+})({
+    apply({ a, params, cache }, plugin: PluginContext) {
+        return Task.create('Particle List with Targets', async ctx => {
+            const transformCache = cache as ParticleListWithTargetsCache;
+            const sources: { targetId: number, source: ParticleTargetSource }[] = [];
+            const explicitTargetIds = new Set<number>();
+            for (const { targetId, source } of params.targets) {
+                explicitTargetIds.add(targetId);
+                if (source.name === 'url') {
+                    sources.push({ targetId, source: { kind: 'url', url: source.params.url, format: source.params.format, isBinary: source.params.isBinary } });
+                } else if (source.params.file) {
+                    sources.push({ targetId, source: { kind: 'file', file: source.params.file, format: source.params.format } });
+                }
+            }
+
+            const targetMapping = new Map<number, ParticleTarget>();
+            if (params.includeParent && a.data.targetMapping) {
+                for (const [targetId, target] of a.data.targetMapping) targetMapping.set(targetId, target);
+            }
+            const assets: Asset.Wrapper[] = [];
+            transformCache.assets = assets;
+
+            const fileMatches = matchParticleTargetFiles(a.data, params.files ?? [], explicitTargetIds);
+            for (const warning of fileMatches.warnings) plugin.log.warn(warning);
+            for (const { file, targetIds } of fileMatches.matches) {
+                try {
+                    const target = await loadParticleTarget(plugin, ctx, { kind: 'file', file }, assets);
+                    for (const targetId of targetIds) targetMapping.set(targetId, target);
+                } catch (e) {
+                    console.error(e);
+                    plugin.log.warn(`Could not load particle target file '${file.name}'.`);
+                }
+            }
+
+            for (const { targetId, target } of await loadParticleTargets(plugin, ctx, sources, assets)) {
+                targetMapping.set(targetId, target);
+            }
+
+            transformCache.sourceTargetMapping = a.data.targetMapping;
+            transformCache.sourceEntityInfo = a.data.entityInfo;
+            return new SO.Particle.List(Particle.withTargets(a.data, targetMapping), { label: a.label, description: a.description });
+        });
+    },
+    update({ a, b, oldParams, newParams, cache }, plugin: PluginContext) {
+        const transformCache = cache as ParticleListWithTargetsCache;
+        if (!PD.areEqual(ParticleListWithTargetsParams(a, plugin), oldParams, newParams)
+            || a.data.targetMapping !== transformCache.sourceTargetMapping
+            || a.data.entityInfo !== transformCache.sourceEntityInfo
+            || !b.data.targetMapping) {
+            return StateTransformer.UpdateResult.Recreate;
+        }
+
+        b.data = Particle.withTargets(a.data, b.data.targetMapping);
+        b.label = a.label;
+        b.description = a.description;
+        return StateTransformer.UpdateResult.Updated;
+    },
+    dispose({ cache }) {
+        for (const asset of (cache as ParticleListWithTargetsCache).assets ?? []) asset.dispose();
+    },
 });
 
 type ParticleListUnitcell3D = typeof ParticleListUnitcell3D

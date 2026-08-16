@@ -5,18 +5,20 @@
  */
 
 import { Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
-import { ParticleCompartmentInfo, ParticleEntityInfo, ParticleList } from '../../mol-model/particles/particle-list';
+import { ParticleCompartmentInfo, ParticleEntityInfo, ParticleList, ParticleTarget } from '../../mol-model/particles/particle-list';
 import { CustomProperties } from '../../mol-model/custom-property';
+import { Structure, StructureElement, StructureProperties, Trajectory, Unit } from '../../mol-model/structure';
 import { CifBlock, CifFile } from '../../mol-io/reader/cif/data-model';
 import { toDatabase } from '../../mol-io/reader/cif/schema';
 import { mmCIF_Database, mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
 import { parseOperatorList } from '../structure/property/assembly';
+import { trajectoryFromMmCIF } from '../structure/mmcif';
 import { OperatorCombinations, composeOperatorCombination, expandOperatorCombinations, formatOperatorCombination, readParticleOperators } from './operators';
 import { ModelFormat } from '../format';
 import { binaryCifHasColumn, getBinaryCifHeader } from '../../mol-io/common/binary-cif';
 import { StringLike } from '../../mol-io/common/string-like';
 import { FileNameInfo } from '../../mol-util/file-info';
-import { RuntimeContext } from '../../mol-task';
+import { RuntimeContext, Task } from '../../mol-task';
 
 export type MmcifVariant = 'auto' | 'cellpack' | 'petworld' | 'standard';
 
@@ -69,6 +71,11 @@ export interface MmcifAssemblyParticleListOptions {
      *   one particle per operator combo per gen row.
      */
     readonly variant?: MmcifVariant
+    /**
+     * Build the per-target reference geometry from the same mmCIF data and attach it
+     * as `ParticleList.targetMapping`. Defaults to `true`.
+     */
+    readonly resolveTargets?: boolean
 }
 
 /**
@@ -103,12 +110,26 @@ export function getAsymIdsFromMmcif(cifFile: CifFile, assemblyId: string): strin
     return Array.from(ids).sort();
 }
 
-export async function createParticleListFromMmcifAssembly(cifFile: CifFile, options: MmcifAssemblyParticleListOptions, ctx: RuntimeContext): Promise<ParticleList> {
+export async function createParticleListFromMmcifAssembly(ctx: RuntimeContext, cifFile: CifFile, options: MmcifAssemblyParticleListOptions): Promise<ParticleList> {
     const block = cifFile.blocks[0];
     if (!block) throw new Error('CIF file contains no data blocks.');
     const variant = resolveVariant(block, options.variant);
-    if (variant === 'petworld') return await buildPetworldParticleList(cifFile, block, options, ctx);
-    return await buildCellpackStandardParticleList(cifFile, block, options, variant, ctx);
+
+    // The reference structures of the targets are built via the regular trajectory/model/structure path.
+    const trajectory = await trajectoryFromMmCIF(block, cifFile).runInContext(ctx);
+
+    const built = variant === 'petworld'
+        ? await buildPetworldParticleList(ctx, cifFile, block, options, await getModelTargets(ctx, trajectory))
+        : await buildCellpackStandardParticleList(ctx, cifFile, block, options, variant, await getChainTargets(ctx, trajectory));
+
+    if (options.resolveTargets === false || built.targetMapping.size === 0) return built.list;
+    return { ...built.list, targetMapping: built.targetMapping };
+}
+
+interface BuiltMmcifParticleList {
+    readonly list: ParticleList
+    /** Target ID → the reference structure instanced at each particle with that ID. */
+    readonly targetMapping: ReadonlyMap<number, ParticleTarget>
 }
 
 /** The centroid of a group of `_atom_site` rows and their maximum distance from it. */
@@ -121,7 +142,7 @@ interface AtomSiteBounds {
  * Applying the operator of a particle to the centroid of its reference atoms gives a meaningful
  * position even when the operator has zero translation (pure rotation).
  */
-async function getAtomSiteBounds<K>(db: mmCIF_Database, key: (row: number) => K, ctx: RuntimeContext): Promise<Map<K, AtomSiteBounds>> {
+async function getAtomSiteBounds<K>(ctx: RuntimeContext, db: mmCIF_Database, key: (row: number) => K): Promise<Map<K, AtomSiteBounds>> {
     const { Cartn_x, Cartn_y, Cartn_z, _rowCount } = db.atom_site;
     const updateChunk = 10000;
 
@@ -169,6 +190,56 @@ async function getAtomSiteBounds<K>(db: mmCIF_Database, key: (row: number) => K,
     return bounds;
 }
 
+/** The reference structure of a chain target, plus the entity it belongs to. */
+interface MmcifChainTarget {
+    readonly structure: Structure
+    readonly entityId: string
+}
+
+/**
+ * The chains of the first model as individual reference structures, keyed by `label_asym_id`.
+ * Used by the cellpack/standard variants, where each chain is instanced on its own.
+ */
+async function getChainTargets(ctx: RuntimeContext, trajectory: Trajectory): Promise<Map<string, MmcifChainTarget>> {
+    const model = await Task.resolveInContext(trajectory.getFrameAtIndex(0), ctx);
+    const structure = Structure.ofModel(model);
+
+    const chainUnits = new Map<string, { units: Unit[], entityId: string }>();
+    const l = StructureElement.Location.create(structure);
+    for (const unit of structure.units) {
+        if (unit.elements.length === 0) continue;
+        l.unit = unit;
+        l.element = unit.elements[0];
+        const asymId = StructureProperties.chain.label_asym_id(l);
+        const entry = chainUnits.get(asymId);
+        if (entry) {
+            entry.units.push(unit);
+        } else {
+            chainUnits.set(asymId, { units: [unit], entityId: StructureProperties.chain.label_entity_id(l) });
+        }
+    }
+
+    const targets = new Map<string, MmcifChainTarget>();
+    for (const [asymId, { units, entityId }] of chainUnits) {
+        const chain = units.length === structure.units.length ? structure : Structure.create(units, { label: asymId });
+        targets.set(asymId, { structure: chain, entityId });
+    }
+    return targets;
+}
+
+/**
+ * The models of the trajectory as individual reference structures, keyed by `pdbx_PDB_model_num`.
+ * Used by the petworld variant, where each molecule type is stored as a separate model.
+ */
+async function getModelTargets(ctx: RuntimeContext, trajectory: Trajectory): Promise<Map<number, Structure>> {
+    const targets = new Map<number, Structure>();
+    for (let i = 0, il = trajectory.frameCount; i < il; ++i) {
+        const model = await Task.resolveInContext(trajectory.getFrameAtIndex(i), ctx);
+        targets.set(model.modelNum, Structure.ofModel(model));
+    }
+    return targets;
+}
+
 function detectMmcifVariant(block: CifBlock): 'cellpack' | 'petworld' | 'standard' {
     if (block.header.toLowerCase().includes('cellpack')) return 'cellpack';
     if (block.categories['pdbx_struct_assembly_gen']?.getField('PDB_model_num')?.isDefined) return 'petworld';
@@ -181,12 +252,13 @@ function resolveVariant(block: CifBlock, requested?: MmcifVariant): 'cellpack' |
 }
 
 async function buildCellpackStandardParticleList(
+    ctx: RuntimeContext,
     cifFile: CifFile,
     block: CifBlock,
     options: MmcifAssemblyParticleListOptions,
     variant: 'cellpack' | 'standard',
-    ctx: RuntimeContext
-): Promise<ParticleList> {
+    chainTargets: ReadonlyMap<string, MmcifChainTarget>
+): Promise<BuiltMmcifParticleList> {
     const db = toDatabase(mmCIF_Schema, block);
     const { pdbx_struct_assembly_gen, pdbx_struct_oper_list } = db;
 
@@ -271,7 +343,7 @@ async function buildCellpackStandardParticleList(
     const entityNameToFunction = new Map<string, string>();
 
     const { label_asym_id: siteAsymId, label_entity_id: siteEntityId } = db.atom_site;
-    const chainBounds = await getAtomSiteBounds(db, i => siteAsymId.value(i), ctx);
+    const chainBounds = await getAtomSiteBounds(ctx, db, i => siteAsymId.value(i));
     const chainToEntityId = new Map<string, string>();
     const updateChunk = 10000;
     for (let i = 0, il = db.atom_site._rowCount; i < il; i++) {
@@ -394,8 +466,14 @@ async function buildCellpackStandardParticleList(
         await ctx.update({ message: 'Building particles', current: count, max: totalCount });
     }
 
+    // Build the chain mapping: target index → chain ID, and the reference structure of each target.
     const chainMapping = new Map<number, string>();
-    for (const [chain, idx] of chainToTargetIdx) chainMapping.set(idx, chain);
+    const targetMapping = new Map<number, ParticleTarget>();
+    for (const [chain, idx] of chainToTargetIdx) {
+        chainMapping.set(idx, chain);
+        const target = chainTargets.get(chain);
+        if (target) targetMapping.set(idx, { kind: 'structure', structure: target.structure });
+    }
 
     // Build compartmentInfo: compartment index → compartment info.
     const compartmentInfo = new Map<number, ParticleCompartmentInfo>();
@@ -415,36 +493,40 @@ async function buildCellpackStandardParticleList(
     const combinations = entries.map(e => e.combinations);
 
     return {
-        label: buildMmcifLabel(options.label, assemblyId),
-        count,
-        keys,
-        targets,
-        compartments: compartmentInfo.size > 0 ? compartments : undefined,
-        compartmentInfo: compartmentInfo.size > 0 ? compartmentInfo : undefined,
-        entities: entityInfo.size > 0 ? entities : undefined,
-        entityInfo: entityInfo.size > 0 ? entityInfo : undefined,
-        coordinates,
-        rotations,
-        radii,
-        fibers: fiberCount > 0 ? { count: fiberCount, offsets: fiberOffsets, indices: fiberIndices } : undefined,
-        getParticleLabel: (index: number) => {
-            const entity = entityInfo.get(entities[index])?.name;
-            const chain = chainMapping.get(targets[index]);
-            const opCombo = formatOperatorCombination(operatorIds, combinations[labelEntry[index]], labelCombo[index]);
-            return `#${index + 1} | ${entity} | chain ${chain} | ops ${opCombo}`;
+        list: {
+            label: buildMmcifLabel(options.label, assemblyId),
+            count,
+            keys,
+            targets,
+            compartments: compartmentInfo.size > 0 ? compartments : undefined,
+            compartmentInfo: compartmentInfo.size > 0 ? compartmentInfo : undefined,
+            entities: entityInfo.size > 0 ? entities : undefined,
+            entityInfo: entityInfo.size > 0 ? entityInfo : undefined,
+            coordinates,
+            rotations,
+            radii,
+            fibers: fiberCount > 0 ? { count: fiberCount, offsets: fiberOffsets, indices: fiberIndices } : undefined,
+            getParticleLabel: (index: number) => {
+                const entity = entityInfo.get(entities[index])?.name;
+                const chain = chainMapping.get(targets[index]);
+                const opCombo = formatOperatorCombination(operatorIds, combinations[labelEntry[index]], labelCombo[index]);
+                return `#${index + 1} | ${entity} | chain ${chain} | ops ${opCombo}`;
+            },
+            sourceData: MmcifParticleFormat.create(cifFile),
+            customProperties: new CustomProperties(),
+            _propertyData: Object.create(null),
         },
-        sourceData: MmcifParticleFormat.create(cifFile),
-        customProperties: new CustomProperties(),
-        _propertyData: Object.create(null),
+        targetMapping,
     };
 }
 
 async function buildPetworldParticleList(
+    ctx: RuntimeContext,
     cifFile: CifFile,
     block: CifBlock,
     options: MmcifAssemblyParticleListOptions,
-    ctx: RuntimeContext
-): Promise<ParticleList> {
+    modelTargets: ReadonlyMap<number, Structure>
+): Promise<BuiltMmcifParticleList> {
     const db = toDatabase(mmCIF_Schema, block);
     const { pdbx_struct_assembly_gen, pdbx_struct_oper_list } = db;
 
@@ -501,6 +583,13 @@ async function buildPetworldParticleList(
     const modelNumToIndex = new Map<number, number>();
     distinctModelNums.forEach((mn, idx) => modelNumToIndex.set(mn, idx));
 
+    // targetMapping: target ID (= trajectory model index) → the model's reference structure.
+    const targetMapping = new Map<number, ParticleTarget>();
+    for (const [modelNum, idx] of modelNumToIndex) {
+        const structure = modelTargets.get(modelNum);
+        if (structure) targetMapping.set(idx, { kind: 'structure', structure });
+    }
+
     const keys = new Int32Array(totalCount);
     const targets = new Int32Array(totalCount);
     const entities = new Int32Array(totalCount).fill(-1);
@@ -514,7 +603,7 @@ async function buildPetworldParticleList(
     const entityNameToIdx = new Map<string, number>();
 
     const { pdbx_PDB_model_num: siteModelNum } = db.atom_site;
-    const modelBounds = await getAtomSiteBounds(db, i => siteModelNum.value(i), ctx);
+    const modelBounds = await getAtomSiteBounds(ctx, db, i => siteModelNum.value(i));
 
     const combined = Mat4();
     const quaternion = Quat();
@@ -580,23 +669,26 @@ async function buildPetworldParticleList(
     const combinations = entries.map(e => e.combinations);
 
     return {
-        label: buildMmcifLabel(options.label, assemblyId),
-        count,
-        keys,
-        targets,
-        entities: entityInfo.size > 0 ? entities : undefined,
-        entityInfo: entityInfo.size > 0 ? entityInfo : undefined,
-        coordinates,
-        rotations,
-        radii,
-        getParticleLabel: (index: number) => {
-            const entity = entityInfo.get(entities[index])!.name;
-            const opCombo = formatOperatorCombination(operatorIds, combinations[labelEntry[index]], labelCombo[index]);
-            return `#${index + 1} | ${entity} | ops ${opCombo}`;
+        list: {
+            label: buildMmcifLabel(options.label, assemblyId),
+            count,
+            keys,
+            targets,
+            entities: entityInfo.size > 0 ? entities : undefined,
+            entityInfo: entityInfo.size > 0 ? entityInfo : undefined,
+            coordinates,
+            rotations,
+            radii,
+            getParticleLabel: (index: number) => {
+                const entity = entityInfo.get(entities[index])!.name;
+                const opCombo = formatOperatorCombination(operatorIds, combinations[labelEntry[index]], labelCombo[index]);
+                return `#${index + 1} | ${entity} | ops ${opCombo}`;
+            },
+            sourceData: MmcifParticleFormat.create(cifFile),
+            customProperties: new CustomProperties(),
+            _propertyData: Object.create(null),
         },
-        sourceData: MmcifParticleFormat.create(cifFile),
-        customProperties: new CustomProperties(),
-        _propertyData: Object.create(null),
+        targetMapping,
     };
 }
 
