@@ -19,8 +19,8 @@ import { Asset } from '../../mol-util/assets';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Theme } from '../../mol-theme/theme';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
-import { Particle, ParticleTarget } from '../../mol-model/particles/particle-list';
-import { createSimulariumGeometryResolver, loadParticleTargets, particleTargetFileExtensions, particleTargetFormatOptions, ParticleTargetSource } from '../helpers/particle-targets';
+import { Particle, ParticleList, ParticleTarget } from '../../mol-model/particles/particle-list';
+import { createSimulariumGeometryResolver, loadParticleTarget, loadParticleTargets, matchParticleTargetFiles, particleTargetFileExtensions, particleTargetFormatOptions, ParticleTargetSource } from '../helpers/particle-targets';
 import { StateObject } from '../../mol-state/object';
 import { getUnitcellDataFromSymmetry, UnitcellParams, UnitcellRepresentation } from '../../mol-repr/shape/model/unitcell';
 import { Cell } from '../../mol-math/geometry/spacegroup/cell';
@@ -421,6 +421,45 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
 });
 
 
+function ParticleListWithTargetsParams(a: SO.Particle.List | undefined, plugin: PluginContext) {
+    const targetIds = a ? Array.from(new Set(Array.from(a.data.targets))).sort((x, y) => x - y) : [];
+    const targetIdDescription = targetIds.length > 0
+        ? `Target ID in the particle list this object maps to. Available IDs: ${targetIds.slice(0, 32).join(', ')}${targetIds.length > 32 ? ', …' : ''}.`
+        : 'Target ID in the particle list this object maps to (matches ParticleList.targets).';
+    const formatOptions = particleTargetFormatOptions(plugin);
+
+    return {
+        files: PD.FileList({
+            accept: particleTargetFileExtensions(plugin),
+            multiple: true,
+            description: 'Reference objects matched to particle targets by exact filename (without extension) and entity name.',
+        }),
+        targets: PD.ObjectList({
+            targetId: PD.Numeric(0, { min: 0, step: 1 }, { description: targetIdDescription }),
+            source: PD.MappedStatic('file', {
+                file: PD.Group({
+                    file: PD.File({ accept: particleTargetFileExtensions(plugin) }),
+                    format: PD.Select('auto', formatOptions),
+                }, { isFlat: true }),
+                url: PD.Group({
+                    url: PD.Url('', { label: 'URL' }),
+                    format: PD.Select('auto', formatOptions),
+                    isBinary: PD.Optional(PD.Boolean(false, { description: 'Leave unset to derive from the file extension.' })),
+                }, { isFlat: true }),
+            }, { options: [['file', 'File'], ['url', 'URL']] as ['url' | 'file', string][] }),
+        }, e => `Target ${e.targetId}`, {
+            description: 'Reference objects instanced at each particle, mapped per particle target ID.',
+        }),
+        includeParent: PD.Boolean(true, { description: 'Keep the reference objects the particle list already provides (e.g. built by its format).' }),
+    };
+}
+
+interface ParticleListWithTargetsCache {
+    assets?: Asset.Wrapper[]
+    sourceTargetMapping?: ParticleList['targetMapping']
+    sourceEntityInfo?: ParticleList['entityInfo']
+}
+
 type ParticleListWithTargets = typeof ParticleListWithTargets
 const ParticleListWithTargets = PluginStateTransform.BuiltIn({
     name: 'particle-list-with-targets',
@@ -428,38 +467,15 @@ const ParticleListWithTargets = PluginStateTransform.BuiltIn({
     isDecorator: true,
     from: SO.Particle.List,
     to: SO.Particle.List,
-    params: (a, plugin: PluginContext) => {
-        const targetIds = a ? Array.from(new Set(Array.from(a.data.targets))).sort((x, y) => x - y) : [];
-        const targetIdDescription = targetIds.length > 0
-            ? `Target ID in the particle list this object maps to. Available IDs: ${targetIds.slice(0, 32).join(', ')}${targetIds.length > 32 ? ', …' : ''}.`
-            : 'Target ID in the particle list this object maps to (matches ParticleList.targets).';
-        const formatOptions = particleTargetFormatOptions(plugin);
-
-        return {
-            targets: PD.ObjectList({
-                targetId: PD.Numeric(0, { min: 0, step: 1 }, { description: targetIdDescription }),
-                source: PD.MappedStatic('url', {
-                    url: PD.Group({
-                        url: PD.Url('', { label: 'URL' }),
-                        format: PD.Select('auto', formatOptions),
-                        isBinary: PD.Optional(PD.Boolean(false, { description: 'Leave unset to derive from the file extension.' })),
-                    }, { isFlat: true }),
-                    file: PD.Group({
-                        file: PD.File({ accept: particleTargetFileExtensions(plugin) }),
-                        format: PD.Select('auto', formatOptions),
-                    }, { isFlat: true }),
-                }, { options: [['url', 'URL'], ['file', 'File']] as ['url' | 'file', string][] }),
-            }, e => `Target ${e.targetId}`, {
-                description: 'Reference objects instanced at each particle, mapped per particle target ID.',
-            }),
-            keepExisting: PD.Boolean(true, { description: 'Keep the reference objects the particle list already provides (e.g. built by its format).' }),
-        };
-    },
+    params: ParticleListWithTargetsParams,
 })({
     apply({ a, params, cache }, plugin: PluginContext) {
         return Task.create('Particle List with Targets', async ctx => {
+            const transformCache = cache as ParticleListWithTargetsCache;
             const sources: { targetId: number, source: ParticleTargetSource }[] = [];
+            const explicitTargetIds = new Set<number>();
             for (const { targetId, source } of params.targets) {
+                explicitTargetIds.add(targetId);
                 if (source.name === 'url') {
                     sources.push({ targetId, source: { kind: 'url', url: source.params.url, format: source.params.format, isBinary: source.params.isBinary } });
                 } else if (source.params.file) {
@@ -468,20 +484,49 @@ const ParticleListWithTargets = PluginStateTransform.BuiltIn({
             }
 
             const targetMapping = new Map<number, ParticleTarget>();
-            if (params.keepExisting && a.data.targetMapping) {
+            if (params.includeParent && a.data.targetMapping) {
                 for (const [targetId, target] of a.data.targetMapping) targetMapping.set(targetId, target);
             }
             const assets: Asset.Wrapper[] = [];
-            (cache as any).assets = assets;
+            transformCache.assets = assets;
+
+            const fileMatches = matchParticleTargetFiles(a.data, params.files ?? [], explicitTargetIds);
+            for (const warning of fileMatches.warnings) plugin.log.warn(warning);
+            for (const { file, targetIds } of fileMatches.matches) {
+                try {
+                    const target = await loadParticleTarget(plugin, ctx, { kind: 'file', file }, assets);
+                    for (const targetId of targetIds) targetMapping.set(targetId, target);
+                } catch (e) {
+                    console.error(e);
+                    plugin.log.warn(`Could not load particle target file '${file.name}'.`);
+                }
+            }
+
             for (const { targetId, target } of await loadParticleTargets(plugin, ctx, sources, assets)) {
                 targetMapping.set(targetId, target);
             }
 
+            transformCache.sourceTargetMapping = a.data.targetMapping;
+            transformCache.sourceEntityInfo = a.data.entityInfo;
             return new SO.Particle.List(Particle.withTargets(a.data, targetMapping), { label: a.label, description: a.description });
         });
     },
+    update({ a, b, oldParams, newParams, cache }, plugin: PluginContext) {
+        const transformCache = cache as ParticleListWithTargetsCache;
+        if (!PD.areEqual(ParticleListWithTargetsParams(a, plugin), oldParams, newParams)
+            || a.data.targetMapping !== transformCache.sourceTargetMapping
+            || a.data.entityInfo !== transformCache.sourceEntityInfo
+            || !b.data.targetMapping) {
+            return StateTransformer.UpdateResult.Recreate;
+        }
+
+        b.data = Particle.withTargets(a.data, b.data.targetMapping);
+        b.label = a.label;
+        b.description = a.description;
+        return StateTransformer.UpdateResult.Updated;
+    },
     dispose({ cache }) {
-        for (const asset of ((cache as any)?.assets as Asset.Wrapper[] | undefined) ?? []) asset.dispose();
+        for (const asset of (cache as ParticleListWithTargetsCache).assets ?? []) asset.dispose();
     },
 });
 

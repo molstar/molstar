@@ -59,7 +59,7 @@ export interface ParticleList {
 
     /**
      * Per-particle target index (length = `count`). Each value identifies which
-     * target structure (or later volume) this particle belongs to.  Use 0 for
+     * target structure (or later volume) this particle belongs to. Use 0 for
      * single-target data.  The distinct values in this array correspond to the
      * keys of `targetMapping` when present.
      */

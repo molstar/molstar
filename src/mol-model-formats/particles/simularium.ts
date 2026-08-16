@@ -64,7 +64,26 @@ function agentParticleCount(visType: number, nSubpoints: number): { particles: n
     return { particles: 1, fiberPoints: 0 };
 }
 
-export function createParticleListFromSimularium(file: SimulariumFile, options: SimulariumParticleListOptions): ParticleList {
+interface SimulariumEntityContext {
+    readonly typeIdToEntityIdx: Map<number, number>
+    readonly entityInfo: Map<number, ParticleEntityInfo>
+}
+
+function createSimulariumEntityContext(file: SimulariumFile): SimulariumEntityContext {
+    const typeIdToEntityIdx = new Map<number, number>();
+    const entityInfo = new Map<number, ParticleEntityInfo>();
+    if (file.trajectoryInfo.typeMapping) {
+        objectForEach(file.trajectoryInfo.typeMapping, (value, key) => {
+            const typeId = Number(key);
+            const entityIdx = typeIdToEntityIdx.size;
+            typeIdToEntityIdx.set(typeId, entityIdx);
+            entityInfo.set(entityIdx, { name: value.name });
+        });
+    }
+    return { typeIdToEntityIdx, entityInfo };
+}
+
+function createParticleListFromSimulariumWithContext(file: SimulariumFile, options: SimulariumParticleListOptions, entityContext: SimulariumEntityContext): ParticleList {
     const { trajectoryInfo, frames } = file;
     if (frames.length === 0) throw new Error('Simularium file contains no frames.');
 
@@ -115,17 +134,7 @@ export function createParticleListFromSimularium(file: SimulariumFile, options: 
     const particleTypeId = new Int32Array(particleCount);
     const particleInstanceId = new Float64Array(particleCount);
 
-    const typeIdToEntityIdx = new Map<number, number>();
-    const entityInfo = new Map<number, ParticleEntityInfo>();
-
-    if (trajectoryInfo.typeMapping) {
-        objectForEach(trajectoryInfo.typeMapping, (value, key) => {
-            const typeId = Number(key);
-            const entityIdx = typeIdToEntityIdx.size;
-            typeIdToEntityIdx.set(typeId, entityIdx);
-            entityInfo.set(entityIdx, { name: value.name });
-        });
-    }
+    const { typeIdToEntityIdx, entityInfo } = entityContext;
 
     const typeName = (t: number) => trajectoryInfo.typeMapping?.[String(t)]?.name ?? `type ${t}`;
     const entityIndexOf = (t: number) => {
@@ -273,6 +282,10 @@ export function createParticleListFromSimularium(file: SimulariumFile, options: 
     return particleList;
 }
 
+export function createParticleListFromSimularium(file: SimulariumFile, options: SimulariumParticleListOptions): ParticleList {
+    return createParticleListFromSimulariumWithContext(file, options, createSimulariumEntityContext(file));
+}
+
 export interface SimulariumParticleTrajectoryOptions {
     /**
      * Spatial scale factor applied to all coordinates (to angstrom). A value `<= 0`
@@ -295,18 +308,20 @@ export interface SimulariumParticleTrajectoryOptions {
 class SimulariumParticleTrajectory implements ParticleTrajectory {
     readonly frameCount: number;
     readonly representative: ParticleList;
+    private readonly entityContext: SimulariumEntityContext;
 
     getFrameAtIndex(i: number): ParticleList {
-        return createParticleListFromSimularium(this.file, {
+        return createParticleListFromSimulariumWithContext(this.file, {
             frameIndex: i,
             scale: this.options.scale && this.options.scale > 0 ? this.options.scale : void 0,
             typeFilter: this.options.typeFilter,
             targets: this.targets,
-        });
+        }, this.entityContext);
     }
 
     constructor(private file: SimulariumFile, private options: SimulariumParticleTrajectoryOptions, private targets?: ReadonlyMap<number, ParticleTarget>) {
         this.frameCount = file.frames.length;
+        this.entityContext = createSimulariumEntityContext(file);
         this.representative = this.getFrameAtIndex(0);
     }
 }

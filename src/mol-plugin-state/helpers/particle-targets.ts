@@ -5,7 +5,7 @@
  */
 
 import { SimulariumGeometryResolver } from '../../mol-model-formats/particles/simularium';
-import { ParticleTarget } from '../../mol-model/particles/particle-list';
+import { ParticleList, ParticleTarget } from '../../mol-model/particles/particle-list';
 import { Structure } from '../../mol-model/structure';
 import { PluginConfig } from '../../mol-plugin/config';
 import { PluginContext } from '../../mol-plugin/context';
@@ -45,6 +45,93 @@ export type ParticleTargetSource =
 export interface ParticleTargetEntry {
     readonly targetId: number
     readonly target: ParticleTarget
+}
+
+export interface MatchedParticleTargetFile {
+    readonly file: Asset.File
+    readonly targetIds: ReadonlyArray<number>
+}
+
+export interface ParticleTargetFileMatches {
+    readonly matches: ReadonlyArray<MatchedParticleTargetFile>
+    readonly warnings: ReadonlyArray<string>
+}
+
+/** Match files by basename to the entity name associated with each particle target id. */
+export function matchParticleTargetFiles(particles: ParticleList, files: ReadonlyArray<Asset.File>, excludedTargetIds?: ReadonlySet<number>): ParticleTargetFileMatches {
+    const warnings: string[] = [];
+    const { entities, entityInfo, targets } = particles;
+    if (!entities || !entityInfo) {
+        if (files.length > 0) warnings.push('Cannot match particle target files because the particle list has no entity metadata.');
+        return { matches: [], warnings };
+    }
+
+    const namesByTarget = new Map<number, Set<string>>();
+    const invalidTargets = new Set<number>();
+    for (let i = 0; i < particles.count; ++i) {
+        const targetId = targets[i];
+        const info = entityInfo.get(entities[i]);
+        if (!info) {
+            invalidTargets.add(targetId);
+            continue;
+        }
+        let names = namesByTarget.get(targetId);
+        if (!names) {
+            names = new Set<string>();
+            namesByTarget.set(targetId, names);
+        }
+        names.add(info.name);
+    }
+
+    const targetIdsByName = new Map<string, number[]>();
+    const excludedNames = new Set<string>();
+    for (const [targetId, names] of namesByTarget) {
+        if (invalidTargets.has(targetId) || names.size !== 1) {
+            if (!excludedTargetIds?.has(targetId)) warnings.push(`Cannot match particle target ${targetId} because it does not map to exactly one entity name.`);
+            continue;
+        }
+        const name = names.values().next().value!;
+        if (excludedTargetIds?.has(targetId)) {
+            excludedNames.add(name);
+            continue;
+        }
+        let targetIds = targetIdsByName.get(name);
+        if (!targetIds) {
+            targetIds = [];
+            targetIdsByName.set(name, targetIds);
+        }
+        targetIds.push(targetId);
+    }
+    for (const targetId of invalidTargets) {
+        if (!excludedTargetIds?.has(targetId) && !namesByTarget.has(targetId)) warnings.push(`Cannot match particle target ${targetId} because it has no entity name.`);
+    }
+
+    const filesByBase = new Map<string, Asset.File[]>();
+    for (const file of files) {
+        const base = getFileNameInfo(file.file?.name ?? file.name).base;
+        let entries = filesByBase.get(base);
+        if (!entries) {
+            entries = [];
+            filesByBase.set(base, entries);
+        }
+        entries.push(file);
+    }
+
+    const matches: MatchedParticleTargetFile[] = [];
+    for (const [base, entries] of filesByBase) {
+        if (entries.length !== 1) {
+            warnings.push(`Cannot match particle target files named '${base}' because the filename is not unique.`);
+            continue;
+        }
+        const targetIds = targetIdsByName.get(base);
+        if (!targetIds) {
+            if (excludedNames.has(base)) continue;
+            warnings.push(`Could not match particle target file '${entries[0].name}' to an entity name.`);
+            continue;
+        }
+        matches.push({ file: entries[0], targetIds });
+    }
+    return { matches, warnings };
 }
 
 /** Turn a parsed data object into the reference object of a particle target. */
