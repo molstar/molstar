@@ -19,6 +19,8 @@ export type ParseFormatT =
     | 'psf' | 'prmtop' | 'top'
     // volumes
     | 'map' | 'dx' | 'dxbin'
+    // shape
+    | 'vtp' | 'ply' | 'obj'
 export const ParseFormatT = literal<ParseFormatT>(
     // trajectory
     'mmcif',
@@ -44,6 +46,10 @@ export const ParseFormatT = literal<ParseFormatT>(
     'map',
     'dx',
     'dxbin',
+    // shape
+    'vtp',
+    'ply',
+    'obj',
 );
 
 /** `format` parameter values for `parse` node in Molstar tree */
@@ -56,6 +62,8 @@ export type MolstarParseFormatT =
     | 'psf' | 'prmtop' | 'top'
     // volumes
     | 'map' | 'dx' | 'dxbin'
+    // shape
+    | 'vtp' | 'ply' | 'obj'
 export const MolstarParseFormatT = literal<MolstarParseFormatT>(
     // trajectory
     'cif', // +volumes
@@ -80,6 +88,10 @@ export const MolstarParseFormatT = literal<MolstarParseFormatT>(
     'map',
     'dx',
     'dxbin',
+    // shape
+    'vtp',
+    'ply',
+    'obj',
 );
 
 /** `kind` parameter values for `structure` node in MVS tree */
