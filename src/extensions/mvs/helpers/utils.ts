@@ -10,6 +10,7 @@ import { StateObject } from '../../../mol-state';
 import { range } from '../../../mol-util/array';
 import { Color } from '../../../mol-util/color';
 import { decodeColor as _decodeColor } from '../../../mol-util/color/utils';
+import { ColorT } from '../tree/mvs/param-types';
 
 
 /** Represents either the result or the reason of failure of an operation that might have failed */
@@ -99,13 +100,63 @@ export type ElementOfSet<S> = S extends Set<infer T> ? T : never
 
 
 /** Convert `colorString` (either X11 color name like 'magenta' or hex code like '#ff00ff') to Color.
+ * If `colorString` contains a "split color" (e.g. 'red/white'), process only the first part.
  * Return `undefined` if `colorString` cannot be converted. */
 export function decodeColor(colorString: string | number | undefined | null): Color | undefined {
     if (typeof colorString === 'number') {
         return Color(colorString);
     }
-    return _decodeColor(colorString);
+    if (colorString == null) return undefined;
+    const slashIdx = colorString.indexOf('/'); // do not crash on split colors like 'red/white'
+    return _decodeColor(slashIdx >= 0 ? colorString.substring(0, slashIdx) : colorString);
 }
+
+
+/** Utility functions for handling "split color" strings with primary and secondary color, e.g. 'red/white', '#ff0000/#ffffff'.
+ * Regular color strings are treated as the same color repeated (e.g. 'red' == 'red/red'). */
+export const SplitColor = {
+    /** Return number-encoded colors before and after slash, or the same value twice if there is no slash.
+     * e.g. 'red/white' -> [0xff0000, 0xffffff], 'red' -> [0xff0000, 0xff0000],
+     * Throw error on invalid input. */
+    decodeStrict(colorString: string): [Color, Color] {
+        const out = this.decode(colorString);
+        if (out === undefined) throw new Error(`Invalid color "${colorString}".`);
+        return out;
+    },
+    /** Return number-encoded colors before and after slash, or the same value twice if there is no slash.
+     * e.g. 'red/white' -> [0xff0000, 0xffffff], 'red' -> [0xff0000, 0xff0000],
+     * Return `undefined` on invalid input. */
+    decode(colorString: string): [Color, Color] | undefined {
+        const out: [Color | undefined, Color | undefined] = [undefined, undefined];
+        this.decodeTo(colorString, out);
+        if (out[0] !== undefined && out[1] !== undefined) {
+            return out as [Color, Color];
+        } else {
+            return undefined;
+        }
+    },
+    /** Parse `colorString` into number-encoded colors before and after slash, or the same value twice if there is no slash.
+     * Write result into `out`.
+     * e.g. 'red/white' -> [0xff0000, 0xffffff], 'red' -> [0xff0000, 0xff0000],
+     * Write [`undefined`, `undefined` on invalid input. */
+    decodeTo(colorString: string, out: [Color | undefined, Color | undefined]): void {
+        const slashIdx = colorString.indexOf('/');
+        if (slashIdx >= 0) {
+            out[0] = _decodeColor(colorString.substring(0, slashIdx));
+            out[1] = _decodeColor(colorString.substring(slashIdx + 1, undefined));
+        } else {
+            out[0] = out[1] = _decodeColor(colorString);
+        }
+    },
+    /** Convert to hex code string, '#ff0000/#ffffff', '#ff0000' */
+    toHexStyle(primaryColor: Color, secondaryColor?: Color): ColorT {
+        if (secondaryColor === undefined || secondaryColor === primaryColor) {
+            return Color.toHexStyle(primaryColor) as ColorT;
+        } else {
+            return `${Color.toHexStyle(primaryColor)}/${Color.toHexStyle(secondaryColor)}` as ColorT;
+        }
+    },
+};
 
 export function collectMVSReferences<T extends StateObject.Ctor>(type: T[], dependencies: Record<string, StateObject>): Record<string, StateObject.From<T>['data']> {
     const ret: any = {};

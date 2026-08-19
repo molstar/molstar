@@ -1,32 +1,34 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
-import { Box, PerforatedBox } from '../../../mol-geo/primitive/box';
-import { OctagonalPyramid, PerforatedOctagonalPyramid } from '../../../mol-geo/primitive/pyramid';
-import { Star } from '../../../mol-geo/primitive/star';
-import { Octahedron, PerforatedOctahedron } from '../../../mol-geo/primitive/octahedron';
-import { DiamondPrism, PentagonalPrism, ShiftedHexagonalPrism, HexagonalPrism, HeptagonalPrism } from '../../../mol-geo/primitive/prism';
-import { Structure, StructureElement, Unit } from '../../../mol-model/structure';
+import { Interval, OrderedSet } from '../../../mol-data/int';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
+import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
-import { getSaccharideShape, SaccharideShape } from '../../../mol-model/structure/structure/carbohydrates/constants';
-import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
-import { ComplexMeshParams, ComplexMeshVisual } from '../complex-visual';
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { ComplexVisual } from '../representation';
-import { VisualUpdateState } from '../../util';
-import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { PickingId } from '../../../mol-geo/geometry/picking';
-import { OrderedSet, Interval } from '../../../mol-data/int';
+import { PerforatedBox } from '../../../mol-geo/primitive/box';
+import { PerforatedOctahedron } from '../../../mol-geo/primitive/octahedron';
+import { PolygonalPrism, } from '../../../mol-geo/primitive/prism';
+import { PerforatedOctagonalPyramid } from '../../../mol-geo/primitive/pyramid';
+import { Star } from '../../../mol-geo/primitive/star';
+import { LocationIterator } from '../../../mol-geo/util/location-iterator';
+import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
+import { Structure, StructureElement, Unit } from '../../../mol-model/structure';
+import { getSaccharideShape, SaccharideShape } from '../../../mol-model/structure/structure/carbohydrates/constants';
 import { VisualContext } from '../../../mol-repr/visual';
 import { Theme } from '../../../mol-theme/theme';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { VisualUpdateState } from '../../util';
+import { ComplexMeshParams, ComplexMeshVisual } from '../complex-visual';
+import { ComplexVisual } from '../representation';
 import { getAltResidueLociFromId } from './util/common';
-import { BaseGeometry } from '../../../mol-geo/geometry/base';
+
 
 const t = Mat4.identity();
 const sVec = Vec3();
@@ -34,18 +36,30 @@ const pd = Vec3();
 
 const SideFactor = 2 * 0.806; // 0.806 == Math.cos(Math.PI / 4)
 
-const box = Box();
 const perforatedBox = PerforatedBox();
-const octagonalPyramid = OctagonalPyramid();
 const perforatedOctagonalPyramid = PerforatedOctagonalPyramid();
-const star = Star({ outerRadius: 1, innerRadius: 0.5, thickness: 0.5, pointCount: 5 });
-const octahedron = Octahedron();
+const perforatedStar = Star({ outerRadius: 1, innerRadius: 0.5, thickness: 0.5, pointCount: 5, perforated: true });
 const perforatedOctahedron = PerforatedOctahedron();
-const diamondPrism = DiamondPrism();
-const pentagonalPrism = PentagonalPrism();
-const hexagonalPrism = HexagonalPrism();
-const shiftedHexagonalPrism = ShiftedHexagonalPrism();
-const heptagonalPrism = HeptagonalPrism();
+const diamondPrism = {
+    caps: PolygonalPrism(4, { subset: 'caps' }),
+    sides: PolygonalPrism(4, { subset: 'sides' }),
+};
+const pentagonalPrism = {
+    caps: PolygonalPrism(5, { subset: 'caps' }),
+    sides: PolygonalPrism(5, { subset: 'sides' }),
+};
+const hexagonalPrism = {
+    caps: PolygonalPrism(6, { subset: 'caps' }),
+    sides: PolygonalPrism(6, { subset: 'sides' }),
+};
+const shiftedHexagonalPrism = {
+    caps: PolygonalPrism(6, { shifted: true, subset: 'caps' }),
+    sides: PolygonalPrism(6, { shifted: true, subset: 'sides' }),
+};
+const heptagonalPrism = {
+    caps: PolygonalPrism(7, { subset: 'caps' }),
+    sides: PolygonalPrism(7, { subset: 'sides' }),
+};
 
 function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateSymbolParams>, mesh?: Mesh) {
     const builderState = MeshBuilder.createState(256, 128, mesh);
@@ -75,47 +89,45 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
         builderState.currentGroup = i * 2;
 
         switch (shapeType) {
-            case SaccharideShape.FilledSphere:
-                addSphere(builderState, center, radius, detail);
+            case SaccharideShape.FilledSphere: // e.g. 3d11
+                addSphere(builderState, center, radius, detail, { subset: 'ring' });
+                builderState.currentGroup += 1;
+                addSphere(builderState, center, radius, detail, { subset: 'caps' });
                 break;
-            case SaccharideShape.FilledCube:
-                Mat4.scaleUniformly(t, t, side);
-                MeshBuilder.addPrimitive(builderState, t, box);
-                break;
-            case SaccharideShape.CrossedCube:
+            case SaccharideShape.FilledCube: // e.g. 3d11
+            case SaccharideShape.CrossedCube: // e.g. 5hwa
                 Mat4.scaleUniformly(t, t, side);
                 MeshBuilder.addPrimitive(builderState, t, perforatedBox);
-                Mat4.mul(t, t, Mat4.rotZ90X180);
+                Mat4.mul(t, t, Mat4.rotY90Z180);
                 builderState.currentGroup += 1;
                 MeshBuilder.addPrimitive(builderState, t, perforatedBox);
                 break;
-            case SaccharideShape.FilledCone:
-                Mat4.scaleUniformly(t, t, side * 1.2);
-                MeshBuilder.addPrimitive(builderState, t, octagonalPyramid);
-                break;
-            case SaccharideShape.DevidedCone:
+            case SaccharideShape.FilledCone: // e.g. 9k1g
+            case SaccharideShape.DevidedCone: // e.g. 4y9v
                 Mat4.scaleUniformly(t, t, side * 1.2);
                 MeshBuilder.addPrimitive(builderState, t, perforatedOctagonalPyramid);
                 Mat4.mul(t, t, Mat4.rotZ90);
                 builderState.currentGroup += 1;
                 MeshBuilder.addPrimitive(builderState, t, perforatedOctagonalPyramid);
                 break;
-            case SaccharideShape.FlatBox:
+            case SaccharideShape.FlatBox: // e.g. 1mfd
                 Mat4.mul(t, t, Mat4.rotZY90);
-                Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2));
-                MeshBuilder.addPrimitive(builderState, t, box);
+                Mat4.scale(t, t, Vec3.set(sVec, side * 1.2, side * 0.6, side * 0.6));
+                MeshBuilder.addPrimitive(builderState, t, perforatedBox);
+                Mat4.mul(t, t, Mat4.rotY90Z180);
+                builderState.currentGroup += 1;
+                MeshBuilder.addPrimitive(builderState, t, perforatedBox);
                 break;
-            case SaccharideShape.FilledStar:
+            case SaccharideShape.FilledStar: // e.g. 6rv7
                 Mat4.scaleUniformly(t, t, side);
                 Mat4.mul(t, t, Mat4.rotZY90);
-                MeshBuilder.addPrimitive(builderState, t, star);
+                MeshBuilder.addPrimitive(builderState, t, perforatedStar);
+                Mat4.mul(t, t, Mat4.rotX180);
+                builderState.currentGroup += 1;
+                MeshBuilder.addPrimitive(builderState, t, perforatedStar);
                 break;
-            case SaccharideShape.FilledDiamond:
-                Mat4.mul(t, t, Mat4.rotZY90);
-                Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4));
-                MeshBuilder.addPrimitive(builderState, t, octahedron);
-                break;
-            case SaccharideShape.DividedDiamond:
+            case SaccharideShape.FilledDiamond: // e.g. 9q5e
+            case SaccharideShape.DividedDiamond: // e.g. 1hv6
                 Mat4.mul(t, t, Mat4.rotZY90);
                 Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4));
                 MeshBuilder.addPrimitive(builderState, t, perforatedOctahedron);
@@ -123,37 +135,49 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
                 builderState.currentGroup += 1;
                 MeshBuilder.addPrimitive(builderState, t, perforatedOctahedron);
                 break;
-            case SaccharideShape.FlatDiamond:
+            case SaccharideShape.FlatDiamond: // no CCD codes mapped
                 Mat4.mul(t, t, Mat4.rotZY90);
                 Mat4.scale(t, t, Vec3.set(sVec, side, side / 2, side / 2));
-                MeshBuilder.addPrimitive(builderState, t, diamondPrism);
+                MeshBuilder.addPrimitive(builderState, t, diamondPrism.caps);
+                builderState.currentGroup += 1;
+                MeshBuilder.addPrimitive(builderState, t, diamondPrism.sides);
                 break;
             case SaccharideShape.DiamondPrism:
                 Mat4.mul(t, t, Mat4.rotZY90);
                 Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2));
-                MeshBuilder.addPrimitive(builderState, t, diamondPrism);
+                MeshBuilder.addPrimitive(builderState, t, diamondPrism.caps);
+                builderState.currentGroup += 1;
+                MeshBuilder.addPrimitive(builderState, t, diamondPrism.sides);
                 break;
             case SaccharideShape.PentagonalPrism:
-            case SaccharideShape.Pentagon:
+            case SaccharideShape.Pentagon: // e.g. 8jq5
                 Mat4.mul(t, t, Mat4.rotZY90);
                 Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2));
-                MeshBuilder.addPrimitive(builderState, t, pentagonalPrism);
+                MeshBuilder.addPrimitive(builderState, t, pentagonalPrism.caps);
+                builderState.currentGroup += 1;
+                MeshBuilder.addPrimitive(builderState, t, pentagonalPrism.sides);
                 break;
-            case SaccharideShape.HexagonalPrism:
+            case SaccharideShape.HexagonalPrism: // e.g. 9k1g
                 Mat4.mul(t, t, Mat4.rotZY90);
                 Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2));
-                MeshBuilder.addPrimitive(builderState, t, hexagonalPrism);
+                MeshBuilder.addPrimitive(builderState, t, hexagonalPrism.caps);
+                builderState.currentGroup += 1;
+                MeshBuilder.addPrimitive(builderState, t, hexagonalPrism.sides);
                 break;
             case SaccharideShape.HeptagonalPrism:
                 Mat4.mul(t, t, Mat4.rotZY90);
                 Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2));
-                MeshBuilder.addPrimitive(builderState, t, heptagonalPrism);
+                MeshBuilder.addPrimitive(builderState, t, heptagonalPrism.caps);
+                builderState.currentGroup += 1;
+                MeshBuilder.addPrimitive(builderState, t, heptagonalPrism.sides);
                 break;
-            case SaccharideShape.FlatHexagon:
+            case SaccharideShape.FlatHexagon: // e.g. 3k8d
             default:
                 Mat4.mul(t, t, Mat4.rotZYZ90);
                 Mat4.scale(t, t, Vec3.set(sVec, side / 1.5, side, side / 2));
-                MeshBuilder.addPrimitive(builderState, t, shiftedHexagonalPrism);
+                MeshBuilder.addPrimitive(builderState, t, shiftedHexagonalPrism.caps);
+                builderState.currentGroup += 1;
+                MeshBuilder.addPrimitive(builderState, t, shiftedHexagonalPrism.sides);
                 break;
         }
     }
@@ -234,7 +258,9 @@ function eachCarbohydrate(loci: Loci, structure: Structure, apply: (interval: In
             for (let i = 0, il = elementIndices.length; i < il; ++i) {
                 if (!__elementIndicesSet.has(elementIndices[i])) {
                     __elementIndicesSet.add(elementIndices[i]);
-                    if (apply(Interval.ofSingleton(elementIndices[i] * 2))) changed = true;
+                    const firstGroup = elementIndices[i] * 2;
+                    const groupInterval = Interval.ofRange(firstGroup, firstGroup + 1); // each residue has up to 2 groups
+                    if (apply(groupInterval)) changed = true;
                 }
             }
         });
