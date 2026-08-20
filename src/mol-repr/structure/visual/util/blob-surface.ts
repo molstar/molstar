@@ -5,7 +5,7 @@
  */
 
 import { Unit, Structure } from '../../../../mol-model/structure';
-import { Task } from '../../../../mol-task';
+import { RuntimeContext, Task } from '../../../../mol-task';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { getUnitConformationAndRadius, getStructureConformationAndRadius, CommonSurfaceParams, ensureReasonableResolution } from './common';
 import { computeBlobSurface, BlobSurfaceData } from '../../../../mol-math/geometry/blob-surface';
@@ -83,7 +83,7 @@ const BlobResolutionScale = 0.5;
 /** Hard ceiling on the adjusted resolution (also re-guarded by box size in `ensureReasonableResolution`). */
 const BlobMaxResolution = 20;
 
-function getBlobDensityData(position: PositionData, boundary: Boundary, radius: (index: number) => number, props: BlobDensityProps): BlobDensityData {
+async function getBlobDensityData(ctx: RuntimeContext, position: PositionData, boundary: Boundary, radius: (index: number) => number, props: BlobDensityProps): Promise<BlobDensityData> {
     const { blobSize, blobMethod, blobShape, radiusOffset, smoothness, adjustResolution } = props;
     const p = ensureReasonableResolution(boundary.box, props);
 
@@ -111,7 +111,7 @@ function getBlobDensityData(position: PositionData, boundary: Boundary, radius: 
         resolution = Math.min(Math.max(p.resolution * (featureRadius / BlobReferenceRadius) * methodFactor * BlobResolutionScale, p.resolution), BlobMaxResolution);
     }
 
-    return computeBlobSurface(position, boundary, radius, {
+    return computeBlobSurface(ctx, position, boundary, radius, {
         blobSize,
         method: blobMethod.name,
         clusterIterations: blobMethod.name === 'clustering' ? blobMethod.params.iterations : 0,
@@ -126,14 +126,14 @@ function getBlobDensityData(position: PositionData, boundary: Boundary, radius: 
 
 export function computeUnitBlobSurface(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, props: BlobDensityProps) {
     const { position, boundary, radius } = getUnitConformationAndRadius(structure, unit, sizeTheme, props);
-    return Task.create('Blob Surface', async () => {
-        return getBlobDensityData(position, boundary, radius, props);
+    return Task.create('Blob Surface', async ctx => {
+        return await getBlobDensityData(ctx, position, boundary, radius, props);
     });
 }
 
 export function computeStructureBlobSurface(structure: Structure, sizeTheme: SizeTheme<any>, props: BlobDensityProps) {
     const { position, boundary, radius } = getStructureConformationAndRadius(structure, sizeTheme, props);
-    return Task.create('Blob Surface', async () => {
-        return getBlobDensityData(position, boundary, radius, props);
+    return Task.create('Blob Surface', async ctx => {
+        return await getBlobDensityData(ctx, position, boundary, radius, props);
     });
 }

@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Fix the blob surface density blocking the main thread with no progress and no cancellation (the `RuntimeContext` was accepted by the task and then discarded)
 - Add `blob-surface-wireframe` and `structure-blob-surface-wireframe` visuals, so the blob surface can be drawn as a wireframe like the gaussian and molecular surfaces
 - Remove the `floodfill` param from the gaussian density volume representation, where it was exposed but had no meaning (DirectVolume has no scalar field to fill and no iso threshold to fill against)
 - Fix CPU surface/volume visuals rebuilding their geometry on every update when the GPU path is unavailable (`mustRecreate` did not mirror the conditions its dispatcher uses to pick between the GPU and CPU visual)
