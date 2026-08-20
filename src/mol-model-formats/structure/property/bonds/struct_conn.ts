@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2017-2025 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Yakov Pechersky <ffxen158@gmail.com>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { Model } from '../../../../mol-model/structure/model/model';
@@ -153,6 +154,7 @@ export namespace StructConn {
             const orderType = (pdbx_value_order.value(i) || '');
             let flags = BondType.Flag.None;
             let order = 1;
+            let orderProvided = true;
 
             switch (orderType) {
                 case 'sing': order = 1; break;
@@ -160,6 +162,7 @@ export namespace StructConn {
                 case 'trip': order = 3; break;
                 case 'quad': order = 4; break;
                 default:
+                    orderProvided = false;
                     order = getInterBondOrderFromTable(
                         struct_conn.ptnr1_label_comp_id.value(i),
                         struct_conn.ptnr1_label_atom_id.value(i),
@@ -171,6 +174,7 @@ export namespace StructConn {
             switch (type) {
                 case 'covale':
                     flags = BondType.Flag.Covalent;
+                    if (!orderProvided) flags |= BondType.Flag.Computed;
                     break;
                 case 'disulf': flags = BondType.Flag.Covalent | BondType.Flag.Disulfide; break;
                 case 'hydrog':

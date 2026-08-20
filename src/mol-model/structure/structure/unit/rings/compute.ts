@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { Segmentation, SortedArray } from '../../../../../mol-data/int';
@@ -14,9 +15,9 @@ import { sortArray } from '../../../../../mol-data/util';
 import { Column } from '../../../../../mol-data/db';
 import { arraySetAdd, arraySetRemove } from '../../../../../mol-util/array';
 
-export function computeRings(unit: Unit.Atomic) {
+export function computeRings(unit: Unit.Atomic, bonds: IntraUnitBonds = unit.bonds) {
     const size = largestResidue(unit);
-    const state = State(unit, size);
+    const state = State(unit, size, bonds);
 
     const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
     while (residuesIt.hasNext) {
@@ -56,7 +57,7 @@ interface State {
     altLoc: Column<string>
 }
 
-function State(unit: Unit.Atomic, capacity: number): State {
+function State(unit: Unit.Atomic, capacity: number, bonds: IntraUnitBonds): State {
     return {
         startVertex: 0,
         endVertex: 0,
@@ -75,7 +76,7 @@ function State(unit: Unit.Atomic, capacity: number): State {
         rings: [],
         currentRings: [],
         unit,
-        bonds: unit.bonds,
+        bonds,
         altLoc: unit.model.atomicHierarchy.atoms.label_alt_id
     };
 }

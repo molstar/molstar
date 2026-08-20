@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { ElementSymbol } from '../../../model/types';
@@ -14,11 +15,17 @@ export interface BondComputationProps {
     forceCompute: boolean
     noCompute: boolean
     maxRadius: number
+    /**
+     * Perceive bond orders from 3D coordinates when not provided by the structure file
+     * When `false`, bond order defaults to single bond.
+     */
+    perceiveBondOrders: boolean
 }
 export const DefaultBondComputationProps: BondComputationProps = {
     forceCompute: false,
     noCompute: false,
     maxRadius: DefaultBondMaxRadius,
+    perceiveBondOrders: true,
 };
 
 // H,D,T are all mapped to H

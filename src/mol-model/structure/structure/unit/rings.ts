@@ -3,9 +3,11 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { computeRings, getFingerprint, createIndex } from './rings/compute';
+import { type IntraUnitBonds } from './bonds/data';
 import { Unit } from '../unit';
 import { StructureElement } from '../element';
 import { SortedArray } from '../../../../mol-data/int';
@@ -181,11 +183,11 @@ namespace UnitRings {
     export type Index = { readonly '@type': 'unit-ring-index' } & number
     export type ComponentIndex = { readonly '@type': 'unit-ring-component-index' } & number
 
-    export function create(unit: Unit.Atomic): UnitRings {
+    export function create(unit: Unit.Atomic, bonds?: IntraUnitBonds): UnitRings {
         if (Unit.Traits.is(unit.traits, Unit.Trait.Water) || Unit.Traits.is(unit.traits, Unit.Trait.CoarseGrained)) {
             return new UnitRings([], unit);
         }
-        const rings = computeRings(unit);
+        const rings = computeRings(unit, bonds);
         return new UnitRings(rings, unit);
     }
 
