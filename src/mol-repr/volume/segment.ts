@@ -42,8 +42,8 @@ export const VolumeSegmentParams = {
 export type VolumeSegmentParams = typeof VolumeSegmentParams
 export type VolumeSegmentProps = PD.Values<VolumeSegmentParams>
 
-function gpuSupport(webgl: WebGLContext) {
-    return webgl.extensions.colorBufferFloat && webgl.extensions.textureFloat && webgl.extensions.drawBuffers;
+function gpuSupport(webgl: WebGLContext): boolean {
+    return !!(webgl.extensions.colorBufferFloat && webgl.extensions.textureFloat && webgl.extensions.drawBuffers);
 }
 
 const Padding = 1;
@@ -203,7 +203,7 @@ export function SegmentMeshVisual(materialId: number): VolumeVisual<SegmentMeshP
         },
         geometryUtils: Mesh.Utils,
         mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, webgl?: WebGLContext) => {
-            return props.tryUseGpu && !!webgl && suitableForGpu(volumeKey.volume, webgl);
+            return props.tryUseGpu && !!webgl && gpuSupport(webgl) && suitableForGpu(volumeKey.volume, webgl);
         }
     }, materialId);
 }
@@ -292,7 +292,7 @@ export function SegmentTextureMeshVisual(materialId: number): VolumeVisual<Segme
         },
         geometryUtils: TextureMesh.Utils,
         mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, webgl?: WebGLContext) => {
-            return !props.tryUseGpu || !webgl || !suitableForGpu(volumeKey.volume, webgl);
+            return !props.tryUseGpu || !webgl || !gpuSupport(webgl) || !suitableForGpu(volumeKey.volume, webgl);
         },
         dispose: (geometry: TextureMesh) => {
             geometry.vertexTexture.ref.value.destroy();
