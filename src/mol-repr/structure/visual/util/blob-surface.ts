@@ -40,6 +40,27 @@ export type BlobDensityProps = typeof DefaultBlobDensityProps
 
 export type BlobDensityData = BlobSurfaceData
 
+export function shouldUpdateBlobGeometry(newProps: BlobDensityProps, currentProps: BlobDensityProps) {
+    return (
+        newProps.blobSize !== currentProps.blobSize ||
+        newProps.blobMethod.name !== currentProps.blobMethod.name ||
+        (newProps.blobMethod.name === 'clustering' && currentProps.blobMethod.name === 'clustering' &&
+            newProps.blobMethod.params.iterations !== currentProps.blobMethod.params.iterations) ||
+        newProps.blobShape.name !== currentProps.blobShape.name ||
+        (newProps.blobShape.name === 'sphericalHarmonics' && currentProps.blobShape.name === 'sphericalHarmonics' &&
+            (newProps.blobShape.params.degree !== currentProps.blobShape.params.degree ||
+                newProps.blobShape.params.regularization !== currentProps.blobShape.params.regularization)) ||
+        newProps.resolution !== currentProps.resolution ||
+        newProps.adjustResolution !== currentProps.adjustResolution ||
+        newProps.radiusOffset !== currentProps.radiusOffset ||
+        newProps.smoothness !== currentProps.smoothness ||
+        newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+        newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
+        newProps.traceOnly !== currentProps.traceOnly ||
+        newProps.includeParent !== currentProps.includeParent
+    );
+}
+
 /**
  * Reference feature radius (~vdW/atomic radius) that the incoming quality `resolution` is
  * calibrated to resolve (see `getQualityProps`).
