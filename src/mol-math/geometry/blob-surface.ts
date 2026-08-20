@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Ludovic Autin <autin@scripps.edu>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { RuntimeContext } from '../../mol-task';
