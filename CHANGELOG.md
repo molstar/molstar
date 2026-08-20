@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Fix `floodfill` having no effect on the gaussian surface wireframe (the param was exposed and forced a rebuild but was never applied)
 - Fix `traceOnly` being ignored by the molecular surface wireframe visuals (the option did not trigger a geometry rebuild, so the surface kept using every atom)
 - Add MVS `shape` node for rendering meshes from `vtp`, `ply` and `obj` resources
 - Added support for molecular atom_style in lammps data files
