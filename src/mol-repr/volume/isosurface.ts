@@ -69,8 +69,12 @@ function suitableForGpu(volume: Volume, webgl: WebGLContext) {
     return powerOfTwoSize <= webgl.maxTextureSize / 2;
 }
 
+function useGpu(volume: Volume, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext): boolean {
+    return props.floodfill === 'off' && props.tryUseGpu && !!webgl && gpuSupport(webgl) && suitableForGpu(volume, webgl);
+}
+
 export function IsosurfaceVisual(materialId: number, volume: Volume, key: number, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) {
-    if (props.floodfill === 'off' && props.tryUseGpu && webgl && gpuSupport(webgl) && suitableForGpu(volume, webgl)) {
+    if (useGpu(volume, props, webgl)) {
         return IsosurfaceTextureMeshVisual(materialId);
     }
     return IsosurfaceMeshVisual(materialId);
@@ -166,7 +170,7 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
         },
         geometryUtils: Mesh.Utils,
         mustRecreate: (volumekey: VolumeKey, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
-            return props.floodfill === 'off' && props.tryUseGpu && !!webgl && gpuSupport(webgl) && suitableForGpu(volumekey.volume, webgl);
+            return useGpu(volumekey.volume, props, webgl);
         }
     }, materialId);
 }
@@ -281,7 +285,7 @@ export function IsosurfaceTextureMeshVisual(materialId: number): VolumeVisual<Is
         },
         geometryUtils: TextureMesh.Utils,
         mustRecreate: (volumeKey: VolumeKey, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
-            return props.floodfill !== 'off' || !props.tryUseGpu || !webgl || !gpuSupport(webgl) || !suitableForGpu(volumeKey.volume, webgl);
+            return !useGpu(volumeKey.volume, props, webgl);
         },
         dispose: (geometry: TextureMesh) => {
             geometry.vertexTexture.ref.value.destroy();
