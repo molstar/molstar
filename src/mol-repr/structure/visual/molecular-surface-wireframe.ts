@@ -75,6 +75,7 @@ export function MolecularSurfaceWireframeVisual(materialId: number): UnitsVisual
                 newProps.probePositions !== currentProps.probePositions ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
+                newProps.traceOnly !== currentProps.traceOnly ||
                 newProps.includeParent !== currentProps.includeParent ||
                 newProps.floodfill !== currentProps.floodfill
             );
@@ -116,6 +117,7 @@ export function StructureMolecularSurfaceWireframeVisual(materialId: number): Co
                 newProps.probePositions !== currentProps.probePositions ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
+                newProps.traceOnly !== currentProps.traceOnly ||
                 newProps.includeParent !== currentProps.includeParent ||
                 newProps.floodfill !== currentProps.floodfill
             );
