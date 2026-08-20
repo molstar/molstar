@@ -17,6 +17,7 @@ import { ElementIterator, getElementLoci, eachElement, getSerialElementLoci, eac
 import { VisualUpdateState } from '../../util';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { ComplexLinesParams, ComplexLinesVisual, ComplexVisual } from '../complex-visual';
+import { Tensor } from '../../../mol-math/linear-algebra/tensor';
 
 const SharedParams = {
     ...GaussianDensityParams,
@@ -38,12 +39,13 @@ export const StructureGaussianWireframeParams = {
 export type StructureGaussianWireframeParams = typeof StructureGaussianWireframeParams
 
 async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
-    const { smoothness } = props;
+    const { smoothness, floodfill } = props;
     const { transform, field, idField, maxRadius } = await computeUnitGaussianDensity(structure, unit, theme.size, props).runInContext(ctx.runtime);
 
+    const isoLevel = Math.exp(-smoothness);
     const params = {
-        isoLevel: Math.exp(-smoothness),
-        scalarField: field,
+        isoLevel,
+        scalarField: floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, floodfill) : field,
         idField
     };
     const wireframe = await computeMarchingCubesLines(params, lines).runAsChild(ctx.runtime);
@@ -82,12 +84,13 @@ export function GaussianWireframeVisual(materialId: number): UnitsVisual<Gaussia
 //
 
 async function createStructureGaussianWireframe(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
-    const { smoothness } = props;
+    const { smoothness, floodfill } = props;
     const { transform, field, idField, maxRadius } = await computeStructureGaussianDensity(structure, theme.size, props).runInContext(ctx.runtime);
 
+    const isoLevel = Math.exp(-smoothness);
     const params = {
-        isoLevel: Math.exp(-smoothness),
-        scalarField: field,
+        isoLevel,
+        scalarField: floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, floodfill) : field,
         idField
     };
     const wireframe = await computeMarchingCubesLines(params, lines).runAsChild(ctx.runtime);

@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -14,7 +15,7 @@ import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { ElementIterator, getElementLoci, eachElement, getSerialElementLoci, eachSerialElement } from './util/element';
 import { VisualUpdateState } from '../../util';
-import { BlobDensityParams, BlobDensityProps, computeUnitBlobSurface, computeStructureBlobSurface } from './util/blob-surface';
+import { BlobDensityParams, computeUnitBlobSurface, computeStructureBlobSurface, shouldUpdateBlobGeometry } from './util/blob-surface';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { ValueCell } from '../../../mol-util/value-cell';
 
@@ -29,27 +30,6 @@ export const StructureBlobSurfaceMeshParams = {
     ...BlobDensityParams,
 };
 export type StructureBlobSurfaceMeshParams = typeof StructureBlobSurfaceMeshParams
-
-function shouldUpdateGeometry(newProps: BlobDensityProps, currentProps: BlobDensityProps) {
-    return (
-        newProps.blobSize !== currentProps.blobSize ||
-        newProps.blobMethod.name !== currentProps.blobMethod.name ||
-        (newProps.blobMethod.name === 'clustering' && currentProps.blobMethod.name === 'clustering' &&
-            newProps.blobMethod.params.iterations !== currentProps.blobMethod.params.iterations) ||
-        newProps.blobShape.name !== currentProps.blobShape.name ||
-        (newProps.blobShape.name === 'sphericalHarmonics' && currentProps.blobShape.name === 'sphericalHarmonics' &&
-            (newProps.blobShape.params.degree !== currentProps.blobShape.params.degree ||
-                newProps.blobShape.params.regularization !== currentProps.blobShape.params.regularization)) ||
-        newProps.resolution !== currentProps.resolution ||
-        newProps.adjustResolution !== currentProps.adjustResolution ||
-        newProps.radiusOffset !== currentProps.radiusOffset ||
-        newProps.smoothness !== currentProps.smoothness ||
-        newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
-        newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
-        newProps.traceOnly !== currentProps.traceOnly ||
-        newProps.includeParent !== currentProps.includeParent
-    );
-}
 
 //
 
@@ -83,7 +63,7 @@ export function BlobSurfaceMeshVisual(materialId: number): UnitsVisual<BlobSurfa
         getLoci: getElementLoci,
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<BlobSurfaceMeshParams>, currentProps: PD.Values<BlobSurfaceMeshParams>) => {
-            state.createGeometry = shouldUpdateGeometry(newProps, currentProps);
+            state.createGeometry = shouldUpdateBlobGeometry(newProps, currentProps);
         }
     }, materialId);
 }
@@ -120,7 +100,7 @@ export function StructureBlobSurfaceMeshVisual(materialId: number): ComplexVisua
         getLoci: getSerialElementLoci,
         eachLocation: eachSerialElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<StructureBlobSurfaceMeshParams>, currentProps: PD.Values<StructureBlobSurfaceMeshParams>) => {
-            state.createGeometry = shouldUpdateGeometry(newProps, currentProps);
+            state.createGeometry = shouldUpdateBlobGeometry(newProps, currentProps);
         }
     }, materialId);
 }
