@@ -386,10 +386,6 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
                 [IsMVSModelProvider.descriptor.name]: { isMvs: true } satisfies IsMVSModelProps,
                 [MVSAnnotationsProvider.descriptor.name]: { annotations },
             },
-            autoAttach: [
-                IsMVSModelProvider.descriptor.name,
-                MVSAnnotationsProvider.descriptor.name,
-            ],
         });
         return model;
     },
