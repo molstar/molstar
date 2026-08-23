@@ -19,7 +19,8 @@ import { LocationIterator } from '../../../../mol-geo/util/location-iterator';
 import { createTransform, createIdentityTransform, TransformData } from '../../../../mol-geo/geometry/transform-data';
 import { createColors } from '../../../../mol-geo/geometry/color-data';
 import { createSizes } from '../../../../mol-geo/geometry/size-data';
-import { Interval, OrderedSet } from '../../../../mol-data/int';
+import { createMarkers, MarkerData } from '../../../../mol-geo/geometry/marker-data';
+import { Interval, OrderedSet, SortedArray } from '../../../../mol-data/int';
 import { Spheres } from '../../../../mol-geo/geometry/spheres/spheres';
 import { Mesh } from '../../../../mol-geo/geometry/mesh/mesh';
 import { Sphere3D } from '../../../../mol-math/geometry';
@@ -412,6 +413,15 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
             geometryVersion++;
             renderObject = createRO(g, particles, particleIndices, theme, props, target, scaleByRadius);
         } else if (renderObject) {
+            if (particlesChanged) {
+                // Markers are per-instance; a new particle set changes the instance count and the
+                // meaning of each index. Stale markers make `getMarkersAverage` read out of bounds
+                // (NaN `markerAverage`), which silently drops the visual from the marking pass.
+                const instanceCount = OrderedSet.size(particleIndices);
+                const type = renderObject.values.dMarkerType.ref.value as 'instance' | 'groupInstance';
+                createMarkers(instanceCount, type, renderObject.values as unknown as MarkerData);
+            }
+
             if (updateState.updateMatrix && OrderedSet.size(particleIndices) > 0) {
                 createTargetParticleTransform(particles, particleIndices, geometry!.boundingSphere, props.cellSize, props.batchSize, scaleByRadius, renderObject.values as unknown as TransformData);
                 const geomUtils = Geometry.getUtils(geometry!);
