@@ -52,6 +52,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Added `transition` node with params `duration_ms`, `trajectory`, `easing`
   - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
 - Fix `NaN` in illumination direct light shadows when ambient and light intensity are both zero
+- Fix illumination indirect light ignoring `exposure` and the shading clamp, inverting shading at high light intensity
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)

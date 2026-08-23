@@ -361,6 +361,7 @@ export class TracingPass {
         }
         ValueCell.update(this.traceRenderable.values.uAmbientColor, ambientColor);
         ValueCell.update(this.traceRenderable.values.uLightStrength, lightStrength);
+        ValueCell.updateIfChanged(this.traceRenderable.values.uExposure, renderer.props.exposure);
         if (this.traceRenderable.values.dGlow.ref.value !== props.glow) {
             ValueCell.update(this.traceRenderable.values.dGlow, props.glow);
             needsUpdateTrace = true;
@@ -431,6 +432,7 @@ const TraceSchema = {
     dLightCount: DefineSpec('number'),
     uAmbientColor: UniformSpec('v3'),
     uLightStrength: UniformSpec('v3'),
+    uExposure: UniformSpec('f'),
 
     uFrameNo: UniformSpec('i'),
     dRendersPerFrame: DefineSpec('number'),
@@ -480,6 +482,7 @@ function getTraceRenderable(ctx: WebGLContext, colorTexture: Texture, normalText
         dLightCount: ValueCell.create(0),
         uAmbientColor: ValueCell.create(Vec3()),
         uLightStrength: ValueCell.create(Vec3.create(1, 1, 1)),
+        uExposure: ValueCell.create(1),
 
         uFrameNo: ValueCell.create(0),
         dRendersPerFrame: ValueCell.create(1),
