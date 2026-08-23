@@ -201,30 +201,60 @@ export function createTargetParticleTransform(
     // Shared across every target visual, so it must not be mutated here.
     const src = getParticleTransforms(particles);
     const instanceCount = OrderedSet.size(indices);
-    const transformArray = new Float32Array(instanceCount * 16);
 
-    const { radii } = particles;
+    // reuse the previous output array when updating in place; createTransform copies it into its cells
+    const prev = transformData?.transform.ref.value;
+    const transformArray = prev && prev.length >= instanceCount * 16 ? prev : new Float32Array(instanceCount * 16);
+
+    // resolve the OrderedSet union once instead of per-element getAt dispatch in the hot loop
+    let sortedIndices: SortedArray | undefined;
+    let startIdx = 0;
+    if (Interval.is(indices)) startIdx = Interval.start(indices);
+    else sortedIndices = indices;
+
+    const radiiArr = scaleByRadius ? particles.radii : undefined;
     const { center } = invariantBoundingSphere;
     const cx = center[0], cy = center[1], cz = center[2];
+    const hasCenter = cx !== 0 || cy !== 0 || cz !== 0;
 
     let maxRadius = 1;
-    for (let i = 0; i < instanceCount; i++) {
-        const so = OrderedSet.getAt(indices, i) * 16;
-        const o = i * 16;
-
-        let s = 1;
-        if (scaleByRadius && radii) {
-            const r = radii[OrderedSet.getAt(indices, i)];
-            if (r > 0) s = r;
-            if (s > maxRadius) maxRadius = s;
+    if (!radiiArr && !sortedIndices) {
+        // contiguous unscaled instances: copy the block wholesale, then fix up the translations
+        transformArray.set(src.subarray(startIdx * 16, (startIdx + instanceCount) * 16));
+        if (hasCenter) {
+            for (let i = 0; i < instanceCount; i++) {
+                const o = i * 16;
+                transformArray[o + 12] -= transformArray[o + 0] * cx + transformArray[o + 4] * cy + transformArray[o + 8] * cz;
+                transformArray[o + 13] -= transformArray[o + 1] * cx + transformArray[o + 5] * cy + transformArray[o + 9] * cz;
+                transformArray[o + 14] -= transformArray[o + 2] * cx + transformArray[o + 6] * cy + transformArray[o + 10] * cz;
+            }
         }
+    } else {
+        for (let i = 0; i < instanceCount; i++) {
+            const pi = sortedIndices ? sortedIndices[i] : startIdx + i;
+            const so = pi * 16;
+            const o = i * 16;
 
-        for (let j = 0; j < 12; j++) transformArray[o + j] = src[so + j] * s;
-        transformArray[o + 15] = src[so + 15];
+            let s = 1;
+            if (radiiArr) {
+                const r = radiiArr[pi];
+                if (r > 0) s = r;
+                if (s > maxRadius) maxRadius = s;
+            }
 
-        transformArray[o + 12] = src[so + 12] - (transformArray[o + 0] * cx + transformArray[o + 4] * cy + transformArray[o + 8] * cz);
-        transformArray[o + 13] = src[so + 13] - (transformArray[o + 1] * cx + transformArray[o + 5] * cy + transformArray[o + 9] * cz);
-        transformArray[o + 14] = src[so + 14] - (transformArray[o + 2] * cx + transformArray[o + 6] * cy + transformArray[o + 10] * cz);
+            for (let j = 0; j < 12; j++) transformArray[o + j] = src[so + j] * s;
+            transformArray[o + 15] = src[so + 15];
+
+            if (hasCenter) {
+                transformArray[o + 12] = src[so + 12] - (transformArray[o + 0] * cx + transformArray[o + 4] * cy + transformArray[o + 8] * cz);
+                transformArray[o + 13] = src[so + 13] - (transformArray[o + 1] * cx + transformArray[o + 5] * cy + transformArray[o + 9] * cz);
+                transformArray[o + 14] = src[so + 14] - (transformArray[o + 2] * cx + transformArray[o + 6] * cy + transformArray[o + 10] * cz);
+            } else {
+                transformArray[o + 12] = src[so + 12];
+                transformArray[o + 13] = src[so + 13];
+                transformArray[o + 14] = src[so + 14];
+            }
+        }
     }
 
     // `calcInstanceGrid` (used inside `createTransform`) builds its grid/culling bounds from
