@@ -432,7 +432,7 @@ export function representationProps(node: MolstarSubtree<'representation'>): Par
 }
 
 /** Create value for `type.params.alpha` prop for `StructureRepresentation3D` transformer from a representation node based on 'opacity' nodes in its subtree. */
-export function alphaForNode(node: MolstarSubtree<'representation' | 'volume_representation'>): number {
+export function alphaForNode(node: MolstarSubtree<'representation' | 'volume_representation' | 'shape'>): number {
     const children = getChildren(node).filter(c => c.kind === 'opacity');
     if (children.length > 0) {
         return children[children.length - 1].params.opacity;
@@ -492,7 +492,7 @@ function getClipObject(node: MolstarNode<'clip'>): Clip.Props['objects'][number]
     }
 }
 
-export function clippingForNode(node: MolstarSubtree<'representation' | 'volume_representation' | 'primitives' | 'primitives_from_uri'>): Clip.Props | undefined {
+export function clippingForNode(node: MolstarSubtree<'representation' | 'volume_representation' | 'primitives' | 'primitives_from_uri' | 'shape'>): Clip.Props | undefined {
     const children = getChildren(node).filter(c => c.kind === 'clip');
     if (!children.length) return;
 

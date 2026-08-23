@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2024-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { QuadSchema, QuadValues } from '../../mol-gl/compute/util';
@@ -53,7 +54,7 @@ export const TracingParams = {
     glow: PD.Boolean(true, { description: 'Bounced rays always get the full light. This produces a slight glowing effect.' }),
     shadowEnable: PD.Boolean(false),
     shadowSoftness: PD.Numeric(0.1, { min: 0.01, max: 1.0, step: 0.01 }),
-    shadowThickness: PD.Numeric(0.5, { min: 0.1, max: 32, step: 0.1 }),
+    shadowThickness: PD.Numeric(0.5, { min: 0.0, max: 32, step: 0.1 }, { description: 'Thickness of the shadow casting geometry. Set to 0.0 for automatic estimation.' }),
 };
 export type TracingProps = PD.Values<typeof TracingParams>
 
@@ -151,8 +152,10 @@ export class TracingPass {
         if (props.thicknessMode === 'auto') {
             this.thicknessTarget.bind();
             state.clearColor(0, 0, 0, 0);
+            state.clearDepth(0);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             renderer.renderDepthOpaqueBack(scene.primitives, camera);
+            state.clearDepth(1);
         }
         if (isTimingMode) this.webgl.timer.markEnd('TracePass.renderInput');
     }

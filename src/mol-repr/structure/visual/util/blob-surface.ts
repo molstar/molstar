@@ -2,10 +2,11 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Unit, Structure } from '../../../../mol-model/structure';
-import { Task } from '../../../../mol-task';
+import { RuntimeContext, Task } from '../../../../mol-task';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { getUnitConformationAndRadius, getStructureConformationAndRadius, CommonSurfaceParams, ensureReasonableResolution } from './common';
 import { computeBlobSurface, BlobSurfaceData } from '../../../../mol-math/geometry/blob-surface';
@@ -40,6 +41,27 @@ export type BlobDensityProps = typeof DefaultBlobDensityProps
 
 export type BlobDensityData = BlobSurfaceData
 
+export function shouldUpdateBlobGeometry(newProps: BlobDensityProps, currentProps: BlobDensityProps) {
+    return (
+        newProps.blobSize !== currentProps.blobSize ||
+        newProps.blobMethod.name !== currentProps.blobMethod.name ||
+        (newProps.blobMethod.name === 'clustering' && currentProps.blobMethod.name === 'clustering' &&
+            newProps.blobMethod.params.iterations !== currentProps.blobMethod.params.iterations) ||
+        newProps.blobShape.name !== currentProps.blobShape.name ||
+        (newProps.blobShape.name === 'sphericalHarmonics' && currentProps.blobShape.name === 'sphericalHarmonics' &&
+            (newProps.blobShape.params.degree !== currentProps.blobShape.params.degree ||
+                newProps.blobShape.params.regularization !== currentProps.blobShape.params.regularization)) ||
+        newProps.resolution !== currentProps.resolution ||
+        newProps.adjustResolution !== currentProps.adjustResolution ||
+        newProps.radiusOffset !== currentProps.radiusOffset ||
+        newProps.smoothness !== currentProps.smoothness ||
+        newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+        newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
+        newProps.traceOnly !== currentProps.traceOnly ||
+        newProps.includeParent !== currentProps.includeParent
+    );
+}
+
 /**
  * Reference feature radius (~vdW/atomic radius) that the incoming quality `resolution` is
  * calibrated to resolve (see `getQualityProps`).
@@ -62,7 +84,7 @@ const BlobResolutionScale = 0.5;
 /** Hard ceiling on the adjusted resolution (also re-guarded by box size in `ensureReasonableResolution`). */
 const BlobMaxResolution = 20;
 
-function getBlobDensityData(position: PositionData, boundary: Boundary, radius: (index: number) => number, props: BlobDensityProps): BlobDensityData {
+async function getBlobDensityData(ctx: RuntimeContext, position: PositionData, boundary: Boundary, radius: (index: number) => number, props: BlobDensityProps): Promise<BlobDensityData> {
     const { blobSize, blobMethod, blobShape, radiusOffset, smoothness, adjustResolution } = props;
     const p = ensureReasonableResolution(boundary.box, props);
 
@@ -90,7 +112,7 @@ function getBlobDensityData(position: PositionData, boundary: Boundary, radius: 
         resolution = Math.min(Math.max(p.resolution * (featureRadius / BlobReferenceRadius) * methodFactor * BlobResolutionScale, p.resolution), BlobMaxResolution);
     }
 
-    return computeBlobSurface(position, boundary, radius, {
+    return computeBlobSurface(ctx, position, boundary, radius, {
         blobSize,
         method: blobMethod.name,
         clusterIterations: blobMethod.name === 'clustering' ? blobMethod.params.iterations : 0,
@@ -105,14 +127,14 @@ function getBlobDensityData(position: PositionData, boundary: Boundary, radius: 
 
 export function computeUnitBlobSurface(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, props: BlobDensityProps) {
     const { position, boundary, radius } = getUnitConformationAndRadius(structure, unit, sizeTheme, props);
-    return Task.create('Blob Surface', async () => {
-        return getBlobDensityData(position, boundary, radius, props);
+    return Task.create('Blob Surface', async ctx => {
+        return await getBlobDensityData(ctx, position, boundary, radius, props);
     });
 }
 
 export function computeStructureBlobSurface(structure: Structure, sizeTheme: SizeTheme<any>, props: BlobDensityProps) {
     const { position, boundary, radius } = getStructureConformationAndRadius(structure, sizeTheme, props);
-    return Task.create('Blob Surface', async () => {
-        return getBlobDensityData(position, boundary, radius, props);
+    return Task.create('Blob Surface', async ctx => {
+        return await getBlobDensityData(ctx, position, boundary, radius, props);
     });
 }
