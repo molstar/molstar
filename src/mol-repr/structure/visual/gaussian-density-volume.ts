@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -16,8 +17,9 @@ import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { eachElement, eachSerialElement, ElementIterator, getElementLoci, getSerialElementLoci } from './util/element';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { UnitsDirectVolumeParams, UnitsVisual, UnitsDirectVolumeVisual } from '../units-visual';
+import { omitObjectKeys } from '../../../mol-util/object';
 
-function createGaussianDensityVolume(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, directVolume?: DirectVolume): DirectVolume {
+function createGaussianDensityVolume(ctx: VisualContext, structure: Structure, theme: Theme, props: Omit<GaussianDensityProps, 'floodfill'>, directVolume?: DirectVolume): DirectVolume {
     const { webgl } = ctx;
     if (!webgl) {
         // gpu gaussian density also needs blendMinMax but there is no fallback here so
@@ -54,7 +56,7 @@ function createGaussianDensityVolume(ctx: VisualContext, structure: Structure, t
 
 export const GaussianDensityVolumeParams = {
     ...ComplexDirectVolumeParams,
-    ...GaussianDensityParams,
+    ...omitObjectKeys(GaussianDensityParams, ['floodfill']),
     ignoreHydrogens: PD.Boolean(false),
     ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
     includeParent: PD.Boolean(false, { isHidden: true }),
@@ -85,7 +87,7 @@ export function GaussianDensityVolumeVisual(materialId: number): ComplexVisual<G
 
 //
 
-function createUnitsGaussianDensityVolume(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, directVolume?: DirectVolume): DirectVolume {
+function createUnitsGaussianDensityVolume(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: Omit<GaussianDensityProps, 'floodfill'>, directVolume?: DirectVolume): DirectVolume {
     const { webgl } = ctx;
     if (!webgl) {
         // gpu gaussian density also needs blendMinMax but there is no fallback here so
@@ -121,7 +123,7 @@ function createUnitsGaussianDensityVolume(ctx: VisualContext, unit: Unit, struct
 
 export const UnitsGaussianDensityVolumeParams = {
     ...UnitsDirectVolumeParams,
-    ...GaussianDensityParams,
+    ...omitObjectKeys(GaussianDensityParams, ['floodfill']),
     ignoreHydrogens: PD.Boolean(false),
     ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
     includeParent: PD.Boolean(false, { isHidden: true }),

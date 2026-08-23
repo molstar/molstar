@@ -6,6 +6,15 @@ Note that since we don't clearly distinguish between a public and private interf
 ## TODO: Particles
 
 ## [Unreleased]
+- Viewer app: keep track of instances in static `Viewer.instances`
+- Fix missing reset time for `Canvas3dInteractionHelper`
+- Fix the blob surface density blocking the main thread
+- Add `blob-surface-wireframe` and `structure-blob-surface-wireframe` visuals
+- Remove unused `floodfill` param from the gaussian density volume representation
+- Fix CPU surface/volume visuals rebuilding on every update if GPU path is unavailable
+- Fix `floodfill` not applied on the gaussian surface wireframe
+- Fix `traceOnly` update being ignored by the molecular surface wireframe visuals
+- Add MVS `shape` node for rendering meshes from `vtp`, `ply` and `obj` resources
 - Added support for molecular atom_style in lammps data files
 - Added element symbol detection in lammps data file
 - Fix inconsistent atomic weight for some elements in `ElementAtomWeights`
@@ -40,6 +49,9 @@ Note that since we don't clearly distinguish between a public and private interf
     - Artistic option fits spherical harmonics to bins
 - Fix camera reset handling for (temporary) empty scenes (#1903)
 - Remove `firstStepSize` tracing parameter, derive automatically
+- Fix illumination `auto` thickness mode never correctly being applied
+- Fix illumination ray marching stepping over occluders when the acceptance window is narrower than the current step
+- Evaluate illumination `auto` thickness at the surface being tested instead of latching it from the shaded pixel
 - Add `.parseRaw` to `DataFormatProvider` for out of state tree parsing
 - Camera improvements
   - Support multiple camera transition shapes

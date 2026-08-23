@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -51,8 +52,8 @@ export const StructureGaussianSurfaceMeshParams = {
 };
 export type StructureGaussianSurfaceMeshParams = typeof StructureGaussianSurfaceMeshParams
 
-function gpuSupport(webgl: WebGLContext) {
-    return webgl.extensions.colorBufferFloat && webgl.extensions.textureFloat && webgl.extensions.textureFloatLinear && webgl.extensions.blendMinMax && webgl.extensions.drawBuffers;
+function gpuSupport(webgl: WebGLContext): boolean {
+    return !!(webgl.extensions.colorBufferFloat && webgl.extensions.textureFloat && webgl.extensions.textureFloatLinear && webgl.extensions.blendMinMax && webgl.extensions.drawBuffers);
 }
 
 function suitableForGpu(structure: Structure, props: PD.Values<SharedParams>, webgl: WebGLContext) {
@@ -66,15 +67,19 @@ function suitableForGpu(structure: Structure, props: PD.Values<SharedParams>, we
     return areaCells < maxAreaCells;
 }
 
+function useGpu(structure: Structure, props: PD.Values<SharedParams>, webgl?: WebGLContext): boolean {
+    return !props.includeParent && props.floodfill === 'off' && props.tryUseGpu && !!webgl && gpuSupport(webgl) && suitableForGpu(structure, props, webgl);
+}
+
 export function GaussianSurfaceVisual(materialId: number, structure: Structure, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) {
-    if (!props.includeParent && props.floodfill === 'off' && props.tryUseGpu && webgl && gpuSupport(webgl) && suitableForGpu(structure, props, webgl)) {
+    if (useGpu(structure, props, webgl)) {
         return GaussianSurfaceTextureMeshVisual(materialId);
     }
     return GaussianSurfaceMeshVisual(materialId);
 }
 
 export function StructureGaussianSurfaceVisual(materialId: number, structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) {
-    if (!props.includeParent && props.floodfill === 'off' && props.tryUseGpu && webgl && gpuSupport(webgl) && suitableForGpu(structure, props, webgl)) {
+    if (useGpu(structure, props, webgl)) {
         return StructureGaussianSurfaceTextureMeshVisual(materialId);
     }
     return StructureGaussianSurfaceMeshVisual(materialId);
@@ -147,7 +152,7 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
             }
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
-            return props.tryUseGpu && !!webgl && suitableForGpu(structureGroup.structure, props, webgl);
+            return useGpu(structureGroup.structure, props, webgl);
         },
         processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
@@ -225,7 +230,7 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
             }
         },
         mustRecreate: (structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
-            return props.tryUseGpu && !!webgl && suitableForGpu(structure, props, webgl);
+            return useGpu(structure, props, webgl);
         },
         processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
@@ -311,7 +316,7 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
             }
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
-            return props.includeParent || props.floodfill !== 'off' || !props.tryUseGpu || !webgl || !suitableForGpu(structureGroup.structure, props, webgl);
+            return !useGpu(structureGroup.structure, props, webgl);
         },
         processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
@@ -400,7 +405,7 @@ export function StructureGaussianSurfaceTextureMeshVisual(materialId: number): C
             }
         },
         mustRecreate: (structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
-            return props.includeParent || props.floodfill !== 'off' || !props.tryUseGpu || !webgl || !suitableForGpu(structure, props, webgl);
+            return !useGpu(structure, props, webgl);
         },
         processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;

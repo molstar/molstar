@@ -2,9 +2,11 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { BlobSurfaceMeshParams, BlobSurfaceMeshVisual, StructureBlobSurfaceMeshParams, StructureBlobSurfaceMeshVisual } from '../visual/blob-surface-mesh';
+import { BlobSurfaceWireframeParams, BlobSurfaceWireframeVisual, StructureBlobSurfaceWireframeParams, StructureBlobSurfaceWireframeVisual } from '../visual/blob-surface-wireframe';
 import { UnitsRepresentation } from '../units-representation';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { ComplexRepresentation, StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
@@ -15,10 +17,13 @@ import { Structure } from '../../../mol-model/structure';
 const BlobSurfaceVisuals = {
     'blob-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, BlobSurfaceMeshParams>) => UnitsRepresentation('Blob surface mesh', ctx, getParams, BlobSurfaceMeshVisual),
     'structure-blob-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, StructureBlobSurfaceMeshParams>) => ComplexRepresentation('Structure Blob surface mesh', ctx, getParams, StructureBlobSurfaceMeshVisual),
+    'blob-surface-wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, BlobSurfaceWireframeParams>) => UnitsRepresentation('Blob surface wireframe', ctx, getParams, BlobSurfaceWireframeVisual),
+    'structure-blob-surface-wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, StructureBlobSurfaceWireframeParams>) => ComplexRepresentation('Structure Blob surface wireframe', ctx, getParams, StructureBlobSurfaceWireframeVisual),
 };
 
 export const BlobSurfaceParams = {
     ...BlobSurfaceMeshParams,
+    ...BlobSurfaceWireframeParams,
     visuals: PD.MultiSelect(['blob-surface-mesh'], PD.objectToOptions(BlobSurfaceVisuals)),
 };
 export type BlobSurfaceParams = typeof BlobSurfaceParams
