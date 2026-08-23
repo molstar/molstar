@@ -346,6 +346,7 @@ export function createParticleListFromRelionStar(data: RelionStarFile, options: 
         count,
         keys,
         targets: new Int32Array(count),
+        targetInfo: new Map([[0, {}]]),
         coordinates,
         rotations,
         radii,

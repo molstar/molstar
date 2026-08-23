@@ -106,6 +106,7 @@ export function createParticleListFromCryoEtDataPortalNdjson(data: CryoEtDataPor
         count,
         keys,
         targets: new Int32Array(count),
+        targetInfo: new Map([[0, {}]]),
         coordinates,
         rotations,
         radii,

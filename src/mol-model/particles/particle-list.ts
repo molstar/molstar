@@ -42,6 +42,14 @@ export interface ParticleEntityInfo {
     readonly function?: string
 }
 
+/** Lightweight metadata for a single target id, always available (unlike `targetMapping`). */
+export interface ParticleTargetInfo {
+    /** Optional display name for this target (e.g. chain id, tomogram id, agent type name). */
+    readonly name?: string
+    /** Index into `entityInfo`; states/enforces that every particle of this target shares this entity. */
+    readonly entity?: number
+}
+
 export interface ParticleList {
     readonly entryId?: string
     readonly label?: string
@@ -59,11 +67,17 @@ export interface ParticleList {
 
     /**
      * Per-particle target index (length = `count`). Each value identifies which
-     * target structure (or later volume) this particle belongs to. Use 0 for
-     * single-target data.  The distinct values in this array correspond to the
+     * target structure/volume/shape this particle belongs to. Use 0 for
+     * single-target data. The distinct values in this array correspond to the
      * keys of `targetMapping` when present.
      */
     readonly targets: Int32Array
+
+    /**
+     * Metadata for each unique target ID in `targets`. Always present (unlike `targetMapping`),
+     * so target ids can be enumerated cheaply without scanning `targets`.
+     */
+    readonly targetInfo: ReadonlyMap<number, ParticleTargetInfo>
 
     /**
      * Optional mapping from each unique target ID in `targets` to the reference object

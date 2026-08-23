@@ -6,7 +6,7 @@
 
 import { Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { Euler } from '../../mol-math/linear-algebra/3d/euler';
-import { Particle, ParticleEntityInfo, ParticleList, ParticleTarget } from '../../mol-model/particles/particle-list';
+import { Particle, ParticleEntityInfo, ParticleList, ParticleTarget, ParticleTargetInfo } from '../../mol-model/particles/particle-list';
 import { ParticleTrajectory } from '../../mol-model/particles/particle-trajectory';
 import { CustomProperties } from '../../mol-model/custom-property';
 import { SimulariumFile, SimulariumAgentBuffer as AB, SimulariumMinValuesPerAgent as MIN_VALUES_PER_AGENT, SimulariumVisType } from '../../mol-io/reader/simularium/schema';
@@ -67,20 +67,23 @@ function agentParticleCount(visType: number, nSubpoints: number): { particles: n
 interface SimulariumEntityContext {
     readonly typeIdToEntityIdx: Map<number, number>
     readonly entityInfo: Map<number, ParticleEntityInfo>
+    readonly targetInfo: Map<number, ParticleTargetInfo>
 }
 
 function createSimulariumEntityContext(file: SimulariumFile): SimulariumEntityContext {
     const typeIdToEntityIdx = new Map<number, number>();
     const entityInfo = new Map<number, ParticleEntityInfo>();
+    const targetInfo = new Map<number, ParticleTargetInfo>();
     if (file.trajectoryInfo.typeMapping) {
         objectForEach(file.trajectoryInfo.typeMapping, (value, key) => {
             const typeId = Number(key);
             const entityIdx = typeIdToEntityIdx.size;
             typeIdToEntityIdx.set(typeId, entityIdx);
             entityInfo.set(entityIdx, { name: value.name });
+            targetInfo.set(typeId, { name: value.name, entity: entityIdx });
         });
     }
-    return { typeIdToEntityIdx, entityInfo };
+    return { typeIdToEntityIdx, entityInfo, targetInfo };
 }
 
 function createParticleListFromSimulariumWithContext(file: SimulariumFile, options: SimulariumParticleListOptions, entityContext: SimulariumEntityContext): ParticleList {
@@ -134,7 +137,7 @@ function createParticleListFromSimulariumWithContext(file: SimulariumFile, optio
     const particleTypeId = new Int32Array(particleCount);
     const particleInstanceId = new Float64Array(particleCount);
 
-    const { typeIdToEntityIdx, entityInfo } = entityContext;
+    const { typeIdToEntityIdx, entityInfo, targetInfo } = entityContext;
 
     const typeName = (t: number) => trajectoryInfo.typeMapping?.[String(t)]?.name ?? `type ${t}`;
     const entityIndexOf = (t: number) => {
@@ -143,6 +146,7 @@ function createParticleListFromSimulariumWithContext(file: SimulariumFile, optio
             idx = typeIdToEntityIdx.size;
             typeIdToEntityIdx.set(t, idx);
             entityInfo.set(idx, { name: typeName(t) });
+            targetInfo.set(t, { name: typeName(t), entity: idx });
         }
         return idx;
     };
@@ -244,6 +248,7 @@ function createParticleListFromSimulariumWithContext(file: SimulariumFile, optio
         count,
         keys,
         targets,
+        targetInfo,
         targetMapping: options.targets,
         entities,
         entityInfo,

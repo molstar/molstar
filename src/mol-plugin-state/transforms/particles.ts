@@ -422,7 +422,7 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
 
 
 function ParticleListWithTargetsParams(a: SO.Particle.List | undefined, plugin: PluginContext) {
-    const targetIds = a ? Array.from(new Set(Array.from(a.data.targets))).sort((x, y) => x - y) : [];
+    const targetIds = a ? Array.from(a.data.targetInfo.keys()).sort((x, y) => x - y) : [];
     const targetIdDescription = targetIds.length > 0
         ? `Target ID in the particle list this object maps to. Available IDs: ${targetIds.slice(0, 32).join(', ')}${targetIds.length > 32 ? ', …' : ''}.`
         : 'Target ID in the particle list this object maps to (matches ParticleList.targets).';

@@ -157,6 +157,7 @@ export function createParticleListFromDynamoTbl(data: DynamoTblFile, options: Dy
         count,
         keys,
         targets: new Int32Array(count),
+        targetInfo: new Map([[0, {}]]),
         coordinates,
         rotations,
         radii,

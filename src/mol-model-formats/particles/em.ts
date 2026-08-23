@@ -224,6 +224,7 @@ export function createParticleListFromArtiatomiEm(data: ArtiatomiEmFile, options
         count,
         keys: finalKeys,
         targets: new Int32Array(count),
+        targetInfo: new Map([[0, {}]]),
         coordinates: finalCoords,
         rotations: finalRotations,
         radii,

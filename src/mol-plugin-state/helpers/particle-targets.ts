@@ -60,37 +60,20 @@ export interface ParticleTargetFileMatches {
 /** Match files by basename to the entity name associated with each particle target id. */
 export function matchParticleTargetFiles(particles: ParticleList, files: ReadonlyArray<Asset.File>, excludedTargetIds?: ReadonlySet<number>): ParticleTargetFileMatches {
     const warnings: string[] = [];
-    const { entities, entityInfo, targets } = particles;
-    if (!entities || !entityInfo) {
+    const { entityInfo, targetInfo } = particles;
+    if (!entityInfo) {
         if (files.length > 0) warnings.push('Cannot match particle target files because the particle list has no entity metadata.');
         return { matches: [], warnings };
     }
 
-    const namesByTarget = new Map<number, Set<string>>();
-    const invalidTargets = new Set<number>();
-    for (let i = 0; i < particles.count; ++i) {
-        const targetId = targets[i];
-        const info = entityInfo.get(entities[i]);
-        if (!info) {
-            invalidTargets.add(targetId);
-            continue;
-        }
-        let names = namesByTarget.get(targetId);
-        if (!names) {
-            names = new Set<string>();
-            namesByTarget.set(targetId, names);
-        }
-        names.add(info.name);
-    }
-
     const targetIdsByName = new Map<string, number[]>();
     const excludedNames = new Set<string>();
-    for (const [targetId, names] of namesByTarget) {
-        if (invalidTargets.has(targetId) || names.size !== 1) {
-            if (!excludedTargetIds?.has(targetId)) warnings.push(`Cannot match particle target ${targetId} because it does not map to exactly one entity name.`);
+    for (const [targetId, info] of targetInfo) {
+        const name = info.entity !== undefined ? entityInfo.get(info.entity)?.name : undefined;
+        if (name === undefined) {
+            if (!excludedTargetIds?.has(targetId)) warnings.push(`Cannot match particle target ${targetId} because it has no entity name.`);
             continue;
         }
-        const name = names.values().next().value!;
         if (excludedTargetIds?.has(targetId)) {
             excludedNames.add(name);
             continue;
@@ -101,9 +84,6 @@ export function matchParticleTargetFiles(particles: ParticleList, files: Readonl
             targetIdsByName.set(name, targetIds);
         }
         targetIds.push(targetId);
-    }
-    for (const targetId of invalidTargets) {
-        if (!excludedTargetIds?.has(targetId) && !namesByTarget.has(targetId)) warnings.push(`Cannot match particle target ${targetId} because it has no entity name.`);
     }
 
     const filesByBase = new Map<string, Asset.File[]>();

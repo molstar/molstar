@@ -16,6 +16,7 @@ function createTestParticles(): ParticleList {
         count: 3,
         keys: new Int32Array([0, 1, 2]),
         targets: new Int32Array(3),
+        targetInfo: new Map([[0, {}]]),
         coordinates: new Float32Array([
             0, 0, 0,
             1, 0, 0,

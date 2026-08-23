@@ -5,7 +5,7 @@
  */
 
 import { Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
-import { ParticleCompartmentInfo, ParticleEntityInfo, ParticleList, ParticleTarget } from '../../mol-model/particles/particle-list';
+import { ParticleCompartmentInfo, ParticleEntityInfo, ParticleList, ParticleTarget, ParticleTargetInfo } from '../../mol-model/particles/particle-list';
 import { CustomProperties } from '../../mol-model/custom-property';
 import { Structure, StructureElement, StructureProperties, Trajectory, Unit } from '../../mol-model/structure';
 import { CifBlock, CifFile } from '../../mol-io/reader/cif/data-model';
@@ -487,6 +487,15 @@ async function buildCellpackStandardParticleList(
         entityInfo.set(idx, { name, function: entityNameToFunction.get(name) });
     }
 
+    // Build targetInfo: target index → chain name and its (single, by construction) entity index.
+    const targetInfo = new Map<number, ParticleTargetInfo>();
+    for (const [chain, idx] of chainToTargetIdx) {
+        const entityId = chainToEntityId.get(chain);
+        const entityName = entityId !== undefined ? entityToName.get(entityId) : undefined;
+        const entity = entityName !== undefined ? entityNameToIdx.get(entityName) : undefined;
+        targetInfo.set(idx, { name: chain, entity });
+    }
+
     const assemblyId = options.assemblyId;
     // Only the ids are captured below, so the label closure does not retain the matrix array.
     const operatorIds = operators.ids;
@@ -498,6 +507,7 @@ async function buildCellpackStandardParticleList(
             count,
             keys,
             targets,
+            targetInfo,
             compartments: compartmentInfo.size > 0 ? compartments : undefined,
             compartmentInfo: compartmentInfo.size > 0 ? compartmentInfo : undefined,
             entities: entityInfo.size > 0 ? entities : undefined,
@@ -663,6 +673,13 @@ async function buildPetworldParticleList(
         entityInfo.set(idx, { name });
     }
 
+    // Build targetInfo: target index → model name and its (single, by construction) entity index.
+    const targetInfo = new Map<number, ParticleTargetInfo>();
+    for (const [modelNum, idx] of modelNumToIndex) {
+        const modelName = modelNumToName.get(modelNum) || `Model ${modelNum}`;
+        targetInfo.set(idx, { name: modelName, entity: entityNameToIdx.get(modelName) });
+    }
+
     const assemblyId = options.assemblyId;
     // Only the ids are captured below, so the label closure does not retain the matrix array.
     const operatorIds = operators.ids;
@@ -674,6 +691,7 @@ async function buildPetworldParticleList(
             count,
             keys,
             targets,
+            targetInfo,
             entities: entityInfo.size > 0 ? entities : undefined,
             entityInfo: entityInfo.size > 0 ? entityInfo : undefined,
             coordinates,
