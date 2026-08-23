@@ -51,7 +51,7 @@ export const TracingParams = {
     thicknessFactor: PD.Numeric(1, { min: 0.1, max: 2, step: 0.05 }, { hideIf: p => p.thicknessMode === 'fixed' }),
     thickness: PD.Numeric(4, { min: 0.1, max: 512, step: 0.1 }, { hideIf: p => p.thicknessMode === 'auto' }),
     bounces: PD.Numeric(4, { min: 1, max: 32, step: 1 }, { description: 'Number of bounces for each ray.' }),
-    glow: PD.Boolean(true, { description: 'Bounced rays always get the full light. This produces a slight glowing effect.' }),
+    glow: PD.Boolean(true, { description: 'Soften the boundary between lit and unlit areas by letting bounced light spill slightly around geometry. Turn off for a harder falloff.' }),
     shadowEnable: PD.Boolean(false),
     shadowSoftness: PD.Numeric(0.1, { min: 0.01, max: 1.0, step: 0.01 }),
     shadowThickness: PD.Numeric(0.5, { min: 0.0, max: 32, step: 0.1 }, { description: 'Thickness of the shadow casting geometry. Set to 0.0 for automatic estimation.' }),
