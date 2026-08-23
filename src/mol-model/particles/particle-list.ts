@@ -7,7 +7,7 @@
 
 import { OrderedSet } from '../../mol-data/int';
 import { Column } from '../../mol-data/db';
-import { Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
+import { Vec3 } from '../../mol-math/linear-algebra';
 import { Sphere3D } from '../../mol-math/geometry';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { ModelFormat } from '../../mol-model-formats/format';
@@ -171,7 +171,8 @@ const ParticleTransformsDescriptor = CustomPropertyDescriptor({ name: 'particle-
  * particle. Computed once and cached on the `ParticleList`.
  */
 export function getParticleTransforms(data: ParticleList): Float32Array {
-    if (!data._propertyData[ParticleTransformsDescriptor.name]) {
+    let cached = data._propertyData[ParticleTransformsDescriptor.name] as Float32Array | undefined;
+    if (!cached) {
         const particleCount = data.count;
         const transformArray = new Float32Array(particleCount * 16);
         const { rotations, coordinates } = data;
@@ -188,25 +189,33 @@ export function getParticleTransforms(data: ParticleList): Float32Array {
         }
 
         if (rotations && hasRotations) {
-            const m = Mat4.identity();
-            const q = Quat();
+            // quat → mat4 (see Mat4.fromQuat) written directly into the output
+            // to avoid a temporary matrix and a 16-element copy per particle;
+            // pads are already zero
             for (let i = 0; i < particleCount; ++i) {
                 const cOffset = i * 3;
                 const qOffset = i * 4;
-                Quat.set(q,
-                    rotations[qOffset + 0],
-                    rotations[qOffset + 1],
-                    rotations[qOffset + 2],
-                    rotations[qOffset + 3],
-                );
-                Mat4.fromQuat(m, q);
-                m[12] = coordinates[cOffset + 0];
-                m[13] = coordinates[cOffset + 1];
-                m[14] = coordinates[cOffset + 2];
-                for (let j = 0; j < 16; j++) {
-                    transformArray[i * 16 + j] = m[j];
-                }
-                // transformArray.set(m, i * 16);
+                const o = i * 16;
+
+                const x = rotations[qOffset + 0], y = rotations[qOffset + 1], z = rotations[qOffset + 2], w = rotations[qOffset + 3];
+                const x2 = x + x, y2 = y + y, z2 = z + z;
+                const xx = x * x2, yx = y * x2, yy = y * y2;
+                const zx = z * x2, zy = z * y2, zz = z * z2;
+                const wx = w * x2, wy = w * y2, wz = w * z2;
+
+                transformArray[o + 0] = 1 - yy - zz;
+                transformArray[o + 1] = yx + wz;
+                transformArray[o + 2] = zx - wy;
+                transformArray[o + 4] = yx - wz;
+                transformArray[o + 5] = 1 - xx - zz;
+                transformArray[o + 6] = zy + wx;
+                transformArray[o + 8] = zx + wy;
+                transformArray[o + 9] = zy - wx;
+                transformArray[o + 10] = 1 - xx - yy;
+                transformArray[o + 12] = coordinates[cOffset + 0];
+                transformArray[o + 13] = coordinates[cOffset + 1];
+                transformArray[o + 14] = coordinates[cOffset + 2];
+                transformArray[o + 15] = 1;
             }
         } else {
             fillIdentityTransform(transformArray, particleCount);
@@ -220,8 +229,9 @@ export function getParticleTransforms(data: ParticleList): Float32Array {
 
         data.customProperties.add(ParticleTransformsDescriptor);
         data._propertyData[ParticleTransformsDescriptor.name] = transformArray;
+        cached = transformArray;
     }
-    return data._propertyData[ParticleTransformsDescriptor.name];
+    return cached;
 }
 
 const ParticleTargetGroupsDescriptor = CustomPropertyDescriptor({ name: 'particle-target-groups' });
