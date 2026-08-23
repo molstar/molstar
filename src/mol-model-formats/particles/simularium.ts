@@ -152,8 +152,12 @@ function createParticleListFromSimulariumWithContext(file: SimulariumFile, optio
     };
 
     const euler = Euler();
-    const quat = Quat();
+    const quat = Quat.identity();
     const local = Vec3();
+
+    // memoized euler → quat conversion state; zero rotation (the common case) and runs of
+    // identical angles skip the trig in Quat.fromEuler. quat starts as identity for (0, 0, 0).
+    let lastRx = 0, lastRy = 0, lastRz = 0;
 
     let count = 0;
     let fiberIdx = 0;
@@ -175,8 +179,11 @@ function createParticleListFromSimulariumWithContext(file: SimulariumFile, optio
 
             if (fiberPoints > 0) {
                 // FIBER agent: explode each subpoint into its own particle (rendered as a sphere).
-                euler[0] = rx; euler[1] = ry; euler[2] = rz;
-                Quat.fromEuler(quat, euler, 'XYZ');
+                if (rx !== lastRx || ry !== lastRy || rz !== lastRz) {
+                    euler[0] = rx; euler[1] = ry; euler[2] = rz;
+                    Quat.fromEuler(quat, euler, 'XYZ');
+                    lastRx = rx; lastRy = ry; lastRz = rz;
+                }
 
                 fiberOffsets[fiberIdx] = fiberPos;
                 for (let s = 0; s < fiberPoints; ++s) {
@@ -205,8 +212,11 @@ function createParticleListFromSimulariumWithContext(file: SimulariumFile, optio
                 fiberOffsets[++fiberIdx] = fiberPos;
             } else {
                 // DEFAULT agent (or fiber without subpoints): a single particle at the agent position.
-                euler[0] = rx; euler[1] = ry; euler[2] = rz;
-                Quat.fromEuler(quat, euler, 'XYZ');
+                if (rx !== lastRx || ry !== lastRy || rz !== lastRz) {
+                    euler[0] = rx; euler[1] = ry; euler[2] = rz;
+                    Quat.fromEuler(quat, euler, 'XYZ');
+                    lastRx = rx; lastRy = ry; lastRz = rz;
+                }
 
                 const cOffset = count * 3;
                 coordinates[cOffset + 0] = px * scale;
