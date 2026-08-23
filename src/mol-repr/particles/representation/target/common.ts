@@ -390,8 +390,11 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
         } else {
             updateState.createGeometry = targetChanged || geometryPropsChanged || (sizeThemeChanged && targetSizeThemeAffectsGeometry(target, props, webgl));
             updateState.updateMatrix = particlesChanged || targetChanged || targetScaleByRadius(target, currentProps!) !== scaleByRadius;
-            updateState.updateColor = colorThemeChanged || updateState.createGeometry;
-            updateState.updateSize = sizeThemeChanged || sizeFactorChanged || updateState.createGeometry;
+            // colors/sizes are keyed by instance (via `locationIt`/`positionIt`, built from `particleIndices`),
+            // so a changed particle set requires rebuilding them even if the theme itself is unchanged.
+            updateState.updateColor = colorThemeChanged || particlesChanged || updateState.createGeometry;
+            updateState.updateSize = sizeThemeChanged || sizeFactorChanged || updateState.createGeometry ||
+                (particlesChanged && target.kind !== 'structure');
         }
 
         if (updateState.createNew) {
