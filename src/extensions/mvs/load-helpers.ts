@@ -14,8 +14,6 @@ import { VolumeInstances, VolumeTransform } from '../../mol-plugin-state/transfo
 import { StateTransformer } from '../../mol-state';
 import { arrayDistinct } from '../../mol-util/array';
 import { Clip } from '../../mol-util/clip';
-import { Color } from '../../mol-util/color';
-import { ColorListEntry } from '../../mol-util/color/color';
 import { canonicalJsonString } from '../../mol-util/json';
 import { stringToWords } from '../../mol-util/string';
 import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider, MVSCategoricalPaletteProps, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from './components/annotation-color-theme';
@@ -27,16 +25,17 @@ import { CustomLabelTextProps } from './components/custom-label/visual';
 import { CustomTooltipsProps } from './components/custom-tooltips-prop';
 import { MultilayerColorThemeName, MultilayerColorThemeProps, NoColor } from './components/multilayer-color-theme';
 import { SelectorAll } from './components/selector';
+import { MVSSplitUniformColorThemeProps, MVSSplitUniformColorThemeProvider, OptionalSplitColorProp, SplitColorProp } from './components/split-uniform-color-theme';
 import { MvsNamedColorDicts, MvsNamedColorLists } from './helpers/colors';
 import { rowToExpression, rowsToExpression } from './helpers/selections';
 import { ElementOfSet, decodeColor, isDefined, stringHash } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
-import { mvsRefTags, UpdateTarget } from './load-generic';
+import { UpdateTarget, mvsRefTags } from './load-generic';
 import { Subtree, getChildren } from './tree/generic/tree-schema';
 import { dfs, formatObject } from './tree/generic/tree-utils';
 import { MolstarKind, MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree } from './tree/molstar/molstar-tree';
 import { DefaultColor } from './tree/mvs/mvs-tree';
-import { CategoricalPalette, CategoricalPaletteDefaults, ColorDictNameT, ColorListNameT, ContinuousPalette, ContinuousPaletteDefaults, DiscretePalette, DiscretePaletteDefaults } from './tree/mvs/param-types';
+import { CategoricalPalette, CategoricalPaletteDefaults, ColorDictNameT, ColorListNameT, ColorT, ContinuousPalette, ContinuousPaletteDefaults, DiscretePalette, DiscretePaletteDefaults } from './tree/mvs/param-types';
 
 
 export const AnnotationFromUriKinds = new Set(['color_from_uri', 'component_from_uri', 'label_from_uri', 'tooltip_from_uri'] satisfies MolstarKind[]);
@@ -520,10 +519,7 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
     if (node?.kind === 'representation') {
         const children = getChildren(node).filter(c => c.kind === 'color' || c.kind === 'color_from_uri' || c.kind === 'color_from_source') as MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>[];
         if (children.length === 0) {
-            return {
-                name: 'uniform',
-                params: { value: decodeColor(DefaultColor) },
-            };
+            return uniformColorTheme(DefaultColor);
         } else if (children.length === 1 && hasMolStarUseDefaultColoring(children[0])) {
             return customColoring(children[0].custom);
         } else if (children.length === 1 && appliesColorToWholeRepr(children[0])) {
@@ -546,11 +542,7 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
         if (hasMolStarUseDefaultColoring(node)) {
             return customColoring(node.custom);
         }
-
-        return {
-            name: 'uniform',
-            params: { value: decodeColor(node.params.color) },
-        };
+        return uniformColorTheme(node.params.color);
     }
     if (node?.kind === 'color_from_uri' || node?.kind === 'color_from_source') {
         const annotationId = context.annotationMap.get(node);
@@ -571,7 +563,20 @@ function appliesColorToWholeRepr(node: MolstarNode<'color' | 'color_from_uri' | 
     return !isDefined(node.params.selector) || node.params.selector === 'all';
 }
 
-const FALLBACK_COLOR = decodeColor(DefaultColor)!;
+/** Create parameters for `uniform` (or `mvs-split-uniform`) color theme, supports split coloring. */
+function uniformColorTheme(color: ColorT): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] {
+    if (color.includes('/')) {
+        return {
+            name: MVSSplitUniformColorThemeProvider.name,
+            params: { value: SplitColorProp.fromString(color) } satisfies MVSSplitUniformColorThemeProps,
+        };
+    } else {
+        return {
+            name: 'uniform',
+            params: { value: decodeColor(color) },
+        };
+    }
+}
 
 export function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'color_from_source'>['params']['palette']): MVSAnnotationColorThemeProps['palette'] {
     if (!palette) {
@@ -587,8 +592,7 @@ export function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri'
                 sort: fullParams.sort,
                 sortDirection: fullParams.sort_direction,
                 caseInsensitive: fullParams.case_insensitive,
-                setMissingColor: !!fullParams.missing_color,
-                missingColor: decodeColor(fullParams.missing_color) ?? FALLBACK_COLOR,
+                missingColor: SplitColorProp.fromString(fullParams.missing_color),
             } satisfies MVSCategoricalPaletteProps,
         };
     }
@@ -614,10 +618,8 @@ export function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri'
                 mode: fullParams.mode,
                 xMin: fullParams.value_domain[0],
                 xMax: fullParams.value_domain[1],
-                setUnderflowColor: !!fullParams.underflow_color,
-                underflowColor: (fullParams.underflow_color === 'auto' ? minColor(colors.colors) : decodeColor(fullParams.underflow_color)) ?? FALLBACK_COLOR,
-                setOverflowColor: !!fullParams.overflow_color,
-                overflowColor: (fullParams.overflow_color === 'auto' ? maxColor(colors.colors) : decodeColor(fullParams.overflow_color)) ?? FALLBACK_COLOR,
+                underflowColor: fullParams.underflow_color === 'auto' ? minColor(colors) : SplitColorProp.fromString(fullParams.underflow_color),
+                overflowColor: fullParams.overflow_color === 'auto' ? maxColor(colors) : SplitColorProp.fromString(fullParams.overflow_color),
             } satisfies MVSContinuousPaletteProps,
         };
     }
@@ -636,86 +638,86 @@ function objMerge<T extends object, U extends object>(first: T, second: U): T & 
 
 function categoricalPalettePropsFromMVSColors(colors: Required<CategoricalPalette>['colors']): MVSCategoricalPaletteProps['colors'] {
     if (typeof colors === 'string') {
+        // Named color list or dict
         if (colors in MvsNamedColorLists) {
-            const colorList = MvsNamedColorLists[colors as ColorListNameT];
-            return { name: 'list', params: { kind: 'set', colors: colorList.list } };
+            colors = MvsNamedColorLists[colors as ColorListNameT];
+        } else if (colors in MvsNamedColorDicts) {
+            colors = MvsNamedColorDicts[colors as ColorDictNameT];
+        } else {
+            console.warn(`Could not find named color palette "${colors}"`);
+            return { name: 'list', params: [] };
         }
-        if (colors in MvsNamedColorDicts) {
-            const colorDict = MvsNamedColorDicts[colors as ColorDictNameT];
-            return { name: 'dictionary', params: Object.entries(colorDict).map(([value, color]) => ({ value, color })) };
-        }
-        console.warn(`Could not find named color palette "${colors}"`);
     }
+
     if (Array.isArray(colors)) {
-        return { name: 'list', params: { kind: 'set', colors: colors.map(c => decodeColor(c) ?? FALLBACK_COLOR) } };
+        // Color list
+        return { name: 'list', params: colors.map(c => ({ color: SplitColorProp.fromString(c) })) };
+    } else {
+        // Color dict
+        return { name: 'dictionary', params: Object.entries(colors).map(([value, color]) => ({ value, color: SplitColorProp.fromString(color) })) };
     }
-    if (typeof colors === 'object') {
-        return { name: 'dictionary', params: Object.entries(colors).map(([value, color]) => ({ value, color: decodeColor(color) ?? FALLBACK_COLOR })) };
-    }
-    return { name: 'list', params: { kind: 'set', colors: [] } };
 }
+
 
 function discretePalettePropsFromMVSColors(colors: Required<DiscretePalette>['colors'], reverse: boolean): MVSDiscretePaletteProps['colors'] {
     if (typeof colors === 'string') {
+        // Named color list
         if (colors in MvsNamedColorLists) {
-            const colorList = MvsNamedColorLists[colors];
-            const list = reverse ? colorList.list.slice().reverse() : colorList.list;
-            const sectionLength = 1 / list.length;
-            return list.map((e, i) => ({ color: Color.fromColorListEntry(e), fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
+            colors = MvsNamedColorLists[colors as ColorListNameT];
+        } else {
+            console.warn(`Could not find named color palette "${colors}"`);
+            return [];
         }
-        console.warn(`Could not find named color palette "${colors}"`);
     }
-    if (Array.isArray(colors) && colors.every(t => typeof t === 'string')) {
-        const list = reverse ? colors.slice().reverse() : colors;
+
+    if (colors.every(t => typeof t === 'string')) {
+        // Color list without checkpoints
+        if (reverse) colors = colors.slice().reverse();
         const sectionLength = 1 / colors.length;
-        return list.map((c, i) => ({ color: decodeColor(c) ?? NoColor, fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
+        return colors.map((col, i) => ({ color: SplitColorProp.fromString(col), fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
+    } else if (colors.every(t => Array.isArray(t) && t.length === 2)) {
+        // Color list with 1 checkpoint
+        return colors.map(([col, from], i, arr) => ({ color: SplitColorProp.fromString(col), fromValue: from, toValue: arr[i + 1]?.[1] ?? Infinity }));
+    } else if (colors.every(t => Array.isArray(t) && t.length === 3)) {
+        // Color list with 2 checkpoint
+        return colors.map(([col, from, to]) => ({ color: SplitColorProp.fromString(col), fromValue: from ?? -Infinity, toValue: to ?? Infinity }));
+    } else {
+        return []; // should be unreachable
     }
-    if (Array.isArray(colors) && colors.every(t => Array.isArray(t) && t.length === 2)) {
-        return colors.map((t, i) => ({ color: decodeColor(t[0]) ?? NoColor, fromValue: t[1], toValue: colors[i + 1]?.[1] ?? Infinity }));
-    }
-    if (Array.isArray(colors) && colors.every(t => Array.isArray(t) && t.length === 3)) {
-        return colors.map(t => ({ color: decodeColor(t[0]) ?? NoColor, fromValue: t[1] ?? -Infinity, toValue: t[2] ?? Infinity }));
-    }
-    return [];
 }
 
 function continuousPalettePropsFromMVSColors(colors: Required<ContinuousPalette>['colors'], reverse: boolean): MVSContinuousPaletteProps['colors'] {
     if (typeof colors === 'string') {
         // Named color list
         if (colors in MvsNamedColorLists) {
-            const colorList = MvsNamedColorLists[colors];
-            const list = reverse ? colorList.list.slice().reverse() : colorList.list;
-            const n = list.length - 1;
-            return { kind: 'interpolate', colors: list.map((col, i) => [Color.fromColorListEntry(col), i / n]) };
-        }
-        console.warn(`Could not find named color palette "${colors}"`);
-    }
-    if (Array.isArray(colors)) {
-        if (colors.every(t => Array.isArray(t))) {
-            // Color list with checkpoints
-            // Not applying `reverse` here, as it would have no effect
-            return { kind: 'interpolate', colors: colors.map(t => [decodeColor(t[0]) ?? FALLBACK_COLOR, t[1]]) };
+            colors = MvsNamedColorLists[colors as ColorListNameT];
         } else {
-            // Color list without checkpoints
-            const list = reverse ? colors.slice().reverse() : colors;
-            const n = list.length - 1;
-            return { kind: 'interpolate', colors: list.map((col, i) => [decodeColor(col) ?? FALLBACK_COLOR, i / n]) };
+            console.warn(`Could not find named color palette "${colors}"`);
+            return [];
         }
     }
-    return { kind: 'interpolate', colors: [] };
+
+    if (colors.every(t => typeof t === 'string')) {
+        // Color list without checkpoints
+        if (reverse) colors = colors.slice().reverse();
+        const n = colors.length - 1;
+        return colors.map((col, i) => ({ color: SplitColorProp.fromString(col), checkpoint: i / n }));
+    } else {
+        // Color list with checkpoints
+        // Not applying `reverse` here, as it would have no effect
+        return colors.map(([col, checkpoint]) => ({ color: SplitColorProp.fromString(col), checkpoint: checkpoint }));
+    }
 }
 
-/** Return the color with the lowest checkpoint, or the first color if checkpoints not available. */
-function minColor(colors: ColorListEntry[]): Color | undefined {
-    if (colors.length === 0) return undefined;
-    if (colors.every(t => Array.isArray(t))) return Color.fromColorListEntry(colors.reduce((a, b) => a[1] < b[1] ? a : b));
-    return Color.fromColorListEntry(colors[0]);
+/** Return the color with the lowest checkpoint. */
+function minColor(colors: MVSContinuousPaletteProps['colors']): OptionalSplitColorProp {
+    if (colors.length === 0) return SplitColorProp.none();
+    return colors.reduce((a, b) => a.checkpoint < b.checkpoint ? a : b).color;
 }
-/** Return the color with the highest checkpoint, or the last color if checkpoints not available. */
-function maxColor(colors: ColorListEntry[]): Color | undefined {
-    if (colors.length === 0) return undefined;
-    if (colors.every(t => Array.isArray(t))) return Color.fromColorListEntry(colors.reduce((a, b) => a[1] > b[1] ? a : b));
-    return Color.fromColorListEntry(colors[colors.length - 1]);
+/** Return the color with the highest checkpoint. */
+function maxColor(colors: MVSContinuousPaletteProps['colors']): OptionalSplitColorProp {
+    if (colors.length === 0) return SplitColorProp.none();
+    return colors.reduce((a, b) => a.checkpoint > b.checkpoint ? a : b).color;
 }
 
 /** Create a mapping of nearest representation nodes for each node in the tree

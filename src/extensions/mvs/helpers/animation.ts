@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { SortedArray } from '../../../mol-data/int';
@@ -12,9 +13,10 @@ import { EPSILON, Mat3, Mat4, Quat, Vec3 } from '../../../mol-math/linear-algebr
 import { RuntimeContext } from '../../../mol-task';
 import { deepEqual } from '../../../mol-util';
 import { Color } from '../../../mol-util/color';
-import { decodeColor } from '../../../mol-util/color/utils';
 import { produce } from '../../../mol-util/produce';
 import { makeContinuousPaletteCheckpoints, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from '../components/annotation-color-theme';
+import { SplitColorProp } from '../components/split-uniform-color-theme';
+import { decodeColor, SplitColor } from '../helpers/utils';
 import { palettePropsFromMVSPalette } from '../load-helpers';
 import { Snapshot } from '../mvs-data';
 import { MVSAnimationNode, MVSAnimationSchema } from '../tree/animation/animation-tree';
@@ -67,10 +69,27 @@ export async function generateStateTransition(ctx: RuntimeContext, snapshot: Sna
 
 const EasingFnMap: Record<EasingT, (t: number) => number> = EasingFunctions;
 
+interface PaletteFunction {
+    hasSecondary: boolean,
+    apply: (value: number, isSecondary: boolean) => Color,
+}
+const PaletteFunction = {
+    /** Apply palette to value and return the resulting color as hex string. If the palette uses secondary colors, return primary and secondary color as "#ffffff/#eeeeee" */
+    getAsHexStyle(palette: PaletteFunction, value: number): ColorT {
+        if (palette.hasSecondary) {
+            return `${Color.toHexStyle(palette.apply(value, false))}/${Color.toHexStyle(palette.apply(value, true))}`;
+        } else {
+            return Color.toHexStyle(palette.apply(value, false)) as ColorT;
+        }
+    },
+};
+
 interface InterpolationCacheEntry {
-    paletteFn?: (value: number) => Color,
+    paletteFn?: PaletteFunction,
     startColor?: Color | Record<number | string, Color>,
     endColor?: Color | Record<number | string, Color>,
+    startSplitColor?: [Color, Color],
+    endSplitColor?: [Color, Color],
     rotation?: { axis: Vec3, angle: number, start: Quat, end: Quat },
 }
 
@@ -210,8 +229,7 @@ function processScalarLike(transition: MVSAnimationNode<'interpolate'>, target: 
         return interpolateRotation(startValue, endValue, t, transition.params.noise_magnitude ?? 0, cacheEntry);
     } else if (transition.params.kind === 'color') {
         if (cacheEntry.paletteFn) {
-            const color = cacheEntry.paletteFn(t);
-            return Color.toHexStyle(color);
+            return PaletteFunction.getAsHexStyle(cacheEntry.paletteFn, t);
         }
 
         const baseColors = typeof startValue === 'object' ? select(target, transition.params.property, offset) : undefined;
@@ -451,9 +469,15 @@ function interpolateColors(start: ColorT | Record<number, ColorT>, end: ColorT |
     const t = clamp(time, 0, 1);
 
     if (cacheEntry.paletteFn) {
-        const c = cacheEntry.paletteFn(t);
-        return Color.toHexStyle(c);
+        return PaletteFunction.getAsHexStyle(cacheEntry.paletteFn, t);
     }
+
+    if (typeof start === 'string' && typeof end === 'string') {
+        const startColor = cacheEntry.startSplitColor ??= SplitColor.decodeStrict(start);
+        const endColor = cacheEntry.endSplitColor ??= SplitColor.decodeStrict(end);
+        return interpolateSplitColor(startColor, endColor, t);
+    }
+    // the rest of this function does not support split coloring (i.e. ignores color after slash)
 
     if (cacheEntry.startColor === undefined) {
         cacheEntry.startColor = decodeColors(start, baseColors);
@@ -490,6 +514,16 @@ function interpolateColors(start: ColorT | Record<number, ColorT>, end: ColorT |
     }
 
     return start;
+}
+
+function interpolateSplitColor(start: [Color, Color], end: [Color, Color], t: number): ColorT {
+    const out0 = Color.interpolate(start[0], end[0], t);
+    if (start[0] === start[1] && end[0] === end[1]) {
+        return SplitColor.toHexStyle(out0);
+    } else {
+        const out1 = Color.interpolate(start[1], end[1], t);
+        return SplitColor.toHexStyle(out0, out1);
+    }
 }
 
 function select(params: any, path: string | (string | number)[], offset: number) {
@@ -544,7 +578,7 @@ function makeNodeMap(tree: Tree, map: Map<string, (string | number)[]>, currentP
     return map;
 }
 
-function makePaletteFunction(props: MVSAnimationNode<'interpolate'>): ((value: number) => Color) | undefined {
+function makePaletteFunction(props: MVSAnimationNode<'interpolate'>): PaletteFunction | undefined {
     if (props.params.kind !== 'color' || !props.params.palette) return undefined;
 
     const params = palettePropsFromMVSPalette(props.params.palette);
@@ -554,40 +588,58 @@ function makePaletteFunction(props: MVSAnimationNode<'interpolate'>): ((value: n
 }
 
 
-function makePaletteFunctionDiscrete(props: MVSDiscretePaletteProps): (value: number) => Color {
+function makePaletteFunctionDiscrete(props: MVSDiscretePaletteProps): PaletteFunction {
     const defaultColor = Color(0x0);
-    if (props.colors.length === 0) return () => defaultColor;
+    if (props.colors.length === 0) return {
+        hasSecondary: false,
+        apply: () => defaultColor,
+    };
 
-    return (value: number) => {
-        const x = clamp(value, 0, 1);
-        for (let i = props.colors.length - 1; i >= 0; i--) {
-            const { color, fromValue, toValue } = props.colors[i];
-            if (fromValue <= x && x <= toValue) return color;
+    const bins = props.colors.map(item => ({ ...item, color: SplitColorProp.toTuple(item.color) }));
+    const hasSecondary = bins.some(bin => bin.color[0] !== bin.color[1]);
+
+    return {
+        hasSecondary,
+        apply: (value: number, isSecondary: boolean) => {
+            const x = clamp(value, 0, 1);
+            for (let i = bins.length - 1; i >= 0; i--) {
+                const { color, fromValue, toValue } = bins[i];
+                if (fromValue <= x && x <= toValue) return color[isSecondary ? 1 : 0] ?? defaultColor;
+            }
+            return defaultColor;
         }
-        return defaultColor;
     };
 }
 
-function makePaletteFunctionContinuous(props: MVSContinuousPaletteProps): (value: number) => Color {
+function makePaletteFunctionContinuous(props: MVSContinuousPaletteProps): PaletteFunction {
     const defaultColor = Color(0x0);
     const { colors, checkpoints } = makeContinuousPaletteCheckpoints(props);
-    if (colors.length === 0) return () => defaultColor;
+    if (colors.length === 0) return {
+        hasSecondary: false,
+        apply: () => defaultColor,
+    };
 
-    const underflowColor = props.setUnderflowColor ? props.underflowColor : defaultColor;
-    const overflowColor = props.setOverflowColor ? props.overflowColor : defaultColor;
+    const underflowColor = SplitColorProp.toTuple(props.underflowColor);
+    const overflowColor = SplitColorProp.toTuple(props.overflowColor);
 
-    return (value: number) => {
-        const x = clamp(value, 0, 1);
-        const gteIdx = SortedArray.findPredecessorIndex(checkpoints, x); // Index of the first greater or equal checkpoint
-        if (gteIdx === 0) {
-            if (x === checkpoints[0]) return colors[0];
-            else return underflowColor;
+    const hasSecondary = colors.some(col => col[0] !== col[1]) || underflowColor[0] !== underflowColor[1] || overflowColor[0] !== overflowColor[1];
+
+    return {
+        hasSecondary,
+        apply: (value: number, isSecondary: boolean) => {
+            const x = clamp(value, 0, 1);
+            const secFlag = isSecondary ? 1 : 0;
+            const gteIdx = SortedArray.findPredecessorIndex(checkpoints, x); // Index of the first greater or equal checkpoint
+            if (gteIdx === 0) {
+                if (x === checkpoints[0]) return colors[0][secFlag];
+                else return underflowColor[secFlag] ?? defaultColor;
+            }
+            if (gteIdx === checkpoints.length) {
+                return overflowColor[secFlag] ?? defaultColor;
+            }
+            const q = (x - checkpoints[gteIdx - 1]) / (checkpoints[gteIdx] - checkpoints[gteIdx - 1]);
+            return Color.interpolate(colors[gteIdx - 1][secFlag], colors[gteIdx][secFlag], q);
         }
-        if (gteIdx === checkpoints.length) {
-            return overflowColor;
-        }
-        const q = (x - checkpoints[gteIdx - 1]) / (checkpoints[gteIdx] - checkpoints[gteIdx - 1]);
-        return Color.interpolate(colors[gteIdx - 1], colors[gteIdx], q);
     };
 }
 

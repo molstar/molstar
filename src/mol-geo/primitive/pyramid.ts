@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { Vec3 } from '../../mol-math/linear-algebra';
@@ -83,8 +84,8 @@ export function PerforatedOctagonalPyramid() {
         vertices[8 * 3 + 4] = 0;
         vertices[8 * 3 + 5] = 0.5;
         const indices: ReadonlyArray<number> = [
-            0, 1, 8, 1, 2, 8, 4, 5, 8, 5, 6, 8,
-            2, 3, 9, 3, 4, 9, 6, 7, 9, 7, 0, 9
+            1, 0, 8, 2, 1, 8, 5, 4, 8, 6, 5, 8, // base
+            2, 3, 9, 3, 4, 9, 6, 7, 9, 7, 0, 9, // lateral surface
         ];
         perforatedOctagonalPyramid = createPrimitive(vertices, indices);
     }
