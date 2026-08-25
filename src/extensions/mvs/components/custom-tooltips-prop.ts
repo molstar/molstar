@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -52,6 +52,7 @@ export const CustomTooltipsProvider: CustomStructureProperty.Provider<CustomTool
         } satisfies CustomTooltipsData[number]));
         return { value: value } satisfies CustomProperty.Data<CustomTooltipsData>;
     },
+    isHidden: true,
 });
 
 

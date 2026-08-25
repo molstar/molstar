@@ -401,10 +401,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
                 [MVSAnnotationTooltipsProvider.descriptor.name]: { tooltips: annotationTooltips },
                 [CustomTooltipsProvider.descriptor.name]: { tooltips: inlineTooltips },
             },
-            autoAttach: [
-                MVSAnnotationTooltipsProvider.descriptor.name,
-                CustomTooltipsProvider.descriptor.name,
-            ],
+            // autoAttach not needed for these properties because they have isHidden:true (explicit autoAttach here would override default autoAttach of other properties!)
         }); // CustomStructureProperties must be applied even when `annotationTooltips` and `inlineTooltips` are empty, otherwise tooltips would persists across MVS snapshots
         const inlineLabels = collectInlineLabels(node, context);
         if (inlineLabels.length > 0) {
