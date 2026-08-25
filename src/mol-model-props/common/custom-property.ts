@@ -1,16 +1,18 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { RuntimeContext } from '../../mol-task';
-import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { ValueBox } from '../../mol-util';
 import { OrderedMap } from 'immutable';
-import { AssetManager, Asset } from '../../mol-util/assets';
+import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
+import { RuntimeContext } from '../../mol-task';
+import { ValueBox } from '../../mol-util';
+import { Asset, AssetManager } from '../../mol-util/assets';
+import { isProductionMode } from '../../mol-util/debug';
 import { ErrorContext } from '../../mol-util/error-context';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 export { CustomProperty };
 
@@ -31,7 +33,7 @@ namespace CustomProperty {
     export interface Provider<Data, Params extends PD.Params, Value> {
         readonly label: string
         readonly descriptor: CustomPropertyDescriptor
-        /** hides property in ui and always attaches */
+        /** Hides property in UI (in production) and always attaches */
         readonly isHidden?: boolean
         readonly getParams: (data: Data) => Params
         readonly defaultParams: Params
@@ -70,7 +72,10 @@ namespace CustomProperty {
 
                     propertiesParams[provider.descriptor.name] = PD.Group({
                         ...provider.getParams(data)
-                    }, { label: provider.label, isHidden: provider.isHidden });
+                    }, {
+                        label: provider.isHidden ? `[Hidden] ${provider.label}` : provider.label,
+                        isHidden: provider.isHidden && isProductionMode,
+                    });
                 }
             }
             return {

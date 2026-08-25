@@ -386,6 +386,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
                 [IsMVSModelProvider.descriptor.name]: { isMvs: true } satisfies IsMVSModelProps,
                 [MVSAnnotationsProvider.descriptor.name]: { annotations },
             },
+            // autoAttach not needed for these properties because they have isHidden:true (explicit autoAttach here would override default autoAttach of other properties!, e.g. sifts_sequence_mapping)
         });
         return model;
     },
