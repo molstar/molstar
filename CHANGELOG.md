@@ -59,6 +59,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - MolViewSpec
   - Added `transition` node with params `duration_ms`, `trajectory`, `easing`
   - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
+  - MVS-related custom model properties (and custom structure properties) are hidden in UI (fixes override of default custom properties)
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
