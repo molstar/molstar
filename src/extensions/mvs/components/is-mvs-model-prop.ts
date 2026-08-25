@@ -31,6 +31,7 @@ export const IsMVSModelProvider: CustomModelProperty.Provider<IsMVSModelParams, 
     getParams: (data: Model) => IsMVSModelParams,
     isApplicable: (data: Model) => true,
     obtain: async (ctx: CustomProperty.Context, data: Model, props: Partial<IsMVSModelProps>) => ({ value: {} }),
+    isHidden: true,
 });
 
 /** Decide if the model is flagged as managed by MolViewSpec */

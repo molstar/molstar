@@ -199,7 +199,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
         }
     },
     params: () => ({
-        autoAttach: PD.Boolean(true),
+        autoAttach: PD.Boolean(false),
     })
 });
 
