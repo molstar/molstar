@@ -59,7 +59,7 @@ function forType<P extends PD.Params>(type: string, params: P): P {
 /** Params shared by all target kinds; the per-kind groups below are merged on top of these. */
 export const ParticleTargetCommonParams = {
     ...BaseGeometry.Params,
-    instanceGranularity: PD.Boolean(true),
+    instanceGranularity: PD.Boolean(true, { isHidden: true }), // groupCount is always 1, so granularity is moot
     lodLevels: PD.ObjectList({
         minDistance: PD.Numeric(0),
         maxDistance: PD.Numeric(0),
