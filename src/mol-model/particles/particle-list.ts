@@ -264,33 +264,29 @@ export function getParticleTargetGroups(data: ParticleList): ParticleTargetGroup
 function computeParticleTargetGroups(data: ParticleList): ParticleTargetGroups {
     const { targets, count } = data;
 
-    let sorted = true;
-    let maxId = 0;
-    let minId = 0;
-    let runCount = 0;
-    for (let i = 0; i < count; ++i) {
-        const t = targets[i];
-        if (i === 0) {
-            minId = maxId = t;
-            runCount = 1;
-        } else {
-            const p = targets[i - 1];
-            if (t < p) sorted = false;
-            if (t !== p) runCount += 1;
-            if (t < minId) minId = t;
-            if (t > maxId) maxId = t;
-        }
-    }
-
-    const targetIds = new Int32Array(runCount);
-    const sets: OrderedSet<number>[] = new Array(runCount);
     const groupOfTarget = new Map<number, number>();
 
     if (count === 0) {
-        return { targetIds, sets, groupOfTarget };
+        return { targetIds: new Int32Array(0), sets: [], groupOfTarget };
+    }
+
+    let sorted = true;
+    let minId = targets[0];
+    let maxId = targets[0];
+    let runCount = 1;
+    for (let i = 1; i < count; ++i) {
+        const t = targets[i];
+        const p = targets[i - 1];
+        if (t < p) sorted = false;
+        if (t !== p) runCount += 1;
+        if (t < minId) minId = t;
+        if (t > maxId) maxId = t;
     }
 
     if (sorted) {
+        // runs of equal ids are the distinct ids and are already ascending
+        const targetIds = new Int32Array(runCount);
+        const sets: OrderedSet<number>[] = new Array(runCount);
         let g = 0;
         let start = 0;
         for (let i = 1; i <= count; ++i) {
@@ -306,11 +302,17 @@ function computeParticleTargetGroups(data: ParticleList): ParticleTargetGroups {
     }
 
     // Counting sort keyed on the target id, offset so that negative ids are handled too.
+    let targetIds: Int32Array;
     const span = maxId - minId + 1;
     const useHistogram = span <= 4 * count + 1024;
-    const histogram = useHistogram ? new Int32Array(span) : undefined;
-    if (histogram) {
+    if (useHistogram) {
+        const histogram = new Int32Array(span);
         for (let i = 0; i < count; ++i) histogram[targets[i] - minId] += 1;
+        let distinctCount = 0;
+        for (let s = 0; s < span; ++s) {
+            if (histogram[s] !== 0) distinctCount += 1;
+        }
+        targetIds = new Int32Array(distinctCount);
         let g = 0;
         for (let s = 0; s < span; ++s) {
             if (histogram[s] !== 0) {
@@ -320,12 +322,10 @@ function computeParticleTargetGroups(data: ParticleList): ParticleTargetGroups {
             }
         }
     } else {
-        const counts = new Map<number, number>();
-        for (let i = 0; i < count; ++i) {
-            const t = targets[i];
-            counts.set(t, (counts.get(t) ?? 0) + 1);
-        }
-        const ids = Array.from(counts.keys()).sort((a, b) => a - b);
+        const distinct = new Set<number>();
+        for (let i = 0; i < count; ++i) distinct.add(targets[i]);
+        const ids = Array.from(distinct).sort((a, b) => a - b);
+        targetIds = new Int32Array(ids.length);
         for (let g = 0; g < ids.length; ++g) {
             targetIds[g] = ids[g];
             groupOfTarget.set(ids[g], g);
@@ -333,6 +333,7 @@ function computeParticleTargetGroups(data: ParticleList): ParticleTargetGroups {
     }
 
     const groupCount = targetIds.length;
+    const sets: OrderedSet<number>[] = new Array(groupCount);
     const offsets = new Int32Array(groupCount + 1);
     for (let i = 0; i < count; ++i) offsets[groupOfTarget.get(targets[i])! + 1] += 1;
     for (let g = 0; g < groupCount; ++g) offsets[g + 1] += offsets[g];
