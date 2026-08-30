@@ -204,12 +204,31 @@ export function ParticleTargetRepresentation(
     };
 }
 
+function getParticleTargetParams(ctx: RepresentationContext, particles: ParticleList) {
+    let params = ParticleTargetRepresentationParams;
+    if (particles.targetMapping?.size) {
+        params = PD.clone(ParticleTargetRepresentationParams);
+        let hasStructure = false;
+        let hasVolume = false;
+        let hasShape = false;
+        for (const target of particles.targetMapping.values()) {
+            if (target.kind === 'structure') hasStructure = true;
+            if (target.kind === 'volume') hasVolume = true;
+            if (target.kind === 'shape') hasShape = true;
+        }
+        if (!hasStructure) params.structure.isHidden = true;
+        if (!hasVolume) params.volume.isHidden = true;
+        if (!hasShape) params.shape.isHidden = true;
+    }
+    return params;
+}
+
 export const ParticleTargetRepresentationProvider: ParticleTargetRepresentationProvider = {
     name: 'target',
     label: 'Target',
     description: 'Displays each particle as an instanced reference structure or shape.',
     factory: ParticleTargetRepresentation,
-    getParams: (_ctx: RepresentationContext, _particles: ParticleList) => ParticleTargetRepresentationParams,
+    getParams: getParticleTargetParams,
     defaultValues: PD.getDefaultValues(ParticleTargetRepresentationParams),
     defaultColorTheme: { name: 'particle-entity' },
     defaultSizeTheme: { name: 'uniform', props: { value: 1.6 } },
