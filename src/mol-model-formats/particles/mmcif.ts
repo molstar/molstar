@@ -110,19 +110,23 @@ export function getAsymIdsFromMmcif(cifFile: CifFile, assemblyId: string): strin
     return Array.from(ids).sort();
 }
 
+const EmptyTargets = new Map<never, never>();
+
 export async function createParticleListFromMmcifAssembly(ctx: RuntimeContext, cifFile: CifFile, options: MmcifAssemblyParticleListOptions): Promise<ParticleList> {
     const block = cifFile.blocks[0];
     if (!block) throw new Error('CIF file contains no data blocks.');
     const variant = resolveVariant(block, options.variant);
 
     // The reference structures of the targets are built via the regular trajectory/model/structure path.
-    const trajectory = await trajectoryFromMmCIF(block, cifFile).runInContext(ctx);
+    const trajectory = options.resolveTargets === false
+        ? undefined
+        : await trajectoryFromMmCIF(block, cifFile).runInContext(ctx);
 
     const built = variant === 'petworld'
-        ? await buildPetworldParticleList(ctx, cifFile, block, options, await getModelTargets(ctx, trajectory))
-        : await buildCellpackStandardParticleList(ctx, cifFile, block, options, variant, await getChainTargets(ctx, trajectory));
+        ? await buildPetworldParticleList(ctx, cifFile, block, options, trajectory ? await getModelTargets(ctx, trajectory) : EmptyTargets)
+        : await buildCellpackStandardParticleList(ctx, cifFile, block, options, variant, trajectory ? await getChainTargets(ctx, trajectory) : EmptyTargets);
 
-    if (options.resolveTargets === false || built.targetMapping.size === 0) return built.list;
+    if (built.targetMapping.size === 0) return built.list;
     return { ...built.list, targetMapping: built.targetMapping };
 }
 
