@@ -11,35 +11,31 @@ import { Structure } from '../../../../mol-model/structure';
 import { Theme } from '../../../../mol-theme/theme';
 import { ValueCell } from '../../../../mol-util/value-cell';
 import { VisualContext } from '../../../visual';
-import { DefaultBlobDensityProps, computeStructureBlobSurface } from '../../../structure/visual/util/blob-surface';
+import { DefaultBlobDensityProps, computeStructureBlobSurface, BlobDensityProps } from '../../../structure/visual/util/blob-surface';
 import { getStructureTargetSizeTheme } from './structure';
 
 /** The subset of representation props needed to build a blob surface target geometry. */
 export interface BlobSurfaceTargetProps {
     blobSize: number
+    blobMethod: BlobDensityProps['blobMethod']
     resolution: number
+    adjustResolution: boolean
+    blobShape: BlobDensityProps['blobShape']
     radiusOffset: number
     smoothness: number
 }
 
-/** Blob fitting variants that are not exposed for particle targets. */
-const FixedBlobProps = {
-    adjustResolution: true,
-    blobMethod: { name: 'clustering' as const, params: { iterations: 2 } },
-    blobShape: { name: 'ellipsoid' as const, params: {} },
-};
-
 /**
  * The geometry for a blob surface target is a coarse surface of the target's elements, built by
- * fitting a small number of ellipsoid blobs to them and polygonizing their union.
+ * fitting a small number of blobs to them and polygonizing their union.
  */
 export async function createBlobSurfaceTargetGeometry(ctx: VisualContext, target: Structure, theme: Theme, props: BlobSurfaceTargetProps, existing?: Mesh): Promise<Mesh> {
-    const { blobSize, resolution, radiusOffset, smoothness } = props;
+    const { blobSize, blobMethod, resolution, adjustResolution, blobShape, radiusOffset, smoothness } = props;
 
     const sizeTheme = getStructureTargetSizeTheme(theme);
     const { transform, field, idField, radiusFactor, maxRadius } = await computeStructureBlobSurface(target, sizeTheme, {
-        ...DefaultBlobDensityProps, ...FixedBlobProps,
-        blobSize, resolution, radiusOffset, smoothness,
+        ...DefaultBlobDensityProps,
+        blobSize, blobMethod, resolution, adjustResolution, blobShape, radiusOffset, smoothness,
     }).runInContext(ctx.runtime);
 
     const isoLevel = Math.exp(-smoothness) / radiusFactor;
@@ -63,7 +59,15 @@ export async function createBlobSurfaceTargetGeometry(ctx: VisualContext, target
 export function blobSurfaceTargetGeometryPropsChanged(oldProps: BlobSurfaceTargetProps, newProps: BlobSurfaceTargetProps): boolean {
     return (
         newProps.blobSize !== oldProps.blobSize ||
+        newProps.blobMethod.name !== oldProps.blobMethod.name ||
+        (newProps.blobMethod.name === 'clustering' && oldProps.blobMethod.name === 'clustering' &&
+            newProps.blobMethod.params.iterations !== oldProps.blobMethod.params.iterations) ||
         newProps.resolution !== oldProps.resolution ||
+        newProps.adjustResolution !== oldProps.adjustResolution ||
+        newProps.blobShape.name !== oldProps.blobShape.name ||
+        (newProps.blobShape.name === 'sphericalHarmonics' && oldProps.blobShape.name === 'sphericalHarmonics' &&
+            (newProps.blobShape.params.degree !== oldProps.blobShape.params.degree ||
+                newProps.blobShape.params.regularization !== oldProps.blobShape.params.regularization)) ||
         newProps.radiusOffset !== oldProps.radiusOffset ||
         newProps.smoothness !== oldProps.smoothness
     );

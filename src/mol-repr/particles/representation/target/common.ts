@@ -51,14 +51,19 @@ function withoutCommon<P extends PD.Params>(params: P): P {
 function forType<P extends PD.Params>(type: string, params: P): P {
     const out: PD.Params = {};
     for (const k of Object.keys(params)) {
-        out[k] = { ...params[k], hideIf: (p: { type: string }) => p.type !== type };
+        const hideIf = params[k].hideIf;
+        out[k] = { ...params[k], hideIf: (p: { type: string }) => p.type !== type || !!hideIf?.(p) };
     }
     return out as P;
 }
 
+// Quality is resolved per target (see `createParticleTargetPropsProvider`) and is therefore
+// part of the per-kind groups, where it also drives the hiding of custom quality params.
+const { quality, ...BaseParams } = BaseGeometry.Params;
+
 /** Params shared by all target kinds; the per-kind groups below are merged on top of these. */
 export const ParticleTargetCommonParams = {
-    ...BaseGeometry.Params,
+    ...BaseParams,
     instanceGranularity: PD.Boolean(true, { isHidden: true }), // groupCount is always 1, so granularity is moot
     lodLevels: PD.ObjectList({
         minDistance: PD.Numeric(0),
@@ -86,7 +91,10 @@ export const ParticleTargetStructureParams = {
     }),
     ...forType('blob-surface', {
         blobSize: BlobSurfaceCoreParams.blobSize,
+        blobMethod: BlobSurfaceCoreParams.blobMethod,
         resolution: BlobSurfaceCoreParams.resolution,
+        adjustResolution: BlobSurfaceCoreParams.adjustResolution,
+        blobShape: BlobSurfaceCoreParams.blobShape,
         radiusOffset: BlobSurfaceCoreParams.radiusOffset,
         smoothness: BlobSurfaceCoreParams.smoothness,
     }),
