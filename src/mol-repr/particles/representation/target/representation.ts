@@ -92,6 +92,8 @@ export function ParticleTargetRepresentation(
                 await visual.createOrUpdate({ webgl, runtime }, _theme, targetProps(target), particles, indices, target);
 
                 if (visual.renderObject) {
+                    // Render objects can be created here, so they need the current state applied.
+                    applyState(visual.renderObject, _state);
                     renderObjects.push(visual.renderObject);
                     geometryState.add(visual.renderObject.id, visual.geometryVersion);
                 }
@@ -110,12 +112,16 @@ export function ParticleTargetRepresentation(
         });
     }
 
+    function applyState(renderObject: GraphicsRenderObject, state: Partial<Representation.State>) {
+        if (state.visible !== undefined) renderObject.state.visible = state.visible;
+        if (state.alphaFactor !== undefined) renderObject.state.alphaFactor = state.alphaFactor;
+        if (state.pickable !== undefined) renderObject.state.pickable = state.pickable;
+    }
+
     function setState(state: Partial<Representation.State>) {
         Representation.updateState(_state, state);
         for (const renderObject of renderObjects) {
-            if (state.visible !== undefined) renderObject.state.visible = state.visible;
-            if (state.alphaFactor !== undefined) renderObject.state.alphaFactor = state.alphaFactor;
-            if (state.pickable !== undefined) renderObject.state.pickable = state.pickable;
+            applyState(renderObject, state);
         }
     }
 
