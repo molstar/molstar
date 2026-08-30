@@ -36,18 +36,34 @@ export const SpacefillParticlesParams = {
     tryUseImpostor: PD.Boolean(true),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     excludeFibers: PD.Boolean(true, { description: 'Do not show fiber particles (e.g. shown separately by the Fibers representation).' }),
+    excludeTargets: PD.Boolean(false, { description: 'Do not show particles that have a reference object (e.g. shown separately by the Target representation).' }),
 };
 export type SpacefillParticlesParams = typeof SpacefillParticlesParams;
 export type SpacefillParticlesProps = PD.Values<SpacefillParticlesParams>;
+
+/** Marks particles that are excluded from the spacefill spheres. */
+function getExcludedParticleMask(particles: ParticleList, props: SpacefillParticlesProps): Uint8Array | undefined {
+    const fiberMask = props.excludeFibers ? getFiberParticleMask(particles) : undefined;
+    const targetMapping = props.excludeTargets ? particles.targetMapping : undefined;
+    if (!targetMapping || targetMapping.size === 0) return fiberMask;
+
+    const { count, targets } = particles;
+    // note: `fiberMask` is cached on the particle list and must not be mutated
+    const mask = fiberMask ? new Uint8Array(fiberMask) : new Uint8Array(count);
+    for (let i = 0; i < count; ++i) {
+        if (targetMapping.has(targets[i])) mask[i] = 1;
+    }
+    return mask;
+}
 
 // ---- Impostor visual --------------------------------------------------------
 
 function createSpacefillSphereImpostor(_ctx: VisualContext, particles: ParticleList, _theme: Theme, props: SpacefillParticlesProps, spheres?: Spheres): Spheres {
     const { count, coordinates } = particles;
-    const fiberMask = props.excludeFibers ? getFiberParticleMask(particles) : undefined;
+    const excludedMask = getExcludedParticleMask(particles, props);
     const builder = SpheresBuilder.create(Math.max(1, count), Math.max(1, Math.ceil(count / 10)), spheres);
     for (let i = 0; i < count; ++i) {
-        if (fiberMask && fiberMask[i]) continue;
+        if (excludedMask && excludedMask[i]) continue;
         const o = i * 3;
         builder.add(coordinates[o], coordinates[o + 1], coordinates[o + 2], i);
     }
@@ -67,6 +83,7 @@ export function SpacefillParticlesImpostorVisual(materialId: number): ParticleVi
             // sphere positions are baked from particle coordinates, so any new particle data requires rebuilding the geometry
             if (newParticles !== currentParticles) state.createGeometry = true;
             if (newProps.excludeFibers !== currentProps.excludeFibers) state.createGeometry = true;
+            if (newProps.excludeTargets !== currentProps.excludeTargets) state.createGeometry = true;
         },
         geometryUtils: Spheres.Utils,
         mustRecreate: (_key: ParticleKey, props: SpacefillParticlesProps, webgl?: WebGLContext) => {
@@ -80,14 +97,14 @@ export function SpacefillParticlesImpostorVisual(materialId: number): ParticleVi
 function createSpacefillSphereMesh(_ctx: VisualContext, particles: ParticleList, theme: Theme, props: SpacefillParticlesProps, mesh?: Mesh): Mesh {
     const { count, coordinates } = particles;
     const { detail } = props;
-    const fiberMask = props.excludeFibers ? getFiberParticleMask(particles) : undefined;
+    const excludedMask = getExcludedParticleMask(particles, props);
     const perSphereVertexCount = sphereVertexCount(detail);
     const vertexCount = Math.max(1, perSphereVertexCount * count);
     const builderState = MeshBuilder.createState(vertexCount, Math.ceil(vertexCount / 10), mesh);
     const location = Particle.Location(particles);
     const center = Vec3();
     for (let i = 0; i < count; ++i) {
-        if (fiberMask && fiberMask[i]) continue;
+        if (excludedMask && excludedMask[i]) continue;
         location.index = i;
         const radius = theme.size.size(location);
         Vec3.fromArray(center, coordinates, i * 3);
@@ -111,6 +128,7 @@ export function SpacefillParticlesMeshVisual(materialId: number): ParticleVisual
             if (newParticles !== currentParticles ||
                 newProps.detail !== currentProps.detail ||
                 newProps.excludeFibers !== currentProps.excludeFibers ||
+                newProps.excludeTargets !== currentProps.excludeTargets ||
                 !SizeTheme.areEqual(newTheme.size, currentTheme.size)) {
                 state.createGeometry = true;
             }
@@ -168,11 +186,11 @@ const SpacefillVisuals = {
 function getAllLoci(particles: ParticleList, props: SpacefillParticlesProps): Loci {
     const { count } = particles;
     if (count === 0) return EmptyLoci;
-    const fiberMask = props.excludeFibers ? getFiberParticleMask(particles) : undefined;
-    if (!fiberMask) return Particle.Loci(particles, OrderedSet.ofBounds(0, count) as any);
+    const excludedMask = getExcludedParticleMask(particles, props);
+    if (!excludedMask) return Particle.Loci(particles, OrderedSet.ofBounds(0, count) as any);
     const indices: number[] = [];
     for (let i = 0; i < count; ++i) {
-        if (!fiberMask[i]) indices.push(i);
+        if (!excludedMask[i]) indices.push(i);
     }
     return Particle.Loci(particles, OrderedSet.ofSortedArray(indices));
 }

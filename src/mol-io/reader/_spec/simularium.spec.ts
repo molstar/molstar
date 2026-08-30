@@ -5,7 +5,8 @@
  */
 
 import { parseSimularium } from '../simularium/parser';
-import { createParticleListFromSimularium, getSimulariumAgentTypeNames, getSimulariumFrameCount } from '../../../mol-model-formats/particles/simularium';
+import { createParticleListFromSimularium, createSimulariumParticleTrajectory, getSimulariumAgentTypeNames, getSimulariumFrameCount } from '../../../mol-model-formats/particles/simularium';
+import { Task } from '../../../mol-task/task';
 
 const trajectoryInfo = {
     version: 3,
@@ -26,19 +27,23 @@ const agents = [
     1001, 1, 1, 0, 0, 0, 0, 0, 0, 1, 6, 10, 0, 0, 20, 0, 0,
 ];
 
-function buildJson(agentData = agents): Uint8Array {
+function buildJsonFrames(frameData: number[][]): Uint8Array {
     const json = {
-        trajectoryInfo,
+        trajectoryInfo: { ...trajectoryInfo, totalSteps: frameData.length },
         spatialData: {
             version: 1,
             msgType: 1,
             bundleStart: 0,
-            bundleSize: 1,
-            bundleData: [{ frameNumber: 0, time: 0, data: agentData }],
+            bundleSize: frameData.length,
+            bundleData: frameData.map((data, frameNumber) => ({ frameNumber, time: frameNumber, data })),
         },
         plotData: { version: 1, data: [] },
     };
     return new TextEncoder().encode(JSON.stringify(json));
+}
+
+function buildJson(agentData = agents): Uint8Array {
+    return buildJsonFrames([agentData]);
 }
 
 const SIGNATURE = 'SIMULARIUMBINARY';
@@ -182,4 +187,30 @@ test('lists agent type names', async () => {
 
     const types = getSimulariumAgentTypeNames(parsed.result);
     expect(types).toEqual([{ id: 0, name: 'A' }, { id: 1, name: 'B' }]);
+});
+
+test('shares trajectory entity metadata and extends it for undeclared types', async () => {
+    const parsed = await parseSimularium(buildJsonFrames([
+        [2000, 0, 7, 1, 2, 3, 0, 0, 0, 1, 0],
+        [2001, 0, 8, 4, 5, 6, 0, 0, 0, 1, 0],
+    ])).run();
+    if (parsed.isError) throw new Error(parsed.message);
+
+    const trajectory = await createSimulariumParticleTrajectory(parsed.result, { scale: 1 });
+    const frame0 = await Task.resolveInContext(trajectory.getFrameAtIndex(0));
+    const frame1 = await Task.resolveInContext(trajectory.getFrameAtIndex(1));
+
+    expect(frame1.entityInfo).toBe(frame0.entityInfo);
+    expect(Array.from(frame0.entities!)).toEqual([2]);
+    expect(Array.from(frame1.entities!)).toEqual([3]);
+    expect(frame1.entityInfo!.get(2)?.name).toBe('type 7');
+    expect(frame1.entityInfo!.get(3)?.name).toBe('type 8');
+    expect(Array.from(frame0.coordinates)).toEqual([1, 2, 3]);
+    expect(Array.from(frame1.coordinates)).toEqual([4, 5, 6]);
+
+    const standalone0 = createParticleListFromSimularium(parsed.result, { frameIndex: 0, scale: 1 });
+    const standalone1 = createParticleListFromSimularium(parsed.result, { frameIndex: 1, scale: 1 });
+    expect(standalone1.entityInfo).not.toBe(standalone0.entityInfo);
+    expect(Array.from(standalone0.entities!)).toEqual([2]);
+    expect(Array.from(standalone1.entities!)).toEqual([2]);
 });

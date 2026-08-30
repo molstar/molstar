@@ -6,7 +6,7 @@
 
 import { Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { Euler } from '../../mol-math/linear-algebra/3d/euler';
-import { Particle, ParticleEntityInfo, ParticleList } from '../../mol-model/particles/particle-list';
+import { Particle, ParticleEntityInfo, ParticleList, ParticleTarget, ParticleTargetInfo } from '../../mol-model/particles/particle-list';
 import { ParticleTrajectory } from '../../mol-model/particles/particle-trajectory';
 import { CustomProperties } from '../../mol-model/custom-property';
 import { SimulariumFile, SimulariumAgentBuffer as AB, SimulariumMinValuesPerAgent as MIN_VALUES_PER_AGENT, SimulariumVisType } from '../../mol-io/reader/simularium/schema';
@@ -27,6 +27,11 @@ export interface SimulariumParticleListOptions {
     readonly scale?: number
     /** Agent type ids to include. An empty/omitted list includes all types. */
     readonly typeFilter?: ReadonlyArray<number>
+    /**
+     * Reference objects instanced at each particle, keyed by agent type id (= particle
+     * target id). Resolve them with `resolveSimulariumTargets`.
+     */
+    readonly targets?: ReadonlyMap<number, ParticleTarget>
 }
 
 /** Conversion factor from a Simularium spatial unit name to angstrom. */
@@ -59,7 +64,29 @@ function agentParticleCount(visType: number, nSubpoints: number): { particles: n
     return { particles: 1, fiberPoints: 0 };
 }
 
-export function createParticleListFromSimularium(file: SimulariumFile, options: SimulariumParticleListOptions): ParticleList {
+interface SimulariumEntityContext {
+    readonly typeIdToEntityIdx: Map<number, number>
+    readonly entityInfo: Map<number, ParticleEntityInfo>
+    readonly targetInfo: Map<number, ParticleTargetInfo>
+}
+
+function createSimulariumEntityContext(file: SimulariumFile): SimulariumEntityContext {
+    const typeIdToEntityIdx = new Map<number, number>();
+    const entityInfo = new Map<number, ParticleEntityInfo>();
+    const targetInfo = new Map<number, ParticleTargetInfo>();
+    if (file.trajectoryInfo.typeMapping) {
+        objectForEach(file.trajectoryInfo.typeMapping, (value, key) => {
+            const typeId = Number(key);
+            const entityIdx = typeIdToEntityIdx.size;
+            typeIdToEntityIdx.set(typeId, entityIdx);
+            entityInfo.set(entityIdx, { name: value.name });
+            targetInfo.set(typeId, { name: value.name, entity: entityIdx });
+        });
+    }
+    return { typeIdToEntityIdx, entityInfo, targetInfo };
+}
+
+function createParticleListFromSimulariumWithContext(file: SimulariumFile, options: SimulariumParticleListOptions, entityContext: SimulariumEntityContext): ParticleList {
     const { trajectoryInfo, frames } = file;
     if (frames.length === 0) throw new Error('Simularium file contains no frames.');
 
@@ -110,17 +137,7 @@ export function createParticleListFromSimularium(file: SimulariumFile, options: 
     const particleTypeId = new Int32Array(particleCount);
     const particleInstanceId = new Float64Array(particleCount);
 
-    const typeIdToEntityIdx = new Map<number, number>();
-    const entityInfo = new Map<number, ParticleEntityInfo>();
-
-    if (trajectoryInfo.typeMapping) {
-        objectForEach(trajectoryInfo.typeMapping, (value, key) => {
-            const typeId = Number(key);
-            const entityIdx = typeIdToEntityIdx.size;
-            typeIdToEntityIdx.set(typeId, entityIdx);
-            entityInfo.set(entityIdx, { name: value.name });
-        });
-    }
+    const { typeIdToEntityIdx, entityInfo, targetInfo } = entityContext;
 
     const typeName = (t: number) => trajectoryInfo.typeMapping?.[String(t)]?.name ?? `type ${t}`;
     const entityIndexOf = (t: number) => {
@@ -129,13 +146,18 @@ export function createParticleListFromSimularium(file: SimulariumFile, options: 
             idx = typeIdToEntityIdx.size;
             typeIdToEntityIdx.set(t, idx);
             entityInfo.set(idx, { name: typeName(t) });
+            targetInfo.set(t, { name: typeName(t), entity: idx });
         }
         return idx;
     };
 
     const euler = Euler();
-    const quat = Quat();
+    const quat = Quat.identity();
     const local = Vec3();
+
+    // memoized euler → quat conversion state; zero rotation (the common case) and runs of
+    // identical angles skip the trig in Quat.fromEuler. quat starts as identity for (0, 0, 0).
+    let lastRx = 0, lastRy = 0, lastRz = 0;
 
     let count = 0;
     let fiberIdx = 0;
@@ -157,8 +179,11 @@ export function createParticleListFromSimularium(file: SimulariumFile, options: 
 
             if (fiberPoints > 0) {
                 // FIBER agent: explode each subpoint into its own particle (rendered as a sphere).
-                euler[0] = rx; euler[1] = ry; euler[2] = rz;
-                Quat.fromEuler(quat, euler, 'XYZ');
+                if (rx !== lastRx || ry !== lastRy || rz !== lastRz) {
+                    euler[0] = rx; euler[1] = ry; euler[2] = rz;
+                    Quat.fromEuler(quat, euler, 'XYZ');
+                    lastRx = rx; lastRy = ry; lastRz = rz;
+                }
 
                 fiberOffsets[fiberIdx] = fiberPos;
                 for (let s = 0; s < fiberPoints; ++s) {
@@ -187,8 +212,11 @@ export function createParticleListFromSimularium(file: SimulariumFile, options: 
                 fiberOffsets[++fiberIdx] = fiberPos;
             } else {
                 // DEFAULT agent (or fiber without subpoints): a single particle at the agent position.
-                euler[0] = rx; euler[1] = ry; euler[2] = rz;
-                Quat.fromEuler(quat, euler, 'XYZ');
+                if (rx !== lastRx || ry !== lastRy || rz !== lastRz) {
+                    euler[0] = rx; euler[1] = ry; euler[2] = rz;
+                    Quat.fromEuler(quat, euler, 'XYZ');
+                    lastRx = rx; lastRy = ry; lastRz = rz;
+                }
 
                 const cOffset = count * 3;
                 coordinates[cOffset + 0] = px * scale;
@@ -230,6 +258,8 @@ export function createParticleListFromSimularium(file: SimulariumFile, options: 
         count,
         keys,
         targets,
+        targetInfo,
+        targetMapping: options.targets,
         entities,
         entityInfo,
         coordinates,
@@ -267,6 +297,10 @@ export function createParticleListFromSimularium(file: SimulariumFile, options: 
     return particleList;
 }
 
+export function createParticleListFromSimularium(file: SimulariumFile, options: SimulariumParticleListOptions): ParticleList {
+    return createParticleListFromSimulariumWithContext(file, options, createSimulariumEntityContext(file));
+}
+
 export interface SimulariumParticleTrajectoryOptions {
     /**
      * Spatial scale factor applied to all coordinates (to angstrom). A value `<= 0`
@@ -275,30 +309,66 @@ export interface SimulariumParticleTrajectoryOptions {
     readonly scale?: number
     /** Agent type ids to include. An empty/omitted list includes all types. */
     readonly typeFilter?: ReadonlyArray<number>
+    /** Reference objects instanced at each particle, keyed by agent type id. */
+    readonly targets?: ReadonlyMap<number, ParticleTarget>
+    /**
+     * Load the geometries referenced by the agent types (see `getSimulariumAgentGeometries`)
+     * and instance them at each particle of the matching type. Merged with `targets`, which
+     * takes precedence.
+     */
+    readonly resolveGeometry?: SimulariumGeometryResolver
 }
 
 /** Lazy `ParticleTrajectory` backed by a `SimulariumFile`. Converts frames on demand. */
 class SimulariumParticleTrajectory implements ParticleTrajectory {
     readonly frameCount: number;
     readonly representative: ParticleList;
+    private readonly entityContext: SimulariumEntityContext;
 
     getFrameAtIndex(i: number): ParticleList {
-        return createParticleListFromSimularium(this.file, {
+        return createParticleListFromSimulariumWithContext(this.file, {
             frameIndex: i,
             scale: this.options.scale && this.options.scale > 0 ? this.options.scale : void 0,
             typeFilter: this.options.typeFilter,
-        });
+            targets: this.targets,
+        }, this.entityContext);
     }
 
-    constructor(private file: SimulariumFile, private options: SimulariumParticleTrajectoryOptions) {
+    constructor(private file: SimulariumFile, private options: SimulariumParticleTrajectoryOptions, private targets?: ReadonlyMap<number, ParticleTarget>) {
         this.frameCount = file.frames.length;
+        this.entityContext = createSimulariumEntityContext(file);
         this.representative = this.getFrameAtIndex(0);
     }
 }
 
-/** Create a lazy `ParticleTrajectory` from a `SimulariumFile`. Frames are converted on demand. */
-export function createSimulariumParticleTrajectory(file: SimulariumFile, options: SimulariumParticleTrajectoryOptions = {}): ParticleTrajectory {
-    return new SimulariumParticleTrajectory(file, options);
+/**
+ * Create a lazy `ParticleTrajectory` from a `SimulariumFile`. Frames are converted on demand;
+ * the reference geometries (if any) are resolved once and shared by all frames.
+ */
+export async function createSimulariumParticleTrajectory(file: SimulariumFile, options: SimulariumParticleTrajectoryOptions = {}): Promise<ParticleTrajectory> {
+    let targets = options.targets;
+    if (options.resolveGeometry) {
+        const resolved = await resolveSimulariumTargets(file, options.resolveGeometry);
+        if (targets) for (const [id, target] of targets) resolved.set(id, target);
+        targets = resolved;
+    }
+    return new SimulariumParticleTrajectory(file, options, targets && targets.size > 0 ? targets : undefined);
+}
+
+/**
+ * Resolves the external geometry referenced by an agent type into a reference object
+ * instanced at each particle of that type. Return `undefined` to skip the geometry.
+ */
+export type SimulariumGeometryResolver = (geometry: SimulariumAgentGeometry) => Promise<ParticleTarget | undefined>
+
+/** Resolve all external agent geometries of a file into a target id → target map. */
+export async function resolveSimulariumTargets(file: SimulariumFile, resolve: SimulariumGeometryResolver): Promise<Map<number, ParticleTarget>> {
+    const targets = new Map<number, ParticleTarget>();
+    for (const geometry of getSimulariumAgentGeometries(file)) {
+        const target = await resolve(geometry);
+        if (target) targets.set(geometry.id, target);
+    }
+    return targets;
 }
 
 /** Return the number of frames available in the file. */

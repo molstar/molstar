@@ -11,7 +11,7 @@ import { getMatrices, expandOperators, parseOperatorList } from '../../structure
 import { composeOperatorCombination, expandOperatorCombinations, formatOperatorCombination, getParticleOperator, getParticleOperatorId, getParticleOperatorIndex, readParticleOperators } from '../operators';
 import { Mat4 } from '../../../mol-math/linear-algebra/3d/mat4';
 import { createParticleListFromMmcifAssembly } from '../mmcif';
-import { RuntimeContext } from '../../../mol-task';
+import { RuntimeContext, Task } from '../../../mol-task';
 
 const rows = [
     // id, matrix (row-major 3x3), vector
@@ -212,7 +212,7 @@ describe('mmcif particle operators', () => {
 describe('CellPack mmCIF fibers', () => {
     it('uses separate assembly-gen rows as ordered fibers', async () => {
         const cif = await parseCellpackFiberCif();
-        const list = await createParticleListFromMmcifAssembly(cif, { assemblyId: '1', variant: 'cellpack' }, RuntimeContext.Synchronous);
+        const list = await createParticleListFromMmcifAssembly(RuntimeContext.Synchronous, cif, { assemblyId: '1', variant: 'cellpack' });
 
         expect(list.count).toBe(10);
         expect(list.fibers).toBeDefined();
@@ -224,7 +224,7 @@ describe('CellPack mmCIF fibers', () => {
 
     it('respects asym filtering and omits singleton fibers', async () => {
         const cif = await parseCellpackFiberCif();
-        const list = await createParticleListFromMmcifAssembly(cif, { assemblyId: '1', asymIds: ['F'], variant: 'cellpack' }, RuntimeContext.Synchronous);
+        const list = await createParticleListFromMmcifAssembly(RuntimeContext.Synchronous, cif, { assemblyId: '1', asymIds: ['F'], variant: 'cellpack' });
 
         expect(list.count).toBe(6);
         expect(list.fibers!.count).toBe(2);
@@ -233,8 +233,8 @@ describe('CellPack mmCIF fibers', () => {
 
     it('does not infer fibers for ordinary entities or the standard variant', async () => {
         const cif = await parseCellpackFiberCif();
-        const ordinary = await createParticleListFromMmcifAssembly(cif, { assemblyId: '1', asymIds: ['P', 'N'], variant: 'cellpack' }, RuntimeContext.Synchronous);
-        const standard = await createParticleListFromMmcifAssembly(cif, { assemblyId: '1', asymIds: ['F'], variant: 'standard' }, RuntimeContext.Synchronous);
+        const ordinary = await createParticleListFromMmcifAssembly(RuntimeContext.Synchronous, cif, { assemblyId: '1', asymIds: ['P', 'N'], variant: 'cellpack' });
+        const standard = await createParticleListFromMmcifAssembly(RuntimeContext.Synchronous, cif, { assemblyId: '1', asymIds: ['F'], variant: 'standard' });
 
         expect(ordinary.fibers).toBeUndefined();
         expect(standard.fibers).toBeUndefined();
@@ -242,17 +242,12 @@ describe('CellPack mmCIF fibers', () => {
 
     it('reports progress while calculating bounds and building particles', async () => {
         const cif = await parseCellpackFiberCif();
-        const updates: Array<string | Partial<RuntimeContext.ProgressUpdate>> = [];
-        const ctx: RuntimeContext = {
-            isSynchronous: false,
-            shouldUpdate: true,
-            update: progress => { if (progress) updates.push(progress); },
-        };
-
-        const list = await createParticleListFromMmcifAssembly(cif, { assemblyId: '1', variant: 'cellpack' }, ctx);
+        const updates: string[] = [];
+        const task = Task.create('Create particle list', ctx => createParticleListFromMmcifAssembly(ctx, cif, { assemblyId: '1', variant: 'cellpack' }));
+        const list = await task.run(progress => updates.push(progress.root.progress.message), 0);
 
         expect(list.count).toBe(10);
-        expect(updates.some(u => typeof u !== 'string' && u.message === 'Calculating particle bounds')).toBe(true);
-        expect(updates.some(u => typeof u !== 'string' && u.message === 'Building particles')).toBe(true);
+        expect(updates).toContain('Calculating particle bounds');
+        expect(updates).toContain('Building particles');
     });
 });
