@@ -365,6 +365,7 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
     let currentTargetKind: ParticleTarget['kind'] | undefined;
     let currentProps: ParticleTargetProps | undefined;
     let currentTheme: Theme | undefined;
+    let currentParticles: ParticleList | undefined;
     let currentParticleIndices: OrderedSet<number> | undefined;
 
     /** Location iterator: groupCount = 1 (particle-granularity), instanceCount = particle count for this target.
@@ -407,7 +408,11 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
         const data = targetData(target);
         const targetKindChanged = currentTargetKind !== undefined && target.kind !== currentTargetKind;
         const targetChanged = data !== currentTargetData;
-        const particlesChanged = particleIndices !== currentParticleIndices;
+        // `particleIndices` is usually an `Interval`, which is packed into a plain number, so two
+        // particle lists with the same target layout (e.g. two frames of a trajectory) compare `===`.
+        // The instance data therefore has to be keyed on the `ParticleList` itself as well.
+        const indicesChanged = particleIndices !== currentParticleIndices;
+        const particlesChanged = indicesChanged || particles !== currentParticles;
         const scaleByRadius = targetScaleByRadius(target, props);
 
         const geometryPropsChanged = currentProps && !targetKindChanged ? targetGeometryPropsChanged(target, currentProps, props, webgl) : false;
@@ -446,7 +451,7 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
             geometryVersion++;
             renderObject = createRO(g, particles, particleIndices, theme, props, target, scaleByRadius);
         } else if (renderObject) {
-            if (particlesChanged) {
+            if (indicesChanged) {
                 // Markers are per-instance; a new particle set changes the instance count and the
                 // meaning of each index. Stale markers make `getMarkersAverage` read out of bounds
                 // (NaN `markerAverage`), which silently drops the visual from the marking pass.
@@ -493,6 +498,7 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
         currentTargetKind = target.kind;
         currentProps = { ...props };
         currentTheme = theme;
+        currentParticles = particles;
         currentParticleIndices = particleIndices;
     }
 
@@ -541,6 +547,7 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
         currentTargetKind = undefined;
         currentProps = undefined;
         currentTheme = undefined;
+        currentParticles = undefined;
         currentParticleIndices = undefined;
     }
 
