@@ -9,6 +9,7 @@ import { buildStory as tbp } from './tbp';
 import { buildStory as animation } from './animation';
 import { buildStory as audio } from './audio';
 import { buildStory as motm1 } from './motm1';
+import { buildStory as molql } from './molql';
 
 export const Stories = [
     { id: 'kinase', name: 'BCR-ABL: A Kinase Out of Control', buildStory: kinase },
@@ -16,4 +17,5 @@ export const Stories = [
     { id: 'motm1', name: 'RCSB PDB Molecule of the Month #1', buildStory: motm1 },
     { id: 'animation-example', name: 'Molecular Animation Example', buildStory: animation },
     { id: 'audio-example', name: 'Audio Playback Example', buildStory: audio },
+    { id: 'molql', name: 'Experimental MolQL Selectors', buildStory: molql },
 ] as const;

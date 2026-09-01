@@ -131,6 +131,19 @@ const _ComponentExpressionT = partial({
 export interface ComponentExpressionT extends ValueFor<typeof _ComponentExpressionT> { }
 export const ComponentExpressionT: iots.Type<ComponentExpressionT> = _ComponentExpressionT;
 
+/** A MolQL expression serialized as JSON. The expression itself is validated by Mol* when it is evaluated. */
+export interface MolQLExpressionT {
+    expression: unknown
+}
+export const MolQLExpressionT = new iots.Type<MolQLExpressionT>(
+    'MolQLExpression',
+    isMolQLExpression,
+    (value, context) => isMolQLExpression(value)
+        ? iots.success(value)
+        : iots.failure(value, context, 'Expected an object with an expression property'),
+    value => value,
+);
+
 
 /** `schema` parameter values for `*_from_uri` and `*_from_source` nodes in MVS tree */
 export type SchemaT = 'whole_structure' | 'entity' | 'chain' | 'auth_chain' | 'residue' | 'auth_residue' | 'residue_range' | 'auth_residue_range' | 'atom' | 'auth_atom' | 'all_atomic';
@@ -169,7 +182,20 @@ const _PrimitiveComponentExpressionT = partial({
 export interface PrimitiveComponentExpressionT extends ValueFor<typeof _PrimitiveComponentExpressionT> { }
 export const PrimitiveComponentExpressionT: iots.Type<PrimitiveComponentExpressionT> = _PrimitiveComponentExpressionT;
 
-export const PrimitivePositionT = union(Vector3, ComponentExpressionT, PrimitiveComponentExpressionT);
+/** A MolQL primitive position, optionally evaluated against a referenced structure. */
+export interface PrimitiveMolQLExpressionT extends MolQLExpressionT {
+    structure_ref?: string
+}
+export const PrimitiveMolQLExpressionT = new iots.Type<PrimitiveMolQLExpressionT>(
+    'PrimitiveMolQLExpression',
+    isPrimitiveMolQLExpression,
+    (value, context) => isPrimitiveMolQLExpression(value)
+        ? iots.success(value)
+        : iots.failure(value, context, 'Expected an object with an expression property and an optional string structure_ref'),
+    value => value,
+);
+
+export const PrimitivePositionT = union(Vector3, ComponentExpressionT, PrimitiveComponentExpressionT, PrimitiveMolQLExpressionT);
 export type PrimitivePositionT = ValueFor<typeof PrimitivePositionT>
 
 export const FloatList = list(float);
@@ -242,6 +268,17 @@ export function isPrimitiveComponentExpressions(x: any): x is PrimitiveComponent
 
 export function isComponentExpression(x: any): x is ComponentExpressionT {
     return !!x && typeof x === 'object' && !x.expressions;
+}
+
+/** Decide if a selector is an MVS wrapper around a serialized MolQL expression. */
+export function isMolQLExpression(x: any): x is MolQLExpressionT {
+    return !!x && typeof x === 'object' && !Array.isArray(x) && Object.prototype.hasOwnProperty.call(x, 'expression');
+}
+
+/** Decide if a primitive position is a MolQL expression with an optional structure reference. */
+export function isPrimitiveMolQLExpression(x: any): x is PrimitiveMolQLExpressionT {
+    const position = x as PrimitiveMolQLExpressionT;
+    return isMolQLExpression(x) && (position.structure_ref === undefined || typeof position.structure_ref === 'string');
 }
 
 

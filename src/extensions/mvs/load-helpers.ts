@@ -36,7 +36,7 @@ import { Subtree, getChildren } from './tree/generic/tree-schema';
 import { dfs, formatObject } from './tree/generic/tree-utils';
 import { MolstarKind, MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree } from './tree/molstar/molstar-tree';
 import { DefaultColor } from './tree/mvs/mvs-tree';
-import { CategoricalPalette, CategoricalPaletteDefaults, ColorDictNameT, ColorListNameT, ContinuousPalette, ContinuousPaletteDefaults, DiscretePalette, DiscretePaletteDefaults } from './tree/mvs/param-types';
+import { CategoricalPalette, CategoricalPaletteDefaults, ColorDictNameT, ColorListNameT, ContinuousPalette, ContinuousPaletteDefaults, DiscretePalette, DiscretePaletteDefaults, isMolQLExpression } from './tree/mvs/param-types';
 
 
 export const AnnotationFromUriKinds = new Set(['color_from_uri', 'component_from_uri', 'label_from_uri', 'tooltip_from_uri'] satisfies MolstarKind[]);
@@ -318,6 +318,9 @@ export function componentPropsFromSelector(selector?: MolstarNodeParams<'compone
         return { name: 'static', params: selector };
     } else if (Array.isArray(selector)) {
         return { name: 'expression', params: rowsToExpression(selector) };
+    } else if (isMolQLExpression(selector)) {
+        // MolQL is intentionally opaque to MVS. Mol* validates it when compiling the query.
+        return { name: 'expression', params: selector.expression as any };
     } else {
         return { name: 'expression', params: rowToExpression(selector) };
     }
@@ -331,6 +334,8 @@ export function prettyNameFromSelector(selector?: MolstarNodeParams<'component'>
         return stringToWords(selector);
     } else if (Array.isArray(selector)) {
         return `Custom Selection: [${selector.map(formatObject).join(', ')}]`;
+    } else if (isMolQLExpression(selector)) {
+        return 'MolQL Selection';
     } else {
         return `Custom Selection: ${formatObject(selector)}`;
     }
