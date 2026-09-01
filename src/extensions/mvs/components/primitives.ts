@@ -44,7 +44,7 @@ import { addParamDefaults } from '../tree/generic/params-schema';
 import { treeValidationIssues } from '../tree/generic/tree-validation';
 import { MolstarNode, MolstarNodeParams, MolstarSubtree } from '../tree/molstar/molstar-tree';
 import { MVSNode, MVSTreeSchema } from '../tree/mvs/mvs-tree';
-import { isComponentExpression, isMolQLExpression, isPrimitiveComponentExpressions, isPrimitiveMolQLExpression, isVector3, PrimitivePositionT } from '../tree/mvs/param-types';
+import { isComponentExpression, isPrimitiveComponentExpressions, isPrimitiveMolQLExpression, isVector3, PrimitivePositionT } from '../tree/mvs/param-types';
 import { MVSTransform } from './annotation-structure-component';
 
 
@@ -535,10 +535,7 @@ function resolvePosition(context: PrimitiveBuilderContext, position: PrimitivePo
         // TODO: take schema into account for possible optimization
         expr = rowsToExpression(position.expressions!);
         pivotRef = position.structure_ref;
-    } else if (isMolQLExpression(position)) {
-        if (!isPrimitiveMolQLExpression(position)) {
-            throw new Error('Invalid primitive MolQL position: structure_ref must be a string when provided.');
-        }
+    } else if (isPrimitiveMolQLExpression(position)) {
         expr = position.expression as Expression;
         pivotRef = position.structure_ref;
     } else if (isComponentExpression(position)) {

@@ -16,9 +16,13 @@ import { parse } from '../../../mol-script/transpile';
 describe('MVS MolQL selectors', () => {
     const expression = { name: 'structure-query.generator.all' };
 
-    it('requires the expression wrapper while leaving its content opaque', () => {
+    it('requires a compilable expression wrapper', () => {
+        const malformed = { head: { name: 'not-implemented' } };
         expect(MolQLExpressionT.decode({ expression })._tag).toEqual('Right');
-        expect(MolQLExpressionT.decode({ expression: undefined })._tag).toEqual('Right');
+        expect(MolQLExpressionT.decode({ expression })._tag).toEqual('Right');
+        expect(MolQLExpressionT.decode({ expression: undefined })._tag).toEqual('Left');
+        expect(MolQLExpressionT.decode({ expression: malformed })._tag).toEqual('Left');
+        expect(MolQLExpressionT.decode({ expression: malformed })._tag).toEqual('Left');
         expect(MolQLExpressionT.decode({})._tag).toEqual('Left');
         expect(isMolQLExpression({ expression })).toEqual(true);
         expect(isMolQLExpression({})).toEqual(false);
@@ -30,7 +34,7 @@ describe('MVS MolQL selectors', () => {
         expect(PrimitiveMolQLExpressionT.decode(position)._tag).toEqual('Right');
         expect(PrimitiveMolQLExpressionT.decode({ expression, structure_ref: 1 })._tag).toEqual('Left');
         expect(isPrimitiveMolQLExpression(position)).toEqual(true);
-        // This remains a base MolQL wrapper, so primitive execution must reject its invalid ref before legacy row handling.
+        // The base wrapper has no structure_ref constraint; the primitive codec owns that validation.
         expect(isMolQLExpression({ expression, structure_ref: 1 })).toEqual(true);
         expect(isPrimitiveMolQLExpression({ expression, structure_ref: 1 })).toEqual(false);
     });
@@ -44,16 +48,21 @@ describe('MVS MolQL selectors', () => {
         expect(prettyNameFromSelector(wrapped)).toEqual('MolQL Selection');
     });
 
-    it('serializes wrapped expressions and defers malformed MolQL validation to execution', () => {
+    it('rejects malformed expressions and invalid primitive refs during MVS validation', () => {
         const builder = createMVSBuilder();
         const malformed = { head: { name: 'not-implemented' } };
         builder.download({ url: 'example.bcif' }).parse({ format: 'bcif' }).modelStructure()
             .component({ selector: { expression: malformed } });
         const state = builder.getState();
 
-        expect(MVSData.validationIssues(state)).toEqual(undefined);
+        expect(MVSData.validationIssues(state)?.join('\n')).toContain("Symbol 'not-implemented' is not implemented.");
         expect(MVSData.toMVSJ(state)).toContain('"expression":{"head":{"name":"not-implemented"}}');
         expect(() => compile(componentPropsFromSelector({ expression: malformed }).params as any)).toThrow("Symbol 'not-implemented' is not implemented.");
+
+        const primitiveBuilder = createMVSBuilder();
+        const structure = primitiveBuilder.download({ url: 'example.bcif' }).parse({ format: 'bcif' }).modelStructure();
+        structure.primitives().label({ position: { expression, structure_ref: 1 } as any, text: 'Invalid reference' });
+        expect(MVSData.validationIssues(primitiveBuilder.getState())?.join('\n')).toContain('Primitive MolQL structure_ref must be a string when provided');
     });
 
     it('builds a valid story from MolScriptBuilder and a PyMOL-transpiled expression', () => {
