@@ -73,7 +73,7 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
     for (let i = 0; i < n; ++i) {
         const c = carbohydrates.elements[i];
         const ring = c.unit.rings.all[c.ringIndex];
-        const shapeType = getSaccharideShape(c.component.type, ring.length);
+        const shapeType = getSaccharideShape(c.component.type);
 
         l.unit = c.unit;
         l.element = c.unit.elements[ring[0]];

@@ -64,4 +64,4 @@
     * FlatDiamond - no examples in PDB as it has no CCD codes mapped to it
     * 3k8d - FlatHexagon (KDO)
     * 8jq5 - Pentagon (PSV)
-    * 9k1g - no SNFG symbol assigned (X6Y)
+    * 9k1g - no SNFG symbol assigned -> white FlatHexagon (X6Y)
