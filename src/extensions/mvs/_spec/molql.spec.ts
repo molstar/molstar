@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * @author mol* contributors
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { componentPropsFromSelector, prettyNameFromSelector } from '../load-helpers';
