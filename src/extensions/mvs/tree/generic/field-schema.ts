@@ -97,7 +97,7 @@ export function literal<V extends string | number | boolean>(...values: V[]) {
     return new iots.Type<V>(
         typeName,
         ((value: any) => valueSet.has(value)) as any,
-        (value, ctx) => valueSet.has(value as any) ? { _tag: 'Right', right: value as any } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid value for literal type ${typeName}` }] },
+        (value, ctx) => valueSet.has(value as any) ? iots.success(value as V) : iots.failure(value, ctx, `"${value}" is not a valid value for literal type ${typeName}`),
         value => value
     );
 }

@@ -1,11 +1,13 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import * as iots from 'io-ts';
+import { Expression } from '../../../../mol-script/language/expression';
+import { compile } from '../../../../mol-script/runtime/query/base';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { ValueFor, bool, dict, float, int, list, literal, nullable, object, partial, str, tuple, union } from '../generic/field-schema';
 
@@ -129,7 +131,25 @@ const _ComponentExpressionT = partial({
 });
 /** `selector` parameter values for `component` node in MVS tree */
 export interface ComponentExpressionT extends ValueFor<typeof _ComponentExpressionT> { }
-export const ComponentExpressionT: iots.Type<ComponentExpressionT> = _ComponentExpressionT;
+export const ComponentExpressionT = new iots.Type<ComponentExpressionT>(
+    'ComponentExpression',
+    isComponentExpression,
+    (value, context) => hasMolQLProperty(value) || hasStructureRefProperty(value)
+        ? iots.failure(value, context, 'MolQL wrappers and primitive structure_ref positions are not component expressions')
+        : _ComponentExpressionT.validate(value, context),
+    value => value,
+);
+
+/** A MolQL expression serialized as JSON. The expression is validated by the MolScript compiler. */
+export interface MolQLExpressionT {
+    molql: unknown
+}
+export const MolQLExpressionT = new iots.Type<MolQLExpressionT>(
+    'MolQLExpression',
+    isMolQLExpression,
+    (value, context) => validateMolQLExpression(value, context),
+    value => value,
+);
 
 
 /** `schema` parameter values for `*_from_uri` and `*_from_source` nodes in MVS tree */
@@ -166,10 +186,26 @@ const _PrimitiveComponentExpressionT = partial({
     expressions: list(ComponentExpressionT),
 });
 /** Primitives-related types */
-export interface PrimitiveComponentExpressionT extends ValueFor<typeof _PrimitiveComponentExpressionT> { }
-export const PrimitiveComponentExpressionT: iots.Type<PrimitiveComponentExpressionT> = _PrimitiveComponentExpressionT;
+export interface PrimitiveComponentExpressionT extends ComponentExpressionT, ValueFor<typeof _PrimitiveComponentExpressionT> { }
+export const PrimitiveComponentExpressionT = new iots.Type<PrimitiveComponentExpressionT>(
+    'PrimitiveComponentExpression',
+    isPrimitiveComponentExpression,
+    (value, context) => validatePrimitiveComponentExpression(value, context),
+    value => value,
+);
 
-export const PrimitivePositionT = union(Vector3, ComponentExpressionT, PrimitiveComponentExpressionT);
+/** A MolQL primitive position, optionally evaluated against a referenced structure. */
+export interface PrimitiveMolQLExpressionT extends MolQLExpressionT {
+    structure_ref?: string
+}
+export const PrimitiveMolQLExpressionT = new iots.Type<PrimitiveMolQLExpressionT>(
+    'PrimitiveMolQLExpression',
+    isPrimitiveMolQLExpression,
+    (value, context) => validateMolQLExpression(value, context, true),
+    value => value,
+);
+
+export const PrimitivePositionT = union(Vector3, PrimitiveComponentExpressionT, ComponentExpressionT, PrimitiveMolQLExpressionT);
 export type PrimitivePositionT = ValueFor<typeof PrimitivePositionT>
 
 export const FloatList = list(float);
@@ -182,7 +218,7 @@ export type HexColorT = `#${string}`;
 export const HexColorT = new iots.Type<HexColorT>(
     'HexColor',
     ((value: any) => typeof value === 'string') as any,
-    (value, ctx) => isHexColorT(value) ? { _tag: 'Right', right: value } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid hex color string` }] },
+    (value, ctx) => isHexColorT(value) ? iots.success(value) : iots.failure(value, ctx, `"${value}" is not a valid hex color string`),
     value => value
 );
 /** Regular expression matching a hexadecimal color string, e.g. '#FF1100' or '#f10' */
@@ -196,7 +232,7 @@ function isHexColorT(str: any): str is HexColorT {
 export const ColorNameT = new iots.Type<ColorNameT>(
     'ColorName',
     ((value: any) => typeof value === 'string') as any,
-    (value, ctx) => isColorNameT(value) ? { _tag: 'Right', right: value } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid color name` }] },
+    (value, ctx) => isColorNameT(value) ? iots.success(value) : iots.failure(value, ctx, `"${value}" is not a valid color name`),
     value => value
 );
 export type ColorNameT =
@@ -236,12 +272,87 @@ export function isVector3(x: any): x is Vector3 {
     return !!x && Array.isArray(x) && x.length === 3 && typeof x[0] === 'number';
 }
 
+export function isPrimitiveComponentExpression(x: any): x is PrimitiveComponentExpressionT {
+    return !!x && typeof x === 'object' && !Array.isArray(x) && !hasMolQLProperty(x)
+        && (Array.isArray(x.expressions) || (Object.prototype.hasOwnProperty.call(x, 'structure_ref') && !x.expressions));
+}
+
 export function isPrimitiveComponentExpressions(x: any): x is PrimitiveComponentExpressionT {
-    return !!x && Array.isArray(x.expressions);
+    return isPrimitiveComponentExpression(x) && Array.isArray(x.expressions);
 }
 
 export function isComponentExpression(x: any): x is ComponentExpressionT {
-    return !!x && typeof x === 'object' && !x.expressions;
+    return !!x && typeof x === 'object' && !Array.isArray(x) && !hasMolQLProperty(x) && !x.expressions && !Object.prototype.hasOwnProperty.call(x, 'structure_ref');
+}
+
+/** Decide if a selector is an MVS wrapper around a serialized MolQL expression. */
+export function isMolQLExpression(x: any): x is MolQLExpressionT {
+    return hasMolQLProperty(x) && Object.keys(x).length === 1;
+}
+
+/** Decide if a primitive position is a MolQL expression with an optional structure reference. */
+export function isPrimitiveMolQLExpression(x: any): x is PrimitiveMolQLExpressionT {
+    const position = x as PrimitiveMolQLExpressionT;
+    return hasMolQLProperty(x) && Object.keys(x).every(key => key === 'molql' || key === 'structure_ref')
+        && (position.structure_ref === undefined || typeof position.structure_ref === 'string');
+}
+
+function validateMolQLExpression(value: unknown, context: iots.Context, primitive = false): iots.Validation<MolQLExpressionT | PrimitiveMolQLExpressionT> {
+    if (!(primitive ? isPrimitiveMolQLExpression(value) : isMolQLExpression(value))) {
+        return iots.failure(value, context, primitive
+            ? 'Expected an object with only molql and an optional string structure_ref'
+            : 'Expected an object with only a molql property');
+    }
+    const wrapper = value as MolQLExpressionT;
+    const validation = validateMolQLSyntax(wrapper.molql);
+    return validation === true
+        ? iots.success(wrapper)
+        : iots.failure(value, context, validation);
+}
+
+/** Cache MolQL validation by expression identity; io-ts failures are reconstructed with each decode context. */
+const MolQLValidationCache = new WeakMap<object, true | string>();
+
+function validateMolQLSyntax(molql: unknown): true | string {
+    const cacheKey = molql !== null && typeof molql === 'object' ? molql : undefined;
+    const cached = cacheKey ? MolQLValidationCache.get(cacheKey) : undefined;
+    if (cached !== undefined) return cached;
+
+    if (!Expression.is(molql) || !Expression.isApply(molql)) {
+        const message = 'MolQL expression must be a MolScript application';
+        if (cacheKey) MolQLValidationCache.set(cacheKey, message);
+        return message;
+    }
+    try {
+        compile(molql);
+    } catch (e) {
+        const message = `Invalid MolQL expression: ${e instanceof Error ? e.message : String(e)}`;
+        if (cacheKey) MolQLValidationCache.set(cacheKey, message);
+        return message;
+    }
+    if (cacheKey) MolQLValidationCache.set(cacheKey, true);
+    return true;
+}
+
+function hasMolQLProperty(x: any): x is { molql: unknown } {
+    return !!x && typeof x === 'object' && !Array.isArray(x) && Object.prototype.hasOwnProperty.call(x, 'molql');
+}
+
+function hasStructureRefProperty(x: any): x is { structure_ref: unknown } {
+    return !!x && typeof x === 'object' && !Array.isArray(x) && Object.prototype.hasOwnProperty.call(x, 'structure_ref');
+}
+
+function validatePrimitiveComponentExpression(value: unknown, context: iots.Context): iots.Validation<PrimitiveComponentExpressionT> {
+    if (!value || typeof value !== 'object' || Array.isArray(value) || hasMolQLProperty(value)) {
+        return iots.failure(value, context, 'Expected a legacy primitive position without molql');
+    }
+    const position = value as PrimitiveComponentExpressionT;
+    if (position.structure_ref !== undefined && typeof position.structure_ref !== 'string') {
+        return iots.failure(value, context, 'Primitive structure_ref must be a string when provided');
+    }
+    if (position.expressions !== undefined) return _PrimitiveComponentExpressionT.validate(value, context);
+    if (hasStructureRefProperty(position)) return _ComponentExpressionT.validate(value, context) as iots.Validation<PrimitiveComponentExpressionT>;
+    return iots.failure(value, context, 'Expected expressions or structure_ref for a primitive component expression');
 }
 
 

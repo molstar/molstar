@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -23,6 +23,18 @@ namespace Expression {
     export function isLiteral(e: Expression): e is Expression.Literal { return !isApply(e) && !isSymbol(e); }
     export function isApply(e: Expression): e is Expression.Apply { return !!e && !!(e as Expression.Apply).head && typeof e === 'object'; }
     export function isSymbol(e: Expression): e is Expression.Symbol { return !!e && typeof (e as any).name === 'string'; }
+
+    /** Decide if a value has the recursive JSON shape of a MolScript expression. */
+    export function is(value: unknown): value is Expression {
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return true;
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+        if (isSymbol(value as Expression)) return true;
+        const apply = value as Apply;
+        if (!Object.prototype.hasOwnProperty.call(apply, 'head') || !is(apply.head)) return false;
+        if (apply.args === undefined) return true;
+        if (Array.isArray(apply.args)) return apply.args.every(is);
+        return !!apply.args && typeof apply.args === 'object' && Object.values(apply.args).every(is);
+    }
 }
 
 export { Expression };

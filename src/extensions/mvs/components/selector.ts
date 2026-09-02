@@ -6,6 +6,7 @@
 
 import { SortedArray } from '../../../mol-data/int';
 import { ElementIndex, Structure, StructureElement } from '../../../mol-model/structure';
+import { structureIntersect } from '../../../mol-model/structure/query/utils/structure-set';
 import { StaticStructureComponentTypes, createStructureComponent } from '../../../mol-plugin-state/helpers/structure-component';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
@@ -76,4 +77,9 @@ export function substructureFromSelector(structure: Structure, selector: Selecto
         createMVSAnnotationStructureComponent(structure, { ...selector.params, label: '', nullIfEmpty: false }, {})
         : createStructureComponent(structure, { type: selector, label: '', nullIfEmpty: false }, { source: structure });
     return PluginStateObject.Molecule.Structure.is(pso) ? pso.data : Structure.Empty;
+}
+
+/** Select against the root structure, then restrict the result to the supplied substructure. */
+export function substructureFromRootSelector(structure: Structure, selector: Selector): Structure {
+    return structureIntersect(structure, substructureFromSelector(structure.root, selector));
 }
