@@ -62,11 +62,11 @@ function componentSnapshot() {
         .representation({ type: 'cartoon' })
         .color({ color: '#8AA6C1' });
 
-    structure.component({ selector: { expression: imatinib } })
+    structure.component({ selector: { molql: imatinib } })
         .representation({ type: 'ball_and_stick' })
         .color({ color: '#F08A4B' });
 
-    structure.component({ selector: { expression: bindingPocket } })
+    structure.component({ selector: { molql: bindingPocket } })
         .representation({ type: 'ball_and_stick' })
         .color({ color: '#B8497A' });
 
@@ -75,7 +75,7 @@ function componentSnapshot() {
         key: 'components',
         description: `# MolQL component selectors
 
-Every non-static component selector is wrapped as \`{ expression: ... }\`. The orange imatinib selection is built with \`MolScriptBuilder\`; the pink binding pocket is compiled from the PyMOL expression \`byres polymer within 5 of resn STI\`.
+Every non-static component selector is wrapped as \`{ molql: ... }\`. The orange imatinib selection is built with \`MolScriptBuilder\`; the pink binding pocket is compiled from the PyMOL expression \`byres polymer within 5 of resn STI\`.
 
 Both are stored in MolViewSpec as JSON MolQL expression trees, not executable source text.`,
         description_format: 'markdown',
@@ -89,8 +89,8 @@ function colorSnapshot() {
         .representation({ type: 'cartoon' });
 
     representation.color({ color: '#8AA6C1' });
-    representation.color({ selector: { expression: bindingPocket }, color: '#B8497A' });
-    representation.color({ selector: { expression: gatekeeper }, color: '#F08A4B' });
+    representation.color({ selector: { molql: bindingPocket }, color: '#B8497A' });
+    representation.color({ selector: { molql: gatekeeper }, color: '#F08A4B' });
 
     return builder.getSnapshot({
         title: 'MolQL color selectors',
@@ -112,11 +112,11 @@ function interactionSnapshot() {
         .representation({ type: 'cartoon' })
         .color({ color: '#8AA6C1' });
 
-    structure.component({ selector: { expression: imatinib } })
+    structure.component({ selector: { molql: imatinib } })
         .representation({ type: 'ball_and_stick' })
         .color({ color: '#F08A4B' });
 
-    const pocket = structure.component({ selector: { expression: bindingPocket } });
+    const pocket = structure.component({ selector: { molql: bindingPocket } });
     pocket.representation({ type: 'ball_and_stick' }).color({ color: '#B8497A' });
     pocket.label({ text: 'PyMOL binding-pocket selection' });
     pocket.tooltip({ text: 'Polymer residues within 5 Å of imatinib (STI).' });
@@ -140,17 +140,17 @@ function primitiveSnapshot() {
     structure.component({ selector: 'polymer' })
         .representation({ type: 'cartoon' })
         .color({ color: '#8AA6C1' });
-    structure.component({ selector: { expression: imatinib } })
+    structure.component({ selector: { molql: imatinib } })
         .representation({ type: 'ball_and_stick' })
         .color({ color: '#F08A4B' });
-    structure.component({ selector: { expression: gatekeeper } })
+    structure.component({ selector: { molql: gatekeeper } })
         .representation({ type: 'ball_and_stick' })
         .color({ color: '#B8497A' });
 
     const primitives = structure.primitives();
     primitives.distance({
-        start: { expression: imatinibN13 },
-        end: { expression: thr315OG1 },
+        start: { molql: imatinibN13 },
+        end: { molql: thr315OG1 },
         color: '#F08A4B',
         radius: 0.12,
         dash_length: 0.2,

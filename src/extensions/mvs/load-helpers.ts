@@ -319,8 +319,7 @@ export function componentPropsFromSelector(selector?: MolstarNodeParams<'compone
     } else if (Array.isArray(selector)) {
         return { name: 'expression', params: rowsToExpression(selector) };
     } else if (isMolQLExpression(selector)) {
-        // MolQL is intentionally opaque to MVS. Mol* validates it when compiling the query.
-        return { name: 'expression', params: selector.expression as any };
+        return { name: 'expression', params: selector.molql as any };
     } else {
         return { name: 'expression', params: rowToExpression(selector) };
     }
