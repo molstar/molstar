@@ -85,7 +85,7 @@ Both are stored in MolViewSpec as JSON MolQL expression trees, not executable so
 function colorSnapshot() {
     const builder = createMVSBuilder();
     const structure = loadStructure(builder);
-    const representation = structure.component({ selector: 'all' })
+    const representation = structure.component({ selector: 'polymer' })
         .representation({ type: 'cartoon' });
 
     representation.color({ color: '#8AA6C1' });
