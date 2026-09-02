@@ -14,7 +14,6 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix CPU surface/volume visuals rebuilding on every update if GPU path is unavailable
 - Fix `floodfill` not applied on the gaussian surface wireframe
 - Fix `traceOnly` update being ignored by the molecular surface wireframe visuals
-- Add MVS `shape` node for rendering meshes from `vtp`, `ply` and `obj` resources
 - Added support for molecular atom_style in lammps data files
 - Added element symbol detection in lammps data file
 - Fix inconsistent atomic weight for some elements in `ElementAtomWeights`
@@ -62,6 +61,8 @@ Note that since we don't clearly distinguish between a public and private interf
   - Added `transition` node with params `duration_ms`, `trajectory`, `easing`
   - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
   - MVS-related custom model properties (and custom structure properties) are hidden in UI (fixes override of default custom properties)
+  - Added `shape` node for rendering meshes from `vtp`, `ply` and `obj` resources
+  - Added support for MolQL selectors (e.g., select a residue + 5 ang surroundings)
 - Remove `new Function` usage for CSP / SOC2 compliance; server path templates use a whitelist of `${id...}` string methods
 
 ## [v5.11.0] - 2026-07-18
