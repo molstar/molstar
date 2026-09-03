@@ -240,6 +240,12 @@ function build(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | 
         size = [1, 1, 1];
     }
 
+    // guard against degenerate grids, e.g. when the boundary is empty or has non-finite values
+    if (!size.every((s: number) => Number.isFinite(s) && s >= 1)) {
+        size = [1, 1, 1];
+        delta = [1, 1, 1];
+    }
+
     // guard against overly large grids
     const volume = size[0] * size[1] * size[2];
     if (volume > MaxVolume) {
