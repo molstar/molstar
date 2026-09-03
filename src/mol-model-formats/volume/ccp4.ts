@@ -107,7 +107,8 @@ export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, of
                 min: (Number.isNaN(header.AMIN) || calcStats) ? arrayMin(values) : header.AMIN,
                 max: (Number.isNaN(header.AMAX) || calcStats) ? arrayMax(values) : header.AMAX,
                 mean: (Number.isNaN(header.AMEAN) || calcStats) ? arrayMean(values) : header.AMEAN,
-                sigma: (Number.isNaN(header.ARMS) || header.ARMS === 0) ? arrayRms(values) : header.ARMS
+                // a negative rms means it was not computed (e.g. IMOD writes -1)
+                sigma: (Number.isNaN(header.ARMS) || header.ARMS <= 0) ? arrayRms(values) : header.ARMS
             },
             periodicity: Vec3.isInteger(dimensions_frac) ? 'xyz' : 'none',
         };

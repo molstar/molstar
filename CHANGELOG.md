@@ -64,6 +64,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - MVS-related custom model properties (and custom structure properties) are hidden in UI (fixes override of default custom properties)
 - Remove `new Function` usage for CSP / SOC2 compliance; server path templates use a whitelist of `${id...}` string methods
 - Fix CCP4/MRC volumes with unset cell angles failing to load: a zero `cellb` (e.g. written by IMOD) made the fractional transform `NaN`; a right angle is now assumed via `getCcp4Angles`
+- Fix CCP4/MRC volume `sigma` being taken from the header when the header rms is negative, which by convention means it was not computed (e.g. IMOD writes -1) and put the default 2 sigma iso value below every voxel value
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
