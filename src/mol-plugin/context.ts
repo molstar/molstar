@@ -29,11 +29,13 @@ import { StructureHierarchyManager } from '../mol-plugin-state/manager/structure
 import { StructureHierarchyRef } from '../mol-plugin-state/manager/structure/hierarchy-state';
 import { StructureMeasurementManager } from '../mol-plugin-state/manager/structure/measurement';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
+import { ParticleHierarchyManager } from '../mol-plugin-state/manager/particles/hierarchy';
 import { VolumeHierarchyManager } from '../mol-plugin-state/manager/volume/hierarchy';
 import { MarkdownExtensionManager } from '../mol-plugin-state/manager/markdown-extensions';
 import { AnimateStateSnapshotTransition } from '../mol-plugin-state/animation/built-in/state-snapshots';
 import { LeftPanelTabName, PluginLayout } from './layout';
 import { Representation } from '../mol-repr/representation';
+import { ParticleRepresentationRegistry } from '../mol-repr/particles/registry';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
 import { VolumeRepresentationRegistry } from '../mol-repr/volume/registry';
 import { StateTransform } from '../mol-state';
@@ -149,6 +151,10 @@ export class PluginContext {
         volume: {
             registry: new VolumeRepresentationRegistry(),
             themes: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
+        },
+        particles: {
+            registry: new ParticleRepresentationRegistry(),
+            themes: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
         }
     } as const;
 
@@ -184,6 +190,9 @@ export class PluginContext {
         },
         volume: {
             hierarchy: new VolumeHierarchyManager(this)
+        },
+        particles: {
+            hierarchy: new ParticleHierarchyManager(this)
         },
         interactivity: void 0 as any as InteractivityManager,
         camera: new CameraManager(this),

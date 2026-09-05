@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -15,6 +15,8 @@ import { deepEqual } from '../index';
 import { ParamDefinition as PD } from '../param-definition';
 import { ColorNames } from './names';
 import { Color } from './color';
+import { saturate } from '../../mol-math/interpolate';
+import { PCG } from '../../mol-data/util/hash-functions';
 
 export const DistinctColorsParams = {
     hue: PD.Interval([1, 360], { min: 0, max: 360, step: 1 }),
@@ -175,4 +177,94 @@ export function distinctColors(count: number, props: Partial<DistinctColorsProps
 
     const sorted = p.sort === 'contrast' ? sortByContrast(colors) : colors;
     return sorted.map(c => Lab.toColor(c));
+}
+
+//
+
+function getHueRange(hue: number, variability: number) {
+    let min = hue - variability;
+    const minOverflow = (min < 0 ? -min : 0);
+    let max = hue + variability;
+    if (max > 360) min -= max - 360;
+    max += minOverflow;
+    return [Math.max(0, min), Math.min(360, max)] as [number, number];
+}
+
+function getGrayscaleColors(count: number, luminance: number, variability: number) {
+    const out: Color[] = [];
+    const pcg = new PCG();
+    for (let i = 0; i < count; ++ i) {
+        const l = saturate(luminance / 100);
+        const v = saturate(variability / 180) * pcg.float();
+        const s = pcg.float() > 0.5 ? 1 : -1;
+        const d = Math.abs(l + s * v) % 1;
+        out[i] = Color.fromNormalizedRgb(d, d, d);
+    }
+    return out;
+}
+
+/**
+ * Create a list of distinct colors within a hue range around the given base color.
+ * Use to color the members of a group that has `color` assigned to it.
+ */
+export function getDistinctGroupColors(count: number, color: Color, variability: number, shift: number, props?: Partial<DistinctColorsProps>) {
+    const hcl = Hcl.fromColor(Hcl(), color);
+    if (isNaN(hcl[0])) {
+        return getGrayscaleColors(count, hcl[2], variability);
+    }
+
+    if (count === 1) {
+        hcl[1] = 65;
+        hcl[2] = 55;
+        return [Hcl.toColor(hcl)];
+    }
+
+    const colors = distinctColors(count, {
+        hue: getHueRange(hcl[0], variability),
+        chroma: [30, 100],
+        luminance: [50, 100],
+        clusteringStepCount: 0,
+        minSampleCount: 1000,
+        sampleCountFactor: 100,
+        sort: 'none',
+        ...props,
+    });
+
+    if (shift !== 0) {
+        const offset = Math.floor(shift / 100 * count);
+        return [...colors.slice(offset), ...colors.slice(0, offset)];
+    } else {
+        return colors;
+    }
+}
+
+const BaseColors = [0x377eb8, 0xe41a1c, 0x4daf4a, 0x984ea3, 0xff7f00, 0xffff33, 0xa65628, 0xf781bf] as Color[];
+
+/**
+ * Create a list of distinct colors spanning the full hue range.
+ * Use to color groups, e.g. as base colors for `getDistinctGroupColors`.
+ */
+export function getDistinctBaseColors(count: number, shift: number, props?: Partial<DistinctColorsProps>): Color[] {
+    let colors: Color[];
+    if (count <= BaseColors.length) {
+        colors = BaseColors.slice(0, count);
+    } else {
+        colors = distinctColors(count, {
+            hue: [1, 360],
+            chroma: [25, 100],
+            luminance: [30, 100],
+            clusteringStepCount: 0,
+            minSampleCount: 1000,
+            sampleCountFactor: 100,
+            sort: 'none',
+            ...props,
+        });
+    }
+
+    if (shift !== 0) {
+        const offset = Math.floor(shift / 100 * count);
+        return [...colors.slice(offset), ...colors.slice(0, offset)];
+    } else {
+        return colors;
+    }
 }

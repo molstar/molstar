@@ -12,6 +12,7 @@ import { ModelSymmetry } from '../mol-model-formats/structure/property/symmetry'
 import { Volume } from '../mol-model/volume';
 import { Location } from '../mol-model/location';
 import { isStandaloneHmd } from '../mol-util/browser';
+import { Particle, ParticleList } from '../mol-model/particles/particle-list';
 
 export interface VisualUpdateState {
     updateTransform: boolean
@@ -102,10 +103,7 @@ function visualQualityToLevel(quality: Exclude<VisualQuality, 'auto' | 'custom'>
     }
 }
 
-export function getStructureQuality(structure: Structure, tresholds: Partial<QualityThresholds> = {}): VisualQuality {
-    const t = { ...DefaultQualityThresholds, ...tresholds };
-    let score = structure.elementCount * t.elementCountFactor;
-    if (structure.isCoarseGrained || structure.isCoarse) score *= t.coarseGrainedFactor;
+function getQualityFromScore(score: number, t: QualityThresholds): VisualQuality {
     if (score > t.lowestElementCount) {
         return 'lowest';
     } else if (score > t.lowerElementCount) {
@@ -121,6 +119,19 @@ export function getStructureQuality(structure: Structure, tresholds: Partial<Qua
     }
 }
 
+export function getStructureQuality(structure: Structure, tresholds: Partial<QualityThresholds> = {}): VisualQuality {
+    const t = { ...DefaultQualityThresholds, ...tresholds };
+    let score = structure.elementCount * t.elementCountFactor;
+    if (structure.isCoarseGrained || structure.isCoarse) score *= t.coarseGrainedFactor;
+    return getQualityFromScore(score, t);
+}
+
+export function getParticleListQuality(particles: ParticleList, tresholds: Partial<QualityThresholds> = {}): VisualQuality {
+    const t = { ...DefaultQualityThresholds, ...tresholds };
+    const score = particles.count * t.elementCountFactor;
+    return getQualityFromScore(score, t);
+}
+
 /**
  * Uses cell volume divided by the number of symmetry operators to avoid
  * costly boundary calculation if a single model with a non-empty cell.
@@ -133,6 +144,10 @@ function getRootVolume(structure: Structure) {
         }
     }
     return Box3D.volume(structure.root.boundary.box);
+}
+
+function getParticleListVolume(particles: ParticleList) {
+    return particles.cell?.volume ?? Box3D.volume(Particle.getBoundary(particles).box);
 }
 
 export function getQualityProps(props: Partial<QualityProps>, data?: any) {
@@ -154,6 +169,9 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             const [x, y, z] = data.grid.cells.space.dimensions;
             volume = x * y * z;
             quality = volume < 10_000_000 ? 'medium' : 'low';
+        } else if (Particle.is(data)) {
+            quality = getParticleListQuality(data);
+            volume = getParticleListVolume(data);
         }
     }
 
