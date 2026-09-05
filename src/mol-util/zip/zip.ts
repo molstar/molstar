@@ -11,7 +11,7 @@
 
 import { writeUint, writeUshort, sizeUTF8, writeUTF8, readUshort, readUint, readUTF8, toInt32 } from './bin';
 import { crc, adler } from './checksum';
-import { _inflate } from './inflate';
+import { _inflate, _inflateSync } from './inflate';
 import { _deflateRaw } from './deflate';
 import { RuntimeContext, Task } from '../../mol-task';
 
@@ -130,6 +130,10 @@ export function inflate(runtime: RuntimeContext, file: Uint8Array<ArrayBuffer>, 
     // const CINFO = (CMF>>>4);
     // console.log(CM, CINFO,CMF,FLG);
     return inflateRaw(runtime, new Uint8Array(file.buffer, file.byteOffset + 2, file.length - 6), buf);
+}
+
+export function inflateSync(file: Uint8Array<ArrayBuffer>, buf?: Uint8Array<ArrayBuffer>) {
+    return _inflateSync(new Uint8Array(file.buffer, file.byteOffset + 2, file.length - 6), buf);
 }
 
 // https://tools.ietf.org/html/rfc1952
