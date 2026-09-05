@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -7,6 +7,7 @@
 import * as Data from './transforms/data';
 import * as Misc from './transforms/misc';
 import * as Model from './transforms/model';
+import * as Particles from './transforms/particles';
 import * as Volume from './transforms/volume';
 import * as Representation from './transforms/representation';
 import * as Shape from './transforms/shape';
@@ -19,6 +20,7 @@ export const StateTransforms = {
     get Data() { return Data; },
     get Misc() { return Misc; },
     get Model() { return Model; },
+    get Particles() { return Particles; },
     get Volume() { return Volume; },
     get Representation() { return Representation; },
     get Shape() { return Shape; },
