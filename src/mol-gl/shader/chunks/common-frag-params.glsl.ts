@@ -82,6 +82,7 @@ uniform mat4 uProjection;
 
 uniform int uRenderMask;
 uniform bool uMarkingDepthTest;
+uniform bool uDepthBack;
 
 uniform sampler2D tDepth;
 uniform vec2 uDrawingBufferSize;

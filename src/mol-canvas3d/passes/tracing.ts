@@ -19,6 +19,7 @@ import { ShaderCode } from '../../mol-gl/shader-code';
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
 import { ComputeRenderable, createComputeRenderable } from '../../mol-gl/renderable';
 import { trace_frag } from '../../mol-gl/shader/illumination/trace.frag';
+import { debugThickness_frag } from '../../mol-gl/shader/illumination/debug-thickness.frag';
 import { Vec2 } from '../../mol-math/linear-algebra/3d/vec2';
 import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
 import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
@@ -55,6 +56,7 @@ export const TracingParams = {
     shadowEnable: PD.Boolean(false),
     shadowSoftness: PD.Numeric(0.1, { min: 0.01, max: 1.0, step: 0.01 }),
     shadowThickness: PD.Numeric(0.5, { min: 0.0, max: 32, step: 0.1 }, { description: 'Thickness of the shadow casting geometry. Set to 0.0 for automatic estimation.' }),
+    debugThickness: PD.Boolean(false, { hideIf: p => p.thicknessMode !== 'auto', description: 'Debug view showing front depth, back depth, and the estimated thickness of the auto thickness mode.' }),
 };
 export type TracingProps = PD.Values<typeof TracingParams>
 
@@ -72,6 +74,7 @@ export class TracingPass {
 
     private readonly traceRenderable: TraceRenderable;
     private readonly accumulateRenderable: AccumulateRenderable;
+    private readonly debugThicknessRenderable: DebugThicknessRenderable;
 
     constructor(private readonly webgl: WebGLContext, private readonly drawPass: DrawPass) {
         const { extensions: { drawBuffers, colorBufferHalfFloat, textureHalfFloat }, resources, isWebGL2 } = webgl;
@@ -124,6 +127,7 @@ export class TracingPass {
 
         this.traceRenderable = getTraceRenderable(webgl, this.colorTextureOpaque, this.normalTextureOpaque, this.shadedTextureOpaque, this.thicknessTarget.texture, this.accumulateTarget.texture, this.drawPass.depthTextureOpaque);
         this.accumulateRenderable = getAccumulateRenderable(webgl, this.holdTarget.texture);
+        this.debugThicknessRenderable = getDebugThicknessRenderable(webgl, this.colorTextureOpaque, this.thicknessTarget.texture, this.drawPass.depthTextureOpaque);
     }
 
     getByteCount() {
@@ -176,6 +180,7 @@ export class TracingPass {
 
             ValueCell.update(this.traceRenderable.values.uTexSize, Vec2.set(this.traceRenderable.values.uTexSize.ref.value, width, height));
             ValueCell.update(this.accumulateRenderable.values.uTexSize, Vec2.set(this.accumulateRenderable.values.uTexSize.ref.value, width, height));
+            ValueCell.update(this.debugThicknessRenderable.values.uTexSize, Vec2.set(this.debugThicknessRenderable.values.uTexSize.ref.value, width, height));
         }
     }
 
@@ -401,6 +406,32 @@ export class TracingPass {
         this.accumulateRenderable.render();
         if (isTimingMode) this.webgl.timer.markEnd('TracePass.render');
     }
+
+    renderDebugThickness(camera: ICamera, props: TracingProps) {
+        const values = this.debugThicknessRenderable.values;
+        const [w, h] = values.uTexSize.ref.value;
+        const v = camera.viewport;
+
+        Vec4.set(values.uBounds.ref.value,
+            v.x / w,
+            v.y / h,
+            (v.x + v.width) / w,
+            (v.y + v.height) / h
+        );
+        ValueCell.update(values.uBounds, values.uBounds.ref.value);
+        ValueCell.updateIfChanged(values.uNear, camera.near);
+        ValueCell.updateIfChanged(values.uFar, camera.far);
+        ValueCell.updateIfChanged(values.uMinThickness, props.minThickness);
+        ValueCell.updateIfChanged(values.uThicknessFactor, props.thicknessFactor);
+
+        const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
+        if (values.dOrthographic.ref.value !== orthographic) {
+            ValueCell.update(values.dOrthographic, orthographic);
+            this.debugThicknessRenderable.update();
+        }
+
+        this.debugThicknessRenderable.render();
+    }
 }
 
 //
@@ -502,6 +533,49 @@ function getTraceRenderable(ctx: WebGLContext, colorTexture: Texture, normalText
 
     const schema = { ...TraceSchema };
     const renderItem = createComputeRenderItem(ctx, 'triangles', TraceShaderCode, schema, values);
+
+    return createComputeRenderable(renderItem, values);
+}
+
+//
+
+const DebugThicknessSchema = {
+    ...QuadSchema,
+    tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tThickness: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    uTexSize: UniformSpec('v2'),
+    uBounds: UniformSpec('v4'),
+
+    dOrthographic: DefineSpec('number'),
+    uNear: UniformSpec('f'),
+    uFar: UniformSpec('f'),
+
+    uMinThickness: UniformSpec('f'),
+    uThicknessFactor: UniformSpec('f'),
+};
+const DebugThicknessShaderCode = ShaderCode('debug-thickness', quad_vert, debugThickness_frag);
+type DebugThicknessRenderable = ComputeRenderable<Values<typeof DebugThicknessSchema>>
+
+function getDebugThicknessRenderable(ctx: WebGLContext, colorTexture: Texture, thicknessTexture: Texture, depthTexture: Texture): DebugThicknessRenderable {
+    const values: Values<typeof DebugThicknessSchema> = {
+        ...QuadValues,
+        tColor: ValueCell.create(colorTexture),
+        tThickness: ValueCell.create(thicknessTexture),
+        tDepth: ValueCell.create(depthTexture),
+        uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
+        uBounds: ValueCell.create(Vec4()),
+
+        dOrthographic: ValueCell.create(0),
+        uNear: ValueCell.create(1),
+        uFar: ValueCell.create(10000),
+
+        uMinThickness: ValueCell.create(0.5),
+        uThicknessFactor: ValueCell.create(1),
+    };
+
+    const schema = { ...DebugThicknessSchema };
+    const renderItem = createComputeRenderItem(ctx, 'triangles', DebugThicknessShaderCode, schema, values);
 
     return createComputeRenderable(renderItem, values);
 }

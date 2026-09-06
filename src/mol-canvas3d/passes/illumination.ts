@@ -496,6 +496,11 @@ export class IlluminationPass {
         }
         this.composeRenderable.render();
 
+        if (props.illumination.debugThickness && props.illumination.thicknessMode === 'auto') {
+            state.disable(gl.BLEND);
+            this.tracing.renderDebugThickness(camera, props.illumination);
+        }
+
         //
 
         let swapTarget = this.outputTarget;

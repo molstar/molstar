@@ -50,6 +50,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fix illumination `auto` thickness mode never correctly being applied
     - Fix illumination ray marching stepping over occluders when the acceptance window is narrower than the current step
     - Evaluate illumination `auto` thickness at the surface being tested instead of latching it from the shaded pixel
+    - Fix sphere/cylinder impostors writing their near surface in the back-depth pass
+    - Fix mesh back faces & cylinder far hits being discarded as `interior` in the back-depth pass
 - Add `.parseRaw` to `DataFormatProvider` for out of state tree parsing
 - Camera improvements
     - Support multiple camera transition shapes

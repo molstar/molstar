@@ -76,11 +76,18 @@ bool CylinderImpostor(
     bool clipped = false;
     bool objectClipped = false;
 
+    #if defined(dRenderVariant_depth)
+        // back-depth pass wants the farthest intersection
+        bool depthBack = uDepthBack;
+    #else
+        bool depthBack = false;
+    #endif
+
     // body outside
     h = sqrt(h);
     float t = (-k1 - h) / k2;
     float y = baoc + t * bard;
-    if (y > 0.0 && y < baba) {
+    if (!depthBack && y > 0.0 && y < baba) {
         interior = false;
         cameraNormal = (oc + t * rayDir - ba * y / baba) / radius;
         modelPosition = rayOrigin + t * rayDir;
@@ -100,7 +107,7 @@ bool CylinderImpostor(
         clipped = true;
     }
 
-    if (!clipped) {
+    if (!clipped && !depthBack) {
         if (topCap && y < 0.0) {
             // top cap
             t = -baoc / bard;
@@ -164,7 +171,7 @@ bool CylinderImpostor(
         }
     }
 
-    if (uDoubleSided || solidInterior) {
+    if (uDoubleSided || solidInterior || depthBack) {
         // body inside
         h = -h;
         t = (-k1 - h) / k2;
@@ -177,7 +184,7 @@ bool CylinderImpostor(
             fragmentDepth = calcDepth(viewPosition);
             if (fragmentDepth > 0.0) {
                 #ifdef dSolidInterior
-                    if (!objectClipped) {
+                    if (!objectClipped && !depthBack) {
                         fragmentDepth = 0.0 + (0.0000002 / vSize);
                         cameraNormal = -rayDir;
 
@@ -204,7 +211,7 @@ bool CylinderImpostor(
                 fragmentDepth = calcDepth(viewPosition);
                 if (fragmentDepth > 0.0) {
                     #ifdef dSolidInterior
-                        if (!objectClipped) {
+                        if (!objectClipped && !depthBack) {
                             fragmentDepth = 0.0 + (0.0000002 / vSize);
                             cameraNormal = -rayDir;
 
@@ -230,7 +237,7 @@ bool CylinderImpostor(
                 fragmentDepth = calcDepth(viewPosition);
                 if (fragmentDepth > 0.0) {
                     #ifdef dSolidInterior
-                        if (!objectClipped) {
+                        if (!objectClipped && !depthBack) {
                             fragmentDepth = 0.0 + (0.0000002 / vSize);
                             cameraNormal = -rayDir;
 
