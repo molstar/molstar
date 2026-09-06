@@ -297,14 +297,9 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
             if (bounceIndex > 1) {
                 vec3 accIrradiance = uAmbientColor;
                 #if dLightCount != 0
-                    #ifdef dGlow
-                        vec3 lightSampleDir = rayDir;
-                    #else
-                        vec3 lightSampleDir = prevHitInfo.normal;
-                    #endif
                     #pragma unroll_loop_start
                     for (int i = 0; i < dLightCount; ++i) {
-                        accIrradiance += saturate(dot(lightSampleDir, -uLightDirection[i])) * uLightColor[i];
+                        accIrradiance += saturate(dot(prevHitInfo.normal, -uLightDirection[i])) * uLightColor[i];
                     }
                     #pragma unroll_loop_end
                 #endif
