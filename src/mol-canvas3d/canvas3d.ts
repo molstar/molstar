@@ -819,11 +819,14 @@ namespace Canvas3D {
         function resetTime(t: now.Timestamp) {
             startTime = t;
             controls.start(t);
+            interactionHelper.resetTime(t);
         }
 
         function animate() {
             drawPaused = false;
-            controls.start(now());
+            const t = now();
+            controls.start(t);
+            interactionHelper.resetTime(t);
             if (animationFrameHandle === 0) _animate(0);
         }
 

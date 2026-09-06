@@ -11,8 +11,9 @@ import { PluginContext } from '../../../../mol-plugin/context';
 import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/representation/spacefill';
 import { StateObjectRef, StateObjectSelector, StateBuilder } from '../../../../mol-state';
 import { Color } from '../../../../mol-util/color';
+import { getDistinctBaseColors, getDistinctGroupColors } from '../../../../mol-util/color/distinct';
 import { ColorNames } from '../../../../mol-util/color/names';
-import { GraphicsMode, MesoscaleGroup, MesoscaleState, getDistinctBaseColors, getDistinctGroupColors, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
+import { GraphicsMode, MesoscaleGroup, MesoscaleState, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
 import { CellpackAssembly, CellpackStructure } from './model';
 
 function getSpacefillParams(color: Color, sizeFactor: number, graphics: GraphicsMode, merge?: boolean) {

@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 export type Comparer<T = any> = (data: T, i: number, j: number) => number
@@ -155,5 +156,42 @@ export function sortArrayRange(data: ArrayLike<number>, start: number, end: numb
 export function sort<T>(data: T, start: number, end: number, cmp: Comparer<T>, swap: Swapper<T>): T {
     const ctx: Ctx = { data, cmp, swap, parts: [0, 0] };
     quickSort(ctx, start, end - 1);
+    return data;
+}
+
+const _radixCounts = new Uint32Array(257);
+
+/**
+ * In-place LSD radix sort (8-bit digits) for non-negative integers, ascending.
+ * `maxValue` is an inclusive upper bound of the values and determines the number
+ * of passes; it is computed from the data when omitted.
+ *
+ * Typically outperforms comparison sorts, at the cost of a scratch
+ * array allocation of the same size as the input.
+ */
+export function radixSort<T extends Int32Array | Uint32Array>(data: T, maxValue?: number): T {
+    const n = data.length;
+    if (n < 2) return data;
+
+    let max = maxValue;
+    if (max === undefined) {
+        max = 0;
+        for (let i = 0; i < n; i++) {
+            if (data[i] > max) max = data[i];
+        }
+    }
+
+    const counts = _radixCounts;
+    let a: Int32Array | Uint32Array = data;
+    let b: Int32Array | Uint32Array = new (data.constructor as new (n: number) => T)(n);
+    for (let shift = 0; shift < 32 && (max >>> shift) > 0; shift += 8) {
+        counts.fill(0);
+        for (let i = 0; i < n; i++) counts[((a[i] >>> shift) & 0xff) + 1]++;
+        for (let i = 0; i < 256; i++) counts[i + 1] += counts[i];
+        for (let i = 0; i < n; i++) b[counts[(a[i] >>> shift) & 0xff]++] = a[i];
+        const t = a; a = b; b = t;
+    }
+    // odd number of passes ends in the scratch array
+    if (a !== data) data.set(a);
     return data;
 }

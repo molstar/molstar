@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -11,11 +11,12 @@ import { Box3D } from '../primitives/box3d';
 import { Sphere3D } from '../primitives/sphere3d';
 import { PositionData } from '../common';
 import { Vec3 } from '../../linear-algebra';
-import { OrderedSet } from '../../../mol-data/int';
+import { Interval, OrderedSet, SortedArray } from '../../../mol-data/int';
 import { Boundary } from '../boundary';
 import { FibonacciHeap } from '../../../mol-util/fibonacci-heap';
 import { memoize1 } from '../../../mol-util/memoize';
 import { Ray3D } from '../primitives/ray3d';
+import { radixSort } from '../../../mol-data/util/sort';
 
 interface GridLookup3D<T = number> extends Lookup3D<T> {
     readonly buckets: { readonly offset: ArrayLike<number>, readonly count: ArrayLike<number>, readonly array: ArrayLike<number> }
@@ -127,37 +128,56 @@ function _build(state: BuildState): Grid3D {
     const n = sX * sY * sZ;
     const { min: [minX, minY, minZ] } = expandedBox;
 
+    // resolve the OrderedSet union once instead of per-element getAt dispatch in the hot loops
+    let sortedIndices: SortedArray | undefined;
+    let startIdx = 0;
+    if (Interval.is(indices)) startIdx = Interval.start(indices);
+    else sortedIndices = indices;
+
+    // multiply by reciprocals instead of dividing in the hot loop
+    const invDX = 1 / delta[0], invDY = 1 / delta[1], invDZ = 1 / delta[2];
+
     let maxRadius = 0;
     let bucketCount = 0;
     const grid = new Uint32Array(n);
     const bucketIndex = new Int32Array(elementCount);
+    // occupied cell ids, so compaction does not need to scan all n grid cells
+    const occupied = new Uint32Array(Math.min(n, elementCount));
     for (let t = 0; t < elementCount; t++) {
-        const i = OrderedSet.getAt(indices, t);
-        const x = Math.floor((px[i] - minX) / delta[0]);
-        const y = Math.floor((py[i] - minY) / delta[1]);
-        const z = Math.floor((pz[i] - minZ) / delta[2]);
+        const i = sortedIndices ? sortedIndices[t] : startIdx + t;
+        const x = Math.floor((px[i] - minX) * invDX);
+        const y = Math.floor((py[i] - minY) * invDY);
+        const z = Math.floor((pz[i] - minZ) * invDZ);
         const idx = (((x * sY) + y) * sZ) + z;
 
         if ((grid[idx] += 1) === 1) {
+            occupied[bucketCount] = idx;
             bucketCount += 1;
         }
         bucketIndex[t] = idx;
+
+        if (radius && radius[i] > maxRadius) maxRadius = radius[i];
     }
 
-    if (radius) {
-        for (let t = 0; t < elementCount; t++) {
-            const i = OrderedSet.getAt(indices, t);
-            if (radius[i] > maxRadius) maxRadius = radius[i];
-        }
-    }
-
+    // both branches number buckets in ascending cell-id order
     const bucketCounts = new Int32Array(bucketCount);
-    for (let i = 0, j = 0; i < n; i++) {
-        const c = grid[i];
-        if (c > 0) {
+    if (bucketCount <= n >>> 2) {
+        // sparse grid: radix-sorting the occupied cell ids beats scanning all n cells
+        const occupiedSorted = radixSort(occupied.subarray(0, bucketCount), n - 1);
+        for (let j = 0; j < bucketCount; j++) {
+            const i = occupiedSorted[j];
+            bucketCounts[j] = grid[i];
             grid[i] = j + 1;
-            bucketCounts[j] = c;
-            j += 1;
+        }
+    } else {
+        // dense grid (> ~25% cells occupied): linear scan beats the radix sort
+        for (let i = 0, j = 0; i < n; i++) {
+            const c = grid[i];
+            if (c > 0) {
+                grid[i] = j + 1;
+                bucketCounts[j] = c;
+                j += 1;
+            }
         }
     }
 
@@ -169,12 +189,9 @@ function _build(state: BuildState): Grid3D {
     const bucketFill = new Int32Array(bucketCount);
     const bucketArray = new Int32Array(elementCount);
     for (let i = 0; i < elementCount; i++) {
-        const bucketIdx = grid[bucketIndex[i]];
-        if (bucketIdx > 0) {
-            const k = bucketIdx - 1;
-            bucketArray[bucketOffset[k] + bucketFill[k]] = i;
-            bucketFill[k] += 1;
-        }
+        const k = grid[bucketIndex[i]] - 1;
+        bucketArray[bucketOffset[k] + bucketFill[k]] = i;
+        bucketFill[k] += 1;
     }
 
     return {
