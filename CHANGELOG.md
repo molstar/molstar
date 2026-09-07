@@ -48,8 +48,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Illumination
     - Remove `firstStepSize` tracing parameter, derive automatically
     - Fix illumination `auto` thickness mode never correctly being applied
-    - Fix illumination ray marching stepping over occluders when the acceptance window is narrower than the current step
-    - Evaluate illumination `auto` thickness at the surface being tested instead of latching it from the shaded pixel
+    - Fix illumination ray marching stepping over occluders
+    - Evaluate illumination `auto` thickness at the surface being tested
+    - Fix `NaN` in illumination shadows when a light color channel sums to zero
+    - Fix illumination indirect light ignoring `exposure` and the shading clamp
+    - Remove illumination `glow` parameter
 - Add `.parseRaw` to `DataFormatProvider` for out of state tree parsing
 - Camera improvements
     - Support multiple camera transition shapes
@@ -58,11 +61,6 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add `cameraResetTrajectory` and `cameraResetEasing` parameters to `Canvas3DParams`
     - Fix camera reset handling for (temporary) empty scenes (#1903)
 - MolViewSpec
-  - Added `transition` node with params `duration_ms`, `trajectory`, `easing`
-  - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
-- Fix `NaN` in illumination shadows when a light color channel sums to zero (e.g. ambient intensity 0 with a saturated light color), which rendered geometry as a solid black silhouette
-- Fix illumination indirect light ignoring `exposure` and the shading clamp, which made occluded areas brighter than lit ones at high light intensity
-- Remove illumination `glow` parameter, escaping rays are always weighted by the surface normal
     - Added `transition` node with params `duration_ms`, `trajectory`, `easing`
     - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
     - MVS-related custom model properties (and custom structure properties) are hidden in UI (fixes override of default custom properties)
