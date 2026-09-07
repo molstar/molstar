@@ -55,6 +55,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Remove illumination `glow` parameter
     - Fix sphere/cylinder impostors writing their near surface in the back-depth pass
     - Fix mesh back faces & cylinder far hits being discarded as `interior` in the back-depth pass
+    - Fix illumination shadows not weighing occlusion by per-light irradiance
 - Add `.parseRaw` to `DataFormatProvider` for out of state tree parsing
 - Camera improvements
     - Support multiple camera transition shapes
