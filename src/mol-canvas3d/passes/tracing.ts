@@ -320,11 +320,6 @@ export class TracingPass {
 
         const ambientColor = Vec3();
         Vec3.scale(ambientColor, Color.toArrayNormalized(renderer.props.ambientColor, ambientColor, 0), renderer.props.ambientIntensity);
-        const lightStrength = Vec3.clone(ambientColor);
-        for (let i = 0, il = renderer.light.count; i < il; ++i) {
-            const light = Vec3.fromArray(Vec3(), renderer.light.color, i * 3);
-            Vec3.add(lightStrength, lightStrength, light);
-        }
 
         // trace
         this.holdTarget.bind();
@@ -359,7 +354,6 @@ export class TracingPass {
             needsUpdateTrace = true;
         }
         ValueCell.update(this.traceRenderable.values.uAmbientColor, ambientColor);
-        ValueCell.update(this.traceRenderable.values.uLightStrength, lightStrength);
         ValueCell.updateIfChanged(this.traceRenderable.values.uExposure, renderer.props.exposure);
         if (this.traceRenderable.values.dBounces.ref.value !== props.bounces) {
             ValueCell.update(this.traceRenderable.values.dBounces, props.bounces);
@@ -426,7 +420,6 @@ const TraceSchema = {
     uLightColor: UniformSpec('v3[]'),
     dLightCount: DefineSpec('number'),
     uAmbientColor: UniformSpec('v3'),
-    uLightStrength: UniformSpec('v3'),
     uExposure: UniformSpec('f'),
 
     uFrameNo: UniformSpec('i'),
@@ -475,7 +468,6 @@ function getTraceRenderable(ctx: WebGLContext, colorTexture: Texture, normalText
         uLightColor: ValueCell.create([]),
         dLightCount: ValueCell.create(0),
         uAmbientColor: ValueCell.create(Vec3()),
-        uLightStrength: ValueCell.create(Vec3.create(1, 1, 1)),
         uExposure: ValueCell.create(1),
 
         uFrameNo: ValueCell.create(0),

@@ -30,7 +30,6 @@ uniform vec3 uFogColor;
     uniform vec3 uLightColor[dLightCount];
 #endif
 uniform vec3 uAmbientColor;
-uniform vec3 uLightStrength;
 uniform float uExposure;
 
 uniform int uFrameNo;
@@ -267,19 +266,29 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
             // shadow
             #ifdef dShadowEnable
                 #if dLightCount != 0
-                    vec3 directLight = vec3(uAmbientColor);
-                    #pragma unroll_loop_start
+                    // attenuate by the fraction of unoccluded irradiance, weighting each
+                    // light by its actual contribution so back-facing lights don't darken
+                    vec3 directLight = uAmbientColor;
+                    vec3 fullLight = uAmbientColor;
+                    vec3 irradiance;
+                    float ndotl;
                     bool missed;
                     vec3 hitPos;
+                    #pragma unroll_loop_start
                     for (int i = 0; i < dLightCount; ++i) {
-                        missed = false;
-                        hitPos = viewPos + hitInfo.normal * RayPosNormalNudge;
-                        hitPos += -uLightDirection[i] * (randomFloat(rngState));
-                        rayMarch(-uLightDirection[i] + randomUnitVector(rngState) * uShadowSoftness, uShadowThickness, hitPos, missed);
-                        if (missed) directLight += uLightColor[i];
+                        ndotl = saturate(dot(hitInfo.normal, -uLightDirection[i]));
+                        irradiance = ndotl * uLightColor[i];
+                        fullLight += irradiance;
+                        if (ndotl > 0.0) {
+                            missed = false;
+                            hitPos = viewPos + hitInfo.normal * RayPosNormalNudge;
+                            hitPos += -uLightDirection[i] * (randomFloat(rngState));
+                            rayMarch(-uLightDirection[i] + randomUnitVector(rngState) * uShadowSoftness, uShadowThickness, hitPos, missed);
+                            if (missed) directLight += irradiance;
+                        }
                     }
                     #pragma unroll_loop_end
-                    hitInfo.color *= directLight / max(uLightStrength, vec3(0.0001));
+                    hitInfo.color *= directLight / max(fullLight, vec3(0.0001));
                 #endif
             #endif
 
