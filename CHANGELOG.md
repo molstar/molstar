@@ -48,8 +48,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Illumination
     - Remove `firstStepSize` tracing parameter, derive automatically
     - Fix illumination `auto` thickness mode never correctly being applied
-    - Fix illumination ray marching stepping over occluders when the acceptance window is narrower than the current step
-    - Evaluate illumination `auto` thickness at the surface being tested instead of latching it from the shaded pixel
+    - Fix illumination ray marching stepping over occluders
+    - Evaluate illumination `auto` thickness at the surface being tested
+    - Fix `NaN` in illumination shadows when a light color channel sums to zero
+    - Fix illumination indirect light ignoring `exposure` and the shading clamp
+    - Remove illumination `glow` parameter
 - Add `.parseRaw` to `DataFormatProvider` for out of state tree parsing
 - Camera improvements
     - Support multiple camera transition shapes
