@@ -15,6 +15,7 @@ import * as ReactDOM from 'react-dom';
 import { createPluginUI } from '../../mol-plugin-ui';
 import { renderReact18 } from '../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
+import { PluginConfig } from '../../mol-plugin/config';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { VolumeBodiesBehavior, VolumeBodiesManager } from '../../extensions/volume-bodies';
@@ -36,6 +37,15 @@ async function init() {
                     showControls: false, // hide Mol* built-in panels; we use our own
                 },
             },
+            components: {
+                ...spec.components,
+                viewport: { ...spec.components?.viewport, controls: () => null },
+            },
+            config: [
+                ...(spec.config ?? []),
+                [PluginConfig.Viewport.ShowAnimation, false],
+                [PluginConfig.Viewport.ShowTrajectoryControls, false],
+            ],
         },
     });
 
