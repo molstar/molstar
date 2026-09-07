@@ -1,24 +1,24 @@
-# Volume Bodies
+# Volume Segmentor
 
 Interactive segmentation of a volume into several *bodies* in Mol*. Each body is defined by polygons drawn from any camera angle: voxels above the density threshold whose projection falls inside all of a body's views belong to it (inverted views exclude). Bodies are resolved in list order, an optional remainder body takes what is left, and dust can be removed from the source volume. Views stay editable per body; labels are recomputed from the definitions after every change. Export writes one soft-edged MRC mask per body (largest body first).
 
 ## Structure
 
-- `VolumeBodiesBehavior` — add to the plugin spec. Registers the `body-label` color theme and creates a `VolumeBodiesManager`.
-- `VolumeBodiesManager` (`VolumeBodiesManager.get(plugin)`) — headless state and operations: target volume, threshold, body definitions (views, order, remainder), dust removal, undo, mask previews, export. State is observable via `manager.behaviors.state`.
+- `VolumeSegmentorBehavior` — add to the plugin spec. Registers the `body-label` color theme and creates a `VolumeSegmentorManager`.
+- `VolumeSegmentorManager` (`VolumeSegmentorManager.get(plugin)`) — headless state and operations: target volume, threshold, body definitions (views, order, remainder), dust removal, undo, mask previews, export. State is observable via `manager.behaviors.state`.
 - `BodyMaskFromLabels` — state transformer building the soft mask volume of one body (used for previews).
 - `BodyLabels` — the per-voxel label store attached to the source `Volume` (`0` = unassigned, `1..255` = body id).
 - `internal/` — pure compute: candidates, label operations, mask computation (extend + cosine soft edge from an exact Euclidean distance transform), export.
 
-The UI lives in `src/examples/volume-bodies/` and mirrors the volume-mask example.
+The UI lives in `src/examples/volume-segmentor/` and mirrors the volume-mask example.
 
 ## Usage
 
 ```ts
-import { VolumeBodiesBehavior, VolumeBodiesManager } from 'molstar/lib/extensions/volume-bodies';
+import { VolumeSegmentorBehavior, VolumeSegmentorManager } from 'molstar/lib/extensions/volume-segmentor';
 
-const plugin = await createPluginUI({ ..., spec: { ...spec, behaviors: [...spec.behaviors, PluginSpec.Behavior(VolumeBodiesBehavior)] } });
-const manager = VolumeBodiesManager.get(plugin)!;
+const plugin = await createPluginUI({ ..., spec: { ...spec, behaviors: [...spec.behaviors, PluginSpec.Behavior(VolumeSegmentorBehavior)] } });
+const manager = VolumeSegmentorManager.get(plugin)!;
 
 await manager.setTargetVolume(volumeRef);      // colors its isosurface by body label
 const body = manager.addBody('Head')!;
@@ -32,7 +32,7 @@ Masks are written on the source grid with values in `[0, 1]`: `1` inside the bod
 ## Example app
 
 ```bash
-npm run dev -- -e volume-bodies      # watch + build
+npm run dev -- -e volume-segmentor      # watch + build
 http-server -p 1338 -g               # serve
-# open http://localhost:1338/build/examples/volume-bodies/  (optionally ?url=<map.mrc>)
+# open http://localhost:1338/build/examples/volume-segmentor/  (optionally ?url=<map.mrc>)
 ```

@@ -3,7 +3,7 @@
  *
  * @author Tadej Satler <tadej.satler@gmail.com>
  *
- * Styles shared by the volume-mask and volume-bodies example panels.
+ * Styles shared by the volume-mask and volume-segmentor example panels.
  */
 
 import * as React from 'react';

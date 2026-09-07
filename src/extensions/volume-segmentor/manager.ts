@@ -26,7 +26,7 @@ import { BodyId, BodyInfo, BodyMaskParams, LabelStore, MaxBodyId, ViewMask } fro
 
 export type PreviewMode = 'none' | 'active' | 'all';
 
-export interface VolumeBodiesStats {
+export interface VolumeSegmentorStats {
     /** Voxels above the threshold. */
     candidates: number
     /** Voxels above the threshold not assigned to any body. */
@@ -34,7 +34,7 @@ export interface VolumeBodiesStats {
     total: number
 }
 
-export interface VolumeBodiesState {
+export interface VolumeSegmentorState {
     targetVolumeRef: StateTransform.Ref | undefined
     threshold: Volume.IsoValue
     isDrawing: boolean
@@ -44,7 +44,7 @@ export interface VolumeBodiesState {
     defaults: BodyMaskParams
     preview: PreviewMode
     undoDepth: number
-    stats: VolumeBodiesStats
+    stats: VolumeSegmentorStats
     busy: boolean
     /** Mirrors `LabelStore.version`. */
     version: number
@@ -59,9 +59,9 @@ const UnassignedColor = Color(0x9a9a9a);
 
 const BodyPalette: Color[] = ColorLists['many-distinct'].list.map(e => Array.isArray(e) ? e[0] : e);
 
-const managers = new WeakMap<PluginContext, VolumeBodiesManager>();
+const managers = new WeakMap<PluginContext, VolumeSegmentorManager>();
 
-function defaultState(): VolumeBodiesState {
+function defaultState(): VolumeSegmentorState {
     return {
         targetVolumeRef: undefined,
         threshold: Volume.IsoValue.relative(3),
@@ -84,11 +84,11 @@ function defaultState(): VolumeBodiesState {
  * definitions after every change and kept in sync with the plugin state (colored source
  * surface, per-body mask previews).
  */
-export class VolumeBodiesManager extends StatefulPluginComponent<VolumeBodiesState> {
-    static get(plugin: PluginContext): VolumeBodiesManager | undefined {
+export class VolumeSegmentorManager extends StatefulPluginComponent<VolumeSegmentorState> {
+    static get(plugin: PluginContext): VolumeSegmentorManager | undefined {
         return managers.get(plugin);
     }
-    static register(plugin: PluginContext, manager: VolumeBodiesManager) {
+    static register(plugin: PluginContext, manager: VolumeSegmentorManager) {
         managers.set(plugin, manager);
     }
     static unregister(plugin: PluginContext) {
@@ -96,7 +96,7 @@ export class VolumeBodiesManager extends StatefulPluginComponent<VolumeBodiesSta
     }
 
     readonly behaviors = {
-        state: this.ev.behavior<VolumeBodiesState>(this.state),
+        state: this.ev.behavior<VolumeSegmentorState>(this.state),
     };
 
     private candidates: Int32Array = new Int32Array(0);
@@ -119,7 +119,7 @@ export class VolumeBodiesManager extends StatefulPluginComponent<VolumeBodiesSta
         });
     }
 
-    private update(patch: Partial<VolumeBodiesState>) {
+    private update(patch: Partial<VolumeSegmentorState>) {
         if (this.updateState(patch)) this.behaviors.state.next(this.state);
     }
 
@@ -219,7 +219,7 @@ export class VolumeBodiesManager extends StatefulPluginComponent<VolumeBodiesSta
         if (store.bodies.length > 0) await this.recompute();
     }
 
-    private computeStats(store: LabelStore): VolumeBodiesStats {
+    private computeStats(store: LabelStore): VolumeSegmentorStats {
         return {
             candidates: this.candidates.length,
             unassigned: countUnassigned(store.labels, this.candidates),

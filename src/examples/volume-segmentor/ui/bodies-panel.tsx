@@ -15,21 +15,21 @@ import { PluginContext } from '../../../mol-plugin/context';
 import { Asset } from '../../../mol-util/assets';
 import { Color } from '../../../mol-util/color';
 import { UUID } from '../../../mol-util/uuid';
-import { isBodyMaskCell, VolumeBodiesManager, VolumeBodiesState } from '../../../extensions/volume-bodies';
-import type { BodyInfo, Point2D } from '../../../extensions/volume-bodies';
+import { isBodyMaskCell, VolumeSegmentorManager, VolumeSegmentorState } from '../../../extensions/volume-segmentor';
+import type { BodyInfo, Point2D } from '../../../extensions/volume-segmentor';
 import { DrawingCanvas } from '../../volume-mask/ui/drawing-canvas';
 import { SectionDivider, btnStyle, hintStyle, labelStyle, numInputStyle, rowStyle, smallBtnStyle } from '../../volume-mask/ui/panel-styles';
 
 interface Props {
     plugin: PluginContext;
-    manager: VolumeBodiesManager;
+    manager: VolumeSegmentorManager;
 }
 
 const DEFERRED_THRESHOLD_PREVIEW_DIMENSION = 280;
 const FALLBACK_COLOR = '#FF6B00';
 
 export function BodiesPanel({ plugin, manager }: Props) {
-    const [state, setState] = useState<VolumeBodiesState>(manager.state);
+    const [state, setState] = useState<VolumeSegmentorState>(manager.state);
     const [previewViewId, setPreviewViewId] = useState<string | null>(null);
     const [busy, setBusy] = useState<string | null>(null);
     const [dustMinVoxels, setDustMinVoxels] = useState(100);
@@ -157,7 +157,7 @@ export function BodiesPanel({ plugin, manager }: Props) {
 
     return (
         <div style={{ padding: '8px', fontFamily: 'sans-serif', fontSize: '13px', color: '#ccc' }}>
-            <h3 style={{ margin: '0 0 8px', color: '#fff' }}>Volume Bodies</h3>
+            <h3 style={{ margin: '0 0 8px', color: '#fff' }}>Volume Segmentor</h3>
 
             {/* ── Data ─────────────────────────────────────────── */}
             <input ref={volumeInputRef} type='file'
@@ -315,7 +315,7 @@ export function BodiesPanel({ plugin, manager }: Props) {
     );
 }
 
-function BodyRow({ body, index, state, manager, busy }: { body: BodyInfo, index: number, state: VolumeBodiesState, manager: VolumeBodiesManager, busy: boolean }) {
+function BodyRow({ body, index, state, manager, busy }: { body: BodyInfo, index: number, state: VolumeSegmentorState, manager: VolumeSegmentorManager, busy: boolean }) {
     const isActive = body.id === state.activeBodyId;
     const previewed = state.preview === 'all' || (state.preview === 'active' && isActive);
     const total = Math.max(1, state.stats.candidates);
@@ -359,7 +359,7 @@ function BodyRow({ body, index, state, manager, busy }: { body: BodyInfo, index:
 }
 
 function BodySettings({ body, state, manager, busy, previewViewId, setPreviewViewId }: {
-    body: BodyInfo, state: VolumeBodiesState, manager: VolumeBodiesManager, busy: boolean,
+    body: BodyInfo, state: VolumeSegmentorState, manager: VolumeSegmentorManager, busy: boolean,
     previewViewId: string | null, setPreviewViewId: (id: string | null) => void
 }) {
     const custom = body.extend !== undefined || body.softEdge !== undefined;
@@ -431,7 +431,7 @@ function BodySettings({ body, state, manager, busy, previewViewId, setPreviewVie
     );
 }
 
-function StatusText({ state }: { state: VolumeBodiesState }) {
+function StatusText({ state }: { state: VolumeSegmentorState }) {
     const { candidates, unassigned } = state.stats;
     const pct = candidates > 0 ? (100 * unassigned / candidates).toFixed(1) : '0';
     const empty = state.bodies.filter(b => b.voxelCount === 0);

@@ -3,15 +3,15 @@
  *
  * @author Tadej Satler <tadej.satler@gmail.com>
  *
- * Volume Bodies extension for Mol*: interactively split a volume into several bodies and
+ * Volume Segmentor extension for Mol*: interactively split a volume into several bodies and
  * export one soft-edged MRC mask per body.
  *
- * For a full interactive UI, see `src/examples/volume-bodies/`.
+ * For a full interactive UI, see `src/examples/volume-segmentor/`.
  */
 
-export { VolumeBodiesBehavior } from './behavior';
-export { VolumeBodiesManager, isBodyMaskCell } from './manager';
-export type { VolumeBodiesState, VolumeBodiesStats, PreviewMode } from './manager';
+export { VolumeSegmentorBehavior } from './behavior';
+export { VolumeSegmentorManager, isBodyMaskCell } from './manager';
+export type { VolumeSegmentorState, VolumeSegmentorStats, PreviewMode } from './manager';
 export { BodyMaskFromLabels, BodyMaskFromLabelsTag } from './transformers';
 export { BodyLabelColorThemeProvider, BodyLabelColorThemeParams } from './theme';
 export { BodyLabels } from './labels';

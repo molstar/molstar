@@ -15,7 +15,7 @@ import { MaxBodyId } from './types';
 
 export { BodyMaskFromLabels };
 
-export const BodyMaskFromLabelsTag = 'volume-bodies-mask';
+export const BodyMaskFromLabelsTag = 'volume-segmentor-mask';
 
 type BodyMaskFromLabels = typeof BodyMaskFromLabels
 const BodyMaskFromLabels = PluginStateTransform.BuiltIn({

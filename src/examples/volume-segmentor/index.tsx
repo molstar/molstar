@@ -3,11 +3,11 @@
  *
  * @author Tadej Satler <tadej.satler@gmail.com>
  *
- * Volume Bodies — standalone example page.
+ * Volume Segmentor — standalone example page.
  *
- * Start:  npm run dev -- -e volume-bodies
+ * Start:  npm run dev -- -e volume-segmentor
  * Serve:  http-server -p 1338 -g
- * Open:   http://localhost:1338/build/examples/volume-bodies/ (optionally ?url=<map.mrc>)
+ * Open:   http://localhost:1338/build/examples/volume-segmentor/ (optionally ?url=<map.mrc>)
  */
 
 import * as React from 'react';
@@ -18,7 +18,7 @@ import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginConfig } from '../../mol-plugin/config';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginSpec } from '../../mol-plugin/spec';
-import { VolumeBodiesBehavior, VolumeBodiesManager } from '../../extensions/volume-bodies';
+import { VolumeSegmentorBehavior, VolumeSegmentorManager } from '../../extensions/volume-segmentor';
 import { BodiesPanel } from './ui/bodies-panel';
 import '../../mol-plugin-ui/skin/light.scss';
 import './index.html';
@@ -30,7 +30,7 @@ async function init() {
         render: renderReact18,
         spec: {
             ...spec,
-            behaviors: [...spec.behaviors, PluginSpec.Behavior(VolumeBodiesBehavior)],
+            behaviors: [...spec.behaviors, PluginSpec.Behavior(VolumeSegmentorBehavior)],
             layout: {
                 initial: {
                     isExpanded: false, // stay inside #app; expanded mode is position: fixed
@@ -49,7 +49,7 @@ async function init() {
         },
     });
 
-    const manager = VolumeBodiesManager.get(plugin)!;
+    const manager = VolumeSegmentorManager.get(plugin)!;
     ReactDOM.render(
         React.createElement(BodiesPanel, { plugin, manager }),
         document.getElementById('bodies-panel')!

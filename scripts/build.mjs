@@ -29,7 +29,7 @@ const Apps = [
     { kind: 'example', name: 'interactions' },
     { kind: 'example', name: 'ligand-editor' },
     { kind: 'example', name: 'volume-mask' },
-    { kind: 'example', name: 'volume-bodies' },
+    { kind: 'example', name: 'volume-segmentor' },
     { kind: 'example', name: 'react' },
 ];
 
