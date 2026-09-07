@@ -10,6 +10,8 @@ export default defineConfig([{
         "deploy/*",
         "docs/site/*",
         "lib/*",
+        // vendored third-party code (jsfive, public domain) - not ours to lint
+        "src/mol-io/common/h5/*",
         "eslint.config.mjs",
         "build.mjs",
     ]
