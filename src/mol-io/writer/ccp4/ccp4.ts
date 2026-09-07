@@ -12,9 +12,30 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 const HEADER_BYTES = 1024;
 
 export namespace CCP4Writer {
+    /**
+     * Returns `data` in canonical (x fastest, z slowest) memory order, matching the
+     * MAPC/MAPR/MAPS = 1/2/3 header written below. Volumes whose tensor uses a
+     * different axis order are permuted; canonical volumes are returned as is.
+     */
+    export function toCanonicalOrder(grid: Grid, data: Uint8Array | Float32Array): Uint8Array | Float32Array {
+        const { space } = grid.cells;
+        const order = space.axisOrderSlowToFast;
+        if (order.length === 3 && order[0] === 2 && order[1] === 1 && order[2] === 0) return data;
+
+        const [nx, ny] = space.dimensions as [number, number, number];
+        const out = new (data.constructor as new (n: number) => Uint8Array | Float32Array)(data.length);
+        const c = [0, 0, 0];
+        for (let o = 0, n = data.length; o < n; o++) {
+            space.getCoords(o, c);
+            out[c[0] + c[1] * nx + c[2] * nx * ny] = data[o];
+        }
+        return out;
+    }
+
     export function writeMrc(grid: Grid, data: Uint8Array | Float32Array): ArrayBuffer {
         const [nx, ny, nz] = grid.cells.space.dimensions as [number, number, number];
         const voxelCount = nx * ny * nz;
+        data = toCanonicalOrder(grid, data);
         const buf = new ArrayBuffer(HEADER_BYTES + voxelCount * 4);
         const i32 = new Int32Array(buf);
         const f32 = new Float32Array(buf);

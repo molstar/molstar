@@ -17,14 +17,14 @@ const tmpVec4 = Vec4();
 const tmpG2C = Mat4();
 
 /** Pre-computed camera data for a single ViewMask — built once before the voxel loop. */
-interface PreparedMask {
+export interface PreparedMask {
     projectionView: Mat4;
     viewport: Viewport;
     normPolygon: [number, number][];
     inverted: boolean;
 }
 
-function prepareMask(mask: ViewMask): PreparedMask {
+export function prepareMask(mask: ViewMask): PreparedMask {
     const viewport = Viewport.create(0, 0, mask.viewportWidth, mask.viewportHeight);
     const cam = new Camera(mask.cameraSnapshot, viewport);
     cam.update();
@@ -35,13 +35,13 @@ function prepareMask(mask: ViewMask): PreparedMask {
     return { projectionView, viewport, normPolygon, inverted: !!mask.inverted };
 }
 
-/** Projects a world-space point to normalised [0,1] canvas coords (Y flipped). */
-const tmpNorm: [number, number] = [0, 0];
-function projectToNormInPlace(worldPos: Vec3, prepared: PreparedMask): void {
+/** Projects a world-space point to normalised [0,1] canvas coords (Y flipped), written to `out`. */
+export function projectToNormInPlace(worldPos: Vec3, prepared: PreparedMask, out: [number, number]): void {
     cameraProject(tmpVec4, worldPos, prepared.viewport, prepared.projectionView);
-    tmpNorm[0] = tmpVec4[0] / prepared.viewport.width;
-    tmpNorm[1] = 1 - tmpVec4[1] / prepared.viewport.height;
+    out[0] = tmpVec4[0] / prepared.viewport.width;
+    out[1] = 1 - tmpVec4[1] / prepared.viewport.height;
 }
+const tmpNorm: [number, number] = [0, 0];
 
 export interface MaskComputeParams {
     viewMasks: ViewMask[];
@@ -83,7 +83,7 @@ export async function computeVolumeMask(
 
                 let passes = true;
                 for (let m = 0; m < prepared.length; m++) {
-                    projectToNormInPlace(tmpVec3, prepared[m]);
+                    projectToNormInPlace(tmpVec3, prepared[m], tmpNorm);
                     const inside = pointInPolygon(tmpNorm[0], tmpNorm[1], prepared[m].normPolygon);
                     if (prepared[m].inverted ? inside : !inside) {
                         passes = false;
