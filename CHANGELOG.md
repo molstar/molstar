@@ -67,6 +67,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
     - MVS-related custom model properties (and custom structure properties) are hidden in UI (fixes override of default custom properties)
 - Remove `new Function` usage for CSP / SOC2 compliance; server path templates use a whitelist of `${id...}` string methods
+- Fix CCP4/MRC volumes with unset cell angles failing to load
+- Fix CCP4/MRC volume `sigma` being taken from the header when the header rms is negative
 - Add Particles as first class objects
     - `ParticleList` and `ParticleTrajectory`
     - Formats: ariatomi-em, cryoet-ndjson, dynamo-tbl, relion-star, simularium, cellpack & petworld mmcif
