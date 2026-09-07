@@ -31,6 +31,7 @@ uniform vec3 uFogColor;
 #endif
 uniform vec3 uAmbientColor;
 uniform vec3 uLightStrength;
+uniform float uExposure;
 
 uniform int uFrameNo;
 
@@ -278,7 +279,7 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
                         if (missed) directLight += uLightColor[i];
                     }
                     #pragma unroll_loop_end
-                    hitInfo.color *= directLight / uLightStrength;
+                    hitInfo.color *= directLight / max(uLightStrength, vec3(0.0001));
                 #endif
             #endif
 
@@ -292,28 +293,19 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
 
         // if the ray missed, we are done
         if (hitInfo.missed) {
-            vec3 accIrradiance = vec3(1.0);
-            #ifdef dGlow
-                if (bounceIndex > 1) {
-                    accIrradiance = uLightStrength;
-                }
-            #else
-                if (bounceIndex > 1) {
-                    accIrradiance = uAmbientColor;
-                    #if dLightCount != 0
-                        #pragma unroll_loop_start
-                        float dotNL;
-                        vec3 irradiance;
-                        for (int i = 0; i < dLightCount; ++i) {
-                            dotNL = saturate(dot(prevHitInfo.normal, -uLightDirection[i]));
-                            irradiance = dotNL * uLightColor[i];
-                            accIrradiance += irradiance;
-                        }
-                        #pragma unroll_loop_end
-                    #endif
-                }
-            #endif
-            ret += prevHitInfo.color * accIrradiance * throughput;
+            vec3 escapeColor = prevHitInfo.color;
+            if (bounceIndex > 1) {
+                vec3 accIrradiance = uAmbientColor;
+                #if dLightCount != 0
+                    #pragma unroll_loop_start
+                    for (int i = 0; i < dLightCount; ++i) {
+                        accIrradiance += saturate(dot(prevHitInfo.normal, -uLightDirection[i])) * uLightColor[i];
+                    }
+                    #pragma unroll_loop_end
+                #endif
+                escapeColor = min(prevHitInfo.color * accIrradiance, 0.99) * uExposure;
+            }
+            ret += escapeColor * throughput;
             break;
         }
 
