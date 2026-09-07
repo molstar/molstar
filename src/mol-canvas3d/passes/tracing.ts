@@ -52,7 +52,6 @@ export const TracingParams = {
     thicknessFactor: PD.Numeric(1, { min: 0.1, max: 2, step: 0.05 }, { hideIf: p => p.thicknessMode === 'fixed' }),
     thickness: PD.Numeric(4, { min: 0.1, max: 512, step: 0.1 }, { hideIf: p => p.thicknessMode === 'auto' }),
     bounces: PD.Numeric(4, { min: 1, max: 32, step: 1 }, { description: 'Number of bounces for each ray.' }),
-    glow: PD.Boolean(true, { description: 'Bounced rays always get the full light. This produces a slight glowing effect.' }),
     shadowEnable: PD.Boolean(false),
     shadowSoftness: PD.Numeric(0.1, { min: 0.01, max: 1.0, step: 0.01 }),
     shadowThickness: PD.Numeric(0.5, { min: 0.0, max: 32, step: 0.1 }, { description: 'Thickness of the shadow casting geometry. Set to 0.0 for automatic estimation.' }),
@@ -366,10 +365,7 @@ export class TracingPass {
         }
         ValueCell.update(this.traceRenderable.values.uAmbientColor, ambientColor);
         ValueCell.update(this.traceRenderable.values.uLightStrength, lightStrength);
-        if (this.traceRenderable.values.dGlow.ref.value !== props.glow) {
-            ValueCell.update(this.traceRenderable.values.dGlow, props.glow);
-            needsUpdateTrace = true;
-        }
+        ValueCell.updateIfChanged(this.traceRenderable.values.uExposure, renderer.props.exposure);
         if (this.traceRenderable.values.dBounces.ref.value !== props.bounces) {
             ValueCell.update(this.traceRenderable.values.dBounces, props.bounces);
             needsUpdateTrace = true;
@@ -462,11 +458,11 @@ const TraceSchema = {
     dLightCount: DefineSpec('number'),
     uAmbientColor: UniformSpec('v3'),
     uLightStrength: UniformSpec('v3'),
+    uExposure: UniformSpec('f'),
 
     uFrameNo: UniformSpec('i'),
     dRendersPerFrame: DefineSpec('number'),
 
-    dGlow: DefineSpec('boolean'),
     dBounces: DefineSpec('number'),
     dSteps: DefineSpec('number'),
     dRefineSteps: DefineSpec('number'),
@@ -511,11 +507,11 @@ function getTraceRenderable(ctx: WebGLContext, colorTexture: Texture, normalText
         dLightCount: ValueCell.create(0),
         uAmbientColor: ValueCell.create(Vec3()),
         uLightStrength: ValueCell.create(Vec3.create(1, 1, 1)),
+        uExposure: ValueCell.create(1),
 
         uFrameNo: ValueCell.create(0),
         dRendersPerFrame: ValueCell.create(1),
 
-        dGlow: ValueCell.create(true),
         dBounces: ValueCell.create(4),
         dSteps: ValueCell.create(32),
         dRefineSteps: ValueCell.create(4),
