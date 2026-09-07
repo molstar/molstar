@@ -17,7 +17,8 @@ export const check_transparency = `
 
 #if defined(dRenderVariant_depth)
     #if defined(dTransparentBackfaces_off)
-        if (interior) discard;
+        // interior fragments are the surface of interest in the back-depth pass
+        if (interior && !uDepthBack) discard;
     #endif
 #endif
 `;

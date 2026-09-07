@@ -53,6 +53,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fix `NaN` in illumination shadows when a light color channel sums to zero
     - Fix illumination indirect light ignoring `exposure` and the shading clamp
     - Remove illumination `glow` parameter
+    - Fix sphere/cylinder impostors writing their near surface in the back-depth pass
+    - Fix mesh back faces & cylinder far hits being discarded as `interior` in the back-depth pass
 - Add `.parseRaw` to `DataFormatProvider` for out of state tree parsing
 - Camera improvements
     - Support multiple camera transition shapes
