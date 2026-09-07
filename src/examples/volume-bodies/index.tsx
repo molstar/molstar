@@ -32,7 +32,7 @@ async function init() {
             behaviors: [...spec.behaviors, PluginSpec.Behavior(VolumeBodiesBehavior)],
             layout: {
                 initial: {
-                    isExpanded: true,
+                    isExpanded: false, // stay inside #app; expanded mode is position: fixed
                     showControls: false, // hide Mol* built-in panels; we use our own
                 },
             },
