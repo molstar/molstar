@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { IntraUnitBondCylinderVisual, IntraUnitBondCylinderParams, StructureIntraUnitBondCylinderParams, StructureIntraUnitBondCylinderVisual } from '../visual/bond-intra-unit-cylinder';
@@ -14,6 +15,8 @@ import { StructureRepresentation, StructureRepresentationProvider, StructureRepr
 import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
+import { CustomProperty } from '../../../mol-model-props/common/custom-property';
+import { BondOrderProvider } from '../../../mol-model-props/computed/bond-orders';
 import { getUnitKindsParam } from '../params';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
@@ -72,5 +75,13 @@ export const BallAndStickRepresentationProvider = StructureRepresentationProvide
     },
     mustRecreate: (oldProps: PD.Values<BallAndStickParams>, newProps: PD.Values<BallAndStickParams>) => {
         return oldProps.includeParent !== newProps.includeParent;
+    },
+    ensureCustomProperties: {
+        attach: async (ctx: CustomProperty.Context, structure: Structure) => {
+            await BondOrderProvider.attach(ctx, structure, void 0, true);
+        },
+        detach: (data) => {
+            BondOrderProvider.ref(data, false);
+        }
     }
 });

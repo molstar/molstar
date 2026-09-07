@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { Structure } from '../../mol-model/structure';
@@ -10,6 +11,7 @@ import { calcValenceModel, ValenceModel, ValenceModelParams as _ValenceModelPara
 import { CustomStructureProperty } from '../common/custom-structure-property';
 import { CustomProperty } from '../common/custom-property';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
+import { BondOrderProvider } from './bond-orders';
 
 export const ValenceModelParams = {
     ..._ValenceModelParams
@@ -31,6 +33,7 @@ export const ValenceModelProvider: CustomStructureProperty.Provider<ValenceModel
     isApplicable: (data: Structure) => true,
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<ValenceModelProps>) => {
         const p = { ...PD.getDefaultValues(ValenceModelParams), ...props };
+        await BondOrderProvider.attach(ctx, data, void 0, true);
         return { value: await calcValenceModel(ctx.runtime, data, p) };
     }
 });

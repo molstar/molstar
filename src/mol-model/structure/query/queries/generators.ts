@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { UniqueArray } from '../../../../mol-data/generic';
@@ -16,6 +17,7 @@ import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
 import { LinearGroupingBuilder } from '../utils/builders';
 import { structureSubtract } from '../utils/structure-set';
+import { getUnitBondProps } from '../../../../mol-model-props/computed/bond-orders';
 
 export const none: StructureQuery = ctx => StructureSelection.Sequence(ctx.inputStructure, []);
 export const all: StructureQuery = ctx => StructureSelection.Singletons(ctx.inputStructure, ctx.inputStructure);
@@ -322,7 +324,8 @@ export function bondedAtomicPairs(bondTest?: QueryPredicate): StructureQuery {
         for (const unit of structure.units) {
             if (unit.kind !== Unit.Kind.Atomic) continue;
 
-            const { offset: intraBondOffset, b: intraBondB, edgeProps: { flags, order, key } } = unit.bonds;
+            const { offset: intraBondOffset, b: intraBondB, edgeProps: { key } } = unit.bonds;
+            const { order, flags } = getUnitBondProps(structure, unit);
             atomicBond.a.unit = unit;
             atomicBond.b.unit = unit;
             for (let i = 0 as StructureElement.UnitIndex, _i = unit.elements.length; i < _i; i++) {

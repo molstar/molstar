@@ -3,12 +3,14 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Structure, Unit, Bond, StructureElement } from '../../../mol-model/structure';
 import { Features, FeaturesBuilder } from './features';
 import { ValenceModelProvider } from '../valence-model';
+import { BondOrderProvider } from '../bond-orders';
 import { InteractionsIntraContacts, InteractionsInterContacts, FeatureType, InteractionType, InteractionFlag, interactionTypeLabel } from './common';
 import { IntraContactsBuilder, InterContactsBuilder } from './contacts-builder';
 import { IntMap, OrderedSet } from '../../../mol-data/int';
@@ -318,6 +320,7 @@ export async function computeInteractions(ctx: CustomProperty.Context, structure
     const p = { ...PD.getDefaultValues(InteractionsParams), ...props };
     const cacheKey = JSON.stringify(p);
 
+    await BondOrderProvider.attach(ctx, structure);
     await ValenceModelProvider.attach(ctx, structure);
 
     const contactTesters: ContactTester[] = [];

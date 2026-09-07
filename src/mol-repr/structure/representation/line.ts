@@ -2,6 +2,7 @@
  * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { IntraUnitBondLineVisual, IntraUnitBondLineParams, StructureIntraUnitBondLineParams, StructureIntraUnitBondLineVisual } from '../visual/bond-intra-unit-line';
@@ -13,6 +14,8 @@ import { StructureRepresentation, StructureRepresentationProvider, StructureRepr
 import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
+import { CustomProperty } from '../../../mol-model-props/common/custom-property';
+import { BondOrderProvider } from '../../../mol-model-props/computed/bond-orders';
 import { getUnitKindsParam } from '../params';
 import { ElementPointParams, ElementPointVisual, StructureElementPointParams, StructureElementPointVisual } from '../visual/element-point';
 import { ElementCrossParams, ElementCrossVisual, StructureElementCrossParams, StructureElementCrossVisual } from '../visual/element-cross';
@@ -76,5 +79,13 @@ export const LineRepresentationProvider = StructureRepresentationProvider({
     },
     mustRecreate: (oldProps: PD.Values<LineParams>, newProps: PD.Values<LineParams>) => {
         return oldProps.includeParent !== newProps.includeParent;
+    },
+    ensureCustomProperties: {
+        attach: async (ctx: CustomProperty.Context, structure: Structure) => {
+            await BondOrderProvider.attach(ctx, structure, void 0, true);
+        },
+        detach: (data) => {
+            BondOrderProvider.ref(data, false);
+        }
     }
 });

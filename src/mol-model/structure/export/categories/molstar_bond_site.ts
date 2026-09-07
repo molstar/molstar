@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { Column } from '../../../../mol-data/db';
@@ -10,6 +11,7 @@ import { BondType } from '../../model/types';
 import { StructureElement, StructureProperties, Unit } from '../../structure';
 import { CifExportCategoryInfo, CifExportContext } from '../mmcif';
 import { sortedCantorPairing } from '../../../../mol-data/util';
+import { getUnitBondProps } from '../../../../mol-model-props/computed/bond-orders';
 
 export function molstar_bond_site(ctx: CifExportContext): CifExportCategoryInfo | undefined {
     const entries = getEntries(ctx);
@@ -65,7 +67,7 @@ function assignValueOrder(order: number, flags: BondType.Flag, out: [MolstarBond
     else if (order === 2) out[0] = 'doub';
     else if (order === 3) out[0] = 'trip';
     else if (order === 4) out[0] = 'quad';
-    if (BondType.is(flags, BondType.Flag.Aromatic)) out[0] = 'arom';
+    if (BondType.is(flags, BondType.Flag.Aromatic) || BondType.is(flags, BondType.Flag.AromaticHuckel)) out[0] = 'arom';
 
     if (BondType.is(flags, BondType.Flag.Disulfide)) out[1] = 'disulf';
     else if (BondType.is(flags, BondType.Flag.Covalent)) out[1] = 'covale';
@@ -100,7 +102,8 @@ function getEntries(ctx: CifExportContext) {
             if (!Unit.isAtomic(u)) continue;
 
             const { elements } = u;
-            const { a, b, edgeProps } = u.bonds;
+            const { a, b } = u.bonds;
+            const { order, flags } = getUnitBondProps(s, u);
             loc.unit = u;
 
             for (let i = 0; i < a.length; i++) {
@@ -109,7 +112,7 @@ function getEntries(ctx: CifExportContext) {
                 loc.element = elements[b[i]];
                 const atom_id_2 = atom_id(loc);
 
-                assignValueOrder(edgeProps.order[i], edgeProps.flags[i], info);
+                assignValueOrder(order[i], flags[i], info);
                 add(atom_id_1, atom_id_2);
             }
         }

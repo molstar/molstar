@@ -97,7 +97,7 @@ export function eachInterBondedAtom(structure: Structure, unit: Unit.Atomic, ind
 export function eachIntraBondedAtom(unit: Unit.Atomic, index: StructureElement.UnitIndex, cb: (unit: Unit.Atomic, index: StructureElement.UnitIndex) => void): void {
     const { offset, b, edgeProps: { flags } } = unit.bonds;
     for (let i = offset[index], il = offset[index + 1]; i < il; ++i) {
-        if (BondType.isCovalent(flags[i])) cb(unit, b[i] as StructureElement.UnitIndex);
+        if (BondType.isCovalent(flags[i])) cb(unit, b[i]);
     }
 }
 

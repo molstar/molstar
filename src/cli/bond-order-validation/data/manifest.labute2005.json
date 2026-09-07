@@ -1,0 +1,1193 @@
+[
+  {
+    "pdbId": "1AAQ",
+    "compId": "PSI",
+    "name": "methyl N-{(4S,5S)-5-[(L-alanyl-L-alanyl)amino]-4-hydroxy-6-phenylhexanoyl}-L-valyl-L-valinate",
+    "smiles": "COC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CC[C@H](O)[C@H](Cc1ccccc1)NC(=O)[C@H](C)NC(=O)[C@H](C)N)C(C)C)C(C)C",
+    "skipBonds": [
+      {"a": "C5", "b": "O4", "reason": "GEOMETRY: terminal methyl-ester carbonyl C5=O4 missed. C5 is pyramidal, and C5-O distance is 1.47A. Missed in Labute (2005) too for same reasons."}
+    ]
+  },
+  {
+    "pdbId": "1ABE",
+    "compId": "ARA",
+    "name": "alpha-L-arabinopyranose",
+    "smiles": "O[C@H]1CO[C@@H](O)[C@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "1ABE",
+    "compId": "ARB",
+    "name": "beta-L-arabinopyranose",
+    "smiles": "O[C@H]1CO[C@H](O)[C@H](O)[C@H]1O"
+
+  },
+  {
+    "pdbId": "1ABF",
+    "compId": "FCA",
+    "name": "alpha-D-fucopyranose",
+    "smiles": "C[C@H]1O[C@H](O)[C@H](O)[C@@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "1ABF",
+    "compId": "FCB",
+    "name": "beta-D-fucopyranose",
+    "smiles": "C[C@H]1O[C@@H](O)[C@H](O)[C@@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "1ADB",
+    "compId": "CND",
+    "name": "5-BETA-D-RIBOFURANOSYLNICOTINAMIDE ADENINE DINUCLEOTIDE",
+    "smiles": "NC(=O)c1c[nH+]cc(c1)[C@@H]2O[C@H](CO[P]([O-])(=O)O[P](O)(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n4cnc5c(N)ncnc45)[C@@H](O)[C@H]2O"
+  },
+  {
+    "pdbId": "1ADD",
+    "compId": "1DA",
+    "name": "1-DEAZA-ADENOSINE",
+    "smiles": "Nc1ccnc2n(cnc12)[C@@H]3O[C@H](CO)[C@@H](O)[C@H]3O"
+  },
+  {
+    "pdbId": "1ADF",
+    "compId": "TAD",
+    "name": "BETA-METHYLENE-THIAZOLE-4-CARBOXYAMIDE-ADENINE DINUCLEOTIDE",
+    "smiles": "NC(=O)c1csc(n1)[C@@H]2O[C@H](CO[P@](O)(=O)C[P@](O)(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n4cnc5c(N)ncnc45)[C@@H](O)[C@H]2O"
+  },
+  {
+    "pdbId": "1APB",
+    "compId": "FCA",
+    "name": "alpha-D-fucopyranose",
+    "smiles": "C[C@H]1O[C@H](O)[C@H](O)[C@@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "1APB",
+    "compId": "FCB",
+    "name": "beta-D-fucopyranose",
+    "smiles": "C[C@H]1O[C@@H](O)[C@H](O)[C@@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "1APT",
+    "compId": "MAN",
+    "name": "alpha-D-mannopyranose",
+    "smiles": "OC[C@H]1O[C@H](O)[C@@H](O)[C@@H](O)[C@@H]1O"
+  },
+  {
+    "pdbId": "1APU",
+    "compId": "MAN",
+    "name": "alpha-D-mannopyranose",
+    "smiles": "OC[C@H]1O[C@H](O)[C@@H](O)[C@@H](O)[C@@H]1O"
+  },
+  {
+    "pdbId": "1APV",
+    "compId": "DMF",
+    "name": "DIMETHYLFORMAMIDE",
+    "smiles": "CN(C)C=O"
+  },
+  {
+    "pdbId": "1APV",
+    "compId": "MAN",
+    "name": "alpha-D-mannopyranose",
+    "smiles": "OC[C@H]1O[C@H](O)[C@@H](O)[C@@H](O)[C@@H]1O"
+  },
+  {
+    "pdbId": "1APV",
+    "compId": "XYS",
+    "name": "alpha-D-xylopyranose",
+    "smiles": "O[C@@H]1CO[C@H](O)[C@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "1APW",
+    "compId": "DMF",
+    "name": "DIMETHYLFORMAMIDE",
+    "smiles": "CN(C)C=O"
+  },
+  {
+    "pdbId": "1APW",
+    "compId": "HSY",
+    "name": "alpha-L-xylopyranose",
+    "smiles": "O[C@H]1CO[C@@H](O)[C@@H](O)[C@@H]1O"
+  },
+  {
+    "pdbId": "1APW",
+    "compId": "MAN",
+    "name": "alpha-D-mannopyranose",
+    "smiles": "OC[C@H]1O[C@H](O)[C@@H](O)[C@@H](O)[C@@H]1O"
+  },
+  {
+    "pdbId": "1AQB",
+    "compId": "RTL",
+    "name": "RETINOL",
+    "smiles": "CC(=C\\CO)/C=C/C=C(C)/C=C/C1=C(C)CCCC1(C)C",
+    "skipBonds": [
+      {"a": "C13", "b": "C14", "reason": "PLANARITY: both C13/C14 are Trigonal but step-9d isBondPlanar rejects the bond. C14's only non-double heavy neighbour is C15 (sp3 CH2OH, free rotation), so the reference torsion C12-C13-C14-C15=161.9 is ~18 off 180 (> 12 tol). Compounded by C13 ~10 pyramidal (angles 131.4/101.4/117.2 sum 350, methyl C20 bent). Terminal polyene double rejected because its planarity reference is a freely-rotating sp3 substituent."}
+    ]
+  },
+  {
+    "pdbId": "1BAP",
+    "compId": "ARA",
+    "name": "alpha-L-arabinopyranose",
+    "smiles": "O[C@H]1CO[C@@H](O)[C@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "1BAP",
+    "compId": "ARB",
+    "name": "beta-L-arabinopyranose",
+    "smiles": "O[C@H]1CO[C@H](O)[C@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "1BRA",
+    "compId": "BEN",
+    "name": "BENZAMIDINE",
+    "smiles": "NC(=N)c1ccccc1"
+  },
+  {
+    "pdbId": "1BZM",
+    "compId": "MZM",
+    "name": "N-(3-methyl-5-sulfamoyl-1,3,4-thiadiazol-2(3H)-ylidene)acetamide",
+    "smiles": "CN1N=C(SC1=NC(C)=O)[S](N)(=O)=O",
+    "skipBonds": [
+      { "a": "C2", "b": "N4", "reason": "Aromatic + protonated form forced"},
+      { "a": "C2", "b": "N2", "reason": "Aromatic + protonated form forced"}
+    ]
+  },
+  {
+    "pdbId": "1CBX",
+    "compId": "BZS",
+    "name": "L-BENZYLSUCCINIC ACID",
+    "smiles": "OC(=O)C[C@@H](Cc1ccccc1)C(O)=O"
+  },
+  {
+    "pdbId": "1CLA",
+    "compId": "CLM",
+    "name": "CHLORAMPHENICOL",
+    "smiles": "OC[C@@H](NC(=O)C(Cl)Cl)[C@H](O)c1ccc(cc1)[N+]([O-])=O"
+  },
+  {
+    "pdbId": "1CPS",
+    "compId": "CPM",
+    "name": "S-(2-CARBOXY-3-PHENYLPROPYL)THIODIIMINE-S-METHANE",
+    "smiles": "C[S](=N)(=N)C[C@@H](Cc1ccccc1)C(O)=O"
+  },
+  {
+    "pdbId": "1CSC",
+    "compId": "CMC",
+    "name": "CARBOXYMETHYL COENZYME *A",
+    "smiles": "CC(C)(CO[P](O)(=O)O[P](O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1O[P](O)(O)=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSCC(O)=O"
+  },
+  {
+    "pdbId": "1CSC",
+    "compId": "LMR",
+    "name": "(2S)-2-hydroxybutanedioic acid",
+    "smiles": "O[C@@H](CC(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "1CTT",
+    "compId": "DHZ",
+    "name": "3,4-DIHYDRO-1H-PYRIMIDIN-2-ONE NUCLEOSIDE",
+    "smiles": "OC[C@H]1O[C@H]([C@H](O)[C@@H]1O)N2C=CCNC2=O"
+  },
+  {
+    "pdbId": "1DBB",
+    "compId": "STR",
+    "name": "PROGESTERONE",
+    "smiles": "CC(=O)[C@H]1CC[C@H]2[C@@H]3CCC4=CC(=O)CC[C@]4(C)[C@H]3CC[C@]12C"
+  },
+  {
+    "pdbId": "1DBJ",
+    "compId": "AE2",
+    "name": "AETIOCHOLANOLONE",
+    "smiles": "C[C@]12CC[C@@H](O)C[C@H]1CC[C@@H]3[C@@H]2CC[C@@]4(C)[C@H]3CCC4=O"
+  },
+  {
+    "pdbId": "1DBK",
+    "compId": "ANO",
+    "name": "5-BETA-ANDROSTANE-3,17-DIONE",
+    "smiles": "C[C@]12CCC(=O)C[C@H]1CC[C@@H]3[C@@H]2CC[C@@]4(C)[C@H]3CCC4=O"
+  },
+  {
+    "pdbId": "1DBM",
+    "compId": "SIH",
+    "name": "PROGESTERONE-11-ALPHA-OL-HEMISUCCINATE",
+    "smiles": "CC(=O)[C@H]1CC[C@H]2[C@@H]3CCC4=CC(=O)CC[C@]4(C)[C@H]3[C@@H](C[C@]12C)OC(=O)CCC(O)=O"
+  },
+  {
+    "pdbId": "1DHF",
+    "compId": "FOL",
+    "name": "FOLIC ACID",
+    "smiles": "NC1=NC(=O)c2nc(CNc3ccc(cc3)C(=O)N[C@@H](CCC(O)=O)C(O)=O)cnc2N1"
+  },
+  {
+    "pdbId": "1DIH",
+    "compId": "NDP",
+    "name": "NADPH DIHYDRO-NICOTINAMIDE-ADENINE-DINUCLEOTIDE PHOSPHATE",
+    "smiles": "NC(=O)C1=CN(C=CC1)[C@@H]2O[C@H](CO[P@@](O)(=O)O[P@](O)(=O)OC[C@H]3O[C@H]([C@H](O[P](O)(O)=O)[C@@H]3O)n4cnc5c(N)ncnc45)[C@@H](O)[C@H]2O",
+    "skipBonds": [
+      {"a": "C2N", "b": "C3N", "reason": "Aromatic form preferred over reduced form."},
+      {"a": "C2N", "b": "N1N", "reason": "See above."},
+      {"a": "C3N", "b": "C4N", "reason": "see above."}
+    ]
+  },
+  {
+    "pdbId": "1DR1",
+    "compId": "HBI",
+    "name": "7,8-DIHYDROBIOPTERIN",
+    "smiles": "C[C@H](O)[C@H](O)C1=NC2=C(NC1)N=C(N)NC2=O",
+    "skipBonds": [
+      {"a": "C7", "b": "N8", "reason": "Aromatic form preferred over reduced form. Small ring distortion on planar ring might hint: C7 angle 127.8º"}
+    ]
+  },
+  {
+    "pdbId": "1DRF",
+    "compId": "FOL",
+    "name": "FOLIC ACID",
+    "smiles": "NC1=NC(=O)c2nc(CNc3ccc(cc3)C(=O)N[C@@H](CCC(O)=O)C(O)=O)cnc2N1"
+  },
+  {
+    "pdbId": "1DWB",
+    "compId": "BEN",
+    "name": "BENZAMIDINE",
+    "smiles": "NC(=N)c1ccccc1"
+  },
+  {
+    "pdbId": "1DWC",
+    "compId": "MIT",
+    "name": "amino{[(4S)-5-[(2R,4R)-2-carboxy-4-methylpiperidin-1-yl]-4-({[(3R)-3-methyl-1,2,3,4-tetrahydroquinolin-8-yl]sulfonyl}amino)-5-oxopentyl]amino}methaniminium",
+    "smiles": "C[C@@H]1CCN([C@H](C1)C(O)=O)C(=O)[C@H](CCCNC(N)=[NH2+])N[S](=O)(=O)c2cccc3C[C@@H](C)CNc23"
+  },
+  {
+    "pdbId": "1DWD",
+    "compId": "MID",
+    "name": "1-[N-(naphthalen-2-ylsulfonyl)glycyl-4-carbamimidoyl-D-phenylalanyl]piperidine",
+    "smiles": "NC(=N)c1ccc(C[C@@H](NC(=O)CN[S](=O)(=O)c2ccc3ccccc3c2)C(=O)N4CCCCC4)cc1"
+  },
+  {
+    "pdbId": "1EBG",
+    "compId": "PAH",
+    "name": "PHOSPHONOACETOHYDROXAMIC ACID",
+    "smiles": "ONC(=O)C[P](O)(O)=O"
+  },
+  {
+    "pdbId": "1ELA",
+    "compId": "0Z1",
+    "name": "6-ammonio-N-(trifluoroacetyl)-L-norleucyl-N-[4-(1-methylethyl)phenyl]-L-prolinamide",
+    "smiles": "CC(C)c1ccc(NC(=O)[C@@H]2CCCN2C(=O)[C@H](CCCC[NH3+])NC(=O)C(F)(F)F)cc1"
+  },
+  {
+    "pdbId": "1ELC",
+    "compId": "0Z3",
+    "name": "6-ammonio-N-(trifluoroacetyl)-L-norleucyl-N-[4-(1-methylethyl)phenyl]-L-phenylalaninamide",
+    "smiles": "CC(C)c1ccc(NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CCCC[NH3+])NC(=O)C(F)(F)F)cc1"
+  },
+  {
+    "pdbId": "1ETR",
+    "compId": "MIT",
+    "name": "amino{[(4S)-5-[(2R,4R)-2-carboxy-4-methylpiperidin-1-yl]-4-({[(3R)-3-methyl-1,2,3,4-tetrahydroquinolin-8-yl]sulfonyl}amino)-5-oxopentyl]amino}methaniminium",
+    "smiles": "C[C@@H]1CCN([C@H](C1)C(O)=O)C(=O)[C@H](CCCNC(N)=[NH2+])N[S](=O)(=O)c2cccc3C[C@@H](C)CNc23"
+  },
+  {
+    "pdbId": "1ETS",
+    "compId": "MID",
+    "name": "1-[N-(naphthalen-2-ylsulfonyl)glycyl-4-carbamimidoyl-D-phenylalanyl]piperidine",
+    "smiles": "NC(=N)c1ccc(C[C@@H](NC(=O)CN[S](=O)(=O)c2ccc3ccccc3c2)C(=O)N4CCCCC4)cc1"
+  },
+  {
+    "pdbId": "1ETT",
+    "compId": "4QQ",
+    "name": "4-[(2S)-2-{[(4-methylphenyl)sulfonyl]amino}-3-oxo-3-(piperidin-1-yl)propyl]benzene-1-carboximidamide",
+    "smiles": "Cc1ccc(cc1)[S](=O)(=O)N[C@@H](Cc2ccc(cc2)C(N)=N)C(=O)N3CCCCC3"
+  },
+  {
+    "pdbId": "1FBC",
+    "compId": "AHG",
+    "name": "2,5-anhydro-1,6-di-O-phosphono-D-glucitol",
+    "smiles": "O[C@H]1[C@H](O)[C@@H](CO[P](O)(O)=O)O[C@H]1CO[P](O)(O)=O"
+  },
+  {
+    "pdbId": "1FBF",
+    "compId": "AHM",
+    "name": "2,5-anhydro-1,6-di-O-phosphono-D-mannitol",
+    "smiles": "O[C@H]1[C@H](O)[C@@H](CO[P](O)(O)=O)O[C@@H]1CO[P](O)(O)=O"
+  },
+  {
+    "pdbId": "1FBP",
+    "compId": "AMP",
+    "name": "ADENOSINE MONOPHOSPHATE",
+    "smiles": "Nc1ncnc2n(cnc12)[C@@H]3O[C@H](CO[P](O)(O)=O)[C@@H](O)[C@H]3O"
+  },
+  {
+    "pdbId": "1FBP",
+    "compId": "F6P",
+    "name": "6-O-phosphono-beta-D-fructofuranose",
+    "smiles": "OC[C@@]1(O)O[C@H](CO[P](O)(O)=O)[C@@H](O)[C@@H]1O"
+  },
+  {
+    "pdbId": "1FKB",
+    "compId": "RAP",
+    "name": "RAPAMYCIN IMMUNOSUPPRESSANT DRUG",
+    "smiles": "CO[C@@H]1C[C@@H](CC[C@H]1O)C[C@@H](C)[C@@H]2CC(=O)[C@H](C)/C=C(C)/[C@@H](O)[C@@H](OC)C(=O)[C@H](C)C[C@H](C)/C=C/C=C/C=C(C)/[C@H](C[C@@H]3CC[C@@H](C)[C@@](O)(O3)C(=O)C(=O)N4CCCC[C@H]4C(=O)O2)OC"
+  },
+  {
+    "pdbId": "1FKF",
+    "compId": "FK5",
+    "name": "8-DEETHYL-8-[BUT-3-ENYL]-ASCOMYCIN",
+    "smiles": "CO[C@@H]1C[C@@H](CC[C@H]1O)/C=C(C)/[C@H]2OC(=O)[C@@H]3CCCCN3C(=O)C(=O)[C@]4(O)O[C@H]([C@H](C[C@@H](C)C\\C(=C\\[C@@H](CC=C)C(=O)C[C@H](O)[C@H]2C)C)OC)[C@H](C[C@H]4C)OC"
+  },
+  {
+    "pdbId": "1G6N",
+    "compId": "CMP",
+    "name": "ADENOSINE-3',5'-CYCLIC-MONOPHOSPHATE",
+    "smiles": "Nc1ncnc2n(cnc12)[C@@H]3O[C@@H]4CO[P@](O)(=O)O[C@H]4[C@H]3O"
+  },
+  {
+    "pdbId": "1HBV",
+    "compId": "GAN",
+    "name": "2-[3-BENZYL-5-(1-ALANYL-AMINOETHYL)-2,3,6,7-TETRAHYDRO-1H-AZEPIN-1-YL]-1-OXOPROPYL-VALINYL-VALINE-METHYLESTER",
+    "smiles": "COC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](C)N1CCC(=C[C@H](C1)Cc2ccccc2)[C@H](C)NC(=O)[C@H](C)N)C(C)C)C(C)C"
+  },
+  {
+    "pdbId": "1HPV",
+    "compId": "478",
+    "name": "{3-[(4-AMINO-BENZENESULFONYL)-ISOBUTYL-AMINO]-1-BENZYL-2-HYDROXY-PROPYL}-CARBAMIC ACID TETRAHYDRO-FURAN-3-YL ESTER",
+    "smiles": "CC(C)CN(C[C@@H](O)[C@H](Cc1ccccc1)NC(=O)O[C@H]2CCOC2)[S](=O)(=O)c3ccc(N)cc3"
+  },
+  {
+    "pdbId": "1HSL",
+    "compId": "HIS",
+    "name": "HISTIDINE",
+    "smiles": "N[C@@H](Cc1c[nH]c[nH+]1)C(O)=O"
+  },
+  {
+    "pdbId": "1HTF",
+    "compId": "G26",
+    "name": "2-(BENZYLCARBAMOYL-PHENYLACETYLAMINO-METHYL)-5,5-DIMETHYL-THIAZOLIDINE-4-CARBOXYLIC ACID\n(HYDROXYMETHYL-2-PHENYLETHYL)AMIDE",
+    "smiles": "CC1(C)S[C@@H](N[C@H]1C(=O)N[C@@H](CO)Cc2ccccc2)[C@H](NC(=O)Cc3ccccc3)C(=O)NCc4ccccc4"
+  },
+  {
+    "pdbId": "1HTG",
+    "compId": "G37",
+    "name": "2-(BENZYLCARBAMOYL-PHENYLACETYLAMINO-METHYL)-5,5-DIMETHYL-THIAZOLIDINE-4-CARBOXYLIC ACID\n3-[(1H-BENZIMIDAZOL-2-YLMETHYLCARBAMOYL)-1-BENZYL-2-HYDROXYPROPYL]-AMIDE",
+    "smiles": "CC1(C)S[C@@H](N[C@H]1C(=O)N[C@H](Cc2ccccc2)[C@H](O)CC(=O)NCc3[nH]c4ccccc4n3)[C@H](NC(=O)Cc5ccccc5)C(=O)NCc6ccccc6"
+  },
+  {
+    "pdbId": "1HVI",
+    "compId": "A77",
+    "name": "N-{1-BENZYL-(2R,3S)-2,3-DIHYDROXY-4-[3-METHYL-2-(3-METHYL-3-PYRIDIN-2-YLMETHYL-UREIDO)-BUTYRYLAMINO]-5-PHENYL-PENTYL}-3-METHYL-2-(3-METHYL-3-PYRIDIN-2-YLMETHYL-UREIDO)-BUTYRAMIDE",
+    "smiles": "CC(C)[C@H](NC(=O)N(C)Cc1ccccn1)C(=O)N[C@@H](Cc2ccccc2)[C@H](O)[C@H](O)[C@H](Cc3ccccc3)NC(=O)[C@@H](NC(=O)N(C)Cc4ccccn4)C(C)C"
+  },
+  {
+    "pdbId": "1HVJ",
+    "compId": "A78",
+    "name": "N-{1-BENZYL-3-HYDROXY-4-[3-METHYL-2-(3-METHYL-3-PYRIDIN-2-YLMETHYL-UREIDO)-BUTYRYLAMINO]-5-PHENYL-PENTYL}-3-METHYL-2-(3-METHYL-3-PYRIDIN-2-YLMETHYL-UREIDO)-BUTYRAMIDE",
+    "smiles": "CC(C)[C@H](NC(=O)N(C)Cc1cccc[nH+]1)C(=O)N[C@H](C[C@H](O)[C@H](Cc2ccccc2)NC(=O)[C@@H](NC(=O)N(C)Cc3cccc[nH+]3)C(C)C)Cc4ccccc4"
+  },
+  {
+    "pdbId": "1HVK",
+    "compId": "A79",
+    "name": "N-{1-BENZYL-(2S,3S)-2,3-DIHYDROXY-4-[3-METHYL-2-(3-METHYL-3-PYRIDIN-2-YLMETHYL-UREIDO)-BUTYRYLAMINO]-5-PHENYL-PENTYL}-3-METHYL-2-(3-METHYL-3-PYRIDIN-2-YLMETHYL-UREIDO)-BUTYRAMIDE",
+    "smiles": "CC(C)[C@H](NC(=O)N(C)Cc1ccccn1)C(=O)N[C@@H](Cc2ccccc2)[C@H](O)[C@@H](O)[C@H](Cc3ccccc3)NC(=O)[C@@H](NC(=O)N(C)Cc4ccccn4)C(C)C"
+  },
+  {
+    "pdbId": "1HVR",
+    "compId": "XK2",
+    "name": "[4R-(4ALPHA,5ALPHA,6BETA,7BETA)]-HEXAHYDRO-5,6-DIHYDROXY-1,3-BIS[2-NAPHTHYL-METHYL]-4,7-BIS(PHENYLMETHYL)-2H-1,3-DIAZEPIN-2-ONE",
+    "smiles": "O[C@@H]1[C@@H](O)[C@@H](Cc2ccccc2)N(Cc3ccc4ccccc4c3)C(=O)N(Cc5ccc6ccccc6c5)[C@@H]1Cc7ccccc7"
+  },
+  {
+    "pdbId": "1HVS",
+    "compId": "A77",
+    "name": "N-{1-BENZYL-(2R,3S)-2,3-DIHYDROXY-4-[3-METHYL-2-(3-METHYL-3-PYRIDIN-2-YLMETHYL-UREIDO)-BUTYRYLAMINO]-5-PHENYL-PENTYL}-3-METHYL-2-(3-METHYL-3-PYRIDIN-2-YLMETHYL-UREIDO)-BUTYRAMIDE",
+    "smiles": "CC(C)[C@H](NC(=O)N(C)Cc1ccccn1)C(=O)N[C@@H](Cc2ccccc2)[C@H](O)[C@H](O)[C@H](Cc3ccccc3)NC(=O)[C@@H](NC(=O)N(C)Cc4ccccn4)C(C)C"
+  },
+  {
+    "pdbId": "1L83",
+    "compId": "BNZ",
+    "name": "BENZENE",
+    "smiles": "c1ccccc1"
+  },
+  {
+    "pdbId": "1LDM",
+    "compId": "OXM",
+    "name": "OXAMIC ACID",
+    "smiles": "NC(=O)C(O)=O"
+  },
+  {
+    "pdbId": "1LGR",
+    "compId": "AMP",
+    "name": "ADENOSINE MONOPHOSPHATE",
+    "smiles": "Nc1ncnc2n(cnc12)[C@@H]3O[C@H](CO[P](O)(O)=O)[C@@H](O)[C@H]3O"
+  },
+  {
+    "pdbId": "1LYB",
+    "compId": "NAG",
+    "name": "2-acetamido-2-deoxy-beta-D-glucopyranose",
+    "smiles": "CC(=O)N[C@H]1[C@H](O)O[C@H](CO)[C@@H](O)[C@@H]1O"
+  },
+  {
+    "pdbId": "1MBI",
+    "compId": "IMD",
+    "name": "IMIDAZOLE",
+    "smiles": "[nH]1cc[nH+]c1"
+  },
+  {
+    "pdbId": "1MCJ",
+    "compId": "ACE",
+    "name": "ACETYL GROUP",
+    "smiles": "CC=O"
+  },
+  {
+    "pdbId": "1MCJ",
+    "compId": "DPN",
+    "name": "D-PHENYLALANINE",
+    "smiles": "N[C@H](Cc1ccccc1)C(O)=O"
+  },
+  {
+    "pdbId": "1MCJ",
+    "compId": "DPR",
+    "name": "D-PROLINE",
+    "smiles": "OC(=O)[C@H]1CCCN1"
+  },
+  {
+    "pdbId": "1MNC",
+    "compId": "PLH",
+    "name": "METHYLAMINO-PHENYLALANYL-LEUCYL-HYDROXAMIC ACID",
+    "smiles": "CNC(=O)[C@H](Cc1ccccc1)NC(=O)[C@H](CC(C)C)CC(=O)NO"
+  },
+  {
+    "pdbId": "1NNB",
+    "compId": "DAN",
+    "name": "2-DEOXY-2,3-DEHYDRO-N-ACETYL-NEURAMINIC ACID",
+    "smiles": "CC(=O)N[C@@H]1[C@@H](O)C=C(O[C@H]1[C@H](O)[C@H](O)CO)C(O)=O"
+  },
+  {
+    "pdbId": "1PGP",
+    "compId": "6PG",
+    "name": "6-PHOSPHOGLUCONIC ACID",
+    "smiles": "O[C@H](CO[P](O)(O)=O)[C@@H](O)[C@H](O)[C@@H](O)C(O)=O"
+  },
+  {
+    "pdbId": "1PHE",
+    "compId": "PIY",
+    "pass": true,
+    "skipBonds": [
+      { "a": "C6", "b": "C2", "reason": "CCD issue (we are correct): C2-C6 is the inter-ring biaryl linker (imidazole C2 to phenyl C6). The CCD flags it aromatic, but it lies in no ring and is geometrically a single bond (1.51A); perception correctly leaves it single (Covalent|Computed, not AromaticPerceived). Marked pass." }
+    ],
+    "name": "2-phenyl-1H-imidazole",
+    "smiles": "[nH]1ccnc1c2ccccc2"
+  },
+  {
+    "pdbId": "1PHF",
+    "compId": "PIM",
+    "pass": true,
+    "skipBonds": [
+      { "a": "C6", "b": "C5", "reason": "CCD issue (we are correct): C5-C6 is the inter-ring biaryl linker (imidazole C6 to phenyl C5). The CCD flags it aromatic, but it lies in no ring and is geometrically a single bond (1.51A); perception correctly leaves it single (Covalent|Computed, not AromaticPerceived). Marked pass." }
+    ],
+    "name": "4-PHENYL-1H-IMIDAZOLE",
+    "smiles": "[nH]1cncc1c2ccccc2"
+  },
+  {
+    "pdbId": "1PHG",
+    "compId": "MYT",
+    "name": "METYRAPONE",
+    "smiles": "CC(C)(c1cccnc1)C(=O)c2cccnc2"
+  },
+  {
+    "pdbId": "1PHH",
+    "compId": "DHB",
+    "name": "3,4-DIHYDROXYBENZOIC ACID",
+    "smiles": "OC(=O)c1ccc(O)c(O)c1"
+  },
+  {
+    "pdbId": "1PHH",
+    "compId": "FAD",
+    "name": "FLAVIN-ADENINE DINUCLEOTIDE",
+    "smiles": "Cc1cc2N=C3C(=O)NC(=O)N=C3N(C[C@H](O)[C@H](O)[C@H](O)CO[P@](O)(=O)O[P@@](O)(=O)OC[C@H]4O[C@H]([C@H](O)[C@@H]4O)n5cnc6c(N)ncnc56)c2cc1C"
+  },
+  {
+    "pdbId": "1PPC",
+    "compId": "MID",
+    "name": "1-[N-(naphthalen-2-ylsulfonyl)glycyl-4-carbamimidoyl-D-phenylalanyl]piperidine",
+    "smiles": "NC(=N)c1ccc(C[C@@H](NC(=O)CN[S](=O)(=O)c2ccc3ccccc3c2)C(=O)N4CCCCC4)cc1"
+  },
+  {
+    "pdbId": "1PPH",
+    "compId": "0ZG",
+    "name": "3-[(2S)-2-{[(4-methylphenyl)sulfonyl]amino}-3-oxo-3-piperidin-1-ylpropyl]benzenecarboximidamide",
+    "smiles": "Cc1ccc(cc1)[S](=O)(=O)N[C@@H](Cc2cccc(c2)C(N)=N)C(=O)N3CCCCC3"
+  },
+  {
+    "pdbId": "1PPK",
+    "compId": "IVV",
+    "name": "N-(3-methylbutanoyl)-L-valyl-N-{(1R)-1-[(R)-(2-ethoxy-2-oxoethyl)(hydroxy)phosphoryl]-3-methylbutyl}-L-valinamide",
+    "smiles": "CCOC(=O)C[P](O)(=O)[C@H](CC(C)C)NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CC(C)C)C(C)C)C(C)C"
+  },
+  {
+    "pdbId": "1PPL",
+    "compId": "1Z7",
+    "name": "N-(3-methylbutanoyl)-L-valyl-N-{(1S)-1-[(R)-[(1R)-1-benzyl-2-methoxy-2-oxoethoxy](hydroxy)phosphoryl]-3-methylbutyl}-L-\nvalinamide",
+    "smiles": "COC(=O)[C@H](Cc1ccccc1)O[P](O)(=O)[C@H](CC(C)C)NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CC(C)C)C(C)C)C(C)C"
+  },
+  {
+    "pdbId": "1PPM",
+    "compId": "0P1",
+    "name": "N-[(benzyloxy)carbonyl]-L-alanyl-N-{(1S)-1-[(R)-[(1R)-1-benzyl-2-methoxy-2-oxoethoxy](hydroxy)phosphoryl]-3-methylbutyl\n}-L-alaninamide",
+    "smiles": "COC(=O)[C@H](Cc1ccccc1)O[P](O)(=O)[C@H](CC(C)C)NC(=O)[C@H](C)NC(=O)[C@H](C)NC(=O)OCc2ccccc2"
+  },
+  {
+    "pdbId": "1PPM",
+    "compId": "MAN",
+    "name": "alpha-D-mannopyranose",
+    "smiles": "OC[C@H]1O[C@H](O)[C@@H](O)[C@@H](O)[C@@H]1O"
+  },
+  {
+    "pdbId": "1RBP",
+    "compId": "RTL",
+    "name": "RETINOL",
+    "smiles": "CC(=C\\CO)/C=C/C=C(C)/C=C/C1=C(C)CCCC1(C)C"
+  },
+  {
+    "pdbId": "1RNE",
+    "compId": "C60",
+    "name": "[[[3-(2-METHYL-PROPANE-2-SULFONYL)-1-BENZENYL]-2-PROPYL]-CARBONYL-HISTIDYL]-AMINO-[CYCLOHEXYLMETHYL]-[2-HYDROXY-4-ISOPROPYL]-PENTAN-5-OIC ACID BUTYLAMIDE",
+    "smiles": "CCCCNC(=O)[C@@H](C[C@H](O)[C@H](CC1CCCCC1)NC(=O)[C@H](Cc2[nH]cnc2)NC(=O)[C@H](Cc3ccccc3)C[S](=O)(=O)C(C)(C)C)C(C)C"
+  },
+  {
+    "pdbId": "1RNT",
+    "compId": "2GP",
+    "name": "GUANOSINE-2'-MONOPHOSPHATE",
+    "smiles": "NC1=Nc2n(cnc2C(=O)N1)[C@@H]3O[C@H](CO)[C@@H](O)[C@H]3O[P](O)(O)=O"
+  },
+  {
+    "pdbId": "1RUS",
+    "compId": "3PG",
+    "name": "3-PHOSPHOGLYCERIC ACID",
+    "smiles": "O[C@H](CO[P](O)(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "1SNC",
+    "compId": "THP",
+    "name": "THYMIDINE-3',5'-DIPHOSPHATE",
+    "smiles": "CC1=CN([C@H]2C[C@H](O[P](O)(O)=O)[C@@H](CO[P](O)(O)=O)O2)C(=O)NC1=O"
+  },
+  {
+    "pdbId": "1SRE",
+    "compId": "HAB",
+    "name": "2-((4'-HYDROXYPHENYL)-AZO)BENZOIC ACID",
+    "smiles": "Oc1ccc(cc1)N=Nc2ccccc2C(O)=O"
+  },
+  {
+    "pdbId": "1THA",
+    "compId": "T33",
+    "name": "3,3'-DEIODO-THYROXINE",
+    "smiles": "N[C@@H](Cc1ccc(Oc2ccc(O)c(I)c2)c(I)c1)C(O)=O"
+  },
+  {
+    "pdbId": "1TLP",
+    "compId": "RDF",
+    "name": "N-ALPHA-L-RHAMNOPYRANOSYLOXY(HYDROXYPHOSPHINYL)-L-LEUCYL-L-TRYPTOPHAN",
+    "smiles": "CC(C)C[C@H](N[P@@](O)(=O)O[C@@H]1O[C@@H](C)[C@H](O)[C@@H](O)[C@H]1O)C(=O)N[C@@H](Cc2c[nH]c3ccccc23)C(O)=O"
+  },
+  {
+    "pdbId": "1TMN",
+    "compId": "0ZN",
+    "name": "N-[(1R)-1-carboxy-3-phenylpropyl]-L-leucyl-L-tryptophan",
+    "smiles": "CC(C)C[C@H](N[C@@H](CCc1ccccc1)C(O)=O)C(=O)N[C@@H](Cc2c[nH]c3ccccc23)C(O)=O"
+  },
+  {
+    "pdbId": "1TMT",
+    "compId": "NAG",
+    "name": "2-acetamido-2-deoxy-beta-D-glucopyranose",
+    "smiles": "CC(=O)N[C@H]1[C@H](O)O[C@H](CO)[C@@H](O)[C@@H]1O"
+  },
+  {
+    "pdbId": "1TNG",
+    "compId": "AMC",
+    "name": "AMINOMETHYLCYCLOHEXANE",
+    "smiles": "[NH3+]CC1CCCCC1"
+  },
+  {
+    "pdbId": "1TNH",
+    "compId": "FBA",
+    "name": "4-FLUOROBENZYLAMINE",
+    "smiles": "[NH3+]Cc1ccc(F)cc1"
+  },
+  {
+    "pdbId": "1TNI",
+    "compId": "PBN",
+    "name": "4-PHENYLBUTYLAMINE",
+    "smiles": "NCCCCc1ccccc1"
+  },
+  {
+    "pdbId": "1TNJ",
+    "compId": "PEA",
+    "name": "2-PHENYLETHYLAMINE",
+    "smiles": "[NH3+]CCc1ccccc1"
+  },
+  {
+    "pdbId": "1TNK",
+    "compId": "PRA",
+    "name": "3-PHENYLPROPYLAMINE",
+    "smiles": "NCCCc1ccccc1"
+  },
+  {
+    "pdbId": "1TNL",
+    "compId": "TPA",
+    "name": "TRANS-2-PHENYLCYCLOPROPYLAMINE",
+    "smiles": "[NH3+][C@H]1C[C@@H]1c2ccccc2"
+  },
+  {
+    "pdbId": "1ULB",
+    "compId": "GUN",
+    "name": "GUANINE",
+    "smiles": "NC1=Nc2[nH]cnc2C(=O)N1"
+  },
+  {
+    "pdbId": "1XLI",
+    "compId": "GLT",
+    "name": "5-thio-alpha-D-glucopyranose",
+    "smiles": "OC[C@H]1S[C@H](O)[C@H](O)[C@@H](O)[C@@H]1O"
+  },
+  {
+    "pdbId": "2AK3",
+    "compId": "AMP",
+    "name": "ADENOSINE MONOPHOSPHATE",
+    "smiles": "Nc1ncnc2n(cnc12)[C@@H]3O[C@H](CO[P](O)(O)=O)[C@@H](O)[C@H]3O"
+  },
+  {
+    "pdbId": "2CGR",
+    "compId": "GAS",
+    "name": "N-(P-CYANOPHENYL)-N'-DIPHENYLMETHYL-GUANIDINE-ACETIC ACID",
+    "smiles": "OC(=O)CN=C(NC(c1ccccc1)c2ccccc2)Nc3ccc(cc3)C#N",
+    "pass": true,
+    "skipBonds": [
+      { "a": "C8", "b": "N8", "reason": "equivalent to C8-N7"},
+      { "a": "C8", "b": "N11", "reason": "equivalent to C8-N7" }
+    ]
+  },
+  {
+    "pdbId": "2CSC",
+    "compId": "CMC",
+    "name": "CARBOXYMETHYL COENZYME *A",
+    "smiles": "CC(C)(CO[P](O)(=O)O[P](O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1O[P](O)(O)=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSCC(O)=O"
+  },
+  {
+    "pdbId": "2CSC",
+    "compId": "MLT",
+    "name": "D-MALATE",
+    "smiles": "O[C@H](CC(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "2CTC",
+    "compId": "HFA",
+    "name": "ALPHA-HYDROXY-BETA-PHENYL-PROPIONIC ACID",
+    "smiles": "O[C@@H](Cc1ccccc1)C(O)=O"
+  },
+  {
+    "pdbId": "2DBL",
+    "compId": "S5H",
+    "name": "5-ALPHA-PREGNANE-3-BETA-OL-HEMISUCCINATE",
+    "smiles": "CC(=O)[C@H]1CC[C@H]2[C@@H]3CC[C@H]4C[C@H](CC[C@]4(C)[C@H]3CC[C@]12C)OC(=O)CCC(O)=O"
+  },
+  {
+    "pdbId": "2DRI",
+    "compId": "RIP",
+    "name": "beta-D-ribopyranose",
+    "smiles": "O[C@@H]1CO[C@@H](O)[C@H](O)[C@@H]1O"
+  },
+  {
+    "pdbId": "2GBP",
+    "compId": "BGC",
+    "name": "beta-D-glucopyranose",
+    "smiles": "OC[C@H]1O[C@@H](O)[C@H](O)[C@@H](O)[C@@H]1O"
+  },
+  {
+    "pdbId": "2IFB",
+    "compId": "PLM",
+    "name": "PALMITIC ACID",
+    "smiles": "CCCCCCCCCCCCCCCC(O)=O"
+  },
+  {
+    "pdbId": "2LDB",
+    "compId": "FBP",
+    "name": "1,6-di-O-phosphono-beta-D-fructofuranose",
+    "smiles": "O[C@H]1[C@H](O)[C@@](O)(CO[P](O)(O)=O)O[C@@H]1CO[P](O)(O)=O"
+  },
+  {
+    "pdbId": "2LDB",
+    "compId": "NAD",
+    "name": "NICOTINAMIDE-ADENINE-DINUCLEOTIDE",
+    "smiles": "NC(=O)c1ccc[n+](c1)[C@@H]2O[C@H](CO[P]([O-])(=O)O[P@](O)(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n4cnc5c(N)ncnc45)[C@@H](O)[C@H]2O"
+  },
+  {
+    "pdbId": "2MCP",
+    "compId": "PC",
+    "name": "PHOSPHOCHOLINE",
+    "smiles": "C[N+](C)(C)CCO[P](O)(O)=O"
+  },
+  {
+    "pdbId": "2PHH",
+    "compId": "APR",
+    "name": "ADENOSINE-5-DIPHOSPHORIBOSE",
+    "smiles": "Nc1ncnc2n(cnc12)[C@@H]3O[C@H](CO[P@@](O)(=O)O[P@@](O)(=O)OC[C@H]4O[C@@H](O)[C@H](O)[C@@H]4O)[C@@H](O)[C@H]3O"
+  },
+  {
+    "pdbId": "2PHH",
+    "compId": "PHB",
+    "name": "P-HYDROXYBENZOIC ACID",
+    "smiles": "OC(=O)c1ccc(O)cc1"
+  },
+  {
+    "pdbId": "2PK4",
+    "compId": "ACA",
+    "name": "6-AMINOHEXANOIC ACID",
+    "smiles": "NCCCCCC(O)=O"
+  },
+  {
+    "pdbId": "2R04",
+    "compId": "W71",
+    "name": "5-(7-(4-(4,5-DIHYDRO-2-OXAZOLYL)PHENOXY)HEPTYL)-3-METHYL ISOXAZOLE",
+    "smiles": "Cc1cc(CCCCCCCOc2ccc(cc2)C3=NCCO3)on1",
+    "skipBonds": [
+      { "a": "C4A", "b": "C5A", "reason": "planar ring is forced to aromatic. Distance between C4A and C5A is 1.52A"}
+    ]
+  },
+  {
+    "pdbId": "2RNT",
+    "compId": "GPG",
+    "name": "GUANYLYL-2',5'-PHOSPHOGUANOSINE",
+    "smiles": "NC1=Nc2n(cnc2C(=O)N1)[C@@H]3O[C@H](CO[P@](O)(=O)O[C@@H]4[C@H](O)[C@@H](CO)O[C@H]4n5cnc6C(=O)NC(=Nc56)N)[C@@H](O)[C@H]3O"
+  },
+  {
+    "pdbId": "2RTD",
+    "compId": "BTN",
+    "name": "BIOTIN",
+    "smiles": "OC(=O)CCCC[C@@H]1SC[C@@H]2NC(=O)N[C@H]12"
+  },
+  {
+    "pdbId": "2SNS",
+    "compId": "THP",
+    "name": "THYMIDINE-3',5'-DIPHOSPHATE",
+    "smiles": "CC1=CN([C@H]2C[C@H](O[P](O)(O)=O)[C@@H](CO[P](O)(O)=O)O2)C(=O)NC1=O"
+  },
+  {
+    "pdbId": "2TMN",
+    "compId": "0FA",
+    "name": "N~2~-phosphono-L-leucinamide",
+    "smiles": "CC(C)C[C@H](N[P](O)(O)=O)C(N)=O"
+  },
+  {
+    "pdbId": "2YPI",
+    "compId": "PGA",
+    "name": "2-PHOSPHOGLYCOLIC ACID",
+    "smiles": "OC(=O)CO[P](O)(O)=O"
+  },
+  {
+    "pdbId": "3CLA",
+    "compId": "CLM",
+    "name": "CHLORAMPHENICOL",
+    "smiles": "OC[C@@H](NC(=O)C(Cl)Cl)[C@H](O)c1ccc(cc1)[N+]([O-])=O"
+  },
+  {
+    "pdbId": "3CPA",
+    "compId": "GLY",
+    "name": "GLYCINE",
+    "smiles": "NCC(O)=O"
+  },
+  {
+    "pdbId": "3CPA",
+    "compId": "TYR",
+    "name": "TYROSINE",
+    "smiles": "N[C@@H](Cc1ccc(O)cc1)C(O)=O"
+  },
+  {
+    "pdbId": "3CSC",
+    "compId": "ACO",
+    "name": "ACETYL COENZYME *A",
+    "smiles": "CC(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)CO[P@@](O)(=O)O[P@](O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1O[P](O)(O)=O)n2cnc3c(N)ncnc23"
+  },
+  {
+    "pdbId": "3CSC",
+    "compId": "LMR",
+    "name": "(2S)-2-hydroxybutanedioic acid",
+    "smiles": "O[C@@H](CC(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "3DFR",
+    "compId": "MTX",
+    "name": "METHOTREXATE",
+    "smiles": "CN(Cc1cnc2nc(N)nc(N)c2n1)c3ccc(cc3)C(=O)N[C@@H](CCC(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "3DFR",
+    "compId": "NDP",
+    "name": "NADPH DIHYDRO-NICOTINAMIDE-ADENINE-DINUCLEOTIDE PHOSPHATE",
+    "smiles": "NC(=O)C1=CN(C=CC1)[C@@H]2O[C@H](CO[P@@](O)(=O)O[P@](O)(=O)OC[C@H]3O[C@H]([C@H](O[P](O)(O)=O)[C@@H]3O)n4cnc5c(N)ncnc45)[C@@H](O)[C@H]2O",
+    "skipBonds": [
+      {"a": "C5N", "b": "C6N", "reason": "Not an romatic ring, despite close to planarity. reduced form should be perceived: no charge on Nitrogen."},
+      {"a": "N1N", "b": "C6N", "reason": "See above"},
+      {"a": "C5N", "b": "C4N", "reason": "see above."}
+    ]
+  },
+  {
+    "pdbId": "3FX2",
+    "compId": "FMN",
+    "name": "FLAVIN MONONUCLEOTIDE",
+    "smiles": "Cc1cc2N=C3C(=O)NC(=O)N=C3N(C[C@H](O)[C@H](O)[C@H](O)CO[P](O)(O)=O)c2cc1C"
+  },
+  {
+    "pdbId": "3PGM",
+    "compId": "3PG",
+    "name": "3-PHOSPHOGLYCERIC ACID",
+    "smiles": "O[C@H](CO[P](O)(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "3PTB",
+    "compId": "BEN",
+    "name": "BENZAMIDINE",
+    "smiles": "NC(=N)c1ccccc1"
+  },
+  {
+    "pdbId": "3TMN",
+    "compId": "TRP",
+    "name": "TRYPTOPHAN",
+    "smiles": "N[C@@H](Cc1c[nH]c2ccccc12)C(O)=O"
+  },
+  {
+    "pdbId": "3TMN",
+    "compId": "VAL",
+    "name": "VALINE",
+    "smiles": "CC(C)[C@H](N)C(O)=O"
+  },
+  {
+    "pdbId": "3TPI",
+    "compId": "ILE",
+    "name": "ISOLEUCINE",
+    "smiles": "CC[C@H](C)[C@H](N)C(O)=O"
+  },
+  {
+    "pdbId": "3TPI",
+    "compId": "VAL",
+    "name": "VALINE",
+    "smiles": "CC(C)[C@H](N)C(O)=O"
+  },
+  {
+    "pdbId": "4CLA",
+    "compId": "CLM",
+    "name": "CHLORAMPHENICOL",
+    "smiles": "OC[C@@H](NC(=O)C(Cl)Cl)[C@H](O)c1ccc(cc1)[N+]([O-])=O"
+  },
+  {
+    "pdbId": "4DFR",
+    "compId": "MTX",
+    "name": "METHOTREXATE",
+    "smiles": "CN(Cc1cnc2nc(N)nc(N)c2n1)c3ccc(cc3)C(=O)N[C@@H](CCC(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "4FAB",
+    "compId": "FLU",
+    "pass": true,
+    "skipBonds": [
+      { "a": "C10", "b": "C14", "reason": "inter-ring bonds are aromatic in CCD, but not truly aromatic. Issue with CCD." },
+      { "a": "C1", "b": "O1", "reason": "undecidable kekulization, can be swapped with C6-O3" },
+      { "a": "C6", "b": "O3", "reason": "undecidable kekulization, can be swapped with C1-O1" }
+    ],
+    "name": "2-(6-HYDROXY-3-OXO-3H-XANTHEN-9-YL)-BENZOIC ACID",
+    "smiles": "OC(=O)c1ccccc1C2=C3C=CC(=O)C=C3Oc4cc(O)ccc24"
+  },
+  {
+    "pdbId": "4GR1",
+    "compId": "FAD",
+    "name": "FLAVIN-ADENINE DINUCLEOTIDE",
+    "smiles": "Cc1cc2N=C3C(=O)NC(=O)N=C3N(C[C@H](O)[C@H](O)[C@H](O)CO[P@](O)(=O)O[P@@](O)(=O)OC[C@H]4O[C@H]([C@H](O)[C@@H]4O)n5cnc6c(N)ncnc56)c2cc1C"
+  },
+  {
+    "pdbId": "4GR1",
+    "compId": "RGS",
+    "name": "4N-MALONYL-CYSTEINYL-2,4-DIAMINOBUTYRATE DISULFIDE",
+    "smiles": "N[C@@H](CCNC(=O)[C@@H](CSSC[C@@H](NC(=O)CC(O)=O)C(=O)NCC[C@H](N)C(O)=O)NC(=O)CC(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "4HVP",
+    "compId": "2NC",
+    "name": "N-{(2S)-2-[(N-acetyl-L-threonyl-L-isoleucyl)amino]hexyl}-L-norleucyl-L-glutaminyl-N~5~-[amino(iminio)methyl]-L-ornithinamide",
+    "smiles": "CCCC[C@@H](CN[C@@H](CCCC)C(=O)N[C@@H](CCC(N)=O)C(=O)N[C@@H](CCCNC(N)=[NH2+])C(N)=O)NC(=O)[C@@H](NC(=O)[C@@H](NC(C)=O)[C@@H](C)O)[C@@H](C)CC"
+  },
+  {
+    "pdbId": "4MDH",
+    "compId": "NAD",
+    "name": "NICOTINAMIDE-ADENINE-DINUCLEOTIDE",
+    "smiles": "NC(=O)c1ccc[n+](c1)[C@@H]2O[C@H](CO[P]([O-])(=O)O[P@](O)(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n4cnc5c(N)ncnc45)[C@@H](O)[C@H]2O"
+  },
+  {
+    "pdbId": "4PHV",
+    "compId": "VAC",
+    "name": "N,N-BIS(2-HYDROXY-1-INDANYL)-2,6- DIPHENYLMETHYL-4-HYDROXY-1,7-HEPTANDIAMIDE",
+    "smiles": "O[C@@H](C[C@@H](Cc1ccccc1)C(=O)N[C@@H]2[C@H](O)Cc3ccccc23)C[C@@H](Cc4ccccc4)C(=O)N[C@@H]5[C@H](O)Cc6ccccc56"
+  },
+  {
+    "pdbId": "4TIM",
+    "compId": "2PG",
+    "name": "2-PHOSPHOGLYCERIC ACID",
+    "smiles": "OC[C@@H](O[P](O)(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "4TLN",
+    "compId": "LNO",
+    "name": "L-LEUCYL-HYDROXYLAMINE",
+    "smiles": "CC(C)C[C@H](N)C(=O)NO"
+  },
+  {
+    "pdbId": "4TMN",
+    "compId": "0PK",
+    "name": "N-[(S)-[(1R)-1-{[(benzyloxy)carbonyl]amino}-2-phenylethyl](hydroxy)phosphoryl]-L-leucyl-L-alanine",
+    "smiles": "CC(C)C[C@H](N[P@](O)(=O)[C@H](Cc1ccccc1)NC(=O)OCc2ccccc2)C(=O)N[C@@H](C)C(O)=O"
+  },
+  {
+    "pdbId": "4TS1",
+    "compId": "TYR",
+    "name": "TYROSINE",
+    "smiles": "N[C@@H](Cc1ccc(O)cc1)C(O)=O"
+  },
+  {
+    "pdbId": "5ABP",
+    "compId": "GAL",
+    "name": "beta-D-galactopyranose",
+    "smiles": "OC[C@H]1O[C@@H](O)[C@H](O)[C@@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "5ABP",
+    "compId": "GLA",
+    "name": "alpha-D-galactopyranose",
+    "smiles": "OC[C@H]1O[C@H](O)[C@H](O)[C@@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "5ACN",
+    "compId": "TRC",
+    "name": "TRICARBALLYLIC ACID",
+    "smiles": "OC(=O)CC(CC(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "5CNA",
+    "compId": "MMA",
+    "name": "methyl alpha-D-mannopyranoside",
+    "smiles": "CO[C@H]1O[C@H](CO)[C@@H](O)[C@H](O)[C@@H]1O"
+  },
+  {
+    "pdbId": "5CPP",
+    "compId": "ADO",
+    "name": "ADAMANTANONE",
+    "smiles": "O=C1C2CC3CC(C2)CC1C3"
+  },
+  {
+    "pdbId": "5ENL",
+    "compId": "2PG",
+    "name": "2-PHOSPHOGLYCERIC ACID",
+    "smiles": "OC[C@@H](O[P](O)(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "5ICD",
+    "compId": "ICT",
+    "name": "ISOCITRIC ACID",
+    "smiles": "O[C@H]([C@H](CC(O)=O)C(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "5LDH",
+    "compId": "CIT",
+    "name": "CITRIC ACID",
+    "smiles": "OC(=O)CC(O)(CC(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "5LDH",
+    "compId": "LNC",
+    "name": "(3S)-5-(3-CARBOXY-3-HYDROXYPROPYL) NICOTINAMIDE-ADENINE-DINUCLEOTIDE",
+    "smiles": "NC(=O)c1cc(CC[C@H](O)C(O)=O)c[n+](c1)[C@@H]2O[C@H](CO[P@@](O)(=O)O[P]([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n4cnc5c(N)ncnc45)[C@@H](O)[C@H]2O"
+  },
+  {
+    "pdbId": "5P21",
+    "compId": "GNP",
+    "name": "PHOSPHOAMINOPHOSPHONIC ACID-GUANYLATE ESTER",
+    "smiles": "NC1=Nc2n(cnc2C(=O)N1)[C@@H]3O[C@H](CO[P@@](O)(=O)O[P@@](O)(=O)N[P](O)(O)=O)[C@@H](O)[C@H]3O"
+  },
+  {
+    "pdbId": "5TLN",
+    "compId": "BAN",
+    "name": "HONH-BENZYLMALONYL-L-ALANYLGLYCINE-P-NITROANILIDE",
+    "smiles": "C[C@H](NC(=O)[C@H](Cc1ccccc1)C(=O)NO)C(=O)NCC(=O)Nc2ccc(cc2)[N+]([O-])=O",
+    "skipBonds": [
+      {"a": "C4", "b": "O4", "reason": "GEOMETRY: C4 perceived sp3: average angle 90.53º, distance to O4 1.35Å"}
+    ]
+  },
+  {
+    "pdbId": "5TMN",
+    "compId": "0PJ",
+    "name": "N-[(S)-({[(benzyloxy)carbonyl]amino}methyl)(hydroxy)phosphoryl]-L-leucyl-L-leucine",
+    "smiles": "CC(C)C[C@H](NC(=O)[C@H](CC(C)C)N[P@](O)(=O)CNC(=O)OCc1ccccc1)C(O)=O"
+  },
+  {
+    "pdbId": "6ABP",
+    "compId": "ARA",
+    "name": "alpha-L-arabinopyranose",
+    "smiles": "O[C@H]1CO[C@@H](O)[C@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "6ABP",
+    "compId": "ARB",
+    "name": "beta-L-arabinopyranose",
+    "smiles": "O[C@H]1CO[C@H](O)[C@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "6CPA",
+    "compId": "ZAF",
+    "name": "O-(((1R)-((N-PHENYLMETHOXYCARBONYL-L-ALANYL)AMINO)ETHYL)HYDROXYPHOSPHONO)-L-BENZYLACETIC ACID",
+    "smiles": "C[C@H](NC(=O)OCc1ccccc1)C(=O)N[C@@H](C)[P@](O)(=O)O[C@@H](Cc2ccccc2)C(O)=O"
+  },
+  {
+    "pdbId": "6ENL",
+    "compId": "PGA",
+    "name": "2-PHOSPHOGLYCOLIC ACID",
+    "smiles": "OC(=O)CO[P](O)(O)=O"
+  },
+  {
+    "pdbId": "6GST",
+    "compId": "GSH",
+    "name": "Glutathione",
+    "smiles": "N[C@@H](CCC(=O)N[C@@H](CS)C(=O)NCC(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "6RNT",
+    "compId": "2AM",
+    "name": "ADENOSINE-2'-MONOPHOSPHATE",
+    "smiles": "Nc1ncnc2n(cnc12)[C@@H]3O[C@H](CO)[C@@H](O)[C@H]3O[P](O)(O)=O"
+  },
+  {
+    "pdbId": "6TIM",
+    "compId": "G3P",
+    "name": "SN-GLYCEROL-3-PHOSPHATE",
+    "smiles": "OC[C@@H](O)CO[P](O)(O)=O"
+  },
+  {
+    "pdbId": "6TMN",
+    "compId": "0PI",
+    "name": "N-[(2R,4S)-4-hydroxy-2-(2-methylpropyl)-4-oxido-7-oxo-9-phenyl-3,8-dioxa-6-aza-4-phosphanonan-1-oyl]-L-leucine",
+    "smiles": "CC(C)C[C@H](NC(=O)[C@H](CC(C)C)O[P@](O)(=O)CNC(=O)OCc1ccccc1)C(O)=O"
+  },
+  {
+    "pdbId": "7ABP",
+    "compId": "FCA",
+    "name": "alpha-D-fucopyranose",
+    "smiles": "C[C@H]1O[C@H](O)[C@H](O)[C@@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "7ABP",
+    "compId": "FCB",
+    "name": "beta-D-fucopyranose",
+    "smiles": "C[C@H]1O[C@@H](O)[C@H](O)[C@@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "7ACN",
+    "compId": "ICT",
+    "name": "ISOCITRIC ACID",
+    "smiles": "O[C@H]([C@H](CC(O)=O)C(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "7CAT",
+    "compId": "NDP",
+    "name": "NADPH DIHYDRO-NICOTINAMIDE-ADENINE-DINUCLEOTIDE PHOSPHATE",
+    "smiles": "NC(=O)C1=CN(C=CC1)[C@@H]2O[C@H](CO[P@@](O)(=O)O[P@](O)(=O)OC[C@H]3O[C@H]([C@H](O[P](O)(O)=O)[C@@H]3O)n4cnc5c(N)ncnc45)[C@@H](O)[C@H]2O",
+    "skipBonds": [
+      {"a": "C2N", "b": "C3N", "reason": "Aromatic form preferred."},
+      {"a": "C2N", "b": "N1N", "reason": "see above."},
+      {"a": "C3N", "b": "C4N", "reason": "see above."}
+    ]
+  },
+  {
+    "pdbId": "7CPA",
+    "compId": "FVF",
+    "name": "O-((((N-PHENYL-METHOXY-CARBONYL)-PHENYL ALANYL-CARBONYL)AMINO)-ISOBUTYL)HYDROXY PHOSPHINYL)-3-PHENYLACETIC ACID",
+    "smiles": "CC(C)[C@H](NC(=O)[C@H](Cc1ccccc1)NC(=O)OCc2ccccc2)[P@](O)(=O)O[C@@H](Cc3ccccc3)C(O)=O"
+  },
+  {
+    "pdbId": "7EST",
+    "compId": "0Z2",
+    "name": "N-(trifluoroacetyl)-L-leucyl-N-[4-(trifluoromethyl)phenyl]-L-alaninamide",
+    "smiles": "CC(C)C[C@H](NC(=O)C(F)(F)F)C(=O)N[C@@H](C)C(=O)Nc1ccc(cc1)C(F)(F)F"
+  },
+  {
+    "pdbId": "7TIM",
+    "compId": "PGH",
+    "name": "PHOSPHOGLYCOLOHYDROXAMIC ACID",
+    "smiles": "ONC(=O)CO[P](O)(O)=O"
+  },
+  {
+    "pdbId": "7TLN",
+    "compId": "INC",
+    "name": "2-(ACETYL-HYDROXY-AMINO)-4-METHYL-PENTANOIC ACID METHYL ESTER",
+    "smiles": "COC(=O)[C@@H](CC(C)C)N(O)C(C)=O"
+  },
+  {
+    "pdbId": "8ABP",
+    "compId": "GAL",
+    "name": "beta-D-galactopyranose",
+    "smiles": "OC[C@H]1O[C@@H](O)[C@H](O)[C@@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "8ABP",
+    "compId": "GLA",
+    "name": "alpha-D-galactopyranose",
+    "smiles": "OC[C@H]1O[C@H](O)[C@H](O)[C@@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "8ATC",
+    "compId": "PAL",
+    "name": "N-(PHOSPHONACETYL)-L-ASPARTIC ACID",
+    "smiles": "OC(=O)C[C@H](NC(=O)C[P](O)(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "8CPA",
+    "compId": "AGF",
+    "name": "O-(((1R)-((N-(PHENYL-METHOXY-CARBONYL)-ALANYL)-AMINO)METHYL)HYDROXYPHOSPHINYL)3-L-PHENYLLACTATE",
+    "smiles": "C[C@H](NC(=O)OCc1ccccc1)C(=O)NC[P@](O)(=O)O[C@@H](Cc2ccccc2)C(O)=O"
+  },
+  {
+    "pdbId": "8ICD",
+    "compId": "ICT",
+    "name": "ISOCITRIC ACID",
+    "smiles": "O[C@H]([C@H](CC(O)=O)C(O)=O)C(O)=O"
+  },
+  {
+    "pdbId": "8XIA",
+    "compId": "XLS",
+    "name": "D-xylose",
+    "smiles": "OC[C@@H](O)[C@H](O)[C@@H](O)C=O",
+    "skipBonds": [
+      {"a": "C1", "b": "O1", "reason": "GEOMETRY: C1 perceived sp3: average bond angle=97.6º. Distance: 1.42"}
+    ]
+  },
+  {
+    "pdbId": "9AAT",
+    "compId": "PMP",
+    "name": "4'-DEOXY-4'-AMINOPYRIDOXAL-5'-PHOSPHATE",
+    "smiles": "Cc1ncc(CO[P](O)(O)=O)c(CN)c1O"
+  },
+  {
+    "pdbId": "9ABP",
+    "compId": "GAL",
+    "name": "beta-D-galactopyranose",
+    "smiles": "OC[C@H]1O[C@@H](O)[C@H](O)[C@@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "9ABP",
+    "compId": "GLA",
+    "name": "alpha-D-galactopyranose",
+    "smiles": "OC[C@H]1O[C@H](O)[C@H](O)[C@@H](O)[C@H]1O"
+  },
+  {
+    "pdbId": "9HVP",
+    "compId": "0E9",
+    "name": "benzyl [(1R,4S,6S,9R)-4,6-dibenzyl-5-hydroxy-1,9-bis(1-methylethyl)-2,8,11-trioxo-13-phenyl-12-oxa-3,7,10-triazatridec-1-yl]carbamate",
+    "smiles": "CC(C)[C@H](NC(=O)OCc1ccccc1)C(=O)N[C@@H](Cc2ccccc2)[C@@H](O)[C@H](Cc3ccccc3)NC(=O)[C@@H](NC(=O)OCc4ccccc4)C(C)C"
+  },
+  {
+    "pdbId": "9RUB",
+    "compId": "RUB",
+    "name": "RIBULOSE-1,5-DIPHOSPHATE",
+    "smiles": "O[C@H](CO[P](O)(O)=O)[C@@H](O)C(=O)CO[P](O)(O)=O"
+  }
+]

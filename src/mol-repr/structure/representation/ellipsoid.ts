@@ -2,12 +2,15 @@
  * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { RepresentationParamsGetter, RepresentationContext, Representation } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
+import { CustomProperty } from '../../../mol-model-props/common/custom-property';
+import { BondOrderProvider } from '../../../mol-model-props/computed/bond-orders';
 import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation } from '../../../mol-repr/structure/representation';
 import { EllipsoidMeshParams, EllipsoidMeshVisual, StructureEllipsoidMeshParams, StructureEllipsoidMeshVisual } from '../visual/ellipsoid-mesh';
 import { AtomSiteAnisotrop } from '../../../mol-model-formats/structure/property/anisotropic';
@@ -71,5 +74,13 @@ export const EllipsoidRepresentationProvider = StructureRepresentationProvider({
     },
     mustRecreate: (oldProps: PD.Values<EllipsoidParams>, newProps: PD.Values<EllipsoidParams>) => {
         return oldProps.includeParent !== newProps.includeParent;
+    },
+    ensureCustomProperties: {
+        attach: async (ctx: CustomProperty.Context, structure: Structure) => {
+            await BondOrderProvider.attach(ctx, structure, void 0, true);
+        },
+        detach: (data) => {
+            BondOrderProvider.ref(data, false);
+        }
     }
 });

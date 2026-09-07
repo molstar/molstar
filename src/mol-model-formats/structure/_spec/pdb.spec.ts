@@ -242,3 +242,59 @@ describe('PDB SEQRES-to-label_seq_id alignment', () => {
         }
     });
 });
+
+describe('PDB label_atom_id unicity', () => {
+    it('preserves unique atom names within a residue', async () => {
+        const pdb = makePdb([
+            'ATOM   2161  CG2 MOL A 303      31.377  65.493  27.278  1.00 32.12           C  ',
+            'ATOM   2162  OG2 MOL A 303      31.727  64.432  26.692  1.00 30.76           O  ',
+            'ATOM   2163  OG3 MOL A 303      30.170  65.084  27.156  1.00 32.03           O  ',
+            'END                                                                             ',
+        ].join('\n'));
+
+        const cif = await pdbToMmCif(pdb);
+        const atomSite = cif.categories['atom_site'];
+        const labelAtomId = atomSite.getField('label_atom_id')!;
+
+        expect(labelAtomId.str(0)).toBe('CG2');
+        expect(labelAtomId.str(1)).toBe('OG2');
+        expect(labelAtomId.str(2)).toBe('OG3');
+    });
+
+    it('deduplicates repeated atom names within a residue', async () => {
+        const pdb = makePdb([
+            'ATOM   2161  C   MOL A 303      31.377  65.493  27.278  1.00 32.12           C  ',
+            'ATOM   2162  O   MOL A 303      31.727  64.432  26.692  1.00 30.76           O  ',
+            'ATOM   2163  O   MOL A 303      30.170  65.084  27.156  1.00 32.03           O  ',
+            'END                                                                             ',
+        ].join('\n'));
+
+        const cif = await pdbToMmCif(pdb);
+        const atomSite = cif.categories['atom_site'];
+        const labelAtomId = atomSite.getField('label_atom_id')!;
+
+        expect(labelAtomId.str(0)).toBe('C');
+        expect(labelAtomId.str(1)).toBe('O');
+        expect(labelAtomId.str(2)).toBe('O_1'); // deduplicated
+    });
+
+    it('No suffix added to same atom names for altlocs)', async () => {
+        const pdb = makePdb([
+            'HETATM 2161  CG2 SRY A 303      31.377  65.493  27.278  1.00 32.12           C  ',
+            'HETATM 2162  OG2ASRY A 303      31.727  64.432  26.692  0.50 30.76           O  ',
+            'HETATM 2163  OG2BSRY A 303      30.170  65.084  27.156  0.50 32.03           O  ',
+            'END                                                                             ',
+        ].join('\n'));
+
+        const cif = await pdbToMmCif(pdb);
+        const atomSite = cif.categories['atom_site'];
+        const labelAtomId = atomSite.getField('label_atom_id')!;
+        const labelAltId = atomSite.getField('label_alt_id')!;
+
+        expect(labelAtomId.str(0)).toBe('CG2');
+        expect(labelAtomId.str(1)).toBe('OG2');
+        expect(labelAtomId.str(2)).toBe('OG2');
+        expect(labelAltId.str(1)).toBe('A');
+        expect(labelAltId.str(2)).toBe('B');
+    });
+});

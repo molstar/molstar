@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -12,6 +12,7 @@ import { BondType } from '../../model/types';
 import { SortedArray, Iterator, OrderedSet } from '../../../../mol-data/int';
 import { CentroidHelper } from '../../../../mol-math/geometry/centroid-helper';
 import { Sphere3D } from '../../../../mol-math/geometry';
+import { getUnitBondProps } from '../../../../mol-model-props/computed/bond-orders';
 
 export * from './bonds/data';
 export * from './bonds/intra-compute';
@@ -156,7 +157,7 @@ namespace Bond {
             const bonds = location.aUnit.bonds;
             const idx = bonds.getEdgeIndex(location.aIndex, location.bIndex);
             if (idx < 0) return 0;
-            return bonds.edgeProps.order[idx];
+            return getUnitBondProps(structure, location.aUnit).order[idx];
         } else {
             const bond = structure.interUnitBonds.getBondFromLocation(location);
             if (bond) return bond.props.order;
@@ -195,6 +196,7 @@ namespace Bond {
 
         private intraBondEnd: number;
         private intraBondIndex: number;
+        private intraOrder: ArrayLike<number>;
 
         hasNext: boolean;
         move(): ElementBondData {
@@ -213,6 +215,7 @@ namespace Bond {
 
             this.intraBondEnd = unit.bonds.offset[index + 1];
             this.intraBondIndex = unit.bonds.offset[index];
+            this.intraOrder = getUnitBondProps(structure, unit).order;
 
             this.hasNext = this.interBondIndex < this.interBondCount || this.intraBondIndex < this.intraBondEnd;
         }
@@ -222,7 +225,7 @@ namespace Bond {
                 this.current.otherUnit = this.unit;
                 this.current.otherIndex = this.unit.bonds.b[this.intraBondIndex] as StructureElement.UnitIndex;
                 this.current.type = this.unit.bonds.edgeProps.flags[this.intraBondIndex];
-                this.current.order = this.unit.bonds.edgeProps.order[this.intraBondIndex];
+                this.current.order = this.intraOrder[this.intraBondIndex];
                 this.intraBondIndex += 1;
             } else if (this.interBondIndex < this.interBondCount) {
                 const b = this.structure.interUnitBonds.edges[this.interBondIndices[this.interBondIndex]];

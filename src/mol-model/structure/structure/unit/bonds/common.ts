@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { sortedCantorPairing } from '../../../../../mol-data/util';
 import { ElementSymbol } from '../../../model/types';
 
 /** Default for atomic bonds */
@@ -89,11 +90,6 @@ export const MetalsSet = (function () {
     return set;
 })();
 
-function pair(a: number, b: number) {
-    if (a < b) return (a + b) * (a + b + 1) / 2 + b;
-    else return (a + b) * (a + b + 1) / 2 + a;
-}
-
 export function getElementIdx(e: ElementSymbol) {
     const i = __ElementIndex[e as any as string];
     if (i === void 0) return -1;
@@ -102,7 +98,7 @@ export function getElementIdx(e: ElementSymbol) {
 
 export function getElementPairThreshold(i: number, j: number) {
     if (i < 0 || j < 0) return -1;
-    const r = __ElementPairThresholds[pair(i, j)];
+    const r = __ElementPairThresholds[sortedCantorPairing(i, j)];
     if (r === void 0) return -1;
     return r;
 }

@@ -1,0 +1,35 @@
+[
+  { "pdbId": "1NCO", "compId": "CHR" },
+  { "pdbId": "1CLA", "compId": "CLM" },
+  { "pdbId": "2AAT", "compId": "PMP" },
+  { "pdbId": "2GBP", "compId": "BGC" },
+  { "pdbId": "3CPP", "compId": "CAM" },
+  { "pdbId": "2TRM", "compId": "BEN", "skipBonds": [
+    { "a": "C", "b": "N1", "reason": "GEOMETRY(poor structure): amidine C=N missed. Benzamidine's amidine is genuinely non-planar in this structure, so PCA types the amidine C as sp3 and declines the C=N (interchangeable N1/N2). A known problematic case — only Sayle's method reports it planar; the deposited geometry is not." }
+  ] },
+  { "pdbId": "8LDH", "compId": "CIT" },
+  { "pdbId": "8ATC", "compId": "PAL" },
+  { "pdbId": "8RSA", "compId": "ADT" },
+  { "pdbId": "3KLF", "compId": "ZP4" },
+  { "pdbId": "4GTP", "compId": "7TP" },
+  { "pdbId": "5NAL", "compId": "8RQ" },
+  { "pdbId": "4JVB", "compId": "1M0", "skipBonds": [
+    { "a": "CBP", "b": "CBQ", "reason": "C=C at 1.55A; CBP refines to 109.6 deg (reads sp3) and CBQ is terminal - geometry is same as ideal sp3 + single bond: error in data?" }
+  ] },
+  { "pdbId": "4JV8", "compId": "1M1" },
+  { "pdbId": "5ML4", "compId": "RRQ" },
+  { "pdbId": "5ML8", "compId": "V98" },
+  { "pdbId": "9GKG", "compId": "LRX" },
+  { "pdbId": "9NF2", "compId": "6IC" },
+  { "pdbId": "7TAA", "compId": "ABC" },
+  { "pdbId": "5VEX", "compId": "97V" },
+  { "pdbId": "7LCJ", "compId": "UK4" },
+  { "pdbId": "6TG0", "compId": "N78" },
+  { "pdbId": "3HUO", "compId": "PNN" },
+  { "pdbId": "7DFR", "compId": "FOL" },
+  { "pdbId": "4DFR", "compId": "MTX" },
+  { "pdbId": "2DHF", "compId": "DZF" },
+  { "pdbId": "1GOX", "compId": "FMN" },
+  { "pdbId": "6FUX", "compId": "SRY" },
+  { "pdbId": "8K5C", "compId": "OJX" }
+]

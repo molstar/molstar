@@ -50,6 +50,8 @@
   "bin": {
     "cif2bcif": "lib/commonjs/cli/cif2bcif/index.js",
     "cifschema": "lib/commonjs/cli/cifschema/index.js",
+    "bond-order-validation": "lib/commonjs/cli/bond-order-validation/index.js",
+    "bond-order-validation-build-data": "lib/commonjs/cli/bond-order-validation/build-data.js",
     "mvs-validate": "lib/commonjs/cli/mvs/mvs-validate.js",
     "mvs-render": "lib/commonjs/cli/mvs/mvs-render.js",
     "mvs-print-schema": "lib/commonjs/cli/mvs/mvs-print-schema.js",

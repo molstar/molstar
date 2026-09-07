@@ -192,6 +192,7 @@ export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsy
     const auth_seq_id = CifField.ofTokens(sites.auth_seq_id);
     const pdbx_PDB_ins_code = CifField.ofTokens(sites.pdbx_PDB_ins_code);
     const auth_atom_id = CifField.ofTokens(sites.auth_atom_id);
+    const pdbx_PDB_alt_loc = CifField.ofTokens(sites.label_alt_id);
     const auth_comp_id = CifField.ofTokens(sites.auth_comp_id);
     const id = CifField.ofStrings(sites.id);
 
@@ -236,6 +237,7 @@ export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsy
         const seqId = auth_seq_id.int(i);
         const insCode = pdbx_PDB_ins_code.str(i);
         let atomId = auth_atom_id.str(i);
+        const altloc = pdbx_PDB_alt_loc.str(i);
 
         if (modelNum !== currModelNum) {
             asymIdCounts.clear();
@@ -273,7 +275,7 @@ export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsy
 
         labelAsymIds[i] = labelAsymIdHelper.get(i);
 
-        if (atomIdCounts.has(atomId)) {
+        if (atomIdCounts.has(atomId) && altloc === '') {
             const atomIdCount = atomIdCounts.get(atomId)! + 1;
             atomIdCounts.set(atomId, atomIdCount);
             atomId = `${atomId}_${atomIdCount}`;

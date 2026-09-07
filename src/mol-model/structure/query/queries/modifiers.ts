@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { Segmentation, SortedArray } from '../../../../mol-data/int';
@@ -23,6 +24,7 @@ import { arraySetAdd } from '../../../../mol-util/array';
 // code execution in turbopack (and possibly other bundlers)... but interestingly
 // only when ES6 modules are used (CommonJS fine)
 import type { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
+import { getUnitBondProps } from '../../../../mol-model-props/computed/bond-orders';
 
 function getWholeResidues(ctx: QueryContext, source: Structure, structure: Structure) {
     const builder = source.subsetBuilder(true);
@@ -374,7 +376,8 @@ function expandConnected(ctx: QueryContext, structure: Structure) {
         }
 
         const inputUnitA = inputStructure.unitMap.get(unit.id) as Unit.Atomic;
-        const { offset: intraBondOffset, b: intraBondB, edgeProps: { flags, order, key } } = inputUnitA.bonds;
+        const { offset: intraBondOffset, b: intraBondB, edgeProps: { key } } = inputUnitA.bonds;
+        const { order, flags } = getUnitBondProps(inputStructure, inputUnitA);
 
         atomicBond.setStructure(inputStructure);
 

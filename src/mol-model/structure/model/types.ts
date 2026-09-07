@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { BitFlags } from '../../../mol-util/bit-flags';
@@ -635,7 +636,8 @@ export namespace BondType {
         HydrogenBond = 0x4,
         Disulfide = 0x8,
         Aromatic = 0x10,
-        Computed = 0x20
+        AromaticHuckel = 0x20, // derived from bond-order perception
+        Computed = 0x40,
         // currently at most 16 flags are supported!!
     }
 
@@ -648,7 +650,7 @@ export namespace BondType {
     }
 
     export function isAll(flags: BondType.Flag) {
-        return flags === Math.pow(2, 6) - 1;
+        return flags === Math.pow(2, 7) - 1;
     }
 
     export const Names = {
@@ -658,6 +660,7 @@ export namespace BondType {
         'disulfide': Flag.Disulfide,
         'aromatic': Flag.Aromatic,
         'computed': Flag.Computed,
+        'aromatic-huckel': Flag.AromaticHuckel,
     };
     export type Names = keyof typeof Names
 
@@ -673,6 +676,7 @@ export namespace BondType {
             case 'disulfide': return Flag.Disulfide;
             case 'aromatic': return Flag.Aromatic;
             case 'computed': return Flag.Computed;
+            case 'aromatic-huckel': return Flag.AromaticHuckel;
         }
     }
 

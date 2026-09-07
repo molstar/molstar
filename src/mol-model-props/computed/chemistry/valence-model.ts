@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Fred Ludlow <Fred.Ludlow@astx.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -16,6 +16,7 @@ import { RuntimeContext } from '../../../mol-task';
 import { isDebugMode } from '../../../mol-util/debug';
 import { SortedArray } from '../../../mol-data/int';
 import { BondType } from '../../../mol-model/structure/model/types';
+import { getUnitBondProps } from '../bond-orders';
 
 /**
  * TODO:
@@ -70,7 +71,8 @@ function isConjugated(structure: Structure, unit: Unit.Atomic, index: StructureE
 export function explicitValence(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     let v = 0;
     // intra-unit bonds
-    const { offset, edgeProps: { flags, order } } = unit.bonds;
+    const { offset, edgeProps: { flags } } = unit.bonds;
+    const { order } = getUnitBondProps(structure, unit);
     for (let i = offset[index], il = offset[index + 1]; i < il; ++i) {
         if (BondType.isCovalent(flags[i])) v += order[i];
     }

@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { Structure, Unit } from '../../../mol-model/structure';
@@ -9,12 +10,14 @@ import { StructureElement } from '../../../mol-model/structure/structure';
 import { Elements, isHalogen } from '../../../mol-model/structure/model/properties/atomic/types';
 import { ElementSymbol, BondType } from '../../../mol-model/structure/model/types';
 import { eachBondedAtom, bondCount, typeSymbol, bondToElementCount } from './util';
+import { getUnitBondProps } from '../bond-orders';
 
-function isAromatic(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
+function isAromatic(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     // TODO also extend unit.rings with geometry/composition-based aromaticity detection and use it here in addition
-    const { offset, edgeProps } = unit.bonds;
+    const { offset } = unit.bonds;
+    const { flags } = getUnitBondProps(structure, unit);
     for (let i = offset[index], il = offset[index + 1]; i < il; ++i) {
-        if (BondType.is(BondType.Flag.Aromatic, edgeProps.flags[i])) return true;
+        if (BondType.is(BondType.Flag.Aromatic | BondType.Flag.AromaticHuckel, flags[i])) return true;
     }
     return false;
 }
@@ -137,9 +140,10 @@ export function isHalocarbon(structure: Structure, unit: Unit.Atomic, index: Str
 export function isCarbonyl(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     let flag = false;
     if (typeSymbol(unit, index) === Elements.C) {
-        const { offset, edgeProps, b } = unit.bonds;
+        const { offset, b } = unit.bonds;
+        const { order } = getUnitBondProps(structure, unit);
         for (let i = offset[index], il = offset[index + 1]; i < il; ++i) {
-            if (edgeProps.order[i] === 2 && typeSymbol(unit, b[i] as StructureElement.UnitIndex) === Elements.O) {
+            if (order[i] === 2 && typeSymbol(unit, b[i] as StructureElement.UnitIndex) === Elements.O) {
                 flag = true;
                 break;
             }
@@ -227,7 +231,7 @@ export function hasPolarNeighbour(structure: Structure, unit: Unit.Atomic, index
 export function hasAromaticNeighbour(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     let flag = false;
     eachBondedAtom(structure, unit, index, (unit: Unit.Atomic, index: StructureElement.UnitIndex) => {
-        if (isAromatic(unit, index)) flag = true;
+        if (isAromatic(structure, unit, index)) flag = true;
     });
     return flag;
 }

@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { SetUtils } from '../../../../mol-util/set';
@@ -16,6 +17,7 @@ import { checkStructureMaxRadiusDistance, checkStructureMinMaxDistance } from '.
 import { Structure } from '../../structure/structure';
 import { StructureElement } from '../../structure/element';
 import { SortedArray } from '../../../../mol-data/int';
+import { getUnitBondProps } from '../../../../mol-model-props/computed/bond-orders';
 
 export function pick(query: StructureQuery, pred: QueryFn<any>): StructureQuery {
     return ctx => {
@@ -247,7 +249,8 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
 
         const inputUnit = input.unitMap.get(unit.id) as Unit.Atomic;
 
-        const { offset, b, edgeProps: { flags, order, key } } = inputUnit.bonds;
+        const { offset, b, edgeProps: { key } } = inputUnit.bonds;
+        const { order, flags } = getUnitBondProps(input, inputUnit);
         const bondedUnits = interBonds.getConnectedUnits(unit.id);
         const buCount = bondedUnits.length;
 

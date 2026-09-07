@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { PartialCanvas3DProps } from '../mol-canvas3d/canvas3d';
@@ -147,6 +148,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Behavior(PluginBehaviors.CustomProps.Interactions),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.SecondaryStructure),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.ValenceModel),
+        PluginSpec.Behavior(PluginBehaviors.CustomProps.BondOrders),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.CrossLinkRestraint),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.Streamlines),
     ],
