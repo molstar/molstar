@@ -10,7 +10,7 @@ Interactive segmentation of a volume into several *bodies* in Mol*. Each body is
 - `BodyLabels` — the per-voxel label store attached to the source `Volume` (`0` = unassigned, `1..255` = body id).
 - `internal/` — pure compute: candidates, label operations, mask computation (extend + cosine soft edge from an exact Euclidean distance transform), export.
 
-The UI lives in `src/examples/volume-segmentor/` and mirrors the volume-mask example.
+The UI lives in `src/examples/volume-tools/`, on the Segmentor tab of the shared volume tools example.
 
 ## Usage
 
@@ -32,7 +32,7 @@ Masks are written on the source grid with values in `[0, 1]`: `1` inside the bod
 ## Example app
 
 ```bash
-npm run dev -- -e volume-segmentor      # watch + build
+npm run dev -- -e volume-tools       # watch + build
 http-server -p 1338 -g               # serve
-# open http://localhost:1338/build/examples/volume-segmentor/  (optionally ?url=<map.mrc>)
+# open http://localhost:1338/build/examples/volume-tools/  (Segmentor tab, optionally ?url=<map.mrc>)
 ```

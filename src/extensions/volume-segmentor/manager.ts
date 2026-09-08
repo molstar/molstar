@@ -15,10 +15,10 @@ import { Task } from '../../mol-task';
 import { Color } from '../../mol-util/color';
 import { ColorLists } from '../../mol-util/color/lists';
 import { computeCandidates } from './internal/candidates';
-import { exportBodyMasks, maskBaseName, resolveBodyMaskParams } from './internal/export';
+import { downloadVolumeMrc, exportBodyMasks, maskBaseName, resolveBodyMaskParams } from './internal/export';
 import { assignPolygons, assignRemainder, countUnassigned, countVoxels } from './internal/label-ops';
 import { labelBBox, padGridBox } from './internal/mask-compute';
-import { removeDustInPlace } from './internal/volume-edit';
+import { flipHandednessInPlace, removeDustInPlace } from './internal/volume-edit';
 import { BodyLabels } from './labels';
 import { BodyLabelColorThemeProvider } from './theme';
 import { BodyMaskFromLabels, BodyMaskFromLabelsTag } from './transformers';
@@ -78,6 +78,9 @@ function defaultState(): VolumeSegmentorState {
     };
 }
 
+/** Sentinel for "no call in flight", so clearing the target is not mistaken for it. */
+const NoPendingTarget = Symbol('no-pending-target');
+
 /**
  * Drives interactive body segmentation of one volume. Bodies are defined by their view
  * polygons (plus an optional remainder body); voxel labels are recomputed from these
@@ -103,7 +106,7 @@ export class VolumeSegmentorManager extends StatefulPluginComponent<VolumeSegmen
     private undoStack: BodyInfo[][] = [];
     private previewRefs = new Map<BodyId, { mask: StateTransform.Ref, repr: StateTransform.Ref }>();
     private themeSyncInFlight = false;
-    private pendingTargetRef: StateTransform.Ref | undefined;
+    private pendingTargetRef: StateTransform.Ref | undefined | typeof NoPendingTarget = NoPendingTarget;
     private thresholdTimer: ReturnType<typeof setTimeout> | undefined;
     private thresholdInFlight = false;
     private pendingThreshold: Volume.IsoValue | undefined;
@@ -181,7 +184,7 @@ export class VolumeSegmentorManager extends StatefulPluginComponent<VolumeSegmen
         try {
             await this.applyTargetVolume(ref);
         } finally {
-            this.pendingTargetRef = undefined;
+            this.pendingTargetRef = NoPendingTarget;
         }
     }
 
@@ -345,6 +348,29 @@ export class VolumeSegmentorManager extends StatefulPluginComponent<VolumeSegmen
         await this.rebuildVolumeRepresentations(ref);
         await this.recompute();
         return zeroed;
+    }
+
+    /**
+     * Mirrors the source volume along X to fix a map stored with the opposite handedness, then
+     * rebuilds its representations and recomputes the bodies. View polygons are kept, so bodies
+     * are relabelled against the mirrored data. This edit cannot be undone.
+     */
+    async flipHandedness() {
+        const ref = this.state.targetVolumeRef;
+        const volume = this.volume;
+        if (!ref || !volume) return;
+
+        await this.runBusy(Task.create('Flip handedness', async () => flipHandednessInPlace(volume)));
+        this.candidates = computeCandidates(volume, this.thresholdAbs);
+        await this.rebuildVolumeRepresentations(ref);
+        await this.recompute();
+    }
+
+    /** Downloads the source volume as MRC, including dust removal and handedness flips. */
+    saveVolume() {
+        const volume = this.volume;
+        if (!volume) return;
+        downloadVolumeMrc(volume, maskBaseName(volume.label));
     }
 
     /** Representations compare volumes by grid reference, so in-place edits need a rebuild. */

@@ -5,7 +5,7 @@ Interactive 3D voxel mask generator for Mol*. Draw polygons from any camera angl
 ## Quick start (example app)
 
 ```bash
-npm run dev -- -e volume-mask        # watch + build
+npm run dev -- -e volume-tools       # watch + build
 http-server -p 1338 -g               # serve
-# open http://localhost:1338/build/examples/volume-mask/
+# open http://localhost:1338/build/examples/volume-tools/  (Mask Creator tab)
 ```

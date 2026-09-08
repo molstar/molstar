@@ -173,7 +173,6 @@ export function MaskCreatorPanel({ plugin, controller }: Props) {
 
     return (
         <div style={{ padding: '8px', fontFamily: 'sans-serif', fontSize: '13px', color: '#ccc' }}>
-            <h3 style={{ margin: '0 0 8px', color: '#fff' }}>Volume Mask Creator</h3>
 
             {/* ── Data ─────────────────────────────────────────── */}
             <input ref={volumeInputRef} type='file'

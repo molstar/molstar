@@ -3,11 +3,13 @@
  *
  * @author Tadej Satler <tadej.satler@gmail.com>
  *
- * Volume Segmentor — standalone example page.
+ * Volume Tools — landing page (`index.html`) linking to one page per tool. Each tool runs in
+ * its own document, so the two never share a plugin instance or a scene.
  *
- * Start:  npm run dev -- -e volume-segmentor
+ * Start:  npm run dev -- -e volume-tools
  * Serve:  http-server -p 1338 -g
- * Open:   http://localhost:1338/build/examples/volume-segmentor/ (optionally ?url=<map.mrc>)
+ * Open:   http://localhost:1338/build/examples/volume-tools/
+ *         (a tool page also takes ?url=<map.mrc> to load a volume right away)
  */
 
 import * as React from 'react';
@@ -18,19 +20,65 @@ import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginConfig } from '../../mol-plugin/config';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginSpec } from '../../mol-plugin/spec';
+import { VolumeMaskBehavior } from '../../extensions/volume-mask';
 import { VolumeSegmentorBehavior, VolumeSegmentorManager } from '../../extensions/volume-segmentor';
+import { VolumeMaskController } from './controller';
 import { BodiesPanel } from './ui/bodies-panel';
+import { MaskCreatorPanel } from './ui/mask-panel';
 import '../../mol-plugin-ui/skin/light.scss';
 import './index.html';
+import './tool.html';
+
+interface Tool {
+    name: string;
+    behavior: PluginSpec.Behavior;
+    /** Builds the panel once the plugin is up, and returns anything worth exposing on `window`. */
+    panel: (plugin: PluginContext) => { element: React.ReactElement, globals: Record<string, unknown> };
+}
+
+const Tools: { [id: string]: Tool } = {
+    mask: {
+        name: 'Mask Creator',
+        behavior: PluginSpec.Behavior(VolumeMaskBehavior),
+        panel: plugin => {
+            const controller = new VolumeMaskController(plugin);
+            return {
+                element: React.createElement(MaskCreatorPanel, { plugin, controller }),
+                globals: { maskController: controller },
+            };
+        },
+    },
+    segmentor: {
+        name: 'Segmentor',
+        behavior: PluginSpec.Behavior(VolumeSegmentorBehavior),
+        panel: plugin => {
+            const manager = VolumeSegmentorManager.get(plugin)!;
+            return {
+                element: React.createElement(BodiesPanel, { plugin, manager }),
+                globals: { segmentorManager: manager },
+            };
+        },
+    },
+};
 
 async function init() {
+    const params = new URL(window.location.href).searchParams;
+    const tool = Tools[params.get('tool') ?? ''];
+    if (!tool) {
+        window.location.replace('./');
+        return;
+    }
+
+    document.title = `${tool.name} — Volume Tools`;
+    document.getElementById('tool-name')!.textContent = tool.name;
+
     const spec = DefaultPluginUISpec();
     const plugin = await createPluginUI({
         target: document.getElementById('app')!,
         render: renderReact18,
         spec: {
             ...spec,
-            behaviors: [...spec.behaviors, PluginSpec.Behavior(VolumeSegmentorBehavior)],
+            behaviors: [...spec.behaviors, tool.behavior],
             layout: {
                 initial: {
                     isExpanded: false, // stay inside #app; expanded mode is position: fixed
@@ -49,17 +97,13 @@ async function init() {
         },
     });
 
-    const manager = VolumeSegmentorManager.get(plugin)!;
-    ReactDOM.render(
-        React.createElement(BodiesPanel, { plugin, manager }),
-        document.getElementById('bodies-panel')!
-    );
+    const { element, globals } = tool.panel(plugin);
+    ReactDOM.render(element, document.getElementById('panel-root')!);
 
     (window as any).plugin = plugin;
-    (window as any).bodiesManager = manager;
+    for (const [key, value] of Object.entries(globals)) (window as any)[key] = value;
 
-    // Optional: ?url=<volume.mrc> loads a volume right away.
-    const url = new URL(window.location.href).searchParams.get('url');
+    const url = params.get('url');
     if (url) await loadVolume(plugin, url);
     console.log('Ready. Use the "Open Volume" button to load a local .mrc/.map file.');
 }

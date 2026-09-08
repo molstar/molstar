@@ -5,7 +5,7 @@
  */
 
 import { Volume } from '../../../mol-model/volume';
-import { removeDust } from '../../volume-mask/internal/volume-ops';
+import { flipVolumeX, removeDust } from '../../volume-mask/internal/volume-ops';
 import { BodyLabels } from '../labels';
 
 type Cells = { [i: number]: number, length: number };
@@ -56,4 +56,16 @@ export function removeDustInPlace(volume: Volume, minVoxels: number, thresholdAb
         clearVolumeCaches(volume);
     }
     return zeroed;
+}
+
+/**
+ * Mirrors the volume along X, editing its data in place, to fix a map stored with the opposite
+ * handedness; drops cached derived data (labels are kept). Mirroring only moves voxels, so the
+ * grid stats stay valid.
+ */
+export function flipHandednessInPlace(volume: Volume) {
+    const { cells } = volume.grid;
+    const [nx, ny, nz] = cells.space.dimensions as [number, number, number];
+    flipVolumeX(cells.data as unknown as Cells, nx, ny, nz, cells.space);
+    clearVolumeCaches(volume);
 }

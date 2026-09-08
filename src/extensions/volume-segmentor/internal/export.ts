@@ -46,6 +46,14 @@ export function writeBodyMaskMrc(volume: Volume, result: BodyMaskResult): ArrayB
     return CCP4Writer.writeMrc(volume.grid, full);
 }
 
+/** Downloads the volume's current voxel data as a float32 MRC, in-place edits included. */
+export function downloadVolumeMrc(volume: Volume, baseName: string) {
+    const raw = volume.grid.cells.data as unknown as ArrayLike<number>;
+    const data = raw instanceof Float32Array ? raw : Float32Array.from(raw);
+    const buffer = CCP4Writer.writeMrc(volume.grid, data);
+    download(new Blob([buffer], { type: 'application/octet-stream' }), `${baseName}_volume.mrc`);
+}
+
 export interface ExportBodyMasksOptions {
     baseName: string
     /** Bundle all masks into one zip instead of downloading them one by one. */

@@ -5,7 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Add `volume-segmentor` extension and example: interactive segmentation of a volume into bodies (polygon labelling from several views, remainder assignment, dust removal, per-body extend + cosine soft edge, MRC mask export)
+- Add `volume-segmentor` extension: interactive segmentation of a volume into bodies (polygon labelling from several views, remainder assignment, dust removal, per-body extend + cosine soft edge, MRC mask export)
+- Merge the `volume-mask` example into a new `volume-tools` example, which hosts the mask creator and the segmentor as tabs
 - Fix `CCP4Writer.writeMrc` for volumes with a non-canonical axis order
 - Add `squaredDistanceTransform3D` (exact Euclidean distance transform) to `mol-math/geometry`
 - Optimize `GridLookup3D` building for sparse grids

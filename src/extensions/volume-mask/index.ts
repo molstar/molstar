@@ -4,7 +4,7 @@
  *
  * Volume Mask Creator extension for Mol*
  *
- * For a full interactive UI, see `src/examples/volume-mask/`.
+ * For a full interactive UI, see `src/examples/volume-tools/`.
  */
 
 export { VolumeMaskBehavior } from './behavior';

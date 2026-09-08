@@ -28,8 +28,7 @@ const Apps = [
     { kind: 'example', name: 'ihm-restraints' },
     { kind: 'example', name: 'interactions' },
     { kind: 'example', name: 'ligand-editor' },
-    { kind: 'example', name: 'volume-mask' },
-    { kind: 'example', name: 'volume-segmentor' },
+    { kind: 'example', name: 'volume-tools' },
     { kind: 'example', name: 'react' },
 ];
 

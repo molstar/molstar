@@ -17,8 +17,8 @@ import { Color } from '../../../mol-util/color';
 import { UUID } from '../../../mol-util/uuid';
 import { isBodyMaskCell, VolumeSegmentorManager, VolumeSegmentorState } from '../../../extensions/volume-segmentor';
 import type { BodyInfo, Point2D } from '../../../extensions/volume-segmentor';
-import { DrawingCanvas } from '../../volume-mask/ui/drawing-canvas';
-import { SectionDivider, btnStyle, hintStyle, labelStyle, numInputStyle, rowStyle, smallBtnStyle } from '../../volume-mask/ui/panel-styles';
+import { DrawingCanvas } from './drawing-canvas';
+import { SectionDivider, btnStyle, hintStyle, labelStyle, numInputStyle, rowStyle, smallBtnStyle } from './panel-styles';
 
 interface Props {
     plugin: PluginContext;
@@ -157,7 +157,6 @@ export function BodiesPanel({ plugin, manager }: Props) {
 
     return (
         <div style={{ padding: '8px', fontFamily: 'sans-serif', fontSize: '13px', color: '#ccc' }}>
-            <h3 style={{ margin: '0 0 8px', color: '#fff' }}>Volume Segmentor</h3>
 
             {/* ── Data ─────────────────────────────────────────── */}
             <input ref={volumeInputRef} type='file'
@@ -201,6 +200,21 @@ export function BodiesPanel({ plugin, manager }: Props) {
                 {deferThresholdSliderPreview && (
                     <p style={hintStyle}>Large volume: the slider updates the numeric threshold immediately and refreshes the surface on release.</p>
                 )}
+
+                <div style={{ display: 'flex', gap: '4px', margin: '8px 0 4px' }}>
+                    <button style={{ ...btnStyle, flex: 1, background: '#1a1a2e' }}
+                        disabled={anyBusy}
+                        title='Mirror the source volume along X (cannot be undone)'
+                        onClick={() => void run('flip', () => manager.flipHandedness())}>
+                        {busy === 'flip' ? '⏳ Flipping…' : '↔ Flip Handedness'}
+                    </button>
+                    <button style={{ ...btnStyle, flex: 1, background: '#152a1a' }}
+                        disabled={anyBusy}
+                        title='Download the source volume as MRC, including dust removal and flips'
+                        onClick={() => manager.saveVolume()}>
+                        ⬇ Save Volume MRC
+                    </button>
+                </div>
 
                 <label style={labelStyle}>Remove dust — min size: {dustMinVoxels} voxels (uses threshold above)</label>
                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>

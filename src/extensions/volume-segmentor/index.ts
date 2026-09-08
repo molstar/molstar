@@ -6,7 +6,7 @@
  * Volume Segmentor extension for Mol*: interactively split a volume into several bodies and
  * export one soft-edged MRC mask per body.
  *
- * For a full interactive UI, see `src/examples/volume-segmentor/`.
+ * For a full interactive UI, see `src/examples/volume-tools/`.
  */
 
 export { VolumeSegmentorBehavior } from './behavior';
@@ -17,6 +17,6 @@ export { BodyLabelColorThemeProvider, BodyLabelColorThemeParams } from './theme'
 export { BodyLabels } from './labels';
 export { computeBodyMask, buildCroppedMaskVolume, scatterToFullBox, softValue } from './internal/mask-compute';
 export { computeCandidates } from './internal/candidates';
-export { removeDustInPlace, recomputeStats } from './internal/volume-edit';
-export { exportBodyMasks, bodyMaskFileName, maskBaseName, orderBodiesBySize, writeBodyMaskMrc } from './internal/export';
+export { flipHandednessInPlace, removeDustInPlace, recomputeStats } from './internal/volume-edit';
+export { exportBodyMasks, bodyMaskFileName, downloadVolumeMrc, maskBaseName, orderBodiesBySize, writeBodyMaskMrc } from './internal/export';
 export type { BodyId, BodyInfo, LabelStore, AssignMode, BodyMaskParams, BodyMaskResult, GridBox, ViewMask, Point2D } from './types';

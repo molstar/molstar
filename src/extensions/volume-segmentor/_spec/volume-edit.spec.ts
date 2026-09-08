@@ -5,8 +5,8 @@
  */
 
 import { BodyLabels } from '../labels';
-import { recomputeStats, removeDustInPlace } from '../internal/volume-edit';
-import { SwappedOrder, createTestVolume, offsetOf } from './test-volume';
+import { flipHandednessInPlace, recomputeStats, removeDustInPlace } from '../internal/volume-edit';
+import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from './test-volume';
 
 describe('removeDustInPlace', () => {
     it('zeroes small components above the threshold and refreshes stats', () => {
@@ -42,4 +42,31 @@ describe('removeDustInPlace', () => {
         expect(volume.grid.stats.max).toBe(8);
         expect(volume.grid.stats.mean).toBeCloseTo((2 + 2 + 4 + 8) / 4, 6);
     });
+});
+
+describe('flipHandednessInPlace', () => {
+    for (const order of [CanonicalOrder, SwappedOrder]) {
+        it(`mirrors along X for axis order ${order}`, () => {
+            const volume = createTestVolume([4, 3, 2], (i, j, k) => i + 10 * j + 100 * k, order);
+            const data = volume.grid.cells.data as Float32Array;
+            const store = BodyLabels.ensure(volume);
+            volume._propertyData['some-cache'] = { stale: true };
+
+            flipHandednessInPlace(volume);
+
+            for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) for (let k = 0; k < 2; k++) {
+                expect(data[offsetOf(volume, i, j, k)]).toBe((3 - i) + 10 * j + 100 * k);
+            }
+            // caches are dropped, labels survive; mirroring only moves voxels, so stats hold
+            expect(volume._propertyData['some-cache']).toBeUndefined();
+            expect(BodyLabels.get(volume)).toBe(store);
+            expect(volume.grid.stats.max).toBe(123);
+
+            // flipping twice is the identity
+            flipHandednessInPlace(volume);
+            for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) for (let k = 0; k < 2; k++) {
+                expect(data[offsetOf(volume, i, j, k)]).toBe(i + 10 * j + 100 * k);
+            }
+        });
+    }
 });

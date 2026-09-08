@@ -11,7 +11,7 @@ import { BodyLabelColorThemeProvider } from './theme';
 /**
  * Registers the body-label color theme and creates the `VolumeSegmentorManager` for the plugin
  * (available via `VolumeSegmentorManager.get(plugin)`). `BodyMaskFromLabels` is a BuiltIn
- * transformer, registered at module load. For a full interactive UI, see `src/examples/volume-segmentor/`.
+ * transformer, registered at module load. For a full interactive UI, see `src/examples/volume-tools/`.
  */
 export const VolumeSegmentorBehavior = PluginBehavior.create({
     name: 'volume-segmentor',
