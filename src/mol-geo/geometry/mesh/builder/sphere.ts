@@ -10,8 +10,8 @@ import { Primitive } from '../../../primitive/primitive';
 import { Sphere } from '../../../primitive/sphere';
 import { MeshBuilder } from '../mesh-builder';
 
+/** Full sphere stored on key `detail`; sphere subsets (ring and caps) stored on keys `-2*detail - 1` and `-2*detail - 2` */
 const sphereCache = new Map<number, Primitive>();
-const sphereSubsetCache = { ring: new Map<number, Primitive>(), caps: new Map<number, Primitive>() };
 const tmpSphereMat = Mat4.identity();
 
 function setSphereMat(m: Mat4, center: Vec3, radius: number) {
@@ -28,11 +28,11 @@ export function getSphere(detail: number) {
 }
 
 export function getSphereSubset(detail: number, subset: 'ring' | 'caps') {
-    const cache = sphereSubsetCache[subset];
-    let sphere = cache.get(detail);
+    const cacheKey = -2 * detail + (subset === 'ring' ? -1 : -2);
+    let sphere = sphereCache.get(cacheKey);
     if (sphere === undefined) {
         sphere = Sphere(detail, { subset });
-        cache.set(detail, sphere);
+        sphereCache.set(cacheKey, sphere);
     }
     return sphere;
 }
