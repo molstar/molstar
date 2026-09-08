@@ -7,7 +7,7 @@
 
 import { Interval, OrderedSet } from '../../../mol-data/int';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
-import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
+import { addSphereSubset } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { PickingId } from '../../../mol-geo/geometry/picking';
@@ -73,7 +73,7 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
     for (let i = 0; i < n; ++i) {
         const c = carbohydrates.elements[i];
         const ring = c.unit.rings.all[c.ringIndex];
-        const shapeType = getSaccharideShape(c.component.type, ring.length);
+        const shapeType = getSaccharideShape(c.component.type);
 
         l.unit = c.unit;
         l.element = c.unit.elements[ring[0]];
@@ -90,9 +90,9 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
 
         switch (shapeType) {
             case SaccharideShape.FilledSphere: // e.g. 3d11
-                addSphere(builderState, center, radius, detail, { subset: 'ring' });
+                addSphereSubset(builderState, center, radius, detail, 'ring');
                 builderState.currentGroup += 1;
-                addSphere(builderState, center, radius, detail, { subset: 'caps' });
+                addSphereSubset(builderState, center, radius, detail, 'caps');
                 break;
             case SaccharideShape.FilledCube: // e.g. 3d11
             case SaccharideShape.CrossedCube: // e.g. 5hwa
