@@ -4,9 +4,9 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { Camera } from '../../../mol-canvas3d/camera';
-import { Vec3 } from '../../../mol-math/linear-algebra';
-import { SyncRuntimeContext } from '../../../mol-task/execution/synchronous';
+import { Camera } from '../../../../mol-canvas3d/camera';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
+import { SyncRuntimeContext } from '../../../../mol-task/execution/synchronous';
 import { computeCandidates } from '../internal/candidates';
 import { assignPolygons, assignRemainder, countUnassigned, countVoxels } from '../internal/label-ops';
 import { BodyLabels } from '../labels';

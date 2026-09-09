@@ -4,11 +4,11 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { Volume } from '../../mol-model/volume';
-import { PluginStateObject as SO, PluginStateTransform } from '../../mol-plugin-state/objects';
-import { StateTransformer } from '../../mol-state';
-import { Task } from '../../mol-task';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { Volume } from '../../../mol-model/volume';
+import { PluginStateObject as SO, PluginStateTransform } from '../../../mol-plugin-state/objects';
+import { StateTransformer } from '../../../mol-state';
+import { Task } from '../../../mol-task';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { buildCroppedMaskVolume, computeBodyMask } from './internal/mask-compute';
 import { BodyLabels } from './labels';
 import { MaxBodyId } from './types';

@@ -3,9 +3,9 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { PluginBehavior } from '../../mol-plugin/behavior/behavior';
+import { PluginBehavior } from '../../../mol-plugin/behavior/behavior';
 
-/** PluginBehavior that marks the volume-mask extension as active in the plugin. */
+/** PluginBehavior that marks the mask tool as active in the plugin. */
 export const VolumeMaskBehavior = PluginBehavior.create({
     name: 'volume-mask-behavior',
     category: 'misc',

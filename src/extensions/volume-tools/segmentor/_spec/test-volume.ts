@@ -4,9 +4,9 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { CustomProperties } from '../../../mol-model/custom-property';
-import { Grid, Volume } from '../../../mol-model/volume';
-import { Mat4, Tensor } from '../../../mol-math/linear-algebra';
+import { CustomProperties } from '../../../../mol-model/custom-property';
+import { Grid, Volume } from '../../../../mol-model/volume';
+import { Mat4, Tensor } from '../../../../mol-math/linear-algebra';
 
 export const CanonicalOrder = [2, 1, 0];
 export const SwappedOrder = [0, 1, 2];

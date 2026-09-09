@@ -4,7 +4,7 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { Color } from '../../../mol-util/color';
+import { Color } from '../../../../mol-util/color';
 import { bodyMaskFileName, maskBaseName, orderBodiesBySize, resolveBodyMaskParams } from '../internal/export';
 import { BodyInfo } from '../types';
 

@@ -4,12 +4,12 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { Grid, Volume } from '../../../mol-model/volume';
-import { Mat4, Tensor, Vec3 } from '../../../mol-math/linear-algebra';
-import { CustomProperties } from '../../../mol-model/custom-property';
-import { RuntimeContext } from '../../../mol-task';
+import { Grid, Volume } from '../../../../mol-model/volume';
+import { Mat4, Tensor, Vec3 } from '../../../../mol-math/linear-algebra';
+import { CustomProperties } from '../../../../mol-model/custom-property';
+import { RuntimeContext } from '../../../../mol-task';
 import { BodyId, BodyMaskParams, BodyMaskResult, GridBox } from '../types';
-import { squaredDistanceTransform3D } from '../../../mol-math/geometry/distance-transform';
+import { squaredDistanceTransform3D } from '../../../../mol-math/geometry/distance-transform';
 
 /**
  * Soft mask value at Euclidean distance `d` (voxels) from the binary body:

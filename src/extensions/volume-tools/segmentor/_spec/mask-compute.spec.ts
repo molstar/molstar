@@ -4,9 +4,9 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { Grid } from '../../../mol-model/volume';
-import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
-import { SyncRuntimeContext } from '../../../mol-task/execution/synchronous';
+import { Grid } from '../../../../mol-model/volume';
+import { Mat4, Vec3 } from '../../../../mol-math/linear-algebra';
+import { SyncRuntimeContext } from '../../../../mol-task/execution/synchronous';
 import { buildCroppedMaskVolume, computeBodyMask, labelBBox, padGridBox, scatterToFullBox, softValue } from '../internal/mask-compute';
 import { BodyLabels } from '../labels';
 import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from './test-volume';

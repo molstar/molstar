@@ -4,16 +4,16 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { ColorTheme, LocationColor } from '../../mol-theme/color';
-import { ColorThemeCategory } from '../../mol-theme/color/categories';
-import { ThemeDataContext } from '../../mol-theme/theme';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Color } from '../../mol-util/color';
-import { TableLegend } from '../../mol-util/legend';
-import { Location } from '../../mol-model/location';
-import { Grid, Volume } from '../../mol-model/volume';
-import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
-import { isPositionLocation } from '../../mol-geo/util/location-iterator';
+import { ColorTheme, LocationColor } from '../../../mol-theme/color';
+import { ColorThemeCategory } from '../../../mol-theme/color/categories';
+import { ThemeDataContext } from '../../../mol-theme/theme';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { Color } from '../../../mol-util/color';
+import { TableLegend } from '../../../mol-util/legend';
+import { Location } from '../../../mol-model/location';
+import { Grid, Volume } from '../../../mol-model/volume';
+import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
+import { isPositionLocation } from '../../../mol-geo/util/location-iterator';
 import { BodyLabels } from './labels';
 import { MaxBodyId } from './types';
 

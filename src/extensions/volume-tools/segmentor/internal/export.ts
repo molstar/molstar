@@ -4,11 +4,11 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { Volume } from '../../../mol-model/volume';
-import { RuntimeContext } from '../../../mol-task';
-import { CCP4Writer } from '../../../mol-io/writer/ccp4/ccp4';
-import { download } from '../../../mol-util/download';
-import { zip } from '../../../mol-util/zip/zip';
+import { Volume } from '../../../../mol-model/volume';
+import { RuntimeContext } from '../../../../mol-task';
+import { CCP4Writer } from '../../../../mol-io/writer/ccp4/ccp4';
+import { download } from '../../../../mol-util/download';
+import { zip } from '../../../../mol-util/zip/zip';
 import { BodyInfo, BodyMaskParams, BodyMaskResult, LabelStore } from '../types';
 import { computeBodyMask, scatterToFullBox } from './mask-compute';
 

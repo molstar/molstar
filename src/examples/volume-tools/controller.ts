@@ -17,10 +17,10 @@ import { MarkerAction } from '../../mol-util/marker-action';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { StateTransform } from '../../mol-state';
 import type { UnitIndex } from '../../mol-model/structure/structure/element/util';
-import { MaskVolumeFromSource } from '../../extensions/volume-mask/transformers';
-import { downloadMrc } from '../../extensions/volume-mask/internal/mrc-export';
-import { flipVolumeX, removeDust } from '../../extensions/volume-mask/internal/volume-ops';
-import type { MaskCreatorState, MaskSource, ViewMask } from '../../extensions/volume-mask/types';
+import { MaskVolumeFromSource } from '../../extensions/volume-tools/mask/transformers';
+import { downloadMrc } from '../../extensions/volume-tools/mask/internal/mrc-export';
+import { flipVolumeX, removeDust } from '../../extensions/volume-tools/volume-ops';
+import type { MaskCreatorState, MaskSource, ViewMask } from '../../extensions/volume-tools/mask/types';
 
 export const MASK_OVERLAY_COLOR = Color(0xFF6B00);
 const THRESHOLD_PREVIEW_DEBOUNCE_MS = 75;

@@ -3,11 +3,11 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { Volume } from '../../mol-model/volume';
-import { PluginStateObject as SO, PluginStateTransform } from '../../mol-plugin-state/objects';
-import { Task } from '../../mol-task';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { StateTransformer } from '../../mol-state';
+import { Volume } from '../../../mol-model/volume';
+import { PluginStateObject as SO, PluginStateTransform } from '../../../mol-plugin-state/objects';
+import { Task } from '../../../mol-task';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { StateTransformer } from '../../../mol-state';
 import { computeVolumeMask, computeStructureMask, computeSoftEdge, buildMaskVolume, dilate3D } from './internal/mask-compute';
 import type { ViewMask, MaskSource } from './types';
 

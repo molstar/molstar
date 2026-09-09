@@ -4,11 +4,11 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { Vec3 } from '../../mol-math/linear-algebra';
-import { Color } from '../../mol-util/color';
-import type { ViewMask } from '../volume-mask/types';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { Color } from '../../../mol-util/color';
+import type { ViewMask } from '../types';
 
-export type { ViewMask, Point2D } from '../volume-mask/types';
+export type { ViewMask, Point2D } from '../types';
 
 /** Body identifier, 1..255. Ids are never reused within a session; 0 means "unassigned". */
 export type BodyId = number;

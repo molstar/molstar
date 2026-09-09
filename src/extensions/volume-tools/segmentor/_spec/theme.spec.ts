@@ -4,10 +4,10 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { PositionLocation } from '../../../mol-geo/util/location-iterator';
-import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
-import { Color } from '../../../mol-util/color';
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { PositionLocation } from '../../../../mol-geo/util/location-iterator';
+import { Mat4, Vec3 } from '../../../../mol-math/linear-algebra';
+import { Color } from '../../../../mol-util/color';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { BodyLabels } from '../labels';
 import { BodyLabelColorTheme, BodyLabelColorThemeParams, BodyLabelColorThemeProvider, makeLabelAtPosition } from '../theme';
 import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from './test-volume';

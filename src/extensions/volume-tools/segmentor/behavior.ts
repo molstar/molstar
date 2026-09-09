@@ -4,7 +4,7 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { PluginBehavior } from '../../mol-plugin/behavior/behavior';
+import { PluginBehavior } from '../../../mol-plugin/behavior/behavior';
 import { VolumeSegmentorManager } from './manager';
 import { BodyLabelColorThemeProvider } from './theme';
 

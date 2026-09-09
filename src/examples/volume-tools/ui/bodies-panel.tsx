@@ -15,8 +15,8 @@ import { PluginContext } from '../../../mol-plugin/context';
 import { Asset } from '../../../mol-util/assets';
 import { Color } from '../../../mol-util/color';
 import { UUID } from '../../../mol-util/uuid';
-import { isBodyMaskCell, VolumeSegmentorManager, VolumeSegmentorState } from '../../../extensions/volume-segmentor';
-import type { BodyInfo, Point2D } from '../../../extensions/volume-segmentor';
+import { isBodyMaskCell, VolumeSegmentorManager, VolumeSegmentorState } from '../../../extensions/volume-tools/segmentor';
+import type { BodyInfo, Point2D } from '../../../extensions/volume-tools/segmentor';
 import { DrawingCanvas } from './drawing-canvas';
 import { SectionDivider, btnStyle, hintStyle, labelStyle, numInputStyle, rowStyle, smallBtnStyle } from './panel-styles';
 

@@ -4,8 +4,8 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { Volume } from '../../../mol-model/volume';
-import { flipVolumeX, removeDust } from '../../volume-mask/internal/volume-ops';
+import { Volume } from '../../../../mol-model/volume';
+import { flipVolumeX, removeDust } from '../../volume-ops';
 import { BodyLabels } from '../labels';
 
 type Cells = { [i: number]: number, length: number };

@@ -4,16 +4,16 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { Volume } from '../../mol-model/volume';
-import { StatefulPluginComponent } from '../../mol-plugin-state/component';
-import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
-import { PluginStateObject as SO } from '../../mol-plugin-state/objects';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectCell, StateTransform } from '../../mol-state';
-import { Task } from '../../mol-task';
-import { Color } from '../../mol-util/color';
-import { ColorLists } from '../../mol-util/color/lists';
+import { Volume } from '../../../mol-model/volume';
+import { StatefulPluginComponent } from '../../../mol-plugin-state/component';
+import { createVolumeRepresentationParams } from '../../../mol-plugin-state/helpers/volume-representation-params';
+import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
+import { StateTransforms } from '../../../mol-plugin-state/transforms';
+import { PluginContext } from '../../../mol-plugin/context';
+import { StateObjectCell, StateTransform } from '../../../mol-state';
+import { Task } from '../../../mol-task';
+import { Color } from '../../../mol-util/color';
+import { ColorLists } from '../../../mol-util/color/lists';
 import { computeCandidates } from './internal/candidates';
 import { downloadVolumeMrc, exportBodyMasks, maskBaseName, resolveBodyMaskParams } from './internal/export';
 import { assignPolygons, assignRemainder, countUnassigned, countVoxels } from './internal/label-ops';

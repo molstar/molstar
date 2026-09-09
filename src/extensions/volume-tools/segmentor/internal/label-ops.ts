@@ -4,11 +4,11 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { Grid, Volume } from '../../../mol-model/volume';
-import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
-import { RuntimeContext } from '../../../mol-task';
-import { pointInPolygon2D } from '../../../mol-math/geometry/polygon';
-import { prepareMask, projectToNormInPlace } from '../../volume-mask/internal/mask-compute';
+import { Grid, Volume } from '../../../../mol-model/volume';
+import { Mat4, Vec3 } from '../../../../mol-math/linear-algebra';
+import { RuntimeContext } from '../../../../mol-task';
+import { pointInPolygon2D } from '../../../../mol-math/geometry/polygon';
+import { prepareMask, projectToNormInPlace } from '../../view-projection';
 import { AssignMode, BodyId, MaxBodyId, ViewMask } from '../types';
 
 const UpdateInterval = 1 << 18;

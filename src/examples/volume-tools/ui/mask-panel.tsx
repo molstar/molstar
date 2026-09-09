@@ -14,7 +14,7 @@ import { Asset } from '../../../mol-util/assets';
 import { VolumeMaskController } from '../controller';
 import { DrawingCanvas } from './drawing-canvas';
 import { SectionDivider, btnStyle, labelStyle, numInputStyle, rowStyle, smallBtnStyle } from './panel-styles';
-import type { MaskCreatorState, MaskSource, ViewMask, Point2D } from '../../../extensions/volume-mask/types';
+import type { MaskCreatorState, MaskSource, ViewMask, Point2D } from '../../../extensions/volume-tools/mask/types';
 
 interface Props {
     plugin: PluginContext;
