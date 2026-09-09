@@ -53,8 +53,14 @@ Note that since we don't clearly distinguish between a public and private interf
 - Illumination
     - Remove `firstStepSize` tracing parameter, derive automatically
     - Fix illumination `auto` thickness mode never correctly being applied
-    - Fix illumination ray marching stepping over occluders when the acceptance window is narrower than the current step
-    - Evaluate illumination `auto` thickness at the surface being tested instead of latching it from the shaded pixel
+    - Fix illumination ray marching stepping over occluders
+    - Evaluate illumination `auto` thickness at the surface being tested
+    - Fix `NaN` in illumination shadows when a light color channel sums to zero
+    - Fix illumination indirect light ignoring `exposure` and the shading clamp
+    - Remove illumination `glow` parameter
+    - Fix sphere/cylinder impostors writing their near surface in the back-depth pass
+    - Fix mesh back faces & cylinder far hits being discarded as `interior` in the back-depth pass
+    - Fix illumination shadows not weighing occlusion by per-light irradiance
 - Add `.parseRaw` to `DataFormatProvider` for out of state tree parsing
 - Camera improvements
     - Support multiple camera transition shapes
@@ -67,6 +73,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
     - MVS-related custom model properties (and custom structure properties) are hidden in UI (fixes override of default custom properties)
 - Remove `new Function` usage for CSP / SOC2 compliance; server path templates use a whitelist of `${id...}` string methods
+- Fix CCP4/MRC volumes with unset cell angles failing to load
+- Fix CCP4/MRC volume `sigma` being taken from the header when the header rms is negative
 - Add Particles as first class objects
     - `ParticleList` and `ParticleTrajectory`
     - Formats: ariatomi-em, cryoet-ndjson, dynamo-tbl, relion-star, simularium, cellpack & petworld mmcif
