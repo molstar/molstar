@@ -58,6 +58,10 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fix mesh back faces & cylinder far hits being discarded as `interior` in the back-depth pass
     - Fix illumination shadows not weighing occlusion by per-light irradiance
 - Add `.parseRaw` to `DataFormatProvider` for out of state tree parsing
+- Carbohydrate symbols
+  - All carbohydrate symbols are rendered with 2 groups (primary and secondary) and can be potentially colored in two colors
+  - CarbohydrateSymbolColorTheme decides which shape will be colored by one or two colors
+  - Changed side length ratio of FlatBox shape from 2:2:1 to 2:1:1
 - Camera improvements
     - Support multiple camera transition shapes
     - Add `transitionTrajectory` and `transitionEasing` parameters to `PluginState.Snapshot` (MOLJ) and Plugin State > Save Options

@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { Vec3 } from '../../mol-math/linear-algebra';
@@ -28,7 +29,8 @@ function createBox(perforated: boolean): Primitive {
         Vec3.set(c, points[ni * 3], points[ni * 3 + 1], 0.5);
         Vec3.set(d, points[i * 3], points[i * 3 + 1], 0.5);
         if (perforated) {
-            builder.add(a, b, c);
+            if (i < 2) builder.add(a, c, d);
+            else builder.add(a, b, d);
         } else {
             builder.addQuad(a, b, c, d);
         }
@@ -49,7 +51,7 @@ function createBox(perforated: boolean): Primitive {
     Vec3.set(c, points[6], points[7], 0.5);
     Vec3.set(d, points[9], points[10], 0.5);
     if (perforated) {
-        builder.add(a, b, c);
+        builder.add(a, c, d);
     } else {
         builder.addQuad(a, b, c, d);
     }
