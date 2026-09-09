@@ -8,6 +8,14 @@ volume operations at the root of this extension:
   everything needed to project any voxel into that view.
 - `view-projection.ts` — `prepareMask` / `projectToNormInPlace`: per-view camera setup and the
   world-to-canvas projection used in the voxel loops.
+- `view-selection.ts` — `selectByViews` / `passesAllViews`: which voxels a set of views selects.
+- `candidates.ts` — `computeCandidates`: offsets of the above-threshold voxels, so selection and
+  labelling iterate those instead of the whole grid.
+- `voxel-labels.ts` — `makeLabelAtPosition`: reads a per-voxel label array from isosurface vertex
+  positions, used by both tools' color themes.
+- `soft-mask.ts` — `softMaskFromBinary`: grows a binary voxel selection by `extend` voxels and adds
+  a raised-cosine falloff, from one exact Euclidean distance transform run inside the selection's
+  padded bounding box.
 - `volume-ops.ts` — `flipVolumeX`, `removeDust`: in-place edits of a volume's voxel data.
 
 The UI for both tools lives in `src/examples/volume-tools/`, one page per tool.
@@ -26,6 +34,8 @@ atomic structure proximity, and export a single soft-edged mask as MRC/CCP4.
 - `VolumeMaskBehavior` — add to the plugin spec.
 - `MaskVolumeFromSource` — state transformer building the mask volume from the view polygons,
   structure proximity, or both.
+- `MaskSelectionColorThemeProvider` (`mask-selection`) — colors the source surface by whether each
+  voxel is selected by the current polygons, so the selection is visible before the mask is built.
 
 ```ts
 import { VolumeMaskBehavior } from 'molstar/lib/extensions/volume-tools/mask';

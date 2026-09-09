@@ -8,7 +8,8 @@ import { PluginStateObject as SO, PluginStateTransform } from '../../../mol-plug
 import { Task } from '../../../mol-task';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StateTransformer } from '../../../mol-state';
-import { computeVolumeMask, computeStructureMask, computeSoftEdge, buildMaskVolume, dilate3D } from './internal/mask-compute';
+import { softMaskFromBinary } from '../soft-mask';
+import { computeVolumeMask, computeStructureMask, buildMaskVolume } from './internal/mask-compute';
 import type { ViewMask, MaskSource } from './types';
 
 export { MaskVolumeFromSource };
@@ -44,7 +45,7 @@ const MaskVolumeFromSource = PluginStateTransform.BuiltIn({
                 if (params.viewMasks.length > 0) {
                     await ctx.update({ message: 'Applying polygon filter…' });
                     // When inverted: select voxels inside polygons but NOT near structure
-                    const polyMask = await computeVolumeMask(a.data, { ...params, skipThreshold: true, dilation: 0 }, ctx);
+                    const polyMask = await computeVolumeMask(a.data, { ...params, skipThreshold: true }, ctx);
                     if (params.invertOutput) {
                         for (let i = 0; i < maskData.length; i++) maskData[i] = (polyMask[i] && !maskData[i]) ? 1 : 0;
                     } else {
@@ -55,12 +56,6 @@ const MaskVolumeFromSource = PluginStateTransform.BuiltIn({
                     for (let i = 0; i < maskData.length; i++) maskData[i] = maskData[i] ? 0 : 1;
                 }
 
-                if (params.dilation > 0) {
-                    await ctx.update({ message: 'Dilating mask…' });
-                    const { cells: { space } } = a.data.grid;
-                    const [nx, ny, nz] = space.dimensions as [number, number, number];
-                    maskData = dilate3D(maskData, nx, ny, nz, params.dilation, space);
-                }
             }
 
             const { cells: { space: sp } } = a.data.grid;
@@ -68,10 +63,11 @@ const MaskVolumeFromSource = PluginStateTransform.BuiltIn({
             let count = 0;
             for (let i = 0; i < maskData.length; i++) if (maskData[i]) count++;
 
+            // `dilation` grows the mask and `softEdge` fades it out; both come from one exact
+            // Euclidean distance transform, computed inside the selection's bounding box.
             let finalData: Uint8Array | Float32Array = maskData;
-            if (params.softEdge > 0) {
-                await ctx.update({ message: 'Applying soft edge…' });
-                finalData = computeSoftEdge(maskData, nx, ny, nz, params.softEdge, sp);
+            if (params.dilation > 0 || params.softEdge > 0) {
+                finalData = await softMaskFromBinary(maskData, sp, params.dilation, params.softEdge, ctx);
             }
 
             const maskVolume = buildMaskVolume(a.data, finalData);

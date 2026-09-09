@@ -9,8 +9,9 @@ import { Mat4, Vec3 } from '../../../../mol-math/linear-algebra';
 import { Color } from '../../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { BodyLabels } from '../labels';
-import { BodyLabelColorTheme, BodyLabelColorThemeParams, BodyLabelColorThemeProvider, makeLabelAtPosition } from '../theme';
-import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from './test-volume';
+import { BodyLabelColorTheme, BodyLabelColorThemeParams, BodyLabelColorThemeProvider } from '../theme';
+import { makeLabelAtPosition } from '../../voxel-labels';
+import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from '../../_spec/test-volume';
 
 const props = PD.getDefaultValues(BodyLabelColorThemeParams);
 const Red = Color(0xff0000), Blue = Color(0x0000ff);

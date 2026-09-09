@@ -7,11 +7,11 @@
 import { Camera } from '../../../../mol-canvas3d/camera';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { SyncRuntimeContext } from '../../../../mol-task/execution/synchronous';
-import { computeCandidates } from '../internal/candidates';
+import { computeCandidates } from '../../candidates';
 import { assignPolygons, assignRemainder, countUnassigned, countVoxels } from '../internal/label-ops';
 import { BodyLabels } from '../labels';
 import { ViewMask } from '../types';
-import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from './test-volume';
+import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from '../../_spec/test-volume';
 
 /** Orthographic view down -z onto an 8^3 grid, canvas and viewport 100 x 100. */
 function viewMask(polygon: [number, number][], inverted = false): ViewMask {

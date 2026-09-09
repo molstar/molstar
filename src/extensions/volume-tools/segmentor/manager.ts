@@ -14,10 +14,10 @@ import { StateObjectCell, StateTransform } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { Color } from '../../../mol-util/color';
 import { ColorLists } from '../../../mol-util/color/lists';
-import { computeCandidates } from './internal/candidates';
+import { computeCandidates } from '../candidates';
 import { downloadVolumeMrc, exportBodyMasks, maskBaseName, resolveBodyMaskParams } from './internal/export';
 import { assignPolygons, assignRemainder, countUnassigned, countVoxels } from './internal/label-ops';
-import { labelBBox, padGridBox } from './internal/mask-compute';
+import { padGridBox, voxelBBox } from '../soft-mask';
 import { flipHandednessInPlace, removeDustInPlace } from './internal/volume-edit';
 import { BodyLabels } from './labels';
 import { BodyLabelColorThemeProvider } from './theme';
@@ -632,7 +632,7 @@ export class VolumeSegmentorManager extends StatefulPluginComponent<VolumeSegmen
         let bytes = 0;
         for (const id of ids) {
             const body = store.bodies.find(b => b.id === id);
-            const tight = labelBBox(store.labels, space, id);
+            const tight = voxelBBox(store.labels, space, id);
             if (!body || !tight) continue;
             const params = resolveBodyMaskParams(body, this.state.defaults);
             const box = padGridBox(tight, params.extend + params.softEdge + 1, space.dimensions);

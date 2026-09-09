@@ -15,8 +15,8 @@ export type { VolumeSegmentorState, VolumeSegmentorStats, PreviewMode } from './
 export { BodyMaskFromLabels, BodyMaskFromLabelsTag } from './transformers';
 export { BodyLabelColorThemeProvider, BodyLabelColorThemeParams } from './theme';
 export { BodyLabels } from './labels';
-export { computeBodyMask, buildCroppedMaskVolume, scatterToFullBox, softValue } from './internal/mask-compute';
-export { computeCandidates } from './internal/candidates';
+export { computeBodyMask, buildCroppedMaskVolume, scatterToFullBox } from './internal/mask-compute';
+export { computeCandidates } from '../candidates';
 export { flipHandednessInPlace, removeDustInPlace, recomputeStats } from './internal/volume-edit';
 export { exportBodyMasks, bodyMaskFileName, downloadVolumeMrc, maskBaseName, orderBodiesBySize, writeBodyMaskMrc } from './internal/export';
 export type { BodyId, BodyInfo, LabelStore, AssignMode, BodyMaskParams, BodyMaskResult, GridBox, ViewMask, Point2D } from './types';

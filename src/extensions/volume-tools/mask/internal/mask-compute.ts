@@ -7,8 +7,9 @@ import { Grid, Volume } from '../../../../mol-model/volume';
 import { Tensor, Mat4, Vec3 } from '../../../../mol-math/linear-algebra';
 import { CustomProperties } from '../../../../mol-model/custom-property';
 import { RuntimeContext } from '../../../../mol-task';
-import { pointInPolygon2D as pointInPolygon } from '../../../../mol-math/geometry/polygon';
-import { prepareMask, projectToNormInPlace } from '../../view-projection';
+import { computeCandidates } from '../../candidates';
+import { prepareMask } from '../../view-projection';
+import { passesAllViews, selectByViews } from '../../view-selection';
 import type { ViewMask } from '../types';
 
 const tmpVec3 = Vec3();
@@ -19,7 +20,6 @@ const tmpNorm: [number, number] = [0, 0];
 export interface MaskComputeParams {
     viewMasks: ViewMask[];
     threshold: Volume.IsoValue;
-    dilation: number;
     /** When true, skip the density threshold check (use polygons as purely spatial filter). */
     skipThreshold?: boolean;
     /** When true, select voxels that are above threshold but OUTSIDE the polygon filters. */
@@ -31,77 +31,37 @@ export async function computeVolumeMask(
     params: MaskComputeParams,
     ctx: RuntimeContext
 ): Promise<Uint8Array> {
-    const { viewMasks, threshold, dilation, skipThreshold, invertPolygons } = params;
-    const { cells: { space, data }, stats } = volume.grid;
+    const { viewMasks, threshold, skipThreshold, invertPolygons } = params;
+    const { cells: { space }, stats } = volume.grid;
     const [nx, ny, nz] = space.dimensions as [number, number, number];
     const selected = new Uint8Array(nx * ny * nz);
 
-    const absThreshold = skipThreshold ? -Infinity : Volume.IsoValue.toAbsolute(threshold, stats).absoluteValue;
-    Mat4.copy(tmpG2C, Grid.getGridToCartesianTransform(volume.grid));
-
-    // Pre-compute camera matrices and normalised polygons ONCE per mask
-    const prepared = viewMasks.map(prepareMask);
-    const step = Math.max(1, Math.floor(nx / 20));
-
-    for (let i = 0; i < nx; i++) {
-        if (i % step === 0) {
-            await ctx.update({ message: 'Selecting voxels…', current: i, max: nx });
-        }
-        for (let j = 0; j < ny; j++) {
-            for (let k = 0; k < nz; k++) {
-                if (space.get(data, i, j, k) < absThreshold) continue;
-
-                Vec3.set(tmpVec3, i + 0.5, j + 0.5, k + 0.5);
-                Vec3.transformMat4(tmpVec3, tmpVec3, tmpG2C);
-
-                let passes = true;
-                for (let m = 0; m < prepared.length; m++) {
-                    projectToNormInPlace(tmpVec3, prepared[m], tmpNorm);
-                    const inside = pointInPolygon(tmpNorm[0], tmpNorm[1], prepared[m].normPolygon);
-                    if (prepared[m].inverted ? inside : !inside) {
-                        passes = false;
-                        break;
-                    }
-                }
-
-                if (invertPolygons ? !passes : passes) selected[space.dataOffset(i, j, k)] = 1;
-            }
-        }
-    }
-
-    if (dilation <= 0) return selected;
-    await ctx.update({ message: 'Dilating mask…' });
-    return dilate3D(selected, nx, ny, nz, dilation, space);
-}
-
-export function dilate3D(
-    src: Uint8Array,
-    nx: number, ny: number, nz: number,
-    radius: number,
-    space: Grid['cells']['space']
-): Uint8Array {
-    const dst = new Uint8Array(src.length);
-    const r2 = radius * radius;
-    for (let i = 0; i < nx; i++) {
-        for (let j = 0; j < ny; j++) {
-            for (let k = 0; k < nz; k++) {
-                if (src[space.dataOffset(i, j, k)] === 0) continue;
-                for (let di = -radius; di <= radius; di++) {
-                    const ni = i + di; if (ni < 0 || ni >= nx) continue;
-                    for (let dj = -radius; dj <= radius; dj++) {
-                        const nj = j + dj; if (nj < 0 || nj >= ny) continue;
-                        for (let dk = -radius; dk <= radius; dk++) {
-                            if (di * di + dj * dj + dk * dk > r2) continue;
-                            const nk = k + dk; if (nk < 0 || nk >= nz) continue;
-                            dst[space.dataOffset(ni, nj, nk)] = 1;
-                        }
-                    }
+    if (skipThreshold) {
+        // No density gate, so every voxel is a candidate and the grid has to be walked.
+        Mat4.copy(tmpG2C, Grid.getGridToCartesianTransform(volume.grid));
+        const prepared = viewMasks.map(prepareMask);
+        const step = Math.max(1, Math.floor(nx / 20));
+        for (let i = 0; i < nx; i++) {
+            if (i % step === 0) await ctx.update({ message: 'Selecting voxels…', current: i, max: nx });
+            for (let j = 0; j < ny; j++) {
+                for (let k = 0; k < nz; k++) {
+                    Vec3.set(tmpVec3, i, j, k);
+                    Vec3.transformMat4(tmpVec3, tmpVec3, tmpG2C);
+                    const passes = passesAllViews(tmpVec3, prepared, tmpNorm);
+                    if (invertPolygons ? !passes : passes) selected[space.dataOffset(i, j, k)] = 1;
                 }
             }
         }
+    } else {
+        const absThreshold = Volume.IsoValue.toAbsolute(threshold, stats).absoluteValue;
+        await ctx.update({ message: 'Collecting voxels above the threshold…' });
+        const candidates = computeCandidates(volume, absThreshold);
+        await selectByViews(volume, candidates, viewMasks, selected, ctx, !!invertPolygons);
     }
-    return dst;
+
+    return selected;
 }
+
 
 /**
  * Mark all voxels within `radiusAngstrom` Å of any atom in `atomPositions`.
@@ -152,72 +112,6 @@ export function computeStructureMask(
     return selected;
 }
 
-/**
- * Cosine soft edge: for each outside voxel, distance to the nearest inside voxel is
- * computed via a 2-pass chamfer approximation, then mapped through
- *   value = 0.5 + 0.5 * cos(π * min(dist / (width+1), 1))
- * giving 1.0 inside, a smooth falloff in the transition zone, and 0.0 far outside.
- */
-export function computeSoftEdge(
-    maskData: Uint8Array,
-    nx: number, ny: number, nz: number,
-    softEdgeWidth: number,
-    space: Grid['cells']['space']
-): Float32Array {
-    const n = nx * ny * nz;
-    const W = softEdgeWidth + 1;
-    const dist = new Float32Array(n).fill(W + 1);
-
-    for (let i = 0; i < nx; i++)
-        for (let j = 0; j < ny; j++)
-            for (let k = 0; k < nz; k++)
-                if (maskData[space.dataOffset(i, j, k)] > 0)
-                    dist[space.dataOffset(i, j, k)] = 0;
-
-    // Forward pass
-    for (let i = 0; i < nx; i++) {
-        for (let j = 0; j < ny; j++) {
-            for (let k = 0; k < nz; k++) {
-                const idx = space.dataOffset(i, j, k);
-                if (dist[idx] === 0) continue;
-                let d = dist[idx];
-                if (i > 0) d = Math.min(d, dist[space.dataOffset(i - 1, j, k)] + 1);
-                if (j > 0) d = Math.min(d, dist[space.dataOffset(i, j - 1, k)] + 1);
-                if (k > 0) d = Math.min(d, dist[space.dataOffset(i, j, k - 1)] + 1);
-                if (i > 0 && j > 0) d = Math.min(d, dist[space.dataOffset(i - 1, j - 1, k)] + 1.414);
-                if (i > 0 && k > 0) d = Math.min(d, dist[space.dataOffset(i - 1, j, k - 1)] + 1.414);
-                if (j > 0 && k > 0) d = Math.min(d, dist[space.dataOffset(i, j - 1, k - 1)] + 1.414);
-                if (i > 0 && j > 0 && k > 0) d = Math.min(d, dist[space.dataOffset(i - 1, j - 1, k - 1)] + 1.732);
-                dist[idx] = d;
-            }
-        }
-    }
-
-    // Backward pass
-    for (let i = nx - 1; i >= 0; i--) {
-        for (let j = ny - 1; j >= 0; j--) {
-            for (let k = nz - 1; k >= 0; k--) {
-                const idx = space.dataOffset(i, j, k);
-                if (dist[idx] === 0) continue;
-                let d = dist[idx];
-                if (i < nx - 1) d = Math.min(d, dist[space.dataOffset(i + 1, j, k)] + 1);
-                if (j < ny - 1) d = Math.min(d, dist[space.dataOffset(i, j + 1, k)] + 1);
-                if (k < nz - 1) d = Math.min(d, dist[space.dataOffset(i, j, k + 1)] + 1);
-                if (i < nx - 1 && j < ny - 1) d = Math.min(d, dist[space.dataOffset(i + 1, j + 1, k)] + 1.414);
-                if (i < nx - 1 && k < nz - 1) d = Math.min(d, dist[space.dataOffset(i + 1, j, k + 1)] + 1.414);
-                if (j < ny - 1 && k < nz - 1) d = Math.min(d, dist[space.dataOffset(i, j + 1, k + 1)] + 1.414);
-                if (i < nx - 1 && j < ny - 1 && k < nz - 1) d = Math.min(d, dist[space.dataOffset(i + 1, j + 1, k + 1)] + 1.732);
-                dist[idx] = d;
-            }
-        }
-    }
-
-    const result = new Float32Array(n);
-    for (let i = 0; i < n; i++) {
-        result[i] = 0.5 + 0.5 * Math.cos(Math.PI * Math.min(dist[i] / W, 1));
-    }
-    return result;
-}
 
 function computeSigma(data: Float32Array, mean: number): number {
     let sumSq = 0;

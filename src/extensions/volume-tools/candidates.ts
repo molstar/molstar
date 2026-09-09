@@ -4,7 +4,7 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { Volume } from '../../../../mol-model/volume';
+import { Volume } from '../../mol-model/volume';
 
 /**
  * Data offsets (memory order) of all voxels with density >= `thresholdAbs`.

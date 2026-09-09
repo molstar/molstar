@@ -7,8 +7,8 @@
 import { Grid, Volume } from '../../../../mol-model/volume';
 import { Mat4, Vec3 } from '../../../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../../../mol-task';
-import { pointInPolygon2D } from '../../../../mol-math/geometry/polygon';
-import { prepareMask, projectToNormInPlace } from '../../view-projection';
+import { passesAllViews } from '../../view-selection';
+import { prepareMask } from '../../view-projection';
 import { AssignMode, BodyId, MaxBodyId, ViewMask } from '../types';
 
 const UpdateInterval = 1 << 18;
@@ -59,16 +59,7 @@ export async function assignPolygons(labels: Uint8Array, candidates: Int32Array,
         Vec3.set(tmpPos, tmpCoords[0], tmpCoords[1], tmpCoords[2]);
         Vec3.transformMat4(tmpPos, tmpPos, tmpG2C);
 
-        let passes = true;
-        for (let m = 0; m < prepared.length; m++) {
-            projectToNormInPlace(tmpPos, prepared[m], tmpNorm);
-            const inside = pointInPolygon2D(tmpNorm[0], tmpNorm[1], prepared[m].normPolygon);
-            if (prepared[m].inverted ? inside : !inside) {
-                passes = false;
-                break;
-            }
-        }
-        if (passes && assign(labels, offset, bodyId, mode)) changed++;
+        if (passesAllViews(tmpPos, prepared, tmpNorm) && assign(labels, offset, bodyId, mode)) changed++;
     }
     return changed;
 }

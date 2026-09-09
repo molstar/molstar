@@ -6,6 +6,7 @@
  */
 
 import { Camera } from '../../mol-canvas3d/camera';
+import { Vec3 } from '../../mol-math/linear-algebra';
 
 export type Point2D = [number, number];
 
@@ -28,4 +29,10 @@ export interface ViewMask {
     cameraSnapshot: Camera.Snapshot;
     /** When true, voxels OUTSIDE this polygon are selected instead of inside. */
     inverted?: boolean;
+}
+
+/** An axis-aligned sub-box of a grid, in voxel coordinates. */
+export interface GridBox {
+    min: Vec3
+    dims: Vec3
 }

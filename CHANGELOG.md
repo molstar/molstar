@@ -8,7 +8,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `volume-tools/segmentor`: interactive segmentation of a volume into bodies (polygon labelling from several views, remainder assignment, dust removal, handedness flip, per-body extend + cosine soft edge, MRC mask export)
 - **Breaking**: move the `volume-mask` extension to `volume-tools/mask`, alongside the new segmentor; `ViewMask`, its projection and the in-place volume operations are now shared at `volume-tools/`. Update imports from `extensions/volume-mask` to `extensions/volume-tools/mask`
 - Merge the `volume-mask` example into a `volume-tools` example, with a landing page and one page per tool
+- Add a live selection preview to `volume-tools/mask`: the `mask-selection` color theme shows which voxels the current polygons select before the mask is built
+- Build `volume-tools/mask` masks from one exact Euclidean distance transform inside the selection's bounding box, replacing a full-grid dilation plus chamfer distance pass: faster, and a smooth soft edge instead of one quantised to a handful of steps
 - Fix `CCP4Writer.writeMrc` for volumes with a non-canonical axis order
+- Fix `CCP4Writer.writeMrc` writing `ISPG = 0`, which marks the data as an image stack rather than a volume
 - Add `squaredDistanceTransform3D` (exact Euclidean distance transform) to `mol-math/geometry`
 - Optimize `GridLookup3D` building for sparse grids
 - Optimize `calcInstanceGrid` by reducing amount of data copied

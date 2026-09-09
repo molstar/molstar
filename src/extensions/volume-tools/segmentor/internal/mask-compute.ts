@@ -5,55 +5,15 @@
  */
 
 import { Grid, Volume } from '../../../../mol-model/volume';
-import { Mat4, Tensor, Vec3 } from '../../../../mol-math/linear-algebra';
+import { Mat4, Tensor } from '../../../../mol-math/linear-algebra';
 import { CustomProperties } from '../../../../mol-model/custom-property';
 import { RuntimeContext } from '../../../../mol-task';
-import { BodyId, BodyMaskParams, BodyMaskResult, GridBox } from '../types';
+import { padGridBox, softValue, voxelBBox } from '../../soft-mask';
+import { BodyId, BodyMaskParams, BodyMaskResult } from '../types';
 import { squaredDistanceTransform3D } from '../../../../mol-math/geometry/distance-transform';
 
-/**
- * Soft mask value at Euclidean distance `d` (voxels) from the binary body:
- * 1 within `extend`, then a raised cosine falling to 0 over `softEdge + 1` voxels.
- */
-export function softValue(d: number, extend: number, softEdge: number): number {
-    if (d <= extend) return 1;
-    const width = softEdge + 1;
-    return 0.5 + 0.5 * Math.cos(Math.PI * Math.min((d - extend) / width, 1));
-}
 
-/** Grid-space bounding box of all voxels labelled `bodyId`, or undefined if there are none. */
-export function labelBBox(labels: Uint8Array, space: Tensor.Space, bodyId: BodyId): GridBox | undefined {
-    const c = [0, 0, 0];
-    let found = false;
-    const min = Vec3.create(Infinity, Infinity, Infinity);
-    const max = Vec3.create(-Infinity, -Infinity, -Infinity);
-    for (let o = 0, n = labels.length; o < n; o++) {
-        if (labels[o] !== bodyId) continue;
-        found = true;
-        space.getCoords(o, c);
-        if (c[0] < min[0]) min[0] = c[0];
-        if (c[1] < min[1]) min[1] = c[1];
-        if (c[2] < min[2]) min[2] = c[2];
-        if (c[0] > max[0]) max[0] = c[0];
-        if (c[1] > max[1]) max[1] = c[1];
-        if (c[2] > max[2]) max[2] = c[2];
-    }
-    if (!found) return undefined;
-    return { min, dims: Vec3.create(max[0] - min[0] + 1, max[1] - min[1] + 1, max[2] - min[2] + 1) };
-}
 
-/** Grows `box` by `pad` voxels on every side, clamped to the grid dimensions. */
-export function padGridBox(box: GridBox, pad: number, dimensions: ArrayLike<number>): GridBox {
-    const min = Vec3();
-    const dims = Vec3();
-    for (let a = 0; a < 3; a++) {
-        const lo = Math.max(0, box.min[a] - pad);
-        const hi = Math.min(dimensions[a] - 1, box.min[a] + box.dims[a] - 1 + pad);
-        min[a] = lo;
-        dims[a] = hi - lo + 1;
-    }
-    return { min, dims };
-}
 
 /**
  * Soft mask of one body: binary body voxels (optionally restricted to density >= threshold),
@@ -63,7 +23,7 @@ export function padGridBox(box: GridBox, pad: number, dimensions: ArrayLike<numb
 export async function computeBodyMask(volume: Volume, labels: Uint8Array, bodyId: BodyId, params: BodyMaskParams, thresholdAbs: number, ctx: RuntimeContext): Promise<BodyMaskResult | undefined> {
     const { space, data } = volume.grid.cells;
     const values = data as unknown as ArrayLike<number>;
-    const tight = labelBBox(labels, space, bodyId);
+    const tight = voxelBBox(labels, space, bodyId);
     if (!tight) return undefined;
 
     const pad = params.extend + params.softEdge + 1;

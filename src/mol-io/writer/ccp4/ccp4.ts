@@ -67,7 +67,7 @@ export namespace CCP4Writer {
         f32[20] = max; // AMAX
         f32[21] = sum / voxelCount; // AMEAN
 
-        i32[22] = 0; // ISPG
+        i32[22] = 1; // ISPG = 1 (P1 volume); 0 would mark the data as an image stack
         i32[23] = 0; // NSYMBT
 
         // MRC2014 origin (voxel 0,0,0 world position)

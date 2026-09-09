@@ -7,41 +7,9 @@
 import { Grid } from '../../../../mol-model/volume';
 import { Mat4, Vec3 } from '../../../../mol-math/linear-algebra';
 import { SyncRuntimeContext } from '../../../../mol-task/execution/synchronous';
-import { buildCroppedMaskVolume, computeBodyMask, labelBBox, padGridBox, scatterToFullBox, softValue } from '../internal/mask-compute';
+import { buildCroppedMaskVolume, computeBodyMask, scatterToFullBox } from '../internal/mask-compute';
 import { BodyLabels } from '../labels';
-import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from './test-volume';
-
-describe('softValue', () => {
-    it('is 1 within extend, 0 beyond extend + softEdge + 1 and monotone in between', () => {
-        expect(softValue(0, 2, 3)).toBe(1);
-        expect(softValue(2, 2, 3)).toBe(1);
-        expect(softValue(6, 2, 3)).toBeCloseTo(0, 6);
-        expect(softValue(9, 2, 3)).toBeCloseTo(0, 6);
-        expect(softValue(4, 2, 3)).toBeCloseTo(0.5, 6);
-        let prev = 1;
-        for (let d = 0; d <= 8; d += 0.25) {
-            const v = softValue(d, 2, 3);
-            expect(v).toBeLessThanOrEqual(prev + 1e-9);
-            prev = v;
-        }
-    });
-});
-
-describe('labelBBox / padGridBox', () => {
-    it('finds the tight box and clamps padding to the grid', () => {
-        const volume = createTestVolume([6, 5, 4], () => 1, SwappedOrder);
-        const store = BodyLabels.ensure(volume);
-        store.labels[offsetOf(volume, 1, 2, 0)] = 1;
-        store.labels[offsetOf(volume, 4, 2, 3)] = 1;
-        const box = labelBBox(store.labels, volume.grid.cells.space, 1)!;
-        expect(Array.from(box.min)).toEqual([1, 2, 0]);
-        expect(Array.from(box.dims)).toEqual([4, 1, 4]);
-        const padded = padGridBox(box, 2, volume.grid.cells.space.dimensions);
-        expect(Array.from(padded.min)).toEqual([0, 0, 0]);
-        expect(Array.from(padded.dims)).toEqual([6, 5, 4]);
-        expect(labelBBox(store.labels, volume.grid.cells.space, 2)).toBeUndefined();
-    });
-});
+import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from '../../_spec/test-volume';
 
 describe('computeBodyMask', () => {
     for (const order of [CanonicalOrder, SwappedOrder]) {

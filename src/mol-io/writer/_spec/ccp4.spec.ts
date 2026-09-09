@@ -60,6 +60,7 @@ describe('CCP4Writer', () => {
             const { header } = parsed.result;
             expect([header.NC, header.NR, header.NS]).toEqual(Dimensions);
             expect(header.MODE).toBe(2);
+            expect(header.ISPG).toBe(1); // a volume, not an image stack
             expect([header.MAPC, header.MAPR, header.MAPS]).toEqual([1, 2, 3]);
             expect(header.AMIN).toBe(0);
             expect(header.AMAX).toBe(123);

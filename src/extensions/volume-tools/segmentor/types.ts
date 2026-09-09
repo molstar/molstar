@@ -4,11 +4,10 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Color } from '../../../mol-util/color';
-import type { ViewMask } from '../types';
+import type { GridBox, ViewMask } from '../types';
 
-export type { ViewMask, Point2D } from '../types';
+export type { ViewMask, Point2D, GridBox } from '../types';
 
 /** Body identifier, 1..255. Ids are never reused within a session; 0 means "unassigned". */
 export type BodyId = number;
@@ -64,11 +63,6 @@ export interface BodyMaskParams {
 }
 
 /** Axis-aligned box in grid (voxel index) space; `min` inclusive, `dims` voxel counts. */
-export interface GridBox {
-    min: Vec3
-    dims: Vec3
-}
-
 export interface BodyMaskResult {
     box: GridBox
     /** Mask values in [0, 1], canonical local order (x fastest) within `box`. */

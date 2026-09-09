@@ -4,6 +4,7 @@
  */
 
 import { PluginBehavior } from '../../../mol-plugin/behavior/behavior';
+import { MaskSelectionColorThemeProvider } from './theme';
 
 /** PluginBehavior that marks the mask tool as active in the plugin. */
 export const VolumeMaskBehavior = PluginBehavior.create({
@@ -11,8 +12,13 @@ export const VolumeMaskBehavior = PluginBehavior.create({
     category: 'misc',
     display: { name: 'Volume Mask Creator' },
     ctor: class extends PluginBehavior.Handler {
-        register() { /* MaskVolumeFromSource is a BuiltIn transformer — registered at module load */ }
-        unregister() {}
+        // MaskVolumeFromSource is a BuiltIn transformer, registered at module load.
+        register() {
+            this.ctx.representation.volume.themes.colorThemeRegistry.add(MaskSelectionColorThemeProvider);
+        }
+        unregister() {
+            this.ctx.representation.volume.themes.colorThemeRegistry.remove(MaskSelectionColorThemeProvider);
+        }
     },
     params: () => ({}),
 });

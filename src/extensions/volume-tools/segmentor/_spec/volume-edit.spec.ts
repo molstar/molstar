@@ -6,7 +6,7 @@
 
 import { BodyLabels } from '../labels';
 import { flipHandednessInPlace, recomputeStats, removeDustInPlace } from '../internal/volume-edit';
-import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from './test-volume';
+import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from '../../_spec/test-volume';
 
 describe('removeDustInPlace', () => {
     it('zeroes small components above the threshold and refreshes stats', () => {
