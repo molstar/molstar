@@ -12,6 +12,8 @@ The release also includes a standalone MolViewSpec builder, dependency-cycle rem
 
 Establish a rendering-backend boundary in `@molstar/graphics` for future WebGPU and other targets, retaining WebGL as the working implementation. The [rendering-backend design](v6-webgpu.md) covers the blast radius, minimal contracts, migration, and validation; a production WebGPU renderer and feature parity are later work.
 
+The same geometry/readback boundary should support portable scene extraction for a future [Blender offline-rendering extension](v6-webgpu.md#71-offline-rendering-with-blender). Offline rendering uses scene snapshots and asynchronous jobs, separately from the interactive view contract. Keep Blender dependencies and integration in an optional extension; implementing it is outside the 6.0 scope.
+
 Out of scope:
 
 - Independent package versions or a package per parser/representation.

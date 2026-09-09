@@ -10,6 +10,8 @@ The useful starting point is the render object produced by a representation. A b
 
 For 6.0, establish the boundary and preserve WebGL behavior. A production WebGPU renderer, WGSL shader migration, and feature parity are later work. A small second-backend experiment can validate the design without becoming a release feature.
 
+Preserve a route to portable scene extraction for [offline renderers such as Blender](#71-offline-rendering-with-blender). They share geometry/material readback with interactive backends but use a separate render-job contract. A Blender extension and a complete scene-snapshot format are later work, not prerequisites for 6.0.
+
 The interface can be small, but extraction is a substantial cross-cutting refactor. The current abstractions expose GPU resources in geometry and themes, and expose WebGL passes through Canvas3D. This work should have its own PR sequence alongside packaging, rather than being treated as a rename of `WebGLContext`.
 
 The minimum useful 6.0 outcome is:
@@ -338,7 +340,52 @@ Retain WebGL as the production default until coverage and performance justify an
 
 WGSL, pipeline caches, resource layouts, staging/readback, and pass implementations belong to this later work. Decide which algorithms to share after implementing representative workloads. Do not introduce a shader intermediate language or a universal render graph as a prerequisite for 6.0.
 
-Other targets can implement the same view contract with a different capability set. This does not imply that a software renderer, offline renderer, or another GPU API must emulate every Mol* effect. CPU data and normalized capture/export interfaces provide the most useful common ground.
+Other interactive targets can implement the same view contract with a different capability set. Offline renderers instead consume an extracted scene and return artifacts through an asynchronous job. Neither contract requires every target to emulate every Mol* effect.
+
+### 7.1 Offline rendering with Blender
+
+A future optional extension, for example `@molstar/blender-render-extension`, could render the current Mol* scene in Blender for final images and animations. Keep WebGL/WebGPU for interactive preview. Blender should not have to implement `RenderView`, hover picking, canvas presentation, or frame scheduling.
+
+The shared foundation is **on-demand portable scene extraction**, built on render-object data and asynchronous geometry/material readback:
+
+```text
+Representations + camera/lighting settings
+                  |
+       Scene extraction + readback
+                  |
+       Portable scene snapshot
+                  |
+       Blender extension / render job
+                  |
+       Image, animation, or .blend file
+```
+
+A render scene snapshot contains resolved geometry, instance transforms, colors/materials, visibility, camera, lights, and relevant rendering settings. It is distinct from existing plugin-state snapshot JSON, which records application state and requires Mol* features to reconstruct representations. Snapshot assets must be portable data or resolvable references, with no WebGL/WebGPU handles, live `ValueCell`s, or backend objects.
+
+Extract a consistent scene/camera version at a selected animation time. Retain stable object/instance identities and transforms where useful, and define units, axes, and camera conventions. CPU-backed geometry can be extracted directly; GPU-generated geometry and smoothed materials use readback from their owning backend. Pin the required resource versions until extraction completes, or detect changes and retry/fail explicitly. Do this only for export/render requests, without CPU copies or serialization in the normal frame loop.
+
+The extension can start with this pipeline:
+
+1. Extract the visible scene, resolving supported geometry and material data through the shared services.
+2. Convert it to GLB plus Blender setup instructions for the camera, lights, materials, and output settings.
+3. Submit a cancellable render job to a local Blender process or an explicitly configured rendering service.
+4. Return output artifacts and a report of unsupported or approximated features. Animation repeats extraction at selected times, with asset reuse where practical.
+
+The existing [GLB exporter](../src/extensions/geo-export/glb-exporter.ts) is a starting point for geometry/material conversion, not a complete Blender scene exporter. Camera/light transfer and render orchestration need new work. Its geometry recentering must also be applied to camera/light transforms, or disabled consistently. Blender supports background rendering through its [command-line interface](https://docs.blender.org/manual/en/dev/advanced/command_line/render.html).
+
+Keep the offline contract small: scene input, output/render settings, support reporting, task progress/cancellation, and an asynchronous artifact result. Reuse existing task conventions. The extension owns Blender conversion, process/service transport, temporary assets, and cleanup; `@molstar/graphics` owns only the portable extraction/readback primitives it needs to share. A Node host can invoke an installed Blender; a browser needs a local companion or remote service. Blender and its runtime dependencies must remain optional.
+
+Fidelity needs explicit translation rather than a promise of pixel-equivalent output:
+
+| Mol* feature | Blender adaptation |
+| --- | --- |
+| Meshes and instances | Preserve geometry and transforms; translate materials |
+| Sphere/cylinder impostors | Convert to meshes or Blender-native equivalents |
+| GPU surfaces and smoothed colors | Read back geometry/material data; bake where necessary |
+| Custom shaders, clipping, transparency, postprocessing | Translate supported semantics, bake, or report an approximation/unsupported feature |
+| Direct volumes | Dedicated volume data/material path; not covered by mesh export |
+
+Start with static meshes and ball-and-stick scenes, camera matching, and basic materials. Validate transforms, colors, instancing, output orientation, cancellation, and unsupported-feature reporting before adding volumes or animation. The v6 boundary checks should establish that export can obtain portable CPU data without raw WebGL access; they should not require a Blender installation or freeze a general offline-rendering framework. Implement and validate the snapshot/job format with the extension when that work begins.
 
 ## 8. Acceptance checks and migration
 
