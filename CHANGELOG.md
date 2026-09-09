@@ -4,9 +4,9 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
-
+- Fix altloc in PDB files receive different atom names (#156)
 - Add `volume-segmentor` extension: interactive segmentation of a volume into bodies (polygon labelling from several views, remainder assignment, dust removal, per-body extend + cosine soft edge, MRC mask export)
-- Merge the `volume-mask` example into a new `volume-tools` example, which hosts the mask creator and the segmentor as tabs
+- Merge the `volume-mask` example into a new `volume-tools` example, with a landing page and one page per tool
 - Fix `CCP4Writer.writeMrc` for volumes with a non-canonical axis order
 - Add `squaredDistanceTransform3D` (exact Euclidean distance transform) to `mol-math/geometry`
 - Optimize `GridLookup3D` building for sparse grids
