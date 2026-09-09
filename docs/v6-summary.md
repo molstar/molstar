@@ -52,6 +52,7 @@ The SDF/ball-and-stick example must render while excluding unrelated parsers, ca
 - **Library:** `tsc -b` with `NodeNext`, declarations, and ESM-only `lib/`. Publish `src/` for bundlers/debugging too. Retain the Node 22+ baseline unless runtime/tooling requires more.
 - **Execution:** Node runs compiled JavaScript, including CLI/server bins. Native TypeScript execution is out of scope; `molstar-src` is for bundlers. See the [execution contract](v6-architecture.md#51-supported-execution-modes).
 - **Apps/examples:** each owns dependencies, entry, output, and scripts. A shared esbuild helper bundles source via `molstar-src`, with SCSS/assets, watch, and serve. Viewer is published; other apps and examples are private workspace packages.
+- **Rendering backends:** establish a boundary for scenes, passes, GPU resources/operations, and readback within `@molstar/graphics`, retaining WebGL. WebGPU implementation and parity come later; see the [blast-radius analysis and minimal design](v6-webgpu.md).
 
 Keep compiler-supported TypeScript syntax, including namespaces, enums, and parameter properties. No `erasableSyntaxOnly` requirement or blanket syntax rewrite. Retain hot `const enum`s under existing compiler constraints; benchmark affected paths when necessary refactors change their use or emit.
 

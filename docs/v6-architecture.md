@@ -10,6 +10,8 @@ Ship `@molstar/migrate-6` with the release to handle mechanical import changes a
 
 The release also includes a standalone MolViewSpec builder, dependency-cycle removal, maintainer skills, updated developer docs, and workspace CI.
 
+Establish a rendering-backend boundary in `@molstar/graphics` for future WebGPU and other targets, retaining WebGL as the working implementation. The [rendering-backend design](v6-webgpu.md) covers the blast radius, minimal contracts, migration, and validation; a production WebGPU renderer and feature parity are later work.
+
 Out of scope:
 
 - Independent package versions or a package per parser/representation.
@@ -485,6 +487,8 @@ Implement 6.0 on `main`, publish `dev` prereleases, then release stable after th
 ### 10.2 Technical phases
 
 Keep the major workstreams in separate PRs. Each phase ends with a working build; validate compiled packages and source-based app bundles throughout.
+
+Coordinate the [rendering-backend workstream](v6-webgpu.md#6-minimal-implementation-sequence) with dependency cleanup and packaging, and validate its contracts before freezing the v6 graphics API.
 
 | Phase | Work and exit condition |
 | --- | --- |
