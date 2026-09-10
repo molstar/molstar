@@ -49,8 +49,10 @@ The SDF/ball-and-stick example must render while excluding unrelated parsers, ca
 
 - **Package imports:** `molstar/lib/mol-util/color` becomes `@molstar/core/util/color`. Use the same extensionless package subpaths inside the repository, including hops between layer folders in one package.
 - **Relative source imports:** stay within a layer folder and use emitted `.js` paths. TypeScript and esbuild resolve them to source during builds; JS output retains them.
-- **Library:** `tsc -b` with `NodeNext`, declarations, and ESM-only `lib/`. Publish `src/` for bundlers/debugging too. Retain the Node 22+ baseline unless runtime/tooling requires more.
-- **Execution:** Node runs compiled JavaScript, including CLI/server bins. Native TypeScript execution is out of scope; `molstar-src` is for bundlers. See the [execution contract](v6-architecture.md#51-supported-execution-modes).
+- **Library:** `tsc -b` with `NodeNext`, declarations, and ESM-only `lib/`. This output is generated locally but ships in the npm package. Publish `src/` for bundlers/debugging too. Retain the Node 22+ baseline unless runtime/tooling requires more.
+- **Execution:** Node runs compiled JavaScript, including CLI/server bins. Native Node TypeScript execution is out of scope; `molstar-src` is for bundlers. Validated JSR packages expose source for Deno/compatible tooling. See the [execution contract](v6-architecture.md#51-supported-execution-modes).
+- **Fast types:** defer consideration to v7. No v6 `isolatedDeclarations` requirement or broad API annotation migration; retain the [analysis](v6-fasttypes.md) for future planning.
+- **npm and JSR:** keep compiled npm artifacts and try JSR source publication with `--allow-slow-types`, starting with the MVS builder. Coordinate matching versions for validated packages. Accept slower JSR consumer checking and potentially incomplete generated docs/types; native npm declarations still come from `tsc`. See the [release design](v6-fasttypes.md#7-publishing-to-npm-and-jsr-together).
 - **Apps/examples:** each owns dependencies, entry, output, and scripts. A shared esbuild helper bundles source via `molstar-src`, with SCSS/assets, watch, and serve. Viewer is published; other apps and examples are private workspace packages.
 - **Rendering backends:** establish a boundary for scenes, passes, GPU resources/operations, and readback within `@molstar/graphics`, retaining WebGL. WebGPU implementation and parity come later; see the [blast-radius analysis and minimal design](v6-webgpu.md).
 - **Future offline rendering:** a [Blender extension](v6-webgpu.md#71-offline-rendering-with-blender) could consume portable scene snapshots through a separate asynchronous render-job interface, while WebGL/WebGPU provides interactive preview. Reuse geometry export/readback; Blender integration and effect translation are later work.
@@ -73,7 +75,7 @@ Ship **`@molstar/migrate-6`**, with dry-run output and a manual-work report. It 
 
 Rename tests to `_test/**/*.test.ts`. Add `.agents/` maintainer skills for extensions, formats, representations, apps/examples, servers, and dependency updates, referenced by root `AGENTS.md`. Rewrite mkdocs for packages, composition, builds, migration, and adding code.
 
-CI covers pnpm, typechecking, package/value cycles, tests, source-based app builds, packed consumers, compiled CLI/server smoke tests, docs, and dependency advisories. Fail high/critical production advisories with explicit exceptions where justified.
+CI covers pnpm, typechecking, JSR publication checks with slow types allowed, package/value cycles, tests, source-based app builds, packed consumers, compiled CLI/server smoke tests, docs, and dependency advisories. Fail high/critical production advisories with explicit exceptions where justified.
 
 ## Release order
 

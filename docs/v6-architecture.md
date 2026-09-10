@@ -10,6 +10,8 @@ Ship `@molstar/migrate-6` with the release to handle mechanical import changes a
 
 The release also includes a standalone MolViewSpec builder, dependency-cycle removal, maintainer skills, updated developer docs, and workspace CI.
 
+Try JSR source publication with `--allow-slow-types`, beginning with the MVS builder, alongside native npm packages with compiled ESM from the same release commit. Defer fast-type migration and `isolatedDeclarations` to consideration for v7. The [fast-types and distribution analysis](v6-fasttypes.md) preserves the audit for that decision; its annotation work and agent estimates are outside the v6 scope.
+
 Establish a rendering-backend boundary in `@molstar/graphics` for future WebGPU and other targets, retaining WebGL as the working implementation. The [rendering-backend design](v6-webgpu.md) covers the blast radius, minimal contracts, migration, and validation; a production WebGPU renderer and feature parity are later work.
 
 The same geometry/readback boundary should support portable scene extraction for a future [Blender offline-rendering extension](v6-webgpu.md#71-offline-rendering-with-blender). Offline rendering uses scene snapshots and asynchronous jobs, separately from the interactive view contract. Keep Blender dependencies and integration in an optional extension; implementing it is outside the 6.0 scope.
@@ -17,7 +19,7 @@ The same geometry/readback boundary should support portable scene extraction for
 Out of scope:
 
 - Independent package versions or a package per parser/representation.
-- Native execution of TypeScript source and a repository-wide erasable-syntax rewrite.
+- Native Node execution of TypeScript source and a repository-wide erasable-syntax rewrite.
 - Changes to transformer identifiers or snapshot JSON, except where registration must become explicit.
 - Moving Python `molviewspec` into this repository.
 - Publishing a stories library or merging the MolViewStories webapp.
@@ -199,6 +201,8 @@ Publish ESM JavaScript and declarations in `lib/`, plus source in `src/` for bun
 
 Node executes compiled JavaScript. Keep all published bins on `lib/*.js`; workspace tooling runs as JavaScript or is compiled before execution. `molstar-src` selects source for bundlers and does not promise native Node execution. Publishing source does not require erasable syntax.
 
+Validated JSR packages expose TypeScript source for Deno or compatible tooling. Deno consumers of native npm packages use the compiled exports above. Publishing to either registry does not make browser, Node, or optional native APIs available in every runtime; see the [distribution matrix](v6-fasttypes.md#6-typescript-distribution-through-npm).
+
 ### 5.2 Compiler settings
 
 Merge these into the existing strictness settings:
@@ -227,6 +231,8 @@ During dependency and module refactoring, keep the existing ESM build settings. 
 Do not enable `erasableSyntaxOnly`. Both library and app builds compile TypeScript, so existing namespaces, enums, parameter properties, and other compiler-supported syntax can remain. Refactor individual constructs only where module boundaries, composition, or ESM compatibility require it. There is no blanket namespace/enum conversion or syntax-driven CIF schema regeneration phase.
 
 Keep hot `const enum`s under the existing `isolatedModules` constraints. If a necessary refactor changes their use or emit, inspect the generated code and benchmark the affected parse/render paths. Do not assume that replacing enum uses with object properties or module constants preserves performance.
+
+Do not require `isolatedDeclarations` or a broad annotation migration in v6. Preserve existing inferred API precision, including parameter/schema keys, literal unions, overloads, and factory constructor types. Consider fast types for v7 using the [audit](v6-fasttypes.md#3-measured-blast-radius); do not redesign public contracts solely to satisfy JSR fast types in this release.
 
 ### 5.4 Convert runtime CommonJS assumptions
 
@@ -270,6 +276,16 @@ Add conditional entries for other directory indexes, root entry points, and `.ts
 Publish only intended source/assets and generated output. Exclude `_test/` and fixtures with a pack step or appropriate nested ignore files; inspect the actual tarball. Export UI skins and built CSS explicitly. Mark modules `sideEffects: false` only after auditing initialization behavior, and retain CSS/asset side effects where needed.
 
 Use project references for package builds. Source conditions drive esbuild; normal consumer types resolve to generated declarations. Prove both from a clean checkout and from packed packages, rather than depending on stale `lib/` output or root hoisting.
+
+`lib/` is generated and ignored by Git, but its JavaScript, declarations, and required assets ship in the npm tarball and remain in the installed package. It is not merely a temporary input that packing removes. JSR source artifacts exclude it. See the [build-output distinction](v6-fasttypes.md#8-is-lib-only-temporary).
+
+### 5.6 npm and JSR publication
+
+Keep one source tree and derive npm/JSR manifests from one package/export inventory. npm retains compiled conditional exports, peers, bins, and source for opt-in bundlers. JSR uses explicit source exports and resolved dependency mappings. Its publisher supports `package.json` projects with `.js`-to-TypeScript import resolution; validate self-subpaths, TSX, assets, and exact dependencies before relying on that path. JSR's npm compatibility layer does not replace native publication to npmjs.com.
+
+Try publication with `deno publish --dry-run --allow-slow-types`, then use the same allowance when publishing validated packages to JSR. Slow types can degrade JSR-generated documentation and npm-compatibility declarations and make consumer checking slower. Keep native npm declarations generated by `tsc`, and verify JSR source consumers without promising equivalent generated documentation/types. The allowance does not skip normal typechecking or other publication requirements.
+
+Publish validated packages to both registries at the same version from the same commit, starting with the MVS builder. Extend JSR coverage in dependency order without implying universal runtime support. Keep per-registry completion records and retry partial releases from unchanged artifacts; the two registries cannot publish atomically. The [dual-publication design](v6-fasttypes.md#7-publishing-to-npm-and-jsr-together) covers normalization, validation, package coverage, and the `deno pack` alternative. Retain pnpm/`tsc -b` and its complete declarations for native npm packaging.
 
 ## 6. Plugin composition
 
@@ -420,11 +436,12 @@ Rewrite mkdocs installation, plugin, examples, formats, extensions, MVS, and clo
 - Use pnpm with a frozen lockfile, a store cache, supported checkout/setup actions, and the declared minimum Node version plus the release LTS used for validation.
 - Run typechecking, lint, package-cycle/value-cycle checks, unit tests, and app/example builds. Enforce module boundaries between lean entry points/runtime leaves and defaults/full catalogs, even within one package. Include extensions, servers, and CLI in boundary checks.
 - Verify source-based esbuild app builds and compiled JS consumption. Install tarballs in clean consumers to check exports, declarations, direct dependencies, CSS/assets, and CLI bins.
+- For each JSR package, run publication dry runs with `--allow-slow-types` and test its source/dependency graph with the pinned Deno version. Preserve public type precision through normal TypeScript checks and native npm declaration/consumer checks; fast-type compliance is not a v6 release gate.
 - Run the slim-plugin acceptance example and the full Viewer; test snapshots with their required features registered.
 - Check advisories with dependency review plus `pnpm audit --prod` or OSV; fail high/critical production findings. Track any justified exceptions explicitly.
 - Build mkdocs for documentation changes. Before stable release, run the migrator and smoke-test `pdbe-molstar` and `rcsb-molstar`.
 
-Use a root release script or configured Changesets workflow to version public packages together. Publish `6.0.0-dev.N` under `dev`, then stable `6.0.0` under `latest`; scoped packages use public access. Verify package-name availability before the first prerelease.
+Use a root release script or configured Changesets workflow to version public packages together. On npm, publish `6.0.0-dev.N` under `dev`, then stable `6.0.0` under `latest`; scoped packages use public access. Publish matching versions of the validated JSR packages through the coordinated workflow in §5.6. Verify package-name availability and access on both registries before the first prerelease.
 
 ## 9. Migration from 5.x
 
@@ -491,6 +508,8 @@ Implement 6.0 on `main`, publish `dev` prereleases, then release stable after th
 Keep the major workstreams in separate PRs. Each phase ends with a working build; validate compiled packages and source-based app bundles throughout.
 
 Coordinate the [rendering-backend workstream](v6-webgpu.md#6-minimal-implementation-sequence) with dependency cleanup and packaging, and validate its contracts before freezing the v6 graphics API.
+
+Keep the [fast-types workstream](v6-fasttypes.md#5-effort-and-adoption) deferred for possible v7 adoption. For v6, dual-registry release checks belong with packaging and CI, with slow types allowed on JSR and no associated annotation or generator migration phase.
 
 | Phase | Work and exit condition |
 | --- | --- |
