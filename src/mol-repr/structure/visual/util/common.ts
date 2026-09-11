@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { Unit, Structure, ElementIndex, StructureElement, ResidueIndex } from '../../../../mol-model/structure';
@@ -74,6 +75,8 @@ export function checkCylinderImpostorSupport(webgl?: WebGLContext) {
  * Return a Loci for the elements of a whole residue the elementIndex
  * belongs to. Accounts for whole the residue, not limited to the unit.
  */
+const _residueLociIndices: number[] = [];
+
 export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {
     const { elements, model } = unit;
     const { index, offsets } = model.atomicHierarchy.residueAtomSegments;
@@ -82,12 +85,12 @@ export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementI
     const end = offsets[rI + 1];
     if (!SortedArray.hasRange(elements, start, end - 1)) return EmptyLoci;
 
-    const _indices: number[] = [];
+    _residueLociIndices.length = 0;
     for (let i = start, il = end; i < il; ++i) {
         const unitIndex = OrderedSet.indexOf(elements, i);
-        if (unitIndex !== -1) _indices.push(unitIndex);
+        if (unitIndex !== -1) _residueLociIndices.push(unitIndex);
     }
-    const indices = OrderedSet.ofSortedArray<StructureElement.UnitIndex>(SortedArray.ofSortedArray(_indices));
+    const indices = OrderedSet.ofSortedArray<StructureElement.UnitIndex>(SortedArray.ofSortedArray(_residueLociIndices));
     return StructureElement.Loci(structure, [{ unit, indices }]);
 }
 
@@ -112,17 +115,17 @@ export function getAltResidueLociFromId(structure: Structure, unit: Unit.Atomic,
     const { label_alt_id } = model.atomicHierarchy.atoms;
     const { offsets } = model.atomicHierarchy.residueAtomSegments;
 
-    const _indices: number[] = [];
+    _residueLociIndices.length = 0;
     for (let i = offsets[residueIndex], il = offsets[residueIndex + 1]; i < il; ++i) {
         const unitIndex = OrderedSet.indexOf(elements, i);
         if (unitIndex !== -1) {
             const altId = label_alt_id.value(i);
             if (elementAltId === altId || altId === '') {
-                _indices.push(unitIndex);
+                _residueLociIndices.push(unitIndex);
             }
         }
     }
-    const indices = OrderedSet.ofSortedArray<StructureElement.UnitIndex>(SortedArray.ofSortedArray(_indices));
+    const indices = OrderedSet.ofSortedArray<StructureElement.UnitIndex>(SortedArray.ofSortedArray(_residueLociIndices));
     return StructureElement.Loci(structure, [{ unit, indices }]);
 }
 

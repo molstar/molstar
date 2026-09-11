@@ -82,6 +82,12 @@ Note that since we don't clearly distinguish between a public and private interf
     - Formats: ariatomi-em, cryoet-ndjson, dynamo-tbl, relion-star, simularium, cellpack & petworld mmcif
     - Properties: position, orientation, radius, entity, compartment, custom attributes, fibers
     - Particles can be decorated with structure, volume, and shape visuals
+- Improve WebGL rendering performance
+    - Skip redundant uniform uploads when values have not changed
+    - Batch shared uniforms and textures once per program switch instead of per render object
+    - Cache active texture units and bound textures to avoid redundant GL calls
+    - Reuse cull results within a frame when grid/LOD versions are unchanged
+    - Reuse light-direction buffer allocation; fix render-item buffer upload size
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)

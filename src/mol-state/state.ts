@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { StateObject, StateObjectCell, StateObjectSelector } from './object';
@@ -805,9 +806,10 @@ function relinkCells(target: StateObjectCell, ctx: UpdateContext): boolean {
 
     // Fast path: same number and all current refs are still in effective.
     if (current.length === effective.length) {
+        const effectiveSet = new Set(effective);
         let same = true;
         for (const c of current) {
-            if (effective.indexOf(c.transform.ref) < 0) { same = false; break; }
+            if (!effectiveSet.has(c.transform.ref)) { same = false; break; }
         }
         if (same) return false;
     }

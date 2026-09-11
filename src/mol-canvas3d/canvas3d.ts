@@ -6,6 +6,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  * @author Herman Bergwerf <post@hbergwerf.nl>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { BehaviorSubject, Subject, Subscription, debounceTime, merge } from 'rxjs';
@@ -610,7 +611,7 @@ namespace Canvas3D {
 
                 loci = helper.handle.getLoci(pickingId);
 
-                reprRenderObjects.forEach((_, _repr) => {
+                for (const [_repr] of reprRenderObjects) {
                     const _loci = _repr.getLoci(pickingId);
                     if (!isEmptyLoci(_loci)) {
                         if (!isEmptyLoci(loci)) {
@@ -618,13 +619,14 @@ namespace Canvas3D {
                         }
                         loci = _loci;
                         repr = _repr;
+                        break;
                     }
-                });
+                }
             }
             return { loci, repr };
         }
 
-        let markBuffer: [reprLoci: Representation.Loci, action: MarkerAction][] = [];
+        const markBuffer: [reprLoci: Representation.Loci, action: MarkerAction][] = [];
 
         function mark(reprLoci: Representation.Loci, action: MarkerAction) {
             // NOTE: might try to optimize a case with opposite actions for the
@@ -638,7 +640,7 @@ namespace Canvas3D {
             for (const [r, l] of markBuffer) {
                 changed = applyMark(r, l) || changed;
             }
-            markBuffer = [];
+            markBuffer.length = 0;
             if (changed) {
                 scene.update(void 0, true);
                 helper.handle.scene.update(void 0, true);
@@ -971,7 +973,7 @@ namespace Canvas3D {
                 camera.setState({ radiusMax: getSceneRadius() }, 0);
             }
             reprCount.next(reprRenderObjects.size);
-            if (isDebugMode) consoleStats();
+            if (isDebugMode || isTimingMode) consoleStats();
 
             return true;
         }
@@ -1017,6 +1019,12 @@ namespace Canvas3D {
 
             if (isTimingMode) {
                 console.log(JSON.stringify(webgl.timer.formatedStats(), undefined, 4));
+                console.log(JSON.stringify({
+                    uniforms: webgl.stats.uniforms,
+                    cull: webgl.stats.cull,
+                    calls: webgl.stats.calls,
+                    culled: webgl.stats.culled,
+                }, undefined, 4));
             }
 
             console.groupEnd();
@@ -1041,7 +1049,7 @@ namespace Canvas3D {
 
             scene.update(repr.renderObjects, false);
             forceDrawAfterAllCommited = true;
-            if (isDebugMode) consoleStats();
+            if (isDebugMode || isTimingMode) consoleStats();
         }
 
         function remove(repr: Representation.Any) {
@@ -1052,7 +1060,7 @@ namespace Canvas3D {
                 renderObjects.forEach(o => scene.remove(o));
                 reprRenderObjects.delete(repr);
                 forceDrawAfterAllCommited = true;
-                if (isDebugMode) consoleStats();
+                if (isDebugMode || isTimingMode) consoleStats();
             }
         }
 
@@ -1448,7 +1456,7 @@ namespace Canvas3D {
                 cancelAnimationFrame(animationFrameHandle);
                 animationFrameCB = undefined;
 
-                markBuffer = [];
+                markBuffer.length = 0;
 
                 scene.clear();
                 helper.debug.clear();

@@ -2,6 +2,7 @@
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { Color } from '../../mol-util/color';
@@ -16,6 +17,7 @@ import { Vec3 } from '../../mol-math/linear-algebra';
 import { integerDigitCount } from '../../mol-util/number';
 import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
 import { ColorThemeCategory } from './categories';
+import { getCachedOperatorHklMap } from './structure-cache';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xCCCCCC);
@@ -28,7 +30,8 @@ export type OperatorHklColorThemeParams = typeof OperatorHklColorThemeParams
 export function getOperatorHklColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(OperatorHklColorThemeParams);
     if (ctx.structure) {
-        if (getOperatorHklSerialMap(ctx.structure.root).map.size > ColorLists[DefaultList].list.length) {
+        const structure = ctx.structure;
+        if (getCachedOperatorHklMap(structure.root, () => getOperatorHklSerialMap(structure.root)).map.size > ColorLists[DefaultList].list.length) {
             params.palette.defaultValue.name = 'colors';
             params.palette.defaultValue.params = {
                 ...params.palette.defaultValue.params,
@@ -76,7 +79,8 @@ export function OperatorHklColorTheme(ctx: ThemeDataContext, props: PD.Values<Op
     let legend: ScaleLegend | TableLegend | undefined;
 
     if (ctx.structure) {
-        const { min, max, map } = getOperatorHklSerialMap(ctx.structure.root);
+        const structure = ctx.structure;
+        const { min, max, map } = getCachedOperatorHklMap(structure.root, () => getOperatorHklSerialMap(structure.root));
 
         const labelTable: string[] = [];
         map.forEach((v, k) => {

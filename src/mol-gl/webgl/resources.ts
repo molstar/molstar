@@ -2,6 +2,7 @@
  * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { ProgramProps, createProgram, Program } from './program';
@@ -128,7 +129,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
             return hashFnv32a(array).toString();
         },
         (props: ProgramProps) => {
-            const program = createProgram(gl, state, extensions, parameters, getShader, props);
+            const program = createProgram(gl, state, extensions, parameters, getShader, props, stats);
             if (program.variant !== 'compute') {
                 pendingPrograms.add(program);
             }
@@ -164,7 +165,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
         },
         shader: getShader,
         texture: (kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) => {
-            return wrap('texture', createTexture(gl, extensions, kind, format, type, filter));
+            return wrap('texture', createTexture(gl, extensions, kind, format, type, filter, state));
         },
         cubeTexture: (faces: CubeFaces, mipmaps: boolean, onload?: () => void) => {
             return wrap('cubeTexture', createCubeTexture(gl, faces, mipmaps, onload));

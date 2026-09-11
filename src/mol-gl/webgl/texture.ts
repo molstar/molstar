@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { WebGLContext } from './context';
@@ -14,6 +15,7 @@ import { Framebuffer } from './framebuffer';
 import { isWebGL2, GLRenderingContext } from './compat';
 import { isPromiseLike, ValueOf } from '../../mol-util/type-helpers';
 import { WebGLExtensions } from './extensions';
+import { WebGLState } from './state';
 import { objectForEach } from '../../mol-util/object';
 import { isPowerOfTwo } from '../../mol-math/misc';
 
@@ -242,7 +244,7 @@ function getTexture(gl: GLRenderingContext) {
     return texture;
 }
 
-export function createTexture(gl: GLRenderingContext, extensions: WebGLExtensions, kind: TextureKind, _format: TextureFormat, _type: TextureType, _filter: TextureFilter): Texture {
+export function createTexture(gl: GLRenderingContext, extensions: WebGLExtensions, kind: TextureKind, _format: TextureFormat, _type: TextureType, _filter: TextureFilter, webglState?: WebGLState): Texture {
     const id = getNextTextureId();
     let texture = getTexture(gl);
 
@@ -389,12 +391,20 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         load,
         mipmap,
         bind: (id: TextureId) => {
-            gl.activeTexture(gl.TEXTURE0 + id);
-            gl.bindTexture(target, texture);
+            if (webglState) {
+                webglState.bindTexture(id, target, texture);
+            } else {
+                gl.activeTexture(gl.TEXTURE0 + id);
+                gl.bindTexture(target, texture);
+            }
         },
         unbind: (id: TextureId) => {
-            gl.activeTexture(gl.TEXTURE0 + id);
-            gl.bindTexture(target, null);
+            if (webglState) {
+                webglState.bindTexture(id, target, null);
+            } else {
+                gl.activeTexture(gl.TEXTURE0 + id);
+                gl.bindTexture(target, null);
+            }
         },
         attachFramebuffer,
         detachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment) => {
