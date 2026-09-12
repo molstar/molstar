@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -20,6 +21,7 @@ import { MarkerAction, MarkerActions, applyMarkerAction } from '../../mol-util/m
 import { Overpaint } from '../../mol-theme/overpaint';
 import { Transparency } from '../../mol-theme/transparency';
 import { Mat4, EPSILON } from '../../mol-math/linear-algebra';
+import { shallowMerge2 } from '../../mol-util/object';
 import { Interval } from '../../mol-data/int';
 import { StructureParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
@@ -35,6 +37,8 @@ import { hash2 } from '../../mol-data/util';
 function createVisualsMap<P extends StructureParams>() {
     return new HashMap<Unit.SymmetryGroup, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>(group => hash2(group.hashCode, group.transformHash), Unit.SymmetryGroup.areInvariantElementsEqual);
 }
+
+const _visualsUpdateScratch: { group: Unit.SymmetryGroup, visual: UnitsVisual<any> }[] = [];
 
 export interface UnitsVisual<P extends StructureParams> extends Visual<StructureGroup, P> { }
 
@@ -59,7 +63,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
             _params = getParams(ctx, structure);
             if (!_props) _props = PD.getDefaultValues(_params);
         }
-        _props = Object.assign({}, _props, props);
+        _props = shallowMerge2(_props, props);
 
         return Task.create('Creating or updating UnitsRepresentation', async runtime => {
             if (!_structure && !structure) {
@@ -160,14 +164,14 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
             } else {
                 // console.log(label, 'no new structure');
                 // No new structure given, just update all visuals with new props.
-                const visualsList: { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }[] = []; // TODO avoid allocation
-                visuals.forEach(vg => visualsList.push(vg));
-                for (let i = 0, il = visualsList.length; i < il; ++i) {
-                    let { visual, group } = visualsList[i];
+                _visualsUpdateScratch.length = 0;
+                visuals.forEach(vg => _visualsUpdateScratch.push(vg));
+                for (let i = 0, il = _visualsUpdateScratch.length; i < il; ++i) {
+                    let { visual, group } = _visualsUpdateScratch[i];
                     if (visual.mustRecreate?.({ group, structure: _structure }, _props, ctx.webgl)) {
                         visual.destroy();
                         visual = visualCtor(materialId, _structure, _props, webgl);
-                        visualsList[i].visual = visual;
+                        _visualsUpdateScratch[i].visual = visual;
                         const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure: _structure });
                         if (promise) await promise;
                         setVisualState(visual, group, _state); // current state for new visual

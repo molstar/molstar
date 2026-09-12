@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { GLRenderingContext, isWebGL2 } from './compat';
@@ -220,6 +221,16 @@ function createStats() {
             lod: 0,
             frustum: 0,
             occlusion: 0,
+        },
+
+        uniforms: {
+            uploaded: 0,
+            skipped: 0,
+        },
+
+        cull: {
+            cached: 0,
+            computed: 0,
         },
     };
     return stats;

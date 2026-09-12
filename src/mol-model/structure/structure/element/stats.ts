@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { OrderedSet } from '../../../../mol-data/int';
@@ -27,6 +28,9 @@ export interface Stats {
     firstUnitLoc: Location
     firstStructureLoc: Location
 }
+
+const _lociResidueAltIdCounts = new Map<string, number>();
+const _residueAltIdCounts = new Map<string, number>();
 
 export namespace Stats {
     export function create(): Stats {
@@ -57,8 +61,10 @@ export namespace Stats {
         const { elements } = unit;
         const size = OrderedSet.size(indices);
 
-        const lociResidueAltIdCounts = new Map<string, number>();
-        const residueAltIdCounts = new Map<string, number>();
+        _lociResidueAltIdCounts.clear();
+        _residueAltIdCounts.clear();
+        const lociResidueAltIdCounts = _lociResidueAltIdCounts;
+        const residueAltIdCounts = _residueAltIdCounts;
 
         if (size > 0) {
             Location.set(stats.firstElementLoc, structure, unit, elements[OrderedSet.start(indices)]);
