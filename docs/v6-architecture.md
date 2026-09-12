@@ -97,8 +97,8 @@ Within the plugin layer:
 - Use `import type` for parser result types in `PluginStateObject`, and for `PluginContext` wherever only its type is needed. Extract a context interface where it helps isolate construction; its dependencies must remain type-only.
 - Separate the `PluginBehavior` contract from the classes extending `PluginStateObject`. Behavior detection uses `typeClass === 'Behavior'` without importing those classes.
 - Move default specs out of base spec/context modules into `@molstar/plugin/default-spec` and `@molstar/plugin-ui/default-spec`. Base construction takes an explicit spec.
-- Split transform modules into leaves. Leaves, builders, and managers import individual transformers, never the `StateTransforms` facade.
-- Rebuild that facade as a plain object in `@molstar/plugin/state/transforms` after removing cycles. Delete the lazy getters.
+- Split transform modules into leaves. All transformer consumers import individual defining modules.
+- Remove the `StateTransforms` convenience facade and its lazy getters; do not replace it with another aggregate object.
 
 Enforce an acyclic package graph and no value-import cycles within packages. Type-only cycles inside a package are allowed; they must not conceal a package cycle.
 
@@ -154,7 +154,7 @@ Use the same public package specifiers inside and outside the repository:
 
 ```ts
 // packages/graphics/src/canvas3d/passes/illumination.ts
-import { ValueCell } from '@molstar/core/util';
+import { ValueCell } from '@molstar/core/util/value-cell';
 import type { Texture } from '@molstar/graphics/gl/webgl/texture';
 ```
 
@@ -186,6 +186,19 @@ Each package declares every external package it directly imports. “Owned by co
 Use peers for React/React DOM on UI packages, and optional peers for headless dependencies (`gl`, `canvas`, `pngjs`, `jpeg-js`) and optional cloud storage where used. Do not add React to plugin or core.
 
 Types needed only to build a package belong in its dev dependencies. Types referenced by published declarations must be available to consumers through dependencies or declared peers. In particular, React does not install `@types/react`: UI packages need an explicit consumer-facing type dependency/peer policy, verified with a clean TypeScript consumer.
+
+### 4.4 No barrel files
+
+Do not ship convenience barrel files. Consumers, examples, and internal code import defining modules through supported subpaths. Package export maps provide those paths directly; no root or directory aggregation module is needed. This removes a source of accidental broad imports rather than relying on every caller to choose correctly.
+
+Barrels do not inherently prevent production tree-shaking: ESM bundlers can remove unused exports when usage and side effects permit it. They can still enlarge the graph processed by tooling and retain initialization effects. [Vite's warning](https://vite.dev/guide/performance#avoid-barrel-files) concerns extra development-time fetching and transformation; [esbuild's documentation](https://esbuild.github.io/api/#tree-shaking) describes conditional removal of unused code. The policy avoids the aggregation risk without assuming every barrel defeats every bundler.
+
+- **Remove aggregation modules**, including named re-export collections, `export *` chains, and type-only convenience barrels. Use `import type` from the defining module for types. Exporting locally defined symbols remains normal module structure.
+- **Preserve cohesive implementation entry points.** A file named `index.ts` is not inherently a barrel. Split mixed implementation/re-export modules such as `mol-util/index.ts` into suitable defining modules and record migrated paths. An export-map alias may point directly to an implementation file without adding a wrapper barrel.
+- **Do not substitute aggregate convenience objects.** Remove `StateTransforms` and migrate consumers to transformer leaves. Preserve transformer identifiers and required registration behavior, not the aggregate access syntax.
+- **Keep deliberate composition explicit.** Default specs and registration catalogs assemble complete feature sets for app composition. They are not general symbol-import entry points. Base runtime modules and individual providers must not depend on them; enforce that boundary even within a package.
+
+Enforce the policy through lint/import-graph checks and the public export inventory. Validate that a leaf import cannot reach unrelated providers, default catalogs, or optional backends through re-exports. Reuse the slim-plugin fixture to check both processed modules and production output, with a downstream Vite development smoke/profile case alongside esbuild. Audit real registration and asset side effects before adding purity annotations or `sideEffects: false`; no consumer barrel-rewriting plugin is required.
 
 ## 5. ESM and TypeScript source
 
@@ -257,9 +270,9 @@ A representative core export map:
   "engines": { "node": ">=22.0.0" },
   "exports": {
     "./task": {
-      "types": "./lib/task/index.d.ts",
-      "molstar-src": "./src/task/index.ts",
-      "import": "./lib/task/index.js"
+      "types": "./lib/task/task.d.ts",
+      "molstar-src": "./src/task/task.ts",
+      "import": "./lib/task/task.js"
     },
     "./*": {
       "types": "./lib/*.d.ts",
@@ -271,7 +284,7 @@ A representative core export map:
 }
 ```
 
-Add conditional entries for other directory indexes, root entry points, and `.tsx` sources; the generic `*.ts` pattern does not cover TSX. Public code uses `@molstar/core/util/color`, without `.js`. Appending `.js` would make this wildcard target `color.js.js`.
+Add conditional entries for cohesive implementation entry points and `.tsx` sources; the generic `*.ts` pattern does not cover TSX. Root or directory aliases must point directly to defining modules under the [no-barrel policy](#44-no-barrel-files). Public code uses `@molstar/core/util/color`, without `.js`. Appending `.js` would make this wildcard target `color.js.js`.
 
 Publish only intended source/assets and generated output. Exclude `_test/` and fixtures with a pack step or appropriate nested ignore files; inspect the actual tarball. Export UI skins and built CSS explicitly. Mark modules `sideEffects: false` only after auditing initialization behavior, and retain CSS/asset side effects where needed.
 
@@ -295,7 +308,7 @@ Publish validated packages to both registries at the same version from the same 
 
 Keep `customFormats` as a deprecated append-only alias for `formats` during 6.x. Initialize themes, representations, formats, actions, then behaviors/animations. Register themes in the relevant structure, volume, or particle scope.
 
-`@molstar/plugin/spec` and `@molstar/plugin-ui/spec` contain types and composition helpers. They must not import default catalogs. This also applies to `createPluginUI`: its base entry point takes an explicit spec instead of importing `DefaultPluginUISpec` for an omitted argument. The lean package root entry points must not re-export default specs, full catalogs, or the `StateTransforms` facade.
+`@molstar/plugin/spec` and `@molstar/plugin-ui/spec` contain types and composition helpers. They must not import default catalogs. This also applies to `createPluginUI`: its base entry point takes an explicit spec instead of importing `DefaultPluginUISpec` for an omitted argument. The lean package root entry points must not re-export default specs or full catalogs.
 
 Defaults and catalogs share packages with the runtime but remain separate modules. Slim consumers install those files without importing them; isolation comes from the module graph. Enforce these boundaries with lint/import-graph checks and bundle validation.
 
@@ -348,9 +361,8 @@ Use one path convention throughout:
 - SDF model conversion: `@molstar/model/formats/structure/sdf`
 - SDF feature/provider: `@molstar/plugin/state/formats/trajectory/sdf`
 - Ball-and-stick feature/provider: `@molstar/graphics/repr/structure/representation/ball-and-stick`
-- Full transform facade: `@molstar/plugin/state/transforms`
 
-Keep full catalogs in explicit modules in the packages that own their providers. Default-spec modules assemble them; runtime leaves and base entry points never import the default specs or full catalogs. Internal code uses individual transformer/provider imports; the full facade is a consumer convenience entry point.
+Keep full catalogs in explicit modules in the packages that own their providers. Default-spec modules assemble them; runtime leaves and base entry points never import the default specs or full catalogs. All consumers use individual transformer/provider imports; there is no full transform convenience facade.
 
 Transformer name strings remain unchanged. Importing a transform leaf must retain whatever registration is necessary for snapshots and actions; account for that behavior when auditing side-effect annotations.
 
@@ -434,8 +446,8 @@ Rewrite mkdocs installation, plugin, examples, formats, extensions, MVS, and clo
 ### 8.3 CI and release checks
 
 - Use pnpm with a frozen lockfile, a store cache, supported checkout/setup actions, and the declared minimum Node version plus the release LTS used for validation.
-- Run typechecking, lint, package-cycle/value-cycle checks, unit tests, and app/example builds. Enforce module boundaries between lean entry points/runtime leaves and defaults/full catalogs, even within one package. Include extensions, servers, and CLI in boundary checks.
-- Verify source-based esbuild app builds and compiled JS consumption. Install tarballs in clean consumers to check exports, declarations, direct dependencies, CSS/assets, and CLI bins.
+- Run typechecking, lint, package-cycle/value-cycle checks, unit tests, and app/example builds. Reject aggregation barrels and enforce module boundaries between lean entry points/runtime leaves and defaults/full catalogs, even within one package. Include extensions, servers, and CLI in boundary checks.
+- Verify source-based esbuild app builds and compiled JS consumption. Install tarballs in clean consumers to check exports, declarations, direct dependencies, CSS/assets, and CLI bins. Validate defining-module imports and their processed graphs/production output, with a Vite development smoke/profile case for downstream use.
 - For each JSR package, run publication dry runs with `--allow-slow-types` and test its source/dependency graph with the pinned Deno version. Preserve public type precision through normal TypeScript checks and native npm declaration/consumer checks; fast-type compliance is not a v6 release gate.
 - Run the slim-plugin acceptance example and the full Viewer; test snapshots with their required features registered.
 - Check advisories with dependency review plus `pnpm audit --prod` or OSV; fail high/critical production findings. Track any justified exceptions explicitly.
@@ -467,7 +479,7 @@ These are default prefix mappings; the dependency-relocation audit supplies expl
 | `molstar/lib/mol-plugin-ui` | `@molstar/plugin-ui` |
 | `DefaultPluginSpec` | `@molstar/plugin/default-spec` |
 | `DefaultPluginUISpec` | `@molstar/plugin-ui/default-spec` |
-| `StateTransforms` | Leaf transformer imports, or `@molstar/plugin/state/transforms` |
+| `StateTransforms` | Individual transformer imports from defining modules |
 | `molstar/lib/extensions/mvs` | `@molstar/mvs` for runtime; `@molstar/mvs-builder` for builder/schema APIs |
 | `molstar/lib/extensions/<name>` | `@molstar/<name>-extension` |
 | `molstar/lib/apps/viewer/app` | `@molstar/viewer` |
@@ -480,7 +492,7 @@ Ship `@molstar/migrate-6` with dry-run output and a report of unresolved/manual 
 2. Replace in-repo cross-layer relatives with public package subpaths. Normalize `.js` suffixes on legacy package imports to the new extensionless exports.
 3. In repository mode, resolve relative imports to their emitted `.js` paths, including directory indexes, and apply the new compiler settings. For downstream projects, respect their compiler/bundler convention; do not blindly apply the repository's relative-extension policy to every consumer.
 4. Convert imports used solely as types to `import type` where analysis can establish that safely.
-5. Update Mol* package dependencies and flag unsupported CommonJS usage, implicit default specs, relocated APIs, and full-catalog imports that prevent a slim bundle.
+5. Update Mol* package dependencies and migrate removed barrel/facade imports to defining modules where symbol resolution is unambiguous. Report dynamic `StateTransforms` access and re-export side effects for manual migration. Flag unsupported CommonJS usage, implicit default specs, relocated APIs, and unintended full-catalog imports.
 
 No promise of a fully automatic upgrade. Validate idempotence and representative transformations, then run the tool against `pdbe-molstar` and `rcsb-molstar` and smoke-test the resulting apps.
 
@@ -515,7 +527,7 @@ Keep the [fast-types workstream](v6-fasttypes.md#5-effort-and-adoption) deferred
 | --- | --- |
 | 0 | Verify package names; introduce pnpm, the workspace skeleton, and matching CI |
 | 1 | Audit and relocate reverse dependencies in §3.2; break plugin cycles and add explicit type imports. Record final API locations and verify the proposed package graph, including declaration edges. Retain existing module settings and override `verbatimModuleSyntax: false` for the temporary CJS build if needed |
-| 2 | Split transform/provider modules and default-spec entry points; remove internal facade imports and lazy getters; rename tests |
+| 2 | Split transform/provider modules and default-spec entry points; remove convenience barrels and the transform facade, split mixed implementation modules, migrate consumers to defining-module imports, and remove lazy getters; rename tests |
 | 3 | Introduce features, empty registries, explicit base specs, and registry-aware presets; prove the slim example and full default composition |
 | 4 | Drop CJS; set `type: module`, `NodeNext`, and `verbatimModuleSyntax`; use `.js` relative specifiers in source. Convert CommonJS globals/tooling and smoke-test emitted bins |
 | 5 | Move into grouped workspace packages; add exports, project references, direct dependencies, and per-app esbuild. Verify clean builds and packed consumers; stage the CDN-only `molstar` package |

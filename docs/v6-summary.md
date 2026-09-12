@@ -41,13 +41,14 @@ const spec = PluginSpec.fromFeatures(Core, Sdf, BallAndStick, {
 
 The optional last argument supplies settings and extra actions/behaviors. Base entry points, including `createPluginUI`, take an explicit spec. Full defaults come from `DefaultPluginSpec` in `@molstar/plugin/default-spec` or `DefaultPluginUISpec` in `@molstar/plugin-ui/default-spec`. Viewer extensions remain app choices.
 
-Defaults and catalogs stay in their owning packages behind explicit entry points. Lean roots and runtime leaves must not import or re-export them. Split transform modules and keep the full `StateTransforms` facade at `@molstar/plugin/state/transforms` for explicit consumer use; internal code imports individual transformers. Delete the lazy getters and enforce these module boundaries in CI. Keep built-in name types for completion without introducing upward package dependencies. Presets choose applicable registered representations and themes.
+Defaults and catalogs stay in their owning packages behind explicit entry points. Lean roots and runtime leaves must not import or re-export them. Split transform modules, remove the `StateTransforms` convenience facade and its lazy getters, and migrate all consumers to individual transformers. Enforce these module boundaries in CI. Keep built-in name types for completion without introducing upward package dependencies. Presets choose applicable registered representations and themes.
 
 The SDF/ball-and-stick example must render while excluding unrelated parsers, cartoon/volume representations, and MP4 export. Verify the import graph, bundle, and rendering; empty registries alone are insufficient.
 
 ## Imports, ESM, and builds
 
 - **Package imports:** `molstar/lib/mol-util/color` becomes `@molstar/core/util/color`. Use the same extensionless package subpaths inside the repository, including hops between layer folders in one package.
+- **No barrel files:** expose defining modules directly through package subpaths and use them internally and in examples. Remove convenience re-export modules and aggregate facades; keep default specs/catalogs restricted to deliberate composition. Enforce the [policy](v6-architecture.md#44-no-barrel-files) in CI.
 - **Relative source imports:** stay within a layer folder and use emitted `.js` paths. TypeScript and esbuild resolve them to source during builds; JS output retains them.
 - **Library:** `tsc -b` with `NodeNext`, declarations, and ESM-only `lib/`. This output is generated locally but ships in the npm package. Publish `src/` for bundlers/debugging too. Retain the Node 22+ baseline unless runtime/tooling requires more.
 - **Execution:** Node runs compiled JavaScript, including CLI/server bins. Native Node TypeScript execution is out of scope; `molstar-src` is for bundlers. Validated JSR packages expose source for Deno/compatible tooling. See the [execution contract](v6-architecture.md#51-supported-execution-modes).
