@@ -404,8 +404,13 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
         return createRenderObject(geom.kind, values, state, materialId);
     }
 
-    async function createOrUpdate(ctx: VisualContext, representationTheme: Theme, props: ParticleTargetProps, particles: ParticleList, particleIndices: OrderedSet<number>, target: ParticleTarget): Promise<void> {
+    async function createOrUpdate(ctx: VisualContext, representationTheme: Theme, inputProps: ParticleTargetProps, particles: ParticleList, particleIndices: OrderedSet<number>, target: ParticleTarget): Promise<void> {
         VisualUpdateState.reset(updateState);
+
+        // Marking is per particle, and this visual's location iterator is per particle too
+        // (groupCount 1). A structure target's geometry groups are its elements though, so
+        // `groupInstance` granularity would index marker data by particle id + element id.
+        const props = { ...inputProps, instanceGranularity: true };
 
         // Dots are sized uniformly and scaled by `sizeFactor`; the representation's per-particle
         // size theme would make every dot as large as the particle it belongs to.
