@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -308,7 +308,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                                 if (mdbData.counts[i] > 0) {
                                     program.uniform('uDrawId', i);
                                     program.offsetAttributes(instanceBuffers, mdbData.baseInstances[i]);
-                                    instancedArrays.drawArraysInstanced(glDrawMode, 0, mdbData.counts[i], mdbData.instanceCounts[i]);
+                                    instancedArrays.drawArraysInstanced(glDrawMode, mdbData.firsts[i], mdbData.counts[i], mdbData.instanceCounts[i]);
                                 }
                             }
                         }
