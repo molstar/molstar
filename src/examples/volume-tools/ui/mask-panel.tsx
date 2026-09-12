@@ -13,7 +13,8 @@ import { OpenFiles } from '../../../mol-plugin-state/actions/file';
 import { Asset } from '../../../mol-util/assets';
 import { VolumeMaskController } from '../controller';
 import { DrawingCanvas } from './drawing-canvas';
-import type { MaskCreatorState, MaskSource, ViewMask, Point2D } from '../../../extensions/volume-mask/types';
+import { SectionDivider, btnStyle, labelStyle, numInputStyle, rowStyle, smallBtnStyle } from './panel-styles';
+import type { MaskCreatorState, MaskSource, ViewMask, Point2D } from '../../../extensions/volume-tools/mask/types';
 
 interface Props {
     plugin: PluginContext;
@@ -172,7 +173,6 @@ export function MaskCreatorPanel({ plugin, controller }: Props) {
 
     return (
         <div style={{ padding: '8px', fontFamily: 'sans-serif', fontSize: '13px', color: '#ccc' }}>
-            <h3 style={{ margin: '0 0 8px', color: '#fff' }}>Volume Mask Creator</h3>
 
             {/* ── Data ─────────────────────────────────────────── */}
             <input ref={volumeInputRef} type='file'
@@ -452,18 +452,3 @@ export function MaskCreatorPanel({ plugin, controller }: Props) {
         </div>
     );
 }
-
-function SectionDivider({ label }: { label: string }) {
-    return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '14px 0 6px' }}>
-            <span style={{ color: '#999', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{label}</span>
-            <div style={{ flex: 1, height: '1px', background: '#333' }} />
-        </div>
-    );
-}
-
-const labelStyle: React.CSSProperties = { display: 'block', color: '#888', marginTop: '4px', marginBottom: '2px', fontSize: '11px' };
-const numInputStyle: React.CSSProperties = { width: '60px', background: '#252525', border: '1px solid #444', color: '#ddd', borderRadius: '2px', padding: '1px 4px', fontSize: '12px' };
-const btnStyle: React.CSSProperties = { border: 'none', color: '#ddd', padding: '6px 8px', cursor: 'pointer', borderRadius: '3px', fontSize: '12px' };
-const smallBtnStyle: React.CSSProperties = { ...btnStyle, padding: '2px 7px', fontSize: '11px' };
-const rowStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1e1e1e', padding: '3px 6px', marginBottom: '2px', borderRadius: '2px' };

@@ -17,13 +17,19 @@ import { MarkerAction } from '../../mol-util/marker-action';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { StateTransform } from '../../mol-state';
 import type { UnitIndex } from '../../mol-model/structure/structure/element/util';
-import { MaskVolumeFromSource } from '../../extensions/volume-mask/transformers';
-import { downloadMrc } from '../../extensions/volume-mask/internal/mrc-export';
-import { flipVolumeX, removeDust } from '../../extensions/volume-mask/internal/volume-ops';
-import type { MaskCreatorState, MaskSource, ViewMask } from '../../extensions/volume-mask/types';
+import { Task } from '../../mol-task';
+import { computeCandidates } from '../../extensions/volume-tools/candidates';
+import { selectByViews } from '../../extensions/volume-tools/view-selection';
+import { MaskSelection } from '../../extensions/volume-tools/mask/selection';
+import { MaskSelectionColorThemeProvider } from '../../extensions/volume-tools/mask/theme';
+import { MaskVolumeFromSource } from '../../extensions/volume-tools/mask/transformers';
+import { downloadMrc } from '../../extensions/volume-tools/mask/internal/mrc-export';
+import { flipVolumeX, removeDust } from '../../extensions/volume-tools/volume-ops';
+import type { MaskCreatorState, MaskSource, ViewMask } from '../../extensions/volume-tools/mask/types';
 
 export const MASK_OVERLAY_COLOR = Color(0xFF6B00);
 const THRESHOLD_PREVIEW_DEBOUNCE_MS = 75;
+const SELECTION_PREVIEW_DEBOUNCE_MS = 120;
 
 const defaultState: MaskCreatorState = {
     isDrawing: false,
@@ -50,6 +56,11 @@ export class VolumeMaskController {
     private thresholdPreviewInFlight = false;
     private thresholdPreviewSession = 0;
     private pendingThresholdPreview: { value: Volume.IsoValue, targetVolumeRef: StateTransform.Ref, session: number } | undefined;
+    /** Above-threshold voxel offsets, cached per (volume, threshold) for the selection preview. */
+    private candidates: { ref: StateTransform.Ref, thresholdAbs: number, offsets: Int32Array } | undefined;
+    private selectionPreviewTimer: ReturnType<typeof setTimeout> | undefined;
+    private selectionPreviewInFlight = false;
+    private selectionPreviewQueued = false;
 
     constructor(private plugin: PluginContext) {}
 
@@ -68,7 +79,10 @@ export class VolumeMaskController {
             const stats = (this.plugin.state.data.select(ref)[0]?.obj as SO.Volume.Data | undefined)?.data.grid.stats;
             if (stats) threshold = Volume.IsoValue.absolute(stats.mean + 3 * stats.sigma);
         }
+        this.clearSelectionPreviewTimer();
+        this.candidates = undefined;
         this.update({ targetVolumeRef: ref, viewMasks: [], maskVolumeRef: undefined, maskData: undefined, threshold });
+        this.scheduleSelectionPreview();
     }
 
     setTargetStructure(ref: StateTransform.Ref | undefined) {
@@ -100,14 +114,17 @@ export class VolumeMaskController {
 
     addViewMask(mask: ViewMask) {
         this.update({ viewMasks: [...this.current.viewMasks, mask] });
+        this.scheduleSelectionPreview();
     }
 
     removeViewMask(id: string) {
         this.update({ viewMasks: this.current.viewMasks.filter(m => m.id !== id) });
+        this.scheduleSelectionPreview();
     }
 
     invertViewMask(id: string) {
         this.update({ viewMasks: this.current.viewMasks.map(m => m.id === id ? { ...m, inverted: !m.inverted } : m) });
+        this.scheduleSelectionPreview();
     }
 
     setDilation(value: number) { this.update({ dilation: value }); }
@@ -178,6 +195,7 @@ export class VolumeMaskController {
     }
 
     private async applyThresholdPreview(targetVolumeRef: StateTransform.Ref, value: Volume.IsoValue) {
+        this.scheduleSelectionPreview();
         const volItem = this.plugin.managers.volume.hierarchy.current.volumes
             .find(v => v.cell.transform.ref === targetVolumeRef);
         if (!volItem?.cell.obj) return;
@@ -190,6 +208,109 @@ export class VolumeMaskController {
             builder.to(repr.cell).update(
                 StateTransforms.Representation.VolumeRepresentation3D,
                 old => ({ ...old, type: { name: 'isosurface', params: { ...old.type.params, isoValue: value } } })
+            );
+            changed = true;
+        }
+        if (changed) await builder.commit({ canUndo: false });
+    }
+
+    // --- live selection preview ---
+
+    /**
+     * Recomputes which voxels the current polygons select and recolors the source isosurface,
+     * so the selection is visible before the mask is built. Coalesced: rapid edits (dragging
+     * the threshold, adding polygons) collapse into one recompute.
+     */
+    scheduleSelectionPreview() {
+        this.clearSelectionPreviewTimer();
+        this.selectionPreviewTimer = setTimeout(() => {
+            this.selectionPreviewTimer = undefined;
+            void this.runSelectionPreview();
+        }, SELECTION_PREVIEW_DEBOUNCE_MS);
+    }
+
+    private clearSelectionPreviewTimer() {
+        if (this.selectionPreviewTimer !== undefined) {
+            clearTimeout(this.selectionPreviewTimer);
+            this.selectionPreviewTimer = undefined;
+        }
+    }
+
+    private async runSelectionPreview() {
+        if (this.selectionPreviewInFlight) {
+            this.selectionPreviewQueued = true;
+            return;
+        }
+        this.selectionPreviewInFlight = true;
+        try {
+            await this.applySelectionPreview();
+        } catch (e) {
+            console.warn('Selection preview failed', e);
+        } finally {
+            this.selectionPreviewInFlight = false;
+            if (this.selectionPreviewQueued) {
+                this.selectionPreviewQueued = false;
+                void this.runSelectionPreview();
+            }
+        }
+    }
+
+    private async applySelectionPreview() {
+        const { targetVolumeRef, viewMasks, threshold, maskSource } = this.current;
+        const volume = targetVolumeRef
+            ? (this.plugin.state.data.select(targetVolumeRef)[0]?.obj as SO.Volume.Data | undefined)?.data
+            : undefined;
+
+        // Nothing to show: no volume, no polygons, or the mask comes from a structure instead.
+        if (!targetVolumeRef || !volume || viewMasks.length === 0 || maskSource !== 'volume') {
+            if (volume) MaskSelection.clear(volume);
+            await this.setSelectionTheme(targetVolumeRef, false);
+            return;
+        }
+
+        const thresholdAbs = Volume.IsoValue.toAbsolute(threshold, volume.grid.stats).absoluteValue;
+        if (this.candidates?.ref !== targetVolumeRef || this.candidates.thresholdAbs !== thresholdAbs) {
+            this.candidates = { ref: targetVolumeRef, thresholdAbs, offsets: computeCandidates(volume, thresholdAbs) };
+        }
+
+        const store = MaskSelection.ensure(volume);
+        store.selected.fill(0);
+        await this.plugin.runTask(Task.create('Preview selection', ctx =>
+            selectByViews(volume, this.candidates!.offsets, viewMasks, store.selected, ctx)
+        ));
+        store.version++;
+
+        await this.setSelectionTheme(targetVolumeRef, true);
+    }
+
+    /** Switches the source isosurfaces to the selection theme, or back to a plain uniform color. */
+    private async setSelectionTheme(targetVolumeRef: StateTransform.Ref | undefined, show: boolean) {
+        if (!targetVolumeRef) return;
+        const volItem = this.plugin.managers.volume.hierarchy.current.volumes
+            .find(v => v.cell.transform.ref === targetVolumeRef);
+        if (!volItem) return;
+
+        const { maskVolumeRef } = this.current;
+        const version = (volItem.cell.obj && MaskSelection.get(volItem.cell.obj.data)?.version) ?? 0;
+        const name = show ? MaskSelectionColorThemeProvider.name : 'uniform';
+
+        const builder = this.plugin.build();
+        let changed = false;
+        for (const repr of volItem.representations) {
+            // Skip the mask overlay's own representation; it keeps its solid color.
+            if (repr.cell.transform.parent === maskVolumeRef) continue;
+            const params = repr.cell.transform.params as any;
+            if (params?.type?.name !== 'isosurface') continue;
+            if (!show && params?.colorTheme?.name !== MaskSelectionColorThemeProvider.name) continue;
+
+            builder.to(repr.cell).update(
+                StateTransforms.Representation.VolumeRepresentation3D,
+                (old: any) => ({
+                    ...old,
+                    colorTheme: show
+                        ? { name, params: { ...MaskSelectionColorThemeProvider.defaultValues, selectedColor: MASK_OVERLAY_COLOR, version } }
+                        : { name, params: { value: Color(0xcccccc) } },
+                })
             );
             changed = true;
         }
@@ -289,6 +410,7 @@ export class VolumeMaskController {
             await state.build().delete(maskVolumeRef).commit();
         }
         this.update({ maskVolumeRef: undefined, maskData: undefined, maskInverted: false });
+        this.scheduleSelectionPreview();
     }
 
     async invertMask() {
@@ -426,6 +548,7 @@ export class VolumeMaskController {
 
     dispose() {
         this.clearPendingThresholdPreview();
+        this.clearSelectionPreviewTimer();
         this.clearSelectedChainHighlight();
         this.clearMask().catch(() => {});
     }
