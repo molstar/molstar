@@ -85,8 +85,8 @@ export const TrackballControlsParams = {
         }, { description: 'Rock the 3D scene around an axis in camera space' })
     }),
 
-    staticMoving: PD.Boolean(true, { isHidden: true }),
-    dynamicDampingFactor: PD.Numeric(0.2, {}, { isHidden: true }),
+    staticMoving: PD.Boolean(true),
+    dynamicDampingFactor: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
 
     minDistance: PD.Numeric(0.01, {}, { isHidden: true }),
     maxDistance: PD.Numeric(1e150, {}, { isHidden: true }),
@@ -221,7 +221,31 @@ namespace TrackballControls {
         const rotObjSideDir = Vec3();
         const rotMoveDir = Vec3();
 
-        function rotateCamera() {
+        // `dynamicDampingFactor` decays/lags inertia per-call; without normalizing by elapsed
+        // time, slower frame rates (e.g. very large scenes) decay far slower in wall-clock
+        // time, so residual camera motion
+        const REFERENCE_DT = 1000 / 60;
+        /** raises a factor tuned for one `REFERENCE_DT` step to the equivalent for `deltaT` */
+        function timeNormalized(perFrameFactor: number, deltaT: number) {
+            return Math.pow(perFrameFactor, deltaT / REFERENCE_DT);
+        }
+        function dampingFactor(deltaT: number) {
+            return timeNormalized(Math.sqrt(1.0 - p.dynamicDampingFactor), deltaT);
+        }
+        /** fraction of the remaining `target - current` gap to cover over `deltaT` */
+        function lagFactor(deltaT: number) {
+            return 1 - timeNormalized(1 - p.dynamicDampingFactor, deltaT);
+        }
+
+        // Below these magnitudes, residual inertia/lag is imperceptible. Without a cutoff,
+        // the exponential decay/approach never reaches exactly zero, so the camera keeps
+        // getting nudged by unnoticeable amounts, forcing needless re-renders for a while
+        // after interaction stops.
+        const MIN_DAMPING_ANGLE = 1e-5; // radians
+        const MIN_DAMPING_DELTA = 1e-5; // screen-space (mouseOnScreen) fraction
+        const MIN_DAMPING_DELTA_SQ = MIN_DAMPING_DELTA * MIN_DAMPING_DELTA;
+
+        function rotateCamera(deltaT: number) {
             const dx = _rotCurr[0] - _rotPrev[0];
             const dy = _rotCurr[1] - _rotPrev[1];
             Vec3.set(rotMoveDir, dx, dy, 0);
@@ -248,12 +272,16 @@ namespace TrackballControls {
                 Vec3.copy(_rotLastAxis, rotAxis);
                 _rotLastAngle = angle;
             } else if (!p.staticMoving && _rotLastAngle) {
-                _rotLastAngle *= Math.sqrt(1.0 - p.dynamicDampingFactor);
-                Vec3.sub(_eye, camera.position, camera.target);
-                Quat.setAxisAngle(rotQuat, _rotLastAxis, _rotLastAngle);
+                _rotLastAngle *= dampingFactor(deltaT);
+                if (Math.abs(_rotLastAngle) < MIN_DAMPING_ANGLE) {
+                    _rotLastAngle = 0;
+                } else {
+                    Vec3.sub(_eye, camera.position, camera.target);
+                    Quat.setAxisAngle(rotQuat, _rotLastAxis, _rotLastAngle);
 
-                Vec3.transformQuat(_eye, _eye, rotQuat);
-                Vec3.transformQuat(camera.up, camera.up, rotQuat);
+                    Vec3.transformQuat(_eye, _eye, rotQuat);
+                    Vec3.transformQuat(camera.up, camera.up, rotQuat);
+                }
             }
 
             Vec2.copy(_rotPrev, _rotCurr);
@@ -262,7 +290,7 @@ namespace TrackballControls {
         const rollQuat = Quat();
         const rollDir = Vec3();
 
-        function rollCamera() {
+        function rollCamera(deltaT: number) {
             const k = (keyState.rollRight - keyState.rollLeft) / 45;
             const dx = (_rollCurr[0] - _rollPrev[0]) * -Math.sign(_rollCurr[1]);
             const dy = (_rollCurr[1] - _rollPrev[1]) * -Math.sign(_rollCurr[0]);
@@ -274,10 +302,14 @@ namespace TrackballControls {
                 Vec3.transformQuat(camera.up, camera.up, rollQuat);
                 _rollLastAngle = angle;
             } else if (!p.staticMoving && _rollLastAngle) {
-                _rollLastAngle *= Math.sqrt(1.0 - p.dynamicDampingFactor);
-                Vec3.normalize(rollDir, _eye);
-                Quat.setAxisAngle(rollQuat, rollDir, _rollLastAngle);
-                Vec3.transformQuat(camera.up, camera.up, rollQuat);
+                _rollLastAngle *= dampingFactor(deltaT);
+                if (Math.abs(_rollLastAngle) < MIN_DAMPING_ANGLE) {
+                    _rollLastAngle = 0;
+                } else {
+                    Vec3.normalize(rollDir, _eye);
+                    Quat.setAxisAngle(rollQuat, rollDir, _rollLastAngle);
+                    Vec3.transformQuat(camera.up, camera.up, rollQuat);
+                }
             }
 
             Vec2.copy(_rollPrev, _rollCurr);
@@ -286,7 +318,7 @@ namespace TrackballControls {
         const pitchQuat = Quat();
         const pitchDir = Vec3();
 
-        function pitchCamera() {
+        function pitchCamera(deltaT: number) {
             const m = (keyState.pitchUp - keyState.pitchDown) / (p.flyMode ? 360 : 90);
             const angle = -p.rotateSpeed * m;
 
@@ -298,19 +330,23 @@ namespace TrackballControls {
                 Vec3.transformQuat(camera.up, camera.up, pitchQuat);
                 _pitchLastAngle = angle;
             } else if (!p.staticMoving && _pitchLastAngle) {
-                _pitchLastAngle *= Math.sqrt(1.0 - p.dynamicDampingFactor);
-                Vec3.cross(pitchDir, _eye, camera.up);
-                Vec3.normalize(pitchDir, pitchDir);
-                Quat.setAxisAngle(pitchQuat, pitchDir, _pitchLastAngle);
-                Vec3.transformQuat(_eye, _eye, pitchQuat);
-                Vec3.transformQuat(camera.up, camera.up, pitchQuat);
+                _pitchLastAngle *= dampingFactor(deltaT);
+                if (Math.abs(_pitchLastAngle) < MIN_DAMPING_ANGLE) {
+                    _pitchLastAngle = 0;
+                } else {
+                    Vec3.cross(pitchDir, _eye, camera.up);
+                    Vec3.normalize(pitchDir, pitchDir);
+                    Quat.setAxisAngle(pitchQuat, pitchDir, _pitchLastAngle);
+                    Vec3.transformQuat(_eye, _eye, pitchQuat);
+                    Vec3.transformQuat(camera.up, camera.up, pitchQuat);
+                }
             }
         }
 
         const yawQuat = Quat();
         const yawDir = Vec3();
 
-        function yawCamera() {
+        function yawCamera(deltaT: number) {
             const m = (keyState.yawRight - keyState.yawLeft) / (p.flyMode ? 360 : 90);
             const angle = -p.rotateSpeed * m;
 
@@ -321,15 +357,24 @@ namespace TrackballControls {
                 Vec3.transformQuat(camera.up, camera.up, yawQuat);
                 _yawLastAngle = angle;
             } else if (!p.staticMoving && _yawLastAngle) {
-                _yawLastAngle *= Math.sqrt(1.0 - p.dynamicDampingFactor);
-                Vec3.normalize(yawDir, camera.up);
-                Quat.setAxisAngle(yawQuat, yawDir, _yawLastAngle);
-                Vec3.transformQuat(_eye, _eye, yawQuat);
-                Vec3.transformQuat(camera.up, camera.up, yawQuat);
+                _yawLastAngle *= dampingFactor(deltaT);
+                if (Math.abs(_yawLastAngle) < MIN_DAMPING_ANGLE) {
+                    _yawLastAngle = 0;
+                } else {
+                    Vec3.normalize(yawDir, camera.up);
+                    Quat.setAxisAngle(yawQuat, yawDir, _yawLastAngle);
+                    Vec3.transformQuat(_eye, _eye, yawQuat);
+                    Vec3.transformQuat(camera.up, camera.up, yawQuat);
+                }
             }
         }
 
-        function zoomCamera() {
+        function zoomCamera(deltaT: number) {
+            if (!p.staticMoving && Math.abs(_zoomEnd[1] - _zoomStart[1]) < MIN_DAMPING_DELTA) {
+                Vec2.copy(_zoomStart, _zoomEnd);
+                return;
+            }
+
             const factor = 1.0 + (_zoomEnd[1] - _zoomStart[1]) * p.zoomSpeed;
             if (factor !== 1.0 && factor > 0.0) {
                 Vec3.scale(_eye, _eye, factor);
@@ -338,11 +383,16 @@ namespace TrackballControls {
             if (p.staticMoving) {
                 Vec2.copy(_zoomStart, _zoomEnd);
             } else {
-                _zoomStart[1] += (_zoomEnd[1] - _zoomStart[1]) * p.dynamicDampingFactor;
+                _zoomStart[1] += (_zoomEnd[1] - _zoomStart[1]) * lagFactor(deltaT);
             }
         }
 
-        function focusCamera() {
+        function focusCamera(deltaT: number) {
+            if (!p.staticMoving && Math.abs(_focusEnd[1] - _focusStart[1]) < MIN_DAMPING_DELTA) {
+                Vec2.copy(_focusStart, _focusEnd);
+                return;
+            }
+
             const factor = (_focusEnd[1] - _focusStart[1]) * p.zoomSpeed;
             if (factor !== 0.0) {
                 const radius = Math.max(1, camera.state.radius + camera.state.radius * factor);
@@ -352,7 +402,7 @@ namespace TrackballControls {
             if (p.staticMoving) {
                 Vec2.copy(_focusStart, _focusEnd);
             } else {
-                _focusStart[1] += (_focusEnd[1] - _focusStart[1]) * p.dynamicDampingFactor;
+                _focusStart[1] += (_focusEnd[1] - _focusStart[1]) * lagFactor(deltaT);
             }
         }
 
@@ -360,8 +410,13 @@ namespace TrackballControls {
         const panObjUp = Vec3();
         const panOffset = Vec3();
 
-        function panCamera() {
+        function panCamera(deltaT: number) {
             Vec2.sub(panMouseChange, Vec2.copy(panMouseChange, _panEnd), _panStart);
+
+            if (!p.staticMoving && Vec2.squaredMagnitude(panMouseChange) < MIN_DAMPING_DELTA_SQ) {
+                Vec2.copy(_panStart, _panEnd);
+                return;
+            }
 
             if (Vec2.squaredMagnitude(panMouseChange)) {
                 const factor = input.pixelRatio * p.panSpeed;
@@ -381,7 +436,7 @@ namespace TrackballControls {
                     Vec2.copy(_panStart, _panEnd);
                 } else {
                     Vec2.sub(panMouseChange, _panEnd, _panStart);
-                    Vec2.scale(panMouseChange, panMouseChange, p.dynamicDampingFactor);
+                    Vec2.scale(panMouseChange, panMouseChange, lagFactor(deltaT));
                     Vec2.add(_panStart, _panStart, panMouseChange);
                 }
             }
@@ -531,13 +586,13 @@ namespace TrackballControls {
 
             Vec3.sub(_eye, camera.position, camera.target);
 
-            rotateCamera();
-            rollCamera();
-            pitchCamera();
-            yawCamera();
-            zoomCamera();
-            focusCamera();
-            panCamera();
+            rotateCamera(deltaT);
+            rollCamera(deltaT);
+            pitchCamera(deltaT);
+            yawCamera(deltaT);
+            zoomCamera(deltaT);
+            focusCamera(deltaT);
+            panCamera(deltaT);
 
             Vec3.add(camera.position, camera.target, _eye);
             checkDistances();
