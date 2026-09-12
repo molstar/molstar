@@ -45,9 +45,6 @@ export function getBallAndStickParams(ctx: ThemeRegistryContext, structure: Stru
     if (size >= Structure.Size.Huge) {
         params = PD.clone(params);
         params.visuals.defaultValue = ['element-sphere', 'intra-bond'];
-    } else if (structure.unitSymmetryGroups.length > 500) {
-        params = PD.clone(params);
-        params.visuals.defaultValue = ['structure-element-sphere', 'structure-intra-bond'];
     }
     return params;
 }
