@@ -3,7 +3,7 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { Tensor } from '../../../mol-math/linear-algebra/tensor';
+import { Tensor } from '../../mol-math/linear-algebra/tensor';
 
 type Cells = { [i: number]: number; length: number };
 

@@ -13,7 +13,8 @@ const HEADER_BYTES = 1024;
 
 export namespace CCP4Writer {
     export function writeMrc(grid: Grid, data: Uint8Array | Float32Array): ArrayBuffer {
-        const [nx, ny, nz] = grid.cells.space.dimensions as [number, number, number];
+        const { space } = grid.cells;
+        const [nx, ny, nz] = space.dimensions as [number, number, number];
         const voxelCount = nx * ny * nz;
         const buf = new ArrayBuffer(HEADER_BYTES + voxelCount * 4);
         const i32 = new Int32Array(buf);
@@ -66,7 +67,7 @@ export namespace CCP4Writer {
         f32[20] = max; // AMAX
         f32[21] = sum / voxelCount; // AMEAN
 
-        i32[22] = 0; // ISPG
+        i32[22] = 1; // ISPG = 1 (P1 volume); 0 would mark the data as an image stack
         i32[23] = 0; // NSYMBT
 
         // MRC2014 origin (voxel 0,0,0 world position)
@@ -84,8 +85,16 @@ export namespace CCP4Writer {
         bytes[214] = 0x00;
         bytes[215] = 0x00;
 
+        // MAPC/MAPR/MAPS above declare x fastest and z slowest, so read the volume in
+        // that order; `dataOffset` resolves whichever axis order the tensor uses.
+        const { dataOffset } = space;
         const dataView = new Float32Array(buf, HEADER_BYTES, voxelCount);
-        for (let i = 0; i < voxelCount; i++) dataView[i] = data[i];
+        let o = 0;
+        for (let k = 0; k < nz; k++) {
+            for (let j = 0; j < ny; j++) {
+                for (let i = 0; i < nx; i++) dataView[o++] = data[dataOffset(i, j, k)];
+            }
+        }
 
         return buf;
     }

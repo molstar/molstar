@@ -3,8 +3,8 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
-import { Grid } from '../../../mol-model/volume';
-import { CCP4Writer } from '../../../mol-io/writer/ccp4/ccp4';
+import { Grid } from '../../../../mol-model/volume';
+import { CCP4Writer } from '../../../../mol-io/writer/ccp4/ccp4';
 
 export function downloadMrc(grid: Grid, maskData: Uint8Array | Float32Array, filename = 'mask.mrc') {
     const buf = CCP4Writer.writeMrc(grid, maskData);
