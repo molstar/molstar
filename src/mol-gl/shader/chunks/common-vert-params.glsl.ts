@@ -64,4 +64,19 @@ uniform float uModelScale;
 #else
     #define DrawID uDrawId
 #endif
+
+#if defined(dSegmented)
+    // per-instance segment data for merged render items, see SegmentSchema
+    attribute vec3 aSegment;
+    attribute vec4 aSegmentSphere;
+    attribute vec4 aSegmentLod;
+    uniform int uLodLevel;
+    #define groupInstanceIndex(inst, grp) (aSegment.y + (inst) * aSegment.x + (grp))
+    #define groupIndex(grp) (aSegment.z + (grp))
+    #define InvariantBoundingSphere aSegmentSphere
+#else
+    #define groupInstanceIndex(inst, grp) ((inst) * float(uGroupCount) + (grp))
+    #define groupIndex(grp) (grp)
+    #define InvariantBoundingSphere uInvariantBoundingSphere
+#endif
 `;
