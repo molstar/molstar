@@ -21,7 +21,6 @@ varying float vCap;
 
 uniform vec3 uCameraDir;
 uniform vec3 uCameraPosition;
-uniform mat4 uInvView;
 
 uniform vec4 uInteriorColor;
 uniform vec4 uInteriorSubstance;

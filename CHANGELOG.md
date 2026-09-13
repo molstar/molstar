@@ -75,6 +75,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Formats: ariatomi-em, cryoet-ndjson, dynamo-tbl, relion-star, simularium, cellpack & petworld mmcif
     - Properties: position, orientation, radius, entity, compartment, custom attributes, fibers
     - Particles can be decorated with structure, volume, and shape visuals
+- Fix bumpiness artifacts on impostor seams and clip boundaries
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
