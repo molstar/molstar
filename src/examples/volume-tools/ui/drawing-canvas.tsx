@@ -5,7 +5,7 @@
 
 import * as React from 'react';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { Point2D, ViewMask } from '../../../extensions/volume-mask/types';
+import type { Point2D, ViewMask } from '../../../extensions/volume-tools/types';
 
 const CLOSE_DIST_PX = 12;
 const PREVIEW_COLOR = '#FF6B00';
@@ -15,9 +15,11 @@ interface Props {
     previewMask?: ViewMask;
     /** Called when the user successfully closes a new polygon. Only used when previewMask is unset. */
     onPolygonComplete?: (polygon: Point2D[], canvasW: number, canvasH: number) => void;
+    /** CSS hex color (#rrggbb) used for the polygon; defaults to the mask creator orange. */
+    color?: string;
 }
 
-export function DrawingCanvas({ previewMask, onPolygonComplete }: Props) {
+export function DrawingCanvas({ previewMask, onPolygonComplete, color = PREVIEW_COLOR }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [inProgress, setInProgress] = useState<Point2D[]>([]);
     const [mousePos, setMousePos] = useState<Point2D | null>(null);
@@ -39,31 +41,31 @@ export function DrawingCanvas({ previewMask, onPolygonComplete }: Props) {
             const sy = canvas.height / previewMask.canvasHeight;
             const scaled = previewMask.polygon.map(([x, y]) => [x * sx, y * sy] as Point2D);
             if (previewMask.inverted) {
-                drawFilledOutside(ctx, scaled, canvas.width, canvas.height, PREVIEW_COLOR, 0.2);
+                drawFilledOutside(ctx, scaled, canvas.width, canvas.height, color, 0.2);
             } else {
-                drawFilledPolygon(ctx, scaled, PREVIEW_COLOR, 0.2);
+                drawFilledPolygon(ctx, scaled, color, 0.2);
             }
-            drawPolygonOutline(ctx, scaled, PREVIEW_COLOR, 2);
-            scaled.forEach(p => drawVertex(ctx, p, PREVIEW_COLOR, 4));
+            drawPolygonOutline(ctx, scaled, color, 2);
+            scaled.forEach(p => drawVertex(ctx, p, color, 4));
             return;
         }
 
         // Drawing mode
         if (inProgress.length > 0) {
-            drawPolygonOutline(ctx, inProgress, '#FF3300', 2, true);
-            inProgress.forEach(p => drawVertex(ctx, p, '#FF3300'));
+            drawPolygonOutline(ctx, inProgress, color, 2, true);
+            inProgress.forEach(p => drawVertex(ctx, p, color));
             if (mousePos) {
                 ctx.beginPath();
                 ctx.moveTo(inProgress[inProgress.length - 1][0], inProgress[inProgress.length - 1][1]);
                 ctx.lineTo(mousePos[0], mousePos[1]);
                 ctx.setLineDash([4, 4]);
-                ctx.strokeStyle = 'rgba(255,51,0,0.7)';
+                ctx.strokeStyle = color;
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
                 ctx.setLineDash([]);
             }
             if (mousePos && inProgress.length >= 3 && distPx(mousePos, inProgress[0]) < CLOSE_DIST_PX) {
-                drawVertex(ctx, inProgress[0], '#FF6B00', 8);
+                drawVertex(ctx, inProgress[0], color, 8);
             }
         }
     };
@@ -85,7 +87,7 @@ export function DrawingCanvas({ previewMask, onPolygonComplete }: Props) {
     }, []);
 
     // Repaint whenever drawing state or preview changes.
-    useEffect(() => { paintRef.current(); }, [inProgress, mousePos, previewMask]);
+    useEffect(() => { paintRef.current(); }, [inProgress, mousePos, previewMask, color]);
 
     const getPos = (e: React.MouseEvent<HTMLCanvasElement>): Point2D => {
         const r = canvasRef.current!.getBoundingClientRect();

@@ -4,9 +4,12 @@
  *
  * Volume Mask Creator extension for Mol*
  *
- * For a full interactive UI, see `src/examples/volume-mask/`.
+ * For a full interactive UI, see `src/examples/volume-tools/`.
  */
 
 export { VolumeMaskBehavior } from './behavior';
 export { MaskVolumeFromSource } from './transformers';
+export { MaskSelection } from './selection';
+export type { SelectionStore } from './selection';
+export { MaskSelectionColorThemeProvider, MaskSelectionColorThemeParams } from './theme';
 export type { ViewMask, MaskCreatorState, MaskSource, Point2D } from './types';
