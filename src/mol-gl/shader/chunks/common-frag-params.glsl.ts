@@ -79,6 +79,7 @@ uniform float uCelSteps;
 uniform float uExposure;
 
 uniform mat4 uProjection;
+uniform mat4 uInvView;
 
 uniform int uRenderMask;
 uniform bool uMarkingDepthTest;

@@ -40,6 +40,18 @@ void main() {
             gl_FragColor = vec4(0.0);
             return;
         }
+        vec3 viewPosition = vViewPosition;
+        vec3 modelPosition = vModelPosition;
+        if (capPass) {
+            if (uIsOrtho == 1.0) {
+                viewPosition.z = -uNear;
+            } else {
+                viewPosition *= -uNear / viewPosition.z;
+            }
+            modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
+        }
+        vec3 vViewPosition = viewPosition;
+        vec3 vModelPosition = modelPosition;
     #endif
 
     #ifdef dNeedsNormal
