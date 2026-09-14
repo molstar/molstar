@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 /*
@@ -141,7 +142,7 @@ namespace Vec4 {
         out[0] = a[0] * b;
         out[1] = a[1] * b;
         out[2] = a[2] * b;
-        out[4] = a[4] * b;
+        out[3] = a[3] * b;
         return out;
     }
 
