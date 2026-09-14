@@ -23,7 +23,7 @@ import { PointsSchema } from './points';
 import { SpheresShaderCode, MeshShaderCode, CylindersShaderCode, LinesShaderCode, PointsShaderCode, ShaderCode } from '../shader-code';
 import { createGraphicsRenderItem, Transparency, GraphicsRenderVariant, DrawMode } from '../webgl/render-item';
 import { WebGLContext, WebGLStats } from '../webgl/context';
-import { Renderable, RenderableState, createSegmentedMdbList, CullSegment, LodLevelsValue, CullValues, createCullCache } from '../renderable';
+import { Renderable, RenderableState, createSegmentedMdbList, CullSegment, LodLevelsValue, CullValues, Frame } from '../renderable';
 
 export type MergeableValues = RenderableValues & BaseValues
 
@@ -716,7 +716,7 @@ export function MergedRenderable(ctx: WebGLContext, id: number, merged: Merged, 
 
     const mdb = createSegmentedMdbList();
     let mode: 'none' | 'full' | 'cull' = 'none';
-    const cullCache = createCullCache();
+    let lastCullFrame: Frame | undefined;
 
     const segment: CullSegment = { first: 0, offset: 0, instanceBase: 0 };
     function setSegment(i: number) {
@@ -748,9 +748,12 @@ export function MergedRenderable(ctx: WebGLContext, id: number, merged: Merged, 
         mode = 'full';
     }
 
-    function cull(cameraPlane: Plane3D, frustum: Frustum3D, isOccluded: ((s: Sphere3D) => boolean) | null, stats: WebGLStats) {
-        // skip recomputation if nothing relevant to culling has actually changed
-        if (cullCache.unchanged(merged.values, cameraPlane, frustum, isOccluded)) return;
+    function cull(cameraPlane: Plane3D, frustum: Frustum3D, isOccluded: ((s: Sphere3D) => boolean) | null, stats: WebGLStats, frame: Frame) {
+        // skip recomputation if this renderable was already culled for the current frame
+        if (frame === lastCullFrame) {
+            stats.cacheHits.cull++;
+            return;
+        }
 
         const lodLevels = mdb.prepare(members[0].lodLevels, getCapacity(), true);
         mode = 'cull';
@@ -759,7 +762,7 @@ export function MergedRenderable(ctx: WebGLContext, id: number, merged: Merged, 
             mdb.cullSegment(members[i] as CullValues, setSegment(i), getMemberLod(i, !!lodLevels), cameraPlane, frustum, isOccluded, stats, true);
         }
 
-        cullCache.commit(merged.values, cameraPlane, frustum, isOccluded);
+        lastCullFrame = frame;
     }
 
     function cullSimple(d: number, radius: number, scale: number) {
@@ -785,8 +788,8 @@ export function MergedRenderable(ctx: WebGLContext, id: number, merged: Merged, 
 
         cull,
         uncull: () => {
-            cullCache.invalidate();
             if (mode !== 'full') buildFullList();
+            lastCullFrame = undefined;
         },
         cullSimple,
         render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => {
@@ -801,8 +804,8 @@ export function MergedRenderable(ctx: WebGLContext, id: number, merged: Merged, 
         update: () => {
             merged.sync();
             mode = 'none';
-            cullCache.invalidate();
             renderItem.update();
+            lastCullFrame = undefined;
         },
         dispose: () => renderItem.destroy(),
     };

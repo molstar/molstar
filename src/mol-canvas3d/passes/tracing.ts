@@ -17,7 +17,7 @@ import { Scene } from '../../mol-gl/scene';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { ShaderCode } from '../../mol-gl/shader-code';
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
-import { ComputeRenderable, createComputeRenderable } from '../../mol-gl/renderable';
+import { ComputeRenderable, createComputeRenderable, Frame } from '../../mol-gl/renderable';
 import { trace_frag } from '../../mol-gl/shader/illumination/trace.frag';
 import { Vec2 } from '../../mol-math/linear-algebra/3d/vec2';
 import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
@@ -282,7 +282,7 @@ export class TracingPass {
         };
     }
 
-    render(ctx: RenderContext, transparentBackground: boolean, props: TracingProps, iteration: number, forceRenderInput: boolean) {
+    render(ctx: RenderContext, transparentBackground: boolean, props: TracingProps, iteration: number, forceRenderInput: boolean, frame: Frame) {
         const { rendersPerFrame, refineSteps, steps } = this.getAdjustedProps(props, iteration);
 
         if (isTimingMode) {
@@ -301,7 +301,7 @@ export class TracingPass {
             renderer.setDrawingBufferSize(this.composeTarget.getWidth(), this.composeTarget.getHeight());
             renderer.setPixelRatio(this.webgl.pixelRatio);
             renderer.setViewport(x, y, width, height);
-            renderer.update(camera, scene);
+            renderer.update(camera, scene, frame);
             this.renderInput(renderer, camera, scene, props);
         }
 

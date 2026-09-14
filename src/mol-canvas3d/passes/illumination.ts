@@ -17,7 +17,7 @@ import { Scene } from '../../mol-gl/scene';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { ShaderCode } from '../../mol-gl/shader-code';
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
-import { ComputeRenderable, createComputeRenderable } from '../../mol-gl/renderable';
+import { ComputeRenderable, createComputeRenderable, Frame } from '../../mol-gl/renderable';
 import { compose_frag } from '../../mol-gl/shader/illumination/compose.frag';
 import { Vec2 } from '../../mol-math/linear-algebra/3d/vec2';
 import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
@@ -309,7 +309,7 @@ export class IlluminationPass {
         this.prevSampleIndex = -1;
     }
 
-    private renderInternal(ctx: RenderContext, props: Props, toDrawingBuffer: boolean, forceRenderInput: boolean) {
+    private renderInternal(ctx: RenderContext, props: Props, toDrawingBuffer: boolean, forceRenderInput: boolean, frame: Frame) {
         if (!this.shouldRender(props.illumination)) return;
 
         if (isTimingMode) {
@@ -317,7 +317,7 @@ export class IlluminationPass {
                 note: `iteration ${this._iteration + 1} of ${this.getMaxIterations(props.illumination)}`
             });
         }
-        this.tracing.render(ctx, props.transparentBackground, props.illumination, this._iteration, forceRenderInput);
+        this.tracing.render(ctx, props.transparentBackground, props.illumination, this._iteration, forceRenderInput, frame);
 
         const { renderer, camera, scene, helper } = ctx;
         const { gl, state } = this.webgl;
@@ -329,7 +329,7 @@ export class IlluminationPass {
             renderer.setDrawingBufferSize(this.tracing.composeTarget.getWidth(), this.tracing.composeTarget.getHeight());
             renderer.setPixelRatio(this.webgl.pixelRatio);
             renderer.setViewport(x, y, width, height);
-            renderer.update(camera, scene);
+            renderer.update(camera, scene, frame);
             this.renderInput(renderer, camera, scene, props);
 
             this.transparentTarget.bind();
@@ -343,7 +343,7 @@ export class IlluminationPass {
                 }
                 if (helper.pointer.isEnabled) {
                     helper.pointer.setCamera(camera);
-                    renderer.update(helper.pointer.camera, helper.pointer.scene);
+                    renderer.update(helper.pointer.camera, helper.pointer.scene, frame);
                     renderer.renderBlended(helper.pointer.scene, helper.pointer.camera);
                 }
                 this.drawPass.depthTextureOpaque.detachFramebuffer(this.transparentTarget.framebuffer, 'depth');
@@ -353,7 +353,7 @@ export class IlluminationPass {
             }
             if (helper.camera.isEnabled) {
                 helper.camera.update(camera);
-                renderer.update(helper.camera.camera, helper.camera.scene);
+                renderer.update(helper.camera.camera, helper.camera.scene, frame);
                 renderer.renderBlended(helper.camera.scene, helper.camera.camera);
             }
         }
@@ -430,7 +430,7 @@ export class IlluminationPass {
         renderer.setDrawingBufferSize(this.tracing.composeTarget.getWidth(), this.tracing.composeTarget.getHeight());
         renderer.setPixelRatio(this.webgl.pixelRatio);
         renderer.setViewport(x, y, width, height);
-        renderer.update(camera, scene);
+        renderer.update(camera, scene, frame);
 
         let bloomActive = false;
         if (bloomEnabled && props.postprocessing.bloom.name === 'on') {
@@ -527,7 +527,7 @@ export class IlluminationPass {
 
     private prevSampleIndex = -1;
 
-    private renderMultiSample(ctx: RenderContext, props: Props, toDrawingBuffer: boolean) {
+    private renderMultiSample(ctx: RenderContext, props: Props, toDrawingBuffer: boolean, frame: Frame) {
         const { camera } = ctx;
         const { multiSampleCompose, multiSampleComposeTarget, multiSampleHoldTarget, webgl } = this;
         const { gl, state } = webgl;
@@ -554,7 +554,7 @@ export class IlluminationPass {
         const sampleWeight = 1.0 / maxIterations;
 
         if (iteration === 0) {
-            this.renderInternal(ctx, props, false, true);
+            this.renderInternal(ctx, props, false, true, frame);
             ValueCell.update(multiSampleCompose.values.uWeight, 1.0);
             ValueCell.update(multiSampleCompose.values.tColor, this._colorTarget.texture);
             multiSampleCompose.update();
@@ -579,7 +579,7 @@ export class IlluminationPass {
             camera.update();
 
             // render scene
-            this.renderInternal(ctx, props, false, this.prevSampleIndex !== sampleIndex);
+            this.renderInternal(ctx, props, false, this.prevSampleIndex !== sampleIndex, frame);
 
             // compose rendered scene with compose target
             multiSampleComposeTarget.bind();
@@ -639,13 +639,13 @@ export class IlluminationPass {
         if (isTimingMode) webgl.timer.markEnd('IlluminationPass.renderMultiSample');
     }
 
-    render(ctx: RenderContext, props: Props, toDrawingBuffer: boolean) {
+    render(ctx: RenderContext, props: Props, toDrawingBuffer: boolean, frame: Frame) {
         if (!this._supported) return;
 
         if (props.multiSample.mode === 'on') {
-            this.renderMultiSample(ctx, props, toDrawingBuffer);
+            this.renderMultiSample(ctx, props, toDrawingBuffer, frame);
         } else {
-            this.renderInternal(ctx, props, toDrawingBuffer, false);
+            this.renderInternal(ctx, props, toDrawingBuffer, false, frame);
         }
     }
 }
