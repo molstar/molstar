@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Optimize `Renderable` culling with a frame token guard
+- Improve dynamic trackball controls and show param
 - Fix altloc in PDB files receive different atom names (#156)
 - Add `volume-tools/segmentor`: interactive segmentation of a volume into bodies (polygon labelling from several views, remainder assignment, dust removal, handedness flip, per-body extend + cosine soft edge, MRC mask export)
 - **Breaking**: move the `volume-mask` extension to `volume-tools/mask`, alongside the new segmentor; `ViewMask`, its projection and the in-place volume operations are now shared at `volume-tools/`. Update imports from `extensions/volume-mask` to `extensions/volume-tools/mask`
