@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 export const mesh_frag = `
@@ -20,6 +21,10 @@ precision highp int;
 uniform vec4 uInteriorColor;
 uniform vec4 uInteriorSubstance;
 
+#ifdef dSolidInterior
+    uniform int uSolidInteriorPass;
+#endif
+
 void main() {
     #include fade_lod
     #include clip_pixel
@@ -27,6 +32,15 @@ void main() {
     interior = !gl_FrontFacing;
 
     float fragmentDepth = gl_FragCoord.z;
+
+    #ifdef dSolidInterior
+        if (uSolidInteriorPass == 0 && !gl_FrontFacing) discard;
+        bool capPass = uSolidInteriorPass == 1;
+        if (uSolidInteriorPass == 2) {
+            gl_FragColor = vec4(0.0);
+            return;
+        }
+    #endif
 
     #ifdef dNeedsNormal
         #if defined(dFlatShaded)
@@ -40,6 +54,12 @@ void main() {
 
         #if defined(dFlipSided)
             normal *= -1.0;
+        #endif
+
+        #ifdef dSolidInterior
+            if (capPass) {
+                normal = mix(normalize(vViewPosition), vec3(0.0, 0.0, -1.0), uIsOrtho);
+            }
         #endif
     #endif
 

@@ -180,6 +180,7 @@ export const GlobalUniformSchema = {
     uDepthBack: UniformSpec('b'),
     uMarkingType: UniformSpec('i'),
     uPickType: UniformSpec('i'),
+    uSolidInteriorPass: UniformSpec('i'),
 
     uTime: UniformSpec('f'),
     uEnableAnimation: UniformSpec('b'),

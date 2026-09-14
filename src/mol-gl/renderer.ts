@@ -168,6 +168,7 @@ namespace Renderer {
         BlendedFront = 1,
         BlendedBack = 2,
         DepthBack = 3,
+        SolidInteriorMark = 4,
     }
 
     const enum Mask {
@@ -177,7 +178,7 @@ namespace Renderer {
     }
 
     export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
-        const { gl, state, stats } = ctx;
+        const { gl, state, stats, isWebGL2 } = ctx;
         const p = PD.merge(RendererParams, PD.getDefaultValues(RendererParams), props);
         const light = getLight(p.light);
 
@@ -262,6 +263,7 @@ namespace Renderer {
             uDepthBack: ValueCell.create(false),
             uPickType: ValueCell.create(PickType.None),
             uMarkingType: ValueCell.create(MarkingType.None),
+            uSolidInteriorPass: ValueCell.create(0),
 
             uTransparentBackground: ValueCell.create(false),
 
@@ -370,6 +372,9 @@ namespace Renderer {
                 }
             } else if (flag === Flag.DepthBack) {
                 state.disable(gl.CULL_FACE);
+            } else if (flag === Flag.SolidInteriorMark) {
+                state.disable(gl.CULL_FACE);
+                state.frontFace(r.values.dFlipSided?.ref.value ? gl.CW : gl.CCW);
             } else if (flag === Flag.BlendedBack) {
                 state.enable(gl.CULL_FACE);
                 if (r.values.dFlipSided?.ref.value) {
@@ -402,6 +407,51 @@ namespace Renderer {
             }
 
             r.render(variant, sharedTexturesList.length);
+        };
+
+        const renderSolidInteriorCap = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit') => {
+            const writeDepth = mode === 'opaque';
+            const hwDepthTest = mode === 'opaque' || mode === 'blended';
+
+            state.enable(gl.STENCIL_TEST);
+            state.stencilMask(0xff);
+            gl.clearStencil(0);
+            gl.clear(gl.STENCIL_BUFFER_BIT);
+
+            ValueCell.updateIfChanged(globalUniforms.uSolidInteriorPass, 2);
+            globalUniformsNeedUpdate = true;
+            state.colorMask(false, false, false, false);
+            state.depthMask(false);
+            state.disable(gl.DEPTH_TEST);
+            state.stencilFunc(gl.ALWAYS, 0, 0xff);
+            state.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.KEEP, gl.INCR_WRAP);
+            state.stencilOpSeparate(gl.BACK, gl.KEEP, gl.KEEP, gl.DECR_WRAP);
+            renderObject(r, variant, Flag.SolidInteriorMark);
+
+            ValueCell.updateIfChanged(globalUniforms.uSolidInteriorPass, 1);
+            globalUniformsNeedUpdate = true;
+            if (hwDepthTest) {
+                state.enable(gl.DEPTH_TEST);
+                state.depthFunc(gl.LEQUAL);
+            }
+            state.colorMask(true, true, true, true);
+            state.depthMask(writeDepth);
+            state.stencilFunc(gl.NOTEQUAL, 0, 0xff);
+            state.stencilOp(gl.KEEP, gl.KEEP, gl.ZERO);
+            renderObject(r, variant, Flag.BlendedBack);
+
+            ValueCell.updateIfChanged(globalUniforms.uSolidInteriorPass, 0);
+            globalUniformsNeedUpdate = true;
+            state.disable(gl.STENCIL_TEST);
+            if (hwDepthTest) state.depthFunc(gl.LESS);
+            state.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+            state.frontFace(gl.CCW);
+            state.cullFace(gl.BACK);
+        };
+
+        const hasSolidInteriorCap = (r: GraphicsRenderable) => {
+            const geomType = r.values.dGeometryType.ref.value;
+            return isWebGL2 && (geomType === 'mesh' || geomType === 'textureMesh') && !!r.values.dSolidInterior?.ref.value;
         };
 
         const update = (camera: ICamera, scene: Scene) => {
@@ -603,6 +653,9 @@ namespace Renderer {
                 const r = renderables[i];
                 if (checkTransparent(r)) {
                     renderObject(r, 'depth', Flag.None);
+                    if (hasSolidInteriorCap(r)) {
+                        renderSolidInteriorCap(r, 'depth', 'opaque');
+                    }
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthTransparent');
@@ -717,6 +770,9 @@ namespace Renderer {
                 const r = renderables[i];
                 if (checkOpaque(r)) {
                     renderObject(r, 'tracing', Flag.None);
+                    if (hasSolidInteriorCap(r)) {
+                        renderSolidInteriorCap(r, 'tracing', 'opaque');
+                    }
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderTracing');
@@ -744,6 +800,9 @@ namespace Renderer {
                 const r = renderables[i];
                 if (checkOpaque(r)) {
                     renderObject(r, 'color', Flag.None);
+                    if (hasSolidInteriorCap(r)) {
+                        renderSolidInteriorCap(r, 'color', 'opaque');
+                    }
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderOpaque');
@@ -774,6 +833,9 @@ namespace Renderer {
                         renderObject(r, 'color', Flag.BlendedFront);
                     } else {
                         renderObject(r, 'color', Flag.None);
+                    }
+                    if (hasSolidInteriorCap(r)) {
+                        renderSolidInteriorCap(r, 'color', 'blended');
                     }
                 }
             }
@@ -809,6 +871,9 @@ namespace Renderer {
                 const r = renderables[i];
                 if (checkTransparent(r)) {
                     renderObject(r, 'color', Flag.None);
+                    if (hasSolidInteriorCap(r)) {
+                        renderSolidInteriorCap(r, 'color', 'oit');
+                    }
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderWboitTransparent');

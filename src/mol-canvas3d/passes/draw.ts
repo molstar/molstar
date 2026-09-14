@@ -90,17 +90,17 @@ export class DrawPass {
     constructor(private webgl: WebGLContext, assetManager: AssetManager, width: number, height: number, transparency: 'wboit' | 'dpoit' | 'blended') {
         const { extensions, resources, isWebGL2 } = webgl;
         this.drawTarget = webgl.createDrawTarget();
-        this.colorTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'linear');
+        this.colorTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'linear', 'rgba', isWebGL2);
         this.transparentColorTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
 
         this.packedDepth = !extensions.depthTexture;
 
-        this.depthTargetTransparent = webgl.createRenderTarget(width, height);
+        this.depthTargetTransparent = webgl.createRenderTarget(width, height, true, 'uint8', 'nearest', 'rgba', isWebGL2);
         this.depthTextureTransparent = this.depthTargetTransparent.texture;
 
         this.depthTargetOpaque = this.packedDepth ? webgl.createRenderTarget(width, height) : null;
 
-        this.depthTextureOpaque = this.depthTargetOpaque ? this.depthTargetOpaque.texture : resources.texture('image-depth', 'depth', isWebGL2 ? 'float' : 'ushort', 'nearest');
+        this.depthTextureOpaque = this.depthTargetOpaque ? this.depthTargetOpaque.texture : resources.texture('image-depth', isWebGL2 ? 'depth-stencil' : 'depth', isWebGL2 ? 'float-stencil' : 'ushort', 'nearest');
         if (!this.packedDepth) {
             this.depthTextureOpaque.define(width, height);
         }
