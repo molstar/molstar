@@ -464,9 +464,15 @@ namespace Renderer {
         const solidInteriorRotation = Quat();
         const solidInteriorTransform = Mat4();
         const solidInteriorTransposed = Mat4();
+        const solidInteriorSphere = Sphere3D();
 
         const renderSolidInteriorCap = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit' | 'oit-post') => {
-            renderSolidInteriorPlane(r, variant, mode, Vec4.set(solidInteriorNearPlane, 0, 0, 1, globalUniforms.uNear.ref.value * 1.0001), -1);
+            Sphere3D.scaleNX(solidInteriorSphere, r.values.boundingSphere.ref.value, modelScale);
+            const { center, radius } = solidInteriorSphere;
+            const near = globalUniforms.uNear.ref.value * 1.0001;
+            if (Math.abs(Plane3D.distanceToPoint(cameraPlane, center) - near) <= radius) {
+                renderSolidInteriorPlane(r, variant, mode, Vec4.set(solidInteriorNearPlane, 0, 0, 1, near), -1);
+            }
 
             const { values } = r;
             if (values.dClipVariant?.ref.value !== 'pixel') return;
@@ -484,10 +490,11 @@ namespace Renderer {
                 Vec4.set(solidInteriorClipPlane, solidInteriorNormal[0], solidInteriorNormal[1], solidInteriorNormal[2], -Vec3.dot(solidInteriorNormal, solidInteriorPosition));
                 if (invert[i]) Vec4.scale(solidInteriorClipPlane, solidInteriorClipPlane, -1);
                 Vec4.transformMat4(solidInteriorClipPlane, solidInteriorClipPlane, Mat4.transpose(solidInteriorTransposed, Mat4.fromArray(solidInteriorTransform, transform, i * 16)));
-                Vec4.transformMat4(solidInteriorClipPlane, solidInteriorClipPlane, Mat4.transpose(solidInteriorTransposed, invView));
                 const length = Math.hypot(solidInteriorClipPlane[0], solidInteriorClipPlane[1], solidInteriorClipPlane[2]);
                 if (length < 1e-6) continue;
                 Vec4.scale(solidInteriorClipPlane, solidInteriorClipPlane, 1 / length);
+                if (Math.abs(solidInteriorClipPlane[0] * center[0] + solidInteriorClipPlane[1] * center[1] + solidInteriorClipPlane[2] * center[2] + solidInteriorClipPlane[3]) > radius) continue;
+                Vec4.transformMat4(solidInteriorClipPlane, solidInteriorClipPlane, Mat4.transpose(solidInteriorTransposed, invView));
                 if (solidInteriorClipPlane[3] <= 1e-4 || (isOrtho && Math.abs(solidInteriorClipPlane[2]) < 1e-4)) continue;
                 renderSolidInteriorPlane(r, variant, mode, solidInteriorClipPlane, i);
             }
