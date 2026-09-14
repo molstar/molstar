@@ -403,6 +403,8 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
             cullCache.invalidate();
         },
         cullSimple: (d: number, radius: number, scale: number) => {
+            cullEnabled = false;
+
             const lodLevels = mdb.prepare(values.lodLevels, Math.max(1, values.instanceGrid.ref.value.cellCount));
             if (!lodLevels) return;
 
