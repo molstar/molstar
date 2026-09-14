@@ -9,7 +9,7 @@ import { Viewport } from '../mol-canvas3d/camera/util';
 import { ICamera } from '../mol-canvas3d/camera';
 import { Scene } from './scene';
 import { WebGLContext } from './webgl/context';
-import { Mat4, Vec3, Vec4, Vec2 } from '../mol-math/linear-algebra';
+import { Mat4, Vec3, Vec4, Vec2, Quat } from '../mol-math/linear-algebra';
 import { GraphicsRenderable } from './renderable';
 import { Color } from '../mol-util/color';
 import { ValueCell, deepEqual } from '../mol-util';
@@ -24,6 +24,7 @@ import { isTimingMode } from '../mol-util/debug';
 import { Frustum3D } from '../mol-math/geometry/primitives/frustum3d';
 import { Plane3D } from '../mol-math/geometry/primitives/plane3d';
 import { Sphere3D } from '../mol-math/geometry';
+import { Clip } from '../mol-util/clip';
 
 export interface RendererStats {
     programCount: number
@@ -265,6 +266,8 @@ namespace Renderer {
             uPickType: ValueCell.create(PickType.None),
             uMarkingType: ValueCell.create(MarkingType.None),
             uSolidInteriorPass: ValueCell.create(0),
+            uSolidInteriorPlane: ValueCell.create(Vec4()),
+            uSolidInteriorClip: ValueCell.create(-1),
 
             uTransparentBackground: ValueCell.create(false),
 
@@ -410,11 +413,13 @@ namespace Renderer {
             r.render(variant, sharedTexturesList.length);
         };
 
-        const renderSolidInteriorCap = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit' | 'oit-post') => {
+        const renderSolidInteriorPlane = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit' | 'oit-post', plane: Vec4, clipIndex: number) => {
             const writeDepth = mode === 'opaque';
             const hwDepthTest = mode === 'opaque' || mode === 'blended';
             const capPassId = mode === 'oit-post' ? 3 : 1;
 
+            ValueCell.update(globalUniforms.uSolidInteriorPlane, Vec4.copy(globalUniforms.uSolidInteriorPlane.ref.value, plane));
+            ValueCell.updateIfChanged(globalUniforms.uSolidInteriorClip, clipIndex);
             state.enable(gl.STENCIL_TEST);
             state.stencilMask(0xff);
             gl.clearStencil(0);
@@ -443,12 +448,49 @@ namespace Renderer {
             renderObject(r, variant, Flag.BlendedBack);
 
             ValueCell.updateIfChanged(globalUniforms.uSolidInteriorPass, 0);
+            ValueCell.updateIfChanged(globalUniforms.uSolidInteriorClip, -1);
             globalUniformsNeedUpdate = true;
             state.disable(gl.STENCIL_TEST);
             if (hwDepthTest) state.depthFunc(gl.LESS);
             state.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
             state.frontFace(gl.CCW);
             state.cullFace(gl.BACK);
+        };
+
+        const solidInteriorNearPlane = Vec4();
+        const solidInteriorClipPlane = Vec4();
+        const solidInteriorNormal = Vec3();
+        const solidInteriorPosition = Vec3();
+        const solidInteriorRotation = Quat();
+        const solidInteriorTransform = Mat4();
+        const solidInteriorTransposed = Mat4();
+
+        const renderSolidInteriorCap = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit' | 'oit-post') => {
+            renderSolidInteriorPlane(r, variant, mode, Vec4.set(solidInteriorNearPlane, 0, 0, 1, globalUniforms.uNear.ref.value * 1.0001), -1);
+
+            const { values } = r;
+            if (values.dClipVariant?.ref.value !== 'pixel') return;
+            const count = values.dClipObjectCount.ref.value;
+            const type = values.uClipObjectType.ref.value;
+            const invert = values.uClipObjectInvert.ref.value;
+            const position = values.uClipObjectPosition.ref.value;
+            const rotation = values.uClipObjectRotation.ref.value;
+            const transform = values.uClipObjectTransform.ref.value;
+            const isOrtho = globalUniforms.uIsOrtho.ref.value === 1;
+            for (let i = 0; i < count; ++i) {
+                if (type[i] !== Clip.Type.plane) continue;
+                Vec3.transformQuat(solidInteriorNormal, Vec3.unitY, Quat.fromArray(solidInteriorRotation, rotation, i * 4));
+                Vec3.fromArray(solidInteriorPosition, position, i * 3);
+                Vec4.set(solidInteriorClipPlane, solidInteriorNormal[0], solidInteriorNormal[1], solidInteriorNormal[2], -Vec3.dot(solidInteriorNormal, solidInteriorPosition));
+                if (invert[i]) Vec4.scale(solidInteriorClipPlane, solidInteriorClipPlane, -1);
+                Vec4.transformMat4(solidInteriorClipPlane, solidInteriorClipPlane, Mat4.transpose(solidInteriorTransposed, Mat4.fromArray(solidInteriorTransform, transform, i * 16)));
+                Vec4.transformMat4(solidInteriorClipPlane, solidInteriorClipPlane, Mat4.transpose(solidInteriorTransposed, invView));
+                const length = Math.hypot(solidInteriorClipPlane[0], solidInteriorClipPlane[1], solidInteriorClipPlane[2]);
+                if (length < 1e-6) continue;
+                Vec4.scale(solidInteriorClipPlane, solidInteriorClipPlane, 1 / length);
+                if (solidInteriorClipPlane[3] <= 1e-4 || (isOrtho && Math.abs(solidInteriorClipPlane[2]) < 1e-4)) continue;
+                renderSolidInteriorPlane(r, variant, mode, solidInteriorClipPlane, i);
+            }
         };
 
         const hasSolidInteriorCap = (r: GraphicsRenderable) => {

@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Ludovic Autin <autin@scripps.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 export const common_clip = `
@@ -88,6 +89,8 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
 #endif
 
 #if dClipObjectCount != 0
+    uniform int uSolidInteriorClip;
+
     bool clipTest(const in vec3 center) {
         // flag is a bit-flag for clip-objects to ignore (note, object ids start at 1 not 0)
         #if defined(dClipping)
@@ -98,7 +101,7 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
 
         #pragma unroll_loop_start
         for (int i = 0; i < dClipObjectCount; ++i) {
-            if (flag == 0 || hasBit(flag, UNROLLED_LOOP_INDEX + 1)) {
+            if (UNROLLED_LOOP_INDEX != uSolidInteriorClip && (flag == 0 || hasBit(flag, UNROLLED_LOOP_INDEX + 1))) {
                 bool test = getSignedDistance(center, uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i], uClipObjectTransform[i]) <= 0.0;
                 if ((!uClipObjectInvert[i] && test) || (uClipObjectInvert[i] && !test)) {
                     return true;

@@ -35,6 +35,9 @@ varying vec3 vNormal;
 
 #ifdef dSolidInterior
     uniform int uSolidInteriorPass;
+    uniform vec4 uSolidInteriorPlane;
+    uniform float uIsOrtho;
+    varying vec4 vCapPosition;
 #endif
 
 void main(){
@@ -48,8 +51,13 @@ void main(){
     #ifdef dSolidInterior
         if (uSolidInteriorPass == 2) {
             gl_Position.z = min(gl_Position.z, gl_Position.w * 0.9999);
-        } else if (uSolidInteriorPass == 1 || uSolidInteriorPass == 3) {
-            gl_Position.z = -gl_Position.w * 0.99998;
+        } else if (uSolidInteriorPass != 0) {
+            if (uIsOrtho == 1.0) {
+                vCapPosition = vec4(vViewPosition.xy, vViewPosition.z - (dot(uSolidInteriorPlane.xyz, vViewPosition) + uSolidInteriorPlane.w) / uSolidInteriorPlane.z, 1.0);
+            } else {
+                vCapPosition = vec4(uSolidInteriorPlane.w * vViewPosition, -dot(uSolidInteriorPlane.xyz, vViewPosition));
+            }
+            gl_Position = uProjection * vCapPosition;
         }
     #endif
 

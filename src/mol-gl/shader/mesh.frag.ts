@@ -23,36 +23,38 @@ uniform vec4 uInteriorSubstance;
 
 #ifdef dSolidInterior
     uniform int uSolidInteriorPass;
+    uniform vec4 uSolidInteriorPlane;
+    varying vec4 vCapPosition;
 #endif
 
 void main() {
     #include fade_lod
-    #include clip_pixel
+
+    #ifdef dSolidInterior
+        if (uSolidInteriorPass == 2) {
+            if (dot(uSolidInteriorPlane.xyz, vViewPosition) + uSolidInteriorPlane.w > 0.0) discard;
+            gl_FragColor = vec4(0.0);
+            return;
+        }
+        bool capPass = uSolidInteriorPass != 0;
+        vec3 viewPosition = vViewPosition;
+        vec3 modelPosition = vModelPosition;
+        if (capPass) {
+            viewPosition = vCapPosition.xyz / vCapPosition.w;
+            modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
+        }
+        #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+            if (clipTest(modelPosition)) discard;
+        #endif
+        vec3 vViewPosition = viewPosition;
+        vec3 vModelPosition = modelPosition;
+    #else
+        #include clip_pixel
+    #endif
 
     interior = !gl_FrontFacing;
 
     float fragmentDepth = gl_FragCoord.z;
-
-    #ifdef dSolidInterior
-        if (uSolidInteriorPass == 0 && !gl_FrontFacing) discard;
-        bool capPass = uSolidInteriorPass == 1 || uSolidInteriorPass == 3;
-        if (uSolidInteriorPass == 2) {
-            gl_FragColor = vec4(0.0);
-            return;
-        }
-        vec3 viewPosition = vViewPosition;
-        vec3 modelPosition = vModelPosition;
-        if (capPass) {
-            if (uIsOrtho == 1.0) {
-                viewPosition.z = -uNear;
-            } else {
-                viewPosition *= -uNear / viewPosition.z;
-            }
-            modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
-        }
-        vec3 vViewPosition = viewPosition;
-        vec3 vModelPosition = modelPosition;
-    #endif
 
     #ifdef dNeedsNormal
         #if defined(dFlatShaded)
@@ -70,7 +72,7 @@ void main() {
 
         #ifdef dSolidInterior
             if (capPass) {
-                normal = mix(normalize(vViewPosition), vec3(0.0, 0.0, -1.0), uIsOrtho);
+                normal = -uSolidInteriorPlane.xyz;
             }
         #endif
     #endif
