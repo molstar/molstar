@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { GLRenderingContext, isWebGL2 } from './compat';
@@ -284,7 +285,7 @@ export interface WebGLContext {
     /** Cache for textures, managed by consumers */
     readonly namedTextures: { [name: string]: Texture }
 
-    createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter, format?: 'rgba' | 'alpha') => RenderTarget
+    createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter, format?: 'rgba' | 'alpha', depthStencil?: boolean) => RenderTarget
     createDrawTarget: () => RenderTarget
     bindDrawingBuffer: () => void
     getDrawingBufferSize: () => { width: number, height: number }
@@ -436,8 +437,8 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             pixelScale = value;
         },
 
-        createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter, format?: 'rgba' | 'alpha') => {
-            const renderTarget = createRenderTarget(gl, resources, width, height, depth, type, filter, format);
+        createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter, format?: 'rgba' | 'alpha', depthStencil?: boolean) => {
+            const renderTarget = createRenderTarget(gl, resources, width, height, depth, type, filter, format, depthStencil);
             renderTargets.add(renderTarget);
             return {
                 ...renderTarget,
