@@ -1,10 +1,11 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Renderer } from '../../mol-gl/renderer';
+import { createFrame } from '../../mol-gl/renderable';
 import { Scene } from '../../mol-gl/scene';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Ray3D } from '../../mol-math/geometry/primitives/ray3d';
@@ -55,7 +56,9 @@ export class RayHelper {
         renderer.setPixelRatio(1);
 
         renderer.setViewport(0, 0, this.size, this.size);
-        this.pickPass.render(renderer, camera, scene, helper);
+        // this camera is synthetic (ray-aligned), never the main camera - always a fresh,
+        // never-reused frame token, so it can never share/collide with the main draw's frame
+        this.pickPass.render(renderer, camera, scene, helper, createFrame());
 
         if (isTimingMode) this.webgl.timer.markEnd('RayHelper.render');
     }

@@ -13,6 +13,7 @@ import { now } from '../mol-util/now';
 import { Vec3, Vec2 } from '../mol-math/linear-algebra';
 import { InputObserver, ModifiersKeys, ButtonsType } from '../mol-util/input/input-observer';
 import { Renderer, RendererStats, RendererParams } from '../mol-gl/renderer';
+import { Frame, createFrame } from '../mol-gl/renderable';
 import { GraphicsRenderObject } from '../mol-gl/render-object';
 import { DefaultTrackballControlsAttribs, TrackballControls, TrackballControlsParams } from './controls/trackball';
 import { Viewport } from './camera/util';
@@ -466,6 +467,9 @@ namespace Canvas3D {
 
         let forceNextRender = false;
         let currentTime = 0;
+        // bumped once per render() call; spans stereo eyes and multi-sample jitter
+        // sub-renders of that call, so their cull results can be safely reused
+        let frame: Frame = createFrame();
 
         syncCanvasBackground(canvas!, p);
         updateViewport();
@@ -698,6 +702,13 @@ namespace Canvas3D {
             const shouldRender = force || cameraChanged || resized || forceNextRender || xrChanged || activeAnimation;
             forceNextRender = false;
 
+            // only a new frameId when something that can affect culling actually changed, so idle
+            // ticks (e.g. temporal multi-sample accumulation on a resting camera) reuse the last cull
+            if (shouldRender) {
+                frame = createFrame();
+                if (isDebugMode) console.log('New frame');
+            }
+
             if (passes.illumination.supported && p.illumination.enabled && !xrFrame) {
                 if (shouldRender || markingUpdated) {
                     renderer.setOcclusionTest(null);
@@ -709,7 +720,7 @@ namespace Canvas3D {
                 ) {
                     if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
                     const ctx = { renderer, camera, scene, helper };
-                    passes.illumination.render(ctx, p, true);
+                    passes.illumination.render(ctx, p, true, frame);
                     if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
 
                     // if only marking has updated, do not set the flag to dirty
@@ -732,9 +743,9 @@ namespace Canvas3D {
                     const ctx = { renderer, camera: cam, scene, helper };
                     if (MultiSamplePass.isEnabled(p.multiSample) && !xrFrame) {
                         const forceOn = p.multiSample.reduceFlicker && !cameraChanged && markingUpdated && !controls.isAnimating;
-                        multiSampleHelper.render(ctx, p, true, forceOn);
+                        multiSampleHelper.render(ctx, p, true, forceOn, frame);
                     } else {
-                        passes.draw.render(ctx, p, true);
+                        passes.draw.render(ctx, p, true, frame);
                     }
                     hiZ.render(camera);
                     if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
@@ -851,7 +862,7 @@ namespace Canvas3D {
                 return rayHelper.identify(target, camera);
             } else {
                 const cam = (p.camera.stereo.name === 'on') ? stereoCamera : camera;
-                return pickHelper.identify(target[0], target[1], cam);
+                return pickHelper.identify(target[0], target[1], cam, frame);
             }
         }
 
@@ -863,7 +874,7 @@ namespace Canvas3D {
                 return rayHelper.asyncIdentify(target, camera);
             } else {
                 const cam = (p.camera.stereo.name === 'on') ? stereoCamera : camera;
-                return pickHelper.asyncIdentify(target[0], target[1], cam);
+                return pickHelper.asyncIdentify(target[0], target[1], cam, frame);
             }
         }
 
