@@ -48,7 +48,7 @@ void main(){
     #ifdef dSolidInterior
         if (uSolidInteriorPass == 2) {
             gl_Position.z = min(gl_Position.z, gl_Position.w * 0.9999);
-        } else if (uSolidInteriorPass == 1) {
+        } else if (uSolidInteriorPass == 1 || uSolidInteriorPass == 3) {
             gl_Position.z = -gl_Position.w * 0.99998;
         }
     #endif

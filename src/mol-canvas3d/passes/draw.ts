@@ -267,6 +267,15 @@ export class DrawPass {
             // evaluate dpoit
             target.bind();
             this.dpoit.render();
+
+            const capStencil = isPostprocessingEnabled ? this.colorTarget.depthRenderbuffer : null;
+            if (capStencil) capStencil.attachFramebuffer(this.transparentColorTarget.framebuffer);
+            const { state, gl } = this.webgl;
+            state.enable(gl.BLEND);
+            state.blendEquation(gl.FUNC_ADD);
+            state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            renderer.renderDpoitTransparentCap(scene.primitives, camera, this.depthTextureOpaque);
+            if (capStencil) capStencil.detachFramebuffer(this.transparentColorTarget.framebuffer);
         }
 
         if (PostprocessingPass.isEnabled(postprocessingProps)) {

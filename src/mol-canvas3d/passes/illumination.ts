@@ -212,6 +212,16 @@ export class IlluminationPass {
                 this.transparentTarget.bind();
                 this.drawPass.dpoit.render();
 
+                const capStencil = this.drawPass.colorTarget.depthRenderbuffer;
+                if (capStencil) {
+                    capStencil.attachFramebuffer(this.transparentTarget.framebuffer);
+                    state.enable(gl.BLEND);
+                    state.blendEquation(gl.FUNC_ADD);
+                    state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+                    renderer.renderDpoitTransparentCap(scene.primitives, camera, this.drawPass.depthTextureOpaque);
+                    capStencil.detachFramebuffer(this.transparentTarget.framebuffer);
+                }
+
                 if (scene.volumes.renderables.length > 0) {
                     renderer.renderVolume(scene.volumes, camera, this.drawPass.depthTextureOpaque);
                 }

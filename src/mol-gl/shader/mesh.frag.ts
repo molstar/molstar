@@ -35,7 +35,7 @@ void main() {
 
     #ifdef dSolidInterior
         if (uSolidInteriorPass == 0 && !gl_FrontFacing) discard;
-        bool capPass = uSolidInteriorPass == 1;
+        bool capPass = uSolidInteriorPass == 1 || uSolidInteriorPass == 3;
         if (uSolidInteriorPass == 2) {
             gl_FragColor = vec4(0.0);
             return;
@@ -89,6 +89,12 @@ void main() {
 
         #if defined(dRenderVariant_color)
             #include apply_fog
+            #ifdef dSolidInterior
+                if (uSolidInteriorPass == 3) {
+                    if (fragmentDepth >= getDepth(gl_FragCoord.xy / uDrawingBufferSize)) discard;
+                    return;
+                }
+            #endif
             #include wboit_write
             #include dpoit_write
         #elif defined(dRenderVariant_tracing)
