@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { Vec3 } from '../../mol-math/linear-algebra';
@@ -11,7 +12,8 @@ export const DefaultStarProps = {
     pointCount: 5,
     outerRadius: 1,
     innerRadius: 0.5,
-    thickness: 0.3
+    thickness: 0.3,
+    perforated: false,
 };
 export type StarProps = Partial<typeof DefaultStarProps>
 
@@ -19,7 +21,7 @@ const op = Vec3.zero(), on = Vec3.zero();
 const a = Vec3.zero(), b = Vec3.zero(), c = Vec3.zero();
 
 export function Star(props?: StarProps): Primitive {
-    const { outerRadius, innerRadius, thickness, pointCount } = { ...DefaultStarProps, ...props };
+    const { outerRadius, innerRadius, thickness, pointCount, perforated } = { ...DefaultStarProps, ...props };
 
     const triangleCount = pointCount * 2 * 2;
     const builder = PrimitiveBuilder(triangleCount);
@@ -47,8 +49,10 @@ export function Star(props?: StarProps): Primitive {
 
         builder.add(op, a, b);
         builder.add(b, a, on);
-        builder.add(op, b, c);
-        builder.add(c, b, on);
+        if (!perforated) {
+            builder.add(op, b, c);
+            builder.add(c, b, on);
+        }
     }
 
     return builder.getPrimitive();

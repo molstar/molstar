@@ -1,13 +1,14 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { Vec3 } from '../../mol-math/linear-algebra';
-import { Primitive, PrimitiveBuilder } from './primitive';
-import { polygon } from './polygon';
 import { Cage } from './cage';
+import { polygon } from './polygon';
+import { Primitive, PrimitiveBuilder } from './primitive';
 
 const on = Vec3(), op = Vec3();
 const a = Vec3(), b = Vec3(), c = Vec3(), d = Vec3();
@@ -16,6 +17,7 @@ export const DefaultPrismProps = {
     height: 1,
     topCap: true,
     bottomCap: true,
+    sides: true,
 };
 export type PrismProps = Partial<typeof DefaultPrismProps>
 
@@ -26,7 +28,7 @@ export function Prism(points: ArrayLike<number>, props?: PrismProps): Primitive 
     const sideCount = points.length / 3;
     if (sideCount < 3) throw new Error('need at least 3 points to build a prism');
 
-    const { height, topCap, bottomCap } = { ...DefaultPrismProps, ...props };
+    const { height, topCap, bottomCap, sides } = { ...DefaultPrismProps, ...props };
 
     let triangleCount = sideCount * 2;
     let vertexCount = sideCount * 4;
@@ -50,13 +52,15 @@ export function Prism(points: ArrayLike<number>, props?: PrismProps): Primitive 
     Vec3.set(op, 0, 0, halfHeight);
 
     // create sides
-    for (let i = 0; i < sideCount; ++i) {
-        const ni = (i + 1) % sideCount;
-        Vec3.set(a, points[i * 3], points[i * 3 + 1], -halfHeight);
-        Vec3.set(b, points[ni * 3], points[ni * 3 + 1], -halfHeight);
-        Vec3.set(c, points[ni * 3], points[ni * 3 + 1], halfHeight);
-        Vec3.set(d, points[i * 3], points[i * 3 + 1], halfHeight);
-        builder.addQuad(a, b, c, d);
+    if (sides) {
+        for (let i = 0; i < sideCount; ++i) {
+            const ni = (i + 1) % sideCount;
+            Vec3.set(a, points[i * 3], points[i * 3 + 1], -halfHeight);
+            Vec3.set(b, points[ni * 3], points[ni * 3 + 1], -halfHeight);
+            Vec3.set(c, points[ni * 3], points[ni * 3 + 1], halfHeight);
+            Vec3.set(d, points[i * 3], points[i * 3 + 1], halfHeight);
+            builder.addQuad(a, b, c, d);
+        }
     }
 
     // create bases
@@ -107,34 +111,12 @@ export function Prism(points: ArrayLike<number>, props?: PrismProps): Primitive 
     return builder.getPrimitive();
 }
 
-let diamond: Primitive;
-export function DiamondPrism() {
-    if (!diamond) diamond = Prism(polygon(4, false));
-    return diamond;
-}
+const prismCache: { [key: string]: Primitive } = {};
 
-let pentagonalPrism: Primitive;
-export function PentagonalPrism() {
-    if (!pentagonalPrism) pentagonalPrism = Prism(polygon(5, false));
-    return pentagonalPrism;
-}
-
-let hexagonalPrism: Primitive;
-export function HexagonalPrism() {
-    if (!hexagonalPrism) hexagonalPrism = Prism(polygon(6, false));
-    return hexagonalPrism;
-}
-
-let shiftedHexagonalPrism: Primitive;
-export function ShiftedHexagonalPrism() {
-    if (!shiftedHexagonalPrism) shiftedHexagonalPrism = Prism(polygon(6, true));
-    return shiftedHexagonalPrism;
-}
-
-let heptagonalPrism: Primitive;
-export function HeptagonalPrism() {
-    if (!heptagonalPrism) heptagonalPrism = Prism(polygon(7, false));
-    return heptagonalPrism;
+export function PolygonalPrism(n: number, options?: { shifted?: boolean, subset?: 'sides' | 'caps' }) {
+    const { shifted, subset } = options ?? {};
+    const cacheKey = `${n}/${shifted ? 'shifted' : ''}/${subset ?? ''}`;
+    return prismCache[cacheKey] ??= Prism(polygon(n, shifted ?? false), { topCap: subset !== 'sides', bottomCap: subset !== 'sides', sides: subset !== 'caps' });
 }
 
 //

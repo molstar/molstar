@@ -52,3 +52,16 @@
 * Deuterium atoms
     * 3CWH (XUL with D and DOD)
     * 8TT8 (HOH and other with D)
+* Monosaccharides of all possible SNFG shapes
+    * 3d11 - FilledSphere (MAN, BMA), FilledCube (NAG)
+    * 5hwa - CrossedCube (GCS)
+    * 9k1g - FilledCone (FUC)
+    * 4y9v - DevidedCone (49T)
+    * 1mfd - FlatBox (ABE)
+    * 6rv7 - FilledStar (XYP)
+    * 9q5e - FilledDiamond (SIA)
+    * 1hv6 - DividedDiamond (GCU, MAV)
+    * FlatDiamond - no examples in PDB as it has no CCD codes mapped to it
+    * 3k8d - FlatHexagon (KDO)
+    * 8jq5 - Pentagon (PSV)
+    * 9k1g - no SNFG symbol assigned -> white FlatHexagon (X6Y)
