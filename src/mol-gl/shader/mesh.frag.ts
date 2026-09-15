@@ -44,7 +44,7 @@ void main() {
             modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
         }
         #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-            if (clipTest(modelPosition)) discard;
+            if (clipTest(modelPosition / uModelScale)) discard;
         #endif
         vec3 vViewPosition = viewPosition;
         vec3 vModelPosition = modelPosition;

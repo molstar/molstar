@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -50,7 +50,7 @@ bool isCap = false;
         float nearT = - (uNear + cameraRayOrigin.z) / cameraRayDir.z;
         float sNear = frontDepth > 0.0 ? 0.0 : clamp((nearT - frontT) / (t - frontT), 0.0, 1.0);
         #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-            float sCap = objectClipped || frontDepth <= 0.0 ? clipExit(frontModelPosition, modelPosition, sNear) : sNear;
+            float sCap = objectClipped || frontDepth <= 0.0 ? clipExit(frontModelPosition / uModelScale, modelPosition / uModelScale, sNear) : sNear;
             if (sCap < 0.0) return false;
         #else
             float sCap = sNear;
@@ -66,7 +66,7 @@ bool isCap = false;
                 modelPosition = mix(frontModelPosition, modelPosition, sCap);
                 viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
                 fragmentDepth = calcDepth(viewPosition) + (0.0000002 / vSize);
-                cameraNormal = -clipNormal(modelPosition);
+                cameraNormal = -clipNormal(modelPosition / uModelScale);
                 isCap = true;
             }
         #endif
@@ -136,7 +136,7 @@ bool CylinderImpostor(
         frontDepth = fragmentDepth;
         frontModelPosition = modelPosition;
         #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-            if (clipTest(modelPosition)) {
+            if (clipTest(modelPosition / uModelScale)) {
                 objectClipped = true;
                 fragmentDepth = -1.0;
                 #ifdef dSolidInterior
@@ -163,7 +163,7 @@ bool CylinderImpostor(
                 frontDepth = fragmentDepth;
                 frontModelPosition = modelPosition;
                 #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-                    if (clipTest(modelPosition)) {
+                    if (clipTest(modelPosition / uModelScale)) {
                         objectClipped = true;
                         fragmentDepth = -1.0;
                         #ifdef dSolidInterior
@@ -196,7 +196,7 @@ bool CylinderImpostor(
                 frontDepth = fragmentDepth;
                 frontModelPosition = modelPosition;
                 #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-                    if (clipTest(modelPosition)) {
+                    if (clipTest(modelPosition / uModelScale)) {
                         objectClipped = true;
                         fragmentDepth = -1.0;
                         #ifdef dSolidInterior

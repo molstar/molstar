@@ -493,6 +493,7 @@ namespace Renderer {
                 const length = Math.hypot(solidInteriorClipPlane[0], solidInteriorClipPlane[1], solidInteriorClipPlane[2]);
                 if (length < 1e-6) continue;
                 Vec4.scale(solidInteriorClipPlane, solidInteriorClipPlane, 1 / length);
+                solidInteriorClipPlane[3] *= modelScale;
                 if (Math.abs(solidInteriorClipPlane[0] * center[0] + solidInteriorClipPlane[1] * center[1] + solidInteriorClipPlane[2] * center[2] + solidInteriorClipPlane[3]) > radius) continue;
                 Vec4.transformMat4(solidInteriorClipPlane, solidInteriorClipPlane, Mat4.transpose(solidInteriorTransposed, invView));
                 if (solidInteriorClipPlane[3] <= 1e-4 || (isOrtho && Math.abs(solidInteriorClipPlane[2]) < 1e-4)) continue;

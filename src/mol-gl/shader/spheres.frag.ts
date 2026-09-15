@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -64,7 +64,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
     bool objectClipped = false;
 
     #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
-        if (clipTest(modelPos)) {
+        if (clipTest(modelPos / uModelScale)) {
             objectClipped = true;
             fragmentDepth = -1.0;
         }
@@ -85,7 +85,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
                 float nearT = - (uNear + rayOrigin.z) / rayDirection.z;
                 float sNear = frontDepth > 0.0 ? 0.0 : clamp((nearT - negT) / (posT - negT), 0.0, 1.0);
                 #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
-                    float sCap = clipExit(frontModelPos, modelPos, sNear);
+                    float sCap = clipExit(frontModelPos / uModelScale, modelPos / uModelScale, sNear);
                     if (sCap < 0.0) return false;
                 #else
                     float sCap = sNear;
@@ -101,7 +101,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
                         cameraPos = rayDirection * mix(negT, posT, sCap) + rayOrigin;
                         modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
                         fragmentDepth = calcDepth(cameraPos) + (0.0000001 / vRadius);
-                        cameraNormal = -normalize(clipNormal(modelPos) * mat3(uInvView));
+                        cameraNormal = -normalize(clipNormal(modelPos / uModelScale) * mat3(uInvView));
                         isCap = true;
                     }
                 #endif
