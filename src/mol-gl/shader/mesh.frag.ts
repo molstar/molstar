@@ -123,12 +123,6 @@ void main() {
 
         #if defined(dRenderVariant_color)
             #include apply_fog
-            #ifdef dSolidInterior
-                if (uSolidInteriorPass == 3) {
-                    if (fragmentDepth >= getDepth(gl_FragCoord.xy / uDrawingBufferSize)) discard;
-                    return;
-                }
-            #endif
             #include wboit_write
             #include dpoit_write
         #elif defined(dRenderVariant_tracing)

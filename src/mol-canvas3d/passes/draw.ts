@@ -106,7 +106,7 @@ export class DrawPass {
         }
 
         this.wboit = new WboitPass(webgl, width, height);
-        this.dpoit = new DpoitPass(webgl, width, height);
+        this.dpoit = new DpoitPass(webgl, width, height, isWebGL2 ? this.colorTarget.depthRenderbuffer : null);
         this.marking = new MarkingPass(webgl, width, height);
         this.postprocessing = new PostprocessingPass(webgl, assetManager, this);
         this.antialiasing = new AntialiasingPass(webgl, width, height);
@@ -267,15 +267,6 @@ export class DrawPass {
             // evaluate dpoit
             target.bind();
             this.dpoit.render();
-
-            const capStencil = target === this.colorTarget ? null : this.colorTarget.depthRenderbuffer;
-            if (capStencil) capStencil.attachFramebuffer(this.transparentColorTarget.framebuffer);
-            const { state, gl } = this.webgl;
-            state.enable(gl.BLEND);
-            state.blendEquation(gl.FUNC_ADD);
-            state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-            renderer.renderDpoitTransparentCap(scene.primitives, camera, this.depthTextureOpaque);
-            if (capStencil) capStencil.detachFramebuffer(this.transparentColorTarget.framebuffer);
         }
 
         if (PostprocessingPass.isEnabled(postprocessingProps)) {

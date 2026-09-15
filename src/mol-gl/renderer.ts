@@ -82,7 +82,6 @@ interface Renderer {
     renderVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture) => void
     renderWboitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture) => void
     renderDpoitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture, dpoitTextures: { depth: Texture, frontColor: Texture, backColor: Texture }) => void
-    renderDpoitTransparentCap: (group: Scene.Group, camera: ICamera, depthTexture: Texture) => void
 
     setProps: (props: Partial<RendererProps>) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
@@ -412,10 +411,9 @@ namespace Renderer {
             r.render(variant, sharedTexturesList.length);
         };
 
-        const renderSolidInteriorPass = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit' | 'oit-post', clipIndex: number) => {
+        const renderSolidInteriorPass = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit', clipIndex: number) => {
             const writeDepth = mode === 'opaque';
             const hwDepthTest = mode === 'opaque' || mode === 'blended';
-            const capPassId = mode === 'oit-post' ? 3 : 1;
 
             ValueCell.updateIfChanged(globalUniforms.uSolidInteriorClip, clipIndex);
             state.enable(gl.STENCIL_TEST);
@@ -433,7 +431,7 @@ namespace Renderer {
             state.stencilOpSeparate(gl.BACK, gl.KEEP, gl.KEEP, gl.DECR_WRAP);
             renderObject(r, variant, Flag.SolidInteriorMark);
 
-            ValueCell.updateIfChanged(globalUniforms.uSolidInteriorPass, capPassId);
+            ValueCell.updateIfChanged(globalUniforms.uSolidInteriorPass, 1);
             globalUniformsNeedUpdate = true;
             if (hwDepthTest) {
                 state.enable(gl.DEPTH_TEST);
@@ -464,7 +462,7 @@ namespace Renderer {
         const solidInteriorTransposed = Mat4();
         const solidInteriorSphere = Sphere3D();
 
-        const renderSolidInteriorCap = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit' | 'oit-post') => {
+        const renderSolidInteriorCap = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit') => {
             Sphere3D.scaleNX(solidInteriorSphere, r.values.boundingSphere.ref.value, modelScale);
             const { center, radius } = solidInteriorSphere;
             const near = globalUniforms.uNear.ref.value * 1.0001;
@@ -971,23 +969,12 @@ namespace Renderer {
                 const r = renderables[i];
                 if (checkTransparent(r)) {
                     renderObject(r, 'color', Flag.None);
+                    if (hasSolidInteriorCap(r)) {
+                        renderSolidInteriorCap(r, 'color', 'oit');
+                    }
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitTransparent');
-        };
-
-        const renderDpoitTransparentCap = (group: Scene.Group, camera: ICamera, depthTexture: Texture) => {
-            if (isTimingMode) ctx.timer.mark('Renderer.renderDpoitTransparentCap');
-            updateInternal(group, camera, depthTexture, Mask.Transparent, false);
-
-            const { renderables } = group;
-            for (let i = 0, il = renderables.length; i < il; ++i) {
-                const r = renderables[i];
-                if (checkTransparent(r) && hasSolidInteriorCap(r)) {
-                    renderSolidInteriorCap(r, 'color', 'oit-post');
-                }
-            }
-            if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitTransparentCap');
         };
 
         return {
@@ -1037,7 +1024,6 @@ namespace Renderer {
             renderVolume,
             renderWboitTransparent,
             renderDpoitTransparent,
-            renderDpoitTransparentCap,
 
             setTime: (time: number) => {
                 ValueCell.updateIfChanged(globalUniforms.uTime, time);
