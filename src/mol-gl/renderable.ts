@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { Program } from './webgl/program';
@@ -16,6 +17,7 @@ import { Sphere3D } from '../mol-math/geometry/primitives/sphere3d';
 import { Vec4 } from '../mol-math/linear-algebra/3d/vec4';
 import { WebGLStats } from './webgl/context';
 import { isTimingMode } from '../mol-util/debug';
+import { getCullFrameId } from './cull-frame';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const p3distanceToPoint = Plane3D.distanceToPoint;
@@ -77,6 +79,9 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
     const mdbDataList: MultiDrawBaseData[] = [];
     let cullEnabled = false;
     let lodLevelsVersion = -1;
+    let lastCullFrameId = -1;
+    let lastCullGridVersion = -1;
+    let lastCullLodVersion = -1;
 
     const s = Sphere3D();
 
@@ -112,6 +117,15 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
         state,
 
         cull: (cameraPlane: Plane3D, frustum: Frustum3D, isOccluded: ((s: Sphere3D) => boolean) | null, stats: WebGLStats) => {
+            const frameId = getCullFrameId();
+            const gridVersion = values.instanceGrid.ref.version;
+            const lodVersion = values.lodLevels?.ref.version ?? -1;
+            if (cullEnabled && frameId === lastCullFrameId && gridVersion === lastCullGridVersion && lodVersion === lastCullLodVersion) {
+                if (isTimingMode) stats.cull.cached++;
+                return;
+            }
+            if (isTimingMode) stats.cull.computed++;
+
             cullEnabled = false;
 
             if (values.drawCount.ref.value === 0) return;
@@ -302,9 +316,13 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
             // });
 
             cullEnabled = true;
+            lastCullFrameId = frameId;
+            lastCullGridVersion = gridVersion;
+            lastCullLodVersion = lodVersion;
         },
         uncull: () => {
             cullEnabled = false;
+            lastCullFrameId = -1;
         },
         cullSimple: (d: number, radius: number, scale: number) => {
             const lodLevels: [minDistance: number, maxDistance: number, overlap: number, count: number, sizeFactor: number][] | undefined = values.lodLevels?.ref.value;

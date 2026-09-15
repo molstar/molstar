@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { Unit, StructureProperties, StructureElement, Bond, Structure, Model } from '../../mol-model/structure';
@@ -13,6 +14,7 @@ import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { ColorThemeCategory } from './categories';
+import { getCachedSerialMap } from './structure-cache';
 
 const DefaultList = 'many-distinct';
 const DefaultColor = Color(0xFAFAFA);
@@ -82,7 +84,8 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainI
 
     if (ctx.structure) {
         const l = StructureElement.Location.create(ctx.structure.root);
-        const asymIdSerialMap = getAsymIdSerialMap(ctx.structure.root, props.asymId);
+        const structure = ctx.structure;
+        const asymIdSerialMap = getCachedSerialMap(structure.root, `chain-id:${props.asymId}`, () => getAsymIdSerialMap(structure.root, props.asymId));
 
         const labelTable = Array.from(asymIdSerialMap.keys());
         const valueLabel = (i: number) => labelTable[i];

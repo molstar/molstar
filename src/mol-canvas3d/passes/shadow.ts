@@ -5,6 +5,7 @@
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { QuadSchema, QuadValues } from '../../mol-gl/compute/util';
@@ -96,7 +97,7 @@ export class ShadowPass {
 
         const hasHeadRotation = !Mat4.isZero(camera.headRotation);
         if (hasHeadRotation) {
-            ValueCell.update(this.renderable.values.uLightDirection, getTransformedLightDirection(light, Mat4.invert(this.invHeadRotation, camera.headRotation)));
+            ValueCell.update(this.renderable.values.uLightDirection, getTransformedLightDirection(light, Mat4.invert(this.invHeadRotation, camera.headRotation), this.renderable.values.uLightDirection.ref.value));
         } else {
             ValueCell.update(this.renderable.values.uLightDirection, light.direction);
         }

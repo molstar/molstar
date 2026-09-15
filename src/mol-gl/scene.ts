@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { WebGLContext } from './webgl/context';
@@ -48,6 +49,14 @@ function calculateBoundingSphere(renderables: GraphicsRenderable[], boundingSphe
     return boundaryHelper.getSphere(boundingSphere);
 }
 
+function getCullSortKey(r: GraphicsRenderable) {
+    let key = 0;
+    if (r.values.dFlipSided?.ref.value) key |= 1;
+    if (r.values.uDoubleSided?.ref.value) key |= 2;
+    if (r.values.dGeometryType.ref.value === 'directVolume') key |= 4;
+    return key;
+}
+
 function renderableSort(a: GraphicsRenderable, b: GraphicsRenderable) {
     const drawProgramIdA = a.getProgram('color').id;
     const drawProgramIdB = b.getProgram('color').id;
@@ -61,6 +70,9 @@ function renderableSort(a: GraphicsRenderable, b: GraphicsRenderable) {
         // sort by material id to minimize gl state changes
         return materialIdA - materialIdB;
     } else {
+        const cullKeyA = getCullSortKey(a);
+        const cullKeyB = getCullSortKey(b);
+        if (cullKeyA !== cullKeyB) return cullKeyA - cullKeyB;
         return a.id - b.id;
     }
 }
@@ -293,21 +305,20 @@ namespace Scene {
         function calculateTransparencyMin() {
             if (primitives.length === 0) return 1;
             let transparencyMin = 1;
-            const transparenyValues: number[] = [];
             for (let i = 0, il = primitives.length; i < il; ++i) {
                 const p = primitives[i];
                 if (!p.state.visible) continue;
-                transparenyValues.length = 0;
+                let min = 1;
                 const alpha = clamp(p.values.alpha.ref.value * p.state.alphaFactor, 0, 1);
-                if (alpha < 1) transparenyValues.push(1 - alpha);
+                if (alpha < 1) min = 1 - alpha;
                 if (p.values.dXrayShaded?.ref.value === 'on' ||
                     p.values.dXrayShaded?.ref.value === 'inverted' ||
                     p.values.dPointStyle?.ref.value === 'fuzzy' ||
                     p.values.dGeometryType.ref.value === 'text' ||
                     p.values.dGeometryType.ref.value === 'image'
-                ) transparenyValues.push(0.5);
-                if (p.values.transparencyMin.ref.value > 0) transparenyValues.push(p.values.transparencyMin.ref.value);
-                transparencyMin = Math.min(transparencyMin, ...transparenyValues);
+                ) min = Math.min(min, 0.5);
+                if (p.values.transparencyMin.ref.value > 0) min = Math.min(min, p.values.transparencyMin.ref.value);
+                transparencyMin = Math.min(transparencyMin, min);
             }
             return transparencyMin;
         }

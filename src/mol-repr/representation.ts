@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { ParamDefinition as PD } from '../mol-util/param-definition';
@@ -25,6 +26,7 @@ import { Visual } from './visual';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { Clipping } from '../mol-theme/clipping';
 import { SetUtils } from '../mol-util/set';
+import { shallowMerge2 } from '../mol-util/object';
 import { cantorPairing } from '../mol-data/util';
 import { Substance } from '../mol-theme/substance';
 import { Emissive } from '../mol-theme/emissive';
@@ -326,15 +328,43 @@ namespace Representation {
             return repr;
         });
 
+        const cachedRenderObjects: GraphicsRenderObject[] = [];
+        let cachedRenderObjectsVersion = -1;
+        let cachedVisualsSet: Set<string> | undefined;
+
+        function getVisualsSet(visuals: string[] | undefined) {
+            if (!visuals) return undefined;
+            if (!cachedVisualsSet || visuals.length !== cachedVisualsSet.size || visuals.some(v => !cachedVisualsSet!.has(v))) {
+                cachedVisualsSet = new Set(visuals);
+            }
+            return cachedVisualsSet;
+        }
+
+        function rebuildRenderObjects() {
+            cachedRenderObjects.length = 0;
+            if (currentProps) {
+                const visualsSet = getVisualsSet(currentProps.visuals);
+                for (let i = 0, il = reprList.length; i < il; ++i) {
+                    if (!visualsSet || visualsSet.has(reprMap[i])) {
+                        const ros = reprList[i].renderObjects;
+                        for (let j = 0, jl = ros.length; j < jl; ++j) {
+                            cachedRenderObjects.push(ros[j]);
+                        }
+                    }
+                }
+            }
+            cachedRenderObjectsVersion = geometryState.version;
+        }
+
         return {
             label,
             updated,
             get groupCount() {
                 let groupCount = 0;
                 if (currentProps) {
-                    const { visuals } = currentProps;
+                    const visualsSet = getVisualsSet(currentProps.visuals);
                     for (let i = 0, il = reprList.length; i < il; ++i) {
-                        if (!visuals || visuals.includes(reprMap[i])) {
+                        if (!visualsSet || visualsSet.has(reprMap[i])) {
                             groupCount += reprList[i].groupCount;
                         }
                     }
@@ -342,16 +372,10 @@ namespace Representation {
                 return groupCount;
             },
             get renderObjects() {
-                const renderObjects: GraphicsRenderObject[] = [];
-                if (currentProps) {
-                    const { visuals } = currentProps;
-                    for (let i = 0, il = reprList.length; i < il; ++i) {
-                        if (!visuals || visuals.includes(reprMap[i])) {
-                            renderObjects.push(...reprList[i].renderObjects);
-                        }
-                    }
+                if (cachedRenderObjectsVersion !== geometryState.version) {
+                    rebuildRenderObjects();
                 }
-                return renderObjects;
+                return cachedRenderObjects;
             },
             get geometryVersion() { return geometryState.version; },
             get props() { return currentProps; },
@@ -362,8 +386,10 @@ namespace Representation {
                     currentData = data;
                     if (!currentProps) currentProps = PD.getDefaultValues(currentParams) as P;
                 }
-                const qualityProps = getQualityProps(Object.assign({}, currentProps, props), currentData);
-                Object.assign(currentProps, props, qualityProps);
+                currentProps = shallowMerge2(currentProps, props);
+                const qualityProps = getQualityProps(currentProps, currentData);
+                currentProps = shallowMerge2(currentProps, qualityProps as unknown as Partial<P>);
+                cachedVisualsSet = undefined;
 
                 const { visuals } = currentProps;
                 return Task.create(`Creating or updating '${label}' representation`, async runtime => {

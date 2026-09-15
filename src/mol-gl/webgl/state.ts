@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { GLRenderingContext } from './compat';
@@ -87,6 +88,8 @@ export type WebGLState = {
     clearVertexAttribsState: () => void
     disableUnusedVertexAttribs: () => void
 
+    bindTexture: (unit: number, target: number, texture: WebGLTexture | null) => void
+
     viewport: (x: number, y: number, width: number, height: number) => void
     scissor: (x: number, y: number, width: number, height: number) => void
 
@@ -136,7 +139,10 @@ export function createState(gl: GLRenderingContext, e: WebGLExtensions): WebGLSt
     let currentStencilBackPassDepthFail = gl.getParameter(gl.STENCIL_BACK_PASS_DEPTH_FAIL);
 
     let maxVertexAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+    const maxTextureUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS) as number;
     const vertexAttribsState: number[] = [];
+    const boundTextures: (WebGLTexture | null)[] = new Array(maxTextureUnits);
+    let activeTextureUnit = -1;
 
     let currentViewport: [number, number, number, number] = gl.getParameter(gl.VIEWPORT);
     let currentScissor: [number, number, number, number] = gl.getParameter(gl.SCISSOR_BOX);
@@ -374,6 +380,17 @@ export function createState(gl: GLRenderingContext, e: WebGLExtensions): WebGLSt
             }
         },
 
+        bindTexture: (unit: number, target: number, texture: WebGLTexture | null) => {
+            if (activeTextureUnit !== unit) {
+                gl.activeTexture(gl.TEXTURE0 + unit);
+                activeTextureUnit = unit;
+            }
+            if (boundTextures[unit] !== texture) {
+                gl.bindTexture(target, texture);
+                boundTextures[unit] = texture;
+            }
+        },
+
         viewport: (x: number, y: number, width: number, height: number) => {
             if (x !== currentViewport[0] || y !== currentViewport[1] || width !== currentViewport[2] || height !== currentViewport[3]) {
                 gl.viewport(x, y, width, height);
@@ -403,7 +420,11 @@ export function createState(gl: GLRenderingContext, e: WebGLExtensions): WebGLSt
         } : undefined,
 
         reset: () => {
-            enabledCapabilities = {};
+            for (const k of Object.keys(enabledCapabilities)) {
+                delete enabledCapabilities[+k];
+            }
+            activeTextureUnit = -1;
+            for (let i = 0; i < maxTextureUnits; ++i) boundTextures[i] = null;
 
             currentFrontFace = gl.getParameter(gl.FRONT_FACE);
             currentCullFace = gl.getParameter(gl.CULL_FACE_MODE);

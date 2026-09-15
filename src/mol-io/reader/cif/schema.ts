@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { DatabaseCollection, Database, Table, Column, ColumnHelpers } from '../../../mol-data/db';
@@ -92,7 +93,14 @@ function createListColumn<T extends number | string>(schema: Column.Schema.List<
     const itemParse = schema.itemParse;
 
     const f = category.getField(key);
-    const value = f ? (row: number) => f.str(row).split(separator).map(x => itemParse(x.trim())).filter(x => !!x) : (row: number) => [];
+    const rowCache = new Map<number, (number | string)[]>();
+    const value = f ? (row: number) => {
+        let cached = rowCache.get(row);
+        if (cached) return cached;
+        cached = f.str(row).split(separator).map(x => itemParse(x.trim())).filter(x => !!x);
+        rowCache.set(row, cached);
+        return cached;
+    } : (row: number) => [];
     const toArray: Column<T[]>['toArray'] = params => ColumnHelpers.createAndFillArray(category.rowCount, value, params);
 
     return {
@@ -175,8 +183,9 @@ class CategoryTable implements Table<any> { // tslint:disable-line:class-name
 
 function createDatabase(schema: Database.Schema, frame: Data.CifFrame, aliases?: Data.CifAliases): Database<any> {
     const tables = Object.create(null);
+    const flatFrame = aliases ? flattenFrame(frame) : undefined;
     for (const k of Object.keys(schema)) {
-        tables[k] = createTable(k, schema[k], frame, aliases);
+        tables[k] = createTable(k, schema[k], frame, aliases, flatFrame);
     }
     return Database.ofTables(frame.header, schema, tables);
 }
@@ -206,15 +215,15 @@ function getField(field: string, category: string, flatFrame: FlatFrame, aliases
     }
 }
 
-function createTable(key: string, schema: Table.Schema, frame: Data.CifFrame, aliases?: Data.CifAliases) {
+function createTable(key: string, schema: Table.Schema, frame: Data.CifFrame, aliases?: Data.CifAliases, flatFrame?: FlatFrame) {
     let cat = frame.categories[key];
     if (aliases) {
-        const flatFrame = flattenFrame(frame);
+        const resolvedFlatFrame = flatFrame ?? flattenFrame(frame);
         const fields: { [k: string]: Data.CifField } = Object.create(null);
         const fieldNames: string[] = [];
         let rowCount = 0;
         for (const k of Object.keys(schema)) {
-            const field = getField(k, key, flatFrame, aliases);
+            const field = getField(k, key, resolvedFlatFrame, aliases);
             if (field) {
                 fields[k] = field;
                 fieldNames.push(k);

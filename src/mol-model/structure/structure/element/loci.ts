@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Paul Pillot <paul.pillot@tandemai.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { UniqueArray } from '../../../../mol-data/generic';
@@ -572,8 +573,12 @@ export namespace Loci {
         return Loci(loci.structure, elements);
     }
 
+    const _extendToRadiusElementsByUnit = new Map<number, Set<UnitIndex>>();
+    const _extendToRadiusIndexScratch: UnitIndex[] = [];
+
     export function extendToRadius(loci: Loci, radius: number): Loci {
-        const elementsByUnit = new Map<number, Set<UnitIndex>>();
+        for (const set of _extendToRadiusElementsByUnit.values()) set.clear();
+        _extendToRadiusElementsByUnit.clear();
 
         const lookup = loci.structure.lookup3d;
         const pos = Vec3();
@@ -583,22 +588,22 @@ export namespace Loci {
             for (let i = 0, il = result.count; i < il; ++i) {
                 const unit = result.units[i];
                 const unitIdx = result.indices[i];
-                let set: Set<UnitIndex> = elementsByUnit.get(unit.id) as Set<UnitIndex>;
+                let set = _extendToRadiusElementsByUnit.get(unit.id);
                 if (!set) {
                     set = new Set();
-                    elementsByUnit.set(unit.id, set);
+                    _extendToRadiusElementsByUnit.set(unit.id, set);
                 }
                 set.add(unitIdx);
             }
         });
 
-
         const elements: Element[] = [];
-        for (const [unitId, indexSet] of elementsByUnit.entries()) {
+        for (const [unitId, indexSet] of _extendToRadiusElementsByUnit.entries()) {
             const unit = loci.structure.unitMap.get(unitId)!;
-            const indices = Array.from(indexSet) as UnitIndex[];
-            sortArray(indices);
-            elements.push({ unit, indices: makeIndexSet(indices) });
+            _extendToRadiusIndexScratch.length = 0;
+            for (const idx of indexSet) _extendToRadiusIndexScratch.push(idx);
+            sortArray(_extendToRadiusIndexScratch);
+            elements.push({ unit, indices: makeIndexSet(_extendToRadiusIndexScratch) });
         }
 
         return {

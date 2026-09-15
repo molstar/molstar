@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { Viewport } from '../mol-canvas3d/camera/util';
@@ -21,6 +22,7 @@ import { Texture, Textures } from './webgl/texture';
 import { arrayMapUpsert } from '../mol-util/array';
 import { clamp } from '../mol-math/interpolate';
 import { isTimingMode } from '../mol-util/debug';
+import { beginCullFrame } from './cull-frame';
 import { Frustum3D } from '../mol-math/geometry/primitives/frustum3d';
 import { Plane3D } from '../mol-math/geometry/primitives/plane3d';
 import { Sphere3D } from '../mol-math/geometry';
@@ -88,6 +90,7 @@ interface Renderer {
     setDrawingBufferSize: (width: number, height: number) => void
     setPixelRatio: (value: number) => void
     setOcclusionTest: (f: ((s: Sphere3D) => boolean) | null) => void
+    beginFrame: () => void
 
     dispose: () => void
 }
@@ -152,14 +155,29 @@ function getLight(props: RendererProps['light'], light?: Light): Light {
     return { count, direction, color };
 }
 
-export function getTransformedLightDirection(light: Light, t: Mat4): Light['direction'] {
-    const tld = new Array(light.count * 3);
+let transformedLightDirectionBuffer = new Float32Array(0);
+
+export function getTransformedLightDirection(light: Light, t: Mat4, out?: Light['direction']): Light['direction'] {
+    const len = light.count * 3;
+    if (out && out.length >= len) {
+        for (let i = 0, il = light.count; i < il; ++i) {
+            Vec3.fromArray(tmpDir, light.direction, i * 3);
+            Vec3.transformDirection(tmpDir, tmpDir, t);
+            Vec3.toArray(tmpDir, out, i * 3);
+        }
+        return out;
+    }
+    if (transformedLightDirectionBuffer.length < len) {
+        transformedLightDirectionBuffer = new Float32Array(len);
+    }
     for (let i = 0, il = light.count; i < il; ++i) {
         Vec3.fromArray(tmpDir, light.direction, i * 3);
         Vec3.transformDirection(tmpDir, tmpDir, t);
-        Vec3.toArray(tmpDir, tld, i * 3);
+        transformedLightDirectionBuffer[i * 3] = tmpDir[0];
+        transformedLightDirectionBuffer[i * 3 + 1] = tmpDir[1];
+        transformedLightDirectionBuffer[i * 3 + 2] = tmpDir[2];
     }
-    return tld;
+    return transformedLightDirectionBuffer as unknown as Light['direction'];
 }
 
 namespace Renderer {
@@ -339,13 +357,11 @@ namespace Renderer {
 
             const program = r.getProgram(variant);
             if (state.currentProgramId !== program.id) {
-                // console.log('new program')
                 globalUniformsNeedUpdate = true;
                 program.use();
             }
 
             if (globalUniformsNeedUpdate) {
-                // console.log('globalUniformsNeedUpdate')
                 program.setUniforms(globalUniformList);
                 program.bindTextures(sharedTexturesList, 0);
                 globalUniformsNeedUpdate = false;
@@ -438,7 +454,7 @@ namespace Renderer {
             if (hasHeadRotation) {
                 ValueCell.updateIfChanged(globalUniforms.uHasHeadRotation, true);
                 ValueCell.update(globalUniforms.uInvHeadRotation, Mat4.invert(invHeadRotation, camera.headRotation));
-                ValueCell.update(globalUniforms.uLightDirection, getTransformedLightDirection(light, invHeadRotation));
+                ValueCell.update(globalUniforms.uLightDirection, getTransformedLightDirection(light, invHeadRotation, globalUniforms.uLightDirection.ref.value));
             } else {
                 ValueCell.updateIfChanged(globalUniforms.uHasHeadRotation, false);
                 ValueCell.updateIfChanged(globalUniforms.uInvHeadRotation, Mat4.id);
@@ -989,6 +1005,10 @@ namespace Renderer {
             },
             setOcclusionTest: (f: ((s: Sphere3D) => boolean) | null) => {
                 isOccluded = f;
+            },
+
+            beginFrame: () => {
+                beginCullFrame(ctx.stats);
             },
 
             props: p,

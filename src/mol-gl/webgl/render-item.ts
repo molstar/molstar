@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { createAttributeBuffers, ElementsBuffer, AttributeKind, AttributeBuffers } from './buffer';
@@ -395,7 +396,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 if (value.ref.version !== versions[k]) {
                     if (buffer.length >= value.ref.value.length) {
                         // console.log('attribute array large enough to update', buffer.id, k, value.ref.id, value.ref.version);
-                        buffer.updateSubData(value.ref.value, 0, buffer.length);
+                        buffer.updateSubData(value.ref.value, 0, value.ref.value.length);
                     } else {
                         // console.log('attribute array too small, need to create new attribute', buffer.id, k, value.ref.id, value.ref.version);
                         buffer.destroy();
@@ -410,7 +411,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
             if (elementsBuffer && values.elements.ref.version !== versions.elements) {
                 if (elementsBuffer.length >= values.elements.ref.value.length) {
                     // console.log('elements array large enough to update', values.elements.ref.id, values.elements.ref.version);
-                    elementsBuffer.updateSubData(values.elements.ref.value, 0, elementsBuffer.length);
+                    elementsBuffer.updateSubData(values.elements.ref.value, 0, values.elements.ref.value.length);
                 } else {
                     // console.log('elements array to small, need to create new elements', values.elements.ref.id, values.elements.ref.version);
                     elementsBuffer.destroy();

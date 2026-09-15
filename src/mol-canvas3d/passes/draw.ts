@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
@@ -547,12 +548,15 @@ export class DrawPass {
             }
         }
 
-        this.webgl.gl.flush();
+        if (toDrawingBuffer) {
+            this.webgl.gl.flush();
+        }
     }
 
     render(ctx: RenderContext, props: Props, toDrawingBuffer: boolean) {
         if (isTimingMode) this.webgl.timer.mark('DrawPass.render');
         const { renderer, camera, scene, helper } = ctx;
+        renderer.beginFrame();
 
         this.postprocessing.setTransparentBackground(props.transparentBackground);
         const pp = props.postprocessing;

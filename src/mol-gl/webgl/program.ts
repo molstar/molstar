@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { ShaderCode, DefineValues, addShaderDefines } from '../shader-code';
@@ -12,7 +13,8 @@ import { AttributeBuffers, getAttribType } from './buffer';
 import { TextureId, Textures } from './texture';
 import { idFactory } from '../../mol-util/id-factory';
 import { RenderableSchema } from '../renderable/schema';
-import { isDebugMode } from '../../mol-util/debug';
+import { isDebugMode, isTimingMode } from '../../mol-util/debug';
+import { WebGLStats } from './context';
 import { GLRenderingContext, isWebGL2 } from './compat';
 import { ShaderType, Shader } from './shader';
 import { WebGLParameters } from './context';
@@ -176,7 +178,7 @@ function normalizeVariant(variant: any): ProgramVariant {
     return variant as ProgramVariant;
 }
 
-export function createProgram(gl: GLRenderingContext, state: WebGLState, extensions: WebGLExtensions, parameters: WebGLParameters, getShader: ShaderGetter, props: ProgramProps): Program {
+export function createProgram(gl: GLRenderingContext, state: WebGLState, extensions: WebGLExtensions, parameters: WebGLParameters, getShader: ShaderGetter, props: ProgramProps, stats?: WebGLStats): Program {
     const { defineValues, shaderCode: _shaderCode, schema } = props;
 
     let program = getProgram(gl);
@@ -193,6 +195,7 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
     let linked = false;
     let finalized = false;
     let destroyed = false;
+    const uniformVersions = new Map<string, number>();
 
     function link() {
         vertShader.attach(program);
@@ -243,8 +246,17 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
             for (let i = 0, il = uniformValues.length; i < il; ++i) {
                 const [k, v] = uniformValues[i];
                 if (v) {
+                    const ver = v.ref.version;
+                    if (uniformVersions.get(k) === ver) {
+                        if (isTimingMode && stats) stats.uniforms.skipped++;
+                        continue;
+                    }
+                    uniformVersions.set(k, ver);
                     const l = locations[k];
-                    if (l !== null) uniformSetters[k](gl, l, v.ref.value);
+                    if (l !== null) {
+                        uniformSetters[k](gl, l, v.ref.value);
+                        if (isTimingMode && stats) stats.uniforms.uploaded++;
+                    }
                 }
             }
         },
@@ -273,14 +285,16 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
                 const [k, texture] = textures[i];
                 const l = locations[k];
                 if (l !== null && l !== undefined) {
-                    texture.bind((i + startingTargetUnit) as TextureId);
-                    uniformSetters[k](gl, l, (i + startingTargetUnit) as TextureId);
+                    const unit = (i + startingTargetUnit) as TextureId;
+                    texture.bind(unit);
+                    uniformSetters[k](gl, l, unit);
                 }
             }
         },
 
         reset: () => {
             program = getProgram(gl);
+            uniformVersions.clear();
             if (linked) link();
             if (finalized) finalize();
         },

@@ -3,6 +3,7 @@
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { ShrakeRupleyContext, VdWLookup } from './common';
@@ -15,6 +16,8 @@ import { RuntimeContext } from '../../../../mol-task';
 // - factor serialResidueIndex out
 
 const updateChunk = 5000;
+type NeighborEntry = [squaredDist: number, sqRadius: number, nX: number, nY: number, nZ: number];
+const _neighbors: NeighborEntry[] = [];
 export async function computeArea(runtime: RuntimeContext, ctx: ShrakeRupleyContext) {
     const { atomRadiusType: atomRadius } = ctx;
     for (let i = 0; i < atomRadius.length; i += updateChunk) {
@@ -48,7 +51,7 @@ function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
         // collect neighbors for each atom
         const radius1 = probeSize + vdw1;
         const cutoff1 = probeSize + radius1;
-        const neighbors = []; // TODO reuse
+        _neighbors.length = 0;
         for (let iI = 0; iI < count; ++iI) {
             const bUnit = lUnits[iI];
             const bI = cumulativeUnitElementCount[unitIndexMap.get(bUnit.id)] + indices[iI];
@@ -61,7 +64,7 @@ function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
             if (squaredDistances[iI] < (cutoff1 + vdw2) * (cutoff1 + vdw2)) {
                 const bElementIndex = elementIndices[bI];
                 // while here: compute values for later lookup
-                neighbors[neighbors.length] = [squaredDistances[iI],
+                _neighbors[_neighbors.length] = [squaredDistances[iI],
                     (squaredDistances[iI] + radius1 * radius1 - radius2 * radius2) / (2 * radius1),
                     bUnit.conformation.x(bElementIndex) - aX,
                     bUnit.conformation.y(bElementIndex) - aY,
@@ -70,13 +73,13 @@ function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
         }
 
         // sort ascendingly by distance for improved downstream performance
-        neighbors.sort((a, b) => a[0] - b[0]);
+        if (_neighbors.length > 1) _neighbors.sort((a, b) => a[0] - b[0]);
 
         let accessiblePointCount = 0;
         sl: for (let sI = 0; sI < spherePoints.length; ++sI) {
             const [sX, sY, sZ] = spherePoints[sI];
-            for (let nI = 0; nI < neighbors.length; ++nI) {
-                const [, sqRadius, nX, nY, nZ] = neighbors[nI];
+            for (let nI = 0, _nI = _neighbors.length; nI < _nI; ++nI) {
+                const [, sqRadius, nX, nY, nZ] = _neighbors[nI];
                 const dot = sX * nX + sY * nY + sZ * nZ;
                 if (dot > sqRadius) {
                     continue sl;

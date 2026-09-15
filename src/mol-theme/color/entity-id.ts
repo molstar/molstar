@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { StructureProperties, StructureElement, Bond, Structure, Unit } from '../../mol-model/structure';
@@ -15,6 +16,7 @@ import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { ColorThemeCategory } from './categories';
 import { ModelFormat } from '../../mol-model-formats/format';
+import { getCachedSerialMap } from './structure-cache';
 
 
 const DefaultList = 'many-distinct';
@@ -90,7 +92,8 @@ export function EntityIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Entit
     if (ctx.structure) {
         const l = StructureElement.Location.create(ctx.structure.root);
         const sourceSerialMap = getSourceSerialMap(ctx.structure);
-        const entityIdSerialMap = getEntityIdSerialMap(ctx.structure.root, sourceSerialMap);
+        const structure = ctx.structure;
+        const entityIdSerialMap = getCachedSerialMap(structure.root, 'entity-id', () => getEntityIdSerialMap(structure.root, sourceSerialMap));
 
         const labelTable = Array.from(entityIdSerialMap.keys());
         const valueLabel = (i: number) => labelTable[i];

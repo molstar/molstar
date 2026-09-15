@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Kim Juho <juho_kim@outlook.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { CifCategory, CifField } from '../../../mol-io/reader/cif';
@@ -103,36 +104,68 @@ export function parseHelix(lines: Tokens, lineStart: number, lineEnd: number): C
         });
     }
 
-    const beg_auth_asym_id = CifField.ofStrings(helices.map(h => h.initChainID));
-    const beg_auth_comp_id = CifField.ofStrings(helices.map(h => h.initResName));
+    const n = helices.length;
+    const beg_auth_asym_id_arr: string[] = new Array(n);
+    const beg_auth_comp_id_arr: string[] = new Array(n);
+    const end_auth_asym_id_arr: string[] = new Array(n);
+    const end_auth_comp_id_arr: string[] = new Array(n);
+    const beg_auth_seq_id_arr: string[] = new Array(n);
+    const conf_type_id_arr: string[] = new Array(n);
+    const details_arr: string[] = new Array(n);
+    const end_auth_seq_id_arr: string[] = new Array(n);
+    const id_arr: string[] = new Array(n);
+    const beg_ins_code_arr: string[] = new Array(n);
+    const end_ins_code_arr: string[] = new Array(n);
+    const helix_class_arr: string[] = new Array(n);
+    const helix_length_arr: string[] = new Array(n);
+    const helix_id_arr: string[] = new Array(n);
+    for (let i = 0; i < n; ++i) {
+        const h = helices[i];
+        beg_auth_asym_id_arr[i] = h.initChainID;
+        beg_auth_comp_id_arr[i] = h.initResName;
+        end_auth_asym_id_arr[i] = h.endChainID;
+        end_auth_comp_id_arr[i] = h.endResName;
+        beg_auth_seq_id_arr[i] = h.initSeqNum;
+        conf_type_id_arr[i] = getStructConfTypeId(h.helixClass);
+        details_arr[i] = h.comment;
+        end_auth_seq_id_arr[i] = h.endSeqNum;
+        id_arr[i] = h.serNum;
+        beg_ins_code_arr[i] = h.initICode;
+        end_ins_code_arr[i] = h.endICode;
+        helix_class_arr[i] = h.helixClass;
+        helix_length_arr[i] = h.length;
+        helix_id_arr[i] = h.helixID;
+    }
 
-    const end_auth_asym_id = CifField.ofStrings(helices.map(h => h.endChainID));
-    const end_auth_comp_id = CifField.ofStrings(helices.map(h => h.endResName));
+    const beg_auth_asym_id = CifField.ofStrings(beg_auth_asym_id_arr);
+    const beg_auth_comp_id = CifField.ofStrings(beg_auth_comp_id_arr);
+    const end_auth_asym_id = CifField.ofStrings(end_auth_asym_id_arr);
+    const end_auth_comp_id = CifField.ofStrings(end_auth_comp_id_arr);
 
     const struct_conf: CifCategory.Fields<mmCIF_Schema['struct_conf']> = {
         beg_label_asym_id: beg_auth_asym_id,
         beg_label_comp_id: beg_auth_comp_id,
-        beg_label_seq_id: CifField.ofUndefined(helices.length, Column.Schema.int),
+        beg_label_seq_id: CifField.ofUndefined(n, Column.Schema.int),
         beg_auth_asym_id,
         beg_auth_comp_id,
-        beg_auth_seq_id: CifField.ofStrings(helices.map(h => h.initSeqNum)),
+        beg_auth_seq_id: CifField.ofStrings(beg_auth_seq_id_arr),
 
-        conf_type_id: CifField.ofStrings(helices.map(h => getStructConfTypeId(h.helixClass))),
-        details: CifField.ofStrings(helices.map(h => h.comment)),
+        conf_type_id: CifField.ofStrings(conf_type_id_arr),
+        details: CifField.ofStrings(details_arr),
 
         end_label_asym_id: end_auth_asym_id,
         end_label_comp_id: end_auth_comp_id,
-        end_label_seq_id: CifField.ofUndefined(helices.length, Column.Schema.int),
+        end_label_seq_id: CifField.ofUndefined(n, Column.Schema.int),
         end_auth_asym_id,
         end_auth_comp_id,
-        end_auth_seq_id: CifField.ofStrings(helices.map(h => h.endSeqNum)),
+        end_auth_seq_id: CifField.ofStrings(end_auth_seq_id_arr),
 
-        id: CifField.ofStrings(helices.map(h => h.serNum)),
-        pdbx_beg_PDB_ins_code: CifField.ofStrings(helices.map(h => h.initICode)),
-        pdbx_end_PDB_ins_code: CifField.ofStrings(helices.map(h => h.endICode)),
-        pdbx_PDB_helix_class: CifField.ofStrings(helices.map(h => h.helixClass)),
-        pdbx_PDB_helix_length: CifField.ofStrings(helices.map(h => h.length)),
-        pdbx_PDB_helix_id: CifField.ofStrings(helices.map(h => h.helixID)),
+        id: CifField.ofStrings(id_arr),
+        pdbx_beg_PDB_ins_code: CifField.ofStrings(beg_ins_code_arr),
+        pdbx_end_PDB_ins_code: CifField.ofStrings(end_ins_code_arr),
+        pdbx_PDB_helix_class: CifField.ofStrings(helix_class_arr),
+        pdbx_PDB_helix_length: CifField.ofStrings(helix_length_arr),
+        pdbx_PDB_helix_id: CifField.ofStrings(helix_id_arr),
     };
     return CifCategory.ofFields('struct_conf', struct_conf);
 }
