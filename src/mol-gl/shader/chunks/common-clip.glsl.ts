@@ -216,7 +216,7 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
         #endif
 
         float s = sStart;
-        for (int k = 0; k < 8; ++k) {
+        for (int k = 0; k <= dClipObjectCount; ++k) {
             float sNext = s;
             #pragma unroll_loop_start
             for (int i = 0; i < dClipObjectCount; ++i) {
