@@ -10,10 +10,10 @@ import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
 import { MVSPrimitiveParams } from './mvs-tree-primitives';
 import { MVSClipParams, MVSRepresentationParams, MVSVolumeRepresentationParams } from './mvs-tree-representations';
-import { CameraTransitionTrajectoryT, ColorT, ComponentExpressionT, ComponentSelectorT, EasingT, LabelAttachments, Matrix, Palette, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
+import { CameraTransitionTrajectoryT, ColorT, ComponentExpressionT, ComponentSelectorT, EasingT, LabelAttachments, Matrix, MolQLExpressionT, Palette, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
 
-const SelectorT = union(ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT));
+const SelectorT = union(ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT), MolQLExpressionT);
 
 const _DataFromUriParams = {
     /** URL of the annotation resource. */
