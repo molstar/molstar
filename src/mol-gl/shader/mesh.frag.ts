@@ -85,7 +85,12 @@ void main() {
         #ifdef requiredDrawBuffers
             gl_FragColor = vObject;
             gl_FragData[1] = vInstance;
-            gl_FragData[2] = vGroup;
+            #ifdef dSolidInterior
+                // 16777214 is PickingId.Null, the cap picks the whole instance
+                gl_FragData[2] = capPass ? vec4(packIntToRGB(16777214.0), 1.0) : vGroup;
+            #else
+                gl_FragData[2] = vGroup;
+            #endif
             gl_FragData[3] = packDepthToRGBA(fragmentDepth);
         #else
             gl_FragColor = vColor;

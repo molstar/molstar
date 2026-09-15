@@ -630,8 +630,12 @@ namespace Renderer {
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
-                if (!renderables[i].state.colorOnly) {
-                    renderObject(renderables[i], variant, Flag.None);
+                const r = renderables[i];
+                if (!r.state.colorOnly) {
+                    renderObject(r, variant, Flag.None);
+                    if (hasSolidInteriorCap(r)) {
+                        renderSolidInteriorCap(r, variant, 'opaque');
+                    }
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderPick');
@@ -728,7 +732,10 @@ namespace Renderer {
 
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
                 if (alpha !== 0 && r.values.transparencyAverage.ref.value !== 1 && r.values.markerAverage.ref.value !== 1) {
-                    renderObject(renderables[i], 'marking', Flag.None);
+                    renderObject(r, 'marking', Flag.None);
+                    if (hasSolidInteriorCap(r)) {
+                        renderSolidInteriorCap(r, 'marking', 'opaque');
+                    }
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderMarkingDepth');
@@ -748,7 +755,10 @@ namespace Renderer {
                 const r = renderables[i];
 
                 if (r.values.markerAverage.ref.value > 0) {
-                    renderObject(renderables[i], 'marking', Flag.None);
+                    renderObject(r, 'marking', Flag.None);
+                    if (hasSolidInteriorCap(r)) {
+                        renderSolidInteriorCap(r, 'marking', 'opaque');
+                    }
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderMarkingMask');
