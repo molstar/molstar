@@ -268,7 +268,7 @@ export class DrawPass {
             target.bind();
             this.dpoit.render();
 
-            const capStencil = isPostprocessingEnabled ? this.colorTarget.depthRenderbuffer : null;
+            const capStencil = target === this.colorTarget ? null : this.colorTarget.depthRenderbuffer;
             if (capStencil) capStencil.attachFramebuffer(this.transparentColorTarget.framebuffer);
             const { state, gl } = this.webgl;
             state.enable(gl.BLEND);
