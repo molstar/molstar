@@ -135,8 +135,8 @@ function getFormatSize(format: TextureFormat) {
         case 'rg': return 2;
         case 'rgb': return 3;
         case 'rgba': return 4;
-        case 'depth': return 4;
-        case 'depth-stencil': return 4;
+        case 'depth': return 1;
+        case 'depth-stencil': return 2;
     }
 }
 
