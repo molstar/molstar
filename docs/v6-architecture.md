@@ -6,7 +6,7 @@ Proposal against the `molstar@5.11.0` tree. The APIs and paths below describe th
 
 Mol* 6.0 moves to a pnpm workspace of ESM packages grouped by layer. Parsers, representations, and themes become explicit plugin features; `DefaultPluginSpec()` remains the full built-in composition. Apps keep esbuild, with dependencies and build configuration owned by each app.
 
-Ship `@molstar/migrate-6` with the release to handle mechanical import changes and report manual work. The unscoped `molstar` package retains the CDN viewer bundle only: no legacy `lib/mol-*` exports, compatibility re-exports, or CommonJS build.
+Ship `@molstar/migrate-6` with the release to handle mechanical import changes and report manual work. The unscoped `molstar` package retains both Viewer and MVS Stories CDN apps, including their existing script-tag APIs. Existing MVS HTML viewers loading `molstar@latest` must continue working without edits. Legacy `lib/mol-*` exports, library compatibility re-exports, and the CommonJS build are removed.
 
 The release also includes a standalone MolViewSpec builder, dependency-cycle removal, maintainer skills, updated developer docs, and workspace CI.
 
@@ -22,7 +22,7 @@ Out of scope:
 - Native Node execution of TypeScript source and a repository-wide erasable-syntax rewrite.
 - Changes to transformer identifiers or snapshot JSON, except where registration must become explicit.
 - Moving Python `molviewspec` into this repository.
-- Publishing a stories library or merging the MolViewStories webapp.
+- Publishing a new stories library or merging the MolViewStories webapp. Retaining the existing MVS Stories CDN app and API is in scope.
 
 ## 2. Starting point
 
@@ -60,7 +60,7 @@ Keep recognizable subpaths, removing the `mol-` prefix. The table is the target 
 | `@molstar/viewer` | Published Viewer API and app |
 | `@molstar/<name>-server` | Model, volume, and plugin-state servers |
 | `@molstar/migrate-6` | Migration CLI |
-| `molstar` | CDN viewer assets at `build/viewer/` |
+| `molstar` | Viewer and MVS Stories CDN apps at `build/viewer/` and `build/mvs-stories/`, with compatible script-tag APIs |
 
 The library dependency direction is:
 
@@ -199,6 +199,8 @@ Barrels do not inherently prevent production tree-shaking: ESM bundlers can remo
 - **Keep deliberate composition explicit.** Default specs and registration catalogs assemble complete feature sets for app composition. They are not general symbol-import entry points. Base runtime modules and individual providers must not depend on them; enforce that boundary even within a package.
 
 Enforce the policy through lint/import-graph checks and the public export inventory. Validate that a leaf import cannot reach unrelated providers, default catalogs, or optional backends through re-exports. Reuse the slim-plugin fixture to check both processed modules and production output, with a downstream Vite development smoke/profile case alongside esbuild. Audit real registration and asset side effects before adding purity annotations or `sideEffects: false`; no consumer barrel-rewriting plugin is required.
+
+The existing CDN app globals are compatibility APIs at the final bundle boundary. Preserve their exported names, including existing re-exported values, as required by §9.3. This does not introduce library barrels: library code must not import the app entry points or depend on their global objects.
 
 ## 5. ESM and TypeScript source
 
@@ -418,7 +420,7 @@ The runtime imports the builder as a dependency; do not bundle a second copy int
 
 Other extensions become `@molstar/<name>-extension`. Each owns its direct dependencies, exports features/behaviors, and imports UI only when needed. Viewer dependencies and imports define its extension set; a smaller app declares and imports only its selected extensions.
 
-`@molstar/viewer` is published. Docking viewer, mesoscale explorer, MVS stories, and examples remain private workspace apps. Moving parts of [MolViewStories](https://github.com/molstar/mol-view-stories) into a future `packages/mvs/stories` library needs a separate plan.
+`@molstar/viewer` is published. Docking viewer, mesoscale explorer, MVS Stories, and examples remain private workspace app packages; the built MVS Stories app is nevertheless distributed through the root `molstar` package. Preserve that app's existing browser API. Moving parts of [MolViewStories](https://github.com/molstar/mol-view-stories) into a future `packages/mvs/stories` library needs a separate plan.
 
 ## 8. Builds and maintenance
 
@@ -433,7 +435,7 @@ pnpm --filter @molstar/viewer dev
 pnpm -r --filter "./apps/**" --filter "./examples/**" build
 ```
 
-Keep SCSS, copied HTML/images/icons, version injection, IIFE globals, and existing CDN output names. Shaders remain `.glsl.ts` strings. The deploy script consumes the app outputs after its ESM/tooling conversion. Stage Viewer JS/CSS and supporting assets into `molstar/build/viewer/` when packing the CDN package.
+Keep SCSS, copied HTML/images/icons, version injection, IIFE globals, and existing CDN output names. Shaders remain `.glsl.ts` strings. The deploy script consumes the app outputs after its ESM/tooling conversion. Build and stage both apps into `molstar/build/viewer/` and `molstar/build/mvs-stories/` when packing the root CDN package, including their JS/CSS, HTML, and supporting assets. The root package's file allowlist must retain both directories; scoped-package moves must not change these URLs.
 
 ### 8.2 Tests, skills, and docs
 
@@ -450,6 +452,7 @@ Rewrite mkdocs installation, plugin, examples, formats, extensions, MVS, and clo
 - Verify source-based esbuild app builds and compiled JS consumption. Install tarballs in clean consumers to check exports, declarations, direct dependencies, CSS/assets, and CLI bins. Validate defining-module imports and their processed graphs/production output, with a Vite development smoke/profile case for downstream use.
 - For each JSR package, run publication dry runs with `--allow-slow-types` and test its source/dependency graph with the pinned Deno version. Preserve public type precision through normal TypeScript checks and native npm declaration/consumer checks; fast-type compliance is not a v6 release gate.
 - Run the slim-plugin acceptance example and the full Viewer; test snapshots with their required features registered.
+- Before advancing `molstar@latest`, test existing Viewer/MVS HTML fixtures against the packed root package, routing their unchanged CDN URLs to the candidate assets. Verify classic script loading, globals/API calls, custom-element registration, CSS/assets, MVSJ/MVSX loading, and independent named story contexts. Inspect both CDN directories in the tarball; file presence alone does not prove API compatibility.
 - Check advisories with dependency review plus `pnpm audit --prod` or OSV; fail high/critical production findings. Track any justified exceptions explicitly.
 - Build mkdocs for documentation changes. Before stable release, run the migrator and smoke-test `pdbe-molstar` and `rcsb-molstar`.
 
@@ -500,7 +503,18 @@ No promise of a fully automatic upgrade. Validate idempotence and representative
 
 Keep transformer identifiers, snapshot JSON, feature/provider name strings, `PluginSpec.Action`/`Behavior`, and the `createPluginUI`/`Viewer.create` entry-point names. Snapshots still require their referenced features to be loaded. Explicit specs and registration replace implicit catalog loading in base entry points.
 
-Remove CommonJS and legacy deep import paths. Existing applications must migrate imports and dependencies; installing `molstar@6` alone does not upgrade library consumers. Script-tag users continue using the CDN viewer asset paths and update the version. There is no compatibility-shim package or later shim sunset.
+Remove CommonJS and legacy deep import paths. Existing applications using library imports must migrate imports and dependencies; installing `molstar@6` alone does not upgrade those consumers. There is no library compatibility-shim package or later shim sunset.
+
+The root `molstar` package preserves the existing CDN app contract:
+
+| App | Retained paths | Browser API |
+| --- | --- | --- |
+| Viewer | `build/viewer/`, including existing JS/CSS and supporting files | Existing `molstar` global and Viewer API |
+| MVS Stories | `build/mvs-stories/`, including `mvs-stories.js`, `mvs-stories.css`, HTML, and supporting files | Existing `mvsStories` global and custom elements |
+
+For MVS Stories, preserve the exports in the [app entry point](../src/apps/mvs-stories/index.tsx): `getContext`, `loadFromURL`, `loadFromData`, `loadFromID`, `downloadCurrentStory`, and `MVSData`, including their existing arguments, options, return behavior, and exposed context API. Retain `mvs-stories-viewer` and `mvs-stories-snapshot-markdown`, their attributes (`context-name`, viewer `name`, and markdown `viewer-name`), and automatic registration when the classic script loads.
+
+Existing HTML using `https://cdn.jsdelivr.net/npm/molstar@latest/build/mvs-stories/mvs-stories.js` and the corresponding CSS must work unchanged when `latest` advances to v6. Preserve equivalent package paths on other CDNs. Do not require `type="module"`, scoped-package imports, new initialization calls, or edits to generated HTML. Internal feature composition and dependency packaging may change behind these app APIs. This compatibility promise is separate from publishing a new stories library.
 
 ## 10. Implementation order
 

@@ -18,7 +18,7 @@ Use a pnpm workspace with one release version across public packages.
 | `@molstar/<name>-extension` | Extensions and their dependencies |
 | `@molstar/viewer` | Published Viewer API and app |
 | Server and CLI packages | Existing tools plus `@molstar/migrate-6` |
-| `molstar` | CDN viewer assets only |
+| `molstar` | Viewer and MVS Stories CDN apps, retaining paths and browser APIs |
 
 The target dependency direction is `plugin → graphics → model → io → core` (“depends on”). The current folders do not satisfy it: IO helpers used by core, GPU math, and graphics-dependent model APIs must be relocated before packaging. Preserve familiar leaf paths where possible and record exceptions in the migration map.
 
@@ -66,13 +66,13 @@ Keep explicit type imports and enable `verbatimModuleSyntax` for ESM. If enabled
 
 `@molstar/mvs-builder` owns the schema, builder, MVSJ/MVSX serialization/validation, and validation/schema CLIs. It has no Mol* package dependency and replaces molviewspec-ts / JSR `@molstar/molviewspec` after parity checks, publishing to npm and JSR.
 
-`@molstar/mvs` depends on the builder and owns loading, plugin integration, annotations, and `mvs-render`. Python remains in mol-view-spec. A published stories library and reconciliation with MolViewStories need a separate plan.
+`@molstar/mvs` depends on the builder and owns loading, plugin integration, annotations, and `mvs-render`. Python remains in mol-view-spec. The existing MVS Stories app still ships in the root `molstar` package. A new stories library and reconciliation with MolViewStories need a separate plan.
 
 ## Migration and maintenance
 
 Ship **`@molstar/migrate-6`**, with dry-run output and a manual-work report. It rewrites imports and dependencies, handles relocated APIs, and flags CommonJS, implicit default specs, and full-catalog imports. Respect downstream compiler conventions when changing relative extensions. Validate the tool on `pdbe-molstar` and `rcsb-molstar` before stable release.
 
-**No compatibility import shims.** `molstar@6` retains the CDN viewer paths, not `lib/mol-*` or CJS. Library consumers migrate to scoped packages. Keep transformer identifiers and snapshot JSON; restoring a snapshot requires its features to be loaded.
+**No library compatibility import shims.** `molstar@6` retains `build/viewer/` and `build/mvs-stories/`, including their classic-script globals, APIs, CSS/assets, and custom elements. Existing MVS HTML viewers importing `molstar@latest` from a CDN must work without edits; verify against the packed candidate before advancing `latest`. See the [browser compatibility contract](v6-architecture.md#93-compatibility-contract). Library consumers migrate from `lib/mol-*`/CJS to scoped packages. Keep transformer identifiers and snapshot JSON; restoring a snapshot requires its features to be loaded.
 
 Rename tests to `_test/**/*.test.ts`. Add `.agents/` maintainer skills for extensions, formats, representations, apps/examples, servers, and dependency updates, referenced by root `AGENTS.md`. Rewrite mkdocs for packages, composition, builds, migration, and adding code.
 
