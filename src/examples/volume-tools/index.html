@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Volume Tools</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a1a;
+            color: #ccc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 13px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        main { max-width: 640px; width: 100%; }
+
+        h1 { color: #fff; font-size: 22px; margin-bottom: 6px; }
+        p.lead { color: #888; font-size: 14px; margin-bottom: 24px; }
+
+        a.tool {
+            display: block;
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 16px 18px;
+            margin-bottom: 12px;
+            text-decoration: none;
+            color: inherit;
+            transition: border-color .15s;
+        }
+        a.tool:hover { border-color: #667; }
+        a.tool h2 { color: #fff; font-size: 16px; margin-bottom: 4px; }
+        a.tool p { color: #999; line-height: 1.45; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Volume Tools</h1>
+        <p class="lead">Interactive volume tools built on Mol*. Open a local .mrc/.map file inside either tool.</p>
+
+        <a class="tool" href="./tool.html?tool=mask">
+            <h2>Volume Mask Creator</h2>
+            <p>Draw polygons from any camera angle to carve a single soft-edged mask out of a volume, optionally
+                combined with atomic structure proximity, and export it as MRC.</p>
+        </a>
+
+        <a class="tool" href="./tool.html?tool=segmentor">
+            <h2>Volume Segmentor</h2>
+            <p>Split a volume into several bodies by drawing polygons from several views, keep the remainder as its
+                own body, remove dust, preview soft masks and export one MRC mask per body.</p>
+        </a>
+    </main>
+</body>
+</html>

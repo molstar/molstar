@@ -13,8 +13,9 @@ import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/
 import { StateObjectRef, StateObjectSelector, StateBuilder } from '../../../../mol-state';
 import { Clip } from '../../../../mol-util/clip';
 import { Color } from '../../../../mol-util/color';
+import { getDistinctBaseColors, getDistinctGroupColors } from '../../../../mol-util/color/distinct';
 import { ColorNames } from '../../../../mol-util/color/names';
-import { GraphicsMode, MesoscaleGroup, MesoscaleState, getDistinctBaseColors, getDistinctGroupColors, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
+import { GraphicsMode, MesoscaleGroup, MesoscaleState, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
 import { MmcifAssembly, MmcifStructure } from './model';
 
 function getSpacefillParams(color: Color, scaleFactor: number, graphics: GraphicsMode, clipVariant: Clip.Variant) {

@@ -37,6 +37,27 @@ export function getCcp4Size(header: Ccp4Header): Vec3 {
     }
 }
 
+const RightAngle = degToRad(90);
+
+function getCcp4Angle(angleInDegrees: number, name: string) {
+    if (angleInDegrees > 0 && angleInDegrees < 180) return degToRad(angleInDegrees);
+    console.warn(`Invalid cell angle ${name} '${angleInDegrees}', using 90 degrees instead`);
+    return RightAngle;
+}
+
+/**
+ * Cell angles outside (0, 180) degrees would give a degenerate fractional
+ * transform. Some files leave them unset (e.g. MRC volumes written by IMOD
+ * write a zero `cellb`), in which case a right angle is assumed.
+ */
+export function getCcp4Angles(header: Ccp4Header): Vec3 {
+    return Vec3.create(
+        getCcp4Angle(header.alpha, 'alpha'),
+        getCcp4Angle(header.beta, 'beta'),
+        getCcp4Angle(header.gamma, 'gamma')
+    );
+}
+
 function getTypedArrayCtor(header: Ccp4Header) {
     const valueType = getCcp4ValueType(header);
     switch (valueType) {
@@ -53,7 +74,7 @@ export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, of
         const { header, values } = source;
         const size = getCcp4Size(header);
         if (params && params.voxelSize) Vec3.mul(size, size, params.voxelSize);
-        const angles = Vec3.create(degToRad(header.alpha), degToRad(header.beta), degToRad(header.gamma));
+        const angles = getCcp4Angles(header);
         const spacegroup = header.ISPG > 65536 ? 0 : header.ISPG;
         const cell = SpacegroupCell.create(spacegroup || 'P 1', size, angles);
 
@@ -86,7 +107,8 @@ export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, of
                 min: (Number.isNaN(header.AMIN) || calcStats) ? arrayMin(values) : header.AMIN,
                 max: (Number.isNaN(header.AMAX) || calcStats) ? arrayMax(values) : header.AMAX,
                 mean: (Number.isNaN(header.AMEAN) || calcStats) ? arrayMean(values) : header.AMEAN,
-                sigma: (Number.isNaN(header.ARMS) || header.ARMS === 0) ? arrayRms(values) : header.ARMS
+                // a negative rms means it was not computed (e.g. IMOD writes -1)
+                sigma: (Number.isNaN(header.ARMS) || header.ARMS <= 0) ? arrayRms(values) : header.ARMS
             },
             periodicity: Vec3.isInteger(dimensions_frac) ? 'xyz' : 'none',
         };

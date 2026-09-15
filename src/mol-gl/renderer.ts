@@ -259,6 +259,7 @@ namespace Renderer {
 
             uRenderMask: ValueCell.create(0),
             uMarkingDepthTest: ValueCell.create(false),
+            uDepthBack: ValueCell.create(false),
             uPickType: ValueCell.create(PickType.None),
             uMarkingType: ValueCell.create(MarkingType.None),
 
@@ -575,6 +576,7 @@ namespace Renderer {
             state.depthFunc(gl.GREATER);
 
             updateInternal(group, camera, null, Mask.Opaque, false);
+            ValueCell.updateIfChanged(globalUniforms.uDepthBack, true);
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
@@ -583,6 +585,7 @@ namespace Renderer {
                     renderObject(r, 'depth', Flag.DepthBack);
                 }
             }
+            ValueCell.updateIfChanged(globalUniforms.uDepthBack, false);
             state.depthFunc(gl.LESS);
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthOpaqueBack');
         };

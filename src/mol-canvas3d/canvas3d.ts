@@ -984,6 +984,7 @@ namespace Canvas3D {
                 renderItemId: r.id,
                 geometryType: r.values.dGeometryType.ref.value,
                 'byteCount [MiB]': toFixed(r.getByteCount() / 1024 / 1024, 3),
+                radius: toFixed(r.values.boundingSphere.ref.value.radius, 3),
             }));
 
             console.groupCollapsed(`${items.length} RenderItems`);
@@ -1012,6 +1013,26 @@ namespace Canvas3D {
                     illumination: `${(passes.illumination.getByteCount() / 1024 / 1024).toFixed(3)} MiB`,
                     pick: `${(passes.pick.getByteCount() / 1024 / 1024).toFixed(3)} MiB`,
                     hiZ: `${(hiZ.getByteCount() / 1024 / 1024).toFixed(3)} MiB`,
+                }
+            }, undefined, 4));
+
+            console.log(JSON.stringify({
+                scene: {
+                    radius: toFixed(scene.boundingSphere.radius, 3),
+                    radiusVisible: toFixed(scene.boundingSphereVisible.radius, 3),
+                    transparency: scene.transparency,
+                    markerAverage: toFixed(scene.markerAverage, 2),
+                    emissiveAverage: toFixed(scene.emissiveAverage, 2),
+                    wiggleAverage: toFixed(scene.wiggleAverage, 2),
+                    opacityAverage: toFixed(scene.opacityAverage, 2),
+                    transparencyMin: toFixed(scene.transparencyMin, 2),
+                    hasOpaque: scene.hasOpaque,
+                    hasAnimation: scene.hasAnimation,
+                    counts: {
+                        all: scene.renderables.length,
+                        primitives: scene.primitives.renderables.length,
+                        volumes: scene.volumes.renderables.length,
+                    }
                 }
             }, undefined, 4));
 

@@ -177,6 +177,7 @@ export const GlobalUniformSchema = {
 
     uRenderMask: UniformSpec('i'),
     uMarkingDepthTest: UniformSpec('b'),
+    uDepthBack: UniformSpec('b'),
     uMarkingType: UniformSpec('i'),
     uPickType: UniformSpec('i'),
 
