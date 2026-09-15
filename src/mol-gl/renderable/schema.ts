@@ -181,7 +181,6 @@ export const GlobalUniformSchema = {
     uMarkingType: UniformSpec('i'),
     uPickType: UniformSpec('i'),
     uSolidInteriorPass: UniformSpec('i'),
-    uSolidInteriorPlane: UniformSpec('v4'),
     uSolidInteriorClip: UniformSpec('i'),
 
     uTime: UniformSpec('f'),

@@ -266,7 +266,6 @@ namespace Renderer {
             uPickType: ValueCell.create(PickType.None),
             uMarkingType: ValueCell.create(MarkingType.None),
             uSolidInteriorPass: ValueCell.create(0),
-            uSolidInteriorPlane: ValueCell.create(Vec4()),
             uSolidInteriorClip: ValueCell.create(-1),
 
             uTransparentBackground: ValueCell.create(false),
@@ -413,12 +412,11 @@ namespace Renderer {
             r.render(variant, sharedTexturesList.length);
         };
 
-        const renderSolidInteriorPlane = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit' | 'oit-post', plane: Vec4, clipIndex: number) => {
+        const renderSolidInteriorPass = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit' | 'oit-post', clipIndex: number) => {
             const writeDepth = mode === 'opaque';
             const hwDepthTest = mode === 'opaque' || mode === 'blended';
             const capPassId = mode === 'oit-post' ? 3 : 1;
 
-            ValueCell.update(globalUniforms.uSolidInteriorPlane, Vec4.copy(globalUniforms.uSolidInteriorPlane.ref.value, plane));
             ValueCell.updateIfChanged(globalUniforms.uSolidInteriorClip, clipIndex);
             state.enable(gl.STENCIL_TEST);
             state.stencilMask(0xff);
@@ -457,10 +455,10 @@ namespace Renderer {
             state.cullFace(gl.BACK);
         };
 
-        const solidInteriorNearPlane = Vec4();
         const solidInteriorClipPlane = Vec4();
         const solidInteriorNormal = Vec3();
         const solidInteriorPosition = Vec3();
+        const solidInteriorCenter = Vec3();
         const solidInteriorRotation = Quat();
         const solidInteriorTransform = Mat4();
         const solidInteriorTransposed = Mat4();
@@ -471,7 +469,7 @@ namespace Renderer {
             const { center, radius } = solidInteriorSphere;
             const near = globalUniforms.uNear.ref.value * 1.0001;
             if (Math.abs(Plane3D.distanceToPoint(cameraPlane, center) - near) <= radius) {
-                renderSolidInteriorPlane(r, variant, mode, Vec4.set(solidInteriorNearPlane, 0, 0, 1, near), -1);
+                renderSolidInteriorPass(r, variant, mode, -1);
             }
 
             const { values } = r;
@@ -481,23 +479,38 @@ namespace Renderer {
             const invert = values.uClipObjectInvert.ref.value;
             const position = values.uClipObjectPosition.ref.value;
             const rotation = values.uClipObjectRotation.ref.value;
+            const scale = values.uClipObjectScale.ref.value;
             const transform = values.uClipObjectTransform.ref.value;
-            const isOrtho = globalUniforms.uIsOrtho.ref.value === 1;
             for (let i = 0; i < count; ++i) {
-                if (type[i] !== Clip.Type.plane) continue;
-                Vec3.transformQuat(solidInteriorNormal, Vec3.unitY, Quat.fromArray(solidInteriorRotation, rotation, i * 4));
+                Mat4.fromArray(solidInteriorTransform, transform, i * 16);
                 Vec3.fromArray(solidInteriorPosition, position, i * 3);
-                Vec4.set(solidInteriorClipPlane, solidInteriorNormal[0], solidInteriorNormal[1], solidInteriorNormal[2], -Vec3.dot(solidInteriorNormal, solidInteriorPosition));
-                if (invert[i]) Vec4.scale(solidInteriorClipPlane, solidInteriorClipPlane, -1);
-                Vec4.transformMat4(solidInteriorClipPlane, solidInteriorClipPlane, Mat4.transpose(solidInteriorTransposed, Mat4.fromArray(solidInteriorTransform, transform, i * 16)));
-                const length = Math.hypot(solidInteriorClipPlane[0], solidInteriorClipPlane[1], solidInteriorClipPlane[2]);
-                if (length < 1e-6) continue;
-                Vec4.scale(solidInteriorClipPlane, solidInteriorClipPlane, 1 / length);
-                solidInteriorClipPlane[3] *= modelScale;
-                if (Math.abs(solidInteriorClipPlane[0] * center[0] + solidInteriorClipPlane[1] * center[1] + solidInteriorClipPlane[2] * center[2] + solidInteriorClipPlane[3]) > radius) continue;
-                Vec4.transformMat4(solidInteriorClipPlane, solidInteriorClipPlane, Mat4.transpose(solidInteriorTransposed, invView));
-                if (solidInteriorClipPlane[3] <= 1e-4 || (isOrtho && Math.abs(solidInteriorClipPlane[2]) < 1e-4)) continue;
-                renderSolidInteriorPlane(r, variant, mode, solidInteriorClipPlane, i);
+                if (type[i] === Clip.Type.plane) {
+                    Vec3.transformQuat(solidInteriorNormal, Vec3.unitY, Quat.fromArray(solidInteriorRotation, rotation, i * 4));
+                    Vec4.set(solidInteriorClipPlane, solidInteriorNormal[0], solidInteriorNormal[1], solidInteriorNormal[2], -Vec3.dot(solidInteriorNormal, solidInteriorPosition));
+                    if (invert[i]) Vec4.scale(solidInteriorClipPlane, solidInteriorClipPlane, -1);
+                    Vec4.transformMat4(solidInteriorClipPlane, solidInteriorClipPlane, Mat4.transpose(solidInteriorTransposed, solidInteriorTransform));
+                    const length = Math.hypot(solidInteriorClipPlane[0], solidInteriorClipPlane[1], solidInteriorClipPlane[2]);
+                    if (length < 1e-6) continue;
+                    Vec4.scale(solidInteriorClipPlane, solidInteriorClipPlane, 1 / length);
+                    solidInteriorClipPlane[3] *= modelScale;
+                    if (Math.abs(solidInteriorClipPlane[0] * center[0] + solidInteriorClipPlane[1] * center[1] + solidInteriorClipPlane[2] * center[2] + solidInteriorClipPlane[3]) > radius) continue;
+                    if (solidInteriorClipPlane[0] * cameraPosition[0] + solidInteriorClipPlane[1] * cameraPosition[1] + solidInteriorClipPlane[2] * cameraPosition[2] + solidInteriorClipPlane[3] <= 1e-4) continue;
+                } else {
+                    Vec3.transformMat4(solidInteriorCenter, Vec3.scale(solidInteriorCenter, center, 1 / modelScale), solidInteriorTransform);
+                    const objectRadius = radius / modelScale * Mat4.getMaxScaleOnAxis(solidInteriorTransform);
+                    const distance = Vec3.distance(solidInteriorCenter, solidInteriorPosition);
+                    const sx = scale[i * 3], sy = scale[i * 3 + 1], sz = scale[i * 3 + 2];
+                    let outer = Infinity, inner = 0;
+                    if (type[i] === Clip.Type.sphere) {
+                        outer = Math.max(sx, sy, sz) / 2; inner = Math.min(sx, sy, sz) / 2;
+                    } else if (type[i] === Clip.Type.cube) {
+                        outer = Math.hypot(sx, sy, sz) / 2; inner = Math.min(sx, sy, sz) / 2;
+                    } else if (type[i] === Clip.Type.cylinder) {
+                        outer = Math.hypot(sx, sy) / 2; inner = Math.min(sx, sy) / 2;
+                    }
+                    if (distance > objectRadius + outer || distance + objectRadius < inner) continue;
+                }
+                renderSolidInteriorPass(r, variant, mode, i);
             }
         };
 

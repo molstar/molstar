@@ -639,7 +639,7 @@ export namespace Mesh {
         celShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Select<boolean | 'inverted'>(false, [[false, 'Off'], [true, 'On'], ['inverted', 'Inverted']], BaseGeometry.ShadingCategory),
         transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque'] as const), BaseGeometry.ShadingCategory),
-        solidInterior: PD.Boolean(false, { ...BaseGeometry.ShadingCategory, description: 'Render a solid cap where the camera near plane or a clip plane cuts a closed surface' }),
+        solidInterior: PD.Boolean(false, { ...BaseGeometry.ShadingCategory, description: 'Render a solid cap where the camera near plane or a clip object cuts a closed surface' }),
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
         bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
         interior: getInteriorParam(),

@@ -23,26 +23,39 @@ uniform vec4 uInteriorSubstance;
 
 #ifdef dSolidInterior
     uniform int uSolidInteriorPass;
-    uniform vec4 uSolidInteriorPlane;
-    varying vec4 vCapPosition;
 #endif
 
 void main() {
     #include fade_lod
 
     #ifdef dSolidInterior
-        if (uSolidInteriorPass == 2) {
-            if (dot(uSolidInteriorPlane.xyz, vViewPosition) + uSolidInteriorPlane.w > 0.0) discard;
-            gl_FragColor = vec4(0.0);
-            return;
-        }
+        float fragmentDepth = gl_FragCoord.z;
         bool capPass = uSolidInteriorPass != 0;
         vec3 viewPosition = vViewPosition;
         vec3 modelPosition = vModelPosition;
-        if (capPass) {
-            viewPosition = vCapPosition.xyz / vCapPosition.w;
-            modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
-        }
+        #ifdef enabledFragDepth
+            if (capPass) {
+                float nearZ = -uNear * 1.0001;
+                vec3 nearPosition = mix(vViewPosition * (nearZ / vViewPosition.z), vec3(vViewPosition.xy, nearZ), uIsOrtho);
+                float s = 0.0;
+                #if dClipObjectCount != 0
+                    if (uSolidInteriorClip >= 0) {
+                        s = clipCapExit((uInvView * vec4(nearPosition, 1.0)).xyz / uModelScale, vModelPosition / uModelScale);
+                        if (s < 0.0 || s > 1.0) discard;
+                    }
+                #endif
+                if (uSolidInteriorPass == 2) {
+                    gl_FragColor = vec4(0.0);
+                    gl_FragDepthEXT = fragmentDepth;
+                    return;
+                }
+                viewPosition = mix(nearPosition, vViewPosition, s);
+                modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
+                fragmentDepth = calcDepth(viewPosition);
+                if (fragmentDepth > 1.0) discard;
+            }
+            gl_FragDepthEXT = fragmentDepth;
+        #endif
         #if defined(dClipVariant_pixel) && dClipObjectCount != 0
             if (clipTest(modelPosition / uModelScale)) discard;
         #endif
@@ -50,11 +63,10 @@ void main() {
         vec3 vModelPosition = modelPosition;
     #else
         #include clip_pixel
+        float fragmentDepth = gl_FragCoord.z;
     #endif
 
     interior = !gl_FrontFacing;
-
-    float fragmentDepth = gl_FragCoord.z;
 
     #ifdef dNeedsNormal
         #if defined(dFlatShaded)
@@ -72,7 +84,10 @@ void main() {
 
         #ifdef dSolidInterior
             if (capPass) {
-                normal = -uSolidInteriorPlane.xyz;
+                normal = vec3(0.0, 0.0, -1.0);
+                #if dClipObjectCount != 0
+                    if (uSolidInteriorClip >= 0) normal = normalize(clipCapNormal(vModelPosition / uModelScale) * mat3(uInvView));
+                #endif
             }
         #endif
     #endif

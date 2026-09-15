@@ -237,5 +237,40 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
         }
         return -1.0;
     }
+
+    float clipCapExit(const in vec3 pFront, const in vec3 pBack) {
+        float s = -1.0;
+        #pragma unroll_loop_start
+        for (int i = 0; i < dClipObjectCount; ++i) {
+            if (UNROLLED_LOOP_INDEX == uSolidInteriorClip) {
+                vec2 iv = clipObjectInterval(uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i], uClipObjectTransform[i], pFront, pBack);
+                if (iv.x < iv.y) s = uClipObjectInvert[i] ? iv.x : iv.y;
+            }
+        }
+        #pragma unroll_loop_end
+        return s;
+    }
+
+    float clipCapDistance(const in vec3 center) {
+        float d = 0.0;
+        #pragma unroll_loop_start
+        for (int i = 0; i < dClipObjectCount; ++i) {
+            if (UNROLLED_LOOP_INDEX == uSolidInteriorClip) {
+                float sd = getSignedDistance(center, uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i], uClipObjectTransform[i]);
+                d = uClipObjectInvert[i] ? -sd : sd;
+            }
+        }
+        #pragma unroll_loop_end
+        return d;
+    }
+
+    vec3 clipCapNormal(const in vec3 center) {
+        vec2 e = vec2(0.01, 0.0);
+        return normalize(vec3(
+            clipCapDistance(center + e.xyy) - clipCapDistance(center - e.xyy),
+            clipCapDistance(center + e.yxy) - clipCapDistance(center - e.yxy),
+            clipCapDistance(center + e.yyx) - clipCapDistance(center - e.yyx)
+        ));
+    }
 #endif
 `;
