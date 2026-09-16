@@ -48,6 +48,11 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
     float posT = mix(B + sqrtDet, B - sqrtDet, uIsOrtho);
     float negT = mix(B - sqrtDet, B + sqrtDet, uIsOrtho);
 
+    #if defined(dRenderVariant_depth)
+        // back-depth pass wants the far intersection
+        if (uDepthBack) negT = posT;
+    #endif
+
     cameraPos = rayDirection * negT + rayOrigin;
     modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
     fragmentDepth = calcDepth(cameraPos);

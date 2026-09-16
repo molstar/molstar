@@ -109,6 +109,18 @@ export function getUnitcellData(model: Model, cell: Cell, props: UnitcellProps) 
     return { cell, ref };
 }
 
+/**
+ * Like `getUnitcellData` but takes an explicit cartesian `center` instead of a `Model`.
+ * Useful for data that is not backed by a `Model`, e.g. a `ParticleList`.
+ */
+export function getUnitcellDataFromSymmetry(cell: Cell, center: Vec3, props: UnitcellProps) {
+    const ref = Vec3();
+    if (props.ref === 'model') {
+        Vec3.transformMat4(ref, center, cell.toFractional);
+    }
+    return { cell, ref };
+}
+
 export type UnitcellRepresentation = Representation<UnitcellData, UnitcellParams>
 export function UnitcellRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<UnitcellData, UnitcellParams>): UnitcellRepresentation {
     return Representation.createMulti('Unit Cell', ctx, getParams, Representation.StateBuilder, UnitcellVisuals as unknown as Representation.Def<UnitcellData, UnitcellParams>);

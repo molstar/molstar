@@ -7,6 +7,10 @@
 
 import * as argparse from 'argparse';
 import { ObjectKeys } from '../../mol-util/type-helpers';
+import {
+  interpolateIdPath,
+  validateIdPathTemplate,
+} from '../../mol-util/string';
 import { VERSION } from './version';
 import * as fs from 'fs';
 import { ModelPropertyProviderConfig } from './property-provider';
@@ -193,7 +197,7 @@ function addServerArgs(parser: argparse.ArgumentParser) {
         help: [
             'Map `id`s for a `source` to a file path.',
             'Example: pdb-bcif \'../../data/bcif/${id}.bcif\' ',
-            'JS expressions can be used inside ${}, e.g. \'${id.substr(1, 2)}/${id}.mdb\'',
+            'Supported ${id...} expressions inside ${}: id, id.toLowerCase(), id.toUpperCase(), id.substr(n, m), id.substring(n), id.substring(n, m), id.slice(n), id.slice(n, m)',
             'Can be specified multiple times.',
             'The `SOURCE` variable (e.g. `pdb-bcif`) is arbitrary and depends on how you plan to use the server.',
             `Supported formats: ${ModelServerFetchFormats.join(', ')}`
@@ -268,11 +272,17 @@ function validateConfigAndSetupSourceMap() {
         throw new Error(`Please provide 'sourceMap' configuration. See [-h] for available options.`);
     }
 
-    mapSourceAndIdToFilename = new Function('source', 'id', [
-        'switch (source.toLowerCase()) {',
-        ...ModelServerConfig.sourceMap.map(([source, path, format]) => `case '${source.toLowerCase()}': return [\`${path}\`, '${format}'];`),
-        '}',
-    ].join('\n')) as any;
+    const sourceEntries = new Map<string, { pathTemplate: string; format?: ModelServerFetchFormats }>();
+    for (const [source, path, format] of ModelServerConfig.sourceMap) {
+        validateIdPathTemplate(path);
+        sourceEntries.set(source.toLowerCase(), { pathTemplate: path, format });
+    }
+
+    mapSourceAndIdToFilename = (source, id) => {
+        const entry = sourceEntries.get(source.toLowerCase());
+        if (!entry) return void 0 as any;
+        return [interpolateIdPath(entry.pathTemplate, id), entry.format] as [string, ModelServerFetchFormats];
+    };
 }
 
 function parseConfigArguments() {

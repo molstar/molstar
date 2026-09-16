@@ -29,9 +29,8 @@ function createImmediateActions() {
     let registerImmediate: ((handle: number) => void);
 
     function setImmediate(callback: Callback, ...args: any[]) {
-        // Callback can either be a function or a string
         if (typeof callback !== 'function') {
-            callback = new Function('' + callback) as Callback;
+            throw new TypeError('setImmediate callback must be a function');
         }
         // Store and register the task
         const task = { callback: callback, args: args };

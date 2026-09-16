@@ -38,7 +38,10 @@ export class Viewer {
 
     constructor(plugin: PluginUIContext) {
         this.plugin = plugin;
+        Viewer.instances.push(this);
     }
+
+    static readonly instances: Viewer[] = [];
 
     static async create(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
         const spec = createViewerSpec(options);
@@ -218,5 +221,6 @@ export class Viewer {
     dispose() {
         this._events.dispose();
         this.plugin.dispose();
+        Viewer.instances.splice(Viewer.instances.indexOf(this), 1);
     }
 }

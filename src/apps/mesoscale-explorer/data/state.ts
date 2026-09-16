@@ -16,96 +16,13 @@ import { escapeRegExp, stringToWords } from '../../../mol-util/string';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { ParamMapping } from '../../../mol-util/param-mapping';
 import { EntityNode } from '../ui/entities';
-import { DistinctColorsProps, distinctColors } from '../../../mol-util/color/distinct';
+import { getDistinctBaseColors, getDistinctGroupColors } from '../../../mol-util/color/distinct';
 import { Sphere3D } from '../../../mol-math/geometry';
-import { Hcl } from '../../../mol-util/color/spaces/hcl';
 import { StateObjectCell, StateObjectRef, StateSelection } from '../../../mol-state';
 import { ShapeRepresentation3D, StructureRepresentation3D } from '../../../mol-plugin-state/transforms/representation';
 import { SpacefillRepresentationProvider } from '../../../mol-repr/structure/representation/spacefill';
 import { MesoscaleExplorerState } from '../app';
-import { saturate } from '../../../mol-math/interpolate';
 import { Material } from '../../../mol-util/material';
-import { PCG } from '../../../mol-data/util/hash-functions';
-
-function getHueRange(hue: number, variability: number) {
-    let min = hue - variability;
-    const minOverflow = (min < 0 ? -min : 0);
-    let max = hue + variability;
-    if (max > 360) min -= max - 360;
-    max += minOverflow;
-    return [Math.max(0, min), Math.min(360, max)] as [number, number];
-}
-
-function getGrayscaleColors(count: number, luminance: number, variability: number) {
-    const out: Color[] = [];
-    const pcg = new PCG();
-    for (let i = 0; i < count; ++ i) {
-        const l = saturate(luminance / 100);
-        const v = saturate(variability / 180) * pcg.float();
-        const s = pcg.float() > 0.5 ? 1 : -1;
-        const d = Math.abs(l + s * v) % 1;
-        out[i] = Color.fromNormalizedRgb(d, d, d);
-    }
-    return out;
-}
-
-export function getDistinctGroupColors(count: number, color: Color, variability: number, shift: number, props?: Partial<DistinctColorsProps>) {
-    const hcl = Hcl.fromColor(Hcl(), color);
-    if (isNaN(hcl[0])) {
-        return getGrayscaleColors(count, hcl[2], variability);
-    }
-
-    if (count === 1) {
-        hcl[1] = 65;
-        hcl[2] = 55;
-        return [Hcl.toColor(hcl)];
-    }
-
-    const colors = distinctColors(count, {
-        hue: getHueRange(hcl[0], variability),
-        chroma: [30, 100],
-        luminance: [50, 100],
-        clusteringStepCount: 0,
-        minSampleCount: 1000,
-        sampleCountFactor: 100,
-        sort: 'none',
-        ...props,
-    });
-
-    if (shift !== 0) {
-        const offset = Math.floor(shift / 100 * count);
-        return [...colors.slice(offset), ...colors.slice(0, offset)];
-    } else {
-        return colors;
-    }
-}
-
-const Colors = [0x377eb8, 0xe41a1c, 0x4daf4a, 0x984ea3, 0xff7f00, 0xffff33, 0xa65628, 0xf781bf] as Color[];
-
-export function getDistinctBaseColors(count: number, shift: number, props?: Partial<DistinctColorsProps>): Color[] {
-    let colors: Color[];
-    if (count <= Colors.length) {
-        colors = Colors.slice(0, count).map(e => Array.isArray(e) ? e[0] : e);
-    } else {
-        colors = distinctColors(count, {
-            hue: [1, 360],
-            chroma: [25, 100],
-            luminance: [30, 100],
-            clusteringStepCount: 0,
-            minSampleCount: 1000,
-            sampleCountFactor: 100,
-            sort: 'none',
-            ...props,
-        });
-    }
-
-    if (shift !== 0) {
-        const offset = Math.floor(shift / 100 * count);
-        return [...colors.slice(offset), ...colors.slice(0, offset)];
-    } else {
-        return colors;
-    }
-}
 
 export const ColorParams = {
     type: PD.Select('generate', PD.arrayToOptions(['generate', 'uniform', 'custom'])),

@@ -47,6 +47,7 @@ export const MVSAnnotationTooltipsProvider: CustomStructureProperty.Provider<MVS
         const fullProps = { ...PD.getDefaultValues(MVSAnnotationTooltipsParams), ...props };
         return { value: fullProps } satisfies CustomProperty.Data<MVSAnnotationTooltipsProps>;
     },
+    isHidden: true,
 });
 
 

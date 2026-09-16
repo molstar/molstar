@@ -2,10 +2,11 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Unit, Structure } from '../../../../mol-model/structure';
-import { Task } from '../../../../mol-task';
+import { RuntimeContext, Task } from '../../../../mol-task';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { getUnitConformationAndRadius, getStructureConformationAndRadius, CommonSurfaceParams, ensureReasonableResolution } from './common';
 import { computeBlobSurface, BlobSurfaceData } from '../../../../mol-math/geometry/blob-surface';
@@ -14,7 +15,7 @@ import { SizeTheme } from '../../../../mol-theme/size';
 import { PositionData } from '../../../../mol-math/geometry';
 import { Boundary } from '../../../../mol-math/geometry/boundary';
 
-export const BlobDensityParams = {
+export const BlobSurfaceCoreParams = {
     blobSize: PD.Numeric(30, { min: 4, max: 200, step: 1 }, { description: 'Size of the spatial bins used to coarsen atoms into a small number of "blobs" before surfacing. Higher means fewer, bigger, blobbier blobs.' }),
     blobMethod: PD.MappedStatic('clustering', {
         grid: PD.Group({}),
@@ -33,12 +34,39 @@ export const BlobDensityParams = {
     }, { description: 'Shape fitted to each group of atoms. "ellipsoid" fits a fixed quadratic boundary (fast). "sphericalHarmonics" fits an angularly-varying radial boundary that can better follow non-ellipsoidal blob shapes.' }),
     radiusOffset: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, { description: 'Extra/offset radius added to the atoms/coarse elements for blob calculation. Useful to create coarse, low resolution surfaces.' }),
     smoothness: PD.Numeric(1.5, { min: 1, max: 3, step: 0.1 }, { description: 'Smoothness of the blob surface, lower is smoother.' }),
+};
+export type BlobSurfaceCoreParams = typeof BlobSurfaceCoreParams
+export type BlobSurfaceCoreProps = PD.Values<BlobSurfaceCoreParams>
+
+export const BlobDensityParams = {
+    ...BlobSurfaceCoreParams,
     ...CommonSurfaceParams
 };
 export const DefaultBlobDensityProps = PD.getDefaultValues(BlobDensityParams);
 export type BlobDensityProps = typeof DefaultBlobDensityProps
 
 export type BlobDensityData = BlobSurfaceData
+
+export function shouldUpdateBlobGeometry(newProps: BlobDensityProps, currentProps: BlobDensityProps) {
+    return (
+        newProps.blobSize !== currentProps.blobSize ||
+        newProps.blobMethod.name !== currentProps.blobMethod.name ||
+        (newProps.blobMethod.name === 'clustering' && currentProps.blobMethod.name === 'clustering' &&
+            newProps.blobMethod.params.iterations !== currentProps.blobMethod.params.iterations) ||
+        newProps.blobShape.name !== currentProps.blobShape.name ||
+        (newProps.blobShape.name === 'sphericalHarmonics' && currentProps.blobShape.name === 'sphericalHarmonics' &&
+            (newProps.blobShape.params.degree !== currentProps.blobShape.params.degree ||
+                newProps.blobShape.params.regularization !== currentProps.blobShape.params.regularization)) ||
+        newProps.resolution !== currentProps.resolution ||
+        newProps.adjustResolution !== currentProps.adjustResolution ||
+        newProps.radiusOffset !== currentProps.radiusOffset ||
+        newProps.smoothness !== currentProps.smoothness ||
+        newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+        newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
+        newProps.traceOnly !== currentProps.traceOnly ||
+        newProps.includeParent !== currentProps.includeParent
+    );
+}
 
 /**
  * Reference feature radius (~vdW/atomic radius) that the incoming quality `resolution` is
@@ -62,7 +90,7 @@ const BlobResolutionScale = 0.5;
 /** Hard ceiling on the adjusted resolution (also re-guarded by box size in `ensureReasonableResolution`). */
 const BlobMaxResolution = 20;
 
-function getBlobDensityData(position: PositionData, boundary: Boundary, radius: (index: number) => number, props: BlobDensityProps): BlobDensityData {
+async function getBlobDensityData(ctx: RuntimeContext, position: PositionData, boundary: Boundary, radius: (index: number) => number, props: BlobDensityProps): Promise<BlobDensityData> {
     const { blobSize, blobMethod, blobShape, radiusOffset, smoothness, adjustResolution } = props;
     const p = ensureReasonableResolution(boundary.box, props);
 
@@ -90,7 +118,7 @@ function getBlobDensityData(position: PositionData, boundary: Boundary, radius: 
         resolution = Math.min(Math.max(p.resolution * (featureRadius / BlobReferenceRadius) * methodFactor * BlobResolutionScale, p.resolution), BlobMaxResolution);
     }
 
-    return computeBlobSurface(position, boundary, radius, {
+    return computeBlobSurface(ctx, position, boundary, radius, {
         blobSize,
         method: blobMethod.name,
         clusterIterations: blobMethod.name === 'clustering' ? blobMethod.params.iterations : 0,
@@ -105,14 +133,14 @@ function getBlobDensityData(position: PositionData, boundary: Boundary, radius: 
 
 export function computeUnitBlobSurface(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, props: BlobDensityProps) {
     const { position, boundary, radius } = getUnitConformationAndRadius(structure, unit, sizeTheme, props);
-    return Task.create('Blob Surface', async () => {
-        return getBlobDensityData(position, boundary, radius, props);
+    return Task.create('Blob Surface', async ctx => {
+        return await getBlobDensityData(ctx, position, boundary, radius, props);
     });
 }
 
 export function computeStructureBlobSurface(structure: Structure, sizeTheme: SizeTheme<any>, props: BlobDensityProps) {
     const { position, boundary, radius } = getStructureConformationAndRadius(structure, sizeTheme, props);
-    return Task.create('Blob Surface', async () => {
-        return getBlobDensityData(position, boundary, radius, props);
+    return Task.create('Blob Surface', async ctx => {
+        return await getBlobDensityData(ctx, position, boundary, radius, props);
     });
 }

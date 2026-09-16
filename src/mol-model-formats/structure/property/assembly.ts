@@ -89,7 +89,7 @@ export function getMatrices(pdbx_struct_oper_list: StructOperList): Matrices {
     return matrices;
 }
 
-function expandOperators(operatorList: string[][]) {
+export function expandOperators(operatorList: string[][]): string[][] {
     const ops: string[][] = [];
     const currentOp: string[] = [];
     for (let i = 0; i < operatorList.length; i++) currentOp[i] = '';
@@ -128,7 +128,7 @@ function getAssemblyOperators(matrices: Matrices, operatorNames: string[][], sta
     return operators;
 }
 
-function parseOperatorList(value: string): string[][] {
+export function parseOperatorList(value: string): string[][] {
     // '(X0)(1-5)' becomes [['X0'], ['1', '2', '3', '4', '5']]
     // kudos to Glen van Ginkel.
 

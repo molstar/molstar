@@ -18,7 +18,7 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci, Loci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, AnimationParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams, IllustrativeParams, getCellDescription, getEntityDescription, getEveryEntity } from '../data/state';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, AnimationParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams, IllustrativeParams, getCellDescription, getEntityDescription, getEveryEntity } from '../data/state';
 import React, { useState } from 'react';
 import { MesoscaleExplorerState } from '../app';
 import { StructureElement } from '../../../mol-model/structure/structure/element';
@@ -30,6 +30,7 @@ import { MesoFocusLoci } from '../behavior/camera';
 import Markdown from 'react-markdown';
 import { combineLatest } from 'rxjs';
 import { ColorLoaderControls } from './states';
+import { getDistinctGroupColors } from '../../../mol-util/color/distinct';
 
 function centerLoci(plugin: PluginContext, loci: Loci, durationMs = 250) {
     const { canvas3d } = plugin;

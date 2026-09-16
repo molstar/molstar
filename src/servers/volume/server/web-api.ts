@@ -15,7 +15,7 @@ import * as Coords from './algebra/coordinate';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { State } from './state';
 import { LimitsConfig, ServerConfig } from '../config';
-import { interpolate } from '../../../mol-util/string';
+import { interpolateIdPath, validateIdPathTemplate } from '../../../mol-util/string';
 import { getSchema, shortcutIconLink } from './web-schema';
 import { swaggerUiIndexHandler, swaggerUiAssetsHandler } from '../../common/swagger-ui';
 import { healthCheck } from '../../common/util';
@@ -55,17 +55,15 @@ export function init(app: express.Express) {
 }
 
 function getMapFileFn() {
-    const map = new Function('type', 'id', 'interpolate', [
-        'id = id.toLowerCase()',
-        'switch (type.toLowerCase()) {',
-        ...ServerConfig.idMap.map(mapping => {
-            const [type, path] = mapping;
-            return `    case '${type}': return interpolate('${path}', { id });`;
-        }),
-        '    default: return void 0;',
-        '}'
-    ].join('\n'));
-    return (type: string, id: string) => map(type, id, interpolate);
+    const idMap = new Map<string, string>();
+    for (const [type, path] of ServerConfig.idMap) {
+        validateIdPathTemplate(path);
+        idMap.set(type.toLowerCase(), path);
+    }
+    return (type: string, id: string) => {
+        const path = idMap.get(type.toLowerCase());
+        return path ? interpolateIdPath(path, id.toLowerCase()) : void 0;
+    };
 }
 
 function wrapResponse(fn: string, res: express.Response) {

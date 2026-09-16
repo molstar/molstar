@@ -64,9 +64,42 @@ export function substringStartsWith(str: string, start: number, end: number, tar
 }
 
 export function interpolate(str: string, params: { [k: string]: any }) {
-    const names = Object.keys(params);
-    const values = Object.values(params);
-    return new Function(...names, `return \`${str}\`;`)(...values);
+    return str.replace(/\$\{(\w+)\}/g, (_, key) => String(params[key] ?? ''));
+}
+
+const idPathExpressionRe = /\$\{([^}]+)\}/g;
+
+/** Replicate `substr(start, length)` using `substring`, clamping to available characters. */
+function idSubstrLike(id: string, start: number, length: number): string {
+    if (length <= 0) return '';
+    let from = start;
+    if (from < 0) from = Math.max(0, id.length + from);
+    return id.substring(from, from + length);
+}
+
+function evaluateIdPathExpression(expr: string, id: string): string {
+    const trimmed = expr.trim();
+    if (trimmed === 'id') return id;
+    if (trimmed === 'id.toLowerCase()') return id.toLowerCase();
+    if (trimmed === 'id.toUpperCase()') return id.toUpperCase();
+    const substrMatch = /^id\.(?:substr|substring)\((\d+),\s*(\d+)\)$/.exec(trimmed);
+    if (substrMatch) return idSubstrLike(id, +substrMatch[1], +substrMatch[2]);
+    const substringMatch = /^id\.substring\((\d+)\)$/.exec(trimmed);
+    if (substringMatch) return id.substring(+substringMatch[1]);
+    const sliceMatch = /^id\.slice\((\d+)(?:,\s*(\d+))?\)$/.exec(trimmed);
+    if (sliceMatch) return id.slice(+sliceMatch[1], sliceMatch[2] !== undefined ? +sliceMatch[2] : undefined);
+    throw new Error(`Unsupported id path expression: \${${expr}}`);
+}
+
+/** Validate that a path template only uses supported `${id…}` expressions. */
+export function validateIdPathTemplate(template: string) {
+    for (const match of template.matchAll(idPathExpressionRe)) {
+        evaluateIdPathExpression(match[1], 'test-id');
+    }
+}
+
+export function interpolateIdPath(template: string, id: string): string {
+    return template.replace(idPathExpressionRe, (_, expr) => evaluateIdPathExpression(expr, id));
 }
 
 export function trimChar(str: string, char: string) {

@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2024-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { QuadSchema, QuadValues } from '../../mol-gl/compute/util';
@@ -50,10 +51,9 @@ export const TracingParams = {
     thicknessFactor: PD.Numeric(1, { min: 0.1, max: 2, step: 0.05 }, { hideIf: p => p.thicknessMode === 'fixed' }),
     thickness: PD.Numeric(4, { min: 0.1, max: 512, step: 0.1 }, { hideIf: p => p.thicknessMode === 'auto' }),
     bounces: PD.Numeric(4, { min: 1, max: 32, step: 1 }, { description: 'Number of bounces for each ray.' }),
-    glow: PD.Boolean(true, { description: 'Bounced rays always get the full light. This produces a slight glowing effect.' }),
     shadowEnable: PD.Boolean(false),
     shadowSoftness: PD.Numeric(0.1, { min: 0.01, max: 1.0, step: 0.01 }),
-    shadowThickness: PD.Numeric(0.5, { min: 0.1, max: 32, step: 0.1 }),
+    shadowThickness: PD.Numeric(0.5, { min: 0.0, max: 32, step: 0.1 }, { description: 'Thickness of the shadow casting geometry. Set to 0.0 for automatic estimation.' }),
 };
 export type TracingProps = PD.Values<typeof TracingParams>
 
@@ -151,8 +151,10 @@ export class TracingPass {
         if (props.thicknessMode === 'auto') {
             this.thicknessTarget.bind();
             state.clearColor(0, 0, 0, 0);
+            state.clearDepth(0);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             renderer.renderDepthOpaqueBack(scene.primitives, camera);
+            state.clearDepth(1);
         }
         if (isTimingMode) this.webgl.timer.markEnd('TracePass.renderInput');
     }
@@ -318,11 +320,6 @@ export class TracingPass {
 
         const ambientColor = Vec3();
         Vec3.scale(ambientColor, Color.toArrayNormalized(renderer.props.ambientColor, ambientColor, 0), renderer.props.ambientIntensity);
-        const lightStrength = Vec3.clone(ambientColor);
-        for (let i = 0, il = renderer.light.count; i < il; ++i) {
-            const light = Vec3.fromArray(Vec3(), renderer.light.color, i * 3);
-            Vec3.add(lightStrength, lightStrength, light);
-        }
 
         // trace
         this.holdTarget.bind();
@@ -357,11 +354,7 @@ export class TracingPass {
             needsUpdateTrace = true;
         }
         ValueCell.update(this.traceRenderable.values.uAmbientColor, ambientColor);
-        ValueCell.update(this.traceRenderable.values.uLightStrength, lightStrength);
-        if (this.traceRenderable.values.dGlow.ref.value !== props.glow) {
-            ValueCell.update(this.traceRenderable.values.dGlow, props.glow);
-            needsUpdateTrace = true;
-        }
+        ValueCell.updateIfChanged(this.traceRenderable.values.uExposure, renderer.props.exposure);
         if (this.traceRenderable.values.dBounces.ref.value !== props.bounces) {
             ValueCell.update(this.traceRenderable.values.dBounces, props.bounces);
             needsUpdateTrace = true;
@@ -427,12 +420,11 @@ const TraceSchema = {
     uLightColor: UniformSpec('v3[]'),
     dLightCount: DefineSpec('number'),
     uAmbientColor: UniformSpec('v3'),
-    uLightStrength: UniformSpec('v3'),
+    uExposure: UniformSpec('f'),
 
     uFrameNo: UniformSpec('i'),
     dRendersPerFrame: DefineSpec('number'),
 
-    dGlow: DefineSpec('boolean'),
     dBounces: DefineSpec('number'),
     dSteps: DefineSpec('number'),
     dRefineSteps: DefineSpec('number'),
@@ -476,12 +468,11 @@ function getTraceRenderable(ctx: WebGLContext, colorTexture: Texture, normalText
         uLightColor: ValueCell.create([]),
         dLightCount: ValueCell.create(0),
         uAmbientColor: ValueCell.create(Vec3()),
-        uLightStrength: ValueCell.create(Vec3.create(1, 1, 1)),
+        uExposure: ValueCell.create(1),
 
         uFrameNo: ValueCell.create(0),
         dRendersPerFrame: ValueCell.create(1),
 
-        dGlow: ValueCell.create(true),
         dBounces: ValueCell.create(4),
         dSteps: ValueCell.create(32),
         dRefineSteps: ValueCell.create(4),

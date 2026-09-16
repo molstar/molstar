@@ -81,7 +81,7 @@ function addServerArgs(parser: argparse.ArgumentParser) {
             'Map `id`s for a `type` to a file path or URL.',
             'Example: x-ray \'../../data/mdb/xray/${id}-ccp4.mdb\'',
             '',
-            '  - JS expressions can be used inside ${}, e.g. \'${id.substr(1, 2)}/${id}.mdb\'',
+            '  - Supported ${id...} expressions inside ${}: id, id.toLowerCase(), id.toUpperCase(), id.substr(n, m), id.substring(n), id.substring(n, m), id.slice(n), id.slice(n, m)',
             '  - Can be specified multiple times.',
             '  - The `TYPE` variable (e.g. `x-ray`) is arbitrary and depends on how you plan to use the server.',
             '    By default, Mol* Viewer uses `x-ray` and `em`, but any particular use case may vary. ',

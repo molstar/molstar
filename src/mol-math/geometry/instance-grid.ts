@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -72,6 +72,14 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number, b
     const cellSpheres = new Float32Array(bottomGrid.cellSpheres.length);
     const cellInstance = new Float32Array(bottomGrid.cellInstance.length);
 
+    // gather transforms as float64 pairs when 8-byte aligned to halve the copy work;
+    // bit-exact unless a float32 pair aliases a double NaN, which requires Inf/NaN input
+    const { transform } = instanceData;
+    const { cellTransform } = bottomGrid;
+    const use64 = transform.byteOffset % 8 === 0 && cellTransform.byteOffset % 8 === 0;
+    const src64 = use64 ? new Float64Array(transform.buffer, transform.byteOffset, transform.length >> 1) : undefined;
+    const dst64 = use64 ? new Float64Array(cellTransform.buffer, cellTransform.byteOffset, cellTransform.length >> 1) : undefined;
+
     let offset = 0;
     for (let i = 0, il = topGrid.batchCell.length; i < il; ++i) {
         const cellIdx = topGrid.batchCell[i];
@@ -86,10 +94,18 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number, b
 
         for (let j = 0; j < count; ++j) {
             const idx = start + j;
-            const id = bottomGrid.cellInstance[idx];
-            for (let k = 0; k < 16; ++k) {
-                // assumes instanceData.instance is strictly serially ordered
-                bottomGrid.cellTransform[offset * 16 + k] = instanceData.transform[id * 16 + k];
+            // assumes instanceData.instance is strictly serially ordered
+            const id = bottomGrid.cellInstance[idx] | 0;
+            if (src64 && dst64) {
+                const so = id * 8, dof = offset * 8;
+                for (let k = 0; k < 8; ++k) {
+                    dst64[dof + k] = src64[so + k];
+                }
+            } else {
+                const so = id * 16, dof = offset * 16;
+                for (let k = 0; k < 16; ++k) {
+                    cellTransform[dof + k] = transform[so + k];
+                }
             }
             cellInstance[offset] = id;
             offset += 1;
@@ -149,6 +165,7 @@ function calcBottomGrid(instanceData: InstanceData, cellSize: number): BottomGri
     const cellCount = offset.length;
     const cellOffsets = new Uint32Array(cellCount + 1);
     const cellSpheres = new Float32Array(cellCount * 4);
+    // only allocated here; fully populated by the reorder in calcInstanceGrid
     const cellTransform = new Float32Array(instanceCount * 16);
     const cellInstance = new Float32Array(instanceCount);
 
@@ -160,24 +177,22 @@ function calcBottomGrid(instanceData: InstanceData, cellSize: number): BottomGri
         const start = offset[i];
         const size = count[i];
         cellOffsets[i] = start;
-        const kStart = k;
         for (let j = start, jl = start + size; j < jl; ++j) {
-            const idx = array[j];
-            cellInstance[k] = instance[idx];
-            for (let l = 0; l < 16; ++l) {
-                cellTransform[k * 16 + l] = transform[idx * 16 + l];
-            }
+            cellInstance[k] = instance[array[j]];
             k += 1;
         }
 
         if (size === 1) {
-            v3transformMat4Offset(cellSpheres, center, cellTransform, i * 4, 0, kStart * 16);
+            const idx = array[start];
+            cellSpheres[i * 4] = x[idx];
+            cellSpheres[i * 4 + 1] = y[idx];
+            cellSpheres[i * 4 + 2] = z[idx];
             cellSpheres[i * 4 + 3] = radius;
         } else {
             Box3D.setEmpty(b);
-            const o = kStart * 16;
-            for (let l = 0; l < size; ++l) {
-                v3transformMat4Offset(v, center, cellTransform, 0, 0, l * 16 + o);
+            for (let j = start, jl = start + size; j < jl; ++j) {
+                const idx = array[j];
+                Vec3.set(v, x[idx], y[idx], z[idx]);
                 b3add(b, v);
             }
             Box3D.expand(b, b, rv);

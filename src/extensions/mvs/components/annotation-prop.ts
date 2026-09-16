@@ -90,7 +90,8 @@ export const MVSAnnotationsProvider: CustomModelProperty.Provider<MVSAnnotations
         const specs: MVSAnnotationSpec[] = props.annotations ?? [];
         const annots = await MVSAnnotations.fromSpecs(ctx, specs, data);
         return { value: annots } satisfies CustomProperty.Data<MVSAnnotations>;
-    }
+    },
+    isHidden: true,
 });
 
 

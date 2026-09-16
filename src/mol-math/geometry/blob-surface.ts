@@ -3,8 +3,10 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Ludovic Autin <autin@scripps.edu>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import { RuntimeContext } from '../../mol-task';
 import { PositionData, DensityData, fillGridDim } from './common';
 import { Boundary, getFastBoundary } from './boundary';
 import { Box3D } from './primitives/box3d';
@@ -107,7 +109,7 @@ function groupAtomsByGrid(position: PositionData, boundary: Boundary, blobSize: 
  * empty-cluster remedy. Softens/avoids the grid method's atoms-near-a-bin-boundary-split
  * artifact, at the cost of `clusterIterations` extra O(atoms * k) passes.
  */
-function groupAtomsByClustering(position: PositionData, boundary: Boundary, blobSize: number, iterations: number): AtomGroup[] {
+async function groupAtomsByClustering(ctx: RuntimeContext, position: PositionData, boundary: Boundary, blobSize: number, iterations: number): Promise<AtomGroup[]> {
     const initialGroups = groupAtomsByGrid(position, boundary, blobSize);
     const k = initialGroups.length;
     if (k <= 1) return initialGroups;
@@ -140,6 +142,7 @@ function groupAtomsByClustering(position: PositionData, boundary: Boundary, blob
     const cellSize = Vec3.create(blobSize, blobSize, blobSize);
 
     for (let iter = 0; iter < iterations; ++iter) {
+        if (ctx.shouldUpdate) await ctx.update({ message: 'clustering atoms', current: iter, max: iterations });
         // console.time('k-means iteration');
         let changed = false;
 
@@ -329,16 +332,20 @@ function fitSHBlobFromGroup(position: PositionData, radius: (index: number) => n
  * each group's atoms are fit to either an ellipsoid (`shape: 'ellipsoid'`) or a
  * spherical-harmonics radial boundary (`shape: 'sh'`).
  */
-function fitBlobs(position: PositionData, boundary: Boundary, radius: (index: number) => number, props: BlobSurfaceProps): { blobs: Blob[], maxSemiAxis: number } {
+async function fitBlobs(ctx: RuntimeContext, position: PositionData, boundary: Boundary, radius: (index: number) => number, props: BlobSurfaceProps): Promise<{ blobs: Blob[], maxSemiAxis: number }> {
     const { blobSize, radiusOffset, method, clusterIterations, shape, shDegree, shRegularization } = props;
 
     const groups = method === 'clustering'
-        ? groupAtomsByClustering(position, boundary, blobSize, clusterIterations)
+        ? await groupAtomsByClustering(ctx, position, boundary, blobSize, clusterIterations)
         : groupAtomsByGrid(position, boundary, blobSize);
 
-    const blobs: Blob[] = shape === 'sh'
-        ? groups.map(group => fitSHBlobFromGroup(position, radius, radiusOffset, group, shDegree, shRegularization))
-        : groups.map(group => fitEllipsoidBlobFromGroup(position, radius, radiusOffset, group));
+    const blobs: Blob[] = [];
+    for (let i = 0, il = groups.length; i < il; ++i) {
+        blobs.push(shape === 'sh'
+            ? fitSHBlobFromGroup(position, radius, radiusOffset, groups[i], shDegree, shRegularization)
+            : fitEllipsoidBlobFromGroup(position, radius, radiusOffset, groups[i]));
+        if (ctx.shouldUpdate) await ctx.update({ message: 'fitting blobs', current: i, max: il });
+    }
 
     let maxSemiAxis = 0;
     for (const b of blobs) {
@@ -371,12 +378,12 @@ function ellipsoidWorldPad(out: Vec3, u0: Vec3, u1: Vec3, u2: Vec3, a0: number, 
  * high-resolution mesh over big blobs can still ask for one; keeping the box tight is what keeps
  * that affordable instead of also depending on a coarse resolution to avoid blowing up cell count.
  */
-export function computeBlobSurface(position: PositionData, boundary: Boundary, radius: (index: number) => number, props: BlobSurfaceProps): BlobSurfaceData {
+export async function computeBlobSurface(ctx: RuntimeContext, position: PositionData, boundary: Boundary, radius: (index: number) => number, props: BlobSurfaceProps): Promise<BlobSurfaceData> {
     const { resolution, smoothness, shDegree } = props;
     const alpha = smoothness;
     const scaleFactor = 1 / resolution;
 
-    const { blobs } = fitBlobs(position, boundary, radius, props);
+    const { blobs } = await fitBlobs(ctx, position, boundary, radius, props);
 
     const cutoff = 2; // matches the existing "2x radius" density cutoff convention
     const cutoffSq = cutoff * cutoff;
@@ -447,6 +454,8 @@ export function computeBlobSurface(position: PositionData, boundary: Boundary, r
     let shLUT: RadiusLUT | undefined;
 
     for (let bi = 0; bi < blobs.length; ++bi) {
+        if (ctx.shouldUpdate) await ctx.update({ message: 'filling density grid', current: bi, max: blobs.length });
+
         const blob = blobs[bi];
         const { center, atomId } = blob;
         const maxExtent = blobMaxExtent(blob);

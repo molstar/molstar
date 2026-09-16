@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,6 +9,7 @@ import { Bond } from './structure/structure/unit/bonds';
 import { ShapeGroup } from './shape/shape';
 import { PositionLocation } from '../mol-geo/util/location-iterator';
 import { Volume } from './volume';
+import { Particle } from './particles/particle-list';
 
 /** A null value Location */
 export const NullLocation = { kind: 'null-location' as const };
@@ -44,4 +45,4 @@ export function isDirectLocation(x: any): x is DirectLocation {
     return !!x && x.kind === 'direct-location';
 }
 
-export type Location = StructureElement.Location | Bond.Location | ShapeGroup.Location | PositionLocation | DataLocation | NullLocation | DirectLocation | Volume.Cell.Location | Volume.Segment.Location
+export type Location = StructureElement.Location | Bond.Location | ShapeGroup.Location | PositionLocation | DataLocation | NullLocation | DirectLocation | Volume.Cell.Location | Volume.Segment.Location | Particle.Location

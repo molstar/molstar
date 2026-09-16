@@ -2,6 +2,7 @@
  * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -42,8 +43,8 @@ export const VolumeSegmentParams = {
 export type VolumeSegmentParams = typeof VolumeSegmentParams
 export type VolumeSegmentProps = PD.Values<VolumeSegmentParams>
 
-function gpuSupport(webgl: WebGLContext) {
-    return webgl.extensions.colorBufferFloat && webgl.extensions.textureFloat && webgl.extensions.drawBuffers;
+function gpuSupport(webgl: WebGLContext): boolean {
+    return !!(webgl.extensions.colorBufferFloat && webgl.extensions.textureFloat && webgl.extensions.drawBuffers);
 }
 
 const Padding = 1;
@@ -65,8 +66,12 @@ function getSegmentTransform(grid: Grid, segmentBox: Box3D) {
     return Mat4.mul(Mat4(), transform, translate);
 }
 
+function useGpu(volume: Volume, props: PD.Values<SegmentMeshParams>, webgl?: WebGLContext): boolean {
+    return props.tryUseGpu && !!webgl && gpuSupport(webgl) && suitableForGpu(volume, webgl);
+}
+
 export function SegmentVisual(materialId: number, volume: Volume, key: number, props: PD.Values<SegmentMeshParams>, webgl?: WebGLContext) {
-    if (props.tryUseGpu && webgl && gpuSupport(webgl) && suitableForGpu(volume, webgl)) {
+    if (useGpu(volume, props, webgl)) {
         return SegmentTextureMeshVisual(materialId);
     }
     return SegmentMeshVisual(materialId);
@@ -203,7 +208,7 @@ export function SegmentMeshVisual(materialId: number): VolumeVisual<SegmentMeshP
         },
         geometryUtils: Mesh.Utils,
         mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, webgl?: WebGLContext) => {
-            return props.tryUseGpu && !!webgl && suitableForGpu(volumeKey.volume, webgl);
+            return useGpu(volumeKey.volume, props, webgl);
         }
     }, materialId);
 }
@@ -292,7 +297,7 @@ export function SegmentTextureMeshVisual(materialId: number): VolumeVisual<Segme
         },
         geometryUtils: TextureMesh.Utils,
         mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, webgl?: WebGLContext) => {
-            return !props.tryUseGpu || !webgl || !suitableForGpu(volumeKey.volume, webgl);
+            return !useGpu(volumeKey.volume, props, webgl);
         },
         dispose: (geometry: TextureMesh) => {
             geometry.vertexTexture.ref.value.destroy();

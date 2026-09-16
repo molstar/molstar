@@ -4,13 +4,28 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Improve dynamic trackball controls and show param
+- Fix altloc in PDB files receive different atom names (#156)
+- Add `volume-tools/segmentor`: interactive segmentation of a volume into bodies (polygon labelling from several views, remainder assignment, dust removal, handedness flip, per-body extend + cosine soft edge, MRC mask export)
+- **Breaking**: move the `volume-mask` extension to `volume-tools/mask`, alongside the new segmentor; `ViewMask`, its projection and the in-place volume operations are now shared at `volume-tools/`. Update imports from `extensions/volume-mask` to `extensions/volume-tools/mask`
+- Merge the `volume-mask` example into a `volume-tools` example, with a landing page and one page per tool
+- Fix `CCP4Writer.writeMrc` for volumes with a non-canonical axis order
+- Fix `CCP4Writer.writeMrc` writing `ISPG = 0`, which marks the data as an image stack rather than a volume
+- Add `squaredDistanceTransform3D` (exact Euclidean distance transform) to `mol-math/geometry`
+- Optimize `GridLookup3D` building for sparse grids
+- Optimize `calcInstanceGrid` by reducing amount of data copied
+- Viewer app: keep track of instances in static `Viewer.instances`
+- Fix missing reset time for `Canvas3dInteractionHelper`
+- Remove unused `floodfill` param from the gaussian density volume representation
+- Fix CPU surface/volume visuals rebuilding on every update if GPU path is unavailable
+- Fix `floodfill` not applied on the gaussian surface wireframe
+- Fix `traceOnly` update being ignored by the molecular surface wireframe visuals
 - Added support for molecular atom_style in lammps data files
 - Added element symbol detection in lammps data file
 - Fix inconsistent atomic weight for some elements in `ElementAtomWeights`
 - Fix extra Hydrogens not in chemcomp dict. are disconnected (#1888)
-- Add `NH`, `MC`, `TS`, `OG` to `ElementSymbolColors` so they can be customized in the `element-symbol` color theme's `custom` colors (previously silently ignored, atoms fell back to white, indistinguishable from Hydrogen)
-- Fix `getElementFromAtomicNumber` returning the deprecated `Uut`/`Uup`/`Uus`/`Uuo` placeholder names for atomic numbers 113/115/117/118 instead of the current IUPAC names `Nh`/`Mc`/`Ts`/`Og`
-- Add `mergeBySymmetry` option to root structure transform, merging units with same symmetry operator into a single unit
+- Use IUPAC names for `Nh`/`Mc`/`Ts`/`Og` elements
+- Add `mergeBySymmetry` option to root structure transform (merge units with same symmetry operator)
 - Add support for multi-chain units in sequence UI
 - Add script to generate spacegroup data from CCP4 syminfo.lib
 - Refactor spacegroup construction
@@ -28,31 +43,53 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fix property not being dynamic
     - Defer Symmetry calculation in ModelSymmetry.fromData
 - Support non-default CRYSIN setting in MOL2 format (#338)
-- Fix `ssao-blur` background test: the RG-packed depth never equals `1.0`, so background samples were blurred into geometry and produced a bright rim at the far-clip cutoff
-- Fix picking/hover-highlight of the nucleic cartoon polymer-trace on reduced trace structures returning empty: `getResidueLoci` now accounts for whole residue, not limited to unit.
-- Fix stale marker data in `VolumeVisual` when a geometry update changes the group count (e.g. switching `slice` mode), which mismarked unrelated groups and disabled the marking pass scene-wide
+- Fix `ssao-blur` background test: the RG-packed depth never equals `1.0`
+- Fix picking/hover-highlight of the nucleic cartoon polymer-trace on partial structures
+- Fix stale marker data in `VolumeVisual` when a geometry update changes the group count
 - Add Spherical Harmonics to mol-math
 - Add `blob-surface` structure representation
     - Bin atoms to grid or cluster
     - Fast option fits ellipsoids to bins
     - Artistic option fits spherical harmonics to bins
-- Fix camera reset handling for (temporary) empty scenes (#1903)
-- Remove `firstStepSize` tracing parameter, derive automatically
+    - Mesh and wireframe visuals, per-unit & per-structure
+- Illumination
+    - Remove `firstStepSize` tracing parameter, derive automatically
+    - Fix illumination `auto` thickness mode never correctly being applied
+    - Fix illumination ray marching stepping over occluders
+    - Evaluate illumination `auto` thickness at the surface being tested
+    - Fix `NaN` in illumination shadows when a light color channel sums to zero
+    - Fix illumination indirect light ignoring `exposure` and the shading clamp
+    - Remove illumination `glow` parameter
+    - Fix sphere/cylinder impostors writing their near surface in the back-depth pass
+    - Fix mesh back faces & cylinder far hits being discarded as `interior` in the back-depth pass
+    - Fix illumination shadows not weighing occlusion by per-light irradiance
 - Add `.parseRaw` to `DataFormatProvider` for out of state tree parsing
 - Carbohydrate symbols
   - All carbohydrate symbols are rendered with 2 groups (primary and secondary) and can be potentially colored in two colors
   - CarbohydrateSymbolColorTheme decides which shape will be colored by one or two colors
   - Changed side length ratio of FlatBox shape from 2:2:1 to 2:1:1
 - Camera improvements
-  - Support multiple camera transition shapes
-  - Add `transitionTrajectory` and `transitionEasing` parameters to `PluginState.Snapshot` (MOLJ) and Plugin State > Save Options
-  - Add `trajectory` and `easing` parameters to `FocusLoci` behavior
-  - Add `cameraResetTrajectory` and `cameraResetEasing` parameters to `Canvas3DParams`
+    - Support multiple camera transition shapes
+    - Add `transitionTrajectory` and `transitionEasing` parameters to `PluginState.Snapshot` (MOLJ) and Plugin State > Save Options
+    - Add `trajectory` and `easing` parameters to `FocusLoci` behavior
+    - Add `cameraResetTrajectory` and `cameraResetEasing` parameters to `Canvas3DParams`
+    - Fix camera reset handling for (temporary) empty scenes (#1903)
 - MolViewSpec
-  - Added `transition` node with params `duration_ms`, `trajectory`, `easing`
-  - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
-  - Add support for split colors (e.g. 'red/white', applies to carbohydrate symbols and nucleic cartoon)
-  - Add CarbohydrateSymbol color palette
+    - Added `transition` node with params `duration_ms`, `trajectory`, `easing`
+    - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
+    - MVS-related custom model properties (and custom structure properties) are hidden in UI (fixes override of default custom properties)
+    - Added `shape` node for rendering meshes from `vtp`, `ply` and `obj` resources
+    - Added support for MolQL selectors (e.g., select a residue + 5 ang surroundings)
+    - Add support for split colors (e.g. 'red/white', applies to carbohydrate symbols and nucleic cartoon)
+    - Add CarbohydrateSymbol color palette
+- Remove `new Function` usage for CSP / SOC2 compliance; server path templates use a whitelist of `${id...}` string methods
+- Fix CCP4/MRC volumes with unset cell angles failing to load
+- Fix CCP4/MRC volume `sigma` being taken from the header when the header rms is negative
+- Add Particles as first class objects
+    - `ParticleList` and `ParticleTrajectory`
+    - Formats: ariatomi-em, cryoet-ndjson, dynamo-tbl, relion-star, simularium, cellpack & petworld mmcif
+    - Properties: position, orientation, radius, entity, compartment, custom attributes, fibers
+    - Particles can be decorated with structure, volume, and shape visuals
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)

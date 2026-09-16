@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Unit, Structure } from '../../../../mol-model/structure';
@@ -42,7 +43,7 @@ export function computeUnitGaussianDensity(structure: Structure, unit: Unit, siz
     });
 }
 
-export function computeUnitGaussianDensityTexture(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, props: GaussianDensityProps, webgl: WebGLContext, texture?: Texture) {
+export function computeUnitGaussianDensityTexture(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, props: Omit<GaussianDensityProps, 'floodfill'>, webgl: WebGLContext, texture?: Texture) {
     const { position, boundary, radius } = getUnitConformationAndRadius(structure, unit, sizeTheme, props);
     const p = ensureReasonableResolution(boundary.box, props, getTextureMaxCells(webgl, structure));
     return GaussianDensityTexture(webgl, position, boundary.box, radius, p, texture);
@@ -64,7 +65,7 @@ export function computeStructureGaussianDensity(structure: Structure, sizeTheme:
     });
 }
 
-export function computeStructureGaussianDensityTexture(structure: Structure, sizeTheme: SizeTheme<any>, props: GaussianDensityProps, webgl: WebGLContext, texture?: Texture) {
+export function computeStructureGaussianDensityTexture(structure: Structure, sizeTheme: SizeTheme<any>, props: Omit<GaussianDensityProps, 'floodfill'>, webgl: WebGLContext, texture?: Texture) {
     const { position, boundary, radius } = getStructureConformationAndRadius(structure, sizeTheme, props);
     const p = ensureReasonableResolution(boundary.box, props);
     return GaussianDensityTexture(webgl, position, boundary.box, radius, p, texture);

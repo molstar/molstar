@@ -19,6 +19,7 @@ namespace CustomModelProperty {
     export interface ProviderBuilder<Params extends PD.Params, Value> {
         readonly label: string
         readonly descriptor: CustomPropertyDescriptor
+        /** Hides property in UI (in production) and always attaches */
         readonly isHidden?: boolean
         readonly defaultParams: Params
         readonly getParams: (data: Model) => Params

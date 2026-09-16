@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { NumberArray } from '../../mol-util/type-helpers';
@@ -28,6 +29,53 @@ export function edt(data: NumberArray, width: number, height: number, f: NumberA
             data[y * width + x] = Math.sqrt(d[x]);
         }
     }
+}
+
+const Inf = 1e20;
+
+/**
+ * Squared 3D Euclidean distance from every cell to the nearest cell with `inside[i] !== 0`,
+ * in grid units (Felzenszwalb & Huttenlocher, one separable pass per axis). `inside` is in
+ * x-fastest order (`x + y * nx + z * nx * ny`). Cells inside get 0; if nothing is inside,
+ * all values are `>= 1e20`.
+ */
+export function squaredDistanceTransform3D(inside: ArrayLike<number>, nx: number, ny: number, nz: number, out?: Float32Array): Float32Array {
+    const n = nx * ny * nz;
+    const dist = out && out.length === n ? out : new Float32Array(n);
+    for (let i = 0; i < n; i++) dist[i] = inside[i] ? 0 : Inf;
+
+    const maxDim = Math.max(nx, ny, nz);
+    const f = new Float64Array(maxDim);
+    const d = new Float64Array(maxDim);
+    const v = new Int32Array(maxDim);
+    const z = new Float64Array(maxDim + 1);
+    const nxy = nx * ny;
+
+    for (let k = 0; k < nz; k++) {
+        for (let j = 0; j < ny; j++) {
+            const base = j * nx + k * nxy;
+            for (let i = 0; i < nx; i++) f[i] = dist[base + i];
+            edt1d(f, d, v, z, nx);
+            for (let i = 0; i < nx; i++) dist[base + i] = d[i];
+        }
+    }
+    for (let k = 0; k < nz; k++) {
+        for (let i = 0; i < nx; i++) {
+            const base = i + k * nxy;
+            for (let j = 0; j < ny; j++) f[j] = dist[base + j * nx];
+            edt1d(f, d, v, z, ny);
+            for (let j = 0; j < ny; j++) dist[base + j * nx] = d[j];
+        }
+    }
+    for (let j = 0; j < ny; j++) {
+        for (let i = 0; i < nx; i++) {
+            const base = i + j * nx;
+            for (let k = 0; k < nz; k++) f[k] = dist[base + k * nxy];
+            edt1d(f, d, v, z, nz);
+            for (let k = 0; k < nz; k++) dist[base + k * nxy] = d[k];
+        }
+    }
+    return dist;
 }
 
 /**
