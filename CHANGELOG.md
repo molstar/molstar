@@ -88,6 +88,10 @@ Note that since we don't clearly distinguish between a public and private interf
     - Formats: ariatomi-em, cryoet-ndjson, dynamo-tbl, relion-star, simularium, cellpack & petworld mmcif
     - Properties: position, orientation, radius, entity, compartment, custom attributes, fibers
     - Particles can be decorated with structure, volume, and shape visuals
+- Add `solidInterior` param to mesh-based visuals (solid cap where the camera near plane or a clip object cuts a closed surface)
+- Cap impostor spheres and cylinders with `solidInterior` at clip objects, not only at the camera near plane
+- Add optional `interiorColor` to color themes, enabled with `interior.themeColor` (`element-symbol`, `illustrative` and `cartoon` provide one)
+- Lower the default `interior.colorStrength` from 1 to 0.5
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)

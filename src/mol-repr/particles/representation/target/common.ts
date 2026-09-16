@@ -18,6 +18,8 @@ import { Geometry } from '../../../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../../../mol-geo/util/location-iterator';
 import { createTransform, createIdentityTransform, TransformData } from '../../../../mol-geo/geometry/transform-data';
 import { createColors } from '../../../../mol-geo/geometry/color-data';
+import { updateInteriorColors } from '../../../../mol-geo/geometry/interior-color-data';
+import { hasInteriorThemeColor } from '../../../../mol-geo/geometry/interior';
 import { createSizes } from '../../../../mol-geo/geometry/size-data';
 import { createMarkers, MarkerData } from '../../../../mol-geo/geometry/marker-data';
 import { Interval, OrderedSet, SortedArray } from '../../../../mol-data/int';
@@ -487,6 +489,7 @@ export function createTargetVisual(_targetId: number, materialId: number, webgl?
             if (updateState.updateColor) {
                 locationIt = createLocIt(particles, particleIndices);
                 createColors(locationIt, positionIt, theme.color, renderObject.values as any);
+                updateInteriorColors(renderObject.values, locationIt, positionIt, theme.color, hasInteriorThemeColor(props));
             }
 
             if (updateState.updateSize && 'uSize' in renderObject.values) {

@@ -23,6 +23,16 @@ uniform float uDensity;
         varying float vPaletteV;
     #endif
 
+    #if defined(dInteriorColorType_uniform) && (defined(dRenderVariant_color) || defined(dRenderVariant_tracing))
+        uniform vec3 uInteriorThemeColor;
+    #elif defined(dInteriorColorType_texture) && (defined(dRenderVariant_color) || defined(dRenderVariant_tracing))
+        #ifdef dUsePalette
+            varying float vInteriorPaletteV;
+        #else
+            varying vec3 vInteriorColor;
+        #endif
+    #endif
+
     #ifdef dOverpaint
         varying vec4 vOverpaint;
     #endif

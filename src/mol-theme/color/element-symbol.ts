@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
  * @author Hakan Akgül <hakan-akgul@outlook.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ElementSymbol } from '../../mol-model/structure/model/types';
@@ -121,6 +122,8 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<
         granularity,
         preferSmoothing: true,
         color,
+        interiorColor: carbonColor,
+        interiorGranularity: carbonTheme?.granularity,
         props,
         contextHash,
         description: Description,

@@ -17,6 +17,8 @@ import { createMarkers } from '../../mol-geo/geometry/marker-data';
 import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { ValueCell } from '../../mol-util';
 import { createColors } from '../../mol-geo/geometry/color-data';
+import { updateInteriorColors } from '../../mol-geo/geometry/interior-color-data';
+import { hasInteriorThemeColor } from '../../mol-geo/geometry/interior';
 import { createSizes, SizeData } from '../../mol-geo/geometry/size-data';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval, OrderedSet } from '../../mol-data/int';
@@ -156,6 +158,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                 if (updateState.updateColor) {
                     // console.log('update color')
                     createColors(locationIt, positionIt, _theme.color, _renderObject.values);
+                    updateInteriorColors(_renderObject.values, locationIt, positionIt, _theme.color, hasInteriorThemeColor(currentProps));
                 }
 
                 if (updateState.updateSize) {

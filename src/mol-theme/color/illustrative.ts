@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ElementSymbol } from '../../mol-model/structure/model/types';
@@ -61,7 +62,7 @@ function getStyleTheme(ctx: ThemeDataContext, props: IllustrativeColorThemeProps
 }
 
 export function IllustrativeColorTheme(ctx: ThemeDataContext, props: PD.Values<IllustrativeColorThemeParams>): ColorTheme<IllustrativeColorThemeParams> {
-    const { color: styleColor, legend, contextHash } = getStyleTheme(ctx, props.style);
+    const { color: styleColor, granularity: styleGranularity, legend, contextHash } = getStyleTheme(ctx, props.style);
 
     function illustrativeColor(location: Location, typeSymbol: ElementSymbol) {
         const baseColor = styleColor(location, false);
@@ -85,6 +86,8 @@ export function IllustrativeColorTheme(ctx: ThemeDataContext, props: PD.Values<I
         granularity: 'group',
         preferSmoothing: true,
         color,
+        interiorColor: styleColor,
+        interiorGranularity: styleGranularity,
         props,
         contextHash,
         description: Description,

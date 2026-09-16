@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Color } from '../mol-util/color';
@@ -77,6 +78,10 @@ type ColorThemeShared<P extends PD.Params, G extends ColorType> = {
      */
     readonly palette?: Readonly<ColorTheme.Palette>
     readonly preferSmoothing?: boolean
+    /** Optional color for interior faces, using the same palette as `color` */
+    readonly interiorColor?: LocationColor
+    /** Granularity of `interiorColor`, defaults to the theme granularity */
+    readonly interiorGranularity?: ColorTypeLocation
     readonly contextHash?: number
     readonly description?: string
     readonly legend?: Readonly<ScaleLegend | TableLegend>

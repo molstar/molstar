@@ -25,6 +25,8 @@ import { MarkerAction } from '../../mol-util/marker-action';
 import { ValueCell, deepEqual } from '../../mol-util';
 import { createSizes } from '../../mol-geo/geometry/size-data';
 import { createColors } from '../../mol-geo/geometry/color-data';
+import { updateInteriorColors } from '../../mol-geo/geometry/interior-color-data';
+import { hasInteriorThemeColor } from '../../mol-geo/geometry/interior';
 import { Mat4 } from '../../mol-math/linear-algebra';
 import { Overpaint } from '../../mol-theme/overpaint';
 import { Transparency } from '../../mol-theme/transparency';
@@ -125,6 +127,10 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
         if (!ColorTheme.areEqual(newTheme.color, currentTheme.color)) {
             // console.log('new colorTheme');
+            updateState.updateColor = true;
+        }
+
+        if (hasInteriorThemeColor(newProps) !== hasInteriorThemeColor(currentProps)) {
             updateState.updateColor = true;
         }
 
@@ -258,6 +264,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             if (updateState.updateColor) {
                 // console.log('update color');
                 createColors(locationIt, positionIt, newTheme.color, renderObject.values);
+                updateInteriorColors(renderObject.values, locationIt, positionIt, newTheme.color, hasInteriorThemeColor(newProps));
             }
 
             updateValues(renderObject.values, newProps);

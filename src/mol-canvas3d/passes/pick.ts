@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { PickingId } from '../../mol-geo/geometry/picking';
@@ -100,7 +101,7 @@ export class PickPass {
             this.depthPickTexture.attachFramebuffer(this.framebuffer, 'color3');
 
             this.depthRenderbuffer = isWebGL2(gl)
-                ? resources.renderbuffer('depth32f', 'depth', this.pickWidth, this.pickHeight)
+                ? resources.renderbuffer('depth32f-stencil8', 'depth-stencil', this.pickWidth, this.pickHeight)
                 : resources.renderbuffer('depth16', 'depth', this.pickWidth, this.pickHeight);
 
             this.depthRenderbuffer.attachFramebuffer(this.framebuffer);

@@ -41,7 +41,32 @@ export const assign_color_varying = `
     #endif
 
     #ifdef dUsePalette
-        vPaletteV = ((vColor.r * 256.0 * 256.0 * 255.0 + vColor.g * 256.0 * 255.0 + vColor.b * 255.0) - 1.0) / PALETTE_SCALE;
+        vPaletteV = decodePaletteV(vColor.rgb);
+    #endif
+
+    #if defined(dInteriorColorType_texture) && (defined(dRenderVariant_color) || defined(dRenderVariant_tracing))
+        #if defined(dInteriorColorType_vertex)
+            vec3 interiorColor = readFromTexture(tInteriorColor, vertexId, uInteriorColorTexDim).rgb;
+        #elif defined(dInteriorColorType_vertexInstance)
+            vec3 interiorColor = readFromTexture(tInteriorColor, int(aInstance) * uVertexCount + vertexId, uInteriorColorTexDim).rgb;
+        #else
+            #if defined(dInteriorColorType_instance)
+                float interiorIndex = aInstance;
+            #elif defined(dInteriorColorType_group)
+                float interiorIndex = group;
+            #elif defined(dInteriorColorType_groupInstance)
+                float interiorIndex = aInstance * float(uGroupCount) + group;
+            #endif
+            #ifdef dDualColor
+                if (aColorMode != 2.0) interiorIndex *= 2.0;
+            #endif
+            vec3 interiorColor = readFromTexture(tInteriorColor, interiorIndex, uInteriorColorTexDim).rgb;
+        #endif
+        #ifdef dUsePalette
+            vInteriorPaletteV = decodePaletteV(interiorColor);
+        #else
+            vInteriorColor = interiorColor;
+        #endif
     #endif
 
     #ifdef dOverpaint

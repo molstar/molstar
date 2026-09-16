@@ -10,6 +10,7 @@ import { Mat4, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { transformPositionArray, GroupMapping, createGroupMapping } from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createColors } from '../color-data';
+import { createInteriorColors } from '../interior-color-data';
 import { createMarkers } from '../marker-data';
 import { createSizes, getMaxSize } from '../size-data';
 import { TransformData } from '../transform-data';
@@ -224,6 +225,7 @@ export namespace Cylinders {
         const positionIt = createPositionIterator(cylinders, transform);
 
         const color = createColors(locationIt, positionIt, theme.color);
+        const interiorColor = createInteriorColors(locationIt, positionIt, theme.color, props.interior.themeColor);
         const size = createSizes(locationIt, positionIt, theme.size);
         const marker = resolveInstanceGranularity(props.instanceGranularity, groupCount, instanceCount)
             ? createMarkers(instanceCount, 'instance')
@@ -255,6 +257,7 @@ export namespace Cylinders {
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
             uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
             ...color,
+            ...interiorColor,
             ...size,
             ...marker,
             ...overpaint,
