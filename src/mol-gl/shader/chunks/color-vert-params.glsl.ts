@@ -27,6 +27,16 @@ uniform float uBumpiness;
         varying float vPaletteV;
     #endif
 
+    #if defined(dInteriorColorType_texture) && (defined(dRenderVariant_color) || defined(dRenderVariant_tracing))
+        uniform vec2 uInteriorColorTexDim;
+        uniform sampler2D tInteriorColor;
+        #ifdef dUsePalette
+            varying float vInteriorPaletteV;
+        #else
+            varying vec3 vInteriorColor;
+        #endif
+    #endif
+
     #ifdef dOverpaint
         #if defined(dOverpaintType_instance) || defined(dOverpaintType_groupInstance) || defined(dOverpaintType_vertexInstance)
             varying vec4 vOverpaint;

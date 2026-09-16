@@ -412,6 +412,10 @@ export type BaseValues = Values<BaseSchema>
 export const InteriorSchema = {
     uInteriorColor: UniformSpec('v4'),
     uInteriorSubstance: UniformSpec('v4'),
+    uInteriorThemeColor: UniformSpec('v3'),
+    uInteriorColorTexDim: UniformSpec('v2'),
+    tInteriorColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
+    dInteriorColorType: DefineSpec('string', ['none', 'uniform', 'instance', 'group', 'groupInstance', 'vertex', 'vertexInstance']),
 } as const;
 export type InteriorSchema = typeof InteriorSchema
 export type InteriorValues = Values<InteriorSchema>

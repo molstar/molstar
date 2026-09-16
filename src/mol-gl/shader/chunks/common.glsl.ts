@@ -13,6 +13,10 @@ export const common = `
     #define dColorType_grid
 #endif
 
+#if defined(dInteriorColorType_instance) || defined(dInteriorColorType_group) || defined(dInteriorColorType_groupInstance) || defined(dInteriorColorType_vertex) || defined(dInteriorColorType_vertexInstance)
+    #define dInteriorColorType_texture
+#endif
+
 #if defined(dColorType_attribute) || defined(dColorType_texture) || defined(dColorType_grid)
     #define dColorType_varying
 #endif
@@ -43,6 +47,10 @@ export const common = `
 #define HALF_PI 1.570796325
 
 #define PALETTE_SCALE 16777214.0 // (1 << 24) - 2
+
+float decodePaletteV(const in vec3 c) {
+    return ((c.r * 256.0 * 256.0 * 255.0 + c.g * 256.0 * 255.0 + c.b * 255.0) - 1.0) / PALETTE_SCALE;
+}
 
 #define saturate(a) clamp(a, 0.0, 1.0)
 

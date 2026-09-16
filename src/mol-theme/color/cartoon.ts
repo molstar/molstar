@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Color } from '../../mol-util/color';
@@ -115,6 +116,8 @@ export function CartoonColorTheme(ctx: ThemeDataContext, props: PD.Values<Cartoo
         granularity: 'group',
         preferSmoothing: false,
         color,
+        interiorColor: mainchain.color,
+        interiorGranularity: mainchain.granularity,
         props,
         contextHash,
         description: Description,

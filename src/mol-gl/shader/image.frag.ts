@@ -278,7 +278,7 @@ void main() {
             if (material.rgb == vec3(1.0)) {
                 material.rgb = uPaletteDefault;
             } else {
-                float v = ((material.r * 256.0 * 256.0 * 255.0 + material.g * 256.0 * 255.0 + material.b * 255.0) - 1.0) / PALETTE_SCALE;
+                float v = decodePaletteV(material.rgb);
                 material.rgb = texture2D(tPalette, vec2(v, 0.0)).rgb;
             }
         #endif

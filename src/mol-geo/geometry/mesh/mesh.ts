@@ -15,6 +15,7 @@ import { createMarkers } from '../marker-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator, PositionLocation } from '../../util/location-iterator';
 import { createColors } from '../color-data';
+import { createInteriorColors } from '../interior-color-data';
 import { ChunkedArray, hashFnv32a, invertCantorPairing, sortedCantorPairing } from '../../../mol-data/util';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
@@ -686,6 +687,7 @@ export namespace Mesh {
         const positionIt = createPositionIterator(mesh, transform);
 
         const color = createColors(locationIt, positionIt, theme.color);
+        const interiorColor = createInteriorColors(locationIt, positionIt, theme.color, props.interior.themeColor);
         const marker = resolveInstanceGranularity(props.instanceGranularity, groupCount, instanceCount)
             ? createMarkers(instanceCount, 'instance')
             : createMarkers(instanceCount * groupCount, 'groupInstance');
@@ -713,6 +715,7 @@ export namespace Mesh {
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
             uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
             ...color,
+            ...interiorColor,
             ...marker,
             ...overpaint,
             ...transparency,

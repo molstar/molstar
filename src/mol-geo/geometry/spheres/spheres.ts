@@ -2,6 +2,7 @@
  * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ValueCell } from '../../../mol-util';
@@ -12,6 +13,7 @@ import { LocationIterator, PositionLocation } from '../../util/location-iterator
 import { Theme } from '../../../mol-theme/theme';
 import { SpheresValues } from '../../../mol-gl/renderable/spheres';
 import { createColors } from '../color-data';
+import { createInteriorColors } from '../interior-color-data';
 import { createMarkers } from '../marker-data';
 import { TextureImage, calculateInvariantBoundingSphere, calculateTransformBoundingSphere, createTextureImage } from '../../../mol-gl/renderable/util';
 import { Sphere3D } from '../../../mol-math/geometry';
@@ -341,6 +343,7 @@ export namespace Spheres {
         const positionIt = createPositionIterator(spheres, transform);
 
         const color = createColors(locationIt, positionIt, theme.color);
+        const interiorColor = createInteriorColors(locationIt, positionIt, theme.color, props.interior.themeColor);
         const size = createSizes(locationIt, positionIt, theme.size);
         const marker = resolveInstanceGranularity(props.instanceGranularity, groupCount, instanceCount)
             ? createMarkers(instanceCount, 'instance')
@@ -370,6 +373,7 @@ export namespace Spheres {
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
             uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
             ...color,
+            ...interiorColor,
             ...size,
             ...marker,
             ...overpaint,

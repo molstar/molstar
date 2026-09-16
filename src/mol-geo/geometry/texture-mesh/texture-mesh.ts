@@ -12,6 +12,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { LocationIterator, PositionLocation } from '../../util/location-iterator';
 import { TransformData } from '../transform-data';
 import { createColors } from '../color-data';
+import { createInteriorColors } from '../interior-color-data';
 import { createMarkers } from '../marker-data';
 import { GeometryUtils } from '../geometry';
 import { Theme } from '../../../mol-theme/theme';
@@ -205,6 +206,7 @@ export namespace TextureMesh {
         const positionIt = Utils.createPositionIterator(textureMesh, transform);
 
         const color = createColors(locationIt, positionIt, theme.color);
+        const interiorColor = createInteriorColors(locationIt, positionIt, theme.color, props.interior.themeColor);
         const marker = resolveInstanceGranularity(props.instanceGranularity, groupCount, instanceCount)
             ? createMarkers(instanceCount, 'instance')
             : createMarkers(instanceCount * groupCount, 'groupInstance');
@@ -234,6 +236,7 @@ export namespace TextureMesh {
             uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
 
             ...color,
+            ...interiorColor,
             ...marker,
             ...overpaint,
             ...transparency,

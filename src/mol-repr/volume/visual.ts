@@ -21,6 +21,8 @@ import { ColorTheme } from '../../mol-theme/color';
 import { ValueCell } from '../../mol-util';
 import { createSizes } from '../../mol-geo/geometry/size-data';
 import { createColors } from '../../mol-geo/geometry/color-data';
+import { updateInteriorColors } from '../../mol-geo/geometry/interior-color-data';
+import { hasInteriorThemeColor } from '../../mol-geo/geometry/interior';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { Mat4 } from '../../mol-math/linear-algebra';
 import { Overpaint } from '../../mol-theme/overpaint';
@@ -133,6 +135,10 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             updateState.updateColor = true;
         }
 
+        if (hasInteriorThemeColor(newProps) !== hasInteriorThemeColor(currentProps)) {
+            updateState.updateColor = true;
+        }
+
         if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) {
             updateState.updateSize = true;
         }
@@ -222,6 +228,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             if (updateState.updateColor) {
                 // console.log('update color');
                 createColors(locationIt, positionIt, newTheme.color, renderObject.values);
+                updateInteriorColors(renderObject.values, locationIt, positionIt, newTheme.color, hasInteriorThemeColor(newProps));
             }
 
             updateValues(renderObject.values, newProps);

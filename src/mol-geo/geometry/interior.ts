@@ -2,6 +2,7 @@
  * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Vec4 } from '../../mol-math/linear-algebra/3d/vec4';
@@ -17,8 +18,9 @@ export type InteriorData = {
 
 export function getInteriorParam() {
     return PD.Group({
+        themeColor: PD.Boolean(false, { description: 'Use the interior color of the color theme, when it provides one' }),
         color: PD.Color(Color.fromRgb(76, 76, 76)),
-        colorStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+        colorStrength: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
         substance: Material.getParam(),
         substanceStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
     });
@@ -27,10 +29,15 @@ export type InteriorParam = ReturnType<typeof getInteriorParam>
 export type InteriorProps = InteriorParam['defaultValue'];
 
 export function areInteriorPropsEquals(a: InteriorProps, b: InteriorProps): boolean {
-    return a.color === b.color
+    return a.themeColor === b.themeColor
+        && a.color === b.color
         && a.colorStrength === b.colorStrength
         && Material.areEqual(a.substance, b.substance)
         && a.substanceStrength === b.substanceStrength;
+}
+
+export function hasInteriorThemeColor(props: { interior?: InteriorProps, [k: string]: any }): boolean {
+    return !!props.interior?.themeColor;
 }
 
 export function getInteriorColor(props: InteriorProps, out: Vec4): Vec4 {

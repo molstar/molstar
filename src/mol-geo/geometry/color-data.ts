@@ -20,6 +20,11 @@ export type ColorTypeGrid = 'volume' | 'volumeInstance';
 export type ColorTypeDirect = 'direct';
 export type ColorType = ColorTypeLocation | ColorTypeGrid | ColorTypeDirect;
 
+export function isColorTypeLocation(type: string): type is ColorTypeLocation {
+    return type === 'uniform' || type === 'instance' || type === 'group'
+        || type === 'groupInstance' || type === 'vertex' || type === 'vertexInstance';
+}
+
 export type ColorData = {
     uColor: ValueCell<Vec3>,
     tColor: ValueCell<TextureImage<Uint8Array>>,
