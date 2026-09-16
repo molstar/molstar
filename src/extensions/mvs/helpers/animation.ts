@@ -212,8 +212,8 @@ function processScalarLike(transition: MVSAnimationNode<'interpolate'>, target: 
 
     const endValue: any = transition.params.end;
 
-    if (time <= 0) return startValue;
-    else if (time >= 1 - EPSILON && !transition.params.alternate_direction && transition.params.kind !== 'color') return endValue;
+    if (time <= 0 && transition.params.kind !== 'color') return startValue;
+    if (time >= 1 - EPSILON && !transition.params.alternate_direction && transition.params.kind !== 'color') return endValue;
 
     let t = clamp(time, 0, 1);
     t = applyFrequency(t, transition.params.frequency ?? 1, !!transition.params.alternate_direction);
@@ -465,7 +465,7 @@ function decodeColors(color: ColorT | Record<number | string, ColorT> | undefine
     return decodeColor(color);
 }
 
-function interpolateColors(start: ColorT | Record<number, ColorT>, end: ColorT | Record<number, ColorT> | undefined, time: number, cacheEntry: InterpolationCacheEntry, baseColors: Record<number, ColorT> | undefined) {
+function interpolateColors(start: ColorT | Record<number | string, ColorT>, end: ColorT | Record<number | string, ColorT> | undefined, time: number, cacheEntry: InterpolationCacheEntry, baseColors: Record<number, ColorT> | undefined) {
     const t = clamp(time, 0, 1);
 
     if (cacheEntry.paletteFn) {
@@ -493,14 +493,15 @@ function interpolateColors(start: ColorT | Record<number, ColorT>, end: ColorT |
             throw new Error('Cannot interpolate from scalar color to color mapping');
         }
 
-        const ret = { ...baseColors as any, ...startColor as any };
+        const ret: Record<number | string, ColorT> = Array.isArray(baseColors) ? baseColors.slice() as Record<number, ColorT> : { ...baseColors };
+        Object.assign(ret, startColor);
         if (typeof endColor === 'object') {
             for (const key of Object.keys(endColor)) {
-                ret[key] = Color.toHexStyle(Color.interpolate(startColor[key], endColor[key], t));
+                ret[key] = Color.toHexStyle(Color.interpolate(startColor[key], endColor[key], t)) as ColorT;
             }
         } else if (typeof endColor === 'number') {
             for (const key of Object.keys(startColor)) {
-                ret[key] = Color.toHexStyle(Color.interpolate(startColor[key], endColor, t));
+                ret[key] = Color.toHexStyle(Color.interpolate(startColor[key], endColor, t)) as ColorT;
             }
         }
         return ret;
