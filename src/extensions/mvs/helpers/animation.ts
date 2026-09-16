@@ -16,7 +16,7 @@ import { Color } from '../../../mol-util/color';
 import { produce } from '../../../mol-util/produce';
 import { makeContinuousPaletteCheckpoints, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from '../components/annotation-color-theme';
 import { SplitColorProp } from '../components/split-uniform-color-theme';
-import { decodeColor, SplitColor } from '../helpers/utils';
+import { SplitColor } from '../helpers/utils';
 import { palettePropsFromMVSPalette } from '../load-helpers';
 import { Snapshot } from '../mvs-data';
 import { MVSAnimationNode, MVSAnimationSchema } from '../tree/animation/animation-tree';
@@ -86,10 +86,8 @@ const PaletteFunction = {
 
 interface InterpolationCacheEntry {
     paletteFn?: PaletteFunction,
-    startColor?: Color | Record<number | string, Color>,
-    endColor?: Color | Record<number | string, Color>,
-    startSplitColor?: [Color, Color],
-    endSplitColor?: [Color, Color],
+    startColors?: DecodedSplitColors,
+    endColors?: DecodedSplitColors,
     rotation?: { axis: Vec3, angle: number, start: Quat, end: Quat },
 }
 
@@ -440,81 +438,68 @@ function interpolateRotation(start: Mat3, end: Mat3 | undefined, t: number, nois
     return Mat3.fromMat4(Mat3(), RotationState.temp);
 }
 
-function decodeColors(color: ColorT | Record<number | string, ColorT> | undefined, baseColors: Record<number | string, ColorT> | undefined) {
+const _fallbackSplitColor: [Color, Color] = [Color(0), Color(0)]; // invalid color strings fall back to black rather then undefined to make debugging easier
+type DecodedSplitColors =
+    | { kind: 'dict', dict: Record<string, [Color, Color]> }
+    | { kind: 'value', value: [Color, Color] }
+
+function decodeSplitColors(color: ColorT | Record<number | string, ColorT> | undefined, baseColors: Record<number | string, ColorT> | undefined): DecodedSplitColors | undefined {
     if (color === undefined || color === null) return undefined;
 
     if (typeof color === 'object') {
-        const ret: Record<number | string, Color> = {};
+        const ret: Record<number | string, [Color, Color]> = {};
         if (baseColors) {
             for (const key of Object.keys(baseColors)) {
-                const decoded = decodeColor(baseColors[key]);
-                if (decoded !== undefined) {
-                    ret[key] = decoded;
-                }
+                ret[key] = SplitColor.decode(baseColors[key]) ?? _fallbackSplitColor;
             }
         }
         for (const key of Object.keys(color)) {
-            const decoded = decodeColor(color[key]);
-            if (decoded !== undefined) {
-                ret[key] = decoded;
-            }
+            ret[key] = SplitColor.decodeStrict(color[key]) ?? _fallbackSplitColor;
         }
-        return ret;
+        return { kind: 'dict', dict: ret };
     }
 
-    return decodeColor(color);
+    return { kind: 'value', value: SplitColor.decode(color) ?? _fallbackSplitColor };
 }
 
-function interpolateColors(start: ColorT | Record<number | string, ColorT>, end: ColorT | Record<number | string, ColorT> | undefined, time: number, cacheEntry: InterpolationCacheEntry, baseColors: Record<number, ColorT> | undefined) {
+function interpolateColors(start: ColorT | Record<number | string, ColorT> | undefined, end: ColorT | Record<number | string, ColorT> | undefined, time: number, cacheEntry: InterpolationCacheEntry, baseColors: Record<number, ColorT> | undefined) {
     const t = clamp(time, 0, 1);
 
     if (cacheEntry.paletteFn) {
         return PaletteFunction.getAsHexStyle(cacheEntry.paletteFn, t);
     }
 
-    if (typeof start === 'string' && typeof end === 'string') {
-        const startColor = cacheEntry.startSplitColor ??= SplitColor.decodeStrict(start);
-        const endColor = cacheEntry.endSplitColor ??= SplitColor.decodeStrict(end);
-        return interpolateSplitColor(startColor, endColor, t);
-    }
-    // the rest of this function does not support split coloring (i.e. ignores color after slash)
+    const startColors = cacheEntry.startColors ??= decodeSplitColors(start, baseColors);
+    const endColors = cacheEntry.endColors ??= decodeSplitColors(end, undefined);
 
-    if (cacheEntry.startColor === undefined) {
-        cacheEntry.startColor = decodeColors(start, baseColors);
-    }
-    if (cacheEntry.endColor === undefined) {
-        cacheEntry.endColor = decodeColors(end, undefined);
-    }
-
-    const { startColor, endColor } = cacheEntry;
-
-    if (typeof startColor === 'object') {
-        if (typeof baseColors !== 'object') {
-            throw new Error('Cannot interpolate from scalar color to color mapping');
-        }
+    if (startColors?.kind === 'dict') {
+        if (baseColors === undefined || baseColors === null) throw new Error('Missing color value in the target node');
+        if (typeof baseColors !== 'object') throw new Error('Cannot interpolate from scalar color to color mapping');
 
         const ret: Record<number | string, ColorT> = Array.isArray(baseColors) ? baseColors.slice() as Record<number, ColorT> : { ...baseColors };
-        Object.assign(ret, startColor);
-        if (typeof endColor === 'object') {
-            for (const key of Object.keys(endColor)) {
-                ret[key] = Color.toHexStyle(Color.interpolate(startColor[key], endColor[key], t)) as ColorT;
+        Object.assign(ret, startColors.dict);
+
+        if (endColors?.kind === 'dict') {
+            for (const key of Object.keys(endColors.dict)) {
+                ret[key] = interpolateSplitColor(startColors.dict[key], endColors.dict[key], t);
             }
-        } else if (typeof endColor === 'number') {
-            for (const key of Object.keys(startColor)) {
-                ret[key] = Color.toHexStyle(Color.interpolate(startColor[key], endColor, t)) as ColorT;
+        } else if (endColors?.kind === 'value') {
+            for (const key of Object.keys(startColors.dict)) {
+                ret[key] = interpolateSplitColor(startColors.dict[key], endColors.value, t);
             }
-        }
+        } // else endSplitColors is undefined -> no change to ret
         return ret;
+    } else if (startColors?.kind === 'value') {
+        if (endColors?.kind === 'dict') {
+            throw new Error('Cannot interpolate from scalar color to color mapping');
+        } else if (endColors?.kind === 'value') {
+            return interpolateSplitColor(startColors.value, endColors.value, t);
+        } else {
+            return start;
+        }
+    } else {
+        throw new Error('Missing start value for color interpolation');
     }
-    if (typeof endColor === 'object') {
-        throw new Error('Cannot interpolate from scalar color to color mapping');
-    }
-
-    if (typeof endColor === 'number' && typeof startColor === 'number') {
-        return Color.toHexStyle(Color.interpolate(startColor, endColor, t));
-    }
-
-    return start;
 }
 
 function interpolateSplitColor(start: [Color, Color], end: [Color, Color], t: number): ColorT {
