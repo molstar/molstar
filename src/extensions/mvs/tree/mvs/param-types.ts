@@ -261,9 +261,25 @@ function isColorNameT(str: any): str is ColorNameT {
     return str in ColorNames;
 }
 
+
 /** `color` parameter values for `color` node in MVS tree */
-export type ColorT = ColorNameT | HexColorT;
-export const ColorT: iots.Type<ColorT> = union(ColorNameT, HexColorT);
+export const ColorT = new iots.Type<ColorT>(
+    'ColorT',
+    ((value: any) => typeof value === 'string') as any,
+    (value, ctx) => isColorT(value) ? { _tag: 'Right', right: value as ColorT } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid color name` }] },
+    value => value
+);
+export type ColorT = ColorNameT | HexColorT | `${string}/${string}`; // This is not ideal, but kinda enough for useful autocomplete and catching typos. Specifying the type more accurately would slow down intellisense (`${ColorNameT | HexColorT}/${ColorNameT | HexColorT}` would cause generating all combinations under the hood).
+function isColorT(str: any): str is ColorT {
+    if (typeof str !== 'string') return false;
+    if (str.includes('/')) {
+        const parts = str.split('/');
+        if (parts.length === 2) return isColorT(parts[0]) && isColorT(parts[1]);
+        else return false;
+    } else {
+        return isHexColorT(str) || isColorNameT(str);
+    }
+}
 
 
 // Type helpers
@@ -391,8 +407,8 @@ export const ColorListNameT = literal<ColorListNameT>(
     'Chainbow',
 );
 
-export type ColorDictNameT = 'ElementSymbol' | 'ResidueName' | 'ResidueProperties' | 'SecondaryStructure';
-export const ColorDictNameT = literal<ColorDictNameT>('ElementSymbol', 'ResidueName', 'ResidueProperties', 'SecondaryStructure');
+export type ColorDictNameT = 'ElementSymbol' | 'ResidueName' | 'ResidueProperties' | 'SecondaryStructure' | 'CarbohydrateSymbol';
+export const ColorDictNameT = literal<ColorDictNameT>('ElementSymbol', 'ResidueName', 'ResidueProperties', 'SecondaryStructure', 'CarbohydrateSymbol');
 
 
 const _CategoricalPalette = object(

@@ -80,6 +80,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - MVS-related custom model properties (and custom structure properties) are hidden in UI (fixes override of default custom properties)
     - Added `shape` node for rendering meshes from `vtp`, `ply` and `obj` resources
     - Added support for MolQL selectors (e.g., select a residue + 5 ang surroundings)
+    - Add support for split colors (e.g. 'red/white', applies to carbohydrate symbols and nucleic cartoon)
+    - Add CarbohydrateSymbol color palette
 - Remove `new Function` usage for CSP / SOC2 compliance; server path templates use a whitelist of `${id...}` string methods
 - Fix CCP4/MRC volumes with unset cell angles failing to load
 - Fix CCP4/MRC volume `sigma` being taken from the header when the header rms is negative
