@@ -477,17 +477,27 @@ function interpolateColors(start: ColorT | Record<number | string, ColorT> | und
         if (typeof baseColors !== 'object') throw new Error('Cannot interpolate from scalar color to color mapping');
 
         const ret: Record<number | string, ColorT> = Array.isArray(baseColors) ? baseColors.slice() as Record<number, ColorT> : { ...baseColors };
-        Object.assign(ret, startColors.dict);
 
         if (endColors?.kind === 'dict') {
+            for (const key of Object.keys(startColors.dict)) {
+                if (!(key in endColors.dict)) {
+                    ret[key] = SplitColor.toHexStyle(...startColors.dict[key]);
+                } // else will be set in the next step
+            }
             for (const key of Object.keys(endColors.dict)) {
-                ret[key] = interpolateSplitColor(startColors.dict[key], endColors.dict[key], t);
+                ret[key] = (key in startColors.dict) ?
+                    interpolateSplitColor(startColors.dict[key], endColors.dict[key], t)
+                    : SplitColor.toHexStyle(...endColors.dict[key]);
             }
         } else if (endColors?.kind === 'value') {
             for (const key of Object.keys(startColors.dict)) {
                 ret[key] = interpolateSplitColor(startColors.dict[key], endColors.value, t);
             }
-        } // else endSplitColors is undefined -> no change to ret
+        } else {
+            for (const key of Object.keys(startColors.dict)) {
+                ret[key] = SplitColor.toHexStyle(...startColors.dict[key]);
+            }
+        }
         return ret;
     } else if (startColors?.kind === 'value') {
         if (endColors?.kind === 'dict') {
