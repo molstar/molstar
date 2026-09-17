@@ -216,7 +216,7 @@ export const LinesShaderCode = ShaderCode('lines', lines_vert, lines_frag, { dra
 
 import { mesh_vert } from './shader/mesh.vert';
 import { mesh_frag } from './shader/mesh.frag';
-export const MeshShaderCode = ShaderCode('mesh', mesh_vert, mesh_frag, { drawBuffers: 'optional' }, {}, ignoreDefine);
+export const MeshShaderCode = ShaderCode('mesh', mesh_vert, mesh_frag, { fragDepth: 'optional', drawBuffers: 'optional' }, {}, ignoreDefine);
 
 import { directVolume_vert } from './shader/direct-volume.vert';
 import { directVolume_frag } from './shader/direct-volume.frag';

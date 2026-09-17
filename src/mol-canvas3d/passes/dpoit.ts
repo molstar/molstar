@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Gianluca Tomasello <giagitom@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -19,6 +19,7 @@ import { quad_vert } from '../../mol-gl/shader/quad.vert';
 import { evaluateDpoit_frag } from '../../mol-gl/shader/evaluate-dpoit.frag';
 import { blendBackDpoit_frag } from '../../mol-gl/shader/blend-back-dpoit.frag';
 import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
+import { Renderbuffer } from '../../mol-gl/webgl/renderbuffer';
 import { Vec2 } from '../../mol-math/linear-algebra';
 import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 import { isWebGL2 } from '../../mol-gl/webgl/compat';
@@ -220,6 +221,7 @@ export class DpoitPass {
             this.colorFrontTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color0');
             this.colorBackTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color1');
             this.depthTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color2');
+            this.stencil?.attachFramebuffer(this.depthFramebuffers[i]);
 
             // color
             this.colorFramebuffers[i].bind();
@@ -251,7 +253,7 @@ export class DpoitPass {
         }
     }
 
-    constructor(private webgl: WebGLContext, width: number, height: number) {
+    constructor(private webgl: WebGLContext, width: number, height: number, private stencil: Renderbuffer | null = null) {
         if (!DpoitPass.isSupported(webgl)) return;
 
         const { resources, extensions: { colorBufferHalfFloat, textureHalfFloat } } = webgl;
