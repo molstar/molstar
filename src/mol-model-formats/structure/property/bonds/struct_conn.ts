@@ -153,6 +153,7 @@ export namespace StructConn {
             const orderType = (pdbx_value_order.value(i) || '');
             let flags = BondType.Flag.None;
             let order = 1;
+            let orderUnknown = false;
 
             switch (orderType) {
                 case 'sing': order = 1; break;
@@ -166,6 +167,7 @@ export namespace StructConn {
                         struct_conn.ptnr2_label_comp_id.value(i),
                         struct_conn.ptnr2_label_atom_id.value(i)
                     );
+                    orderUnknown = true;
             }
 
             switch (type) {
@@ -178,6 +180,8 @@ export namespace StructConn {
                     break;
                 case 'metalc': flags = BondType.Flag.MetallicCoordination; break;
             }
+
+            if (orderUnknown && type === 'covale') flags |= BondType.Flag.Computed;
 
             entries.push({
                 rowIndex: i, flags, order, distance: pdbx_dist_value.value(i), partnerA, partnerB

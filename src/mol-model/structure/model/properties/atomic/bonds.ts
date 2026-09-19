@@ -70,6 +70,17 @@ export function getIntraBondOrderFromTable(compId: string, atomId1: string, atom
     return IntraBondOrderTable.get(`${compId}|${atomId1}|${atomId2}`) || 1;
 }
 
+/** Components for which `IntraBondOrderTable` provides a bond-order template. */
+const IntraBondOrderTableComps = new Set<string>();
+for (const key of IntraBondOrderTable.keys()) {
+    const compId = key.substring(0, key.indexOf('|'));
+    IntraBondOrderTableComps.add(compId);
+}
+
+export function hasIntraBondOrderFromTable(compId: string) {
+    return IntraBondOrderTableComps.has(compId);
+}
+
 /**
  * Map of inter component bond orders assuming PDBx/mmCIF naming.
  * The key is constructed as `${compId1}|${compId2}|${atomId1}|${atomId2}` with `compId1 < compId2`.
