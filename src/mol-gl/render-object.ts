@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,6 +19,7 @@ import { CylindersRenderable, CylindersValues } from './renderable/cylinders';
 import { Transparency } from './webgl/render-item';
 import { GlobalDefines } from './renderable/schema';
 import { assertUnreachable } from '../mol-util/type-helpers';
+import { canMergeValues, createMergedValues, isMergeableType, Merged, MergeableValues, MergedRenderable } from './renderable/merged';
 
 const getNextId = idFactory(0, 0x7FFFFFFF);
 
@@ -51,7 +52,48 @@ export function createRenderObject<T extends RenderObjectType>(type: T, values: 
     return { id: getNextId(), type, values, state, materialId } as GraphicsRenderObject<T>;
 }
 
+//
+
+/**
+ * A render object that shares a single render item between the values of
+ * multiple member render objects to reduce draw calls. The members are
+ * not meant to be added to a scene themselves.
+ */
+export interface MergedGraphicsRenderObject<T extends RenderObjectType = RenderObjectType> extends GraphicsRenderObject<T> {
+    readonly members: ReadonlyArray<GraphicsRenderObject<T>>
+    readonly merged: Merged
+}
+
+export function isMergedRenderObject<T extends RenderObjectType>(o: GraphicsRenderObject<T>): o is MergedGraphicsRenderObject<T> {
+    return 'members' in o;
+}
+
+export function canMergeRenderObjects(members: readonly GraphicsRenderObject[]): boolean {
+    if (members.length < 2) return false;
+    const { type, materialId } = members[0];
+    if (!isMergeableType(type)) return false;
+    for (const m of members) {
+        if (m.type !== type) return false;
+        if (m.materialId !== materialId) return false;
+    }
+    if (!canMergeValues(type, members.map(m => m.values as MergeableValues))) return false;
+    return true;
+}
+
+/**
+ * Creates a merged render object from member render objects, assumes
+ * `canMergeRenderObjects(members)`. Shares the state of the first member.
+ */
+export function createMergedRenderObject<T extends RenderObjectType>(members: readonly GraphicsRenderObject<T>[]): MergedGraphicsRenderObject<T> {
+    if (!isMergeableType(members[0].type)) throw new Error(`unsupported merged render object type '${members[0].type}'`);
+    const merged = createMergedValues(members[0].type, members.map(m => m.values as MergeableValues));
+    return { id: getNextId(), type: members[0].type, values: merged.values as unknown as RenderObjectValues<T>, state: members[0].state, materialId: members[0].materialId, members, merged };
+}
+
 export function createRenderable<T extends RenderObjectType>(ctx: WebGLContext, o: GraphicsRenderObject<T>, transparency: Transparency, globals: GlobalDefines): Renderable<any> {
+    if (isMergedRenderObject(o)) {
+        return MergedRenderable(ctx, o.id, o.merged, o.members.map(m => m.values as MergeableValues), o.state, o.materialId, transparency, globals);
+    }
     switch (o.type) {
         case 'mesh': return MeshRenderable(ctx, o.id, o.values as MeshValues, o.state, o.materialId, transparency, globals);
         case 'points': return PointsRenderable(ctx, o.id, o.values as PointsValues, o.state, o.materialId, transparency, globals);

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createRenderObject, GraphicsRenderObject, getNextMaterialId } from '../../mol-gl/render-object';
+import { createRenderObject, GraphicsRenderObject, getNextMaterialId, isMergedRenderObject } from '../../mol-gl/render-object';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { addSphere } from '../../mol-geo/geometry/mesh/builder/sphere';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
@@ -54,25 +54,22 @@ export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperPro
         const newVisibleSceneData = updateBoundingSphereData(this.scene, this.parent.boundingSphereVisible, this.visibleSceneData, ColorNames.black, visibleSceneMaterialId);
         if (newVisibleSceneData) this.visibleSceneData = newVisibleSceneData;
 
+        const live = new Set<GraphicsRenderObject>();
         this.parent.forEach((r, ro) => {
             const objectData = this.objectsData.get(ro);
             const newObjectData = updateBoundingSphereData(this.scene, r.values.boundingSphere.ref.value, objectData, ColorNames.tomato, objectMaterialId);
             if (newObjectData) this.objectsData.set(ro, newObjectData);
 
-            const instanceData = this.instancesData.get(ro);
-            const newInstanceData = updateBoundingSphereData(this.scene, r.values.invariantBoundingSphere.ref.value, instanceData, ColorNames.skyblue, instanceMaterialId, {
-                aTransform: ro.values.aTransform,
-                matrix: ro.values.matrix,
-                transform: ro.values.transform,
-                extraTransform: ro.values.extraTransform,
-                hasExtraTransform: ro.values.hasExtraTransform,
-                uInstanceCount: ro.values.uInstanceCount,
-                instanceCount: ro.values.instanceCount,
-                aInstance: ro.values.aInstance,
-                hasReflection: ro.values.hasReflection,
-                instanceGrid: ro.values.instanceGrid,
-            });
-            if (newInstanceData) this.instancesData.set(ro, newInstanceData);
+            live.add(ro);
+            if (isMergedRenderObject(ro)) {
+                // one instance-spheres entry per merged segment
+                for (const member of ro.members) {
+                    this.updateInstancesData(member);
+                    live.add(member);
+                }
+            } else {
+                this.updateInstancesData(ro);
+            }
         });
 
         this.objectsData.forEach((objectData, ro) => {
@@ -82,7 +79,7 @@ export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperPro
             }
         });
         this.instancesData.forEach((instanceData, ro) => {
-            if (!this.parent.has(ro)) {
+            if (!live.has(ro)) {
                 this.scene.remove(instanceData.renderObject);
                 this.instancesData.delete(ro);
             }
@@ -90,6 +87,23 @@ export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperPro
 
         this.scene.update(void 0, false);
         this.scene.commit();
+    }
+
+    private updateInstancesData(ro: GraphicsRenderObject) {
+        const instanceData = this.instancesData.get(ro);
+        const newInstanceData = updateBoundingSphereData(this.scene, ro.values.invariantBoundingSphere.ref.value, instanceData, ColorNames.skyblue, instanceMaterialId, {
+            aTransform: ro.values.aTransform,
+            matrix: ro.values.matrix,
+            transform: ro.values.transform,
+            extraTransform: ro.values.extraTransform,
+            hasExtraTransform: ro.values.hasExtraTransform,
+            uInstanceCount: ro.values.uInstanceCount,
+            instanceCount: ro.values.instanceCount,
+            aInstance: ro.values.aInstance,
+            hasReflection: ro.values.hasReflection,
+            instanceGrid: ro.values.instanceGrid,
+        });
+        if (newInstanceData) this.instancesData.set(ro, newInstanceData);
     }
 
     syncVisibility() {
@@ -105,8 +119,15 @@ export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperPro
             const objectData = this.objectsData.get(ro);
             if (objectData) objectData.renderObject.state.visible = ro.state.visible && this._props.objectBoundingSpheres;
 
-            const instanceData = this.instancesData.get(ro);
-            if (instanceData) instanceData.renderObject.state.visible = ro.state.visible && this._props.instanceBoundingSpheres;
+            if (isMergedRenderObject(ro)) {
+                for (const member of ro.members) {
+                    const instanceData = this.instancesData.get(member);
+                    if (instanceData) instanceData.renderObject.state.visible = ro.state.visible && this._props.instanceBoundingSpheres;
+                }
+            } else {
+                const instanceData = this.instancesData.get(ro);
+                if (instanceData) instanceData.renderObject.state.visible = ro.state.visible && this._props.instanceBoundingSpheres;
+            }
         });
     }
 

@@ -212,6 +212,29 @@ export const InternalSchema = {
 export type InternalSchema = typeof InternalSchema
 export type InternalValues = Values<InternalSchema>
 
+/**
+ * For render items merged from multiple sets of member values (segments),
+ * see `createMergedRenderObject`.
+ */
+export const SegmentSchema = {
+    /**
+     * per-instance segment data:
+     * x: segment groupCount,
+     * y: groupInstance texel offset (base - instanceBase * groupCount),
+     * z: group texel offset
+     */
+    aSegment: AttributeSpec('float32', 3, 1),
+    /** per-instance invariant bounding sphere (xyz: center, w: radius) of the segment */
+    aSegmentSphere: AttributeSpec('float32', 4, 1),
+    /** per-instance, per-lod-level radius scale (see spheres' `lodLevels`), duplicated across a segment's instances */
+    aSegmentLod: AttributeSpec('float32', 4, 1),
+    /** index of the lod level currently being drawn, selects a component of `aSegmentLod` */
+    uLodLevel: UniformSpec('i'),
+    dSegmented: DefineSpec('boolean'),
+} as const;
+export type SegmentSchema = typeof SegmentSchema
+export type SegmentValues = Values<SegmentSchema>
+
 export const ColorSchema = {
     // aColor: AttributeSpec('float32', 3, 0), // TODO
     uColor: UniformSpec('v3', 'material'),

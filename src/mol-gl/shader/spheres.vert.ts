@@ -135,14 +135,20 @@ void main(void){
 
     float d;
     if (uLod.w != 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
+        // members of a merged item can have different scales for the same lod level (sphere-count dependent)
+        #if defined(dSegmented)
+            float lodScale = uLodLevel == 0 ? aSegmentLod.x : (uLodLevel == 1 ? aSegmentLod.y : (uLodLevel == 2 ? aSegmentLod.z : aSegmentLod.w));
+        #else
+            float lodScale = uLod.w;
+        #endif
         if (uModelScale != 1.0) {
-            vRadius *= uLod.w;
+            vRadius *= lodScale;
         } else {
             d = (dot(uCameraPlane.xyz, vModelPosition) + uCameraPlane.w) / uModelScale;
             float f = min(
                 smoothstep(uLod.x, uLod.x + uLod.z, d),
                 1.0 - smoothstep(uLod.y - uLod.z, uLod.y, d)
-            ) * uLod.w;
+            ) * lodScale;
             vRadius *= f;
         }
     }
