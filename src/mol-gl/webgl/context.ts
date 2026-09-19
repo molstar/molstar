@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -221,6 +221,10 @@ function createStats() {
             frustum: 0,
             occlusion: 0,
         },
+
+        cacheHits: {
+            cull: 0
+        }
     };
     return stats;
 }
