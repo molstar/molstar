@@ -83,6 +83,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Properties: position, orientation, radius, entity, compartment, custom attributes, fibers
     - Particles can be decorated with structure, volume, and shape visuals
 - Fix bumpiness artifacts on impostor seams and clip boundaries
+    - Change `bumpFrequency` defaults of ball-and-stick (5) and backbone (4)
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
