@@ -411,18 +411,24 @@ namespace Renderer {
             r.render(variant, sharedTexturesList.length);
         };
 
-        const renderSolidInteriorPass = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit', clipIndex: number) => {
-            const writeDepth = mode === 'opaque';
-            const hwDepthTest = mode === 'opaque' || mode === 'blended';
+        const hasSolidInteriorCap = (r: GraphicsRenderable) => {
+            const geomType = r.values.dGeometryType.ref.value;
+            return isWebGL2 && (geomType === 'mesh' || geomType === 'textureMesh') && !!r.values.dSolidInterior?.ref.value;
+        };
 
+        const setSolidInteriorPass = (r: GraphicsRenderable, variant: GraphicsRenderVariant, pass: number, clipIndex: number) => {
+            ValueCell.updateIfChanged(globalUniforms.uSolidInteriorPass, pass);
             ValueCell.updateIfChanged(globalUniforms.uSolidInteriorClip, clipIndex);
-            state.enable(gl.STENCIL_TEST);
-            state.stencilMask(0xff);
-            gl.clearStencil(0);
-            gl.clear(gl.STENCIL_BUFFER_BIT);
+            const program = r.getProgram(variant);
+            if (state.currentProgramId === program.id && !globalUniformsNeedUpdate) {
+                program.uniform('uSolidInteriorPass', pass);
+                program.uniform('uSolidInteriorClip', clipIndex);
+            }
+        };
 
-            ValueCell.updateIfChanged(globalUniforms.uSolidInteriorPass, 2);
-            globalUniformsNeedUpdate = true;
+        const renderSolidInteriorMark = (r: GraphicsRenderable, variant: GraphicsRenderVariant, clipIndex: number) => {
+            gl.clear(gl.STENCIL_BUFFER_BIT);
+            setSolidInteriorPass(r, variant, 2, clipIndex);
             state.colorMask(false, false, false, false);
             state.depthMask(false);
             state.disable(gl.DEPTH_TEST);
@@ -430,27 +436,17 @@ namespace Renderer {
             state.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.KEEP, gl.INCR_WRAP);
             state.stencilOpSeparate(gl.BACK, gl.KEEP, gl.KEEP, gl.DECR_WRAP);
             renderObject(r, variant, Flag.SolidInteriorMark);
+        };
 
-            ValueCell.updateIfChanged(globalUniforms.uSolidInteriorPass, 1);
-            globalUniformsNeedUpdate = true;
-            if (hwDepthTest) {
-                state.enable(gl.DEPTH_TEST);
-                state.depthFunc(gl.LEQUAL);
-            }
+        const renderSolidInteriorFill = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit', clipIndex: number) => {
+            const writeDepth = mode === 'opaque';
+            setSolidInteriorPass(r, variant, 1, clipIndex);
+            if (mode !== 'oit') state.enable(gl.DEPTH_TEST);
             state.colorMask(true, true, true, true);
             state.depthMask(writeDepth);
             state.stencilFunc(gl.NOTEQUAL, 0, 0xff);
             state.stencilOp(gl.KEEP, gl.KEEP, writeDepth ? gl.KEEP : gl.ZERO);
             renderObject(r, variant, Flag.BlendedBack);
-
-            ValueCell.updateIfChanged(globalUniforms.uSolidInteriorPass, 0);
-            ValueCell.updateIfChanged(globalUniforms.uSolidInteriorClip, -1);
-            globalUniformsNeedUpdate = true;
-            state.disable(gl.STENCIL_TEST);
-            if (hwDepthTest) state.depthFunc(gl.LESS);
-            state.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
-            state.frontFace(gl.CCW);
-            state.cullFace(gl.BACK);
         };
 
         const solidInteriorSphere = Sphere3D();
@@ -462,30 +458,59 @@ namespace Renderer {
             Sphere3D.scaleNX(solidInteriorSphere, r.values.boundingSphere.ref.value, modelScale);
             const near = globalUniforms.uNear.ref.value * 1.0001;
             if (Math.abs(Plane3D.distanceToPoint(cameraPlane, solidInteriorSphere.center) - near) <= solidInteriorSphere.radius) {
-                renderSolidInteriorPass(r, variant, mode, -1);
+                renderSolidInteriorMark(r, variant, -1);
+                renderSolidInteriorFill(r, variant, mode, -1);
             }
 
             const { values } = r;
-            if (values.dClipVariant?.ref.value !== 'pixel') return;
-            const objects = solidInteriorClipObjects;
-            objects.count = values.dClipObjectCount.ref.value;
-            objects.type = values.uClipObjectType.ref.value;
-            objects.invert = values.uClipObjectInvert.ref.value;
-            objects.position = values.uClipObjectPosition.ref.value;
-            objects.rotation = values.uClipObjectRotation.ref.value;
-            objects.scale = values.uClipObjectScale.ref.value;
-            objects.transform = values.uClipObjectTransform.ref.value;
-            Vec3.scale(solidInteriorEye, cameraPosition, 1 / modelScale);
-            for (let i = 0; i < objects.count; ++i) {
-                if (!Clip.canIntersectSphere(objects, i, values.boundingSphere.ref.value)) continue;
-                if (objects.type[i] === Clip.Type.plane && Plane3D.distanceToPoint(Clip.getPlane(solidInteriorPlane, objects, i), solidInteriorEye) * modelScale <= 1e-4) continue;
-                renderSolidInteriorPass(r, variant, mode, i);
+            if (values.dClipVariant?.ref.value === 'pixel') {
+                const objects = solidInteriorClipObjects;
+                objects.count = values.dClipObjectCount.ref.value;
+                objects.type = values.uClipObjectType.ref.value;
+                objects.invert = values.uClipObjectInvert.ref.value;
+                objects.position = values.uClipObjectPosition.ref.value;
+                objects.rotation = values.uClipObjectRotation.ref.value;
+                objects.scale = values.uClipObjectScale.ref.value;
+                objects.transform = values.uClipObjectTransform.ref.value;
+                Vec3.scale(solidInteriorEye, cameraPosition, 1 / modelScale);
+                for (let i = 0; i < objects.count; ++i) {
+                    if (!Clip.canIntersectSphere(objects, i, values.boundingSphere.ref.value)) continue;
+                    if (objects.type[i] === Clip.Type.plane && Plane3D.distanceToPoint(Clip.getPlane(solidInteriorPlane, objects, i), solidInteriorEye) * modelScale <= 1e-4) continue;
+                    renderSolidInteriorMark(r, variant, i);
+                    renderSolidInteriorFill(r, variant, mode, i);
+                }
             }
+            setSolidInteriorPass(r, variant, 0, -1);
         };
 
-        const hasSolidInteriorCap = (r: GraphicsRenderable) => {
-            const geomType = r.values.dGeometryType.ref.value;
-            return isWebGL2 && (geomType === 'mesh' || geomType === 'textureMesh') && !!r.values.dSolidInterior?.ref.value;
+        const beginSolidInteriorCaps = (mode: 'opaque' | 'blended' | 'oit') => {
+            state.enable(gl.STENCIL_TEST);
+            state.stencilMask(0xff);
+            gl.clearStencil(0);
+            if (mode !== 'oit') state.depthFunc(gl.LEQUAL);
+        };
+
+        const endSolidInteriorCaps = (mode: 'opaque' | 'blended' | 'oit') => {
+            state.disable(gl.STENCIL_TEST);
+            state.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+            if (mode !== 'oit') state.depthFunc(gl.LESS);
+            state.frontFace(gl.CCW);
+            state.cullFace(gl.BACK);
+        };
+
+        const renderSolidInteriorCaps = (renderables: ReadonlyArray<GraphicsRenderable>, check: (r: GraphicsRenderable) => boolean, variant: GraphicsRenderVariant, mode: 'opaque' | 'oit') => {
+            if (!isWebGL2) return;
+            let hasCaps = false;
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                const r = renderables[i];
+                if (!hasSolidInteriorCap(r) || !check(r)) continue;
+                if (!hasCaps) {
+                    beginSolidInteriorCaps(mode);
+                    hasCaps = true;
+                }
+                renderSolidInteriorCap(r, variant, mode);
+            }
+            if (hasCaps) endSolidInteriorCaps(mode);
         };
 
         const update = (camera: ICamera, scene: Scene) => {
@@ -597,6 +622,19 @@ namespace Renderer {
             );
         };
 
+        const checkPickable = function (r: GraphicsRenderable) {
+            return !r.state.colorOnly;
+        };
+
+        const checkMarkingDepth = function (r: GraphicsRenderable) {
+            const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+            return alpha !== 0 && r.values.transparencyAverage.ref.value !== 1 && r.values.markerAverage.ref.value !== 1;
+        };
+
+        const checkMarkingMask = function (r: GraphicsRenderable) {
+            return r.values.markerAverage.ref.value > 0;
+        };
+
         const checkEmissive = function (r: GraphicsRenderable) {
             return (r.values.emissiveAverage.ref.value + r.values.uEmissive.ref.value) > 0;
         };
@@ -613,13 +651,11 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                if (!r.state.colorOnly) {
+                if (checkPickable(r)) {
                     renderObject(r, variant, Flag.None);
-                    if (hasSolidInteriorCap(r)) {
-                        renderSolidInteriorCap(r, variant, 'opaque');
-                    }
                 }
             }
+            renderSolidInteriorCaps(renderables, checkPickable, variant, 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderPick');
         };
 
@@ -691,11 +727,9 @@ namespace Renderer {
                 const r = renderables[i];
                 if (checkTransparent(r)) {
                     renderObject(r, 'depth', Flag.None);
-                    if (hasSolidInteriorCap(r)) {
-                        renderSolidInteriorCap(r, 'depth', 'opaque');
-                    }
                 }
             }
+            renderSolidInteriorCaps(renderables, checkTransparent, 'depth', 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthTransparent');
         };
 
@@ -711,15 +745,11 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-
-                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha !== 0 && r.values.transparencyAverage.ref.value !== 1 && r.values.markerAverage.ref.value !== 1) {
+                if (checkMarkingDepth(r)) {
                     renderObject(r, 'marking', Flag.None);
-                    if (hasSolidInteriorCap(r)) {
-                        renderSolidInteriorCap(r, 'marking', 'opaque');
-                    }
                 }
             }
+            renderSolidInteriorCaps(renderables, checkMarkingDepth, 'marking', 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderMarkingDepth');
         };
 
@@ -735,14 +765,11 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-
-                if (r.values.markerAverage.ref.value > 0) {
+                if (checkMarkingMask(r)) {
                     renderObject(r, 'marking', Flag.None);
-                    if (hasSolidInteriorCap(r)) {
-                        renderSolidInteriorCap(r, 'marking', 'opaque');
-                    }
                 }
             }
+            renderSolidInteriorCaps(renderables, checkMarkingMask, 'marking', 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderMarkingMask');
         };
 
@@ -814,11 +841,9 @@ namespace Renderer {
                 const r = renderables[i];
                 if (checkOpaque(r)) {
                     renderObject(r, 'tracing', Flag.None);
-                    if (hasSolidInteriorCap(r)) {
-                        renderSolidInteriorCap(r, 'tracing', 'opaque');
-                    }
                 }
             }
+            renderSolidInteriorCaps(renderables, checkOpaque, 'tracing', 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderTracing');
         };
 
@@ -844,11 +869,9 @@ namespace Renderer {
                 const r = renderables[i];
                 if (checkOpaque(r)) {
                     renderObject(r, 'color', Flag.None);
-                    if (hasSolidInteriorCap(r)) {
-                        renderSolidInteriorCap(r, 'color', 'opaque');
-                    }
                 }
             }
+            renderSolidInteriorCaps(renderables, checkOpaque, 'color', 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderOpaque');
         };
 
@@ -879,7 +902,9 @@ namespace Renderer {
                         renderObject(r, 'color', Flag.None);
                     }
                     if (hasSolidInteriorCap(r)) {
+                        beginSolidInteriorCaps('blended');
                         renderSolidInteriorCap(r, 'color', 'blended');
+                        endSolidInteriorCaps('blended');
                     }
                 }
             }
@@ -915,11 +940,9 @@ namespace Renderer {
                 const r = renderables[i];
                 if (checkTransparent(r)) {
                     renderObject(r, 'color', Flag.None);
-                    if (hasSolidInteriorCap(r)) {
-                        renderSolidInteriorCap(r, 'color', 'oit');
-                    }
                 }
             }
+            renderSolidInteriorCaps(renderables, checkTransparent, 'color', 'oit');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderWboitTransparent');
         };
 
@@ -940,11 +963,9 @@ namespace Renderer {
                 const r = renderables[i];
                 if (checkTransparent(r)) {
                     renderObject(r, 'color', Flag.None);
-                    if (hasSolidInteriorCap(r)) {
-                        renderSolidInteriorCap(r, 'color', 'oit');
-                    }
                 }
             }
+            renderSolidInteriorCaps(renderables, checkTransparent, 'color', 'oit');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitTransparent');
         };
 
