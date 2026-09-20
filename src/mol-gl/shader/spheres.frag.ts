@@ -2,6 +2,7 @@
  * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 export const spheres_frag = `
@@ -16,7 +17,6 @@ precision highp int;
 #include light_frag_params
 #include common_clip
 
-uniform mat4 uInvView;
 uniform float uAlphaThickness;
 
 uniform vec4 uInteriorColor;
