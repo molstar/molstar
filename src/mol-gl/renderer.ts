@@ -9,7 +9,7 @@ import { Viewport } from '../mol-canvas3d/camera/util';
 import { ICamera } from '../mol-canvas3d/camera';
 import { Scene } from './scene';
 import { WebGLContext } from './webgl/context';
-import { Mat4, Vec3, Vec4, Vec2, Quat } from '../mol-math/linear-algebra';
+import { Mat4, Vec3, Vec4, Vec2 } from '../mol-math/linear-algebra';
 import { GraphicsRenderable } from './renderable';
 import { Color } from '../mol-util/color';
 import { ValueCell, deepEqual } from '../mol-util';
@@ -453,61 +453,32 @@ namespace Renderer {
             state.cullFace(gl.BACK);
         };
 
-        const solidInteriorClipPlane = Vec4();
-        const solidInteriorNormal = Vec3();
-        const solidInteriorPosition = Vec3();
-        const solidInteriorCenter = Vec3();
-        const solidInteriorRotation = Quat();
-        const solidInteriorTransform = Mat4();
-        const solidInteriorTransposed = Mat4();
         const solidInteriorSphere = Sphere3D();
+        const solidInteriorPlane = Plane3D();
+        const solidInteriorEye = Vec3();
+        const solidInteriorClipObjects: Clip.Objects = { count: 0, type: [], invert: [], position: [], rotation: [], scale: [], transform: [] };
 
         const renderSolidInteriorCap = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit') => {
             Sphere3D.scaleNX(solidInteriorSphere, r.values.boundingSphere.ref.value, modelScale);
-            const { center, radius } = solidInteriorSphere;
             const near = globalUniforms.uNear.ref.value * 1.0001;
-            if (Math.abs(Plane3D.distanceToPoint(cameraPlane, center) - near) <= radius) {
+            if (Math.abs(Plane3D.distanceToPoint(cameraPlane, solidInteriorSphere.center) - near) <= solidInteriorSphere.radius) {
                 renderSolidInteriorPass(r, variant, mode, -1);
             }
 
             const { values } = r;
             if (values.dClipVariant?.ref.value !== 'pixel') return;
-            const count = values.dClipObjectCount.ref.value;
-            const type = values.uClipObjectType.ref.value;
-            const invert = values.uClipObjectInvert.ref.value;
-            const position = values.uClipObjectPosition.ref.value;
-            const rotation = values.uClipObjectRotation.ref.value;
-            const scale = values.uClipObjectScale.ref.value;
-            const transform = values.uClipObjectTransform.ref.value;
-            for (let i = 0; i < count; ++i) {
-                Mat4.fromArray(solidInteriorTransform, transform, i * 16);
-                Vec3.fromArray(solidInteriorPosition, position, i * 3);
-                if (type[i] === Clip.Type.plane) {
-                    Vec3.transformQuat(solidInteriorNormal, Vec3.unitY, Quat.fromArray(solidInteriorRotation, rotation, i * 4));
-                    Vec4.set(solidInteriorClipPlane, solidInteriorNormal[0], solidInteriorNormal[1], solidInteriorNormal[2], -Vec3.dot(solidInteriorNormal, solidInteriorPosition));
-                    if (invert[i]) Vec4.scale(solidInteriorClipPlane, solidInteriorClipPlane, -1);
-                    Vec4.transformMat4(solidInteriorClipPlane, solidInteriorClipPlane, Mat4.transpose(solidInteriorTransposed, solidInteriorTransform));
-                    const length = Math.hypot(solidInteriorClipPlane[0], solidInteriorClipPlane[1], solidInteriorClipPlane[2]);
-                    if (length < 1e-6) continue;
-                    Vec4.scale(solidInteriorClipPlane, solidInteriorClipPlane, 1 / length);
-                    solidInteriorClipPlane[3] *= modelScale;
-                    if (Math.abs(solidInteriorClipPlane[0] * center[0] + solidInteriorClipPlane[1] * center[1] + solidInteriorClipPlane[2] * center[2] + solidInteriorClipPlane[3]) > radius) continue;
-                    if (solidInteriorClipPlane[0] * cameraPosition[0] + solidInteriorClipPlane[1] * cameraPosition[1] + solidInteriorClipPlane[2] * cameraPosition[2] + solidInteriorClipPlane[3] <= 1e-4) continue;
-                } else {
-                    Vec3.transformMat4(solidInteriorCenter, Vec3.scale(solidInteriorCenter, center, 1 / modelScale), solidInteriorTransform);
-                    const objectRadius = radius / modelScale * Mat4.getMaxScaleOnAxis(solidInteriorTransform);
-                    const distance = Vec3.distance(solidInteriorCenter, solidInteriorPosition);
-                    const sx = scale[i * 3], sy = scale[i * 3 + 1], sz = scale[i * 3 + 2];
-                    let outer = Infinity, inner = 0;
-                    if (type[i] === Clip.Type.sphere) {
-                        outer = Math.max(sx, sy, sz) / 2; inner = Math.min(sx, sy, sz) / 2;
-                    } else if (type[i] === Clip.Type.cube) {
-                        outer = Math.hypot(sx, sy, sz) / 2; inner = Math.min(sx, sy, sz) / 2;
-                    } else if (type[i] === Clip.Type.cylinder) {
-                        outer = Math.hypot(sx, sy) / 2; inner = Math.min(sx, sy) / 2;
-                    }
-                    if (distance > objectRadius + outer || distance + objectRadius < inner) continue;
-                }
+            const objects = solidInteriorClipObjects;
+            objects.count = values.dClipObjectCount.ref.value;
+            objects.type = values.uClipObjectType.ref.value;
+            objects.invert = values.uClipObjectInvert.ref.value;
+            objects.position = values.uClipObjectPosition.ref.value;
+            objects.rotation = values.uClipObjectRotation.ref.value;
+            objects.scale = values.uClipObjectScale.ref.value;
+            objects.transform = values.uClipObjectTransform.ref.value;
+            Vec3.scale(solidInteriorEye, cameraPosition, 1 / modelScale);
+            for (let i = 0; i < objects.count; ++i) {
+                if (!Clip.canIntersectSphere(objects, i, values.boundingSphere.ref.value)) continue;
+                if (objects.type[i] === Clip.Type.plane && Plane3D.distanceToPoint(Clip.getPlane(solidInteriorPlane, objects, i), solidInteriorEye) * modelScale <= 1e-4) continue;
                 renderSolidInteriorPass(r, variant, mode, i);
             }
         };
