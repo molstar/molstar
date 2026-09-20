@@ -36,7 +36,7 @@ void main() {
         #ifdef enabledFragDepth
             if (capPass) {
                 float nearZ = -uNear * 1.0001;
-                vec3 nearPosition = mix(vViewPosition * (nearZ / vViewPosition.z), vec3(vViewPosition.xy, nearZ), uIsOrtho);
+                vec3 nearPosition = vec3(mix(vViewPosition.xy * (nearZ / vViewPosition.z), vViewPosition.xy, uIsOrtho), nearZ);
                 float s = 0.0;
                 #if dClipObjectCount != 0
                     if (uSolidInteriorClip >= 0) {
@@ -51,7 +51,7 @@ void main() {
                 }
                 viewPosition = mix(nearPosition, vViewPosition, s);
                 modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
-                fragmentDepth = calcDepth(viewPosition);
+                fragmentDepth = mix(calcDepth(viewPosition), gl_FragCoord.z, 0.0001);
                 if (fragmentDepth > 1.0) discard;
             }
             gl_FragDepthEXT = fragmentDepth;

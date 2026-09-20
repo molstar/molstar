@@ -440,7 +440,7 @@ namespace Renderer {
             state.colorMask(true, true, true, true);
             state.depthMask(writeDepth);
             state.stencilFunc(gl.NOTEQUAL, 0, 0xff);
-            state.stencilOp(gl.KEEP, gl.KEEP, gl.ZERO);
+            state.stencilOp(gl.KEEP, gl.KEEP, writeDepth ? gl.KEEP : gl.ZERO);
             renderObject(r, variant, Flag.BlendedBack);
 
             ValueCell.updateIfChanged(globalUniforms.uSolidInteriorPass, 0);
