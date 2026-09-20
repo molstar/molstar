@@ -16,6 +16,7 @@ import { MarkerAction, MarkerActions } from '../../../../mol-util/marker-action'
 import { LocationCallback } from '../../../util';
 import { PickingId } from '../../../../mol-geo/geometry/picking';
 import { OrderedSet } from '../../../../mol-data/int';
+import { mergeRenderObjectsByType, pickMergedLoci, MergedEntry } from '../../../merged';
 import { ParticleTargetRepresentationParams, ParticleTargetRepresentationProps, createTargetVisual, createParticleTargetPropsProvider, TargetVisual } from './common';
 
 export { ParticleTargetRepresentationParams };
@@ -36,12 +37,18 @@ export function ParticleTargetRepresentation(
     const _state = Representation.createState();
     let _theme = Theme.createEmpty();
 
+    // shared across all target visuals of this representation so mergeable ones can actually be merged
+    // (canMergeRenderObjects requires equal materialId; a per-visual id would never match)
+    const materialId = getNextMaterialId();
+
     let version = 0;
     let _particles: ParticleList | undefined;
     let _params: ParticleTargetRepresentationParams;
     let _props: ParticleTargetRepresentationProps;
     // Map from targetId → TargetVisual; re-used across updates.
     const targetVisuals = new Map<number, TargetVisual>();
+
+    let mergedByType = new Map<string, MergedEntry<TargetVisual>>();
 
     function createOrUpdate(props: Partial<ParticleTargetRepresentationProps> = {}, input?: ParticleList) {
         if (input) {
@@ -78,14 +85,14 @@ export function ParticleTargetRepresentation(
             }
 
             const presentTargets = new Set<number>();
-            renderObjects.length = 0;
+            const entries: { visual: TargetVisual, renderObject: GraphicsRenderObject }[] = [];
 
             for (const { targetId, target, indices } of instanced) {
                 presentTargets.add(targetId);
 
                 let visual = targetVisuals.get(targetId);
                 if (!visual) {
-                    visual = createTargetVisual(targetId, getNextMaterialId(), webgl);
+                    visual = createTargetVisual(targetId, materialId, webgl);
                     targetVisuals.set(targetId, visual);
                 }
 
@@ -94,7 +101,7 @@ export function ParticleTargetRepresentation(
                 if (visual.renderObject) {
                     // Render objects can be created here, so they need the current state applied.
                     applyState(visual.renderObject, _state);
-                    renderObjects.push(visual.renderObject);
+                    entries.push({ visual, renderObject: visual.renderObject });
                     geometryState.add(visual.renderObject.id, visual.geometryVersion);
                 }
             }
@@ -107,9 +114,14 @@ export function ParticleTargetRepresentation(
                 }
             }
 
+            updateRenderObjectList(entries);
             geometryState.snapshot();
             updated.next(version++);
         });
+    }
+
+    function updateRenderObjectList(entries: { visual: TargetVisual, renderObject: GraphicsRenderObject }[]) {
+        mergedByType = mergeRenderObjectsByType(entries, _props.renderMerged, mergedByType, renderObjects);
     }
 
     function applyState(renderObject: GraphicsRenderObject, state: Partial<Representation.State>) {
@@ -120,8 +132,10 @@ export function ParticleTargetRepresentation(
 
     function setState(state: Partial<Representation.State>) {
         Representation.updateState(_state, state);
-        for (const renderObject of renderObjects) {
-            applyState(renderObject, state);
+        // apply per visual, not per (possibly merged) renderObject: a merged render object only
+        // aliases its first member's state, so looping renderObjects would miss the other members
+        for (const visual of targetVisuals.values()) {
+            if (visual.renderObject) applyState(visual.renderObject, state);
         }
     }
 
@@ -129,8 +143,23 @@ export function ParticleTargetRepresentation(
         _theme = theme;
     }
 
+    function getMergedLoci(pickingId: PickingId): ModelLoci | undefined {
+        if (!_particles) return undefined;
+        const particles = _particles;
+        return pickMergedLoci(mergedByType, pickingId, (visual, index, localInstanceId) => {
+            const indices = visual.particleIndices;
+            return (!indices || localInstanceId < 0 || localInstanceId >= OrderedSet.size(indices))
+                ? EmptyLoci
+                : Particle.Loci(particles, OrderedSet.ofSingleton(OrderedSet.getAt(indices, localInstanceId)));
+        });
+    }
+
     function getLoci(pickingId: PickingId): ModelLoci {
         if (!_particles) return EmptyLoci;
+
+        const mergedLoci = getMergedLoci(pickingId);
+        if (mergedLoci !== undefined) return mergedLoci;
+
         const { objectId, instanceId } = pickingId;
         for (const visual of targetVisuals.values()) {
             if (visual.renderObject && visual.renderObject.id === objectId) {
@@ -178,6 +207,7 @@ export function ParticleTargetRepresentation(
             visual.destroy();
         }
         targetVisuals.clear();
+        mergedByType.clear();
         renderObjects.length = 0;
     }
 

@@ -269,7 +269,6 @@ const coarseSurface = StructureRepresentationPresetProvider({
                 traceOnly: !structure.isCoarseGrained,
                 radiusOffset: 2,
                 smoothness: 1,
-                visuals: ['structure-gaussian-surface-mesh']
             });
         } else if (size === Structure.Size.Huge) {
             Object.assign(gaussianProps, {

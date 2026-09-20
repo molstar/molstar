@@ -10,7 +10,7 @@ import { ICamera } from '../mol-canvas3d/camera';
 import { Scene } from './scene';
 import { WebGLContext } from './webgl/context';
 import { Mat4, Vec3, Vec4, Vec2 } from '../mol-math/linear-algebra';
-import { GraphicsRenderable } from './renderable';
+import { GraphicsRenderable, Frame, createFrame } from './renderable';
 import { Color } from '../mol-util/color';
 import { ValueCell, deepEqual } from '../mol-util';
 import { GlobalUniformValues } from './renderable/schema';
@@ -63,7 +63,7 @@ interface Renderer {
 
     clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean, forceToTransparency?: boolean) => void
     clearDepth: (packed?: boolean) => void
-    update: (camera: ICamera, scene: Scene) => void
+    update: (camera: ICamera, scene: Scene, frame: Frame) => void
     setTime: (time: number) => void
 
     renderPick: (group: Scene.Group, camera: ICamera, variant: 'pick' | 'depth', pickType: PickType) => void
@@ -218,6 +218,7 @@ namespace Renderer {
 
         let modelScale = 1;
         const boundingSphere = Sphere3D();
+        let currentFrame: Frame = createFrame();
 
         const ambientColor = Vec3();
         Vec3.scale(ambientColor, Color.toArrayNormalized(p.ambientColor, ambientColor, 0), p.ambientIntensity);
@@ -327,7 +328,7 @@ namespace Renderer {
                 const hasInstanceGrid = r.values.instanceGrid.ref.value.cellSize > 0;
                 const hasMultipleInstances = r.values.uInstanceCount.ref.value > 1;
                 if (hasInstanceGrid && (hasMultipleInstances || r.values.lodLevels)) {
-                    r.cull(cameraPlane, frustum, isOccluded, ctx.stats);
+                    r.cull(cameraPlane, frustum, isOccluded, ctx.stats, currentFrame);
                 } else {
                     r.uncull();
                 }
@@ -513,7 +514,9 @@ namespace Renderer {
             if (hasCaps) endSolidInteriorCaps(mode);
         };
 
-        const update = (camera: ICamera, scene: Scene) => {
+        const update = (camera: ICamera, scene: Scene, frame: Frame) => {
+            currentFrame = frame;
+
             ValueCell.update(globalUniforms.uView, camera.view);
             ValueCell.update(globalUniforms.uInvView, Mat4.invert(invView, camera.view));
             ValueCell.update(globalUniforms.uProjection, camera.projection);

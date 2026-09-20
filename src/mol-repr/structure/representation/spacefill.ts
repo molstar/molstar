@@ -36,10 +36,6 @@ export function getSpacefillParams(ctx: ThemeRegistryContext, structure: Structu
         }
         params = CoarseGrainedSpacefillParams;
     }
-    if (structure.unitSymmetryGroups.length > 500) {
-        params = PD.clone(params);
-        params.visuals.defaultValue = ['structure-element-sphere'];
-    }
     return params;
 }
 

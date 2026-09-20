@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2025s mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { Color, ColorMap } from '../../../../mol-util/color';
@@ -35,7 +36,10 @@ export const SaccharideColors = ColorMap({
 
 export enum SaccharideType {
     Hexose, HexNAc, Hexosamine, Hexuronate, Deoxyhexose, DeoxyhexNAc, DiDeoxyhexose,
-    Pentose, Deoxynonulosonate, DiDeoxynonulosonate, Unknown, Assigned
+    Pentose, Deoxynonulosonate, DiDeoxynonulosonate,
+    /** This includes known monosaccharides with FlatHexagon shape and unknown monosaccharides (i.e. not in the hardcoded list) */
+    Unknown,
+    Assigned,
 }
 
 const SaccharideTypeNameMap = {
@@ -70,18 +74,16 @@ const SaccharideTypeShapeMap = {
     [SaccharideType.DiDeoxynonulosonate]: SaccharideShape.FlatDiamond,
     [SaccharideType.Unknown]: SaccharideShape.FlatHexagon,
     [SaccharideType.Assigned]: SaccharideShape.Pentagon,
-};
+} satisfies Record<SaccharideType, SaccharideShape>;
 
-export function getSaccharideShape(type: SaccharideType, ringMemberCount: number): SaccharideShape {
-    if (type === SaccharideType.Unknown) {
-        if (ringMemberCount === 4) return SaccharideShape.DiamondPrism;
-        else if (ringMemberCount === 5) return SaccharideShape.PentagonalPrism;
-        else if (ringMemberCount === 6) return SaccharideShape.HexagonalPrism;
-        else if (ringMemberCount === 7) return SaccharideShape.HeptagonalPrism;
-        else return SaccharideShape.FlatHexagon;
-    } else {
-        return SaccharideTypeShapeMap[type];
-    }
+export function getSaccharideShape(type: SaccharideType): SaccharideShape {
+    return SaccharideTypeShapeMap[type] ?? SaccharideShape.FlatHexagon;
+}
+
+/** Decide whether a saccharide shape is divided into two colors. */
+export function isSaccharideShapeDivided(type: SaccharideType): boolean {
+    const shape = getSaccharideShape(type);
+    return shape === SaccharideShape.CrossedCube || shape === SaccharideShape.DividedDiamond || shape === SaccharideShape.DevidedCone;
 }
 
 export type SaccharideComponent = {

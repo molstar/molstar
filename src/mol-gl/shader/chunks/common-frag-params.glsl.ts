@@ -105,22 +105,15 @@ float calcDepth(const in vec3 pos) {
     return 0.5 + 0.5 * clipZW.x / clipZW.y;
 }
 
-// "Bump Mapping Unparametrized Surfaces on the GPU" Morten S. Mikkelsen
-// https://mmikk.github.io/papers3d/mm_sfgrad_bump.pdf
-vec3 perturbNormal(in vec3 position, in vec3 normal, in float height, in float scale) {
-    vec3 sigmaS = dFdx(position);
-    vec3 sigmaT = dFdy(position);
-
-    vec3 r1 = cross(sigmaT, normal);
-    vec3 r2 = cross(normal, sigmaS);
-    float det = dot(sigmaS, r1);
-    if (det == 0.0) return normal;
-
-    float bs = dFdx(height);
-    float bt = dFdy(height);
-
-    vec3 surfGrad = sign(det) * (bs * r1 + bt * r2);
-    return normalize(abs(det) * normal - scale * surfGrad);
+vec3 perturbNormal(in vec3 modelPosition, in vec3 viewPosition, in vec3 normal, in float frequency, in float scale) {
+    vec3 t1 = normalize(cross(normal, abs(normal.x) < 0.9 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0)));
+    vec3 t2 = cross(normal, t1);
+    float e = max((uIsOrtho == 1.0 ? 2.0 : 2.0 * abs(viewPosition.z)) / (uProjection[1][1] * uDrawingBufferSize.y), 0.01 / frequency);
+    vec3 p = modelPosition * frequency;
+    float h0 = fbm(p);
+    float h1 = fbm(p + (mat3(uInvView) * t1) * (e * frequency));
+    float h2 = fbm(p + (mat3(uInvView) * t2) * (e * frequency));
+    return normalize(normal - scale * ((h1 - h0) * t1 + (h2 - h0) * t2) / e);
 }
 
 #ifdef dXrayShaded

@@ -35,7 +35,7 @@ export const BallAndStickParams = {
     sizeFactor: PD.Numeric(0.15, { min: 0.01, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2 / 3, { min: 0.01, max: 3, step: 0.01 }),
     visuals: PD.MultiSelect(['element-sphere', 'intra-bond', 'inter-bond'], PD.objectToOptions(BallAndStickVisuals)),
-    bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
+    bumpFrequency: PD.Numeric(5, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
     density: PD.Numeric(0.1, { min: 0, max: 1, step: 0.01 }, BaseGeometry.ShadingCategory),
 };
 export type BallAndStickParams = typeof BallAndStickParams
@@ -45,9 +45,6 @@ export function getBallAndStickParams(ctx: ThemeRegistryContext, structure: Stru
     if (size >= Structure.Size.Huge) {
         params = PD.clone(params);
         params.visuals.defaultValue = ['element-sphere', 'intra-bond'];
-    } else if (structure.unitSymmetryGroups.length > 500) {
-        params = PD.clone(params);
-        params.visuals.defaultValue = ['structure-element-sphere', 'structure-intra-bond'];
     }
     return params;
 }

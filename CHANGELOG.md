@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Merge representation render-objects to reduce draw-calls
+- Optimize `Renderable` culling with a frame token guard
 - Improve dynamic trackball controls and show param
 - Fix altloc in PDB files receive different atom names (#156)
 - Add `volume-tools/segmentor`: interactive segmentation of a volume into bodies (polygon labelling from several views, remainder assignment, dust removal, handedness flip, per-body extend + cosine soft edge, MRC mask export)
@@ -20,7 +22,6 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix CPU surface/volume visuals rebuilding on every update if GPU path is unavailable
 - Fix `floodfill` not applied on the gaussian surface wireframe
 - Fix `traceOnly` update being ignored by the molecular surface wireframe visuals
-- Add MVS `shape` node for rendering meshes from `vtp`, `ply` and `obj` resources
 - Added support for molecular atom_style in lammps data files
 - Added element symbol detection in lammps data file
 - Fix inconsistent atomic weight for some elements in `ElementAtomWeights`
@@ -65,6 +66,10 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fix mesh back faces & cylinder far hits being discarded as `interior` in the back-depth pass
     - Fix illumination shadows not weighing occlusion by per-light irradiance
 - Add `.parseRaw` to `DataFormatProvider` for out of state tree parsing
+- Carbohydrate symbols
+  - All carbohydrate symbols are rendered with 2 groups (primary and secondary) and can be potentially colored in two colors
+  - CarbohydrateSymbolColorTheme decides which shape will be colored by one or two colors
+  - Changed side length ratio of FlatBox shape from 2:2:1 to 2:1:1
 - Camera improvements
     - Support multiple camera transition shapes
     - Add `transitionTrajectory` and `transitionEasing` parameters to `PluginState.Snapshot` (MOLJ) and Plugin State > Save Options
@@ -75,6 +80,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - Added `transition` node with params `duration_ms`, `trajectory`, `easing`
     - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
     - MVS-related custom model properties (and custom structure properties) are hidden in UI (fixes override of default custom properties)
+    - Added `shape` node for rendering meshes from `vtp`, `ply` and `obj` resources
+    - Added support for MolQL selectors (e.g., select a residue + 5 ang surroundings)
 - Remove `new Function` usage for CSP / SOC2 compliance; server path templates use a whitelist of `${id...}` string methods
 - Fix CCP4/MRC volumes with unset cell angles failing to load
 - Fix CCP4/MRC volume `sigma` being taken from the header when the header rms is negative
@@ -83,6 +90,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - Formats: ariatomi-em, cryoet-ndjson, dynamo-tbl, relion-star, simularium, cellpack & petworld mmcif
     - Properties: position, orientation, radius, entity, compartment, custom attributes, fibers
     - Particles can be decorated with structure, volume, and shape visuals
+- Fix bumpiness artifacts on impostor seams and clip boundaries
+    - Change `bumpFrequency` defaults of ball-and-stick (5) and backbone (4)
 - Add `solidInterior` param to mesh-based visuals (solid cap where the camera near plane or a clip object cuts a closed surface)
 - Cap impostor spheres and cylinders with `solidInterior` at clip objects, not only at the camera near plane
 

@@ -6,9 +6,9 @@ export const assign_size = `
 #elif defined(dSizeType_instance)
     float size = unpackRGBToInt(readFromTexture(tSize, aInstance, uSizeTexDim).rgb);
 #elif defined(dSizeType_group)
-    float size = unpackRGBToInt(readFromTexture(tSize, group, uSizeTexDim).rgb);
+    float size = unpackRGBToInt(readFromTexture(tSize, groupIndex(group), uSizeTexDim).rgb);
 #elif defined(dSizeType_groupInstance)
-    float size = unpackRGBToInt(readFromTexture(tSize, aInstance * float(uGroupCount) + group, uSizeTexDim).rgb);
+    float size = unpackRGBToInt(readFromTexture(tSize, groupInstanceIndex(aInstance, group), uSizeTexDim).rgb);
 #elif defined(dSizeType_vertex)
     float size = unpackRGBToInt(readFromTexture(tSize, vertexId, uSizeTexDim).rgb);
 #elif defined(dSizeType_vertexInstance)

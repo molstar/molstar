@@ -16,7 +16,7 @@ import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { stringToWords } from '../../../mol-util/string';
 import { isMVSStructure } from './is-mvs-model-prop';
-import { ElementSet, SelectorParams, isSelectorAll, substructureFromSelector } from './selector';
+import { ElementSet, SelectorParams, isSelectorAll, substructureFromRootSelector } from './selector';
 
 
 /** Special value that can be used as color with null-like semantic (i.e. "no color provided").
@@ -165,7 +165,7 @@ function makeLayers(ctx: ThemeDataContext, props: MultilayerColorThemeProps, col
                     elementSet = undefined;
                     selectionGranularity = 'uniform';
                 } else {
-                    const substructure = substructureFromSelector(ctx.structure, layer.selection);
+                    const substructure = substructureFromRootSelector(ctx.structure, layer.selection);
                     elementSet = ElementSet.fromStructure(substructure);
                     selectionGranularity = getSubstructureGranularity(ctx.structure, substructure);
                 }

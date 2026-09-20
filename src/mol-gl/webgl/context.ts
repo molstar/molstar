@@ -222,6 +222,10 @@ function createStats() {
             frustum: 0,
             occlusion: 0,
         },
+
+        cacheHits: {
+            cull: 0
+        }
     };
     return stats;
 }

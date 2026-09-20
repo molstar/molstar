@@ -9,6 +9,7 @@
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Renderer } from '../../mol-gl/renderer';
+import { Frame } from '../../mol-gl/renderable';
 import { Scene } from '../../mol-gl/scene';
 import { Texture } from '../../mol-gl/webgl/texture';
 import { Camera, ICamera } from '../camera';
@@ -432,7 +433,7 @@ export class DrawPass {
         }
     }
 
-    private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props) {
+    private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props, frame: Frame) {
         if (camera.disabled) return;
 
         const volumeRendering = scene.volumes.renderables.length > 0;
@@ -443,7 +444,7 @@ export class DrawPass {
 
         const { x, y, width, height } = camera.viewport;
         renderer.setViewport(x, y, width, height);
-        renderer.update(camera, scene);
+        renderer.update(camera, scene, frame);
 
         if (transparentBackground && !antialiasingEnabled && toDrawingBuffer && !postprocessingEnabled) {
             this.drawTarget.bind();
@@ -497,7 +498,7 @@ export class DrawPass {
             }
             if (helper.pointer.isEnabled) {
                 helper.pointer.setCamera(camera);
-                renderer.update(helper.pointer.camera, helper.pointer.scene);
+                renderer.update(helper.pointer.camera, helper.pointer.scene, frame);
                 renderer.renderBlended(helper.pointer.scene, helper.pointer.camera);
             }
             if (!this.packedDepth) {
@@ -509,7 +510,7 @@ export class DrawPass {
         }
         if (helper.camera.isEnabled) {
             helper.camera.update(camera);
-            renderer.update(helper.camera.camera, helper.camera.scene);
+            renderer.update(helper.camera.camera, helper.camera.scene, frame);
             renderer.renderBlended(helper.camera.scene, helper.camera.camera);
         }
 
@@ -550,7 +551,7 @@ export class DrawPass {
         this.webgl.gl.flush();
     }
 
-    render(ctx: RenderContext, props: Props, toDrawingBuffer: boolean) {
+    render(ctx: RenderContext, props: Props, toDrawingBuffer: boolean, frame: Frame) {
         if (isTimingMode) this.webgl.timer.mark('DrawPass.render');
         const { renderer, camera, scene, helper } = ctx;
 
@@ -569,13 +570,13 @@ export class DrawPass {
 
         if (StereoCamera.is(camera)) {
             if (isTimingMode) this.webgl.timer.mark('StereoCamera.left');
-            this._render(renderer, camera.left, scene, helper, toDrawingBuffer, transparentBackground, props);
+            this._render(renderer, camera.left, scene, helper, toDrawingBuffer, transparentBackground, props, frame);
             if (isTimingMode) this.webgl.timer.markEnd('StereoCamera.left');
             if (isTimingMode) this.webgl.timer.mark('StereoCamera.right');
-            this._render(renderer, camera.right, scene, helper, toDrawingBuffer, transparentBackground, props);
+            this._render(renderer, camera.right, scene, helper, toDrawingBuffer, transparentBackground, props, frame);
             if (isTimingMode) this.webgl.timer.markEnd('StereoCamera.right');
         } else {
-            this._render(renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, props);
+            this._render(renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, props, frame);
         }
         if (isTimingMode) this.webgl.timer.markEnd('DrawPass.render');
     }

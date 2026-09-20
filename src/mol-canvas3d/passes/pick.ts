@@ -7,6 +7,7 @@
 
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { PickType, Renderer } from '../../mol-gl/renderer';
+import { Frame } from '../../mol-gl/renderable';
 import { Scene } from '../../mol-gl/scene';
 import { PixelPackBuffer } from '../../mol-gl/webgl/buffer';
 import { isWebGL2 } from '../../mol-gl/webgl/compat';
@@ -259,9 +260,9 @@ export class PickPass {
         }
     }
 
-    private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: 'pick' | 'depth', pickType: number) {
+    private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: 'pick' | 'depth', pickType: number, frame: Frame) {
         renderer.clear(false);
-        renderer.update(camera, scene);
+        renderer.update(camera, scene, frame);
         renderer.renderPick(scene.primitives, camera, variant, pickType);
 
         if (helper.handle.isEnabled) {
@@ -270,31 +271,31 @@ export class PickPass {
 
         if (helper.camera.isEnabled) {
             helper.camera.update(camera);
-            renderer.update(helper.camera.camera, helper.camera.scene);
+            renderer.update(helper.camera.camera, helper.camera.scene, frame);
             renderer.renderPick(helper.camera.scene, helper.camera.camera, variant, pickType);
         }
     }
 
-    render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper) {
+    render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, frame: Frame) {
         if (this.webgl.extensions.drawBuffers) {
             this.framebuffer.bind();
-            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.None);
+            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.None, frame);
             // if (this.pickWidth < 256) {
             //     printTextureImage(readTexture(this.webgl, this.groupPickTexture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
             // }
         } else {
             this.objectPickTarget.bind();
-            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Object);
+            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Object, frame);
 
             this.instancePickTarget.bind();
-            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Instance);
+            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Instance, frame);
 
             this.groupPickTarget.bind();
-            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Group);
+            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Group, frame);
             // printTextureImage(readTexture(this.webgl, this.groupPickTarget.texture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
 
             this.depthPickTarget.bind();
-            this.renderVariant(renderer, camera, scene, helper, 'depth', PickType.None);
+            this.renderVariant(renderer, camera, scene, helper, 'depth', PickType.None, frame);
         }
     }
 }

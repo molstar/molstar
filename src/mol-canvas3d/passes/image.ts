@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -8,6 +8,7 @@
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Renderer, RendererParams } from '../../mol-gl/renderer';
+import { Frame, createFrame } from '../../mol-gl/renderable';
 import { Scene } from '../../mol-gl/scene';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { DrawPass } from './draw';
@@ -43,6 +44,8 @@ export class ImagePass {
     private _width = 0;
     private _height = 0;
     private _camera = new Camera();
+    /** bumped once per render() call, shared by every sub-render issued during that call */
+    private _frame: Frame = createFrame();
 
     readonly props: ImageProps;
 
@@ -111,6 +114,7 @@ export class ImagePass {
         Viewport.set(this._camera.viewport, 0, 0, this._width, this._height);
         this._camera.update();
         this.renderer.setOcclusionTest(null);
+        this._frame = createFrame();
 
         const ctx = { renderer: this.renderer, camera: this._camera, scene: this.scene, helper: this.helper };
         if (this.illuminationPass.supported && this.props.illumination.enabled) {
@@ -118,7 +122,7 @@ export class ImagePass {
             this.illuminationPass.restart(true);
             while (this.illuminationPass.shouldRender(this.props.illumination)) {
                 if (isTimingMode) this.webgl.timer.mark('ImagePass.render', { captureStats: true });
-                this.illuminationPass.render(ctx, this.props, false);
+                this.illuminationPass.render(ctx, this.props, false, this._frame);
                 if (isTimingMode) this.webgl.timer.markEnd('ImagePass.render');
                 if (runtime.shouldUpdate) {
                     await runtime.update({ current: this.illuminationPass.iteration });
@@ -129,10 +133,10 @@ export class ImagePass {
         } else {
             if (isTimingMode) this.webgl.timer.mark('ImagePass.render', { captureStats: true });
             if (MultiSamplePass.isEnabled(this.props.multiSample)) {
-                this.multiSampleHelper.render(ctx, this.props, false);
+                this.multiSampleHelper.render(ctx, this.props, false, undefined, this._frame);
                 this._colorTarget = this.multiSamplePass.colorTarget;
             } else {
-                this.drawPass.render(ctx, this.props, false);
+                this.drawPass.render(ctx, this.props, false, this._frame);
                 this._colorTarget = this.drawPass.getColorTarget(this.props.postprocessing);
             }
             if (isTimingMode) this.webgl.timer.markEnd('ImagePass.render');
