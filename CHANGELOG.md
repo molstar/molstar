@@ -94,6 +94,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Change `bumpFrequency` defaults of ball-and-stick (5) and backbone (4)
 - Add `solidInterior` param to mesh-based visuals (solid cap where the camera near plane or a clip object cuts a closed surface)
 - Cap impostor spheres and cylinders with `solidInterior` at clip objects, not only at the camera near plane
+- [Breaking] `createRenderTarget` takes a `depthStencil` option (`'none' | 'depth' | 'depth-stencil'`) in place of the `depth` flag
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)

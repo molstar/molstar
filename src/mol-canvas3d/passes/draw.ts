@@ -91,12 +91,12 @@ export class DrawPass {
     constructor(private webgl: WebGLContext, assetManager: AssetManager, width: number, height: number, transparency: 'wboit' | 'dpoit' | 'blended') {
         const { extensions, resources, isWebGL2 } = webgl;
         this.drawTarget = webgl.createDrawTarget();
-        this.colorTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'linear', 'rgba', isWebGL2);
-        this.transparentColorTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
+        this.colorTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
+        this.transparentColorTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
         this.packedDepth = !extensions.depthTexture;
 
-        this.depthTargetTransparent = webgl.createRenderTarget(width, height, true, 'uint8', 'nearest', 'rgba', isWebGL2);
+        this.depthTargetTransparent = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
         this.depthTextureTransparent = this.depthTargetTransparent.texture;
 
         this.depthTargetOpaque = this.packedDepth ? webgl.createRenderTarget(width, height) : null;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -45,7 +45,7 @@ export class ShadowPass {
     private invHeadRotation = Mat4.identity();
 
     constructor(readonly webgl: WebGLContext, width: number, height: number, depthTextureOpaque: Texture) {
-        this.target = webgl.createRenderTarget(width, height, false);
+        this.target = webgl.createRenderTarget(width, height, 'none');
         this.renderable = getShadowsRenderable(webgl, depthTextureOpaque);
     }
 

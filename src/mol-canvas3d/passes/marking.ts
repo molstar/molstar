@@ -48,8 +48,8 @@ export class MarkingPass {
     private readonly overlay: OverlayRenderable;
 
     constructor(private webgl: WebGLContext, width: number, height: number) {
-        this.depthTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'nearest', 'rgba', webgl.isWebGL2);
-        this.maskTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'nearest', 'rgba', webgl.isWebGL2);
+        this.depthTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
+        this.maskTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
         this.edgesTarget = webgl.createRenderTarget(width, height);
 
         this.edge = getEdgeRenderable(webgl, this.maskTarget.texture);

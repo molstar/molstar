@@ -88,11 +88,11 @@ export class MultiSamplePass {
         const { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } = webgl.extensions;
         const width = drawPass.colorTarget.getWidth();
         const height = drawPass.colorTarget.getHeight();
-        this.colorTarget = webgl.createRenderTarget(width, height, false);
+        this.colorTarget = webgl.createRenderTarget(width, height, 'none');
         const type = colorBufferHalfFloat && textureHalfFloat ? 'fp16' :
             colorBufferFloat && textureFloat ? 'float32' : 'uint8';
-        this.composeTarget = webgl.createRenderTarget(width, height, false, type);
-        this.holdTarget = webgl.createRenderTarget(width, height, false);
+        this.composeTarget = webgl.createRenderTarget(width, height, 'none', type);
+        this.holdTarget = webgl.createRenderTarget(width, height, 'none');
         this.compose = getComposeRenderable(webgl, drawPass.colorTarget.texture);
     }
 

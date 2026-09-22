@@ -144,16 +144,16 @@ export class IlluminationPass {
 
         this.tracing = new TracingPass(webgl, this.drawPass);
 
-        this.transparentTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'nearest');
-        this.outputTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
+        this.transparentTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'nearest');
+        this.outputTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
         this.copyRenderable = createCopyRenderable(webgl, this.transparentTarget.texture);
 
         this.composeRenderable = getComposeRenderable(webgl, this.tracing.accumulateTarget.texture, this.tracing.normalTextureOpaque, this.tracing.colorTextureOpaque, this.drawPass.depthTextureOpaque, this.drawPass.depthTargetTransparent.texture, this.drawPass.postprocessing.outline.target.texture, this.transparentTarget.texture, this.drawPass.postprocessing.ssao.ssaoDepthTexture, this.drawPass.postprocessing.ssao.ssaoDepthTransparentTexture, this.drawPass.postprocessing.bloom.compositeTarget.texture, false);
 
-        this.multiSampleComposeTarget = webgl.createRenderTarget(width, height, false, 'float32');
-        this.multiSampleHoldTarget = webgl.createRenderTarget(width, height, false);
-        this.multiSampleAccumulateTarget = webgl.createRenderTarget(width, height, false, 'float32');
+        this.multiSampleComposeTarget = webgl.createRenderTarget(width, height, 'none', 'float32');
+        this.multiSampleHoldTarget = webgl.createRenderTarget(width, height, 'none');
+        this.multiSampleAccumulateTarget = webgl.createRenderTarget(width, height, 'none', 'float32');
         this.multiSampleCompose = getMultiSampleComposeRenderable(webgl, this.outputTarget.texture);
 
         this._supported = true;

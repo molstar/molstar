@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -52,8 +52,8 @@ export class SmaaPass {
         const width = input.getWidth();
         const height = input.getHeight();
 
-        this.edgesTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
-        this.weightsTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
+        this.edgesTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+        this.weightsTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
         this.edgesRenderable = getEdgesRenderable(webgl, input);
         this.weightsRenderable = getWeightsRenderable(webgl, this.edgesTarget.texture);

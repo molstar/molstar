@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Ludovic Autin <autin@scripps.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -44,7 +44,7 @@ export class DofPass {
     private readonly renderable: DofRenderable;
 
     constructor(private webgl: WebGLContext, width: number, height: number) {
-        this.target = webgl.createRenderTarget(width, height, false);
+        this.target = webgl.createRenderTarget(width, height, 'none');
 
         const nullTexture = createNullTexture();
         this.renderable = getDofRenderable(webgl, nullTexture, nullTexture, nullTexture);
