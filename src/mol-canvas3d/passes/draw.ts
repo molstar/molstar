@@ -101,13 +101,13 @@ export class DrawPass {
 
         this.depthTargetOpaque = this.packedDepth ? webgl.createRenderTarget(width, height) : null;
 
-        this.depthTextureOpaque = this.depthTargetOpaque ? this.depthTargetOpaque.texture : resources.texture('image-depth', isWebGL2 ? 'depth-stencil' : 'depth', isWebGL2 ? 'float-stencil' : 'ushort', 'nearest');
+        this.depthTextureOpaque = this.depthTargetOpaque ? this.depthTargetOpaque.texture : resources.texture('image-depth', 'depth-stencil', isWebGL2 ? 'float-stencil' : 'uint24-8', 'nearest');
         if (!this.packedDepth) {
             this.depthTextureOpaque.define(width, height);
         }
 
         this.wboit = new WboitPass(webgl, width, height);
-        this.dpoit = new DpoitPass(webgl, width, height, isWebGL2 ? this.colorTarget.depthRenderbuffer : null);
+        this.dpoit = new DpoitPass(webgl, width, height, this.colorTarget.depthRenderbuffer);
         this.marking = new MarkingPass(webgl, width, height);
         this.postprocessing = new PostprocessingPass(webgl, assetManager, this);
         this.antialiasing = new AntialiasingPass(webgl, width, height);

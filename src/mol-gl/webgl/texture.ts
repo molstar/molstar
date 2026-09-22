@@ -32,7 +32,7 @@ export type TextureKindValue = {
 }
 export type TextureValueType = ValueOf<TextureKindValue>
 export type TextureKind = keyof TextureKindValue
-export type TextureType = 'ubyte' | 'ushort' | 'float' | 'fp16' | 'int' | 'float-stencil'
+export type TextureType = 'ubyte' | 'ushort' | 'float' | 'fp16' | 'int' | 'float-stencil' | 'uint24-8'
 export type TextureFormat = 'alpha' | 'rg' | 'rgb' | 'rgba' | 'depth' | 'depth-stencil'
 /** Numbers are shortcuts for color attachment */
 export type TextureAttachment = 'depth' | 'stencil' | 'depth-stencil' | 'color0' | 'color1' | 'color2' | 'color3' | 'color4' | 'color5' | 'color6' | 'color7' | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
@@ -115,7 +115,11 @@ export function getInternalFormat(gl: GLRenderingContext, format: TextureFormat,
                 }
                 break;
             case 'depth-stencil':
-                return gl.DEPTH32F_STENCIL8;
+                switch (type) {
+                    case 'float-stencil': return gl.DEPTH32F_STENCIL8;
+                    case 'uint24-8': return gl.DEPTH24_STENCIL8;
+                }
+                break;
         }
     }
     return getFormat(gl, format, type);
@@ -148,6 +152,7 @@ function getTypeSize(type: TextureType): number {
         case 'fp16': return 2;
         case 'int': return 4;
         case 'float-stencil': return 4;
+        case 'uint24-8': return 2;
     }
 }
 
@@ -165,6 +170,9 @@ export function getType(gl: GLRenderingContext, extensions: WebGLExtensions, typ
         case 'float-stencil':
             if (isWebGL2(gl)) return gl.FLOAT_32_UNSIGNED_INT_24_8_REV;
             else throw new Error('texture type "float-stencil" requires webgl2');
+        case 'uint24-8':
+            if (extensions.depthTexture) return extensions.depthTexture.UNSIGNED_INT_24_8;
+            else throw new Error('extension "depth_texture" unavailable');
     }
 }
 
@@ -262,7 +270,7 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         (kind.endsWith('float16') && _type !== 'fp16') ||
         (kind.endsWith('uint8') && _type !== 'ubyte') ||
         (kind.endsWith('int32') && _type !== 'int') ||
-        (kind.endsWith('depth') && _type !== 'ushort' && _type !== 'float' && _type !== 'float-stencil')
+        (kind.endsWith('depth') && _type !== 'ushort' && _type !== 'float' && _type !== 'float-stencil' && _type !== 'uint24-8')
     ) {
         throw new Error(`texture kind '${kind}' and type '${_type}' are incompatible`);
     }

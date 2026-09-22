@@ -101,9 +101,7 @@ export class PickPass {
             this.groupPickTexture.attachFramebuffer(this.framebuffer, 'color2');
             this.depthPickTexture.attachFramebuffer(this.framebuffer, 'color3');
 
-            this.depthRenderbuffer = isWebGL2(gl)
-                ? resources.renderbuffer('depth32f-stencil8', 'depth-stencil', this.pickWidth, this.pickHeight)
-                : resources.renderbuffer('depth16', 'depth', this.pickWidth, this.pickHeight);
+            this.depthRenderbuffer = resources.renderbuffer(isWebGL2(gl) ? 'depth32f-stencil8' : 'depth-stencil', 'depth-stencil', this.pickWidth, this.pickHeight);
 
             this.depthRenderbuffer.attachFramebuffer(this.framebuffer);
 

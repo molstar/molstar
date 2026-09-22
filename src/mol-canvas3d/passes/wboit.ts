@@ -147,9 +147,7 @@ export class WboitPass {
         this.textureB = resources.texture('image-float32', 'rgba', 'float', 'nearest');
         this.textureB.define(width, height);
 
-        this.depthRenderbuffer = isWebGL2
-            ? resources.renderbuffer('depth32f-stencil8', 'depth-stencil', width, height)
-            : resources.renderbuffer('depth16', 'depth', width, height);
+        this.depthRenderbuffer = resources.renderbuffer(isWebGL2 ? 'depth32f-stencil8' : 'depth-stencil', 'depth-stencil', width, height);
 
         this.renderable = getEvaluateWboitRenderable(webgl, this.textureA, this.textureB);
         this.framebuffer = resources.framebuffer();

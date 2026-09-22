@@ -179,7 +179,7 @@ namespace Renderer {
     }
 
     export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
-        const { gl, state, stats, isWebGL2 } = ctx;
+        const { gl, state, stats, extensions } = ctx;
         const p = PD.merge(RendererParams, PD.getDefaultValues(RendererParams), props);
         const light = getLight(p.light);
 
@@ -412,9 +412,10 @@ namespace Renderer {
             r.render(variant, sharedTexturesList.length);
         };
 
+        const solidInteriorCapSupported = !!extensions.fragDepth && !!extensions.depthTexture;
         const hasSolidInteriorCap = (r: GraphicsRenderable) => {
             const geomType = r.values.dGeometryType.ref.value;
-            return isWebGL2 && (geomType === 'mesh' || geomType === 'textureMesh') && !!r.values.dSolidInterior?.ref.value;
+            return solidInteriorCapSupported && (geomType === 'mesh' || geomType === 'textureMesh') && !!r.values.dSolidInterior?.ref.value;
         };
 
         const setSolidInteriorPass = (r: GraphicsRenderable, variant: GraphicsRenderVariant, pass: number, clipIndex: number) => {
@@ -500,7 +501,7 @@ namespace Renderer {
         };
 
         const renderSolidInteriorCaps = (renderables: ReadonlyArray<GraphicsRenderable>, check: (r: GraphicsRenderable) => boolean, variant: GraphicsRenderVariant, mode: 'opaque' | 'oit') => {
-            if (!isWebGL2) return;
+            if (!solidInteriorCapSupported) return;
             let hasCaps = false;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
@@ -809,7 +810,7 @@ namespace Renderer {
 
         const renderEmissiveTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderEmissiveTransparent');
-            const blendMinMax = ctx.extensions.blendMinMax;
+            const blendMinMax = extensions.blendMinMax;
             state.enable(gl.BLEND);
             state.blendFunc(gl.ONE, gl.ONE);
             // MAX blend so overlapping faces don't accumulate; falls back to additive when unavailable.
