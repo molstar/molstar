@@ -412,7 +412,7 @@ namespace Renderer {
             r.render(variant, sharedTexturesList.length);
         };
 
-        const solidInteriorCapSupported = !!extensions.fragDepth && !!extensions.depthTexture;
+        const solidInteriorCapSupported = !!extensions.fragDepth;
         const hasSolidInteriorCap = (r: GraphicsRenderable) => {
             const geomType = r.values.dGeometryType.ref.value;
             return solidInteriorCapSupported && (geomType === 'mesh' || geomType === 'textureMesh') && !!r.values.dSolidInterior?.ref.value;
@@ -693,6 +693,7 @@ namespace Renderer {
                     renderObject(r, 'depth', Flag.None);
                 }
             }
+            renderSolidInteriorCaps(renderables, checkOpaque, 'depth', 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthOpaque');
         };
 

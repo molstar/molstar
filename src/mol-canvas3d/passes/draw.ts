@@ -99,7 +99,7 @@ export class DrawPass {
         this.depthTargetTransparent = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
         this.depthTextureTransparent = this.depthTargetTransparent.texture;
 
-        this.depthTargetOpaque = this.packedDepth ? webgl.createRenderTarget(width, height) : null;
+        this.depthTargetOpaque = this.packedDepth ? webgl.createRenderTarget(width, height, 'depth-stencil') : null;
 
         this.depthTextureOpaque = this.depthTargetOpaque ? this.depthTargetOpaque.texture : resources.texture('image-depth', 'depth-stencil', isWebGL2 ? 'float-stencil' : 'uint24-8', 'nearest');
         if (!this.packedDepth) {
