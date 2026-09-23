@@ -96,6 +96,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Cap impostor spheres and cylinders with `solidInterior` at clip objects, not only at the camera near plane
 - [Breaking] `createRenderTarget` takes a `depthStencil` option (`'none' | 'depth' | 'depth-stencil'`) in place of the `depth` flag
 - Fix back faces of opaque objects missing from the packed depth (outlines and occlusion with the camera inside a surface)
+- Add `solidInterior` option to `StructureComponentManager`
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
