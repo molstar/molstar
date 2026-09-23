@@ -45,6 +45,7 @@ export const VolumeSphereParams = {
     ...Spheres.Params,
     ...Mesh.Params,
     ...VolumeDotParams,
+    solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
     tryUseImpostor: PD.Boolean(true),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
 };

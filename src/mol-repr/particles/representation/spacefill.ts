@@ -3,6 +3,7 @@
  *
  * @author Ludovic Autin <autin@scripps.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -33,6 +34,7 @@ import { ParticleVisual, ParticleKey } from '../visual';
 export const SpacefillParticlesParams = {
     ...Spheres.Params,
     ...Mesh.Params,
+    solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
     tryUseImpostor: PD.Boolean(true),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     excludeFibers: PD.Boolean(true, { description: 'Do not show fiber particles (e.g. shown separately by the Fibers representation).' }),
