@@ -513,12 +513,16 @@ namespace Renderer {
                 const r = renderables[i];
                 if (!hasSolidInteriorCap(r) || !check(r)) continue;
                 if (!hasCaps) {
+                    if (isTimingMode) ctx.timer.mark('Renderer.renderSolidInteriorCaps');
                     beginSolidInteriorCaps(mode);
                     hasCaps = true;
                 }
                 renderSolidInteriorCap(r, variant, mode);
             }
-            if (hasCaps) endSolidInteriorCaps(mode);
+            if (hasCaps) {
+                endSolidInteriorCaps(mode);
+                if (isTimingMode) ctx.timer.markEnd('Renderer.renderSolidInteriorCaps');
+            }
         };
 
         const update = (camera: ICamera, scene: Scene, frame: Frame) => {
