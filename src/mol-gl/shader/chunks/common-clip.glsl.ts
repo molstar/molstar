@@ -238,13 +238,13 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
         return -1.0;
     }
 
-    float clipCapExit(const in vec3 pFront, const in vec3 pBack) {
+    float clipCapExit(const in vec3 pFront, const in vec3 pBack, const in bool back) {
         float s = -1.0;
         #pragma unroll_loop_start
         for (int i = 0; i < dClipObjectCount; ++i) {
             if (UNROLLED_LOOP_INDEX == uSolidInteriorClip) {
                 vec2 iv = clipObjectInterval(uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i], uClipObjectTransform[i], pFront, pBack);
-                if (iv.x < iv.y) s = uClipObjectInvert[i] ? iv.x : iv.y;
+                if (iv.x < iv.y) s = uClipObjectInvert[i] != back ? iv.x : iv.y;
             }
         }
         #pragma unroll_loop_end

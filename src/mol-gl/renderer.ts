@@ -172,6 +172,8 @@ namespace Renderer {
         SolidInteriorMark = 4,
     }
 
+    type SolidInteriorMode = 'opaque' | 'back' | 'blended' | 'oit'
+
     const enum Mask {
         All = 0,
         Opaque = 1,
@@ -440,8 +442,8 @@ namespace Renderer {
             renderObject(r, variant, Flag.SolidInteriorMark);
         };
 
-        const renderSolidInteriorFill = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit', clipIndex: number) => {
-            const writeDepth = mode === 'opaque';
+        const renderSolidInteriorFill = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: SolidInteriorMode, clipIndex: number) => {
+            const writeDepth = mode === 'opaque' || mode === 'back';
             setSolidInteriorPass(r, variant, 1, clipIndex);
             if (mode !== 'oit') state.enable(gl.DEPTH_TEST);
             state.colorMask(true, true, true, true);
@@ -456,10 +458,11 @@ namespace Renderer {
         const solidInteriorEye = Vec3();
         const solidInteriorClipObjects: Clip.Objects = { count: 0, type: [], invert: [], position: [], rotation: [], scale: [], transform: [] };
 
-        const renderSolidInteriorCap = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: 'opaque' | 'blended' | 'oit') => {
+        const renderSolidInteriorCap = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: SolidInteriorMode) => {
             Sphere3D.scaleNX(solidInteriorSphere, r.values.boundingSphere.ref.value, modelScale);
+            const back = mode === 'back';
             const near = globalUniforms.uNear.ref.value * 1.0001;
-            if (Math.abs(Plane3D.distanceToPoint(cameraPlane, solidInteriorSphere.center) - near) <= solidInteriorSphere.radius) {
+            if (!back && Math.abs(Plane3D.distanceToPoint(cameraPlane, solidInteriorSphere.center) - near) <= solidInteriorSphere.radius) {
                 renderSolidInteriorMark(r, variant, -1);
                 renderSolidInteriorFill(r, variant, mode, -1);
             }
@@ -477,7 +480,10 @@ namespace Renderer {
                 Vec3.scale(solidInteriorEye, cameraPosition, 1 / modelScale);
                 for (let i = 0; i < objects.count; ++i) {
                     if (!Clip.canIntersectSphere(objects, i, values.boundingSphere.ref.value)) continue;
-                    if (objects.type[i] === Clip.Type.plane && Plane3D.distanceToPoint(Clip.getPlane(solidInteriorPlane, objects, i), solidInteriorEye) * modelScale <= 1e-4) continue;
+                    if (objects.type[i] === Clip.Type.plane) {
+                        const d = Plane3D.distanceToPoint(Clip.getPlane(solidInteriorPlane, objects, i), solidInteriorEye) * modelScale;
+                        if (back ? d >= -1e-4 : d <= 1e-4) continue;
+                    }
                     renderSolidInteriorMark(r, variant, i);
                     renderSolidInteriorFill(r, variant, mode, i);
                 }
@@ -485,22 +491,22 @@ namespace Renderer {
             setSolidInteriorPass(r, variant, 0, -1);
         };
 
-        const beginSolidInteriorCaps = (mode: 'opaque' | 'blended' | 'oit') => {
+        const beginSolidInteriorCaps = (mode: SolidInteriorMode) => {
             state.enable(gl.STENCIL_TEST);
             state.stencilMask(0xff);
             gl.clearStencil(0);
-            if (mode !== 'oit') state.depthFunc(gl.LEQUAL);
+            if (mode !== 'oit') state.depthFunc(mode === 'back' ? gl.GEQUAL : gl.LEQUAL);
         };
 
-        const endSolidInteriorCaps = (mode: 'opaque' | 'blended' | 'oit') => {
+        const endSolidInteriorCaps = (mode: SolidInteriorMode) => {
             state.disable(gl.STENCIL_TEST);
             state.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
-            if (mode !== 'oit') state.depthFunc(gl.LESS);
+            if (mode !== 'oit') state.depthFunc(mode === 'back' ? gl.GREATER : gl.LESS);
             state.frontFace(gl.CCW);
             state.cullFace(gl.BACK);
         };
 
-        const renderSolidInteriorCaps = (renderables: ReadonlyArray<GraphicsRenderable>, check: (r: GraphicsRenderable) => boolean, variant: GraphicsRenderVariant, mode: 'opaque' | 'oit') => {
+        const renderSolidInteriorCaps = (renderables: ReadonlyArray<GraphicsRenderable>, check: (r: GraphicsRenderable) => boolean, variant: GraphicsRenderVariant, mode: SolidInteriorMode) => {
             if (!solidInteriorCapSupported) return;
             let hasCaps = false;
             for (let i = 0, il = renderables.length; i < il; ++i) {
@@ -675,6 +681,7 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 renderObject(renderables[i], 'depth', Flag.None);
             }
+            renderSolidInteriorCaps(renderables, () => true, 'depth', 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepth');
         };
 
@@ -714,6 +721,7 @@ namespace Renderer {
                     renderObject(r, 'depth', Flag.DepthBack);
                 }
             }
+            renderSolidInteriorCaps(renderables, checkOpaque, 'depth', 'back');
             ValueCell.updateIfChanged(globalUniforms.uDepthBack, false);
             state.depthFunc(gl.LESS);
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthOpaqueBack');
@@ -801,6 +809,7 @@ namespace Renderer {
                     renderObject(r, 'emissive', Flag.None);
                 }
             }
+            renderSolidInteriorCaps(renderables, r => checkOpaque(r) && (!occludeWithOpaqueDepth || checkEmissive(r)), 'emissive', occludeWithOpaqueDepth ? 'blended' : 'opaque');
 
             if (occludeWithOpaqueDepth) {
                 state.depthFunc(gl.LESS);
@@ -829,6 +838,7 @@ namespace Renderer {
                     renderObject(r, 'emissive', Flag.None);
                 }
             }
+            renderSolidInteriorCaps(renderables, r => checkTransparent(r) && checkEmissive(r), 'emissive', 'blended');
             if (blendMinMax) state.blendEquation(gl.FUNC_ADD);
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderEmissiveTransparent');
         };

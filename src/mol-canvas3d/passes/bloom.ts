@@ -56,7 +56,7 @@ export class BloomPass {
     private readonly compositeRenderable: CompositeRenderable;
 
     constructor(private webgl: WebGLContext, width: number, height: number) {
-        this.emissiveTarget = webgl.createRenderTarget(width, height, 'depth', 'uint8', 'linear');
+        this.emissiveTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
 
         this.luminosityTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
         this.compositeTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');

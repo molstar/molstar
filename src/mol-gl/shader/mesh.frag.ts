@@ -40,7 +40,7 @@ void main() {
                 float s = 0.0;
                 #if dClipObjectCount != 0
                     if (uSolidInteriorClip >= 0) {
-                        s = clipCapExit((uInvView * vec4(nearPosition, 1.0)).xyz / uModelScale, vModelPosition / uModelScale);
+                        s = clipCapExit((uInvView * vec4(nearPosition, 1.0)).xyz / uModelScale, vModelPosition / uModelScale, uDepthBack);
                         if (s < 0.0 || s > 1.0) discard;
                     }
                 #endif
