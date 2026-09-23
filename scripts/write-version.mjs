@@ -8,9 +8,24 @@ import * as fs from 'fs';
 
 const VERSION = JSON.parse(fs.readFileSync('./package.json', 'utf8')).version;
 const TIMESTAMP = Date.now();
-const file = `export var PLUGIN_VERSION = '${VERSION}';\nexport var PLUGIN_VERSION_DATE = new Date(${TIMESTAMP})`;
-const files = ['./lib/mol-plugin/version.js', './lib/commonjs/mol-plugin/version.js'];
-for (const f of files) {
-    if (!fs.existsSync(f)) continue;
-    fs.writeFileSync(f, file);
+
+const fileContents = {
+    './lib/mol-plugin/version.js': [
+        `// This file was replaced by write-version.mjs`,
+        `export var PLUGIN_VERSION = '${VERSION}';`,
+        `export var PLUGIN_VERSION_DATE = new Date(${TIMESTAMP});`,
+    ],
+    './lib/commonjs/mol-plugin/version.js': [
+        `// This file was replaced by write-version.mjs`,
+        `"use strict";`,
+        `Object.defineProperty(exports, "__esModule", { value: true });`,
+        `exports.PLUGIN_VERSION = '${VERSION}';`,
+        `exports.PLUGIN_VERSION_DATE = new Date(${TIMESTAMP});`,
+    ],
+};
+
+for (const filename in fileContents) {
+    if (fs.existsSync(filename)) {
+        fs.writeFileSync(filename, fileContents[filename].join('\n'));
+    }
 }
