@@ -6,7 +6,7 @@ Proposal against the `molstar@5.11.0` tree. The APIs and paths below describe th
 
 Mol* 6.0 moves to a pnpm workspace of ESM packages grouped by layer. Parsers, representations, and themes become explicit plugin features; `DefaultPluginSpec()` remains the full built-in composition. Apps keep esbuild, with dependencies and build configuration owned by each app.
 
-Ship `@molstar/migrate-6` with the release to handle mechanical import changes and report manual work. The unscoped `molstar` package retains both Viewer and MVS Stories CDN apps, including their existing script-tag APIs. Existing MVS HTML viewers loading `molstar@latest` must continue working without edits. Legacy `lib/mol-*` exports, library compatibility re-exports, and the CommonJS build are removed.
+Ship `@molstar/migrate-6-cli` with the release to handle mechanical import changes and report manual work. The unscoped `molstar` package retains both Viewer and MVS Stories CDN apps, including their existing script-tag APIs. Existing MVS HTML viewers loading `molstar@latest` must continue working without edits. Legacy `lib/mol-*` exports, library compatibility re-exports, and the CommonJS build are removed.
 
 The release also includes a standalone MolViewSpec builder, dependency-cycle removal, maintainer skills, updated developer docs, and workspace CI.
 
@@ -54,12 +54,13 @@ Keep recognizable subpaths, removing the `mol-` prefix. The table is the target 
 | `@molstar/graphics` | `gl/`, `geo/`, `theme/`, `repr/`, `canvas3d/`, plus rendering code relocated from model/math |
 | `@molstar/plugin` | Plugin and plugin-state together: runtime, spec helpers, and explicit default-spec/catalog entry points |
 | `@molstar/plugin-ui` | React UI, UI-spec types, and an explicit default UI-spec entry point |
+| `@molstar/plugin-headless` | Reusable Node headless plugin context, screenshot helpers, and output handling |
 | `@molstar/mvs-builder` | Standalone MolViewSpec schema, builder, serialization, and validation |
-| `@molstar/mvs` | MolViewSpec runtime, feature, loader, and rendering CLI |
+| `@molstar/mvs` | MolViewSpec runtime, feature, and loader |
 | `@molstar/<name>-extension` | Individual extensions and their dependencies |
 | `@molstar/viewer` | Published Viewer API and app |
 | `@molstar/<name>-server` | Model, volume, and plugin-state servers |
-| `@molstar/migrate-6` | Migration CLI |
+| `@molstar/<name>-cli` | Command-focused packages: `mvs-render-cli`, `cif2bcif-cli`, `cifschema-cli`, and `migrate-6-cli` |
 | `molstar` | Viewer and MVS Stories CDN apps at `build/viewer/` and `build/mvs-stories/`, with compatible script-tag APIs |
 
 The library dependency direction is:
@@ -68,7 +69,7 @@ The library dependency direction is:
 plugin → graphics → model → io → core
 ```
 
-An arrow means “depends on.” Packages may also depend directly on any lower layer they import. UI, extensions, apps, and servers sit above the layers they use. `DefaultPluginUISpec` in plugin-ui extends `DefaultPluginSpec` in plugin; plugin never depends on UI. Default compositions live behind explicit subpath entry points in those packages, keeping React out of the non-UI default.
+An arrow means “depends on.” Packages may also depend directly on any lower layer they import. UI, headless support, extensions, apps, CLIs, and servers sit above the layers they use. `DefaultPluginUISpec` in plugin-ui extends `DefaultPluginSpec` in plugin; plugin never depends on UI or headless support. Default compositions live behind explicit subpath entry points in those packages, keeping React out of the non-UI default.
 
 `mvs-builder` has no `@molstar/*` dependency. `mvs` depends on the builder and the runtime layers it imports. Servers that only need IO and model should not acquire plugin or graphics through those packages.
 
@@ -102,6 +103,14 @@ Within the plugin layer:
 
 Enforce an acyclic package graph and no value-import cycles within packages. Type-only cycles inside a package are allowed; they must not conceal a package cycle.
 
+### 3.4 Headless plugin support
+
+Move `HeadlessPluginContext` and `HeadlessScreenshotHelper` from `mol-plugin` into `@molstar/plugin-headless`, under `packages/plugin-headless/`. This is a reusable Node library, separate from plugin-ui and command-line wrappers. It owns Node filesystem/output handling and headless setup, depending on plugin, graphics, and the lower layers it imports. Plugin, browser MVS runtime, and graphics must not depend back on it.
+
+Retain native-module injection for embedding applications. The headless package supplies the Node environment and external modules to the graphics backend; shared device/resource/capture contracts remain in graphics. Adapt screenshots to the [backend capture/readback design](v6-webgpu.md) as that boundary is extracted, rather than adding another renderer abstraction here.
+
+Keep MP4 integration in an explicit module of the MP4 extension, composed by the rendering CLI or embedding application. The base headless context must not import the encoder or register the extension automatically. Record migration of existing `getAnimation`/`saveAnimation` calls to the explicit integration. Image rendering and snapshot output should work without loading video support.
+
 ## 4. Workspace, imports, and dependencies
 
 ### 4.1 Layout
@@ -114,6 +123,7 @@ packages/
   graphics/
   plugin/
   plugin-ui/
+  plugin-headless/             # @molstar/plugin-headless
   mvs/
     builder/                  # @molstar/mvs-builder
     runtime/                  # @molstar/mvs
@@ -125,13 +135,13 @@ apps/
   mvs-stories/
 examples/<name>/              # private workspace packages
 servers/<name>/               # published server packages
-cli/<name>/                   # general CLI packages, including migrate-6
+cli/<name>/                   # @molstar/<name>-cli (mvs-render, cif2bcif, cifschema, migrate-6)
 molstar/                      # CDN-only package
 scripts/                      # shared build/release tooling
 .agents/                      # maintainer skills
 ```
 
-Each library package has `src/`, `lib/`, `package.json`, and a composite `tsconfig.json`. CLI tools tied to a product can live in that product package: MVS validation belongs to the builder, MVS rendering to the runtime. Give other existing bins, including `cif2bcif` and `cifschema`, explicit CLI package owners.
+Each library package has `src/`, `lib/`, `package.json`, and a composite `tsconfig.json`. Command-focused packages use the `-cli` suffix; their executable names need not. Libraries that also offer commands, such as the MVS builder, retain their domain names, as do server packages. Lightweight MVS validation/schema commands stay in the builder; the native rendering stack lives in a separate `cli/mvs-render/` package. See §7.1 for the complete command map.
 
 ```yaml
 # pnpm-workspace.yaml
@@ -183,7 +193,7 @@ Each package declares every external package it directly imports. “Owned by co
 | `io-ts` | MVS builder, plus any remaining direct importer until migrated |
 | `react-markdown`, `remark-gfm` | Plugin UI |
 
-Use peers for React/React DOM on UI packages, and optional peers for headless dependencies (`gl`, `canvas`, `pngjs`, `jpeg-js`) and optional cloud storage where used. Do not add React to plugin or core.
+Use peers for React/React DOM on UI packages. Keep injected headless modules (`gl`, `canvas`, `pngjs`, `jpeg-js`) optional for consumers of `@molstar/plugin-headless`, declaring optional peers where needed. The ready-to-run `@molstar/mvs-render-cli` declares its native rendering modules and codecs as direct dependencies and supplies them explicitly; browser plugin/MVS packages must not acquire them. Declare optional cloud storage where used. Do not add React to plugin or core.
 
 Types needed only to build a package belong in its dev dependencies. Types referenced by published declarations must be available to consumers through dependencies or declared peers. In particular, React does not install `@types/react`: UI packages need an explicit consumer-facing type dependency/peer policy, verified with a clean TypeScript consumer.
 
@@ -412,7 +422,7 @@ Split `extensions/mvs` into:
 | Package | API and responsibilities |
 | --- | --- |
 | `@molstar/mvs-builder` | Schema, `createMVSBuilder`, `MVSData`, MVSJ/MVSX serialization/validation, `mvs-validate`, schema-printing CLI |
-| `@molstar/mvs` | `loadMVS`/`loadMVSData`, plugin feature, annotations, cameras, runtime representations, `mvs-render` |
+| `@molstar/mvs` | `loadMVS`/`loadMVSData`, plugin feature, annotations, cameras, runtime representations |
 
 The builder replaces [molviewspec-ts](https://github.com/molstar/mol-view-spec/tree/master/molviewspec-ts) and the JSR `@molstar/molviewspec` distribution after API/parity checks. Publish the replacement to npm and JSR. Own `io-ts` and any archive dependencies in the builder; inline or extract its small general helpers without introducing a Mol* runtime dependency. An optional core peer would not make unconditional core imports optional.
 
@@ -421,6 +431,26 @@ The runtime imports the builder as a dependency; do not bundle a second copy int
 Other extensions become `@molstar/<name>-extension`. Each owns its direct dependencies, exports features/behaviors, and imports UI only when needed. Viewer dependencies and imports define its extension set; a smaller app declares and imports only its selected extensions.
 
 `@molstar/viewer` is published. Docking viewer, mesoscale explorer, MVS Stories, and examples remain private workspace app packages; the built MVS Stories app is nevertheless distributed through the root `molstar` package. Preserve that app's existing browser API. Moving parts of [MolViewStories](https://github.com/molstar/mol-view-stories) into a future `packages/mvs/stories` library needs a separate plan.
+
+### 7.1 CLI packages and executable names
+
+Use `@molstar/<name>-cli` when the package's public interface is a command. Keep existing executable names unchanged. Packages that primarily provide a library or server retain their domain names even when they expose bins; do not create a separate package for every executable or one umbrella CLI that installs all tools' dependencies.
+
+| Package | Workspace location | Executables |
+| --- | --- | --- |
+| `@molstar/mvs-render-cli` | `cli/mvs-render/` | `mvs-render` |
+| `@molstar/cif2bcif-cli` | `cli/cif2bcif/` | `cif2bcif` |
+| `@molstar/cifschema-cli` | `cli/cifschema/` | `cifschema` |
+| `@molstar/migrate-6-cli` | `cli/migrate-6/` | `molstar-migrate-6` (new) |
+| `@molstar/mvs-builder` | `packages/mvs/builder/` | `mvs-validate`, `mvs-print-schema` |
+| `@molstar/model-server` | `servers/model/` | `model-server`, `model-server-query`, `model-server-preprocess` |
+| `@molstar/volume-server` | `servers/volume/` | `volume-server`, `volume-server-query`, `volume-server-pack` |
+
+`@molstar/mvs-render-cli` composes `@molstar/mvs`, `@molstar/plugin-headless`, the MP4 extension, and its native modules/codecs. It owns argument parsing, file processing, and output selection. `@molstar/mvs` retains the reusable browser-capable runtime and never imports the rendering CLI or headless package. Validation/schema commands must remain usable without native rendering dependencies.
+
+Publish bins as compiled ESM JavaScript with Node shebangs and explicit `package.json` `bin` entries, for example `"mvs-render": "./lib/index.js"`. CLI directories use the same source/build layout and dependency rules as other workspace packages. Existing development-only generators and diagnostics may remain private workspace tools until deliberately promoted to supported commands.
+
+Library and CLI installation moves away from the CDN-only root `molstar` package. Document the replacement owner of every existing bin. For example, after publication, `npm exec --package @molstar/mvs-render-cli -- mvs-render --help` selects the rendering package explicitly. Preserve current flags and supported output formats unless a separate migration entry records a deliberate change.
 
 ## 8. Builds and maintenance
 
@@ -450,6 +480,7 @@ Rewrite mkdocs installation, plugin, examples, formats, extensions, MVS, and clo
 - Use pnpm with a frozen lockfile, a store cache, supported checkout/setup actions, and the declared minimum Node version plus the release LTS used for validation.
 - Run typechecking, lint, package-cycle/value-cycle checks, unit tests, and app/example builds. Reject aggregation barrels and enforce module boundaries between lean entry points/runtime leaves and defaults/full catalogs, even within one package. Include extensions, servers, and CLI in boundary checks.
 - Verify source-based esbuild app builds and compiled JS consumption. Install tarballs in clean consumers to check exports, declarations, direct dependencies, CSS/assets, and CLI bins. Validate defining-module imports and their processed graphs/production output, with a Vite development smoke/profile case for downstream use.
+- Verify the headless/CLI split: plugin and MVS browser imports do not reach headless/native/video modules; builder validation/schema bins run without native render dependencies. Test the packed rendering CLI's image, snapshot, and MP4 outputs on supported headless environments, plus basic headless capture without the MP4 integration.
 - For each JSR package, run publication dry runs with `--allow-slow-types` and test its source/dependency graph with the pinned Deno version. Preserve public type precision through normal TypeScript checks and native npm declaration/consumer checks; fast-type compliance is not a v6 release gate.
 - Run the slim-plugin acceptance example and the full Viewer; test snapshots with their required features registered.
 - Before advancing `molstar@latest`, test existing Viewer/MVS HTML fixtures against the packed root package, routing their unchanged CDN URLs to the candidate assets. Verify classic script loading, globals/API calls, custom-element registration, CSS/assets, MVSJ/MVSX loading, and independent named story contexts. Inspect both CDN directories in the tarball; file presence alone does not prove API compatibility.
@@ -478,6 +509,8 @@ These are default prefix mappings; the dependency-relocation audit supplies expl
 | `molstar/lib/mol-script` | `@molstar/model/script` |
 | `molstar/lib/mol-gl`, `mol-geo`, `mol-theme`, `mol-repr`, `mol-canvas3d` | Corresponding `@molstar/graphics/gl`, `geo`, `theme`, `repr`, `canvas3d` |
 | `molstar/lib/mol-plugin` | `@molstar/plugin` |
+| `molstar/lib/mol-plugin/headless-plugin-context` | `@molstar/plugin-headless/headless-plugin-context` |
+| `molstar/lib/mol-plugin/util/headless-screenshot` | `@molstar/plugin-headless/util/headless-screenshot` |
 | `molstar/lib/mol-plugin-state` | `@molstar/plugin/state` |
 | `molstar/lib/mol-plugin-ui` | `@molstar/plugin-ui` |
 | `DefaultPluginSpec` | `@molstar/plugin/default-spec` |
@@ -489,7 +522,7 @@ These are default prefix mappings; the dependency-relocation audit supplies expl
 
 ### 9.2 Migration tool
 
-Ship `@molstar/migrate-6` with dry-run output and a report of unresolved/manual changes. It should:
+Ship `@molstar/migrate-6-cli`, exposing `molstar-migrate-6`, with dry-run output and a report of unresolved/manual changes. It should:
 
 1. Rewrite imports/re-exports using resolved paths and symbol-aware exceptions, including mixed imports of base spec helpers and default specs.
 2. Replace in-repo cross-layer relatives with public package subpaths. Normalize `.js` suffixes on legacy package imports to the new extensionless exports.
@@ -545,7 +578,7 @@ Keep the [fast-types workstream](v6-fasttypes.md#5-effort-and-adoption) deferred
 | 3 | Introduce features, empty registries, explicit base specs, and registry-aware presets; prove the slim example and full default composition |
 | 4 | Drop CJS; set `type: module`, `NodeNext`, and `verbatimModuleSyntax`; use `.js` relative specifiers in source. Convert CommonJS globals/tooling and smoke-test emitted bins |
 | 5 | Move into grouped workspace packages; add exports, project references, direct dependencies, and per-app esbuild. Verify clean builds and packed consumers; stage the CDN-only `molstar` package |
-| 6 | Finish standalone MVS builder/runtime, extension and server/CLI packaging; verify npm/JSR builder parity and replacement instructions |
+| 6 | Finish standalone MVS builder/runtime, headless library, extension and server/CLI packaging; verify npm/JSR builder parity, headless dependency isolation, and command installation/migration instructions |
 | 7 | Ship the migrator, skills, mkdocs updates, advisory checks, and downstream smoke tests; publish `6-dev`, then stable when ready |
 
 Maintain the migration map, docs, skills, and relevant checks as each phase lands; phase 7 closes remaining release work. No legacy import shims are introduced at any phase.

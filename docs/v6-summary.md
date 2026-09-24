@@ -14,15 +14,19 @@ Use a pnpm workspace with one release version across public packages.
 | `@molstar/graphics` | GL, geometry, themes, representations, and canvas |
 | `@molstar/plugin` | Plugin and plugin-state runtime, with explicit default-spec/catalog entry points |
 | `@molstar/plugin-ui` | React UI and an explicit default UI-spec entry point |
+| `@molstar/plugin-headless` | Reusable Node headless context, screenshots, and output handling |
 | `@molstar/mvs-builder` / `@molstar/mvs` | Standalone MVS builder / Mol* runtime |
 | `@molstar/<name>-extension` | Extensions and their dependencies |
 | `@molstar/viewer` | Published Viewer API and app |
-| Server and CLI packages | Existing tools plus `@molstar/migrate-6` |
+| `@molstar/<name>-cli` | Command-focused packages, including `mvs-render-cli` and `migrate-6-cli` |
+| `@molstar/<name>-server` | Server packages and their related commands |
 | `molstar` | Viewer and MVS Stories CDN apps, retaining paths and browser APIs |
 
 The target dependency direction is `plugin → graphics → model → io → core` (“depends on”). The current folders do not satisfy it: IO helpers used by core, GPU math, and graphics-dependent model APIs must be relocated before packaging. Preserve familiar leaf paths where possible and record exceptions in the migration map.
 
-Internal Mol* dependencies use exact release versions through `workspace:*`. Every package declares its direct npm imports; shared versions live in the pnpm catalog. Root is private tooling. React/React DOM are UI peers; headless/native and cloud dependencies remain optional where appropriate. Published declarations must declare the type dependencies consumers need.
+Internal Mol* dependencies use exact release versions through `workspace:*`. Every package declares its direct npm imports; shared versions live in the pnpm catalog. Root is private tooling. React/React DOM are UI peers. The headless library retains module injection and optional native peers; the rendering CLI directly declares its native modules/codecs. Plugin and browser MVS packages do not depend on headless support. Published declarations must declare the type dependencies consumers need.
+
+Headless support depends on plugin and graphics, with MP4 integration in an explicit extension module. Command-focused packages use `-cli`: `@molstar/mvs-render-cli`, `@molstar/cif2bcif-cli`, `@molstar/cifschema-cli`, and `@molstar/migrate-6-cli`. Existing command names stay unchanged; the new migration command is `molstar-migrate-6`. Libraries with ancillary bins and server packages retain their domain names. See the [command/package map](v6-architecture.md#71-cli-packages-and-executable-names).
 
 ## Plugin composition
 
@@ -66,11 +70,11 @@ Keep explicit type imports and enable `verbatimModuleSyntax` for ESM. If enabled
 
 `@molstar/mvs-builder` owns the schema, builder, MVSJ/MVSX serialization/validation, and validation/schema CLIs. It has no Mol* package dependency and replaces molviewspec-ts / JSR `@molstar/molviewspec` after parity checks, publishing to npm and JSR.
 
-`@molstar/mvs` depends on the builder and owns loading, plugin integration, annotations, and `mvs-render`. Python remains in mol-view-spec. The existing MVS Stories app still ships in the root `molstar` package. A new stories library and reconciliation with MolViewStories need a separate plan.
+`@molstar/mvs` depends on the builder and owns loading, plugin integration, and annotations. `mvs-render` ships separately in `@molstar/mvs-render-cli`, composing MVS, headless support, and MP4 export. Validation/schema commands stay with the builder without native render dependencies. Python remains in mol-view-spec. The existing MVS Stories app still ships in the root `molstar` package. A new stories library and reconciliation with MolViewStories need a separate plan.
 
 ## Migration and maintenance
 
-Ship **`@molstar/migrate-6`**, with dry-run output and a manual-work report. It rewrites imports and dependencies, handles relocated APIs, and flags CommonJS, implicit default specs, and full-catalog imports. Respect downstream compiler conventions when changing relative extensions. Validate the tool on `pdbe-molstar` and `rcsb-molstar` before stable release.
+Ship **`@molstar/migrate-6-cli`** with the `molstar-migrate-6` command, dry-run output, and a manual-work report. It rewrites imports and dependencies, handles relocated APIs, and flags CommonJS, implicit default specs, and full-catalog imports. Respect downstream compiler conventions when changing relative extensions. Validate the tool on `pdbe-molstar` and `rcsb-molstar` before stable release.
 
 **No library compatibility import shims.** `molstar@6` retains `build/viewer/` and `build/mvs-stories/`, including their classic-script globals, APIs, CSS/assets, and custom elements. Existing MVS HTML viewers importing `molstar@latest` from a CDN must work without edits; verify against the packed candidate before advancing `latest`. See the [browser compatibility contract](v6-architecture.md#93-compatibility-contract). Library consumers migrate from `lib/mol-*`/CJS to scoped packages. Keep transformer identifiers and snapshot JSON; restoring a snapshot requires its features to be loaded.
 

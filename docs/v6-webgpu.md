@@ -266,6 +266,8 @@ Choose canonical camera and readback conventions. Adapters perform depth-range a
 
 Keep WebXR/session presentation, headless context creation, shader debugging, and detailed driver/resource statistics as optional adapter capabilities. Common diagnostics can report frame time, draw/object counts, memory estimates, and active features without requiring every backend to emulate GL program/VAO counts.
 
+The Node integration lives in [`@molstar/plugin-headless`](v6-architecture.md#34-headless-plugin-support): it supplies the environment/native modules, composes the plugin with a headless backend, and handles file output. Shared capture/readback and WebGL device/resource implementation stay in graphics. `@molstar/mvs-render-cli` consumes this library and the MVS runtime; neither the browser plugin nor the MVS runtime depends on the headless package or CLI. MP4 integration remains explicit in the extension, separate from basic headless capture.
+
 ## 5. Blast radius by workstream
 
 | Workstream | 6.0 abstraction work | Later WebGPU work | Risk |
