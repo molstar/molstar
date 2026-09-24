@@ -5,7 +5,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Make CIF field lookup case insensitive, so mmCIF files writing `_atom_site.cartn_x` resolve fields like `Cartn_x` instead of leaving coordinates at 0,0,0 (#1941)
-- Headless rendering: allow consumers to provide `gl` version 6 through 8, and fix browser-only layout/canvas access when rendering without a DOM
+- Headless rendering:
+  - Allow consumers to provide `gl` version 6 through 8
+  - Fix browser-only layout/canvas access when rendering without a DOM
+  - Fix version handling in commonjs
+  - Tests for `HeadlessPluginContext`
 - Merge representation render-objects to reduce draw-calls
 - Optimize `Renderable` culling with a frame token guard
 - Improve dynamic trackball controls and show param
