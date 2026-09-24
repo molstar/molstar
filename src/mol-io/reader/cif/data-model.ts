@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ivan Niukanen <57656076+niukanen1@users.noreply.github.com>
  */
 
 import { Column, ColumnHelpers, Table } from '../../../mol-data/db';
