@@ -24,6 +24,7 @@ import { isTimingMode } from '../mol-util/debug';
 import { Frustum3D } from '../mol-math/geometry/primitives/frustum3d';
 import { Plane3D } from '../mol-math/geometry/primitives/plane3d';
 import { Sphere3D } from '../mol-math/geometry';
+import { Clip } from '../mol-util/clip';
 
 export interface RendererStats {
     programCount: number
@@ -168,7 +169,10 @@ namespace Renderer {
         BlendedFront = 1,
         BlendedBack = 2,
         DepthBack = 3,
+        SolidInteriorMark = 4,
     }
+
+    type SolidInteriorMode = 'opaque' | 'back' | 'blended' | 'oit'
 
     const enum Mask {
         All = 0,
@@ -177,7 +181,7 @@ namespace Renderer {
     }
 
     export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
-        const { gl, state, stats } = ctx;
+        const { gl, state, stats, extensions } = ctx;
         const p = PD.merge(RendererParams, PD.getDefaultValues(RendererParams), props);
         const light = getLight(p.light);
 
@@ -263,6 +267,8 @@ namespace Renderer {
             uDepthBack: ValueCell.create(false),
             uPickType: ValueCell.create(PickType.None),
             uMarkingType: ValueCell.create(MarkingType.None),
+            uSolidInteriorPass: ValueCell.create(0),
+            uSolidInteriorClip: ValueCell.create(-1),
 
             uTransparentBackground: ValueCell.create(false),
 
@@ -371,6 +377,9 @@ namespace Renderer {
                 }
             } else if (flag === Flag.DepthBack) {
                 state.disable(gl.CULL_FACE);
+            } else if (flag === Flag.SolidInteriorMark) {
+                state.disable(gl.CULL_FACE);
+                state.frontFace(r.values.dFlipSided?.ref.value ? gl.CW : gl.CCW);
             } else if (flag === Flag.BlendedBack) {
                 state.enable(gl.CULL_FACE);
                 if (r.values.dFlipSided?.ref.value) {
@@ -403,6 +412,117 @@ namespace Renderer {
             }
 
             r.render(variant, sharedTexturesList.length);
+        };
+
+        const solidInteriorCapSupported = !!extensions.fragDepth;
+        const hasSolidInteriorCap = (r: GraphicsRenderable) => {
+            const geomType = r.values.dGeometryType.ref.value;
+            return solidInteriorCapSupported && (geomType === 'mesh' || geomType === 'textureMesh') && !!r.values.dSolidInterior?.ref.value;
+        };
+
+        const setSolidInteriorPass = (r: GraphicsRenderable, variant: GraphicsRenderVariant, pass: number, clipIndex: number) => {
+            ValueCell.updateIfChanged(globalUniforms.uSolidInteriorPass, pass);
+            ValueCell.updateIfChanged(globalUniforms.uSolidInteriorClip, clipIndex);
+            const program = r.getProgram(variant);
+            if (state.currentProgramId === program.id && !globalUniformsNeedUpdate) {
+                program.uniform('uSolidInteriorPass', pass);
+                program.uniform('uSolidInteriorClip', clipIndex);
+            }
+        };
+
+        const renderSolidInteriorMark = (r: GraphicsRenderable, variant: GraphicsRenderVariant, clipIndex: number) => {
+            gl.clear(gl.STENCIL_BUFFER_BIT);
+            setSolidInteriorPass(r, variant, 2, clipIndex);
+            state.colorMask(false, false, false, false);
+            state.depthMask(false);
+            state.disable(gl.DEPTH_TEST);
+            state.stencilFunc(gl.ALWAYS, 0, 0xff);
+            state.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.KEEP, gl.INCR_WRAP);
+            state.stencilOpSeparate(gl.BACK, gl.KEEP, gl.KEEP, gl.DECR_WRAP);
+            renderObject(r, variant, Flag.SolidInteriorMark);
+        };
+
+        const renderSolidInteriorFill = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: SolidInteriorMode, clipIndex: number) => {
+            const writeDepth = mode === 'opaque' || mode === 'back';
+            setSolidInteriorPass(r, variant, 1, clipIndex);
+            if (mode !== 'oit') state.enable(gl.DEPTH_TEST);
+            state.colorMask(true, true, true, true);
+            state.depthMask(writeDepth);
+            state.stencilFunc(gl.NOTEQUAL, 0, 0xff);
+            state.stencilOp(gl.KEEP, gl.KEEP, writeDepth ? gl.KEEP : gl.ZERO);
+            renderObject(r, variant, Flag.BlendedBack);
+        };
+
+        const solidInteriorSphere = Sphere3D();
+        const solidInteriorPlane = Plane3D();
+        const solidInteriorEye = Vec3();
+        const solidInteriorClipObjects: Clip.Objects = { count: 0, type: [], invert: [], position: [], rotation: [], scale: [], transform: [] };
+
+        const renderSolidInteriorCap = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: SolidInteriorMode) => {
+            Sphere3D.scaleNX(solidInteriorSphere, r.values.boundingSphere.ref.value, modelScale);
+            const back = mode === 'back';
+            const near = globalUniforms.uNear.ref.value * 1.0001;
+            if (!back && Math.abs(Plane3D.distanceToPoint(cameraPlane, solidInteriorSphere.center) - near) <= solidInteriorSphere.radius) {
+                renderSolidInteriorMark(r, variant, -1);
+                renderSolidInteriorFill(r, variant, mode, -1);
+            }
+
+            const { values } = r;
+            if (values.dClipVariant?.ref.value === 'pixel') {
+                const objects = solidInteriorClipObjects;
+                objects.count = values.dClipObjectCount.ref.value;
+                objects.type = values.uClipObjectType.ref.value;
+                objects.invert = values.uClipObjectInvert.ref.value;
+                objects.position = values.uClipObjectPosition.ref.value;
+                objects.rotation = values.uClipObjectRotation.ref.value;
+                objects.scale = values.uClipObjectScale.ref.value;
+                objects.transform = values.uClipObjectTransform.ref.value;
+                Vec3.scale(solidInteriorEye, cameraPosition, 1 / modelScale);
+                for (let i = 0; i < objects.count; ++i) {
+                    if (!Clip.canIntersectSphere(objects, i, values.boundingSphere.ref.value)) continue;
+                    if (objects.type[i] === Clip.Type.plane) {
+                        const d = Plane3D.distanceToPoint(Clip.getPlane(solidInteriorPlane, objects, i), solidInteriorEye) * modelScale;
+                        if (back ? d >= -1e-4 : d <= 1e-4) continue;
+                    }
+                    renderSolidInteriorMark(r, variant, i);
+                    renderSolidInteriorFill(r, variant, mode, i);
+                }
+            }
+            setSolidInteriorPass(r, variant, 0, -1);
+        };
+
+        const beginSolidInteriorCaps = (mode: SolidInteriorMode) => {
+            state.enable(gl.STENCIL_TEST);
+            state.stencilMask(0xff);
+            gl.clearStencil(0);
+            if (mode !== 'oit') state.depthFunc(mode === 'back' ? gl.GEQUAL : gl.LEQUAL);
+        };
+
+        const endSolidInteriorCaps = (mode: SolidInteriorMode) => {
+            state.disable(gl.STENCIL_TEST);
+            state.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+            if (mode !== 'oit') state.depthFunc(mode === 'back' ? gl.GREATER : gl.LESS);
+            state.frontFace(gl.CCW);
+            state.cullFace(gl.BACK);
+        };
+
+        const renderSolidInteriorCaps = (renderables: ReadonlyArray<GraphicsRenderable>, check: (r: GraphicsRenderable) => boolean, variant: GraphicsRenderVariant, mode: SolidInteriorMode) => {
+            if (!solidInteriorCapSupported) return;
+            let hasCaps = false;
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                const r = renderables[i];
+                if (!hasSolidInteriorCap(r) || !check(r)) continue;
+                if (!hasCaps) {
+                    if (isTimingMode) ctx.timer.mark('Renderer.renderSolidInteriorCaps');
+                    beginSolidInteriorCaps(mode);
+                    hasCaps = true;
+                }
+                renderSolidInteriorCap(r, variant, mode);
+            }
+            if (hasCaps) {
+                endSolidInteriorCaps(mode);
+                if (isTimingMode) ctx.timer.markEnd('Renderer.renderSolidInteriorCaps');
+            }
         };
 
         const update = (camera: ICamera, scene: Scene, frame: Frame) => {
@@ -516,6 +636,19 @@ namespace Renderer {
             );
         };
 
+        const checkPickable = function (r: GraphicsRenderable) {
+            return !r.state.colorOnly;
+        };
+
+        const checkMarkingDepth = function (r: GraphicsRenderable) {
+            const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+            return alpha !== 0 && r.values.transparencyAverage.ref.value !== 1 && r.values.markerAverage.ref.value !== 1;
+        };
+
+        const checkMarkingMask = function (r: GraphicsRenderable) {
+            return r.values.markerAverage.ref.value > 0;
+        };
+
         const checkEmissive = function (r: GraphicsRenderable) {
             return (r.values.emissiveAverage.ref.value + r.values.uEmissive.ref.value) > 0;
         };
@@ -531,10 +664,12 @@ namespace Renderer {
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
-                if (!renderables[i].state.colorOnly) {
-                    renderObject(renderables[i], variant, Flag.None);
+                const r = renderables[i];
+                if (checkPickable(r)) {
+                    renderObject(r, variant, Flag.None);
                 }
             }
+            renderSolidInteriorCaps(renderables, checkPickable, variant, 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderPick');
         };
 
@@ -550,6 +685,7 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 renderObject(renderables[i], 'depth', Flag.None);
             }
+            renderSolidInteriorCaps(renderables, () => true, 'depth', 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepth');
         };
 
@@ -568,6 +704,7 @@ namespace Renderer {
                     renderObject(r, 'depth', Flag.None);
                 }
             }
+            renderSolidInteriorCaps(renderables, checkOpaque, 'depth', 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthOpaque');
         };
 
@@ -588,6 +725,7 @@ namespace Renderer {
                     renderObject(r, 'depth', Flag.DepthBack);
                 }
             }
+            renderSolidInteriorCaps(renderables, checkOpaque, 'depth', 'back');
             ValueCell.updateIfChanged(globalUniforms.uDepthBack, false);
             state.depthFunc(gl.LESS);
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthOpaqueBack');
@@ -608,6 +746,7 @@ namespace Renderer {
                     renderObject(r, 'depth', Flag.None);
                 }
             }
+            renderSolidInteriorCaps(renderables, checkTransparent, 'depth', 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthTransparent');
         };
 
@@ -623,12 +762,11 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-
-                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha !== 0 && r.values.transparencyAverage.ref.value !== 1 && r.values.markerAverage.ref.value !== 1) {
-                    renderObject(renderables[i], 'marking', Flag.None);
+                if (checkMarkingDepth(r)) {
+                    renderObject(r, 'marking', Flag.None);
                 }
             }
+            renderSolidInteriorCaps(renderables, checkMarkingDepth, 'marking', 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderMarkingDepth');
         };
 
@@ -644,11 +782,11 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-
-                if (r.values.markerAverage.ref.value > 0) {
-                    renderObject(renderables[i], 'marking', Flag.None);
+                if (checkMarkingMask(r)) {
+                    renderObject(r, 'marking', Flag.None);
                 }
             }
+            renderSolidInteriorCaps(renderables, checkMarkingMask, 'marking', 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderMarkingMask');
         };
 
@@ -675,6 +813,7 @@ namespace Renderer {
                     renderObject(r, 'emissive', Flag.None);
                 }
             }
+            renderSolidInteriorCaps(renderables, r => checkOpaque(r) && (!occludeWithOpaqueDepth || checkEmissive(r)), 'emissive', occludeWithOpaqueDepth ? 'blended' : 'opaque');
 
             if (occludeWithOpaqueDepth) {
                 state.depthFunc(gl.LESS);
@@ -685,7 +824,7 @@ namespace Renderer {
 
         const renderEmissiveTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderEmissiveTransparent');
-            const blendMinMax = ctx.extensions.blendMinMax;
+            const blendMinMax = extensions.blendMinMax;
             state.enable(gl.BLEND);
             state.blendFunc(gl.ONE, gl.ONE);
             // MAX blend so overlapping faces don't accumulate; falls back to additive when unavailable.
@@ -703,6 +842,7 @@ namespace Renderer {
                     renderObject(r, 'emissive', Flag.None);
                 }
             }
+            renderSolidInteriorCaps(renderables, r => checkTransparent(r) && checkEmissive(r), 'emissive', 'blended');
             if (blendMinMax) state.blendEquation(gl.FUNC_ADD);
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderEmissiveTransparent');
         };
@@ -722,6 +862,7 @@ namespace Renderer {
                     renderObject(r, 'tracing', Flag.None);
                 }
             }
+            renderSolidInteriorCaps(renderables, checkOpaque, 'tracing', 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderTracing');
         };
 
@@ -749,6 +890,7 @@ namespace Renderer {
                     renderObject(r, 'color', Flag.None);
                 }
             }
+            renderSolidInteriorCaps(renderables, checkOpaque, 'color', 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderOpaque');
         };
 
@@ -777,6 +919,11 @@ namespace Renderer {
                         renderObject(r, 'color', Flag.BlendedFront);
                     } else {
                         renderObject(r, 'color', Flag.None);
+                    }
+                    if (hasSolidInteriorCap(r)) {
+                        beginSolidInteriorCaps('blended');
+                        renderSolidInteriorCap(r, 'color', 'blended');
+                        endSolidInteriorCaps('blended');
                     }
                 }
             }
@@ -814,6 +961,7 @@ namespace Renderer {
                     renderObject(r, 'color', Flag.None);
                 }
             }
+            renderSolidInteriorCaps(renderables, checkTransparent, 'color', 'oit');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderWboitTransparent');
         };
 
@@ -836,6 +984,7 @@ namespace Renderer {
                     renderObject(r, 'color', Flag.None);
                 }
             }
+            renderSolidInteriorCaps(renderables, checkTransparent, 'color', 'oit');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitTransparent');
         };
 

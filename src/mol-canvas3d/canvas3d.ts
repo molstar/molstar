@@ -191,6 +191,7 @@ namespace Canvas3DContext {
             preserveDrawingBuffer,
             alpha: true, // the renderer requires an alpha channel
             depth: true, // the renderer requires a depth buffer
+            stencil: true,
             premultipliedAlpha: true, // the renderer outputs PMA
             preferWebGl1
         });

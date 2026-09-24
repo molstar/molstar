@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { InteractionsRepresentationProvider } from '../../../../mol-model-props/computed/representations/interactions';
@@ -58,6 +59,7 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
         ignoreLight: PD.Boolean(false),
         material: Material.getParam(),
         clip: PD.Group(Clip.Params),
+        solidInterior: PD.Boolean(true),
         interior: getInteriorParam(),
         animation: getAnimationParam(),
     };
@@ -85,7 +87,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
             ...reprParams,
             type: {
                 name: reprParams.type.name,
-                params: { ...reprParams.type.params, ignoreHydrogens: this.params.ignoreHydrogens, ignoreHydrogensVariant: this.params.ignoreHydrogensVariant, ignoreLight: this.params.ignoreLight, material: this.params.material, clip: this.params.clip, interior: this.params.interior, animation: this.params.animation }
+                params: { ...reprParams.type.params, ignoreHydrogens: this.params.ignoreHydrogens, ignoreHydrogensVariant: this.params.ignoreHydrogensVariant, ignoreLight: this.params.ignoreLight, material: this.params.material, clip: this.params.clip, solidInterior: this.params.solidInterior, interior: this.params.interior, animation: this.params.animation }
             }
         };
     }

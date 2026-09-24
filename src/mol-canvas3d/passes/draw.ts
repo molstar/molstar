@@ -91,23 +91,23 @@ export class DrawPass {
     constructor(private webgl: WebGLContext, assetManager: AssetManager, width: number, height: number, transparency: 'wboit' | 'dpoit' | 'blended') {
         const { extensions, resources, isWebGL2 } = webgl;
         this.drawTarget = webgl.createDrawTarget();
-        this.colorTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'linear');
-        this.transparentColorTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
+        this.colorTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
+        this.transparentColorTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
         this.packedDepth = !extensions.depthTexture;
 
-        this.depthTargetTransparent = webgl.createRenderTarget(width, height);
+        this.depthTargetTransparent = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
         this.depthTextureTransparent = this.depthTargetTransparent.texture;
 
-        this.depthTargetOpaque = this.packedDepth ? webgl.createRenderTarget(width, height) : null;
+        this.depthTargetOpaque = this.packedDepth ? webgl.createRenderTarget(width, height, 'depth-stencil') : null;
 
-        this.depthTextureOpaque = this.depthTargetOpaque ? this.depthTargetOpaque.texture : resources.texture('image-depth', 'depth', isWebGL2 ? 'float' : 'ushort', 'nearest');
+        this.depthTextureOpaque = this.depthTargetOpaque ? this.depthTargetOpaque.texture : resources.texture('image-depth', 'depth-stencil', isWebGL2 ? 'float-stencil' : 'uint24-8', 'nearest');
         if (!this.packedDepth) {
             this.depthTextureOpaque.define(width, height);
         }
 
         this.wboit = new WboitPass(webgl, width, height);
-        this.dpoit = new DpoitPass(webgl, width, height);
+        this.dpoit = new DpoitPass(webgl, width, height, this.colorTarget.depthRenderbuffer);
         this.marking = new MarkingPass(webgl, width, height);
         this.postprocessing = new PostprocessingPass(webgl, assetManager, this);
         this.antialiasing = new AntialiasingPass(webgl, width, height);

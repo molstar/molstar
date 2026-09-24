@@ -56,16 +56,16 @@ export class BloomPass {
     private readonly compositeRenderable: CompositeRenderable;
 
     constructor(private webgl: WebGLContext, width: number, height: number) {
-        this.emissiveTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'linear', 'rgba');
+        this.emissiveTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
 
-        this.luminosityTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
-        this.compositeTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
+        this.luminosityTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+        this.compositeTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
         let blurWidth = Math.round(width / 2);
         let blurHeight = Math.round(height / 2);
         for (let i = 0; i < MipCount; ++i) {
-            this.horizontalBlurTargets[i] = webgl.createRenderTarget(blurWidth, blurHeight, false, 'uint8', 'linear');
-            this.verticalBlurTargets[i] = webgl.createRenderTarget(blurWidth, blurHeight, false, 'uint8', 'linear');
+            this.horizontalBlurTargets[i] = webgl.createRenderTarget(blurWidth, blurHeight, 'none', 'uint8', 'linear');
+            this.verticalBlurTargets[i] = webgl.createRenderTarget(blurWidth, blurHeight, 'none', 'uint8', 'linear');
             blurWidth = Math.round(blurWidth / 2);
             blurHeight = Math.round(blurHeight / 2);
         }

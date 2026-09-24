@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { QuadSchema, QuadValues } from '../../mol-gl/compute/util';
@@ -47,8 +48,8 @@ export class MarkingPass {
     private readonly overlay: OverlayRenderable;
 
     constructor(private webgl: WebGLContext, width: number, height: number) {
-        this.depthTarget = webgl.createRenderTarget(width, height);
-        this.maskTarget = webgl.createRenderTarget(width, height);
+        this.depthTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
+        this.maskTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
         this.edgesTarget = webgl.createRenderTarget(width, height);
 
         this.edge = getEdgeRenderable(webgl, this.maskTarget.texture);

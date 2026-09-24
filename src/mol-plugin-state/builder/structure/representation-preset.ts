@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { PresetProvider } from '../preset-provider';
@@ -78,6 +79,7 @@ export namespace StructureRepresentationPresetProvider {
             ignoreHydrogens: h !== 'all',
             ignoreHydrogensVariant: (h === 'only-polar' ? 'non-polar' : 'all') as 'all' | 'non-polar',
             ignoreLight: plugin.managers.structure.component.state.options.ignoreLight,
+            solidInterior: plugin.managers.structure.component.state.options.solidInterior,
         };
         if (params.quality && params.quality !== 'auto') typeParams.quality = params.quality;
         if (params.ignoreHydrogens !== void 0) typeParams.ignoreHydrogens = !!params.ignoreHydrogens;

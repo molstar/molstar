@@ -116,10 +116,10 @@ export class TracingPass {
         this.normalTextureOpaque.attachFramebuffer(this.framebuffer, 'color1');
         this.colorTextureOpaque.attachFramebuffer(this.framebuffer, 'color2');
 
-        this.thicknessTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'nearest');
-        this.holdTarget = webgl.createRenderTarget(width, height, false, 'float32');
-        this.accumulateTarget = webgl.createRenderTarget(width, height, false, 'float32');
-        this.composeTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
+        this.thicknessTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
+        this.holdTarget = webgl.createRenderTarget(width, height, 'none', 'float32');
+        this.accumulateTarget = webgl.createRenderTarget(width, height, 'none', 'float32');
+        this.composeTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
         this.traceRenderable = getTraceRenderable(webgl, this.colorTextureOpaque, this.normalTextureOpaque, this.shadedTextureOpaque, this.thicknessTarget.texture, this.accumulateTarget.texture, this.drawPass.depthTextureOpaque);
         this.accumulateRenderable = getAccumulateRenderable(webgl, this.holdTarget.texture);

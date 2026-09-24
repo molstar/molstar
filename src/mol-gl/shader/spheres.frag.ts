@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -32,6 +32,8 @@ varying vec3 vPointViewPosition;
     const bool solidInterior = false;
 #endif
 
+bool isCap = false;
+
 bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal, out bool interior, out float fragmentDepth){
     vec3 cameraSpherePos = -vPointViewPosition;
 
@@ -56,11 +58,13 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
     cameraPos = rayDirection * negT + rayOrigin;
     modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
     fragmentDepth = calcDepth(cameraPos);
+    float frontDepth = fragmentDepth;
+    vec3 frontModelPos = modelPos;
 
     bool objectClipped = false;
 
     #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
-        if (clipTest(modelPos)) {
+        if (clipTest(modelPos / uModelScale)) {
             objectClipped = true;
             fragmentDepth = -1.0;
         }
@@ -78,15 +82,29 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
         interior = true;
         if (fragmentDepth > 0.0) {
             #ifdef dSolidInterior
-                if (!objectClipped) {
+                float nearT = - (uNear + rayOrigin.z) / rayDirection.z;
+                float sNear = frontDepth > 0.0 ? 0.0 : clamp((nearT - negT) / (posT - negT), 0.0, 1.0);
+                #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
+                    float sCap = clipExit(frontModelPos / uModelScale, modelPos / uModelScale, sNear);
+                    if (sCap < 0.0) return false;
+                #else
+                    float sCap = sNear;
+                #endif
+                if (sCap == sNear && frontDepth <= 0.0) {
                     fragmentDepth = 0.0 + (0.0000001 / vRadius);
                     cameraNormal = -mix(normalize(vPoint), vec3(0.0, 0.0, -1.0), uIsOrtho);
-
-                    // intersection of ray with near plane
-                    float nearT = - (uNear + dot(rayOrigin, vec3(0.0, 0.0, 1.0))) / dot(rayDirection, vec3(0.0, 0.0, 1.0));
                     cameraPos = rayDirection * nearT + rayOrigin;
                     modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
                 }
+                #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
+                    else {
+                        cameraPos = rayDirection * mix(negT, posT, sCap) + rayOrigin;
+                        modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
+                        fragmentDepth = calcDepth(cameraPos) + (0.0000001 / vRadius);
+                        cameraNormal = -normalize(clipNormal(modelPos / uModelScale) * mat3(uInvView));
+                        isCap = true;
+                    }
+                #endif
             #endif
             return true;
         }
@@ -126,7 +144,9 @@ void main(void){
 
     #include fade_lod
     #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
-        #include clip_pixel
+        if (!isCap) {
+            #include clip_pixel
+        }
     #endif
 
     #ifdef dNeedsNormal
