@@ -16,7 +16,7 @@
   "scripts": {
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
-    "test": "npm install --no-save \"gl@^6.0.2\" && npm run lint && jest",
+    "test": "npm install --no-save \"gl@^8.1.6\" && npm run lint && jest",
     "jest": "jest",
     "clean": "node ./scripts/clean.js --all",
     "clean:build": "node ./scripts/clean.js --build",
@@ -193,7 +193,7 @@
   "peerDependencies": {
     "@google-cloud/storage": "^7.14.0",
     "canvas": "^2.11.2",
-    "gl": "^6.0.2",
+    "gl": ">=6",
     "jpeg-js": "^0.4.4",
     "pngjs": "^6.0.0",
     "react": ">=16.14.0",

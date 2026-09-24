@@ -422,7 +422,9 @@ const cancelAnimationFrame = typeof window !== 'undefined'
     ? window.cancelAnimationFrame
     : (handle: number) => clearImmediate(handle as unknown as NodeJS.Immediate);
 
-function syncCanvasBackground(canvas: HTMLCanvasElement, canvasProps: Canvas3DProps) {
+function syncCanvasBackground(canvas: HTMLCanvasElement | undefined, canvasProps: Canvas3DProps) {
+    // A HeadlessPluginContext has no HTML canvas to style.
+    if (!canvas) return;
     if (canvasProps.transparentBackground && canvasProps.checkeredTransparentBackground) {
         Object.assign(canvas.style, {
             'background-image': 'linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey), linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey)',
@@ -471,7 +473,7 @@ namespace Canvas3D {
         // sub-renders of that call, so their cull results can be safely reused
         let frame: Frame = createFrame();
 
-        syncCanvasBackground(canvas!, p);
+        syncCanvasBackground(canvas, p);
         updateViewport();
         const scene = Scene.create(webgl, passes.draw.transparency, {
             dColorMarker: p.renderer.colorMarker,
@@ -1425,7 +1427,7 @@ namespace Canvas3D {
                 if ('transparentBackground' in props
                     || 'checkeredTransparentBackground' in props
                     || (props.renderer && 'backgroundColor' in props.renderer)) {
-                    syncCanvasBackground(canvas!, p);
+                    syncCanvasBackground(canvas, p);
                 }
 
                 shaderManager.updateRequired(p);

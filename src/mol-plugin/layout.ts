@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -71,11 +71,14 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
         this.updateState(state);
         if (this.root && typeof state.isExpanded === 'boolean' && state.isExpanded !== prevExpanded) this.handleExpand();
 
-        if (this.state.expandToFullscreen) {
-            const body = document.getElementsByTagName('body')[0];
-            if (body) this.tryRequestFullscreen(body);
-        } else if (document.fullscreenElement) {
-            this.tryExitFullscreen();
+        // PluginLayout is also used by HeadlessPluginContext, which has no DOM.
+        if (typeof document !== 'undefined') {
+            if (this.state.expandToFullscreen) {
+                const body = document.getElementsByTagName('body')[0];
+                if (body) this.tryRequestFullscreen(body);
+            } else if (document.fullscreenElement) {
+                this.tryExitFullscreen();
+            }
         }
 
         this.events.updated.next(void 0);
@@ -238,15 +241,19 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
 
     dispose(): void {
         super.dispose();
-        document.removeEventListener('fullscreenchange', this.fullscreenChangeHandler);
-        document.removeEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
+        if (typeof document !== 'undefined') {
+            document.removeEventListener('fullscreenchange', this.fullscreenChangeHandler);
+            document.removeEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
+        }
     }
 
     constructor(private context: PluginContext) {
         super({ ...PD.getDefaultValues(PluginLayoutStateParams), ...(context.spec.layout && context.spec.layout.initial) });
 
-        document.addEventListener('fullscreenchange', this.fullscreenChangeHandler);
-        document.addEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
+        if (typeof document !== 'undefined') {
+            document.addEventListener('fullscreenchange', this.fullscreenChangeHandler);
+            document.addEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
+        }
 
         PluginCommands.Layout.Update.subscribe(context, e => this.updateProps(e.state));
 
