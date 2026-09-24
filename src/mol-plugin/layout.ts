@@ -238,15 +238,19 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
 
     dispose(): void {
         super.dispose();
-        document.removeEventListener('fullscreenchange', this.fullscreenChangeHandler);
-        document.removeEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
+        if (typeof document !== 'undefined') {
+            document?.removeEventListener('fullscreenchange', this.fullscreenChangeHandler);
+            document?.removeEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
+        }
     }
 
     constructor(private context: PluginContext) {
         super({ ...PD.getDefaultValues(PluginLayoutStateParams), ...(context.spec.layout && context.spec.layout.initial) });
 
-        document.addEventListener('fullscreenchange', this.fullscreenChangeHandler);
-        document.addEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
+        if (typeof document !== 'undefined') {
+            document?.addEventListener('fullscreenchange', this.fullscreenChangeHandler);
+            document?.addEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
+        }
 
         PluginCommands.Layout.Update.subscribe(context, e => this.updateProps(e.state));
 

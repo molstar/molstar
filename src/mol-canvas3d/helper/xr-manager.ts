@@ -5,25 +5,25 @@
  */
 
 import { BehaviorSubject, Subject, Subscription } from 'rxjs';
-import { WebGLContext } from '../../mol-gl/webgl/context';
-import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
-import { Quat } from '../../mol-math/linear-algebra/3d/quat';
-import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
-import { Camera, ICamera } from '../camera';
-import { PointerHelper } from './pointer-helper';
-import { Vec2 } from '../../mol-math/linear-algebra/3d/vec2';
-import { ButtonsType, InputObserver, ScreenTouchInput, TrackedPointerInput } from '../../mol-util/input/input-observer';
-import { Plane3D } from '../../mol-math/geometry/primitives/plane3d';
-import { Vec4 } from '../../mol-math/linear-algebra/3d/vec4';
-import { StereoCamera } from '../camera/stereo';
-import { Ray3D } from '../../mol-math/geometry/primitives/ray3d';
 import { Scene } from '../../mol-gl/scene';
+import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Sphere3D } from '../../mol-math/geometry';
-import { Canvas3dInteractionHelper } from './interaction-events';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { cameraProject } from '../camera/util';
+import { Plane3D } from '../../mol-math/geometry/primitives/plane3d';
+import { Ray3D } from '../../mol-math/geometry/primitives/ray3d';
+import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
+import { Quat } from '../../mol-math/linear-algebra/3d/quat';
+import { Vec2 } from '../../mol-math/linear-algebra/3d/vec2';
+import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
+import { Vec4 } from '../../mol-math/linear-algebra/3d/vec4';
 import { Binding } from '../../mol-util/binding';
 import { isDebugMode } from '../../mol-util/debug';
+import { ButtonsType, InputObserver, ScreenTouchInput, TrackedPointerInput } from '../../mol-util/input/input-observer';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { Camera, ICamera } from '../camera';
+import { StereoCamera } from '../camera/stereo';
+import { cameraProject } from '../camera/util';
+import { Canvas3dInteractionHelper } from './interaction-events';
+import { PointerHelper } from './pointer-helper';
 
 const B = ButtonsType;
 const Trigger = Binding.Trigger;
@@ -81,6 +81,11 @@ export class XRManager {
     private xrSession: XRSession | undefined = undefined;
     get session() {
         return this.xrSession;
+    }
+
+    private get xr(): XRSystem | undefined {
+        if (typeof navigator === 'undefined') return undefined; // navigator not available in NodeJS
+        return navigator.xr;
     }
 
     private xrRefSpace: XRReferenceSpace | undefined = undefined;
@@ -282,15 +287,15 @@ export class XRManager {
     }
 
     private checkSupported = async () => {
-        if (!navigator.xr) {
+        if (!this.xr) {
             this.isSupported.next(false);
             return;
         }
 
         try {
             const [arSupported, vrSupported] = await Promise.all([
-                navigator.xr.isSessionSupported('immersive-ar'),
-                navigator.xr.isSessionSupported('immersive-vr'),
+                this.xr.isSessionSupported('immersive-ar'),
+                this.xr.isSessionSupported('immersive-vr'),
             ]);
             this.isSupported.next(arSupported || vrSupported);
         } catch (e) {
@@ -304,11 +309,11 @@ export class XRManager {
      * Always wrap calls to it in a try/catch block to handle errors.
      */
     async request() {
-        if (!navigator.xr) return;
+        if (!this.xr) return;
 
-        const session = await navigator.xr.isSessionSupported('immersive-ar')
-            ? await navigator.xr.requestSession('immersive-ar')
-            : await navigator.xr.requestSession('immersive-vr');
+        const session = await this.xr.isSessionSupported('immersive-ar')
+            ? await this.xr.requestSession('immersive-ar')
+            : await this.xr.requestSession('immersive-vr');
 
         await this.setSession(session);
     }
@@ -323,7 +328,7 @@ export class XRManager {
         this.sessionChanged.complete();
         this.isSupported.complete();
 
-        navigator.xr?.removeEventListener('devicechange', this.checkSupported);
+        this.xr?.removeEventListener('devicechange', this.checkSupported);
     }
 
     constructor(private webgl: WebGLContext, private input: InputObserver, private scene: Scene, private camera: Camera, private stereoCamera: StereoCamera, private pointerHelper: PointerHelper, private interactionHelper: Canvas3dInteractionHelper, props: Partial<XRManagerProps> = {}, attribs: Partial<XRManagerAttribs> = {}) {
@@ -340,7 +345,7 @@ export class XRManager {
         });
 
         this.checkSupported();
-        navigator.xr?.addEventListener('devicechange', this.checkSupported);
+        this.xr?.addEventListener('devicechange', this.checkSupported);
 
         this.keyUpSub = input.keyUp.subscribe(({ code, modifiers, key }) => {
             const b = this.attribs.bindings;
