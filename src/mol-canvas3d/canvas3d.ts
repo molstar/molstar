@@ -423,6 +423,7 @@ const cancelAnimationFrame = typeof window !== 'undefined'
     : (handle: number) => clearImmediate(handle as unknown as NodeJS.Immediate);
 
 function syncCanvasBackground(canvas: HTMLCanvasElement | undefined, canvasProps: Canvas3DProps) {
+    // A HeadlessPluginContext has no HTML canvas to style.
     if (!canvas) return;
     if (canvasProps.transparentBackground && canvasProps.checkeredTransparentBackground) {
         Object.assign(canvas.style, {

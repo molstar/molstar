@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Headless rendering: allow consumers to provide `gl` version 6 through 8, and fix browser-only layout/canvas access when rendering without a DOM
 - Merge representation render-objects to reduce draw-calls
 - Optimize `Renderable` culling with a frame token guard
 - Improve dynamic trackball controls and show param
