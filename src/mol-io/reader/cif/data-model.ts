@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ivan Niukanen <57656076+niukanen1@users.noreply.github.com>
  */
 
 import { Column, ColumnHelpers, Table } from '../../../mol-data/db';
@@ -58,7 +59,20 @@ export interface CifCategory {
 }
 
 export function CifCategory(name: string, rowCount: number, fieldNames: string[], fields: { [name: string]: CifField }): CifCategory {
-    return { rowCount, name, fieldNames: [...fieldNames], getField(name) { return fields[name]; } };
+    // CIF data names are case insensitive; keep a lowercase lookup so that fields
+    // written as _atom_site.cartn_x can still be found as Cartn_x (#1941)
+    const normalizedFields = Object.create(null) as { [name: string]: CifField };
+    for (const fieldName of fieldNames) {
+        normalizedFields[fieldName.toLowerCase()] = fields[fieldName];
+    }
+    return {
+        rowCount,
+        name,
+        fieldNames: [...fieldNames],
+        getField(name) {
+            return fields[name] ?? normalizedFields[name.toLowerCase()];
+        }
+    };
 }
 
 export namespace CifCategory {
