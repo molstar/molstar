@@ -193,7 +193,7 @@
   "peerDependencies": {
     "@google-cloud/storage": "^7.14.0",
     "canvas": "^2.11.2",
-    "gl": ">=6",
+    "gl": ">=6 <9",
     "jpeg-js": "^0.4.4",
     "pngjs": "^6.0.0",
     "react": ">=16.14.0",
