@@ -13,6 +13,7 @@ import { getResidueLoci, StructureGroup } from './common';
 import { eachAtomicUnitTracedElement } from './polymer';
 import { isPurineBase, isPyrimidineBase } from '../../../../mol-model/structure/model/types';
 import { Vec3 } from '../../../../mol-math/linear-algebra/3d/vec3';
+import { AtomicIndex } from '../../../../mol-model/structure/model/properties/atomic/hierarchy';
 
 export namespace NucleotideLocationIterator {
     export function fromGroup(structureGroup: StructureGroup): LocationIterator {
@@ -82,6 +83,15 @@ export function eachNucleotideElement(loci: Loci, structureGroup: StructureGroup
 const pC4 = Vec3();
 const pN9 = Vec3();
 
+/**
+ * The L-DNA nucleotide 0DA suffixes all of its nucleotide ring atom names with `A`,
+ * e.g. `N9A` instead of `N9`, so fall back to that variant when the plain name is missing.
+ */
+function findNucleotideRingAtom(atomicIndex: AtomicIndex, residueIndex: ResidueIndex, label_atom_id: string) {
+    const idx = atomicIndex.findAtomOnResidue(residueIndex, label_atom_id);
+    return idx !== -1 ? idx : atomicIndex.findAtomOnResidue(residueIndex, label_atom_id + 'A');
+}
+
 export function getNucleotideBaseType(unit: Unit.Atomic, residueIndex: ResidueIndex) {
     const { model, conformation: c } = unit;
     const { residueAtomSegments, atoms, index: atomicIndex } = model.atomicHierarchy;
@@ -94,8 +104,8 @@ export function getNucleotideBaseType(unit: Unit.Atomic, residueIndex: ResidueIn
 
     if (!isPurine && !isPyrimidine) {
         // detect Purine or Pyrimidin based on geometry
-        const idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4');
-        const idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9');
+        const idxC4 = findNucleotideRingAtom(atomicIndex, residueIndex, 'C4');
+        const idxN9 = findNucleotideRingAtom(atomicIndex, residueIndex, 'N9');
         if (idxC4 !== -1 && idxN9 !== -1 && Vec3.distance(c.invariantPosition(idxC4, pC4), c.invariantPosition(idxN9, pN9)) < 1.6) {
             isPurine = true;
         } else {
@@ -132,23 +142,23 @@ export function setPurinIndices(idx: NucleicIndices, unit: Unit.Atomic, residueI
     const { traceElementIndex } = unit.model.atomicHierarchy.derived.residue;
 
     idx.trace = traceElementIndex[residueIndex];
-    idx.N1 = atomicIndex.findAtomOnResidue(residueIndex, 'N1');
-    idx.C2 = atomicIndex.findAtomOnResidue(residueIndex, 'C2');
-    idx.N3 = atomicIndex.findAtomOnResidue(residueIndex, 'N3');
-    idx.C4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4');
-    idx.C5 = atomicIndex.findAtomOnResidue(residueIndex, 'C5');
+    idx.N1 = findNucleotideRingAtom(atomicIndex, residueIndex, 'N1');
+    idx.C2 = findNucleotideRingAtom(atomicIndex, residueIndex, 'C2');
+    idx.N3 = findNucleotideRingAtom(atomicIndex, residueIndex, 'N3');
+    idx.C4 = findNucleotideRingAtom(atomicIndex, residueIndex, 'C4');
+    idx.C5 = findNucleotideRingAtom(atomicIndex, residueIndex, 'C5');
     if (idx.C5 === -1) {
         // modified ring, e.g. DP
-        idx.C5 = atomicIndex.findAtomOnResidue(residueIndex, 'N5');
+        idx.C5 = findNucleotideRingAtom(atomicIndex, residueIndex, 'N5');
     }
-    idx.C6 = atomicIndex.findAtomOnResidue(residueIndex, 'C6');
-    idx.N7 = atomicIndex.findAtomOnResidue(residueIndex, 'N7');
+    idx.C6 = findNucleotideRingAtom(atomicIndex, residueIndex, 'C6');
+    idx.N7 = findNucleotideRingAtom(atomicIndex, residueIndex, 'N7');
     if (idx.N7 === -1) {
         // modified ring, e.g. DP
-        idx.N7 = atomicIndex.findAtomOnResidue(residueIndex, 'C7');
+        idx.N7 = findNucleotideRingAtom(atomicIndex, residueIndex, 'C7');
     }
-    idx.C8 = atomicIndex.findAtomOnResidue(residueIndex, 'C8');
-    idx.N9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9');
+    idx.C8 = findNucleotideRingAtom(atomicIndex, residueIndex, 'C8');
+    idx.N9 = findNucleotideRingAtom(atomicIndex, residueIndex, 'N9');
 
     return idx;
 }
@@ -162,16 +172,16 @@ export function setPyrimidineIndices(idx: NucleicIndices, unit: Unit.Atomic, res
     const { traceElementIndex } = unit.model.atomicHierarchy.derived.residue;
 
     idx.trace = traceElementIndex[residueIndex];
-    idx.N1 = atomicIndex.findAtomOnResidue(residueIndex, 'N1');
+    idx.N1 = findNucleotideRingAtom(atomicIndex, residueIndex, 'N1');
     if (idx.N1 === -1) {
         // modified ring, e.g. DZ
-        idx.N1 = atomicIndex.findAtomOnResidue(residueIndex, 'C1');
+        idx.N1 = findNucleotideRingAtom(atomicIndex, residueIndex, 'C1');
     }
-    idx.C2 = atomicIndex.findAtomOnResidue(residueIndex, 'C2');
-    idx.N3 = atomicIndex.findAtomOnResidue(residueIndex, 'N3');
-    idx.C4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4');
-    idx.C5 = atomicIndex.findAtomOnResidue(residueIndex, 'C5');
-    idx.C6 = atomicIndex.findAtomOnResidue(residueIndex, 'C6');
+    idx.C2 = findNucleotideRingAtom(atomicIndex, residueIndex, 'C2');
+    idx.N3 = findNucleotideRingAtom(atomicIndex, residueIndex, 'N3');
+    idx.C4 = findNucleotideRingAtom(atomicIndex, residueIndex, 'C4');
+    idx.C5 = findNucleotideRingAtom(atomicIndex, residueIndex, 'C5');
+    idx.C6 = findNucleotideRingAtom(atomicIndex, residueIndex, 'C6');
 
     return idx;
 }
