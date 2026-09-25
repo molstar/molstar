@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Resolve the `A`-suffixed nucleotide ring atom names (`N9A` instead of `N9`, etc.) of the L-DNA nucleotides, so 0DA gets the same base representation as 0DC/0DG/0DT (#1850)
 - Make CIF field lookup case insensitive, so mmCIF files writing `_atom_site.cartn_x` resolve fields like `Cartn_x` instead of leaving coordinates at 0,0,0 (#1941)
 - Headless rendering:
   - Allow consumers to provide `gl` version 6 through 8
