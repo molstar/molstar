@@ -25,7 +25,7 @@ import { StructureRepresentationPresetProvider } from '../../builder/structure/r
 import { StatefulPluginComponent } from '../../component';
 import { StructureComponentParams } from '../../helpers/structure-component';
 import { setStructureOverpaint } from '../../helpers/structure-overpaint';
-import { createStructureColorThemeParams, createStructureSizeThemeParams } from '../../helpers/structure-representation-params';
+import { createStructureColorThemeParams, createStructureSizeThemeParams, isSurfaceRepresentationType } from '../../helpers/structure-representation-params';
 import { StructureSelectionQueries, StructureSelectionQuery } from '../../helpers/structure-selection-query';
 import { StructureRepresentation3D } from '../../transforms/representation';
 import { StructureHierarchyRef, StructureComponentRef, StructureRef, StructureRepresentationRef } from './hierarchy-state';
@@ -87,7 +87,6 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                 p.ignoreLight = options.ignoreLight;
                 p.material = options.materialStyle;
                 p.clip = options.clipObjects;
-                p.solidInterior = options.solidInterior;
                 p.interior = options.interior;
                 p.animation = options.animation;
             });
@@ -96,17 +95,17 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
     }
 
     private updateReprParams(update: StateBuilder.Root, component: StructureComponentRef) {
-        const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip, solidInterior, interior, animation } = this.state.options;
+        const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip, solidSurface, interior, animation } = this.state.options;
         const ignoreHydrogens = hydrogens !== 'all';
         const ignoreHydrogensVariant = hydrogens === 'only-polar' ? 'non-polar' : 'all';
         for (const r of component.representations) {
             if (r.cell.transform.transformer !== StructureRepresentation3D) continue;
 
             const params = r.cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
-            const pSolidInterior = params.type.params.solidInterior;
+            const isSurface = isSurfaceRepresentationType(params.type.name);
             const pInterior = params.type.params.interior;
             const pAnimation = params.type.params.animation;
-            if (!!params.type.params.ignoreHydrogens !== ignoreHydrogens || params.type.params.ignoreHydrogensVariant !== ignoreHydrogensVariant || params.type.params.quality !== quality || params.type.params.ignoreLight !== ignoreLight || !Material.areEqual(params.type.params.material, material) || !PD.areEqual(Clip.Params, params.type.params.clip, clip) || (pSolidInterior !== undefined && pSolidInterior !== solidInterior) || (pInterior && !areInteriorPropsEquals(pInterior, interior)) || (pAnimation && !areAnimationPropsEqual(pAnimation, animation))) {
+            if (!!params.type.params.ignoreHydrogens !== ignoreHydrogens || params.type.params.ignoreHydrogensVariant !== ignoreHydrogensVariant || params.type.params.quality !== quality || params.type.params.ignoreLight !== ignoreLight || !Material.areEqual(params.type.params.material, material) || !PD.areEqual(Clip.Params, params.type.params.clip, clip) || (isSurface && params.type.params.solidInterior !== solidSurface) || (pInterior && !areInteriorPropsEquals(pInterior, interior)) || (pAnimation && !areAnimationPropsEqual(pAnimation, animation))) {
                 update.to(r.cell).update(old => {
                     old.type.params.ignoreHydrogens = ignoreHydrogens;
                     old.type.params.ignoreHydrogensVariant = ignoreHydrogensVariant;
@@ -114,7 +113,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                     old.type.params.ignoreLight = ignoreLight;
                     old.type.params.material = material;
                     old.type.params.clip = clip;
-                    if (pSolidInterior !== undefined) old.type.params.solidInterior = solidInterior;
+                    if (isSurface) old.type.params.solidInterior = solidSurface;
                     if (pInterior) old.type.params.interior = interior;
                     if (pAnimation) old.type.params.animation = animation;
                 });
@@ -335,10 +334,10 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
     addRepresentation(components: ReadonlyArray<StructureComponentRef>, type: string) {
         if (components.length === 0) return;
 
-        const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip, solidInterior, interior, animation } = this.state.options;
+        const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip, solidSurface, interior, animation } = this.state.options;
         const ignoreHydrogens = hydrogens !== 'all';
         const ignoreHydrogensVariant = hydrogens === 'only-polar' ? 'non-polar' : 'all';
-        const typeParams = { ignoreHydrogens, ignoreHydrogensVariant, quality, ignoreLight, material, clip, solidInterior, interior, animation };
+        const typeParams = { ignoreHydrogens, ignoreHydrogensVariant, quality, ignoreLight, material, clip, interior, animation, ...(isSurfaceRepresentationType(type) && { solidInterior: solidSurface }) };
 
         return this.plugin.dataTransaction(async () => {
             for (const component of components) {
@@ -373,10 +372,10 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             const xs = structures || this.currentStructures;
             if (xs.length === 0) return;
 
-            const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip, solidInterior, interior, animation } = this.state.options;
+            const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip, solidSurface, interior, animation } = this.state.options;
             const ignoreHydrogens = hydrogens !== 'all';
             const ignoreHydrogensVariant = hydrogens === 'only-polar' ? 'non-polar' : 'all';
-            const typeParams = { ignoreHydrogens, ignoreHydrogensVariant, quality, ignoreLight, material, clip, solidInterior, interior, animation };
+            const typeParams = { ignoreHydrogens, ignoreHydrogensVariant, quality, ignoreLight, material, clip, interior, animation, ...(isSurfaceRepresentationType(params.representation) && { solidInterior: solidSurface }) };
 
             const componentKey = UUID.create22();
             for (const s of xs) {
@@ -497,9 +496,9 @@ namespace StructureComponentManager {
         ),
         visualQuality: PD.Select('auto', VisualQualityOptions, { description: 'Control the visual/rendering quality of representations' }),
         ignoreLight: PD.Boolean(false, { description: 'Ignore light for stylized rendering of representations' }),
+        solidSurface: PD.Boolean(true, { description: 'Render a solid cap where the camera near plane or a clip object cuts a surface representation' }),
         materialStyle: Material.getParam(),
         clipObjects: PD.Group(Clip.Params),
-        solidInterior: PD.Boolean(true, { description: 'Render a solid cap where the camera near plane or a clip object cuts a representation' }),
         interactions: PD.Group(InteractionsProvider.defaultParams, { label: 'Non-covalent Interactions' }),
         interior: getInteriorParam(),
         animation: getAnimationParam(),
