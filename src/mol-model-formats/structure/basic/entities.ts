@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -114,8 +114,13 @@ export function getEntityData(data: BasicData): Entities {
                 if (!entityIds.has(entityId)) {
                     const compId = label_comp_id.value(i);
                     const compType = chemCompType.get(compId) || 'other';
-                    subtypes[getEntityIndex(entityId)] = getEntitySubtype(compId, compType);
-                    entityIds.add(entityId);
+                    const entityIndex = getEntityIndex(entityId);
+                    const subtype = getEntitySubtype(compId, compType);
+                    subtypes[entityIndex] = subtype;
+                    // polymer entities may start with a non-polymer residue, e.g. an ACE cap
+                    if (subtype !== 'other' || entityData.type.value(entityIndex) !== 'polymer') {
+                        entityIds.add(entityId);
+                    }
                 }
             }
         }
