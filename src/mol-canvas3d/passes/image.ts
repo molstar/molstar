@@ -116,13 +116,13 @@ export class ImagePass {
         this.renderer.setOcclusionTest(null);
         this._frame = createFrame();
 
-        const ctx = { renderer: this.renderer, camera: this._camera, scene: this.scene, helper: this.helper };
+        const ctx = { renderer: this.renderer, camera: this._camera, scene: this.scene, helper: this.helper, frame: this._frame };
         if (this.illuminationPass.supported && this.props.illumination.enabled) {
             await runtime.update({ message: 'Tracing...', current: 1, max: this.illuminationPass.getMaxIterations(this.props.illumination) });
             this.illuminationPass.restart(true);
             while (this.illuminationPass.shouldRender(this.props.illumination)) {
                 if (isTimingMode) this.webgl.timer.mark('ImagePass.render', { captureStats: true });
-                this.illuminationPass.render(ctx, this.props, false, this._frame);
+                this.illuminationPass.render(ctx, this.props, false);
                 if (isTimingMode) this.webgl.timer.markEnd('ImagePass.render');
                 if (runtime.shouldUpdate) {
                     await runtime.update({ current: this.illuminationPass.iteration });
@@ -133,10 +133,10 @@ export class ImagePass {
         } else {
             if (isTimingMode) this.webgl.timer.mark('ImagePass.render', { captureStats: true });
             if (MultiSamplePass.isEnabled(this.props.multiSample)) {
-                this.multiSampleHelper.render(ctx, this.props, false, undefined, this._frame);
+                this.multiSampleHelper.render(ctx, this.props, false);
                 this._colorTarget = this.multiSamplePass.colorTarget;
             } else {
-                this.drawPass.render(ctx, this.props, false, this._frame);
+                this.drawPass.render(ctx, this.props, false);
                 this._colorTarget = this.drawPass.getColorTarget(this.props.postprocessing);
             }
             if (isTimingMode) this.webgl.timer.markEnd('ImagePass.render');

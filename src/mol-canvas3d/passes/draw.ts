@@ -12,7 +12,7 @@ import { Renderer } from '../../mol-gl/renderer';
 import { Frame } from '../../mol-gl/renderable';
 import { Scene } from '../../mol-gl/scene';
 import { Texture } from '../../mol-gl/webgl/texture';
-import { Camera, ICamera } from '../camera';
+import { ICamera } from '../camera';
 import { ValueCell } from '../../mol-util';
 import { Vec2 } from '../../mol-math/linear-algebra';
 import { Helper } from '../helper/helper';
@@ -27,19 +27,13 @@ import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 import { AssetManager } from '../../mol-util/assets';
 import { DofPass } from './dof';
 import { BloomPass } from './bloom';
+import { RenderContext } from '../util';
 
 type Props = {
     postprocessing: PostprocessingProps;
     marking: MarkingProps;
     transparentBackground: boolean;
     dpoitIterations: number;
-}
-
-type RenderContext = {
-    renderer: Renderer;
-    camera: Camera | StereoCamera;
-    scene: Scene;
-    helper: Helper;
 }
 
 type TransparencyMode = 'wboit' | 'dpoit' | 'blended'
@@ -551,9 +545,9 @@ export class DrawPass {
         this.webgl.gl.flush();
     }
 
-    render(ctx: RenderContext, props: Props, toDrawingBuffer: boolean, frame: Frame) {
+    render(ctx: RenderContext, props: Props, toDrawingBuffer: boolean) {
         if (isTimingMode) this.webgl.timer.mark('DrawPass.render');
-        const { renderer, camera, scene, helper } = ctx;
+        const { renderer, camera, scene, helper, frame } = ctx;
 
         this.postprocessing.setTransparentBackground(props.transparentBackground);
         const pp = props.postprocessing;
