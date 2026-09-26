@@ -29,6 +29,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `floodfill` not applied on the gaussian surface wireframe
 - Fix `traceOnly` update being ignored by the molecular surface wireframe visuals
 - Fix SSAO artifacts near viewport edges by clamping off-screen samples instead of discarding them
+- Fix illumination trace reading color/normal/depth outside viewport bounds
 - Added support for molecular atom_style in lammps data files
 - Added element symbol detection in lammps data file
 - Fix inconsistent atomic weight for some elements in `ElementAtomWeights`
