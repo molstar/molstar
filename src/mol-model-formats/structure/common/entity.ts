@@ -5,7 +5,7 @@
  * @author Ryan DiRisio <rjdiris@gmail.com>
  */
 
-import { MoleculeType, isPolymer } from '../../../mol-model/structure/model/types';
+import { CommonProteinCaps, MoleculeType, isPolymer } from '../../../mol-model/structure/model/types';
 import { Column, Table } from '../../../mol-data/db';
 import { BasicSchema } from '../basic/schema';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
@@ -42,8 +42,20 @@ export class EntityBuilder {
             this.polymerCount += 1;
             this.set('polymer', options?.customName || `Polymer ${this.polymerCount}`);
             map.set(key, `${this.count}`);
+        } else {
+            // sequence entity may have been created by a non-polymer residue listed in SEQRES
+            const idx = +map.get(key)! - 1;
+            if (this.types[idx] !== 'polymer') {
+                this.polymerCount += 1;
+                this.types[idx] = 'polymer';
+                this.descriptions[idx] = [options?.customName || `Polymer ${this.polymerCount}`];
+            }
         }
         return map.get(key)!;
+    }
+
+    private isSeqresCap(compId: string, chainId: string) {
+        return CommonProteinCaps.has(compId) && !!this.seqresMap.get(chainId)?.residues.has(compId);
     }
 
     private addNonPolymer(map: Map<string, string>, key: string, moleculeType: MoleculeType, options?: { customName?: string }) {
@@ -62,7 +74,7 @@ export class EntityBuilder {
                 this.waterId = `${this.count}`;
             }
             return this.waterId;
-        } else if (isPolymer(moleculeType)) {
+        } else if (isPolymer(moleculeType) || this.isSeqresCap(compId, chainId)) {
             if (this.compoundsMap.has(chainId)) {
                 return this.compoundsMap.get(chainId)!;
             } else {
