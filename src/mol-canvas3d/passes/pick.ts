@@ -110,10 +110,10 @@ export class PickPass {
             this.groupPickTexture.attachFramebuffer(this.groupPickFramebuffer, 'color0');
             this.depthPickTexture.attachFramebuffer(this.depthPickFramebuffer, 'color0');
         } else {
-            this.objectPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
-            this.instancePickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
-            this.groupPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
-            this.depthPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
+            this.objectPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
+            this.instancePickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
+            this.groupPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
+            this.depthPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
         }
     }
 

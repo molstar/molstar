@@ -415,6 +415,11 @@ namespace Renderer {
         };
 
         const solidInteriorCapSupported = !!extensions.fragDepth;
+        const drawingBufferHasStencil = !!gl.getContextAttributes()?.stencil;
+        // offscreen targets used by the renderer are created with a stencil, the drawing buffer may lack one
+        const canRenderSolidInteriorCaps = () => {
+            return solidInteriorCapSupported && (drawingBufferHasStencil || gl.getParameter(gl.FRAMEBUFFER_BINDING) !== null);
+        };
         const hasSolidInteriorCap = (r: GraphicsRenderable) => {
             const geomType = r.values.dGeometryType.ref.value;
             return solidInteriorCapSupported && (geomType === 'mesh' || geomType === 'textureMesh') && !!r.values.dSolidInterior?.ref.value;
@@ -513,6 +518,7 @@ namespace Renderer {
                 const r = renderables[i];
                 if (!hasSolidInteriorCap(r) || !check(r)) continue;
                 if (!hasCaps) {
+                    if (!canRenderSolidInteriorCaps()) return;
                     if (isTimingMode) ctx.timer.mark('Renderer.renderSolidInteriorCaps');
                     beginSolidInteriorCaps(mode);
                     hasCaps = true;
@@ -907,6 +913,7 @@ namespace Renderer {
 
             updateInternal(group, camera, null, Mask.Transparent, false);
 
+            const renderCaps = canRenderSolidInteriorCaps();
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
@@ -920,7 +927,7 @@ namespace Renderer {
                     } else {
                         renderObject(r, 'color', Flag.None);
                     }
-                    if (hasSolidInteriorCap(r)) {
+                    if (renderCaps && hasSolidInteriorCap(r)) {
                         beginSolidInteriorCaps('blended');
                         renderSolidInteriorCap(r, 'color', 'blended');
                         endSolidInteriorCaps('blended');
