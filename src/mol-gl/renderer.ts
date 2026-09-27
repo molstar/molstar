@@ -298,35 +298,41 @@ namespace Renderer {
 
         let globalUniformsNeedUpdate = true;
 
-        const renderObject = (r: GraphicsRenderable, variant: GraphicsRenderVariant, flag: Flag) => {
+        /** also sets `boundingSphere` to the scaled bounding sphere of `r` */
+        const isVisible = (r: GraphicsRenderable, variant: GraphicsRenderVariant) => {
             if (r.state.disposed || !r.state.visible || (!r.state.pickable && variant === 'pick')) {
-                return;
+                return false;
             }
 
             if (!r.values.drawCount.ref.value) {
-                return;
+                return false;
             }
 
             Sphere3D.scaleNX(boundingSphere, r.values.boundingSphere.ref.value, modelScale);
 
             if (!Frustum3D.intersectsSphere3D(frustum, boundingSphere)) {
-                return;
+                return false;
             }
 
             const [minDistance, maxDistance] = r.values.uLod.ref.value;
             if (minDistance !== 0 || maxDistance !== 0) {
                 const { center, radius } = boundingSphere;
                 const d = Plane3D.distanceToPoint(cameraPlane, center);
-                if (d + radius < minDistance * modelScale) return;
-                if (d - radius > maxDistance * modelScale) return;
+                if (d + radius < minDistance * modelScale) return false;
+                if (d - radius > maxDistance * modelScale) return false;
             }
 
+            if (modelScale === 1 && isOccluded !== null && isOccluded(boundingSphere)) {
+                return false;
+            }
+
+            return true;
+        };
+
+        /** assumes `isVisible` returned true, which also set `boundingSphere` */
+        const drawObject = (r: GraphicsRenderable, variant: GraphicsRenderVariant, flag: Flag) => {
             const unscaled = modelScale === 1;
             if (unscaled) {
-                if (isOccluded !== null && isOccluded(boundingSphere)) {
-                    return;
-                }
-
                 const hasInstanceGrid = r.values.instanceGrid.ref.value.cellSize > 0;
                 const hasMultipleInstances = r.values.uInstanceCount.ref.value > 1;
                 if (hasInstanceGrid && (hasMultipleInstances || r.values.lodLevels)) {
@@ -414,6 +420,10 @@ namespace Renderer {
             r.render(variant, sharedTexturesList.length);
         };
 
+        const renderObject = (r: GraphicsRenderable, variant: GraphicsRenderVariant, flag: Flag) => {
+            if (isVisible(r, variant)) drawObject(r, variant, flag);
+        };
+
         const solidInteriorCapSupported = !!extensions.fragDepth;
         const drawingBufferHasStencil = !!gl.getContextAttributes()?.stencil;
         // offscreen targets used by the renderer are created with a stencil, the drawing buffer may lack one
@@ -444,7 +454,7 @@ namespace Renderer {
             state.stencilFunc(gl.ALWAYS, 0, 0xff);
             state.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.KEEP, gl.INCR_WRAP);
             state.stencilOpSeparate(gl.BACK, gl.KEEP, gl.KEEP, gl.DECR_WRAP);
-            renderObject(r, variant, Flag.SolidInteriorMark);
+            drawObject(r, variant, Flag.SolidInteriorMark);
         };
 
         const renderSolidInteriorFill = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: SolidInteriorMode, clipIndex: number) => {
@@ -455,19 +465,19 @@ namespace Renderer {
             state.depthMask(writeDepth);
             state.stencilFunc(gl.NOTEQUAL, 0, 0xff);
             state.stencilOp(gl.KEEP, gl.KEEP, writeDepth ? gl.KEEP : gl.ZERO);
-            renderObject(r, variant, Flag.BlendedBack);
+            drawObject(r, variant, Flag.BlendedBack);
         };
 
-        const solidInteriorSphere = Sphere3D();
         const solidInteriorPlane = Plane3D();
         const solidInteriorEye = Vec3();
         const solidInteriorClipObjects: Clip.Objects = { count: 0, type: [], invert: [], position: [], rotation: [], scale: [], transform: [] };
 
         const renderSolidInteriorCap = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: SolidInteriorMode) => {
-            Sphere3D.scaleNX(solidInteriorSphere, r.values.boundingSphere.ref.value, modelScale);
+            if (!isVisible(r, variant)) return;
+
             const back = mode === 'back';
             const near = globalUniforms.uNear.ref.value * 1.0001;
-            if (!back && Math.abs(Plane3D.distanceToPoint(cameraPlane, solidInteriorSphere.center) - near) <= solidInteriorSphere.radius) {
+            if (!back && Math.abs(Plane3D.distanceToPoint(cameraPlane, boundingSphere.center) - near) <= boundingSphere.radius) {
                 renderSolidInteriorMark(r, variant, -1);
                 renderSolidInteriorFill(r, variant, mode, -1);
             }
