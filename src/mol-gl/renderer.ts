@@ -659,6 +659,11 @@ namespace Renderer {
             return (r.values.emissiveAverage.ref.value + r.values.uEmissive.ref.value) > 0;
         };
 
+        /** caps are drawn from back faces, which transparent passes discard when `transparentBackfaces` is 'off' */
+        const checkTransparentCap = function (r: GraphicsRenderable) {
+            return checkTransparent(r) && r.values.dTransparentBackfaces?.ref.value !== 'off';
+        };
+
         const renderPick = (group: Scene.Group, camera: ICamera, variant: 'pick' | 'depth', pickType: PickType) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderPick');
             state.disable(gl.BLEND);
@@ -752,7 +757,7 @@ namespace Renderer {
                     renderObject(r, 'depth', Flag.None);
                 }
             }
-            renderSolidInteriorCaps(renderables, checkTransparent, 'depth', 'opaque');
+            renderSolidInteriorCaps(renderables, checkTransparentCap, 'depth', 'opaque');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthTransparent');
         };
 
@@ -848,7 +853,7 @@ namespace Renderer {
                     renderObject(r, 'emissive', Flag.None);
                 }
             }
-            renderSolidInteriorCaps(renderables, r => checkTransparent(r) && checkEmissive(r), 'emissive', 'blended');
+            renderSolidInteriorCaps(renderables, r => checkTransparentCap(r) && checkEmissive(r), 'emissive', 'blended');
             if (blendMinMax) state.blendEquation(gl.FUNC_ADD);
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderEmissiveTransparent');
         };
@@ -927,7 +932,7 @@ namespace Renderer {
                     } else {
                         renderObject(r, 'color', Flag.None);
                     }
-                    if (renderCaps && hasSolidInteriorCap(r)) {
+                    if (renderCaps && hasSolidInteriorCap(r) && checkTransparentCap(r)) {
                         beginSolidInteriorCaps('blended');
                         renderSolidInteriorCap(r, 'color', 'blended');
                         endSolidInteriorCaps('blended');
@@ -968,7 +973,7 @@ namespace Renderer {
                     renderObject(r, 'color', Flag.None);
                 }
             }
-            renderSolidInteriorCaps(renderables, checkTransparent, 'color', 'oit');
+            renderSolidInteriorCaps(renderables, checkTransparentCap, 'color', 'oit');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderWboitTransparent');
         };
 
@@ -991,7 +996,7 @@ namespace Renderer {
                     renderObject(r, 'color', Flag.None);
                 }
             }
-            renderSolidInteriorCaps(renderables, checkTransparent, 'color', 'oit');
+            renderSolidInteriorCaps(renderables, checkTransparentCap, 'color', 'oit');
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitTransparent');
         };
 
