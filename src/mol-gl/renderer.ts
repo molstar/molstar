@@ -170,6 +170,7 @@ namespace Renderer {
         BlendedBack = 2,
         DepthBack = 3,
         SolidInteriorMark = 4,
+        SolidInteriorFill = 5,
     }
 
     type SolidInteriorMode = 'opaque' | 'back' | 'blended' | 'oit'
@@ -383,10 +384,11 @@ namespace Renderer {
                 }
             } else if (flag === Flag.DepthBack) {
                 state.disable(gl.CULL_FACE);
-            } else if (flag === Flag.SolidInteriorMark) {
+            } else if (flag === Flag.SolidInteriorMark || (flag === Flag.SolidInteriorFill && r.values.hasReflection.ref.value)) {
+                // reflected instances flip the winding, so their exit faces are not back-facing
                 state.disable(gl.CULL_FACE);
                 state.frontFace(r.values.dFlipSided?.ref.value ? gl.CW : gl.CCW);
-            } else if (flag === Flag.BlendedBack) {
+            } else if (flag === Flag.BlendedBack || flag === Flag.SolidInteriorFill) {
                 state.enable(gl.CULL_FACE);
                 if (r.values.dFlipSided?.ref.value) {
                     state.frontFace(gl.CW);
@@ -465,7 +467,7 @@ namespace Renderer {
             state.depthMask(writeDepth);
             state.stencilFunc(gl.NOTEQUAL, 0, 0xff);
             state.stencilOp(gl.KEEP, gl.KEEP, writeDepth ? gl.KEEP : gl.ZERO);
-            drawObject(r, variant, Flag.BlendedBack);
+            drawObject(r, variant, Flag.SolidInteriorFill);
         };
 
         const solidInteriorPlane = Plane3D();

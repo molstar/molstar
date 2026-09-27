@@ -68,6 +68,10 @@ void main() {
     #endif
 
     interior = !gl_FrontFacing;
+    #ifdef dSolidInterior
+        // the fill may draw front faces (reflected instances), a cap is always interior
+        if (capPass) interior = true;
+    #endif
 
     #ifdef dNeedsNormal
         #if defined(dFlatShaded)
