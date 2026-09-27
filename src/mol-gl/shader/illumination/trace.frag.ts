@@ -106,14 +106,18 @@ struct RayHitInfo {
 
 //
 
+// inset by half a texel to avoid sampling texels outside the viewport
+vec2 clampToBounds(const in vec2 coords) {
+    vec2 halfTexel = 0.5 / uTexSize;
+    return clamp(coords, uBounds.xy + halfTexel, uBounds.zw - halfTexel);
+}
+
 float getDepth(const in vec2 coords) {
-    vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
-    return texture2D(tDepth, c).r;
+    return texture2D(tDepth, clampToBounds(coords)).r;
 }
 
 float getThickness(const in vec2 coords) {
-    vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
-    return unpackRGBAToDepth(texture2D(tThickness, c));
+    return unpackRGBAToDepth(texture2D(tThickness, clampToBounds(coords)));
 }
 
 bool isBackground(const in float depth) {
@@ -166,7 +170,7 @@ vec2 binarySearch(inout vec3 dir, inout vec3 hitPos) {
         }
     }
 
-    coords = viewSpaceToScreenSpace(hitPos);
+    coords = clampToBounds(viewSpaceToScreenSpace(hitPos));
 
     return coords;
 }
@@ -189,7 +193,7 @@ vec2 rayMarch(in vec3 dir, in float thickness, inout vec3 hitPos, out bool misse
         float stepZ = abs(dir.z);
         dir *= gf;
 
-        coords = viewSpaceToScreenSpace(hitPos);
+        coords = clampToBounds(viewSpaceToScreenSpace(hitPos));
         float depth = getDepth(coords);
         float z = getViewZ(depth);
         rayHitDepthDifference = z - hitPos.z;

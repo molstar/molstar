@@ -722,8 +722,8 @@ namespace Canvas3D {
                     && ((!isActivelyInteracting && scene.count > 0) || passes.illumination.iteration === 0 || p.userInteractionReleaseMs === 0)
                 ) {
                     if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
-                    const ctx = { renderer, camera, scene, helper };
-                    passes.illumination.render(ctx, p, true, frame);
+                    const ctx = { renderer, camera, scene, helper, frame };
+                    passes.illumination.render(ctx, p, true);
                     if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
 
                     // if only marking has updated, do not set the flag to dirty
@@ -743,12 +743,12 @@ namespace Canvas3D {
                     }
 
                     if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
-                    const ctx = { renderer, camera: cam, scene, helper };
+                    const ctx = { renderer, camera: cam, scene, helper, frame };
                     if (MultiSamplePass.isEnabled(p.multiSample) && !xrFrame) {
                         const forceOn = p.multiSample.reduceFlicker && !cameraChanged && markingUpdated && !controls.isAnimating;
-                        multiSampleHelper.render(ctx, p, true, forceOn, frame);
+                        multiSampleHelper.render(ctx, p, true, forceOn);
                     } else {
-                        passes.draw.render(ctx, p, true, frame);
+                        passes.draw.render(ctx, p, true);
                     }
                     hiZ.render(camera);
                     if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');

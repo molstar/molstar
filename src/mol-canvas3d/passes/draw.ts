@@ -9,13 +9,11 @@
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Renderer } from '../../mol-gl/renderer';
-import { Frame } from '../../mol-gl/renderable';
 import { Scene } from '../../mol-gl/scene';
 import { Texture } from '../../mol-gl/webgl/texture';
-import { Camera, ICamera } from '../camera';
+import { ICamera } from '../camera';
 import { ValueCell } from '../../mol-util';
 import { Vec2 } from '../../mol-math/linear-algebra';
-import { Helper } from '../helper/helper';
 
 import { StereoCamera } from '../camera/stereo';
 import { WboitPass } from './wboit';
@@ -27,19 +25,13 @@ import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 import { AssetManager } from '../../mol-util/assets';
 import { DofPass } from './dof';
 import { BloomPass } from './bloom';
+import { RenderContext } from '../util';
 
 type Props = {
     postprocessing: PostprocessingProps;
     marking: MarkingProps;
     transparentBackground: boolean;
     dpoitIterations: number;
-}
-
-type RenderContext = {
-    renderer: Renderer;
-    camera: Camera | StereoCamera;
-    scene: Scene;
-    helper: Helper;
 }
 
 type TransparencyMode = 'wboit' | 'dpoit' | 'blended'
@@ -433,7 +425,8 @@ export class DrawPass {
         }
     }
 
-    private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props, frame: Frame) {
+    private _render(ctx: RenderContext<ICamera>, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props) {
+        const { renderer, camera, scene, helper, frame } = ctx;
         if (camera.disabled) return;
 
         const volumeRendering = scene.volumes.renderables.length > 0;
@@ -551,9 +544,9 @@ export class DrawPass {
         this.webgl.gl.flush();
     }
 
-    render(ctx: RenderContext, props: Props, toDrawingBuffer: boolean, frame: Frame) {
+    render(ctx: RenderContext, props: Props, toDrawingBuffer: boolean) {
         if (isTimingMode) this.webgl.timer.mark('DrawPass.render');
-        const { renderer, camera, scene, helper } = ctx;
+        const { renderer, camera, scene } = ctx;
 
         this.postprocessing.setTransparentBackground(props.transparentBackground);
         const pp = props.postprocessing;
@@ -570,13 +563,13 @@ export class DrawPass {
 
         if (StereoCamera.is(camera)) {
             if (isTimingMode) this.webgl.timer.mark('StereoCamera.left');
-            this._render(renderer, camera.left, scene, helper, toDrawingBuffer, transparentBackground, props, frame);
+            this._render({ ...ctx, camera: camera.left }, toDrawingBuffer, transparentBackground, props);
             if (isTimingMode) this.webgl.timer.markEnd('StereoCamera.left');
             if (isTimingMode) this.webgl.timer.mark('StereoCamera.right');
-            this._render(renderer, camera.right, scene, helper, toDrawingBuffer, transparentBackground, props, frame);
+            this._render({ ...ctx, camera: camera.right }, toDrawingBuffer, transparentBackground, props);
             if (isTimingMode) this.webgl.timer.markEnd('StereoCamera.right');
         } else {
-            this._render(renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, props, frame);
+            this._render({ ...ctx, camera }, toDrawingBuffer, transparentBackground, props);
         }
         if (isTimingMode) this.webgl.timer.markEnd('DrawPass.render');
     }

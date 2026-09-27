@@ -67,8 +67,10 @@ bool isBackground(const in float depth) {
     return depth == 1.0;
 }
 
-bool isOutsideBounds(const in vec2 coords) {
-    return coords.x < uBounds.x || coords.x > uBounds.z || coords.y < uBounds.y || coords.y > uBounds.w;
+// inset by half a texel to avoid sampling texels outside the viewport
+vec2 clampToBounds(const in vec2 coords) {
+    vec2 halfTexel = 0.5 / uTexSize;
+    return clamp(coords, uBounds.xy + halfTexel, uBounds.zw - halfTexel);
 }
 
 float getDepth(const in vec2 coords, const in int transparentFlag) {
@@ -217,7 +219,6 @@ void main(void) {
             if (pixelSize * uNearThreshold > uLevelRadius[l]) continue;
             if (pixelSize * uFarThreshold < uLevelRadius[l]) continue;
 
-            float nSamples = float(dNSamples);
             float levelOcclusion = 0.0;
             for(int i = 0; i < dNSamples; i++) {
                 // get sample position:
@@ -228,10 +229,7 @@ void main(void) {
                 vec4 offset = vec4(sampleViewPos, 1.0);
                 offset = uProjection * offset;
                 offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
-                if (isOutsideBounds(offset.xy)) {
-                    nSamples -= 1.0;
-                    continue;
-                }
+                offset.xy = clampToBounds(offset.xy);
 
                 // get sample depth:
                 float sampleOcc = 0.0;
@@ -256,11 +254,10 @@ void main(void) {
 
                 levelOcclusion += sampleOcc;
             }
-            levelOcclusion /= nSamples;
+            levelOcclusion /= float(dNSamples);
             occlusion = max(occlusion, levelOcclusion);
         }
     #else
-        float nSamples = float(dNSamples);
         for(int i = 0; i < dNSamples; i++) {
             vec3 sampleViewPos = TBN * uSamples[i];
             sampleViewPos = selfViewPos + sampleViewPos * uRadius;
@@ -268,10 +265,7 @@ void main(void) {
             vec4 offset = vec4(sampleViewPos, 1.0);
             offset = uProjection * offset;
             offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
-            if (isOutsideBounds(offset.xy)) {
-                nSamples -= 1.0;
-                continue;
-            }
+            offset.xy = clampToBounds(offset.xy);
 
             float sampleOcc = 0.0;
             #ifdef dIllumination
@@ -297,7 +291,7 @@ void main(void) {
             occlusion += sampleOcc;
         }
 
-        occlusion /= nSamples;
+        occlusion /= float(dNSamples);
     #endif
     occlusion = 1.0 - (uBias * occlusion);
 
