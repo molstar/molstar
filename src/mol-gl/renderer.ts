@@ -494,7 +494,7 @@ namespace Renderer {
         const beginSolidInteriorCaps = (mode: SolidInteriorMode) => {
             state.enable(gl.STENCIL_TEST);
             state.stencilMask(0xff);
-            gl.clearStencil(0);
+            state.clearStencil(0);
             if (mode !== 'oit') state.depthFunc(mode === 'back' ? gl.GEQUAL : gl.LEQUAL);
         };
 
