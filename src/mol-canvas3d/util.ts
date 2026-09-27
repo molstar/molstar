@@ -7,11 +7,11 @@
 import { Renderer } from '../mol-gl/renderer';
 import { Frame } from '../mol-gl/renderable';
 import { Scene } from '../mol-gl/scene';
-import { Camera } from './camera';
+import { Camera, ICamera } from './camera';
 import { StereoCamera } from './camera/stereo';
 import { Helper } from './helper/helper';
 
-export type RenderContext<C extends Camera | StereoCamera = Camera | StereoCamera> = {
+export type RenderContext<C extends ICamera | StereoCamera = Camera | StereoCamera> = {
     renderer: Renderer;
     camera: C;
     scene: Scene;
