@@ -26,8 +26,6 @@ uniform vec4 uInteriorSubstance;
 #endif
 
 void main() {
-    #include fade_lod
-
     #ifdef dSolidInterior
         float fragmentDepth = gl_FragCoord.z;
         bool capPass = uSolidInteriorPass != 0;
@@ -61,7 +59,10 @@ void main() {
         #endif
         vec3 vViewPosition = viewPosition;
         vec3 vModelPosition = modelPosition;
+        // after the mark pass returned (it needs every face) and at the cap position
+        #include fade_lod
     #else
+        #include fade_lod
         #include clip_pixel
         float fragmentDepth = gl_FragCoord.z;
     #endif
