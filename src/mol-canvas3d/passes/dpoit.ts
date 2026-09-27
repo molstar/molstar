@@ -126,6 +126,7 @@ export class DpoitPass {
 
         this.depthFramebuffers[0].bind();
         state.blendEquation(blendMinMax!.MAX);
+        state.disable(gl.DEPTH_TEST);
         state.depthMask(false);
 
         return {
@@ -153,6 +154,7 @@ export class DpoitPass {
 
         this.depthFramebuffers[this.writeId].bind();
         state.blendEquation(blendMinMax!.MAX);
+        state.disable(gl.DEPTH_TEST);
         state.depthMask(false);
 
         return {
