@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Make CIF field lookup case insensitive, so mmCIF files writing `_atom_site.cartn_x` resolve fields like `Cartn_x` instead of leaving coordinates at 0,0,0 (#1941)
+- Headless rendering:
+  - Allow consumers to provide `gl` version 6 through 8
+  - Fix browser-only layout/canvas access when rendering without a DOM
+  - Fix version handling in commonjs
+  - Tests for `HeadlessPluginContext`
 - Merge representation render-objects to reduce draw-calls
 - Optimize `Renderable` culling with a frame token guard
 - Improve dynamic trackball controls and show param
@@ -82,6 +88,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - MVS-related custom model properties (and custom structure properties) are hidden in UI (fixes override of default custom properties)
     - Added `shape` node for rendering meshes from `vtp`, `ply` and `obj` resources
     - Added support for MolQL selectors (e.g., select a residue + 5 ang surroundings)
+    - Add support for split colors (e.g. 'red/white', applies to carbohydrate symbols and nucleic cartoon)
+    - Add CarbohydrateSymbol color palette
 - Remove `new Function` usage for CSP / SOC2 compliance; server path templates use a whitelist of `${id...}` string methods
 - Fix CCP4/MRC volumes with unset cell angles failing to load
 - Fix CCP4/MRC volume `sigma` being taken from the header when the header rms is negative

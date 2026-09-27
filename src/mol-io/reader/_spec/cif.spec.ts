@@ -55,6 +55,27 @@ chosen as one of the generators of the space group'''`;
 chosen as one of the generators of the space group`);
 });
 
+test('cif case-insensitive field lookup', async () => {
+    const data = `data_test
+loop_
+_atom_site.cartn_x
+_atom_site.cartn_y
+_atom_site.Cartn_z
+1.0 2.0 3.0
+4.0 5.0 6.0`;
+
+    const result = await parseCifText(data).run();
+    if (result.isError) {
+        expect(false).toBe(true);
+        return;
+    }
+
+    const atom_site = result.result.blocks[0].categories['atom_site'];
+    expect(atom_site.getField('Cartn_x')!.float(0)).toBe(1.0);
+    expect(atom_site.getField('Cartn_Y')!.float(1)).toBe(5.0);
+    expect(atom_site.getField('cartn_z')!.float(1)).toBe(6.0);
+});
+
 describe('schema', () => {
     const db = Schema.toDatabase(TestSchema.schema, testBlock);
     it('property access', () => {

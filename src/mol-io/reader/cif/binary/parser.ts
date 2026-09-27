@@ -2,6 +2,7 @@
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Ivan Niukanen <57656076+niukanen1@users.noreply.github.com>
  */
 
 import * as Data from '../data-model';
@@ -20,14 +21,19 @@ function checkVersions(min: number[], current: number[]) {
 
 function Category(data: EncodedCategory): Data.CifCategory {
     const map = Object.create(null);
+    const normalizedMap = Object.create(null);
     const cache = Object.create(null);
-    for (const col of data.columns) map[col.name] = col;
+    // CIF data names are case insensitive; keep a lowercase lookup as well (#1941)
+    for (const col of data.columns) {
+        map[col.name] = col;
+        normalizedMap[col.name.toLowerCase()] = col;
+    }
     return {
         rowCount: data.rowCount,
         name: data.name.substring(1),
         fieldNames: data.columns.map(c => c.name),
         getField(name) {
-            const col = map[name];
+            const col = map[name] ?? normalizedMap[name.toLowerCase()];
             if (!col) return void 0;
             if (!!cache[name]) return cache[name];
             cache[name] = Field(col);

@@ -8,7 +8,6 @@ import fs from 'fs';
 import { type BufferRet as JpegBufferRet } from 'jpeg-js'; // Only import type here, the actual import must be provided by the caller
 import { type PNG } from 'pngjs'; // Only import type here, the actual import must be provided by the caller
 
-import { Mp4Export } from '../extensions/mp4-export';
 import { encodeMp4Animation } from '../extensions/mp4-export/encoder';
 import { Canvas3D } from '../mol-canvas3d/canvas3d';
 import { ImagePass } from '../mol-canvas3d/passes/image';
@@ -84,7 +83,7 @@ export class HeadlessPluginContext extends PluginContext {
 
     /** Render plugin state snapshots animation and return as raw MP4 data */
     async getAnimation(options?: { quantization?: number, size?: { width: number, height: number }, fps?: number, postprocessing?: Partial<PostprocessingProps> }) {
-        if (!this.state.hasBehavior(Mp4Export)) {
+        if (!this.state.hasBehavior('extension-mp4-export')) {
             throw new Error('PluginContext must have Mp4Export extension registered in order to save animation.');
         }
 
