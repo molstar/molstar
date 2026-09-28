@@ -91,6 +91,15 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
 #if dClipObjectCount != 0
     uniform int uSolidInteriorClip;
 
+    bool clipIgnored(const in int index) {
+        #if defined(dClipping)
+            int flag = int(floor(vClipping * 255.0 + 0.5));
+            return flag != 0 && !hasBit(flag, index + 1);
+        #else
+            return false;
+        #endif
+    }
+
     bool clipTest(const in vec3 center) {
         // flag is a bit-flag for clip-objects to ignore (note, object ids start at 1 not 0)
         #if defined(dClipping)

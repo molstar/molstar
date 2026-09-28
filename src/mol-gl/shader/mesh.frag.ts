@@ -38,6 +38,8 @@ void main() {
                 float s = 0.0;
                 #if dClipObjectCount != 0
                     if (uSolidInteriorClip >= 0) {
+                        // exempt parts are not cut by this clip object, so they neither count nor fill
+                        if (clipIgnored(uSolidInteriorClip)) discard;
                         s = clipCapExit((uInvView * vec4(nearPosition, 1.0)).xyz / uModelScale, vModelPosition / uModelScale, uDepthBack);
                         if (s < 0.0 || s > 1.0) discard;
                     }
