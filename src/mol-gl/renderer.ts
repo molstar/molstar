@@ -462,12 +462,26 @@ namespace Renderer {
         const renderSolidInteriorFill = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: SolidInteriorMode, clipIndex: number) => {
             const writeDepth = mode === 'opaque' || mode === 'back';
             setSolidInteriorPass(r, variant, 1, clipIndex);
-            if (mode !== 'oit') state.enable(gl.DEPTH_TEST);
-            state.colorMask(true, true, true, true);
-            state.depthMask(writeDepth);
             state.stencilFunc(gl.NOTEQUAL, 0, 0xff);
+            if (mode === 'oit') {
+                // the OIT depth attachment is otherwise unused: resolve the nearest back face, then only draw that one
+                state.enable(gl.DEPTH_TEST);
+                state.depthMask(true);
+                state.clearDepth(1);
+                gl.clear(gl.DEPTH_BUFFER_BIT);
+                state.depthFunc(gl.LEQUAL);
+                state.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+                drawObject(r, variant, Flag.SolidInteriorFill);
+                state.depthFunc(gl.EQUAL);
+                state.depthMask(false);
+            } else {
+                state.enable(gl.DEPTH_TEST);
+                state.depthMask(writeDepth);
+            }
+            state.colorMask(true, true, true, true);
             state.stencilOp(gl.KEEP, gl.KEEP, writeDepth ? gl.KEEP : gl.ZERO);
             drawObject(r, variant, Flag.SolidInteriorFill);
+            if (mode === 'oit') state.disable(gl.DEPTH_TEST);
         };
 
         const solidInteriorPlane = Plane3D();
@@ -518,7 +532,7 @@ namespace Renderer {
         const endSolidInteriorCaps = (mode: SolidInteriorMode) => {
             state.disable(gl.STENCIL_TEST);
             state.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
-            if (mode !== 'oit') state.depthFunc(mode === 'back' ? gl.GREATER : gl.LESS);
+            state.depthFunc(mode === 'back' ? gl.GREATER : gl.LESS);
             state.frontFace(gl.CCW);
             state.cullFace(gl.BACK);
         };
