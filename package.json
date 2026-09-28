@@ -16,7 +16,7 @@
   "scripts": {
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
-    "test": "npm install --no-save \"gl@^8.1.6\" && npm run lint && jest",
+    "test": "npm install --prefix ./node_modules/.test-gl --no-save \"gl@^8.1.6\" && npm run lint && NODE_PATH=./node_modules/.test-gl/node_modules jest",
     "jest": "jest",
     "clean": "node ./scripts/clean.js --all",
     "clean:build": "node ./scripts/clean.js --build",
