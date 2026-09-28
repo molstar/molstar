@@ -362,4 +362,4 @@ function computeIntraUnitBonds(unit: Unit.Atomic, props?: Partial<BondComputatio
     }
 }
 
-export { computeIntraUnitBonds };
+export { computeIntraUnitBonds, findBonds };

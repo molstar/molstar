@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator';
@@ -26,6 +27,7 @@ import { Boundary, getBoundary, getFastBoundary } from '../../../mol-math/geomet
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-cache';
+import { BondProviderRegistry } from './unit/bonds/bond-provider';
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 import { getResonance, UnitResonance } from './unit/resonance';
 
@@ -307,6 +309,9 @@ namespace Unit {
         }
 
         get bonds() {
+            const provided = BondProviderRegistry.get(this.model).active?.getBonds(this);
+            if (provided !== undefined) return provided;
+
             if (this.props.bonds) return this.props.bonds;
 
             const cache = ElementSetIntraBondCache.get(this.model);
