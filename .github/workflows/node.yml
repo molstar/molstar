@@ -19,6 +19,6 @@ jobs:
     - name: Lint
       run: npm run lint
     - name: Test
-      run: xvfb-run --auto-servernum npm run test
+      run: npm install --no-save "gl@^8.1.6" && xvfb-run --auto-servernum npm run jest
     - name: Build
       run: npm run build
