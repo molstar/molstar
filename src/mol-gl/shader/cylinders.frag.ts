@@ -72,6 +72,22 @@ bool isCap = false;
         #endif
         return true;
     }
+
+    // back-depth pass: move the exit point towards the entry until it is not clipped
+    bool solidInteriorBackCap(in vec3 entryPosition, inout vec3 cameraNormal, inout vec3 modelPosition, inout vec3 viewPosition, inout float fragmentDepth) {
+        #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+            float s = clipExit(modelPosition / uModelScale, entryPosition / uModelScale, 0.0);
+            if (s < 0.0) return false;
+            if (s > 0.0) {
+                modelPosition = mix(modelPosition, entryPosition, s);
+                viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
+                fragmentDepth = calcDepth(viewPosition);
+                cameraNormal = -clipNormal(modelPosition / uModelScale);
+                isCap = true;
+            }
+        #endif
+        return fragmentDepth > 0.0;
+    }
 #endif
 
 // adapted from https://www.shadertoy.com/view/4lcSRn
@@ -126,6 +142,10 @@ bool CylinderImpostor(
     h = sqrt(h);
     float t = (-k1 - h) / k2;
     float y = baoc + t * bard;
+    #ifdef dSolidInterior
+        // entry into the closed cylinder: body entry clamped to the end-cap slab
+        vec3 entryPosition = rayOrigin + (abs(bard) > 0.0 ? max(t, min(-baoc / bard, (baba - baoc) / bard)) : t) * rayDir;
+    #endif
     if (!depthBack && y > 0.0 && y < baba) {
         interior = false;
         cameraNormal = (oc + t * rayDir - ba * y / baba) / radius;
@@ -232,7 +252,9 @@ bool CylinderImpostor(
             fragmentDepth = calcDepth(viewPosition);
             if (fragmentDepth > 0.0) {
                 #ifdef dSolidInterior
-                    if (!depthBack && !solidInteriorCap(rayOrigin, rayDir, frontT, t, frontDepth, objectClipped, frontModelPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
+                    if (depthBack) {
+                        if (!solidInteriorBackCap(entryPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
+                    } else if (!solidInteriorCap(rayOrigin, rayDir, frontT, t, frontDepth, objectClipped, frontModelPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
                 #endif
                 return true;
             }
@@ -249,7 +271,9 @@ bool CylinderImpostor(
                 fragmentDepth = calcDepth(viewPosition);
                 if (fragmentDepth > 0.0) {
                     #ifdef dSolidInterior
-                        if (!depthBack && !solidInteriorCap(rayOrigin, rayDir, frontT, t, frontDepth, objectClipped, frontModelPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
+                        if (depthBack) {
+                            if (!solidInteriorBackCap(entryPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
+                        } else if (!solidInteriorCap(rayOrigin, rayDir, frontT, t, frontDepth, objectClipped, frontModelPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
                     #endif
                     return true;
                 }
@@ -265,7 +289,9 @@ bool CylinderImpostor(
                 fragmentDepth = calcDepth(viewPosition);
                 if (fragmentDepth > 0.0) {
                     #ifdef dSolidInterior
-                        if (!depthBack && !solidInteriorCap(rayOrigin, rayDir, frontT, t, frontDepth, objectClipped, frontModelPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
+                        if (depthBack) {
+                            if (!solidInteriorBackCap(entryPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
+                        } else if (!solidInteriorCap(rayOrigin, rayDir, frontT, t, frontDepth, objectClipped, frontModelPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
                     #endif
                     return true;
                 }
