@@ -1,12 +1,13 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Vec3 } from '../../../../../mol-math/linear-algebra';
 import { NumberArray } from '../../../../../mol-util/type-helpers';
-import { lerp, smoothstep } from '../../../../../mol-math/interpolate';
+import { lerp } from '../../../../../mol-math/interpolate';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
@@ -14,13 +15,13 @@ const v3toArray = Vec3.toArray;
 const v3normalize = Vec3.normalize;
 const v3sub = Vec3.sub;
 const v3spline = Vec3.spline;
-const v3slerp = Vec3.slerp;
 const v3copy = Vec3.copy;
 const v3cross = Vec3.cross;
 const v3orthogonalize = Vec3.orthogonalize;
-const v3matchDirection = Vec3.matchDirection;
 const v3scale = Vec3.scale;
-const v3add = Vec3.add;
+const v3scaleAndAdd = Vec3.scaleAndAdd;
+const v3dot = Vec3.dot;
+const v3isZero = Vec3.isZero;
 
 export interface CurveSegmentState {
     curvePoints: NumberArray,
@@ -29,10 +30,12 @@ export interface CurveSegmentState {
     binormalVectors: NumberArray,
     widthValues: NumberArray,
     heightValues: NumberArray,
-    linearSegments: number
+    linearSegments: number,
+    prevSegmentNormal: Vec3
 }
 
 export interface CurveSegmentControls {
+    first: boolean,
     secStrucFirst: boolean, secStrucLast: boolean
     p0: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, p4: Vec3,
     d12: Vec3, d23: Vec3
@@ -48,7 +51,8 @@ export function createCurveSegmentState(linearSegments: number): CurveSegmentSta
         binormalVectors: new Float32Array(pn),
         widthValues: new Float32Array(n),
         heightValues: new Float32Array(n),
-        linearSegments
+        linearSegments,
+        prevSegmentNormal: Vec3()
     };
 }
 
@@ -93,60 +97,88 @@ const tmpNormal = Vec3();
 const tangentVec = Vec3();
 const normalVec = Vec3();
 const binormalVec = Vec3();
-const prevNormal = Vec3();
-const nextNormal = Vec3();
+const prevTangentVec = Vec3();
+const stepVec = Vec3();
+const reflectVec = Vec3();
 const firstTangentVec = Vec3();
 const lastTangentVec = Vec3();
 const firstNormalVec = Vec3();
 const lastNormalVec = Vec3();
 
+const HalfPi = Math.PI / 2;
+
 /**
- * Populate normalVectors by interpolating from firstDirection to lastDirection with
- * resulting vector perpendicular to tangentVectors and binormalVectors
+ * Populate normalVectors and binormalVectors with a rotation minimizing frame,
+ * propagated by the double reflection method (Wang et al. 2008), seeded from the
+ * previous segment's end normal (or from firstDirection at a polymer start). The
+ * residual twist to reach lastDirection, taken modulo 180° since the profiles are
+ * 2-fold symmetric, is distributed evenly along the segment.
  */
 export function interpolateNormals(state: CurveSegmentState, controls: CurveSegmentControls) {
-    const { curvePoints, tangentVectors, normalVectors, binormalVectors } = state;
-    const { d12: firstDirection, d23: lastDirection } = controls;
+    const { curvePoints, tangentVectors, normalVectors, binormalVectors, prevSegmentNormal } = state;
+    const { d12: firstDirection, d23: lastDirection, first } = controls;
 
     const n = curvePoints.length / 3;
+    const n1 = n - 1;
 
     v3fromArray(firstTangentVec, tangentVectors, 0);
-    v3fromArray(lastTangentVec, tangentVectors, (n - 1) * 3);
+    v3fromArray(lastTangentVec, tangentVectors, n1 * 3);
 
-    v3orthogonalize(firstNormalVec, firstTangentVec, firstDirection);
+    if (first || v3isZero(prevSegmentNormal)) {
+        v3orthogonalize(firstNormalVec, firstTangentVec, firstDirection);
+    } else {
+        v3orthogonalize(firstNormalVec, firstTangentVec, prevSegmentNormal);
+    }
     v3orthogonalize(lastNormalVec, lastTangentVec, lastDirection);
-    v3matchDirection(lastNormalVec, lastNormalVec, firstNormalVec);
 
-    v3copy(prevNormal, firstNormalVec);
+    v3copy(normalVec, firstNormalVec);
+    v3copy(prevTangentVec, firstTangentVec);
+    v3toArray(normalVec, normalVectors, 0);
 
-    const n1 = n - 1;
+    for (let i = 1; i < n; ++i) {
+        v3fromArray(tangentVec, tangentVectors, i * 3);
+        v3fromArray(tmpNormal, curvePoints, (i - 1) * 3);
+        v3fromArray(stepVec, curvePoints, i * 3);
+        v3sub(stepVec, stepVec, tmpNormal);
+
+        const c1 = v3dot(stepVec, stepVec);
+        if (c1 > 1e-12) {
+            const k1 = -2 / c1;
+            v3scaleAndAdd(tmpNormal, normalVec, stepVec, k1 * v3dot(stepVec, normalVec));
+            v3scaleAndAdd(reflectVec, prevTangentVec, stepVec, k1 * v3dot(stepVec, prevTangentVec));
+            v3sub(reflectVec, tangentVec, reflectVec);
+            const c2 = v3dot(reflectVec, reflectVec);
+            if (c2 > 1e-12) {
+                v3scaleAndAdd(tmpNormal, tmpNormal, reflectVec, (-2 / c2) * v3dot(reflectVec, tmpNormal));
+            }
+        } else {
+            v3copy(tmpNormal, normalVec);
+        }
+        v3orthogonalize(normalVec, tangentVec, tmpNormal);
+        v3toArray(normalVec, normalVectors, i * 3);
+        v3copy(prevTangentVec, tangentVec);
+    }
+
+    v3cross(binormalVec, lastTangentVec, normalVec);
+    let twist = Math.atan2(v3dot(binormalVec, lastNormalVec), v3dot(normalVec, lastNormalVec));
+    if (twist > HalfPi) twist -= Math.PI;
+    else if (twist < -HalfPi) twist += Math.PI;
+
     for (let i = 0; i < n; ++i) {
-        const j = smoothstep(0, n1, i) * n1;
-        const t = i === 0 ? 0 : 1 / (n - j);
-
         v3fromArray(tangentVec, tangentVectors, i * 3);
-
-        v3orthogonalize(normalVec, tangentVec, v3slerp(tmpNormal, prevNormal, lastNormalVec, t));
-        v3toArray(normalVec, normalVectors, i * 3);
-
-        v3copy(prevNormal, normalVec);
-
-        v3normalize(binormalVec, v3cross(binormalVec, tangentVec, normalVec));
-        v3toArray(binormalVec, binormalVectors, i * 3);
-    }
-
-    for (let i = 1; i < n1; ++i) {
-        v3fromArray(prevNormal, normalVectors, (i - 1) * 3);
         v3fromArray(normalVec, normalVectors, i * 3);
-        v3fromArray(nextNormal, normalVectors, (i + 1) * 3);
-
-        v3scale(normalVec, v3add(normalVec, prevNormal, v3add(normalVec, nextNormal, normalVec)), 1 / 3);
-        v3toArray(normalVec, normalVectors, i * 3);
-
-        v3fromArray(tangentVec, tangentVectors, i * 3);
+        if (i > 0 && twist !== 0) {
+            const a = twist * (i / n1);
+            v3normalize(binormalVec, v3cross(binormalVec, tangentVec, normalVec));
+            v3scale(normalVec, normalVec, Math.cos(a));
+            v3scaleAndAdd(normalVec, normalVec, binormalVec, Math.sin(a));
+            v3toArray(normalVec, normalVectors, i * 3);
+        }
         v3normalize(binormalVec, v3cross(binormalVec, tangentVec, normalVec));
         v3toArray(binormalVec, binormalVectors, i * 3);
     }
+
+    v3fromArray(prevSegmentNormal, normalVectors, n1 * 3);
 }
 
 export function interpolateSizes(state: CurveSegmentState, w0: number, w1: number, w2: number, h0: number, h1: number, h2: number, shift: number) {
