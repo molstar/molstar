@@ -33,8 +33,12 @@ uniform vec4 uLod;
     uniform float uHighlightStrength;
     uniform float uSelectStrength;
     uniform float uDimStrength;
-    uniform int uMarkerPriority;
     uniform float uMarkerAverage;
+#endif
+
+// needed by the marking pass even when per-object color marking is disabled
+#if defined(dColorMarker) || defined(dRenderVariant_marking)
+    uniform int uMarkerPriority;
 #endif
 
 #if defined(dNeedsMarker)

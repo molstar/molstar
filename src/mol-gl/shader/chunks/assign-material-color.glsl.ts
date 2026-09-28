@@ -100,7 +100,7 @@ export const assign_material_color = `
         if (uMarkingDepthTest) {
             depthTest = (fragmentDepth >= getDepthPacked(gl_FragCoord.xy / uDrawingBufferSize)) ? 1.0 : 0.0;
         }
-        bool isHighlight = intMod(marker, 2.0) > 0.1;
+        bool isHighlight = (uMarkerPriority == 1 && marker != 2.0) || (uMarkerPriority != 1 && marker == 1.0);
         float viewZ = depthToViewZ(uIsOrtho, fragmentDepth, uNear, uFar);
         float fogFactor = smoothstep(uFogNear, uFogFar, abs(viewZ));
         if (fogFactor == 1.0)
