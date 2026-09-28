@@ -116,6 +116,9 @@ void main() {
             gl_FragData[3] = packDepthToRGBA(fragmentDepth);
         #else
             gl_FragColor = vColor;
+            #ifdef dSolidInterior
+                if (capPass && uPickType == 3) gl_FragColor = vec4(packIntToRGB(16777214.0), 1.0);
+            #endif
         #endif
     #elif defined(dRenderVariant_depth)
         gl_FragColor = material;
