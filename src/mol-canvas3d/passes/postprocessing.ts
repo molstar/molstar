@@ -196,7 +196,7 @@ export class PostprocessingPass {
         const height = colorTarget.getHeight();
 
         // needs to be linear for anti-aliasing pass
-        this.target = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
+        this.target = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
         this.ssao = new SsaoPass(webgl, width, height, packedDepth, depthTextureOpaque, depthTextureTransparent);
         this.shadow = new ShadowPass(webgl, width, height, depthTextureOpaque);
@@ -397,8 +397,8 @@ export class AntialiasingPass {
     private readonly cas: CasPass;
 
     constructor(webgl: WebGLContext, width: number, height: number) {
-        this.target = webgl.createRenderTarget(width, height, false);
-        this.internalTarget = webgl.createRenderTarget(width, height, false);
+        this.target = webgl.createRenderTarget(width, height, 'none');
+        this.internalTarget = webgl.createRenderTarget(width, height, 'none');
 
         this.fxaa = new FxaaPass(webgl, this.target.texture);
         this.smaa = new SmaaPass(webgl, this.target.texture);

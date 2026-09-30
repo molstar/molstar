@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Renderable, RenderableState, createRenderable } from '../renderable';
@@ -25,6 +26,7 @@ export const MeshSchema = {
     dCelShaded: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('string', ['off', 'on', 'inverted']),
     dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
+    dSolidInterior: DefineSpec('boolean'),
     uBumpFrequency: UniformSpec('f', 'material'),
     uBumpAmplitude: UniformSpec('f', 'material'),
     meta: ValueSpec('unknown'),

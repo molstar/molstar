@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { idFactory } from '../../mol-util/id-factory';
@@ -30,7 +31,7 @@ export interface RenderTarget {
     destroy: () => void
 }
 
-export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResources, _width: number, _height: number, depth = true, type: 'uint8' | 'float32' | 'fp16' = 'uint8', filter: TextureFilter = 'nearest', format: 'rgba' | 'alpha' = 'rgba'): RenderTarget {
+export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResources, _width: number, _height: number, depthStencil: 'none' | 'depth' | 'depth-stencil' = 'depth', type: 'uint8' | 'float32' | 'fp16' = 'uint8', filter: TextureFilter = 'nearest', format: 'rgba' | 'alpha' = 'rgba'): RenderTarget {
 
     if (format === 'alpha' && !isWebGL2(gl)) {
         throw new Error('cannot render to alpha format in webgl1');
@@ -43,11 +44,11 @@ export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResou
             ? resources.texture('image-float32', format, 'float', filter)
             : resources.texture('image-uint8', format, 'ubyte', filter);
     // make a depth renderbuffer of the same size as the targetTexture
-    const depthRenderbuffer = !depth
+    const depthRenderbuffer = depthStencil === 'none'
         ? null
-        : isWebGL2(gl)
-            ? resources.renderbuffer('depth32f', 'depth', _width, _height)
-            : resources.renderbuffer('depth16', 'depth', _width, _height);
+        : depthStencil === 'depth-stencil'
+            ? resources.renderbuffer(isWebGL2(gl) ? 'depth32f-stencil8' : 'depth-stencil', 'depth-stencil', _width, _height)
+            : resources.renderbuffer(isWebGL2(gl) ? 'depth32f' : 'depth16', 'depth', _width, _height);
 
     function init() {
         targetTexture.define(_width, _height);
