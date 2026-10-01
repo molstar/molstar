@@ -1,0 +1,51 @@
+{
+  "name": "@molstar/volume-server",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* volume-server",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "argparse": "catalog:",
+    "express": "catalog:",
+    "compression": "catalog:",
+    "@types/node": "catalog:",
+    "tslib": "catalog:",
+    "@types/argparse": "catalog:",
+    "@types/express": "catalog:",
+    "@types/compression": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "@molstar/common-server": "workspace:*",
+    "@molstar/model": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "bin": {
+    "volume-server": "./lib/server.js",
+    "volume-server-query": "./lib/query.js",
+    "volume-server-pack": "./lib/pack.js"
+  }
+}

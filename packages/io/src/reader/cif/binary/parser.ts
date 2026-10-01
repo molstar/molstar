@@ -1,0 +1,64 @@
+/**
+ * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Ivan Niukanen <57656076+niukanen1@users.noreply.github.com>
+ */
+
+import * as Data from '../data-model.js';
+import type { EncodedCategory, EncodedFile } from '@molstar/io/common/binary-cif';
+import { Field } from './field.js';
+import { ReaderResult as Result } from '../../result.js';
+import { decodeMsgPack } from '@molstar/io/common/msgpack/decode';
+import { Task } from '@molstar/core/task';
+
+function checkVersions(min: number[], current: number[]) {
+    for (let i = 0; i < 2; i++) {
+        if (min[i] > current[i]) return false;
+    }
+    return true;
+}
+
+function Category(data: EncodedCategory): Data.CifCategory {
+    const map = Object.create(null);
+    const normalizedMap = Object.create(null);
+    const cache = Object.create(null);
+    // CIF data names are case insensitive; keep a lowercase lookup as well (#1941)
+    for (const col of data.columns) {
+        map[col.name] = col;
+        normalizedMap[col.name.toLowerCase()] = col;
+    }
+    return {
+        rowCount: data.rowCount,
+        name: data.name.substring(1),
+        fieldNames: data.columns.map(c => c.name),
+        getField(name) {
+            const col = map[name] ?? normalizedMap[name.toLowerCase()];
+            if (!col) return void 0;
+            if (!!cache[name]) return cache[name];
+            cache[name] = Field(col);
+            return cache[name];
+        }
+    };
+}
+
+export function parseCifBinary(data: Uint8Array) {
+    return Task.create<Result<Data.CifFile>>('Parse BinaryCIF', async ctx => {
+        const minVersion = [0, 3];
+
+        try {
+            const unpacked = decodeMsgPack(data) as EncodedFile;
+            if (!checkVersions(minVersion, unpacked.version.match(/(\d)\.(\d)\.\d/)!.slice(1).map(v => +v))) {
+                return Result.error<Data.CifFile>(`Unsupported format version. Current ${unpacked.version}, required ${minVersion.join('.')}.`);
+            }
+            const file = Data.CifFile(unpacked.dataBlocks.map(block => {
+                const cats = Object.create(null);
+                for (const cat of block.categories) cats[cat.name.substring(1)] = Category(cat);
+                return Data.CifBlock(block.categories.map(c => c.name.substring(1)), cats, block.header);
+            }));
+            return Result.success(file);
+        } catch (e) {
+            return Result.error<Data.CifFile>('' + e);
+        }
+    });
+}

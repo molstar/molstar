@@ -1,0 +1,53 @@
+{
+  "name": "@molstar/ihm-restraints-example",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* ihm-restraints-example",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./index": {
+      "molstar-src": "./src/index.tsx",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.tsx",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs examples/ihm-restraints --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs examples/ihm-restraints --dev"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/mvs": "workspace:*",
+    "@molstar/mvs-builder": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/plugin": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "molstar": {
+    "entry": "src/index.tsx",
+    "filename": "index.js",
+    "globalName": "molstar"
+  }
+}

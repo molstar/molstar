@@ -1,0 +1,42 @@
+{
+  "name": "@molstar/meshes-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* meshes-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "rxjs": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/io": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/volseg-api-extension": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

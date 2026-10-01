@@ -1,0 +1,49 @@
+{
+  "name": "@molstar/model",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* model",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./formats/particles/_test/*": null,
+    "./formats/structure/_test/*": null,
+    "./formats/structure/basic/_test/*": null,
+    "./formats/volume/_test/*": null,
+    "./formats/volume/shared/_test/*": null,
+    "./model/particles/_test/*": null,
+    "./model/sequence/alignment/_test/*": null,
+    "./model/structure/structure/element/_test/*": null,
+    "./model/structure/structure/util/_test/*": null,
+    "./script/language/_test/*": null,
+    "./script/transpilers/_test/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "immutable": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/io": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

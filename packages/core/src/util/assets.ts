@@ -1,0 +1,182 @@
+/**
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
+
+import { UUID } from './uuid.js';
+import { ajaxGet, type DataType, type DataResponse, readFromFile } from './data-source.js';
+import { Task } from '@molstar/core/task';
+import { File_ as File } from './nodejs-shims.js';
+import { iterableToArray } from '@molstar/core/data/util/array';
+
+export { AssetManager, Asset };
+
+type _File = File;
+type Asset = Asset.Url | Asset.File
+
+namespace Asset {
+    export type Url = { kind: 'url', id: UUID, url: string, title?: string, body?: string, headers?: Record<string, string> }
+    export type File = { kind: 'file', id: UUID, name: string, file?: _File }
+
+    export function Url(url: string, options?: { body?: string, title?: string, headers?: Record<string, string> }): Url {
+        return { kind: 'url', id: UUID.create22(), url, ...options };
+    }
+
+    export function File(file: _File): File {
+        return { kind: 'file', id: UUID.create22(), name: file.name, file };
+    }
+
+    export function isUrl(x?: Asset): x is Url {
+        return x?.kind === 'url';
+    }
+
+    export function isFile(x?: Asset): x is File {
+        return x?.kind === 'file';
+    }
+
+    export interface Wrapper<T extends DataType = DataType> {
+        readonly data: DataResponse<T>
+        dispose: () => void
+    }
+
+    export function Wrapper<T extends DataType = DataType>(data: DataResponse<T>, asset: Asset, manager: AssetManager) {
+        return {
+            data,
+            dispose: () => {
+                manager.release(asset);
+            }
+        };
+    }
+
+    export function getUrl(url: string | Url) {
+        return typeof url === 'string' ? url : url.url;
+    }
+
+    export function getUrlAsset(manager: AssetManager, url: string | Url, body?: string, headers?: Record<string, string>) {
+        if (typeof url === 'string') {
+            const asset = manager.tryFindUrl(url, body, headers);
+            return asset || Url(url, { body, headers });
+        }
+        return url;
+    }
+}
+
+function urlHeadersEqual(a?: Record<string, string>, b?: Record<string, string>) {
+    const aKeys = a ? Object.keys(a) : [];
+    const bKeys = b ? Object.keys(b) : [];
+    if (aKeys.length !== bKeys.length) return false;
+
+    for (const key of aKeys) {
+        if (a![key] !== b![key]) return false;
+    }
+    return true;
+}
+
+class AssetManager {
+    // TODO: add URL based ref-counted cache?
+    // TODO: when serializing, check for duplicates?
+
+    private _assets = new Map<string, { asset: Asset, file: File, refCount: number, isStatic?: boolean, tag?: string }>();
+
+    get assets() {
+        return iterableToArray(this._assets.values());
+    }
+
+    tryFindUrl(url: string, body?: string, headers?: Record<string, string>): Asset.Url | undefined {
+        const assets = this.assets.values();
+        while (true) {
+            const v = assets.next();
+            if (v.done) return;
+            const asset = v.value.asset;
+            if (Asset.isUrl(asset) && asset.url === url && (asset.body || '') === (body || '') && urlHeadersEqual(asset.headers, headers)) return asset;
+        }
+    }
+
+    tryFindFilename(name: string): Asset | undefined {
+        const it = this._assets.values();
+        while (true) {
+            const { done, value } = it.next();
+            if (done) break;
+            if (value.file.name === name) return value.asset;
+        }
+    }
+
+    set(asset: Asset, file: File, options?: { isStatic?: boolean, tag?: string }) {
+        this._assets.set(asset.id, { asset, file, refCount: 0, tag: options?.tag, isStatic: options?.isStatic });
+    }
+
+    get(asset: Asset) {
+        return this._assets.get(asset.id);
+    }
+
+    delete(asset: Asset) {
+        return this._assets.delete(asset.id);
+    }
+
+    has(asset: Asset) {
+        return this._assets.has(asset.id);
+    }
+
+    resolve<T extends DataType>(asset: Asset, type: T, store = true): Task<Asset.Wrapper<T>> {
+        if (Asset.isUrl(asset)) {
+            return Task.create(`Download ${asset.title || asset.url}`, async ctx => {
+                if (this._assets.has(asset.id)) {
+                    const entry = this._assets.get(asset.id)!;
+                    entry.refCount++;
+                    return Asset.Wrapper(await readFromFile(entry.file, type).runInContext(ctx), asset, this);
+                }
+
+                if (!store) {
+                    return Asset.Wrapper(await ajaxGet({ ...asset, type }).runInContext(ctx), asset, this);
+                }
+
+                const data = await ajaxGet({ ...asset, type: 'binary' }).runInContext(ctx);
+                const file = new File([data], 'raw-data');
+                this._assets.set(asset.id, { asset, file, refCount: 1 });
+                return Asset.Wrapper(await readFromFile(file, type).runInContext(ctx), asset, this);
+            });
+        } else {
+            return Task.create(`Read ${asset.name}`, async ctx => {
+                if (this._assets.has(asset.id)) {
+                    const entry = this._assets.get(asset.id)!;
+                    entry.refCount++;
+                    return Asset.Wrapper(await readFromFile(entry.file, type).runInContext(ctx), asset, this);
+                }
+                if (!(asset.file instanceof File)) {
+                    throw new Error(`Cannot resolve file asset '${asset.name}' (${asset.id})`);
+                }
+                if (store) {
+                    this._assets.set(asset.id, { asset, file: asset.file, refCount: 1 });
+                }
+                return Asset.Wrapper(await readFromFile(asset.file, type).runInContext(ctx), asset, this);
+            });
+        }
+    }
+
+    release(asset: Asset) {
+        const entry = this._assets.get(asset.id);
+        if (!entry) return;
+        entry.refCount--;
+        if (entry.refCount <= 0 && !entry.isStatic) this._assets.delete(asset.id);
+    }
+
+    clearTag(tag: string) {
+        const keys = Array.from(this._assets.keys());
+        for (const key of keys) {
+            const entry = this._assets.get(key);
+            if (entry && entry.tag === tag) {
+                this._assets.delete(key);
+            }
+        }
+    }
+
+    clear() {
+        this._assets.clear();
+    }
+
+    dispose() {
+        this.clear();
+    }
+}

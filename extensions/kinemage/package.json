@@ -1,0 +1,53 @@
+{
+  "name": "@molstar/kinemage-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* kinemage-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./ui": {
+      "molstar-src": "./src/ui.tsx",
+      "types": "./lib/ui.d.ts",
+      "import": "./lib/ui.js"
+    },
+    "./_test/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@types/react": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {}
+}

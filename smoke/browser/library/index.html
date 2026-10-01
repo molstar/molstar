@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Mol* modular ESM smoke</title>
+<div id="app" style="width:900px;height:650px"></div>
+<script type="importmap" id="smoke-importmap"></script>
+<script type="module">
+  window.smokeReady = (async () => {
+    const [{ PluginContext }, { PluginConfig }, { StateTransforms }, { StateTransformer }, { Color }, { createPluginUI }, { DefaultPluginUISpec }, { renderReact18 }] = await Promise.all([
+      import('@molstar/plugin'), import('@molstar/plugin/config'), import('@molstar/plugin/state/transforms'), import('@molstar/core/state'), import('@molstar/core/util/color'),
+      import('@molstar/plugin-ui'), import('@molstar/plugin-ui/spec'), import('@molstar/plugin-ui/react18')
+    ]);
+    const plugin = await createPluginUI({ target: document.getElementById('app'), render: renderReact18, spec: DefaultPluginUISpec() });
+    const data = await plugin.builders.data.download({ url: '/fixtures/tiny.pdb', isBinary: false });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+    await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
+    plugin.canvas3d?.commit(true);
+    window.smokePlugin = plugin;
+    window.smokeResult = {
+      transforms: typeof StateTransforms,
+      config: typeof PluginConfig,
+      color: Color(0x336699),
+      pluginContextIdentity: plugin instanceof PluginContext,
+      transformerRegistryIdentity: StateTransformer.get(StateTransforms.Model.TrajectoryFromPDB.id) === StateTransforms.Model.TrajectoryFromPDB,
+      structures: plugin.managers.structure.hierarchy.current.structures.length,
+      representations: plugin.canvas3d?.reprCount.value ?? 0
+    };
+    document.documentElement.dataset.smoke = window.smokeResult.structures > 0 && window.smokeResult.representations > 0 && window.smokeResult.pluginContextIdentity && window.smokeResult.transformerRegistryIdentity ? 'pass' : 'fail';
+  })();
+</script>

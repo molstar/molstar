@@ -1,0 +1,8 @@
+data_smoke
+_dictionary.namespace smoke
+_dictionary.version 1
+save_atom_site.id
+_item.name '_atom_site.id'
+_item.category_id atom_site
+_item_type.code int
+save_

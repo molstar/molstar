@@ -1,0 +1,51 @@
+{
+  "name": "@molstar/mvs-builder",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* mvs-builder",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    ".": {
+      "molstar-src": "./src/mvs-data.ts",
+      "types": "./lib/mvs-data.d.ts",
+      "import": "./lib/mvs-data.js"
+    },
+    "./tree/generic/_test/*": null,
+    "./tree/mvs/_test/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "argparse": "catalog:",
+    "fflate": "catalog:",
+    "io-ts": "catalog:",
+    "tslib": "catalog:",
+    "@types/argparse": "catalog:",
+    "fp-ts": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "bin": {
+    "mvs-validate": "./lib/cli/mvs-validate.js",
+    "mvs-print-schema": "./lib/cli/mvs-print-schema.js"
+  }
+}

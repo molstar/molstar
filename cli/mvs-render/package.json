@@ -1,0 +1,62 @@
+{
+  "name": "@molstar/mvs-render-cli",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* mvs-render-cli",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "argparse": "catalog:",
+    "jpeg-js": "catalog:",
+    "pngjs": "catalog:",
+    "tslib": "catalog:",
+    "@types/argparse": "catalog:",
+    "@types/pngjs": "catalog:",
+    "@molstar/mvs-builder": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/mp4-export-extension": "workspace:*",
+    "@molstar/plugin-headless": "workspace:*",
+    "@molstar/mvs": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "bin": {
+    "mvs-render": "./lib/mvs-render.js"
+  },
+  "peerDependencies": {
+    "gl": ">=6 <9",
+    "canvas": "^2.11.2"
+  },
+  "peerDependenciesMeta": {
+    "gl": {
+      "optional": true
+    },
+    "canvas": {
+      "optional": true
+    }
+  }
+}

@@ -1,0 +1,6 @@
+HEADER    SMOKE FIXTURE
+ATOM      1  CA  ALA A   1       0.000   0.000   0.000  1.00 10.00           C
+ATOM      2  CA  GLY A   2       1.450   0.000   0.000  1.00 10.00           C
+ATOM      3  CA  SER A   3       2.900   0.000   0.000  1.00 10.00           C
+TER
+END

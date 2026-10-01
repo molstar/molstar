@@ -1,0 +1,43 @@
+{
+  "name": "@molstar/perf-tests",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* perf-tests",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "benchmark": "catalog:",
+    "@types/node": "catalog:",
+    "tslib": "catalog:",
+    "@types/benchmark": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/structure-info-cli": "workspace:*",
+    "@molstar/pdbe-extension": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

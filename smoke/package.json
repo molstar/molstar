@@ -1,0 +1,18 @@
+{
+  "name": "@molstar/smoke",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "smoke": "node ./run.mjs all --prepare",
+    "smoke:node": "node ./run.mjs node",
+    "smoke:types": "node ./run.mjs types",
+    "smoke:browser": "node ./run.mjs browser",
+    "smoke:source": "node ./run.mjs source",
+    "smoke:cli": "node ./run.mjs cli",
+    "smoke:headless": "node ./run.mjs headless"
+  },
+  "dependencies": {
+    "@molstar/core": "workspace:*",
+    "@molstar/io": "workspace:*"
+  }
+}

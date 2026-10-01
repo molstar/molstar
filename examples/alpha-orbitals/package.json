@@ -1,0 +1,64 @@
+{
+  "name": "@molstar/alpha-orbitals-example",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* alpha-orbitals-example",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./controls": {
+      "molstar-src": "./src/controls.tsx",
+      "types": "./lib/controls.d.ts",
+      "import": "./lib/controls.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs examples/alpha-orbitals --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs examples/alpha-orbitals --dev"
+  },
+  "dependencies": {
+    "rxjs": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/alpha-orbitals-extension": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "peerDependencies": {
+    "react-dom": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {},
+  "molstar": {
+    "entry": "src/index.ts",
+    "filename": "index.js",
+    "globalName": "molstar"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "name": "@molstar/cifschema-cli",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* cifschema-cli",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b && node ../../scripts/workspace/assets.mjs @molstar/cifschema-cli",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "argparse": "catalog:",
+    "tslib": "catalog:",
+    "@types/argparse": "catalog:",
+    "@molstar/io": "workspace:*",
+    "@molstar/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "bin": {
+    "cifschema": "./lib/index.js"
+  }
+}

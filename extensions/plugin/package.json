@@ -1,0 +1,52 @@
+{
+  "name": "@molstar/plugin-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* plugin-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./react": {
+      "molstar-src": "./src/react.tsx",
+      "types": "./lib/react.d.ts",
+      "import": "./lib/react.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@types/react": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/mvs": "workspace:*",
+    "@molstar/mvs-builder": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {}
+}

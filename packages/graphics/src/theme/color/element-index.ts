@@ -1,0 +1,84 @@
+/**
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
+
+import { Color } from '@molstar/core/util/color';
+import type { Location } from '@molstar/model/model/location';
+import { StructureElement, Bond } from '@molstar/model/model/structure';
+import { OrderedSet } from '@molstar/core/data/int/ordered-set';
+import type { ColorTheme, LocationColor } from '../color.js';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import type { ThemeDataContext } from '../theme.js';
+import { getPaletteParams, getPalette } from '@molstar/core/util/color/palette';
+import type { TableLegend, ScaleLegend } from '@molstar/core/util/legend';
+import { ColorThemeCategory } from './categories.js';
+
+const DefaultColor = Color(0xCCCCCC);
+const Description = 'Gives every element (atom or coarse sphere/gaussian) a unique color based on the position (index) of the element in the list of elements in the structure.';
+
+export const ElementIndexColorThemeParams = {
+    ...getPaletteParams({ type: 'colors', colorList: 'red-yellow-blue' }),
+};
+export type ElementIndexColorThemeParams = typeof ElementIndexColorThemeParams
+export function getElementIndexColorThemeParams(ctx: ThemeDataContext) {
+    return ElementIndexColorThemeParams; // TODO return copy
+}
+
+export function ElementIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<ElementIndexColorThemeParams>): ColorTheme<ElementIndexColorThemeParams> {
+    let color: LocationColor;
+    let legend: ScaleLegend | TableLegend | undefined;
+
+    if (ctx.structure) {
+        const { units } = ctx.structure.root;
+        const unitCount = units.length;
+        const cummulativeElementCount = new Map<number, number>();
+        const unitIdIndex = new Map<number, number>();
+
+        let elementCount = 0;
+        for (let i = 0; i < unitCount; ++i) {
+            cummulativeElementCount.set(i, elementCount);
+            elementCount += units[i].elements.length;
+            unitIdIndex.set(units[i].id, i);
+        }
+
+        const palette = getPalette(elementCount, props);
+        legend = palette.legend;
+
+        color = (location: Location): Color => {
+            if (StructureElement.Location.is(location)) {
+                const unitIndex = unitIdIndex.get(location.unit.id)!;
+                const unitElementIndex = OrderedSet.findPredecessorIndex(units[unitIndex].elements, location.element);
+                return palette.color(cummulativeElementCount.get(unitIndex)! + unitElementIndex);
+            } else if (Bond.isLocation(location)) {
+                const unitIndex = unitIdIndex.get(location.aUnit.id)!;
+                const unitElementIndex = OrderedSet.findPredecessorIndex(units[unitIndex].elements, location.aUnit.elements[location.aIndex]);
+                return palette.color(cummulativeElementCount.get(unitIndex)! + unitElementIndex);
+            }
+            return DefaultColor;
+        };
+    } else {
+        color = () => DefaultColor;
+    }
+
+    return {
+        factory: ElementIndexColorTheme,
+        granularity: 'groupInstance',
+        preferSmoothing: true,
+        color,
+        props,
+        description: Description,
+        legend
+    };
+}
+
+export const ElementIndexColorThemeProvider: ColorTheme.Provider<ElementIndexColorThemeParams, 'element-index'> = {
+    name: 'element-index',
+    label: 'Element Index',
+    category: ColorThemeCategory.Atom,
+    factory: ElementIndexColorTheme,
+    getParams: getElementIndexColorThemeParams,
+    defaultValues: PD.getDefaultValues(ElementIndexColorThemeParams),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
+};

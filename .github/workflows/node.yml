@@ -10,15 +10,31 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v2
-      with:
-        node-version: 22
-    - run: npm ci
-    - run: sudo apt-get install xvfb
-    - name: Lint
-      run: npm run lint
-    - name: Test
-      run: npm install --no-save "gl@^8.1.6" && xvfb-run --auto-servernum npm run jest
-    - name: Build
-      run: npm run build
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install opt-in native GL backend
+        run: pnpm native:install
+      - name: Install virtual display
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+      - name: Lint
+        run: pnpm lint
+      - name: Test
+        run: xvfb-run --auto-servernum pnpm test:native
+      - name: Build libraries
+        run: time pnpm build:lib
+      - name: Build apps and examples
+        run: time pnpm build:apps
+      - name: Build browser distribution
+        run: time pnpm build:distribution
+      - name: Check workspace and versions
+        run: pnpm check:workspace && pnpm version:check
+      - name: Pack public packages
+        run: pnpm pack:workspace

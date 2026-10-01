@@ -1,0 +1,45 @@
+{
+  "name": "@molstar/sb-ncbr-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* sb-ncbr-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/meshes-extension": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

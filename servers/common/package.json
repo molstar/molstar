@@ -1,0 +1,58 @@
+{
+  "name": "@molstar/common-server",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* common-server",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./swagger-ui": {
+      "molstar-src": "./src/swagger-ui/index.ts",
+      "types": "./lib/swagger-ui/index.d.ts",
+      "import": "./lib/swagger-ui/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "express": "catalog:",
+    "swagger-ui-dist": "catalog:",
+    "@types/node": "catalog:",
+    "tslib": "catalog:",
+    "@types/express": "catalog:",
+    "@types/swagger-ui-dist": "catalog:",
+    "serve-static": "catalog:",
+    "@types/serve-static": "catalog:",
+    "@types/express-serve-static-core": "catalog:",
+    "@molstar/io": "workspace:*",
+    "@molstar/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "peerDependencies": {
+    "@google-cloud/storage": "^7.14.0"
+  },
+  "peerDependenciesMeta": {
+    "@google-cloud/storage": {
+      "optional": true
+    }
+  }
+}

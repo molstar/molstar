@@ -1,0 +1,60 @@
+{
+  "name": "@molstar/react-example",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* react-example",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./index": {
+      "molstar-src": "./src/index.tsx",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.tsx",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs examples/react --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs examples/react --dev"
+  },
+  "dependencies": {
+    "rxjs": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/plugin-extension": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/viewer": "workspace:*",
+    "@molstar/mvs": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=16.14.0",
+    "react-dom": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {},
+  "molstar": {
+    "entry": "src/index.tsx",
+    "filename": "index.js",
+    "globalName": "molstar"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "name": "@molstar/debug-helpers-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* debug-helpers-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/plugin": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}
