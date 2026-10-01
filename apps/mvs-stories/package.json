@@ -59,7 +59,7 @@
   "files": [
     "lib",
     "src",
-    "!**/_spec/**"
+    "!**/_test/**"
   ],
   "scripts": {
     "build": "node ../../scripts/esbuild/app.mjs apps/mvs-stories --prd",

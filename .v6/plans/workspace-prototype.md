@@ -31,6 +31,8 @@ In scope:
 - ESM package exports, TypeScript project references, and per-package assets.
 - Shared app tooling with app-owned configuration, dependencies, and scripts.
 - Separate headless, MVS, extension, CLI, and server ownership.
+- Colocated unit tests named `_test/<name>.test.ts`, with matching runner and
+  package exclusions.
 - Local packaging and consumer checks; shared release-version synchronization.
 - Direct ESM consumption without consumer compilation/bundling, including a
   browser-ready module distribution and root `smoke/` fixtures.
@@ -44,8 +46,8 @@ Deferred:
 - Comprehensive convenience-barrel removal and `StateTransforms` facade removal.
   Remove or split existing modules when needed for package boundaries; track the
   remaining work. Do not introduce new convenience barrels or compatibility shims.
-- Test-directory renaming, a broad test-runner migration, and the full maintainer
-  skills/documentation rewrite. Adapt existing checks where necessary for ESM.
+- A broad test-runner migration and the full maintainer skills/documentation
+  rewrite. Adapt existing checks where necessary for ESM.
 - JSR publication, migration CLI implementation, downstream migration validation,
   automated publishing, and stable-release readiness.
 - Fast types, `isolatedDeclarations`, blanket API annotations, and syntax rewrites.

@@ -56,7 +56,7 @@
     "testEnvironmentOptions": {
       "url": "http://localhost/"
     },
-    "testRegex": "\\.spec\\.ts$",
+    "testRegex": "\\.test\\.ts$",
     "moduleNameMapper": {
       "^@molstar/docking-viewer$": "<rootDir>/apps/docking-viewer/src/index.ts",
       "^@molstar/docking-viewer/(.*)$": "<rootDir>/apps/docking-viewer/src/$1",

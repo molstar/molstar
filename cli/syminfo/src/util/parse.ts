@@ -8,7 +8,7 @@
  * A single `begin_spacegroup...end_spacegroup` block from CCP4 `syminfo.lib`
  * (see `data/sym/syminfo.lib`), reduced to the fields needed to build
  * `src/mol-math/geometry/spacegroup/syminfo.ts` (`RawSpacegroupData`) and
- * `src/mol-math/geometry/spacegroup/_spec/syminfo.lib.ts` (this same shape,
+ * `src/mol-math/geometry/spacegroup/_test/syminfo.lib.ts` (this same shape,
  * emitted verbatim as the test-only regression oracle).
  */
 export interface SyminfoEntry {

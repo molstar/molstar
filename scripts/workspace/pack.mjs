@@ -68,10 +68,10 @@ function checkPackedContents(manifest, files, pkg) {
     }
     for (const file of files) {
         const parts = file.split('/');
-        const isSpecTree = parts.includes('_spec') || parts.includes('__tests__') || parts.includes('test') || parts.includes('tests') || parts.includes('fixtures');
+        const isTestTree = parts.includes('_test') || parts.includes('__tests__') || parts.includes('test') || parts.includes('tests') || parts.includes('fixtures');
         if (/\.tsbuildinfo$/iu.test(file)) errors.push(`${pkg.name}: tsbuildinfo unexpectedly packed: ${file}`);
-        if (parts[0] === 'src' && (isSpecTree || /(?:^|[/.])[^/]*\.(?:spec|test)\.[^/]+$/iu.test(file))) {
-            errors.push(`${pkg.name}: source test fixture unexpectedly packed: ${file}`);
+        if (['src', 'lib'].includes(parts[0]) && (isTestTree || /(?:^|[/.])[^/]*\.test\.[^/]+$/iu.test(file))) {
+            errors.push(`${pkg.name}: test fixture unexpectedly packed: ${file}`);
         }
     }
     return errors;

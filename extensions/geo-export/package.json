@@ -62,7 +62,7 @@
   "files": [
     "lib",
     "src",
-    "!**/_spec/**",
+    "!**/_test/**",
     "!**/*.tsbuildinfo"
   ],
   "scripts": {

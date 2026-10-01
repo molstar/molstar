@@ -21,7 +21,7 @@ for (const pkg of packages) {
     }
     if (!fs.existsSync(`${pkg.path}/src`) || pkg.kind === 'distribution') continue;
     const file = manifestPath;
-    const sources = walk(`${pkg.path}/src`).filter(s => !s.includes('/_spec/'));
+    const sources = walk(`${pkg.path}/src`).filter(s => !s.includes('/_test/'));
     const exports = {}, imports = new Set();
     for (const source of sources) {
         const leaf = source.slice((pkg.path + '/src/').length);

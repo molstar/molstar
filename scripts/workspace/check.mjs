@@ -113,10 +113,10 @@ const sourceFiles = new Map();
 function scan(dir, pkg) {
     if (!fs.existsSync(dir)) return;
     for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (ent.isDirectory() && /^(node_modules|lib|dist|build|tests?|__tests__|fixtures?)$/i.test(ent.name)) continue;
+        if (ent.isDirectory() && /^(node_modules|lib|dist|build|tests?|_test|__tests__|fixtures?)$/i.test(ent.name)) continue;
         const abs = path.join(dir, ent.name);
         if (ent.isDirectory()) scan(abs, pkg);
-        else if (/\.[cm]?tsx?$/.test(ent.name) && !/\.(spec|test)\.[cm]?tsx?$/.test(ent.name)) sourceFiles.set(abs, pkg);
+        else if (/\.[cm]?tsx?$/.test(ent.name) && !/\.test\.[cm]?tsx?$/.test(ent.name)) sourceFiles.set(abs, pkg);
     }
 }
 for (const pkg of packages) scan(path.join(root, pkg.path, 'src'), pkg);

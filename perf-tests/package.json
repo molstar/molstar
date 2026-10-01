@@ -113,7 +113,7 @@
   "files": [
     "lib",
     "src",
-    "!**/_spec/**"
+    "!**/_test/**"
   ],
   "scripts": {
     "build": "tsc -b",

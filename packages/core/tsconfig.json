@@ -9,7 +9,7 @@
     "src/**/*"
   ],
   "exclude": [
-    "src/**/_spec/**"
+    "src/**/_test/**"
   ],
   "references": []
 }

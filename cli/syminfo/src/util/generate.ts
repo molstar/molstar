@@ -72,7 +72,7 @@ ${lines.join('\n')}
 }
 
 /**
- * Generates `src/mol-math/geometry/spacegroup/_spec/syminfo.lib.ts`.
+ * Generates `src/mol-math/geometry/spacegroup/_test/syminfo.lib.ts`.
  */
 export function generateSyminfoLibSpecTs(entries: readonly SyminfoEntry[]): string {
     const lines = entries.map(e => {
@@ -86,7 +86,7 @@ export function generateSyminfoLibSpecTs(entries: readonly SyminfoEntry[]): stri
  * see \`src/cli/syminfo\`, and mapped into the friendlier object-shaped
  * \`SpacegroupEntry\`/\`SpacegroupData\` by \`../tables.ts\`) - this file
  * exists purely as an independent regression oracle for
- * \`_spec/notation.spec.ts\` and \`_spec/tables.spec.ts\`.
+ * \`_test/notation.test.ts\` and \`_test/tables.test.ts\`.
  */
 export interface SyminfoEntry {
     /** International Tables (ITA) spacegroup number. */

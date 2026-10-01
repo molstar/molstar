@@ -16,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Keep MVS building/validation independent of the plugin and move MP4 headless methods
   into the explicit MP4 extension. Model shape creation takes an explicit group count;
   graphics shape creation infers it from geometry.
+- Rename colocated unit tests from `_spec/*.spec.ts` to `_test/*.test.ts`.
 - Add isolated consumer smoke checks and workspace CI. See the
   [workspace guide](.v6/plans/workspace-usage.md) for migration and usage details.
 

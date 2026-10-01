@@ -67,7 +67,7 @@
   "files": [
     "lib",
     "src",
-    "!**/_spec/**",
+    "!**/_test/**",
     "build",
     "!**/*.tsbuildinfo"
   ],
