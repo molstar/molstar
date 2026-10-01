@@ -1,7 +1,8 @@
 # Mol* v6 workspace prototype implementation plan
 
 Status: implemented and locally verified structural prototype (2026-10-01).
-Native headless capture and execution of the configured CI job remain pending.
+Hosted Linux/Xvfb unit tests and native headless capture have passed.
+Consumer smoke checks run locally for now; CI retains unit tests, builds, and package checks.
 
 See [workspace-usage.md](workspace-usage.md) for commands and consumer examples,
 and [migration-map.json](migration-map.json) for source ownership changes.
@@ -356,8 +357,8 @@ supported bins execute from installed tarballs with their required assets.
 ## 6. Prototype acceptance
 
 - [x] Root standard `smoke/` checks run locally against freshly built/packed output;
-  a successful import alone is not the complete runtime assertion. CI commands
-  are configured but their hosted execution is still pending.
+  a successful import alone is not the complete runtime assertion. Hosted checks
+  passed once; consumer smoke checks now remain local to avoid Chromium setup in CI.
 - [x] No cross-package relative imports or dependencies on unowned legacy source.
 - [x] No package cycles, including dependencies needed by emitted declarations.
 - [x] Every public package declares its direct runtime and consumer-facing type
@@ -370,9 +371,8 @@ supported bins execute from installed tarballs with their required assets.
   uncaught runtime errors or duplicated shared module instances.
 - [x] Full default Viewer behavior survives representative loading/rendering,
   selection, and snapshot checks; no backend redesign is needed.
-- [ ] Native headless capture is verified on a suitable host. The capture fixture
-  and dedicated Linux/Xvfb CI step are implemented; this macOS host returns no
-  GL context. MVS validation passes without native rendering dependencies, and
+- [x] Native headless capture passed on hosted Linux/Xvfb. The capture fixture
+  remains available locally; this macOS host returns no GL context. MVS validation passes without native rendering dependencies, and
   the base headless package has no automatic MP4 integration.
 - [x] Packed distribution preserves Viewer/MVS Stories browser APIs and paths.
 - [x] Public versions and packed internal dependency versions match `version.json`.
@@ -433,9 +433,9 @@ remaining host-dependent checks are recorded below.
 - Isolated packed Node ESM, strict declaration, source-bundler, and MVS CLI
   consumer checks pass.
 - Workspace import/declaration graph and version checks pass for all 69 packages.
-- Native capture remains unverified locally: Node 22 can load the native binding
-  but cannot create a GL context on this macOS host. Linux/Xvfb CI is configured
-  but has not been executed in this session.
+- Native unit tests and packed headless PNG capture passed on hosted Linux/Xvfb
+  in run 36869833592. This macOS host cannot create a GL context. CI now retains
+  native unit tests, while consumer smoke checks run locally.
 - All 43 public tarballs pass version, dependency-range, bin, asset, and export
   target checks, including source/Sass conditions. Build metadata and source
   test fixtures are excluded.

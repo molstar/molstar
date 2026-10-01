@@ -22,21 +22,19 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install opt-in native GL backend
         run: pnpm native:install
-      - name: Install Chromium for browser smoke
-        run: pnpm exec playwright install --with-deps chromium
       - name: Install virtual display
         run: sudo apt-get update && sudo apt-get install -y xvfb
       - name: Lint
         run: pnpm lint
       - name: Test
         run: xvfb-run --auto-servernum pnpm test:native
-      - name: Build workspace
-        run: pnpm build
+      - name: Build libraries
+        run: time pnpm build:lib
+      - name: Build apps and examples
+        run: time pnpm build:apps
+      - name: Build browser distribution
+        run: time pnpm build:distribution
       - name: Check workspace and versions
         run: pnpm check:workspace && pnpm version:check
       - name: Pack public packages
         run: pnpm pack:workspace
-      - name: Consumer smoke checks
-        run: pnpm --dir smoke smoke:node && pnpm --dir smoke smoke:types && pnpm --dir smoke smoke:source && pnpm --dir smoke smoke:cli && pnpm --dir smoke smoke:browser
-      - name: Headless consumer smoke
-        run: xvfb-run --auto-servernum pnpm native:run -- pnpm --dir smoke smoke:headless

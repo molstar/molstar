@@ -126,7 +126,7 @@ The setup command leaves workspace manifests and `pnpm-lock.yaml` unchanged.
 `native:run` exposes them to Node commands through `NODE_PATH`. Applications using
 installed packages can instead install the optional peers themselves and continue
 to inject native modules into the headless context. CI explicitly installs `gl`
-and runs its checks under Xvfb.
+and runs native unit tests under Xvfb. Consumer smoke checks run locally.
 
 `smoke/` tests isolated tarball consumers, Node exports, emitted types, source
 build resolution, MVS CLI execution, and native browser ESM/classic rendering.

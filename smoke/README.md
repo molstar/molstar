@@ -36,3 +36,6 @@ explicitly with `pnpm native:install`, then run
 `pnpm native:run -- pnpm --dir smoke smoke:headless` from the repository root.
 The backend is stored in `.cache/native`; the separate native test command is
 `pnpm test:native`. Use `pnpm native:install -- --canvas` for the rendering CLI.
+
+Consumer smoke checks run locally for now; CI does not install Chromium or run
+the smoke suite. CI retains lint, unit/native tests, builds, and package checks.
