@@ -1,4 +1,8 @@
-/** Resolve optional Node rendering dependencies when they are actually needed. */
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Resolve optional Node rendering dependencies when they are actually needed.
+ */
 import { createRequire } from 'node:module';
 import type { ExternalModules } from './screenshot.js';
 
