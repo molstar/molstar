@@ -9,25 +9,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./create-ions": {
-      "molstar-src": "./src/create-ions.ts",
-      "types": "./lib/create-ions.d.ts",
-      "import": "./lib/create-ions.js"
-    },
-    "./create-saccharides": {
-      "molstar-src": "./src/create-saccharides.ts",
-      "types": "./lib/create-saccharides.d.ts",
-      "import": "./lib/create-saccharides.js"
-    },
-    "./create-table": {
-      "molstar-src": "./src/create-table.ts",
-      "types": "./lib/create-table.d.ts",
-      "import": "./lib/create-table.js"
-    },
-    "./util": {
-      "molstar-src": "./src/util.ts",
-      "types": "./lib/util.d.ts",
-      "import": "./lib/util.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     }
   },
   "files": [

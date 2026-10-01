@@ -9,25 +9,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./annotation": {
-      "molstar-src": "./src/annotation.ts",
-      "types": "./lib/annotation.d.ts",
-      "import": "./lib/annotation.js"
-    },
-    "./coloring": {
-      "molstar-src": "./src/coloring.ts",
-      "types": "./lib/coloring.d.ts",
-      "import": "./lib/coloring.js"
-    },
-    "./helpers": {
-      "molstar-src": "./src/helpers.ts",
-      "types": "./lib/helpers.d.ts",
-      "import": "./lib/helpers.js"
-    },
-    "./index": {
-      "molstar-src": "./src/index.ts",
-      "types": "./lib/index.d.ts",
-      "import": "./lib/index.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
     ".": {
       "molstar-src": "./src/index.ts",

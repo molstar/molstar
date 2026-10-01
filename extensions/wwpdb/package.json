@@ -8,20 +8,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./ccd/behavior": {
-      "molstar-src": "./src/ccd/behavior.ts",
-      "types": "./lib/ccd/behavior.d.ts",
-      "import": "./lib/ccd/behavior.js"
-    },
-    "./ccd/representation": {
-      "molstar-src": "./src/ccd/representation.ts",
-      "types": "./lib/ccd/representation.d.ts",
-      "import": "./lib/ccd/representation.js"
-    },
-    "./struct-conn/index": {
-      "molstar-src": "./src/struct-conn/index.ts",
-      "types": "./lib/struct-conn/index.d.ts",
-      "import": "./lib/struct-conn/index.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
     "./struct-conn": {
       "molstar-src": "./src/struct-conn/index.ts",

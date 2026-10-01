@@ -8,46 +8,17 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./behavior": {
-      "molstar-src": "./src/behavior.ts",
-      "types": "./lib/behavior.d.ts",
-      "import": "./lib/behavior.js"
-    },
-    "./kin": {
-      "molstar-src": "./src/kin.ts",
-      "types": "./lib/kin.d.ts",
-      "import": "./lib/kin.js"
-    },
-    "./prop": {
-      "molstar-src": "./src/prop.ts",
-      "types": "./lib/prop.d.ts",
-      "import": "./lib/prop.js"
-    },
-    "./reader/kinparser": {
-      "molstar-src": "./src/reader/kinparser.ts",
-      "types": "./lib/reader/kinparser.d.ts",
-      "import": "./lib/reader/kinparser.js"
-    },
-    "./reader/parser": {
-      "molstar-src": "./src/reader/parser.ts",
-      "types": "./lib/reader/parser.d.ts",
-      "import": "./lib/reader/parser.js"
-    },
-    "./reader/schema": {
-      "molstar-src": "./src/reader/schema.ts",
-      "types": "./lib/reader/schema.d.ts",
-      "import": "./lib/reader/schema.js"
-    },
-    "./representation": {
-      "molstar-src": "./src/representation.ts",
-      "types": "./lib/representation.d.ts",
-      "import": "./lib/representation.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
     "./ui": {
       "molstar-src": "./src/ui.tsx",
       "types": "./lib/ui.d.ts",
       "import": "./lib/ui.js"
-    }
+    },
+    "./_test/*": null
   },
   "files": [
     "lib",

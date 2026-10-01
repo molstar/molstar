@@ -29,7 +29,8 @@ In scope:
 - Dependency cleanup required to build an acyclic package graph, including types
   exposed in declarations.
 - pnpm workspace/catalog setup and direct dependency declarations.
-- ESM package exports, TypeScript project references, and per-package assets.
+- Compact wildcard ESM export maps with explicit aliases, TS/TSX exceptions,
+  Sass/CSS mappings, and test exclusions; TypeScript project references and assets.
 - Shared app tooling with app-owned configuration, dependencies, and scripts.
 - Separate headless, MVS, extension, CLI, and server ownership.
 - Colocated unit tests named `_test/<name>.test.ts`, with matching runner and
@@ -439,7 +440,8 @@ remaining host-dependent checks are recorded below.
   in run 36869833592. This macOS host cannot create a GL context. CI now retains
   native unit tests, while consumer smoke checks run locally.
 - All 43 public tarballs pass version, dependency-range, bin, asset, and export
-  target checks, including source/Sass conditions. Build metadata and source
+  target checks, including source/Sass conditions. Wildcard patterns are expanded
+  against package files so every concrete conditional target is validated. Build metadata and source
   test fixtures are excluded.
 - Compiled cif2bcif/cifschema and model/volume server command usage checks pass.
   Native rendering CLI startup is host-dependent and remains unverified locally.

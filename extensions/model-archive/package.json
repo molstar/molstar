@@ -8,35 +8,15 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./quality-assessment/behavior": {
-      "molstar-src": "./src/quality-assessment/behavior.ts",
-      "types": "./lib/quality-assessment/behavior.d.ts",
-      "import": "./lib/quality-assessment/behavior.js"
-    },
-    "./quality-assessment/color/plddt": {
-      "molstar-src": "./src/quality-assessment/color/plddt.ts",
-      "types": "./lib/quality-assessment/color/plddt.d.ts",
-      "import": "./lib/quality-assessment/color/plddt.js"
-    },
-    "./quality-assessment/color/qmean": {
-      "molstar-src": "./src/quality-assessment/color/qmean.ts",
-      "types": "./lib/quality-assessment/color/qmean.d.ts",
-      "import": "./lib/quality-assessment/color/qmean.js"
-    },
-    "./quality-assessment/pairwise/plot": {
-      "molstar-src": "./src/quality-assessment/pairwise/plot.ts",
-      "types": "./lib/quality-assessment/pairwise/plot.d.ts",
-      "import": "./lib/quality-assessment/pairwise/plot.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
     "./quality-assessment/pairwise/ui": {
       "molstar-src": "./src/quality-assessment/pairwise/ui.tsx",
       "types": "./lib/quality-assessment/pairwise/ui.d.ts",
       "import": "./lib/quality-assessment/pairwise/ui.js"
-    },
-    "./quality-assessment/prop": {
-      "molstar-src": "./src/quality-assessment/prop.ts",
-      "types": "./lib/quality-assessment/prop.d.ts",
-      "import": "./lib/quality-assessment/prop.js"
     }
   },
   "files": [

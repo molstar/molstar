@@ -142,3 +142,8 @@ see [`workspace-prototype.md`](workspace-prototype.md) for the scope and follow-
 The next tooling step is TypeScript 7 and replacing ESLint with Biome. The current
 workspace still uses TypeScript 6.0.3 and ESLint; migration tasks and acceptance
 checks are recorded in [the implementation plan](workspace-prototype.md#10-next-step-typescript-7-and-biome).
+
+Package exports use wildcard mappings for regular modules, with explicit root and
+directory aliases, TS/TSX exceptions, Sass/CSS patterns, and blocked test paths.
+The workspace refresh script preserves this compact form. Workspace and tarball
+checks expand the patterns and validate every concrete conditional target.

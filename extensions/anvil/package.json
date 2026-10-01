@@ -8,25 +8,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./algorithm": {
-      "molstar-src": "./src/algorithm.ts",
-      "types": "./lib/algorithm.d.ts",
-      "import": "./lib/algorithm.js"
-    },
-    "./behavior": {
-      "molstar-src": "./src/behavior.ts",
-      "types": "./lib/behavior.d.ts",
-      "import": "./lib/behavior.js"
-    },
-    "./prop": {
-      "molstar-src": "./src/prop.ts",
-      "types": "./lib/prop.d.ts",
-      "import": "./lib/prop.js"
-    },
-    "./representation": {
-      "molstar-src": "./src/representation.ts",
-      "types": "./lib/representation.d.ts",
-      "import": "./lib/representation.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     }
   },
   "files": [

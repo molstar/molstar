@@ -9,55 +9,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./browser/font-atlas": {
-      "molstar-src": "./src/browser/font-atlas.ts",
-      "types": "./lib/browser/font-atlas.d.ts",
-      "import": "./lib/browser/font-atlas.js"
-    },
-    "./browser/marching-cubes": {
-      "molstar-src": "./src/browser/marching-cubes.ts",
-      "types": "./lib/browser/marching-cubes.d.ts",
-      "import": "./lib/browser/marching-cubes.js"
-    },
-    "./browser/parse-xtc": {
-      "molstar-src": "./src/browser/parse-xtc.ts",
-      "types": "./lib/browser/parse-xtc.d.ts",
-      "import": "./lib/browser/parse-xtc.js"
-    },
-    "./browser/render-lines": {
-      "molstar-src": "./src/browser/render-lines.ts",
-      "types": "./lib/browser/render-lines.d.ts",
-      "import": "./lib/browser/render-lines.js"
-    },
-    "./browser/render-mesh": {
-      "molstar-src": "./src/browser/render-mesh.ts",
-      "types": "./lib/browser/render-mesh.d.ts",
-      "import": "./lib/browser/render-mesh.js"
-    },
-    "./browser/render-shape": {
-      "molstar-src": "./src/browser/render-shape.ts",
-      "types": "./lib/browser/render-shape.d.ts",
-      "import": "./lib/browser/render-shape.js"
-    },
-    "./browser/render-spheres": {
-      "molstar-src": "./src/browser/render-spheres.ts",
-      "types": "./lib/browser/render-spheres.d.ts",
-      "import": "./lib/browser/render-spheres.js"
-    },
-    "./browser/render-structure-grid": {
-      "molstar-src": "./src/browser/render-structure-grid.ts",
-      "types": "./lib/browser/render-structure-grid.d.ts",
-      "import": "./lib/browser/render-structure-grid.js"
-    },
-    "./browser/render-structure": {
-      "molstar-src": "./src/browser/render-structure.ts",
-      "types": "./lib/browser/render-structure.d.ts",
-      "import": "./lib/browser/render-structure.js"
-    },
-    "./browser/render-text": {
-      "molstar-src": "./src/browser/render-text.ts",
-      "types": "./lib/browser/render-text.d.ts",
-      "import": "./lib/browser/render-text.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     }
   },
   "files": [

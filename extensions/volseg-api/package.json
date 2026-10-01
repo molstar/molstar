@@ -8,15 +8,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./data": {
-      "molstar-src": "./src/data.ts",
-      "types": "./lib/data.d.ts",
-      "import": "./lib/data.js"
-    },
-    "./utils": {
-      "molstar-src": "./src/utils.ts",
-      "types": "./lib/utils.d.ts",
-      "import": "./lib/utils.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     }
   },
   "files": [

@@ -8,15 +8,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./mvs-mvsj-to-mvsx": {
-      "molstar-src": "./src/mvs-mvsj-to-mvsx.ts",
-      "types": "./lib/mvs-mvsj-to-mvsx.d.ts",
-      "import": "./lib/mvs-mvsj-to-mvsx.js"
-    },
-    "./mvs-render": {
-      "molstar-src": "./src/mvs-render.ts",
-      "types": "./lib/mvs-render.d.ts",
-      "import": "./lib/mvs-render.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     }
   },
   "files": [

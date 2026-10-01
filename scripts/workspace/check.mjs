@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { builtinModules } from 'node:module';
 import ts from 'typescript';
+import { expandExports, exportTargets } from './exports.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const inventory = JSON.parse(fs.readFileSync(path.join(root, 'scripts/workspace/inventory.json'), 'utf8'));
@@ -66,28 +67,14 @@ function listFiles(dir, collected = []) {
     }
     return collected;
 }
-function exportTargets(value, targets = []) {
-    if (typeof value === 'string') targets.push(value);
-    else if (Array.isArray(value)) for (const item of value) exportTargets(item, targets);
-    else if (value && typeof value === 'object') for (const item of Object.values(value)) exportTargets(item, targets);
-    return targets;
-}
 function validateExport(pkg, key, target) {
     if (!target.startsWith('./') || target.split('/').includes('..')) {
         errors.push(`${pkg.name}: export ${key} target must stay package-local: ${target}`);
         return;
     }
     const dir = path.join(root, pkg.path);
-    if (!target.includes('*')) {
-        const output = path.resolve(dir, target);
-        if (!resolveFile(output) && !(sourceOnly && sourceCounterpart(pkg, target))) errors.push(`${pkg.name}: export ${key} target does not resolve: ${target}`);
-        return;
-    }
-    let checkTarget = target;
-    if (sourceOnly && target.startsWith('./lib/')) checkTarget = target.replace(/^\.\/lib\//u, 'src/').replace(/\.js$/u, '.ts').replace(/\.d\.ts$/u, '.ts').replace(/\.css$/u, '.scss');
-    const expression = new RegExp(`^${checkTarget.replace(/^\.\//u, '').split('*').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*')}$`);
-    const matches = listFiles(dir).filter(file => expression.test(path.relative(dir, file).split(path.sep).join('/')));
-    if (!matches.length) errors.push(`${pkg.name}: export pattern ${key} has no matching files for ${target}`);
+    const output = path.resolve(dir, target);
+    if (!resolveFile(output) && !(sourceOnly && sourceCounterpart(pkg, target))) errors.push(`${pkg.name}: export ${key} target does not resolve: ${target}`);
 }
 for (const pkg of publicPackages) {
     const manifest = manifestFor(pkg);
@@ -96,9 +83,22 @@ for (const pkg of publicPackages) {
     if (manifest.version !== version) errors.push(`${pkg.name}: version ${manifest.version} != ${version}`);
     if (pkg.kind !== 'distribution') {
         if (!manifest.exports || typeof manifest.exports !== 'object' || !Object.keys(manifest.exports).length) errors.push(`${pkg.name}: public package has no exports map`);
-        for (const [key, value] of Object.entries(manifest.exports ?? {})) {
-            for (const target of exportTargets(value)) validateExport(pkg, key, target);
-        }
+        try {
+            const dir = path.join(root, pkg.path);
+            const files = listFiles(path.join(dir, 'src')).concat(sourceOnly ? [] : listFiles(path.join(dir, 'lib'))).map(file => path.relative(dir, file).split(path.sep).join('/'));
+            if (sourceOnly) for (const file of [...files]) {
+                if (/^src\/.*\.tsx?$/.test(file) && !file.endsWith('.d.ts')) {
+                    const base = file.replace(/^src\//u, 'lib/').replace(/\.tsx?$/u, '');
+                    files.push(`${base}.js`, `${base}.d.ts`);
+                } else if (/^src\/.*\.s[ac]ss$/.test(file)) {
+                    files.push(file.replace(/^src\//u, 'lib/'));
+                    if (!path.basename(file).startsWith('_')) files.push(file.replace(/^src\//u, 'lib/').replace(/\.s[ac]ss$/u, '.css'));
+                }
+            }
+            for (const [key, value] of Object.entries(expandExports(manifest.exports ?? {}, files))) {
+                for (const target of exportTargets(value)) validateExport(pkg, key, target);
+            }
+        } catch (error) { errors.push(`${pkg.name}: ${error.message}`); }
     }
 }
 for (const pkg of packages) {

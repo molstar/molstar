@@ -8,40 +8,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./examples": {
-      "molstar-src": "./src/examples.ts",
-      "types": "./lib/examples.d.ts",
-      "import": "./lib/examples.js"
-    },
-    "./mesh-cif-schema": {
-      "molstar-src": "./src/mesh-cif-schema.ts",
-      "types": "./lib/mesh-cif-schema.d.ts",
-      "import": "./lib/mesh-cif-schema.js"
-    },
-    "./mesh-extension": {
-      "molstar-src": "./src/mesh-extension.ts",
-      "types": "./lib/mesh-extension.d.ts",
-      "import": "./lib/mesh-extension.js"
-    },
-    "./mesh-streaming/behavior": {
-      "molstar-src": "./src/mesh-streaming/behavior.ts",
-      "types": "./lib/mesh-streaming/behavior.d.ts",
-      "import": "./lib/mesh-streaming/behavior.js"
-    },
-    "./mesh-streaming/server-info": {
-      "molstar-src": "./src/mesh-streaming/server-info.ts",
-      "types": "./lib/mesh-streaming/server-info.d.ts",
-      "import": "./lib/mesh-streaming/server-info.js"
-    },
-    "./mesh-streaming/transformers": {
-      "molstar-src": "./src/mesh-streaming/transformers.ts",
-      "types": "./lib/mesh-streaming/transformers.d.ts",
-      "import": "./lib/mesh-streaming/transformers.js"
-    },
-    "./mesh-utils": {
-      "molstar-src": "./src/mesh-utils.ts",
-      "types": "./lib/mesh-utils.d.ts",
-      "import": "./lib/mesh-utils.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     }
   },
   "files": [

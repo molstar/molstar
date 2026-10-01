@@ -8,15 +8,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./converter": {
-      "molstar-src": "./src/converter.ts",
-      "types": "./lib/converter.d.ts",
-      "import": "./lib/converter.js"
-    },
-    "./index": {
-      "molstar-src": "./src/index.ts",
-      "types": "./lib/index.d.ts",
-      "import": "./lib/index.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
     ".": {
       "molstar-src": "./src/index.ts",

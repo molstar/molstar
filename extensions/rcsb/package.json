@@ -8,45 +8,15 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./index": {
-      "molstar-src": "./src/index.ts",
-      "types": "./lib/index.d.ts",
-      "import": "./lib/index.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
     ".": {
       "molstar-src": "./src/index.ts",
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
-    },
-    "./validation-report/behavior": {
-      "molstar-src": "./src/validation-report/behavior.ts",
-      "types": "./lib/validation-report/behavior.d.ts",
-      "import": "./lib/validation-report/behavior.js"
-    },
-    "./validation-report/color/density-fit": {
-      "molstar-src": "./src/validation-report/color/density-fit.ts",
-      "types": "./lib/validation-report/color/density-fit.d.ts",
-      "import": "./lib/validation-report/color/density-fit.js"
-    },
-    "./validation-report/color/geometry-quality": {
-      "molstar-src": "./src/validation-report/color/geometry-quality.ts",
-      "types": "./lib/validation-report/color/geometry-quality.d.ts",
-      "import": "./lib/validation-report/color/geometry-quality.js"
-    },
-    "./validation-report/color/random-coil-index": {
-      "molstar-src": "./src/validation-report/color/random-coil-index.ts",
-      "types": "./lib/validation-report/color/random-coil-index.d.ts",
-      "import": "./lib/validation-report/color/random-coil-index.js"
-    },
-    "./validation-report/prop": {
-      "molstar-src": "./src/validation-report/prop.ts",
-      "types": "./lib/validation-report/prop.d.ts",
-      "import": "./lib/validation-report/prop.js"
-    },
-    "./validation-report/representation": {
-      "molstar-src": "./src/validation-report/representation.ts",
-      "types": "./lib/validation-report/representation.d.ts",
-      "import": "./lib/validation-report/representation.js"
     }
   },
   "files": [

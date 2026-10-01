@@ -8,30 +8,15 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./api-schema": {
-      "molstar-src": "./src/api-schema.ts",
-      "types": "./lib/api-schema.d.ts",
-      "import": "./lib/api-schema.js"
-    },
-    "./config": {
-      "molstar-src": "./src/config.ts",
-      "types": "./lib/config.d.ts",
-      "import": "./lib/config.js"
-    },
-    "./index": {
-      "molstar-src": "./src/index.ts",
-      "types": "./lib/index.d.ts",
-      "import": "./lib/index.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
     ".": {
       "molstar-src": "./src/index.ts",
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
-    },
-    "./version": {
-      "molstar-src": "./src/version.ts",
-      "types": "./lib/version.d.ts",
-      "import": "./lib/version.js"
     }
   },
   "files": [

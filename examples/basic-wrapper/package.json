@@ -9,35 +9,20 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./coloring": {
-      "molstar-src": "./src/coloring.ts",
-      "types": "./lib/coloring.d.ts",
-      "import": "./lib/coloring.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
     "./controls": {
       "molstar-src": "./src/controls.tsx",
       "types": "./lib/controls.d.ts",
       "import": "./lib/controls.js"
     },
-    "./custom-theme": {
-      "molstar-src": "./src/custom-theme.ts",
-      "types": "./lib/custom-theme.d.ts",
-      "import": "./lib/custom-theme.js"
-    },
-    "./index": {
-      "molstar-src": "./src/index.ts",
-      "types": "./lib/index.d.ts",
-      "import": "./lib/index.js"
-    },
     ".": {
       "molstar-src": "./src/index.ts",
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
-    },
-    "./superposition": {
-      "molstar-src": "./src/superposition.ts",
-      "types": "./lib/superposition.d.ts",
-      "import": "./lib/superposition.js"
     }
   },
   "files": [

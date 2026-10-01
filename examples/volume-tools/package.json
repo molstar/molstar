@@ -9,40 +9,20 @@
     "node": ">=22.0.0"
   },
   "exports": {
+    "./*": {
+      "molstar-src": "./src/*.tsx",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
     "./controller": {
       "molstar-src": "./src/controller.ts",
       "types": "./lib/controller.d.ts",
       "import": "./lib/controller.js"
     },
-    "./index": {
-      "molstar-src": "./src/index.tsx",
-      "types": "./lib/index.d.ts",
-      "import": "./lib/index.js"
-    },
     ".": {
       "molstar-src": "./src/index.tsx",
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
-    },
-    "./ui/bodies-panel": {
-      "molstar-src": "./src/ui/bodies-panel.tsx",
-      "types": "./lib/ui/bodies-panel.d.ts",
-      "import": "./lib/ui/bodies-panel.js"
-    },
-    "./ui/drawing-canvas": {
-      "molstar-src": "./src/ui/drawing-canvas.tsx",
-      "types": "./lib/ui/drawing-canvas.d.ts",
-      "import": "./lib/ui/drawing-canvas.js"
-    },
-    "./ui/mask-panel": {
-      "molstar-src": "./src/ui/mask-panel.tsx",
-      "types": "./lib/ui/mask-panel.d.ts",
-      "import": "./lib/ui/mask-panel.js"
-    },
-    "./ui/panel-styles": {
-      "molstar-src": "./src/ui/panel-styles.tsx",
-      "types": "./lib/ui/panel-styles.d.ts",
-      "import": "./lib/ui/panel-styles.js"
     }
   },
   "files": [

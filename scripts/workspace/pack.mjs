@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { expandExports } from './exports.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const inventory = JSON.parse(await fs.readFile(path.join(root, 'scripts/workspace/inventory.json'), 'utf8'));
@@ -31,7 +32,7 @@ function checkInternalRanges(manifest, pkg) {
     return errors;
 }
 
-function manifestTargets(manifest) {
+function manifestTargets(manifest, files) {
     const targets = [];
     const visit = (value, conditions = [], acceptRelativeOnly = true) => {
         if (typeof value === 'string') {
@@ -51,14 +52,14 @@ function manifestTargets(manifest) {
     for (const [name, value] of Object.entries(bins ?? {})) {
         if (typeof value === 'string') targets.push({ path: value, conditions: [`bin:${name}`] });
     }
-    for (const value of Object.values(manifest.exports ?? {})) visit(value, ['exports']);
+    for (const value of Object.values(expandExports(manifest.exports ?? {}, files))) visit(value, ['exports']);
     return targets;
 }
 
 function checkPackedContents(manifest, files, pkg) {
     const errors = [];
     const included = new Set(files);
-    for (const target of manifestTargets(manifest)) {
+    for (const target of manifestTargets(manifest, files)) {
         const normalized = path.posix.normalize(target.path.replace(/^\.\//u, ''));
         if (normalized.startsWith('../') || normalized === '..' || path.posix.isAbsolute(normalized)) {
             errors.push(`${pkg.name}: published target escapes package: ${target.path}`);

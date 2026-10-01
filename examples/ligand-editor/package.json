@@ -9,15 +9,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./edits": {
-      "molstar-src": "./src/edits.ts",
-      "types": "./lib/edits.d.ts",
-      "import": "./lib/edits.js"
-    },
-    "./example-data": {
-      "molstar-src": "./src/example-data.ts",
-      "types": "./lib/example-data.d.ts",
-      "import": "./lib/example-data.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
     "./index": {
       "molstar-src": "./src/index.tsx",
@@ -28,16 +23,6 @@
       "molstar-src": "./src/index.tsx",
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
-    },
-    "./molfile": {
-      "molstar-src": "./src/molfile.ts",
-      "types": "./lib/molfile.d.ts",
-      "import": "./lib/molfile.js"
-    },
-    "./r-groups": {
-      "molstar-src": "./src/r-groups.ts",
-      "types": "./lib/r-groups.d.ts",
-      "import": "./lib/r-groups.js"
     }
   },
   "files": [

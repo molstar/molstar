@@ -8,35 +8,15 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./index": {
-      "molstar-src": "./src/index.ts",
-      "types": "./lib/index.d.ts",
-      "import": "./lib/index.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
     ".": {
       "molstar-src": "./src/index.ts",
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
-    },
-    "./util/cif-dic": {
-      "molstar-src": "./src/util/cif-dic.ts",
-      "types": "./lib/util/cif-dic.d.ts",
-      "import": "./lib/util/cif-dic.js"
-    },
-    "./util/generate": {
-      "molstar-src": "./src/util/generate.ts",
-      "types": "./lib/util/generate.d.ts",
-      "import": "./lib/util/generate.js"
-    },
-    "./util/helper": {
-      "molstar-src": "./src/util/helper.ts",
-      "types": "./lib/util/helper.d.ts",
-      "import": "./lib/util/helper.js"
-    },
-    "./util/schema": {
-      "molstar-src": "./src/util/schema.ts",
-      "types": "./lib/util/schema.d.ts",
-      "import": "./lib/util/schema.js"
     }
   },
   "files": [

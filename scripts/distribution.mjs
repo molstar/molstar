@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import * as sass from 'sass';
 import { sassPlugin } from 'esbuild-sass-plugin';
+import { resolveExport as resolveExportMap } from './workspace/exports.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const inventory = JSON.parse(await fs.readFile(path.join(root, 'scripts/workspace/inventory.json'), 'utf8'));
@@ -94,8 +95,7 @@ function resolveExport(pkgName, subpath) {
     const manifest = JSON.parse(fsSync.readFileSync(path.join(dir, 'package.json'), 'utf8'));
     const exports = manifest.exports ?? {};
     const key = subpath === '.' ? '.' : subpath;
-    let record = exports[key];
-    if (!record && key === '.') record = exports['.'];
+    const record = resolveExportMap(exports, key);
     if (!record) throw new Error(`${pkgName} does not export ${key}`);
     const target = getSourceTarget(record);
     if (!target) throw new Error(`${pkgName} ${key} has no molstar-src export condition`);

@@ -9,105 +9,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./array-mapping": {
-      "molstar-src": "./src/array-mapping.ts",
-      "types": "./lib/array-mapping.d.ts",
-      "import": "./lib/array-mapping.js"
-    },
-    "./array": {
-      "molstar-src": "./src/array.ts",
-      "types": "./lib/array.d.ts",
-      "import": "./lib/array.js"
-    },
-    "./binary-search": {
-      "molstar-src": "./src/binary-search.ts",
-      "types": "./lib/binary-search.d.ts",
-      "import": "./lib/binary-search.js"
-    },
-    "./chunked-array-vs-native": {
-      "molstar-src": "./src/chunked-array-vs-native.ts",
-      "types": "./lib/chunked-array-vs-native.d.ts",
-      "import": "./lib/chunked-array-vs-native.js"
-    },
-    "./cif-encoder": {
-      "molstar-src": "./src/cif-encoder.ts",
-      "types": "./lib/cif-encoder.d.ts",
-      "import": "./lib/cif-encoder.js"
-    },
-    "./column": {
-      "molstar-src": "./src/column.ts",
-      "types": "./lib/column.d.ts",
-      "import": "./lib/column.js"
-    },
-    "./fft": {
-      "molstar-src": "./src/fft.ts",
-      "types": "./lib/fft.d.ts",
-      "import": "./lib/fft.js"
-    },
-    "./grid": {
-      "molstar-src": "./src/grid.ts",
-      "types": "./lib/grid.d.ts",
-      "import": "./lib/grid.js"
-    },
-    "./iterators": {
-      "molstar-src": "./src/iterators.ts",
-      "types": "./lib/iterators.d.ts",
-      "import": "./lib/iterators.js"
-    },
-    "./lookup3d": {
-      "molstar-src": "./src/lookup3d.ts",
-      "types": "./lib/lookup3d.d.ts",
-      "import": "./lib/lookup3d.js"
-    },
-    "./markers-average": {
-      "molstar-src": "./src/markers-average.ts",
-      "types": "./lib/markers-average.d.ts",
-      "import": "./lib/markers-average.js"
-    },
-    "./mol-script": {
-      "molstar-src": "./src/mol-script.ts",
-      "types": "./lib/mol-script.d.ts",
-      "import": "./lib/mol-script.js"
-    },
-    "./sets": {
-      "molstar-src": "./src/sets.ts",
-      "types": "./lib/sets.d.ts",
-      "import": "./lib/sets.js"
-    },
-    "./setutils": {
-      "molstar-src": "./src/setutils.ts",
-      "types": "./lib/setutils.d.ts",
-      "import": "./lib/setutils.js"
-    },
-    "./sort": {
-      "molstar-src": "./src/sort.ts",
-      "types": "./lib/sort.d.ts",
-      "import": "./lib/sort.js"
-    },
-    "./state": {
-      "molstar-src": "./src/state.ts",
-      "types": "./lib/state.d.ts",
-      "import": "./lib/state.js"
-    },
-    "./string-builder": {
-      "molstar-src": "./src/string-builder.ts",
-      "types": "./lib/string-builder.d.ts",
-      "import": "./lib/string-builder.js"
-    },
-    "./structure": {
-      "molstar-src": "./src/structure.ts",
-      "types": "./lib/structure.d.ts",
-      "import": "./lib/structure.js"
-    },
-    "./tasks": {
-      "molstar-src": "./src/tasks.ts",
-      "types": "./lib/tasks.d.ts",
-      "import": "./lib/tasks.js"
-    },
-    "./test-xtc": {
-      "molstar-src": "./src/test-xtc.ts",
-      "types": "./lib/test-xtc.d.ts",
-      "import": "./lib/test-xtc.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     }
   },
   "files": [

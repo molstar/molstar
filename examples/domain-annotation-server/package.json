@@ -9,25 +9,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./mapping": {
-      "molstar-src": "./src/mapping.ts",
-      "types": "./lib/mapping.d.ts",
-      "import": "./lib/mapping.js"
-    },
-    "./schemas": {
-      "molstar-src": "./src/schemas.ts",
-      "types": "./lib/schemas.d.ts",
-      "import": "./lib/schemas.js"
-    },
-    "./server": {
-      "molstar-src": "./src/server.ts",
-      "types": "./lib/server.d.ts",
-      "import": "./lib/server.js"
-    },
-    "./test": {
-      "molstar-src": "./src/test.ts",
-      "types": "./lib/test.d.ts",
-      "import": "./lib/test.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     }
   },
   "files": [

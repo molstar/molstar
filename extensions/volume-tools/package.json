@@ -8,156 +8,28 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./candidates": {
-      "molstar-src": "./src/candidates.ts",
-      "types": "./lib/candidates.d.ts",
-      "import": "./lib/candidates.js"
-    },
-    "./index": {
-      "molstar-src": "./src/index.ts",
-      "types": "./lib/index.d.ts",
-      "import": "./lib/index.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
     ".": {
       "molstar-src": "./src/index.ts",
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
     },
-    "./mask/behavior": {
-      "molstar-src": "./src/mask/behavior.ts",
-      "types": "./lib/mask/behavior.d.ts",
-      "import": "./lib/mask/behavior.js"
-    },
-    "./mask/index": {
-      "molstar-src": "./src/mask/index.ts",
-      "types": "./lib/mask/index.d.ts",
-      "import": "./lib/mask/index.js"
-    },
     "./mask": {
       "molstar-src": "./src/mask/index.ts",
       "types": "./lib/mask/index.d.ts",
       "import": "./lib/mask/index.js"
-    },
-    "./mask/internal/mask-compute": {
-      "molstar-src": "./src/mask/internal/mask-compute.ts",
-      "types": "./lib/mask/internal/mask-compute.d.ts",
-      "import": "./lib/mask/internal/mask-compute.js"
-    },
-    "./mask/internal/mrc-export": {
-      "molstar-src": "./src/mask/internal/mrc-export.ts",
-      "types": "./lib/mask/internal/mrc-export.d.ts",
-      "import": "./lib/mask/internal/mrc-export.js"
-    },
-    "./mask/selection": {
-      "molstar-src": "./src/mask/selection.ts",
-      "types": "./lib/mask/selection.d.ts",
-      "import": "./lib/mask/selection.js"
-    },
-    "./mask/theme": {
-      "molstar-src": "./src/mask/theme.ts",
-      "types": "./lib/mask/theme.d.ts",
-      "import": "./lib/mask/theme.js"
-    },
-    "./mask/transformers": {
-      "molstar-src": "./src/mask/transformers.ts",
-      "types": "./lib/mask/transformers.d.ts",
-      "import": "./lib/mask/transformers.js"
-    },
-    "./mask/types": {
-      "molstar-src": "./src/mask/types.ts",
-      "types": "./lib/mask/types.d.ts",
-      "import": "./lib/mask/types.js"
-    },
-    "./segmentor/behavior": {
-      "molstar-src": "./src/segmentor/behavior.ts",
-      "types": "./lib/segmentor/behavior.d.ts",
-      "import": "./lib/segmentor/behavior.js"
-    },
-    "./segmentor/index": {
-      "molstar-src": "./src/segmentor/index.ts",
-      "types": "./lib/segmentor/index.d.ts",
-      "import": "./lib/segmentor/index.js"
     },
     "./segmentor": {
       "molstar-src": "./src/segmentor/index.ts",
       "types": "./lib/segmentor/index.d.ts",
       "import": "./lib/segmentor/index.js"
     },
-    "./segmentor/internal/export": {
-      "molstar-src": "./src/segmentor/internal/export.ts",
-      "types": "./lib/segmentor/internal/export.d.ts",
-      "import": "./lib/segmentor/internal/export.js"
-    },
-    "./segmentor/internal/label-ops": {
-      "molstar-src": "./src/segmentor/internal/label-ops.ts",
-      "types": "./lib/segmentor/internal/label-ops.d.ts",
-      "import": "./lib/segmentor/internal/label-ops.js"
-    },
-    "./segmentor/internal/mask-compute": {
-      "molstar-src": "./src/segmentor/internal/mask-compute.ts",
-      "types": "./lib/segmentor/internal/mask-compute.d.ts",
-      "import": "./lib/segmentor/internal/mask-compute.js"
-    },
-    "./segmentor/internal/volume-edit": {
-      "molstar-src": "./src/segmentor/internal/volume-edit.ts",
-      "types": "./lib/segmentor/internal/volume-edit.d.ts",
-      "import": "./lib/segmentor/internal/volume-edit.js"
-    },
-    "./segmentor/labels": {
-      "molstar-src": "./src/segmentor/labels.ts",
-      "types": "./lib/segmentor/labels.d.ts",
-      "import": "./lib/segmentor/labels.js"
-    },
-    "./segmentor/manager": {
-      "molstar-src": "./src/segmentor/manager.ts",
-      "types": "./lib/segmentor/manager.d.ts",
-      "import": "./lib/segmentor/manager.js"
-    },
-    "./segmentor/theme": {
-      "molstar-src": "./src/segmentor/theme.ts",
-      "types": "./lib/segmentor/theme.d.ts",
-      "import": "./lib/segmentor/theme.js"
-    },
-    "./segmentor/transformers": {
-      "molstar-src": "./src/segmentor/transformers.ts",
-      "types": "./lib/segmentor/transformers.d.ts",
-      "import": "./lib/segmentor/transformers.js"
-    },
-    "./segmentor/types": {
-      "molstar-src": "./src/segmentor/types.ts",
-      "types": "./lib/segmentor/types.d.ts",
-      "import": "./lib/segmentor/types.js"
-    },
-    "./soft-mask": {
-      "molstar-src": "./src/soft-mask.ts",
-      "types": "./lib/soft-mask.d.ts",
-      "import": "./lib/soft-mask.js"
-    },
-    "./types": {
-      "molstar-src": "./src/types.ts",
-      "types": "./lib/types.d.ts",
-      "import": "./lib/types.js"
-    },
-    "./view-projection": {
-      "molstar-src": "./src/view-projection.ts",
-      "types": "./lib/view-projection.d.ts",
-      "import": "./lib/view-projection.js"
-    },
-    "./view-selection": {
-      "molstar-src": "./src/view-selection.ts",
-      "types": "./lib/view-selection.d.ts",
-      "import": "./lib/view-selection.js"
-    },
-    "./volume-ops": {
-      "molstar-src": "./src/volume-ops.ts",
-      "types": "./lib/volume-ops.d.ts",
-      "import": "./lib/volume-ops.js"
-    },
-    "./voxel-labels": {
-      "molstar-src": "./src/voxel-labels.ts",
-      "types": "./lib/voxel-labels.d.ts",
-      "import": "./lib/voxel-labels.js"
-    }
+    "./_test/*": null,
+    "./segmentor/_test/*": null
   },
   "files": [
     "lib",

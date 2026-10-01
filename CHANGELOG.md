@@ -18,6 +18,8 @@ Note that since we don't clearly distinguish between a public and private interf
   graphics shape creation infers it from geometry.
 - Make native `gl` and `canvas` optional peers, with explicit workspace native
   setup and test commands instead of installing them during normal setup.
+- Simplify package export maps with wildcards while preserving existing aliases,
+  source/type conditions, Sass/CSS exports, and test exclusions.
 - Rename colocated unit tests from `_spec/*.spec.ts` to `_test/*.test.ts`.
 - Add isolated consumer smoke checks and workspace CI. See the
   [workspace guide](.v6/plans/workspace-usage.md) for migration and usage details.

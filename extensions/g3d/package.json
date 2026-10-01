@@ -8,20 +8,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./data": {
-      "molstar-src": "./src/data.ts",
-      "types": "./lib/data.d.ts",
-      "import": "./lib/data.js"
-    },
-    "./format": {
-      "molstar-src": "./src/format.ts",
-      "types": "./lib/format.d.ts",
-      "import": "./lib/format.js"
-    },
-    "./model": {
-      "molstar-src": "./src/model.ts",
-      "types": "./lib/model.d.ts",
-      "import": "./lib/model.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     }
   },
   "files": [

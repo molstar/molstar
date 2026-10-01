@@ -9,20 +9,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./helpers": {
-      "molstar-src": "./src/helpers.ts",
-      "types": "./lib/helpers.d.ts",
-      "import": "./lib/helpers.js"
-    },
-    "./model": {
-      "molstar-src": "./src/model.ts",
-      "types": "./lib/model.d.ts",
-      "import": "./lib/model.js"
-    },
-    "./volume": {
-      "molstar-src": "./src/volume.ts",
-      "types": "./lib/volume.d.ts",
-      "import": "./lib/volume.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     }
   },
   "files": [

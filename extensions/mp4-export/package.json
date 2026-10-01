@@ -8,25 +8,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./controls": {
-      "molstar-src": "./src/controls.ts",
-      "types": "./lib/controls.d.ts",
-      "import": "./lib/controls.js"
-    },
-    "./encoder": {
-      "molstar-src": "./src/encoder.ts",
-      "types": "./lib/encoder.d.ts",
-      "import": "./lib/encoder.js"
-    },
-    "./headless": {
-      "molstar-src": "./src/headless.ts",
-      "types": "./lib/headless.d.ts",
-      "import": "./lib/headless.js"
-    },
-    "./index": {
-      "molstar-src": "./src/index.ts",
-      "types": "./lib/index.d.ts",
-      "import": "./lib/index.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
     ".": {
       "molstar-src": "./src/index.ts",

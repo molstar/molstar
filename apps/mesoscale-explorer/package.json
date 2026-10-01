@@ -9,70 +9,10 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./app": {
-      "molstar-src": "./src/app.ts",
-      "types": "./lib/app.d.ts",
-      "import": "./lib/app.js"
-    },
-    "./behavior/camera": {
-      "molstar-src": "./src/behavior/camera.ts",
-      "types": "./lib/behavior/camera.d.ts",
-      "import": "./lib/behavior/camera.js"
-    },
-    "./behavior/select": {
-      "molstar-src": "./src/behavior/select.ts",
-      "types": "./lib/behavior/select.d.ts",
-      "import": "./lib/behavior/select.js"
-    },
-    "./data/cellpack/model": {
-      "molstar-src": "./src/data/cellpack/model.ts",
-      "types": "./lib/data/cellpack/model.d.ts",
-      "import": "./lib/data/cellpack/model.js"
-    },
-    "./data/cellpack/preset": {
-      "molstar-src": "./src/data/cellpack/preset.ts",
-      "types": "./lib/data/cellpack/preset.d.ts",
-      "import": "./lib/data/cellpack/preset.js"
-    },
-    "./data/generic/model": {
-      "molstar-src": "./src/data/generic/model.ts",
-      "types": "./lib/data/generic/model.d.ts",
-      "import": "./lib/data/generic/model.js"
-    },
-    "./data/generic/preset": {
-      "molstar-src": "./src/data/generic/preset.ts",
-      "types": "./lib/data/generic/preset.d.ts",
-      "import": "./lib/data/generic/preset.js"
-    },
-    "./data/mmcif/model": {
-      "molstar-src": "./src/data/mmcif/model.ts",
-      "types": "./lib/data/mmcif/model.d.ts",
-      "import": "./lib/data/mmcif/model.js"
-    },
-    "./data/mmcif/preset": {
-      "molstar-src": "./src/data/mmcif/preset.ts",
-      "types": "./lib/data/mmcif/preset.d.ts",
-      "import": "./lib/data/mmcif/preset.js"
-    },
-    "./data/petworld/model": {
-      "molstar-src": "./src/data/petworld/model.ts",
-      "types": "./lib/data/petworld/model.d.ts",
-      "import": "./lib/data/petworld/model.js"
-    },
-    "./data/petworld/preset": {
-      "molstar-src": "./src/data/petworld/preset.ts",
-      "types": "./lib/data/petworld/preset.d.ts",
-      "import": "./lib/data/petworld/preset.js"
-    },
-    "./data/state": {
-      "molstar-src": "./src/data/state.ts",
-      "types": "./lib/data/state.d.ts",
-      "import": "./lib/data/state.js"
-    },
-    "./index": {
-      "molstar-src": "./src/index.ts",
-      "types": "./lib/index.d.ts",
-      "import": "./lib/index.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
     ".": {
       "molstar-src": "./src/index.ts",

@@ -1,7 +1,8 @@
-/** Refresh the explicit export/dependency inventory after ownership changes. */
+/** Refresh the compact export/dependency inventory after ownership changes. */
 import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
+import { compactExports } from './workspace/exports.mjs';
 
 const inventory = JSON.parse(fs.readFileSync('scripts/workspace/inventory.json', 'utf8'));
 const packages = inventory.packages;
@@ -63,7 +64,7 @@ for (const pkg of packages) {
         deps['@types/express-serve-static-core'] = 'catalog:';
     }
     manifest.dependencies = deps;
-    manifest.exports = exports;
+    manifest.exports = compactExports(exports, walk(`${pkg.path}/src`).map(file => path.relative(`${pkg.path}/src`, file).split(path.sep).join('/')));
     fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + '\n');
     const configPath = `${pkg.path}/tsconfig.json`;
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));

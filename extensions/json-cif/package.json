@@ -8,36 +8,12 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./encoder": {
-      "molstar-src": "./src/encoder.ts",
-      "types": "./lib/encoder.d.ts",
-      "import": "./lib/encoder.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
-    "./ligand-graph": {
-      "molstar-src": "./src/ligand-graph.ts",
-      "types": "./lib/ligand-graph.d.ts",
-      "import": "./lib/ligand-graph.js"
-    },
-    "./model": {
-      "molstar-src": "./src/model.ts",
-      "types": "./lib/model.d.ts",
-      "import": "./lib/model.js"
-    },
-    "./parser": {
-      "molstar-src": "./src/parser.ts",
-      "types": "./lib/parser.d.ts",
-      "import": "./lib/parser.js"
-    },
-    "./transformers": {
-      "molstar-src": "./src/transformers.ts",
-      "types": "./lib/transformers.d.ts",
-      "import": "./lib/transformers.js"
-    },
-    "./utils": {
-      "molstar-src": "./src/utils.ts",
-      "types": "./lib/utils.d.ts",
-      "import": "./lib/utils.js"
-    }
+    "./_test/*": null
   },
   "files": [
     "lib",

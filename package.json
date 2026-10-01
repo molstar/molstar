@@ -22,7 +22,7 @@
     "build": "pnpm build:lib && pnpm build:apps && pnpm build:distribution",
     "build:workspace": "pnpm build",
     "pack:workspace": "node scripts/workspace/pack.mjs",
-    "check:workspace": "node scripts/workspace/check.mjs",
+    "check:workspace": "node --test scripts/workspace/_test/*.test.mjs && node scripts/workspace/check.mjs",
     "version:check": "node scripts/workspace/version.mjs --check",
     "version:sync": "node scripts/workspace/version.mjs --write",
     "dev:apps": "node scripts/esbuild/app.mjs --dev --kind app",

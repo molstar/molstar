@@ -9,6 +9,11 @@
     "node": ">=22.0.0"
   },
   "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
     "./index": {
       "molstar-src": "./src/index.tsx",
       "types": "./lib/index.d.ts",
@@ -19,45 +24,10 @@
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
     },
-    "./stories/animation": {
-      "molstar-src": "./src/stories/animation.ts",
-      "types": "./lib/stories/animation.d.ts",
-      "import": "./lib/stories/animation.js"
-    },
-    "./stories/audio": {
-      "molstar-src": "./src/stories/audio.ts",
-      "types": "./lib/stories/audio.d.ts",
-      "import": "./lib/stories/audio.js"
-    },
-    "./stories/index": {
-      "molstar-src": "./src/stories/index.ts",
-      "types": "./lib/stories/index.d.ts",
-      "import": "./lib/stories/index.js"
-    },
     "./stories": {
       "molstar-src": "./src/stories/index.ts",
       "types": "./lib/stories/index.d.ts",
       "import": "./lib/stories/index.js"
-    },
-    "./stories/kinase": {
-      "molstar-src": "./src/stories/kinase.ts",
-      "types": "./lib/stories/kinase.d.ts",
-      "import": "./lib/stories/kinase.js"
-    },
-    "./stories/molql": {
-      "molstar-src": "./src/stories/molql.ts",
-      "types": "./lib/stories/molql.d.ts",
-      "import": "./lib/stories/molql.js"
-    },
-    "./stories/motm1": {
-      "molstar-src": "./src/stories/motm1.ts",
-      "types": "./lib/stories/motm1.d.ts",
-      "import": "./lib/stories/motm1.js"
-    },
-    "./stories/tbp": {
-      "molstar-src": "./src/stories/tbp.ts",
-      "types": "./lib/stories/tbp.d.ts",
-      "import": "./lib/stories/tbp.js"
     }
   },
   "files": [

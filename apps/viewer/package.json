@@ -8,60 +8,15 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./app": {
-      "molstar-src": "./src/app.ts",
-      "types": "./lib/app.d.ts",
-      "import": "./lib/app.js"
-    },
-    "./extensions": {
-      "molstar-src": "./src/extensions.ts",
-      "types": "./lib/extensions.d.ts",
-      "import": "./lib/extensions.js"
-    },
-    "./index": {
-      "molstar-src": "./src/index.ts",
-      "types": "./lib/index.d.ts",
-      "import": "./lib/index.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
     ".": {
       "molstar-src": "./src/app.ts",
       "types": "./lib/app.d.ts",
       "import": "./lib/app.js"
-    },
-    "./lib": {
-      "molstar-src": "./src/lib.ts",
-      "types": "./lib/lib.d.ts",
-      "import": "./lib/lib.js"
-    },
-    "./options": {
-      "molstar-src": "./src/options.ts",
-      "types": "./lib/options.d.ts",
-      "import": "./lib/options.js"
-    },
-    "./plugin-spec": {
-      "molstar-src": "./src/plugin-spec.ts",
-      "types": "./lib/plugin-spec.d.ts",
-      "import": "./lib/plugin-spec.js"
-    },
-    "./presets": {
-      "molstar-src": "./src/presets.ts",
-      "types": "./lib/presets.d.ts",
-      "import": "./lib/presets.js"
-    },
-    "./theme/blue": {
-      "molstar-src": "./src/theme/blue.ts",
-      "types": "./lib/theme/blue.d.ts",
-      "import": "./lib/theme/blue.js"
-    },
-    "./theme/dark": {
-      "molstar-src": "./src/theme/dark.ts",
-      "types": "./lib/theme/dark.d.ts",
-      "import": "./lib/theme/dark.js"
-    },
-    "./theme/light": {
-      "molstar-src": "./src/theme/light.ts",
-      "types": "./lib/theme/light.d.ts",
-      "import": "./lib/theme/light.js"
     }
   },
   "files": [

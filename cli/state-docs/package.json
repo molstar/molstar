@@ -9,20 +9,15 @@
     "node": ">=22.0.0"
   },
   "exports": {
-    "./index": {
-      "molstar-src": "./src/index.ts",
-      "types": "./lib/index.d.ts",
-      "import": "./lib/index.js"
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
     },
     ".": {
       "molstar-src": "./src/index.ts",
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
-    },
-    "./pd-to-md": {
-      "molstar-src": "./src/pd-to-md.ts",
-      "types": "./lib/pd-to-md.d.ts",
-      "import": "./lib/pd-to-md.js"
     }
   },
   "files": [
