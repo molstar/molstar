@@ -138,3 +138,7 @@ first. `smoke:headless` is a separate native capture check. Set
 The full plugin composition proposal, slim bundles, renderer redesign, broad
 barrel removal and publishing automation remain outside this structural prototype;
 see [`workspace-prototype.md`](workspace-prototype.md) for the scope and follow-up.
+
+The next tooling step is TypeScript 7 and replacing ESLint with Biome. The current
+workspace still uses TypeScript 6.0.3 and ESLint; migration tasks and acceptance
+checks are recorded in [the implementation plan](workspace-prototype.md#10-next-step-typescript-7-and-biome).

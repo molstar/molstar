@@ -40,6 +40,8 @@ In scope:
 
 Deferred:
 
+- Move the workspace to TypeScript 7 and replace ESLint with Biome as the next
+  tooling step. See [section 10](#10-next-step-typescript-7-and-biome).
 - Rendering-backend extraction, GL resource/pass/readback redesign, WebGPU, and
   Blender integration. See [webgpu.md](../designs/webgpu.md).
 - `PluginFeature`, empty registries, explicit base specs, registry-aware presets,
@@ -487,3 +489,27 @@ four-agent limit, only where tasks are independent. The orchestrator reviews all
 changes, resolves shared-file edits, runs integration checks, and updates checkpoint
 status. Reassign ambiguous work to the orchestrator rather than repeatedly issuing
 mechanical fixes without understanding the dependency problem.
+
+## 10. Next step: TypeScript 7 and Biome
+
+After this structural prototype, migrate the workspace compiler to TypeScript 7
+and replace ESLint with Biome. These changes are planned follow-up work, not
+implemented in the current PR.
+
+- [ ] Replace TypeScript 6.0.3 and JavaScript `tsc` with the TypeScript 7 native
+  compiler. Update the shared catalog, package scripts, project-reference builds,
+  declaration checks, and CI commands. Preserve strict type checking, ESM/source
+  conditions, declaration output, package exports, and incremental rebuilds.
+- [ ] Replace ESLint and its TypeScript parser/plugins with Biome. Map the current
+  lint rules and exclusions, document unsupported rules and their replacements,
+  and update `pnpm lint` and CI. Configure formatting to preserve repository
+  conventions and keep any broad formatting changes separate from the tooling
+  migration. Remove the superseded ESLint configuration and dependencies.
+- [ ] Verify a clean install, lint, unit tests, library/app/distribution builds,
+  workspace/version checks, all public tarballs, and local consumer smoke checks.
+  Compare fresh and incremental build times against the current baseline.
+
+Baseline: a clean build of 67 TypeScript projects took about 2m 24s locally; the
+incremental rerun took 0.52s. Hosted CI spent about 5m 41s on the library build,
+8s on apps/examples, and 1s on distribution (run 36869833592). Record the new
+measurements after migration rather than assuming a particular speedup.
