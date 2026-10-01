@@ -142,6 +142,10 @@ async function consumer(roots, callback, options = {}) {
 
 async function nodeCheck() {
   await consumer(['@molstar/core', '@molstar/io', '@molstar/plugin', '@molstar/mvs-builder'], async ({ dir }) => {
+    const require = createRequire(join(dir, 'package.json'));
+    for (const native of ['gl', 'canvas']) {
+      assert.throws(() => require.resolve(native), { code: 'MODULE_NOT_FOUND' }, `Default consumers must not install ${native}.`);
+    }
     const fixture = join(dir, 'runtime.mjs');
     await cp(join(here, 'node/runtime.mjs'), fixture);
     await cp(join(here, 'fixtures/tiny.pdb'), join(dir, 'tiny.pdb'));

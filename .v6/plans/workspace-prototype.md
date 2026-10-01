@@ -191,8 +191,10 @@ public API as compiled exports; they cannot hide dependencies on unowned source.
 Every direct npm importer declares its dependencies. Shared external versions
 live in the pnpm catalog. React/React DOM are UI peers, with an explicit policy for
 consumer-facing React types. Declare `tslib` where emitted helpers require it.
-Headless injected native modules remain optional peers; the rendering CLI declares
-its ready-to-run native modules/codecs directly. Browser plugin/MVS imports must
+Headless injected native modules remain optional peers. Native `gl` and `canvas`
+are opt-in peers in the rendering CLI and Node examples too; the CLI declares its
+pure JavaScript codecs directly. Native test setup lives in ignored `.cache/native`
+and is invoked explicitly in CI. Browser plugin/MVS imports must
 not acquire headless or MP4 dependencies.
 
 ### Initial boundary issues to resolve

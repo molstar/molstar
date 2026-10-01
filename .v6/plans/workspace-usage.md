@@ -109,6 +109,25 @@ All public packages release together. Change `version.json`, run
 `pnpm pack` replaces them with the exact release version. `pnpm version:check`
 detects drift. No package is published by these commands.
 
+Native `gl` and `canvas` are optional peers. Workspace peer auto-installation is
+disabled; all ordinary dependencies remain declared explicitly. Normal installation and
+`pnpm test` do not install them. Opt in explicitly:
+
+```sh
+pnpm native:install                    # gl only, for native tests/capture
+pnpm test:native                       # requires the installed backend
+pnpm native:install -- --canvas        # gl + canvas, for the rendering CLI
+pnpm native:run -- node cli/mvs-render/lib/mvs-render.js --help
+pnpm native:run -- pnpm --dir smoke smoke:headless
+```
+
+Native modules and their separate npm lockfile live in ignored `.cache/native/`.
+The setup command leaves workspace manifests and `pnpm-lock.yaml` unchanged.
+`native:run` exposes them to Node commands through `NODE_PATH`. Applications using
+installed packages can instead install the optional peers themselves and continue
+to inject native modules into the headless context. CI explicitly installs `gl`
+and runs its checks under Xvfb.
+
 `smoke/` tests isolated tarball consumers, Node exports, emitted types, source
 build resolution, MVS CLI execution, and native browser ESM/classic rendering.
 Browser checks serve files extracted from the distribution tarball. Use the

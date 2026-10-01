@@ -28,3 +28,11 @@ Classic pages are at `/classic/viewer.html` and `/classic/mvs-stories.html`.
 This mode serves the same extracted distribution and import map as the automated
 check; it needs no Playwright or consumer build. Stop it with Ctrl+C. Use
 `--port=1340` to change the port, or add `--prepare` to build/pack first.
+
+## Optional native capture
+
+Native dependencies are not installed by a normal workspace install. Set them up
+explicitly with `pnpm native:install`, then run
+`pnpm native:run -- pnpm --dir smoke smoke:headless` from the repository root.
+The backend is stored in `.cache/native`; the separate native test command is
+`pnpm test:native`. Use `pnpm native:install -- --canvas` for the rendering CLI.

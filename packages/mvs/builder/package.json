@@ -124,7 +124,8 @@
     "fflate": "catalog:",
     "io-ts": "catalog:",
     "tslib": "catalog:",
-    "@types/argparse": "catalog:"
+    "@types/argparse": "catalog:",
+    "fp-ts": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",

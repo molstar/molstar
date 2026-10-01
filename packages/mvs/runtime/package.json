@@ -237,7 +237,8 @@
     "@molstar/graphics": "workspace:*",
     "@molstar/core": "workspace:*",
     "@molstar/mvs-builder": "workspace:*",
-    "@molstar/io": "workspace:*"
+    "@molstar/io": "workspace:*",
+    "fp-ts": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",

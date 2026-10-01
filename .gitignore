@@ -26,3 +26,6 @@ data/sym/syminfo.lib
 **/build/
 **/node_modules/
 **/*.tsbuildinfo
+
+# Opt-in native rendering dependencies
+.cache/

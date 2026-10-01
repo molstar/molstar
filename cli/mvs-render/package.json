@@ -31,10 +31,8 @@
   },
   "dependencies": {
     "argparse": "catalog:",
-    "gl": "catalog:",
     "jpeg-js": "catalog:",
     "pngjs": "catalog:",
-    "canvas": "catalog:",
     "tslib": "catalog:",
     "@types/argparse": "catalog:",
     "@types/pngjs": "catalog:",
@@ -53,5 +51,17 @@
   },
   "bin": {
     "mvs-render": "./lib/mvs-render.js"
+  },
+  "peerDependencies": {
+    "gl": ">=6 <9",
+    "canvas": "^2.11.2"
+  },
+  "peerDependenciesMeta": {
+    "gl": {
+      "optional": true
+    },
+    "canvas": {
+      "optional": true
+    }
   }
 }

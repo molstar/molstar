@@ -5,23 +5,17 @@
  * @author Adam Midlik <midlik@gmail.com>
  *
  * Command-line application for rendering images from MolViewSpec files
- * From Molstar NPM package:
- *     npm install molstar canvas gl jpeg-js pngjs
- *     npx mvs-render -i examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
- * From Molstar source code:
- *     npm install
- *     npm install --no-save canvas gl jpeg-js pngjs  // these packages are not listed in Mol* dependencies for performance reasons
- *     npm run build
- *     node lib/commonjs/cli/mvs/mvs-render -i examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
+ * Installed package: npm install @molstar/mvs-render-cli gl canvas
+ * Workspace setup: pnpm native:install -- --canvas && pnpm build:lib
+ * Workspace run: pnpm native:run -- node cli/mvs-render/lib/mvs-render.js -i examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
  */
 
 import { ArgumentParser } from 'argparse';
 import fs from 'fs';
-import gl from 'gl';
 import jpegjs from 'jpeg-js';
 import path from 'path';
 import pngjs from 'pngjs';
-import { createRequire } from 'node:module';
+import { loadNativeModule } from '@molstar/plugin-headless/native';
 
 import { Canvas3DParams } from '@molstar/graphics/canvas3d/canvas3d';
 import { setCanvasModule } from '@molstar/graphics/geo/geometry/text/font-atlas';
@@ -43,7 +37,6 @@ import { MVSData } from '@molstar/mvs-builder/mvs-data';
 
 
 setFSModule(fs);
-setCanvasModule(createRequire(import.meta.url)('canvas'));
 
 const DEFAULT_SIZE = '800x800';
 
@@ -120,6 +113,8 @@ async function main(args: Args): Promise<void> {
 
 /** Return a new and initiatized HeadlessPlugin */
 async function createHeadlessPlugin(args: Pick<Args, 'size'>): Promise<HeadlessPluginContext> {
+    const gl = loadNativeModule('gl');
+    setCanvasModule(loadNativeModule('canvas'));
     const externalModules: ExternalModules = { gl, pngjs, 'jpeg-js': jpegjs };
     const spec = DefaultPluginSpec();
     spec.behaviors.push(PluginSpec.Behavior(MolViewSpec));
@@ -169,4 +164,7 @@ function checkState(plugin: PluginContext): void {
     }
 }
 
-main(parseArguments());
+main(parseArguments()).catch(error => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+});

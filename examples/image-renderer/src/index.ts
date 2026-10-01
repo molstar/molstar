@@ -4,15 +4,15 @@
  * @author Adam Midlik <midlik@gmail.com>
  *
  * Example command-line application generating images of PDB structures
- * Build: npm install --no-save gl jpeg-js pngjs  // these packages are not listed in dependencies for performance reasons
- *        npm run build
- * Run:   node lib/commonjs/examples/image-renderer 1cbs ../outputs_1cbs/
+ * Build: pnpm build:lib
+ * Setup: pnpm native:install
+ * Run: pnpm native:run -- node examples/image-renderer/lib/index.js 1cbs ../outputs_1cbs/
  */
 
 import { ArgumentParser } from 'argparse';
 import fs from 'fs';
 import path from 'path';
-import gl from 'gl';
+import { loadNativeModule } from '@molstar/plugin-headless/native';
 import pngjs from 'pngjs';
 import jpegjs from 'jpeg-js';
 
@@ -42,6 +42,7 @@ function parseArguments(): Args {
 
 async function main() {
     const args = parseArguments();
+    const gl = loadNativeModule('gl');
     const url = `https://www.ebi.ac.uk/pdbe/entry-files/download/${args.pdbId}.bcif`;
     console.log('PDB ID:', args.pdbId);
     console.log('Source URL:', url);
@@ -91,4 +92,7 @@ async function main() {
     plugin.dispose();
 }
 
-main();
+main().catch(error => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+});

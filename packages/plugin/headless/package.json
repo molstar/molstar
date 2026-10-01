@@ -22,6 +22,11 @@
       "molstar-src": "./src/context.ts",
       "types": "./lib/context.d.ts",
       "import": "./lib/context.js"
+    },
+    "./native": {
+      "molstar-src": "./src/native.ts",
+      "types": "./lib/native.d.ts",
+      "import": "./lib/native.js"
     }
   },
   "files": [

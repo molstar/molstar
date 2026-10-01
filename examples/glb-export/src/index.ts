@@ -6,15 +6,15 @@
  * Thanks to @author Adam Midlik <midlik@gmail.com> for the example code ../image-renderer and https://github.com/midlik/surface-calculator i can make reference to,
  *
  * Example command-line application generating and exporting PubChem SDF structures
- * Build: npm install --no-save gl  // these packages are not listed in dependencies for performance reasons
- *        npm run build
- * Run:   node lib/commonjs/examples/glb-export 2519 ../outputs_2519/
+ * Build: pnpm build:lib
+ * Setup: pnpm native:install
+ * Run: pnpm native:run -- node examples/glb-export/lib/index.js 2519 ../outputs_2519/
  */
 
 import { ArgumentParser } from 'argparse';
 import fs from 'fs';
 import path from 'path';
-import gl from 'gl';
+import { loadNativeModule } from '@molstar/plugin-headless/native';
 
 import { Task } from '@molstar/core/task';
 import { Download } from '@molstar/plugin/state/transforms/data';
@@ -46,6 +46,7 @@ function parseArguments(): Args {
 
 async function main() {
     const args = parseArguments();
+    const gl = loadNativeModule('gl');
     const root = 'https://pubchem.ncbi.nlm.nih.gov/rest';
     const url = `${root}/pug/compound/cid/${args.cid}/sdf?record_type=3d`;
 
@@ -94,4 +95,7 @@ async function main() {
     plugin.dispose();
 }
 
-main();
+main().catch(error => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+});

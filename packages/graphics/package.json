@@ -2136,7 +2136,14 @@
   "devDependencies": {
     "typescript": "catalog:",
     "@types/node": "catalog:",
-    "@types/webxr": "catalog:",
-    "gl": "catalog:"
+    "@types/webxr": "catalog:"
+  },
+  "peerDependencies": {
+    "gl": ">=6 <9"
+  },
+  "peerDependenciesMeta": {
+    "gl": {
+      "optional": true
+    }
   }
 }

@@ -31,7 +31,6 @@
   },
   "dependencies": {
     "argparse": "catalog:",
-    "gl": "catalog:",
     "pngjs": "catalog:",
     "jpeg-js": "catalog:",
     "tslib": "catalog:",
@@ -50,5 +49,13 @@
     "entry": "src/index.ts",
     "filename": "index.js",
     "globalName": "molstar"
+  },
+  "peerDependencies": {
+    "gl": ">=6 <9"
+  },
+  "peerDependenciesMeta": {
+    "gl": {
+      "optional": true
+    }
   }
 }

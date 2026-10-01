@@ -19,7 +19,9 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Install workspace dependencies
-        run: pnpm install --frozen-lockfile --allow-build=esbuild,sass-embedded,gl
+        run: pnpm install --frozen-lockfile
+      - name: Install opt-in native GL backend
+        run: pnpm native:install
       - name: Install Chromium for browser smoke
         run: pnpm exec playwright install --with-deps chromium
       - name: Install virtual display
@@ -27,7 +29,7 @@ jobs:
       - name: Lint
         run: pnpm lint
       - name: Test
-        run: xvfb-run --auto-servernum pnpm jest
+        run: xvfb-run --auto-servernum pnpm test:native
       - name: Build workspace
         run: pnpm build
       - name: Check workspace and versions
@@ -37,7 +39,4 @@ jobs:
       - name: Consumer smoke checks
         run: pnpm --dir smoke smoke:node && pnpm --dir smoke smoke:types && pnpm --dir smoke smoke:source && pnpm --dir smoke smoke:cli && pnpm --dir smoke smoke:browser
       - name: Headless consumer smoke
-        run: |
-          export MOLSTAR_SMOKE_GL="$(node -e "const { createRequire } = require('node:module'); console.log(createRequire(process.cwd() + '/cli/mvs-render/package.json').resolve('gl'))")"
-          export MOLSTAR_SMOKE_PNGJS="$(node -e "const { createRequire } = require('node:module'); console.log(createRequire(process.cwd() + '/cli/mvs-render/package.json').resolve('pngjs'))")"
-          xvfb-run --auto-servernum pnpm --dir smoke smoke:headless
+        run: xvfb-run --auto-servernum pnpm native:run -- pnpm --dir smoke smoke:headless

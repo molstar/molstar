@@ -57,8 +57,10 @@ pnpm dev:examples -- basic-wrapper  # selected example
 ```
 
 Run `pnpm check:workspace`, `pnpm test` and `pnpm --dir smoke smoke` to check package boundaries,
-existing behavior and packed ESM consumers. The smoke browser requires Chromium;
-optional native capture has its own `pnpm --dir smoke smoke:headless` check.
+existing behavior and packed ESM consumers. The smoke browser requires Chromium.
+Native GL is opt-in: `pnpm native:install` installs it separately, and
+`pnpm test:native` runs the native tests. For capture, use
+`pnpm native:run -- pnpm --dir smoke smoke:headless`.
 
 Serve `distributions/molstar/` to access `build/viewer/` and `build/mvs-stories/`.
 Browser ESM entry points are under `build/esm/`. Use `node scripts/clean.js --all`

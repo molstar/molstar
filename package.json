@@ -27,7 +27,10 @@
     "version:sync": "node scripts/workspace/version.mjs --write",
     "dev:apps": "node scripts/esbuild/app.mjs --dev --kind app",
     "dev:examples": "node scripts/esbuild/app.mjs --dev --kind example",
-    "dev": "node scripts/esbuild/app.mjs --all --dev"
+    "dev": "node scripts/esbuild/app.mjs --all --dev",
+    "native:install": "node scripts/native.mjs install",
+    "native:run": "node scripts/native.mjs run",
+    "test:native": "node scripts/native.mjs test"
   },
   "nodemonConfig": {
     "ignoreRoot": [
@@ -293,7 +296,9 @@
     "typescript": "catalog:",
     "pngjs": "catalog:",
     "fflate": "catalog:",
-    "playwright": "catalog:"
+    "playwright": "catalog:",
+    "fp-ts": "catalog:",
+    "sass-embedded": "catalog:"
   },
   "private": true,
   "type": "module",

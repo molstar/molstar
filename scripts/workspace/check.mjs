@@ -24,7 +24,7 @@ for (const pkg of packages) {
 }
 function packageManifestPaths(dir, results = []) {
     for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (ent.isDirectory() && ['node_modules', '.git', '.pnpm-store', 'build', 'lib', '.v6'].includes(ent.name)) continue;
+        if (ent.isDirectory() && ['node_modules', '.git', '.pnpm-store', '.cache', 'build', 'lib', '.v6'].includes(ent.name)) continue;
         const abs = path.join(dir, ent.name);
         if (ent.isDirectory()) packageManifestPaths(abs, results);
         else if (ent.isFile() && ent.name === 'package.json' && abs !== path.join(root, 'package.json')) results.push(path.relative(root, path.dirname(abs)).split(path.sep).join('/'));
