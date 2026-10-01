@@ -49,8 +49,10 @@ Use Node 22+ and the pnpm version specified in `package.json`.
 ```sh
 pnpm install
 pnpm build
-pnpm dev:app -- viewer
-pnpm dev:example -- basic-wrapper
+pnpm dev:apps                       # all apps
+pnpm dev:apps -- viewer             # selected app
+pnpm dev:examples                  # all browser examples
+pnpm dev:examples -- basic-wrapper  # selected example
 ```
 
 Run `pnpm check:workspace`, `pnpm test` and `pnpm --dir smoke smoke` to check package boundaries,

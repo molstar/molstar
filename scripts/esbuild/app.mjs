@@ -20,8 +20,6 @@ for (let i = 0; i < args.length; i++) {
     if (['--kind', '--port'].includes(args[i])) { i++; continue; }
     if (!args[i].startsWith('-')) positional.push(args[i]);
 }
-const [target] = positional;
-if (positional.length > 1) throw new Error('Select one app or example.');
 const timestamp = Number(process.env.MOLSTAR_BUILD_TIMESTAMP ?? Date.now());
 const version = JSON.parse(fs.readFileSync(path.join(root, 'version.json'), 'utf8')).version;
 const inventoryPath = path.join(root, 'scripts/workspace/inventory.json');
@@ -72,10 +70,13 @@ const apps = (inventory.packages ?? []).filter(p => {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     return manifest.molstar?.platform !== 'node';
 });
-const selected = all ? apps : target ? apps.filter(p => p.name === target || p.path === target || kind && path.basename(p.path) === target) : [];
-if (args.includes('--help') || !selected.length) {
+const matches = (pkg, target) => pkg.name === target || pkg.path === target || kind && path.basename(pkg.path) === target;
+const unknownTargets = positional.filter(target => !apps.some(pkg => matches(pkg, target)));
+const selected = all || kind && !positional.length ? apps : apps.filter(pkg => positional.some(target => matches(pkg, target)));
+if (args.includes('--help') || unknownTargets.length || !selected.length) {
+    if (!args.includes('--help') && unknownTargets.length) console.error(`Unknown targets: ${unknownTargets.join(', ')}`);
     const usage = kind
-        ? `Usage: pnpm dev:${kind} -- <name> [--port <port>]`
+        ? `Usage: pnpm dev:${kind}s [-- <name> ...] [--port <port>] (no names watches all)`
         : 'Usage: node scripts/esbuild/app.mjs <package-name|path> [--prd|--dev] | --all [--prd|--dev]';
     console.log(usage);
     console.log(`Available browser ${kind ? `${kind}s` : 'apps/examples'}: ${apps.map(p => kind ? path.basename(p.path) : p.path).join(', ')}`);
