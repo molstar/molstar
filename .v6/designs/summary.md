@@ -1,6 +1,6 @@
 # Mol\* 6.0: proposal summary
 
-Mol* 6.0 moves to ESM packages grouped by layer, explicit plugin composition, and per-app builds. This is a proposal; see the [architecture and implementation plan](v6-architecture.md) for details.
+Mol* 6.0 moves to ESM packages grouped by layer, explicit plugin composition, and per-app builds. This is a proposal; see the [architecture and implementation plan](architecture.md) for details.
 
 ## Packages
 
@@ -26,7 +26,7 @@ The target dependency direction is `plugin → graphics → model → io → cor
 
 Internal Mol* dependencies use exact release versions through `workspace:*`. Every package declares its direct npm imports; shared versions live in the pnpm catalog. Root is private tooling. React/React DOM are UI peers. The headless library retains module injection and optional native peers; the rendering CLI directly declares its native modules/codecs. Plugin and browser MVS packages do not depend on headless support. Published declarations must declare the type dependencies consumers need.
 
-Headless support depends on plugin and graphics, with MP4 integration in an explicit extension module. Command-focused packages use `-cli`: `@molstar/mvs-render-cli`, `@molstar/cif2bcif-cli`, `@molstar/cifschema-cli`, and `@molstar/migrate-6-cli`. Existing command names stay unchanged; the new migration command is `molstar-migrate-6`. Libraries with ancillary bins and server packages retain their domain names. See the [command/package map](v6-architecture.md#71-cli-packages-and-executable-names).
+Headless support depends on plugin and graphics, with MP4 integration in an explicit extension module. Command-focused packages use `-cli`: `@molstar/mvs-render-cli`, `@molstar/cif2bcif-cli`, `@molstar/cifschema-cli`, and `@molstar/migrate-6-cli`. Existing command names stay unchanged; the new migration command is `molstar-migrate-6`. Libraries with ancillary bins and server packages retain their domain names. See the [command/package map](architecture.md#71-cli-packages-and-executable-names).
 
 ## Plugin composition
 
@@ -52,15 +52,15 @@ The SDF/ball-and-stick example must render while excluding unrelated parsers, ca
 ## Imports, ESM, and builds
 
 - **Package imports:** `molstar/lib/mol-util/color` becomes `@molstar/core/util/color`. Use the same extensionless package subpaths inside the repository, including hops between layer folders in one package.
-- **No barrel files:** expose defining modules directly through package subpaths and use them internally and in examples. Remove convenience re-export modules and aggregate facades; keep default specs/catalogs restricted to deliberate composition. Enforce the [policy](v6-architecture.md#44-no-barrel-files) in CI.
+- **No barrel files:** expose defining modules directly through package subpaths and use them internally and in examples. Remove convenience re-export modules and aggregate facades; keep default specs/catalogs restricted to deliberate composition. Enforce the [policy](architecture.md#44-no-barrel-files) in CI.
 - **Relative source imports:** stay within a layer folder and use emitted `.js` paths. TypeScript and esbuild resolve them to source during builds; JS output retains them.
 - **Library:** `tsc -b` with `NodeNext`, declarations, and ESM-only `lib/`. This output is generated locally but ships in the npm package. Publish `src/` for bundlers/debugging too. Retain the Node 22+ baseline unless runtime/tooling requires more.
-- **Execution:** Node runs compiled JavaScript, including CLI/server bins. Native Node TypeScript execution is out of scope; `molstar-src` is for bundlers. Validated JSR packages expose source for Deno/compatible tooling. See the [execution contract](v6-architecture.md#51-supported-execution-modes).
-- **Fast types:** defer consideration to v7. No v6 `isolatedDeclarations` requirement or broad API annotation migration; retain the [analysis](v6-fasttypes.md) for future planning.
-- **npm and JSR:** keep compiled npm artifacts and try JSR source publication with `--allow-slow-types`, starting with the MVS builder. Coordinate matching versions for validated packages. Accept slower JSR consumer checking and potentially incomplete generated docs/types; native npm declarations still come from `tsc`. See the [release design](v6-fasttypes.md#7-publishing-to-npm-and-jsr-together).
+- **Execution:** Node runs compiled JavaScript, including CLI/server bins. Native Node TypeScript execution is out of scope; `molstar-src` is for bundlers. Validated JSR packages expose source for Deno/compatible tooling. See the [execution contract](architecture.md#51-supported-execution-modes).
+- **Fast types:** defer consideration to v7. No v6 `isolatedDeclarations` requirement or broad API annotation migration; retain the [analysis](fasttypes.md) for future planning.
+- **npm and JSR:** keep compiled npm artifacts and try JSR source publication with `--allow-slow-types`, starting with the MVS builder. Coordinate matching versions for validated packages. Accept slower JSR consumer checking and potentially incomplete generated docs/types; native npm declarations still come from `tsc`. See the [release design](fasttypes.md#7-publishing-to-npm-and-jsr-together).
 - **Apps/examples:** each owns dependencies, entry, output, and scripts. A shared esbuild helper bundles source via `molstar-src`, with SCSS/assets, watch, and serve. Viewer is published; other apps and examples are private workspace packages.
-- **Rendering backends:** establish a boundary for scenes, passes, GPU resources/operations, and readback within `@molstar/graphics`, retaining WebGL. WebGPU implementation and parity come later; see the [blast-radius analysis and minimal design](v6-webgpu.md).
-- **Future offline rendering:** a [Blender extension](v6-webgpu.md#71-offline-rendering-with-blender) could consume portable scene snapshots through a separate asynchronous render-job interface, while WebGL/WebGPU provides interactive preview. Reuse geometry export/readback; Blender integration and effect translation are later work.
+- **Rendering backends:** establish a boundary for scenes, passes, GPU resources/operations, and readback within `@molstar/graphics`, retaining WebGL. WebGPU implementation and parity come later; see the [blast-radius analysis and minimal design](webgpu.md).
+- **Future offline rendering:** a [Blender extension](webgpu.md#71-offline-rendering-with-blender) could consume portable scene snapshots through a separate asynchronous render-job interface, while WebGL/WebGPU provides interactive preview. Reuse geometry export/readback; Blender integration and effect translation are later work.
 
 Keep compiler-supported TypeScript syntax, including namespaces, enums, and parameter properties. No `erasableSyntaxOnly` requirement or blanket syntax rewrite. Retain hot `const enum`s under existing compiler constraints; benchmark affected paths when necessary refactors change their use or emit.
 
@@ -76,7 +76,7 @@ Keep explicit type imports and enable `verbatimModuleSyntax` for ESM. If enabled
 
 Ship **`@molstar/migrate-6-cli`** with the `molstar-migrate-6` command, dry-run output, and a manual-work report. It rewrites imports and dependencies, handles relocated APIs, and flags CommonJS, implicit default specs, and full-catalog imports. Respect downstream compiler conventions when changing relative extensions. Validate the tool on `pdbe-molstar` and `rcsb-molstar` before stable release.
 
-**No library compatibility import shims.** `molstar@6` retains `build/viewer/` and `build/mvs-stories/`, including their classic-script globals, APIs, CSS/assets, and custom elements. Existing MVS HTML viewers importing `molstar@latest` from a CDN must work without edits; verify against the packed candidate before advancing `latest`. See the [browser compatibility contract](v6-architecture.md#93-compatibility-contract). Library consumers migrate from `lib/mol-*`/CJS to scoped packages. Keep transformer identifiers and snapshot JSON; restoring a snapshot requires its features to be loaded.
+**No library compatibility import shims.** `molstar@6` retains `build/viewer/` and `build/mvs-stories/`, including their classic-script globals, APIs, CSS/assets, and custom elements. Existing MVS HTML viewers importing `molstar@latest` from a CDN must work without edits; verify against the packed candidate before advancing `latest`. See the [browser compatibility contract](architecture.md#93-compatibility-contract). Library consumers migrate from `lib/mol-*`/CJS to scoped packages. Keep transformer identifiers and snapshot JSON; restoring a snapshot requires its features to be loaded.
 
 Rename tests to `_test/**/*.test.ts`. Add `.agents/` maintainer skills for extensions, formats, representations, apps/examples, servers, and dependency updates, referenced by root `AGENTS.md`. Rewrite mkdocs for packages, composition, builds, migration, and adding code.
 
@@ -95,4 +95,4 @@ Then use separate, buildable phases:
 5. Physical package moves, exports, direct dependencies, per-app builds, and packed-consumer checks.
 6. Finish MVS, extension/server/CLI packaging, migration tool, skills, mkdocs, CI, and downstream validation.
 
-Maintain docs and the migration map throughout. Publish `6.0.0-dev.N` under the `dev` tag on the way to stable `6.0.0`. The [detailed phases](v6-architecture.md#102-technical-phases) define the implementation checkpoints.
+Maintain docs and the migration map throughout. Publish `6.0.0-dev.N` under the `dev` tag on the way to stable `6.0.0`. The [detailed phases](architecture.md#102-technical-phases) define the implementation checkpoints.

@@ -1,6 +1,6 @@
 # Mol\* 6.0: npm/JSR distribution and deferred fast types
 
-Analysis against `molstar@5.11.0`, commit `bbebb6082`, using TypeScript 6.0.3 and Deno 2.9.6 (also TypeScript 6.0.3) on September 10, 2026. This complements the [architecture](v6-architecture.md) and [summary](v6-summary.md). These are proposed changes; source edits and publishing configuration used for the pilot exist only in temporary audit copies.
+Analysis against `molstar@5.11.0`, commit `bbebb6082`, using TypeScript 6.0.3 and Deno 2.9.6 (also TypeScript 6.0.3) on September 10, 2026. This complements the [architecture](architecture.md) and [summary](summary.md). These are proposed changes; source edits and publishing configuration used for the pilot exist only in temporary audit copies.
 
 ## 1. Recommendation
 
@@ -218,7 +218,7 @@ Shipping `.ts` files and executing them by default are different promises. npm c
 
 The linked [Deno TypeScript guide](https://docs.deno.com/runtime/fundamentals/typescript/) describes Deno's source execution and checking. It does not make a TypeScript-only npm package portable to Node. Deno has also historically restricted TypeScript imports from npm packages; its [tracking issue](https://github.com/denoland/deno/issues/24093) is closed as not planned. Do not base the release on such imports: use compiled npm entry points or JSR source entry points, and verify both with the supported Deno version.
 
-Retain the [npm conditional export map](v6-architecture.md#55-exports-and-package-contents): `types` selects declarations, `import` selects JavaScript, and the explicit `molstar-src` condition selects source for configured bundlers. No default `.ts` export or consumer install-time compilation is needed. Source files and declaration maps improve navigation, but source consumers also require compatible TypeScript, dependencies, and TSX/asset handling.
+Retain the [npm conditional export map](architecture.md#55-exports-and-package-contents): `types` selects declarations, `import` selects JavaScript, and the explicit `molstar-src` condition selects source for configured bundlers. No default `.ts` export or consumer install-time compilation is needed. Source files and declaration maps improve navigation, but source consumers also require compatible TypeScript, dependencies, and TSX/asset handling.
 
 | Distribution | Library payload | Consumer path |
 | --- | --- | --- |

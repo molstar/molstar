@@ -1,6 +1,6 @@
 # Mol\* 6.0: packages, ESM, and plugin composition
 
-Proposal against the `molstar@5.11.0` tree. The APIs and paths below describe the target, not features available in 5.x. See the [short summary](v6-summary.md) for the main decisions.
+Proposal against the `molstar@5.11.0` tree. The APIs and paths below describe the target, not features available in 5.x. See the [short summary](summary.md) for the main decisions.
 
 ## 1. Scope
 
@@ -10,11 +10,11 @@ Ship `@molstar/migrate-6-cli` with the release to handle mechanical import chang
 
 The release also includes a standalone MolViewSpec builder, dependency-cycle removal, maintainer skills, updated developer docs, and workspace CI.
 
-Try JSR source publication with `--allow-slow-types`, beginning with the MVS builder, alongside native npm packages with compiled ESM from the same release commit. Defer fast-type migration and `isolatedDeclarations` to consideration for v7. The [fast-types and distribution analysis](v6-fasttypes.md) preserves the audit for that decision; its annotation work and agent estimates are outside the v6 scope.
+Try JSR source publication with `--allow-slow-types`, beginning with the MVS builder, alongside native npm packages with compiled ESM from the same release commit. Defer fast-type migration and `isolatedDeclarations` to consideration for v7. The [fast-types and distribution analysis](fasttypes.md) preserves the audit for that decision; its annotation work and agent estimates are outside the v6 scope.
 
-Establish a rendering-backend boundary in `@molstar/graphics` for future WebGPU and other targets, retaining WebGL as the working implementation. The [rendering-backend design](v6-webgpu.md) covers the blast radius, minimal contracts, migration, and validation; a production WebGPU renderer and feature parity are later work.
+Establish a rendering-backend boundary in `@molstar/graphics` for future WebGPU and other targets, retaining WebGL as the working implementation. The [rendering-backend design](webgpu.md) covers the blast radius, minimal contracts, migration, and validation; a production WebGPU renderer and feature parity are later work.
 
-The same geometry/readback boundary should support portable scene extraction for a future [Blender offline-rendering extension](v6-webgpu.md#71-offline-rendering-with-blender). Offline rendering uses scene snapshots and asynchronous jobs, separately from the interactive view contract. Keep Blender dependencies and integration in an optional extension; implementing it is outside the 6.0 scope.
+The same geometry/readback boundary should support portable scene extraction for a future [Blender offline-rendering extension](webgpu.md#71-offline-rendering-with-blender). Offline rendering uses scene snapshots and asynchronous jobs, separately from the interactive view contract. Keep Blender dependencies and integration in an optional extension; implementing it is outside the 6.0 scope.
 
 Out of scope:
 
@@ -105,15 +105,18 @@ Enforce an acyclic package graph and no value-import cycles within packages. Typ
 
 ### 3.4 Headless plugin support
 
-Move `HeadlessPluginContext` and `HeadlessScreenshotHelper` from `mol-plugin` into `@molstar/plugin-headless`, under `packages/plugin-headless/`. This is a reusable Node library, separate from plugin-ui and command-line wrappers. It owns Node filesystem/output handling and headless setup, depending on plugin, graphics, and the lower layers it imports. Plugin, browser MVS runtime, and graphics must not depend back on it.
+Move `HeadlessPluginContext` and `HeadlessScreenshotHelper` from `mol-plugin` into `@molstar/plugin-headless`, under `packages/plugin/headless/`. This is a reusable Node library, separate from plugin-ui and command-line wrappers. It owns Node filesystem/output handling and headless setup, depending on plugin, graphics, and the lower layers it imports. Plugin, browser MVS runtime, and graphics must not depend back on it.
 
-Retain native-module injection for embedding applications. The headless package supplies the Node environment and external modules to the graphics backend; shared device/resource/capture contracts remain in graphics. Adapt screenshots to the [backend capture/readback design](v6-webgpu.md) as that boundary is extracted, rather than adding another renderer abstraction here.
+Retain native-module injection for embedding applications. The headless package supplies the Node environment and external modules to the graphics backend; shared device/resource/capture contracts remain in graphics. Adapt screenshots to the [backend capture/readback design](webgpu.md) as that boundary is extracted, rather than adding another renderer abstraction here.
 
 Keep MP4 integration in an explicit module of the MP4 extension, composed by the rendering CLI or embedding application. The base headless context must not import the encoder or register the extension automatically. Record migration of existing `getAnimation`/`saveAnimation` calls to the explicit integration. Image rendering and snapshot output should work without loading video support.
 
 ## 4. Workspace, imports, and dependencies
 
 ### 4.1 Layout
+
+The packaging-first [prototype plan](../plans/workspace-prototype.md) implements
+this layout while deferring plugin composition and rendering-backend changes.
 
 ```text
 packages/
@@ -122,8 +125,9 @@ packages/
   model/
   graphics/
   plugin/
-  plugin-ui/
-  plugin-headless/             # @molstar/plugin-headless
+    core/                     # @molstar/plugin
+    ui/                       # @molstar/plugin-ui
+    headless/                 # @molstar/plugin-headless
   mvs/
     builder/                  # @molstar/mvs-builder
     runtime/                  # @molstar/mvs
@@ -136,7 +140,8 @@ apps/
 examples/<name>/              # private workspace packages
 servers/<name>/               # published server packages
 cli/<name>/                   # @molstar/<name>-cli (mvs-render, cif2bcif, cifschema, migrate-6)
-molstar/                      # CDN-only package
+distributions/
+  molstar/                    # CDN-only package
 scripts/                      # shared build/release tooling
 .agents/                      # maintainer skills
 ```
@@ -147,13 +152,15 @@ Each library package has `src/`, `lib/`, `package.json`, and a composite `tsconf
 # pnpm-workspace.yaml
 packages:
   - 'packages/*'
+  - 'packages/plugin/*'
   - 'packages/mvs/*'
   - 'extensions/*'
   - 'apps/*'
   - 'examples/*'
   - 'servers/*'
   - 'cli/*'
-  - 'molstar'
+  - 'distributions/*'
+  - 'smoke'
 ```
 
 Use physical moves into the workspace. Keep relocation commits separate from import rewrites where practical; keep each completed PR buildable.
@@ -226,7 +233,7 @@ Publish ESM JavaScript and declarations in `lib/`, plus source in `src/` for bun
 
 Node executes compiled JavaScript. Keep all published bins on `lib/*.js`; workspace tooling runs as JavaScript or is compiled before execution. `molstar-src` selects source for bundlers and does not promise native Node execution. Publishing source does not require erasable syntax.
 
-Validated JSR packages expose TypeScript source for Deno or compatible tooling. Deno consumers of native npm packages use the compiled exports above. Publishing to either registry does not make browser, Node, or optional native APIs available in every runtime; see the [distribution matrix](v6-fasttypes.md#6-typescript-distribution-through-npm).
+Validated JSR packages expose TypeScript source for Deno or compatible tooling. Deno consumers of native npm packages use the compiled exports above. Publishing to either registry does not make browser, Node, or optional native APIs available in every runtime; see the [distribution matrix](fasttypes.md#6-typescript-distribution-through-npm).
 
 ### 5.2 Compiler settings
 
@@ -257,7 +264,7 @@ Do not enable `erasableSyntaxOnly`. Both library and app builds compile TypeScri
 
 Keep hot `const enum`s under the existing `isolatedModules` constraints. If a necessary refactor changes their use or emit, inspect the generated code and benchmark the affected parse/render paths. Do not assume that replacing enum uses with object properties or module constants preserves performance.
 
-Do not require `isolatedDeclarations` or a broad annotation migration in v6. Preserve existing inferred API precision, including parameter/schema keys, literal unions, overloads, and factory constructor types. Consider fast types for v7 using the [audit](v6-fasttypes.md#3-measured-blast-radius); do not redesign public contracts solely to satisfy JSR fast types in this release.
+Do not require `isolatedDeclarations` or a broad annotation migration in v6. Preserve existing inferred API precision, including parameter/schema keys, literal unions, overloads, and factory constructor types. Consider fast types for v7 using the [audit](fasttypes.md#3-measured-blast-radius); do not redesign public contracts solely to satisfy JSR fast types in this release.
 
 ### 5.4 Convert runtime CommonJS assumptions
 
@@ -302,7 +309,7 @@ Publish only intended source/assets and generated output. Exclude `_test/` and f
 
 Use project references for package builds. Source conditions drive esbuild; normal consumer types resolve to generated declarations. Prove both from a clean checkout and from packed packages, rather than depending on stale `lib/` output or root hoisting.
 
-`lib/` is generated and ignored by Git, but its JavaScript, declarations, and required assets ship in the npm tarball and remain in the installed package. It is not merely a temporary input that packing removes. JSR source artifacts exclude it. See the [build-output distinction](v6-fasttypes.md#8-is-lib-only-temporary).
+`lib/` is generated and ignored by Git, but its JavaScript, declarations, and required assets ship in the npm tarball and remain in the installed package. It is not merely a temporary input that packing removes. JSR source artifacts exclude it. See the [build-output distinction](fasttypes.md#8-is-lib-only-temporary).
 
 ### 5.6 npm and JSR publication
 
@@ -310,7 +317,7 @@ Keep one source tree and derive npm/JSR manifests from one package/export invent
 
 Try publication with `deno publish --dry-run --allow-slow-types`, then use the same allowance when publishing validated packages to JSR. Slow types can degrade JSR-generated documentation and npm-compatibility declarations and make consumer checking slower. Keep native npm declarations generated by `tsc`, and verify JSR source consumers without promising equivalent generated documentation/types. The allowance does not skip normal typechecking or other publication requirements.
 
-Publish validated packages to both registries at the same version from the same commit, starting with the MVS builder. Extend JSR coverage in dependency order without implying universal runtime support. Keep per-registry completion records and retry partial releases from unchanged artifacts; the two registries cannot publish atomically. The [dual-publication design](v6-fasttypes.md#7-publishing-to-npm-and-jsr-together) covers normalization, validation, package coverage, and the `deno pack` alternative. Retain pnpm/`tsc -b` and its complete declarations for native npm packaging.
+Publish validated packages to both registries at the same version from the same commit, starting with the MVS builder. Extend JSR coverage in dependency order without implying universal runtime support. Keep per-registry completion records and retry partial releases from unchanged artifacts; the two registries cannot publish atomically. The [dual-publication design](fasttypes.md#7-publishing-to-npm-and-jsr-together) covers normalization, validation, package coverage, and the `deno pack` alternative. Retain pnpm/`tsc -b` and its complete declarations for native npm packaging.
 
 ## 6. Plugin composition
 
@@ -566,9 +573,9 @@ Implement 6.0 on `main`, publish `dev` prereleases, then release stable after th
 
 Keep the major workstreams in separate PRs. Each phase ends with a working build; validate compiled packages and source-based app bundles throughout.
 
-Coordinate the [rendering-backend workstream](v6-webgpu.md#6-minimal-implementation-sequence) with dependency cleanup and packaging, and validate its contracts before freezing the v6 graphics API.
+Coordinate the [rendering-backend workstream](webgpu.md#6-minimal-implementation-sequence) with dependency cleanup and packaging, and validate its contracts before freezing the v6 graphics API.
 
-Keep the [fast-types workstream](v6-fasttypes.md#5-effort-and-adoption) deferred for possible v7 adoption. For v6, dual-registry release checks belong with packaging and CI, with slow types allowed on JSR and no associated annotation or generator migration phase.
+Keep the [fast-types workstream](fasttypes.md#5-effort-and-adoption) deferred for possible v7 adoption. For v6, dual-registry release checks belong with packaging and CI, with slow types allowed on JSR and no associated annotation or generator migration phase.
 
 | Phase | Work and exit condition |
 | --- | --- |
