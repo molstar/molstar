@@ -19,7 +19,8 @@ pnpm --dir smoke smoke
 browser ESM modules in `distributions/molstar/build`. `pnpm pack:workspace` creates
 local public package tarballs in `build/packages` and checks their version ranges and published entry points/assets.
 
-Use `pnpm dev:apps -- viewer` for a source-based Viewer dev server. Each browser app/example
+Use `pnpm dev` to watch all browser apps and examples on one server, or
+`pnpm dev:apps -- viewer` for a source-based Viewer dev server. Each browser app/example
 also has its own `build` and `dev` scripts. Select examples from the root with
 `pnpm dev:examples -- basic-wrapper`. Both selectors accept `--port 1340` and
 `--help` to list available browser targets. Omit names to watch every browser

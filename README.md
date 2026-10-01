@@ -49,6 +49,7 @@ Use Node 22+ and the pnpm version specified in `package.json`.
 ```sh
 pnpm install
 pnpm build
+pnpm dev                            # all apps and browser examples
 pnpm dev:apps                       # all apps
 pnpm dev:apps -- viewer             # selected app
 pnpm dev:examples                  # all browser examples

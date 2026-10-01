@@ -26,7 +26,8 @@
     "version:check": "node scripts/workspace/version.mjs --check",
     "version:sync": "node scripts/workspace/version.mjs --write",
     "dev:apps": "node scripts/esbuild/app.mjs --dev --kind app",
-    "dev:examples": "node scripts/esbuild/app.mjs --dev --kind example"
+    "dev:examples": "node scripts/esbuild/app.mjs --dev --kind example",
+    "dev": "node scripts/esbuild/app.mjs --all --dev"
   },
   "nodemonConfig": {
     "ignoreRoot": [
