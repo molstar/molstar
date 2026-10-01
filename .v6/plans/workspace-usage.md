@@ -147,3 +147,8 @@ Package exports use wildcard mappings for regular modules, with explicit root an
 directory aliases, TS/TSX exceptions, Sass/CSS patterns, and blocked test paths.
 The workspace refresh script preserves this compact form. Workspace and tarball
 checks expand the patterns and validate every concrete conditional target.
+
+CIF field-name filters have one source of truth in root `data/cif-field-names/`.
+Workspace CLI runs read those files directly. Library asset staging copies them
+into ignored `cli/cifschema/lib/data/` for installed consumers, and tarball checks
+verify each staged filter against its root source.

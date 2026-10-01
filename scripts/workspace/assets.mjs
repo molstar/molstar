@@ -35,3 +35,11 @@ for (const pkg of packages) {
         } else await fs.copyFile(abs, target);
     }
 }
+
+// Root dictionary filters are canonical; stage an ignored copy for installed CLI use.
+if (packages.some(pkg => pkg.name === '@molstar/cifschema-cli')) {
+    const pkg = packages.find(pkg => pkg.name === '@molstar/cifschema-cli');
+    const target = path.join(root, pkg.path, 'lib/data/cif-field-names');
+    await fs.rm(target, { recursive: true, force: true });
+    await fs.cp(path.join(root, 'data/cif-field-names'), target, { recursive: true });
+}

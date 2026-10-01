@@ -100,6 +100,16 @@ for (const pkg of selected) {
     if (packed.version !== version) failures.push(`${pkg.name}: packed version ${packed.version} != ${version}`);
     failures.push(...checkInternalRanges(packed, pkg));
     failures.push(...checkPackedContents(packed, files, pkg));
+    if (pkg.name === '@molstar/cifschema-cli') {
+        const canonical = path.join(root, 'data/cif-field-names');
+        for (const name of await fs.readdir(canonical)) {
+            const target = `lib/data/cif-field-names/${name}`;
+            if (!files.includes(target)) failures.push(`${pkg.name}: missing canonical dictionary filter ${target}`);
+            else if (run('tar', ['-xOf', archive, `package/${target}`], root) !== await fs.readFile(path.join(canonical, name), 'utf8')) {
+                failures.push(`${pkg.name}: staged dictionary filter differs from root data: ${name}`);
+            }
+        }
+    }
     console.log(`Packed ${pkg.name}@${packed.version} → ${path.relative(root, archive)}`);
 }
 if (failures.length) {

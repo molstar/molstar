@@ -277,7 +277,7 @@ async function browserCheck() {
 }
 
 async function cliCheck() {
-  await consumer(['@molstar/mvs-builder'], async ({ dir }) => {
+  await consumer(['@molstar/mvs-builder', '@molstar/cifschema-cli'], async ({ dir }) => {
     const bin = join(dir, 'node_modules/.bin/mvs-validate');
     if (!await exists(bin)) fail('Packed @molstar/mvs-builder does not expose mvs-validate.');
     const fixture = join(dir, 'tiny.mvsj');
@@ -285,6 +285,17 @@ async function cliCheck() {
     const result = await capture(bin, [fixture], { cwd: dir });
     assert.match(result.stdout.trim(), /^OK\s+.*tiny\.mvsj$/, `Unexpected mvs-validate output: ${result.stdout}`);
     console.log('Packed mvs-validate accepted the local MVS fixture');
+    const schemaBin = join(dir, 'node_modules/.bin/cifschema');
+    const dictionary = join(dir, 'tiny.dic');
+    const schema = join(dir, 'schema.ts');
+    await cp(join(here, 'fixtures/tiny.dic'), dictionary);
+    await capture(schemaBin, ['--preset', 'mmCIF', '--dicPath', dictionary, '--out', schema], { cwd: dir });
+    assert.match(await readFile(schema, 'utf8'), /atom_site/);
+    for (const name of await readdir(join(root, 'data/cif-field-names'))) {
+      assert.deepEqual(await readFile(join(dir, 'node_modules/@molstar/cifschema-cli/lib/data/cif-field-names', name)), await readFile(join(root, 'data/cif-field-names', name)));
+    }
+    assert(!await exists(join(dir, 'node_modules/@molstar/cifschema-cli/data')), 'Packed CLI must use staged build assets.');
+    console.log('Packed cifschema generated a schema using filters staged from canonical root data');
   }, { name: 'cli-consumer' });
 }
 

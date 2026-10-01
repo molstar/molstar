@@ -158,7 +158,10 @@ async function ensureDicAvailable(dicPath: string, dicUrl: string) {
 
 const PACKAGE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO_ROOT = path.resolve(PACKAGE_DIR, '../..');
-const FIELD_NAMES_DIR = path.join(PACKAGE_DIR, 'data/cif-field-names');
+// Use canonical root data in the workspace and staged build assets after installation.
+const FIELD_NAMES_DIR = fs.existsSync(path.join(REPO_ROOT, 'pnpm-workspace.yaml'))
+    ? path.join(REPO_ROOT, 'data/cif-field-names')
+    : path.join(PACKAGE_DIR, 'lib/data/cif-field-names');
 const DIC_DIR = path.resolve(REPO_ROOT, 'build/dics/');
 const MMCIF_DIC_PATH = `${DIC_DIR}/mmcif_pdbx_v50.dic`;
 const MMCIF_DIC_URL = 'http://mmcif.wwpdb.org/dictionaries/ascii/mmcif_pdbx_v50.dic';

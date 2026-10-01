@@ -22,12 +22,11 @@
   "files": [
     "lib",
     "src",
-    "data",
     "!**/_test/**",
     "!**/*.tsbuildinfo"
   ],
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b && node ../../scripts/workspace/assets.mjs @molstar/cifschema-cli",
     "typecheck": "tsc -b"
   },
   "dependencies": {
