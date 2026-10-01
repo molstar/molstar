@@ -2,6 +2,7 @@ import * as esbuild from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
+import https from 'node:https';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { sassPlugin } from 'esbuild-sass-plugin';
 
@@ -178,9 +179,13 @@ const contexts = [];
 await Promise.all(selected.map(buildPackage));
 if (serve) {
     const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
-    const server = http.createServer(async (req, res) => {
+    const certfile = path.join(root, 'dev.pem');
+    const keyfile = path.join(root, 'dev-key.pem');
+    const sslEnabled = fs.existsSync(certfile) && fs.existsSync(keyfile);
+    const protocol = sslEnabled ? 'https' : 'http';
+    const handler = async (req, res) => {
         try {
-            const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+            const pathname = decodeURIComponent(new URL(req.url, `${protocol}://localhost`).pathname);
             const resolved = path.resolve(root, `.${pathname}`);
             if (!resolved.startsWith(root + path.sep) && resolved !== root) { res.writeHead(403).end(); return; }
             const stat = await fs.promises.stat(resolved);
@@ -188,9 +193,12 @@ if (serve) {
             const body = await fs.promises.readFile(file);
             res.writeHead(200, { 'content-type': mime[path.extname(file)] ?? 'application/octet-stream' }).end(body);
         } catch { res.writeHead(404).end('Not found'); }
-    });
+    };
+    const server = sslEnabled
+        ? https.createServer({ cert: fs.readFileSync(certfile), key: fs.readFileSync(keyfile) }, handler)
+        : http.createServer(handler);
     await new Promise(resolve => server.listen(port, '0.0.0.0', resolve));
-    for (const pkg of selected) console.log(`${pkg.name}: http://localhost:${port}/${pkg.path}/build/`);
+    for (const pkg of selected) console.log(`${pkg.name}: ${protocol}://localhost:${port}/${pkg.path}/build/`);
     await new Promise(resolve => {
         const close = async () => { server.close(); await Promise.all(contexts.map(c => c.dispose())); resolve(); };
         process.once('SIGINT', close); process.once('SIGTERM', close);
