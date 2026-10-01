@@ -80,3 +80,8 @@ autoInstallPeers: false
 allowBuilds:
   esbuild: true
   sass-embedded: true
+  unrs-resolver: true
+  # Watcher uses platform packages; no source build is needed.
+  '@parcel/watcher': false
+  # Disable install-time telemetry.
+  '@scarf/scarf': false
