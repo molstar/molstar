@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Mol* classic MVS Stories smoke</title>
+<link rel="stylesheet" href="/classic/mvs-stories/mvs-stories.css">
+<mvs-stories-viewer context-name="smoke"></mvs-stories-viewer>
+<mvs-stories-snapshot-markdown context-name="smoke"></mvs-stories-snapshot-markdown>
+<script src="/classic/mvs-stories/mvs-stories.js"></script>
+<script>
+  window.smokeReady = (async () => {
+    if (!window.mvsStories?.loadFromData) throw new Error('mvsStories global API is missing');
+    await customElements.whenDefined('mvs-stories-viewer');
+    if (!customElements.get('mvs-stories-snapshot-markdown')) throw new Error('MVS Stories custom element is missing');
+    const story = await (await fetch('/fixtures/tiny.mvsj')).text();
+    mvsStories.loadFromData(story, { format: 'mvsj', contextName: 'smoke' });
+    const context = mvsStories.getContext('smoke');
+    const started = Date.now();
+    while (context.state.isLoading.value || !context.state.currentStoryData.value) {
+      if (Date.now() - started > 45000) throw new Error('MVS Stories did not load its local story');
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    const plugin = context.state.viewers.value[0]?.model.plugin;
+    plugin?.canvas3d?.commit(true);
+    const loadedStory = context.state.currentStoryData.value;
+    const usesLocalPdbFixture = JSON.stringify(JSON.parse(story).root).includes('/fixtures/tiny.pdb');
+    const structures = plugin?.managers.structure.hierarchy.current.structures.length ?? 0;
+    const representations = plugin?.canvas3d?.reprCount.value ?? 0;
+    window.smokeResult = { structures, representations, loadedStory: !!loadedStory, usesLocalPdbFixture };
+    document.documentElement.dataset.smoke = loadedStory && usesLocalPdbFixture && structures && representations ? 'pass' : 'fail';
+  })();
+</script>

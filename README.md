@@ -20,34 +20,17 @@ David Sehnal, Sebastian Bittrich, Mandar Deshpande, Radka Svobodová, Karel Berk
 
 ## Project Structure Overview
 
-The core of Mol* consists of these modules (see under `src/`):
+The v6 prototype separates code into pnpm workspace packages:
 
-- `mol-task` Computation abstraction with progress tracking and cancellation support.
-- `mol-data` Collections (integer-based sets, interface to columns/tables, etc.)
-- `mol-math` Math related (loosely) algorithms and data structures.
-- `mol-io` Parsing library. Each format is parsed into an interface that corresponds to the data stored by it. Support for common coordinate, experimental/map, and annotation data formats.
-- `mol-model` Data structures and algorithms (such as querying) for representing molecular data (including coordinate, experimental/map, and annotation data).
-- `mol-model-formats` Data format parsers for `mol-model`.
-- `mol-model-props` Common "custom properties".
-- `mol-script` A scripting language for creating representations/scenes and querying (includes the [MolQL query language](https://molql.github.io)).
-- `mol-geo` Creating (molecular) geometries.
-- `mol-theme` Theming for structure, volume and shape representations.
-- `mol-repr` Molecular representations for structures, volumes and shapes.
-- `mol-gl` A wrapper around WebGL.
-- `mol-canvas3d` A low-level 3d view component. Uses `mol-geo` to generate geometries.
-- `mol-state` State representation tree with state saving and automatic updates.
-- `mol-plugin` Allow to define modular Mol* plugin instances utilizing `mol-state` and `mol-canvas3d`.
-- `mol-plugin-state` State transformations, builders, and managers.
-- `mol-plugin-ui` React-based user interface for the Mol* plugin. Some components of the UI are usable outside the main plugin and can be integrated into 3rd party solutions.
-- `mol-util` Useful things that do not fit elsewhere.
+- `packages/{core,io,model,graphics}` own the shared library layers.
+- `packages/plugin/{core,ui,headless}` own plugin runtime, React UI and Node capture.
+- `packages/mvs/{builder,runtime}` separate standalone MVS construction from plugin loading.
+- `extensions/`, `apps/`, `examples/`, `servers/` and `cli/` own their dependencies and builds.
+- `distributions/molstar/` assembles the classic and browser ESM distribution.
+- `smoke/` checks isolated package consumers and browser rendering.
 
-Moreover, the project contains the implementation of `servers`, including
-
-- `servers/model` A tool for accessing coordinate and annotation data of molecular structures.
-- `servers/volume` A tool for accessing volumetric experimental data related to molecular structures.
-- `servers/plugin-state` A basic server to store Mol* Plugin states.
-
-The project also contains performance tests (`perf-tests`), `examples`, and `cli` apps (CIF to BinaryCIF converter and JSON domain annotation to CIF converter).
+See the [workspace guide](.v6/plans/workspace-usage.md) for package APIs, ESM consumption,
+versioning, commands and the [implementation plan](.v6/plans/workspace-prototype.md).
 
 ## Previous Work
 This project builds on experience from previous solutions:
@@ -61,118 +44,34 @@ This project builds on experience from previous solutions:
 
 ## Building & Running
 
-### Build:
-    npm install
-    npm run build
+Use Node 22+ and the pnpm version specified in `package.json`.
 
-### Build automatically on file save:
-    npm run watch
+```sh
+pnpm install
+pnpm build
+pnpm dev:viewer
+```
 
-If working on just the viewer, ``npm run watch-viewer`` will provide shorter compile times.
+Run `pnpm check:workspace`, `pnpm test` and `pnpm smoke` to check package boundaries,
+existing behavior and packed ESM consumers. The smoke browser requires Chromium;
+optional native capture has its own `pnpm smoke:headless` check.
 
-### Build with debug mode enabled:
-    DEBUG=molstar npm run watch
+Serve `distributions/molstar/` to access `build/viewer/` and `build/mvs-stories/`.
+Browser ESM entry points are under `build/esm/`. Use `node scripts/clean.js --all`
+for a clean rebuild. Detailed commands and code ownership are in the
+[workspace guide](.v6/plans/workspace-usage.md).
 
-Debug/production mode in browsers can be turned on/off during runtime by calling ``setMolStarDebugMode(true/false, true/false)`` from the dev console.
+Code generators are compiled under their owning `cli/<name>/lib/` directories.
+For example:
 
-### Cleaning and forcing a full rebuild
-    npm run clean
-
-Wipes the `build` and `lib` directories and `.tsbuildinfo` files.
-
-    npm run rebuild
-
-Runs the cleanup script prior to building the project, forcing a full rebuild of the project.
-
-Use these commands to resolve occasional build failures which may arise after some dependency updates. Once done, `npm run build` should work again. Note that full rebuilds take more time to complete.
-
-### Develop with `esbuild`
-
-Experimental support for faster builds with `esbuild`
-- `npm run dev:all` - watch mode for all apps and examples
-- `npm run dev:viewer` - watch mode for viewer
-- `npm run dev:apps` - watch mode for all apps
-- `npm run dev:examples` - watch mode for all examples
-- `npm run dev -- -a <app name 1> <app name 2> -e <example name 1> ...` - watch mode for specified apps/examples. `-a`/`-e` with without any names will build everything.
-
-### Build for production:
-    NODE_ENV=production npm run build
-
-**Run**
-
-If not installed previously:
-
-    npm install -g http-server
-
-...or a similar solution.
-
-From the root of the project:
-
-    http-server -p PORT-NUMBER
-
-and navigate to `build/viewer`
-
-### Code generation
-**CIF schemas**
-
-    node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/mmcif.ts -p mmCIF
-    node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/ccd.ts -p CCD
-    node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/bird.ts -p BIRD
-    node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/sf.ts -p SF
-    node ./lib/commonjs/cli/cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/cif-core.ts -p CifCore -aa
-
-**Lipid names**
-
-    node lib/commonjs/cli/lipid-params -o src/mol-model/structure/model/types/lipids.ts
-
-**Ion names**
-
-    node --max-old-space-size=8192 lib/commonjs/cli/chem-comp-dict/create-ions.js src/mol-model/structure/model/types/ions.ts
-
-**Saccharide names**
-
-    node --max-old-space-size=8192 lib/commonjs/cli/chem-comp-dict/create-saccharides.js src/mol-model/structure/model/types/saccharides.ts
-
-**Syminfo**
-
-    node lib/commonjs/cli/syminfo
-
-### Other scripts
-**Create chem comp bond table**
-
-    node --max-old-space-size=8192 lib/commonjs/cli/chem-comp-dict/create-table.js build/data/ccb.bcif -b
-
-**Test model server**
-
-    export NODE_PATH="lib"; node build/src/servers/model/test.js
-
-**State Transformer Docs**
-
-    export NODE_PATH="lib"; node build/state-docs
-
-**Convert any CIF to BinaryCIF (or vice versa)**
-
-    node lib/commonjs/servers/model/preprocess -i file.cif -ob file.bcif
-
-To see all available commands, use ``node lib/commonjs/servers/model/preprocess -h``.
-
-Or
-
-    node lib/commonjs/cli/cif2bcif
-
-E.g.
-
-    node lib/commonjs/cli/cif2bcif src.cif out.bcif.gz
-    node lib/commonjs/cli/cif2bcif src.bcif.gz out.cif
+```sh
+node cli/cifschema/lib/index.js -mip @molstar/core/data -o packages/io/src/reader/cif/schema/mmcif.ts -p mmCIF
+node cli/lipid-params/lib/index.js -o packages/model/src/model/structure/model/types/lipids.ts
+node cli/syminfo/lib/index.js
+node cli/cif2bcif/lib/index.js input.cif output.bcif
+```
 
 ## Development
-
-### Installation
-
-If node complains about a missing acorn peer dependency, run the following commands
-
-    npm update acorn --depth 20
-    npm dedupe
 
 ### Editor
 

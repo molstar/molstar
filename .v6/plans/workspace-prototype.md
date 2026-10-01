@@ -1,6 +1,7 @@
 # Mol* v6 workspace prototype implementation plan
 
-Status: implementation plan for the structural workspace prototype.
+Status: implemented and locally verified structural prototype (2026-10-01).
+Native headless capture and execution of the configured CI job remain pending.
 
 See [workspace-usage.md](workspace-usage.md) for commands and consumer examples,
 and [migration-map.json](migration-map.json) for source ownership changes.
@@ -252,13 +253,13 @@ re-export shims. Couple moves that cannot otherwise produce a buildable checkpoi
   Baseline typecheck, lint, and unit tests were captured; a pre-migration render
   was not captured, so the current browser fixtures provide functional evidence
   rather than a visual before/after comparison.
-- [ ] Create a reproducible source/package graph inventory covering imports,
+- [x] Create a reproducible source/package graph inventory covering imports,
   re-exports, dynamic loads, declaration dependencies, external imports, and assets.
-- [ ] Create the source/API migration map and explicit public/private package list.
-- [ ] Introduce pnpm, a pinned package-manager version, catalog, and lockfile; adapt
+- [x] Create the source/API migration map and explicit public/private package list.
+- [x] Introduce pnpm, a pinned package-manager version, catalog, and lockfile; adapt
   current CI/install commands without requiring public publishing.
-- [ ] Add shared compiler configuration and local version sync/check tooling.
-- [ ] Establish the private `smoke/` harness and baseline fixture data; distinguish
+- [x] Add shared compiler configuration and local version sync/check tooling.
+- [x] Establish the private `smoke/` harness and baseline fixture data; distinguish
   planned checks from checks that run against functional v6 packages.
 
 Exit: a clean pnpm install reproduces current behavior, the audit is reproducible,
@@ -267,15 +268,15 @@ empty package directories as a functioning prototype.
 
 ### B. First functioning slice: core and IO
 
-- [ ] Resolve core reverse dependencies, including general parsing primitives,
+- [x] Resolve core reverse dependencies, including general parsing primitives,
   query parameter types, and extraction of GPU-facing math.
-- [ ] Resolve model-aware writer dependencies so IO can compile below model.
-- [ ] Move core and IO into their packages, rewrite all affected callers, and add
+- [x] Resolve model-aware writer dependencies so IO can compile below model.
+- [x] Move core and IO into their packages, rewrite all affected callers, and add
   direct dependencies, exports, assets, and project references.
-- [ ] Establish compiled ESM and declaration consumption plus source-condition
+- [x] Establish compiled ESM and declaration consumption plus source-condition
   bundling for these packages. Convert relative imports and affected barrels as
   required to make the slice independently usable.
-- [ ] Keep not-yet-moved code buildable using the packages' supported imports.
+- [x] Keep not-yet-moved code buildable using the packages' supported imports.
 
 Exit: core and IO build without remaining `src/` dependencies, the package graph
 has no upward edges, and a clean packed consumer exercises utility/task and parsing
@@ -284,15 +285,15 @@ Run the Node ESM, declaration, and packed-consumer smoke fixtures for this slice
 
 ### C. Model, graphics, plugin, UI, and headless packages
 
-- [ ] Resolve remaining reverse dependencies and move packages in dependency order.
-- [ ] Preserve WebGL algorithms/shaders, Canvas3D behavior, representations, and
+- [x] Resolve remaining reverse dependencies and move packages in dependency order.
+- [x] Preserve WebGL algorithms/shaders, Canvas3D behavior, representations, and
   current default registration. Limit graphics changes to ownership/import fixes.
-- [ ] Separate Node headless support and explicit MP4 integration from browser
+- [x] Separate Node headless support and explicit MP4 integration from browser
   runtime ownership; preserve injected native-module support.
-- [ ] Keep default specs/catalogs owned by their packages. Track composition/barrel
+- [x] Keep default specs/catalogs owned by their packages. Track composition/barrel
   debt without promising slim bundles in this prototype.
-- [ ] Finish scoped imports, TSX exports, UI style exports/assets, and type dependencies.
-- [ ] Build moved packages with `NodeNext`, `verbatimModuleSyntax`, declarations,
+- [x] Finish scoped imports, TSX exports, UI style exports/assets, and type dependencies.
+- [x] Build moved packages with `NodeNext`, `verbatimModuleSyntax`, declarations,
   declaration maps, and the existing strictness settings; retain Node 22+.
 
 During migration, retain existing compiler settings for unmoved code. If shared
@@ -307,17 +308,17 @@ exclude headless/native/video modules.
 
 ### D. Per-app builds and distribution staging
 
-- [ ] Extract `scripts/esbuild/app.mjs` with source-condition resolution, SCSS,
+- [x] Extract `scripts/esbuild/app.mjs` with source-condition resolution, SCSS,
   asset handling, version injection, production builds, watch, and serve support.
-- [ ] Move Viewer first; give it its own dependencies, entry points, themes, output
+- [x] Move Viewer first; give it its own dependencies, entry points, themes, output
   configuration, and scripts. Preserve the published Viewer API.
-- [ ] Move the remaining apps/examples and remove dependence on the root `Apps`
+- [x] Move the remaining apps/examples and remove dependence on the root `Apps`
   list and root dependency hoisting.
-- [ ] Create `distributions/molstar/` with an explicit staging/packing command that
+- [x] Create `distributions/molstar/` with an explicit staging/packing command that
   assembles freshly built Viewer and MVS Stories assets.
-- [ ] Preserve classic-script globals, output filenames, custom elements, HTML,
+- [x] Preserve classic-script globals, output filenames, custom elements, HTML,
   CSS, themes, images, icons, and both installed CDN directory paths.
-- [ ] Generate browser-ready ESM modules/shared chunks, precompiled CSS, and the
+- [x] Generate browser-ready ESM modules/shared chunks, precompiled CSS, and the
   import map from the supported entry inventory; add no-build Viewer and modular
   library pages under `smoke/browser/`.
 
@@ -330,18 +331,18 @@ without a bundler, dev-server transformation, or consumer compilation.
 
 ### E. MVS, extensions, commands, servers, and complete workspace checks
 
-- [ ] Separate MVS builder/runtime ownership. Keep the builder independent of all
+- [x] Separate MVS builder/runtime ownership. Keep the builder independent of all
   Mol* packages and the runtime dependent on the builder rather than a copied API.
-- [ ] Move individual extensions and declare their direct imports/dependencies.
-- [ ] Package supported CLI/server entry points; assign shared server helpers and
+- [x] Move individual extensions and declare their direct imports/dependencies.
+- [x] Package supported CLI/server entry points; assign shared server helpers and
   development-only generators explicit ownership rather than cross-package relatives.
-- [ ] Preserve executable names. Keep validation/schema commands with MVS builder;
+- [x] Preserve executable names. Keep validation/schema commands with MVS builder;
   isolate rendering/native/video dependencies in the rendering CLI.
-- [ ] Convert affected `require`, path globals, scripts, and asset lookups to working
+- [x] Convert affected `require`, path globals, scripts, and asset lookups to working
   compiled ESM execution. Never use typechecking alone as a bin-runtime check.
-- [ ] Finish root solution references and private tooling setup, remove obsolete
+- [x] Finish root solution references and private tooling setup, remove obsolete
   monolithic build/CJS machinery, and verify all public package inventories.
-- [ ] Add workspace CI checks and short build/migration instructions. Record remaining
+- [x] Add workspace CI checks and short build/migration instructions. Record remaining
   v6 composition, publishing, migrator, and documentation work explicitly.
 
 Exit: clean install/build/pack checks cover the complete workspace; source-built
@@ -350,30 +351,30 @@ supported bins execute from installed tarballs with their required assets.
 
 ## 6. Prototype acceptance
 
-- [ ] Root standard `smoke/` checks run locally against freshly built/packed output;
+- [x] Root standard `smoke/` checks run locally against freshly built/packed output;
   a successful import alone is not the complete runtime assertion. CI commands
   are configured but their hosted execution is still pending.
-- [ ] No cross-package relative imports or dependencies on unowned legacy source.
-- [ ] No package cycles, including dependencies needed by emitted declarations.
-- [ ] Every public package declares its direct runtime and consumer-facing type
+- [x] No cross-package relative imports or dependencies on unowned legacy source.
+- [x] No package cycles, including dependencies needed by emitted declarations.
+- [x] Every public package declares its direct runtime and consumer-facing type
   dependencies; every export resolves in its packed artifact.
-- [ ] Clean `tsc -b` builds produce ESM JS/declarations without stale output.
-- [ ] Source-condition app builds work without prebuilt library `lib/` directories.
-- [ ] Plain Node `.mjs` consumers execute installed package exports with no loader.
-- [ ] Plain browser HTML/JavaScript consumers exercise Viewer and modular library
+- [x] Clean `tsc -b` builds produce ESM JS/declarations without stale output.
+- [x] Source-condition app builds work without prebuilt library `lib/` directories.
+- [x] Plain Node `.mjs` consumers execute installed package exports with no loader.
+- [x] Plain browser HTML/JavaScript consumers exercise Viewer and modular library
   ESM without consumer builds, with successful module/assets requests and no
   uncaught runtime errors or duplicated shared module instances.
-- [ ] Full default Viewer behavior survives representative loading/rendering,
+- [x] Full default Viewer behavior survives representative loading/rendering,
   selection, and snapshot checks; no backend redesign is needed.
 - [ ] Native headless capture is verified on a suitable host. The capture fixture
   and dedicated Linux/Xvfb CI step are implemented; this macOS host returns no
   GL context. MVS validation passes without native rendering dependencies, and
   the base headless package has no automatic MP4 integration.
-- [ ] Packed distribution preserves Viewer/MVS Stories browser APIs and paths.
-- [ ] Public versions and packed internal dependency versions match `version.json`.
-- [ ] Required HTML, CSS, shader modules, images, and command data are present;
+- [x] Packed distribution preserves Viewer/MVS Stories browser APIs and paths.
+- [x] Public versions and packed internal dependency versions match `version.json`.
+- [x] Required HTML, CSS, shader modules, images, and command data are present;
   tests/fixtures and unintended development files are excluded from tarballs.
-- [ ] Deferred architecture requirements remain documented as follow-up work.
+- [x] Deferred architecture requirements remain documented as follow-up work.
 
 Use existing meaningful tests and targeted consumer/build/browser fixtures. Do not
 expand this into a separate test-framework project or add tests that merely mirror
@@ -414,7 +415,33 @@ real loaded scene, and verify rendering/state behavior. Save diagnostic logs/ima
 on failure, clean up servers/temp consumers, and exclude generated smoke artifacts
 from Git and public tarballs. Keep package-level unit tests where they belong.
 
-## 8. Release separation
+## 8. Implementation evidence and release separation
+
+The workspace inventory contains 69 packages, including 43 public packages.
+Production source has moved out of the original monolithic `src/` tree. The
+structural work in checkpoints B–E is implemented; verification evidence and
+remaining host-dependent checks are recorded below.
+
+- Full lint and TypeScript solution builds pass.
+- Jest: 131 suites and 1,477 tests pass; 11 suites and 14 tests skip.
+- The source-condition app build succeeds with all 67 library output directories
+  absent.
+- Isolated packed Node ESM, strict declaration, source-bundler, and MVS CLI
+  consumer checks pass.
+- Workspace import/declaration graph and version checks pass for all 69 packages.
+- Native capture remains unverified locally: Node 22 can load the native binding
+  but cannot create a GL context on this macOS host. Linux/Xvfb CI is configured
+  but has not been executed in this session.
+- All 43 public tarballs pass version, dependency-range, bin, asset, and export
+  target checks, including source/Sass conditions. Build metadata and source
+  test fixtures are excluded.
+- Compiled cif2bcif/cifschema and model/volume server command usage checks pass.
+  Native rendering CLI startup is host-dependent and remains unverified locally.
+- Packed browser fixtures pass for native ESM Viewer, modular plugin UI, classic
+  Viewer, and classic MVS Stories. They exercise local structure loading and
+  representations, selection/snapshot round trips, shared module identities,
+  custom elements, and successful assets without runtime errors.
+- No public publishing, deployment, or release branch changes were performed.
 
 The full architecture's final 5.x release, `v5` maintenance branch, default-branch
 rename, registry-name checks, and publishing gates still apply before v6 lands or
