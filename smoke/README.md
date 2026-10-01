@@ -1,5 +1,10 @@
 # Consumer smoke harness
 
+From the repository root, run `pnpm --dir smoke smoke` to build, pack, and run the
+standard suite. Focused checks use commands such as
+`pnpm --dir smoke smoke:node` and require current build output. Smoke scripts live
+in this package rather than the root manifest.
+
 `node smoke/run.mjs <node|types|browser|source|cli|headless|all>` exercises package artifacts as an external consumer. `all` runs Node, declarations, source bundling, the packed MVS validation command, and browser checks. `--prepare` invokes the repository's `build:workspace` and `pack:workspace` scripts before running checks. Focused runs require a current `scripts/workspace/inventory.json` and report missing artifacts as failures.
 
 The harness packs each requested public package and its internal dependency closure into temporary tarballs. Consumer projects live in the OS temporary directory and install those tarballs through local file references, so internal imports cannot resolve through workspace links or a registry. Temporary directories are removed on exit.
@@ -14,7 +19,7 @@ Build first, then keep the packed-artifact server running:
 
 ```sh
 pnpm build
-pnpm smoke:browser --serve
+pnpm --dir smoke smoke:browser --serve
 ```
 
 Open <http://127.0.0.1:1339/viewer/> for the ESM Viewer or

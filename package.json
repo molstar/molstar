@@ -25,14 +25,8 @@
     "check:workspace": "node scripts/workspace/check.mjs",
     "version:check": "node scripts/workspace/version.mjs --check",
     "version:sync": "node scripts/workspace/version.mjs --write",
-    "dev:viewer": "pnpm --filter @molstar/viewer dev",
-    "smoke": "node smoke/run.mjs all --prepare",
-    "smoke:node": "node smoke/run.mjs node",
-    "smoke:types": "node smoke/run.mjs types",
-    "smoke:browser": "node smoke/run.mjs browser",
-    "smoke:source": "node smoke/run.mjs source",
-    "smoke:headless": "node smoke/run.mjs headless",
-    "smoke:cli": "node smoke/run.mjs cli --prepare"
+    "dev:app": "node scripts/esbuild/app.mjs --dev --kind app",
+    "dev:example": "node scripts/esbuild/app.mjs --dev --kind example"
   },
   "nodemonConfig": {
     "ignoreRoot": [

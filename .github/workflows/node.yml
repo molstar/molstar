@@ -35,9 +35,9 @@ jobs:
       - name: Pack public packages
         run: pnpm pack:workspace
       - name: Consumer smoke checks
-        run: pnpm smoke:node && pnpm smoke:types && pnpm smoke:source && pnpm smoke:cli && pnpm smoke:browser
+        run: pnpm --dir smoke smoke:node && pnpm --dir smoke smoke:types && pnpm --dir smoke smoke:source && pnpm --dir smoke smoke:cli && pnpm --dir smoke smoke:browser
       - name: Headless consumer smoke
         run: |
           export MOLSTAR_SMOKE_GL="$(node -e "const { createRequire } = require('node:module'); console.log(createRequire(process.cwd() + '/cli/mvs-render/package.json').resolve('gl'))")"
           export MOLSTAR_SMOKE_PNGJS="$(node -e "const { createRequire } = require('node:module'); console.log(createRequire(process.cwd() + '/cli/mvs-render/package.json').resolve('pngjs'))")"
-          xvfb-run --auto-servernum pnpm smoke:headless
+          xvfb-run --auto-servernum pnpm --dir smoke smoke:headless

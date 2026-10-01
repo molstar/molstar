@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "smoke": "node ./run.mjs all",
+    "smoke": "node ./run.mjs all --prepare",
     "smoke:node": "node ./run.mjs node",
     "smoke:types": "node ./run.mjs types",
     "smoke:browser": "node ./run.mjs browser",

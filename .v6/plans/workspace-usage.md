@@ -9,7 +9,7 @@ pnpm install
 pnpm build
 pnpm check:workspace
 pnpm test
-pnpm smoke
+pnpm --dir smoke smoke
 ```
 
 `pnpm build:lib` compiles the TypeScript solution and copies package assets.
@@ -19,8 +19,10 @@ pnpm smoke
 browser ESM modules in `distributions/molstar/build`. `pnpm pack:workspace` creates
 local public package tarballs in `build/packages` and checks their version ranges and published entry points/assets.
 
-Use `pnpm dev:viewer` for a source-based Viewer dev server. Each browser app/example
-also has its own `build` and `dev` scripts. Node examples compile with TypeScript.
+Use `pnpm dev:app -- viewer` for a source-based Viewer dev server. Each browser app/example
+also has its own `build` and `dev` scripts. Select examples from the root with
+`pnpm dev:example -- basic-wrapper`. Both selectors accept `--port 1340` and
+`--help` to list available browser targets. Node examples compile with TypeScript.
 The root `scripts/workspace/inventory.json` records package ownership; explicit
 exports and dependencies live in each package's manifest. When adding/moving a
 source module, update those declarations and TypeScript references. The
@@ -103,7 +105,7 @@ detects drift. No package is published by these commands.
 `smoke/` tests isolated tarball consumers, Node exports, emitted types, source
 build resolution, MVS CLI execution, and native browser ESM/classic rendering.
 Browser checks serve files extracted from the distribution tarball. Use the
-focused root `smoke:*` commands after building, or `pnpm smoke` to build and pack
+focused `pnpm --dir smoke smoke:*` commands after building, or `pnpm --dir smoke smoke` to build and pack
 first. `smoke:headless` is a separate native capture check. Set
 `MOLSTAR_SMOKE_BROWSER` to a Chromium executable when needed.
 

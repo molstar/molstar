@@ -49,12 +49,13 @@ Use Node 22+ and the pnpm version specified in `package.json`.
 ```sh
 pnpm install
 pnpm build
-pnpm dev:viewer
+pnpm dev:app -- viewer
+pnpm dev:example -- basic-wrapper
 ```
 
-Run `pnpm check:workspace`, `pnpm test` and `pnpm smoke` to check package boundaries,
+Run `pnpm check:workspace`, `pnpm test` and `pnpm --dir smoke smoke` to check package boundaries,
 existing behavior and packed ESM consumers. The smoke browser requires Chromium;
-optional native capture has its own `pnpm smoke:headless` check.
+optional native capture has its own `pnpm --dir smoke smoke:headless` check.
 
 Serve `distributions/molstar/` to access `build/viewer/` and `build/mvs-stories/`.
 Browser ESM entry points are under `build/esm/`. Use `node scripts/clean.js --all`

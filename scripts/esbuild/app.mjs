@@ -6,14 +6,22 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { sassPlugin } from 'esbuild-sass-plugin';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const args = process.argv.slice(2);
+const args = process.argv.slice(2).filter(arg => arg !== '--');
 const value = (flag, fallback) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : fallback; };
 const all = args.includes('--all');
 const dev = args.includes('--dev') || args.includes('--watch');
 const production = args.includes('--prd') || !dev;
 const serve = dev || args.includes('--serve');
 const port = Number(value('--port', '1338'));
-const target = args.find(a => !a.startsWith('-'));
+const kind = value('--kind');
+if (kind && !['app', 'example'].includes(kind)) throw new Error('--kind must be app or example.');
+const positional = [];
+for (let i = 0; i < args.length; i++) {
+    if (['--kind', '--port'].includes(args[i])) { i++; continue; }
+    if (!args[i].startsWith('-')) positional.push(args[i]);
+}
+const [target] = positional;
+if (positional.length > 1) throw new Error('Select one app or example.');
 const timestamp = Number(process.env.MOLSTAR_BUILD_TIMESTAMP ?? Date.now());
 const version = JSON.parse(fs.readFileSync(path.join(root, 'version.json'), 'utf8')).version;
 const inventoryPath = path.join(root, 'scripts/workspace/inventory.json');
@@ -58,16 +66,20 @@ const pkgInfo = p => {
     return { ...p, ...manifest, config: manifest.molstar ?? {} };
 };
 const apps = (inventory.packages ?? []).filter(p => {
-    if (!['app', 'example'].includes(p.kind)) return false;
+    if (!['app', 'example'].includes(p.kind) || kind && p.kind !== kind) return false;
     const manifestPath = path.join(root, p.path, 'package.json');
     if (!fs.existsSync(manifestPath)) return false;
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     return manifest.molstar?.platform !== 'node';
 });
-const selected = all ? apps : target ? apps.filter(p => p.name === target || p.path === target) : [];
-if (!selected.length) {
-    console.error('Usage: node scripts/esbuild/app.mjs <package-name|path> [--prd|--dev] | --all [--prd|--dev]');
-    process.exit(2);
+const selected = all ? apps : target ? apps.filter(p => p.name === target || p.path === target || kind && path.basename(p.path) === target) : [];
+if (args.includes('--help') || !selected.length) {
+    const usage = kind
+        ? `Usage: pnpm dev:${kind} -- <name> [--port <port>]`
+        : 'Usage: node scripts/esbuild/app.mjs <package-name|path> [--prd|--dev] | --all [--prd|--dev]';
+    console.log(usage);
+    console.log(`Available browser ${kind ? `${kind}s` : 'apps/examples'}: ${apps.map(p => kind ? path.basename(p.path) : p.path).join(', ')}`);
+    process.exit(args.includes('--help') ? 0 : 2);
 }
 for (const p of selected) if (!fs.existsSync(path.join(root, p.path, 'package.json'))) throw new Error(`Missing manifest: ${p.path}/package.json`);
 
@@ -132,6 +144,19 @@ async function buildPackage(rawPkg) {
             __MOLSTAR_BUILD_TIMESTAMP__: String(timestamp),
         }, logLevel: 'info'
     };
+    if (pkg.kind === 'example') {
+        options.plugins.push({
+            name: 'molstar-example-css',
+            setup(build) {
+                build.onEnd(async result => {
+                    const indexCss = path.join(outdir, 'index.css');
+                    if (!result.errors.length && fs.existsSync(indexCss)) {
+                        await fs.promises.rename(indexCss, path.join(outdir, 'molstar.css'));
+                    }
+                });
+            }
+        });
+    }
     if (dev) {
         const ctx = await esbuild.context(options);
         await ctx.watch();
@@ -145,10 +170,6 @@ async function buildPackage(rawPkg) {
         const themeOut = path.join(outdir, 'theme');
         const themeOptions = { ...options, entryPoints: [themeEntry], outfile: path.join(themeOut, `${theme}.js`), globalName: undefined, plugins: [sourceJsExtensionPlugin, sassPlugin({ type: 'css', embedded: false, importers: [sassImporter], silenceDeprecations: ['import'] })], sourcemap: false };
         if (dev) { const ctx = await esbuild.context(themeOptions); await ctx.watch(); contexts.push(ctx); } else await esbuild.build(themeOptions);
-    }
-    if (pkg.kind === 'example') {
-        const indexCss = path.join(outdir, 'index.css');
-        if (fs.existsSync(indexCss)) await fs.promises.rename(indexCss, path.join(outdir, 'molstar.css'));
     }
     console.log(`${dev ? 'Watching' : 'Built'} ${pkg.name} → ${path.relative(root, outdir)}`);
 }
@@ -168,7 +189,7 @@ if (serve) {
         } catch { res.writeHead(404).end('Not found'); }
     });
     await new Promise(resolve => server.listen(port, '0.0.0.0', resolve));
-    console.log(`Static server: http://localhost:${port}`);
+    for (const pkg of selected) console.log(`${pkg.name}: http://localhost:${port}/${pkg.path}/build/`);
     await new Promise(resolve => {
         const close = async () => { server.close(); await Promise.all(contexts.map(c => c.dispose())); resolve(); };
         process.once('SIGINT', close); process.once('SIGTERM', close);

@@ -397,9 +397,9 @@ are created outside the repository and must not inherit workspace dependencies.
 | CLI/headless | Installed command/headless packages | Validation/schema command output and capture with declared/injected dependencies; native checks in a suitable dedicated CI job |
 | Classic browser compatibility | Statically served packed classic outputs | Existing Viewer/MVS Stories globals, APIs, custom elements, and assets |
 
-Commands are `pnpm smoke` for the standard suite and `pnpm smoke:node`,
-`pnpm smoke:types`, `pnpm smoke:browser`, `pnpm smoke:source`, and
-`pnpm smoke:headless` for focused checks. Root `pnpm smoke` prepares fresh package/distribution artifacts,
+Commands are `pnpm --dir smoke smoke` for the standard suite and `pnpm --dir smoke smoke:node`,
+`pnpm --dir smoke smoke:types`, `pnpm --dir smoke smoke:browser`, `pnpm --dir smoke smoke:source`, and
+`pnpm --dir smoke smoke:headless` for focused checks. `pnpm --dir smoke smoke` prepares fresh package/distribution artifacts,
 installs the packed dependency closure, then runs the standard fixtures; focused
 commands validate their prerequisites rather than silently accepting stale output.
 
