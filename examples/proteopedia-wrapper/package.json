@@ -1,0 +1,78 @@
+{
+  "name": "@molstar/proteopedia-wrapper-example",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* proteopedia-wrapper-example",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./annotation": {
+      "molstar-src": "./src/annotation.ts",
+      "types": "./lib/annotation.d.ts",
+      "import": "./lib/annotation.js"
+    },
+    "./coloring": {
+      "molstar-src": "./src/coloring.ts",
+      "types": "./lib/coloring.d.ts",
+      "import": "./lib/coloring.js"
+    },
+    "./helpers": {
+      "molstar-src": "./src/helpers.ts",
+      "types": "./lib/helpers.d.ts",
+      "import": "./lib/helpers.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./ui/controls": {
+      "molstar-src": "./src/ui/controls.tsx",
+      "types": "./lib/ui/controls.d.ts",
+      "import": "./lib/ui/controls.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs examples/proteopedia-wrapper --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs examples/proteopedia-wrapper --dev"
+  },
+  "dependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "peerDependencies": {
+    "react-dom": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {},
+  "molstar": {
+    "entry": "src/index.ts",
+    "filename": "index.js",
+    "globalName": "molstar"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "@molstar/examples-standalone",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* examples-standalone",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./task": {
+      "molstar-src": "./src/task.ts",
+      "types": "./lib/task.d.ts",
+      "import": "./lib/task.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

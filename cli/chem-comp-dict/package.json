@@ -1,0 +1,54 @@
+{
+  "name": "@molstar/chem-comp-dict-cli",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* chem-comp-dict-cli",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./create-ions": {
+      "molstar-src": "./src/create-ions.ts",
+      "types": "./lib/create-ions.d.ts",
+      "import": "./lib/create-ions.js"
+    },
+    "./create-saccharides": {
+      "molstar-src": "./src/create-saccharides.ts",
+      "types": "./lib/create-saccharides.d.ts",
+      "import": "./lib/create-saccharides.js"
+    },
+    "./create-table": {
+      "molstar-src": "./src/create-table.ts",
+      "types": "./lib/create-table.d.ts",
+      "import": "./lib/create-table.js"
+    },
+    "./util": {
+      "molstar-src": "./src/util.ts",
+      "types": "./lib/util.d.ts",
+      "import": "./lib/util.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "argparse": "catalog:",
+    "tslib": "catalog:",
+    "@types/argparse": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/io": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

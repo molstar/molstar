@@ -1,0 +1,41 @@
+{
+  "name": "@molstar/volseg-api-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* meshes-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./data": {
+      "molstar-src": "./src/data.ts",
+      "types": "./lib/data.d.ts",
+      "import": "./lib/data.js"
+    },
+    "./utils": {
+      "molstar-src": "./src/utils.ts",
+      "types": "./lib/utils.d.ts",
+      "import": "./lib/utils.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

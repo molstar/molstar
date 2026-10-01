@@ -1,0 +1,93 @@
+/**
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
+
+import { Color, ColorMap } from '@molstar/core/util/color';
+import { StructureElement, type Unit, Bond, type ElementIndex } from '@molstar/model/model/structure';
+import type { Location } from '@molstar/model/model/location';
+import type { ColorTheme } from '../color.js';
+import { MoleculeType } from '@molstar/model/model/structure/model/types';
+import { getElementMoleculeType } from '@molstar/model/model/structure/util';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import type { ThemeDataContext } from '../theme.js';
+import { TableLegend } from '@molstar/core/util/legend';
+import { getAdjustedColorMap } from '@molstar/core/util/color/color';
+import { getColorMapParams } from '@molstar/core/util/color/params';
+import { ColorThemeCategory } from './categories.js';
+
+export const MoleculeTypeColors = ColorMap({
+    water: 0x386cb0,
+    ion: 0xf0027f,
+    protein: 0xbeaed4,
+    RNA: 0xfdc086,
+    DNA: 0xbf5b17,
+    PNA: 0x42A49A,
+    saccharide: 0x7fc97f,
+});
+export type MoleculeTypeColors = typeof MoleculeTypeColors
+
+const DefaultMoleculeTypeColor = Color(0xffff99);
+const Description = 'Assigns a color based on the molecule type of a residue.';
+
+export const MoleculeTypeColorThemeParams = {
+    saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
+    lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
+    colors: PD.MappedStatic('default', {
+        'default': PD.EmptyGroup(),
+        'custom': PD.Group(getColorMapParams(MoleculeTypeColors))
+    })
+};
+export type MoleculeTypeColorThemeParams = typeof MoleculeTypeColorThemeParams
+export function getMoleculeTypeColorThemeParams(ctx: ThemeDataContext) {
+    return MoleculeTypeColorThemeParams; // TODO return copy
+}
+
+export function moleculeTypeColor(colorMap: MoleculeTypeColors, unit: Unit, element: ElementIndex): Color {
+    const moleculeType = getElementMoleculeType(unit, element);
+    switch (moleculeType) {
+        case MoleculeType.Water: return colorMap.water;
+        case MoleculeType.Ion: return colorMap.ion;
+        case MoleculeType.Protein: return colorMap.protein;
+        case MoleculeType.RNA: return colorMap.RNA;
+        case MoleculeType.DNA: return colorMap.DNA;
+        case MoleculeType.PNA: return colorMap.PNA;
+        case MoleculeType.Saccharide: return colorMap.saccharide;
+    }
+    return DefaultMoleculeTypeColor;
+}
+
+export function MoleculeTypeColorTheme(ctx: ThemeDataContext, props: PD.Values<MoleculeTypeColorThemeParams>): ColorTheme<MoleculeTypeColorThemeParams> {
+    const colorMap = getAdjustedColorMap(props.colors.name === 'default' ? MoleculeTypeColors : props.colors.params, props.saturation, props.lightness);
+
+    function color(location: Location): Color {
+        if (StructureElement.Location.is(location)) {
+            return moleculeTypeColor(colorMap, location.unit, location.element);
+        } else if (Bond.isLocation(location)) {
+            return moleculeTypeColor(colorMap, location.aUnit, location.aUnit.elements[location.aIndex]);
+        }
+        return DefaultMoleculeTypeColor;
+    }
+
+    return {
+        factory: MoleculeTypeColorTheme,
+        granularity: 'group',
+        color,
+        props,
+        description: Description,
+        legend: TableLegend(Object.keys(colorMap).map(name => {
+            return [name, (colorMap as any)[name] as Color] as [string, Color];
+        }).concat([['Other/unknown', DefaultMoleculeTypeColor]]))
+    };
+}
+
+export const MoleculeTypeColorThemeProvider: ColorTheme.Provider<MoleculeTypeColorThemeParams, 'molecule-type'> = {
+    name: 'molecule-type',
+    label: 'Molecule Type',
+    category: ColorThemeCategory.Residue,
+    factory: MoleculeTypeColorTheme,
+    getParams: getMoleculeTypeColorThemeParams,
+    defaultValues: PD.getDefaultValues(MoleculeTypeColorThemeParams),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
+};

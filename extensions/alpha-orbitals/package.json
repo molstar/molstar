@@ -1,0 +1,74 @@
+{
+  "name": "@molstar/alpha-orbitals-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* alpha-orbitals-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./collocation": {
+      "molstar-src": "./src/collocation.ts",
+      "types": "./lib/collocation.d.ts",
+      "import": "./lib/collocation.js"
+    },
+    "./data-model": {
+      "molstar-src": "./src/data-model.ts",
+      "types": "./lib/data-model.d.ts",
+      "import": "./lib/data-model.js"
+    },
+    "./density": {
+      "molstar-src": "./src/density.ts",
+      "types": "./lib/density.d.ts",
+      "import": "./lib/density.js"
+    },
+    "./gpu/compute": {
+      "molstar-src": "./src/gpu/compute.ts",
+      "types": "./lib/gpu/compute.d.ts",
+      "import": "./lib/gpu/compute.js"
+    },
+    "./gpu/shader.frag": {
+      "molstar-src": "./src/gpu/shader.frag.ts",
+      "types": "./lib/gpu/shader.frag.d.ts",
+      "import": "./lib/gpu/shader.frag.js"
+    },
+    "./orbitals": {
+      "molstar-src": "./src/orbitals.ts",
+      "types": "./lib/orbitals.d.ts",
+      "import": "./lib/orbitals.js"
+    },
+    "./spherical-functions": {
+      "molstar-src": "./src/spherical-functions.ts",
+      "types": "./lib/spherical-functions.d.ts",
+      "import": "./lib/spherical-functions.js"
+    },
+    "./transforms": {
+      "molstar-src": "./src/transforms.ts",
+      "types": "./lib/transforms.d.ts",
+      "import": "./lib/transforms.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/plugin": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

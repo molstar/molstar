@@ -1,0 +1,51 @@
+{
+  "name": "@molstar/structure-info-cli",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* structure-info-cli",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./helpers": {
+      "molstar-src": "./src/helpers.ts",
+      "types": "./lib/helpers.d.ts",
+      "import": "./lib/helpers.js"
+    },
+    "./model": {
+      "molstar-src": "./src/model.ts",
+      "types": "./lib/model.d.ts",
+      "import": "./lib/model.js"
+    },
+    "./volume": {
+      "molstar-src": "./src/volume.ts",
+      "types": "./lib/volume.d.ts",
+      "import": "./lib/volume.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "argparse": "catalog:",
+    "tslib": "catalog:",
+    "@types/argparse": "catalog:",
+    "@molstar/io": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/graphics": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

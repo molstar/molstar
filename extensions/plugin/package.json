@@ -1,0 +1,77 @@
+{
+  "name": "@molstar/plugin-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* plugin-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./hooks/use-ui-view-model": {
+      "molstar-src": "./src/hooks/use-ui-view-model.ts",
+      "types": "./lib/hooks/use-ui-view-model.d.ts",
+      "import": "./lib/hooks/use-ui-view-model.js"
+    },
+    "./hooks/use-view-model": {
+      "molstar-src": "./src/hooks/use-view-model.ts",
+      "types": "./lib/hooks/use-view-model.d.ts",
+      "import": "./lib/hooks/use-view-model.js"
+    },
+    "./interactivity": {
+      "molstar-src": "./src/interactivity.ts",
+      "types": "./lib/interactivity.d.ts",
+      "import": "./lib/interactivity.js"
+    },
+    "./loaders": {
+      "molstar-src": "./src/loaders.ts",
+      "types": "./lib/loaders.d.ts",
+      "import": "./lib/loaders.js"
+    },
+    "./react": {
+      "molstar-src": "./src/react.tsx",
+      "types": "./lib/react.d.ts",
+      "import": "./lib/react.js"
+    },
+    "./ui-view-model": {
+      "molstar-src": "./src/ui-view-model.ts",
+      "types": "./lib/ui-view-model.d.ts",
+      "import": "./lib/ui-view-model.js"
+    },
+    "./view-model": {
+      "molstar-src": "./src/view-model.ts",
+      "types": "./lib/view-model.d.ts",
+      "import": "./lib/view-model.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@types/react": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/mvs": "workspace:*",
+    "@molstar/mvs-builder": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {}
+}

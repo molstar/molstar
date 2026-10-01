@@ -4,6 +4,7 @@ lib/
 docs/site/
 
 node_modules/
+.pnpm-store/
 debug.log
 npm-debug.log
 tsconfig.tsbuildinfo
@@ -20,3 +21,8 @@ dev.pem
 dev-key.pem
 
 data/sym/syminfo.lib
+
+**/lib/
+**/build/
+**/node_modules/
+**/*.tsbuildinfo

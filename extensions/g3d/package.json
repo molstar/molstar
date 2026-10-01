@@ -1,0 +1,49 @@
+{
+  "name": "@molstar/g3d-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* g3d-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./data": {
+      "molstar-src": "./src/data.ts",
+      "types": "./lib/data.d.ts",
+      "import": "./lib/data.js"
+    },
+    "./format": {
+      "molstar-src": "./src/format.ts",
+      "types": "./lib/format.d.ts",
+      "import": "./lib/format.js"
+    },
+    "./model": {
+      "molstar-src": "./src/model.ts",
+      "types": "./lib/model.d.ts",
+      "import": "./lib/model.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/io": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/model": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

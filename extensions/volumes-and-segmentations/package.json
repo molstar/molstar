@@ -1,0 +1,113 @@
+{
+  "name": "@molstar/volumes-and-segmentations-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* volumes-and-segmentations-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./entry-meshes": {
+      "molstar-src": "./src/entry-meshes.ts",
+      "types": "./lib/entry-meshes.d.ts",
+      "import": "./lib/entry-meshes.js"
+    },
+    "./entry-models": {
+      "molstar-src": "./src/entry-models.ts",
+      "types": "./lib/entry-models.d.ts",
+      "import": "./lib/entry-models.js"
+    },
+    "./entry-root": {
+      "molstar-src": "./src/entry-root.ts",
+      "types": "./lib/entry-root.d.ts",
+      "import": "./lib/entry-root.js"
+    },
+    "./entry-segmentation": {
+      "molstar-src": "./src/entry-segmentation.ts",
+      "types": "./lib/entry-segmentation.d.ts",
+      "import": "./lib/entry-segmentation.js"
+    },
+    "./entry-state": {
+      "molstar-src": "./src/entry-state.ts",
+      "types": "./lib/entry-state.d.ts",
+      "import": "./lib/entry-state.js"
+    },
+    "./entry-volume": {
+      "molstar-src": "./src/entry-volume.ts",
+      "types": "./lib/entry-volume.d.ts",
+      "import": "./lib/entry-volume.js"
+    },
+    "./external-api": {
+      "molstar-src": "./src/external-api.ts",
+      "types": "./lib/external-api.d.ts",
+      "import": "./lib/external-api.js"
+    },
+    "./global-state": {
+      "molstar-src": "./src/global-state.ts",
+      "types": "./lib/global-state.d.ts",
+      "import": "./lib/global-state.js"
+    },
+    "./helpers": {
+      "molstar-src": "./src/helpers.ts",
+      "types": "./lib/helpers.d.ts",
+      "import": "./lib/helpers.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./transformers": {
+      "molstar-src": "./src/transformers.ts",
+      "types": "./lib/transformers.d.ts",
+      "import": "./lib/transformers.js"
+    },
+    "./ui": {
+      "molstar-src": "./src/ui.tsx",
+      "types": "./lib/ui.d.ts",
+      "import": "./lib/ui.js"
+    },
+    "./volseg-api/api": {
+      "molstar-src": "./src/volseg-api/api.ts",
+      "types": "./lib/volseg-api/api.d.ts",
+      "import": "./lib/volseg-api/api.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "rxjs": "catalog:",
+    "@types/react": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/meshes-extension": "workspace:*",
+    "@molstar/volseg-api-extension": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {}
+}

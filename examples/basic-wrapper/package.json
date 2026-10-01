@@ -1,0 +1,72 @@
+{
+  "name": "@molstar/basic-wrapper-example",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* basic-wrapper-example",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./coloring": {
+      "molstar-src": "./src/coloring.ts",
+      "types": "./lib/coloring.d.ts",
+      "import": "./lib/coloring.js"
+    },
+    "./controls": {
+      "molstar-src": "./src/controls.tsx",
+      "types": "./lib/controls.d.ts",
+      "import": "./lib/controls.js"
+    },
+    "./custom-theme": {
+      "molstar-src": "./src/custom-theme.ts",
+      "types": "./lib/custom-theme.d.ts",
+      "import": "./lib/custom-theme.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./superposition": {
+      "molstar-src": "./src/superposition.ts",
+      "types": "./lib/superposition.d.ts",
+      "import": "./lib/superposition.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs examples/basic-wrapper --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs examples/basic-wrapper --dev"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/pdbe-extension": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "molstar": {
+    "entry": "src/index.ts",
+    "filename": "index.js",
+    "globalName": "molstar"
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "name": "@molstar/mvs-builder",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* mvs-builder",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./cli/mvs-print-schema": {
+      "molstar-src": "./src/cli/mvs-print-schema.ts",
+      "types": "./lib/cli/mvs-print-schema.d.ts",
+      "import": "./lib/cli/mvs-print-schema.js"
+    },
+    "./cli/mvs-validate": {
+      "molstar-src": "./src/cli/mvs-validate.ts",
+      "types": "./lib/cli/mvs-validate.d.ts",
+      "import": "./lib/cli/mvs-validate.js"
+    },
+    "./color-names": {
+      "molstar-src": "./src/color-names.ts",
+      "types": "./lib/color-names.d.ts",
+      "import": "./lib/color-names.js"
+    },
+    "./export": {
+      "molstar-src": "./src/export.ts",
+      "types": "./lib/export.d.ts",
+      "import": "./lib/export.js"
+    },
+    "./expression": {
+      "molstar-src": "./src/expression.ts",
+      "types": "./lib/expression.d.ts",
+      "import": "./lib/expression.js"
+    },
+    "./json": {
+      "molstar-src": "./src/json.ts",
+      "types": "./lib/json.d.ts",
+      "import": "./lib/json.js"
+    },
+    "./mvs-data": {
+      "molstar-src": "./src/mvs-data.ts",
+      "types": "./lib/mvs-data.d.ts",
+      "import": "./lib/mvs-data.js"
+    },
+    "./object": {
+      "molstar-src": "./src/object.ts",
+      "types": "./lib/object.d.ts",
+      "import": "./lib/object.js"
+    },
+    "./tree/animation/animation-tree": {
+      "molstar-src": "./src/tree/animation/animation-tree.ts",
+      "types": "./lib/tree/animation/animation-tree.d.ts",
+      "import": "./lib/tree/animation/animation-tree.js"
+    },
+    "./tree/generic/field-schema": {
+      "molstar-src": "./src/tree/generic/field-schema.ts",
+      "types": "./lib/tree/generic/field-schema.d.ts",
+      "import": "./lib/tree/generic/field-schema.js"
+    },
+    "./tree/generic/params-schema": {
+      "molstar-src": "./src/tree/generic/params-schema.ts",
+      "types": "./lib/tree/generic/params-schema.d.ts",
+      "import": "./lib/tree/generic/params-schema.js"
+    },
+    "./tree/generic/tree-schema": {
+      "molstar-src": "./src/tree/generic/tree-schema.ts",
+      "types": "./lib/tree/generic/tree-schema.d.ts",
+      "import": "./lib/tree/generic/tree-schema.js"
+    },
+    "./tree/generic/tree-utils": {
+      "molstar-src": "./src/tree/generic/tree-utils.ts",
+      "types": "./lib/tree/generic/tree-utils.d.ts",
+      "import": "./lib/tree/generic/tree-utils.js"
+    },
+    "./tree/generic/tree-validation": {
+      "molstar-src": "./src/tree/generic/tree-validation.ts",
+      "types": "./lib/tree/generic/tree-validation.d.ts",
+      "import": "./lib/tree/generic/tree-validation.js"
+    },
+    "./tree/mvs/mvs-builder": {
+      "molstar-src": "./src/tree/mvs/mvs-builder.ts",
+      "types": "./lib/tree/mvs/mvs-builder.d.ts",
+      "import": "./lib/tree/mvs/mvs-builder.js"
+    },
+    "./tree/mvs/mvs-tree-primitives": {
+      "molstar-src": "./src/tree/mvs/mvs-tree-primitives.ts",
+      "types": "./lib/tree/mvs/mvs-tree-primitives.d.ts",
+      "import": "./lib/tree/mvs/mvs-tree-primitives.js"
+    },
+    "./tree/mvs/mvs-tree-representations": {
+      "molstar-src": "./src/tree/mvs/mvs-tree-representations.ts",
+      "types": "./lib/tree/mvs/mvs-tree-representations.d.ts",
+      "import": "./lib/tree/mvs/mvs-tree-representations.js"
+    },
+    "./tree/mvs/mvs-tree": {
+      "molstar-src": "./src/tree/mvs/mvs-tree.ts",
+      "types": "./lib/tree/mvs/mvs-tree.d.ts",
+      "import": "./lib/tree/mvs/mvs-tree.js"
+    },
+    "./tree/mvs/param-types": {
+      "molstar-src": "./src/tree/mvs/param-types.ts",
+      "types": "./lib/tree/mvs/param-types.d.ts",
+      "import": "./lib/tree/mvs/param-types.js"
+    },
+    ".": {
+      "molstar-src": "./src/mvs-data.ts",
+      "types": "./lib/mvs-data.d.ts",
+      "import": "./lib/mvs-data.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "argparse": "catalog:",
+    "fflate": "catalog:",
+    "io-ts": "catalog:",
+    "tslib": "catalog:",
+    "@types/argparse": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "bin": {
+    "mvs-validate": "./lib/cli/mvs-validate.js",
+    "mvs-print-schema": "./lib/cli/mvs-print-schema.js"
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "name": "@molstar/mesoscale-explorer",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* mesoscale-explorer",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./app": {
+      "molstar-src": "./src/app.ts",
+      "types": "./lib/app.d.ts",
+      "import": "./lib/app.js"
+    },
+    "./behavior/camera": {
+      "molstar-src": "./src/behavior/camera.ts",
+      "types": "./lib/behavior/camera.d.ts",
+      "import": "./lib/behavior/camera.js"
+    },
+    "./behavior/select": {
+      "molstar-src": "./src/behavior/select.ts",
+      "types": "./lib/behavior/select.d.ts",
+      "import": "./lib/behavior/select.js"
+    },
+    "./data/cellpack/model": {
+      "molstar-src": "./src/data/cellpack/model.ts",
+      "types": "./lib/data/cellpack/model.d.ts",
+      "import": "./lib/data/cellpack/model.js"
+    },
+    "./data/cellpack/preset": {
+      "molstar-src": "./src/data/cellpack/preset.ts",
+      "types": "./lib/data/cellpack/preset.d.ts",
+      "import": "./lib/data/cellpack/preset.js"
+    },
+    "./data/generic/model": {
+      "molstar-src": "./src/data/generic/model.ts",
+      "types": "./lib/data/generic/model.d.ts",
+      "import": "./lib/data/generic/model.js"
+    },
+    "./data/generic/preset": {
+      "molstar-src": "./src/data/generic/preset.ts",
+      "types": "./lib/data/generic/preset.d.ts",
+      "import": "./lib/data/generic/preset.js"
+    },
+    "./data/mmcif/model": {
+      "molstar-src": "./src/data/mmcif/model.ts",
+      "types": "./lib/data/mmcif/model.d.ts",
+      "import": "./lib/data/mmcif/model.js"
+    },
+    "./data/mmcif/preset": {
+      "molstar-src": "./src/data/mmcif/preset.ts",
+      "types": "./lib/data/mmcif/preset.d.ts",
+      "import": "./lib/data/mmcif/preset.js"
+    },
+    "./data/petworld/model": {
+      "molstar-src": "./src/data/petworld/model.ts",
+      "types": "./lib/data/petworld/model.d.ts",
+      "import": "./lib/data/petworld/model.js"
+    },
+    "./data/petworld/preset": {
+      "molstar-src": "./src/data/petworld/preset.ts",
+      "types": "./lib/data/petworld/preset.d.ts",
+      "import": "./lib/data/petworld/preset.js"
+    },
+    "./data/state": {
+      "molstar-src": "./src/data/state.ts",
+      "types": "./lib/data/state.d.ts",
+      "import": "./lib/data/state.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./style.scss": {
+      "molstar-src": "./src/style.scss",
+      "sass": "./src/style.scss",
+      "default": "./lib/style.scss"
+    },
+    "./style.css": "./lib/style.css",
+    "./ui/entities": {
+      "molstar-src": "./src/ui/entities.tsx",
+      "types": "./lib/ui/entities.d.ts",
+      "import": "./lib/ui/entities.js"
+    },
+    "./ui/panels": {
+      "molstar-src": "./src/ui/panels.tsx",
+      "types": "./lib/ui/panels.d.ts",
+      "import": "./lib/ui/panels.js"
+    },
+    "./ui/states": {
+      "molstar-src": "./src/ui/states.tsx",
+      "types": "./lib/ui/states.d.ts",
+      "import": "./lib/ui/states.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs apps/mesoscale-explorer --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs apps/mesoscale-explorer --dev"
+  },
+  "dependencies": {
+    "react-markdown": "catalog:",
+    "rxjs": "catalog:",
+    "@types/react": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/mp4-export-extension": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/backgrounds-extension": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/io": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {},
+  "molstar": {
+    "entry": "src/index.ts",
+    "filename": "molstar.js",
+    "globalName": "molstar"
+  }
+}

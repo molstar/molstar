@@ -1,0 +1,59 @@
+{
+  "name": "@molstar/interactions-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* interactions-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./compute": {
+      "molstar-src": "./src/compute.ts",
+      "types": "./lib/compute.d.ts",
+      "import": "./lib/compute.js"
+    },
+    "./custom": {
+      "molstar-src": "./src/custom.ts",
+      "types": "./lib/custom.d.ts",
+      "import": "./lib/custom.js"
+    },
+    "./model": {
+      "molstar-src": "./src/model.ts",
+      "types": "./lib/model.d.ts",
+      "import": "./lib/model.js"
+    },
+    "./transforms": {
+      "molstar-src": "./src/transforms.ts",
+      "types": "./lib/transforms.d.ts",
+      "import": "./lib/transforms.js"
+    },
+    "./visuals": {
+      "molstar-src": "./src/visuals.ts",
+      "types": "./lib/visuals.d.ts",
+      "import": "./lib/visuals.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/model": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/plugin": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

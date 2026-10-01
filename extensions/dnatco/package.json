@@ -1,0 +1,130 @@
+{
+  "name": "@molstar/dnatco-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* dnatco-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./behavior": {
+      "molstar-src": "./src/behavior.ts",
+      "types": "./lib/behavior.d.ts",
+      "import": "./lib/behavior.js"
+    },
+    "./color": {
+      "molstar-src": "./src/color.ts",
+      "types": "./lib/color.d.ts",
+      "import": "./lib/color.js"
+    },
+    "./confal-pyramids/behavior": {
+      "molstar-src": "./src/confal-pyramids/behavior.ts",
+      "types": "./lib/confal-pyramids/behavior.d.ts",
+      "import": "./lib/confal-pyramids/behavior.js"
+    },
+    "./confal-pyramids/color": {
+      "molstar-src": "./src/confal-pyramids/color.ts",
+      "types": "./lib/confal-pyramids/color.d.ts",
+      "import": "./lib/confal-pyramids/color.js"
+    },
+    "./confal-pyramids/property": {
+      "molstar-src": "./src/confal-pyramids/property.ts",
+      "types": "./lib/confal-pyramids/property.d.ts",
+      "import": "./lib/confal-pyramids/property.js"
+    },
+    "./confal-pyramids/representation": {
+      "molstar-src": "./src/confal-pyramids/representation.ts",
+      "types": "./lib/confal-pyramids/representation.d.ts",
+      "import": "./lib/confal-pyramids/representation.js"
+    },
+    "./confal-pyramids/types": {
+      "molstar-src": "./src/confal-pyramids/types.ts",
+      "types": "./lib/confal-pyramids/types.d.ts",
+      "import": "./lib/confal-pyramids/types.js"
+    },
+    "./confal-pyramids/util": {
+      "molstar-src": "./src/confal-pyramids/util.ts",
+      "types": "./lib/confal-pyramids/util.d.ts",
+      "import": "./lib/confal-pyramids/util.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./ntc-tube/behavior": {
+      "molstar-src": "./src/ntc-tube/behavior.ts",
+      "types": "./lib/ntc-tube/behavior.d.ts",
+      "import": "./lib/ntc-tube/behavior.js"
+    },
+    "./ntc-tube/color": {
+      "molstar-src": "./src/ntc-tube/color.ts",
+      "types": "./lib/ntc-tube/color.d.ts",
+      "import": "./lib/ntc-tube/color.js"
+    },
+    "./ntc-tube/property": {
+      "molstar-src": "./src/ntc-tube/property.ts",
+      "types": "./lib/ntc-tube/property.d.ts",
+      "import": "./lib/ntc-tube/property.js"
+    },
+    "./ntc-tube/representation": {
+      "molstar-src": "./src/ntc-tube/representation.ts",
+      "types": "./lib/ntc-tube/representation.d.ts",
+      "import": "./lib/ntc-tube/representation.js"
+    },
+    "./ntc-tube/types": {
+      "molstar-src": "./src/ntc-tube/types.ts",
+      "types": "./lib/ntc-tube/types.d.ts",
+      "import": "./lib/ntc-tube/types.js"
+    },
+    "./ntc-tube/util": {
+      "molstar-src": "./src/ntc-tube/util.ts",
+      "types": "./lib/ntc-tube/util.d.ts",
+      "import": "./lib/ntc-tube/util.js"
+    },
+    "./property": {
+      "molstar-src": "./src/property.ts",
+      "types": "./lib/property.d.ts",
+      "import": "./lib/property.js"
+    },
+    "./types": {
+      "molstar-src": "./src/types.ts",
+      "types": "./lib/types.d.ts",
+      "import": "./lib/types.js"
+    },
+    "./util": {
+      "molstar-src": "./src/util.ts",
+      "types": "./lib/util.d.ts",
+      "import": "./lib/util.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/io": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

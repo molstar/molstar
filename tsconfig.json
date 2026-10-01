@@ -1,34 +1,206 @@
 {
-    "compilerOptions": {
-        "declaration": true,
-        "target": "es2018",
-        "alwaysStrict": true,
-        "noImplicitAny": true,
-        "noImplicitThis": true,
-        "sourceMap": false,
-        "noUnusedLocals": true,
-        "strictNullChecks": true,
-        "strictFunctionTypes": true,
-        "module": "esnext",
-        "esModuleInterop": true,
-        "moduleResolution": "bundler",
-        "isolatedModules": true,
-        "importHelpers": true,
-        "noEmitHelpers": true,
-        "allowSyntheticDefaultImports": true,
-        "jsx": "react-jsx",
-        "lib": [ "ES2018", "dom", "ES2022.Object" ],
-        "rootDir": "src",
-        "outDir": "lib",
-        "noUncheckedSideEffectImports": false,
-        "useUnknownInCatchVariables": false,
-        "strictPropertyInitialization": false,
-        "types": ["webxr", "node"]
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/docking-viewer"
     },
-    "include": [ "src/**/*" ],
-    "exclude": [ "src/**/_spec/*" ],
-    "tsc-alias": {
-        "resolveFullPaths": true,
-        "verbose": true
+    {
+      "path": "./apps/mesoscale-explorer"
+    },
+    {
+      "path": "./apps/mvs-stories"
+    },
+    {
+      "path": "./apps/viewer"
+    },
+    {
+      "path": "./cli/chem-comp-dict"
+    },
+    {
+      "path": "./cli/cif2bcif"
+    },
+    {
+      "path": "./cli/cifschema"
+    },
+    {
+      "path": "./cli/lipid-params"
+    },
+    {
+      "path": "./cli/mvs-render"
+    },
+    {
+      "path": "./packages/mvs/builder"
+    },
+    {
+      "path": "./cli/state-docs"
+    },
+    {
+      "path": "./cli/structure-info"
+    },
+    {
+      "path": "./cli/syminfo"
+    },
+    {
+      "path": "./examples/alpha-orbitals"
+    },
+    {
+      "path": "./examples/alphafolddb-pae"
+    },
+    {
+      "path": "./examples/basic-wrapper"
+    },
+    {
+      "path": "./examples/domain-annotation-server"
+    },
+    {
+      "path": "./examples/glb-export"
+    },
+    {
+      "path": "./examples/ihm-restraints"
+    },
+    {
+      "path": "./examples/image-renderer"
+    },
+    {
+      "path": "./examples/interactions"
+    },
+    {
+      "path": "./examples/ligand-editor"
+    },
+    {
+      "path": "./examples/lighting"
+    },
+    {
+      "path": "./examples/mvs-stories"
+    },
+    {
+      "path": "./examples/proteopedia-wrapper"
+    },
+    {
+      "path": "./examples/react"
+    },
+    {
+      "path": "./examples/standalone"
+    },
+    {
+      "path": "./examples/volume-tools"
+    },
+    {
+      "path": "./extensions/alpha-orbitals"
+    },
+    {
+      "path": "./extensions/anvil"
+    },
+    {
+      "path": "./extensions/assembly-symmetry"
+    },
+    {
+      "path": "./extensions/backgrounds"
+    },
+    {
+      "path": "./extensions/debug-helpers"
+    },
+    {
+      "path": "./extensions/dnatco"
+    },
+    {
+      "path": "./extensions/g3d"
+    },
+    {
+      "path": "./extensions/geo-export"
+    },
+    {
+      "path": "./extensions/interactions"
+    },
+    {
+      "path": "./extensions/json-cif"
+    },
+    {
+      "path": "./extensions/kinemage"
+    },
+    {
+      "path": "./extensions/meshes"
+    },
+    {
+      "path": "./extensions/model-archive"
+    },
+    {
+      "path": "./extensions/model-export"
+    },
+    {
+      "path": "./extensions/mp4-export"
+    },
+    {
+      "path": "./packages/mvs/runtime"
+    },
+    {
+      "path": "./extensions/pdbe"
+    },
+    {
+      "path": "./extensions/plugin"
+    },
+    {
+      "path": "./extensions/rcsb"
+    },
+    {
+      "path": "./extensions/sb-ncbr"
+    },
+    {
+      "path": "./extensions/volume-tools"
+    },
+    {
+      "path": "./extensions/volumes-and-segmentations"
+    },
+    {
+      "path": "./extensions/wwpdb"
+    },
+    {
+      "path": "./extensions/zenodo"
+    },
+    {
+      "path": "./packages/graphics"
+    },
+    {
+      "path": "./packages/core"
+    },
+    {
+      "path": "./packages/io"
+    },
+    {
+      "path": "./packages/model"
+    },
+    {
+      "path": "./packages/plugin/core"
+    },
+    {
+      "path": "./packages/plugin/ui"
+    },
+    {
+      "path": "./packages/plugin/headless"
+    },
+    {
+      "path": "./perf-tests"
+    },
+    {
+      "path": "./servers/common"
+    },
+    {
+      "path": "./servers/membrane-orientation"
+    },
+    {
+      "path": "./servers/model"
+    },
+    {
+      "path": "./servers/plugin-state"
+    },
+    {
+      "path": "./servers/volume"
+    },
+    {
+      "path": "./tests"
+    },
+    {
+      "path": "./extensions/volseg-api"
     }
+  ]
 }

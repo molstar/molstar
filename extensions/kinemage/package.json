@@ -1,0 +1,82 @@
+{
+  "name": "@molstar/kinemage-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* kinemage-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./behavior": {
+      "molstar-src": "./src/behavior.ts",
+      "types": "./lib/behavior.d.ts",
+      "import": "./lib/behavior.js"
+    },
+    "./kin": {
+      "molstar-src": "./src/kin.ts",
+      "types": "./lib/kin.d.ts",
+      "import": "./lib/kin.js"
+    },
+    "./prop": {
+      "molstar-src": "./src/prop.ts",
+      "types": "./lib/prop.d.ts",
+      "import": "./lib/prop.js"
+    },
+    "./reader/kinparser": {
+      "molstar-src": "./src/reader/kinparser.ts",
+      "types": "./lib/reader/kinparser.d.ts",
+      "import": "./lib/reader/kinparser.js"
+    },
+    "./reader/parser": {
+      "molstar-src": "./src/reader/parser.ts",
+      "types": "./lib/reader/parser.d.ts",
+      "import": "./lib/reader/parser.js"
+    },
+    "./reader/schema": {
+      "molstar-src": "./src/reader/schema.ts",
+      "types": "./lib/reader/schema.d.ts",
+      "import": "./lib/reader/schema.js"
+    },
+    "./representation": {
+      "molstar-src": "./src/representation.ts",
+      "types": "./lib/representation.d.ts",
+      "import": "./lib/representation.js"
+    },
+    "./ui": {
+      "molstar-src": "./src/ui.tsx",
+      "types": "./lib/ui.d.ts",
+      "import": "./lib/ui.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@types/react": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {}
+}

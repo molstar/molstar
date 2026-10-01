@@ -1,0 +1,68 @@
+{
+  "name": "@molstar/plugin-state-server",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* plugin-state-server",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./api-schema": {
+      "molstar-src": "./src/api-schema.ts",
+      "types": "./lib/api-schema.d.ts",
+      "import": "./lib/api-schema.js"
+    },
+    "./config": {
+      "molstar-src": "./src/config.ts",
+      "types": "./lib/config.d.ts",
+      "import": "./lib/config.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./version": {
+      "molstar-src": "./src/version.ts",
+      "types": "./lib/version.d.ts",
+      "import": "./lib/version.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "argparse": "catalog:",
+    "express": "catalog:",
+    "compression": "catalog:",
+    "cors": "catalog:",
+    "tslib": "catalog:",
+    "@types/argparse": "catalog:",
+    "@types/express": "catalog:",
+    "@types/cors": "catalog:",
+    "@types/compression": "catalog:",
+    "@molstar/common-server": "workspace:*",
+    "@molstar/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "bin": {
+    "plugin-state": "./lib/index.js"
+  }
+}

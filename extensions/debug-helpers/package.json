@@ -1,0 +1,68 @@
+{
+  "name": "@molstar/debug-helpers-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* debug-helpers-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./bounding-sphere-helper": {
+      "molstar-src": "./src/bounding-sphere-helper.ts",
+      "types": "./lib/bounding-sphere-helper.d.ts",
+      "import": "./lib/bounding-sphere-helper.js"
+    },
+    "./clip-object-helper": {
+      "molstar-src": "./src/clip-object-helper.ts",
+      "types": "./lib/clip-object-helper.d.ts",
+      "import": "./lib/clip-object-helper.js"
+    },
+    "./direct-volume-helper": {
+      "molstar-src": "./src/direct-volume-helper.ts",
+      "types": "./lib/direct-volume-helper.d.ts",
+      "import": "./lib/direct-volume-helper.js"
+    },
+    "./image-helper": {
+      "molstar-src": "./src/image-helper.ts",
+      "types": "./lib/image-helper.d.ts",
+      "import": "./lib/image-helper.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./mesh-helper": {
+      "molstar-src": "./src/mesh-helper.ts",
+      "types": "./lib/mesh-helper.d.ts",
+      "import": "./lib/mesh-helper.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/plugin": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

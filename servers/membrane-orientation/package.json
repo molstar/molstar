@@ -1,0 +1,66 @@
+{
+  "name": "@molstar/membrane-orientation-server",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* membrane-orientation-server",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./config": {
+      "molstar-src": "./src/config.ts",
+      "types": "./lib/config.d.ts",
+      "import": "./lib/config.js"
+    },
+    "./server": {
+      "molstar-src": "./src/server.ts",
+      "types": "./lib/server.d.ts",
+      "import": "./lib/server.js"
+    },
+    "./version": {
+      "molstar-src": "./src/version.ts",
+      "types": "./lib/version.d.ts",
+      "import": "./lib/version.js"
+    },
+    "./web-api": {
+      "molstar-src": "./src/web-api.ts",
+      "types": "./lib/web-api.d.ts",
+      "import": "./lib/web-api.js"
+    },
+    "./web-schema": {
+      "molstar-src": "./src/web-schema.ts",
+      "types": "./lib/web-schema.d.ts",
+      "import": "./lib/web-schema.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "argparse": "catalog:",
+    "compression": "catalog:",
+    "express": "catalog:",
+    "tslib": "catalog:",
+    "@types/argparse": "catalog:",
+    "@types/express": "catalog:",
+    "@types/compression": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/common-server": "workspace:*",
+    "@molstar/anvil-extension": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "@molstar/model": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

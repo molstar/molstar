@@ -1,0 +1,497 @@
+{
+  "name": "@molstar/io",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* io",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./common/ascii": {
+      "molstar-src": "./src/common/ascii.ts",
+      "types": "./lib/common/ascii.d.ts",
+      "import": "./lib/common/ascii.js"
+    },
+    "./common/binary-cif/array-encoder": {
+      "molstar-src": "./src/common/binary-cif/array-encoder.ts",
+      "types": "./lib/common/binary-cif/array-encoder.d.ts",
+      "import": "./lib/common/binary-cif/array-encoder.js"
+    },
+    "./common/binary-cif/classifier": {
+      "molstar-src": "./src/common/binary-cif/classifier.ts",
+      "types": "./lib/common/binary-cif/classifier.d.ts",
+      "import": "./lib/common/binary-cif/classifier.js"
+    },
+    "./common/binary-cif/decoder": {
+      "molstar-src": "./src/common/binary-cif/decoder.ts",
+      "types": "./lib/common/binary-cif/decoder.d.ts",
+      "import": "./lib/common/binary-cif/decoder.js"
+    },
+    "./common/binary-cif/encoding": {
+      "molstar-src": "./src/common/binary-cif/encoding.ts",
+      "types": "./lib/common/binary-cif/encoding.d.ts",
+      "import": "./lib/common/binary-cif/encoding.js"
+    },
+    "./common/binary-cif/header": {
+      "molstar-src": "./src/common/binary-cif/header.ts",
+      "types": "./lib/common/binary-cif/header.d.ts",
+      "import": "./lib/common/binary-cif/header.js"
+    },
+    "./common/binary-cif": {
+      "molstar-src": "./src/common/binary-cif.ts",
+      "types": "./lib/common/binary-cif.d.ts",
+      "import": "./lib/common/binary-cif.js"
+    },
+    "./common/binary": {
+      "molstar-src": "./src/common/binary.ts",
+      "types": "./lib/common/binary.d.ts",
+      "import": "./lib/common/binary.js"
+    },
+    "./common/file-handle": {
+      "molstar-src": "./src/common/file-handle.ts",
+      "types": "./lib/common/file-handle.d.ts",
+      "import": "./lib/common/file-handle.js"
+    },
+    "./common/io-buffer": {
+      "molstar-src": "./src/common/io-buffer.ts",
+      "types": "./lib/common/io-buffer.d.ts",
+      "import": "./lib/common/io-buffer.js"
+    },
+    "./common/msgpack/decode": {
+      "molstar-src": "./src/common/msgpack/decode.ts",
+      "types": "./lib/common/msgpack/decode.d.ts",
+      "import": "./lib/common/msgpack/decode.js"
+    },
+    "./common/msgpack/encode": {
+      "molstar-src": "./src/common/msgpack/encode.ts",
+      "types": "./lib/common/msgpack/encode.d.ts",
+      "import": "./lib/common/msgpack/encode.js"
+    },
+    "./common/netcdf/reader": {
+      "molstar-src": "./src/common/netcdf/reader.ts",
+      "types": "./lib/common/netcdf/reader.d.ts",
+      "import": "./lib/common/netcdf/reader.js"
+    },
+    "./common/simple-buffer": {
+      "molstar-src": "./src/common/simple-buffer.ts",
+      "types": "./lib/common/simple-buffer.d.ts",
+      "import": "./lib/common/simple-buffer.js"
+    },
+    "./common/typed-array": {
+      "molstar-src": "./src/common/typed-array.ts",
+      "types": "./lib/common/typed-array.d.ts",
+      "import": "./lib/common/typed-array.js"
+    },
+    "./reader/artiatomi/em": {
+      "molstar-src": "./src/reader/artiatomi/em.ts",
+      "types": "./lib/reader/artiatomi/em.d.ts",
+      "import": "./lib/reader/artiatomi/em.js"
+    },
+    "./reader/ccp4/parser": {
+      "molstar-src": "./src/reader/ccp4/parser.ts",
+      "types": "./lib/reader/ccp4/parser.d.ts",
+      "import": "./lib/reader/ccp4/parser.js"
+    },
+    "./reader/ccp4/schema": {
+      "molstar-src": "./src/reader/ccp4/schema.ts",
+      "types": "./lib/reader/ccp4/schema.d.ts",
+      "import": "./lib/reader/ccp4/schema.js"
+    },
+    "./reader/cif/binary/field": {
+      "molstar-src": "./src/reader/cif/binary/field.ts",
+      "types": "./lib/reader/cif/binary/field.d.ts",
+      "import": "./lib/reader/cif/binary/field.js"
+    },
+    "./reader/cif/binary/parser": {
+      "molstar-src": "./src/reader/cif/binary/parser.ts",
+      "types": "./lib/reader/cif/binary/parser.d.ts",
+      "import": "./lib/reader/cif/binary/parser.js"
+    },
+    "./reader/cif/data-model": {
+      "molstar-src": "./src/reader/cif/data-model.ts",
+      "types": "./lib/reader/cif/data-model.d.ts",
+      "import": "./lib/reader/cif/data-model.js"
+    },
+    "./reader/cif/schema/bird": {
+      "molstar-src": "./src/reader/cif/schema/bird.ts",
+      "types": "./lib/reader/cif/schema/bird.d.ts",
+      "import": "./lib/reader/cif/schema/bird.js"
+    },
+    "./reader/cif/schema/ccd-extras": {
+      "molstar-src": "./src/reader/cif/schema/ccd-extras.ts",
+      "types": "./lib/reader/cif/schema/ccd-extras.d.ts",
+      "import": "./lib/reader/cif/schema/ccd-extras.js"
+    },
+    "./reader/cif/schema/ccd": {
+      "molstar-src": "./src/reader/cif/schema/ccd.ts",
+      "types": "./lib/reader/cif/schema/ccd.d.ts",
+      "import": "./lib/reader/cif/schema/ccd.js"
+    },
+    "./reader/cif/schema/cif-core": {
+      "molstar-src": "./src/reader/cif/schema/cif-core.ts",
+      "types": "./lib/reader/cif/schema/cif-core.d.ts",
+      "import": "./lib/reader/cif/schema/cif-core.js"
+    },
+    "./reader/cif/schema/ddl": {
+      "molstar-src": "./src/reader/cif/schema/ddl.ts",
+      "types": "./lib/reader/cif/schema/ddl.d.ts",
+      "import": "./lib/reader/cif/schema/ddl.js"
+    },
+    "./reader/cif/schema/density-server": {
+      "molstar-src": "./src/reader/cif/schema/density-server.ts",
+      "types": "./lib/reader/cif/schema/density-server.d.ts",
+      "import": "./lib/reader/cif/schema/density-server.js"
+    },
+    "./reader/cif/schema/dic": {
+      "molstar-src": "./src/reader/cif/schema/dic.ts",
+      "types": "./lib/reader/cif/schema/dic.d.ts",
+      "import": "./lib/reader/cif/schema/dic.js"
+    },
+    "./reader/cif/schema/mmcif-extras": {
+      "molstar-src": "./src/reader/cif/schema/mmcif-extras.ts",
+      "types": "./lib/reader/cif/schema/mmcif-extras.d.ts",
+      "import": "./lib/reader/cif/schema/mmcif-extras.js"
+    },
+    "./reader/cif/schema/mmcif": {
+      "molstar-src": "./src/reader/cif/schema/mmcif.ts",
+      "types": "./lib/reader/cif/schema/mmcif.d.ts",
+      "import": "./lib/reader/cif/schema/mmcif.js"
+    },
+    "./reader/cif/schema/segmentation": {
+      "molstar-src": "./src/reader/cif/schema/segmentation.ts",
+      "types": "./lib/reader/cif/schema/segmentation.d.ts",
+      "import": "./lib/reader/cif/schema/segmentation.js"
+    },
+    "./reader/cif/schema/sf": {
+      "molstar-src": "./src/reader/cif/schema/sf.ts",
+      "types": "./lib/reader/cif/schema/sf.d.ts",
+      "import": "./lib/reader/cif/schema/sf.js"
+    },
+    "./reader/cif/schema": {
+      "molstar-src": "./src/reader/cif/schema.ts",
+      "types": "./lib/reader/cif/schema.d.ts",
+      "import": "./lib/reader/cif/schema.js"
+    },
+    "./reader/cif/text/parser": {
+      "molstar-src": "./src/reader/cif/text/parser.ts",
+      "types": "./lib/reader/cif/text/parser.d.ts",
+      "import": "./lib/reader/cif/text/parser.js"
+    },
+    "./reader/cif": {
+      "molstar-src": "./src/reader/cif.ts",
+      "types": "./lib/reader/cif.d.ts",
+      "import": "./lib/reader/cif.js"
+    },
+    "./reader/common/binary/column": {
+      "molstar-src": "./src/reader/common/binary/column.ts",
+      "types": "./lib/reader/common/binary/column.d.ts",
+      "import": "./lib/reader/common/binary/column.js"
+    },
+    "./reader/common/decode": {
+      "molstar-src": "./src/reader/common/decode.ts",
+      "types": "./lib/reader/common/decode.d.ts",
+      "import": "./lib/reader/common/decode.js"
+    },
+    "./reader/common/text/column/fixed": {
+      "molstar-src": "./src/reader/common/text/column/fixed.ts",
+      "types": "./lib/reader/common/text/column/fixed.d.ts",
+      "import": "./lib/reader/common/text/column/fixed.js"
+    },
+    "./reader/common/text/column/token": {
+      "molstar-src": "./src/reader/common/text/column/token.ts",
+      "types": "./lib/reader/common/text/column/token.d.ts",
+      "import": "./lib/reader/common/text/column/token.js"
+    },
+    "./reader/common/text/tokenizer": {
+      "molstar-src": "./src/reader/common/text/tokenizer.ts",
+      "types": "./lib/reader/common/text/tokenizer.d.ts",
+      "import": "./lib/reader/common/text/tokenizer.js"
+    },
+    "./reader/cryoet/ndjson": {
+      "molstar-src": "./src/reader/cryoet/ndjson.ts",
+      "types": "./lib/reader/cryoet/ndjson.d.ts",
+      "import": "./lib/reader/cryoet/ndjson.js"
+    },
+    "./reader/csv/data-model": {
+      "molstar-src": "./src/reader/csv/data-model.ts",
+      "types": "./lib/reader/csv/data-model.d.ts",
+      "import": "./lib/reader/csv/data-model.js"
+    },
+    "./reader/csv/field": {
+      "molstar-src": "./src/reader/csv/field.ts",
+      "types": "./lib/reader/csv/field.d.ts",
+      "import": "./lib/reader/csv/field.js"
+    },
+    "./reader/csv/parser": {
+      "molstar-src": "./src/reader/csv/parser.ts",
+      "types": "./lib/reader/csv/parser.d.ts",
+      "import": "./lib/reader/csv/parser.js"
+    },
+    "./reader/csv/schema": {
+      "molstar-src": "./src/reader/csv/schema.ts",
+      "types": "./lib/reader/csv/schema.d.ts",
+      "import": "./lib/reader/csv/schema.js"
+    },
+    "./reader/cube/parser": {
+      "molstar-src": "./src/reader/cube/parser.ts",
+      "types": "./lib/reader/cube/parser.d.ts",
+      "import": "./lib/reader/cube/parser.js"
+    },
+    "./reader/dcd/parser": {
+      "molstar-src": "./src/reader/dcd/parser.ts",
+      "types": "./lib/reader/dcd/parser.d.ts",
+      "import": "./lib/reader/dcd/parser.js"
+    },
+    "./reader/dsn6/parser": {
+      "molstar-src": "./src/reader/dsn6/parser.ts",
+      "types": "./lib/reader/dsn6/parser.d.ts",
+      "import": "./lib/reader/dsn6/parser.js"
+    },
+    "./reader/dsn6/schema": {
+      "molstar-src": "./src/reader/dsn6/schema.ts",
+      "types": "./lib/reader/dsn6/schema.d.ts",
+      "import": "./lib/reader/dsn6/schema.js"
+    },
+    "./reader/dx/parser": {
+      "molstar-src": "./src/reader/dx/parser.ts",
+      "types": "./lib/reader/dx/parser.d.ts",
+      "import": "./lib/reader/dx/parser.js"
+    },
+    "./reader/dynamo/schema": {
+      "molstar-src": "./src/reader/dynamo/schema.ts",
+      "types": "./lib/reader/dynamo/schema.d.ts",
+      "import": "./lib/reader/dynamo/schema.js"
+    },
+    "./reader/dynamo/tbl": {
+      "molstar-src": "./src/reader/dynamo/tbl.ts",
+      "types": "./lib/reader/dynamo/tbl.d.ts",
+      "import": "./lib/reader/dynamo/tbl.js"
+    },
+    "./reader/gro/parser": {
+      "molstar-src": "./src/reader/gro/parser.ts",
+      "types": "./lib/reader/gro/parser.d.ts",
+      "import": "./lib/reader/gro/parser.js"
+    },
+    "./reader/gro/schema": {
+      "molstar-src": "./src/reader/gro/schema.ts",
+      "types": "./lib/reader/gro/schema.d.ts",
+      "import": "./lib/reader/gro/schema.js"
+    },
+    "./reader/lammps/data/parser": {
+      "molstar-src": "./src/reader/lammps/data/parser.ts",
+      "types": "./lib/reader/lammps/data/parser.d.ts",
+      "import": "./lib/reader/lammps/data/parser.js"
+    },
+    "./reader/lammps/schema": {
+      "molstar-src": "./src/reader/lammps/schema.ts",
+      "types": "./lib/reader/lammps/schema.d.ts",
+      "import": "./lib/reader/lammps/schema.js"
+    },
+    "./reader/lammps/traj/parser": {
+      "molstar-src": "./src/reader/lammps/traj/parser.ts",
+      "types": "./lib/reader/lammps/traj/parser.d.ts",
+      "import": "./lib/reader/lammps/traj/parser.js"
+    },
+    "./reader/mol/parser": {
+      "molstar-src": "./src/reader/mol/parser.ts",
+      "types": "./lib/reader/mol/parser.d.ts",
+      "import": "./lib/reader/mol/parser.js"
+    },
+    "./reader/mol2/parser": {
+      "molstar-src": "./src/reader/mol2/parser.ts",
+      "types": "./lib/reader/mol2/parser.d.ts",
+      "import": "./lib/reader/mol2/parser.js"
+    },
+    "./reader/mol2/schema": {
+      "molstar-src": "./src/reader/mol2/schema.ts",
+      "types": "./lib/reader/mol2/schema.d.ts",
+      "import": "./lib/reader/mol2/schema.js"
+    },
+    "./reader/mtz/parser": {
+      "molstar-src": "./src/reader/mtz/parser.ts",
+      "types": "./lib/reader/mtz/parser.d.ts",
+      "import": "./lib/reader/mtz/parser.js"
+    },
+    "./reader/mtz/schema": {
+      "molstar-src": "./src/reader/mtz/schema.ts",
+      "types": "./lib/reader/mtz/schema.d.ts",
+      "import": "./lib/reader/mtz/schema.js"
+    },
+    "./reader/nctraj/parser": {
+      "molstar-src": "./src/reader/nctraj/parser.ts",
+      "types": "./lib/reader/nctraj/parser.d.ts",
+      "import": "./lib/reader/nctraj/parser.js"
+    },
+    "./reader/obj/mtl-parser": {
+      "molstar-src": "./src/reader/obj/mtl-parser.ts",
+      "types": "./lib/reader/obj/mtl-parser.d.ts",
+      "import": "./lib/reader/obj/mtl-parser.js"
+    },
+    "./reader/obj/parser": {
+      "molstar-src": "./src/reader/obj/parser.ts",
+      "types": "./lib/reader/obj/parser.d.ts",
+      "import": "./lib/reader/obj/parser.js"
+    },
+    "./reader/obj/schema": {
+      "molstar-src": "./src/reader/obj/schema.ts",
+      "types": "./lib/reader/obj/schema.d.ts",
+      "import": "./lib/reader/obj/schema.js"
+    },
+    "./reader/pdb/parser": {
+      "molstar-src": "./src/reader/pdb/parser.ts",
+      "types": "./lib/reader/pdb/parser.d.ts",
+      "import": "./lib/reader/pdb/parser.js"
+    },
+    "./reader/pdb/schema": {
+      "molstar-src": "./src/reader/pdb/schema.ts",
+      "types": "./lib/reader/pdb/schema.d.ts",
+      "import": "./lib/reader/pdb/schema.js"
+    },
+    "./reader/ply/parser": {
+      "molstar-src": "./src/reader/ply/parser.ts",
+      "types": "./lib/reader/ply/parser.d.ts",
+      "import": "./lib/reader/ply/parser.js"
+    },
+    "./reader/ply/schema": {
+      "molstar-src": "./src/reader/ply/schema.ts",
+      "types": "./lib/reader/ply/schema.d.ts",
+      "import": "./lib/reader/ply/schema.js"
+    },
+    "./reader/prmtop/parser": {
+      "molstar-src": "./src/reader/prmtop/parser.ts",
+      "types": "./lib/reader/prmtop/parser.d.ts",
+      "import": "./lib/reader/prmtop/parser.js"
+    },
+    "./reader/psf/parser": {
+      "molstar-src": "./src/reader/psf/parser.ts",
+      "types": "./lib/reader/psf/parser.d.ts",
+      "import": "./lib/reader/psf/parser.js"
+    },
+    "./reader/relion/schema": {
+      "molstar-src": "./src/reader/relion/schema.ts",
+      "types": "./lib/reader/relion/schema.d.ts",
+      "import": "./lib/reader/relion/schema.js"
+    },
+    "./reader/relion/star": {
+      "molstar-src": "./src/reader/relion/star.ts",
+      "types": "./lib/reader/relion/star.d.ts",
+      "import": "./lib/reader/relion/star.js"
+    },
+    "./reader/result": {
+      "molstar-src": "./src/reader/result.ts",
+      "types": "./lib/reader/result.d.ts",
+      "import": "./lib/reader/result.js"
+    },
+    "./reader/sdf/parser-v3-util": {
+      "molstar-src": "./src/reader/sdf/parser-v3-util.ts",
+      "types": "./lib/reader/sdf/parser-v3-util.d.ts",
+      "import": "./lib/reader/sdf/parser-v3-util.js"
+    },
+    "./reader/sdf/parser": {
+      "molstar-src": "./src/reader/sdf/parser.ts",
+      "types": "./lib/reader/sdf/parser.d.ts",
+      "import": "./lib/reader/sdf/parser.js"
+    },
+    "./reader/simularium/parser": {
+      "molstar-src": "./src/reader/simularium/parser.ts",
+      "types": "./lib/reader/simularium/parser.d.ts",
+      "import": "./lib/reader/simularium/parser.js"
+    },
+    "./reader/simularium/schema": {
+      "molstar-src": "./src/reader/simularium/schema.ts",
+      "types": "./lib/reader/simularium/schema.d.ts",
+      "import": "./lib/reader/simularium/schema.js"
+    },
+    "./reader/top/parser": {
+      "molstar-src": "./src/reader/top/parser.ts",
+      "types": "./lib/reader/top/parser.d.ts",
+      "import": "./lib/reader/top/parser.js"
+    },
+    "./reader/trr/parser": {
+      "molstar-src": "./src/reader/trr/parser.ts",
+      "types": "./lib/reader/trr/parser.d.ts",
+      "import": "./lib/reader/trr/parser.js"
+    },
+    "./reader/vtp/parser": {
+      "molstar-src": "./src/reader/vtp/parser.ts",
+      "types": "./lib/reader/vtp/parser.d.ts",
+      "import": "./lib/reader/vtp/parser.js"
+    },
+    "./reader/vtp/schema": {
+      "molstar-src": "./src/reader/vtp/schema.ts",
+      "types": "./lib/reader/vtp/schema.d.ts",
+      "import": "./lib/reader/vtp/schema.js"
+    },
+    "./reader/xtc/parser": {
+      "molstar-src": "./src/reader/xtc/parser.ts",
+      "types": "./lib/reader/xtc/parser.d.ts",
+      "import": "./lib/reader/xtc/parser.js"
+    },
+    "./reader/xyz/parser": {
+      "molstar-src": "./src/reader/xyz/parser.ts",
+      "types": "./lib/reader/xyz/parser.d.ts",
+      "import": "./lib/reader/xyz/parser.js"
+    },
+    "./utils/short-string-pool": {
+      "molstar-src": "./src/utils/short-string-pool.ts",
+      "types": "./lib/utils/short-string-pool.d.ts",
+      "import": "./lib/utils/short-string-pool.js"
+    },
+    "./writer/cif/encoder/binary": {
+      "molstar-src": "./src/writer/cif/encoder/binary.ts",
+      "types": "./lib/writer/cif/encoder/binary.d.ts",
+      "import": "./lib/writer/cif/encoder/binary.js"
+    },
+    "./writer/cif/encoder/text": {
+      "molstar-src": "./src/writer/cif/encoder/text.ts",
+      "types": "./lib/writer/cif/encoder/text.d.ts",
+      "import": "./lib/writer/cif/encoder/text.js"
+    },
+    "./writer/cif/encoder/util": {
+      "molstar-src": "./src/writer/cif/encoder/util.ts",
+      "types": "./lib/writer/cif/encoder/util.d.ts",
+      "import": "./lib/writer/cif/encoder/util.js"
+    },
+    "./writer/cif/encoder": {
+      "molstar-src": "./src/writer/cif/encoder.ts",
+      "types": "./lib/writer/cif/encoder.d.ts",
+      "import": "./lib/writer/cif/encoder.js"
+    },
+    "./writer/cif": {
+      "molstar-src": "./src/writer/cif.ts",
+      "types": "./lib/writer/cif.d.ts",
+      "import": "./lib/writer/cif.js"
+    },
+    "./writer/encoder": {
+      "molstar-src": "./src/writer/encoder.ts",
+      "types": "./lib/writer/encoder.d.ts",
+      "import": "./lib/writer/encoder.js"
+    },
+    "./writer/writer": {
+      "molstar-src": "./src/writer/writer.ts",
+      "types": "./lib/writer/writer.d.ts",
+      "import": "./lib/writer/writer.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@types/node": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "name": "@molstar/geo-export-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* geo-export-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./controls": {
+      "molstar-src": "./src/controls.ts",
+      "types": "./lib/controls.d.ts",
+      "import": "./lib/controls.js"
+    },
+    "./glb-exporter": {
+      "molstar-src": "./src/glb-exporter.ts",
+      "types": "./lib/glb-exporter.d.ts",
+      "import": "./lib/glb-exporter.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./mesh-exporter": {
+      "molstar-src": "./src/mesh-exporter.ts",
+      "types": "./lib/mesh-exporter.d.ts",
+      "import": "./lib/mesh-exporter.js"
+    },
+    "./obj-exporter": {
+      "molstar-src": "./src/obj-exporter.ts",
+      "types": "./lib/obj-exporter.d.ts",
+      "import": "./lib/obj-exporter.js"
+    },
+    "./render-object-exporter": {
+      "molstar-src": "./src/render-object-exporter.ts",
+      "types": "./lib/render-object-exporter.d.ts",
+      "import": "./lib/render-object-exporter.js"
+    },
+    "./stl-exporter": {
+      "molstar-src": "./src/stl-exporter.ts",
+      "types": "./lib/stl-exporter.d.ts",
+      "import": "./lib/stl-exporter.js"
+    },
+    "./ui": {
+      "molstar-src": "./src/ui.tsx",
+      "types": "./lib/ui.d.ts",
+      "import": "./lib/ui.js"
+    },
+    "./usdz-exporter": {
+      "molstar-src": "./src/usdz-exporter.ts",
+      "types": "./lib/usdz-exporter.d.ts",
+      "import": "./lib/usdz-exporter.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "rxjs": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

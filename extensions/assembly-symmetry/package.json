@@ -1,0 +1,70 @@
+{
+  "name": "@molstar/assembly-symmetry-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* assembly-symmetry-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./behavior": {
+      "molstar-src": "./src/behavior.ts",
+      "types": "./lib/behavior.d.ts",
+      "import": "./lib/behavior.js"
+    },
+    "./color": {
+      "molstar-src": "./src/color.ts",
+      "types": "./lib/color.d.ts",
+      "import": "./lib/color.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./prop": {
+      "molstar-src": "./src/prop.ts",
+      "types": "./lib/prop.d.ts",
+      "import": "./lib/prop.js"
+    },
+    "./representation": {
+      "molstar-src": "./src/representation.ts",
+      "types": "./lib/representation.d.ts",
+      "import": "./lib/representation.js"
+    },
+    "./ui": {
+      "molstar-src": "./src/ui.tsx",
+      "types": "./lib/ui.d.ts",
+      "import": "./lib/ui.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

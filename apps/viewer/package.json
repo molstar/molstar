@@ -1,0 +1,120 @@
+{
+  "name": "@molstar/viewer",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* viewer",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./app": {
+      "molstar-src": "./src/app.ts",
+      "types": "./lib/app.d.ts",
+      "import": "./lib/app.js"
+    },
+    "./extensions": {
+      "molstar-src": "./src/extensions.ts",
+      "types": "./lib/extensions.d.ts",
+      "import": "./lib/extensions.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/app.ts",
+      "types": "./lib/app.d.ts",
+      "import": "./lib/app.js"
+    },
+    "./lib": {
+      "molstar-src": "./src/lib.ts",
+      "types": "./lib/lib.d.ts",
+      "import": "./lib/lib.js"
+    },
+    "./options": {
+      "molstar-src": "./src/options.ts",
+      "types": "./lib/options.d.ts",
+      "import": "./lib/options.js"
+    },
+    "./plugin-spec": {
+      "molstar-src": "./src/plugin-spec.ts",
+      "types": "./lib/plugin-spec.d.ts",
+      "import": "./lib/plugin-spec.js"
+    },
+    "./presets": {
+      "molstar-src": "./src/presets.ts",
+      "types": "./lib/presets.d.ts",
+      "import": "./lib/presets.js"
+    },
+    "./theme/blue": {
+      "molstar-src": "./src/theme/blue.ts",
+      "types": "./lib/theme/blue.d.ts",
+      "import": "./lib/theme/blue.js"
+    },
+    "./theme/dark": {
+      "molstar-src": "./src/theme/dark.ts",
+      "types": "./lib/theme/dark.d.ts",
+      "import": "./lib/theme/dark.js"
+    },
+    "./theme/light": {
+      "molstar-src": "./src/theme/light.ts",
+      "types": "./lib/theme/light.d.ts",
+      "import": "./lib/theme/light.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "build",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs apps/viewer --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs apps/viewer --dev"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/mvs": "workspace:*",
+    "@molstar/plugin-extension": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/anvil-extension": "workspace:*",
+    "@molstar/assembly-symmetry-extension": "workspace:*",
+    "@molstar/backgrounds-extension": "workspace:*",
+    "@molstar/debug-helpers-extension": "workspace:*",
+    "@molstar/dnatco-extension": "workspace:*",
+    "@molstar/g3d-extension": "workspace:*",
+    "@molstar/geo-export-extension": "workspace:*",
+    "@molstar/model-archive-extension": "workspace:*",
+    "@molstar/model-export-extension": "workspace:*",
+    "@molstar/mp4-export-extension": "workspace:*",
+    "@molstar/pdbe-extension": "workspace:*",
+    "@molstar/rcsb-extension": "workspace:*",
+    "@molstar/sb-ncbr-extension": "workspace:*",
+    "@molstar/wwpdb-extension": "workspace:*",
+    "@molstar/zenodo-extension": "workspace:*",
+    "@molstar/mvs-builder": "workspace:*",
+    "@molstar/kinemage-extension": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "molstar": {
+    "entry": "src/index.ts",
+    "filename": "molstar.js",
+    "globalName": "molstar",
+    "themes": [
+      "light",
+      "dark",
+      "blue"
+    ]
+  }
+}

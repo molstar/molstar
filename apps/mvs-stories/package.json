@@ -1,0 +1,97 @@
+{
+  "name": "@molstar/mvs-stories",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* mvs-stories",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./context": {
+      "molstar-src": "./src/context.ts",
+      "types": "./lib/context.d.ts",
+      "import": "./lib/context.js"
+    },
+    "./elements/index": {
+      "molstar-src": "./src/elements/index.ts",
+      "types": "./lib/elements/index.d.ts",
+      "import": "./lib/elements/index.js"
+    },
+    "./elements": {
+      "molstar-src": "./src/elements/index.ts",
+      "types": "./lib/elements/index.d.ts",
+      "import": "./lib/elements/index.js"
+    },
+    "./elements/snapshot-markdown": {
+      "molstar-src": "./src/elements/snapshot-markdown.tsx",
+      "types": "./lib/elements/snapshot-markdown.d.ts",
+      "import": "./lib/elements/snapshot-markdown.js"
+    },
+    "./elements/viewer": {
+      "molstar-src": "./src/elements/viewer.tsx",
+      "types": "./lib/elements/viewer.d.ts",
+      "import": "./lib/elements/viewer.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.tsx",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.tsx",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./styles.scss": {
+      "molstar-src": "./src/styles.scss",
+      "sass": "./src/styles.scss",
+      "default": "./lib/styles.scss"
+    },
+    "./styles.css": "./lib/styles.css",
+    "./version": {
+      "molstar-src": "./src/version.ts",
+      "types": "./lib/version.d.ts",
+      "import": "./lib/version.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs apps/mvs-stories --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs apps/mvs-stories --dev"
+  },
+  "dependencies": {
+    "rxjs": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/mvs-builder": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/mvs": "workspace:*",
+    "@molstar/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=16.14.0",
+    "react-dom": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {},
+  "molstar": {
+    "entry": "src/index.tsx",
+    "filename": "mvs-stories.js",
+    "globalName": "mvsStories"
+  }
+}

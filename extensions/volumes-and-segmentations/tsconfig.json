@@ -1,0 +1,34 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib",
+    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo"
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "src/**/_spec/**"
+  ],
+  "references": [
+    {
+      "path": "../../packages/plugin/core"
+    },
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../meshes"
+    },
+    {
+      "path": "../volseg-api"
+    },
+    {
+      "path": "../../packages/model"
+    },
+    {
+      "path": "../../packages/plugin/ui"
+    }
+  ]
+}

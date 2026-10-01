@@ -1,0 +1,57 @@
+{
+  "name": "@molstar/mvs-render-cli",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* mvs-render-cli",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./mvs-mvsj-to-mvsx": {
+      "molstar-src": "./src/mvs-mvsj-to-mvsx.ts",
+      "types": "./lib/mvs-mvsj-to-mvsx.d.ts",
+      "import": "./lib/mvs-mvsj-to-mvsx.js"
+    },
+    "./mvs-render": {
+      "molstar-src": "./src/mvs-render.ts",
+      "types": "./lib/mvs-render.d.ts",
+      "import": "./lib/mvs-render.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "argparse": "catalog:",
+    "gl": "catalog:",
+    "jpeg-js": "catalog:",
+    "pngjs": "catalog:",
+    "canvas": "catalog:",
+    "tslib": "catalog:",
+    "@types/argparse": "catalog:",
+    "@types/pngjs": "catalog:",
+    "@molstar/mvs-builder": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/mp4-export-extension": "workspace:*",
+    "@molstar/plugin-headless": "workspace:*",
+    "@molstar/mvs": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "bin": {
+    "mvs-render": "./lib/mvs-render.js"
+  }
+}

@@ -1,0 +1,627 @@
+{
+  "name": "@molstar/plugin",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* plugin",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./animation-loop": {
+      "molstar-src": "./src/animation-loop.ts",
+      "types": "./lib/animation-loop.d.ts",
+      "import": "./lib/animation-loop.js"
+    },
+    "./behavior/behavior": {
+      "molstar-src": "./src/behavior/behavior.ts",
+      "types": "./lib/behavior/behavior.d.ts",
+      "import": "./lib/behavior/behavior.js"
+    },
+    "./behavior/dynamic/camera": {
+      "molstar-src": "./src/behavior/dynamic/camera.ts",
+      "types": "./lib/behavior/dynamic/camera.d.ts",
+      "import": "./lib/behavior/dynamic/camera.js"
+    },
+    "./behavior/dynamic/custom-props/computed/accessible-surface-area": {
+      "molstar-src": "./src/behavior/dynamic/custom-props/computed/accessible-surface-area.ts",
+      "types": "./lib/behavior/dynamic/custom-props/computed/accessible-surface-area.d.ts",
+      "import": "./lib/behavior/dynamic/custom-props/computed/accessible-surface-area.js"
+    },
+    "./behavior/dynamic/custom-props/computed/interactions": {
+      "molstar-src": "./src/behavior/dynamic/custom-props/computed/interactions.ts",
+      "types": "./lib/behavior/dynamic/custom-props/computed/interactions.d.ts",
+      "import": "./lib/behavior/dynamic/custom-props/computed/interactions.js"
+    },
+    "./behavior/dynamic/custom-props/computed/secondary-structure": {
+      "molstar-src": "./src/behavior/dynamic/custom-props/computed/secondary-structure.ts",
+      "types": "./lib/behavior/dynamic/custom-props/computed/secondary-structure.d.ts",
+      "import": "./lib/behavior/dynamic/custom-props/computed/secondary-structure.js"
+    },
+    "./behavior/dynamic/custom-props/computed/valence-model": {
+      "molstar-src": "./src/behavior/dynamic/custom-props/computed/valence-model.ts",
+      "types": "./lib/behavior/dynamic/custom-props/computed/valence-model.d.ts",
+      "import": "./lib/behavior/dynamic/custom-props/computed/valence-model.js"
+    },
+    "./behavior/dynamic/custom-props/integrative/cross-link-restraint": {
+      "molstar-src": "./src/behavior/dynamic/custom-props/integrative/cross-link-restraint.ts",
+      "types": "./lib/behavior/dynamic/custom-props/integrative/cross-link-restraint.d.ts",
+      "import": "./lib/behavior/dynamic/custom-props/integrative/cross-link-restraint.js"
+    },
+    "./behavior/dynamic/custom-props/sequence/sifts-mapping": {
+      "molstar-src": "./src/behavior/dynamic/custom-props/sequence/sifts-mapping.ts",
+      "types": "./lib/behavior/dynamic/custom-props/sequence/sifts-mapping.d.ts",
+      "import": "./lib/behavior/dynamic/custom-props/sequence/sifts-mapping.js"
+    },
+    "./behavior/dynamic/custom-props/structure-info": {
+      "molstar-src": "./src/behavior/dynamic/custom-props/structure-info.ts",
+      "types": "./lib/behavior/dynamic/custom-props/structure-info.d.ts",
+      "import": "./lib/behavior/dynamic/custom-props/structure-info.js"
+    },
+    "./behavior/dynamic/custom-props/volume/streamlines": {
+      "molstar-src": "./src/behavior/dynamic/custom-props/volume/streamlines.ts",
+      "types": "./lib/behavior/dynamic/custom-props/volume/streamlines.d.ts",
+      "import": "./lib/behavior/dynamic/custom-props/volume/streamlines.js"
+    },
+    "./behavior/dynamic/custom-props": {
+      "molstar-src": "./src/behavior/dynamic/custom-props.ts",
+      "types": "./lib/behavior/dynamic/custom-props.d.ts",
+      "import": "./lib/behavior/dynamic/custom-props.js"
+    },
+    "./behavior/dynamic/representation": {
+      "molstar-src": "./src/behavior/dynamic/representation.ts",
+      "types": "./lib/behavior/dynamic/representation.d.ts",
+      "import": "./lib/behavior/dynamic/representation.js"
+    },
+    "./behavior/dynamic/selection/structure-focus-representation": {
+      "molstar-src": "./src/behavior/dynamic/selection/structure-focus-representation.ts",
+      "types": "./lib/behavior/dynamic/selection/structure-focus-representation.d.ts",
+      "import": "./lib/behavior/dynamic/selection/structure-focus-representation.js"
+    },
+    "./behavior/dynamic/state": {
+      "molstar-src": "./src/behavior/dynamic/state.ts",
+      "types": "./lib/behavior/dynamic/state.d.ts",
+      "import": "./lib/behavior/dynamic/state.js"
+    },
+    "./behavior/dynamic/volume-streaming/behavior": {
+      "molstar-src": "./src/behavior/dynamic/volume-streaming/behavior.ts",
+      "types": "./lib/behavior/dynamic/volume-streaming/behavior.d.ts",
+      "import": "./lib/behavior/dynamic/volume-streaming/behavior.js"
+    },
+    "./behavior/dynamic/volume-streaming/model": {
+      "molstar-src": "./src/behavior/dynamic/volume-streaming/model.ts",
+      "types": "./lib/behavior/dynamic/volume-streaming/model.d.ts",
+      "import": "./lib/behavior/dynamic/volume-streaming/model.js"
+    },
+    "./behavior/dynamic/volume-streaming/transformers": {
+      "molstar-src": "./src/behavior/dynamic/volume-streaming/transformers.ts",
+      "types": "./lib/behavior/dynamic/volume-streaming/transformers.d.ts",
+      "import": "./lib/behavior/dynamic/volume-streaming/transformers.js"
+    },
+    "./behavior/dynamic/volume-streaming/util": {
+      "molstar-src": "./src/behavior/dynamic/volume-streaming/util.ts",
+      "types": "./lib/behavior/dynamic/volume-streaming/util.d.ts",
+      "import": "./lib/behavior/dynamic/volume-streaming/util.js"
+    },
+    "./behavior/static/camera": {
+      "molstar-src": "./src/behavior/static/camera.ts",
+      "types": "./lib/behavior/static/camera.d.ts",
+      "import": "./lib/behavior/static/camera.js"
+    },
+    "./behavior/static/misc": {
+      "molstar-src": "./src/behavior/static/misc.ts",
+      "types": "./lib/behavior/static/misc.d.ts",
+      "import": "./lib/behavior/static/misc.js"
+    },
+    "./behavior/static/representation": {
+      "molstar-src": "./src/behavior/static/representation.ts",
+      "types": "./lib/behavior/static/representation.d.ts",
+      "import": "./lib/behavior/static/representation.js"
+    },
+    "./behavior/static/state": {
+      "molstar-src": "./src/behavior/static/state.ts",
+      "types": "./lib/behavior/static/state.d.ts",
+      "import": "./lib/behavior/static/state.js"
+    },
+    "./behavior": {
+      "molstar-src": "./src/behavior.ts",
+      "types": "./lib/behavior.d.ts",
+      "import": "./lib/behavior.js"
+    },
+    "./command": {
+      "molstar-src": "./src/command.ts",
+      "types": "./lib/command.d.ts",
+      "import": "./lib/command.js"
+    },
+    "./commands": {
+      "molstar-src": "./src/commands.ts",
+      "types": "./lib/commands.d.ts",
+      "import": "./lib/commands.js"
+    },
+    "./config": {
+      "molstar-src": "./src/config.ts",
+      "types": "./lib/config.d.ts",
+      "import": "./lib/config.js"
+    },
+    "./container": {
+      "molstar-src": "./src/container.ts",
+      "types": "./lib/container.d.ts",
+      "import": "./lib/container.js"
+    },
+    "./context": {
+      "molstar-src": "./src/context.ts",
+      "types": "./lib/context.d.ts",
+      "import": "./lib/context.js"
+    },
+    "./features": {
+      "molstar-src": "./src/features.ts",
+      "types": "./lib/features.d.ts",
+      "import": "./lib/features.js"
+    },
+    "./layout": {
+      "molstar-src": "./src/layout.ts",
+      "types": "./lib/layout.d.ts",
+      "import": "./lib/layout.js"
+    },
+    "./properties/custom-element-property": {
+      "molstar-src": "./src/properties/custom-element-property.ts",
+      "types": "./lib/properties/custom-element-property.d.ts",
+      "import": "./lib/properties/custom-element-property.js"
+    },
+    "./spec": {
+      "molstar-src": "./src/spec.ts",
+      "types": "./lib/spec.d.ts",
+      "import": "./lib/spec.js"
+    },
+    "./state/actions/file": {
+      "molstar-src": "./src/state/actions/file.ts",
+      "types": "./lib/state/actions/file.d.ts",
+      "import": "./lib/state/actions/file.js"
+    },
+    "./state/actions/structure": {
+      "molstar-src": "./src/state/actions/structure.ts",
+      "types": "./lib/state/actions/structure.d.ts",
+      "import": "./lib/state/actions/structure.js"
+    },
+    "./state/actions/volume": {
+      "molstar-src": "./src/state/actions/volume.ts",
+      "types": "./lib/state/actions/volume.d.ts",
+      "import": "./lib/state/actions/volume.js"
+    },
+    "./state/actions": {
+      "molstar-src": "./src/state/actions.ts",
+      "types": "./lib/state/actions.d.ts",
+      "import": "./lib/state/actions.js"
+    },
+    "./state/animation/built-in/assembly-unwind": {
+      "molstar-src": "./src/state/animation/built-in/assembly-unwind.ts",
+      "types": "./lib/state/animation/built-in/assembly-unwind.d.ts",
+      "import": "./lib/state/animation/built-in/assembly-unwind.js"
+    },
+    "./state/animation/built-in/camera-rock": {
+      "molstar-src": "./src/state/animation/built-in/camera-rock.ts",
+      "types": "./lib/state/animation/built-in/camera-rock.d.ts",
+      "import": "./lib/state/animation/built-in/camera-rock.js"
+    },
+    "./state/animation/built-in/camera-spin": {
+      "molstar-src": "./src/state/animation/built-in/camera-spin.ts",
+      "types": "./lib/state/animation/built-in/camera-spin.d.ts",
+      "import": "./lib/state/animation/built-in/camera-spin.js"
+    },
+    "./state/animation/built-in/explode-units": {
+      "molstar-src": "./src/state/animation/built-in/explode-units.ts",
+      "types": "./lib/state/animation/built-in/explode-units.d.ts",
+      "import": "./lib/state/animation/built-in/explode-units.js"
+    },
+    "./state/animation/built-in/model-index": {
+      "molstar-src": "./src/state/animation/built-in/model-index.ts",
+      "types": "./lib/state/animation/built-in/model-index.d.ts",
+      "import": "./lib/state/animation/built-in/model-index.js"
+    },
+    "./state/animation/built-in/particles": {
+      "molstar-src": "./src/state/animation/built-in/particles.ts",
+      "types": "./lib/state/animation/built-in/particles.d.ts",
+      "import": "./lib/state/animation/built-in/particles.js"
+    },
+    "./state/animation/built-in/spin-structure": {
+      "molstar-src": "./src/state/animation/built-in/spin-structure.ts",
+      "types": "./lib/state/animation/built-in/spin-structure.d.ts",
+      "import": "./lib/state/animation/built-in/spin-structure.js"
+    },
+    "./state/animation/built-in/state-interpolation": {
+      "molstar-src": "./src/state/animation/built-in/state-interpolation.ts",
+      "types": "./lib/state/animation/built-in/state-interpolation.d.ts",
+      "import": "./lib/state/animation/built-in/state-interpolation.js"
+    },
+    "./state/animation/built-in/state-snapshots": {
+      "molstar-src": "./src/state/animation/built-in/state-snapshots.ts",
+      "types": "./lib/state/animation/built-in/state-snapshots.d.ts",
+      "import": "./lib/state/animation/built-in/state-snapshots.js"
+    },
+    "./state/animation/built-in/time": {
+      "molstar-src": "./src/state/animation/built-in/time.ts",
+      "types": "./lib/state/animation/built-in/time.d.ts",
+      "import": "./lib/state/animation/built-in/time.js"
+    },
+    "./state/animation/helpers": {
+      "molstar-src": "./src/state/animation/helpers.ts",
+      "types": "./lib/state/animation/helpers.d.ts",
+      "import": "./lib/state/animation/helpers.js"
+    },
+    "./state/animation/model": {
+      "molstar-src": "./src/state/animation/model.ts",
+      "types": "./lib/state/animation/model.d.ts",
+      "import": "./lib/state/animation/model.js"
+    },
+    "./state/animation/trajectory": {
+      "molstar-src": "./src/state/animation/trajectory.ts",
+      "types": "./lib/state/animation/trajectory.d.ts",
+      "import": "./lib/state/animation/trajectory.js"
+    },
+    "./state/builder/data": {
+      "molstar-src": "./src/state/builder/data.ts",
+      "types": "./lib/state/builder/data.d.ts",
+      "import": "./lib/state/builder/data.js"
+    },
+    "./state/builder/preset-provider": {
+      "molstar-src": "./src/state/builder/preset-provider.ts",
+      "types": "./lib/state/builder/preset-provider.d.ts",
+      "import": "./lib/state/builder/preset-provider.js"
+    },
+    "./state/builder/structure/hierarchy-preset": {
+      "molstar-src": "./src/state/builder/structure/hierarchy-preset.ts",
+      "types": "./lib/state/builder/structure/hierarchy-preset.d.ts",
+      "import": "./lib/state/builder/structure/hierarchy-preset.js"
+    },
+    "./state/builder/structure/hierarchy": {
+      "molstar-src": "./src/state/builder/structure/hierarchy.ts",
+      "types": "./lib/state/builder/structure/hierarchy.d.ts",
+      "import": "./lib/state/builder/structure/hierarchy.js"
+    },
+    "./state/builder/structure/representation-preset": {
+      "molstar-src": "./src/state/builder/structure/representation-preset.ts",
+      "types": "./lib/state/builder/structure/representation-preset.d.ts",
+      "import": "./lib/state/builder/structure/representation-preset.js"
+    },
+    "./state/builder/structure/representation": {
+      "molstar-src": "./src/state/builder/structure/representation.ts",
+      "types": "./lib/state/builder/structure/representation.d.ts",
+      "import": "./lib/state/builder/structure/representation.js"
+    },
+    "./state/builder/structure": {
+      "molstar-src": "./src/state/builder/structure.ts",
+      "types": "./lib/state/builder/structure.d.ts",
+      "import": "./lib/state/builder/structure.js"
+    },
+    "./state/component": {
+      "molstar-src": "./src/state/component.ts",
+      "types": "./lib/state/component.d.ts",
+      "import": "./lib/state/component.js"
+    },
+    "./state/formats/coordinates": {
+      "molstar-src": "./src/state/formats/coordinates.ts",
+      "types": "./lib/state/formats/coordinates.d.ts",
+      "import": "./lib/state/formats/coordinates.js"
+    },
+    "./state/formats/particles": {
+      "molstar-src": "./src/state/formats/particles.ts",
+      "types": "./lib/state/formats/particles.d.ts",
+      "import": "./lib/state/formats/particles.js"
+    },
+    "./state/formats/provider": {
+      "molstar-src": "./src/state/formats/provider.ts",
+      "types": "./lib/state/formats/provider.d.ts",
+      "import": "./lib/state/formats/provider.js"
+    },
+    "./state/formats/registry": {
+      "molstar-src": "./src/state/formats/registry.ts",
+      "types": "./lib/state/formats/registry.d.ts",
+      "import": "./lib/state/formats/registry.js"
+    },
+    "./state/formats/shape": {
+      "molstar-src": "./src/state/formats/shape.ts",
+      "types": "./lib/state/formats/shape.d.ts",
+      "import": "./lib/state/formats/shape.js"
+    },
+    "./state/formats/topology": {
+      "molstar-src": "./src/state/formats/topology.ts",
+      "types": "./lib/state/formats/topology.d.ts",
+      "import": "./lib/state/formats/topology.js"
+    },
+    "./state/formats/trajectory": {
+      "molstar-src": "./src/state/formats/trajectory.ts",
+      "types": "./lib/state/formats/trajectory.d.ts",
+      "import": "./lib/state/formats/trajectory.js"
+    },
+    "./state/formats/volume": {
+      "molstar-src": "./src/state/formats/volume.ts",
+      "types": "./lib/state/formats/volume.d.ts",
+      "import": "./lib/state/formats/volume.js"
+    },
+    "./state/helpers/particle-targets": {
+      "molstar-src": "./src/state/helpers/particle-targets.ts",
+      "types": "./lib/state/helpers/particle-targets.d.ts",
+      "import": "./lib/state/helpers/particle-targets.js"
+    },
+    "./state/helpers/root-structure": {
+      "molstar-src": "./src/state/helpers/root-structure.ts",
+      "types": "./lib/state/helpers/root-structure.d.ts",
+      "import": "./lib/state/helpers/root-structure.js"
+    },
+    "./state/helpers/structure-clipping": {
+      "molstar-src": "./src/state/helpers/structure-clipping.ts",
+      "types": "./lib/state/helpers/structure-clipping.d.ts",
+      "import": "./lib/state/helpers/structure-clipping.js"
+    },
+    "./state/helpers/structure-component": {
+      "molstar-src": "./src/state/helpers/structure-component.ts",
+      "types": "./lib/state/helpers/structure-component.d.ts",
+      "import": "./lib/state/helpers/structure-component.js"
+    },
+    "./state/helpers/structure-emissive": {
+      "molstar-src": "./src/state/helpers/structure-emissive.ts",
+      "types": "./lib/state/helpers/structure-emissive.d.ts",
+      "import": "./lib/state/helpers/structure-emissive.js"
+    },
+    "./state/helpers/structure-overpaint": {
+      "molstar-src": "./src/state/helpers/structure-overpaint.ts",
+      "types": "./lib/state/helpers/structure-overpaint.d.ts",
+      "import": "./lib/state/helpers/structure-overpaint.js"
+    },
+    "./state/helpers/structure-query": {
+      "molstar-src": "./src/state/helpers/structure-query.ts",
+      "types": "./lib/state/helpers/structure-query.d.ts",
+      "import": "./lib/state/helpers/structure-query.js"
+    },
+    "./state/helpers/structure-representation-params": {
+      "molstar-src": "./src/state/helpers/structure-representation-params.ts",
+      "types": "./lib/state/helpers/structure-representation-params.d.ts",
+      "import": "./lib/state/helpers/structure-representation-params.js"
+    },
+    "./state/helpers/structure-selection-query": {
+      "molstar-src": "./src/state/helpers/structure-selection-query.ts",
+      "types": "./lib/state/helpers/structure-selection-query.d.ts",
+      "import": "./lib/state/helpers/structure-selection-query.js"
+    },
+    "./state/helpers/structure-substance": {
+      "molstar-src": "./src/state/helpers/structure-substance.ts",
+      "types": "./lib/state/helpers/structure-substance.d.ts",
+      "import": "./lib/state/helpers/structure-substance.js"
+    },
+    "./state/helpers/structure-transparency": {
+      "molstar-src": "./src/state/helpers/structure-transparency.ts",
+      "types": "./lib/state/helpers/structure-transparency.d.ts",
+      "import": "./lib/state/helpers/structure-transparency.js"
+    },
+    "./state/helpers/structure-wiggle": {
+      "molstar-src": "./src/state/helpers/structure-wiggle.ts",
+      "types": "./lib/state/helpers/structure-wiggle.d.ts",
+      "import": "./lib/state/helpers/structure-wiggle.js"
+    },
+    "./state/helpers/volume-representation-params": {
+      "molstar-src": "./src/state/helpers/volume-representation-params.ts",
+      "types": "./lib/state/helpers/volume-representation-params.d.ts",
+      "import": "./lib/state/helpers/volume-representation-params.js"
+    },
+    "./state/manager/animation": {
+      "molstar-src": "./src/state/manager/animation.ts",
+      "types": "./lib/state/manager/animation.d.ts",
+      "import": "./lib/state/manager/animation.js"
+    },
+    "./state/manager/camera": {
+      "molstar-src": "./src/state/manager/camera.ts",
+      "types": "./lib/state/manager/camera.d.ts",
+      "import": "./lib/state/manager/camera.js"
+    },
+    "./state/manager/drag-and-drop": {
+      "molstar-src": "./src/state/manager/drag-and-drop.ts",
+      "types": "./lib/state/manager/drag-and-drop.d.ts",
+      "import": "./lib/state/manager/drag-and-drop.js"
+    },
+    "./state/manager/focus-camera/focus-first-residue": {
+      "molstar-src": "./src/state/manager/focus-camera/focus-first-residue.ts",
+      "types": "./lib/state/manager/focus-camera/focus-first-residue.d.ts",
+      "import": "./lib/state/manager/focus-camera/focus-first-residue.js"
+    },
+    "./state/manager/focus-camera/focus-object": {
+      "molstar-src": "./src/state/manager/focus-camera/focus-object.ts",
+      "types": "./lib/state/manager/focus-camera/focus-object.d.ts",
+      "import": "./lib/state/manager/focus-camera/focus-object.js"
+    },
+    "./state/manager/focus-camera/orient-axes": {
+      "molstar-src": "./src/state/manager/focus-camera/orient-axes.ts",
+      "types": "./lib/state/manager/focus-camera/orient-axes.d.ts",
+      "import": "./lib/state/manager/focus-camera/orient-axes.js"
+    },
+    "./state/manager/interactivity": {
+      "molstar-src": "./src/state/manager/interactivity.ts",
+      "types": "./lib/state/manager/interactivity.d.ts",
+      "import": "./lib/state/manager/interactivity.js"
+    },
+    "./state/manager/loci-label": {
+      "molstar-src": "./src/state/manager/loci-label.ts",
+      "types": "./lib/state/manager/loci-label.d.ts",
+      "import": "./lib/state/manager/loci-label.js"
+    },
+    "./state/manager/markdown-extensions": {
+      "molstar-src": "./src/state/manager/markdown-extensions.ts",
+      "types": "./lib/state/manager/markdown-extensions.d.ts",
+      "import": "./lib/state/manager/markdown-extensions.js"
+    },
+    "./state/manager/particles/hierarchy-state": {
+      "molstar-src": "./src/state/manager/particles/hierarchy-state.ts",
+      "types": "./lib/state/manager/particles/hierarchy-state.d.ts",
+      "import": "./lib/state/manager/particles/hierarchy-state.js"
+    },
+    "./state/manager/particles/hierarchy": {
+      "molstar-src": "./src/state/manager/particles/hierarchy.ts",
+      "types": "./lib/state/manager/particles/hierarchy.d.ts",
+      "import": "./lib/state/manager/particles/hierarchy.js"
+    },
+    "./state/manager/snapshots": {
+      "molstar-src": "./src/state/manager/snapshots.ts",
+      "types": "./lib/state/manager/snapshots.d.ts",
+      "import": "./lib/state/manager/snapshots.js"
+    },
+    "./state/manager/structure/component": {
+      "molstar-src": "./src/state/manager/structure/component.ts",
+      "types": "./lib/state/manager/structure/component.d.ts",
+      "import": "./lib/state/manager/structure/component.js"
+    },
+    "./state/manager/structure/focus": {
+      "molstar-src": "./src/state/manager/structure/focus.ts",
+      "types": "./lib/state/manager/structure/focus.d.ts",
+      "import": "./lib/state/manager/structure/focus.js"
+    },
+    "./state/manager/structure/hierarchy-state": {
+      "molstar-src": "./src/state/manager/structure/hierarchy-state.ts",
+      "types": "./lib/state/manager/structure/hierarchy-state.d.ts",
+      "import": "./lib/state/manager/structure/hierarchy-state.js"
+    },
+    "./state/manager/structure/hierarchy": {
+      "molstar-src": "./src/state/manager/structure/hierarchy.ts",
+      "types": "./lib/state/manager/structure/hierarchy.d.ts",
+      "import": "./lib/state/manager/structure/hierarchy.js"
+    },
+    "./state/manager/structure/measurement": {
+      "molstar-src": "./src/state/manager/structure/measurement.ts",
+      "types": "./lib/state/manager/structure/measurement.d.ts",
+      "import": "./lib/state/manager/structure/measurement.js"
+    },
+    "./state/manager/structure/selection": {
+      "molstar-src": "./src/state/manager/structure/selection.ts",
+      "types": "./lib/state/manager/structure/selection.d.ts",
+      "import": "./lib/state/manager/structure/selection.js"
+    },
+    "./state/manager/volume/hierarchy-state": {
+      "molstar-src": "./src/state/manager/volume/hierarchy-state.ts",
+      "types": "./lib/state/manager/volume/hierarchy-state.d.ts",
+      "import": "./lib/state/manager/volume/hierarchy-state.js"
+    },
+    "./state/manager/volume/hierarchy": {
+      "molstar-src": "./src/state/manager/volume/hierarchy.ts",
+      "types": "./lib/state/manager/volume/hierarchy.d.ts",
+      "import": "./lib/state/manager/volume/hierarchy.js"
+    },
+    "./state/objects": {
+      "molstar-src": "./src/state/objects.ts",
+      "types": "./lib/state/objects.d.ts",
+      "import": "./lib/state/objects.js"
+    },
+    "./state/transforms/data": {
+      "molstar-src": "./src/state/transforms/data.ts",
+      "types": "./lib/state/transforms/data.d.ts",
+      "import": "./lib/state/transforms/data.js"
+    },
+    "./state/transforms/helpers": {
+      "molstar-src": "./src/state/transforms/helpers.ts",
+      "types": "./lib/state/transforms/helpers.d.ts",
+      "import": "./lib/state/transforms/helpers.js"
+    },
+    "./state/transforms/misc": {
+      "molstar-src": "./src/state/transforms/misc.ts",
+      "types": "./lib/state/transforms/misc.d.ts",
+      "import": "./lib/state/transforms/misc.js"
+    },
+    "./state/transforms/model": {
+      "molstar-src": "./src/state/transforms/model.ts",
+      "types": "./lib/state/transforms/model.d.ts",
+      "import": "./lib/state/transforms/model.js"
+    },
+    "./state/transforms/particles": {
+      "molstar-src": "./src/state/transforms/particles.ts",
+      "types": "./lib/state/transforms/particles.d.ts",
+      "import": "./lib/state/transforms/particles.js"
+    },
+    "./state/transforms/representation": {
+      "molstar-src": "./src/state/transforms/representation.ts",
+      "types": "./lib/state/transforms/representation.d.ts",
+      "import": "./lib/state/transforms/representation.js"
+    },
+    "./state/transforms/shape": {
+      "molstar-src": "./src/state/transforms/shape.ts",
+      "types": "./lib/state/transforms/shape.d.ts",
+      "import": "./lib/state/transforms/shape.js"
+    },
+    "./state/transforms/volume": {
+      "molstar-src": "./src/state/transforms/volume.ts",
+      "types": "./lib/state/transforms/volume.d.ts",
+      "import": "./lib/state/transforms/volume.js"
+    },
+    "./state/transforms": {
+      "molstar-src": "./src/state/transforms.ts",
+      "types": "./lib/state/transforms.d.ts",
+      "import": "./lib/state/transforms.js"
+    },
+    "./state": {
+      "molstar-src": "./src/state.ts",
+      "types": "./lib/state.d.ts",
+      "import": "./lib/state.js"
+    },
+    "./themes/external-structure": {
+      "molstar-src": "./src/themes/external-structure.ts",
+      "types": "./lib/themes/external-structure.d.ts",
+      "import": "./lib/themes/external-structure.js"
+    },
+    "./themes/external-volume": {
+      "molstar-src": "./src/themes/external-volume.ts",
+      "types": "./lib/themes/external-volume.d.ts",
+      "import": "./lib/themes/external-volume.js"
+    },
+    "./util/substructure-parent-helper": {
+      "molstar-src": "./src/util/substructure-parent-helper.ts",
+      "types": "./lib/util/substructure-parent-helper.d.ts",
+      "import": "./lib/util/substructure-parent-helper.js"
+    },
+    "./util/task-manager": {
+      "molstar-src": "./src/util/task-manager.ts",
+      "types": "./lib/util/task-manager.d.ts",
+      "import": "./lib/util/task-manager.js"
+    },
+    "./util/toast": {
+      "molstar-src": "./src/util/toast.ts",
+      "types": "./lib/util/toast.d.ts",
+      "import": "./lib/util/toast.js"
+    },
+    "./util/viewport-screenshot": {
+      "molstar-src": "./src/util/viewport-screenshot.ts",
+      "types": "./lib/util/viewport-screenshot.d.ts",
+      "import": "./lib/util/viewport-screenshot.js"
+    },
+    "./version": {
+      "molstar-src": "./src/version.ts",
+      "types": "./lib/version.d.ts",
+      "import": "./lib/version.js"
+    },
+    ".": {
+      "molstar-src": "./src/context.ts",
+      "types": "./lib/context.d.ts",
+      "import": "./lib/context.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "rxjs": "catalog:",
+    "immutable": "catalog:",
+    "@types/webxr": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/io": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

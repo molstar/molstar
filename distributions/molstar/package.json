@@ -1,0 +1,16 @@
+{
+  "name": "molstar",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "A comprehensive macromolecular library.",
+  "license": "MIT",
+  "files": [
+    "build/viewer",
+    "build/mvs-stories",
+    "build/esm",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/distribution.mjs"
+  }
+}

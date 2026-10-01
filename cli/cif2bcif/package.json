@@ -1,0 +1,53 @@
+{
+  "name": "@molstar/cif2bcif-cli",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* cif2bcif-cli",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./converter": {
+      "molstar-src": "./src/converter.ts",
+      "types": "./lib/converter.d.ts",
+      "import": "./lib/converter.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "argparse": "catalog:",
+    "@types/node": "catalog:",
+    "tslib": "catalog:",
+    "@types/argparse": "catalog:",
+    "@molstar/io": "workspace:*",
+    "@molstar/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "bin": {
+    "cif2bcif": "./lib/index.js"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "name": "@molstar/domain-annotation-server-example",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* domain-annotation-server-example",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./mapping": {
+      "molstar-src": "./src/mapping.ts",
+      "types": "./lib/mapping.d.ts",
+      "import": "./lib/mapping.js"
+    },
+    "./schemas": {
+      "molstar-src": "./src/schemas.ts",
+      "types": "./lib/schemas.d.ts",
+      "import": "./lib/schemas.js"
+    },
+    "./server": {
+      "molstar-src": "./src/server.ts",
+      "types": "./lib/server.d.ts",
+      "import": "./lib/server.js"
+    },
+    "./test": {
+      "molstar-src": "./src/test.ts",
+      "types": "./lib/test.d.ts",
+      "import": "./lib/test.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "express": "catalog:",
+    "tslib": "catalog:",
+    "@types/express": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/io": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "molstar": {
+    "platform": "node",
+    "entry": "src/server.ts"
+  }
+}

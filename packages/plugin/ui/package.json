@@ -1,0 +1,488 @@
+{
+  "name": "@molstar/plugin-ui",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* plugin-ui",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./base": {
+      "molstar-src": "./src/base.tsx",
+      "types": "./lib/base.d.ts",
+      "import": "./lib/base.js"
+    },
+    "./context": {
+      "molstar-src": "./src/context.ts",
+      "types": "./lib/context.d.ts",
+      "import": "./lib/context.js"
+    },
+    "./controls/action-menu": {
+      "molstar-src": "./src/controls/action-menu.tsx",
+      "types": "./lib/controls/action-menu.d.ts",
+      "import": "./lib/controls/action-menu.js"
+    },
+    "./controls/color": {
+      "molstar-src": "./src/controls/color.tsx",
+      "types": "./lib/controls/color.d.ts",
+      "import": "./lib/controls/color.js"
+    },
+    "./controls/collapsable": {
+      "molstar-src": "./src/controls/collapsable.tsx",
+      "types": "./lib/controls/collapsable.d.ts",
+      "import": "./lib/controls/collapsable.js"
+    },
+    "./controls/common": {
+      "molstar-src": "./src/controls/common.tsx",
+      "types": "./lib/controls/common.d.ts",
+      "import": "./lib/controls/common.js"
+    },
+    "./controls/icons": {
+      "molstar-src": "./src/controls/icons.tsx",
+      "types": "./lib/controls/icons.d.ts",
+      "import": "./lib/controls/icons.js"
+    },
+    "./controls/legend": {
+      "molstar-src": "./src/controls/legend.tsx",
+      "types": "./lib/controls/legend.d.ts",
+      "import": "./lib/controls/legend.js"
+    },
+    "./controls/line-graph/line-graph-component": {
+      "molstar-src": "./src/controls/line-graph/line-graph-component.tsx",
+      "types": "./lib/controls/line-graph/line-graph-component.d.ts",
+      "import": "./lib/controls/line-graph/line-graph-component.js"
+    },
+    "./controls/line-graph/point-component": {
+      "molstar-src": "./src/controls/line-graph/point-component.tsx",
+      "types": "./lib/controls/line-graph/point-component.d.ts",
+      "import": "./lib/controls/line-graph/point-component.js"
+    },
+    "./controls/markdown": {
+      "molstar-src": "./src/controls/markdown.tsx",
+      "types": "./lib/controls/markdown.d.ts",
+      "import": "./lib/controls/markdown.js"
+    },
+    "./controls/parameters": {
+      "molstar-src": "./src/controls/parameters.tsx",
+      "types": "./lib/controls/parameters.d.ts",
+      "import": "./lib/controls/parameters.js"
+    },
+    "./controls/screenshot": {
+      "molstar-src": "./src/controls/screenshot.tsx",
+      "types": "./lib/controls/screenshot.d.ts",
+      "import": "./lib/controls/screenshot.js"
+    },
+    "./controls/slider": {
+      "molstar-src": "./src/controls/slider.tsx",
+      "types": "./lib/controls/slider.d.ts",
+      "import": "./lib/controls/slider.js"
+    },
+    "./controls": {
+      "molstar-src": "./src/controls.tsx",
+      "types": "./lib/controls.d.ts",
+      "import": "./lib/controls.js"
+    },
+    "./custom/volume": {
+      "molstar-src": "./src/custom/volume.tsx",
+      "types": "./lib/custom/volume.d.ts",
+      "import": "./lib/custom/volume.js"
+    },
+    "./hooks/use-behavior": {
+      "molstar-src": "./src/hooks/use-behavior.ts",
+      "types": "./lib/hooks/use-behavior.d.ts",
+      "import": "./lib/hooks/use-behavior.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./left-panel": {
+      "molstar-src": "./src/left-panel.tsx",
+      "types": "./lib/left-panel.d.ts",
+      "import": "./lib/left-panel.js"
+    },
+    "./plugin": {
+      "molstar-src": "./src/plugin.tsx",
+      "types": "./lib/plugin.d.ts",
+      "import": "./lib/plugin.js"
+    },
+    "./react18": {
+      "molstar-src": "./src/react18.ts",
+      "types": "./lib/react18.d.ts",
+      "import": "./lib/react18.js"
+    },
+    "./sequence/chain": {
+      "molstar-src": "./src/sequence/chain.ts",
+      "types": "./lib/sequence/chain.d.ts",
+      "import": "./lib/sequence/chain.js"
+    },
+    "./sequence/element": {
+      "molstar-src": "./src/sequence/element.ts",
+      "types": "./lib/sequence/element.d.ts",
+      "import": "./lib/sequence/element.js"
+    },
+    "./sequence/hetero": {
+      "molstar-src": "./src/sequence/hetero.ts",
+      "types": "./lib/sequence/hetero.d.ts",
+      "import": "./lib/sequence/hetero.js"
+    },
+    "./sequence/polymer": {
+      "molstar-src": "./src/sequence/polymer.ts",
+      "types": "./lib/sequence/polymer.d.ts",
+      "import": "./lib/sequence/polymer.js"
+    },
+    "./sequence/sequence": {
+      "molstar-src": "./src/sequence/sequence.tsx",
+      "types": "./lib/sequence/sequence.d.ts",
+      "import": "./lib/sequence/sequence.js"
+    },
+    "./sequence/wrapper": {
+      "molstar-src": "./src/sequence/wrapper.ts",
+      "types": "./lib/sequence/wrapper.d.ts",
+      "import": "./lib/sequence/wrapper.js"
+    },
+    "./sequence": {
+      "molstar-src": "./src/sequence.tsx",
+      "types": "./lib/sequence.d.ts",
+      "import": "./lib/sequence.js"
+    },
+    "./skin/base/_colors.scss": {
+      "molstar-src": "./src/skin/base/_colors.scss",
+      "sass": "./src/skin/base/_colors.scss",
+      "default": "./lib/skin/base/_colors.scss"
+    },
+    "./skin/base/_vars.scss": {
+      "molstar-src": "./src/skin/base/_vars.scss",
+      "sass": "./src/skin/base/_vars.scss",
+      "default": "./lib/skin/base/_vars.scss"
+    },
+    "./skin/base/base.scss": {
+      "molstar-src": "./src/skin/base/base.scss",
+      "sass": "./src/skin/base/base.scss",
+      "default": "./lib/skin/base/base.scss"
+    },
+    "./skin/base/base.css": "./lib/skin/base/base.css",
+    "./skin/base/common.scss": {
+      "molstar-src": "./src/skin/base/common.scss",
+      "sass": "./src/skin/base/common.scss",
+      "default": "./lib/skin/base/common.scss"
+    },
+    "./skin/base/common.css": "./lib/skin/base/common.css",
+    "./skin/base/components/controls-base.scss": {
+      "molstar-src": "./src/skin/base/components/controls-base.scss",
+      "sass": "./src/skin/base/components/controls-base.scss",
+      "default": "./lib/skin/base/components/controls-base.scss"
+    },
+    "./skin/base/components/controls-base.css": "./lib/skin/base/components/controls-base.css",
+    "./skin/base/components/controls.scss": {
+      "molstar-src": "./src/skin/base/components/controls.scss",
+      "sass": "./src/skin/base/components/controls.scss",
+      "default": "./lib/skin/base/components/controls.scss"
+    },
+    "./skin/base/components/controls.css": "./lib/skin/base/components/controls.css",
+    "./skin/base/components/help.scss": {
+      "molstar-src": "./src/skin/base/components/help.scss",
+      "sass": "./src/skin/base/components/help.scss",
+      "default": "./lib/skin/base/components/help.scss"
+    },
+    "./skin/base/components/help.css": "./lib/skin/base/components/help.css",
+    "./skin/base/components/line-graph.scss": {
+      "molstar-src": "./src/skin/base/components/line-graph.scss",
+      "sass": "./src/skin/base/components/line-graph.scss",
+      "default": "./lib/skin/base/components/line-graph.scss"
+    },
+    "./skin/base/components/line-graph.css": "./lib/skin/base/components/line-graph.css",
+    "./skin/base/components/log.scss": {
+      "molstar-src": "./src/skin/base/components/log.scss",
+      "sass": "./src/skin/base/components/log.scss",
+      "default": "./lib/skin/base/components/log.scss"
+    },
+    "./skin/base/components/log.css": "./lib/skin/base/components/log.css",
+    "./skin/base/components/markdown.scss": {
+      "molstar-src": "./src/skin/base/components/markdown.scss",
+      "sass": "./src/skin/base/components/markdown.scss",
+      "default": "./lib/skin/base/components/markdown.scss"
+    },
+    "./skin/base/components/markdown.css": "./lib/skin/base/components/markdown.css",
+    "./skin/base/components/misc.scss": {
+      "molstar-src": "./src/skin/base/components/misc.scss",
+      "sass": "./src/skin/base/components/misc.scss",
+      "default": "./lib/skin/base/components/misc.scss"
+    },
+    "./skin/base/components/misc.css": "./lib/skin/base/components/misc.css",
+    "./skin/base/components/sequence.scss": {
+      "molstar-src": "./src/skin/base/components/sequence.scss",
+      "sass": "./src/skin/base/components/sequence.scss",
+      "default": "./lib/skin/base/components/sequence.scss"
+    },
+    "./skin/base/components/sequence.css": "./lib/skin/base/components/sequence.css",
+    "./skin/base/components/slider.scss": {
+      "molstar-src": "./src/skin/base/components/slider.scss",
+      "sass": "./src/skin/base/components/slider.scss",
+      "default": "./lib/skin/base/components/slider.scss"
+    },
+    "./skin/base/components/slider.css": "./lib/skin/base/components/slider.css",
+    "./skin/base/components/tasks.scss": {
+      "molstar-src": "./src/skin/base/components/tasks.scss",
+      "sass": "./src/skin/base/components/tasks.scss",
+      "default": "./lib/skin/base/components/tasks.scss"
+    },
+    "./skin/base/components/tasks.css": "./lib/skin/base/components/tasks.css",
+    "./skin/base/components/toast.scss": {
+      "molstar-src": "./src/skin/base/components/toast.scss",
+      "sass": "./src/skin/base/components/toast.scss",
+      "default": "./lib/skin/base/components/toast.scss"
+    },
+    "./skin/base/components/toast.css": "./lib/skin/base/components/toast.css",
+    "./skin/base/components/transformer.scss": {
+      "molstar-src": "./src/skin/base/components/transformer.scss",
+      "sass": "./src/skin/base/components/transformer.scss",
+      "default": "./lib/skin/base/components/transformer.scss"
+    },
+    "./skin/base/components/transformer.css": "./lib/skin/base/components/transformer.css",
+    "./skin/base/components/viewport.scss": {
+      "molstar-src": "./src/skin/base/components/viewport.scss",
+      "sass": "./src/skin/base/components/viewport.scss",
+      "default": "./lib/skin/base/components/viewport.scss"
+    },
+    "./skin/base/components/viewport.css": "./lib/skin/base/components/viewport.css",
+    "./skin/base/layout/common.scss": {
+      "molstar-src": "./src/skin/base/layout/common.scss",
+      "sass": "./src/skin/base/layout/common.scss",
+      "default": "./lib/skin/base/layout/common.scss"
+    },
+    "./skin/base/layout/common.css": "./lib/skin/base/layout/common.css",
+    "./skin/base/layout/controls-landscape.scss": {
+      "molstar-src": "./src/skin/base/layout/controls-landscape.scss",
+      "sass": "./src/skin/base/layout/controls-landscape.scss",
+      "default": "./lib/skin/base/layout/controls-landscape.scss"
+    },
+    "./skin/base/layout/controls-landscape.css": "./lib/skin/base/layout/controls-landscape.css",
+    "./skin/base/layout/controls-outside.scss": {
+      "molstar-src": "./src/skin/base/layout/controls-outside.scss",
+      "sass": "./src/skin/base/layout/controls-outside.scss",
+      "default": "./lib/skin/base/layout/controls-outside.scss"
+    },
+    "./skin/base/layout/controls-outside.css": "./lib/skin/base/layout/controls-outside.css",
+    "./skin/base/layout/controls-portrait.scss": {
+      "molstar-src": "./src/skin/base/layout/controls-portrait.scss",
+      "sass": "./src/skin/base/layout/controls-portrait.scss",
+      "default": "./lib/skin/base/layout/controls-portrait.scss"
+    },
+    "./skin/base/layout/controls-portrait.css": "./lib/skin/base/layout/controls-portrait.css",
+    "./skin/base/layout.scss": {
+      "molstar-src": "./src/skin/base/layout.scss",
+      "sass": "./src/skin/base/layout.scss",
+      "default": "./lib/skin/base/layout.scss"
+    },
+    "./skin/base/layout.css": "./lib/skin/base/layout.css",
+    "./skin/base/logo.scss": {
+      "molstar-src": "./src/skin/base/logo.scss",
+      "sass": "./src/skin/base/logo.scss",
+      "default": "./lib/skin/base/logo.scss"
+    },
+    "./skin/base/logo.css": "./lib/skin/base/logo.css",
+    "./skin/base/normalize.scss": {
+      "molstar-src": "./src/skin/base/normalize.scss",
+      "sass": "./src/skin/base/normalize.scss",
+      "default": "./lib/skin/base/normalize.scss"
+    },
+    "./skin/base/normalize.css": "./lib/skin/base/normalize.css",
+    "./skin/base/ui.scss": {
+      "molstar-src": "./src/skin/base/ui.scss",
+      "sass": "./src/skin/base/ui.scss",
+      "default": "./lib/skin/base/ui.scss"
+    },
+    "./skin/base/ui.css": "./lib/skin/base/ui.css",
+    "./skin/blue.scss": {
+      "molstar-src": "./src/skin/blue.scss",
+      "sass": "./src/skin/blue.scss",
+      "default": "./lib/skin/blue.scss"
+    },
+    "./skin/blue.css": "./lib/skin/blue.css",
+    "./skin/dark.scss": {
+      "molstar-src": "./src/skin/dark.scss",
+      "sass": "./src/skin/dark.scss",
+      "default": "./lib/skin/dark.scss"
+    },
+    "./skin/dark.css": "./lib/skin/dark.css",
+    "./skin/light.scss": {
+      "molstar-src": "./src/skin/light.scss",
+      "sass": "./src/skin/light.scss",
+      "default": "./lib/skin/light.scss"
+    },
+    "./skin/light.css": "./lib/skin/light.css",
+    "./spec": {
+      "molstar-src": "./src/spec.ts",
+      "types": "./lib/spec.d.ts",
+      "import": "./lib/spec.js"
+    },
+    "./state/actions": {
+      "molstar-src": "./src/state/actions.tsx",
+      "types": "./lib/state/actions.d.ts",
+      "import": "./lib/state/actions.js"
+    },
+    "./state/animation": {
+      "molstar-src": "./src/state/animation.tsx",
+      "types": "./lib/state/animation.d.ts",
+      "import": "./lib/state/animation.js"
+    },
+    "./state/apply-action": {
+      "molstar-src": "./src/state/apply-action.tsx",
+      "types": "./lib/state/apply-action.d.ts",
+      "import": "./lib/state/apply-action.js"
+    },
+    "./state/common": {
+      "molstar-src": "./src/state/common.tsx",
+      "types": "./lib/state/common.d.ts",
+      "import": "./lib/state/common.js"
+    },
+    "./state/snapshots": {
+      "molstar-src": "./src/state/snapshots.tsx",
+      "types": "./lib/state/snapshots.d.ts",
+      "import": "./lib/state/snapshots.js"
+    },
+    "./state/tree": {
+      "molstar-src": "./src/state/tree.tsx",
+      "types": "./lib/state/tree.d.ts",
+      "import": "./lib/state/tree.js"
+    },
+    "./state/update-transform": {
+      "molstar-src": "./src/state/update-transform.tsx",
+      "types": "./lib/state/update-transform.d.ts",
+      "import": "./lib/state/update-transform.js"
+    },
+    "./structure/components": {
+      "molstar-src": "./src/structure/components.tsx",
+      "types": "./lib/structure/components.d.ts",
+      "import": "./lib/structure/components.js"
+    },
+    "./structure/focus": {
+      "molstar-src": "./src/structure/focus.tsx",
+      "types": "./lib/structure/focus.d.ts",
+      "import": "./lib/structure/focus.js"
+    },
+    "./structure/generic": {
+      "molstar-src": "./src/structure/generic.tsx",
+      "types": "./lib/structure/generic.d.ts",
+      "import": "./lib/structure/generic.js"
+    },
+    "./structure/measurements": {
+      "molstar-src": "./src/structure/measurements.tsx",
+      "types": "./lib/structure/measurements.d.ts",
+      "import": "./lib/structure/measurements.js"
+    },
+    "./structure/particles": {
+      "molstar-src": "./src/structure/particles.tsx",
+      "types": "./lib/structure/particles.d.ts",
+      "import": "./lib/structure/particles.js"
+    },
+    "./structure/procedural-animation": {
+      "molstar-src": "./src/structure/procedural-animation.tsx",
+      "types": "./lib/structure/procedural-animation.d.ts",
+      "import": "./lib/structure/procedural-animation.js"
+    },
+    "./structure/quick-styles": {
+      "molstar-src": "./src/structure/quick-styles.tsx",
+      "types": "./lib/structure/quick-styles.d.ts",
+      "import": "./lib/structure/quick-styles.js"
+    },
+    "./structure/selection": {
+      "molstar-src": "./src/structure/selection.tsx",
+      "types": "./lib/structure/selection.d.ts",
+      "import": "./lib/structure/selection.js"
+    },
+    "./structure/source": {
+      "molstar-src": "./src/structure/source.tsx",
+      "types": "./lib/structure/source.d.ts",
+      "import": "./lib/structure/source.js"
+    },
+    "./structure/superposition": {
+      "molstar-src": "./src/structure/superposition.tsx",
+      "types": "./lib/structure/superposition.d.ts",
+      "import": "./lib/structure/superposition.js"
+    },
+    "./structure/volume": {
+      "molstar-src": "./src/structure/volume.tsx",
+      "types": "./lib/structure/volume.d.ts",
+      "import": "./lib/structure/volume.js"
+    },
+    "./task": {
+      "molstar-src": "./src/task.tsx",
+      "types": "./lib/task.d.ts",
+      "import": "./lib/task.js"
+    },
+    "./toast": {
+      "molstar-src": "./src/toast.tsx",
+      "types": "./lib/toast.d.ts",
+      "import": "./lib/toast.js"
+    },
+    "./viewport/canvas": {
+      "molstar-src": "./src/viewport/canvas.tsx",
+      "types": "./lib/viewport/canvas.d.ts",
+      "import": "./lib/viewport/canvas.js"
+    },
+    "./viewport/help": {
+      "molstar-src": "./src/viewport/help.tsx",
+      "types": "./lib/viewport/help.d.ts",
+      "import": "./lib/viewport/help.js"
+    },
+    "./viewport/screenshot": {
+      "molstar-src": "./src/viewport/screenshot.tsx",
+      "types": "./lib/viewport/screenshot.d.ts",
+      "import": "./lib/viewport/screenshot.js"
+    },
+    "./viewport/simple-settings": {
+      "molstar-src": "./src/viewport/simple-settings.tsx",
+      "types": "./lib/viewport/simple-settings.d.ts",
+      "import": "./lib/viewport/simple-settings.js"
+    },
+    "./viewport": {
+      "molstar-src": "./src/viewport.tsx",
+      "types": "./lib/viewport.d.ts",
+      "import": "./lib/viewport.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "rxjs": "catalog:",
+    "react-markdown": "catalog:",
+    "remark-gfm": "catalog:",
+    "immutable": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/graphics": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=16.14.0",
+    "react-dom": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {}
+}

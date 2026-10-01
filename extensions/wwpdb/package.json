@@ -1,0 +1,53 @@
+{
+  "name": "@molstar/wwpdb-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* wwpdb-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./ccd/behavior": {
+      "molstar-src": "./src/ccd/behavior.ts",
+      "types": "./lib/ccd/behavior.d.ts",
+      "import": "./lib/ccd/behavior.js"
+    },
+    "./ccd/representation": {
+      "molstar-src": "./src/ccd/representation.ts",
+      "types": "./lib/ccd/representation.d.ts",
+      "import": "./lib/ccd/representation.js"
+    },
+    "./struct-conn/index": {
+      "molstar-src": "./src/struct-conn/index.ts",
+      "types": "./lib/struct-conn/index.d.ts",
+      "import": "./lib/struct-conn/index.js"
+    },
+    "./struct-conn": {
+      "molstar-src": "./src/struct-conn/index.ts",
+      "types": "./lib/struct-conn/index.d.ts",
+      "import": "./lib/struct-conn/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/model": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

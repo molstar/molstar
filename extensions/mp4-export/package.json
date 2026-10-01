@@ -1,0 +1,67 @@
+{
+  "name": "@molstar/mp4-export-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* mp4-export-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./controls": {
+      "molstar-src": "./src/controls.ts",
+      "types": "./lib/controls.d.ts",
+      "import": "./lib/controls.js"
+    },
+    "./encoder": {
+      "molstar-src": "./src/encoder.ts",
+      "types": "./lib/encoder.d.ts",
+      "import": "./lib/encoder.js"
+    },
+    "./headless": {
+      "molstar-src": "./src/headless.ts",
+      "types": "./lib/headless.d.ts",
+      "import": "./lib/headless.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./ui": {
+      "molstar-src": "./src/ui.tsx",
+      "types": "./lib/ui.d.ts",
+      "import": "./lib/ui.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "rxjs": "catalog:",
+    "h264-mp4-encoder": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/plugin-headless": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

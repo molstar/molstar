@@ -1,0 +1,37 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib",
+    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo"
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "src/**/_spec/**"
+  ],
+  "references": [
+    {
+      "path": "../../packages/mvs/builder"
+    },
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/graphics"
+    },
+    {
+      "path": "../../packages/plugin/core"
+    },
+    {
+      "path": "../../extensions/mp4-export"
+    },
+    {
+      "path": "../../packages/plugin/headless"
+    },
+    {
+      "path": "../../packages/mvs/runtime"
+    }
+  ]
+}

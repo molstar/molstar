@@ -5,11 +5,11 @@ import tsParser from "@typescript-eslint/parser";
 
 export default defineConfig([{
     ignores: [
-        "node_modules/*",
-        "build/*",
+        "**/node_modules/**",
+        "**/build/**",
         "deploy/*",
         "docs/site/*",
-        "lib/*",
+        "**/lib/**",
         "eslint.config.mjs",
         "build.mjs",
     ]
@@ -20,7 +20,7 @@ export default defineConfig([{
             ...globals.node,
         },
 
-        ecmaVersion: 2018,
+        ecmaVersion: "latest",
         sourceType: "module",
 
         parserOptions: {
@@ -84,7 +84,7 @@ export default defineConfig([{
 
     languageOptions: {
         parser: tsParser,
-        ecmaVersion: 5,
+        ecmaVersion: "latest",
         sourceType: "module",
 
         parserOptions: {

@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "target": "ES2022",
+    "alwaysStrict": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "sourceMap": false,
+    "noUnusedLocals": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "module": "NodeNext",
+    "esModuleInterop": true,
+    "moduleResolution": "NodeNext",
+    "isolatedModules": true,
+    "importHelpers": true,
+    "noEmitHelpers": true,
+    "allowSyntheticDefaultImports": true,
+    "jsx": "react-jsx",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "noUncheckedSideEffectImports": false,
+    "useUnknownInCatchVariables": false,
+    "strictPropertyInitialization": false,
+    "types": [
+      "webxr",
+      "node"
+    ],
+    "customConditions": [
+      "molstar-src"
+    ],
+    "verbatimModuleSyntax": true,
+    "composite": true,
+    "declarationMap": true,
+    "useDefineForClassFields": false
+  }
+}

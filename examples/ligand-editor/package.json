@@ -1,0 +1,83 @@
+{
+  "name": "@molstar/ligand-editor-example",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* ligand-editor-example",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./edits": {
+      "molstar-src": "./src/edits.ts",
+      "types": "./lib/edits.d.ts",
+      "import": "./lib/edits.js"
+    },
+    "./example-data": {
+      "molstar-src": "./src/example-data.ts",
+      "types": "./lib/example-data.d.ts",
+      "import": "./lib/example-data.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.tsx",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.tsx",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./molfile": {
+      "molstar-src": "./src/molfile.ts",
+      "types": "./lib/molfile.d.ts",
+      "import": "./lib/molfile.js"
+    },
+    "./r-groups": {
+      "molstar-src": "./src/r-groups.ts",
+      "types": "./lib/r-groups.d.ts",
+      "import": "./lib/r-groups.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs examples/ligand-editor --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs examples/ligand-editor --dev"
+  },
+  "dependencies": {
+    "rxjs": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/json-cif-extension": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/mvs": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/io": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=16.14.0",
+    "react-dom": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {},
+  "molstar": {
+    "entry": "src/index.tsx",
+    "filename": "index.js",
+    "globalName": "molstar"
+  }
+}

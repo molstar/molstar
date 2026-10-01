@@ -1,0 +1,105 @@
+{
+  "name": "@molstar/sb-ncbr-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* sb-ncbr-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./partial-charges/behavior": {
+      "molstar-src": "./src/partial-charges/behavior.ts",
+      "types": "./lib/partial-charges/behavior.d.ts",
+      "import": "./lib/partial-charges/behavior.js"
+    },
+    "./partial-charges/color": {
+      "molstar-src": "./src/partial-charges/color.ts",
+      "types": "./lib/partial-charges/color.d.ts",
+      "import": "./lib/partial-charges/color.js"
+    },
+    "./partial-charges/labels": {
+      "molstar-src": "./src/partial-charges/labels.ts",
+      "types": "./lib/partial-charges/labels.d.ts",
+      "import": "./lib/partial-charges/labels.js"
+    },
+    "./partial-charges/preset": {
+      "molstar-src": "./src/partial-charges/preset.ts",
+      "types": "./lib/partial-charges/preset.d.ts",
+      "import": "./lib/partial-charges/preset.js"
+    },
+    "./partial-charges/property": {
+      "molstar-src": "./src/partial-charges/property.ts",
+      "types": "./lib/partial-charges/property.d.ts",
+      "import": "./lib/partial-charges/property.js"
+    },
+    "./tunnels/actions": {
+      "molstar-src": "./src/tunnels/actions.ts",
+      "types": "./lib/tunnels/actions.d.ts",
+      "import": "./lib/tunnels/actions.js"
+    },
+    "./tunnels/algorithm": {
+      "molstar-src": "./src/tunnels/algorithm.ts",
+      "types": "./lib/tunnels/algorithm.d.ts",
+      "import": "./lib/tunnels/algorithm.js"
+    },
+    "./tunnels/behavior": {
+      "molstar-src": "./src/tunnels/behavior.ts",
+      "types": "./lib/tunnels/behavior.d.ts",
+      "import": "./lib/tunnels/behavior.js"
+    },
+    "./tunnels/data-model": {
+      "molstar-src": "./src/tunnels/data-model.ts",
+      "types": "./lib/tunnels/data-model.d.ts",
+      "import": "./lib/tunnels/data-model.js"
+    },
+    "./tunnels/examples": {
+      "molstar-src": "./src/tunnels/examples.ts",
+      "types": "./lib/tunnels/examples.d.ts",
+      "import": "./lib/tunnels/examples.js"
+    },
+    "./tunnels/props": {
+      "molstar-src": "./src/tunnels/props.ts",
+      "types": "./lib/tunnels/props.d.ts",
+      "import": "./lib/tunnels/props.js"
+    },
+    "./tunnels/representation": {
+      "molstar-src": "./src/tunnels/representation.ts",
+      "types": "./lib/tunnels/representation.d.ts",
+      "import": "./lib/tunnels/representation.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/meshes-extension": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

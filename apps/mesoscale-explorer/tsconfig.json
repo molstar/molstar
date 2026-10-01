@@ -1,0 +1,40 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib",
+    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo"
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "src/**/_spec/**"
+  ],
+  "references": [
+    {
+      "path": "../../extensions/mp4-export"
+    },
+    {
+      "path": "../../packages/plugin/core"
+    },
+    {
+      "path": "../../packages/plugin/ui"
+    },
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/model"
+    },
+    {
+      "path": "../../extensions/backgrounds"
+    },
+    {
+      "path": "../../packages/graphics"
+    },
+    {
+      "path": "../../packages/io"
+    }
+  ]
+}

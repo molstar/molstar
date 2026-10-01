@@ -1,0 +1,57 @@
+{
+  "name": "@molstar/syminfo-cli",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* syminfo-cli",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./util/curated": {
+      "molstar-src": "./src/util/curated.ts",
+      "types": "./lib/util/curated.d.ts",
+      "import": "./lib/util/curated.js"
+    },
+    "./util/generate": {
+      "molstar-src": "./src/util/generate.ts",
+      "types": "./lib/util/generate.d.ts",
+      "import": "./lib/util/generate.js"
+    },
+    "./util/parse": {
+      "molstar-src": "./src/util/parse.ts",
+      "types": "./lib/util/parse.d.ts",
+      "import": "./lib/util/parse.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "argparse": "catalog:",
+    "tslib": "catalog:",
+    "@types/argparse": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

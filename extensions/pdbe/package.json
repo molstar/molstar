@@ -1,0 +1,70 @@
+{
+  "name": "@molstar/pdbe-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* pdbe-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./preferred-assembly": {
+      "molstar-src": "./src/preferred-assembly.ts",
+      "types": "./lib/preferred-assembly.d.ts",
+      "import": "./lib/preferred-assembly.js"
+    },
+    "./struct-ref-domain": {
+      "molstar-src": "./src/struct-ref-domain.ts",
+      "types": "./lib/struct-ref-domain.d.ts",
+      "import": "./lib/struct-ref-domain.js"
+    },
+    "./structure-quality-report/behavior": {
+      "molstar-src": "./src/structure-quality-report/behavior.ts",
+      "types": "./lib/structure-quality-report/behavior.d.ts",
+      "import": "./lib/structure-quality-report/behavior.js"
+    },
+    "./structure-quality-report/color": {
+      "molstar-src": "./src/structure-quality-report/color.ts",
+      "types": "./lib/structure-quality-report/color.d.ts",
+      "import": "./lib/structure-quality-report/color.js"
+    },
+    "./structure-quality-report/prop": {
+      "molstar-src": "./src/structure-quality-report/prop.ts",
+      "types": "./lib/structure-quality-report/prop.d.ts",
+      "import": "./lib/structure-quality-report/prop.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/graphics": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

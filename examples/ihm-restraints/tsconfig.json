@@ -1,0 +1,37 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib",
+    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo"
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "src/**/_spec/**"
+  ],
+  "references": [
+    {
+      "path": "../../packages/mvs/runtime"
+    },
+    {
+      "path": "../../packages/mvs/builder"
+    },
+    {
+      "path": "../../packages/io"
+    },
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/model"
+    },
+    {
+      "path": "../../packages/plugin/ui"
+    },
+    {
+      "path": "../../packages/plugin/core"
+    }
+  ]
+}

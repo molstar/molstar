@@ -1,0 +1,28 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib",
+    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo"
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "src/**/_spec/**"
+  ],
+  "references": [
+    {
+      "path": "../../extensions/plugin"
+    },
+    {
+      "path": "../../packages/plugin/ui"
+    },
+    {
+      "path": "../../apps/viewer"
+    },
+    {
+      "path": "../../packages/mvs/runtime"
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "name": "@molstar/plugin-headless",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* plugin-headless",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./context": {
+      "molstar-src": "./src/context.ts",
+      "types": "./lib/context.d.ts",
+      "import": "./lib/context.js"
+    },
+    "./screenshot": {
+      "molstar-src": "./src/screenshot.ts",
+      "types": "./lib/screenshot.d.ts",
+      "import": "./lib/screenshot.js"
+    },
+    ".": {
+      "molstar-src": "./src/context.ts",
+      "types": "./lib/context.d.ts",
+      "import": "./lib/context.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@types/node": "catalog:",
+    "tslib": "catalog:",
+    "@types/pngjs": "catalog:",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@types/gl": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "peerDependencies": {
+    "gl": ">=6 <9",
+    "canvas": "^2.11.2",
+    "pngjs": "^6.0.0",
+    "jpeg-js": "^0.4.4"
+  },
+  "peerDependenciesMeta": {
+    "gl": {
+      "optional": true
+    },
+    "canvas": {
+      "optional": true
+    },
+    "pngjs": {
+      "optional": true
+    },
+    "jpeg-js": {
+      "optional": true
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "name": "@molstar/common-server",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* common-server",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./file-handle": {
+      "molstar-src": "./src/file-handle.ts",
+      "types": "./lib/file-handle.d.ts",
+      "import": "./lib/file-handle.js"
+    },
+    "./google-cloud-storage": {
+      "molstar-src": "./src/google-cloud-storage.ts",
+      "types": "./lib/google-cloud-storage.d.ts",
+      "import": "./lib/google-cloud-storage.js"
+    },
+    "./open-read": {
+      "molstar-src": "./src/open-read.ts",
+      "types": "./lib/open-read.d.ts",
+      "import": "./lib/open-read.js"
+    },
+    "./swagger-ui/index": {
+      "molstar-src": "./src/swagger-ui/index.ts",
+      "types": "./lib/swagger-ui/index.d.ts",
+      "import": "./lib/swagger-ui/index.js"
+    },
+    "./swagger-ui": {
+      "molstar-src": "./src/swagger-ui/index.ts",
+      "types": "./lib/swagger-ui/index.d.ts",
+      "import": "./lib/swagger-ui/index.js"
+    },
+    "./swagger-ui/indexTemplate": {
+      "molstar-src": "./src/swagger-ui/indexTemplate.ts",
+      "types": "./lib/swagger-ui/indexTemplate.d.ts",
+      "import": "./lib/swagger-ui/indexTemplate.js"
+    },
+    "./util": {
+      "molstar-src": "./src/util.ts",
+      "types": "./lib/util.d.ts",
+      "import": "./lib/util.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_spec/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "express": "catalog:",
+    "swagger-ui-dist": "catalog:",
+    "@types/node": "catalog:",
+    "tslib": "catalog:",
+    "@types/express": "catalog:",
+    "@types/swagger-ui-dist": "catalog:",
+    "serve-static": "catalog:",
+    "@types/serve-static": "catalog:",
+    "@types/express-serve-static-core": "catalog:",
+    "@molstar/io": "workspace:*",
+    "@molstar/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "peerDependencies": {
+    "@google-cloud/storage": "^7.14.0"
+  },
+  "peerDependenciesMeta": {
+    "@google-cloud/storage": {
+      "optional": true
+    }
+  }
+}
