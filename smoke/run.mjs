@@ -13,6 +13,7 @@ const rootRequire = createRequire(import.meta.url);
 const args = new Set(process.argv.slice(2));
 const mode = [...args].find(arg => !arg.startsWith('--')) ?? 'all';
 const validModes = ['node', 'types', 'browser', 'source', 'cli', 'headless', 'all'];
+if (args.has('--serve') && mode !== 'browser') throw new Error('--serve requires browser mode.');
 if (!validModes.includes(mode)) throw new Error(`Unknown smoke mode '${mode}'. Choose ${validModes.join(', ')}.`);
 const run = (command, commandArgs, options = {}) => new Promise((resolveRun, reject) => {
   const child = spawn(command, commandArgs, { cwd: options.cwd ?? root, stdio: 'inherit', env: process.env, ...options });
@@ -185,9 +186,6 @@ async function browserCheck() {
   for (const artifact of ['viewer/molstar.js', 'viewer/molstar.css', 'mvs-stories/mvs-stories.js', 'mvs-stories/mvs-stories.css']) {
     if (!await exists(join(packedDistribution, 'build', artifact))) fail(`Classic browser smoke prerequisite missing in the packed tarball: build/${artifact}`);
   }
-  const playwrightPath = resolve(root, 'node_modules/playwright/index.mjs');
-  if (!await exists(playwrightPath)) fail('Browser automation unavailable: install Playwright in the workspace to execute browser smoke pages. Pages and local fixture are ready, but browser behavior is unverified.');
-  const { chromium } = await import(pathToFileURL(playwrightPath));
   const importMap = await readFile(join(dist, 'import-map.json'), 'utf8');
   const server = createServer(async (req, res) => {
     try {
@@ -211,11 +209,41 @@ async function browserCheck() {
       res.end(body);
     } catch (error) { res.writeHead(500); res.end(error.message); }
   });
-  await new Promise(resolveListen => server.listen(0, '127.0.0.1', resolveListen));
+  const serve = args.has('--serve');
+  const portOption = [...args].find(arg => arg.startsWith('--port='));
+  const port = serve ? Number(portOption?.slice('--port='.length) ?? 1339) : 0;
+  if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Use --port=<0–65535>.');
+  await new Promise((resolveListen, rejectListen) => {
+    server.once('error', rejectListen);
+    server.listen(port, '127.0.0.1', () => { server.removeListener('error', rejectListen); resolveListen(); });
+  });
   const address = server.address();
+  if (serve) {
+    console.log('Packed browser smoke pages (Ctrl+C to stop):');
+    for (const page of ['/viewer/', '/library/', '/classic/viewer.html', '/classic/mvs-stories.html']) {
+      console.log(`  http://127.0.0.1:${address.port}${page}`);
+    }
+    try {
+      await new Promise(resolveStop => {
+        const stop = () => {
+          process.removeListener('SIGINT', stop);
+          process.removeListener('SIGTERM', stop);
+          resolveStop();
+        };
+        process.once('SIGINT', stop);
+        process.once('SIGTERM', stop);
+      });
+    } finally {
+      await new Promise(resolveClose => server.close(resolveClose));
+    }
+    return;
+  }
   const browserErrors = [];
   let browser;
   try {
+    const playwrightPath = resolve(root, 'node_modules/playwright/index.mjs');
+    if (!await exists(playwrightPath)) fail('Browser automation unavailable: install Playwright in the workspace to execute browser smoke pages. Pages and local fixture are ready, but browser behavior is unverified.');
+    const { chromium } = await import(pathToFileURL(playwrightPath));
     const browserPath = process.env.MOLSTAR_SMOKE_BROWSER || (await exists('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome') ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : undefined);
     browser = await chromium.launch({ headless: true, ...(browserPath ? { executablePath: browserPath } : {}), args: ['--use-angle=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
     for (const pagePath of ['/viewer/', '/library/', '/classic/viewer.html', '/classic/mvs-stories.html']) {
@@ -299,4 +327,5 @@ for (const [name, check] of checks) {
 if (errors.length) {
   console.error(`\n${errors.length} smoke check(s) failed:\n${errors.map(e => `- ${e}`).join('\n')}`);
   process.exitCode = 1;
-} else console.log('\nAll requested smoke checks passed.');
+} else if (!args.has('--serve')) console.log('\nAll requested smoke checks passed.');
+await cleanup();
