@@ -4,7 +4,7 @@
  */
 
 import { Grid } from '@molstar/model/model/volume';
-import { CCP4Writer } from '@molstar/model/formats/io/writer/ccp4/ccp4';
+import { CCP4Writer } from '@molstar/model/formats/writer/ccp4/ccp4';
 
 export function downloadMrc(grid: Grid, maskData: Uint8Array | Float32Array, filename = 'mask.mrc') {
     const buf = CCP4Writer.writeMrc(grid, maskData);

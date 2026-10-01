@@ -8,7 +8,7 @@ import { Mat4, Tensor } from '@molstar/core/math/linear-algebra';
 import { volumeFromCcp4 } from '@molstar/model/formats/volume/ccp4';
 import { Grid } from '@molstar/model/model/volume';
 import { parse } from '@molstar/io/reader/ccp4/parser';
-import { CCP4Writer } from '@molstar/model/formats/io/writer/ccp4/ccp4';
+import { CCP4Writer } from '@molstar/model/formats/writer/ccp4/ccp4';
 
 /** Deliberately not a cube, so a transposed axis would not go unnoticed. */
 const Dimensions: [number, number, number] = [4, 3, 2];

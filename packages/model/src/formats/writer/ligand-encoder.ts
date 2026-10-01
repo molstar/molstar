@@ -7,8 +7,8 @@
 import { StringBuilder } from '@molstar/core/util';
 import type { Writer } from '@molstar/io/writer/writer';
 import type { Encoder, Category, Field } from '@molstar/io/writer/cif/encoder';
-import type { ComponentAtom } from '../../structure/property/atoms/chem_comp.js';
-import type { ComponentBond } from '../../structure/property/bonds/chem_comp.js';
+import type { ComponentAtom } from '../structure/property/atoms/chem_comp.js';
+import type { ComponentBond } from '../structure/property/bonds/chem_comp.js';
 import { getElementIdx, isHydrogen } from '@molstar/model/model/structure/structure/unit/bonds/common';
 import type { ElementSymbol } from '@molstar/model/model/structure/model/types';
 

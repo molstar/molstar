@@ -6,7 +6,7 @@
 
 import { Volume } from '@molstar/model/model/volume';
 import { RuntimeContext } from '@molstar/core/task';
-import { CCP4Writer } from '@molstar/model/formats/io/writer/ccp4/ccp4';
+import { CCP4Writer } from '@molstar/model/formats/writer/ccp4/ccp4';
 import { download } from '@molstar/core/util/download';
 import { zip } from '@molstar/core/util/zip/zip';
 import type { BodyInfo, BodyMaskParams, BodyMaskResult, LabelStore } from '../types.js';

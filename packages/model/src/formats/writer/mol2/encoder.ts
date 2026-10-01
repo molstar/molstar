@@ -9,7 +9,7 @@ import { LigandEncoder } from '../ligand-encoder.js';
 import { StringBuilder } from '@molstar/core/util';
 import { getCategoryInstanceData } from '@molstar/io/writer/cif/encoder/util';
 import { BondType } from '@molstar/model/model/structure/model/types';
-import type { ComponentBond } from '../../../structure/property/bonds/chem_comp.js';
+import type { ComponentBond } from '../../structure/property/bonds/chem_comp.js';
 
 // type MOL_TYPE = 'SMALL' | 'BIOPOLYMER' | 'PROTEIN' | 'NUCLEIC_ACID' | 'SACCHARIDE';
 // type CHARGE_TYPE = 'NO_CHARGES' | 'DEL_RE' | 'GASTEIGER' | 'GAST_HUCK' | 'HUCKEL' | 'PULLMAN' | 'GAUSS80_CHARGES' | 'AMPAC_CHARGES' | 'MULLIKEN_CHARGES' | 'DICT_ CHARGES' | 'MMFF94_CHARGES' | 'USER_CHARGES';
