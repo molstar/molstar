@@ -4,25 +4,27 @@
  * @author Aniruddha Adak <aniruddhaadak80@gmail.com>
  */
 
-import { EncodedColumn, classifyIntArray, classifyFloatArray } from '../../../../common/binary-cif';
+import { ArrayEncoder, ArrayEncoding as E, EncodedColumn, classifyIntArray, classifyFloatArray } from '../../../../common/binary-cif';
 import { Field } from '../field';
 
 /** mirrors `Column.ValueKinds` */
 const Present = 0, NotPresent = 1, Unknown = 2;
 
 function intColumn(data: number[], mask?: number[]): EncodedColumn {
+    const array = new Int32Array(data);
     return {
         name: 'test',
-        data: classifyIntArray(new Int32Array(data)),
-        mask: mask ? classifyIntArray(new Int8Array(mask)) : void 0
+        data: classifyIntArray(array).encode(array),
+        mask: mask ? ArrayEncoder.by(E.byteArray).encode(new Uint8Array(mask)) : void 0
     };
 }
 
 function floatColumn(data: number[], mask?: number[]): EncodedColumn {
+    const array = new Float32Array(data);
     return {
         name: 'test',
-        data: classifyFloatArray(new Float32Array(data)),
-        mask: mask ? classifyIntArray(new Int8Array(mask)) : void 0
+        data: classifyFloatArray(array).encode(array),
+        mask: mask ? ArrayEncoder.by(E.byteArray).encode(new Uint8Array(mask)) : void 0
     };
 }
 
