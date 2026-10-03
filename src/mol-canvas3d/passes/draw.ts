@@ -20,12 +20,13 @@ import { StereoCamera } from '../camera/stereo';
 import { WboitPass } from './wboit';
 import { DpoitPass } from './dpoit';
 import { AntialiasingPass, PostprocessingPass, PostprocessingProps } from './postprocessing';
-import { MarkingPass, MarkingProps, SingleSample } from './marking';
+import { MarkingPass, MarkingProps, MarkingShading, SingleSample } from './marking';
 import { CopyRenderable, createCopyRenderable } from '../../mol-gl/compute/util';
 import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 import { AssetManager } from '../../mol-util/assets';
 import { DofPass } from './dof';
 import { BloomPass } from './bloom';
+import { SsaoPass } from './ssao';
 import { RenderContext } from '../util';
 
 type Props = {
@@ -56,6 +57,7 @@ export class DrawPass {
     readonly dpoit: DpoitPass;
     readonly marking: MarkingPass;
     readonly postprocessing: PostprocessingPass;
+    private readonly ssaoShading: MarkingShading;
     readonly antialiasing: AntialiasingPass;
     readonly dof: DofPass;
 
@@ -103,6 +105,7 @@ export class DrawPass {
         this.dpoit = new DpoitPass(webgl, width, height);
         this.marking = new MarkingPass(webgl, width, height);
         this.postprocessing = new PostprocessingPass(webgl, assetManager, this);
+        this.ssaoShading = { name: 'ssao', ssao: this.postprocessing.ssao.ssaoDepthTexture };
         this.antialiasing = new AntialiasingPass(webgl, width, height);
         this.dof = new DofPass(webgl, width, height);
 
@@ -470,7 +473,7 @@ export class DrawPass {
         if (!output) {
             this.marking.invalidate();
         } else if (!skipMarking) {
-            this.marking.present(ctx, props, output, toDrawingBuffer, SingleSample, true, 1);
+            this.marking.present(ctx, props, { base: output, toDrawingBuffer, offsets: SingleSample, restart: true, samples: 1, shading: this.getMarkingShading(props.postprocessing) });
         }
 
         this.webgl.gl.flush();
@@ -601,6 +604,11 @@ export class DrawPass {
             BloomPass.isEnabled(pp) && pp.bloom.name === 'on' &&
             !(pp.bloom.params.mode === 'emissive' && scene.emissiveAverage === 0);
         return props.transparentBackground || backgroundEnabled || bloomCompositesBackground;
+    }
+
+    /** shading of the last render that marking tint and dim keep, or null if there is none */
+    getMarkingShading(postprocessingProps: PostprocessingProps): MarkingShading | null {
+        return SsaoPass.isEnabled(postprocessingProps) ? this.ssaoShading : null;
     }
 
     getColorTarget(postprocessingProps: PostprocessingProps): RenderTarget {

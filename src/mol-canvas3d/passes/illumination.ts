@@ -26,7 +26,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Color } from '../../mol-util/color/color';
 import { AntialiasingPass, PostprocessingPass, PostprocessingProps } from './postprocessing';
 import { DrawPass } from './draw';
-import { MarkingProps, SingleSample } from './marking';
+import { MarkingProps, MarkingShading, SingleSample } from './marking';
 import { DofPass } from './dof';
 import { TracingParams, TracingPass } from './tracing';
 import { getJitterOffsets, setJitter, clearJitter } from './jitter';
@@ -100,6 +100,8 @@ export class IlluminationPass {
     private _colorTarget: RenderTarget;
     get colorTarget() { return this._colorTarget; }
 
+    private markingShading: MarkingShading;
+
     private _supported = false;
     get supported() {
         return this._supported;
@@ -137,6 +139,7 @@ export class IlluminationPass {
         const height = colorTarget.getHeight();
 
         this.tracing = new TracingPass(webgl, this.drawPass);
+        this.markingShading = { name: 'traced', shaded: this.tracing.shadedTextureOpaque };
 
         this.transparentTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'nearest');
         this.outputTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
@@ -504,7 +507,7 @@ export class IlluminationPass {
         // in 'on' mode, marking is blended over the accumulated samples instead
         if (props.multiSample.mode === 'on' && !toDrawingBuffer) return;
 
-        this.drawPass.marking.present(ctx, props, this._colorTarget, toDrawingBuffer, SingleSample, forceRenderInput, 1);
+        this.drawPass.marking.present(ctx, props, { base: this._colorTarget, toDrawingBuffer, offsets: SingleSample, restart: forceRenderInput, samples: 1, shading: this.markingShading });
     }
 
     private prevSampleIndex = -1;
@@ -614,7 +617,7 @@ export class IlluminationPass {
         const base = toDrawingBuffer ? this.multiSampleAccumulateTarget : this._colorTarget;
         // a single sample on the first iteration, which is also the one rendered while the camera moves
         const samples = iteration === 0 ? 1 : Math.ceil(offsetList.length / maxIterations);
-        this.drawPass.marking.present(ctx, props, base, toDrawingBuffer, offsetList, iteration === 0, samples);
+        this.drawPass.marking.present(ctx, props, { base, toDrawingBuffer, offsets: offsetList, restart: iteration === 0, samples, shading: this.markingShading });
         if (isTimingMode) webgl.timer.markEnd('IlluminationPass.renderMultiSample');
     }
 

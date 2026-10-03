@@ -84,6 +84,12 @@ float unpackRGToUnitInterval(const in vec2 enc) {
     return dot(enc, vec2(255.0 / (256.0 * 256.0), 255.0 / 256.0));
 }
 
+// occlusion factor from a packed SSAO texel, values close to 0.0 are treated as errors (no occlusion)
+float unpackSsao(const in vec4 v) {
+    float ssao = unpackRGToUnitInterval(v.xy);
+    return ssao > 0.001 && ssao <= 0.999 ? ssao : 1.0;
+}
+
 float pack2x4(vec2 v) {
     vec2 clamped_v = clamp(v, 0.0, 1.0);
     vec2 scaled_v = floor(clamped_v * 15.0 + 0.5); // round to 0–15

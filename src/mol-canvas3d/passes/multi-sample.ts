@@ -52,7 +52,7 @@ function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture): Compose
 export const MultiSampleParams = {
     mode: PD.Select('temporal', [['off', 'Off'], ['on', 'On'], ['temporal', 'Temporal']]),
     sampleLevel: PD.Numeric(2, { min: 0, max: 5, step: 1 }, { description: 'Take level^2 samples.' }),
-    reduceFlicker: PD.Boolean(true, { description: 'Reduce flicker in "temporal" mode.' }),
+    reduceFlicker: PD.Boolean(true, { description: 'Reduce flicker in "temporal" mode when marking is disabled (i.e. drawn as part of the scene).' }),
     reuseOcclusion: PD.Boolean(true, { description: 'Reuse occlusion data. It is faster but has some artefacts.' }),
 };
 export type MultiSampleProps = PD.Values<typeof MultiSampleParams>
@@ -195,7 +195,7 @@ export class MultiSamplePass {
 
         clearJitter(camera);
 
-        this.drawPass.marking.present(ctx, props, this.colorTarget, toDrawingBuffer, offsetList, true, offsetList.length);
+        this.drawPass.marking.present(ctx, props, { base: this.colorTarget, toDrawingBuffer, offsets: offsetList, restart: true, samples: offsetList.length, shading: drawPass.getMarkingShading(props.postprocessing) });
         if (isTimingMode) webgl.timer.markEnd('MultiSamplePass.renderMultiSample');
     }
 
@@ -301,7 +301,7 @@ export class MultiSamplePass {
 
         clearJitter(camera);
 
-        this.drawPass.marking.present(ctx, props, this.colorTarget, toDrawingBuffer, offsetList, firstFrame, firstFrame ? 1 : samplesPerFrame);
+        this.drawPass.marking.present(ctx, props, { base: this.colorTarget, toDrawingBuffer, offsets: offsetList, restart: firstFrame, samples: firstFrame ? 1 : samplesPerFrame, shading: drawPass.getMarkingShading(props.postprocessing) });
         if (isTimingMode) webgl.timer.markEnd('MultiSamplePass.renderTemporalMultiSample');
 
         return sampleIndex >= offsetList.length ? -2 : sampleIndex;

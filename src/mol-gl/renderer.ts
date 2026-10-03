@@ -97,7 +97,7 @@ export const RendererParams = {
 
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
 
-    colorMarker: PD.Boolean(true, { description: 'Tint marked objects, by the marking pass when enabled and dimming is off, otherwise in the material color.' }),
+    colorMarker: PD.Boolean(true, { description: 'Tint marked and dim unmarked objects, by the marking pass when enabled, otherwise in the material color.' }),
     highlightColor: PD.Color(Color.fromNormalizedRgb(1.0, 0.4, 0.6)),
     selectColor: PD.Color(Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
     dimColor: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),

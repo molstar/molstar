@@ -12,13 +12,13 @@ Note that since we don't clearly distinguish between a public and private interf
   - Tests for `HeadlessPluginContext`
 - Merge representation render-objects to reduce draw-calls
 - Optimize `Renderable` culling with a frame token guard
-- Separate marking from scene rendering: marking is now composed onto the finished image instead of being rendered with the scene
-  - Marking edges are antialiased via the marking mask, using the method configured in `postprocessing.antialiasing` (sharpening is not applied), and no longer go through the antialiasing or depth of field passes
-  - With multi-sampling, marking is rendered with the same jitter offsets and averaged (a single sample while the camera moves, remaining samples are added over the following frames with temporal multi-sampling or illumination)
-  - With `renderer.colorMarker`, marked regions are tinted by the marking pass using the renderer `highlightColor`/`selectColor` and `highlightStrength`/`selectStrength`; the material color is only tinted when the marking pass is disabled or `dimStrength` is > 0
+- Separate marking from scene rendering: marking is composed onto the finished image
+  - Antialiased marking edges (via `postprocessing.antialiasing`), multi-sampled with the scene's jitter
+  - With `renderer.colorMarker`, the marking pass tints marked and dims unmarked regions
+  - Marking-only changes (e.g. hover, select) no longer trigger a full re-render
   - `marking.edgeScale` is no longer rounded to whole pixels
-  - Marking-only changes (e.g. hover, select) are redrawn on top of the image of the last render instead of triggering a full re-render, and no longer restart multi-sample accumulation or path tracing
   - Move `JitterVectors` from `passes/multi-sample` to `passes/jitter`
+  - `multiSample.reduceFlicker` only applies when marking is disabled
 - Improve dynamic trackball controls and show param
 - Fix altloc in PDB files receive different atom names (#156)
 - Add `volume-tools/segmentor`: interactive segmentation of a volume into bodies (polygon labelling from several views, remainder assignment, dust removal, handedness flip, per-body extend + cosine soft edge, MRC mask export)
