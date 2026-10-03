@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -135,8 +135,12 @@ void main(void){
 
     #include assign_material_color
 
-    #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
+    #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_marking)
+        #if defined(dRenderVariant_marking)
+        if (material.a < 1.0 && uAlphaThickness > 0.0) {
+        #else
         if (uRenderMask == MaskTransparent && uAlphaThickness > 0.0) {
+        #endif
             material.a *= min(1.0, vRadius / (uAlphaThickness * uModelScale));
         }
     #endif
@@ -156,6 +160,7 @@ void main(void){
     #elif defined(dRenderVariant_depth)
         gl_FragColor = material;
     #elif defined(dRenderVariant_marking)
+        #include apply_marking
         gl_FragColor = material;
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;

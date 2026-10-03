@@ -25,7 +25,7 @@ export const common = `
     #define dXrayShaded
 #endif
 
-#if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || ((defined(dRenderVariant_depth) || defined(dRenderVariant_pick)) && defined(dXrayShaded))
+#if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || ((defined(dRenderVariant_depth) || defined(dRenderVariant_pick) || defined(dRenderVariant_marking)) && defined(dXrayShaded))
     #define dNeedsNormal
 #endif
 
@@ -132,6 +132,16 @@ vec4 packDepthWithAlphaToRGBA(const in float depth, const in float alpha){
 }
 vec2 unpackRGBAToDepthWithAlpha(const in vec4 v) {
     return vec2(dot(v.xyz, UnpackFactors.yzw), v.w);
+}
+
+// Green stays below 0.5 for visible fragments and above it for hidden ones.
+// Opaque fragments retain the original 0/1 values; opacity uses the outer quarters.
+vec4 packMarkingMask(const in float hidden, const in bool highlight, const in float fogAlpha, const in float opacity) {
+    float g = hidden + (1.0 - 2.0 * hidden) * (1.0 - opacity) * 0.25;
+    return vec4(0.0, g, highlight ? 1.0 : 0.0, fogAlpha);
+}
+float unpackMarkingOpacity(const in float g) {
+    return clamp(1.0 - 4.0 * min(g, 1.0 - g), 0.0, 1.0);
 }
 
 vec4 sRGBToLinear(const in vec4 c) {

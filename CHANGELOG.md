@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Separate marking from scene rendering: marking is composed onto the finished image
   - Antialiased marking edges (via `postprocessing.antialiasing`), multi-sampled with the scene's jitter
   - With `renderer.colorMarker`, the marking pass tints marked and dims unmarked regions
+  - Tint and dim strengths are weighted by fragment opacity
   - Marking-only changes (e.g. hover, select) no longer trigger a full re-render
   - `marking.edgeScale` is no longer rounded to whole pixels
   - Move `JitterVectors` from `passes/multi-sample` to `passes/jitter`

@@ -26,9 +26,10 @@ void main() {
     if (m.r < 0.5 && m.g < 0.5)
         discard;
 
-    float viewZ = depthToViewZ(uIsOrtho, unpackRGBAToDepth(packedDepth), uNear, uFar);
+    vec2 depthWithAlpha = unpackRGBAToDepthWithAlpha(packedDepth);
+    float viewZ = depthToViewZ(uIsOrtho, depthWithAlpha.x, uNear, uFar);
     float fogAlpha = 1.0 - smoothstep(uFogNear, uFogFar, abs(viewZ));
-    // after antialiasing: r = coverage * fogAlpha, g = coverage
-    gl_FragColor = vec4(fogAlpha, 1.0, 0.0, 1.0);
+    // after antialiasing: r = coverage * opacity * fogAlpha, g = coverage * opacity
+    gl_FragColor = vec4(fogAlpha * depthWithAlpha.y, depthWithAlpha.y, 0.0, 1.0);
 }
 `;

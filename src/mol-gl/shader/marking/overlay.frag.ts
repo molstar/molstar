@@ -72,7 +72,7 @@ void main() {
             fillFogAlpha = marked.z;
             // marked.x: 1.0 = hidden, 0.0 = visible; without depth test every marked texel reads as hidden
             float visibility = uDepthTest && marked.x > 0.5 ? 0.0 : 1.0;
-            fillAlpha = coverage * fillStrength * visibility * fillFogAlpha;
+            fillAlpha = coverage * fillStrength * visibility * fillFogAlpha * unpackMarkingOpacity(marked.x);
         }
     }
 
