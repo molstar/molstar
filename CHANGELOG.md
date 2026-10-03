@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - BinaryCIF: masked `int`/`float` field values now return the default `0` instead of the value left in the data array, matching the text/mmCIF parsers. Applies to the bulk `toIntArray`/`toFloatArray` APIs as well (#1711)
+- Fix PDB entities with caps: include protein caps listed in SEQRES in the polymer entity and don't make SEQRES entities non-polymer when the first residue is non-polymer
 
 ## [v5.12.0] - 2026-09-28
 - Make CIF field lookup case insensitive, so mmCIF files writing `_atom_site.cartn_x` resolve fields like `Cartn_x` instead of leaving coordinates at 0,0,0 (#1941)
@@ -21,7 +22,6 @@ Note that since we don't clearly distinguish between a public and private interf
 - **Breaking**: move the `volume-mask` extension to `volume-tools/mask`, alongside the new segmentor; `ViewMask`, its projection and the in-place volume operations are now shared at `volume-tools/`. Update imports from `extensions/volume-mask` to `extensions/volume-tools/mask`
 - Merge the `volume-mask` example into a `volume-tools` example, with a landing page and one page per tool
 - Fix `CCP4Writer.writeMrc` for volumes with a non-canonical axis order
-- Fix PDB entities with caps: include protein caps listed in SEQRES in the polymer entity and don't make SEQRES entities non-polymer when the first residue is non-polymer
 - Fix `CCP4Writer.writeMrc` writing `ISPG = 0`, which marks the data as an image stack rather than a volume
 - Add `squaredDistanceTransform3D` (exact Euclidean distance transform) to `mol-math/geometry`
 - Optimize `GridLookup3D` building for sparse grids
