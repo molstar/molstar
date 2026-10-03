@@ -53,8 +53,9 @@ import { DefaultXRManagerAttribs, XRManager, XRManagerParams } from './helper/xr
 import { HiZParams, HiZPass } from './passes/hi-z';
 import { IlluminationParams } from './passes/illumination';
 import { ImagePass, ImageProps } from './passes/image';
-import { MarkingParams } from './passes/marking';
+import { isMaterialColorMarker, MarkingParams, SingleSample } from './passes/marking';
 import { MultiSampleHelper, MultiSampleParams, MultiSamplePass } from './passes/multi-sample';
+import { getJitterOffsets, getTemporalSamplesPerFrame } from './passes/jitter';
 import { Passes } from './passes/passes';
 import { AsyncPickData, DefaultPickOptions, PickData } from './passes/pick';
 import { PostprocessingParams } from './passes/postprocessing';
@@ -476,7 +477,7 @@ namespace Canvas3D {
         syncCanvasBackground(canvas, p);
         updateViewport();
         const scene = Scene.create(webgl, passes.draw.transparency, {
-            dColorMarker: p.renderer.colorMarker,
+            dColorMarker: isMaterialColorMarker(p.renderer, p.marking),
             dLightCount: p.renderer.light?.length,
         });
 
@@ -639,8 +640,12 @@ namespace Canvas3D {
             markBuffer.push([reprLoci, action]);
         }
 
+        /** helpers are rendered into the scene color, so their marking can't be redrawn on its own */
+        let helperMarkingUpdated = false;
+
         function resolveMarking() {
             let changed = false;
+            helperMarkingUpdated = false;
             for (const [r, l] of markBuffer) {
                 changed = applyMark(r, l) || changed;
             }
@@ -666,9 +671,11 @@ namespace Canvas3D {
             } else {
                 reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci, action) || changed; });
             }
-            changed = helper.handle.mark(loci, action) || changed;
-            changed = helper.camera.mark(loci, action) || changed;
-            return changed;
+            const handleChanged = helper.handle.mark(loci, action);
+            const cameraChanged = helper.camera.mark(loci, action);
+            const helperChanged = handleChanged || cameraChanged;
+            helperMarkingUpdated = helperMarkingUpdated || helperChanged;
+            return changed || helperChanged;
         }
 
         function render(force: boolean, xrFrame?: XRFrame) {
@@ -711,7 +718,33 @@ namespace Canvas3D {
                 if (isDebugMode) console.log('New frame');
             }
 
-            if (passes.illumination.supported && p.illumination.enabled && !xrFrame) {
+            const illuminationEnabled = passes.illumination.supported && p.illumination.enabled && !xrFrame;
+            const multiSampleEnabled = MultiSamplePass.isEnabled(p.multiSample) && !xrFrame;
+
+            const markingOffsets = (illuminationEnabled ? p.multiSample.mode === 'on' : multiSampleEnabled)
+                ? getJitterOffsets(p.multiSample.sampleLevel) : SingleSample;
+            const redrawMarking = (restart: boolean, samples: number) => {
+                // other passes (e.g. pick) reset this, it has to match the last full render
+                renderer.setOcclusionTest(illuminationEnabled ? null : hiZ.isOccluded);
+                if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
+                const redrawn = passes.draw.marking.redraw({ renderer, camera, scene, helper, frame }, p, markingOffsets, restart, samples);
+                if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
+                return redrawn;
+            };
+
+            // marking-only changes are redrawn over the image of the last render, avoiding a full
+            // re-render; the per-object color marker is part of that image, so it needs a re-render
+            const canRedrawMarking = !helperMarkingUpdated && !shouldRender
+                && !isMaterialColorMarker(renderer.props, p.marking) && !xrFrame && p.camera.stereo.name !== 'on'
+                && (!illuminationEnabled || passes.illumination.iteration > 0);
+
+            if (canRedrawMarking && markingUpdated) {
+                // illumination multi-samples are expensive (full depth pass each), so add them over frames
+                const progressive = illuminationEnabled || p.multiSample.mode === 'temporal';
+                if (redrawMarking(true, progressive ? 1 : markingOffsets.length)) return true;
+            }
+
+            if (illuminationEnabled) {
                 if (shouldRender || markingUpdated) {
                     renderer.setOcclusionTest(null);
                     passes.illumination.restart();
@@ -743,8 +776,9 @@ namespace Canvas3D {
 
                     if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
                     const ctx = { renderer, camera: cam, scene, helper, frame };
-                    if (MultiSamplePass.isEnabled(p.multiSample) && !xrFrame) {
-                        const forceOn = p.multiSample.reduceFlicker && !cameraChanged && markingUpdated && !controls.isAnimating;
+                    if (multiSampleEnabled) {
+                        const forceOn = p.multiSample.reduceFlicker && isMaterialColorMarker(renderer.props, p.marking)
+                            && !cameraChanged && markingUpdated && !controls.isAnimating;
                         multiSampleHelper.render(ctx, p, true, forceOn);
                     } else {
                         passes.draw.render(ctx, p, true);
@@ -756,6 +790,11 @@ namespace Canvas3D {
                     pickHelper.dirty = pickHelper.dirty || shouldRender;
                     didRender = true;
                 }
+            }
+
+            // keep accumulating marking samples after the scene has settled
+            if (!didRender && !markingUpdated && canRedrawMarking && passes.draw.marking.needsMoreSamples) {
+                didRender = redrawMarking(false, getTemporalSamplesPerFrame(p.multiSample.sampleLevel));
             }
 
             return didRender;
@@ -1219,10 +1258,9 @@ namespace Canvas3D {
             interactionEvent.pipe(
                 debounceTime(p.userInteractionReleaseMs)
             ).subscribe(() => {
+                // no requestDraw here: it would force a full illumination restart (flash) even
+                // though the next animation frame already resumes accumulation on its own
                 isActivelyInteracting = isDragging;
-                if (!isDragging && passes.illumination.supported && p.illumination.enabled) {
-                    requestDraw();
-                }
             }),
         ];
 
@@ -1407,13 +1445,15 @@ namespace Canvas3D {
                 if (props.illumination) Object.assign(p.illumination, props.illumination);
                 if (props.multiSample) Object.assign(p.multiSample, props.multiSample);
                 if (props.hiZ) hiZ.setProps(props.hiZ);
-                if (props.renderer) {
+                if (props.renderer || props.marking) {
                     scene.setGlobals({
-                        dColorMarker: props.renderer.colorMarker ?? renderer.props.colorMarker,
-                        dLightCount: props.renderer.light?.length ?? renderer.props.light.length,
+                        dColorMarker: isMaterialColorMarker({
+                            colorMarker: props.renderer?.colorMarker ?? renderer.props.colorMarker,
+                        }, p.marking),
+                        dLightCount: props.renderer?.light?.length ?? renderer.props.light.length,
                     });
-                    renderer.setProps(props.renderer);
                 }
+                if (props.renderer) renderer.setProps(props.renderer);
                 if (props.trackball) controls.setProps(props.trackball);
                 if (props.interaction) interactionHelper.setProps(props.interaction);
                 if (props.handle) helper.handle.setProps(props.handle);

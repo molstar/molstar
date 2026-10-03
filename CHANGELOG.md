@@ -6,6 +6,14 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - BinaryCIF: masked `int`/`float` field values now return the default `0` instead of the value left in the data array, matching the text/mmCIF parsers. Applies to the bulk `toIntArray`/`toFloatArray` APIs as well (#1711)
 - Fix PDB entities with caps: include protein caps listed in SEQRES in the polymer entity and don't make SEQRES entities non-polymer when the first residue is non-polymer
+- Separate marking from scene rendering: marking is composed onto the finished image
+  - Antialiased marking edges (via `postprocessing.antialiasing`), multi-sampled with the scene's jitter
+  - With `renderer.colorMarker`, the marking pass tints marked and dims unmarked regions
+  - Tint and dim strengths are weighted by fragment opacity
+  - Marking-only changes (e.g. hover, select) no longer trigger a full re-render
+  - `marking.edgeScale` is no longer rounded to whole pixels
+  - Move `JitterVectors` from `passes/multi-sample` to `passes/jitter`
+  - `multiSample.reduceFlicker` only applies when marking is disabled
 
 ## [v5.12.0] - 2026-09-28
 - Make CIF field lookup case insensitive, so mmCIF files writing `_atom_site.cartn_x` resolve fields like `Cartn_x` instead of leaving coordinates at 0,0,0 (#1941)

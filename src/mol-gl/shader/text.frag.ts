@@ -86,6 +86,7 @@ void main(){
     #elif defined(dRenderVariant_depth)
         gl_FragColor = material;
     #elif defined(dRenderVariant_marking)
+        #include apply_marking
         gl_FragColor = material;
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
