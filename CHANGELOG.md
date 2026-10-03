@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - BinaryCIF: masked `int`/`float` field values now return the default `0` instead of the value left in the data array, matching the text/mmCIF parsers. Applies to the bulk `toIntArray`/`toFloatArray` APIs as well (#1711)
+- Fix PDB entities with caps: include protein caps listed in SEQRES in the polymer entity and don't make SEQRES entities non-polymer when the first residue is non-polymer
 
 ## [v5.12.0] - 2026-09-28
 - Make CIF field lookup case insensitive, so mmCIF files writing `_atom_site.cartn_x` resolve fields like `Cartn_x` instead of leaving coordinates at 0,0,0 (#1941)
