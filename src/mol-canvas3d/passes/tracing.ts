@@ -17,7 +17,7 @@ import { Scene } from '../../mol-gl/scene';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { ShaderCode } from '../../mol-gl/shader-code';
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
-import { ComputeRenderable, createComputeRenderable, Frame } from '../../mol-gl/renderable';
+import { ComputeRenderable, createComputeRenderable } from '../../mol-gl/renderable';
 import { trace_frag } from '../../mol-gl/shader/illumination/trace.frag';
 import { Vec2 } from '../../mol-math/linear-algebra/3d/vec2';
 import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
@@ -27,18 +27,11 @@ import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Color } from '../../mol-util/color/color';
 import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
-import { Helper } from '../helper/helper';
 import { accumulate_frag } from '../../mol-gl/shader/illumination/accumulate.frag';
 import { now } from '../../mol-util/now';
 import { clamp } from '../../mol-math/interpolate';
 import { DrawPass } from './draw';
-
-type RenderContext = {
-    renderer: Renderer;
-    camera: Camera;
-    scene: Scene;
-    helper: Helper;
-}
+import { RenderContext } from '../util';
 
 export const TracingParams = {
     rendersPerFrame: PD.Interval([1, 16], { min: 1, max: 64, step: 1 }, { description: 'Number of rays per pixel each frame. May be adjusted to reach targetFps but will stay within given interval.' }),
@@ -282,7 +275,7 @@ export class TracingPass {
         };
     }
 
-    render(ctx: RenderContext, transparentBackground: boolean, props: TracingProps, iteration: number, forceRenderInput: boolean, frame: Frame) {
+    render(ctx: RenderContext<Camera>, transparentBackground: boolean, props: TracingProps, iteration: number, forceRenderInput: boolean) {
         const { rendersPerFrame, refineSteps, steps } = this.getAdjustedProps(props, iteration);
 
         if (isTimingMode) {
@@ -291,7 +284,7 @@ export class TracingPass {
             });
         }
 
-        const { renderer, camera, scene } = ctx;
+        const { renderer, camera, scene, frame } = ctx;
         const { gl, state } = this.webgl;
         const { x, y, width, height } = camera.viewport;
 

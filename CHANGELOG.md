@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- BinaryCIF: masked `int`/`float` field values now return the default `0` instead of the value left in the data array, matching the text/mmCIF parsers. Applies to the bulk `toIntArray`/`toFloatArray` APIs as well (#1711)
+
+## [v5.12.0] - 2026-09-28
 - Make CIF field lookup case insensitive, so mmCIF files writing `_atom_site.cartn_x` resolve fields like `Cartn_x` instead of leaving coordinates at 0,0,0 (#1941)
 - Headless rendering:
   - Allow consumers to provide `gl` version 6 through 8
@@ -29,6 +32,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix CPU surface/volume visuals rebuilding on every update if GPU path is unavailable
 - Fix `floodfill` not applied on the gaussian surface wireframe
 - Fix `traceOnly` update being ignored by the molecular surface wireframe visuals
+- Fix SSAO artifacts near viewport edges by clamping off-screen samples instead of discarding them
+- Fix illumination trace reading color/normal/depth outside viewport bounds
 - Added support for molecular atom_style in lammps data files
 - Added element symbol detection in lammps data file
 - Fix inconsistent atomic weight for some elements in `ElementAtomWeights`
