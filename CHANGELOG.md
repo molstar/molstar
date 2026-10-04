@@ -15,6 +15,14 @@ Note that since we don't clearly distinguish between a public and private interf
   - Move `JitterVectors` from `passes/multi-sample` to `passes/jitter`
   - `multiSample.reduceFlicker` only applies when marking is disabled
 - Prefer structure-level visuals for very high (>= 10000) unique unit counts (#1953)
+- Solid interior improvements
+    - Add `solidInterior` param to mesh-based visuals (solid cap where the camera near plane or a clip object cuts a closed surface)
+    - Cap impostor spheres and cylinders with `solidInterior` at clip objects, not only at the camera near plane
+    - Add `solidSurface` option to `StructureComponentManager` (sets `solidInterior` of surface representations)
+    - Default `solidInterior` to `true` for molecular, gaussian and blob surface representations
+- [Breaking] `createRenderTarget` takes a `depthStencil` option (`'none' | 'depth' | 'depth-stencil'`) in place of the `depth` flag
+- Fix back faces of opaque objects missing from the packed depth (outlines and occlusion with the camera inside a surface)
+- Fix pick positions landing on the near plane without the `WEBGL_draw_buffers` extension (depth was not written when rendering every mask)
 
 ## [v5.12.0] - 2026-09-28
 - Make CIF field lookup case insensitive, so mmCIF files writing `_atom_site.cartn_x` resolve fields like `Cartn_x` instead of leaving coordinates at 0,0,0 (#1941)
@@ -115,13 +123,6 @@ Note that since we don't clearly distinguish between a public and private interf
     - Particles can be decorated with structure, volume, and shape visuals
 - Fix bumpiness artifacts on impostor seams and clip boundaries
     - Change `bumpFrequency` defaults of ball-and-stick (5) and backbone (4)
-- Add `solidInterior` param to mesh-based visuals (solid cap where the camera near plane or a clip object cuts a closed surface)
-- Cap impostor spheres and cylinders with `solidInterior` at clip objects, not only at the camera near plane
-- [Breaking] `createRenderTarget` takes a `depthStencil` option (`'none' | 'depth' | 'depth-stencil'`) in place of the `depth` flag
-- Fix back faces of opaque objects missing from the packed depth (outlines and occlusion with the camera inside a surface)
-- Add `solidSurface` option to `StructureComponentManager` (sets `solidInterior` of surface representations)
-- Default `solidInterior` to `true` for molecular, gaussian and blob surface representations
-- Fix pick positions landing on the near plane without the `WEBGL_draw_buffers` extension (depth was not written when rendering every mask)
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
