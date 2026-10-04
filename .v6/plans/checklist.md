@@ -14,8 +14,9 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
 - [x] Fix the pre-existing headless MP4 behavior check: check the `Mp4Export`
   transformer rather than its unqualified name. Verify that animation export
   reaches encoding; keep native GL installation optional.
-- [x] Restore deterministic MVSX output by passing a fixed ZIP modification time.
-  Verify identical bytes for identical inputs across different clock times;
+- [x] Support caller-controlled MVSX ZIP options as the third `createMVSX` parameter.
+  Explicit `mtime` enables identical bytes across different clock times; the default
+  uses the current time. Verify both behaviors and identical archive contents;
   preserve archive loading compatibility without requiring v5-identical bytes.
 - [x] Eliminate clean-install missing-bin warnings with checked-in executable
   launchers and correct packed-file inclusion. Audit all workspace bin entries,
@@ -64,7 +65,8 @@ all CLI bins before compiling and produced no missing-bin warnings. Lint and
 workspace/version checks, app/distribution builds, all 43 public tarballs, and
 local Node/types/source/CLI/browser smokes passed. The Node smoke encodes real
 MP4 bytes without native GL and checks the headless registration guard. MVSX
-bytes match across two mocked clock times and UTC/Honolulu/Prague time zones.
+bytes with explicit `mtime` match across two mocked clock times. Local date fields
+allow the caller to choose timestamps that are reproducible across time zones.
 
 ## Remaining architecture and release work
 

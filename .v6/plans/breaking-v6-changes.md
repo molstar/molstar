@@ -76,3 +76,10 @@ Compiled packages use ESM and new package subpaths. Old monolithic CommonJS and
 source paths require migration; use `migration-map.json` for ownership mappings.
 Classic Viewer/MVS Stories asset paths and globals remain available, subject to
 the shape API changes above. Package exports exclude tests and build caches.
+
+## MVSX ZIP options
+
+`createMVSX(data, assets, options?)` accepts fflate ZIP options, including `mtime`
+and compression level. The default uses the current time rather than v5's fixed
+ZIP timestamps. Callers needing reproducible archives should provide `mtime`;
+use a local-calendar date when identical ZIP date fields across time zones matter.
