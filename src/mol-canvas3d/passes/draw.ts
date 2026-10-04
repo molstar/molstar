@@ -435,6 +435,7 @@ export class DrawPass {
         const volumeRendering = scene.volumes.renderables.length > 0;
         const postprocessingEnabled = PostprocessingPass.isEnabled(props.postprocessing);
         const antialiasingEnabled = AntialiasingPass.isEnabled(props.postprocessing);
+        const dofEnabled = DofPass.isEnabled(props.postprocessing);
         const hasMarking = !skipMarking && MarkingPass.hasMarking(scene, props);
         // marking is composed onto the finished image, which therefore has to be readable
         const offscreen = !toDrawingBuffer || hasMarking;
@@ -443,7 +444,7 @@ export class DrawPass {
         renderer.setViewport(x, y, width, height);
         renderer.update(camera, scene, frame);
 
-        if (transparentBackground && !antialiasingEnabled && !offscreen && !postprocessingEnabled) {
+        if (transparentBackground && !antialiasingEnabled && !dofEnabled && !offscreen && !postprocessingEnabled) {
             this.drawTarget.bind();
             renderer.clear(false);
         }
@@ -456,19 +457,19 @@ export class DrawPass {
             this._renderDpoit(renderer, camera, scene, props.dpoitIterations, transparentBackground, props.postprocessing);
             oitEnabled = true;
         } else {
-            this._renderBlended(renderer, camera, scene, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && !offscreen, transparentBackground, props.postprocessing);
+            this._renderBlended(renderer, camera, scene, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && !dofEnabled && !offscreen, transparentBackground, props.postprocessing);
         }
 
         const target = postprocessingEnabled
             ? this.postprocessing.target
-            : offscreen || volumeRendering || oitEnabled
+            : offscreen || volumeRendering || oitEnabled || dofEnabled
                 ? this.colorTarget
                 : this.drawTarget;
 
         target.bind();
         this._renderHelpers(ctx, target);
 
-        const output = this._renderOutput(camera, scene, props, { offscreen, postprocessingEnabled, antialiasingEnabled, volumeRendering, oitEnabled });
+        const output = this._renderOutput(camera, scene, props, { offscreen, postprocessingEnabled, antialiasingEnabled, dofEnabled, volumeRendering, oitEnabled });
 
         if (!output) {
             this.marking.invalidate();
@@ -511,10 +512,9 @@ export class DrawPass {
     }
 
     /** Returns the target the finished image ended up in, or undefined when it went to the drawing buffer. */
-    private _renderOutput(camera: ICamera, scene: Scene, props: Props, flags: { offscreen: boolean, postprocessingEnabled: boolean, antialiasingEnabled: boolean, volumeRendering: boolean, oitEnabled: boolean }): RenderTarget | undefined {
-        const { offscreen, postprocessingEnabled, antialiasingEnabled, volumeRendering, oitEnabled } = flags;
-        const dofEnabled = DofPass.isEnabled(props.postprocessing);
-        const toBuffer = !offscreen;
+    private _renderOutput(camera: ICamera, scene: Scene, props: Props, flags: { offscreen: boolean, postprocessingEnabled: boolean, antialiasingEnabled: boolean, dofEnabled: boolean, volumeRendering: boolean, oitEnabled: boolean }): RenderTarget | undefined {
+            const { offscreen, postprocessingEnabled, antialiasingEnabled, dofEnabled, volumeRendering, oitEnabled } = flags;
+            const toBuffer = !offscreen;
 
         let needsTargetCopy = false;
 
