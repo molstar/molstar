@@ -30,7 +30,9 @@
     "dev": "node scripts/esbuild/app.mjs --all --dev",
     "native:install": "node scripts/native.mjs install",
     "native:run": "node scripts/native.mjs run",
-    "test:native": "node scripts/native.mjs test"
+    "test:native": "node scripts/native.mjs test",
+    "check:types:full": "node scripts/workspace/typecheck-full.mjs",
+    "check:publish": "pnpm test && pnpm build && pnpm check:types:full && pnpm check:workspace && pnpm version:check && pnpm pack:workspace && node smoke/run.mjs node && node smoke/run.mjs types && node smoke/run.mjs source && node smoke/run.mjs cli"
   },
   "nodemonConfig": {
     "ignoreRoot": [
