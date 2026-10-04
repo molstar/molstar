@@ -109,6 +109,22 @@ All public packages release together. Change `version.json`, run
 `pnpm pack` replaces them with the exact release version. `pnpm version:check`
 detects drift. No package is published by these commands.
 
+Normal builds use `skipLibCheck: true`: each project checks its own source and its
+usage of dependency types, without repeatedly checking imported declarations.
+Run `pnpm check:types:full` to force a rebuild with declaration checking enabled
+in every project. Its separate `*.full.tsbuildinfo` caches are not published.
+
+Before publishing, run `pnpm check:publish`. This required release gate lints, tests, builds
+libraries/apps/distributions, runs the full declaration check, verifies workspace
+and version consistency, packs all public packages, and tests packed Node, types,
+source-condition, and CLI consumers. It does not publish or install native GL.
+Browser smokes remain local checks as described above. Publishing automation is
+still deferred; wire this gate into it when that automation is added.
+
+CLI packages expose checked-in `bin/*.mjs` launchers, so a clean install can link
+commands before compiling. Run `pnpm build:lib` before using those commands in a
+source checkout; installed tarballs already contain their compiled implementations.
+
 Native `gl` and `canvas` are optional peers. Workspace peer auto-installation is
 disabled; all ordinary dependencies remain declared explicitly. Normal installation and
 `pnpm test` do not install them. Opt in explicitly:

@@ -15,6 +15,9 @@ lockstep versioning, and `smoke/` verifies consumer-facing ESM and packaging.
 
 ## 1. Outcome and scope
 
+Remaining work is consolidated in [checklist.md](checklist.md). Public API changes
+are recorded in [breaking-v6-changes.md](breaking-v6-changes.md).
+
 Produce a working pnpm workspace with physically separated packages, explicit
 dependencies, compiled ESM library exports, source-based app builds, and a local
 CDN distribution package. Preserve current default plugin behavior, rendering,
