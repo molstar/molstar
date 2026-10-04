@@ -10,6 +10,8 @@ import { TokenBuilder, Tokenizer } from '../../../mol-io/reader/common/text/toke
 import { guessElementSymbolTokens } from '../util';
 import { pdbToMmCif } from '../pdb/to-cif';
 import { PdbFile } from '../../../mol-io/reader/pdb/schema';
+import { trajectoryFromPDB } from '../pdb';
+import { Task } from '../../../mol-task';
 
 /** Helper: build a PdbFile from a raw PDB string. */
 function makePdb(pdbText: string): PdbFile {
@@ -297,5 +299,94 @@ describe('PDB label_atom_id unicity', () => {
         expect(labelAtomId.str(2)).toBe('OG2');
         expect(labelAltId.str(1)).toBe('A');
         expect(labelAltId.str(2)).toBe('B');
+    });
+});
+
+describe('PDB entities with SEQRES', () => {
+    const capAtoms = [
+        'ATOM      1  CH3 ACE A   1      10.000   6.000  -6.000  1.00  0.00           C  ',
+        'ATOM      2  C   ACE A   1      10.800   6.100  -5.000  1.00  0.00           C  ',
+        'ATOM      3  O   ACE A   1      10.300   6.200  -3.900  1.00  0.00           O  ',
+        'ATOM      4  N   ALA A   2      12.100   6.100  -5.200  1.00  0.00           N  ',
+        'ATOM      5  CA  ALA A   2      13.000   6.000  -4.100  1.00  0.00           C  ',
+        'ATOM      6  C   ALA A   2      14.400   6.300  -4.600  1.00  0.00           C  ',
+        'ATOM      7  O   ALA A   2      14.700   6.900  -5.600  1.00  0.00           O  ',
+        'END                                                                             ',
+    ];
+
+    it('includes protein caps listed in SEQRES in the polymer entity', async () => {
+        const pdb = makePdb([
+            'SEQRES   1 A    2  ACE ALA                                                   ',
+            ...capAtoms,
+        ].join('\n'));
+
+        const cif = await pdbToMmCif(pdb);
+        const entity = cif.categories['entity'];
+        expect(entity.rowCount).toBe(1);
+        expect(entity.getField('type')!.str(0)).toBe('polymer');
+        expect(entity.getField('pdbx_description')!.str(0)).toBe('Polymer 1');
+
+        const labelEntityId = cif.categories['atom_site'].getField('label_entity_id')!;
+        for (let i = 0; i < labelEntityId.rowCount; ++i) {
+            expect(labelEntityId.str(i)).toBe('1');
+        }
+
+        const epsMonId = cif.categories['entity_poly_seq'].getField('mon_id')!;
+        expect(epsMonId.rowCount).toBe(2);
+        expect(epsMonId.str(0)).toBe('ACE');
+        expect(epsMonId.str(1)).toBe('ALA');
+    });
+
+    it('derives polymer entity subtype past leading protein cap', async () => {
+        const pdb = makePdb([
+            'SEQRES   1 A    2  ACE ALA                                                   ',
+            ...capAtoms,
+        ].join('\n'));
+
+        const trajectory = await trajectoryFromPDB(pdb).run();
+        const model = await Task.resolveInContext(trajectory.getFrameAtIndex(0));
+        expect(model.entities.data.type.value(0)).toBe('polymer');
+        expect(model.entities.subtype.value(0)).toBe('polypeptide(L)');
+        expect(model.properties.chemicalComponentMap.get('ACE')!.mon_nstd_flag).toBe('y');
+    });
+
+    it('keeps protein caps as separate entity without SEQRES', async () => {
+        const cif = await pdbToMmCif(makePdb(capAtoms.join('\n')));
+        const entity = cif.categories['entity'];
+        expect(entity.rowCount).toBe(2);
+        expect(entity.getField('type')!.str(0)).toBe('non-polymer');
+        expect(entity.getField('type')!.str(1)).toBe('polymer');
+    });
+
+    it('keeps protein caps not listed in SEQRES as separate entity', async () => {
+        const pdb = makePdb([
+            'SEQRES   1 A    2  ALA GLY                                                   ',
+            'ATOM      1  CA  ALA A   1       1.000   2.000   3.000  1.00  0.00           C  ',
+            'ATOM      2  CA  GLY A   2       4.000   5.000   6.000  1.00  0.00           C  ',
+            'HETATM    3  C   FMT A   3       7.000   8.000   9.000  1.00  0.00           C  ',
+            'END                                                                             ',
+        ].join('\n'));
+
+        const cif = await pdbToMmCif(pdb);
+        const entity = cif.categories['entity'];
+        expect(entity.rowCount).toBe(2);
+        expect(entity.getField('type')!.str(0)).toBe('polymer');
+        expect(entity.getField('type')!.str(1)).toBe('non-polymer');
+        expect(entity.getField('pdbx_description')!.str(1)).toBe('FMT');
+    });
+
+    it('upgrades SEQRES entity to polymer when first residue is non-polymer', async () => {
+        const pdb = makePdb([
+            'SEQRES   1 A    2  XYZ ALA                                                   ',
+            'HETATM    1  C1  XYZ A   1       1.000   2.000   3.000  1.00  0.00           C  ',
+            'ATOM      2  CA  ALA A   2       4.000   5.000   6.000  1.00  0.00           C  ',
+            'END                                                                             ',
+        ].join('\n'));
+
+        const cif = await pdbToMmCif(pdb);
+        const entity = cif.categories['entity'];
+        expect(entity.rowCount).toBe(1);
+        expect(entity.getField('type')!.str(0)).toBe('polymer');
+        expect(entity.getField('pdbx_description')!.str(0)).toBe('Polymer 1');
     });
 });

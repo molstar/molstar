@@ -101,25 +101,11 @@ void getOutline(const in vec2 coords, out bool hasOpaque, out bool hasTransparen
 }
 
 float getSsao(vec2 coords) {
-    float rawSsao = unpackRGToUnitInterval(texture2D(tSsaoDepth, coords).xy);
-    if (rawSsao > 0.999) {
-        return 1.0;
-    } else if (rawSsao > 0.001) {
-        return rawSsao;
-    }
-    // treat values close to 0.0 as errors and return no occlusion
-    return 1.0;
+    return unpackSsao(texture2D(tSsaoDepth, coords));
 }
 
 float getSsaoTransparent(vec2 coords) {
-    float rawSsao = unpackRGToUnitInterval(texture2D(tSsaoDepthTransparent, coords).xy);
-    if (rawSsao > 0.999) {
-        return 1.0;
-    } else if (rawSsao > 0.001) {
-        return rawSsao;
-    }
-    // treat values close to 0.0 as errors and return no occlusion
-    return 1.0;
+    return unpackSsao(texture2D(tSsaoDepthTransparent, coords));
 }
 
 void main(void) {

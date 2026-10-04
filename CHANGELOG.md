@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- BinaryCIF: masked `int`/`float` field values now return the default `0` instead of the value left in the data array, matching the text/mmCIF parsers. Applies to the bulk `toIntArray`/`toFloatArray` APIs as well (#1711)
+- Fix PDB entities with caps: include protein caps listed in SEQRES in the polymer entity and don't make SEQRES entities non-polymer when the first residue is non-polymer
+- Separate marking from scene rendering: marking is composed onto the finished image
+  - Antialiased marking edges (via `postprocessing.antialiasing`), multi-sampled with the scene's jitter
+  - With `renderer.colorMarker`, the marking pass tints marked and dims unmarked regions
+  - Tint and dim strengths are weighted by fragment opacity
+  - Marking-only changes (e.g. hover, select) no longer trigger a full re-render
+  - `marking.edgeScale` is no longer rounded to whole pixels
+  - Move `JitterVectors` from `passes/multi-sample` to `passes/jitter`
+  - `multiSample.reduceFlicker` only applies when marking is disabled
+- Prefer structure-level visuals for very high (>= 10000) unique unit counts (#1953)
+- Solid interior improvements
+    - Add `solidInterior` param to mesh-based visuals (solid cap where the camera near plane or a clip object cuts a closed surface)
+    - Cap impostor spheres and cylinders with `solidInterior` at clip objects, not only at the camera near plane
+    - Add `solidSurface` option to `StructureComponentManager` (sets `solidInterior` of surface representations)
+    - Default `solidInterior` to `true` for molecular, gaussian and blob surface representations
+- [Breaking] `createRenderTarget` takes a `depthStencil` option (`'none' | 'depth' | 'depth-stencil'`) in place of the `depth` flag
+- Fix back faces of opaque objects missing from the packed depth (outlines and occlusion with the camera inside a surface)
+- Fix pick positions landing on the near plane without the `WEBGL_draw_buffers` extension (depth was not written when rendering every mask)
+
+## [v5.12.0] - 2026-09-28
 - Make CIF field lookup case insensitive, so mmCIF files writing `_atom_site.cartn_x` resolve fields like `Cartn_x` instead of leaving coordinates at 0,0,0 (#1941)
 - Headless rendering:
   - Allow consumers to provide `gl` version 6 through 8

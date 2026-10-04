@@ -25,7 +25,12 @@ export const PointParams = {
 };
 export type PointParams = typeof PointParams
 export function getPointParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PointParams;
+    let params = PointParams;
+    if (structure.unitSymmetryGroups.length > 10000) {
+        params = PD.clone(params);
+        params.visuals.defaultValue = ['structure-element-point'];
+    }
+    return params;
 }
 
 export type PointRepresentation = StructureRepresentation<PointParams>

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -82,6 +82,8 @@ export type WebGLState = {
     stencilOp: (fail: number, zfail: number, zpass: number) => void
     /** sets the front and/or back-facing stencil test actions */
     stencilOpSeparate: (face: number, fail: number, zfail: number, zpass: number) => void
+    /** specifies the stencil value used when clearing the stencil buffer, used when calling `gl.clear` */
+    clearStencil: (s: number) => void
 
     enableVertexAttrib: (index: number) => void
     clearVertexAttribsState: () => void
@@ -134,6 +136,7 @@ export function createState(gl: GLRenderingContext, e: WebGLExtensions): WebGLSt
     let currentStencilBackFail = gl.getParameter(gl.STENCIL_BACK_FAIL);
     let currentStencilBackPassDepthPass = gl.getParameter(gl.STENCIL_BACK_PASS_DEPTH_PASS);
     let currentStencilBackPassDepthFail = gl.getParameter(gl.STENCIL_BACK_PASS_DEPTH_FAIL);
+    let currentClearStencil = gl.getParameter(gl.STENCIL_CLEAR_VALUE);
 
     let maxVertexAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
     const vertexAttribsState: number[] = [];
@@ -362,6 +365,12 @@ export function createState(gl: GLRenderingContext, e: WebGLExtensions): WebGLSt
                 }
             }
         },
+        clearStencil: (s: number) => {
+            if (s !== currentClearStencil) {
+                gl.clearStencil(s);
+                currentClearStencil = s;
+            }
+        },
 
         enableVertexAttrib: (index: number) => {
             gl.enableVertexAttribArray(index);
@@ -435,6 +444,7 @@ export function createState(gl: GLRenderingContext, e: WebGLExtensions): WebGLSt
             currentStencilBackFail = gl.getParameter(gl.STENCIL_BACK_FAIL);
             currentStencilBackPassDepthPass = gl.getParameter(gl.STENCIL_BACK_PASS_DEPTH_PASS);
             currentStencilBackPassDepthFail = gl.getParameter(gl.STENCIL_BACK_PASS_DEPTH_FAIL);
+            currentClearStencil = gl.getParameter(gl.STENCIL_CLEAR_VALUE);
 
             maxVertexAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
             vertexAttribsState.length = 0;
