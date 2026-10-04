@@ -242,6 +242,10 @@ export class IlluminationPass {
         if (isTimingMode) this.webgl.timer.markEnd('IlluminationPass.renderInput');
     }
 
+    private hasHelpers(helper: RenderContext<Camera>['helper']) {
+        return helper.debug.isEnabled || helper.pointer.isEnabled || helper.handle.isEnabled || helper.camera.isEnabled;
+    }
+
     private renderHelpers(ctx: RenderContext<Camera>) {
         const { renderer, camera, helper, frame } = ctx;
         this.transparentTarget.bind();
@@ -403,7 +407,8 @@ export class IlluminationPass {
             ValueCell.update(this.composeRenderable.values.uOcclusionColor, Color.toVec3Normalized(this.composeRenderable.values.uOcclusionColor.ref.value, props.postprocessing.occlusion.params.color));
         }
 
-        const blendTransparency = hasTransparent;
+        // helpers are drawn into the transparent target, so it must be blended even without transparent geometry
+        const blendTransparency = hasTransparent || this.hasHelpers(ctx.helper);
         if (this.composeRenderable.values.dBlendTransparency.ref.value !== blendTransparency) {
             needsUpdateCompose = true;
             ValueCell.update(this.composeRenderable.values.dBlendTransparency, blendTransparency);
@@ -437,9 +442,8 @@ export class IlluminationPass {
                 if (emissiveBloom) {
                     this.drawPass.renderEmissiveBloom(renderer, camera, scene, params.transparency);
                 }
+                // transparent color is already cleared in renderInput and may hold helpers, so only reset depth
                 if (scene.opacityAverage >= 1) {
-                    this.transparentTarget.bind();
-                    renderer.clear(false, false, true);
                     this.drawPass.depthTargetTransparent.bind();
                     renderer.clearDepth(true);
                 }
