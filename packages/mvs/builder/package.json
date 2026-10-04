@@ -18,11 +18,12 @@
       "types": "./lib/mvs-data.d.ts",
       "import": "./lib/mvs-data.js"
     },
+    "./_test/*": null,
     "./tree/generic/_test/*": null,
-    "./tree/mvs/_test/*": null,
-    "./_test/*": null
+    "./tree/mvs/_test/*": null
   },
   "files": [
+    "bin",
     "lib",
     "src",
     "!**/_test/**",
@@ -46,7 +47,7 @@
     "@types/webxr": "catalog:"
   },
   "bin": {
-    "mvs-validate": "./lib/cli/mvs-validate.js",
-    "mvs-print-schema": "./lib/cli/mvs-print-schema.js"
+    "mvs-validate": "./bin/mvs-validate.mjs",
+    "mvs-print-schema": "./bin/mvs-print-schema.mjs"
   }
 }

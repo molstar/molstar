@@ -15,6 +15,7 @@
     }
   },
   "files": [
+    "bin",
     "lib",
     "src",
     "!**/_test/**",
@@ -44,8 +45,8 @@
     "@types/webxr": "catalog:"
   },
   "bin": {
-    "volume-server": "./lib/server.js",
-    "volume-server-query": "./lib/query.js",
-    "volume-server-pack": "./lib/pack.js"
+    "volume-server": "./bin/volume-server.mjs",
+    "volume-server-query": "./bin/volume-server-query.mjs",
+    "volume-server-pack": "./bin/volume-server-pack.mjs"
   }
 }

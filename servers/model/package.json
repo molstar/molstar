@@ -16,6 +16,7 @@
     "./utils/_test/*": null
   },
   "files": [
+    "bin",
     "lib",
     "src",
     "!**/_test/**",
@@ -46,8 +47,8 @@
     "@types/webxr": "catalog:"
   },
   "bin": {
-    "model-server": "./lib/server.js",
-    "model-server-query": "./lib/query.js",
-    "model-server-preprocess": "./lib/preprocess.js"
+    "model-server": "./bin/model-server.mjs",
+    "model-server-query": "./bin/model-server-query.mjs",
+    "model-server-preprocess": "./bin/model-server-preprocess.mjs"
   }
 }

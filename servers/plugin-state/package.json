@@ -20,6 +20,7 @@
     }
   },
   "files": [
+    "bin",
     "lib",
     "src",
     "!**/_test/**",
@@ -48,6 +49,6 @@
     "@types/webxr": "catalog:"
   },
   "bin": {
-    "plugin-state": "./lib/index.js"
+    "plugin-state": "./bin/plugin-state.mjs"
   }
 }

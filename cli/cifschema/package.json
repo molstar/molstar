@@ -20,6 +20,7 @@
     }
   },
   "files": [
+    "bin",
     "lib",
     "src",
     "!**/_test/**",
@@ -42,6 +43,6 @@
     "@types/webxr": "catalog:"
   },
   "bin": {
-    "cifschema": "./lib/index.js"
+    "cifschema": "./bin/cifschema.mjs"
   }
 }

@@ -20,6 +20,7 @@
     }
   },
   "files": [
+    "bin",
     "lib",
     "src",
     "!**/_test/**",
@@ -43,6 +44,6 @@
     "@types/webxr": "catalog:"
   },
   "bin": {
-    "cif2bcif": "./lib/index.js"
+    "cif2bcif": "./bin/cif2bcif.mjs"
   }
 }

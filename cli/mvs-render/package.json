@@ -15,6 +15,7 @@
     }
   },
   "files": [
+    "bin",
     "lib",
     "src",
     "!**/_test/**",
@@ -45,7 +46,7 @@
     "@types/webxr": "catalog:"
   },
   "bin": {
-    "mvs-render": "./lib/mvs-render.js"
+    "mvs-render": "./bin/mvs-render.mjs"
   },
   "peerDependencies": {
     "gl": ">=6 <9",
