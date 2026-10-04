@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { CopyRenderable, createCopyRenderable, getSharedCopyRenderable, QuadSchema, QuadValues } from '../../mol-gl/compute/util';
@@ -113,13 +114,13 @@ export class MarkingPass {
 
     constructor(private webgl: WebGLContext, width: number, height: number) {
         const { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } = webgl.extensions;
-        this.depthTarget = webgl.createRenderTarget(width, height);
+        this.depthTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
         // linear so that it can be used as antialiasing input
-        this.maskTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'linear');
+        this.maskTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
         this.edgesTarget = webgl.createRenderTarget(width, height);
         const layerType = colorBufferHalfFloat && textureHalfFloat ? 'fp16' :
             colorBufferFloat && textureFloat ? 'float32' : 'uint8';
-        this.layerTarget = webgl.createRenderTarget(width, height, false, layerType);
+        this.layerTarget = webgl.createRenderTarget(width, height, 'none', layerType);
 
         this.edge = getEdgeRenderable(webgl, this.maskTarget.texture);
         this.overlay = getOverlayRenderable(webgl, this.edgesTarget.texture, this.maskTarget.texture);
@@ -367,8 +368,8 @@ export class MarkingPass {
             const height = this.maskTarget.getHeight();
             this.dim = {
                 // linear so that it can be used as antialiasing input
-                target: this.webgl.createRenderTarget(width, height, false, 'uint8', 'linear'),
-                aaTarget: this.webgl.createRenderTarget(width, height, false),
+                target: this.webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear'),
+                aaTarget: this.webgl.createRenderTarget(width, height, 'none'),
                 renderable: getDimRenderable(this.webgl, this.depthTarget.texture, this.maskTarget.texture),
             };
         }

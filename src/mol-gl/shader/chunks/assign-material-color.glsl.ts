@@ -82,6 +82,8 @@ export const assign_material_color = `
             }
         #endif
         material = packDepthWithAlphaToRGBA(fragmentDepth, alpha);
+    } else {
+        material = packDepthToRGBA(fragmentDepth);
     }
 #elif defined(dRenderVariant_marking)
     vec4 material = vec4(0.0, 0.0, 0.0, uAlpha * materialOpacity);

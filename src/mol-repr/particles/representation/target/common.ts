@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
@@ -83,6 +84,7 @@ export type ParticleTargetCommonParams = typeof ParticleTargetCommonParams;
 export const ParticleTargetStructureParams = {
     ...withoutCommon(Spheres.Params),
     ...withoutCommon(Mesh.Params),
+    solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
     type: PD.Select<string>('spacefill', PD.arrayToOptions(['spacefill', 'blob-surface']), { isEssential: true, description: 'How the elements of the target are rendered.' }),
     ...forType('spacefill', {
         sizeFactor: PD.Numeric(1, { min: 0.01, max: 10, step: 0.01 }),
@@ -112,6 +114,7 @@ export type ParticleTargetShapeParams = typeof ParticleTargetShapeParams;
 export const ParticleTargetVolumeParams = {
     ...withoutCommon(Spheres.Params),
     ...withoutCommon(Mesh.Params),
+    solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
     type: PD.Select<string>('isosurface', PD.arrayToOptions(['isosurface', 'dot']), { isEssential: true, description: 'How the volume of the target is rendered.' }),
     isoValue: VolumeIsosurfaceParams.isoValue,
     ...forType('isosurface', {

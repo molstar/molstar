@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -32,10 +32,10 @@ export type TextureKindValue = {
 }
 export type TextureValueType = ValueOf<TextureKindValue>
 export type TextureKind = keyof TextureKindValue
-export type TextureType = 'ubyte' | 'ushort' | 'float' | 'fp16' | 'int'
-export type TextureFormat = 'alpha' | 'rg' | 'rgb' | 'rgba' | 'depth'
+export type TextureType = 'ubyte' | 'ushort' | 'float' | 'fp16' | 'int' | 'float-stencil' | 'uint24-8'
+export type TextureFormat = 'alpha' | 'rg' | 'rgb' | 'rgba' | 'depth' | 'depth-stencil'
 /** Numbers are shortcuts for color attachment */
-export type TextureAttachment = 'depth' | 'stencil' | 'color0' | 'color1' | 'color2' | 'color3' | 'color4' | 'color5' | 'color6' | 'color7' | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
+export type TextureAttachment = 'depth' | 'stencil' | 'depth-stencil' | 'color0' | 'color1' | 'color2' | 'color3' | 'color4' | 'color5' | 'color6' | 'color7' | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
 export type TextureFilter = 'nearest' | 'linear'
 
 export function getTarget(gl: GLRenderingContext, kind: TextureKind): number {
@@ -73,6 +73,7 @@ export function getFormat(gl: GLRenderingContext, format: TextureFormat, type: T
             if (isWebGL2(gl) && type === 'int') return gl.RGBA_INTEGER;
             return gl.RGBA;
         case 'depth': return gl.DEPTH_COMPONENT;
+        case 'depth-stencil': return (gl as WebGL2RenderingContext).DEPTH_STENCIL;
     }
 }
 
@@ -112,6 +113,13 @@ export function getInternalFormat(gl: GLRenderingContext, format: TextureFormat,
                     case 'ushort': return gl.DEPTH_COMPONENT16;
                     case 'float': return gl.DEPTH_COMPONENT32F;
                 }
+                break;
+            case 'depth-stencil':
+                switch (type) {
+                    case 'float-stencil': return gl.DEPTH32F_STENCIL8;
+                    case 'uint24-8': return gl.DEPTH24_STENCIL8;
+                }
+                break;
         }
     }
     return getFormat(gl, format, type);
@@ -131,7 +139,8 @@ function getFormatSize(format: TextureFormat) {
         case 'rg': return 2;
         case 'rgb': return 3;
         case 'rgba': return 4;
-        case 'depth': return 4;
+        case 'depth': return 1;
+        case 'depth-stencil': return 2;
     }
 }
 
@@ -142,6 +151,8 @@ function getTypeSize(type: TextureType): number {
         case 'float': return 4;
         case 'fp16': return 2;
         case 'int': return 4;
+        case 'float-stencil': return 4;
+        case 'uint24-8': return 2;
     }
 }
 
@@ -156,6 +167,12 @@ export function getType(gl: GLRenderingContext, extensions: WebGLExtensions, typ
         case 'int':
             if (isWebGL2(gl)) return gl.INT;
             else throw new Error('texture type "int" requires webgl2');
+        case 'float-stencil':
+            if (isWebGL2(gl)) return gl.FLOAT_32_UNSIGNED_INT_24_8_REV;
+            else throw new Error('texture type "float-stencil" requires webgl2');
+        case 'uint24-8':
+            if (extensions.depthTexture) return extensions.depthTexture.UNSIGNED_INT_24_8;
+            else throw new Error('extension "depth_texture" unavailable');
     }
 }
 
@@ -170,6 +187,7 @@ export function getAttachment(gl: GLRenderingContext, extensions: WebGLExtension
     switch (attachment) {
         case 'depth': return gl.DEPTH_ATTACHMENT;
         case 'stencil': return gl.STENCIL_ATTACHMENT;
+        case 'depth-stencil': return (gl as WebGL2RenderingContext).DEPTH_STENCIL_ATTACHMENT;
         case 'color0': case 0: return gl.COLOR_ATTACHMENT0;
     }
     if (extensions.drawBuffers) {
@@ -252,12 +270,12 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         (kind.endsWith('float16') && _type !== 'fp16') ||
         (kind.endsWith('uint8') && _type !== 'ubyte') ||
         (kind.endsWith('int32') && _type !== 'int') ||
-        (kind.endsWith('depth') && _type !== 'ushort' && _type !== 'float')
+        (kind.endsWith('depth') && _type !== 'ushort' && _type !== 'float' && _type !== 'float-stencil' && _type !== 'uint24-8')
     ) {
         throw new Error(`texture kind '${kind}' and type '${_type}' are incompatible`);
     }
 
-    if (!extensions.depthTexture && _format === 'depth') {
+    if (!extensions.depthTexture && (_format === 'depth' || _format === 'depth-stencil')) {
         throw new Error(`extension 'WEBGL_depth_texture' needed for 'depth' texture format`);
     }
 
@@ -359,13 +377,21 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         }
     }
 
+    function resolveAttachment(attachment: TextureAttachment): TextureAttachment {
+        return (_format === 'depth-stencil' && attachment === 'depth') ? 'depth-stencil' : attachment;
+    }
+
     function attachFramebuffer(framebuffer: Framebuffer, attachment: TextureAttachment, layer?: number) {
+        const att = resolveAttachment(attachment);
         framebuffer.bind();
+        if (att === 'depth-stencil') {
+            gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, null);
+        }
         if (target === gl.TEXTURE_2D) {
-            gl.framebufferTexture2D(gl.FRAMEBUFFER, getAttachment(gl, extensions, attachment), gl.TEXTURE_2D, texture, 0);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, getAttachment(gl, extensions, att), gl.TEXTURE_2D, texture, 0);
         } else if (isWebGL2(gl) && target === gl.TEXTURE_3D) {
             if (layer === undefined) throw new Error('need `layer` to attach 3D texture');
-            gl.framebufferTextureLayer(gl.FRAMEBUFFER, getAttachment(gl, extensions, attachment), texture, 0, layer);
+            gl.framebufferTextureLayer(gl.FRAMEBUFFER, getAttachment(gl, extensions, att), texture, 0, layer);
         } else {
             throw new Error('unknown/unsupported texture target');
         }
@@ -398,11 +424,12 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         },
         attachFramebuffer,
         detachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment) => {
+            const att = resolveAttachment(attachment);
             framebuffer.bind();
             if (target === gl.TEXTURE_2D) {
-                gl.framebufferTexture2D(gl.FRAMEBUFFER, getAttachment(gl, extensions, attachment), gl.TEXTURE_2D, null, 0);
+                gl.framebufferTexture2D(gl.FRAMEBUFFER, getAttachment(gl, extensions, att), gl.TEXTURE_2D, null, 0);
             } else if (isWebGL2(gl) && target === gl.TEXTURE_3D) {
-                gl.framebufferTextureLayer(gl.FRAMEBUFFER, getAttachment(gl, extensions, attachment), null, 0, 0);
+                gl.framebufferTextureLayer(gl.FRAMEBUFFER, getAttachment(gl, extensions, att), null, 0, 0);
             } else {
                 throw new Error('unknown texture target');
             }
