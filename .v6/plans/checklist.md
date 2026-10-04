@@ -14,7 +14,7 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
 - [x] Fix the pre-existing headless MP4 behavior check: check the `Mp4Export`
   transformer rather than its unqualified name. Verify that animation export
   reaches encoding; keep native GL installation optional.
-- [x] Support caller-controlled MVSX ZIP options as the third `createMVSX` parameter.
+- [x] Support caller-controlled MVSX ZIP options under the third `createMVSX` parameter's `zip` property.
   Explicit `mtime` enables identical bytes across different clock times; the default
   uses the current time. Verify both behaviors and identical archive contents;
   preserve archive loading compatibility without requiring v5-identical bytes.

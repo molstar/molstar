@@ -8,7 +8,7 @@ test('MVSX output is deterministic across different clock times with explicit mt
         const data = MVSData.createBuilder().getState();
         const assets = [{ name: 'asset.txt', content: 'archive asset' }];
         // ZIP stores local date fields; use matching fields for reproducibility across time zones.
-        const options = { mtime: new Date(1980, 0, 1), level: 0 as const };
+        const options = { zip: { mtime: new Date(1980, 0, 1), level: 0 as const } };
         jest.setSystemTime(new Date('2025-01-01T12:00:00Z'));
         const first = await createMVSX(data, assets, options);
         jest.setSystemTime(new Date('2026-10-04T18:00:00Z'));

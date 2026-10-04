@@ -79,7 +79,8 @@ the shape API changes above. Package exports exclude tests and build caches.
 
 ## MVSX ZIP options
 
-`createMVSX(data, assets, options?)` accepts fflate ZIP options, including `mtime`
-and compression level. The default uses the current time rather than v5's fixed
-ZIP timestamps. Callers needing reproducible archives should provide `mtime`;
+`createMVSX(data, assets, options?: { zip?: ZipOptions })` accepts fflate ZIP options
+under `options.zip`, including `mtime` and compression level. The default uses
+the current time rather than v5's fixed
+ZIP timestamps. Callers needing reproducible archives should provide `zip.mtime`;
 use a local-calendar date when identical ZIP date fields across time zones matter.
