@@ -35,11 +35,12 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
   and distribution changes. The 2026-10-04 checkpoint compares 1,547 mapped
   production modules and 17 extracted/new modules with v5 master. Keep updating
   the ledger as the remaining v6 work proceeds.
-- [ ] Restore cache-first `MVSData.toMVSX` asset fetching: a supplied cache must
+- [x] Restore cache-first `MVSData.toMVSX` asset fetching: a supplied cache must
   avoid requests and allow cached exports when the source is unavailable.
-- [ ] Define/restore Node local-file asset loading for standalone MVS export.
-  Platform `fetch` does not support the old `file://` path; explicit `assets` is
-  the current workaround. Keep the builder independent of plugin/rendering code.
+- [x] Define Node local-file asset loading for standalone MVS export through
+  optional `toMVSX` `options.fetch`. Callers can provide a file-aware fetch adapter;
+  the default remains platform `fetch`. Explicit `assets` also bypasses fetching.
+  Keep the builder independent of plugin/rendering code.
 
 ## Deferred validation and tooling
 

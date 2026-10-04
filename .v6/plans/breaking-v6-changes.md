@@ -240,16 +240,16 @@ helper exposes this control.
 `MVSData.toMVSX` now uses platform `fetch` instead of core's `ajaxGet` task.
 Explicit `options.assets` still bypasses automatic fetching.
 
-Two regressions were confirmed by Node probes and are tracked in the checklist:
+The options argument is optional and now accepts `fetch?: typeof globalThis.fetch`.
+The callback receives the resolved URI and returns a platform-compatible `Response`.
+Omitting it uses platform `fetch`. Cached assets are consulted before fetching,
+including empty content, so a shared cache avoids repeated requests and permits
+exports when the source is unavailable. Failed responses are not cached.
 
-- Fetch runs before the supplied cache is consulted. Two calls with a shared
-  cache still issue two fetches. A failed fetch rejects the export even when
-  bytes are already cached. The old implementation skipped the request on a cache hit.
-- Under Node, automatic fetching of `file://` assets fails. The old IO path
-  supported local files after `setFSModule(fs)`. Setting that core IO hook no
-  longer affects the standalone builder's fetching.
-
-Current workaround: supply asset contents through `options.assets`. Resolve the
-asset-source contract without pulling plugin/rendering dependencies into the
-standalone builder, and restore cache-first behavior. These are follow-up issues,
-not newly accepted compatibility breaks.
+Under Node, platform `fetch` does not load `file://` assets. Callers can provide a
+file-aware `options.fetch` adapter (for example, returning a `Response` containing
+bytes read with Node's `fs` APIs), or supply `options.assets` directly. The old
+`setFSModule(fs)` core IO hook no longer controls standalone builder fetching.
+This explicit adapter contract keeps the builder independent of plugin/rendering
+code. Tests cover default and custom fetching, resolved file URIs, cache reuse,
+explicit assets, skipped external URIs, and HTTP errors.

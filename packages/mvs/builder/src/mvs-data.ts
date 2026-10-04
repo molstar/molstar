@@ -122,7 +122,7 @@ export const MVSData = {
     },
 
     /** Encode `MVSData` to MVSX (MolViewSpec JSON zipped together with referenced assets). Automatically fetches all referenced assets unless specified otherwise in `options`. */
-    async toMVSX(mvsData: MVSData, options: {
+    async toMVSX(mvsData: MVSData, options?: {
         /** Explicitely define assets to be included in the MVSX (binary data or string with asset content).
          * If not specified, assets will be fetched automatically. */
         assets?: { [uri: string]: Uint8Array<ArrayBuffer> | string },
@@ -132,8 +132,11 @@ export const MVSData = {
         skipExternal?: boolean,
         /** Optional cache for sharing fetched assets across multiple `toMVSX` calls (only applies if `assets` not specified). */
         cache?: { [absoluteUri: string]: Uint8Array<ArrayBuffer> | string },
-    } = {}): Promise<Uint8Array<ArrayBuffer>> {
-        let { assets, baseUri, skipExternal, cache } = options;
+        /** Fetch implementation for loading uncached assets (defaults to platform `fetch`).
+         * Receives the resolved URI; can be used to support local files under Node. */
+        fetch?: typeof globalThis.fetch,
+    }): Promise<Uint8Array<ArrayBuffer>> {
+        let { assets, baseUri, skipExternal, cache, fetch: fetchAsset = globalThis.fetch } = options ?? {};
         mvsData = deepClone(mvsData);
         const uriParamNames = ['uri', 'url'];
         const trees = mvsData.kind === 'multiple' ? mvsData.snapshots.map(s => s.root) : [mvsData.root];
@@ -149,9 +152,12 @@ export const MVSData = {
             for (const uri of uris) {
                 if (skipExternal && isAbsoluteUri(uri)) continue;
                 const resolvedUri = resolveUri(uri, baseUri, theWindowUrl)!;
-                const response = await fetch(resolvedUri!);
-                if (!response.ok) throw new Error(`Failed to fetch MVS asset ${resolvedUri}: ${response.status} ${response.statusText}`);
-                const content = cache[resolvedUri] ??= new Uint8Array(await response.arrayBuffer());
+                let content = cache[resolvedUri];
+                if (content === undefined) {
+                    const response = await fetchAsset(resolvedUri);
+                    if (!response.ok) throw new Error(`Failed to fetch MVS asset ${resolvedUri}: ${response.status} ${response.statusText}`);
+                    content = cache[resolvedUri] = new Uint8Array(await response.arrayBuffer());
+                }
                 assets[uri] = content;
             }
         }
