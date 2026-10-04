@@ -14,6 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - `marking.edgeScale` is no longer rounded to whole pixels
   - Move `JitterVectors` from `passes/multi-sample` to `passes/jitter`
   - `multiSample.reduceFlicker` only applies when marking is disabled
+- Prefer structure-level visuals for very high (>= 10000) unique unit counts (#1953)
 
 ## [v5.12.0] - 2026-09-28
 - Make CIF field lookup case insensitive, so mmCIF files writing `_atom_site.cartn_x` resolve fields like `Cartn_x` instead of leaving coordinates at 0,0,0 (#1941)
