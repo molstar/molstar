@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
+
 import type { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
 
 export { Viewport };
