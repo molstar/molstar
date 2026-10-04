@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { Mp4Export } from './index.js';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { encodeMp4Animation } from '@molstar/mp4-export-extension/encoder';
 import { ImagePass } from '@molstar/graphics/canvas3d/passes/image';
@@ -10,7 +11,7 @@ import { RuntimeContext, Task } from '@molstar/core/task';
 export class Mp4HeadlessPluginContext extends HeadlessPluginContext {
     /** Render plugin state snapshots animation and return as raw MP4 data */
     async getAnimation(options?: { quantization?: number, size?: { width: number, height: number }, fps?: number, postprocessing?: Partial<PostprocessingProps> }) {
-        if (!this.state.hasBehavior('extension-mp4-export')) {
+        if (!this.state.hasBehavior(Mp4Export)) {
             throw new Error('PluginContext must have Mp4Export extension registered in order to save animation.');
         }
 

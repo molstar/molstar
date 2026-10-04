@@ -141,7 +141,7 @@ async function consumer(roots, callback, options = {}) {
 }
 
 async function nodeCheck() {
-  await consumer(['@molstar/core', '@molstar/io', '@molstar/plugin', '@molstar/mvs-builder'], async ({ dir }) => {
+  await consumer(['@molstar/core', '@molstar/io', '@molstar/plugin', '@molstar/mvs-builder', '@molstar/mp4-export-extension'], async ({ dir }) => {
     const require = createRequire(join(dir, 'package.json'));
     for (const native of ['gl', 'canvas']) {
       assert.throws(() => require.resolve(native), { code: 'MODULE_NOT_FOUND' }, `Default consumers must not install ${native}.`);
@@ -151,6 +151,9 @@ async function nodeCheck() {
     await cp(join(here, 'fixtures/tiny.pdb'), join(dir, 'tiny.pdb'));
     await cp(join(here, 'fixtures/tiny.mvsj'), join(dir, 'tiny.mvsj'));
     await run(process.execPath, [fixture], { cwd: dir });
+    const mp4Fixture = join(dir, 'mp4.mjs');
+    await cp(join(here, 'node/mp4.mjs'), mp4Fixture);
+    await run(process.execPath, [mp4Fixture], { cwd: dir });
   }, { name: 'node-consumer', extraDependencies: { fflate: await catalogVersion('fflate') } });
 }
 

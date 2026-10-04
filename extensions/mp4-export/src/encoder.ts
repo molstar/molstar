@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as HME from 'h264-mp4-encoder';
+import HME from 'h264-mp4-encoder';
 import { Viewport } from '@molstar/graphics/canvas3d/camera/util';
 import { ImagePass } from '@molstar/graphics/canvas3d/passes/image';
 import { PluginStateAnimation } from '@molstar/plugin/state/animation/model';
