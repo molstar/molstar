@@ -1,13 +1,3 @@
-import { ExternalStructureColorThemeProvider } from '@molstar/plugin/themes/external-structure';
-import { ExternalVolumeColorThemeProvider } from '@molstar/plugin/themes/external-volume';
-
-function createColorThemeRegistry(): ColorTheme.Registry {
-    const registry: ColorTheme.Registry = ColorTheme.createRegistry();
-    registry.add(ExternalStructureColorThemeProvider);
-    registry.add(ExternalVolumeColorThemeProvider);
-    return registry;
-}
-
 /**
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -156,15 +146,15 @@ export class PluginContext {
     readonly representation = {
         structure: {
             registry: new StructureRepresentationRegistry(),
-            themes: { colorThemeRegistry: createColorThemeRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext,
+            themes: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext,
         },
         volume: {
             registry: new VolumeRepresentationRegistry(),
-            themes: { colorThemeRegistry: createColorThemeRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
+            themes: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
         },
         particles: {
             registry: new ParticleRepresentationRegistry(),
-            themes: { colorThemeRegistry: createColorThemeRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
+            themes: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
         }
     } as const;
 

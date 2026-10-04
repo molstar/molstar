@@ -43,6 +43,13 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
 
 ## Deferred validation and tooling
 
+- [ ] Bring back `external-structure` and `external-volume` color themes during
+  registry composition work. Their implementations depend on `PluginStateObject`
+  and, for structures, the plugin backbone selection query. They remain in
+  `@molstar/plugin/themes/*` but are intentionally unregistered in this prototype.
+  Resolve those dependencies and define explicit composition; do not add special
+  registration logic to `PluginContext`.
+
 - [ ] Restore full MolQL validation in `mvs-validate` by importing mol-script.
   Decide how to expose the compiler dependency without making the standalone
   builder depend on plugin/rendering code. Then reject unknown symbols and invalid
