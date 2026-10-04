@@ -159,10 +159,6 @@ bool CylinderImpostor(
             if (clipTest(modelPosition / uModelScale)) {
                 objectClipped = true;
                 fragmentDepth = -1.0;
-                #ifdef dSolidInterior
-                    topCap = !topInterior;
-                    bottomCap = !bottomInterior;
-                #endif
             }
         #endif
         if (fragmentDepth > 0.0) return true;
@@ -186,10 +182,6 @@ bool CylinderImpostor(
                     if (clipTest(modelPosition / uModelScale)) {
                         objectClipped = true;
                         fragmentDepth = -1.0;
-                        #ifdef dSolidInterior
-                            topCap = !topInterior;
-                            bottomCap = !bottomInterior;
-                        #endif
                     }
                 #endif
                 if (fragmentDepth > 0.0) {
@@ -219,10 +211,6 @@ bool CylinderImpostor(
                     if (clipTest(modelPosition / uModelScale)) {
                         objectClipped = true;
                         fragmentDepth = -1.0;
-                        #ifdef dSolidInterior
-                            topCap = !topInterior;
-                            bottomCap = !bottomInterior;
-                        #endif
                     }
                 #endif
                 if (fragmentDepth > 0.0) {

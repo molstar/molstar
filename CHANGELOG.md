@@ -23,6 +23,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Breaking] `createRenderTarget` takes a `depthStencil` option (`'none' | 'depth' | 'depth-stencil'`) in place of the `depth` flag
 - Fix back faces of opaque objects missing from the packed depth (outlines and occlusion with the camera inside a surface)
 - Fix pick positions landing on the near plane without the `WEBGL_draw_buffers` extension (depth was not written when rendering every mask)
+- Fix `solidInterior` caps of impostor cylinders missing at clip objects where the view ray leaves through an open end
 
 ## [v5.12.0] - 2026-09-28
 - Make CIF field lookup case insensitive, so mmCIF files writing `_atom_site.cartn_x` resolve fields like `Cartn_x` instead of leaving coordinates at 0,0,0 (#1941)
