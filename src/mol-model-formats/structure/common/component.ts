@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Table, Column } from '../../../mol-data/db';
-import { WaterNames, PolymerNames } from '../../../mol-model/structure/model/types';
+import { WaterNames, PolymerNames, CommonProteinCaps } from '../../../mol-model/structure/model/types';
 import { SetUtils } from '../../../mol-util/set';
 import { BasicSchema } from '../basic/schema';
 import { mmCIF_chemComp_schema } from '../../../mol-io/reader/cif/schema/mmcif-extras';
@@ -112,7 +112,7 @@ export class ComponentBuilder {
         this.ids.push(c.id);
         this.names.push(c.name);
         this.types.push(c.type);
-        this.mon_nstd_flags.push(PolymerNames.has(c.id) ? 'y' : 'n');
+        this.mon_nstd_flags.push((PolymerNames.has(c.id) || CommonProteinCaps.has(c.id)) ? 'y' : 'n');
     }
 
     private getAtomIds(index: number) {

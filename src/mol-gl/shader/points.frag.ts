@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -32,7 +32,7 @@ void main(){
         if (fuzzyAlpha < 0.0001) discard;
     #endif
 
-    #if defined(dPointStyle_fuzzy) && (defined(dRenderVariant_color) || defined(dRenderVariant_tracing))
+    #if defined(dPointStyle_fuzzy) && (defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_marking))
         material.a *= fuzzyAlpha;
     #endif
 
@@ -51,6 +51,7 @@ void main(){
     #elif defined(dRenderVariant_depth)
         gl_FragColor = material;
     #elif defined(dRenderVariant_marking)
+        #include apply_marking
         gl_FragColor = material;
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;

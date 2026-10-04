@@ -11,7 +11,7 @@ import { QuadSchema, QuadValues } from '../../mol-gl/compute/util';
 import { TextureSpec, Values, UniformSpec, DefineSpec } from '../../mol-gl/renderable/schema';
 import { ShaderCode } from '../../mol-gl/shader-code';
 import { WebGLContext } from '../../mol-gl/webgl/context';
-import { Texture } from '../../mol-gl/webgl/texture';
+import { Texture, TextureFilter } from '../../mol-gl/webgl/texture';
 import { ValueCell } from '../../mol-util';
 import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
 import { createComputeRenderable, ComputeRenderable } from '../../mol-gl/renderable';
@@ -396,8 +396,8 @@ export class AntialiasingPass {
     private readonly smaa: SmaaPass;
     private readonly cas: CasPass;
 
-    constructor(webgl: WebGLContext, width: number, height: number) {
-        this.target = webgl.createRenderTarget(width, height, 'none');
+    constructor(webgl: WebGLContext, width: number, height: number, filter: TextureFilter = 'nearest') {
+        this.target = webgl.createRenderTarget(width, height, 'none', 'uint8', filter);
         this.internalTarget = webgl.createRenderTarget(width, height, 'none');
 
         this.fxaa = new FxaaPass(webgl, this.target.texture);
@@ -454,6 +454,15 @@ export class AntialiasingPass {
         if (props.antialiasing.name !== 'off') input = this.internalTarget.texture;
         this.cas.update(input, props.sharpening.params);
         this.cas.render(camera.viewport, target);
+    }
+
+    /** Antialiasing without sharpening, returns false if nothing was rendered. */
+    renderAntialiasingOnly(camera: ICamera, input: Texture, target: RenderTarget, props: PostprocessingProps): boolean {
+        if (props.antialiasing.name === 'off') return false;
+        if (props.antialiasing.name === 'smaa' && !this.smaa.supported) return false;
+
+        this._renderAntialiasing(camera, input, target, props);
+        return true;
     }
 
     render(camera: ICamera, input: Texture, toDrawingBuffer: boolean | RenderTarget, props: PostprocessingProps) {

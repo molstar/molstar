@@ -15,6 +15,14 @@ export const check_transparency = `
     #endif
 #endif
 
+#if defined(dRenderVariant_marking)
+    #if defined(dTransparentBackfaces_off)
+        if (interior && material.a < 1.0) material.a = 0.0;
+    #elif defined(dTransparentBackfaces_opaque)
+        if (interior) material.a = 1.0;
+    #endif
+#endif
+
 #if defined(dRenderVariant_depth)
     #if defined(dTransparentBackfaces_off)
         // interior fragments are the surface of interest in the back-depth pass

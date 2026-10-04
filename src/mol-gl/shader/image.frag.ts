@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -173,7 +173,7 @@ void main() {
     float group = packedGroup == vec3(0.0) ? -1.0 : unpackRGBToInt(packedGroup);
 
     // apply per-group transparency
-    #if defined(dTransparency) && (defined(dRenderVariant_pick) || defined(dRenderVariant_color) || defined(dRenderVariant_emissive) || defined(dRenderVariant_tracing))
+    #if defined(dTransparency) && (defined(dRenderVariant_pick) || defined(dRenderVariant_color) || defined(dRenderVariant_emissive) || defined(dRenderVariant_tracing) || defined(dRenderVariant_marking))
         float transparency = 0.0;
         #if defined(dTransparencyType_instance)
             transparency = readFromTexture(tTransparency, vInstance, uTransparencyTexDim).a;
@@ -191,7 +191,7 @@ void main() {
         #elif defined(dRenderVariant_emissive)
             if (ta < 1.0)
                 discard; // emissive not supported with transparency
-        #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
+        #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_marking)
             material.a *= ta;
         #endif
     #endif
@@ -253,24 +253,8 @@ void main() {
             gl_FragColor = packDepthWithAlphaToRGBA(fragmentDepth, material.a);
         }
     #elif defined(dRenderVariant_marking)
-        if (uMarkingType == 1) {
-            if (marker > 0.0)
-                discard;
-            gl_FragColor = packDepthToRGBA(fragmentDepth);
-        } else {
-            if (marker == 0.0)
-                discard;
-            float depthTest = 1.0;
-            if (uMarkingDepthTest) {
-                depthTest = (fragmentDepth >= getDepthPacked(gl_FragCoord.xy / uDrawingBufferSize)) ? 1.0 : 0.0;
-            }
-            bool isHighlight = intMod(marker, 2.0) > 0.1;
-            float viewZ = depthToViewZ(uIsOrtho, fragmentDepth, uNear, uFar);
-            float fogFactor = smoothstep(uFogNear, uFogFar, abs(viewZ));
-            if (fogFactor == 1.0)
-                discard;
-            gl_FragColor = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0 - fogFactor);
-        }
+        #include apply_marking
+        gl_FragColor = material;
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = vec4(emissive);
     #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)

@@ -57,25 +57,11 @@ bool isBackground(const in float depth) {
 }
 
 float getSsao(vec2 coords) {
-    float rawSsao = unpackRGToUnitInterval(texture2D(tSsaoDepth, coords).xy);
-    if (rawSsao > 0.999) {
-        return 1.0;
-    } else if (rawSsao > 0.001) {
-        return rawSsao;
-    }
-    // treat values close to 0.0 as errors and return no occlusion
-    return 1.0;
+    return unpackSsao(texture2D(tSsaoDepth, coords));
 }
 
 float getSsaoTransparent(vec2 coords) {
-    float rawSsao = unpackRGToUnitInterval(texture2D(tSsaoDepthTransparent, coords).xy);
-    if (rawSsao > 0.999) {
-        return 1.0;
-    } else if (rawSsao > 0.001) {
-        return rawSsao;
-    }
-    // treat values close to 0.0 as errors and return no occlusion
-    return 1.0;
+    return unpackSsao(texture2D(tSsaoDepthTransparent, coords));
 }
 
 //
@@ -153,7 +139,7 @@ vec4 smartDeNoise(sampler2D tex, vec2 uv) {
 int squaredOutlineScale = dOutlineScale * dOutlineScale;
 void getOutline(const in vec2 coords, out bool hasOpaque, out bool hasTransparent, out float opaqueDepth, out float transparentDepth, out float alpha) {
     vec2 invTexSize = 1.0 / uTexSize;
-    
+
     hasOpaque = false;
     hasTransparent = false;
     opaqueDepth = 1.0;
@@ -174,14 +160,14 @@ void getOutline(const in vec2 coords, out bool hasOpaque, out bool hasTransparen
 
             float sampleFlag = sampleFlagWithAlpha.x;
             float sampleAlpha = clamp(sampleFlagWithAlpha.y * 0.5, 0.01, 1.0);
-            
+
             if ((sampleFlag > 0.20 && sampleFlag < 0.30) || (sampleFlag > 0.70 && sampleFlag < 0.80)) { // transparent || both
                 if (sampleOpaqueDepth < opaqueDepth) {
                     hasOpaque = true;
                     opaqueDepth = sampleOpaqueDepth;
                 }
             }
-            
+
             if ((((sampleFlag > 0.45 && sampleFlag < 0.55) || (sampleFlag > 0.70 && sampleFlag < 0.80))) && sampleTransparentDepth < transparentDepth) { // transparent || both
                 hasTransparent = true;
                 transparentDepth = sampleTransparentDepth;
@@ -255,15 +241,15 @@ void main() {
         if (hasOpaque) {
             float viewDist = abs(getViewZ(outlineOpaqueDepth));
             float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
-            if (!uTransparentBackground) {                    
+            if (!uTransparentBackground) {
                 color.rgb = mix(uOutlineColor, uFogColor, fogFactor);
             } else {
                 alpha = 1.0 - fogFactor;
                 color.rgb = mix(uOutlineColor, vec3(0.0), fogFactor);
             }
-        }  
+        }
 
-        #ifdef dBlendTransparency            
+        #ifdef dBlendTransparency
             if (hasTransparent) {
                 if (hasOpaque && outlineOpaqueDepth < outlineTransparentDepth) {
                     blendTransparency = false;
