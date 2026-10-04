@@ -23,7 +23,7 @@ import { PointsSchema } from './points';
 import { SpheresShaderCode, MeshShaderCode, CylindersShaderCode, LinesShaderCode, PointsShaderCode, ShaderCode } from '../shader-code';
 import { createGraphicsRenderItem, Transparency, GraphicsRenderVariant, DrawMode } from '../webgl/render-item';
 import { WebGLContext, WebGLStats } from '../webgl/context';
-import { Renderable, RenderableState, createSegmentedMdbList, CullSegment, LodLevelsValue, CullValues, Frame } from '../renderable';
+import { Renderable, RenderableState, createSegmentedMdbList, CullSegment, LodLevelsValue, CullValues, Frame, createClipInfoCache } from '../renderable';
 
 export type MergeableValues = RenderableValues & BaseValues
 
@@ -715,6 +715,7 @@ export function MergedRenderable(ctx: WebGLContext, id: number, merged: Merged, 
     const renderItem = createGraphicsRenderItem(ctx, descriptor.drawMode, descriptor.shaderCode, schema, renderValues, materialId, transparency);
 
     const mdb = createSegmentedMdbList();
+    const clipInfo = createClipInfoCache(renderValues);
     let mode: 'none' | 'full' | 'cull' = 'none';
     let lastCullFrame: Frame | undefined;
 
@@ -798,6 +799,7 @@ export function MergedRenderable(ctx: WebGLContext, id: number, merged: Merged, 
             }
             renderItem.render(variant, sharedTexturesCount, mdb.list);
         },
+        getClipInfo: clipInfo.get,
         getByteCount: () => renderItem.getByteCount(),
         getProgram: (variant: GraphicsRenderVariant) => renderItem.getProgram(variant),
         setTransparency: (value: Transparency) => renderItem.setTransparency(value),

@@ -484,9 +484,7 @@ namespace Renderer {
             if (mode === 'oit') state.disable(gl.DEPTH_TEST);
         };
 
-        const solidInteriorPlane = Plane3D();
         const solidInteriorEye = Vec3();
-        const solidInteriorClipObjects: Clip.Objects = { count: 0, type: [], invert: [], position: [], rotation: [], scale: [], transform: [] };
 
         const renderSolidInteriorCap = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: SolidInteriorMode) => {
             if (!isVisible(r, variant)) return;
@@ -498,21 +496,14 @@ namespace Renderer {
                 renderSolidInteriorFill(r, variant, mode, -1);
             }
 
-            const { values } = r;
-            if (values.dClipVariant?.ref.value === 'pixel') {
-                const objects = solidInteriorClipObjects;
-                objects.count = values.dClipObjectCount.ref.value;
-                objects.type = values.uClipObjectType.ref.value;
-                objects.invert = values.uClipObjectInvert.ref.value;
-                objects.position = values.uClipObjectPosition.ref.value;
-                objects.rotation = values.uClipObjectRotation.ref.value;
-                objects.scale = values.uClipObjectScale.ref.value;
-                objects.transform = values.uClipObjectTransform.ref.value;
+            const clipInfo = r.getClipInfo();
+            if (clipInfo && clipInfo.capIndices.length > 0) {
+                const { objects, planes, capIndices } = clipInfo;
                 Vec3.scale(solidInteriorEye, cameraPosition, 1 / modelScale);
-                for (let i = 0; i < objects.count; ++i) {
-                    if (!Clip.canIntersectSphere(objects, i, values.boundingSphere.ref.value)) continue;
+                for (let j = 0, jl = capIndices.length; j < jl; ++j) {
+                    const i = capIndices[j];
                     if (objects.type[i] === Clip.Type.plane) {
-                        const d = Plane3D.distanceToPoint(Clip.getPlane(solidInteriorPlane, objects, i), solidInteriorEye) * modelScale;
+                        const d = Plane3D.distanceToPoint(planes[i], solidInteriorEye) * modelScale;
                         if (back ? d >= -1e-4 : d <= 1e-4) continue;
                     }
                     renderSolidInteriorMark(r, variant, i);
