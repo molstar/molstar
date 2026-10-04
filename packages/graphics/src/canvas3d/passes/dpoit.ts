@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Gianluca Tomasello <giagitom@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -19,6 +19,7 @@ import { quad_vert } from '@molstar/graphics/gl/shader/quad.vert';
 import { evaluateDpoit_frag } from '@molstar/graphics/gl/shader/evaluate-dpoit.frag';
 import { blendBackDpoit_frag } from '@molstar/graphics/gl/shader/blend-back-dpoit.frag';
 import type { Framebuffer } from '@molstar/graphics/gl/webgl/framebuffer';
+import type { Renderbuffer } from '@molstar/graphics/gl/webgl/renderbuffer';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
 import { isWebGL2 } from '@molstar/graphics/gl/webgl/compat';
@@ -125,6 +126,7 @@ export class DpoitPass {
 
         this.depthFramebuffers[0].bind();
         state.blendEquation(blendMinMax!.MAX);
+        state.disable(gl.DEPTH_TEST);
         state.depthMask(false);
 
         return {
@@ -152,6 +154,7 @@ export class DpoitPass {
 
         this.depthFramebuffers[this.writeId].bind();
         state.blendEquation(blendMinMax!.MAX);
+        state.disable(gl.DEPTH_TEST);
         state.depthMask(false);
 
         return {
@@ -220,6 +223,7 @@ export class DpoitPass {
             this.colorFrontTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color0');
             this.colorBackTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color1');
             this.depthTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color2');
+            this.stencil?.attachFramebuffer(this.depthFramebuffers[i]);
 
             // color
             this.colorFramebuffers[i].bind();
@@ -251,7 +255,7 @@ export class DpoitPass {
         }
     }
 
-    constructor(private webgl: WebGLContext, width: number, height: number) {
+    constructor(private webgl: WebGLContext, width: number, height: number, private stencil: Renderbuffer | null = null) {
         if (!DpoitPass.isSupported(webgl)) return;
 
         const { resources, extensions: { colorBufferHalfFloat, textureHalfFloat } } = webgl;

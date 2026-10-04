@@ -16,6 +16,7 @@
     "./common/_test/*": null,
     "./common/binary-cif/_test/*": null,
     "./reader/_test/*": null,
+    "./reader/cif/binary/_test/*": null,
     "./writer/_test/*": null
   },
   "files": [

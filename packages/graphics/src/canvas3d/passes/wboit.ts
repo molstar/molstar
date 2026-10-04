@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
@@ -18,7 +19,6 @@ import { evaluateWboit_frag } from '@molstar/graphics/gl/shader/evaluate-wboit.f
 import type { Framebuffer } from '@molstar/graphics/gl/webgl/framebuffer';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
-import { isWebGL2 } from '@molstar/graphics/gl/webgl/compat';
 import type { Renderbuffer } from '@molstar/graphics/gl/webgl/renderbuffer';
 
 const EvaluateWboitSchema = {
@@ -139,7 +139,7 @@ export class WboitPass {
     constructor(private webgl: WebGLContext, width: number, height: number) {
         if (!WboitPass.isSupported(webgl)) return;
 
-        const { resources, gl } = webgl;
+        const { resources, isWebGL2 } = webgl;
 
         this.textureA = resources.texture('image-float32', 'rgba', 'float', 'nearest');
         this.textureA.define(width, height);
@@ -147,9 +147,7 @@ export class WboitPass {
         this.textureB = resources.texture('image-float32', 'rgba', 'float', 'nearest');
         this.textureB.define(width, height);
 
-        this.depthRenderbuffer = isWebGL2(gl)
-            ? resources.renderbuffer('depth32f', 'depth', width, height)
-            : resources.renderbuffer('depth16', 'depth', width, height);
+        this.depthRenderbuffer = resources.renderbuffer(isWebGL2 ? 'depth32f-stencil8' : 'depth-stencil', 'depth-stencil', width, height);
 
         this.renderable = getEvaluateWboitRenderable(webgl, this.textureA, this.textureB);
         this.framebuffer = resources.framebuffer();

@@ -27,6 +27,7 @@ export const MolecularSurfaceParams = {
     ...MolecularSurfaceWireframeParams,
     visuals: PD.MultiSelect(['molecular-surface-mesh'], PD.objectToOptions(MolecularSurfaceVisuals)),
     bumpFrequency: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
+    solidInterior: PD.Boolean(true, { ...BaseGeometry.ShadingCategory, description: 'Render a solid cap where the camera near plane or a clip object cuts a closed surface' }),
     density: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }, BaseGeometry.ShadingCategory),
 };
 export type MolecularSurfaceParams = typeof MolecularSurfaceParams

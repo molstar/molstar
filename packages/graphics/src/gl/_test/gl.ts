@@ -10,6 +10,7 @@ export function getGLContext(width: number, height: number) {
     const gl = require('gl')(width, height, {
         alpha: true,
         depth: true,
+        stencil: true,
         premultipliedAlpha: true,
         preserveDrawingBuffer: true,
         antialias: true,

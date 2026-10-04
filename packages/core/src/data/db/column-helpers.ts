@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Column } from './column.js';
+import { Column } from './column.js';
 
 export function getArrayBounds(rowCount: number, params?: Column.ToArrayParams<any>) {
     const start = params && typeof params.start !== 'undefined' ? Math.max(Math.min(params.start, rowCount - 1), 0) : 0;
@@ -37,4 +37,18 @@ export function typedArrayWindow(data: any, params?: Column.ToArrayParams<any>):
     const { start, end } = getArrayBounds(length, params);
     if (start === 0 && end === length) return data;
     return new constructor(buffer, byteOffset + BYTES_PER_ELEMENT * start, Math.min(length, end - start));
+}
+
+/**
+ * Like `typedArrayWindow` but honors a BinaryCIF mask, returning `defaultValue` for
+ * masked (i.e. missing) values instead of whatever happens to be in the data array.
+ */
+export function typedArrayWindowMasked(data: any, mask: ArrayLike<number>, defaultValue: number, params?: Column.ToArrayParams<any>): ReadonlyArray<number> {
+    const { constructor, length } = data;
+    const { start, end } = getArrayBounds(length, params);
+    const out = new constructor(end - start);
+    for (let i = start; i < end; i++) {
+        out[i - start] = mask[i] === Column.ValueKinds.Present ? data[i] : defaultValue;
+    }
+    return out;
 }

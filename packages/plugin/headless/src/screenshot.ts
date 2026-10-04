@@ -205,6 +205,7 @@ export function defaultWebGLAttributes(): WebGLContextAttributes {
         preserveDrawingBuffer: true,
         alpha: true, // the renderer requires an alpha channel
         depth: true, // the renderer requires a depth buffer
+        stencil: true, // the renderer requires a stencil buffer
         premultipliedAlpha: true, // the renderer outputs PMA
     };
 }

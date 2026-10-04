@@ -11,7 +11,7 @@ import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { TextureSpec, type Values, UniformSpec, DefineSpec } from '@molstar/graphics/gl/renderable/schema';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
 import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { Texture, TextureFilter } from '@molstar/graphics/gl/webgl/texture';
 import { ValueCell } from '@molstar/core/util';
 import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
 import { createComputeRenderable, type ComputeRenderable } from '@molstar/graphics/gl/renderable';
@@ -196,7 +196,7 @@ export class PostprocessingPass {
         const height = colorTarget.getHeight();
 
         // needs to be linear for anti-aliasing pass
-        this.target = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
+        this.target = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
         this.ssao = new SsaoPass(webgl, width, height, packedDepth, depthTextureOpaque, depthTextureTransparent);
         this.shadow = new ShadowPass(webgl, width, height, depthTextureOpaque);
@@ -396,9 +396,9 @@ export class AntialiasingPass {
     private readonly smaa: SmaaPass;
     private readonly cas: CasPass;
 
-    constructor(webgl: WebGLContext, width: number, height: number) {
-        this.target = webgl.createRenderTarget(width, height, false);
-        this.internalTarget = webgl.createRenderTarget(width, height, false);
+    constructor(webgl: WebGLContext, width: number, height: number, filter: TextureFilter = 'nearest') {
+        this.target = webgl.createRenderTarget(width, height, 'none', 'uint8', filter);
+        this.internalTarget = webgl.createRenderTarget(width, height, 'none');
 
         this.fxaa = new FxaaPass(webgl, this.target.texture);
         this.smaa = new SmaaPass(webgl, this.target.texture);
@@ -454,6 +454,15 @@ export class AntialiasingPass {
         if (props.antialiasing.name !== 'off') input = this.internalTarget.texture;
         this.cas.update(input, props.sharpening.params);
         this.cas.render(camera.viewport, target);
+    }
+
+    /** Antialiasing without sharpening, returns false if nothing was rendered. */
+    renderAntialiasingOnly(camera: ICamera, input: Texture, target: RenderTarget, props: PostprocessingProps): boolean {
+        if (props.antialiasing.name === 'off') return false;
+        if (props.antialiasing.name === 'smaa' && !this.smaa.supported) return false;
+
+        this._renderAntialiasing(camera, input, target, props);
+        return true;
     }
 
     render(camera: ICamera, input: Texture, toDrawingBuffer: boolean | RenderTarget, props: PostprocessingProps) {

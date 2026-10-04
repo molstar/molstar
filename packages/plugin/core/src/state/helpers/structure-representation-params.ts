@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Structure } from '@molstar/model/model/structure';
@@ -13,6 +14,10 @@ import type { ColorTheme } from '@molstar/graphics/theme/color';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { StructureRepresentation3D } from '../transforms/representation.js';
+
+export function isSurfaceRepresentationType(name: string) {
+    return name.endsWith('-surface');
+}
 
 export interface StructureRepresentationBuiltInProps<
     R extends StructureRepresentationRegistry.BuiltIn = StructureRepresentationRegistry.BuiltIn,

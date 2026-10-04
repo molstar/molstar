@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Table, Column } from '@molstar/core/data/db';
-import { WaterNames, PolymerNames } from '@molstar/model/model/structure/model/types';
+import { WaterNames, PolymerNames, CommonProteinCaps } from '@molstar/model/model/structure/model/types';
 import { SetUtils } from '@molstar/core/util/set';
 import { BasicSchema } from '../basic/schema.js';
 import type { mmCIF_chemComp_schema } from '@molstar/io/reader/cif/schema/mmcif-extras';
@@ -112,7 +112,7 @@ export class ComponentBuilder {
         this.ids.push(c.id);
         this.names.push(c.name);
         this.types.push(c.type);
-        this.mon_nstd_flags.push(PolymerNames.has(c.id) ? 'y' : 'n');
+        this.mon_nstd_flags.push((PolymerNames.has(c.id) || CommonProteinCaps.has(c.id)) ? 'y' : 'n');
     }
 
     private getAtomIds(index: number) {

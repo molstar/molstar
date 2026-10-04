@@ -13,6 +13,7 @@ import { ComplexRepresentation, type StructureRepresentation, StructureRepresent
 import { Representation, type RepresentationParamsGetter, type RepresentationContext } from '../../representation.js';
 import type { ThemeRegistryContext } from '@molstar/graphics/theme/theme';
 import type { Structure } from '@molstar/model/model/structure';
+import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 
 const BlobSurfaceVisuals = {
     'blob-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, BlobSurfaceMeshParams>) => UnitsRepresentation('Blob surface mesh', ctx, getParams, BlobSurfaceMeshVisual),
@@ -25,6 +26,7 @@ export const BlobSurfaceParams = {
     ...BlobSurfaceMeshParams,
     ...BlobSurfaceWireframeParams,
     visuals: PD.MultiSelect(['blob-surface-mesh'], PD.objectToOptions(BlobSurfaceVisuals)),
+    solidInterior: PD.Boolean(true, { ...BaseGeometry.ShadingCategory, description: 'Render a solid cap where the camera near plane or a clip object cuts a closed surface' }),
 };
 export type BlobSurfaceParams = typeof BlobSurfaceParams
 export function getBlobSurfaceParams(ctx: ThemeRegistryContext, structure: Structure) {

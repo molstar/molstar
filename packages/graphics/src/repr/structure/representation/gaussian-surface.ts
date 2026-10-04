@@ -27,6 +27,7 @@ export const GaussianSurfaceParams = {
     ...GaussianWireframeParams,
     visuals: PD.MultiSelect(['gaussian-surface-mesh'], PD.objectToOptions(GaussianSurfaceVisuals)),
     bumpFrequency: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
+    solidInterior: PD.Boolean(true, { ...BaseGeometry.ShadingCategory, description: 'Render a solid cap where the camera near plane or a clip object cuts a closed surface' }),
     density: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }, BaseGeometry.ShadingCategory),
 };
 export type GaussianSurfaceParams = typeof GaussianSurfaceParams

@@ -14,6 +14,12 @@ export function Field(column: EncodedColumn): Data.CifField {
     const mask = column.mask ? decode(column.mask) as number[] : void 0;
     const data = decode(column.data);
     const isNumeric = ColumnHelpers.isTypedArray(data);
+    /** Masked values are missing data, hence `int`/`float` return the default value (0) for them,
+     * consistent with the text and mmCIF parsers. If the mask is trivial, i.e. nothing is
+     * actually masked, we can skip the per-value check altogether. */
+    const hasMissingValues = !!mask && mask.some(v => v !== Column.ValueKinds.Present);
+    /** only accessed when `hasMissingValues` is true, which implies `mask` is defined */
+    const presentMask = mask as number[];
 
     const str: Data.CifField['str'] = isNumeric
         ? mask
@@ -24,11 +30,15 @@ export function Field(column: EncodedColumn): Data.CifField {
             : row => data[row];
 
     const int: Data.CifField['int'] = isNumeric
-        ? row => data[row]
+        ? hasMissingValues
+            ? row => presentMask[row] === Column.ValueKinds.Present ? data[row] : 0
+            : row => data[row]
         : row => { const v = data[row]; return fastParseInt(v, 0, v.length); };
 
     const float: Data.CifField['float'] = isNumeric
-        ? row => data[row]
+        ? hasMissingValues
+            ? row => presentMask[row] === Column.ValueKinds.Present ? data[row] : 0
+            : row => data[row]
         : row => { const v = data[row]; return fastParseFloat(v, 0, v.length); };
 
     const valueKind: Data.CifField['valueKind'] = mask
@@ -49,10 +59,14 @@ export function Field(column: EncodedColumn): Data.CifField {
         areValuesEqual: (rowA, rowB) => data[rowA] === data[rowB],
         toStringArray: params => ColumnHelpers.createAndFillArray(rowCount, str, params),
         toIntArray: isNumeric
-            ? params => ColumnHelpers.typedArrayWindow(data, params)
+            ? hasMissingValues
+                ? params => ColumnHelpers.typedArrayWindowMasked(data, presentMask, 0, params)
+                : params => ColumnHelpers.typedArrayWindow(data, params)
             : params => ColumnHelpers.createAndFillArray(rowCount, int, params),
         toFloatArray: isNumeric
-            ? params => ColumnHelpers.typedArrayWindow(data, params)
+            ? hasMissingValues
+                ? params => ColumnHelpers.typedArrayWindowMasked(data, presentMask, 0, params)
+                : params => ColumnHelpers.typedArrayWindow(data, params)
             : params => ColumnHelpers.createAndFillArray(rowCount, float, params)
     };
 }

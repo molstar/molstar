@@ -17,6 +17,7 @@ import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
 import type { WebGLStats } from './webgl/context.js';
 import { isTimingMode } from '@molstar/core/util/debug';
 import type { InstanceGrid } from '@molstar/core/math/geometry/instance-grid';
+import { Clip } from '@molstar/core/util/clip';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const p3distanceToPoint = Plane3D.distanceToPoint;
@@ -60,6 +61,8 @@ export interface Renderable<T extends RenderableValues> {
     uncull: () => void
     cullSimple: (d: number, radius: number, scale: number) => void
     render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => void
+    /** Cached clip info, `undefined` if there are no clip objects */
+    getClipInfo: () => ClipInfo | undefined
     getByteCount: () => number
     getProgram: (variant: GraphicsRenderVariant) => Program
     setTransparency: (transparency: Transparency) => void
@@ -365,6 +368,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
     const id = getNextRenderableId();
 
     const mdb = createSegmentedMdbList();
+    const clipInfo = createClipInfoCache(values);
     let cullEnabled = false;
     let lastCullFrame: Frame | undefined;
 
@@ -413,6 +417,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
             }
             renderItem.render(variant, sharedTexturesCount, cullEnabled ? mdb.list : undefined);
         },
+        getClipInfo: clipInfo.get,
         getByteCount: () => renderItem.getByteCount(),
         getProgram: (variant: GraphicsRenderVariant) => renderItem.getProgram(variant),
         setTransparency: (transparency: Transparency) => renderItem.setTransparency(transparency),
@@ -425,6 +430,73 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
 }
 
 export type GraphicsRenderable = Renderable<GraphicsRenderableValues>
+
+//
+
+export type ClipInfo = {
+    readonly objects: Clip.Objects
+    /** Planes of the plane-type clip objects, see `Clip.getPlane`, only for the pixel variant */
+    readonly planes: Plane3D[]
+    /** Indices of clip objects whose surface can intersect the bounding sphere, only for the pixel variant */
+    readonly capIndices: number[]
+}
+
+export interface ClipInfoCache {
+    /** Clip info, recomputed when any of its inputs changed, `undefined` if there are no clip objects */
+    readonly get: () => ClipInfo | undefined
+}
+
+function updateClipInfo(info: ClipInfo, values: BaseValues) {
+    const { objects, planes, capIndices } = info;
+    objects.count = values.dClipObjectCount.ref.value;
+    objects.type = values.uClipObjectType.ref.value;
+    objects.invert = values.uClipObjectInvert.ref.value;
+    objects.position = values.uClipObjectPosition.ref.value;
+    objects.rotation = values.uClipObjectRotation.ref.value;
+    objects.scale = values.uClipObjectScale.ref.value;
+    objects.transform = values.uClipObjectTransform.ref.value;
+
+    capIndices.length = 0;
+    if (values.dClipVariant.ref.value !== 'pixel') return;
+
+    const boundingSphere = values.boundingSphere.ref.value;
+    for (let i = 0; i < objects.count; ++i) {
+        if (objects.type[i] === Clip.Type.plane) Clip.getPlane(planes[i] ??= Plane3D(), objects, i);
+        if (Clip.canIntersectSphere(objects, i, boundingSphere)) capIndices.push(i);
+    }
+}
+
+export function createClipInfoCache(values: BaseValues): ClipInfoCache {
+    const cells: ValueCell<unknown>[] = [
+        values.dClipObjectCount, values.dClipVariant, values.boundingSphere,
+        values.uClipObjectType, values.uClipObjectInvert, values.uClipObjectPosition,
+        values.uClipObjectRotation, values.uClipObjectScale, values.uClipObjectTransform,
+    ];
+    const versions = cells.map(() => -1);
+
+    const info: ClipInfo = {
+        objects: { count: 0, type: [], invert: [], position: [], rotation: [], scale: [], transform: [] },
+        planes: [],
+        capIndices: [],
+    };
+
+    function get(): ClipInfo | undefined {
+        if (values.dClipObjectCount.ref.value === 0) return;
+
+        let changed = false;
+        for (let i = 0, il = cells.length; i < il; ++i) {
+            const version = cells[i].ref.version;
+            if (version !== versions[i]) {
+                versions[i] = version;
+                changed = true;
+            }
+        }
+        if (changed) updateClipInfo(info, values);
+        return info;
+    }
+
+    return { get };
+}
 
 //
 
