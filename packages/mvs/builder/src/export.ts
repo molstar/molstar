@@ -11,5 +11,6 @@ export async function createMVSX(data: MVSData, assets: { name: string, content:
         files[asset.name] = typeof asset.content === 'string' ? encoder.encode(asset.content) : asset.content;
     }
     // `zipSync` is synchronous, but preserve the existing async MVSData API.
-    return zipSync(files);
+    // ZIP stores local date fields; use the same fields in every time zone.
+    return zipSync(files, { mtime: new Date(1980, 0, 1) });
 }

@@ -19,7 +19,8 @@
       "import": "./lib/mvs-data.js"
     },
     "./tree/generic/_test/*": null,
-    "./tree/mvs/_test/*": null
+    "./tree/mvs/_test/*": null,
+    "./_test/*": null
   },
   "files": [
     "lib",
