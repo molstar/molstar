@@ -392,7 +392,8 @@ export namespace IntAdjacencyGraph {
             }
         }
 
-        return { componentCount: vCount, componentIndex };
+        // component ids are assigned 0..currentComponent, so the count is currentComponent + 1
+        return { componentCount: currentComponent + 1, componentIndex };
     }
 
     /**
