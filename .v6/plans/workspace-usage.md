@@ -150,7 +150,7 @@ VS Code recommends the TypeScript 7 extension (`TypeScriptTeam.native-preview`) 
 language server. Normal build, project-reference, and packed type-consumer commands still use `tsc`, which now launches
 the platform-specific native executable. Retain optional dependencies when installing: TypeScript distributes that
 executable through platform packages. Migration evidence is recorded in
-[the implementation plan](workspace-prototype.md#10-next-step-typescript-7-and-biome).
+[the implementation plan](workspace-prototype.md#10-typescript-7-biome-and-formatting).
 
 ### Linting and formatting
 
@@ -181,7 +181,8 @@ JavaScript/TypeScript files (including tests, scripts, and smoke fixtures), matc
 The 5 MiB Biome file limit includes the large alpha-orbitals example data.
 
 The settings are committed before the repository-wide formatting pass so changes to tooling can be reviewed separately.
-Formatting checks become green after the bulk pass, which is recorded separately in `.git-blame-ignore-revs`.
+Formatting checks pass after the completed bulk pass, whose commit is recorded in `.git-blame-ignore-revs`. Use
+`git config blame.ignoreRevsFile .git-blame-ignore-revs` to skip formatting commits when inspecting attribution.
 
 Only explicitly selected lint rules are enabled; Biome's recommended preset is not enabled. The mapping from the
 previous ESLint rules is:

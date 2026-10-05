@@ -51,7 +51,7 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
 - [x] Migrate compilation to TypeScript 7, including project references, declaration checks, ESM/source conditions,
       incremental builds, and CI. Retain the separate TypeScript 6 compatibility API for AST/config parsing only.
 - [x] Replace ESLint with Biome, documenting rule differences and configuring optional formatting.
-- [ ] Reformat the repository after the TypeScript 7 migration, then enable formatting checks in CI.
+- [x] Reformat the repository after the TypeScript 7 migration, then enable formatting checks in CI.
 - [x] Compare clean and incremental builds after tooling changes and rerun the install, lint, test, build, workspace,
       version, tarball, and local smoke checks.
 
@@ -61,8 +61,15 @@ and 0.48 s respectively. A clean `pnpm build:lib` (including assets/version stag
 installation, Biome lint, 1,504 unit tests (14 optional native tests skipped), six workspace tooling tests, the full
 native declaration check, app/distribution builds, workspace/version checks, all 43 public tarballs, and local
 Node/types/source/CLI/browser smokes passed. The native declaration gate also runs in CI. A CIF writer namespace alias
-needed explicit qualification to preserve TS6 runtime behavior under TS7 emit; public exports are unchanged. Broad
-formatting remains the final pending tooling step.
+needed explicit qualification to preserve TS6 runtime behavior under TS7 emit; public exports are unchanged.
+Repository-wide formatting is complete; CI enforces Biome/Prettier formatting.
+
+Formatting checkpoint (2026-10-05): settings were committed separately from the 1,940-file formatting pass. Source and
+configuration use two spaces; MkDocs Markdown retains four-space nested blocks for Python-Markdown compatibility.
+Formatting and lint checks, 1,504 unit tests (14 optional native tests skipped), library/app/distribution builds, the
+full native declaration check, workspace/version checks, and all 43 public tarballs passed. A comparison of all 1,777
+changed code files found only equivalent syntax and JSX text changes. The existing toast JSX `@ts-ignore` was reattached
+to its expression after wrapping. The formatting commit is recorded in `.git-blame-ignore-revs`.
 
 Build evidence (2026-10-04): a forced rebuild of all 67 compiler projects took 149.10 s: aggregate checking 137.45 s,
 emitting 6.64 s. The MP4 project loads 5 own source files, 433 workspace declaration files, and 364 external declaration

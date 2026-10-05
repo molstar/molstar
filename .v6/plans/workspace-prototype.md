@@ -40,8 +40,6 @@ In scope:
 
 Deferred:
 
-- Repository-wide formatting and enabling format checks in CI after the TypeScript 7/Biome migration. See
-  [section 10](#10-next-step-typescript-7-and-biome).
 - Rendering-backend extraction, GL resource/pass/readback redesign, WebGPU, and Blender integration. See
   [webgpu.md](../designs/webgpu.md).
 - `PluginFeature`, empty registries, explicit base specs, registry-aware presets, slim-plugin bundle guarantees, and
@@ -443,10 +441,12 @@ independent. The orchestrator reviews all changes, resolves shared-file edits, r
 checkpoint status. Reassign ambiguous work to the orchestrator rather than repeatedly issuing mechanical fixes without
 understanding the dependency problem.
 
-## 10. Next step: TypeScript 7 and Biome
+## 10. TypeScript 7, Biome, and formatting
 
-The workspace now compiles with native TypeScript 7.0.2 and uses Biome 2.5.15 for linting with optional formatting. The
-repository-wide formatting pass and enabling format checks in CI remain follow-up work.
+The workspace now compiles with native TypeScript 7.0.2 and uses Biome 2.5.15 for linting and code formatting. Prettier
+3.9.9 formats Markdown, YAML, and SCSS. Repository-wide formatting is complete and enforced in CI; settings and the bulk
+pass were committed separately. Source uses two spaces, with four-space nested blocks retained in MkDocs Markdown. The
+bulk commit is recorded in `.git-blame-ignore-revs`.
 
 - [x] Replace TypeScript 6.0.3 and JavaScript `tsc` with the TypeScript 7 native compiler. Update the shared catalog,
       package scripts, project-reference builds, declaration checks, and CI commands. Preserve strict type checking,
@@ -460,7 +460,7 @@ repository-wide formatting pass and enabling format checks in CI remain follow-u
       superseded ESLint configuration and dependencies. Biome 2.5.15 now runs through `pnpm lint` and existing CI;
       optional formatting and rule differences are documented in
       [workspace usage](workspace-usage.md#linting-and-formatting).
-- [ ] After migrating the compiler, reformat the repository as the last step and enable formatting checks in CI. Choose
+- [x] After migrating the compiler, reformat the repository as the last step and enable formatting checks in CI. Choose
       companion tooling for formats Biome does not support (Markdown, YAML, and Sass/SCSS).
 - [x] Verify a clean install, lint, unit tests, library/app/distribution builds, workspace/version checks, all public
       tarballs, and local consumer smoke checks. Compare fresh and incremental build times against the current baseline.
