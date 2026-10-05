@@ -1,5 +1,5 @@
 tests
 perf-tests
-_spec
+_test
 *.tsbuildinfo
 *.js.map

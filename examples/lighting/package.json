@@ -1,0 +1,50 @@
+{
+  "name": "@molstar/lighting-example",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* lighting-example",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs examples/lighting --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs examples/lighting --dev"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "molstar": {
+    "entry": "src/index.ts",
+    "filename": "index.js",
+    "globalName": "molstar"
+  }
+}

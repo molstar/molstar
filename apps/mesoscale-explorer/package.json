@@ -1,0 +1,83 @@
+{
+  "name": "@molstar/mesoscale-explorer",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* mesoscale-explorer",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./style.scss": {
+      "molstar-src": "./src/style.scss",
+      "sass": "./src/style.scss",
+      "default": "./lib/style.scss"
+    },
+    "./style.css": "./lib/style.css",
+    "./ui/entities": {
+      "molstar-src": "./src/ui/entities.tsx",
+      "types": "./lib/ui/entities.d.ts",
+      "import": "./lib/ui/entities.js"
+    },
+    "./ui/panels": {
+      "molstar-src": "./src/ui/panels.tsx",
+      "types": "./lib/ui/panels.d.ts",
+      "import": "./lib/ui/panels.js"
+    },
+    "./ui/states": {
+      "molstar-src": "./src/ui/states.tsx",
+      "types": "./lib/ui/states.d.ts",
+      "import": "./lib/ui/states.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs apps/mesoscale-explorer --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs apps/mesoscale-explorer --dev"
+  },
+  "dependencies": {
+    "react-markdown": "catalog:",
+    "rxjs": "catalog:",
+    "@types/react": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/mp4-export-extension": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/backgrounds-extension": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/io": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {},
+  "molstar": {
+    "entry": "src/index.ts",
+    "filename": "molstar.js",
+    "globalName": "molstar"
+  }
+}

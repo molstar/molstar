@@ -1,4 +1,5 @@
 {
+    "jest.jestCommandLine": "pnpm jest",
     "typescript.tsdk": "node_modules/typescript/lib",
     "files.associations": {
         "*.glsl.ts": "glsl",

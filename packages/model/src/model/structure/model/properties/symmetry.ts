@@ -1,0 +1,73 @@
+/**
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import type { SymmetryOperator } from '@molstar/core/math/geometry/symmetry-operator';
+import { arrayFind } from '@molstar/core/data/util';
+import type { StructureQuery } from '../../query.js';
+import type { Model } from '../../model.js';
+import { Spacegroup } from '@molstar/core/math/geometry';
+import type { Vec3 } from '@molstar/core/math/linear-algebra';
+import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
+
+/** Determine an atom set and a list of operators that should be applied to that set  */
+export interface OperatorGroup {
+    readonly asymIds?: string[],
+    readonly selector: StructureQuery,
+    readonly operators: ReadonlyArray<SymmetryOperator>
+}
+
+export type OperatorGroups = ReadonlyArray<OperatorGroup>
+
+export class Assembly {
+    readonly id: string;
+    readonly details: string;
+
+    private _operators: OperatorGroups;
+    get operatorGroups(): OperatorGroups {
+        if (this._operators) return this._operators;
+        this._operators = this.operatorsProvider();
+        return this._operators;
+    }
+
+    constructor(id: string, details: string, private operatorsProvider: () => OperatorGroups) {
+        this.id = id;
+        this.details = details;
+    }
+}
+
+export namespace Assembly {
+    export function create(id: string, details: string, operatorsProvider: () => OperatorGroups): Assembly {
+        return new Assembly(id, details, operatorsProvider);
+    }
+}
+
+interface Symmetry {
+    readonly assemblies: ReadonlyArray<Assembly>,
+    readonly spacegroup: Spacegroup,
+    readonly isNonStandardCrystalFrame: boolean,
+    readonly ncsOperators?: ReadonlyArray<SymmetryOperator>,
+
+    /**
+     * optionally cached operators from [-3, -3, -3] to [3, 3, 3]
+     * around reference point `ref` in fractional coordinates
+     */
+    _operators_333?: {
+        ref: Vec3,
+        operators: SymmetryOperator[]
+    }
+}
+
+namespace Symmetry {
+    export const Default: Symmetry = { assemblies: [], spacegroup: Spacegroup.ZeroP1, isNonStandardCrystalFrame: false };
+
+    export function findAssembly(model: Model, id: string): Assembly | undefined {
+        const _id = id.toLocaleLowerCase();
+        const symmetry = ModelSymmetry.Provider.get(model);
+        return symmetry ? arrayFind(symmetry.assemblies, a => a.id.toLowerCase() === _id) : undefined;
+    }
+}
+
+export { Symmetry };

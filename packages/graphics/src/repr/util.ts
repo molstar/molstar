@@ -1,0 +1,270 @@
+/**
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
+
+import { defaults } from '@molstar/core/util';
+import { Structure } from '@molstar/model/model/structure';
+import type { VisualQuality } from '@molstar/graphics/geo/geometry/base';
+import { Box3D } from '@molstar/core/math/geometry';
+import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
+import { Volume } from '@molstar/model/model/volume';
+import type { Location } from '@molstar/model/model/location';
+import { isStandaloneHmd } from '@molstar/core/util/browser';
+import { Particle, type ParticleList } from '@molstar/model/model/particles/particle-list';
+
+export interface VisualUpdateState {
+    updateTransform: boolean
+    updateMatrix: boolean
+    updateColor: boolean
+    updateSize: boolean
+    updateLocation: boolean
+    createGeometry: boolean
+    createNew: boolean
+
+    /** holds contextual info, is not reset  */
+    info: { [k: string]: unknown }
+}
+export namespace VisualUpdateState {
+    export function create(): VisualUpdateState {
+        return {
+            updateTransform: false,
+            updateMatrix: false,
+            updateColor: false,
+            updateSize: false,
+            updateLocation: false,
+            createGeometry: false,
+            createNew: false,
+
+            info: {}
+        };
+    }
+    export function reset(state: VisualUpdateState) {
+        state.updateTransform = false;
+        state.updateMatrix = false;
+        state.updateColor = false;
+        state.updateSize = false;
+        state.updateLocation = false;
+        state.createGeometry = false;
+        state.createNew = false;
+    }
+}
+
+export type LocationCallback = (loc: Location, isSecondary: boolean) => void
+
+//
+
+export interface QualityProps {
+    quality: VisualQuality
+    detail: number
+    radialSegments: number
+    linearSegments: number
+    resolution: number
+    imageResolution: number
+    probePositions: number
+    doubleSided: boolean
+    xrayShaded: boolean | 'inverted'
+    alpha: number
+    transparentBackfaces: 'off' | 'on' | 'opaque'
+}
+
+export const DefaultQualityThresholds = {
+    lowestElementCount: 1_000_000,
+    lowerElementCount: 500_000,
+    lowElementCount: 100_000,
+    mediumElementCount: 20_000,
+    highElementCount: 2_000,
+    coarseGrainedFactor: 10,
+
+    elementCountFactor: 1
+};
+export type QualityThresholds = typeof DefaultQualityThresholds
+
+enum QualityLevel {
+    Lowest,
+    Lower,
+    Low,
+    Medium,
+    High,
+    Higher,
+    Highest
+}
+
+function visualQualityToLevel(quality: Exclude<VisualQuality, 'auto' | 'custom'>): QualityLevel {
+    switch (quality) {
+        case 'lowest': return QualityLevel.Lowest;
+        case 'lower': return QualityLevel.Lower;
+        case 'low': return QualityLevel.Low;
+        case 'medium': return QualityLevel.Medium;
+        case 'high': return QualityLevel.High;
+        case 'higher': return QualityLevel.Higher;
+        case 'highest': return QualityLevel.Highest;
+    }
+}
+
+function getQualityFromScore(score: number, t: QualityThresholds): VisualQuality {
+    if (score > t.lowestElementCount) {
+        return 'lowest';
+    } else if (score > t.lowerElementCount) {
+        return 'lower';
+    } else if (score > t.lowElementCount) {
+        return 'low';
+    } else if (score > t.mediumElementCount) {
+        return 'medium';
+    } else if (score > t.highElementCount) {
+        return 'high';
+    } else {
+        return 'higher';
+    }
+}
+
+export function getStructureQuality(structure: Structure, tresholds: Partial<QualityThresholds> = {}): VisualQuality {
+    const t = { ...DefaultQualityThresholds, ...tresholds };
+    let score = structure.elementCount * t.elementCountFactor;
+    if (structure.isCoarseGrained || structure.isCoarse) score *= t.coarseGrainedFactor;
+    return getQualityFromScore(score, t);
+}
+
+export function getParticleListQuality(particles: ParticleList, tresholds: Partial<QualityThresholds> = {}): VisualQuality {
+    const t = { ...DefaultQualityThresholds, ...tresholds };
+    const score = particles.count * t.elementCountFactor;
+    return getQualityFromScore(score, t);
+}
+
+/**
+ * Uses cell volume divided by the number of symmetry operators to avoid
+ * costly boundary calculation if a single model with a non-empty cell.
+ */
+function getRootVolume(structure: Structure) {
+    if (structure.root.models.length === 1) {
+        const cell = ModelSymmetry.Provider.get(structure.root.model)?.spacegroup.cell;
+        if (cell && cell.volume > 0) {
+            return cell.volume / cell.order;
+        }
+    }
+    return Box3D.volume(structure.root.boundary.box);
+}
+
+function getParticleListVolume(particles: ParticleList) {
+    return particles.cell?.volume ?? Box3D.volume(Particle.getBoundary(particles).box);
+}
+
+export function getQualityProps(props: Partial<QualityProps>, data?: any) {
+    let quality = defaults(props.quality, 'auto' as VisualQuality);
+    let detail = defaults(props.detail, 1);
+    let radialSegments = defaults(props.radialSegments, 12);
+    let linearSegments = defaults(props.linearSegments, 8);
+    let resolution = defaults(props.resolution, 2);
+    let imageResolution = defaults(props.imageResolution, 1);
+    let probePositions = defaults(props.probePositions, 12);
+    let doubleSided = defaults(props.doubleSided, true);
+
+    let volume = 0;
+    if (quality === 'auto') {
+        if (data instanceof Structure) {
+            quality = getStructureQuality(data.root);
+            volume = getRootVolume(data);
+        } else if (Volume.is(data)) {
+            const [x, y, z] = data.grid.cells.space.dimensions;
+            volume = x * y * z;
+            quality = volume < 10_000_000 ? 'medium' : 'low';
+        } else if (Particle.is(data)) {
+            quality = getParticleListQuality(data);
+            volume = getParticleListVolume(data);
+        }
+    }
+
+    if (quality !== 'custom' && quality !== 'auto') {
+        let level = visualQualityToLevel(quality);
+        if (isStandaloneHmd()) {
+            level = Math.max(level - 1, QualityLevel.Lowest);
+        }
+
+        switch (level) {
+            case QualityLevel.Highest:
+                detail = 3;
+                radialSegments = 36;
+                linearSegments = 18;
+                resolution = 0.1;
+                imageResolution = 0.01;
+                probePositions = 72;
+                doubleSided = true;
+                break;
+            case QualityLevel.Higher:
+                detail = 3;
+                radialSegments = 28;
+                linearSegments = 14;
+                resolution = 0.3;
+                imageResolution = 0.05;
+                probePositions = 48;
+                doubleSided = true;
+                break;
+            case QualityLevel.High:
+                detail = 2;
+                radialSegments = 20;
+                linearSegments = 10;
+                resolution = 0.5;
+                imageResolution = 0.1;
+                probePositions = 36;
+                doubleSided = true;
+                break;
+            case QualityLevel.Medium:
+                detail = 1;
+                radialSegments = 12;
+                linearSegments = 8;
+                resolution = 0.8;
+                imageResolution = 0.2;
+                probePositions = 24;
+                doubleSided = true;
+                break;
+            case QualityLevel.Low:
+                detail = 0;
+                radialSegments = 8;
+                linearSegments = 3;
+                resolution = 1.3;
+                imageResolution = 0.4;
+                probePositions = 24;
+                doubleSided = false;
+                break;
+            case QualityLevel.Lower:
+                detail = 0;
+                radialSegments = 4;
+                linearSegments = 2;
+                resolution = 3;
+                imageResolution = 0.7;
+                probePositions = 12;
+                doubleSided = false;
+                break;
+            case QualityLevel.Lowest:
+                detail = 0;
+                radialSegments = 2;
+                linearSegments = 1;
+                resolution = 8;
+                imageResolution = 1;
+                probePositions = 12;
+                doubleSided = false;
+                break;
+        }
+    }
+
+    // max resolution based on volume (for 'auto' quality)
+    if (volume > 0) {
+        resolution = Math.max(resolution, volume / 300_000_000);
+        resolution = Math.min(resolution, 20);
+    }
+
+    if (props.transparentBackfaces === 'off' && ((props.alpha !== undefined && props.alpha < 1) || !!props.xrayShaded)) {
+        doubleSided = false;
+    }
+
+    return {
+        detail,
+        radialSegments,
+        linearSegments,
+        resolution,
+        imageResolution,
+        probePositions,
+        doubleSided
+    };
+}

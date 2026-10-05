@@ -1,0 +1,78 @@
+{
+  "name": "@molstar/core",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* core",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./data": {
+      "molstar-src": "./src/data/index.ts",
+      "types": "./lib/data/index.d.ts",
+      "import": "./lib/data/index.js"
+    },
+    "./state": {
+      "molstar-src": "./src/state/index.ts",
+      "types": "./lib/state/index.d.ts",
+      "import": "./lib/state/index.js"
+    },
+    "./task": {
+      "molstar-src": "./src/task/index.ts",
+      "types": "./lib/task/index.d.ts",
+      "import": "./lib/task/index.js"
+    },
+    "./util/color": {
+      "molstar-src": "./src/util/color/index.ts",
+      "types": "./lib/util/color/index.d.ts",
+      "import": "./lib/util/color/index.js"
+    },
+    "./util": {
+      "molstar-src": "./src/util/index.ts",
+      "types": "./lib/util/index.d.ts",
+      "import": "./lib/util/index.js"
+    },
+    "./data/_test/*": null,
+    "./data/db/_test/*": null,
+    "./data/generic/_test/*": null,
+    "./data/int/_test/*": null,
+    "./data/util/_test/*": null,
+    "./math/_test/*": null,
+    "./math/fourier-transform/_test/*": null,
+    "./math/geometry/_test/*": null,
+    "./math/geometry/spacegroup/_test/*": null,
+    "./math/graph/_test/*": null,
+    "./math/linear-algebra/_test/*": null,
+    "./state/_test/*": null,
+    "./util/_test/*": null,
+    "./util/color/_test/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "immutable": "catalog:",
+    "rxjs": "catalog:",
+    "mutative": "catalog:",
+    "@types/node": "catalog:",
+    "tslib": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

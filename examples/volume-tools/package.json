@@ -1,0 +1,66 @@
+{
+  "name": "@molstar/volume-tools-example",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* volume-tools-example",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.tsx",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./controller": {
+      "molstar-src": "./src/controller.ts",
+      "types": "./lib/controller.d.ts",
+      "import": "./lib/controller.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.tsx",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs examples/volume-tools --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs examples/volume-tools --dev"
+  },
+  "dependencies": {
+    "rxjs": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/volume-tools-extension": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=16.14.0",
+    "react-dom": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {},
+  "molstar": {
+    "entry": "src/index.tsx",
+    "filename": "index.js",
+    "globalName": "molstar"
+  }
+}

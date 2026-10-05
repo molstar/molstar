@@ -1,0 +1,57 @@
+{
+  "name": "@molstar/alphafolddb-pae-example",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* alphafolddb-pae-example",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./index": {
+      "molstar-src": "./src/index.tsx",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.tsx",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs examples/alphafolddb-pae --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs examples/alphafolddb-pae --dev"
+  },
+  "dependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/viewer": "workspace:*",
+    "@molstar/model-archive-extension": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "peerDependencies": {
+    "react-dom": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {},
+  "molstar": {
+    "entry": "src/index.tsx",
+    "filename": "index.js",
+    "globalName": "molstar"
+  }
+}

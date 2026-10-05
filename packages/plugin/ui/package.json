@@ -1,0 +1,113 @@
+{
+  "name": "@molstar/plugin-ui",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* plugin-ui",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.tsx",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./*.scss": {
+      "molstar-src": "./src/*.scss",
+      "sass": "./src/*.scss",
+      "default": "./lib/*.scss"
+    },
+    "./*.css": "./lib/*.css",
+    "./context": {
+      "molstar-src": "./src/context.ts",
+      "types": "./lib/context.d.ts",
+      "import": "./lib/context.js"
+    },
+    "./hooks/use-behavior": {
+      "molstar-src": "./src/hooks/use-behavior.ts",
+      "types": "./lib/hooks/use-behavior.d.ts",
+      "import": "./lib/hooks/use-behavior.js"
+    },
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./react18": {
+      "molstar-src": "./src/react18.ts",
+      "types": "./lib/react18.d.ts",
+      "import": "./lib/react18.js"
+    },
+    "./sequence/chain": {
+      "molstar-src": "./src/sequence/chain.ts",
+      "types": "./lib/sequence/chain.d.ts",
+      "import": "./lib/sequence/chain.js"
+    },
+    "./sequence/element": {
+      "molstar-src": "./src/sequence/element.ts",
+      "types": "./lib/sequence/element.d.ts",
+      "import": "./lib/sequence/element.js"
+    },
+    "./sequence/hetero": {
+      "molstar-src": "./src/sequence/hetero.ts",
+      "types": "./lib/sequence/hetero.d.ts",
+      "import": "./lib/sequence/hetero.js"
+    },
+    "./sequence/polymer": {
+      "molstar-src": "./src/sequence/polymer.ts",
+      "types": "./lib/sequence/polymer.d.ts",
+      "import": "./lib/sequence/polymer.js"
+    },
+    "./sequence/wrapper": {
+      "molstar-src": "./src/sequence/wrapper.ts",
+      "types": "./lib/sequence/wrapper.d.ts",
+      "import": "./lib/sequence/wrapper.js"
+    },
+    "./spec": {
+      "molstar-src": "./src/spec.ts",
+      "types": "./lib/spec.d.ts",
+      "import": "./lib/spec.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "rxjs": "catalog:",
+    "react-markdown": "catalog:",
+    "remark-gfm": "catalog:",
+    "immutable": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/graphics": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=16.14.0",
+    "react-dom": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {}
+}

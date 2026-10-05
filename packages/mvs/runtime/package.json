@@ -1,0 +1,50 @@
+{
+  "name": "@molstar/mvs",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* mvs",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./_test/*": null,
+    "./helpers/_test/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "io-ts": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/model": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/mvs-builder": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "fp-ts": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

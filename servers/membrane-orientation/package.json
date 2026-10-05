@@ -1,0 +1,46 @@
+{
+  "name": "@molstar/membrane-orientation-server",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* membrane-orientation-server",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "argparse": "catalog:",
+    "compression": "catalog:",
+    "express": "catalog:",
+    "tslib": "catalog:",
+    "@types/argparse": "catalog:",
+    "@types/express": "catalog:",
+    "@types/compression": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/common-server": "workspace:*",
+    "@molstar/anvil-extension": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "@molstar/model": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

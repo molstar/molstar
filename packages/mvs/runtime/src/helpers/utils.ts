@@ -1,0 +1,250 @@
+/**
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { hashString } from '@molstar/core/data/util';
+import { StateObject } from '@molstar/core/state';
+import { range } from '@molstar/core/util/array';
+import { Color } from '@molstar/core/util/color';
+import { decodeColor as _decodeColor } from '@molstar/core/util/color/utils';
+import { ColorT } from '@molstar/mvs-builder/tree/mvs/param-types';
+
+
+/** Represents either the result or the reason of failure of an operation that might have failed */
+export type Maybe<T> = { ok: true, value: T } | { ok: false, error: any }
+
+/** Try to await a promise and return an object with its result (if resolved) or with the error (if rejected) */
+export async function safePromise<T>(promise: T): Promise<Maybe<Awaited<T>>> {
+    try {
+        const value = await promise;
+        return { ok: true, value };
+    } catch (error) {
+        return { ok: false, error };
+    }
+}
+
+
+/** A map where values are arrays. Handles missing keys when adding values. */
+export class MultiMap<K, V> implements Mapping<K, V[]> {
+    private _map = new Map();
+
+    /** Return the array of values assidned to a key (or `undefined` if no such values) */
+    get(key: K): V[] | undefined {
+        return this._map.get(key);
+    }
+    /** Append value to a key (handles missing keys) */
+    add(key: K, value: V) {
+        if (!this._map.has(key)) {
+            this._map.set(key, []);
+        }
+        this._map.get(key)!.push(value);
+    }
+}
+
+/** Basic subset of `Map<K, V>`, only needs to have `get` method */
+export type Mapping<K, V> = Pick<Map<K, V>, 'get'>
+
+/** Implementation of `Map` where keys are integers
+ * and most keys are expected to be from interval `[0, limit)`.
+ * For the keys within this interval, performance is better than `Map` (implemented by array).
+ * For the keys out of this interval, performance is slightly worse than `Map`. */
+export class NumberMap<K extends number, V> implements Mapping<K, V> {
+    private array: V[];
+    private map: Map<K, V>;
+    constructor(public readonly limit: K) {
+        this.array = new Array(limit);
+        this.map = new Map();
+    }
+    get(key: K): V | undefined {
+        if (0 <= key && key < this.limit) return this.array[key];
+        else return this.map.get(key);
+    }
+    set(key: K, value: V): void {
+        if (0 <= key && key < this.limit) this.array[key] = value;
+        else this.map.set(key, value);
+    }
+}
+
+
+/** Return `true` if `value` is not `undefined` or `null`.
+ * Prefer this over `value !== undefined`
+ * (for maybe if we want to allow `null` in `AnnotationRow` in the future) */
+export function isDefined<T>(value: T | undefined | null): value is T {
+    return value !== undefined && value !== null;
+}
+/** Return `true` if at least one of `values` is not `undefined` or `null`. */
+export function isAnyDefined(...values: any[]): boolean {
+    return values.some(isDefined);
+}
+/** Return filtered array containing all original elements except `undefined` or `null`. */
+export function filterDefined<T>(elements: (T | undefined | null)[]): T[] {
+    return elements.filter(x => x !== undefined && x !== null) as T[];
+}
+
+/** Create an 8-hex-character hash for a given input string, e.g. 'spanish inquisition' -> '7f9ac4be' */
+function stringHash32(input: string): string {
+    const uint32hash = hashString(input) >>> 0; // >>>0 converts to uint32, LOL
+    return uint32hash.toString(16).padStart(8, '0');
+}
+/** Create an 16-hex-character hash for a given input string, e.g. 'spanish inquisition' -> '7f9ac4be544330be'*/
+export function stringHash(input: string): string {
+    const reversed = input.split('').reverse().join('');
+    return stringHash32(input) + stringHash32(reversed);
+}
+
+/** Return type of elements in a set */
+export type ElementOfSet<S> = S extends Set<infer T> ? T : never
+
+
+/** Convert `colorString` (either X11 color name like 'magenta' or hex code like '#ff00ff') to Color.
+ * If `colorString` contains a "split color" (e.g. 'red/white'), process only the first part.
+ * Return `undefined` if `colorString` cannot be converted. */
+export function decodeColor(colorString: string | number | undefined | null): Color | undefined {
+    if (typeof colorString === 'number') {
+        return Color(colorString);
+    }
+    if (colorString == null) return undefined;
+    const slashIdx = colorString.indexOf('/'); // do not crash on split colors like 'red/white'
+    return _decodeColor(slashIdx >= 0 ? colorString.substring(0, slashIdx) : colorString);
+}
+
+
+/** Utility functions for handling "split color" strings with primary and secondary color, e.g. 'red/white', '#ff0000/#ffffff'.
+ * Regular color strings are treated as the same color repeated (e.g. 'red' == 'red/red'). */
+export const SplitColor = {
+    /** Return number-encoded colors before and after slash, or the same value twice if there is no slash.
+     * e.g. 'red/white' -> [0xff0000, 0xffffff], 'red' -> [0xff0000, 0xff0000],
+     * Throw error on invalid input. */
+    decodeStrict(colorString: string): [Color, Color] {
+        const out = this.decode(colorString);
+        if (out === undefined) throw new Error(`Invalid color "${colorString}".`);
+        return out;
+    },
+    /** Return number-encoded colors before and after slash, or the same value twice if there is no slash.
+     * e.g. 'red/white' -> [0xff0000, 0xffffff], 'red' -> [0xff0000, 0xff0000],
+     * Return `undefined` on invalid input. */
+    decode(colorString: string): [Color, Color] | undefined {
+        const out: [Color | undefined, Color | undefined] = [undefined, undefined];
+        this.decodeTo(colorString, out);
+        if (out[0] !== undefined && out[1] !== undefined) {
+            return out as [Color, Color];
+        } else {
+            return undefined;
+        }
+    },
+    /** Parse `colorString` into number-encoded colors before and after slash, or the same value twice if there is no slash.
+     * Write result into `out`.
+     * e.g. 'red/white' -> [0xff0000, 0xffffff], 'red' -> [0xff0000, 0xff0000],
+     * Write [`undefined`, `undefined` on invalid input. */
+    decodeTo(colorString: string, out: [Color | undefined, Color | undefined]): void {
+        const slashIdx = colorString.indexOf('/');
+        if (slashIdx >= 0) {
+            out[0] = _decodeColor(colorString.substring(0, slashIdx));
+            out[1] = _decodeColor(colorString.substring(slashIdx + 1, undefined));
+        } else {
+            out[0] = out[1] = _decodeColor(colorString);
+        }
+    },
+    /** Convert to hex code string, '#ff0000/#ffffff', '#ff0000' */
+    toHexStyle(primaryColor: Color, secondaryColor?: Color): ColorT {
+        if (secondaryColor === undefined || secondaryColor === primaryColor) {
+            return Color.toHexStyle(primaryColor) as ColorT;
+        } else {
+            return `${Color.toHexStyle(primaryColor)}/${Color.toHexStyle(secondaryColor)}` as ColorT;
+        }
+    },
+};
+
+export function collectMVSReferences<T extends StateObject.Ctor>(type: T[], dependencies: Record<string, StateObject>): Record<string, StateObject.From<T>['data']> {
+    const ret: any = {};
+
+    for (const key of Object.keys(dependencies)) {
+        const o = dependencies[key];
+        let okType = false;
+        for (const t of type) {
+            if (t.is(o)) {
+                okType = true;
+                break;
+            }
+        }
+        if (!okType || !o.tags) continue;
+        for (const tag of o.tags) {
+            if (tag.startsWith('mvs-ref:')) {
+                ret[tag.substring(8)] = o.data;
+                break;
+            }
+        }
+    }
+
+    return ret;
+}
+
+export function getMVSReferenceObject<T extends StateObject.Ctor>(type: T[], dependencies: Record<string, StateObject> | undefined, ref: string): StateObject | undefined {
+    if (!dependencies) return undefined;
+
+    for (const key of Object.keys(dependencies)) {
+        const o = dependencies[key];
+        let okType = false;
+        for (const t of type) {
+            if (t.is(o)) {
+                okType = true;
+                break;
+            }
+        }
+        if (!okType || !o.tags) continue;
+        for (const tag of o.tags) {
+            if (tag.startsWith('mvs-ref:')) {
+                if (tag.substring(8) === ref) return o;
+            }
+        }
+    }
+}
+
+
+/** Data structure for an array divided into contiguous groups */
+export interface GroupedArray<T> {
+    /** Number of groups */
+    count: number,
+    /** Get size of i-th group as `offsets[i+1]-offsets[i]`.
+     * Get j-th element in i-th group as `grouped[offsets[i]+j]` */
+    offsets: number[],
+    /** Get j-th element in i-th group as `grouped[offsets[i]+j]` */
+    grouped: T[],
+}
+
+export const GroupedArray = {
+    getGroup<T>(groupedArray: GroupedArray<T>, iGroup: number): T[] {
+        return groupedArray.grouped.slice(groupedArray.offsets[iGroup], groupedArray.offsets[iGroup + 1]);
+    },
+    /** Return element indices grouped by `group_by(element, index)`. Elements with `group_by(element, index)===undefined` are treated as separate groups. */
+    groupIndices<T>(elements: readonly T[], group_by: (element: T, index: number) => string | undefined): GroupedArray<number> {
+        let counter = 0;
+        const groupMap = new Map<string, number>();
+        const groups: number[] = [];
+        for (let i = 0; i < elements.length; i++) {
+            const groupId = group_by(elements[i], i);
+            if (!isDefined(groupId)) {
+                groups.push(counter++);
+            } else {
+                const groupIndex = groupMap.get(groupId);
+                if (groupIndex === undefined) {
+                    groupMap.set(groupId, counter);
+                    groups.push(counter);
+                    counter++;
+                } else {
+                    groups.push(groupIndex);
+                }
+            }
+        }
+        const elementIndices = range(elements.length).sort((i, j) => groups[i] - groups[j]);
+        const offsets: number[] = [];
+        for (let i = 0; i < elements.length; i++) {
+            if (i === 0 || groups[elementIndices[i]] !== groups[elementIndices[i - 1]]) offsets.push(i);
+        }
+        offsets.push(elementIndices.length);
+        return { count: offsets.length - 1, offsets, grouped: elementIndices };
+    },
+};

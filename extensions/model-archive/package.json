@@ -1,0 +1,53 @@
+{
+  "name": "@molstar/model-archive-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* model-archive-extension",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./quality-assessment/pairwise/ui": {
+      "molstar-src": "./src/quality-assessment/pairwise/ui.tsx",
+      "types": "./lib/quality-assessment/pairwise/ui.d.ts",
+      "import": "./lib/quality-assessment/pairwise/ui.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "rxjs": "catalog:",
+    "@types/react": "catalog:",
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/io": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "react": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=16.14.0"
+  },
+  "peerDependenciesMeta": {}
+}

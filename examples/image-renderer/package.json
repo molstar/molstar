@@ -1,0 +1,61 @@
+{
+  "name": "@molstar/image-renderer-example",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* image-renderer-example",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    "./index": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "argparse": "catalog:",
+    "pngjs": "catalog:",
+    "jpeg-js": "catalog:",
+    "tslib": "catalog:",
+    "@types/argparse": "catalog:",
+    "@types/pngjs": "catalog:",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/plugin-headless": "workspace:*",
+    "@molstar/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "molstar": {
+    "entry": "src/index.ts",
+    "filename": "index.js",
+    "globalName": "molstar"
+  },
+  "peerDependencies": {
+    "gl": ">=6 <9"
+  },
+  "peerDependenciesMeta": {
+    "gl": {
+      "optional": true
+    }
+  }
+}

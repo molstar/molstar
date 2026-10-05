@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Mol* packed Viewer smoke</title>
+<link rel="stylesheet" href="/build/esm/viewer.css">
+<div id="app" style="width:900px;height:650px"></div>
+<div id="restore-app" style="position:fixed;left:-10000px;top:0;width:900px;height:650px"></div>
+<script type="importmap" id="smoke-importmap"></script>
+<script type="module">
+  window.smokeReady = (async () => {
+    // Use the distribution import map for both Viewer and direct package imports.
+    // That makes the identity assertions below exercise the same ESM chunks.
+    const [{ Viewer }, { StateTransformer }, { StateTransforms }, { PluginUIContext }, { StructureElement }] = await Promise.all([
+      import('/build/esm/viewer.js'),
+      import('@molstar/core/state'),
+      import('@molstar/plugin/state/transforms'),
+      import('@molstar/plugin-ui/context'),
+      import('@molstar/model/model/structure')
+    ]);
+    const viewer = await Viewer.create('app', { layoutIsExpanded: false });
+    await viewer.loadStructureFromUrl('/fixtures/tiny.pdb', 'pdb');
+    const initialStructures = viewer.plugin.managers.structure.hierarchy.current.structures.length;
+    const structureData = viewer.plugin.managers.structure.hierarchy.current.structures[0].cell.obj.data;
+    viewer.plugin.managers.structure.selection.fromLoci('set', StructureElement.Loci.all(structureData), false);
+    const selectedAtoms = viewer.plugin.managers.structure.selection.elementCount();
+    const snapshot = viewer.plugin.state.getSnapshot({ structureSelection: true });
+    const serializedSnapshot = JSON.stringify(snapshot);
+    const restoredSnapshot = JSON.parse(serializedSnapshot);
+    const restoredViewer = await Viewer.create('restore-app', { layoutIsExpanded: false });
+    await restoredViewer.plugin.state.setSnapshot(restoredSnapshot);
+
+    restoredViewer.plugin.canvas3d?.commit(true);
+    const structures = restoredViewer.plugin.managers.structure.hierarchy.current.structures.length;
+    const representations = restoredViewer.plugin.canvas3d?.reprCount.value ?? 0;
+    const restoredSelectedAtoms = restoredViewer.plugin.managers.structure.selection.elementCount();
+    const selectionRoundTrip = selectedAtoms === structureData.elementCount && restoredSelectedAtoms === selectedAtoms;
+    const trajectoryFromPdb = StateTransforms.Model.TrajectoryFromPDB;
+    const registeredTransformer = StateTransformer.get(trajectoryFromPdb.id);
+    const viewerAction = viewer.plugin.spec.actions?.find(entry => entry.action.id === trajectoryFromPdb.id)?.action;
+    const identities = {
+      pluginUiContext: viewer.plugin instanceof PluginUIContext,
+      transformerRegistry: registeredTransformer === trajectoryFromPdb,
+      viewerUsesSameTransformer: viewerAction === trajectoryFromPdb,
+      transformerId: trajectoryFromPdb.id
+    };
+    window.smokeViewer = viewer;
+    window.smokeRestoredViewer = restoredViewer;
+    window.smokeResult = { initialStructures, structures, representations, snapshotRoundTrip: structures === initialStructures && structures > 0, selectionRoundTrip, identities };
+    document.documentElement.dataset.smoke = window.smokeResult.snapshotRoundTrip && selectionRoundTrip && Object.values(identities).slice(0, 3).every(Boolean) && representations > 0 ? 'pass' : 'fail';
+  })();
+</script>

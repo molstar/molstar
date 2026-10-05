@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Mol* classic Viewer smoke</title>
+<link rel="stylesheet" href="/classic/viewer/molstar.css">
+<div id="app" style="width:900px;height:650px"></div>
+<script src="/classic/viewer/molstar.js"></script>
+<script>
+  window.smokeReady = (async () => {
+    if (!window.molstar?.Viewer) throw new Error('molstar.Viewer global is missing');
+    const viewer = await molstar.Viewer.create('app', { layoutIsExpanded: false });
+    await viewer.loadStructureFromUrl('/fixtures/tiny.pdb', 'pdb', false);
+    window.smokeViewer = viewer;
+    const structures = viewer.plugin.managers.structure.hierarchy.current.structures;
+    viewer.plugin.canvas3d?.commit(true);
+    window.smokeResult = { structures: structures.length, representations: viewer.plugin.canvas3d?.reprCount.value ?? 0 };
+    document.documentElement.dataset.smoke = structures.length && window.smokeResult.representations ? 'pass' : 'fail';
+  })();
+</script>

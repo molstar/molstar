@@ -1,0 +1,229 @@
+/**
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { Camera } from '@molstar/graphics/canvas3d/camera';
+import { CameraFogParams, type Canvas3DProps, DefaultCanvas3DParams } from '@molstar/graphics/canvas3d/canvas3d';
+import { TrackballControlsParams } from '@molstar/graphics/canvas3d/controls/trackball';
+import { BackgroundParams } from '@molstar/graphics/canvas3d/passes/background';
+import { BloomParams } from '@molstar/graphics/canvas3d/passes/bloom';
+import { DofParams } from '@molstar/graphics/canvas3d/passes/dof';
+import { OutlineParams } from '@molstar/graphics/canvas3d/passes/outline';
+import { ShadowParams } from '@molstar/graphics/canvas3d/passes/shadow';
+import { SsaoParams } from '@molstar/graphics/canvas3d/passes/ssao';
+import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { getPluginBoundingSphere } from '@molstar/plugin/state/manager/focus-camera/focus-object';
+import { PluginCommands } from '@molstar/plugin/commands';
+import { PluginContext } from '@molstar/plugin/context';
+import { PluginState } from '@molstar/plugin/state';
+import { StateObjectSelector, StateTransform } from '@molstar/core/state';
+import { fovAdjustedPosition } from '@molstar/core/util/camera';
+import { ColorNames } from '@molstar/core/util/color/names';
+import { deepClone } from '@molstar/core/util/object';
+import { ParamDefinition } from '@molstar/core/util/param-definition';
+import { decodeColor } from '@molstar/mvs/helpers/utils';
+import { MolstarLoadingContext } from '@molstar/mvs/load';
+import type { MVSAnimationNode } from '@molstar/mvs-builder/tree/animation/animation-tree';
+import type { MolstarNode, MolstarNodeParams } from '@molstar/mvs/tree/molstar/molstar-tree';
+import { MVSTreeSchema } from '@molstar/mvs-builder/tree/mvs/mvs-tree';
+import { Vector3 } from '@molstar/mvs-builder/tree/mvs/param-types';
+
+
+const DefaultCanvasBackgroundColor = ColorNames.white;
+
+
+const _tmpVec = Vec3();
+
+/** Set the camera position to the current position (thus suppress automatic adjustment). */
+export async function suppressCameraAutoreset(plugin: PluginContext) {
+    const snapshot: Partial<Camera.Snapshot> = { ...plugin.canvas3d?.camera.state, radius: Infinity }; // `radius: Infinity` avoids clipping when the scene expands
+    adjustSceneRadiusFactor(plugin, snapshot.target);
+    await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
+}
+
+/** Set the camera based on a camera node params. */
+export async function setCamera(plugin: PluginContext, params: MolstarNodeParams<'camera'>) {
+    const snapshot = cameraParamsToCameraSnapshot(plugin, params);
+    adjustSceneRadiusFactor(plugin, snapshot.target);
+    await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
+}
+
+export function cameraParamsToCameraSnapshot(plugin: PluginContext, params: MolstarNodeParams<'camera'>): Partial<Camera.Snapshot> {
+    const target = Vec3.create(...params.target);
+    let position = Vec3.create(...params.position);
+    const radius = Vec3.distance(target, position) / 2;
+    if (plugin.canvas3d) position = fovAdjustedPosition(target, position, plugin.canvas3d.camera.state.mode, plugin.canvas3d.camera.state.fov);
+    const up = Vec3.create(...params.up);
+    Vec3.orthogonalize(up, Vec3.sub(_tmpVec, target, position), up);
+
+    const snapshot: Partial<Camera.Snapshot> = {
+        target,
+        position,
+        up,
+        radius,
+        radiusMax: radius,
+        minNear: params.near ?? undefined,
+    };
+    return snapshot;
+}
+
+function snapshotFocusInfoFromMvsFocuses(focuses: { target: StateObjectSelector | undefined, params: MolstarNodeParams<'focus'> & { center?: Vector3 } }[], ignoreOrientation: boolean): PluginState.SnapshotFocusInfo {
+    const lastFocus = (focuses.length > 0) ? focuses[focuses.length - 1] : undefined;
+    const direction = lastFocus?.params.direction ?? MVSTreeSchema.nodes.focus.params.fields.direction.default;
+    const up = lastFocus?.params.up ?? MVSTreeSchema.nodes.focus.params.fields.up.default;
+    return {
+        targets: focuses.map<PluginState.SnapshotFocusTargetInfo>(f => ({
+            targetRef: f.target?.ref === StateTransform.RootRef ? undefined : f.target?.ref, // need to treat root separately so it does not include invisible structure parts etc.
+            center: f.params.center ? Vec3.create(...f.params.center) : undefined,
+            radius: f.params.radius ?? undefined,
+            radiusFactor: f.params.radius_factor,
+            extraRadius: f.params.radius_extent,
+        })),
+        direction: ignoreOrientation ? undefined : Vec3.create(...direction),
+        up: ignoreOrientation ? undefined : Vec3.create(...up),
+    };
+}
+
+/** Adjust `sceneRadiusFactor` property so that the current scene is not cropped */
+function adjustSceneRadiusFactor(plugin: PluginContext, cameraTarget: Vec3 | undefined) {
+    if (!cameraTarget) return;
+    const boundingSphere = getPluginBoundingSphere(plugin);
+    const offset = Vec3.distance(cameraTarget, boundingSphere.center);
+    const sceneRadiusFactor = boundingSphere.radius > 0 ? ((boundingSphere.radius + offset) / boundingSphere.radius) : 1;
+    plugin.canvas3d?.setProps({ sceneRadiusFactor });
+}
+
+/** Create object for PluginState.Snapshot.camera based on tree loading context and MVS snapshot metadata */
+export function createPluginStateSnapshotCamera(plugin: PluginContext, context: MolstarLoadingContext, options: { incomingTransitionDurationMs?: number, ignoreCameraOrientation?: boolean }): PluginState.Snapshot['camera'] {
+    const camera: PluginState.Snapshot['camera'] = {
+        transitionStyle: 'animate',
+        transitionDurationInMs: options.incomingTransitionDurationMs ?? 0,
+    };
+    if (context.camera.cameraParams !== undefined) {
+        const cam = context.camera.cameraParams;
+        if (options.ignoreCameraOrientation) {
+            camera.focus = snapshotFocusInfoFromMvsFocuses([{
+                target: undefined,
+                params: {
+                    center: cam.target,
+                    radius: Vec3.distance(cam.target as number[] as Vec3, cam.position as number[] as Vec3) / 2,
+                    direction: MVSTreeSchema.nodes.focus.params.fields.direction.default, // will be ignored
+                    up: MVSTreeSchema.nodes.focus.params.fields.up.default, // will be ignored
+                    radius_factor: 1, // will be ignored
+                    radius_extent: 0, // will be ignored
+                },
+            }], true);
+            // This will not work exactly when viewport height>width because of how focusing works (could be solved by adjusting radius by aspect ration, but that would mess up cropping, and wouldn't work properly when aspect ration changes after loading)
+        } else {
+            const currentCameraSnapshot = plugin.canvas3d!.camera.getSnapshot();
+            const cameraSnapshot = cameraParamsToCameraSnapshot(plugin, cam);
+            camera.current = { ...currentCameraSnapshot, ...cameraSnapshot };
+        }
+    } else {
+        camera.focus = snapshotFocusInfoFromMvsFocuses(context.camera.focuses, options.ignoreCameraOrientation ?? false);
+    }
+    return camera;
+}
+
+function optionalParams(enable: boolean | undefined, values: any, params: ParamDefinition.Params, fallback: any) {
+    if (typeof enable === 'boolean') {
+        return enable
+            ? { name: 'on', params: { ...ParamDefinition.getDefaultValues(params), ...values } }
+            : { name: 'off', params: {} };
+    }
+    return fallback;
+}
+
+function normalizeBackground(variant: any, prev: any): any {
+    if (!variant) return prev;
+    return ParamDefinition.normalizeParams(BackgroundParams, { variant }, 'children');
+}
+
+/** Create a deep copy of `oldCanvasProps` with values modified according to a canvas node params. */
+export function modifyCanvasProps(oldCanvasProps: Canvas3DProps, canvasNode: MolstarNode<'canvas'> | undefined, animationNode: MVSAnimationNode<'animation'> | undefined): Canvas3DProps {
+    const params = canvasNode?.params;
+    const backgroundColor = decodeColor(params?.background_color) ?? DefaultCanvasBackgroundColor;
+
+    const molstar_postprocessing = canvasNode?.custom?.molstar_postprocessing;
+
+    const outline = molstar_postprocessing?.enable_outline;
+    const outlineParams = molstar_postprocessing?.outline_params;
+
+    const shadow = molstar_postprocessing?.enable_shadow;
+    const shadowParams = molstar_postprocessing?.shadow_params;
+
+    const occlusion = molstar_postprocessing?.enable_ssao;
+    const occlusionParams = molstar_postprocessing?.ssao_params;
+
+    const fog = molstar_postprocessing?.enable_fog;
+    const fogParams = molstar_postprocessing?.fog_params;
+
+    const dof = molstar_postprocessing?.enable_depth_of_field;
+    const dofParams = molstar_postprocessing?.depth_of_field_params;
+
+    const bloom = molstar_postprocessing?.enable_bloom;
+    const bloomParams = molstar_postprocessing?.bloom_params;
+
+    const background = molstar_postprocessing?.background;
+
+    const trackballAnimation = animationNode?.custom?.molstar_trackball;
+    const trackballAnimationName = trackballAnimation?.name;
+    const trackballAnimationParams = trackballAnimation?.params ?? {};
+
+    return {
+        ...oldCanvasProps,
+        postprocessing: {
+            ...oldCanvasProps.postprocessing,
+            outline: optionalParams(outline, outlineParams, OutlineParams, oldCanvasProps.postprocessing.outline),
+            shadow: optionalParams(shadow, shadowParams, ShadowParams, oldCanvasProps.postprocessing.shadow),
+            occlusion: optionalParams(occlusion, occlusionParams, SsaoParams, oldCanvasProps.postprocessing.occlusion),
+            dof: optionalParams(dof, dofParams, DofParams, oldCanvasProps.postprocessing.dof),
+            bloom: optionalParams(bloom, bloomParams, BloomParams, oldCanvasProps.postprocessing.bloom),
+            background: normalizeBackground(background, oldCanvasProps.postprocessing.background),
+        },
+        cameraFog: optionalParams(fog, fogParams, CameraFogParams, oldCanvasProps.cameraFog),
+        renderer: {
+            ...oldCanvasProps.renderer,
+            backgroundColor: backgroundColor,
+        },
+        trackball: {
+            ...oldCanvasProps?.trackball,
+            ...(trackballAnimationName
+                ? {
+                    animate: {
+                        name: trackballAnimationName,
+                        params: {
+                            ...TrackballControlsParams.animate.map(trackballAnimationName)?.defaultValue,
+                            ...trackballAnimationParams
+                        }
+                    }
+                }
+                : {}
+            ),
+        }
+    };
+}
+
+export function resetCanvasProps(plugin: PluginContext) {
+    const old = plugin.canvas3d?.props;
+    plugin.canvas3d?.setProps({
+        ...old,
+        postprocessing: {
+            ...old,
+            outline: deepClone(DefaultCanvas3DParams.postprocessing.outline),
+            shadow: deepClone(DefaultCanvas3DParams.postprocessing.shadow),
+            occlusion: deepClone(DefaultCanvas3DParams.postprocessing.occlusion),
+            dof: deepClone(DefaultCanvas3DParams.postprocessing.dof),
+            bloom: deepClone(DefaultCanvas3DParams.postprocessing.bloom),
+            background: deepClone(DefaultCanvas3DParams.postprocessing.background),
+        },
+        cameraFog: deepClone(DefaultCanvas3DParams.cameraFog),
+        trackball: {
+            ...old?.trackball,
+            animate: { name: 'off', params: {} },
+        }
+    });
+}
