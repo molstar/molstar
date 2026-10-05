@@ -69,6 +69,9 @@ catalogs:
     cpx2:
       specifier: 9.0.0
       version: 9.0.0
+    cross-spawn:
+      specifier: 7.0.6
+      version: 7.0.6
     css-loader:
       specifier: 7.1.4
       version: 7.1.4
@@ -237,6 +240,9 @@ importers:
       cpx2:
         specifier: 'catalog:'
         version: 9.0.0
+      cross-spawn:
+        specifier: 'catalog:'
+        version: 7.0.6
       css-loader:
         specifier: 'catalog:'
         version: 7.1.4

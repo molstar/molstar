@@ -5,6 +5,11 @@ standard suite. Focused checks use commands such as
 `pnpm --dir smoke smoke:node` and require current build output. Smoke scripts live
 in this package rather than the root manifest.
 
+The runner and workspace packer use `cross-spawn` to launch npm/pnpm on macOS,
+Linux, and Windows, including Windows `.cmd` shims and paths containing spaces.
+The CLI smoke uses the installed `.cmd` wrappers on Windows. `tar` must be available
+on `PATH` (included with current Windows versions and macOS).
+
 `node smoke/run.mjs <node|types|browser|source|cli|headless|all>` exercises package artifacts as an external consumer. `all` runs Node, declarations, source bundling, the packed MVS validation command, and browser checks. `--prepare` invokes the repository's `build:workspace` and `pack:workspace` scripts before running checks. Focused runs require a current `scripts/workspace/inventory.json` and report missing artifacts as failures.
 
 The harness packs each requested public package and its internal dependency closure into temporary tarballs. Consumer projects live in the OS temporary directory and install those tarballs through local file references, so internal imports cannot resolve through workspace links or a registry. Temporary directories are removed on exit.

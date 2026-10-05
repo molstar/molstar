@@ -44,6 +44,7 @@ catalog:
   '@typescript-eslint/parser': '8.71.0'
   'benchmark': '2.1.4'
   'concurrently': '10.0.5'
+  'cross-spawn': '7.0.6'
   'cpx2': '9.0.0'
   'css-loader': '7.1.4'
   'esbuild': '0.28.1'

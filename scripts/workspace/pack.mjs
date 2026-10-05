@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import spawn from 'cross-spawn';
 import { fileURLToPath } from 'node:url';
 import { expandExports } from './exports.mjs';
 
@@ -17,7 +17,7 @@ await fs.rm(output, { recursive: true, force: true });
 await fs.mkdir(output, { recursive: true });
 
 function run(command, args, cwd) {
-    const result = spawnSync(command, args, { cwd, encoding: 'utf8' });
+    const result = spawn.sync(command, args, { cwd, encoding: 'utf8' });
     if (result.error) throw result.error;
     if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} failed in ${cwd}:\n${result.stderr || result.stdout}`);
     return result.stdout;

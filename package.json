@@ -280,6 +280,7 @@
     "@typescript-eslint/parser": "catalog:",
     "benchmark": "catalog:",
     "concurrently": "catalog:",
+    "cross-spawn": "catalog:",
     "cpx2": "catalog:",
     "css-loader": "catalog:",
     "esbuild": "catalog:",

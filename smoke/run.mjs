@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import spawn from 'cross-spawn';
 import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile, access } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -100,7 +100,7 @@ async function packClosure(packages, roots) {
       let stdout = '';
       child.stdout.setEncoding('utf8').on('data', chunk => stdout += chunk);
       child.once('error', reject);
-      child.once('exit', code => code === 0 ? resolvePack(stdout) : reject(new Error(`npm pack failed for ${name} (${code})`)));
+      child.once('exit', code => code === 0 ? resolvePack(stdout) : reject(new Error(`pnpm pack failed for ${name} (${code})`)));
     });
     const packed = JSON.parse(output);
     const filename = typeof packed === 'string' ? packed : packed.filename ?? packed[0]?.filename;
@@ -281,14 +281,14 @@ async function browserCheck() {
 
 async function cliCheck() {
   await consumer(['@molstar/mvs-builder', '@molstar/cifschema-cli'], async ({ dir }) => {
-    const bin = join(dir, 'node_modules/.bin/mvs-validate');
+    const bin = join(dir, 'node_modules/.bin', process.platform === 'win32' ? 'mvs-validate.cmd' : 'mvs-validate');
     if (!await exists(bin)) fail('Packed @molstar/mvs-builder does not expose mvs-validate.');
     const fixture = join(dir, 'tiny.mvsj');
     await cp(join(here, 'fixtures/tiny.mvsj'), fixture);
     const result = await capture(bin, [fixture], { cwd: dir });
     assert.match(result.stdout.trim(), /^OK\s+.*tiny\.mvsj$/, `Unexpected mvs-validate output: ${result.stdout}`);
     console.log('Packed mvs-validate accepted the local MVS fixture');
-    const schemaBin = join(dir, 'node_modules/.bin/cifschema');
+    const schemaBin = join(dir, 'node_modules/.bin', process.platform === 'win32' ? 'cifschema.cmd' : 'cifschema');
     const dictionary = join(dir, 'tiny.dic');
     const schema = join(dir, 'schema.ts');
     await cp(join(here, 'fixtures/tiny.dic'), dictionary);
