@@ -7,7 +7,27 @@ on:
     branches: master
 
 jobs:
-  build:
+  style:
+    name: Formatting and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check formatting
+        run: pnpm format:check
+      - name: Lint
+        run: pnpm lint
+
+  test:
+    name: Native tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,16 +44,41 @@ jobs:
         run: pnpm native:install
       - name: Install virtual display
         run: sudo apt-get update && sudo apt-get install -y xvfb
-      - name: Check formatting
-        run: pnpm format:check
-      - name: Lint
-        run: pnpm lint
       - name: Test
         run: xvfb-run --auto-servernum pnpm test:native
-      - name: Build libraries with TypeScript 7
-        run: time pnpm build:lib
+
+  types:
+    name: Full declaration check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
       - name: Check all imported declarations with TypeScript 7
         run: pnpm check:types:full
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build libraries with TypeScript 7
+        run: time pnpm build:lib
       - name: Build apps and examples
         run: time pnpm build:apps
       - name: Build browser distribution
