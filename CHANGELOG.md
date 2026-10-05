@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Fix `IntAdjacencyGraph.connectedComponents` returning the vertex count as the component count for graphs with at least one edge
 
 ## [v5.13.0] - 2026-10-04
 - BinaryCIF: masked `int`/`float` field values now return the default `0` instead of the value left in the data array, matching the text/mmCIF parsers. Applies to the bulk `toIntArray`/`toFloatArray` APIs as well (#1711)

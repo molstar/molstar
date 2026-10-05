@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
+ * @author Aniruddha Adak <aniruddhaadak80@users.noreply.github.com>
  */
 
 import { arrayPickIndices, cantorPairing } from '../../mol-data/util';
