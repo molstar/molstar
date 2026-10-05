@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
+ * @author Aniruddha Adak <aniruddhaadak80@users.noreply.github.com>
  */
 
 import { arrayPickIndices, cantorPairing } from '@molstar/core/data/util';
@@ -392,7 +393,8 @@ export namespace IntAdjacencyGraph {
             }
         }
 
-        return { componentCount: vCount, componentIndex };
+        // component ids are assigned 0..currentComponent, so the count is currentComponent + 1
+        return { componentCount: currentComponent + 1, componentIndex };
     }
 
     /**
