@@ -515,7 +515,7 @@ enabling format checks in CI remain follow-up work.
   conventions and keep any broad formatting changes separate from the tooling
   migration. Remove the superseded ESLint configuration and dependencies.
   Biome 2.5.15 now runs through `pnpm lint` and existing CI; optional formatting
-  and rule differences are documented in [workspace usage](workspace-usage.md#linting-and-optional-formatting).
+  and rule differences are documented in [workspace usage](workspace-usage.md#linting-and-formatting).
 - [ ] After migrating the compiler, reformat the repository as the last step
   and enable formatting checks in CI. Choose companion tooling for formats
   Biome does not support (Markdown, YAML, and Sass/SCSS).

@@ -176,32 +176,41 @@ launches the platform-specific native executable. Retain optional dependencies
 when installing: TypeScript distributes that executable through platform packages.
 Migration evidence is recorded in [the implementation plan](workspace-prototype.md#10-next-step-typescript-7-and-biome).
 
-### Linting and optional formatting
+### Linting and formatting
 
 ```sh
-pnpm lint          # Check lint rules only; also used by tests and CI
+pnpm lint          # Check lint rules only
 pnpm lint:fix      # Apply safe lint fixes only
-pnpm format:check  # Check formatting without writing (not a CI gate yet)
-pnpm format        # Reformat supported source/config files
+pnpm format:check  # Check Biome and Prettier formatting; required by CI/publish
+pnpm format        # Reformat source, configuration, documentation, and styles
 ```
 
-For a focused format, use `pnpm exec biome format --write path/to/file.ts`.
-Formatting is opt-in, including in VS Code: Biome is recommended as the formatter,
-but format on save is disabled in workspace settings. The planned repository-wide
-formatting pass comes after the compiler migration, followed by enabling formatting
-checks in CI. Until that pass, `format:check` is expected to report existing differences.
-Biome does not format Markdown, YAML, or Sass/SCSS; those need a separate formatter
-when completing the full repository formatting pass.
+Biome owns JavaScript/TypeScript, JSON/JSONC, HTML, CSS, and GraphQL. Prettier 3.9.9
+owns Markdown/MDX, YAML, and SCSS; its ignore file restricts it to those formats.
+For a focused format, use `pnpm exec biome format --write path/to/file.ts` or
+`pnpm exec prettier --write path/to/file.scss`. VS Code recommends both extensions
+and enables format on save with the matching formatter for each language.
 
-`biome.json` uses four spaces, a 120-column line width, LF endings, single JavaScript
-quotes, double JSX quotes, semicolons, ES5 trailing commas, and optional arrow
-parameter parentheses. JSON uses two spaces. Assist actions, including import
-organization, are disabled. Generated `lib/` and `build/` trees, dependencies,
-`deploy/`, `docs/site/`, `build.mjs`, and Git-ignored files are excluded. Linting
-covers JavaScript/TypeScript files (including tests, scripts, and smoke fixtures),
-matching the previous ESLint language scope. Formatting covers all Biome-supported
-files in that scope of repository exclusions. The 5 MiB file limit includes the
-large alpha-orbitals example data previously linted by ESLint.
+All formats use two spaces, a 120-column line width, and LF endings with a final
+newline. MkDocs pages under `docs/docs/` retain four-space nested Markdown blocks
+because Python-Markdown requires that indentation to preserve their rendering. JavaScript uses single quotes, JSX/HTML use double quotes, semicolons are
+always present, multiline structures get trailing commas everywhere allowed,
+and arrow parameters always have parentheses. Object braces have spaces; property
+names are quoted only when required. Objects/arrays wrap automatically and JSX
+closing brackets occupy their own line in multiline elements. Markdown prose wraps
+at 120 columns. Prettier leaves embedded code unchanged to avoid a competing style
+for fenced JavaScript/TypeScript examples. `.editorconfig` supplies the shared
+indentation/newline defaults to other editors and retains Markdown hard line breaks.
+
+Assist actions, including import organization, are disabled. Generated `lib/` and
+`build/` trees, dependencies, `deploy/`, `docs/site/`, `build.mjs`, Git-ignored files,
+and lockfiles are excluded. Linting covers JavaScript/TypeScript files (including
+tests, scripts, and smoke fixtures), matching the previous ESLint language scope.
+The 5 MiB Biome file limit includes the large alpha-orbitals example data.
+
+The settings are committed before the repository-wide formatting pass so changes
+to tooling can be reviewed separately. Formatting checks become green after the
+bulk pass, which is recorded separately in `.git-blame-ignore-revs`.
 
 Only explicitly selected lint rules are enabled; Biome's recommended preset is
 not enabled. The mapping from the previous ESLint rules is:
@@ -220,7 +229,7 @@ not enabled. The mapping from the previous ESLint rules is:
 | `prefer-const` | `style/useConst`; Biome has no matching destructuring/read-before-assignment options |
 | `no-constant-binary-expression` | `suspicious/noConstantBinaryExpressions` |
 | `@typescript-eslint/prefer-namespace-keyword` | `suspicious/useNamespaceKeyword` (warning) |
-| Quotes, semicolons, braces, whitespace, and spacing rules | Optional formatter; not checked by `pnpm lint` during this slice |
+| Quotes, semicolons, braces, whitespace, and spacing rules | Formatter; enforced by the separate `pnpm format:check` gate |
 | `spaced-comment`, `no-new-wrappers` | No equivalent enabled; comment spacing and wrapper construction are not enforced |
 
 The two nursery rules are explicitly enabled and the Biome version is pinned.

@@ -8,14 +8,26 @@
   "files": {
     "ignoreUnknown": true,
     "maxSize": 5242880,
-    "includes": ["**", "!!**/node_modules", "!!**/build", "!!**/lib", "!!deploy", "!!docs/site", "!build.mjs"]
+    "includes": [
+      "**",
+      "!!**/node_modules",
+      "!!**/build",
+      "!!**/lib",
+      "!!deploy",
+      "!!docs/site",
+      "!build.mjs",
+      "!**/package-lock.json",
+      "!**/npm-shrinkwrap.json"
+    ]
   },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
-    "indentWidth": 4,
+    "indentWidth": 2,
     "lineWidth": 120,
-    "lineEnding": "lf"
+    "lineEnding": "lf",
+    "bracketSpacing": true,
+    "bracketSameLine": false
   },
   "assist": {
     "enabled": false
@@ -59,8 +71,10 @@
       "quoteStyle": "single",
       "jsxQuoteStyle": "double",
       "semicolons": "always",
-      "trailingCommas": "es5",
-      "arrowParentheses": "asNeeded"
+      "trailingCommas": "all",
+      "arrowParentheses": "always",
+      "quoteProperties": "asNeeded",
+      "expand": "auto"
     }
   },
   "json": {

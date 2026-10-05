@@ -1,0 +1,24 @@
+{
+  "tabWidth": 2,
+  "useTabs": false,
+  "printWidth": 120,
+  "singleQuote": true,
+  "jsxSingleQuote": false,
+  "semi": true,
+  "trailingComma": "all",
+  "arrowParens": "always",
+  "bracketSpacing": true,
+  "bracketSameLine": false,
+  "quoteProps": "as-needed",
+  "proseWrap": "always",
+  "endOfLine": "lf",
+  "embeddedLanguageFormatting": "off",
+  "overrides": [
+    {
+      "files": "docs/docs/**/*.md",
+      "options": {
+        "tabWidth": 4
+      }
+    }
+  ]
+}

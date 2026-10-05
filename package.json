@@ -32,10 +32,10 @@
     "native:run": "node scripts/native.mjs run",
     "test:native": "node scripts/native.mjs test",
     "check:types:full": "node scripts/workspace/typecheck-full.mjs",
-    "check:publish": "pnpm test && pnpm build && pnpm check:types:full && pnpm check:workspace && pnpm version:check && pnpm pack:workspace && node smoke/run.mjs node && node smoke/run.mjs types && node smoke/run.mjs source && node smoke/run.mjs cli",
+    "check:publish": "pnpm format:check && pnpm test && pnpm build && pnpm check:types:full && pnpm check:workspace && pnpm version:check && pnpm pack:workspace && node smoke/run.mjs node && node smoke/run.mjs types && node smoke/run.mjs source && node smoke/run.mjs cli",
     "lint:fix": "biome lint --write .",
-    "format": "biome format --write .",
-    "format:check": "biome format ."
+    "format": "biome format --write . && prettier --write \"**/*.{md,mdx,yaml,yml,scss}\"",
+    "format:check": "biome format . && prettier --check \"**/*.{md,mdx,yaml,yml,scss}\""
   },
   "nodemonConfig": {
     "ignoreRoot": [
@@ -303,7 +303,8 @@
     "fp-ts": "catalog:",
     "sass-embedded": "catalog:",
     "@biomejs/biome": "catalog:",
-    "@typescript/typescript6": "catalog:"
+    "@typescript/typescript6": "catalog:",
+    "prettier": "catalog:"
   },
   "private": true,
   "type": "module",
