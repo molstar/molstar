@@ -5,7 +5,7 @@
  */
 
 declare module '*.jpg' {
-    const value: string;
-    // biome-ignore lint/style/noDefaultExport: Image loaders expose the asset URL as a default export.
-    export { value as default };
+  const value: string;
+  // biome-ignore lint/style/noDefaultExport: Image loaders expose the asset URL as a default export.
+  export { value as default };
 }

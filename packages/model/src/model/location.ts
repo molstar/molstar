@@ -13,23 +13,23 @@ import type { Particle } from './particles/particle-list.js';
 
 /** A null value Location */
 export const NullLocation = { kind: 'null-location' as const };
-export type NullLocation = typeof NullLocation
+export type NullLocation = typeof NullLocation;
 export function isNullLocation(x: any): x is NullLocation {
-    return !!x && x.kind === 'null-location';
+  return !!x && x.kind === 'null-location';
 }
 
 /** A generic data Location */
 export interface DataLocation<T = unknown, E = unknown> {
-    readonly kind: 'data-location',
-    readonly tag: string
-    readonly data: T,
-    element: E
+  readonly kind: 'data-location';
+  readonly tag: string;
+  readonly data: T;
+  element: E;
 }
 export function DataLocation<T = unknown, E = unknown>(tag: string, data: T, element: E): DataLocation<T, E> {
-    return { kind: 'data-location', tag, data, element };
+  return { kind: 'data-location', tag, data, element };
 }
 export function isDataLocation(x: any): x is DataLocation {
-    return !!x && x.kind === 'data-location';
+  return !!x && x.kind === 'data-location';
 }
 
 /**
@@ -40,9 +40,19 @@ export function isDataLocation(x: any): x is DataLocation {
  * grid cell itself and coloring is applied in a shader on the GPU.
  */
 export const DirectLocation = { kind: 'direct-location' as const };
-export type DirectLocation = typeof DirectLocation
+export type DirectLocation = typeof DirectLocation;
 export function isDirectLocation(x: any): x is DirectLocation {
-    return !!x && x.kind === 'direct-location';
+  return !!x && x.kind === 'direct-location';
 }
 
-export type Location = StructureElement.Location | Bond.Location | ShapeGroup.Location | PositionLocation | DataLocation | NullLocation | DirectLocation | Volume.Cell.Location | Volume.Segment.Location | Particle.Location
+export type Location =
+  | StructureElement.Location
+  | Bond.Location
+  | ShapeGroup.Location
+  | PositionLocation
+  | DataLocation
+  | NullLocation
+  | DirectLocation
+  | Volume.Cell.Location
+  | Volume.Segment.Location
+  | Particle.Location;

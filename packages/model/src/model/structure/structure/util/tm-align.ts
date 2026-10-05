@@ -24,26 +24,26 @@ export type TMAlignResult = TMAlign.Result;
  * @returns TM-align result with transformation, scores, and alignment
  */
 function tmAlign(a: StructureElement.Loci, b: StructureElement.Loci): TMAlignResult {
-    const lenA = StructureElement.Loci.size(a);
-    const lenB = StructureElement.Loci.size(b);
+  const lenA = StructureElement.Loci.size(a);
+  const lenB = StructureElement.Loci.size(b);
 
-    if (lenA === 0 || lenB === 0) {
-        return {
-            bTransform: Mat4.identity(),
-            tmScoreA: 0,
-            tmScoreB: 0,
-            rmsd: 0,
-            alignedLength: 0,
-            sequenceIdentity: 0,
-            alignmentA: [],
-            alignmentB: []
-        };
-    }
+  if (lenA === 0 || lenB === 0) {
+    return {
+      bTransform: Mat4.identity(),
+      tmScoreA: 0,
+      tmScoreB: 0,
+      rmsd: 0,
+      alignedLength: 0,
+      sequenceIdentity: 0,
+      alignmentA: [],
+      alignmentB: [],
+    };
+  }
 
-    const posA = getPositionTable(a, lenA);
-    const posB = getPositionTable(b, lenB);
+  const posA = getPositionTable(a, lenA);
+  const posB = getPositionTable(b, lenB);
 
-    return TMAlign.compute({ a: posA, b: posB });
+  return TMAlign.compute({ a: posA, b: posB });
 }
 
 /**
@@ -54,20 +54,20 @@ function tmAlign(a: StructureElement.Loci, b: StructureElement.Loci): TMAlignRes
  * @returns Array of TM-align results (length = xs.length - 1)
  */
 function tmAlignMultiple(xs: StructureElement.Loci[]): TMAlignResult[] {
-    const results: TMAlignResult[] = [];
-    if (xs.length < 2) return results;
+  const results: TMAlignResult[] = [];
+  if (xs.length < 2) return results;
 
-    const refLoci = xs[0];
-    const lenRef = StructureElement.Loci.size(refLoci);
-    const posRef = getPositionTable(refLoci, lenRef);
+  const refLoci = xs[0];
+  const lenRef = StructureElement.Loci.size(refLoci);
+  const posRef = getPositionTable(refLoci, lenRef);
 
-    for (let i = 1; i < xs.length; i++) {
-        const mobileLoci = xs[i];
-        const lenMobile = StructureElement.Loci.size(mobileLoci);
-        const posMobile = getPositionTable(mobileLoci, lenMobile);
+  for (let i = 1; i < xs.length; i++) {
+    const mobileLoci = xs[i];
+    const lenMobile = StructureElement.Loci.size(mobileLoci);
+    const posMobile = getPositionTable(mobileLoci, lenMobile);
 
-        results.push(TMAlign.compute({ a: posRef, b: posMobile }));
-    }
+    results.push(TMAlign.compute({ a: posRef, b: posMobile }));
+  }
 
-    return results;
+  return results;
 }

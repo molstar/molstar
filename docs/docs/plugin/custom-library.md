@@ -1,6 +1,7 @@
 # Building a Custom Library
 
-This page goes over creating a custom Mol\* based library usable inside a `<script>` tag in an HTML page using the `esbuild` tool.
+This page goes over creating a custom Mol\* based library usable inside a `<script>` tag in an HTML page using the
+`esbuild` tool.
 
 ## Setup
 
@@ -66,7 +67,9 @@ Add new commands to the `scripts` section of the `package.json` file
 }
 ```
 
-and run the command `npm run build` (or `watch` for interactive development experience). This will create `build/js/index.js` file which can be imported with a `<script>` tag and the exported functions called view the `molstarLib` prefix (you can customize this parameter).
+and run the command `npm run build` (or `watch` for interactive development experience). This will create
+`build/js/index.js` file which can be imported with a `<script>` tag and the exported functions called view the
+`molstarLib` prefix (you can customize this parameter).
 
 ## Using the Library
 
@@ -105,15 +108,17 @@ Create file `build/index.html`:
 </html>
 ```
 
-After opening `index.html` in a browser, you should see 
+After opening `index.html` in a browser, you should see
 
 ![lib-example](lib-example.png)
 
 ## Using Mol* React UI
 
-The above example does not make use of the default Mol\* React UI and any UI components are therefore the author's responsibility. The below examples show how to (re)use the Mol\* React UI.
+The above example does not make use of the default Mol\* React UI and any UI components are therefore the author's
+responsibility. The below examples show how to (re)use the Mol\* React UI.
 
 - Create `src/ui.tsx`:
+
 ```tsx
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -139,11 +144,15 @@ export async function loadStructure(plugin: PluginUIContext, url: string, option
     await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
 }
 ```
+
 - Create `src/style.scss`:
+
 ```scss
 @use '../node_modules/molstar/lib/mol-plugin-ui/skin/light.scss';
 ```
+
 - Create `build/ui.html`:
+
 ```html
 <!DOCTYPE html>
 <html lang="en">
@@ -182,12 +191,14 @@ export async function loadStructure(plugin: PluginUIContext, url: string, option
 </html>
 ```
 
-- Install `sass`: `npm install sass -save-dev` (or use [`esbuild` plugin](https://www.npmjs.com/package/esbuild-sass-plugin) and `import` the scss file in `ui.tsx`)
+- Install `sass`: `npm install sass -save-dev` (or use
+  [`esbuild` plugin](https://www.npmjs.com/package/esbuild-sass-plugin) and `import` the scss file in `ui.tsx`)
 - Add scripts to `package.json`:
+
 ```json
 "build-ui": "esbuild src/ui.tsx --bundle --outfile=./build/js/ui.js --global-name=molstarLib",
 "css": "sass src/style.scss ./build/css/style.css"
 ```
+
 - Run `npm run build-ui` and `npm run css` (skip if using `esbuild-sass-plugin`)
-- Opening `build/ui.html`:
-![ui-example](ui-example.png)
+- Opening `build/ui.html`: ![ui-example](ui-example.png)

@@ -9,21 +9,27 @@ import { CifField as CsvColumn } from '../cif/data-model.js';
 export { CsvColumn };
 
 export interface CsvFile {
-    readonly table: CsvTable
+  readonly table: CsvTable;
 }
 
 export function CsvFile(table: CsvTable): CsvFile {
-    return { table };
+  return { table };
 }
 
 export interface CsvTable {
-    readonly rowCount: number,
-    readonly columnNames: ReadonlyArray<string>,
-    getColumn(name: string): CsvColumn | undefined
+  readonly rowCount: number;
+  readonly columnNames: ReadonlyArray<string>;
+  getColumn(name: string): CsvColumn | undefined;
 }
 
 export function CsvTable(rowCount: number, columnNames: string[], columns: CsvColumns): CsvTable {
-    return { rowCount, columnNames: [...columnNames], getColumn(name) { return columns[name]; } };
+  return {
+    rowCount,
+    columnNames: [...columnNames],
+    getColumn(name) {
+      return columns[name];
+    },
+  };
 }
 
-export type CsvColumns = { [name: string]: CsvColumn }
+export type CsvColumns = { [name: string]: CsvColumn };

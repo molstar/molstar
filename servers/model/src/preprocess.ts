@@ -9,9 +9,9 @@ import cluster from 'cluster';
 import { runChild } from '@molstar/model-server/preprocess/parallel';
 
 if (cluster.isPrimary) {
-    await import('@molstar/model-server/preprocess/master');
+  await import('@molstar/model-server/preprocess/master');
 } else {
-    runChild();
+  runChild();
 }
 
 // example:

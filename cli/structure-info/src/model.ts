@@ -9,7 +9,15 @@
 import * as argparse from 'argparse';
 
 import type { CifFrame } from '@molstar/io/reader/cif';
-import { Model, Structure, StructureElement, Unit, StructureProperties, UnitRing, type Trajectory } from '@molstar/model/model/structure';
+import {
+  Model,
+  Structure,
+  StructureElement,
+  Unit,
+  StructureProperties,
+  UnitRing,
+  type Trajectory,
+} from '@molstar/model/model/structure';
 // import { Run, Progress } from '../../mol-task'
 import { OrderedSet } from '@molstar/core/data/int';
 import { openCif, downloadCif } from '@molstar/structure-info-cli/helpers';
@@ -20,217 +28,230 @@ import { ModelSecondaryStructure } from '@molstar/model/formats/structure/proper
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
 import { Task } from '@molstar/core/task';
 
-
 async function downloadFromPdb(pdb: string) {
-    // `https://files.rcsb.org/download/${pdb}.cif`
-    const parsed = await downloadCif(`http://www.ebi.ac.uk/pdbe/static/entry/${pdb}_updated.cif`, false);
-    return parsed.blocks[0];
+  // `https://files.rcsb.org/download/${pdb}.cif`
+  const parsed = await downloadCif(`http://www.ebi.ac.uk/pdbe/static/entry/${pdb}_updated.cif`, false);
+  return parsed.blocks[0];
 }
 
 export async function readCifFile(path: string) {
-    const parsed = await openCif(path);
-    return parsed.blocks[0];
+  const parsed = await openCif(path);
+  return parsed.blocks[0];
 }
 
 export function atomLabel(model: Model, aI: number) {
-    const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
-    const { label_atom_id, label_comp_id } = atoms;
-    const { label_seq_id } = residues;
-    const { label_asym_id } = chains;
-    const rI = residueAtomSegments.index[aI];
-    const cI = chainAtomSegments.index[aI];
-    return `${label_asym_id.value(cI)} ${label_comp_id.value(aI)} ${label_seq_id.value(rI)} ${label_atom_id.value(aI)}`;
+  const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
+  const { label_atom_id, label_comp_id } = atoms;
+  const { label_seq_id } = residues;
+  const { label_asym_id } = chains;
+  const rI = residueAtomSegments.index[aI];
+  const cI = chainAtomSegments.index[aI];
+  return `${label_asym_id.value(cI)} ${label_comp_id.value(aI)} ${label_seq_id.value(rI)} ${label_atom_id.value(aI)}`;
 }
 
 export function residueLabel(model: Model, rI: number) {
-    const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
-    const { label_comp_id } = atoms;
-    const { label_seq_id } = residues;
-    const { label_asym_id } = chains;
-    const aI = residueAtomSegments.offsets[rI];
-    const cI = chainAtomSegments.index[aI];
-    return `${label_asym_id.value(cI)} ${label_comp_id.value(aI)} ${label_seq_id.value(rI)}`;
+  const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
+  const { label_comp_id } = atoms;
+  const { label_seq_id } = residues;
+  const { label_asym_id } = chains;
+  const aI = residueAtomSegments.offsets[rI];
+  const cI = chainAtomSegments.index[aI];
+  return `${label_asym_id.value(cI)} ${label_comp_id.value(aI)} ${label_seq_id.value(rI)}`;
 }
 
 export function printSecStructure(model: Model) {
-    console.log('\nSecondary Structure\n=============');
-    const { residues } = model.atomicHierarchy;
-    const secondaryStructure = ModelSecondaryStructure.Provider.get(model);
-    if (!secondaryStructure) return;
+  console.log('\nSecondary Structure\n=============');
+  const { residues } = model.atomicHierarchy;
+  const secondaryStructure = ModelSecondaryStructure.Provider.get(model);
+  if (!secondaryStructure) return;
 
-    const { key, elements } = secondaryStructure;
-    const count = residues._rowCount;
-    let rI = 0;
-    while (rI < count) {
-        const start = rI;
-        while (rI < count && key[start] === key[rI]) rI++;
-        rI--;
+  const { key, elements } = secondaryStructure;
+  const count = residues._rowCount;
+  let rI = 0;
+  while (rI < count) {
+    const start = rI;
+    while (rI < count && key[start] === key[rI]) rI++;
+    rI--;
 
-        const e = elements[key[start]];
-        if (e.kind !== 'none') console.log(`${e.kind}: ${residueLabel(model, start)} - ${residueLabel(model, rI)}`);
-        rI++;
-    }
+    const e = elements[key[start]];
+    if (e.kind !== 'none') console.log(`${e.kind}: ${residueLabel(model, start)} - ${residueLabel(model, rI)}`);
+    rI++;
+  }
 }
 
 export function printBonds(structure: Structure, showIntra: boolean, showInter: boolean) {
-    if (showIntra) {
-        console.log('\nIntra Unit Bonds\n=============');
-        for (const unit of structure.units) {
-            if (!Unit.isAtomic(unit)) continue;
+  if (showIntra) {
+    console.log('\nIntra Unit Bonds\n=============');
+    for (const unit of structure.units) {
+      if (!Unit.isAtomic(unit)) continue;
 
-            const elements = unit.elements;
-            const { a, b, edgeCount } = unit.bonds;
-            const { model } = unit;
+      const elements = unit.elements;
+      const { a, b, edgeCount } = unit.bonds;
+      const { model } = unit;
 
-            if (!edgeCount) continue;
+      if (!edgeCount) continue;
 
-            for (let bI = 0, _bI = edgeCount * 2; bI < _bI; bI++) {
-                const x = a[bI], y = b[bI];
-                if (x >= y) continue;
-                console.log(`${atomLabel(model, elements[x])} -- ${atomLabel(model, elements[y])}`);
-            }
-        }
+      for (let bI = 0, _bI = edgeCount * 2; bI < _bI; bI++) {
+        const x = a[bI],
+          y = b[bI];
+        if (x >= y) continue;
+        console.log(`${atomLabel(model, elements[x])} -- ${atomLabel(model, elements[y])}`);
+      }
     }
+  }
 
-    if (showInter) {
-        console.log('\nInter Unit Bonds\n=============');
-        const bonds = structure.interUnitBonds;
-        for (const unit of structure.units) {
-            if (!Unit.isAtomic(unit)) continue;
+  if (showInter) {
+    console.log('\nInter Unit Bonds\n=============');
+    const bonds = structure.interUnitBonds;
+    for (const unit of structure.units) {
+      if (!Unit.isAtomic(unit)) continue;
 
-            for (const pairBonds of bonds.getConnectedUnits(unit.id)) {
-                if (!pairBonds.areUnitsOrdered || pairBonds.edgeCount === 0) continue;
+      for (const pairBonds of bonds.getConnectedUnits(unit.id)) {
+        if (!pairBonds.areUnitsOrdered || pairBonds.edgeCount === 0) continue;
 
-                const { unitA, unitB, edgeCount } = pairBonds;
-                const uA = structure.unitMap.get(unitA);
-                const uB = structure.unitMap.get(unitB);
-                console.log(`${unitA} - ${unitB}: ${edgeCount} bond(s)`);
+        const { unitA, unitB, edgeCount } = pairBonds;
+        const uA = structure.unitMap.get(unitA);
+        const uB = structure.unitMap.get(unitB);
+        console.log(`${unitA} - ${unitB}: ${edgeCount} bond(s)`);
 
-                for (const aI of pairBonds.connectedIndices) {
-                    for (const bond of pairBonds.getEdges(aI)) {
-                        console.log(`${atomLabel(uA.model, uA.elements[aI])} -- ${atomLabel(uB.model, uB.elements[bond.indexB])}`);
-                    }
-                }
-            }
+        for (const aI of pairBonds.connectedIndices) {
+          for (const bond of pairBonds.getEdges(aI)) {
+            console.log(`${atomLabel(uA.model, uA.elements[aI])} -- ${atomLabel(uB.model, uB.elements[bond.indexB])}`);
+          }
         }
+      }
     }
+  }
 }
 
 export function printSequence(model: Model) {
-    console.log('\nSequence\n=============');
-    const { byEntityKey } = model.sequence;
-    for (const key of Object.keys(byEntityKey)) {
-        const { sequence, entityId } = byEntityKey[+key];
-        const { seqId, compId } = sequence;
-        console.log(`${entityId} (${sequence.kind} ${seqId.value(0)}, ${seqId.value(seqId.rowCount - 1)}) (${compId.value(0)}, ${compId.value(compId.rowCount - 1)})`);
-        console.log(`${Sequence.getSequenceString(sequence)}`);
-    }
-    console.log();
+  console.log('\nSequence\n=============');
+  const { byEntityKey } = model.sequence;
+  for (const key of Object.keys(byEntityKey)) {
+    const { sequence, entityId } = byEntityKey[+key];
+    const { seqId, compId } = sequence;
+    console.log(
+      `${entityId} (${sequence.kind} ${seqId.value(0)}, ${seqId.value(seqId.rowCount - 1)}) (${compId.value(0)}, ${compId.value(compId.rowCount - 1)})`,
+    );
+    console.log(`${Sequence.getSequenceString(sequence)}`);
+  }
+  console.log();
 }
 
 export function printRings(structure: Structure) {
-    console.log('\nRings\n=============');
-    for (const unit of structure.units) {
-        if (!Unit.isAtomic(unit)) continue;
-        const { all, byFingerprint } = unit.rings;
-        const fps: string[] = [];
-        for (let i = 0, _i = Math.min(5, all.length); i < _i; i++) {
-            fps[fps.length] = UnitRing.fingerprint(unit, all[i]);
-        }
-        if (all.length > 5) fps.push('...');
-        console.log(`Unit ${unit.id}, ${all.length} ring(s), ${byFingerprint.size} different fingerprint(s).\n  ${fps.join(', ')}`);
+  console.log('\nRings\n=============');
+  for (const unit of structure.units) {
+    if (!Unit.isAtomic(unit)) continue;
+    const { all, byFingerprint } = unit.rings;
+    const fps: string[] = [];
+    for (let i = 0, _i = Math.min(5, all.length); i < _i; i++) {
+      fps[fps.length] = UnitRing.fingerprint(unit, all[i]);
     }
-    console.log();
+    if (all.length > 5) fps.push('...');
+    console.log(
+      `Unit ${unit.id}, ${all.length} ring(s), ${byFingerprint.size} different fingerprint(s).\n  ${fps.join(', ')}`,
+    );
+  }
+  console.log();
 }
 
 export function printUnits(structure: Structure) {
-    console.log('\nUnits\n=============');
-    const l = StructureElement.Location.create(structure);
+  console.log('\nUnits\n=============');
+  const l = StructureElement.Location.create(structure);
 
-    for (const unit of structure.units) {
-        l.unit = unit;
-        const elements = unit.elements;
-        const size = OrderedSet.size(elements);
+  for (const unit of structure.units) {
+    l.unit = unit;
+    const elements = unit.elements;
+    const size = OrderedSet.size(elements);
 
-        if (Unit.isAtomic(l.unit)) {
-            console.log(`Atomic unit ${unit.id} ${unit.conformation.operator.name}: ${size} elements`);
-        } else if (Unit.isCoarse(l.unit)) {
-            console.log(`Coarse unit ${unit.id} ${unit.conformation.operator.name} (${Unit.isSpheres(l.unit) ? 'spheres' : 'gaussians'}): ${size} elements.`);
+    if (Unit.isAtomic(l.unit)) {
+      console.log(`Atomic unit ${unit.id} ${unit.conformation.operator.name}: ${size} elements`);
+    } else if (Unit.isCoarse(l.unit)) {
+      console.log(
+        `Coarse unit ${unit.id} ${unit.conformation.operator.name} (${Unit.isSpheres(l.unit) ? 'spheres' : 'gaussians'}): ${size} elements.`,
+      );
 
-            const props = StructureProperties.coarse;
-            const modelSeq = l.unit.model.sequence;
+      const props = StructureProperties.coarse;
+      const modelSeq = l.unit.model.sequence;
 
-            for (let j = 0, _j = Math.min(size, 3); j < _j; j++) {
-                l.element = OrderedSet.getAt(elements, j);
+      for (let j = 0, _j = Math.min(size, 3); j < _j; j++) {
+        l.element = OrderedSet.getAt(elements, j);
 
-                const residues: string[] = [];
-                const start = props.seq_id_begin(l), end = props.seq_id_end(l);
-                const compId = modelSeq.byEntityKey[props.entityKey(l)].sequence.compId.value;
-                for (let e = start; e <= end; e++) residues.push(compId(e));
-                console.log(`${props.asym_id(l)}:${start}-${end} (${residues.join('-')}) ${props.asym_id(l)} [${props.x(l).toFixed(2)}, ${props.y(l).toFixed(2)}, ${props.z(l).toFixed(2)}]`);
-            }
-            if (size > 3) console.log(`...`);
-        }
+        const residues: string[] = [];
+        const start = props.seq_id_begin(l),
+          end = props.seq_id_end(l);
+        const compId = modelSeq.byEntityKey[props.entityKey(l)].sequence.compId.value;
+        for (let e = start; e <= end; e++) residues.push(compId(e));
+        console.log(
+          `${props.asym_id(l)}:${start}-${end} (${residues.join('-')}) ${props.asym_id(l)} [${props.x(l).toFixed(2)}, ${props.y(l).toFixed(2)}, ${props.z(l).toFixed(2)}]`,
+        );
+      }
+      if (size > 3) console.log(`...`);
     }
+  }
 }
 
 export function printSymmetryInfo(model: Model) {
-    console.log('\nSymmetry Info\n=============');
-    const symmetry = ModelSymmetry.Provider.get(model);
-    if (!symmetry) return;
-    const { size, anglesInRadians } = symmetry.spacegroup.cell;
-    console.log(`Spacegroup: ${symmetry.spacegroup.name} size: ${Vec3.toString(size)} angles: ${Vec3.toString(anglesInRadians)}`);
-    console.log(`Assembly names: ${symmetry.assemblies.map(a => a.id).join(', ')}`);
-    // NCS example: 1auy
-    console.log(`NCS operators: ${symmetry.ncsOperators && symmetry.ncsOperators.map(a => a.name).join(', ')}`);
+  console.log('\nSymmetry Info\n=============');
+  const symmetry = ModelSymmetry.Provider.get(model);
+  if (!symmetry) return;
+  const { size, anglesInRadians } = symmetry.spacegroup.cell;
+  console.log(
+    `Spacegroup: ${symmetry.spacegroup.name} size: ${Vec3.toString(size)} angles: ${Vec3.toString(anglesInRadians)}`,
+  );
+  console.log(`Assembly names: ${symmetry.assemblies.map((a) => a.id).join(', ')}`);
+  // NCS example: 1auy
+  console.log(`NCS operators: ${symmetry.ncsOperators && symmetry.ncsOperators.map((a) => a.name).join(', ')}`);
 }
 
 export async function printModelStats(models: Trajectory) {
-    console.log('\nModels\n=============');
+  console.log('\nModels\n=============');
 
-    for (let i = 0; i < models.frameCount; i++) {
-        const m = await Task.resolveInContext(models.getFrameAtIndex(i));
-        if (m.coarseHierarchy.isDefined) {
-            console.log(`${m.label} ${m.modelNum}: ${m.atomicHierarchy.atoms._rowCount} atom(s), ${m.coarseHierarchy.spheres.count} sphere(s), ${m.coarseHierarchy.gaussians.count} gaussian(s)`);
-        } else {
-            console.log(`${m.label} ${m.modelNum}: ${m.atomicHierarchy.atoms._rowCount} atom(s)`);
-        }
+  for (let i = 0; i < models.frameCount; i++) {
+    const m = await Task.resolveInContext(models.getFrameAtIndex(i));
+    if (m.coarseHierarchy.isDefined) {
+      console.log(
+        `${m.label} ${m.modelNum}: ${m.atomicHierarchy.atoms._rowCount} atom(s), ${m.coarseHierarchy.spheres.count} sphere(s), ${m.coarseHierarchy.gaussians.count} gaussian(s)`,
+      );
+    } else {
+      console.log(`${m.label} ${m.modelNum}: ${m.atomicHierarchy.atoms._rowCount} atom(s)`);
     }
-    console.log();
+  }
+  console.log();
 }
 
 export async function getModelsAndStructure(frame: CifFrame) {
-    const models = await trajectoryFromMmCIF(frame).run();
-    const structure = Structure.ofModel(models.representative);
-    return { models, structure };
+  const models = await trajectoryFromMmCIF(frame).run();
+  const structure = Structure.ofModel(models.representative);
+  return { models, structure };
 }
 
 async function run(frame: CifFrame, args: Args) {
-    const { models, structure } = await getModelsAndStructure(frame);
+  const { models, structure } = await getModelsAndStructure(frame);
 
-    if (args.models) printModelStats(models);
-    if (args.seq) printSequence(models.representative);
-    if (args.units) printUnits(structure);
-    if (args.sym) printSymmetryInfo(models.representative);
-    if (args.rings) printRings(structure);
-    if (args.intraBonds) printBonds(structure, true, false);
-    if (args.interBonds) printBonds(structure, false, true);
-    if (args.sec) printSecStructure(models.representative);
+  if (args.models) printModelStats(models);
+  if (args.seq) printSequence(models.representative);
+  if (args.units) printUnits(structure);
+  if (args.sym) printSymmetryInfo(models.representative);
+  if (args.rings) printRings(structure);
+  if (args.intraBonds) printBonds(structure, true, false);
+  if (args.interBonds) printBonds(structure, false, true);
+  if (args.sec) printSecStructure(models.representative);
 }
 
 async function runDL(pdb: string, args: Args) {
-    const mmcif = await downloadFromPdb(pdb);
-    run(mmcif, args);
+  const mmcif = await downloadFromPdb(pdb);
+  run(mmcif, args);
 }
 
 async function runFile(filename: string, args: Args) {
-    const mmcif = await readCifFile(filename);
-    run(mmcif, args);
+  const mmcif = await readCifFile(filename);
+  run(mmcif, args);
 }
 
 const parser = new argparse.ArgumentParser({
-    add_help: true,
-    description: 'Print info about a structure, mainly to test and showcase the mol-model module'
+  add_help: true,
+  description: 'Print info about a structure, mainly to test and showcase the mol-model module',
 });
 parser.add_argument('--download', '-d', { help: 'Pdb entry id' });
 parser.add_argument('--file', '-f', { help: 'filename' });
@@ -245,19 +266,19 @@ parser.add_argument('--interBonds', { help: 'print inter unit bonds', action: 's
 parser.add_argument('--mod', { help: 'print modified residues', action: 'store_true' });
 parser.add_argument('--sec', { help: 'print secoundary structure', action: 'store_true' });
 interface Args {
-    download?: string,
-    file?: string,
+  download?: string;
+  file?: string;
 
-    models?: boolean,
-    seq?: boolean,
-    ihm?: boolean,
-    units?: boolean,
-    sym?: boolean,
-    rings?: boolean,
-    intraBonds?: boolean,
-    interBonds?: boolean,
-    mod?: boolean,
-    sec?: boolean,
+  models?: boolean;
+  seq?: boolean;
+  ihm?: boolean;
+  units?: boolean;
+  sym?: boolean;
+  rings?: boolean;
+  intraBonds?: boolean;
+  interBonds?: boolean;
+  mod?: boolean;
+  sec?: boolean;
 }
 const args: Args = parser.parse_args();
 

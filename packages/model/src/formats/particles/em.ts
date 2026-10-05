@@ -68,207 +68,212 @@ const tmpRotZpsi = Mat4();
  *   [ sintheta*sinpsi                        , -sintheta*cospsi                        ,  costheta        ]
  */
 function artiatomiEulerToRotation(out: Mat4, phi: number, psi: number, theta: number): Mat4 {
-    const rotZphi = Mat4.fromRotation(tmpRotZphi, phi, Vec3.unitZ);
-    const rotXtheta = Mat4.fromRotation(tmpRotXtheta, theta, Vec3.unitX);
-    const rotZpsi = Mat4.fromRotation(tmpRotZpsi, psi, Vec3.unitZ);
-    // R = Rz(psi) * Rx(theta) * Rz(phi)
-    Mat4.mul(out, rotXtheta, rotZphi);
-    Mat4.mul(out, rotZpsi, out);
-    return out;
+  const rotZphi = Mat4.fromRotation(tmpRotZphi, phi, Vec3.unitZ);
+  const rotXtheta = Mat4.fromRotation(tmpRotXtheta, theta, Vec3.unitX);
+  const rotZpsi = Mat4.fromRotation(tmpRotZpsi, psi, Vec3.unitZ);
+  // R = Rz(psi) * Rx(theta) * Rz(phi)
+  Mat4.mul(out, rotXtheta, rotZphi);
+  Mat4.mul(out, rotZpsi, out);
+  return out;
 }
 
 export interface ArtiatomiMotivelistOptions {
-    /**
-     * Pixel size (Å/pixel) used to convert voxel-space coordinates to angstrom.
-     * Artiatomi EM motivelists do not encode distance units, so this must be supplied.
-     */
-    readonly pixelSize: number
-    /** If given, only particles whose tomogram number (row 5 in TomoParticle convention) matches are included. */
-    readonly tomos?: ReadonlyArray<number>
-    readonly label?: string
-    /** Uniform particle radius in angstrom assigned to every particle. Leave 0 or undefined to omit radii. */
-    readonly particleRadius?: number
+  /**
+   * Pixel size (Å/pixel) used to convert voxel-space coordinates to angstrom.
+   * Artiatomi EM motivelists do not encode distance units, so this must be supplied.
+   */
+  readonly pixelSize: number;
+  /** If given, only particles whose tomogram number (row 5 in TomoParticle convention) matches are included. */
+  readonly tomos?: ReadonlyArray<number>;
+  readonly label?: string;
+  /** Uniform particle radius in angstrom assigned to every particle. Leave 0 or undefined to omit radii. */
+  readonly particleRadius?: number;
 }
 
 /** Return the sorted set of unique tomogram IDs from the motivelist (row 5, TomoParticle convention). */
 export function getArtiatomiMotivelistTomogramIds(data: ArtiatomiEmFile): number[] {
-    if (data.header.dimX !== ArtiatomiMotivelistRowCount) return [];
-    const n = data.header.dimY * data.header.dimZ;
-    const tomos = new Set<number>();
-    for (let p = 0; p < n; p++) {
-        const tomo = data.data[p * ArtiatomiMotivelistRowCount + ROW_TOMO];
-        tomos.add(tomo);
-    }
-    return Array.from(tomos).sort((a, b) => a - b);
+  if (data.header.dimX !== ArtiatomiMotivelistRowCount) return [];
+  const n = data.header.dimY * data.header.dimZ;
+  const tomos = new Set<number>();
+  for (let p = 0; p < n; p++) {
+    const tomo = data.data[p * ArtiatomiMotivelistRowCount + ROW_TOMO];
+    tomos.add(tomo);
+  }
+  return Array.from(tomos).sort((a, b) => a - b);
 }
 
-export function createParticleListFromArtiatomiEm(data: ArtiatomiEmFile, options: ArtiatomiMotivelistOptions): ParticleList {
-    if (data.header.dimX !== ArtiatomiMotivelistRowCount) {
-        throw new Error(
-            `EM file does not appear to be a motivelist: expected DimX = ${ArtiatomiMotivelistRowCount}, got ${data.header.dimX}.`
-        );
+export function createParticleListFromArtiatomiEm(
+  data: ArtiatomiEmFile,
+  options: ArtiatomiMotivelistOptions,
+): ParticleList {
+  if (data.header.dimX !== ArtiatomiMotivelistRowCount) {
+    throw new Error(
+      `EM file does not appear to be a motivelist: expected DimX = ${ArtiatomiMotivelistRowCount}, got ${data.header.dimX}.`,
+    );
+  }
+
+  const pixelSize = options.pixelSize > 0 ? options.pixelSize : 1;
+  const particleCount = data.header.dimY * data.header.dimZ;
+  const tomoFilter = options.tomos?.length ? new Set<number>(options.tomos) : undefined;
+  const vals = data.data;
+
+  // Pre-count accepted particles so we can allocate exact-sized typed arrays.
+  let acceptedCount = 0;
+  for (let p = 0; p < particleCount; p++) {
+    if (tomoFilter !== undefined) {
+      const tomo = vals[p * ArtiatomiMotivelistRowCount + ROW_TOMO];
+      if (!tomoFilter.has(tomo)) continue;
+    }
+    acceptedCount++;
+  }
+
+  if (acceptedCount === 0) {
+    throw new Error(
+      tomoFilter !== undefined
+        ? `No Artiatomi motivelist particles matched tomos '${options.tomos!.join(', ')}'.`
+        : 'No readable Artiatomi motivelist particles were found.',
+    );
+  }
+
+  const keys = new Int32Array(acceptedCount);
+  const coordinates = new Float32Array(acceptedCount * 3);
+  const rotations = new Float32Array(acceptedCount * 4);
+
+  const rotation = Mat4();
+  const quaternion = Quat();
+
+  let count = 0;
+  for (let p = 0; p < particleCount; p++) {
+    const base = p * ArtiatomiMotivelistRowCount;
+
+    if (tomoFilter !== undefined) {
+      if (!tomoFilter.has(vals[base + ROW_TOMO])) continue;
     }
 
-    const pixelSize = options.pixelSize > 0 ? options.pixelSize : 1;
-    const particleCount = data.header.dimY * data.header.dimZ;
-    const tomoFilter = options.tomos?.length ? new Set<number>(options.tomos) : undefined;
-    const vals = data.data;
+    // Coordinates (voxels) with post-rotation shifts applied in the lab frame.
+    // Shifts (rows 11–13) are the offsets by which the template was displaced after
+    // rotation to align with the particle, so the particle centre = coord − shift.
+    const x = vals[base + ROW_X];
+    const y = vals[base + ROW_Y];
+    const z = vals[base + ROW_Z];
+    const dx = vals[base + ROW_DX];
+    const dy = vals[base + ROW_DY];
+    const dz = vals[base + ROW_DZ];
 
-    // Pre-count accepted particles so we can allocate exact-sized typed arrays.
-    let acceptedCount = 0;
-    for (let p = 0; p < particleCount; p++) {
-        if (tomoFilter !== undefined) {
-            const tomo = vals[p * ArtiatomiMotivelistRowCount + ROW_TOMO];
-            if (!tomoFilter.has(tomo)) continue;
-        }
-        acceptedCount++;
+    const cOffset = count * 3;
+    coordinates[cOffset + 0] = (x - dx) * pixelSize;
+    coordinates[cOffset + 1] = (y - dy) * pixelSize;
+    coordinates[cOffset + 2] = (z - dz) * pixelSize;
+
+    // Orientation: R = Rz(psi) * Rx(theta) * Rz(phi)
+    const phi = degToRad(vals[base + ROW_PHI]);
+    const psi = degToRad(vals[base + ROW_PSI]);
+    const theta = degToRad(vals[base + ROW_THETA]);
+
+    artiatomiEulerToRotation(rotation, phi, psi, theta);
+    Quat.normalize(quaternion, Quat.fromMat4(quaternion, rotation));
+
+    const qOffset = count * 4;
+    rotations[qOffset + 0] = quaternion[0];
+    rotations[qOffset + 1] = quaternion[1];
+    rotations[qOffset + 2] = quaternion[2];
+    rotations[qOffset + 3] = quaternion[3];
+
+    keys[count] = p;
+    count++;
+  }
+
+  const finalKeys = count === particleCount ? keys : keys.slice(0, count);
+  const finalCoords = count === particleCount ? coordinates : coordinates.slice(0, count * 3);
+  const finalRotations = count === particleCount ? rotations : rotations.slice(0, count * 4);
+
+  /**
+   * Build a `ParticleAttribute` that reads directly from the raw motivelist buffer via
+   * `finalKeys`, without copying data into a new typed array.
+   */
+  const buildEmAttribute = (rowOffset: number): { column: Column<number>; min: number; max: number } | undefined => {
+    const attrCount = finalKeys.length;
+    const column = Column.ofLambda({
+      value: (i: number) => vals[finalKeys[i] * ArtiatomiMotivelistRowCount + rowOffset],
+      rowCount: attrCount,
+      schema: Column.Schema.float,
+    });
+    let min = Infinity,
+      max = -Infinity;
+    for (let i = 0; i < attrCount; i++) {
+      const v = column.value(i);
+      if (isFinite(v)) {
+        if (v < min) min = v;
+        if (v > max) max = v;
+      }
     }
+    if (!isFinite(min)) return;
+    return { column, min, max };
+  };
 
-    if (acceptedCount === 0) {
-        throw new Error(tomoFilter !== undefined
-            ? `No Artiatomi motivelist particles matched tomos '${options.tomos!.join(', ')}'.`
-            : 'No readable Artiatomi motivelist particles were found.');
-    }
+  const emAttributes = new Map<string, ParticleAttribute>();
+  for (const [key, label, rowOffset] of [
+    ['cc', 'CC', ROW_CC],
+    ['class', 'Class', ROW_CLASS],
+  ] as Array<[string, string, number]>) {
+    const built = buildEmAttribute(rowOffset);
+    if (!built) continue;
+    emAttributes.set(key, { label, ...built });
+  }
 
-    const keys = new Int32Array(acceptedCount);
-    const coordinates = new Float32Array(acceptedCount * 3);
-    const rotations = new Float32Array(acceptedCount * 4);
+  const radii =
+    options.particleRadius && options.particleRadius > 0
+      ? new Float32Array(count).fill(options.particleRadius)
+      : undefined;
 
-    const rotation = Mat4();
-    const quaternion = Quat();
-
-    let count = 0;
-    for (let p = 0; p < particleCount; p++) {
-        const base = p * ArtiatomiMotivelistRowCount;
-
-        if (tomoFilter !== undefined) {
-            if (!tomoFilter.has(vals[base + ROW_TOMO])) continue;
-        }
-
-        // Coordinates (voxels) with post-rotation shifts applied in the lab frame.
-        // Shifts (rows 11–13) are the offsets by which the template was displaced after
-        // rotation to align with the particle, so the particle centre = coord − shift.
-        const x = vals[base + ROW_X];
-        const y = vals[base + ROW_Y];
-        const z = vals[base + ROW_Z];
-        const dx = vals[base + ROW_DX];
-        const dy = vals[base + ROW_DY];
-        const dz = vals[base + ROW_DZ];
-
-        const cOffset = count * 3;
-        coordinates[cOffset + 0] = (x - dx) * pixelSize;
-        coordinates[cOffset + 1] = (y - dy) * pixelSize;
-        coordinates[cOffset + 2] = (z - dz) * pixelSize;
-
-        // Orientation: R = Rz(psi) * Rx(theta) * Rz(phi)
-        const phi = degToRad(vals[base + ROW_PHI]);
-        const psi = degToRad(vals[base + ROW_PSI]);
-        const theta = degToRad(vals[base + ROW_THETA]);
-
-        artiatomiEulerToRotation(rotation, phi, psi, theta);
-        Quat.normalize(quaternion, Quat.fromMat4(quaternion, rotation));
-
-        const qOffset = count * 4;
-        rotations[qOffset + 0] = quaternion[0];
-        rotations[qOffset + 1] = quaternion[1];
-        rotations[qOffset + 2] = quaternion[2];
-        rotations[qOffset + 3] = quaternion[3];
-
-        keys[count] = p;
-        count++;
-    }
-
-    const finalKeys = count === particleCount ? keys : keys.slice(0, count);
-    const finalCoords = count === particleCount ? coordinates : coordinates.slice(0, count * 3);
-    const finalRotations = count === particleCount ? rotations : rotations.slice(0, count * 4);
-
-    /**
-     * Build a `ParticleAttribute` that reads directly from the raw motivelist buffer via
-     * `finalKeys`, without copying data into a new typed array.
-     */
-    const buildEmAttribute = (rowOffset: number): { column: Column<number>, min: number, max: number } | undefined => {
-        const attrCount = finalKeys.length;
-        const column = Column.ofLambda({
-            value: (i: number) => vals[finalKeys[i] * ArtiatomiMotivelistRowCount + rowOffset],
-            rowCount: attrCount,
-            schema: Column.Schema.float,
-        });
-        let min = Infinity, max = -Infinity;
-        for (let i = 0; i < attrCount; i++) {
-            const v = column.value(i);
-            if (isFinite(v)) {
-                if (v < min) min = v;
-                if (v > max) max = v;
-            }
-        }
-        if (!isFinite(min)) return;
-        return { column, min, max };
-    };
-
-    const emAttributes = new Map<string, ParticleAttribute>();
-    for (const [key, label, rowOffset] of [
-        ['cc', 'CC', ROW_CC],
-        ['class', 'Class', ROW_CLASS],
-    ] as Array<[string, string, number]>) {
-        const built = buildEmAttribute(rowOffset);
-        if (!built) continue;
-        emAttributes.set(key, { label, ...built });
-    }
-
-    const radii = options.particleRadius && options.particleRadius > 0
-        ? new Float32Array(count).fill(options.particleRadius)
-        : undefined;
-
-    return {
-        label: buildArtiatomiLabel(options.label, options.tomos),
-        count,
-        keys: finalKeys,
-        targets: new Int32Array(count),
-        targetInfo: new Map([[0, {}]]),
-        coordinates: finalCoords,
-        rotations: finalRotations,
-        radii,
-        attributes: emAttributes.size > 0 ? emAttributes : undefined,
-        getParticleLabel: (index: number) => {
-            const p = finalKeys[index];
-            const base = p * ArtiatomiMotivelistRowCount;
-            const parts: string[] = [`#${p + 1}`];
-            const tomo = vals[base + ROW_TOMO];
-            if (tomo > 0) parts.push(`tomo ${tomo}`);
-            const classNo = vals[base + ROW_CLASS];
-            if (classNo > 0) parts.push(`class ${classNo}`);
-            const cc = vals[base + ROW_CC];
-            parts.push(`cc ${cc.toFixed(4)}`);
-            return parts.join(' | ');
-        },
-        sourceData: ArtiatomiEmFormat.create(data),
-        customProperties: new CustomProperties(),
-        _propertyData: Object.create(null),
-    };
+  return {
+    label: buildArtiatomiLabel(options.label, options.tomos),
+    count,
+    keys: finalKeys,
+    targets: new Int32Array(count),
+    targetInfo: new Map([[0, {}]]),
+    coordinates: finalCoords,
+    rotations: finalRotations,
+    radii,
+    attributes: emAttributes.size > 0 ? emAttributes : undefined,
+    getParticleLabel: (index: number) => {
+      const p = finalKeys[index];
+      const base = p * ArtiatomiMotivelistRowCount;
+      const parts: string[] = [`#${p + 1}`];
+      const tomo = vals[base + ROW_TOMO];
+      if (tomo > 0) parts.push(`tomo ${tomo}`);
+      const classNo = vals[base + ROW_CLASS];
+      if (classNo > 0) parts.push(`class ${classNo}`);
+      const cc = vals[base + ROW_CC];
+      parts.push(`cc ${cc.toFixed(4)}`);
+      return parts.join(' | ');
+    },
+    sourceData: ArtiatomiEmFormat.create(data),
+    customProperties: new CustomProperties(),
+    _propertyData: Object.create(null),
+  };
 }
 
 function buildArtiatomiLabel(label?: string, tomos?: ReadonlyArray<number>): string {
-    if (!label) label = 'Particles';
-    if (tomos?.length) {
-        return tomos.length === 1
-            ? `${label} (tomo ${tomos[0]})`
-            : `${label} (tomos ${tomos.join(', ')})`;
-    }
-    return label;
+  if (!label) label = 'Particles';
+  if (tomos?.length) {
+    return tomos.length === 1 ? `${label} (tomo ${tomos[0]})` : `${label} (tomos ${tomos.join(', ')})`;
+  }
+  return label;
 }
 
 //
 
 export { ArtiatomiEmFormat };
 
-type ArtiatomiEmFormat = ModelFormat<ArtiatomiEmFile>
+type ArtiatomiEmFormat = ModelFormat<ArtiatomiEmFile>;
 
 namespace ArtiatomiEmFormat {
-    export function is(x?: ModelFormat): x is ArtiatomiEmFormat {
-        return x?.kind === 'artiatomi-em';
-    }
+  export function is(x?: ModelFormat): x is ArtiatomiEmFormat {
+    return x?.kind === 'artiatomi-em';
+  }
 
-    export function create(em: ArtiatomiEmFile): ArtiatomiEmFormat {
-        return { kind: 'artiatomi-em', name: 'artiatomi-em', data: em };
-    }
+  export function create(em: ArtiatomiEmFile): ArtiatomiEmFormat {
+    return { kind: 'artiatomi-em', name: 'artiatomi-em', data: em };
+  }
 }

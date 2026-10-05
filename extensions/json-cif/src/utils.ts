@@ -11,24 +11,24 @@ import { Task } from '@molstar/core/task';
 import { JSONCifEncoder } from '@molstar/json-cif-extension/encoder';
 
 export async function molfileToJSONCif(molfile: string) {
-    const parsed = await parseMol(molfile).run();
-    if (parsed.isError) throw new Error(parsed.message);
-    const models = await trajectoryFromMol(parsed.result).run();
-    const model = await Task.resolveInContext(models.getFrameAtIndex(0));
-    const structure = Structure.ofModel(model);
-    const encoder = new JSONCifEncoder('Mol*', { formatJSON: true });
+  const parsed = await parseMol(molfile).run();
+  if (parsed.isError) throw new Error(parsed.message);
+  const models = await trajectoryFromMol(parsed.result).run();
+  const model = await Task.resolveInContext(models.getFrameAtIndex(0));
+  const structure = Structure.ofModel(model);
+  const encoder = new JSONCifEncoder('Mol*', { formatJSON: true });
 
-    to_mmCIF('mol', structure, false, {
-        encoder,
-        includedCategoryNames: new Set(['atom_site']),
-        extensions: {
-            molstar_bond_site: true,
-        }
-    });
+  to_mmCIF('mol', structure, false, {
+    encoder,
+    includedCategoryNames: new Set(['atom_site']),
+    extensions: {
+      molstar_bond_site: true,
+    },
+  });
 
-    return {
-        structure,
-        molfile: parsed.result,
-        jsoncif: encoder.getFile()
-    };
+  return {
+    structure,
+    molfile: parsed.result,
+    jsoncif: encoder.getFile(),
+  };
 }

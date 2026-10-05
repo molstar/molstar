@@ -5,41 +5,41 @@
  */
 
 export namespace ConsoleLogger {
-    export function formatTime(t: number) {
-        if (isNaN(t)) return 'n/a';
+  export function formatTime(t: number) {
+    if (isNaN(t)) return 'n/a';
 
-        const h = Math.floor(t / (60 * 60 * 1000)),
-            m = Math.floor(t / (60 * 1000) % 60),
-            s = Math.floor(t / 1000 % 60);
-        let ms = Math.floor(t % 1000).toString();
+    const h = Math.floor(t / (60 * 60 * 1000)),
+      m = Math.floor((t / (60 * 1000)) % 60),
+      s = Math.floor((t / 1000) % 60);
+    let ms = Math.floor(t % 1000).toString();
 
-        while (ms.length < 3) ms = '0' + ms;
+    while (ms.length < 3) ms = '0' + ms;
 
-        if (h > 0) return `${h}h${m}m${s}.${ms}s`;
-        if (m > 0) return `${m}m${s}.${ms}s`;
-        if (s > 0) return `${s}.${ms}s`;
-        return `${t.toFixed(0)}ms`;
-    }
+    if (h > 0) return `${h}h${m}m${s}.${ms}s`;
+    if (m > 0) return `${m}m${s}.${ms}s`;
+    if (s > 0) return `${s}.${ms}s`;
+    return `${t.toFixed(0)}ms`;
+  }
 
-    export function log(tag: string, msg: string) {
-        console.log(`[${tag}] ${msg}`);
-    }
+  export function log(tag: string, msg: string) {
+    console.log(`[${tag}] ${msg}`);
+  }
 
-    export function logId(guid: string, tag: string, msg: string) {
-        console.log(`[${guid}][${tag}] ${msg}`);
-    }
+  export function logId(guid: string, tag: string, msg: string) {
+    console.log(`[${guid}][${tag}] ${msg}`);
+  }
 
-    export function error(ctx: string, e: any) {
-        console.error(`[Error] (${ctx}) ${e}`);
-        if (e.stack) console.error(e.stack);
-    }
+  export function error(ctx: string, e: any) {
+    console.error(`[Error] (${ctx}) ${e}`);
+    if (e.stack) console.error(e.stack);
+  }
 
-    export function warn(ctx: string, e: any) {
-        console.error(`[Warn] (${ctx}) ${e}`);
-    }
+  export function warn(ctx: string, e: any) {
+    console.error(`[Warn] (${ctx}) ${e}`);
+  }
 
-    export function errorId(guid: string, e: any) {
-        console.error(`[${guid}][Error] ${e}`);
-        if (e.stack) console.error(e.stack);
-    }
+  export function errorId(guid: string, e: any) {
+    console.error(`[${guid}][Error] ${e}`);
+    if (e.stack) console.error(e.stack);
+  }
 }

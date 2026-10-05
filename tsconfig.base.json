@@ -17,20 +17,12 @@
     "noEmitHelpers": true,
     "allowSyntheticDefaultImports": true,
     "jsx": "react-jsx",
-    "lib": [
-      "ES2022",
-      "DOM"
-    ],
+    "lib": ["ES2022", "DOM"],
     "noUncheckedSideEffectImports": false,
     "useUnknownInCatchVariables": false,
     "strictPropertyInitialization": false,
-    "types": [
-      "webxr",
-      "node"
-    ],
-    "customConditions": [
-      "molstar-src"
-    ],
+    "types": ["webxr", "node"],
+    "customConditions": ["molstar-src"],
     "verbatimModuleSyntax": true,
     "composite": true,
     "declarationMap": true,

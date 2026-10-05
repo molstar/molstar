@@ -21,40 +21,40 @@ import { StateActions } from '@molstar/plugin/state/actions';
 import { PluginExtensions } from '@molstar/viewer/extensions';
 
 export const lib = {
-    structure: {
-        ...Structure,
+  structure: {
+    ...Structure,
+  },
+  volume: {
+    Volume,
+  },
+  shape: {
+    Shape,
+    ShapeGroup,
+  },
+  loci: {
+    Loci,
+    DataLoci,
+    EveryLoci,
+  },
+  math: {
+    LinearAlgebra: {
+      ...LinearAlgebra3D,
     },
-    volume: {
-        Volume,
-    },
-    shape: {
-        Shape,
-        ShapeGroup,
-    },
-    loci: {
-        Loci,
-        DataLoci,
-        EveryLoci,
-    },
-    math: {
-        LinearAlgebra: {
-            ...LinearAlgebra3D,
-        }
-    },
-    plugin: {
-        PluginContext,
-        PluginUIContext,
-        PluginConfig,
-        PluginBehavior,
-        PluginSpec,
-        PluginStateObject,
-        PluginStateTransform,
-        StateTransforms,
-        StateActions,
-        DefaultPluginSpec,
-        DefaultPluginUISpec,
-    },
-    extensions: {
-        ...PluginExtensions
-    }
+  },
+  plugin: {
+    PluginContext,
+    PluginUIContext,
+    PluginConfig,
+    PluginBehavior,
+    PluginSpec,
+    PluginStateObject,
+    PluginStateTransform,
+    StateTransforms,
+    StateActions,
+    DefaultPluginSpec,
+    DefaultPluginUISpec,
+  },
+  extensions: {
+    ...PluginExtensions,
+  },
 };

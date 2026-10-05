@@ -17,13 +17,27 @@ import * as Shape from './transforms/shape.js';
 // regardless of bundler module evaluation order (circular dependency).
 // @see https://github.com/molstar/molstar/issues/1791
 export const StateTransforms = {
-    get Data() { return Data; },
-    get Misc() { return Misc; },
-    get Model() { return Model; },
-    get Particles() { return Particles; },
-    get Volume() { return Volume; },
-    get Representation() { return Representation; },
-    get Shape() { return Shape; },
+  get Data() {
+    return Data;
+  },
+  get Misc() {
+    return Misc;
+  },
+  get Model() {
+    return Model;
+  },
+  get Particles() {
+    return Particles;
+  },
+  get Volume() {
+    return Volume;
+  },
+  get Representation() {
+    return Representation;
+  },
+  get Shape() {
+    return Shape;
+  },
 };
 
-export type StateTransforms = typeof StateTransforms
+export type StateTransforms = typeof StateTransforms;

@@ -16,62 +16,67 @@ import { ColorThemeCategory } from './categories.js';
 import { Volume } from '@molstar/model/model/volume/volume';
 
 const DefaultList = 'dark-2';
-const DefaultColor = Color(0xCCCCCC);
-const Description = 'Gives every volume instance a unique color based on the position (index) of the instance in the list of instances of the volume.';
+const DefaultColor = Color(0xcccccc);
+const Description =
+  'Gives every volume instance a unique color based on the position (index) of the instance in the list of instances of the volume.';
 
 export const VolumeInstanceColorThemeParams = {
-    ...getPaletteParams({ type: 'colors', colorList: DefaultList }),
+  ...getPaletteParams({ type: 'colors', colorList: DefaultList }),
 };
-export type VolumeInstanceColorThemeParams = typeof VolumeInstanceColorThemeParams
+export type VolumeInstanceColorThemeParams = typeof VolumeInstanceColorThemeParams;
 export function getVolumeInstanceColorThemeParams(ctx: ThemeDataContext) {
-    const params = PD.clone(VolumeInstanceColorThemeParams);
-    if (ctx.volume) {
-        if (ctx.volume.instances.length > ColorLists[DefaultList].list.length) {
-            params.palette.defaultValue.name = 'colors';
-            params.palette.defaultValue.params = {
-                ...params.palette.defaultValue.params,
-                list: { kind: 'interpolate', colors: getColorListFromName(DefaultList).list }
-            };
-        }
+  const params = PD.clone(VolumeInstanceColorThemeParams);
+  if (ctx.volume) {
+    if (ctx.volume.instances.length > ColorLists[DefaultList].list.length) {
+      params.palette.defaultValue.name = 'colors';
+      params.palette.defaultValue.params = {
+        ...params.palette.defaultValue.params,
+        list: { kind: 'interpolate', colors: getColorListFromName(DefaultList).list },
+      };
     }
-    return params;
+  }
+  return params;
 }
 
-export function VolumeInstanceColorTheme(ctx: ThemeDataContext, props: PD.Values<VolumeInstanceColorThemeParams>): ColorTheme<VolumeInstanceColorThemeParams> {
-    let color: LocationColor;
-    let legend: ScaleLegend | TableLegend | undefined;
+export function VolumeInstanceColorTheme(
+  ctx: ThemeDataContext,
+  props: PD.Values<VolumeInstanceColorThemeParams>,
+): ColorTheme<VolumeInstanceColorThemeParams> {
+  let color: LocationColor;
+  let legend: ScaleLegend | TableLegend | undefined;
 
-    if (ctx.volume) {
-        const palette = getPalette(ctx.volume.instances.length, props);
-        legend = palette.legend;
+  if (ctx.volume) {
+    const palette = getPalette(ctx.volume.instances.length, props);
+    legend = palette.legend;
 
-        const isLocation = Volume.Cell.isLocation;
-        color = (location: Location): Color => {
-            if (isLocation(location)) {
-                return palette.color(location.instance);
-            }
-            return DefaultColor;
-        };
-    } else {
-        color = () => DefaultColor;
-    }
-
-    return {
-        factory: VolumeInstanceColorTheme,
-        granularity: 'instance',
-        color,
-        props,
-        description: Description,
-        legend
+    const isLocation = Volume.Cell.isLocation;
+    color = (location: Location): Color => {
+      if (isLocation(location)) {
+        return palette.color(location.instance);
+      }
+      return DefaultColor;
     };
+  } else {
+    color = () => DefaultColor;
+  }
+
+  return {
+    factory: VolumeInstanceColorTheme,
+    granularity: 'instance',
+    color,
+    props,
+    description: Description,
+    legend,
+  };
 }
 
-export const VolumeInstanceColorThemeProvider: ColorTheme.Provider<VolumeInstanceColorThemeParams, 'volume-instance'> = {
+export const VolumeInstanceColorThemeProvider: ColorTheme.Provider<VolumeInstanceColorThemeParams, 'volume-instance'> =
+  {
     name: 'volume-instance',
     label: 'Volume Instance',
     category: ColorThemeCategory.Misc,
     factory: VolumeInstanceColorTheme,
     getParams: getVolumeInstanceColorThemeParams,
     defaultValues: PD.getDefaultValues(VolumeInstanceColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.volume
-};
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.volume,
+  };

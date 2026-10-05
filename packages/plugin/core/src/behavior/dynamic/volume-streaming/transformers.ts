@@ -26,79 +26,107 @@ import { VolumeStreaming } from './behavior.js';
 import { VolumeServerHeader, VolumeServerInfo } from './model.js';
 import { getContourLevel, getEmdbIds, getIds, getStreamingMethod } from './util.js';
 
-
 function createEntry(method: VolumeServerInfo.Kind, dataId: string, emDefaultContourLevel: number): InfoEntryProps {
-    return {
-        dataId,
-        source: method === 'em'
-            ? { name: 'em', params: { isoValue: Volume.IsoValue.absolute(emDefaultContourLevel || 0) } }
-            : { name: 'x-ray', params: {} },
-    };
+  return {
+    dataId,
+    source:
+      method === 'em'
+        ? { name: 'em', params: { isoValue: Volume.IsoValue.absolute(emDefaultContourLevel || 0) } }
+        : { name: 'x-ray', params: {} },
+  };
 }
 
-async function createEntries(emdbOrPdbIds: string[], method: 'em' | 'x-ray', emContourProvider: 'emdb' | 'pdbe', plugin: PluginContext, taskCtx: RuntimeContext): Promise<InfoEntryProps[]> {
-    const out: InfoEntryProps[] = [];
+async function createEntries(
+  emdbOrPdbIds: string[],
+  method: 'em' | 'x-ray',
+  emContourProvider: 'emdb' | 'pdbe',
+  plugin: PluginContext,
+  taskCtx: RuntimeContext,
+): Promise<InfoEntryProps[]> {
+  const out: InfoEntryProps[] = [];
 
-    for (const id of emdbOrPdbIds) {
-        const dataId = id.toLowerCase();
+  for (const id of emdbOrPdbIds) {
+    const dataId = id.toLowerCase();
 
-        if (method === 'em') {
-            // if pdb ids are given for method 'em', get corresponding emd ids:
-            let emdbIds: string[];
-            if (dataId.startsWith('emd')) {
-                emdbIds = [dataId];
-            } else {
-                await taskCtx.update('Getting EMDB info...');
-                emdbIds = await getEmdbIds(plugin, taskCtx, dataId);
-            }
-            for (const emdbId of emdbIds) {
-                let contourLevel: number | undefined;
-                try {
-                    contourLevel = await getContourLevel(emContourProvider, plugin, taskCtx, emdbId);
-                } catch (e) {
-                    console.info(`Could not get map info for ${emdbId}: ${e}`);
-                    continue;
-                }
-                out.push(createEntry(method, emdbId, contourLevel || 0));
-            }
-        } else { // x-ray
-            out.push(createEntry(method, dataId, 0));
+    if (method === 'em') {
+      // if pdb ids are given for method 'em', get corresponding emd ids:
+      let emdbIds: string[];
+      if (dataId.startsWith('emd')) {
+        emdbIds = [dataId];
+      } else {
+        await taskCtx.update('Getting EMDB info...');
+        emdbIds = await getEmdbIds(plugin, taskCtx, dataId);
+      }
+      for (const emdbId of emdbIds) {
+        let contourLevel: number | undefined;
+        try {
+          contourLevel = await getContourLevel(emContourProvider, plugin, taskCtx, emdbId);
+        } catch (e) {
+          console.info(`Could not get map info for ${emdbId}: ${e}`);
+          continue;
         }
+        out.push(createEntry(method, emdbId, contourLevel || 0));
+      }
+    } else {
+      // x-ray
+      out.push(createEntry(method, dataId, 0));
     }
-    return out;
+  }
+  return out;
 }
 
 export const InitVolumeStreaming = StateAction.build({
-    display: { name: 'Volume Streaming' },
-    from: SO.Molecule.Structure,
-    params(a, plugin: PluginContext) {
-        const method = getStreamingMethod(a && a.data);
-        const ids = getIds(method, a && a.data);
-        return {
-            method: PD.Select<VolumeServerInfo.Kind>(method, [['em', 'EM'], ['x-ray', 'X-Ray']]),
-            entries: PD.ObjectList({ id: PD.Text(ids[0] || '') }, ({ id }) => id, { defaultValue: ids.map(id => ({ id })) }),
-            defaultView: PD.Select<VolumeStreaming.ViewTypes>(method === 'em' ? 'auto' : 'selection-box', VolumeStreaming.ViewTypeOptions as any),
-            options: PD.Group({
-                serverUrl: PD.Text(plugin.config.get(PluginConfig.VolumeStreaming.DefaultServer) || 'https://ds.litemol.org'),
-                behaviorRef: PD.Text('', { isHidden: true }),
-                emContourProvider: PD.Select<'emdb' | 'pdbe'>('emdb', [['emdb', 'EMDB'], ['pdbe', 'PDBe']], { isHidden: true }),
-                channelParams: PD.Value<VolumeStreaming.DefaultChannelParams>({}, { isHidden: true })
-            })
-        };
-    },
-    isApplicable: (a, _, plugin: PluginContext) => {
-        const canStreamTest = plugin.config.get(PluginConfig.VolumeStreaming.CanStream);
-        if (canStreamTest) return canStreamTest(a.data, plugin);
-        return a.data.models.length === 1 && Model.probablyHasDensityMap(a.data.models[0]);
-    }
-})(({ ref, state, params }, plugin: PluginContext) => Task.create('Volume Streaming', async taskCtx => {
-    const entries: InfoEntryProps[] = await createEntries(params.entries.map(e => e.id), params.method, params.options.emContourProvider, plugin, taskCtx);
+  display: { name: 'Volume Streaming' },
+  from: SO.Molecule.Structure,
+  params(a, plugin: PluginContext) {
+    const method = getStreamingMethod(a && a.data);
+    const ids = getIds(method, a && a.data);
+    return {
+      method: PD.Select<VolumeServerInfo.Kind>(method, [
+        ['em', 'EM'],
+        ['x-ray', 'X-Ray'],
+      ]),
+      entries: PD.ObjectList({ id: PD.Text(ids[0] || '') }, ({ id }) => id, {
+        defaultValue: ids.map((id) => ({ id })),
+      }),
+      defaultView: PD.Select<VolumeStreaming.ViewTypes>(
+        method === 'em' ? 'auto' : 'selection-box',
+        VolumeStreaming.ViewTypeOptions as any,
+      ),
+      options: PD.Group({
+        serverUrl: PD.Text(plugin.config.get(PluginConfig.VolumeStreaming.DefaultServer) || 'https://ds.litemol.org'),
+        behaviorRef: PD.Text('', { isHidden: true }),
+        emContourProvider: PD.Select<'emdb' | 'pdbe'>(
+          'emdb',
+          [
+            ['emdb', 'EMDB'],
+            ['pdbe', 'PDBe'],
+          ],
+          { isHidden: true },
+        ),
+        channelParams: PD.Value<VolumeStreaming.DefaultChannelParams>({}, { isHidden: true }),
+      }),
+    };
+  },
+  isApplicable: (a, _, plugin: PluginContext) => {
+    const canStreamTest = plugin.config.get(PluginConfig.VolumeStreaming.CanStream);
+    if (canStreamTest) return canStreamTest(a.data, plugin);
+    return a.data.models.length === 1 && Model.probablyHasDensityMap(a.data.models[0]);
+  },
+})(({ ref, state, params }, plugin: PluginContext) =>
+  Task.create('Volume Streaming', async (taskCtx) => {
+    const entries: InfoEntryProps[] = await createEntries(
+      params.entries.map((e) => e.id),
+      params.method,
+      params.options.emContourProvider,
+      plugin,
+      taskCtx,
+    );
 
-    const infoTree = state.build().to(ref)
-        .applyOrUpdateTagged(VolumeStreaming.RootTag, CreateVolumeStreamingInfo, {
-            serverUrl: params.options.serverUrl,
-            entries
-        });
+    const infoTree = state.build().to(ref).applyOrUpdateTagged(VolumeStreaming.RootTag, CreateVolumeStreamingInfo, {
+      serverUrl: params.options.serverUrl,
+      entries,
+    });
 
     await infoTree.commit();
 
@@ -111,212 +139,260 @@ export const InitVolumeStreaming = StateAction.build({
 
     const infoObj = info.cell!.obj!;
 
-    const behTree = state.build().to(infoTree.ref).apply(CreateVolumeStreamingBehavior,
-        PD.getDefaultValues(VolumeStreaming.createParams({ data: infoObj.data, defaultView: params.defaultView, channelParams: params.options.channelParams })),
-        { ref: params.options.behaviorRef ? params.options.behaviorRef : void 0 });
+    const behTree = state
+      .build()
+      .to(infoTree.ref)
+      .apply(
+        CreateVolumeStreamingBehavior,
+        PD.getDefaultValues(
+          VolumeStreaming.createParams({
+            data: infoObj.data,
+            defaultView: params.defaultView,
+            channelParams: params.options.channelParams,
+          }),
+        ),
+        { ref: params.options.behaviorRef ? params.options.behaviorRef : void 0 },
+      );
 
     if (params.method === 'em') {
-        behTree.apply(VolumeStreamingVisual, { channel: 'em' }, { state: { isGhost: true }, tags: 'em' });
+      behTree.apply(VolumeStreamingVisual, { channel: 'em' }, { state: { isGhost: true }, tags: 'em' });
     } else {
-        behTree.apply(VolumeStreamingVisual, { channel: '2fo-fc' }, { state: { isGhost: true }, tags: '2fo-fc' });
-        behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(+ve)' }, { state: { isGhost: true }, tags: 'fo-fc(+ve)' });
-        behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(-ve)' }, { state: { isGhost: true }, tags: 'fo-fc(-ve)' });
+      behTree.apply(VolumeStreamingVisual, { channel: '2fo-fc' }, { state: { isGhost: true }, tags: '2fo-fc' });
+      behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(+ve)' }, { state: { isGhost: true }, tags: 'fo-fc(+ve)' });
+      behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(-ve)' }, { state: { isGhost: true }, tags: 'fo-fc(-ve)' });
     }
     await state.updateTree(behTree).runInContext(taskCtx);
-}));
+  }),
+);
 
 export const BoxifyVolumeStreaming = StateAction.build({
-    display: { name: 'Boxify Volume Streaming', description: 'Make the current box permanent.' },
-    from: VolumeStreaming,
-    isApplicable: (a) => a.data.params.entry.params.view.name === 'selection-box'
+  display: { name: 'Boxify Volume Streaming', description: 'Make the current box permanent.' },
+  from: VolumeStreaming,
+  isApplicable: (a) => a.data.params.entry.params.view.name === 'selection-box',
 })(({ a, ref, state }, plugin: PluginContext) => {
-    const params = a.data.params;
-    if (params.entry.params.view.name !== 'selection-box') return;
-    const box = Box3D.create(Vec3.clone(params.entry.params.view.params.bottomLeft), Vec3.clone(params.entry.params.view.params.topRight));
-    const r = params.entry.params.view.params.radius;
-    Box3D.expand(box, box, Vec3.create(r, r, r));
-    const newParams: VolumeStreaming.Params = {
-        ...params,
-        entry: {
-            name: params.entry.name,
-            params: {
-                ...params.entry.params,
-                view: {
-                    name: 'box' as 'box',
-                    params: {
-                        bottomLeft: box.min,
-                        topRight: box.max
-                    }
-                }
-            }
-        }
-    };
-    return state.updateTree(state.build().to(ref).update(newParams));
+  const params = a.data.params;
+  if (params.entry.params.view.name !== 'selection-box') return;
+  const box = Box3D.create(
+    Vec3.clone(params.entry.params.view.params.bottomLeft),
+    Vec3.clone(params.entry.params.view.params.topRight),
+  );
+  const r = params.entry.params.view.params.radius;
+  Box3D.expand(box, box, Vec3.create(r, r, r));
+  const newParams: VolumeStreaming.Params = {
+    ...params,
+    entry: {
+      name: params.entry.name,
+      params: {
+        ...params.entry.params,
+        view: {
+          name: 'box' as 'box',
+          params: {
+            bottomLeft: box.min,
+            topRight: box.max,
+          },
+        },
+      },
+    },
+  };
+  return state.updateTree(state.build().to(ref).update(newParams));
 });
 
 const InfoEntryParams = {
-    dataId: PD.Text(''),
-    source: PD.MappedStatic('x-ray', {
-        'em': PD.Group({
-            isoValue: Volume.createIsoValueParam(Volume.IsoValue.relative(1))
-        }),
-        'x-ray': PD.Group({})
-    })
+  dataId: PD.Text(''),
+  source: PD.MappedStatic('x-ray', {
+    em: PD.Group({
+      isoValue: Volume.createIsoValueParam(Volume.IsoValue.relative(1)),
+    }),
+    'x-ray': PD.Group({}),
+  }),
 };
-type InfoEntryProps = PD.Values<typeof InfoEntryParams>
+type InfoEntryProps = PD.Values<typeof InfoEntryParams>;
 
 export { CreateVolumeStreamingInfo };
-type CreateVolumeStreamingInfo = typeof CreateVolumeStreamingInfo
+type CreateVolumeStreamingInfo = typeof CreateVolumeStreamingInfo;
 const CreateVolumeStreamingInfo = PluginStateTransform.BuiltIn({
-    name: 'create-volume-streaming-info',
-    display: { name: 'Volume Streaming Info' },
-    from: SO.Molecule.Structure,
-    to: VolumeServerInfo,
-    params(a, plugin: PluginContext) {
-        return {
-            serverUrl: PD.Text(plugin.config.get(PluginConfig.VolumeStreaming.DefaultServer) || 'https://ds.litemol.org'),
-            autoEntries: PD.Boolean(false, { description: 'Create "entries" list automatically based on the input structure' }),
-            entries: PD.ObjectList<InfoEntryProps>(InfoEntryParams, ({ dataId }) => dataId, {
-                defaultValue: [{ dataId: '', source: { name: 'x-ray', params: {} } }],
-                hideIf: p => p.autoEntries,
-            }),
-            defaultView: PD.Select<VolumeStreaming.ViewTypes>(getStreamingMethod(a?.data) === 'em' ? 'auto' : 'selection-box', VolumeStreaming.ViewTypeOptions as any, { isHidden: true }),
-            defaultChannelParams: PD.Value<VolumeStreaming.DefaultChannelParams>({}, { isHidden: true }),
-        };
-    }
+  name: 'create-volume-streaming-info',
+  display: { name: 'Volume Streaming Info' },
+  from: SO.Molecule.Structure,
+  to: VolumeServerInfo,
+  params(a, plugin: PluginContext) {
+    return {
+      serverUrl: PD.Text(plugin.config.get(PluginConfig.VolumeStreaming.DefaultServer) || 'https://ds.litemol.org'),
+      autoEntries: PD.Boolean(false, {
+        description: 'Create "entries" list automatically based on the input structure',
+      }),
+      entries: PD.ObjectList<InfoEntryProps>(InfoEntryParams, ({ dataId }) => dataId, {
+        defaultValue: [{ dataId: '', source: { name: 'x-ray', params: {} } }],
+        hideIf: (p) => p.autoEntries,
+      }),
+      defaultView: PD.Select<VolumeStreaming.ViewTypes>(
+        getStreamingMethod(a?.data) === 'em' ? 'auto' : 'selection-box',
+        VolumeStreaming.ViewTypeOptions as any,
+        { isHidden: true },
+      ),
+      defaultChannelParams: PD.Value<VolumeStreaming.DefaultChannelParams>({}, { isHidden: true }),
+    };
+  },
 })({
-    apply: ({ a, params }, plugin: PluginContext) => Task.create('', async taskCtx => {
-        let inputEntries: InfoEntryProps[];
-        if (params.autoEntries) {
-            await taskCtx.update('Creating entry list...');
-            const method = getStreamingMethod(a?.data);
-            const ids = getIds(method, a?.data);
-            inputEntries = await createEntries(ids, method, 'emdb', plugin, taskCtx);
-        } else {
-            inputEntries = params.entries;
-        }
-        const entries: VolumeServerInfo.EntryData[] = [];
-        for (const e of inputEntries) {
-            const dataId = e.dataId;
-            const emDefaultContourLevel = e.source.name === 'em' ? e.source.params.isoValue : Volume.IsoValue.relative(1);
-            await taskCtx.update('Getting server header...');
-            const header = await plugin.fetch({ url: urlCombine(params.serverUrl, `${e.source.name}/${dataId.toLocaleLowerCase()}`), type: 'json' }).runInContext(taskCtx) as VolumeServerHeader;
-            entries.push({
-                dataId,
-                kind: e.source.name,
-                header,
-                emDefaultContourLevel
-            });
-        }
+  apply: ({ a, params }, plugin: PluginContext) =>
+    Task.create('', async (taskCtx) => {
+      let inputEntries: InfoEntryProps[];
+      if (params.autoEntries) {
+        await taskCtx.update('Creating entry list...');
+        const method = getStreamingMethod(a?.data);
+        const ids = getIds(method, a?.data);
+        inputEntries = await createEntries(ids, method, 'emdb', plugin, taskCtx);
+      } else {
+        inputEntries = params.entries;
+      }
+      const entries: VolumeServerInfo.EntryData[] = [];
+      for (const e of inputEntries) {
+        const dataId = e.dataId;
+        const emDefaultContourLevel = e.source.name === 'em' ? e.source.params.isoValue : Volume.IsoValue.relative(1);
+        await taskCtx.update('Getting server header...');
+        const header = (await plugin
+          .fetch({ url: urlCombine(params.serverUrl, `${e.source.name}/${dataId.toLocaleLowerCase()}`), type: 'json' })
+          .runInContext(taskCtx)) as VolumeServerHeader;
+        entries.push({
+          dataId,
+          kind: e.source.name,
+          header,
+          emDefaultContourLevel,
+        });
+      }
 
-        const data: VolumeServerInfo.Data = {
-            serverUrl: params.serverUrl,
-            entries,
-            structure: a.data,
-            defaultView: params.defaultView,
-            defaultChannelParams: params.defaultChannelParams,
-        };
-        return new VolumeServerInfo(data, { label: 'Volume Server', description: `${entries.map(e => e.dataId).join(', ')}` });
+      const data: VolumeServerInfo.Data = {
+        serverUrl: params.serverUrl,
+        entries,
+        structure: a.data,
+        defaultView: params.defaultView,
+        defaultChannelParams: params.defaultChannelParams,
+      };
+      return new VolumeServerInfo(data, {
+        label: 'Volume Server',
+        description: `${entries.map((e) => e.dataId).join(', ')}`,
+      });
     }),
-    update({ a, b, oldParams, newParams }) {
-        if (a.data === b.data.structure && deepEqual(oldParams, newParams)) return StateTransformer.UpdateResult.Unchanged;
-        return StateTransformer.UpdateResult.Recreate;
-    },
+  update({ a, b, oldParams, newParams }) {
+    if (a.data === b.data.structure && deepEqual(oldParams, newParams)) return StateTransformer.UpdateResult.Unchanged;
+    return StateTransformer.UpdateResult.Recreate;
+  },
 });
 
 export { CreateVolumeStreamingBehavior };
-type CreateVolumeStreamingBehavior = typeof CreateVolumeStreamingBehavior
+type CreateVolumeStreamingBehavior = typeof CreateVolumeStreamingBehavior;
 const CreateVolumeStreamingBehavior = PluginStateTransform.BuiltIn({
-    name: 'create-volume-streaming-behavior',
-    display: { name: 'Volume Streaming Behavior' },
-    from: VolumeServerInfo,
-    to: VolumeStreaming,
-    params(a) {
-        return VolumeStreaming.createParams({ data: a?.data, defaultView: a?.data.defaultView, channelParams: a?.data.defaultChannelParams });
-    }
+  name: 'create-volume-streaming-behavior',
+  display: { name: 'Volume Streaming Behavior' },
+  from: VolumeServerInfo,
+  to: VolumeStreaming,
+  params(a) {
+    return VolumeStreaming.createParams({
+      data: a?.data,
+      defaultView: a?.data.defaultView,
+      channelParams: a?.data.defaultChannelParams,
+    });
+  },
 })({
-    canAutoUpdate: ({ oldParams, newParams }) => {
-        return oldParams.entry.params.view === newParams.entry.params.view
-            || newParams.entry.params.view.name === 'selection-box'
-            || newParams.entry.params.view.name === 'camera-target'
-            || newParams.entry.params.view.name === 'off';
-    },
-    apply: ({ a, params }, plugin: PluginContext) => Task.create('Volume streaming', async _ => {
-        const behavior = new VolumeStreaming.Behavior(plugin, a.data);
-        await behavior.update(params);
-        return new VolumeStreaming(behavior, { label: 'Volume Streaming', description: behavior.getDescription() });
+  canAutoUpdate: ({ oldParams, newParams }) => {
+    return (
+      oldParams.entry.params.view === newParams.entry.params.view ||
+      newParams.entry.params.view.name === 'selection-box' ||
+      newParams.entry.params.view.name === 'camera-target' ||
+      newParams.entry.params.view.name === 'off'
+    );
+  },
+  apply: ({ a, params }, plugin: PluginContext) =>
+    Task.create('Volume streaming', async (_) => {
+      const behavior = new VolumeStreaming.Behavior(plugin, a.data);
+      await behavior.update(params);
+      return new VolumeStreaming(behavior, { label: 'Volume Streaming', description: behavior.getDescription() });
     }),
-    update({ a, b, oldParams, newParams }) {
-        return Task.create('Update Volume Streaming', async _ => {
-            if (oldParams.entry.name !== newParams.entry.name) {
-                if ('em' in newParams.entry.params.channels) {
-                    const { emDefaultContourLevel } = b.data.infoMap.get(newParams.entry.name)!;
-                    if (emDefaultContourLevel) {
-                        newParams.entry.params.channels['em'].isoValue = emDefaultContourLevel;
-                    }
-                }
-            }
-            const ret = await b.data.update(newParams) ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
-            b.description = b.data.getDescription();
-            return ret;
-        });
-    }
+  update({ a, b, oldParams, newParams }) {
+    return Task.create('Update Volume Streaming', async (_) => {
+      if (oldParams.entry.name !== newParams.entry.name) {
+        if ('em' in newParams.entry.params.channels) {
+          const { emDefaultContourLevel } = b.data.infoMap.get(newParams.entry.name)!;
+          if (emDefaultContourLevel) {
+            newParams.entry.params.channels['em'].isoValue = emDefaultContourLevel;
+          }
+        }
+      }
+      const ret = (await b.data.update(newParams))
+        ? StateTransformer.UpdateResult.Updated
+        : StateTransformer.UpdateResult.Unchanged;
+      b.description = b.data.getDescription();
+      return ret;
+    });
+  },
 });
 
 export { VolumeStreamingVisual };
-type VolumeStreamingVisual = typeof VolumeStreamingVisual
+type VolumeStreamingVisual = typeof VolumeStreamingVisual;
 const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
-    name: 'create-volume-streaming-visual',
-    display: { name: 'Volume Streaming Visual' },
-    from: VolumeStreaming,
-    to: SO.Volume.Representation3D,
-    params: {
-        channel: PD.Select<VolumeStreaming.ChannelType>('em', VolumeStreaming.ChannelTypeOptions, { isHidden: true })
-    }
+  name: 'create-volume-streaming-visual',
+  display: { name: 'Volume Streaming Visual' },
+  from: VolumeStreaming,
+  to: SO.Volume.Representation3D,
+  params: {
+    channel: PD.Select<VolumeStreaming.ChannelType>('em', VolumeStreaming.ChannelTypeOptions, { isHidden: true }),
+  },
 })({
-    apply: ({ a, params: srcParams, spine }, plugin: PluginContext) => Task.create('Volume Representation', async ctx => {
-        const channel = a.data.channels[srcParams.channel];
-        if (!channel) return StateObject.Null;
+  apply: ({ a, params: srcParams, spine }, plugin: PluginContext) =>
+    Task.create('Volume Representation', async (ctx) => {
+      const channel = a.data.channels[srcParams.channel];
+      if (!channel) return StateObject.Null;
 
-        const params = createVolumeProps(a.data, srcParams.channel);
-        const provider = VolumeRepresentationRegistry.BuiltIn.isosurface;
-        const props = params.type.params || {};
-        const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes }, provider.getParams);
-        repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: channel.data }, params));
-        const structure = spine.getAncestorOfType(SO.Molecule.Structure)?.data;
-        const transform = structure?.models.length === 0 ? void 0 : GlobalModelTransformInfo.get(structure?.models[0]!);
-        await repr.createOrUpdate(props, channel.data).runInContext(ctx);
-        if (transform) repr.setState({ transform });
-        return new SO.Volume.Representation3D({ repr, sourceData: channel.data }, { label: `${Math.round(channel.isoValue.relativeValue * 100) / 100} σ [${srcParams.channel}]` });
+      const params = createVolumeProps(a.data, srcParams.channel);
+      const provider = VolumeRepresentationRegistry.BuiltIn.isosurface;
+      const props = params.type.params || {};
+      const repr = provider.factory(
+        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes },
+        provider.getParams,
+      );
+      repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: channel.data }, params));
+      const structure = spine.getAncestorOfType(SO.Molecule.Structure)?.data;
+      const transform = structure?.models.length === 0 ? void 0 : GlobalModelTransformInfo.get(structure?.models[0]!);
+      await repr.createOrUpdate(props, channel.data).runInContext(ctx);
+      if (transform) repr.setState({ transform });
+      return new SO.Volume.Representation3D(
+        { repr, sourceData: channel.data },
+        { label: `${Math.round(channel.isoValue.relativeValue * 100) / 100} σ [${srcParams.channel}]` },
+      );
     }),
-    update: ({ a, b, newParams, spine }, plugin: PluginContext) => Task.create('Volume Representation', async ctx => {
-        // TODO : check if params/underlying data/etc have changed; maybe will need to export "data" or some other "tag" in the Representation for this to work
+  update: ({ a, b, newParams, spine }, plugin: PluginContext) =>
+    Task.create('Volume Representation', async (ctx) => {
+      // TODO : check if params/underlying data/etc have changed; maybe will need to export "data" or some other "tag" in the Representation for this to work
 
-        const channel = a.data.channels[newParams.channel];
-        // TODO: is this correct behavior?
-        if (!channel) return StateTransformer.UpdateResult.Unchanged;
+      const channel = a.data.channels[newParams.channel];
+      // TODO: is this correct behavior?
+      if (!channel) return StateTransformer.UpdateResult.Unchanged;
 
-        const visible = b.data.repr.state.visible;
-        const params = createVolumeProps(a.data, newParams.channel);
-        const props = { ...b.data.repr.props, ...params.type.params };
-        b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: channel.data }, params));
-        await b.data.repr.createOrUpdate(props, channel.data).runInContext(ctx);
-        b.data.repr.setState({ visible });
-        b.data.sourceData = channel.data;
+      const visible = b.data.repr.state.visible;
+      const params = createVolumeProps(a.data, newParams.channel);
+      const props = { ...b.data.repr.props, ...params.type.params };
+      b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: channel.data }, params));
+      await b.data.repr.createOrUpdate(props, channel.data).runInContext(ctx);
+      b.data.repr.setState({ visible });
+      b.data.sourceData = channel.data;
 
-        // TODO: set the transform here as well in case the structure moves?
-        //       doing this here now breaks the code for some reason...
-        // const structure = spine.getAncestorOfType(SO.Molecule.Structure)?.data;
-        // const transform = structure?.models.length === 0 ? void 0 : GlobalModelTransformInfo.get(structure?.models[0]!);
-        // if (transform) b.data.repr.setState({ transform });
+      // TODO: set the transform here as well in case the structure moves?
+      //       doing this here now breaks the code for some reason...
+      // const structure = spine.getAncestorOfType(SO.Molecule.Structure)?.data;
+      // const transform = structure?.models.length === 0 ? void 0 : GlobalModelTransformInfo.get(structure?.models[0]!);
+      // if (transform) b.data.repr.setState({ transform });
 
-        return StateTransformer.UpdateResult.Updated;
-    })
+      return StateTransformer.UpdateResult.Updated;
+    }),
 });
 
 function createVolumeProps(streaming: VolumeStreaming.Behavior, channelName: VolumeStreaming.ChannelType) {
-    const channel = streaming.channels[channelName]!;
-    return VolumeRepresentation3DHelpers.getDefaultParamsStatic(streaming.plugin,
-        'isosurface', { isoValue: channel.isoValue, alpha: channel.opacity, visuals: channel.wireframe ? ['wireframe'] : ['solid'] },
-        'uniform', { value: channel.color });
+  const channel = streaming.channels[channelName]!;
+  return VolumeRepresentation3DHelpers.getDefaultParamsStatic(
+    streaming.plugin,
+    'isosurface',
+    { isoValue: channel.isoValue, alpha: channel.opacity, visuals: channel.wireframe ? ['wireframe'] : ['solid'] },
+    'uniform',
+    { value: channel.color },
+  );
 }

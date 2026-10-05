@@ -17,57 +17,62 @@ import { Elements } from '@molstar/model/model/structure/model/properties/atomic
  * breaks with `SquarePlanar = 7`
  */
 export enum AtomGeometry {
-    Spherical = 0,
-    Terminal = 1,
-    Linear = 2,
-    Trigonal = 3,
-    Tetrahedral = 4,
-    TrigonalBiPyramidal = 5,
-    Octahedral = 6,
-    SquarePlanar = 7, // Okay, it breaks down somewhere!
-    Unknown = 8
+  Spherical = 0,
+  Terminal = 1,
+  Linear = 2,
+  Trigonal = 3,
+  Tetrahedral = 4,
+  TrigonalBiPyramidal = 5,
+  Octahedral = 6,
+  SquarePlanar = 7, // Okay, it breaks down somewhere!
+  Unknown = 8,
 }
 
 export function geometryLabel(geometry: AtomGeometry): string {
-    switch (geometry) {
-        case AtomGeometry.Spherical:
-            return 'Spherical';
-        case AtomGeometry.Terminal:
-            return 'Terminal';
-        case AtomGeometry.Linear:
-            return 'Linear';
-        case AtomGeometry.Trigonal:
-            return 'Trigonal';
-        case AtomGeometry.Tetrahedral:
-            return 'Tetrahedral';
-        case AtomGeometry.TrigonalBiPyramidal:
-            return 'Trigonal Bi-Pyramidal';
-        case AtomGeometry.Octahedral:
-            return 'Octahedral';
-        case AtomGeometry.SquarePlanar:
-            return 'Square Planar';
-        case AtomGeometry.Unknown:
-            return 'Unknown';
-    }
+  switch (geometry) {
+    case AtomGeometry.Spherical:
+      return 'Spherical';
+    case AtomGeometry.Terminal:
+      return 'Terminal';
+    case AtomGeometry.Linear:
+      return 'Linear';
+    case AtomGeometry.Trigonal:
+      return 'Trigonal';
+    case AtomGeometry.Tetrahedral:
+      return 'Tetrahedral';
+    case AtomGeometry.TrigonalBiPyramidal:
+      return 'Trigonal Bi-Pyramidal';
+    case AtomGeometry.Octahedral:
+      return 'Octahedral';
+    case AtomGeometry.SquarePlanar:
+      return 'Square Planar';
+    case AtomGeometry.Unknown:
+      return 'Unknown';
+  }
 }
 
 export function assignGeometry(totalCoordination: number): AtomGeometry {
-    switch (totalCoordination) {
-        case 0: return AtomGeometry.Spherical;
-        case 1: return AtomGeometry.Terminal;
-        case 2: return AtomGeometry.Linear;
-        case 3: return AtomGeometry.Trigonal;
-        case 4: return AtomGeometry.Tetrahedral;
-        default: return AtomGeometry.Unknown;
-
-    }
+  switch (totalCoordination) {
+    case 0:
+      return AtomGeometry.Spherical;
+    case 1:
+      return AtomGeometry.Terminal;
+    case 2:
+      return AtomGeometry.Linear;
+    case 3:
+      return AtomGeometry.Trigonal;
+    case 4:
+      return AtomGeometry.Tetrahedral;
+    default:
+      return AtomGeometry.Unknown;
+  }
 }
 
 export const AtomGeometryAngles = new Map<AtomGeometry, number>([
-    [AtomGeometry.Linear, degToRad(180)],
-    [AtomGeometry.Trigonal, degToRad(120)],
-    [AtomGeometry.Tetrahedral, degToRad(109.4721)],
-    [AtomGeometry.Octahedral, degToRad(90)]
+  [AtomGeometry.Linear, degToRad(180)],
+  [AtomGeometry.Trigonal, degToRad(120)],
+  [AtomGeometry.Tetrahedral, degToRad(109.4721)],
+  [AtomGeometry.Octahedral, degToRad(90)],
 ]);
 
 // tmp objects for `calcAngles` and `calcPlaneAngle`
@@ -80,25 +85,32 @@ const tmpPosX = Vec3();
 /**
  * Calculate the angles x-a1-a2 for all x where x is a heavy atom (not H) bonded to ap1.
  */
-export function calcAngles(structure: Structure, unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex, ignoreHydrogens = true): [number[], number[]] {
-    const angles: number[] = [];
-    const anglesH: number[] = [];
-    unitA.conformation.position(unitA.elements[indexA], tmpPosA);
-    unitB.conformation.position(unitB.elements[indexB], tmpPosB);
-    Vec3.sub(tmpDir1, tmpPosB, tmpPosA);
+export function calcAngles(
+  structure: Structure,
+  unitA: Unit.Atomic,
+  indexA: StructureElement.UnitIndex,
+  unitB: Unit.Atomic,
+  indexB: StructureElement.UnitIndex,
+  ignoreHydrogens = true,
+): [number[], number[]] {
+  const angles: number[] = [];
+  const anglesH: number[] = [];
+  unitA.conformation.position(unitA.elements[indexA], tmpPosA);
+  unitB.conformation.position(unitB.elements[indexB], tmpPosB);
+  Vec3.sub(tmpDir1, tmpPosB, tmpPosA);
 
-    eachBondedAtom(structure, unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
-        if (typeSymbol(unitX, indexX) !== Elements.H) {
-            unitX.conformation.position(unitX.elements[indexX], tmpPosX);
-            Vec3.sub(tmpDir2, tmpPosX, tmpPosA);
-            angles.push(Vec3.angle(tmpDir1, tmpDir2));
-        } else if (!ignoreHydrogens) {
-            unitX.conformation.position(unitX.elements[indexX], tmpPosX);
-            Vec3.sub(tmpDir2, tmpPosX, tmpPosA);
-            anglesH.push(Vec3.angle(tmpDir1, tmpDir2));
-        }
-    });
-    return [angles, anglesH];
+  eachBondedAtom(structure, unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
+    if (typeSymbol(unitX, indexX) !== Elements.H) {
+      unitX.conformation.position(unitX.elements[indexX], tmpPosX);
+      Vec3.sub(tmpDir2, tmpPosX, tmpPosA);
+      angles.push(Vec3.angle(tmpDir1, tmpDir2));
+    } else if (!ignoreHydrogens) {
+      unitX.conformation.position(unitX.elements[indexX], tmpPosX);
+      Vec3.sub(tmpDir2, tmpPosX, tmpPosA);
+      anglesH.push(Vec3.angle(tmpDir1, tmpDir2));
+    }
+  });
+  return [angles, anglesH];
 }
 
 /**
@@ -108,58 +120,70 @@ export function calcAngles(structure: Structure, unitA: Unit.Atomic, indexA: Str
  * @param  {AtomProxy} ap2 Second atom (out-of-plane)
  * @return {number}        Angle from plane to second atom
  */
-export function calcPlaneAngle(structure: Structure, unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex): number | undefined {
-    unitA.conformation.position(unitA.elements[indexA], tmpPosA);
-    unitB.conformation.position(unitB.elements[indexB], tmpPosB);
-    Vec3.sub(tmpDir1, tmpPosB, tmpPosA);
+export function calcPlaneAngle(
+  structure: Structure,
+  unitA: Unit.Atomic,
+  indexA: StructureElement.UnitIndex,
+  unitB: Unit.Atomic,
+  indexB: StructureElement.UnitIndex,
+): number | undefined {
+  unitA.conformation.position(unitA.elements[indexA], tmpPosA);
+  unitB.conformation.position(unitB.elements[indexB], tmpPosB);
+  Vec3.sub(tmpDir1, tmpPosB, tmpPosA);
 
-    const neighbours = [Vec3(), Vec3()];
-    let ni = 0;
-    let unitX1: Unit.Atomic | undefined;
-    let indexX1: StructureElement.UnitIndex | undefined;
-    eachBondedAtom(structure, unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
-        if (ni > 1) return;
-        if (typeSymbol(unitX, indexX) !== Elements.H) {
-            unitX1 = unitX;
-            indexX1 = indexX;
-            unitX.conformation.position(unitX.elements[indexX], tmpPosX);
-            Vec3.sub(neighbours[ni++], tmpPosX, tmpPosA);
-        }
+  const neighbours = [Vec3(), Vec3()];
+  let ni = 0;
+  let unitX1: Unit.Atomic | undefined;
+  let indexX1: StructureElement.UnitIndex | undefined;
+  eachBondedAtom(structure, unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
+    if (ni > 1) return;
+    if (typeSymbol(unitX, indexX) !== Elements.H) {
+      unitX1 = unitX;
+      indexX1 = indexX;
+      unitX.conformation.position(unitX.elements[indexX], tmpPosX);
+      Vec3.sub(neighbours[ni++], tmpPosX, tmpPosA);
+    }
+  });
+  if (ni === 1 && unitX1 && indexX1) {
+    eachBondedAtom(structure, unitX1, indexX1, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
+      if (ni > 1) return;
+      if (unitX === unitA && indexX === indexA) return;
+      if (typeSymbol(unitX, indexX) !== Elements.H) {
+        unitX.conformation.position(unitX.elements[indexX], tmpPosX);
+        Vec3.sub(neighbours[ni++], tmpPosX, tmpPosA);
+      }
     });
-    if (ni === 1 && unitX1 && indexX1) {
-        eachBondedAtom(structure, unitX1, indexX1, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
-            if (ni > 1) return;
-            if (unitX === unitA && indexX === indexA) return;
-            if (typeSymbol(unitX, indexX) !== Elements.H) {
-                unitX.conformation.position(unitX.elements[indexX], tmpPosX);
-                Vec3.sub(neighbours[ni++], tmpPosX, tmpPosA);
-            }
-        });
-    }
+  }
 
-    if (ni !== 2) {
-        return;
-    }
+  if (ni !== 2) {
+    return;
+  }
 
-    Vec3.cross(tmpDir2, neighbours[0], neighbours[1]);
-    return Math.abs((Math.PI / 2) - Vec3.angle(tmpDir2, tmpDir1));
+  Vec3.cross(tmpDir2, neighbours[0], neighbours[1]);
+  return Math.abs(Math.PI / 2 - Vec3.angle(tmpDir2, tmpDir1));
 }
 
-export function closestHydrogenIndex(structure: Structure, unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex) {
-    let hIndex = indexA;
-    unitA.conformation.position(unitA.elements[indexA], tmpPosA);
-    unitB.conformation.position(unitB.elements[indexB], tmpPosB);
-    Vec3.sub(tmpDir1, tmpPosB, tmpPosA);
-    let minDistSq = Vec3.squaredDistance(tmpPosA, tmpPosB);
-    eachBondedAtom(structure, unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
-        if (typeSymbol(unitX, indexX) === Elements.H) {
-            unitX.conformation.position(unitX.elements[indexX], tmpPosX);
-            const dist = Vec3.squaredDistance(tmpPosX, tmpPosB);
-            if (dist < minDistSq) {
-                minDistSq = dist;
-                hIndex = indexX;
-            }
-        }
-    });
-    return hIndex;
+export function closestHydrogenIndex(
+  structure: Structure,
+  unitA: Unit.Atomic,
+  indexA: StructureElement.UnitIndex,
+  unitB: Unit.Atomic,
+  indexB: StructureElement.UnitIndex,
+) {
+  let hIndex = indexA;
+  unitA.conformation.position(unitA.elements[indexA], tmpPosA);
+  unitB.conformation.position(unitB.elements[indexB], tmpPosB);
+  Vec3.sub(tmpDir1, tmpPosB, tmpPosA);
+  let minDistSq = Vec3.squaredDistance(tmpPosA, tmpPosB);
+  eachBondedAtom(structure, unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
+    if (typeSymbol(unitX, indexX) === Elements.H) {
+      unitX.conformation.position(unitX.elements[indexX], tmpPosX);
+      const dist = Vec3.squaredDistance(tmpPosX, tmpPosB);
+      if (dist < minDistSq) {
+        minDistSq = dist;
+        hIndex = indexX;
+      }
+    }
+  });
+  return hIndex;
 }

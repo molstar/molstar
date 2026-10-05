@@ -8,19 +8,19 @@ import { Vec3 } from '../3d/vec3.js';
 import { leastObstructedDirection } from '../3d/optimize-direction.js';
 
 describe('OptimizeDirection', () => {
-    it('works more or less as expected', () => {
-        const points: Vec3[] = [
-            Vec3.create(1, 0, 0),
-            Vec3.create(-1, 0, 0),
-            Vec3.create(0, 1, 0),
-            Vec3.create(0, -1, 0),
-            Vec3.create(0, 0, 1),
-        ];
-        const dir = leastObstructedDirection(points);
+  it('works more or less as expected', () => {
+    const points: Vec3[] = [
+      Vec3.create(1, 0, 0),
+      Vec3.create(-1, 0, 0),
+      Vec3.create(0, 1, 0),
+      Vec3.create(0, -1, 0),
+      Vec3.create(0, 0, 1),
+    ];
+    const dir = leastObstructedDirection(points);
 
-        expect(dir).toBeDefined();
-        expect(dir[0]).toBeCloseTo(0, 6);
-        expect(dir[1]).toBeCloseTo(0, 6);
-        expect(dir[2]).toBeCloseTo(-1, 6);
-    });
+    expect(dir).toBeDefined();
+    expect(dir[0]).toBeCloseTo(0, 6);
+    expect(dir[1]).toBeCloseTo(0, 6);
+    expect(dir[2]).toBeCloseTo(-1, 6);
+  });
 });

@@ -110,143 +110,155 @@ end_header
 `;
 
 describe('ply reader', () => {
-    it('basic', async () => {
-        const parsed = await parsePly(plyString).run();
-        if (parsed.isError) return;
-        const plyFile = parsed.result;
+  it('basic', async () => {
+    const parsed = await parsePly(plyString).run();
+    if (parsed.isError) return;
+    const plyFile = parsed.result;
 
-        const vertex = plyFile.getElement('vertex') as PlyTable;
-        if (!vertex) return;
-        const x = vertex.getProperty('x');
-        if (!x) return;
-        expect(x.value(0)).toEqual(130.901);
+    const vertex = plyFile.getElement('vertex') as PlyTable;
+    if (!vertex) return;
+    const x = vertex.getProperty('x');
+    if (!x) return;
+    expect(x.value(0)).toEqual(130.901);
 
-        const face = plyFile.getElement('face') as PlyList;
-        if (!face) return;
-        expect(face.value(0)).toEqual({ count: 3, entries: [0, 2, 1] });
-        expect(face.value(1)).toEqual({ count: 3, entries: [3, 5, 4] });
+    const face = plyFile.getElement('face') as PlyList;
+    if (!face) return;
+    expect(face.value(0)).toEqual({ count: 3, entries: [0, 2, 1] });
+    expect(face.value(1)).toEqual({ count: 3, entries: [3, 5, 4] });
 
-        expect.assertions(3);
-    });
+    expect.assertions(3);
+  });
 
-    it('material', async () => {
-        const parsed = await parsePly(plyCubeString).run();
-        if (parsed.isError) return;
-        const plyFile = parsed.result;
+  it('material', async () => {
+    const parsed = await parsePly(plyCubeString).run();
+    if (parsed.isError) return;
+    const plyFile = parsed.result;
 
-        const vertex = plyFile.getElement('vertex') as PlyTable;
-        if (!vertex) return;
-        expect(vertex.rowCount).toBe(24);
+    const vertex = plyFile.getElement('vertex') as PlyTable;
+    if (!vertex) return;
+    expect(vertex.rowCount).toBe(24);
 
-        const face = plyFile.getElement('face') as PlyList;
-        if (!face) return;
-        expect(face.rowCount).toBe(6);
+    const face = plyFile.getElement('face') as PlyList;
+    if (!face) return;
+    expect(face.rowCount).toBe(6);
 
-        const material = plyFile.getElement('face') as PlyTable;
-        if (!material) return;
-        expect(face.rowCount).toBe(6);
+    const material = plyFile.getElement('face') as PlyTable;
+    if (!material) return;
+    expect(face.rowCount).toBe(6);
 
-        expect.assertions(3);
-    });
+    expect.assertions(3);
+  });
 
-    it('ascii as Uint8Array', async () => {
-        const bytes = new TextEncoder().encode(plyString);
-        const parsed = await parsePly(bytes).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const plyFile = parsed.result;
+  it('ascii as Uint8Array', async () => {
+    const bytes = new TextEncoder().encode(plyString);
+    const parsed = await parsePly(bytes).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const plyFile = parsed.result;
 
-        const vertex = plyFile.getElement('vertex') as PlyTable;
-        if (!vertex) return;
-        const x = vertex.getProperty('x');
-        if (!x) return;
-        expect(x.value(0)).toEqual(130.901);
+    const vertex = plyFile.getElement('vertex') as PlyTable;
+    if (!vertex) return;
+    const x = vertex.getProperty('x');
+    if (!x) return;
+    expect(x.value(0)).toEqual(130.901);
 
-        const face = plyFile.getElement('face') as PlyList;
-        if (!face) return;
-        expect(face.value(0)).toEqual({ count: 3, entries: [0, 2, 1] });
-        expect(face.value(1)).toEqual({ count: 3, entries: [3, 5, 4] });
+    const face = plyFile.getElement('face') as PlyList;
+    if (!face) return;
+    expect(face.value(0)).toEqual({ count: 3, entries: [0, 2, 1] });
+    expect(face.value(1)).toEqual({ count: 3, entries: [3, 5, 4] });
 
-        expect.assertions(3);
-    });
+    expect.assertions(3);
+  });
 
-    it('binary little-endian', async () => {
-        // Build a minimal binary little-endian PLY with 3 vertices and 1 triangle face
-        // Header (ASCII)
-        const header = 'ply\nformat binary_little_endian 1.0\nelement vertex 3\nproperty float x\nproperty float y\nproperty float z\nelement face 1\nproperty list uchar int vertex_index\nend_header\n';
-        const headerBytes = new TextEncoder().encode(header);
+  it('binary little-endian', async () => {
+    // Build a minimal binary little-endian PLY with 3 vertices and 1 triangle face
+    // Header (ASCII)
+    const header =
+      'ply\nformat binary_little_endian 1.0\nelement vertex 3\nproperty float x\nproperty float y\nproperty float z\nelement face 1\nproperty list uchar int vertex_index\nend_header\n';
+    const headerBytes = new TextEncoder().encode(header);
 
-        // Vertex data: 3 x (float32 x, float32 y, float32 z) = 36 bytes
-        const vertexBuf = new ArrayBuffer(36);
-        const vdv = new DataView(vertexBuf);
-        vdv.setFloat32(0, 1.0, true); vdv.setFloat32(4, 0.0, true); vdv.setFloat32(8, 0.0, true);
-        vdv.setFloat32(12, 0.0, true); vdv.setFloat32(16, 1.0, true); vdv.setFloat32(20, 0.0, true);
-        vdv.setFloat32(24, 0.0, true); vdv.setFloat32(28, 0.0, true); vdv.setFloat32(32, 1.0, true);
+    // Vertex data: 3 x (float32 x, float32 y, float32 z) = 36 bytes
+    const vertexBuf = new ArrayBuffer(36);
+    const vdv = new DataView(vertexBuf);
+    vdv.setFloat32(0, 1.0, true);
+    vdv.setFloat32(4, 0.0, true);
+    vdv.setFloat32(8, 0.0, true);
+    vdv.setFloat32(12, 0.0, true);
+    vdv.setFloat32(16, 1.0, true);
+    vdv.setFloat32(20, 0.0, true);
+    vdv.setFloat32(24, 0.0, true);
+    vdv.setFloat32(28, 0.0, true);
+    vdv.setFloat32(32, 1.0, true);
 
-        // Face data: uchar count (3), then 3 x int32 indices = 1 + 12 = 13 bytes
-        const faceBuf = new ArrayBuffer(13);
-        const fdv = new DataView(faceBuf);
-        fdv.setUint8(0, 3);
-        fdv.setInt32(1, 0, true); fdv.setInt32(5, 1, true); fdv.setInt32(9, 2, true);
+    // Face data: uchar count (3), then 3 x int32 indices = 1 + 12 = 13 bytes
+    const faceBuf = new ArrayBuffer(13);
+    const fdv = new DataView(faceBuf);
+    fdv.setUint8(0, 3);
+    fdv.setInt32(1, 0, true);
+    fdv.setInt32(5, 1, true);
+    fdv.setInt32(9, 2, true);
 
-        // Concatenate header + vertex + face bytes
-        const totalLength = headerBytes.length + 36 + 13;
-        const data = new Uint8Array(totalLength);
-        data.set(headerBytes, 0);
-        data.set(new Uint8Array(vertexBuf), headerBytes.length);
-        data.set(new Uint8Array(faceBuf), headerBytes.length + 36);
+    // Concatenate header + vertex + face bytes
+    const totalLength = headerBytes.length + 36 + 13;
+    const data = new Uint8Array(totalLength);
+    data.set(headerBytes, 0);
+    data.set(new Uint8Array(vertexBuf), headerBytes.length);
+    data.set(new Uint8Array(faceBuf), headerBytes.length + 36);
 
-        const parsed = await parsePly(data).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const plyFile = parsed.result;
+    const parsed = await parsePly(data).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const plyFile = parsed.result;
 
-        const vertex = plyFile.getElement('vertex') as PlyTable;
-        if (!vertex) return;
-        expect(vertex.rowCount).toBe(3);
-        const x = vertex.getProperty('x');
-        if (!x) return;
-        expect(x.value(0)).toBeCloseTo(1.0);
-        expect(x.value(1)).toBeCloseTo(0.0);
+    const vertex = plyFile.getElement('vertex') as PlyTable;
+    if (!vertex) return;
+    expect(vertex.rowCount).toBe(3);
+    const x = vertex.getProperty('x');
+    if (!x) return;
+    expect(x.value(0)).toBeCloseTo(1.0);
+    expect(x.value(1)).toBeCloseTo(0.0);
 
-        const face = plyFile.getElement('face') as PlyList;
-        if (!face) return;
-        expect(face.rowCount).toBe(1);
-        const faceVal = face.value(0);
-        expect(faceVal.count).toBe(3);
-        expect(faceVal.entries[0]).toBe(0);
-        expect(faceVal.entries[1]).toBe(1);
-        expect(faceVal.entries[2]).toBe(2);
+    const face = plyFile.getElement('face') as PlyList;
+    if (!face) return;
+    expect(face.rowCount).toBe(1);
+    const faceVal = face.value(0);
+    expect(faceVal.count).toBe(3);
+    expect(faceVal.entries[0]).toBe(0);
+    expect(faceVal.entries[1]).toBe(1);
+    expect(faceVal.entries[2]).toBe(2);
 
-        expect.assertions(8);
-    });
+    expect.assertions(8);
+  });
 
-    it('binary big-endian', async () => {
-        const header = 'ply\nformat binary_big_endian 1.0\nelement vertex 2\nproperty float x\nproperty float y\nend_header\n';
-        const headerBytes = new TextEncoder().encode(header);
+  it('binary big-endian', async () => {
+    const header =
+      'ply\nformat binary_big_endian 1.0\nelement vertex 2\nproperty float x\nproperty float y\nend_header\n';
+    const headerBytes = new TextEncoder().encode(header);
 
-        // 2 vertices, each has float32 x + float32 y (big-endian)
-        const buf = new ArrayBuffer(16);
-        const dv = new DataView(buf);
-        dv.setFloat32(0, 3.5, false); dv.setFloat32(4, -1.0, false);
-        dv.setFloat32(8, 0.25, false); dv.setFloat32(12, 7.0, false);
+    // 2 vertices, each has float32 x + float32 y (big-endian)
+    const buf = new ArrayBuffer(16);
+    const dv = new DataView(buf);
+    dv.setFloat32(0, 3.5, false);
+    dv.setFloat32(4, -1.0, false);
+    dv.setFloat32(8, 0.25, false);
+    dv.setFloat32(12, 7.0, false);
 
-        const data = new Uint8Array(headerBytes.length + 16);
-        data.set(headerBytes, 0);
-        data.set(new Uint8Array(buf), headerBytes.length);
+    const data = new Uint8Array(headerBytes.length + 16);
+    data.set(headerBytes, 0);
+    data.set(new Uint8Array(buf), headerBytes.length);
 
-        const parsed = await parsePly(data).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const plyFile = parsed.result;
+    const parsed = await parsePly(data).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const plyFile = parsed.result;
 
-        const vertex = plyFile.getElement('vertex') as PlyTable;
-        if (!vertex) return;
-        const x = vertex.getProperty('x');
-        const y = vertex.getProperty('y');
-        if (!x || !y) return;
-        expect(x.value(0)).toBeCloseTo(3.5);
-        expect(y.value(0)).toBeCloseTo(-1.0);
-        expect(x.value(1)).toBeCloseTo(0.25);
-        expect(y.value(1)).toBeCloseTo(7.0);
+    const vertex = plyFile.getElement('vertex') as PlyTable;
+    if (!vertex) return;
+    const x = vertex.getProperty('x');
+    const y = vertex.getProperty('y');
+    if (!x || !y) return;
+    expect(x.value(0)).toBeCloseTo(3.5);
+    expect(y.value(0)).toBeCloseTo(-1.0);
+    expect(x.value(1)).toBeCloseTo(0.25);
+    expect(y.value(1)).toBeCloseTo(7.0);
 
-        expect.assertions(4);
-    });
+    expect.assertions(4);
+  });
 });

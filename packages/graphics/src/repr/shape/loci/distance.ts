@@ -23,118 +23,147 @@ import { LociLabelTextParams } from './common.js';
 import { Sphere3D } from '@molstar/core/math/geometry';
 
 export interface DistanceData {
-    pairs: Loci.Bundle<2>[]
+  pairs: Loci.Bundle<2>[];
 }
 
 const SharedParams = {
-    unitLabel: PD.Text('\u212B', { isEssential: true })
+  unitLabel: PD.Text('\u212B', { isEssential: true }),
 };
 
 const LineParams = {
-    ...Lines.Params,
-    ...SharedParams,
-    lineSizeAttenuation: PD.Boolean(true),
-    linesColor: PD.Color(ColorNames.lightgreen, { isEssential: true }),
-    linesSize: PD.Numeric(0.075, { min: 0.01, max: 5, step: 0.01 }),
-    dashLength: PD.Numeric(0.2, { min: 0.01, max: 0.2, step: 0.01 }),
+  ...Lines.Params,
+  ...SharedParams,
+  lineSizeAttenuation: PD.Boolean(true),
+  linesColor: PD.Color(ColorNames.lightgreen, { isEssential: true }),
+  linesSize: PD.Numeric(0.075, { min: 0.01, max: 5, step: 0.01 }),
+  dashLength: PD.Numeric(0.2, { min: 0.01, max: 0.2, step: 0.01 }),
 };
-type LineParams = typeof LineParams
+type LineParams = typeof LineParams;
 
 const TextParams = {
-    ...LociLabelTextParams,
-    ...SharedParams,
+  ...LociLabelTextParams,
+  ...SharedParams,
 };
-type TextParams = typeof TextParams
+type TextParams = typeof TextParams;
 
 const DistanceVisuals = {
-    'lines': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, LineParams>) => ShapeRepresentation(getLinesShape, Lines.Utils, { modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) }),
-    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, markerActions: MarkerAction.None }) }),
+  lines: (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, LineParams>) =>
+    ShapeRepresentation(getLinesShape, Lines.Utils, {
+      modifyState: (s) => ({ ...s, markerActions: MarkerActions.Highlighting }),
+    }),
+  text: (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, TextParams>) =>
+    ShapeRepresentation(getTextShape, Text.Utils, { modifyState: (s) => ({ ...s, markerActions: MarkerAction.None }) }),
 };
 
 export const DistanceParams = {
-    ...LineParams,
-    ...TextParams,
-    visuals: PD.MultiSelect(['lines', 'text'], PD.objectToOptions(DistanceVisuals)),
+  ...LineParams,
+  ...TextParams,
+  visuals: PD.MultiSelect(['lines', 'text'], PD.objectToOptions(DistanceVisuals)),
 };
-export type DistanceParams = typeof DistanceParams
-export type DistanceProps = PD.Values<DistanceParams>
+export type DistanceParams = typeof DistanceParams;
+export type DistanceProps = PD.Values<DistanceParams>;
 
 //
 
 function getDistanceState() {
-    return {
-        sphereA: Sphere3D(),
-        sphereB: Sphere3D(),
+  return {
+    sphereA: Sphere3D(),
+    sphereB: Sphere3D(),
 
-        center: Vec3(),
-        distance: 0,
-    };
+    center: Vec3(),
+    distance: 0,
+  };
 }
-type DistanceState = ReturnType<typeof getDistanceState>
+type DistanceState = ReturnType<typeof getDistanceState>;
 
 function setDistanceState(pair: Loci.Bundle<2>, state: DistanceState) {
-    const { sphereA, sphereB, center } = state;
+  const { sphereA, sphereB, center } = state;
 
-    const [lociA, lociB] = pair.loci;
-    Loci.getBoundingSphere(lociA, sphereA);
-    Loci.getBoundingSphere(lociB, sphereB);
+  const [lociA, lociB] = pair.loci;
+  Loci.getBoundingSphere(lociA, sphereA);
+  Loci.getBoundingSphere(lociB, sphereB);
 
-    Vec3.add(center, sphereA.center, sphereB.center);
-    Vec3.scale(center, center, 0.5);
-    state.distance = Vec3.distance(sphereA.center, sphereB.center);
+  Vec3.add(center, sphereA.center, sphereB.center);
+  Vec3.scale(center, center, 0.5);
+  state.distance = Vec3.distance(sphereA.center, sphereB.center);
 
-    return state;
+  return state;
 }
 
 const tmpState = getDistanceState();
 
 function getDistanceName(data: DistanceData, unitLabel: string) {
-    return data.pairs.length === 1 ? `Distance ${distanceLabel(data.pairs[0], { unitLabel, measureOnly: true })}` : `${data.pairs.length} Distances`;
+  return data.pairs.length === 1
+    ? `Distance ${distanceLabel(data.pairs[0], { unitLabel, measureOnly: true })}`
+    : `${data.pairs.length} Distances`;
 }
 
 //
 
 function buildLines(data: DistanceData, props: DistanceProps, lines?: Lines): Lines {
-    const builder = LinesBuilder.create(128, 64, lines);
-    for (let i = 0, il = data.pairs.length; i < il; ++i) {
-        setDistanceState(data.pairs[i], tmpState);
-        builder.addFixedLengthDashes(tmpState.sphereA.center, tmpState.sphereB.center, props.dashLength, i);
-    }
-    return builder.getLines();
+  const builder = LinesBuilder.create(128, 64, lines);
+  for (let i = 0, il = data.pairs.length; i < il; ++i) {
+    setDistanceState(data.pairs[i], tmpState);
+    builder.addFixedLengthDashes(tmpState.sphereA.center, tmpState.sphereB.center, props.dashLength, i);
+  }
+  return builder.getLines();
 }
 
 function getLinesShape(ctx: RuntimeContext, data: DistanceData, props: DistanceProps, shape?: Shape<Lines>) {
-    const lines = buildLines(data, props, shape && shape.geometry);
-    const name = getDistanceName(data, props.unitLabel);
-    const getLabel = (groupId: number) => distanceLabel(data.pairs[groupId], props);
-    return ShapeUtils.create(name, data, lines, () => props.linesColor, () => props.linesSize, getLabel);
+  const lines = buildLines(data, props, shape && shape.geometry);
+  const name = getDistanceName(data, props.unitLabel);
+  const getLabel = (groupId: number) => distanceLabel(data.pairs[groupId], props);
+  return ShapeUtils.create(
+    name,
+    data,
+    lines,
+    () => props.linesColor,
+    () => props.linesSize,
+    getLabel,
+  );
 }
 
 //
 
 function buildText(data: DistanceData, props: DistanceProps, text?: Text): Text {
-    const builder = TextBuilder.create(props, 128, 64, text);
-    for (let i = 0, il = data.pairs.length; i < il; ++i) {
-        setDistanceState(data.pairs[i], tmpState);
-        const { center, distance, sphereA, sphereB } = tmpState;
-        const label = props.customText || `${distance.toFixed(2)} ${props.unitLabel}`;
-        const radius = Math.max(2, sphereA.radius, sphereB.radius);
-        const scale = radius / 2;
-        builder.add(label, center[0], center[1], center[2], 1, scale, i);
-    }
-    return builder.getText();
+  const builder = TextBuilder.create(props, 128, 64, text);
+  for (let i = 0, il = data.pairs.length; i < il; ++i) {
+    setDistanceState(data.pairs[i], tmpState);
+    const { center, distance, sphereA, sphereB } = tmpState;
+    const label = props.customText || `${distance.toFixed(2)} ${props.unitLabel}`;
+    const radius = Math.max(2, sphereA.radius, sphereB.radius);
+    const scale = radius / 2;
+    builder.add(label, center[0], center[1], center[2], 1, scale, i);
+  }
+  return builder.getText();
 }
 
 function getTextShape(ctx: RuntimeContext, data: DistanceData, props: DistanceProps, shape?: Shape<Text>) {
-    const text = buildText(data, props, shape && shape.geometry);
-    const name = getDistanceName(data, props.unitLabel);
-    const getLabel = (groupId: number) => distanceLabel(data.pairs[groupId], props);
-    return ShapeUtils.create(name, data, text, () => props.textColor, () => props.textSize, getLabel);
+  const text = buildText(data, props, shape && shape.geometry);
+  const name = getDistanceName(data, props.unitLabel);
+  const getLabel = (groupId: number) => distanceLabel(data.pairs[groupId], props);
+  return ShapeUtils.create(
+    name,
+    data,
+    text,
+    () => props.textColor,
+    () => props.textSize,
+    getLabel,
+  );
 }
 
 //
 
-export type DistanceRepresentation = Representation<DistanceData, DistanceParams>
-export function DistanceRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, DistanceParams>): DistanceRepresentation {
-    return Representation.createMulti('Distance', ctx, getParams, Representation.StateBuilder, DistanceVisuals as unknown as Representation.Def<DistanceData, DistanceParams>);
+export type DistanceRepresentation = Representation<DistanceData, DistanceParams>;
+export function DistanceRepresentation(
+  ctx: RepresentationContext,
+  getParams: RepresentationParamsGetter<DistanceData, DistanceParams>,
+): DistanceRepresentation {
+  return Representation.createMulti(
+    'Distance',
+    ctx,
+    getParams,
+    Representation.StateBuilder,
+    DistanceVisuals as unknown as Representation.Def<DistanceData, DistanceParams>,
+  );
 }

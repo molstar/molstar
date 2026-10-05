@@ -12,49 +12,60 @@ import { IconButton } from '@molstar/plugin-ui/controls/common';
 import { CancelSvg } from '@molstar/plugin-ui/controls/icons';
 
 class ToastEntry extends PluginUIComponent<{ entry: PluginToastManager.Entry }> {
-    private hide = () => {
-        const entry = this.props.entry;
-        (entry.hide || function () { }).call(null);
-    };
+  private hide = () => {
+    const entry = this.props.entry;
+    (entry.hide || function () {}).call(null);
+  };
 
-    render() {
-        const entry = this.props.entry;
-        const message = typeof entry.message === 'string'
-            ? <div dangerouslySetInnerHTML={{ __html: entry.message }} />
-            // @ts-ignore // TODO: handle type better
-            : <div><entry.message /></div>;
+  render() {
+    const entry = this.props.entry;
+    const message =
+      typeof entry.message === 'string' ? (
+        <div dangerouslySetInnerHTML={{ __html: entry.message }} />
+      ) : (
+        <div>
+          {/* @ts-ignore // TODO: handle type better */}
+          <entry.message />
+        </div>
+      );
 
-        return <div className='msp-toast-entry'>
-            <div className='msp-toast-title' onClick={() => this.hide()}>
-                {entry.title}
-            </div>
-            <div className='msp-toast-message'>
-                {message}
-            </div>
-            <div className='msp-toast-clear'></div>
-            <div className='msp-toast-hide'>
-                <IconButton svg={CancelSvg} onClick={this.hide} title='Hide' className='msp-no-hover-outline' />
-            </div>
-        </div>;
-    }
+    return (
+      <div className="msp-toast-entry">
+        <div className="msp-toast-title" onClick={() => this.hide()}>
+          {entry.title}
+        </div>
+        <div className="msp-toast-message">{message}</div>
+        <div className="msp-toast-clear"></div>
+        <div className="msp-toast-hide">
+          <IconButton svg={CancelSvg} onClick={this.hide} title="Hide" className="msp-no-hover-outline" />
+        </div>
+      </div>
+    );
+  }
 }
 
 export class Toasts extends PluginUIComponent {
-    componentDidMount() {
-        this.subscribe(this.plugin.managers.toast.events.changed, () => this.forceUpdate());
-    }
+  componentDidMount() {
+    this.subscribe(this.plugin.managers.toast.events.changed, () => this.forceUpdate());
+  }
 
-    render() {
-        const state = this.plugin.managers.toast.state;
+  render() {
+    const state = this.plugin.managers.toast.state;
 
-        if (!state.entries.count()) return null;
+    if (!state.entries.count()) return null;
 
-        const entries: PluginToastManager.Entry[] = [];
-        state.entries.forEach((t, k) => entries.push(t!));
-        entries.sort(function (x, y) { return x.serialNumber - y.serialNumber; });
+    const entries: PluginToastManager.Entry[] = [];
+    state.entries.forEach((t, k) => entries.push(t!));
+    entries.sort(function (x, y) {
+      return x.serialNumber - y.serialNumber;
+    });
 
-        return <div className='msp-toast-container'>
-            {entries.map(e => <ToastEntry key={e.serialNumber} entry={e} />)}
-        </div>;
-    }
+    return (
+      <div className="msp-toast-container">
+        {entries.map((e) => (
+          <ToastEntry key={e.serialNumber} entry={e} />
+        ))}
+      </div>
+    );
+  }
 }

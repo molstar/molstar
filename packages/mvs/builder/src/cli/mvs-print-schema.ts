@@ -14,27 +14,29 @@ import { ArgumentParser } from 'argparse';
 import { treeSchemaToMarkdown, treeSchemaToString } from '@molstar/mvs-builder/tree/generic/tree-validation';
 import { MVSTreeSchema } from '@molstar/mvs-builder/tree/mvs/mvs-tree';
 
-
 /** Command line argument values for `main` */
 interface Args {
-    markdown: boolean,
+  markdown: boolean;
 }
 
 /** Return parsed command line arguments for `main` */
 function parseArguments(): Args {
-    const parser = new ArgumentParser({ description: 'Command-line application for printing MolViewSpec tree schema.' });
-    parser.add_argument('-m', '--markdown', { action: 'store_true', help: 'Print the schema as markdown instead of plain text.' });
-    const args = parser.parse_args();
-    return { ...args };
+  const parser = new ArgumentParser({ description: 'Command-line application for printing MolViewSpec tree schema.' });
+  parser.add_argument('-m', '--markdown', {
+    action: 'store_true',
+    help: 'Print the schema as markdown instead of plain text.',
+  });
+  const args = parser.parse_args();
+  return { ...args };
 }
 
 /** Main workflow for printing MolViewSpec tree schema. */
 function main(args: Args) {
-    if (args.markdown) {
-        console.log(treeSchemaToMarkdown(MVSTreeSchema));
-    } else {
-        console.log(treeSchemaToString(MVSTreeSchema));
-    }
+  if (args.markdown) {
+    console.log(treeSchemaToMarkdown(MVSTreeSchema));
+  } else {
+    console.log(treeSchemaToString(MVSTreeSchema));
+  }
 }
 
 main(parseArguments());

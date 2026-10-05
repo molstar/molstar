@@ -11,48 +11,50 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ValueCell } from '@molstar/core/util/value-cell';
 
 export type InteriorData = {
-    uInteriorColor: ValueCell<Vec4>,
-    uInteriorSubstance: ValueCell<Vec4>,
-}
+  uInteriorColor: ValueCell<Vec4>;
+  uInteriorSubstance: ValueCell<Vec4>;
+};
 
 export function getInteriorParam() {
-    return PD.Group({
-        color: PD.Color(Color.fromRgb(76, 76, 76)),
-        colorStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
-        substance: Material.getParam(),
-        substanceStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
-    });
+  return PD.Group({
+    color: PD.Color(Color.fromRgb(76, 76, 76)),
+    colorStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+    substance: Material.getParam(),
+    substanceStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+  });
 }
-export type InteriorParam = ReturnType<typeof getInteriorParam>
+export type InteriorParam = ReturnType<typeof getInteriorParam>;
 export type InteriorProps = InteriorParam['defaultValue'];
 
 export function areInteriorPropsEquals(a: InteriorProps, b: InteriorProps): boolean {
-    return a.color === b.color
-        && a.colorStrength === b.colorStrength
-        && Material.areEqual(a.substance, b.substance)
-        && a.substanceStrength === b.substanceStrength;
+  return (
+    a.color === b.color &&
+    a.colorStrength === b.colorStrength &&
+    Material.areEqual(a.substance, b.substance) &&
+    a.substanceStrength === b.substanceStrength
+  );
 }
 
 export function getInteriorColor(props: InteriorProps, out: Vec4): Vec4 {
-    Color.toArrayNormalized(props.color, out, 0);
-    out[3] = props.colorStrength;
-    return out;
+  Color.toArrayNormalized(props.color, out, 0);
+  out[3] = props.colorStrength;
+  return out;
 }
 
 export function getInteriorSubstance(props: InteriorProps, out: Vec4): Vec4 {
-    Material.toArrayNormalized(props.substance, out, 0);
-    out[3] = props.substanceStrength;
-    return out;
+  Material.toArrayNormalized(props.substance, out, 0);
+  out[3] = props.substanceStrength;
+  return out;
 }
 
 export function createInteriorValues(props: InteriorProps) {
-    return {
-        uInteriorColor: ValueCell.create(getInteriorColor(props, Vec4())),
-        uInteriorSubstance: ValueCell.create(getInteriorSubstance(props, Vec4())),
-    };
+  return {
+    uInteriorColor: ValueCell.create(getInteriorColor(props, Vec4())),
+    uInteriorSubstance: ValueCell.create(getInteriorSubstance(props, Vec4())),
+  };
 }
 
 export function updateInteriorValues(values: InteriorData, props: InteriorProps) {
-    ValueCell.update(values.uInteriorColor, getInteriorColor(props, values.uInteriorColor.ref.value));
-    ValueCell.update(values.uInteriorSubstance, getInteriorSubstance(props, values.uInteriorSubstance.ref.value));
+  ValueCell.update(values.uInteriorColor, getInteriorColor(props, values.uInteriorColor.ref.value));
+  ValueCell.update(values.uInteriorSubstance, getInteriorSubstance(props, values.uInteriorSubstance.ref.value));
 }

@@ -12,34 +12,33 @@ import { TokenColumnProvider as TokenColumn } from '../common/text/column/token.
 import { TokenBuilder, Tokenizer } from '../common/text/tokenizer.js';
 import { ReaderResult as Result } from '../result.js';
 
-
 /** Subset of the MolFile V2000 format */
 export interface MolFile {
-    readonly title: string,
-    readonly program: string,
-    readonly comment: string,
-    readonly atoms: {
-        readonly count: number,
-        readonly x: Column<number>,
-        readonly y: Column<number>,
-        readonly z: Column<number>,
-        readonly type_symbol: Column<string>,
-        readonly formal_charge: Column<number>
-    },
-    readonly bonds: {
-        readonly count: number
-        readonly atomIdxA: Column<number>,
-        readonly atomIdxB: Column<number>,
-        readonly order: Column<number>
-    }
-    readonly formalCharges: {
-        readonly atomIdx: Column<number>;
-        readonly charge: Column<number>;
-    }
-    readonly attachmentPoints?: {
-        readonly atomIdx: number;
-        readonly kind: number;
-    }[];
+  readonly title: string;
+  readonly program: string;
+  readonly comment: string;
+  readonly atoms: {
+    readonly count: number;
+    readonly x: Column<number>;
+    readonly y: Column<number>;
+    readonly z: Column<number>;
+    readonly type_symbol: Column<string>;
+    readonly formal_charge: Column<number>;
+  };
+  readonly bonds: {
+    readonly count: number;
+    readonly atomIdxA: Column<number>;
+    readonly atomIdxB: Column<number>;
+    readonly order: Column<number>;
+  };
+  readonly formalCharges: {
+    readonly atomIdx: Column<number>;
+    readonly charge: Column<number>;
+  };
+  readonly attachmentPoints?: {
+    readonly atomIdx: number;
+    readonly kind: number;
+  }[];
 }
 
 /*
@@ -74,88 +73,96 @@ export interface MolFile {
  * @returns The actual formal charge based on the mapping.
  */
 export function formalChargeMapper(key: number) {
-    switch (key) {
-        case 7: return -3;
-        case 6: return -2;
-        case 5: return -1;
-        case 0: return 0;
-        case 3: return 1;
-        case 2: return 2;
-        case 1: return 3;
-        case 4: return 0;
-        default:
-            console.error(`Value ${key} is outside the 0-7 range, defaulting to 0.`);
-            return 0;
-    }
+  switch (key) {
+    case 7:
+      return -3;
+    case 6:
+      return -2;
+    case 5:
+      return -1;
+    case 0:
+      return 0;
+    case 3:
+      return 1;
+    case 2:
+      return 2;
+    case 1:
+      return 3;
+    case 4:
+      return 0;
+    default:
+      console.error(`Value ${key} is outside the 0-7 range, defaulting to 0.`);
+      return 0;
+  }
 }
 
 export function handleAtoms(tokenizer: Tokenizer, count: number): MolFile['atoms'] {
-    const x = TokenBuilder.create(tokenizer.data, count * 2);
-    const y = TokenBuilder.create(tokenizer.data, count * 2);
-    const z = TokenBuilder.create(tokenizer.data, count * 2);
-    const type_symbol = TokenBuilder.create(tokenizer.data, count * 2);
-    const formal_charge = TokenBuilder.create(tokenizer.data, count * 2);
+  const x = TokenBuilder.create(tokenizer.data, count * 2);
+  const y = TokenBuilder.create(tokenizer.data, count * 2);
+  const z = TokenBuilder.create(tokenizer.data, count * 2);
+  const type_symbol = TokenBuilder.create(tokenizer.data, count * 2);
+  const formal_charge = TokenBuilder.create(tokenizer.data, count * 2);
 
-    for (let i = 0; i < count; ++i) {
-        Tokenizer.markLine(tokenizer);
-        const { tokenStart: s, position } = tokenizer;
-        Tokenizer.trim(tokenizer, s, s + 10);
-        TokenBuilder.addUnchecked(x, tokenizer.tokenStart, tokenizer.tokenEnd);
-        Tokenizer.trim(tokenizer, s + 10, s + 20);
-        TokenBuilder.addUnchecked(y, tokenizer.tokenStart, tokenizer.tokenEnd);
-        Tokenizer.trim(tokenizer, s + 20, s + 30);
-        TokenBuilder.addUnchecked(z, tokenizer.tokenStart, tokenizer.tokenEnd);
-        Tokenizer.trim(tokenizer, s + 31, s + 34);
-        TokenBuilder.addUnchecked(type_symbol, tokenizer.tokenStart, tokenizer.tokenEnd);
-        Tokenizer.trim(tokenizer, s + 36, s + 39);
-        TokenBuilder.addUnchecked(formal_charge, tokenizer.tokenStart, tokenizer.tokenEnd);
-        tokenizer.position = position;
-    }
+  for (let i = 0; i < count; ++i) {
+    Tokenizer.markLine(tokenizer);
+    const { tokenStart: s, position } = tokenizer;
+    Tokenizer.trim(tokenizer, s, s + 10);
+    TokenBuilder.addUnchecked(x, tokenizer.tokenStart, tokenizer.tokenEnd);
+    Tokenizer.trim(tokenizer, s + 10, s + 20);
+    TokenBuilder.addUnchecked(y, tokenizer.tokenStart, tokenizer.tokenEnd);
+    Tokenizer.trim(tokenizer, s + 20, s + 30);
+    TokenBuilder.addUnchecked(z, tokenizer.tokenStart, tokenizer.tokenEnd);
+    Tokenizer.trim(tokenizer, s + 31, s + 34);
+    TokenBuilder.addUnchecked(type_symbol, tokenizer.tokenStart, tokenizer.tokenEnd);
+    Tokenizer.trim(tokenizer, s + 36, s + 39);
+    TokenBuilder.addUnchecked(formal_charge, tokenizer.tokenStart, tokenizer.tokenEnd);
+    tokenizer.position = position;
+  }
 
-    return {
-        count,
-        x: TokenColumn(x)(Column.Schema.float),
-        y: TokenColumn(y)(Column.Schema.float),
-        z: TokenColumn(z)(Column.Schema.float),
-        type_symbol: TokenColumn(type_symbol)(Column.Schema.str),
-        formal_charge: TokenColumn(formal_charge)(Column.Schema.int)
-    };
+  return {
+    count,
+    x: TokenColumn(x)(Column.Schema.float),
+    y: TokenColumn(y)(Column.Schema.float),
+    z: TokenColumn(z)(Column.Schema.float),
+    type_symbol: TokenColumn(type_symbol)(Column.Schema.str),
+    formal_charge: TokenColumn(formal_charge)(Column.Schema.int),
+  };
 }
 
 export function handleBonds(tokenizer: Tokenizer, count: number): MolFile['bonds'] {
-    const atomIdxA = TokenBuilder.create(tokenizer.data, count * 2);
-    const atomIdxB = TokenBuilder.create(tokenizer.data, count * 2);
-    const order = TokenBuilder.create(tokenizer.data, count * 2);
+  const atomIdxA = TokenBuilder.create(tokenizer.data, count * 2);
+  const atomIdxB = TokenBuilder.create(tokenizer.data, count * 2);
+  const order = TokenBuilder.create(tokenizer.data, count * 2);
 
-    for (let i = 0; i < count; ++i) {
-        Tokenizer.markLine(tokenizer);
-        const { tokenStart: s, position } = tokenizer;
-        Tokenizer.trim(tokenizer, s, s + 3);
-        TokenBuilder.addUnchecked(atomIdxA, tokenizer.tokenStart, tokenizer.tokenEnd);
-        Tokenizer.trim(tokenizer, s + 3, s + 6);
-        TokenBuilder.addUnchecked(atomIdxB, tokenizer.tokenStart, tokenizer.tokenEnd);
-        Tokenizer.trim(tokenizer, s + 6, s + 9);
-        TokenBuilder.addUnchecked(order, tokenizer.tokenStart, tokenizer.tokenEnd);
-        tokenizer.position = position;
-    }
+  for (let i = 0; i < count; ++i) {
+    Tokenizer.markLine(tokenizer);
+    const { tokenStart: s, position } = tokenizer;
+    Tokenizer.trim(tokenizer, s, s + 3);
+    TokenBuilder.addUnchecked(atomIdxA, tokenizer.tokenStart, tokenizer.tokenEnd);
+    Tokenizer.trim(tokenizer, s + 3, s + 6);
+    TokenBuilder.addUnchecked(atomIdxB, tokenizer.tokenStart, tokenizer.tokenEnd);
+    Tokenizer.trim(tokenizer, s + 6, s + 9);
+    TokenBuilder.addUnchecked(order, tokenizer.tokenStart, tokenizer.tokenEnd);
+    tokenizer.position = position;
+  }
 
-    return {
-        count,
-        atomIdxA: TokenColumn(atomIdxA)(Column.Schema.int),
-        atomIdxB: TokenColumn(atomIdxB)(Column.Schema.int),
-        order: TokenColumn(order)(Column.Schema.int)
-    };
+  return {
+    count,
+    atomIdxA: TokenColumn(atomIdxA)(Column.Schema.int),
+    atomIdxB: TokenColumn(atomIdxB)(Column.Schema.int),
+    order: TokenColumn(order)(Column.Schema.int),
+  };
 }
 
 interface FormalChargesRawData {
-    atomIdx: Array<number>;
-    charge: Array<number>;
+  atomIdx: Array<number>;
+  charge: Array<number>;
 }
 export function handleFormalCharges(tokenizer: Tokenizer, lineStart: number, formalCharges: FormalChargesRawData) {
-    Tokenizer.trim(tokenizer, lineStart + 6, lineStart + 9);
-    const numOfCharges = parseInt(Tokenizer.getTokenString(tokenizer));
-    for (let i = 0; i < numOfCharges; ++i) {
-        /*
+  Tokenizer.trim(tokenizer, lineStart + 6, lineStart + 9);
+  const numOfCharges = parseInt(Tokenizer.getTokenString(tokenizer));
+  for (let i = 0; i < numOfCharges; ++i) {
+    /*
         M  CHG  3   1  -1   2   0   2  -1
                 |   |   |   |   |
                 |   |   |   |   |__charge2 (etc.)
@@ -168,96 +175,97 @@ export function handleFormalCharges(tokenizer: Tokenizer, lineStart: number, for
                 |
                 |___numOfCharges
         */
-        const offset = 9 + (i * 8);
+    const offset = 9 + i * 8;
 
-        Tokenizer.trim(tokenizer, lineStart + offset, lineStart + offset + 4);
-        const _atomIdx = Tokenizer.getTokenString(tokenizer);
-        formalCharges.atomIdx.push(+_atomIdx);
-        Tokenizer.trim(tokenizer, lineStart + offset + 4, lineStart + offset + 8);
-        const _charge = Tokenizer.getTokenString(tokenizer);
-        formalCharges.charge.push(+_charge);
-    }
-    /* Once the line is read, move to the next one. */
-    Tokenizer.eatLine(tokenizer);
+    Tokenizer.trim(tokenizer, lineStart + offset, lineStart + offset + 4);
+    const _atomIdx = Tokenizer.getTokenString(tokenizer);
+    formalCharges.atomIdx.push(+_atomIdx);
+    Tokenizer.trim(tokenizer, lineStart + offset + 4, lineStart + offset + 8);
+    const _charge = Tokenizer.getTokenString(tokenizer);
+    formalCharges.charge.push(+_charge);
+  }
+  /* Once the line is read, move to the next one. */
+  Tokenizer.eatLine(tokenizer);
 }
 
 function handleAttachmentPoints(line: string): MolFile['attachmentPoints'] {
-    const tokens = line.trim().split(/\s+/g);
-    const points: MolFile['attachmentPoints'] = [];
-    for (let i = 1; i < tokens.length; i += 2) {
-        const atomIdx = +tokens[i];
-        const kind = +tokens[i + 1] || 0;
-        points.push({ atomIdx, kind });
-    }
-    return points;
+  const tokens = line.trim().split(/\s+/g);
+  const points: MolFile['attachmentPoints'] = [];
+  for (let i = 1; i < tokens.length; i += 2) {
+    const atomIdx = +tokens[i];
+    const kind = +tokens[i + 1] || 0;
+    points.push({ atomIdx, kind });
+  }
+  return points;
 }
 
 /** Call an appropriate handler based on the property type.
  */
 export function handlePropertiesBlock(tokenizer: Tokenizer): {
-    formalCharges: MolFile['formalCharges'],
-    attachmentPoints: MolFile['attachmentPoints']
+  formalCharges: MolFile['formalCharges'];
+  attachmentPoints: MolFile['attachmentPoints'];
 } {
-    const _atomIdx: Array<number> = [];
-    const _charge: Array<number> = [];
-    const _formalCharges: FormalChargesRawData = { atomIdx: _atomIdx, charge: _charge };
-    let attachmentPoints: MolFile['attachmentPoints'] = undefined;
+  const _atomIdx: Array<number> = [];
+  const _charge: Array<number> = [];
+  const _formalCharges: FormalChargesRawData = { atomIdx: _atomIdx, charge: _charge };
+  let attachmentPoints: MolFile['attachmentPoints'] = undefined;
 
-    while (tokenizer.position < tokenizer.length) {
-        const { position: s } = tokenizer;
+  while (tokenizer.position < tokenizer.length) {
+    const { position: s } = tokenizer;
 
-        Tokenizer.trim(tokenizer, s + 3, s + 6);
-        const propertyType = Tokenizer.getTokenString(tokenizer);
+    Tokenizer.trim(tokenizer, s + 3, s + 6);
+    const propertyType = Tokenizer.getTokenString(tokenizer);
 
-        if (propertyType === 'END') break;
-        Tokenizer.eatLine(tokenizer);
+    if (propertyType === 'END') break;
+    Tokenizer.eatLine(tokenizer);
 
-        switch (propertyType) {
-            case 'CHG':
-                handleFormalCharges(tokenizer, s, _formalCharges);
-                break;
-            case 'APO':
-                attachmentPoints = handleAttachmentPoints(Tokenizer.getTokenString(tokenizer).substring(3));
-                break;
-            default:
-                break;
-        }
+    switch (propertyType) {
+      case 'CHG':
+        handleFormalCharges(tokenizer, s, _formalCharges);
+        break;
+      case 'APO':
+        attachmentPoints = handleAttachmentPoints(Tokenizer.getTokenString(tokenizer).substring(3));
+        break;
+      default:
+        break;
     }
+  }
 
-    const formalCharges: MolFile['formalCharges'] = {
-        atomIdx: Column.ofIntArray(_formalCharges.atomIdx),
-        charge: Column.ofIntArray(_formalCharges.charge)
-    };
-    return { formalCharges, attachmentPoints };
+  const formalCharges: MolFile['formalCharges'] = {
+    atomIdx: Column.ofIntArray(_formalCharges.atomIdx),
+    charge: Column.ofIntArray(_formalCharges.charge),
+  };
+  return { formalCharges, attachmentPoints };
 }
 
 function parseInternal(data: StringLike): Result<MolFile> {
-    const tokenizer = Tokenizer(data);
+  const tokenizer = Tokenizer(data);
 
-    const title = Tokenizer.readLine(tokenizer).trim();
-    const program = Tokenizer.readLine(tokenizer).trim();
-    const comment = Tokenizer.readLine(tokenizer).trim();
+  const title = Tokenizer.readLine(tokenizer).trim();
+  const program = Tokenizer.readLine(tokenizer).trim();
+  const comment = Tokenizer.readLine(tokenizer).trim();
 
-    const counts = Tokenizer.readLine(tokenizer);
+  const counts = Tokenizer.readLine(tokenizer);
 
-    const atomCount = +counts.substr(0, 3), bondCount = +counts.substr(3, 3);
+  const atomCount = +counts.substr(0, 3),
+    bondCount = +counts.substr(3, 3);
 
-    const atoms = handleAtoms(tokenizer, atomCount);
-    const bonds = handleBonds(tokenizer, bondCount);
+  const atoms = handleAtoms(tokenizer, atomCount);
+  const bonds = handleBonds(tokenizer, bondCount);
 
-    const result: MolFile = {
-        title,
-        program,
-        comment,
-        atoms,
-        bonds,
-        ...handlePropertiesBlock(tokenizer),
-    };
-    return Result.success(result);
+  const result: MolFile = {
+    title,
+    program,
+    comment,
+    atoms,
+    bonds,
+    ...handlePropertiesBlock(tokenizer),
+  };
+  return Result.success(result);
 }
 
 export function parseMol(data: StringLike) {
-    return Task.create<Result<MolFile>>('Parse Mol', async () => {
-        return parseInternal(data);
-    });
+  return Task.create<Result<MolFile>>('Parse Mol', async () => {
+    return parseInternal(data);
+  });
 }

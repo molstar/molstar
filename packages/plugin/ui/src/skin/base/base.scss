@@ -1,5 +1,4 @@
-﻿
-@use "sass:meta";
+﻿@use 'sass:meta';
 @use 'vars' as *;
 @use 'normalize' as *;
 @use 'layout' as *;
@@ -8,42 +7,42 @@
 
 @mixin user-select($select) {
   -webkit-user-select: $select;
-     -moz-user-select: $select;
-      -ms-user-select: $select; // IE10+
-          user-select: $select;
+  -moz-user-select: $select;
+  -ms-user-select: $select; // IE10+
+  user-select: $select;
 }
 
 .msp-plugin {
-    font-family: "Helvetica Neue", "Segoe UI", Helvetica, "Source Sans Pro", Arial, sans-serif;
-    font-size: 14px;
-    line-height: 1.42857143;
+  font-family: 'Helvetica Neue', 'Segoe UI', Helvetica, 'Source Sans Pro', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.42857143;
 
-    position: absolute;
-    left: 0;
-    top: 0;
-    right: 0;
-    bottom: 0;
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
 
-    @include normalize;
+  @include normalize;
 
-    @include layout;    
-    @include ui;
-    @include logo;
+  @include layout;
+  @include ui;
+  @include logo;
 
-    .msp-plugin-content {
-        color: $font-color;
-    }
+  .msp-plugin-content {
+    color: $font-color;
+  }
 
-    .msp-plugin-init-error {
-        white-space: pre;
-        margin: $control-spacing;
-    }
+  .msp-plugin-init-error {
+    white-space: pre;
+    margin: $control-spacing;
+  }
 
-    .msp-svg-text {
-        fill: $font-color;
-    }
+  .msp-svg-text {
+    fill: $font-color;
+  }
 
-    & {
-        background: $default-background;
-    }
+  & {
+    background: $default-background;
+  }
 }

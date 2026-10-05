@@ -78,27 +78,29 @@ C6 0.045(4) 0.043(4) 0.038(4) 0.004(4) 0.008(3) -0.002(4)
 `;
 
 describe('cif-core read', () => {
-    it('frame', async () => {
-        const parsed = await CIF.parseText(cifCoreString).run();
-        if (parsed.isError) return;
-        const cifFile = parsed.result;
-        const block = cifFile.blocks[0];
+  it('frame', async () => {
+    const parsed = await CIF.parseText(cifCoreString).run();
+    if (parsed.isError) return;
+    const cifFile = parsed.result;
+    const block = cifFile.blocks[0];
 
-        expect(block.getField('cell_length_a')!.float(0)).toBe(11.0829);
-        expect(block.getField('symmetry_space_group_name_H-M')!.str(0)).toBe('P-1');
-        expect.assertions(2);
-    });
+    expect(block.getField('cell_length_a')!.float(0)).toBe(11.0829);
+    expect(block.getField('symmetry_space_group_name_H-M')!.str(0)).toBe('P-1');
+    expect.assertions(2);
+  });
 
-    it('schema', async () => {
-        const parsed = await CIF.parseText(cifCoreString).run();
-        if (parsed.isError) return;
-        const cifFile = parsed.result;
-        const block = cifFile.blocks[0];
-        const cifCore = CIF.schema.cifCore(block);
+  it('schema', async () => {
+    const parsed = await CIF.parseText(cifCoreString).run();
+    if (parsed.isError) return;
+    const cifFile = parsed.result;
+    const block = cifFile.blocks[0];
+    const cifCore = CIF.schema.cifCore(block);
 
-        expect(cifCore.cell.length_a.value(0)).toBe(11.0829);
-        expect(cifCore.space_group['name_h-m_full'].value(0)).toBe('P-1');
-        expect(cifCore.atom_site_aniso.u.value(0)).toEqual(new Float64Array([0.0425, 0, 0, 0.00089, 0.0423, 0, 0.01515, 0.00066, 0.0375]));
-        expect.assertions(3);
-    });
+    expect(cifCore.cell.length_a.value(0)).toBe(11.0829);
+    expect(cifCore.space_group['name_h-m_full'].value(0)).toBe('P-1');
+    expect(cifCore.atom_site_aniso.u.value(0)).toEqual(
+      new Float64Array([0.0425, 0, 0, 0.00089, 0.0423, 0, 0.01515, 0.00066, 0.0375]),
+    );
+    expect.assertions(3);
+  });
 });

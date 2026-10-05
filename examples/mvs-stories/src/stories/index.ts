@@ -12,10 +12,10 @@ import { buildStory as motm1 } from './motm1.js';
 import { buildStory as molql } from './molql.js';
 
 export const Stories = [
-    { id: 'kinase', name: 'BCR-ABL: A Kinase Out of Control', buildStory: kinase },
-    { id: 'tata', name: 'TATA-Binding Protein and its Role in Transcription Initiation ', buildStory: tbp },
-    { id: 'motm1', name: 'RCSB PDB Molecule of the Month #1', buildStory: motm1 },
-    { id: 'animation-example', name: 'Molecular Animation Example', buildStory: animation },
-    { id: 'audio-example', name: 'Audio Playback Example', buildStory: audio },
-    { id: 'molql', name: 'Experimental MolQL Selectors', buildStory: molql },
+  { id: 'kinase', name: 'BCR-ABL: A Kinase Out of Control', buildStory: kinase },
+  { id: 'tata', name: 'TATA-Binding Protein and its Role in Transcription Initiation ', buildStory: tbp },
+  { id: 'motm1', name: 'RCSB PDB Molecule of the Month #1', buildStory: motm1 },
+  { id: 'animation-example', name: 'Molecular Animation Example', buildStory: animation },
+  { id: 'audio-example', name: 'Audio Playback Example', buildStory: audio },
+  { id: 'molql', name: 'Experimental MolQL Selectors', buildStory: molql },
 ] as const;

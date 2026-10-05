@@ -9,28 +9,28 @@ import { PluginContext } from '@molstar/plugin/context';
 import { SingleAsyncQueue } from '@molstar/core/util/single-async-queue';
 
 export class PluginViewModel {
-    private mountQueue = new SingleAsyncQueue();
-    readonly plugin: PluginContext;
+  private mountQueue = new SingleAsyncQueue();
+  readonly plugin: PluginContext;
 
-    get initialized() {
-        return this.plugin.initialized;
-    }
+  get initialized() {
+    return this.plugin.initialized;
+  }
 
-    private async init() {
-        await this.plugin.init();
-    }
+  private async init() {
+    await this.plugin.init();
+  }
 
-    mount(root: HTMLElement) {
-        this.mountQueue.enqueue(() => this.plugin.mountAsync(root));
-    }
+  mount(root: HTMLElement) {
+    this.mountQueue.enqueue(() => this.plugin.mountAsync(root));
+  }
 
-    unmount() {
-        this.mountQueue.enqueue(() => this.plugin.unmount());
-    }
+  unmount() {
+    this.mountQueue.enqueue(() => this.plugin.unmount());
+  }
 
-    constructor(options?: { spec?: PluginSpec }) {
-        const spec = options?.spec ?? DefaultPluginSpec();
-        this.plugin = new PluginContext(spec);
-        this.init();
-    }
+  constructor(options?: { spec?: PluginSpec }) {
+    const spec = options?.spec ?? DefaultPluginSpec();
+    this.plugin = new PluginContext(spec);
+    this.init();
+  }
 }

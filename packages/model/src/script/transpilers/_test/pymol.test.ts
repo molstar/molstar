@@ -13,48 +13,48 @@ import { properties } from '../pymol/properties.js';
 import { operators } from '../pymol/operators.js';
 
 const general = {
-    supported: [
-        // macros
-        '10/cb',
-        'a/10-12/ca',
-        'lig/b/6+8/c+o',
+  supported: [
+    // macros
+    '10/cb',
+    'a/10-12/ca',
+    'lig/b/6+8/c+o',
 
-        // trimming
-        '    name CA   ',
-        'name CA   ',
-        '    name CA',
-    ],
-    unsupported: [
-        // macros
-        'pept/enz/c/3/n',
-        'pept/enz///n',
+    // trimming
+    '    name CA   ',
+    'name CA   ',
+    '    name CA',
+  ],
+  unsupported: [
+    // macros
+    'pept/enz/c/3/n',
+    'pept/enz///n',
 
-        '/pept/lig/',
-        '/pept/lig/a',
-        '/pept/lig/a/10',
-        '/pept/lig/a/10/ca',
-        '/pept//a/10',
+    '/pept/lig/',
+    '/pept/lig/a',
+    '/pept/lig/a/10',
+    '/pept/lig/a/10/ca',
+    '/pept//a/10',
 
-        // object
-        'foobar',
-        'protein and bazbar',
-    ]
+    // object
+    'foobar',
+    'protein and bazbar',
+  ],
 };
 
 describe('pymol general', () => {
-    general.supported.forEach(str => {
-        it(str, () => {
-            transpiler(str);
-            //          compile(expr);
-        });
+  general.supported.forEach((str) => {
+    it(str, () => {
+      transpiler(str);
+      //          compile(expr);
     });
-    general.unsupported.forEach(str => {
-        it(str, () => {
-            const transpileStr = () => transpiler(str);
-            expect(transpileStr).toThrow();
-            expect(transpileStr).not.toThrow(RangeError);
-        });
+  });
+  general.unsupported.forEach((str) => {
+    it(str, () => {
+      const transpileStr = () => transpiler(str);
+      expect(transpileStr).toThrow();
+      expect(transpileStr).not.toThrow(RangeError);
     });
+  });
 });
 
 // check against builder output

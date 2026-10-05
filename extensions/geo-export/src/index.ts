@@ -7,24 +7,24 @@
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { GeometryExporterUI } from '@molstar/geo-export-extension/ui';
 
-export const GeometryExport = PluginBehavior.create<{ }>({
-    name: 'extension-geo-export',
-    category: 'misc',
-    display: {
-        name: 'Geometry Export'
-    },
-    ctor: class extends PluginBehavior.Handler<{ }> {
-        register(): void {
-            this.ctx.customStructureControls.set('geo-export', GeometryExporterUI as any);
-        }
+export const GeometryExport = PluginBehavior.create<{}>({
+  name: 'extension-geo-export',
+  category: 'misc',
+  display: {
+    name: 'Geometry Export',
+  },
+  ctor: class extends PluginBehavior.Handler<{}> {
+    register(): void {
+      this.ctx.customStructureControls.set('geo-export', GeometryExporterUI as any);
+    }
 
-        update() {
-            return false;
-        }
+    update() {
+      return false;
+    }
 
-        unregister() {
-            this.ctx.customStructureControls.delete('geo-export');
-        }
-    },
-    params: () => ({ })
+    unregister() {
+      this.ctx.customStructureControls.delete('geo-export');
+    }
+  },
+  params: () => ({}),
 });

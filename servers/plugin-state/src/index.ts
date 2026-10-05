@@ -22,71 +22,72 @@ app.use(compression(<any>{ level: 6, memLevel: 9, chunkSize: 16 * 16384, filter:
 app.use(cors({ methods: ['GET', 'PUT'] }));
 app.use(express.json({ limit: '20mb' }));
 
-type Index = { timestamp: number, id: string, name: string, description: string, isSticky?: boolean }[]
+type Index = { timestamp: number; id: string; name: string; description: string; isSticky?: boolean }[];
 
 function createIndex() {
-    const fn = path.join(Config.working_folder, 'index.json');
-    if (fs.existsSync(fn)) return;
-    if (!fs.existsSync(Config.working_folder)) makeDir(Config.working_folder);
-    fs.writeFileSync(fn, '[]', 'utf-8');
+  const fn = path.join(Config.working_folder, 'index.json');
+  if (fs.existsSync(fn)) return;
+  if (!fs.existsSync(Config.working_folder)) makeDir(Config.working_folder);
+  fs.writeFileSync(fn, '[]', 'utf-8');
 }
 
 function writeIndex(index: Index) {
-    const fn = path.join(Config.working_folder, 'index.json');
-    if (!fs.existsSync(Config.working_folder)) makeDir(Config.working_folder);
-    fs.writeFileSync(fn, JSON.stringify(index, null, 2), 'utf-8');
+  const fn = path.join(Config.working_folder, 'index.json');
+  if (!fs.existsSync(Config.working_folder)) makeDir(Config.working_folder);
+  fs.writeFileSync(fn, JSON.stringify(index, null, 2), 'utf-8');
 }
 
 function readIndex() {
-    const fn = path.join(Config.working_folder, 'index.json');
-    if (!fs.existsSync(fn)) return [];
-    return JSON.parse(fs.readFileSync(fn, 'utf-8')) as Index;
+  const fn = path.join(Config.working_folder, 'index.json');
+  if (!fs.existsSync(fn)) return [];
+  return JSON.parse(fs.readFileSync(fn, 'utf-8')) as Index;
 }
 
 function validateIndex(index: Index) {
-    if (index.length > Config.max_states) {
-        const deletes: Index = [], newIndex: Index = [];
-        const toDelete = index.length - Config.max_states;
+  if (index.length > Config.max_states) {
+    const deletes: Index = [],
+      newIndex: Index = [];
+    const toDelete = index.length - Config.max_states;
 
-        for (const e of index) {
-            if (!e.isSticky && deletes.length < toDelete) {
-                deletes.push(e);
-            } else {
-                newIndex.push(e);
-            }
-        }
-
-        for (const d of deletes) {
-            try {
-                fs.unlinkSync(path.join(Config.working_folder, d.id + '.json'));
-            } catch { }
-        }
-        return newIndex;
+    for (const e of index) {
+      if (!e.isSticky && deletes.length < toDelete) {
+        deletes.push(e);
+      } else {
+        newIndex.push(e);
+      }
     }
-    return index;
+
+    for (const d of deletes) {
+      try {
+        fs.unlinkSync(path.join(Config.working_folder, d.id + '.json'));
+      } catch {}
+    }
+    return newIndex;
+  }
+  return index;
 }
 
 function remove(id: string) {
-    const index = readIndex();
-    let i = 0;
-    for (const e of index) {
-        if (e.id !== id) {
-            i++;
-            continue;
-        }
-        if (e.isSticky) return;
-        try {
-            for (let j = i + 1; j < index.length; j++) {
-                index[j - 1] = index[j];
-            }
-            index.pop();
-            writeIndex(index);
-        } catch { }
-        try {
-            fs.unlinkSync(path.join(Config.working_folder, e.id + '.json'));
-        } catch { }
-        return;
+  const index = readIndex();
+  let i = 0;
+  for (const e of index) {
+    if (e.id !== id) {
+      i++;
+      continue;
     }
+    if (e.isSticky) return;
+    try {
+      for (let j = i + 1; j < index.length; j++) {
+        index[j - 1] = index[j];
+      }
+      index.pop();
+      writeIndex(index);
+    } catch {}
+    try {
+      fs.unlinkSync(path.join(Config.working_folder, e.id + '.json'));
+    } catch {}
+    return;
+  }
 }
 
 // function clear() {
@@ -100,32 +101,32 @@ function remove(id: string) {
 // }
 
 function mapPath(path: string) {
-    if (!Config.api_prefix) return path;
-    return `/${Config.api_prefix}/${path}`;
+  if (!Config.api_prefix) return path;
+  return `/${Config.api_prefix}/${path}`;
 }
 
 app.get(mapPath(`/get/:id`), (req, res) => {
-    const id: string = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id || '';
-    console.log('Reading', id);
-    if (id.length === 0 || id.indexOf('.') >= 0 || id.indexOf('/') >= 0 || id.indexOf('\\') >= 0) {
-        res.status(404);
-        res.end();
-        return;
+  const id: string = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id || '';
+  console.log('Reading', id);
+  if (id.length === 0 || id.indexOf('.') >= 0 || id.indexOf('/') >= 0 || id.indexOf('\\') >= 0) {
+    res.status(404);
+    res.end();
+    return;
+  }
+
+  fs.readFile(path.join(Config.working_folder, id + '.json'), 'utf-8', (err, data) => {
+    if (err) {
+      res.status(404);
+      res.end();
+      return;
     }
 
-    fs.readFile(path.join(Config.working_folder, id + '.json'), 'utf-8', (err, data) => {
-        if (err) {
-            res.status(404);
-            res.end();
-            return;
-        }
-
-        res.writeHead(200, {
-            'Content-Type': 'application/json; charset=utf-8',
-        });
-        res.write(data);
-        res.end();
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
     });
+    res.write(data);
+    res.end();
+  });
 });
 
 // app.get(mapPath(`/clear`), (req, res) => {
@@ -135,9 +136,9 @@ app.get(mapPath(`/get/:id`), (req, res) => {
 // });
 
 app.get(mapPath(`/remove/:id`), (req, res) => {
-    remove((req.params.id as string || '').toLowerCase());
-    res.status(200);
-    res.end();
+  remove(((req.params.id as string) || '').toLowerCase());
+  res.status(200);
+  res.end();
 });
 
 // app.get(mapPath(`/latest`), (req, res) => {
@@ -166,54 +167,56 @@ app.get(mapPath(`/remove/:id`), (req, res) => {
 // });
 
 app.get(mapPath(`/list`), (req, res) => {
-    const index = readIndex();
-    res.writeHead(200, {
-        'Content-Type': 'application/json; charset=utf-8',
-    });
-    res.write(JSON.stringify(index, null, 2));
-    res.end();
+  const index = readIndex();
+  res.writeHead(200, {
+    'Content-Type': 'application/json; charset=utf-8',
+  });
+  res.write(JSON.stringify(index, null, 2));
+  res.end();
 });
 
 app.post(mapPath(`/set`), (req, res) => {
-    console.log('SET', req.query.name, req.query.description);
-    const index = readIndex();
-    validateIndex(index);
+  console.log('SET', req.query.name, req.query.description);
+  const index = readIndex();
+  validateIndex(index);
 
-    const name = (req.query.name as string || new Date().toUTCString()).substr(0, 50);
-    const description = (req.query.description as string || '').substr(0, 100);
+  const name = ((req.query.name as string) || new Date().toUTCString()).substr(0, 50);
+  const description = ((req.query.description as string) || '').substr(0, 100);
 
-    index.push({ timestamp: +new Date(), id: UUID.createv4(), name, description });
-    const entry = index[index.length - 1];
+  index.push({ timestamp: +new Date(), id: UUID.createv4(), name, description });
+  const entry = index[index.length - 1];
 
-    const data = JSON.stringify({
-        id: entry.id,
-        name,
-        description,
-        data: req.body
-    });
+  const data = JSON.stringify({
+    id: entry.id,
+    name,
+    description,
+    data: req.body,
+  });
 
-    fs.writeFile(path.join(Config.working_folder, entry.id + '.json'), data, { encoding: 'utf8' }, () => res.end());
-    writeIndex(index);
+  fs.writeFile(path.join(Config.working_folder, entry.id + '.json'), data, { encoding: 'utf8' }, () => res.end());
+  writeIndex(index);
 });
 
 const schema = getSchema(Config);
 app.get(mapPath('/openapi.json'), (req, res) => {
-    res.writeHead(200, {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'X-Requested-With'
-    });
-    res.end(JSON.stringify(schema));
+  res.writeHead(200, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'X-Requested-With',
+  });
+  res.end(JSON.stringify(schema));
 });
 
 app.use(mapPath('/'), swaggerUiAssetsHandler());
-app.get(mapPath('/'), swaggerUiIndexHandler({
+app.get(
+  mapPath('/'),
+  swaggerUiIndexHandler({
     openapiJsonUrl: mapPath('/openapi.json'),
     apiPrefix: Config.api_prefix,
     title: 'PluginState Server API',
-    shortcutIconLink
-}));
-
+    shortcutIconLink,
+  }),
+);
 
 createIndex();
 app.listen(Config.port);

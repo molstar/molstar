@@ -4,7 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createRenderObject, type GraphicsRenderObject, getNextMaterialId, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
+import {
+  createRenderObject,
+  type GraphicsRenderObject,
+  getNextMaterialId,
+  isMergedRenderObject,
+} from '@molstar/graphics/gl/render-object';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
 import { addSphere } from '@molstar/graphics/geo/geometry/mesh/builder/sphere';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
@@ -21,161 +26,201 @@ import { Geometry } from '@molstar/graphics/geo/geometry/geometry';
 import type { DebugHelper } from '@molstar/graphics/canvas3d/helper/debug-registry';
 
 export const BoundingSphereHelperParams = {
-    sceneBoundingSpheres: PD.Boolean(false, { description: 'Show full scene bounding spheres.' }),
-    visibleSceneBoundingSpheres: PD.Boolean(false, { description: 'Show visible scene bounding spheres.' }),
-    objectBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of visible render objects.' }),
-    instanceBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of visible instances.' }),
+  sceneBoundingSpheres: PD.Boolean(false, { description: 'Show full scene bounding spheres.' }),
+  visibleSceneBoundingSpheres: PD.Boolean(false, { description: 'Show visible scene bounding spheres.' }),
+  objectBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of visible render objects.' }),
+  instanceBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of visible instances.' }),
 };
 export type BoundingSphereHelperParams = typeof BoundingSphereHelperParams;
 export type BoundingSphereHelperProps = PD.Values<BoundingSphereHelperParams>;
 
-type BoundingSphereData = { boundingSphere: Sphere3D, renderObject: GraphicsRenderObject, mesh: Mesh }
+type BoundingSphereData = { boundingSphere: Sphere3D; renderObject: GraphicsRenderObject; mesh: Mesh };
 
 export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperProps> {
-    readonly scene: Scene;
+  readonly scene: Scene;
 
-    private readonly parent: Scene;
-    private _props: BoundingSphereHelperProps;
-    private objectsData = new Map<GraphicsRenderObject, BoundingSphereData>();
-    private instancesData = new Map<GraphicsRenderObject, BoundingSphereData>();
-    private sceneData: BoundingSphereData | undefined;
-    private visibleSceneData: BoundingSphereData | undefined;
+  private readonly parent: Scene;
+  private _props: BoundingSphereHelperProps;
+  private objectsData = new Map<GraphicsRenderObject, BoundingSphereData>();
+  private instancesData = new Map<GraphicsRenderObject, BoundingSphereData>();
+  private sceneData: BoundingSphereData | undefined;
+  private visibleSceneData: BoundingSphereData | undefined;
 
-    constructor(ctx: WebGLContext, parent: Scene, props: Partial<BoundingSphereHelperProps>) {
-        this.scene = Scene.create(ctx, 'blended');
-        this.parent = parent;
-        this._props = { ...PD.getDefaultValues(BoundingSphereHelperParams), ...props };
+  constructor(ctx: WebGLContext, parent: Scene, props: Partial<BoundingSphereHelperProps>) {
+    this.scene = Scene.create(ctx, 'blended');
+    this.parent = parent;
+    this._props = { ...PD.getDefaultValues(BoundingSphereHelperParams), ...props };
+  }
+
+  update() {
+    const newSceneData = updateBoundingSphereData(
+      this.scene,
+      this.parent.boundingSphere,
+      this.sceneData,
+      ColorNames.lightgrey,
+      sceneMaterialId,
+    );
+    if (newSceneData) this.sceneData = newSceneData;
+
+    const newVisibleSceneData = updateBoundingSphereData(
+      this.scene,
+      this.parent.boundingSphereVisible,
+      this.visibleSceneData,
+      ColorNames.black,
+      visibleSceneMaterialId,
+    );
+    if (newVisibleSceneData) this.visibleSceneData = newVisibleSceneData;
+
+    const live = new Set<GraphicsRenderObject>();
+    this.parent.forEach((r, ro) => {
+      const objectData = this.objectsData.get(ro);
+      const newObjectData = updateBoundingSphereData(
+        this.scene,
+        r.values.boundingSphere.ref.value,
+        objectData,
+        ColorNames.tomato,
+        objectMaterialId,
+      );
+      if (newObjectData) this.objectsData.set(ro, newObjectData);
+
+      live.add(ro);
+      if (isMergedRenderObject(ro)) {
+        // one instance-spheres entry per merged segment
+        for (const member of ro.members) {
+          this.updateInstancesData(member);
+          live.add(member);
+        }
+      } else {
+        this.updateInstancesData(ro);
+      }
+    });
+
+    this.objectsData.forEach((objectData, ro) => {
+      if (!this.parent.has(ro)) {
+        this.scene.remove(objectData.renderObject);
+        this.objectsData.delete(ro);
+      }
+    });
+    this.instancesData.forEach((instanceData, ro) => {
+      if (!live.has(ro)) {
+        this.scene.remove(instanceData.renderObject);
+        this.instancesData.delete(ro);
+      }
+    });
+
+    this.scene.update(void 0, false);
+    this.scene.commit();
+  }
+
+  private updateInstancesData(ro: GraphicsRenderObject) {
+    const instanceData = this.instancesData.get(ro);
+    const newInstanceData = updateBoundingSphereData(
+      this.scene,
+      ro.values.invariantBoundingSphere.ref.value,
+      instanceData,
+      ColorNames.skyblue,
+      instanceMaterialId,
+      {
+        aTransform: ro.values.aTransform,
+        matrix: ro.values.matrix,
+        transform: ro.values.transform,
+        extraTransform: ro.values.extraTransform,
+        hasExtraTransform: ro.values.hasExtraTransform,
+        uInstanceCount: ro.values.uInstanceCount,
+        instanceCount: ro.values.instanceCount,
+        aInstance: ro.values.aInstance,
+        hasReflection: ro.values.hasReflection,
+        instanceGrid: ro.values.instanceGrid,
+      },
+    );
+    if (newInstanceData) this.instancesData.set(ro, newInstanceData);
+  }
+
+  syncVisibility() {
+    if (this.sceneData) {
+      this.sceneData.renderObject.state.visible = this._props.sceneBoundingSpheres;
     }
 
-    update() {
-        const newSceneData = updateBoundingSphereData(this.scene, this.parent.boundingSphere, this.sceneData, ColorNames.lightgrey, sceneMaterialId);
-        if (newSceneData) this.sceneData = newSceneData;
-
-        const newVisibleSceneData = updateBoundingSphereData(this.scene, this.parent.boundingSphereVisible, this.visibleSceneData, ColorNames.black, visibleSceneMaterialId);
-        if (newVisibleSceneData) this.visibleSceneData = newVisibleSceneData;
-
-        const live = new Set<GraphicsRenderObject>();
-        this.parent.forEach((r, ro) => {
-            const objectData = this.objectsData.get(ro);
-            const newObjectData = updateBoundingSphereData(this.scene, r.values.boundingSphere.ref.value, objectData, ColorNames.tomato, objectMaterialId);
-            if (newObjectData) this.objectsData.set(ro, newObjectData);
-
-            live.add(ro);
-            if (isMergedRenderObject(ro)) {
-                // one instance-spheres entry per merged segment
-                for (const member of ro.members) {
-                    this.updateInstancesData(member);
-                    live.add(member);
-                }
-            } else {
-                this.updateInstancesData(ro);
-            }
-        });
-
-        this.objectsData.forEach((objectData, ro) => {
-            if (!this.parent.has(ro)) {
-                this.scene.remove(objectData.renderObject);
-                this.objectsData.delete(ro);
-            }
-        });
-        this.instancesData.forEach((instanceData, ro) => {
-            if (!live.has(ro)) {
-                this.scene.remove(instanceData.renderObject);
-                this.instancesData.delete(ro);
-            }
-        });
-
-        this.scene.update(void 0, false);
-        this.scene.commit();
+    if (this.visibleSceneData) {
+      this.visibleSceneData.renderObject.state.visible = this._props.visibleSceneBoundingSpheres;
     }
 
-    private updateInstancesData(ro: GraphicsRenderObject) {
+    this.parent.forEach((_, ro) => {
+      const objectData = this.objectsData.get(ro);
+      if (objectData) objectData.renderObject.state.visible = ro.state.visible && this._props.objectBoundingSpheres;
+
+      if (isMergedRenderObject(ro)) {
+        for (const member of ro.members) {
+          const instanceData = this.instancesData.get(member);
+          if (instanceData)
+            instanceData.renderObject.state.visible = ro.state.visible && this._props.instanceBoundingSpheres;
+        }
+      } else {
         const instanceData = this.instancesData.get(ro);
-        const newInstanceData = updateBoundingSphereData(this.scene, ro.values.invariantBoundingSphere.ref.value, instanceData, ColorNames.skyblue, instanceMaterialId, {
-            aTransform: ro.values.aTransform,
-            matrix: ro.values.matrix,
-            transform: ro.values.transform,
-            extraTransform: ro.values.extraTransform,
-            hasExtraTransform: ro.values.hasExtraTransform,
-            uInstanceCount: ro.values.uInstanceCount,
-            instanceCount: ro.values.instanceCount,
-            aInstance: ro.values.aInstance,
-            hasReflection: ro.values.hasReflection,
-            instanceGrid: ro.values.instanceGrid,
-        });
-        if (newInstanceData) this.instancesData.set(ro, newInstanceData);
-    }
+        if (instanceData)
+          instanceData.renderObject.state.visible = ro.state.visible && this._props.instanceBoundingSpheres;
+      }
+    });
+  }
 
-    syncVisibility() {
-        if (this.sceneData) {
-            this.sceneData.renderObject.state.visible = this._props.sceneBoundingSpheres;
-        }
+  clear() {
+    this.sceneData = undefined;
+    this.objectsData.clear();
+    this.scene.clear();
+  }
 
-        if (this.visibleSceneData) {
-            this.visibleSceneData.renderObject.state.visible = this._props.visibleSceneBoundingSpheres;
-        }
+  get isEnabled() {
+    return (
+      this._props.sceneBoundingSpheres ||
+      this._props.visibleSceneBoundingSpheres ||
+      this._props.objectBoundingSpheres ||
+      this._props.instanceBoundingSpheres
+    );
+  }
+  get props() {
+    return this._props as Readonly<BoundingSphereHelperProps>;
+  }
 
-        this.parent.forEach((_, ro) => {
-            const objectData = this.objectsData.get(ro);
-            if (objectData) objectData.renderObject.state.visible = ro.state.visible && this._props.objectBoundingSpheres;
-
-            if (isMergedRenderObject(ro)) {
-                for (const member of ro.members) {
-                    const instanceData = this.instancesData.get(member);
-                    if (instanceData) instanceData.renderObject.state.visible = ro.state.visible && this._props.instanceBoundingSpheres;
-                }
-            } else {
-                const instanceData = this.instancesData.get(ro);
-                if (instanceData) instanceData.renderObject.state.visible = ro.state.visible && this._props.instanceBoundingSpheres;
-            }
-        });
-    }
-
-    clear() {
-        this.sceneData = undefined;
-        this.objectsData.clear();
-        this.scene.clear();
-    }
-
-    get isEnabled() {
-        return (
-            this._props.sceneBoundingSpheres || this._props.visibleSceneBoundingSpheres ||
-            this._props.objectBoundingSpheres || this._props.instanceBoundingSpheres
-        );
-    }
-    get props() { return this._props as Readonly<BoundingSphereHelperProps>; }
-
-    setProps(props: Partial<BoundingSphereHelperProps>) {
-        Object.assign(this._props, props);
-        if (this.isEnabled) this.update();
-    }
+  setProps(props: Partial<BoundingSphereHelperProps>) {
+    Object.assign(this._props, props);
+    if (this.isEnabled) this.update();
+  }
 }
 
-function updateBoundingSphereData(scene: Scene, boundingSphere: Sphere3D, data: BoundingSphereData | undefined, color: Color, materialId: number, transform?: TransformData) {
-    if (!data || !Sphere3D.equals(data.boundingSphere, boundingSphere)) {
-        const mesh = createBoundingSphereMesh(boundingSphere, data && data.mesh);
-        const renderObject = data ? data.renderObject : createBoundingSphereRenderObject(mesh, color, materialId, transform);
-        if (data) {
-            ValueCell.updateIfChanged(renderObject.values.drawCount, Geometry.getDrawCount(mesh));
-        } else {
-            scene.add(renderObject);
-        }
-        return { boundingSphere: Sphere3D.clone(boundingSphere), renderObject, mesh };
+function updateBoundingSphereData(
+  scene: Scene,
+  boundingSphere: Sphere3D,
+  data: BoundingSphereData | undefined,
+  color: Color,
+  materialId: number,
+  transform?: TransformData,
+) {
+  if (!data || !Sphere3D.equals(data.boundingSphere, boundingSphere)) {
+    const mesh = createBoundingSphereMesh(boundingSphere, data && data.mesh);
+    const renderObject = data
+      ? data.renderObject
+      : createBoundingSphereRenderObject(mesh, color, materialId, transform);
+    if (data) {
+      ValueCell.updateIfChanged(renderObject.values.drawCount, Geometry.getDrawCount(mesh));
+    } else {
+      scene.add(renderObject);
     }
+    return { boundingSphere: Sphere3D.clone(boundingSphere), renderObject, mesh };
+  }
 }
 
 function createBoundingSphereMesh(boundingSphere: Sphere3D, mesh?: Mesh) {
-    const detail = 2;
-    const vertexCount = sphereVertexCount(detail);
-    const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh);
-    if (boundingSphere.radius) {
-        addSphere(builderState, boundingSphere.center, boundingSphere.radius, detail);
-        const er = boundingSphere.radius * 0.01;
-        if (Sphere3D.hasExtrema(boundingSphere)) {
-            for (const e of boundingSphere.extrema) addSphere(builderState, e, er, 0);
-        }
+  const detail = 2;
+  const vertexCount = sphereVertexCount(detail);
+  const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh);
+  if (boundingSphere.radius) {
+    addSphere(builderState, boundingSphere.center, boundingSphere.radius, detail);
+    const er = boundingSphere.radius * 0.01;
+    if (Sphere3D.hasExtrema(boundingSphere)) {
+      for (const e of boundingSphere.extrema) addSphere(builderState, e, er, 0);
     }
-    return MeshBuilder.getMesh(builderState);
+  }
+  return MeshBuilder.getMesh(builderState);
 }
 
 const sceneMaterialId = getNextMaterialId();
@@ -184,6 +229,25 @@ const objectMaterialId = getNextMaterialId();
 const instanceMaterialId = getNextMaterialId();
 
 function createBoundingSphereRenderObject(mesh: Mesh, color: Color, materialId: number, transform?: TransformData) {
-    const values = Mesh.Utils.createValuesSimple(mesh, { alpha: 0.1, doubleSided: false, cellSize: 0, batchSize: 0 }, color, 1, transform);
-    return createRenderObject('mesh', values, { disposed: false, visible: true, alphaFactor: 1, pickable: false, colorOnly: false, opaque: false, writeDepth: false }, materialId);
+  const values = Mesh.Utils.createValuesSimple(
+    mesh,
+    { alpha: 0.1, doubleSided: false, cellSize: 0, batchSize: 0 },
+    color,
+    1,
+    transform,
+  );
+  return createRenderObject(
+    'mesh',
+    values,
+    {
+      disposed: false,
+      visible: true,
+      alphaFactor: 1,
+      pickable: false,
+      colorOnly: false,
+      opaque: false,
+      writeDepth: false,
+    },
+    materialId,
+  );
 }

@@ -13,28 +13,30 @@ import { calculateBasicStreamlines, BasicStreamlineCalculationParams } from './s
 import type { Streamlines } from './streamlines/shared.js';
 
 export const StreamlinesParams = {
-    type: PD.MappedStatic('basic', {
-        'basic': PD.Group(BasicStreamlineCalculationParams, { isFlat: true }),
-    })
+  type: PD.MappedStatic('basic', {
+    basic: PD.Group(BasicStreamlineCalculationParams, { isFlat: true }),
+  }),
 };
 
-export type StreamlinesParams = typeof StreamlinesParams
-export type StreamlinesProps = PD.Values<StreamlinesParams>
-export type StreamlinesValue = Streamlines
+export type StreamlinesParams = typeof StreamlinesParams;
+export type StreamlinesProps = PD.Values<StreamlinesParams>;
+export type StreamlinesValue = Streamlines;
 
-export const StreamlinesProvider: CustomVolumeProperty.Provider<StreamlinesParams, StreamlinesValue> = CustomVolumeProperty.createProvider({
+export const StreamlinesProvider: CustomVolumeProperty.Provider<StreamlinesParams, StreamlinesValue> =
+  CustomVolumeProperty.createProvider({
     label: 'Streamlines',
     descriptor: CustomPropertyDescriptor({
-        name: 'molstar_streamlines',
-        // TODO `cifExport` and `symbol`
+      name: 'molstar_streamlines',
+      // TODO `cifExport` and `symbol`
     }),
     defaultParams: StreamlinesParams,
     getParams: (data: Volume) => StreamlinesParams,
     isApplicable: (data: Volume) => !Volume.Segmentation.get(data),
     obtain: async (ctx: CustomProperty.Context, data: Volume, props: Partial<StreamlinesProps>) => {
-        const p = { ...PD.getDefaultValues(StreamlinesParams), ...props };
-        switch (p.type.name) {
-            case 'basic': return { value: await calculateBasicStreamlines(ctx, data, p.type.params) };
-        }
-    }
-});
+      const p = { ...PD.getDefaultValues(StreamlinesParams), ...props };
+      switch (p.type.name) {
+        case 'basic':
+          return { value: await calculateBasicStreamlines(ctx, data, p.type.params) };
+      }
+    },
+  });

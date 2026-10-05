@@ -33,88 +33,77 @@ const normalVector = Vec3();
 const torsionVector = Vec3();
 
 /** set arrowHeight = 0 for no arrow */
-export function addRibbon(state: MeshBuilder.State, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, widthValues: ArrayLike<number>, heightValues: ArrayLike<number>, arrowHeight: number) {
-    const { currentGroup, vertices, normals, indices, groups } = state;
+export function addRibbon(
+  state: MeshBuilder.State,
+  controlPoints: ArrayLike<number>,
+  normalVectors: ArrayLike<number>,
+  binormalVectors: ArrayLike<number>,
+  linearSegments: number,
+  widthValues: ArrayLike<number>,
+  heightValues: ArrayLike<number>,
+  arrowHeight: number,
+) {
+  const { currentGroup, vertices, normals, indices, groups } = state;
 
-    const vertexCount = vertices.elementCount;
-    let offsetLength = 0;
+  const vertexCount = vertices.elementCount;
+  let offsetLength = 0;
+
+  if (arrowHeight > 0) {
+    v3fromArray(tA, controlPoints, 0);
+    v3fromArray(tB, controlPoints, linearSegments * 3);
+    offsetLength = arrowHeight / v3magnitude(v3sub(tV, tB, tA));
+  }
+
+  for (let i = 0; i <= linearSegments; ++i) {
+    const width = widthValues[i];
+    const height = heightValues[i];
+
+    const actualHeight = arrowHeight === 0 ? height : arrowHeight * (1 - i / linearSegments);
+    const i3 = i * 3;
+
+    v3fromArray(verticalVector, normalVectors, i3);
+    v3scale(verticalVector, verticalVector, actualHeight);
+
+    v3fromArray(horizontalVector, binormalVectors, i3);
+    v3scale(horizontalVector, horizontalVector, width);
 
     if (arrowHeight > 0) {
-        v3fromArray(tA, controlPoints, 0);
-        v3fromArray(tB, controlPoints, linearSegments * 3);
-        offsetLength = arrowHeight / v3magnitude(v3sub(tV, tB, tA));
+      v3fromArray(tA, normalVectors, i3);
+      v3fromArray(tB, binormalVectors, i3);
+      v3scale(normalOffset, v3cross(normalOffset, tA, tB), offsetLength);
     }
 
-    for (let i = 0; i <= linearSegments; ++i) {
-        const width = widthValues[i];
-        const height = heightValues[i];
+    v3fromArray(positionVector, controlPoints, i3);
+    v3fromArray(normalVector, normalVectors, i3);
+    v3fromArray(torsionVector, binormalVectors, i3);
 
-        const actualHeight = arrowHeight === 0 ? height : arrowHeight * (1 - i / linearSegments);
-        const i3 = i * 3;
+    v3add(tA, positionVector, verticalVector);
+    v3negate(tB, torsionVector);
+    caAdd3(vertices, tA[0], tA[1], tA[2]);
+    caAdd3(normals, tB[0], tB[1], tB[2]);
 
-        v3fromArray(verticalVector, normalVectors, i3);
-        v3scale(verticalVector, verticalVector, actualHeight);
+    v3sub(tA, positionVector, verticalVector);
+    caAdd3(vertices, tA[0], tA[1], tA[2]);
+    caAdd3(normals, tB[0], tB[1], tB[2]);
 
-        v3fromArray(horizontalVector, binormalVectors, i3);
-        v3scale(horizontalVector, horizontalVector, width);
+    v3add(tA, positionVector, verticalVector);
+    v3copy(tB, torsionVector);
+    caAdd3(vertices, tA[0], tA[1], tA[2]);
+    caAdd3(normals, tB[0], tB[1], tB[2]);
 
-        if (arrowHeight > 0) {
-            v3fromArray(tA, normalVectors, i3);
-            v3fromArray(tB, binormalVectors, i3);
-            v3scale(normalOffset, v3cross(normalOffset, tA, tB), offsetLength);
-        }
+    v3sub(tA, positionVector, verticalVector);
+    caAdd3(vertices, tA[0], tA[1], tA[2]);
+    caAdd3(normals, tB[0], tB[1], tB[2]);
+  }
 
-        v3fromArray(positionVector, controlPoints, i3);
-        v3fromArray(normalVector, normalVectors, i3);
-        v3fromArray(torsionVector, binormalVectors, i3);
+  for (let i = 0; i < linearSegments; ++i) {
+    caAdd3(indices, vertexCount + i * 4, vertexCount + (i + 1) * 4 + 1, vertexCount + i * 4 + 1);
+    caAdd3(indices, vertexCount + i * 4, vertexCount + (i + 1) * 4, vertexCount + (i + 1) * 4 + 1);
 
-        v3add(tA, positionVector, verticalVector);
-        v3negate(tB, torsionVector);
-        caAdd3(vertices, tA[0], tA[1], tA[2]);
-        caAdd3(normals, tB[0], tB[1], tB[2]);
+    caAdd3(indices, vertexCount + i * 4 + 2 + 1, vertexCount + (i + 1) * 4 + 2 + 1, vertexCount + i * 4 + 2);
+    caAdd3(indices, vertexCount + i * 4 + 2, vertexCount + (i + 1) * 4 + 2 + 1, vertexCount + (i + 1) * 4 + 2);
+  }
 
-        v3sub(tA, positionVector, verticalVector);
-        caAdd3(vertices, tA[0], tA[1], tA[2]);
-        caAdd3(normals, tB[0], tB[1], tB[2]);
-
-        v3add(tA, positionVector, verticalVector);
-        v3copy(tB, torsionVector);
-        caAdd3(vertices, tA[0], tA[1], tA[2]);
-        caAdd3(normals, tB[0], tB[1], tB[2]);
-
-        v3sub(tA, positionVector, verticalVector);
-        caAdd3(vertices, tA[0], tA[1], tA[2]);
-        caAdd3(normals, tB[0], tB[1], tB[2]);
-    }
-
-    for (let i = 0; i < linearSegments; ++i) {
-        caAdd3(
-            indices,
-            vertexCount + i * 4,
-            vertexCount + (i + 1) * 4 + 1,
-            vertexCount + i * 4 + 1
-        );
-        caAdd3(
-            indices,
-            vertexCount + i * 4,
-            vertexCount + (i + 1) * 4,
-            vertexCount + (i + 1) * 4 + 1
-        );
-
-        caAdd3(
-            indices,
-            vertexCount + i * 4 + 2 + 1,
-            vertexCount + (i + 1) * 4 + 2 + 1,
-            vertexCount + i * 4 + 2
-        );
-        caAdd3(
-            indices,
-            vertexCount + i * 4 + 2,
-            vertexCount + (i + 1) * 4 + 2 + 1,
-            vertexCount + (i + 1) * 4 + 2
-        );
-    }
-
-    const addedVertexCount = (linearSegments + 1) * 4;
-    for (let i = 0, il = addedVertexCount; i < il; ++i) caAdd(groups, currentGroup);
+  const addedVertexCount = (linearSegments + 1) * 4;
+  for (let i = 0, il = addedVertexCount; i < il; ++i) caAdd(groups, currentGroup);
 }

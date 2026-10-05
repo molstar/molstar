@@ -580,225 +580,225 @@ USER_CHARGES
 `;
 
 describe('mol2 reader', () => {
-    it('basic', async () => {
-        const parsed = await parseMol2(Mol2String, '').run();
-        if (parsed.isError) {
-            throw new Error(parsed.message);
-        }
-        const mol2File = parsed.result;
+  it('basic', async () => {
+    const parsed = await parseMol2(Mol2String, '').run();
+    if (parsed.isError) {
+      throw new Error(parsed.message);
+    }
+    const mol2File = parsed.result;
 
-        // number of structures
-        expect(mol2File.structures.length).toBe(1);
+    // number of structures
+    expect(mol2File.structures.length).toBe(1);
 
-        const data = mol2File.structures[0];
-        const { molecule, atoms, bonds } = data;
+    const data = mol2File.structures[0];
+    const { molecule, atoms, bonds } = data;
 
-        // molecule fields
-        expect(molecule.mol_name).toBe('5816');
-        expect(molecule.num_atoms).toBe(26);
-        expect(molecule.num_bonds).toBe(26);
-        expect(molecule.num_subst).toBe(0);
-        expect(molecule.num_feat).toBe(0);
-        expect(molecule.num_sets).toBe(0);
-        expect(molecule.mol_type).toBe('SMALL');
-        expect(molecule.charge_type).toBe('GASTEIGER');
-        expect(molecule.status_bits).toBe('');
-        expect(molecule.mol_comment).toBe('');
+    // molecule fields
+    expect(molecule.mol_name).toBe('5816');
+    expect(molecule.num_atoms).toBe(26);
+    expect(molecule.num_bonds).toBe(26);
+    expect(molecule.num_subst).toBe(0);
+    expect(molecule.num_feat).toBe(0);
+    expect(molecule.num_sets).toBe(0);
+    expect(molecule.mol_type).toBe('SMALL');
+    expect(molecule.charge_type).toBe('GASTEIGER');
+    expect(molecule.status_bits).toBe('');
+    expect(molecule.mol_comment).toBe('');
 
-        // required atom fields
-        expect(atoms.count).toBe(26);
-        expect(atoms.atom_id.value(0)).toBe(1);
-        expect(atoms.atom_name.value(0)).toBe('O');
-        expect(atoms.x.value(0)).toBeCloseTo(1.7394, 0.001);
-        expect(atoms.y.value(0)).toBeCloseTo(-2.1169, 0.0001);
-        expect(atoms.z.value(0)).toBeCloseTo(-1.0893, 0.0001);
-        expect(atoms.atom_type.value(0)).toBe('O.3');
+    // required atom fields
+    expect(atoms.count).toBe(26);
+    expect(atoms.atom_id.value(0)).toBe(1);
+    expect(atoms.atom_name.value(0)).toBe('O');
+    expect(atoms.x.value(0)).toBeCloseTo(1.7394, 0.001);
+    expect(atoms.y.value(0)).toBeCloseTo(-2.1169, 0.0001);
+    expect(atoms.z.value(0)).toBeCloseTo(-1.0893, 0.0001);
+    expect(atoms.atom_type.value(0)).toBe('O.3');
 
-        // optional atom fields
-        expect(atoms.subst_id.value(0)).toBe(1);
-        expect(atoms.subst_name.value(0)).toBe('LIG1');
-        expect(atoms.charge.value(0)).toBeCloseTo(-0.3859);
-        expect(atoms.status_bits.value(0)).toBe('');
+    // optional atom fields
+    expect(atoms.subst_id.value(0)).toBe(1);
+    expect(atoms.subst_name.value(0)).toBe('LIG1');
+    expect(atoms.charge.value(0)).toBeCloseTo(-0.3859);
+    expect(atoms.status_bits.value(0)).toBe('');
 
-        // required bond fields
-        expect(bonds.count).toBe(26);
-        expect(bonds.bond_id.value(0)).toBe(1);
-        expect(bonds.origin_atom_id.value(0)).toBe(1);
-        expect(bonds.target_atom_id.value(0)).toBe(5);
-        expect(bonds.bond_type.value(0)).toBe('1');
+    // required bond fields
+    expect(bonds.count).toBe(26);
+    expect(bonds.bond_id.value(0)).toBe(1);
+    expect(bonds.origin_atom_id.value(0)).toBe(1);
+    expect(bonds.target_atom_id.value(0)).toBe(5);
+    expect(bonds.bond_type.value(0)).toBe('1');
 
-        // optional bond fields
-        expect(bonds.status_bits.value(0)).toBe('');
-    });
+    // optional bond fields
+    expect(bonds.status_bits.value(0)).toBe('');
+  });
 
-    it('multiblocks', async () => {
-        const parsed = await parseMol2(Mol2StringMultiBlocks, '').run();
-        if (parsed.isError) {
-            throw new Error(parsed.message);
-        }
-        const mol2File = parsed.result;
+  it('multiblocks', async () => {
+    const parsed = await parseMol2(Mol2StringMultiBlocks, '').run();
+    if (parsed.isError) {
+      throw new Error(parsed.message);
+    }
+    const mol2File = parsed.result;
 
-        // number of structures
-        expect(mol2File.structures.length).toBe(2);
+    // number of structures
+    expect(mol2File.structures.length).toBe(2);
 
-        const data = mol2File.structures[1];
-        const { molecule, atoms, bonds } = data;
+    const data = mol2File.structures[1];
+    const { molecule, atoms, bonds } = data;
 
-        // molecule fields
-        expect(molecule.mol_name).toBe('5816');
-        expect(molecule.num_atoms).toBe(26);
-        expect(molecule.num_bonds).toBe(26);
-        expect(molecule.num_subst).toBe(0);
-        expect(molecule.num_feat).toBe(0);
-        expect(molecule.num_sets).toBe(0);
-        expect(molecule.mol_type).toBe('SMALL');
-        expect(molecule.charge_type).toBe('GASTEIGER');
-        expect(molecule.status_bits).toBe('');
-        expect(molecule.mol_comment).toBe('');
+    // molecule fields
+    expect(molecule.mol_name).toBe('5816');
+    expect(molecule.num_atoms).toBe(26);
+    expect(molecule.num_bonds).toBe(26);
+    expect(molecule.num_subst).toBe(0);
+    expect(molecule.num_feat).toBe(0);
+    expect(molecule.num_sets).toBe(0);
+    expect(molecule.mol_type).toBe('SMALL');
+    expect(molecule.charge_type).toBe('GASTEIGER');
+    expect(molecule.status_bits).toBe('');
+    expect(molecule.mol_comment).toBe('');
 
-        // required atom fields
-        expect(atoms.count).toBe(26);
-        expect(atoms.atom_id.value(0)).toBe(1);
-        expect(atoms.atom_name.value(0)).toBe('O');
-        expect(atoms.x.value(0)).toBeCloseTo(1.7394, 0.001);
-        expect(atoms.y.value(0)).toBeCloseTo(-2.1169, 0.0001);
-        expect(atoms.z.value(0)).toBeCloseTo(-1.0893, 0.0001);
-        expect(atoms.atom_type.value(0)).toBe('O.3');
+    // required atom fields
+    expect(atoms.count).toBe(26);
+    expect(atoms.atom_id.value(0)).toBe(1);
+    expect(atoms.atom_name.value(0)).toBe('O');
+    expect(atoms.x.value(0)).toBeCloseTo(1.7394, 0.001);
+    expect(atoms.y.value(0)).toBeCloseTo(-2.1169, 0.0001);
+    expect(atoms.z.value(0)).toBeCloseTo(-1.0893, 0.0001);
+    expect(atoms.atom_type.value(0)).toBe('O.3');
 
-        // optional atom fields
-        expect(atoms.subst_id.value(0)).toBe(1);
-        expect(atoms.subst_name.value(0)).toBe('LIG1');
-        expect(atoms.charge.value(0)).toBeCloseTo(-0.3859);
-        expect(atoms.status_bits.value(0)).toBe('');
+    // optional atom fields
+    expect(atoms.subst_id.value(0)).toBe(1);
+    expect(atoms.subst_name.value(0)).toBe('LIG1');
+    expect(atoms.charge.value(0)).toBeCloseTo(-0.3859);
+    expect(atoms.status_bits.value(0)).toBe('');
 
-        // required bond fields
-        expect(bonds.count).toBe(26);
-        expect(bonds.bond_id.value(0)).toBe(1);
-        expect(bonds.origin_atom_id.value(0)).toBe(1);
-        expect(bonds.target_atom_id.value(0)).toBe(5);
-        expect(bonds.bond_type.value(0)).toBe('1');
+    // required bond fields
+    expect(bonds.count).toBe(26);
+    expect(bonds.bond_id.value(0)).toBe(1);
+    expect(bonds.origin_atom_id.value(0)).toBe(1);
+    expect(bonds.target_atom_id.value(0)).toBe(5);
+    expect(bonds.bond_type.value(0)).toBe('1');
 
-        // optional bond fields
-        expect(bonds.status_bits.value(0)).toBe('');
-    });
+    // optional bond fields
+    expect(bonds.status_bits.value(0)).toBe('');
+  });
 
-    it('minimal', async () => {
-        const parsed = await parseMol2(Mol2StringMinimal, '').run();
-        if (parsed.isError) {
-            throw new Error(parsed.message);
-        }
-        const mol2File = parsed.result;
+  it('minimal', async () => {
+    const parsed = await parseMol2(Mol2StringMinimal, '').run();
+    if (parsed.isError) {
+      throw new Error(parsed.message);
+    }
+    const mol2File = parsed.result;
 
-        // number of structures
-        expect(mol2File.structures.length).toBe(1);
+    // number of structures
+    expect(mol2File.structures.length).toBe(1);
 
-        const data = mol2File.structures[0];
-        const { molecule, atoms, bonds } = data;
+    const data = mol2File.structures[0];
+    const { molecule, atoms, bonds } = data;
 
-        // molecule fields
-        expect(molecule.mol_name).toBe('5816');
-        expect(molecule.num_atoms).toBe(26);
-        expect(molecule.num_bonds).toBe(26);
-        expect(molecule.num_subst).toBe(0);
-        expect(molecule.num_feat).toBe(0);
-        expect(molecule.num_sets).toBe(0);
-        expect(molecule.mol_type).toBe('SMALL');
-        expect(molecule.charge_type).toBe('GASTEIGER');
-        expect(molecule.status_bits).toBe('');
-        expect(molecule.mol_comment).toBe('');
+    // molecule fields
+    expect(molecule.mol_name).toBe('5816');
+    expect(molecule.num_atoms).toBe(26);
+    expect(molecule.num_bonds).toBe(26);
+    expect(molecule.num_subst).toBe(0);
+    expect(molecule.num_feat).toBe(0);
+    expect(molecule.num_sets).toBe(0);
+    expect(molecule.mol_type).toBe('SMALL');
+    expect(molecule.charge_type).toBe('GASTEIGER');
+    expect(molecule.status_bits).toBe('');
+    expect(molecule.mol_comment).toBe('');
 
-        // required atom fields
-        expect(atoms.count).toBe(26);
-        expect(atoms.atom_id.value(0)).toBe(1);
-        expect(atoms.atom_name.value(0)).toBe('O');
-        expect(atoms.x.value(0)).toBeCloseTo(1.7394, 0.001);
-        expect(atoms.y.value(0)).toBeCloseTo(-2.1169, 0.0001);
-        expect(atoms.z.value(0)).toBeCloseTo(-1.0893, 0.0001);
-        expect(atoms.atom_type.value(0)).toBe('O.3');
+    // required atom fields
+    expect(atoms.count).toBe(26);
+    expect(atoms.atom_id.value(0)).toBe(1);
+    expect(atoms.atom_name.value(0)).toBe('O');
+    expect(atoms.x.value(0)).toBeCloseTo(1.7394, 0.001);
+    expect(atoms.y.value(0)).toBeCloseTo(-2.1169, 0.0001);
+    expect(atoms.z.value(0)).toBeCloseTo(-1.0893, 0.0001);
+    expect(atoms.atom_type.value(0)).toBe('O.3');
 
-        // optional atom fields
-        expect(atoms.subst_id.value(0)).toBe(0);
-        expect(atoms.subst_name.value(0)).toBe('');
-        expect(atoms.charge.value(0)).toBeCloseTo(0);
-        expect(atoms.status_bits.value(0)).toBe('');
+    // optional atom fields
+    expect(atoms.subst_id.value(0)).toBe(0);
+    expect(atoms.subst_name.value(0)).toBe('');
+    expect(atoms.charge.value(0)).toBeCloseTo(0);
+    expect(atoms.status_bits.value(0)).toBe('');
 
-        // required bond fields
-        expect(bonds.count).toBe(26);
-        expect(bonds.bond_id.value(0)).toBe(1);
-        expect(bonds.origin_atom_id.value(0)).toBe(1);
-        expect(bonds.target_atom_id.value(0)).toBe(5);
-        expect(bonds.bond_type.value(0)).toBe('1');
+    // required bond fields
+    expect(bonds.count).toBe(26);
+    expect(bonds.bond_id.value(0)).toBe(1);
+    expect(bonds.origin_atom_id.value(0)).toBe(1);
+    expect(bonds.target_atom_id.value(0)).toBe(5);
+    expect(bonds.bond_type.value(0)).toBe('1');
 
-        // optional bond fields
-        expect(bonds.status_bits.value(0)).toBe('');
-    });
+    // optional bond fields
+    expect(bonds.status_bits.value(0)).toBe('');
+  });
 
-    it('atom status_bit', async () => {
-        const parsed = await parseMol2(Mol2AtomWithStatusBit, '').run();
-        if (parsed.isError) {
-            throw new Error(parsed.message);
-        }
-        const mol2File = parsed.result;
-        const data = mol2File.structures[0];
-        const statusBits = data.atoms.status_bits.toArray();
-        expect(statusBits.length).toEqual(data.atoms.count);
-        expect(statusBits[1]).toEqual('BACKBONE|DICT|DIRECT');
-        for (let i = 0; i < data.atoms.count; i++) {
-            if (i !== 1) expect(statusBits[i]).toEqual('');
-        }
-    });
+  it('atom status_bit', async () => {
+    const parsed = await parseMol2(Mol2AtomWithStatusBit, '').run();
+    if (parsed.isError) {
+      throw new Error(parsed.message);
+    }
+    const mol2File = parsed.result;
+    const data = mol2File.structures[0];
+    const statusBits = data.atoms.status_bits.toArray();
+    expect(statusBits.length).toEqual(data.atoms.count);
+    expect(statusBits[1]).toEqual('BACKBONE|DICT|DIRECT');
+    for (let i = 0; i < data.atoms.count; i++) {
+      if (i !== 1) expect(statusBits[i]).toEqual('');
+    }
+  });
 
-    it('bond status_bit', async () => {
-        const parsed = await parseMol2(Mol2BondWithStatusBit, '').run();
-        if (parsed.isError) {
-            throw new Error(parsed.message);
-        }
-        const mol2File = parsed.result;
-        const data = mol2File.structures[0];
-        const statusBits = data.bonds.status_bits.toArray();
-        expect(statusBits.length).toEqual(data.bonds.count);
-        expect(statusBits[17]).toEqual('BACKBONE|DICT|INTERRES');
-        for (let i = 0; i < data.bonds.count; i++) {
-            if (i !== 17) expect(statusBits[i]).toEqual('');
-        }
-    });
+  it('bond status_bit', async () => {
+    const parsed = await parseMol2(Mol2BondWithStatusBit, '').run();
+    if (parsed.isError) {
+      throw new Error(parsed.message);
+    }
+    const mol2File = parsed.result;
+    const data = mol2File.structures[0];
+    const statusBits = data.bonds.status_bits.toArray();
+    expect(statusBits.length).toEqual(data.bonds.count);
+    expect(statusBits[17]).toEqual('BACKBONE|DICT|INTERRES');
+    for (let i = 0; i < data.bonds.count; i++) {
+      if (i !== 17) expect(statusBits[i]).toEqual('');
+    }
+  });
 
-    it('crysin', async () => {
-        const parsed = await parseMol2(Mol2StringCrysin, '').run();
-        if (parsed.isError) {
-            throw new Error(parsed.message);
-        }
-        const mol2File = parsed.result;
+  it('crysin', async () => {
+    const parsed = await parseMol2(Mol2StringCrysin, '').run();
+    if (parsed.isError) {
+      throw new Error(parsed.message);
+    }
+    const mol2File = parsed.result;
 
-        // number of structures
-        expect(mol2File.structures.length).toBe(2);
+    // number of structures
+    expect(mol2File.structures.length).toBe(2);
 
-        // crysin fields
-        for (const data of mol2File.structures) {
-            expect(data.crysin).toEqual({
-                a: 10.5150,
-                b: 11.1300,
-                c: 7.9380,
-                alpha: 90.0,
-                beta: 90.0,
-                gamma: 90.0,
-                spaceGroup: 29,
-                setting: 5
-            });
+    // crysin fields
+    for (const data of mol2File.structures) {
+      expect(data.crysin).toEqual({
+        a: 10.515,
+        b: 11.13,
+        c: 7.938,
+        alpha: 90.0,
+        beta: 90.0,
+        gamma: 90.0,
+        spaceGroup: 29,
+        setting: 5,
+      });
 
-            // required substructure fields
-            expect(data.substructures!.count).toBe(2);
-            expect(data.substructures!.subst_id.value(0)).toBe(1);
-            expect(data.substructures!.subst_name.value(0)).toBe('RES1');
-            expect(data.substructures!.root_atom.value(0)).toBe(1);
+      // required substructure fields
+      expect(data.substructures!.count).toBe(2);
+      expect(data.substructures!.subst_id.value(0)).toBe(1);
+      expect(data.substructures!.subst_name.value(0)).toBe('RES1');
+      expect(data.substructures!.root_atom.value(0)).toBe(1);
 
-            // optional substructure fields
-            expect(data.substructures!.subst_type.value(0)).toBe('GROUP');
-            expect(data.substructures!.dict_type.value(0)).toBe('0');
-            expect(data.substructures!.chain.value(0)).toBe('****');
-            expect(data.substructures!.sub_type.value(0)).toBe('****');
-            expect(data.substructures!.inter_bonds.value(0)).toBe(0);
-            expect(data.substructures!.status_bits.value(0)).toBe('');
-        }
-    });
+      // optional substructure fields
+      expect(data.substructures!.subst_type.value(0)).toBe('GROUP');
+      expect(data.substructures!.dict_type.value(0)).toBe('0');
+      expect(data.substructures!.chain.value(0)).toBe('****');
+      expect(data.substructures!.sub_type.value(0)).toBe('****');
+      expect(data.substructures!.inter_bonds.value(0)).toBe(0);
+      expect(data.substructures!.status_bits.value(0)).toBe('');
+    }
+  });
 });

@@ -8,11 +8,11 @@ import { type SyminfoEntry, stripSettingQualifier } from './parse.js';
 import { CuratedBySpacegroupNumber } from './curated.js';
 
 function quote(s: string): string {
-    return `'${s.replace(/\\/g, '\\\\').replace(/'/g, '\\\'')}'`;
+  return `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
 }
 
 function quoteArray(items: readonly string[]): string {
-    return `[${items.map(quote).join(', ')}]`;
+  return `[${items.map(quote).join(', ')}]`;
 }
 
 const FileHeader = (extra: string) => `/**
@@ -25,11 +25,11 @@ const FileHeader = (extra: string) => `/**
 ${extra}`;
 
 export interface RawEntry {
-    readonly itaNumber: number;
-    readonly ccp4Number: number;
-    readonly names: readonly string[];
-    readonly hall: string;
-    readonly basisop: string;
+  readonly itaNumber: number;
+  readonly ccp4Number: number;
+  readonly names: readonly string[];
+  readonly hall: string;
+  readonly basisop: string;
 }
 
 /**
@@ -40,22 +40,23 @@ export interface RawEntry {
  * `syminfo.lib` (`symbol old`/`xHM`/`Hall`).
  */
 export function buildRawEntries(entries: readonly SyminfoEntry[]): RawEntry[] {
-    return entries.map(entry => {
-        const ccp4Number = entry.ccp4;
-        const curated = ccp4Number !== 0 ? CuratedBySpacegroupNumber[ccp4Number] : undefined;
-        const names = curated?.[0] ?? (entry.old.length > 0 ? entry.old : (entry.xHM ? [stripSettingQualifier(entry.xHM)] : []));
-        const hall = curated?.[1] ?? entry.hall;
-        return { itaNumber: entry.number, ccp4Number, names, hall, basisop: entry.basisop };
-    });
+  return entries.map((entry) => {
+    const ccp4Number = entry.ccp4;
+    const curated = ccp4Number !== 0 ? CuratedBySpacegroupNumber[ccp4Number] : undefined;
+    const names =
+      curated?.[0] ?? (entry.old.length > 0 ? entry.old : entry.xHM ? [stripSettingQualifier(entry.xHM)] : []);
+    const hall = curated?.[1] ?? entry.hall;
+    return { itaNumber: entry.number, ccp4Number, names, hall, basisop: entry.basisop };
+  });
 }
 
 /** Generates `src/mol-math/geometry/spacegroup/syminfo.ts` (`RawSpacegroupData`). */
 export function generateSpacegroupSyminfoTs(entries: readonly SyminfoEntry[]): string {
-    const rawEntries = buildRawEntries(entries);
-    const lines = rawEntries.map(e => {
-        return `    [${e.itaNumber}, ${e.ccp4Number}, ${quoteArray(e.names)}, ${quote(e.hall)}, ${quote(e.basisop)}],`;
-    });
-    return FileHeader(`/**
+  const rawEntries = buildRawEntries(entries);
+  const lines = rawEntries.map((e) => {
+    return `    [${e.itaNumber}, ${e.ccp4Number}, ${quoteArray(e.names)}, ${quote(e.hall)}, ${quote(e.basisop)}],`;
+  });
+  return FileHeader(`/**
  * \`[itaNumber, ccp4Number, names, hall, basisop]\` tuples for every
  * \`syminfo.lib\` setting (${rawEntries.length} total - all CCP4-numbered
  * settings AND non-numbered axis/cell/origin alternatives). See
@@ -75,10 +76,10 @@ ${lines.join('\n')}
  * Generates `src/mol-math/geometry/spacegroup/_test/syminfo.lib.ts`.
  */
 export function generateSyminfoLibSpecTs(entries: readonly SyminfoEntry[]): string {
-    const lines = entries.map(e => {
-        return `    { number: ${e.number}, ccp4: ${e.ccp4}, hall: ${quote(e.hall)}, xHM: ${quote(e.xHM)}, basisop: ${quote(e.basisop)}, old: ${quoteArray(e.old)}, symops: ${quoteArray(e.symops)}, cenops: ${quoteArray(e.cenops)} },`;
-    });
-    return FileHeader(`/**
+  const lines = entries.map((e) => {
+    return `    { number: ${e.number}, ccp4: ${e.ccp4}, hall: ${quote(e.hall)}, xHM: ${quote(e.xHM)}, basisop: ${quote(e.basisop)}, old: ${quoteArray(e.old)}, symops: ${quoteArray(e.symops)}, cenops: ${quoteArray(e.cenops)} },`;
+  });
+  return FileHeader(`/**
  * A single \`begin_spacegroup...end_spacegroup\` block from CCP4
  * \`data/sym/syminfo.lib\`, reduced to the fields needed to independently
  * reconstruct its full operator set and its accepted alias names. Test-only:

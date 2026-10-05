@@ -7,23 +7,23 @@
 import type { QueryName, QueryParams, Encoding } from './api.js';
 
 export interface MultipleQueryEntry<Name extends QueryName = QueryName> {
-    data_source?: string,
-    entryId: string,
-    query: Name,
-    params?: QueryParams<Name>,
-    model_nums?: number[],
-    copy_all_categories?: boolean
+  data_source?: string;
+  entryId: string;
+  query: Name;
+  params?: QueryParams<Name>;
+  model_nums?: number[];
+  copy_all_categories?: boolean;
 }
 
 export interface MultipleQuerySpec {
-    queries: MultipleQueryEntry[],
-    encoding?: Encoding,
-    asTarGz?: boolean,
-    download?: boolean,
-    filename?: string
+  queries: MultipleQueryEntry[];
+  encoding?: Encoding;
+  asTarGz?: boolean;
+  download?: boolean;
+  filename?: string;
 }
 
 export function getMultiQuerySpecFilename() {
-    const date = new Date();
-    return `result_${date.getMonth() + 1}-${date.getDate()}-${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}.tar.gz`;
+  const date = new Date();
+  return `result_${date.getMonth() + 1}-${date.getDate()}-${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}.tar.gz`;
 }

@@ -12,70 +12,68 @@ import * as argparse from 'argparse';
 import { pack } from '@molstar/volume-server/pack/main';
 import { VERSION } from '@molstar/volume-server/pack/version';
 
-type FileFormat = 'ccp4' | 'dsn6'
+type FileFormat = 'ccp4' | 'dsn6';
 
 interface Config {
-    input: { name: string, filename: string }[],
-    format: FileFormat,
-    isPeriodic: boolean,
-    outputFilename: string,
-    blockSizeInMB: number
+  input: { name: string; filename: string }[];
+  format: FileFormat;
+  isPeriodic: boolean;
+  outputFilename: string;
+  blockSizeInMB: number;
 }
 
 function getConfig(args: Args) {
-    const config: Partial<Config> = {
-        blockSizeInMB: args.blockSizeInMB,
-        format: args.format,
-        outputFilename: args.output
-    };
-    switch (args.mode) {
-        case 'em':
-            config.input = [
-                { name: 'em', filename: args.inputEm }
-            ];
-            config.isPeriodic = false;
-            break;
-        case 'xray':
-            config.input = [
-                { name: '2Fo-Fc', filename: args.input2fofc },
-                { name: 'Fo-Fc', filename: args.inputFofc }
-            ];
-            config.isPeriodic = true;
-            break;
-    }
-    return config as Config;
+  const config: Partial<Config> = {
+    blockSizeInMB: args.blockSizeInMB,
+    format: args.format,
+    outputFilename: args.output,
+  };
+  switch (args.mode) {
+    case 'em':
+      config.input = [{ name: 'em', filename: args.inputEm }];
+      config.isPeriodic = false;
+      break;
+    case 'xray':
+      config.input = [
+        { name: '2Fo-Fc', filename: args.input2fofc },
+        { name: 'Fo-Fc', filename: args.inputFofc },
+      ];
+      config.isPeriodic = true;
+      break;
+  }
+  return config as Config;
 }
 
 interface GeneralArgs {
-    blockSizeInMB: number
-    format: FileFormat
-    output: string
+  blockSizeInMB: number;
+  format: FileFormat;
+  output: string;
 }
 interface XrayArgs extends GeneralArgs {
-    mode: 'xray'
-    input2fofc: string
-    inputFofc: string
+  mode: 'xray';
+  input2fofc: string;
+  inputFofc: string;
 }
 interface EmArgs extends GeneralArgs {
-    mode: 'em'
-    inputEm: string
+  mode: 'em';
+  inputEm: string;
 }
-type Args = XrayArgs | EmArgs
+type Args = XrayArgs | EmArgs;
 
 const parser = new argparse.ArgumentParser({
-    add_help: true,
-    description: `VolumeServer Packer ${VERSION}, (c) 2018-2019, Mol* contributors`
+  add_help: true,
+  description: `VolumeServer Packer ${VERSION}, (c) 2018-2019, Mol* contributors`,
 });
 
 const subparsers = parser.add_subparsers({
-    title: 'Packing modes',
-    dest: 'mode'
+  title: 'Packing modes',
+  dest: 'mode',
 });
 
 function addGeneralArgs(parser: argparse.ArgumentParser) {
-    parser.add_argument('output', { help: `Output path.` });
-    parser.add_argument('--blockSizeInMB', { default: 96, help: `Maximum block size.`, metavar: 'SIZE' });
-    parser.add_argument('--format', { default: 'ccp4', help: `Input file format.` });
+  parser.add_argument('output', { help: `Output path.` });
+  parser.add_argument('--blockSizeInMB', { default: 96, help: `Maximum block size.`, metavar: 'SIZE' });
+  parser.add_argument('--format', { default: 'ccp4', help: `Input file format.` });
 }
 
 const xrayParser = subparsers.add_parser('xray', { add_help: true });

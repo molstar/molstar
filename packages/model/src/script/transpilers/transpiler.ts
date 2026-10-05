@@ -9,6 +9,6 @@
 
 import { Expression } from '../language/expression.js';
 
-export type Transpiler = (source: string) => Expression
+export type Transpiler = (source: string) => Expression;
 
 export const Transpiler = (source: string) => Expression;

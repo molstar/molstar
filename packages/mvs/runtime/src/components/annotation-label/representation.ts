@@ -5,46 +5,66 @@
  */
 
 import { Structure } from '@molstar/model/model/structure';
-import { Representation, type RepresentationContext, type RepresentationParamsGetter } from '@molstar/graphics/repr/representation';
-import { ComplexRepresentation, type StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '@molstar/graphics/repr/structure/representation';
+import {
+  Representation,
+  type RepresentationContext,
+  type RepresentationParamsGetter,
+} from '@molstar/graphics/repr/representation';
+import {
+  ComplexRepresentation,
+  type StructureRepresentation,
+  StructureRepresentationProvider,
+  StructureRepresentationStateBuilder,
+} from '@molstar/graphics/repr/structure/representation';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { isMVSStructure } from '../is-mvs-model-prop.js';
 import { MVSAnnotationLabelTextParams, MVSAnnotationLabelTextVisual } from './visual.js';
 
-
 /** Components of "MVS Annotation Label" representation */
 const MVSAnnotationLabelVisuals = {
-    'label-text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MVSAnnotationLabelTextParams>) => ComplexRepresentation('Label text', ctx, getParams, MVSAnnotationLabelTextVisual),
+  'label-text': (
+    ctx: RepresentationContext,
+    getParams: RepresentationParamsGetter<Structure, MVSAnnotationLabelTextParams>,
+  ) => ComplexRepresentation('Label text', ctx, getParams, MVSAnnotationLabelTextVisual),
 };
 
 /** Parameter definition for representation type "MVS Annotation Label" */
-export type MVSAnnotationLabelParams = typeof MVSAnnotationLabelParams
+export type MVSAnnotationLabelParams = typeof MVSAnnotationLabelParams;
 export const MVSAnnotationLabelParams = {
-    ...MVSAnnotationLabelTextParams,
-    visuals: PD.MultiSelect(['label-text'], PD.objectToOptions(MVSAnnotationLabelVisuals)),
+  ...MVSAnnotationLabelTextParams,
+  visuals: PD.MultiSelect(['label-text'], PD.objectToOptions(MVSAnnotationLabelVisuals)),
 };
 
 /** Parameter values for representation type "MVS Annotation Label" */
-export type MVSAnnotationLabelProps = PD.ValuesFor<MVSAnnotationLabelParams>
+export type MVSAnnotationLabelProps = PD.ValuesFor<MVSAnnotationLabelParams>;
 
 /** Structure representation type "MVS Annotation Label", allowing showing labels based on "MVS Annotations" custom props */
-export type MVSAnnotationLabelRepresentation = StructureRepresentation<MVSAnnotationLabelParams>
-export function MVSAnnotationLabelRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MVSAnnotationLabelParams>): MVSAnnotationLabelRepresentation {
-    const repr = Representation.createMulti('Label', ctx, getParams, StructureRepresentationStateBuilder, MVSAnnotationLabelVisuals as unknown as Representation.Def<Structure, MVSAnnotationLabelParams>);
-    repr.setState({ pickable: false, markerActions: MarkerAction.None });
-    return repr;
+export type MVSAnnotationLabelRepresentation = StructureRepresentation<MVSAnnotationLabelParams>;
+export function MVSAnnotationLabelRepresentation(
+  ctx: RepresentationContext,
+  getParams: RepresentationParamsGetter<Structure, MVSAnnotationLabelParams>,
+): MVSAnnotationLabelRepresentation {
+  const repr = Representation.createMulti(
+    'Label',
+    ctx,
+    getParams,
+    StructureRepresentationStateBuilder,
+    MVSAnnotationLabelVisuals as unknown as Representation.Def<Structure, MVSAnnotationLabelParams>,
+  );
+  repr.setState({ pickable: false, markerActions: MarkerAction.None });
+  return repr;
 }
 
 /** A thingy that is needed to register representation type "MVS Annotation Label", allowing showing labels based on "MVS Annotations" custom props */
 export const MVSAnnotationLabelRepresentationProvider = StructureRepresentationProvider({
-    name: 'mvs-annotation-label',
-    label: 'MVS Annotation Label',
-    description: 'Displays labels based on annotation custom model property',
-    factory: MVSAnnotationLabelRepresentation,
-    getParams: () => MVSAnnotationLabelParams,
-    defaultValues: PD.getDefaultValues(MVSAnnotationLabelParams),
-    defaultColorTheme: { name: 'uniform' }, // this ain't workin
-    defaultSizeTheme: { name: 'physical' },
-    isApplicable: (structure: Structure) => structure.elementCount > 0 && isMVSStructure(structure),
+  name: 'mvs-annotation-label',
+  label: 'MVS Annotation Label',
+  description: 'Displays labels based on annotation custom model property',
+  factory: MVSAnnotationLabelRepresentation,
+  getParams: () => MVSAnnotationLabelParams,
+  defaultValues: PD.getDefaultValues(MVSAnnotationLabelParams),
+  defaultColorTheme: { name: 'uniform' }, // this ain't workin
+  defaultSizeTheme: { name: 'physical' },
+  isApplicable: (structure: Structure) => structure.elementCount > 0 && isMVSStructure(structure),
 });

@@ -17,10 +17,15 @@ import { Camera } from '@molstar/graphics/canvas3d/camera';
 import { applyViewSnapshot } from '@molstar/kinemage-extension/behavior';
 import type { Kinemage } from '@molstar/kinemage-extension/reader/schema';
 import { StateTransforms } from '@molstar/plugin/state/transforms';
-import { KinemageShapePointsProvider, KinemageShapeLinesProvider, KinemageShapeMeshProvider, KinemageShapeSpheresProvider } from '@molstar/kinemage-extension/behavior';
+import {
+  KinemageShapePointsProvider,
+  KinemageShapeLinesProvider,
+  KinemageShapeMeshProvider,
+  KinemageShapeSpheresProvider,
+} from '@molstar/kinemage-extension/behavior';
 
 interface KinemageControlState extends CollapsableState {
-  isBusy: boolean
+  isBusy: boolean;
 }
 
 function nameFromString(s: string | undefined) {
@@ -38,7 +43,7 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
       isBusy: false,
       // default hidden until a kinemage is present
       isHidden: true,
-      brand: { accent: 'cyan', svg: undefined as any }
+      brand: { accent: 'cyan', svg: undefined as any },
     };
   }
 
@@ -66,8 +71,8 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
     this.setState({ isHidden: kinemages.length === 0 });
   }
 
-  private getKinemageList(): Array<{ kinData: Kinemage, ref: string, visControllerRef: string }> {
-    const result: Array<{ kinData: Kinemage, ref: string, visControllerRef: string }> = [];
+  private getKinemageList(): Array<{ kinData: Kinemage; ref: string; visControllerRef: string }> {
+    const result: Array<{ kinData: Kinemage; ref: string; visControllerRef: string }> = [];
 
     try {
       const cells = (this.plugin.state.data as any).cells as Map<string, any>;
@@ -78,7 +83,7 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
           result.push({
             kinData: (obj.data as any).kinData,
             ref,
-            visControllerRef: ref
+            visControllerRef: ref,
           });
         }
       }
@@ -158,7 +163,11 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
     await rebuildUpdate.commit();
   }
 
-  private async toggleVisibility(visControllerRef: string, kinData: Kinemage, target: { type: 'group' | 'subgroup' | 'master', key: string }) {
+  private async toggleVisibility(
+    visControllerRef: string,
+    kinData: Kinemage,
+    target: { type: 'group' | 'subgroup' | 'master'; key: string },
+  ) {
     try {
       const cell = this.plugin.state.data.cells.get(visControllerRef);
       if (!cell || !cell.transform || !cell.transform.params) return;
@@ -182,7 +191,7 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
       update.to(visControllerRef).update({
         groupVisibility: newGroupVisibility,
         subgroupVisibility: newSubgroupVisibility,
-        masterVisibility: newMasterVisibility
+        masterVisibility: newMasterVisibility,
       });
 
       await update.commit();
@@ -207,7 +216,9 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
       // IMPORTANT: Read the CURRENT visibility state from the controller node's data (not params)
       // to preserve any changes made through UI interactions
       const controllerCell = this.plugin.state.data.cells.get(visControllerRef);
-      const currentVisibilityState = controllerCell?.obj?.data ? (controllerCell.obj.data as any).visibilityState : null;
+      const currentVisibilityState = controllerCell?.obj?.data
+        ? (controllerCell.obj.data as any).visibilityState
+        : null;
 
       // Start with current actual visibility state
       const newGroupVisibility = currentVisibilityState
@@ -216,7 +227,7 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
 
       // Only update the animate groups - leave everything else as-is
       for (let i = 0; i < animateGroups.length; i++) {
-        newGroupVisibility[animateGroups[i]] = (i === nextActive);
+        newGroupVisibility[animateGroups[i]] = i === nextActive;
       }
 
       const update = this.plugin.state.data.build();
@@ -252,7 +263,7 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
     }
   }
 
-  private isVisible(visControllerRef: string, target: { type: 'group' | 'subgroup' | 'master', key: string }): boolean {
+  private isVisible(visControllerRef: string, target: { type: 'group' | 'subgroup' | 'master'; key: string }): boolean {
     try {
       const cell = this.plugin.state.data.cells.get(visControllerRef);
       if (!cell || !cell.transform || !cell.transform.params) return true;
@@ -281,9 +292,12 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
 
       // Title
       kinBlock.push(
-        <div key={'title-' + title} style={{ padding: '6px', fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div
+          key={'title-' + title}
+          style={{ padding: '6px', fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+        >
           {title}
-        </div>
+        </div>,
       );
 
       // views
@@ -294,13 +308,13 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
           kinBlock.push(
             <div key={'view-' + title + '-' + viewKey} style={{ padding: '2px 6px' }}>
               <button
-                className='msp-btn msp-btn-block'
+                className="msp-btn msp-btn-block"
                 onClick={() => this.applyView(kinData, viewKey)}
                 title={`Apply view: ${label}`}
               >
                 {label}
               </button>
-            </div>
+            </div>,
           );
         }
       }
@@ -310,26 +324,26 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
         kinBlock.push(
           <div key={'anim-' + title} style={{ padding: '2px 6px' }}>
             <button
-              className='msp-btn msp-btn-block'
+              className="msp-btn msp-btn-block"
               onClick={() => this.triggerAnimateForKin(visControllerRef, kinData, 'animate')}
-              title='Cycle through animation frames'
+              title="Cycle through animation frames"
             >
               Animate
             </button>
-          </div>
+          </div>,
         );
       }
       if (kinData.groupsAnimate2 && kinData.groupsAnimate2.length > 0) {
         kinBlock.push(
           <div key={'anim2-' + title} style={{ padding: '2px 6px' }}>
             <button
-              className='msp-btn msp-btn-block'
+              className="msp-btn msp-btn-block"
               onClick={() => this.triggerAnimateForKin(visControllerRef, kinData, '2animate')}
-              title='Cycle through second animation frames'
+              title="Cycle through second animation frames"
             >
               Animate2
             </button>
-          </div>
+          </div>,
         );
       }
 
@@ -338,20 +352,22 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
         if (!(groupInfo as any).nobutton) {
           const visible = this.isVisible(visControllerRef, { type: 'group', key: groupKey });
           // If this group is in animate or animate2, then add '*' before its groupKey name to indicate that it's an animation group
-          const isAnimate = (kinData.groupsAnimate?.includes(groupKey) ?? false) || (kinData.groupsAnimate2?.includes(groupKey) ?? false);
+          const isAnimate =
+            (kinData.groupsAnimate?.includes(groupKey) ?? false) ||
+            (kinData.groupsAnimate2?.includes(groupKey) ?? false);
           const label = isAnimate ? `* ${groupKey}` : groupKey;
           kinBlock.push(
             <div key={'group-' + title + '-' + groupKey} style={{ padding: '2px 6px' }}>
               <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                 <input
-                  type='checkbox'
+                  type="checkbox"
                   checked={visible}
                   onChange={() => this.toggleVisibility(visControllerRef, kinData, { type: 'group', key: groupKey })}
                   style={{ marginRight: '6px' }}
                 />
                 <span title={label}>{label}</span>
               </label>
-            </div>
+            </div>,
           );
         }
         // If this group is not dominant, find any subgroups of this group and show them here (indented) unless they have nobutton set
@@ -365,14 +381,16 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
                 <div key={'subgroup-' + title + '-' + subgroupKey} style={{ padding: '2px 6px', paddingLeft: '24px' }}>
                   <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                     <input
-                      type='checkbox'
+                      type="checkbox"
                       checked={visible}
-                      onChange={() => this.toggleVisibility(visControllerRef, kinData, { type: 'subgroup', key: subgroupKey })}
+                      onChange={() =>
+                        this.toggleVisibility(visControllerRef, kinData, { type: 'subgroup', key: subgroupKey })
+                      }
                       style={{ marginRight: '6px' }}
                     />
                     <span title={subgroupLabel}>{subgroupLabel}</span>
                   </label>
-                </div>
+                </div>,
               );
             }
           }
@@ -392,14 +410,16 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
           <div key={'subgroup-' + title + '-' + subgroupKey} style={{ padding: '2px 6px' }}>
             <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
               <input
-                type='checkbox'
+                type="checkbox"
                 checked={visible}
-                onChange={() => this.toggleVisibility(visControllerRef, kinData, { type: 'subgroup', key: subgroupKey })}
+                onChange={() =>
+                  this.toggleVisibility(visControllerRef, kinData, { type: 'subgroup', key: subgroupKey })
+                }
                 style={{ marginRight: '6px' }}
               />
               <span title={subgroupKey}>{subgroupKey}</span>
             </label>
-          </div>
+          </div>,
         );
       }
 
@@ -410,18 +430,22 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
           <div key={'master-' + title + '-' + masterKey} style={{ padding: '2px 6px' }}>
             <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
               <input
-                type='checkbox'
+                type="checkbox"
                 checked={visible}
                 onChange={() => this.toggleVisibility(visControllerRef, kinData, { type: 'master', key: masterKey })}
                 style={{ marginRight: '6px' }}
               />
               <span title={masterKey}>{masterKey}</span>
             </label>
-          </div>
+          </div>,
         );
       }
 
-      blocks.push(<div key={'kin-block-' + title} className='msp-control-group-wrapper'>{kinBlock}</div>);
+      blocks.push(
+        <div key={'kin-block-' + title} className="msp-control-group-wrapper">
+          {kinBlock}
+        </div>,
+      );
     }
 
     return <>{blocks}</>;

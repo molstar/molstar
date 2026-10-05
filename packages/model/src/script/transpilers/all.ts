@@ -11,7 +11,7 @@ import { transpiler as pymol } from './pymol/parser.js';
 import { transpiler as vmd } from './vmd/parser.js';
 
 export const _transpiler = {
-    pymol,
-    vmd,
-    jmol,
+  pymol,
+  vmd,
+  jmol,
 };

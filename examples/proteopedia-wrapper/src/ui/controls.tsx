@@ -11,7 +11,10 @@ import { TransformUpdaterControl } from '@molstar/plugin-ui/state/update-transfo
 import { StateElements } from '@molstar/proteopedia-wrapper-example/helpers';
 
 export function volumeStreamingControls(plugin: PluginUIContext, parent: Element) {
-    ReactDOM.render(<PluginContextContainer plugin={plugin}>
-        <TransformUpdaterControl nodeRef={StateElements.VolumeStreaming} />
-    </PluginContextContainer>, parent);
+  ReactDOM.render(
+    <PluginContextContainer plugin={plugin}>
+      <TransformUpdaterControl nodeRef={StateElements.VolumeStreaming} />
+    </PluginContextContainer>,
+    parent,
+  );
 }

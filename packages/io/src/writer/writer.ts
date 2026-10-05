@@ -5,6 +5,6 @@
  */
 
 export interface Writer {
-    writeString(data: string): boolean,
-    writeBinary(data: Uint8Array): boolean
+  writeString(data: string): boolean;
+  writeBinary(data: Uint8Array): boolean;
 }

@@ -10,38 +10,38 @@ import type { Volume } from '@molstar/model/model/volume/volume';
 export { PropertyProvider };
 
 interface PropertyProvider<T> {
-    readonly descriptor: CustomPropertyDescriptor
-    get(volume: Volume): T | undefined
-    set(volume: Volume, value: T): void
+  readonly descriptor: CustomPropertyDescriptor;
+  get(volume: Volume): T | undefined;
+  set(volume: Volume, value: T): void;
 }
 
 namespace PropertyProvider {
-    export function create<T>(descriptor: CustomPropertyDescriptor): PropertyProvider<T> {
-        const { name } = descriptor;
+  export function create<T>(descriptor: CustomPropertyDescriptor): PropertyProvider<T> {
+    const { name } = descriptor;
 
-        return {
-            descriptor,
-            get(volume: Volume): T | undefined {
-                return volume._propertyData[name];
-            },
-            set(volume: Volume, value: T) {
-                volume.customProperties.add(descriptor);
-                volume._propertyData[name] = value;
-            }
-        };
-    }
+    return {
+      descriptor,
+      get(volume: Volume): T | undefined {
+        return volume._propertyData[name];
+      },
+      set(volume: Volume, value: T) {
+        volume.customProperties.add(descriptor);
+        volume._propertyData[name] = value;
+      },
+    };
+  }
 }
 
 //
 
 export { RecommendedIsoValue };
 
-type RecommendedIsoValue = Volume.IsoValue
+type RecommendedIsoValue = Volume.IsoValue;
 
 namespace RecommendedIsoValue {
-    export const Descriptor: CustomPropertyDescriptor = {
-        name: 'recommended_iso_value',
-    };
+  export const Descriptor: CustomPropertyDescriptor = {
+    name: 'recommended_iso_value',
+  };
 
-    export const Provider = PropertyProvider.create<RecommendedIsoValue>(Descriptor);
+  export const Provider = PropertyProvider.create<RecommendedIsoValue>(Descriptor);
 }

@@ -21,15 +21,16 @@ interface Snapshot {
 }
 ```
 
-When defining the state object, all components are optional, i.e., it is possible to define just the ``data`` component.
+When defining the state object, all components are optional, i.e., it is possible to define just the `data` component.
 
-Example state is available [here](./example-state.json). In the plugin, it is possible to create and load these objects using ``Download JSON`` 
-and ``Open JSON`` buttons in the ``State Snapshots`` section.
+Example state is available [here](./example-state.json). In the plugin, it is possible to create and load these objects
+using `Download JSON` and `Open JSON` buttons in the `State Snapshots` section.
 
 # State Tree
 
-The data and behavior of the plugin is stored in a tree data structure implemented in the ``mol-state`` module. This data structure 
-strictly separates the definition of the state with its actual instantiation, similar to the relation of HTML and DOM in web browsers.
+The data and behavior of the plugin is stored in a tree data structure implemented in the `mol-state` module. This data
+structure strictly separates the definition of the state with its actual instantiation, similar to the relation of HTML
+and DOM in web browsers.
 
 The snapshot itself is a JS Object with these components
 
@@ -69,19 +70,20 @@ interface Transform.Props {
 }
 ```
 
-"Built-in" data state transforms and description of their parameters are defined in ``mol-plugin/state/transforms``. Behavior transforms are defined in ``mol-plugin/behavior``.
+"Built-in" data state transforms and description of their parameters are defined in `mol-plugin/state/transforms`.
+Behavior transforms are defined in `mol-plugin/behavior`.
 
 # Animation State
 
-Defined by ``CameraSnapshotManager.StateSnapshot`` in ``mol-plugin/state/animation/manager.ts``.
+Defined by `CameraSnapshotManager.StateSnapshot` in `mol-plugin/state/animation/manager.ts`.
 
 # Canvas3D State
 
-Defined by ``Canvas3DParams`` in ``mol-canvas3d/canvas3d.ts``.
+Defined by `Canvas3DParams` in `mol-canvas3d/canvas3d.ts`.
 
 # Camera Snapshots
 
-The camera position (defined in ``mol-canvas3d/camera.ts``) is a plain JS object with the type:
+The camera position (defined in `mol-canvas3d/camera.ts`) is a plain JS object with the type:
 
 ```ts
 interface Camera.Snapshot {
@@ -103,7 +105,7 @@ interface Camera.Snapshot {
 }
 ```
 
-The ``cameraSnapshots`` component of the state are defined in ``mol-plugin/state/camera.ts``
+The `cameraSnapshots` component of the state are defined in `mol-plugin/state/camera.ts`
 
 ```js
 interface CameraSnapshotManager.StateSnapshot {

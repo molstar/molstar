@@ -8,7 +8,10 @@
  */
 
 import type { MVSLoadOptions } from '@molstar/mvs/load';
-import { applyStructureInteractivity, type StructureInteractivityOptions } from '@molstar/plugin-extension/interactivity';
+import {
+  applyStructureInteractivity,
+  type StructureInteractivityOptions,
+} from '@molstar/plugin-extension/interactivity';
 import * as loaders from '@molstar/plugin-extension/loaders';
 import { Volume } from '@molstar/model/model/volume';
 import { PluginComponent } from '@molstar/plugin/state/component';
@@ -26,105 +29,123 @@ import { createViewerSpec } from '@molstar/viewer/plugin-spec';
 import { ViewerAutoPreset } from '@molstar/viewer/presets';
 
 export { PLUGIN_VERSION as version } from '@molstar/plugin/version';
-export { consoleStats, isDebugMode, isProductionMode, isTimingMode, setDebugMode, setProductionMode, setTimingMode } from '@molstar/core/util/debug';
+export {
+  consoleStats,
+  isDebugMode,
+  isProductionMode,
+  isTimingMode,
+  setDebugMode,
+  setProductionMode,
+  setTimingMode,
+} from '@molstar/core/util/debug';
 
 // re-export for backwards compatibility, but these should ideally be imported from the plugin extension directly
 // TODO: consider removing these in v6.0
 export type { LoadStructureOptions, LoadTrajectoryParams, VolumeIsovalueInfo } from '@molstar/plugin-extension/loaders';
 
 export class Viewer {
-    private _events = new PluginComponent();
-    public readonly plugin: PluginUIContext;
+  private _events = new PluginComponent();
+  public readonly plugin: PluginUIContext;
 
-    constructor(plugin: PluginUIContext) {
-        this.plugin = plugin;
-        Viewer.instances.push(this);
+  constructor(plugin: PluginUIContext) {
+    this.plugin = plugin;
+    Viewer.instances.push(this);
+  }
+
+  static readonly instances: Viewer[] = [];
+
+  static async create(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
+    const spec = createViewerSpec(options);
+
+    const element = typeof elementOrId === 'string' ? document.getElementById(elementOrId) : elementOrId;
+    if (!element) throw new Error(`Could not get element with id '${elementOrId}'`);
+    const plugin = await createPluginUI({
+      target: element,
+      spec,
+      render: renderReact18,
+      onBeforeUIRender: (plugin) => {
+        // the preset needs to be added before the UI renders otherwise
+        // "Download Structure" wont be able to pick it up
+        plugin.builders.structure.representation.registerPreset(ViewerAutoPreset);
+      },
+    });
+
+    plugin.canvas3d?.setProps({ illumination: { enabled: options.illumination ?? DefaultViewerOptions.illumination } });
+    if (options.viewportBackgroundColor ?? DefaultViewerOptions.viewportBackgroundColor) {
+      const backgroundColor = decodeColor(
+        options.viewportBackgroundColor ?? DefaultViewerOptions.viewportBackgroundColor,
+      );
+      if (typeof backgroundColor === 'number') {
+        plugin.canvas3d?.setProps({ renderer: { backgroundColor } });
+      }
     }
+    return new Viewer(plugin);
+  }
 
-    static readonly instances: Viewer[] = [];
+  /**
+   * Allows subscribing to rxjs observables in the context of the viewer.
+   * All subscriptions will be disposed of when the viewer is destroyed.
+   */
+  subscribe = this._events.subscribe.bind(this._events);
 
-    static async create(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
-        const spec = createViewerSpec(options);
+  setRemoteSnapshot(id: string) {
+    return loaders.setRemoteSnapshot(this.plugin, id);
+  }
 
-        const element = typeof elementOrId === 'string'
-            ? document.getElementById(elementOrId)
-            : elementOrId;
-        if (!element) throw new Error(`Could not get element with id '${elementOrId}'`);
-        const plugin = await createPluginUI({
-            target: element,
-            spec,
-            render: renderReact18,
-            onBeforeUIRender: plugin => {
-                // the preset needs to be added before the UI renders otherwise
-                // "Download Structure" wont be able to pick it up
-                plugin.builders.structure.representation.registerPreset(ViewerAutoPreset);
-            }
-        });
+  loadSnapshotFromUrl(url: string, type: PluginState.SnapshotType) {
+    return loaders.loadSnapshotFromUrl(this.plugin, url, type);
+  }
 
-        plugin.canvas3d?.setProps({ illumination: { enabled: options.illumination ?? DefaultViewerOptions.illumination } });
-        if (options.viewportBackgroundColor ?? DefaultViewerOptions.viewportBackgroundColor) {
-            const backgroundColor = decodeColor(options.viewportBackgroundColor ?? DefaultViewerOptions.viewportBackgroundColor);
-            if (typeof backgroundColor === 'number') {
-                plugin.canvas3d?.setProps({ renderer: { backgroundColor } });
-            }
-        }
-        return new Viewer(plugin);
-    }
+  loadStructureFromUrl(
+    url: string,
+    format: BuiltInTrajectoryFormat = 'mmcif',
+    isBinary = false,
+    options?: loaders.LoadStructureOptions & { label?: string },
+  ) {
+    return loaders.loadStructureFromUrl(this.plugin, url, format, isBinary, options);
+  }
 
-    /**
-     * Allows subscribing to rxjs observables in the context of the viewer.
-     * All subscriptions will be disposed of when the viewer is destroyed.
-     */
-    subscribe = this._events.subscribe.bind(this._events);
+  loadAllModelsOrAssemblyFromUrl(
+    url: string,
+    format: BuiltInTrajectoryFormat = 'mmcif',
+    isBinary = false,
+    options?: loaders.LoadStructureOptions,
+  ) {
+    return loaders.loadAllModelsOrAssemblyFromUrl(this.plugin, url, format, isBinary, options);
+  }
 
-    setRemoteSnapshot(id: string) {
-        return loaders.setRemoteSnapshot(this.plugin, id);
-    }
+  loadStructureFromData(data: string | number[], format: BuiltInTrajectoryFormat, options?: { dataLabel?: string }) {
+    return loaders.loadStructureFromData(this.plugin, data, format, options);
+  }
 
-    loadSnapshotFromUrl(url: string, type: PluginState.SnapshotType) {
-        return loaders.loadSnapshotFromUrl(this.plugin, url, type);
-    }
+  loadPdb(pdb: string, options?: loaders.LoadStructureOptions) {
+    return loaders.loadPdb(this.plugin, pdb, options);
+  }
 
-    loadStructureFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false, options?: loaders.LoadStructureOptions & { label?: string }) {
-        return loaders.loadStructureFromUrl(this.plugin, url, format, isBinary, options);
-    }
+  /**
+   * @deprecated Scheduled for removal in v5. Use {@link loadPdbIhm | loadPdbIhm(pdbIhm: string)} instead.
+   */
+  loadPdbDev(pdbDev: string) {
+    return this.loadPdbIhm(pdbDev);
+  }
 
-    loadAllModelsOrAssemblyFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false, options?: loaders.LoadStructureOptions) {
-        return loaders.loadAllModelsOrAssemblyFromUrl(this.plugin, url, format, isBinary, options);
-    }
+  loadPdbIhm(pdbIhm: string) {
+    return loaders.loadPdbIhm(this.plugin, pdbIhm);
+  }
 
-    loadStructureFromData(data: string | number[], format: BuiltInTrajectoryFormat, options?: { dataLabel?: string }) {
-        return loaders.loadStructureFromData(this.plugin, data, format, options);
-    }
+  loadEmdb(emdb: string, options?: { detail?: number }) {
+    return loaders.loadEmdb(this.plugin, emdb, options);
+  }
 
-    loadPdb(pdb: string, options?: loaders.LoadStructureOptions) {
-        return loaders.loadPdb(this.plugin, pdb, options);
-    }
+  loadAlphaFoldDb(afdb: string) {
+    return loaders.loadAlphaFoldDb(this.plugin, afdb);
+  }
 
-    /**
-     * @deprecated Scheduled for removal in v5. Use {@link loadPdbIhm | loadPdbIhm(pdbIhm: string)} instead.
-     */
-    loadPdbDev(pdbDev: string) {
-        return this.loadPdbIhm(pdbDev);
-    }
+  loadModelArchive(id: string) {
+    return loaders.loadModelArchive(this.plugin, id);
+  }
 
-    loadPdbIhm(pdbIhm: string) {
-        return loaders.loadPdbIhm(this.plugin, pdbIhm);
-    }
-
-    loadEmdb(emdb: string, options?: { detail?: number }) {
-        return loaders.loadEmdb(this.plugin, emdb, options);
-    }
-
-    loadAlphaFoldDb(afdb: string) {
-        return loaders.loadAlphaFoldDb(this.plugin, afdb);
-    }
-
-    loadModelArchive(id: string) {
-        return loaders.loadModelArchive(this.plugin, id);
-    }
-
-    /**
+  /**
      * @example Load X-ray density from volume server
         viewer.loadVolumeFromUrl({
             url: 'https://www.ebi.ac.uk/pdbe/densities/x-ray/1tqn/cell?detail=3',
@@ -163,64 +184,68 @@ export class Viewer {
             isLazy: true
         });
      */
-    loadVolumeFromUrl({ url, format, isBinary }: { url: string, format: BuildInVolumeFormat, isBinary: boolean }, isovalues: loaders.VolumeIsovalueInfo[], options?: { entryId?: string | string[], isLazy?: boolean }) {
-        return loaders.loadVolumeFromUrl(this.plugin, { url, format, isBinary }, isovalues, options);
-    }
+  loadVolumeFromUrl(
+    { url, format, isBinary }: { url: string; format: BuildInVolumeFormat; isBinary: boolean },
+    isovalues: loaders.VolumeIsovalueInfo[],
+    options?: { entryId?: string | string[]; isLazy?: boolean },
+  ) {
+    return loaders.loadVolumeFromUrl(this.plugin, { url, format, isBinary }, isovalues, options);
+  }
 
-    loadFullResolutionEMDBMap(emdbId: string, options: { isoValue: Volume.IsoValue, color?: Color }) {
-        return loaders.loadFullResolutionEMDBMap(this.plugin, emdbId, options);
-    }
+  loadFullResolutionEMDBMap(emdbId: string, options: { isoValue: Volume.IsoValue; color?: Color }) {
+    return loaders.loadFullResolutionEMDBMap(this.plugin, emdbId, options);
+  }
 
-    /**
-     * @example
-     *  viewer.loadTrajectory({
-     *      model: { kind: 'model-url', url: 'villin.gro', format: 'gro' },
-     *      coordinates: { kind: 'coordinates-url', url: 'villin.xtc', format: 'xtc', isBinary: true },
-     *      preset: 'all-models' // or 'default'
-     *  });
-     */
-    loadTrajectory(params: loaders.LoadTrajectoryParams) {
-        return loaders.loadTrajectory(this.plugin, params);
-    }
+  /**
+   * @example
+   *  viewer.loadTrajectory({
+   *      model: { kind: 'model-url', url: 'villin.gro', format: 'gro' },
+   *      coordinates: { kind: 'coordinates-url', url: 'villin.xtc', format: 'xtc', isBinary: true },
+   *      preset: 'all-models' // or 'default'
+   *  });
+   */
+  loadTrajectory(params: loaders.LoadTrajectoryParams) {
+    return loaders.loadTrajectory(this.plugin, params);
+  }
 
-    loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx', options?: MVSLoadOptions) {
-        return loaders.loadMVSFromUrl(this.plugin, url, format, options);
-    }
+  loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx', options?: MVSLoadOptions) {
+    return loaders.loadMVSFromUrl(this.plugin, url, format, options);
+  }
 
-    /** Load MolViewSpec from `data`.
-     * If `format` is 'mvsj', `data` must be a string or a Uint8Array containing a UTF8-encoded string.
-     * If `format` is 'mvsx', `data` must be a Uint8Array or a string containing base64-encoded binary data prefixed with 'base64,'. */
-    loadMvsData(data: string | Uint8Array<ArrayBuffer>, format: 'mvsj' | 'mvsx', options?: MVSLoadOptions) {
-        return loaders.loadMvsData(this.plugin, data, format, options);
-    }
+  /** Load MolViewSpec from `data`.
+   * If `format` is 'mvsj', `data` must be a string or a Uint8Array containing a UTF8-encoded string.
+   * If `format` is 'mvsx', `data` must be a Uint8Array or a string containing base64-encoded binary data prefixed with 'base64,'. */
+  loadMvsData(data: string | Uint8Array<ArrayBuffer>, format: 'mvsj' | 'mvsx', options?: MVSLoadOptions) {
+    return loaders.loadMvsData(this.plugin, data, format, options);
+  }
 
-    loadFiles(files: File[]) {
-        return loaders.loadFiles(this.plugin, files);
-    }
+  loadFiles(files: File[]) {
+    return loaders.loadFiles(this.plugin, files);
+  }
 
-    loadUrl(url: string, format: string, isBinary = false) {
-        return loaders.loadUrl(this.plugin, url, format, isBinary);
-    }
+  loadUrl(url: string, format: string, isBinary = false) {
+    return loaders.loadUrl(this.plugin, url, format, isBinary);
+  }
 
-    handleResize() {
-        this.plugin.layout.events.updated.next(void 0);
-    }
+  handleResize() {
+    this.plugin.layout.events.updated.next(void 0);
+  }
 
-    /**
-     * Triggers structure element selection or highlighting based on the provided
-     * MolScript expression or StructureElement schema. Focus action will only apply to the
-     * first structure that matches the criteria.
-     *
-     * If neither `expression` nor `elements` are provided, all selections/highlights
-     * will be cleared based on the specified `action`.
-     */
-    structureInteractivity(options: StructureInteractivityOptions) {
-        return applyStructureInteractivity(this.plugin, options);
-    }
+  /**
+   * Triggers structure element selection or highlighting based on the provided
+   * MolScript expression or StructureElement schema. Focus action will only apply to the
+   * first structure that matches the criteria.
+   *
+   * If neither `expression` nor `elements` are provided, all selections/highlights
+   * will be cleared based on the specified `action`.
+   */
+  structureInteractivity(options: StructureInteractivityOptions) {
+    return applyStructureInteractivity(this.plugin, options);
+  }
 
-    dispose() {
-        this._events.dispose();
-        this.plugin.dispose();
-        Viewer.instances.splice(Viewer.instances.indexOf(this), 1);
-    }
+  dispose() {
+    this._events.dispose();
+    this.plugin.dispose();
+    Viewer.instances.splice(Viewer.instances.indexOf(this), 1);
+  }
 }

@@ -18,114 +18,117 @@ import { ColorLists, getColorListFromName } from '@molstar/core/util/color/lists
 import { ColorThemeCategory } from './categories.js';
 
 const DefaultList = 'dark-2';
-const DefaultColor = Color(0xCCCCCC);
+const DefaultColor = Color(0xcccccc);
 const Description = `Assigns a color based on the operator HKL value of a transformed chain.`;
 
 export const OperatorHklColorThemeParams = {
-    ...getPaletteParams({ type: 'colors', colorList: DefaultList }),
+  ...getPaletteParams({ type: 'colors', colorList: DefaultList }),
 };
-export type OperatorHklColorThemeParams = typeof OperatorHklColorThemeParams
+export type OperatorHklColorThemeParams = typeof OperatorHklColorThemeParams;
 export function getOperatorHklColorThemeParams(ctx: ThemeDataContext) {
-    const params = PD.clone(OperatorHklColorThemeParams);
-    if (ctx.structure) {
-        if (getOperatorHklSerialMap(ctx.structure.root).map.size > ColorLists[DefaultList].list.length) {
-            params.palette.defaultValue.name = 'colors';
-            params.palette.defaultValue.params = {
-                ...params.palette.defaultValue.params,
-                list: { kind: 'interpolate', colors: getColorListFromName(DefaultList).list }
-            };
-        }
+  const params = PD.clone(OperatorHklColorThemeParams);
+  if (ctx.structure) {
+    if (getOperatorHklSerialMap(ctx.structure.root).map.size > ColorLists[DefaultList].list.length) {
+      params.palette.defaultValue.name = 'colors';
+      params.palette.defaultValue.params = {
+        ...params.palette.defaultValue.params,
+        list: { kind: 'interpolate', colors: getColorListFromName(DefaultList).list },
+      };
     }
-    return params;
+  }
+  return params;
 }
 
 const hklOffset = 10000;
 
 function hklKey(hkl: Vec3) {
-    return hkl.map(v => `${v + hklOffset}`.padStart(5, '0')).join('');
+  return hkl.map((v) => `${v + hklOffset}`.padStart(5, '0')).join('');
 }
 
 function hklKeySplit(key: string) {
-    const len = integerDigitCount(hklOffset, 0);
-    const h = parseInt(key.substr(0, len));
-    const k = parseInt(key.substr(len, len));
-    const l = parseInt(key.substr(len + len, len));
-    return Vec3.create(h - hklOffset, k - hklOffset, l - hklOffset);
+  const len = integerDigitCount(hklOffset, 0);
+  const h = parseInt(key.substr(0, len));
+  const k = parseInt(key.substr(len, len));
+  const l = parseInt(key.substr(len + len, len));
+  return Vec3.create(h - hklOffset, k - hklOffset, l - hklOffset);
 }
 
 function formatHkl(hkl: Vec3) {
-    return hkl.map(v => v + 5).join('');
+  return hkl.map((v) => v + 5).join('');
 }
 
 function getOperatorHklSerialMap(structure: Structure) {
-    const map = new Map<string, number>();
-    const set = new Set<string>();
-    for (let i = 0, il = structure.units.length; i < il; ++i) {
-        const k = hklKey(structure.units[i].conformation.operator.hkl);
-        set.add(k);
-    }
-    const arr = Array.from(set.values()).sort();
-    arr.forEach(k => map.set(k, map.size));
-    const min = hklKeySplit(arr[0]);
-    const max = hklKeySplit(arr[arr.length - 1]);
-    return { min, max, map };
+  const map = new Map<string, number>();
+  const set = new Set<string>();
+  for (let i = 0, il = structure.units.length; i < il; ++i) {
+    const k = hklKey(structure.units[i].conformation.operator.hkl);
+    set.add(k);
+  }
+  const arr = Array.from(set.values()).sort();
+  arr.forEach((k) => map.set(k, map.size));
+  const min = hklKeySplit(arr[0]);
+  const max = hklKeySplit(arr[arr.length - 1]);
+  return { min, max, map };
 }
 
-export function OperatorHklColorTheme(ctx: ThemeDataContext, props: PD.Values<OperatorHklColorThemeParams>): ColorTheme<OperatorHklColorThemeParams> {
-    let color: LocationColor;
-    let legend: ScaleLegend | TableLegend | undefined;
+export function OperatorHklColorTheme(
+  ctx: ThemeDataContext,
+  props: PD.Values<OperatorHklColorThemeParams>,
+): ColorTheme<OperatorHklColorThemeParams> {
+  let color: LocationColor;
+  let legend: ScaleLegend | TableLegend | undefined;
 
-    if (ctx.structure) {
-        const { min, max, map } = getOperatorHklSerialMap(ctx.structure.root);
+  if (ctx.structure) {
+    const { min, max, map } = getOperatorHklSerialMap(ctx.structure.root);
 
-        const labelTable: string[] = [];
-        map.forEach((v, k) => {
-            const i = v % map.size;
-            const label = formatHkl(hklKeySplit(k));
-            if (labelTable[i] === undefined) labelTable[i] = label;
-            else labelTable[i] += `, ${label}`;
-        });
+    const labelTable: string[] = [];
+    map.forEach((v, k) => {
+      const i = v % map.size;
+      const label = formatHkl(hklKeySplit(k));
+      if (labelTable[i] === undefined) labelTable[i] = label;
+      else labelTable[i] += `, ${label}`;
+    });
 
-        const labelOptions = {
-            minLabel: formatHkl(min),
-            maxLabel: formatHkl(max),
-            valueLabel: (i: number) => labelTable[i]
-        };
-
-        const palette = getPalette(map.size, props, labelOptions);
-        legend = palette.legend;
-
-        color = (location: Location): Color => {
-            let serial: number | undefined = undefined;
-            if (StructureElement.Location.is(location)) {
-                const k = hklKey(location.unit.conformation.operator.hkl);
-                serial = map.get(k);
-            } else if (Bond.isLocation(location)) {
-                const k = hklKey(location.aUnit.conformation.operator.hkl);
-                serial = map.get(k);
-            }
-            return serial === undefined ? DefaultColor : palette.color(serial);
-        };
-    } else {
-        color = () => DefaultColor;
-    }
-
-    return {
-        factory: OperatorHklColorTheme,
-        granularity: 'instance',
-        color,
-        props,
-        description: Description,
-        legend
+    const labelOptions = {
+      minLabel: formatHkl(min),
+      maxLabel: formatHkl(max),
+      valueLabel: (i: number) => labelTable[i],
     };
+
+    const palette = getPalette(map.size, props, labelOptions);
+    legend = palette.legend;
+
+    color = (location: Location): Color => {
+      let serial: number | undefined = undefined;
+      if (StructureElement.Location.is(location)) {
+        const k = hklKey(location.unit.conformation.operator.hkl);
+        serial = map.get(k);
+      } else if (Bond.isLocation(location)) {
+        const k = hklKey(location.aUnit.conformation.operator.hkl);
+        serial = map.get(k);
+      }
+      return serial === undefined ? DefaultColor : palette.color(serial);
+    };
+  } else {
+    color = () => DefaultColor;
+  }
+
+  return {
+    factory: OperatorHklColorTheme,
+    granularity: 'instance',
+    color,
+    props,
+    description: Description,
+    legend,
+  };
 }
 
 export const OperatorHklColorThemeProvider: ColorTheme.Provider<OperatorHklColorThemeParams, 'operator-hkl'> = {
-    name: 'operator-hkl',
-    label: 'Operator HKL',
-    category: ColorThemeCategory.Symmetry,
-    factory: OperatorHklColorTheme,
-    getParams: getOperatorHklColorThemeParams,
-    defaultValues: PD.getDefaultValues(OperatorHklColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
+  name: 'operator-hkl',
+  label: 'Operator HKL',
+  category: ColorThemeCategory.Symmetry,
+  factory: OperatorHklColorTheme,
+  getParams: getOperatorHklColorThemeParams,
+  defaultValues: PD.getDefaultValues(OperatorHklColorThemeParams),
+  isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
 };

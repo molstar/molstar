@@ -15,24 +15,24 @@ export type Point2D = [number, number];
  * Everything needed to project any voxel into this view is captured at draw time.
  */
 export interface ViewMask {
-    id: string;
-    label: string;
-    /** Polygon vertices in CSS pixel coords on the overlay canvas (y=0 at top). */
-    polygon: Point2D[];
-    /** CSS pixel dimensions of the overlay canvas at draw time. */
-    canvasWidth: number;
-    canvasHeight: number;
-    /** Physical pixel dimensions of the WebGL canvas at draw time (may differ by dpr). */
-    viewportWidth: number;
-    viewportHeight: number;
-    /** Full camera state frozen at draw time. */
-    cameraSnapshot: Camera.Snapshot;
-    /** When true, voxels OUTSIDE this polygon are selected instead of inside. */
-    inverted?: boolean;
+  id: string;
+  label: string;
+  /** Polygon vertices in CSS pixel coords on the overlay canvas (y=0 at top). */
+  polygon: Point2D[];
+  /** CSS pixel dimensions of the overlay canvas at draw time. */
+  canvasWidth: number;
+  canvasHeight: number;
+  /** Physical pixel dimensions of the WebGL canvas at draw time (may differ by dpr). */
+  viewportWidth: number;
+  viewportHeight: number;
+  /** Full camera state frozen at draw time. */
+  cameraSnapshot: Camera.Snapshot;
+  /** When true, voxels OUTSIDE this polygon are selected instead of inside. */
+  inverted?: boolean;
 }
 
 /** An axis-aligned sub-box of a grid, in voxel coordinates. */
 export interface GridBox {
-    min: Vec3
-    dims: Vec3
+  min: Vec3;
+  dims: Vec3;
 }

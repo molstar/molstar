@@ -8,23 +8,23 @@ import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { ModelExportUI } from '@molstar/model-export-extension/ui';
 
 export const ModelExport = PluginBehavior.create<{}>({
-    name: 'extension-model-export',
-    category: 'misc',
-    display: {
-        name: 'Model Export'
-    },
-    ctor: class extends PluginBehavior.Handler<{}> {
-        register(): void {
-            this.ctx.customStructureControls.set('model-export', ModelExportUI as any);
-        }
+  name: 'extension-model-export',
+  category: 'misc',
+  display: {
+    name: 'Model Export',
+  },
+  ctor: class extends PluginBehavior.Handler<{}> {
+    register(): void {
+      this.ctx.customStructureControls.set('model-export', ModelExportUI as any);
+    }
 
-        update() {
-            return false;
-        }
+    update() {
+      return false;
+    }
 
-        unregister() {
-            this.ctx.customStructureControls.delete('model-export');
-        }
-    },
-    params: () => ({})
+    unregister() {
+      this.ctx.customStructureControls.delete('model-export');
+    }
+  },
+  params: () => ({}),
 });

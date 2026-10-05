@@ -17,9 +17,9 @@ normalizeTable(MolScriptSymbolTable);
 export const SymbolList = symbolList(MolScriptSymbolTable);
 
 export const SymbolMap = (function () {
-    const map: { [id: string]: MSymbol | undefined } = Object.create(null);
-    for (const s of SymbolList) map[s.id] = s;
-    return map;
+  const map: { [id: string]: MSymbol | undefined } = Object.create(null);
+  for (const s of SymbolList) map[s.id] = s;
+  return map;
 })();
 
 export { MolScriptSymbolTable };

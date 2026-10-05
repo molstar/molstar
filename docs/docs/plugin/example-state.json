@@ -121,20 +121,13 @@
                   "doubleSided": false,
                   "flipSided": false,
                   "flatShaded": false,
-                  "unitKinds": [
-                    "atomic",
-                    "spheres"
-                  ],
+                  "unitKinds": ["atomic", "spheres"],
                   "sizeFactor": 0.2,
                   "linearSegments": 8,
                   "radialSegments": 16,
                   "aspectRatio": 5,
                   "arrowFactor": 1.5,
-                  "visuals": [
-                    "polymer-trace",
-                    "polymer-gap",
-                    "nucleotide-block"
-                  ]
+                  "visuals": ["polymer-trace", "polymer-gap", "nucleotide-block"]
                 }
               },
               "colorTheme": {
@@ -191,20 +184,14 @@
                   "doubleSided": false,
                   "flipSided": false,
                   "flatShaded": false,
-                  "unitKinds": [
-                    "atomic"
-                  ],
+                  "unitKinds": ["atomic"],
                   "sizeFactor": 0.3,
                   "detail": 0,
                   "linkScale": 0.4,
                   "linkSpacing": 1,
                   "radialSegments": 16,
                   "sizeAspectRatio": 0.6666666666666666,
-                  "visuals": [
-                    "element-sphere",
-                    "intra-link",
-                    "inter-link"
-                  ]
+                  "visuals": ["element-sphere", "intra-link", "inter-link"]
                 }
               },
               "colorTheme": {
@@ -259,20 +246,14 @@
                   "doubleSided": false,
                   "flipSided": false,
                   "flatShaded": false,
-                  "unitKinds": [
-                    "atomic"
-                  ],
+                  "unitKinds": ["atomic"],
                   "sizeFactor": 0.3,
                   "detail": 0,
                   "linkScale": 0.4,
                   "linkSpacing": 1,
                   "radialSegments": 16,
                   "sizeAspectRatio": 0.6666666666666666,
-                  "visuals": [
-                    "element-sphere",
-                    "intra-link",
-                    "inter-link"
-                  ]
+                  "visuals": ["element-sphere", "intra-link", "inter-link"]
                 }
               },
               "colorTheme": {
@@ -327,10 +308,7 @@
                   "doubleSided": false,
                   "flipSided": false,
                   "flatShaded": false,
-                  "unitKinds": [
-                    "atomic",
-                    "spheres"
-                  ],
+                  "unitKinds": ["atomic", "spheres"],
                   "sizeFactor": 1,
                   "detail": 0
                 }
@@ -502,26 +480,10 @@
   "canvas3d": {
     "camera": {
       "mode": "perspective",
-      "position": [
-        0,
-        0,
-        93.5120150707393
-      ],
-      "direction": [
-        -0.17921613100638745,
-        -0.1768933191370578,
-        -0.9677759720264687
-      ],
-      "up": [
-        -0.0322100883560256,
-        0.9842300308589832,
-        -0.1739360703345399
-      ],
-      "target": [
-        -20.84341143463866,
-        -20.57326095652141,
-        -19.043437656817368
-      ],
+      "position": [0, 0, 93.5120150707393],
+      "direction": [-0.17921613100638745, -0.1768933191370578, -0.9677759720264687],
+      "up": [-0.0322100883560256, 0.9842300308589832, -0.1739360703345399],
+      "target": [-20.84341143463866, -20.57326095652141, -19.043437656817368],
       "near": 72.49875551585009,
       "far": 161.0016342373897,
       "fogNear": 116.30321064065254,
@@ -533,14 +495,8 @@
       "cameraMode": "perspective",
       "backgroundColor": 16579577,
       "cameraClipDistance": 0,
-      "clip": [
-        1,
-        100
-      ],
-      "fog": [
-        50,
-        100
-      ],
+      "clip": [1, 100],
+      "fog": [50, 100],
       "pickingAlphaThreshold": 0.5,
       "trackball": {
         "noScroll": true,
@@ -552,7 +508,7 @@
         "staticMoving": true,
         "dynamicDampingFactor": 0.2,
         "minDistance": 0.01,
-        "maxDistance": 1e+150
+        "maxDistance": 1e150
       },
       "debug": {
         "sceneBoundingSpheres": false,

@@ -33,353 +33,451 @@ import { PCG } from '@molstar/core/data/util/hash-functions';
 import { type VolumeKey, VolumeVisual } from './visual.js';
 
 export const VolumeDotParams = {
-    isoValue: Volume.IsoValueParam,
-    perturbPositions: PD.Boolean(false)
+  isoValue: Volume.IsoValueParam,
+  perturbPositions: PD.Boolean(false),
 };
-export type VolumeDotParams = typeof VolumeDotParams
-export type VolumeDotProps = PD.Values<VolumeDotParams>
+export type VolumeDotParams = typeof VolumeDotParams;
+export type VolumeDotProps = PD.Values<VolumeDotParams>;
 
 //
 
 export const VolumeSphereParams = {
-    ...Spheres.Params,
-    ...Mesh.Params,
-    ...VolumeDotParams,
-    solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
-    tryUseImpostor: PD.Boolean(true),
-    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
+  ...Spheres.Params,
+  ...Mesh.Params,
+  ...VolumeDotParams,
+  solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
+  tryUseImpostor: PD.Boolean(true),
+  detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
 };
-export type VolumeSphereParams = typeof VolumeSphereParams
-export type VolumeSphereProps = PD.Values<VolumeSphereParams>
+export type VolumeSphereParams = typeof VolumeSphereParams;
+export type VolumeSphereProps = PD.Values<VolumeSphereParams>;
 
-export function VolumeSphereVisual(materialId: number, volume: Volume, key: number, props: PD.Values<VolumeSphereParams>, webgl?: WebGLContext) {
-    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth && webgl.extensions.textureFloat
-        ? VolumeSphereImpostorVisual(materialId)
-        : VolumeSphereMeshVisual(materialId);
+export function VolumeSphereVisual(
+  materialId: number,
+  volume: Volume,
+  key: number,
+  props: PD.Values<VolumeSphereParams>,
+  webgl?: WebGLContext,
+) {
+  return props.tryUseImpostor && webgl && webgl.extensions.fragDepth && webgl.extensions.textureFloat
+    ? VolumeSphereImpostorVisual(materialId)
+    : VolumeSphereMeshVisual(materialId);
 }
 
 export function VolumeSphereImpostorVisual(materialId: number): VolumeVisual<VolumeSphereParams> {
-    return VolumeVisual<Spheres, VolumeSphereParams>({
-        defaultProps: PD.getDefaultValues(VolumeSphereParams),
-        createGeometry: createVolumeSphereImpostor,
-        createLocationIterator: createVolumeCellLocationIterator,
-        getLoci: getDotLoci,
-        eachLocation: eachDot,
-        setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<VolumeSphereParams>, currentProps: PD.Values<VolumeSphereParams>, newTheme: Theme, currentTheme: Theme) => {
-            state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
-                newProps.perturbPositions !== currentProps.perturbPositions ||
-                newProps.lodLevels.length > 0 && currentProps.lodLevels.length === 0
-            );
-        },
-        geometryUtils: Spheres.Utils,
-        mustRecreate: (_volumekey: VolumeKey, props: PD.Values<VolumeSphereParams>, webgl?: WebGLContext) => {
-            return !props.tryUseImpostor || !webgl;
-        }
-    }, materialId);
+  return VolumeVisual<Spheres, VolumeSphereParams>(
+    {
+      defaultProps: PD.getDefaultValues(VolumeSphereParams),
+      createGeometry: createVolumeSphereImpostor,
+      createLocationIterator: createVolumeCellLocationIterator,
+      getLoci: getDotLoci,
+      eachLocation: eachDot,
+      setUpdateState: (
+        state: VisualUpdateState,
+        newVolume: Volume,
+        currentVolume: Volume,
+        newProps: PD.Values<VolumeSphereParams>,
+        currentProps: PD.Values<VolumeSphereParams>,
+        newTheme: Theme,
+        currentTheme: Theme,
+      ) => {
+        state.createGeometry =
+          !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
+          newProps.perturbPositions !== currentProps.perturbPositions ||
+          (newProps.lodLevels.length > 0 && currentProps.lodLevels.length === 0);
+      },
+      geometryUtils: Spheres.Utils,
+      mustRecreate: (_volumekey: VolumeKey, props: PD.Values<VolumeSphereParams>, webgl?: WebGLContext) => {
+        return !props.tryUseImpostor || !webgl;
+      },
+    },
+    materialId,
+  );
 }
 
 export function VolumeSphereMeshVisual(materialId: number): VolumeVisual<VolumeSphereParams> {
-    return VolumeVisual<Mesh, VolumeSphereParams>({
-        defaultProps: PD.getDefaultValues(VolumeSphereParams),
-        createGeometry: createVolumeSphereMesh,
-        createLocationIterator: createVolumeCellLocationIterator,
-        getLoci: getDotLoci,
-        eachLocation: eachDot,
-        setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<VolumeSphereParams>, currentProps: PD.Values<VolumeSphereParams>, newTheme: Theme, currentTheme: Theme) => {
-            state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
-                newProps.perturbPositions !== currentProps.perturbPositions ||
-                newProps.sizeFactor !== currentProps.sizeFactor ||
-                newProps.detail !== currentProps.detail
-            );
-        },
-        geometryUtils: Mesh.Utils,
-        mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeSphereParams>, webgl?: WebGLContext) => {
-            return props.tryUseImpostor && !!webgl;
-        }
-    }, materialId);
+  return VolumeVisual<Mesh, VolumeSphereParams>(
+    {
+      defaultProps: PD.getDefaultValues(VolumeSphereParams),
+      createGeometry: createVolumeSphereMesh,
+      createLocationIterator: createVolumeCellLocationIterator,
+      getLoci: getDotLoci,
+      eachLocation: eachDot,
+      setUpdateState: (
+        state: VisualUpdateState,
+        newVolume: Volume,
+        currentVolume: Volume,
+        newProps: PD.Values<VolumeSphereParams>,
+        currentProps: PD.Values<VolumeSphereParams>,
+        newTheme: Theme,
+        currentTheme: Theme,
+      ) => {
+        state.createGeometry =
+          !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
+          newProps.perturbPositions !== currentProps.perturbPositions ||
+          newProps.sizeFactor !== currentProps.sizeFactor ||
+          newProps.detail !== currentProps.detail;
+      },
+      geometryUtils: Mesh.Utils,
+      mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeSphereParams>, webgl?: WebGLContext) => {
+        return props.tryUseImpostor && !!webgl;
+      },
+    },
+    materialId,
+  );
 }
 
-type Basis = { x: Vec3, y: Vec3, z: Vec3, maxScale: number }
+type Basis = { x: Vec3; y: Vec3; z: Vec3; maxScale: number };
 function getBasis(m: Mat4): Basis {
-    return {
-        ...Mat4.extractBasis(m),
-        maxScale: Mat4.getMaxScaleOnAxis(m)
-    };
+  return {
+    ...Mat4.extractBasis(m),
+    maxScale: Mat4.getMaxScaleOnAxis(m),
+  };
 }
 
 const pcg = new PCG();
 const offset = Vec3();
 function getRandomOffsetFromBasis({ x, y, z, maxScale }: Basis): Vec3 {
-    const rx = (pcg.float() - 0.5) * maxScale;
-    const ry = (pcg.float() - 0.5) * maxScale;
-    const rz = (pcg.float() - 0.5) * maxScale;
+  const rx = (pcg.float() - 0.5) * maxScale;
+  const ry = (pcg.float() - 0.5) * maxScale;
+  const rz = (pcg.float() - 0.5) * maxScale;
 
-    Vec3.scale(offset, x, rx);
-    Vec3.scaleAndAdd(offset, offset, y, ry);
-    Vec3.scaleAndAdd(offset, offset, z, rz);
+  Vec3.scale(offset, x, rx);
+  Vec3.scaleAndAdd(offset, offset, y, ry);
+  Vec3.scaleAndAdd(offset, offset, z, rz);
 
-    return offset;
+  return offset;
 }
 
-export function createVolumeSphereImpostor(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeSphereProps, spheres?: Spheres): Spheres {
-    const { cells: { space, data }, stats } = volume.grid;
-    const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    const isoVal = Volume.IsoValue.toAbsolute(props.isoValue, stats).absoluteValue;
+export function createVolumeSphereImpostor(
+  ctx: VisualContext,
+  volume: Volume,
+  key: number,
+  theme: Theme,
+  props: VolumeSphereProps,
+  spheres?: Spheres,
+): Spheres {
+  const {
+    cells: { space, data },
+    stats,
+  } = volume.grid;
+  const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
+  const isoVal = Volume.IsoValue.toAbsolute(props.isoValue, stats).absoluteValue;
 
-    const p = Vec3();
-    const [xn, yn, zn] = space.dimensions;
-    const invert = isoVal < 0;
+  const p = Vec3();
+  const [xn, yn, zn] = space.dimensions;
+  const invert = isoVal < 0;
 
-    // Precompute basis vectors and largest cell axis length
-    const basis = props.perturbPositions ? getBasis(gridToCartn) : undefined;
+  // Precompute basis vectors and largest cell axis length
+  const basis = props.perturbPositions ? getBasis(gridToCartn) : undefined;
 
-    const count = Math.ceil((xn * yn * zn) / 10);
-    const builder = SpheresBuilder.create(count, Math.ceil(count / 2), spheres);
+  const count = Math.ceil((xn * yn * zn) / 10);
+  const builder = SpheresBuilder.create(count, Math.ceil(count / 2), spheres);
 
-    const add = (x: number, y: number, z: number) => {
-        const value = space.get(data, x, y, z);
-        if (!invert && value < isoVal || invert && value > isoVal) return;
+  const add = (x: number, y: number, z: number) => {
+    const value = space.get(data, x, y, z);
+    if ((!invert && value < isoVal) || (invert && value > isoVal)) return;
 
-        const cellIdx = space.dataOffset(x, y, z);
-        Vec3.set(p, x, y, z);
-        Vec3.transformMat4(p, p, gridToCartn);
-        if (basis) {
-            Vec3.add(p, p, getRandomOffsetFromBasis(basis));
-        }
-        builder.add(p[0], p[1], p[2], cellIdx);
+    const cellIdx = space.dataOffset(x, y, z);
+    Vec3.set(p, x, y, z);
+    Vec3.transformMat4(p, p, gridToCartn);
+    if (basis) {
+      Vec3.add(p, p, getRandomOffsetFromBasis(basis));
+    }
+    builder.add(p[0], p[1], p[2], cellIdx);
+  };
+
+  // Morton ordering keeps stride-based LOD sampling spatially balanced.
+  // Only worthwhile when LOD levels are configured; otherwise use the
+  // direct row-major path to avoid the extra allocations and sort.
+  const useMortonOrder = props.lodLevels.length > 0;
+
+  if (useMortonOrder) {
+    // Recursive octree traversal over the bounding power-of-two cube,
+    // visiting children in Morton order (octant bit2=x, bit1=y, bit0=z).
+    // Octants whose origin already exceeds the grid extent are pruned,
+    // so out-of-range subtrees of non-cube grids cost ~O(log) per skip.
+    let size = 1;
+    while (size < xn || size < yn || size < zn) size <<= 1;
+
+    const visit = (x0: number, y0: number, z0: number, s: number): void => {
+      if (x0 >= xn || y0 >= yn || z0 >= zn) return;
+
+      if (s === 1) {
+        add(x0, y0, z0);
+        return;
+      }
+      const h = s >> 1;
+      visit(x0, y0, z0, h);
+      visit(x0, y0, z0 + h, h);
+      visit(x0, y0 + h, z0, h);
+      visit(x0, y0 + h, z0 + h, h);
+      visit(x0 + h, y0, z0, h);
+      visit(x0 + h, y0, z0 + h, h);
+      visit(x0 + h, y0 + h, z0, h);
+      visit(x0 + h, y0 + h, z0 + h, h);
     };
 
-    // Morton ordering keeps stride-based LOD sampling spatially balanced.
-    // Only worthwhile when LOD levels are configured; otherwise use the
-    // direct row-major path to avoid the extra allocations and sort.
-    const useMortonOrder = props.lodLevels.length > 0;
-
-    if (useMortonOrder) {
-        // Recursive octree traversal over the bounding power-of-two cube,
-        // visiting children in Morton order (octant bit2=x, bit1=y, bit0=z).
-        // Octants whose origin already exceeds the grid extent are pruned,
-        // so out-of-range subtrees of non-cube grids cost ~O(log) per skip.
-        let size = 1;
-        while (size < xn || size < yn || size < zn) size <<= 1;
-
-        const visit = (x0: number, y0: number, z0: number, s: number): void => {
-            if (x0 >= xn || y0 >= yn || z0 >= zn) return;
-
-            if (s === 1) {
-                add(x0, y0, z0);
-                return;
-            }
-            const h = s >> 1;
-            visit(x0, y0, z0, h);
-            visit(x0, y0, z0 + h, h);
-            visit(x0, y0 + h, z0, h);
-            visit(x0, y0 + h, z0 + h, h);
-            visit(x0 + h, y0, z0, h);
-            visit(x0 + h, y0, z0 + h, h);
-            visit(x0 + h, y0 + h, z0, h);
-            visit(x0 + h, y0 + h, z0 + h, h);
-        };
-
-        visit(0, 0, 0, size);
-    } else {
-        for (let z = 0; z < zn; ++z) {
-            for (let y = 0; y < yn; ++y) {
-                for (let x = 0; x < xn; ++x) {
-                    add(x, y, z);
-                }
-            }
+    visit(0, 0, 0, size);
+  } else {
+    for (let z = 0; z < zn; ++z) {
+      for (let y = 0; y < yn; ++y) {
+        for (let x = 0; x < xn; ++x) {
+          add(x, y, z);
         }
+      }
     }
+  }
 
-    const s = builder.getSpheres();
-    s.setBoundingSphere(Grid.getIsosurfaceBoundingSphere(volume.grid, Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue));
-    return s;
+  const s = builder.getSpheres();
+  s.setBoundingSphere(
+    Grid.getIsosurfaceBoundingSphere(
+      volume.grid,
+      Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue,
+    ),
+  );
+  return s;
 }
 
-export function createVolumeSphereMesh(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeSphereProps, mesh?: Mesh): Mesh {
-    const { detail, sizeFactor } = props;
+export function createVolumeSphereMesh(
+  ctx: VisualContext,
+  volume: Volume,
+  key: number,
+  theme: Theme,
+  props: VolumeSphereProps,
+  mesh?: Mesh,
+): Mesh {
+  const { detail, sizeFactor } = props;
 
-    const { cells: { space, data }, stats } = volume.grid;
-    const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    const isoVal = Volume.IsoValue.toAbsolute(props.isoValue, stats).absoluteValue;
+  const {
+    cells: { space, data },
+    stats,
+  } = volume.grid;
+  const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
+  const isoVal = Volume.IsoValue.toAbsolute(props.isoValue, stats).absoluteValue;
 
-    const p = Vec3();
-    const [xn, yn, zn] = space.dimensions;
+  const p = Vec3();
+  const [xn, yn, zn] = space.dimensions;
 
-    const count = Math.ceil((xn * yn * zn) / 10);
-    const vertexCount = count * sphereVertexCount(detail);
-    const builderState = MeshBuilder.createState(vertexCount, Math.ceil(vertexCount / 2), mesh);
+  const count = Math.ceil((xn * yn * zn) / 10);
+  const vertexCount = count * sphereVertexCount(detail);
+  const builderState = MeshBuilder.createState(vertexCount, Math.ceil(vertexCount / 2), mesh);
 
-    const l = Volume.Cell.Location(volume);
-    const themeSize = theme.size.size;
-    const invert = isoVal < 0;
+  const l = Volume.Cell.Location(volume);
+  const themeSize = theme.size.size;
+  const invert = isoVal < 0;
 
-    // Precompute basis vectors and largest cell axis length
-    const basis = props.perturbPositions ? getBasis(gridToCartn) : undefined;
+  // Precompute basis vectors and largest cell axis length
+  const basis = props.perturbPositions ? getBasis(gridToCartn) : undefined;
 
-    for (let z = 0; z < zn; ++z) {
-        for (let y = 0; y < yn; ++y) {
-            for (let x = 0; x < xn; ++x) {
-                const value = space.get(data, x, y, z);
-                if (!invert && value < isoVal || invert && value > isoVal) continue;
+  for (let z = 0; z < zn; ++z) {
+    for (let y = 0; y < yn; ++y) {
+      for (let x = 0; x < xn; ++x) {
+        const value = space.get(data, x, y, z);
+        if ((!invert && value < isoVal) || (invert && value > isoVal)) continue;
 
-                const cellIdx = space.dataOffset(x, y, z);
-                l.cell = cellIdx as Volume.CellIndex;
-                const size = themeSize(l) * sizeFactor;
-                if (basis) {
-                    Vec3.set(p, x, y, z);
-                    Vec3.transformMat4(p, p, gridToCartn);
-                    const offset = getRandomOffsetFromBasis(basis);
-                    Vec3.add(p, p, offset);
-                } else {
-                    Vec3.set(p, x, y, z);
-                    Vec3.transformMat4(p, p, gridToCartn);
-                }
-                builderState.currentGroup = cellIdx;
-                addSphere(builderState, p, size, detail);
-            }
+        const cellIdx = space.dataOffset(x, y, z);
+        l.cell = cellIdx as Volume.CellIndex;
+        const size = themeSize(l) * sizeFactor;
+        if (basis) {
+          Vec3.set(p, x, y, z);
+          Vec3.transformMat4(p, p, gridToCartn);
+          const offset = getRandomOffsetFromBasis(basis);
+          Vec3.add(p, p, offset);
+        } else {
+          Vec3.set(p, x, y, z);
+          Vec3.transformMat4(p, p, gridToCartn);
         }
+        builderState.currentGroup = cellIdx;
+        addSphere(builderState, p, size, detail);
+      }
     }
+  }
 
-    const m = MeshBuilder.getMesh(builderState);
-    m.setBoundingSphere(Grid.getIsosurfaceBoundingSphere(volume.grid, Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue));
-    return m;
+  const m = MeshBuilder.getMesh(builderState);
+  m.setBoundingSphere(
+    Grid.getIsosurfaceBoundingSphere(
+      volume.grid,
+      Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue,
+    ),
+  );
+  return m;
 }
 
 //
 
 export const VolumePointParams = {
-    ...Points.Params,
-    ...VolumeDotParams,
+  ...Points.Params,
+  ...VolumeDotParams,
 };
-export type VolumePointParams = typeof VolumePointParams
-export type VolumePointProps = PD.Values<VolumePointParams>
+export type VolumePointParams = typeof VolumePointParams;
+export type VolumePointProps = PD.Values<VolumePointParams>;
 
 export function VolumePointVisual(materialId: number): VolumeVisual<VolumePointParams> {
-    return VolumeVisual<Points, VolumePointParams>({
-        defaultProps: PD.getDefaultValues(VolumePointParams),
-        createGeometry: createVolumePoint,
-        createLocationIterator: createVolumeCellLocationIterator,
-        getLoci: getDotLoci,
-        eachLocation: eachDot,
-        setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<VolumePointParams>, currentProps: PD.Values<VolumePointParams>, newTheme: Theme, currentTheme: Theme) => {
-            state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
-                newProps.perturbPositions !== currentProps.perturbPositions
-            );
-        },
-        geometryUtils: Points.Utils,
-    }, materialId);
+  return VolumeVisual<Points, VolumePointParams>(
+    {
+      defaultProps: PD.getDefaultValues(VolumePointParams),
+      createGeometry: createVolumePoint,
+      createLocationIterator: createVolumeCellLocationIterator,
+      getLoci: getDotLoci,
+      eachLocation: eachDot,
+      setUpdateState: (
+        state: VisualUpdateState,
+        newVolume: Volume,
+        currentVolume: Volume,
+        newProps: PD.Values<VolumePointParams>,
+        currentProps: PD.Values<VolumePointParams>,
+        newTheme: Theme,
+        currentTheme: Theme,
+      ) => {
+        state.createGeometry =
+          !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
+          newProps.perturbPositions !== currentProps.perturbPositions;
+      },
+      geometryUtils: Points.Utils,
+    },
+    materialId,
+  );
 }
 
-export function createVolumePoint(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumePointProps, points?: Points): Points {
-    const { cells: { space, data }, stats } = volume.grid;
-    const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    const isoVal = Volume.IsoValue.toAbsolute(props.isoValue, stats).absoluteValue;
+export function createVolumePoint(
+  ctx: VisualContext,
+  volume: Volume,
+  key: number,
+  theme: Theme,
+  props: VolumePointProps,
+  points?: Points,
+): Points {
+  const {
+    cells: { space, data },
+    stats,
+  } = volume.grid;
+  const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
+  const isoVal = Volume.IsoValue.toAbsolute(props.isoValue, stats).absoluteValue;
 
-    const p = Vec3();
-    const [xn, yn, zn] = space.dimensions;
+  const p = Vec3();
+  const [xn, yn, zn] = space.dimensions;
 
-    const count = Math.ceil((xn * yn * zn) / 10);
-    const builder = PointsBuilder.create(count, Math.ceil(count / 2), points);
+  const count = Math.ceil((xn * yn * zn) / 10);
+  const builder = PointsBuilder.create(count, Math.ceil(count / 2), points);
 
-    const invert = isoVal < 0;
+  const invert = isoVal < 0;
 
-    // Precompute basis vectors and largest cell axis length
-    const basis = props.perturbPositions ? getBasis(gridToCartn) : undefined;
+  // Precompute basis vectors and largest cell axis length
+  const basis = props.perturbPositions ? getBasis(gridToCartn) : undefined;
 
-    for (let z = 0; z < zn; ++z) {
-        for (let y = 0; y < yn; ++y) {
-            for (let x = 0; x < xn; ++x) {
-                const value = space.get(data, x, y, z);
-                if (!invert && value < isoVal || invert && value > isoVal) continue;
+  for (let z = 0; z < zn; ++z) {
+    for (let y = 0; y < yn; ++y) {
+      for (let x = 0; x < xn; ++x) {
+        const value = space.get(data, x, y, z);
+        if ((!invert && value < isoVal) || (invert && value > isoVal)) continue;
 
-                const cellIdx = space.dataOffset(x, y, z);
-                if (basis) {
-                    Vec3.set(p, x, y, z);
-                    Vec3.transformMat4(p, p, gridToCartn);
-                    const offset = getRandomOffsetFromBasis(basis);
-                    Vec3.add(p, p, offset);
-                } else {
-                    Vec3.set(p, x, y, z);
-                    Vec3.transformMat4(p, p, gridToCartn);
-                }
-                builder.add(p[0], p[1], p[2], cellIdx);
-            }
+        const cellIdx = space.dataOffset(x, y, z);
+        if (basis) {
+          Vec3.set(p, x, y, z);
+          Vec3.transformMat4(p, p, gridToCartn);
+          const offset = getRandomOffsetFromBasis(basis);
+          Vec3.add(p, p, offset);
+        } else {
+          Vec3.set(p, x, y, z);
+          Vec3.transformMat4(p, p, gridToCartn);
         }
+        builder.add(p[0], p[1], p[2], cellIdx);
+      }
     }
+  }
 
-    const pt = builder.getPoints();
-    pt.setBoundingSphere(Grid.getIsosurfaceBoundingSphere(volume.grid, Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue));
-    return pt;
+  const pt = builder.getPoints();
+  pt.setBoundingSphere(
+    Grid.getIsosurfaceBoundingSphere(
+      volume.grid,
+      Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue,
+    ),
+  );
+  return pt;
 }
 
 //
 
 function getLoci(volume: Volume, props: VolumeDotProps) {
-    const instances = Interval.ofLength(volume.instances.length as Volume.InstanceIndex);
-    return Volume.Isosurface.Loci(volume, props.isoValue, instances);
+  const instances = Interval.ofLength(volume.instances.length as Volume.InstanceIndex);
+  return Volume.Isosurface.Loci(volume, props.isoValue, instances);
 }
 
 function getDotLoci(pickingId: PickingId, volume: Volume, key: number, props: VolumeDotProps, id: number) {
-    const { objectId, groupId, instanceId } = pickingId;
+  const { objectId, groupId, instanceId } = pickingId;
 
-    if (id === objectId) {
-        const granularity = Volume.PickingGranularity.get(volume);
-        const instances = OrderedSet.ofSingleton(instanceId as Volume.InstanceIndex);
-        if (granularity === 'volume') {
-            return Volume.Loci(volume, instances);
-        } else if (granularity === 'object' || groupId === PickingId.Null) {
-            return Volume.Isosurface.Loci(volume, props.isoValue, instances);
-        } else {
-            const indices = Interval.ofSingleton(groupId as Volume.CellIndex);
-            return Volume.Cell.Loci(volume, [{ indices, instances }]);
-        }
+  if (id === objectId) {
+    const granularity = Volume.PickingGranularity.get(volume);
+    const instances = OrderedSet.ofSingleton(instanceId as Volume.InstanceIndex);
+    if (granularity === 'volume') {
+      return Volume.Loci(volume, instances);
+    } else if (granularity === 'object' || groupId === PickingId.Null) {
+      return Volume.Isosurface.Loci(volume, props.isoValue, instances);
+    } else {
+      const indices = Interval.ofSingleton(groupId as Volume.CellIndex);
+      return Volume.Cell.Loci(volume, [{ indices, instances }]);
     }
-    return EmptyLoci;
+  }
+  return EmptyLoci;
 }
 
-function eachDot(loci: Loci, volume: Volume, key: number, props: VolumeDotProps, apply: (interval: Interval) => boolean) {
-    return eachVolumeLoci(loci, volume, { isoValue: props.isoValue }, apply);
+function eachDot(
+  loci: Loci,
+  volume: Volume,
+  key: number,
+  props: VolumeDotProps,
+  apply: (interval: Interval) => boolean,
+) {
+  return eachVolumeLoci(loci, volume, { isoValue: props.isoValue }, apply);
 }
 
 //
 
 const DotVisuals = {
-    'sphere': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeSphereParams>) => VolumeRepresentation('Dot sphere', ctx, getParams, VolumeSphereVisual, getLoci),
-    'point': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumePointParams>) => VolumeRepresentation('Dot point', ctx, getParams, VolumePointVisual, getLoci),
+  sphere: (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeSphereParams>) =>
+    VolumeRepresentation('Dot sphere', ctx, getParams, VolumeSphereVisual, getLoci),
+  point: (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumePointParams>) =>
+    VolumeRepresentation('Dot point', ctx, getParams, VolumePointVisual, getLoci),
 };
 
 export const DotParams = {
-    ...VolumeSphereParams,
-    ...VolumePointParams,
-    sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
-    visuals: PD.MultiSelect(['sphere'], PD.objectToOptions(DotVisuals)),
-    bumpFrequency: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
+  ...VolumeSphereParams,
+  ...VolumePointParams,
+  sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
+  visuals: PD.MultiSelect(['sphere'], PD.objectToOptions(DotVisuals)),
+  bumpFrequency: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
 };
-export type DotParams = typeof DotParams
+export type DotParams = typeof DotParams;
 export function getDotParams(ctx: ThemeRegistryContext, volume: Volume) {
-    const p = PD.clone(DotParams);
-    p.isoValue = Volume.createIsoValueParam(Volume.IsoValue.relative(2), volume.grid.stats);
-    return p;
+  const p = PD.clone(DotParams);
+  p.isoValue = Volume.createIsoValueParam(Volume.IsoValue.relative(2), volume.grid.stats);
+  return p;
 }
 
-export type DotRepresentation = VolumeRepresentation<DotParams>
-export function DotRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, DotParams>): DotRepresentation {
-    return Representation.createMulti('Dot', ctx, getParams, Representation.StateBuilder, DotVisuals as unknown as Representation.Def<Volume, DotParams>);
+export type DotRepresentation = VolumeRepresentation<DotParams>;
+export function DotRepresentation(
+  ctx: RepresentationContext,
+  getParams: RepresentationParamsGetter<Volume, DotParams>,
+): DotRepresentation {
+  return Representation.createMulti(
+    'Dot',
+    ctx,
+    getParams,
+    Representation.StateBuilder,
+    DotVisuals as unknown as Representation.Def<Volume, DotParams>,
+  );
 }
 
 export const DotRepresentationProvider = VolumeRepresentationProvider({
-    name: 'dot',
-    label: 'Dot',
-    description: 'Displays dots of volumetric data.',
-    factory: DotRepresentation,
-    getParams: getDotParams,
-    defaultValues: PD.getDefaultValues(DotParams),
-    defaultColorTheme: { name: 'uniform' },
-    defaultSizeTheme: { name: 'uniform' },
-    locationKinds: ['cell-location', 'position-location'],
-    isApplicable: (volume: Volume) => !Volume.isEmpty(volume) && !Volume.Segmentation.get(volume)
+  name: 'dot',
+  label: 'Dot',
+  description: 'Displays dots of volumetric data.',
+  factory: DotRepresentation,
+  getParams: getDotParams,
+  defaultValues: PD.getDefaultValues(DotParams),
+  defaultColorTheme: { name: 'uniform' },
+  defaultSizeTheme: { name: 'uniform' },
+  locationKinds: ['cell-location', 'position-location'],
+  isApplicable: (volume: Volume) => !Volume.isEmpty(volume) && !Volume.Segmentation.get(volume),
 });

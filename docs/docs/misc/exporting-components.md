@@ -1,7 +1,8 @@
 # Exporting components
 
-Export components data can be useful to reproduce the same view in a different visualization software.
-To do that, one would need to loop over all components, extract its selection (for example by using atom indices) and its representations (type, coloring and sizing).
+Export components data can be useful to reproduce the same view in a different visualization software. To do that, one
+would need to loop over all components, extract its selection (for example by using atom indices) and its
+representations (type, coloring and sizing).
 
 ### Getting assets / molecular files
 

@@ -4,33 +4,33 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { TriTable, } from '@molstar/graphics/geo/util/marching-cubes/tables';
+import { TriTable } from '@molstar/graphics/geo/util/marching-cubes/tables';
 import { type TextureImage, createTextureImage } from '../../renderable/util.js';
 
 let TriCount: TextureImage<Uint8Array> | undefined;
 export function getTriCount(): TextureImage<Uint8Array> {
-    if (TriCount !== undefined) return TriCount;
-    TriCount = createTextureImage(16 * 16, 1, Uint8Array);
-    const { array } = TriCount;
-    for (let i = 0, il = TriTable.length; i < il; ++i) {
-        array[i] = TriTable[i].length / 3;
-    }
-    return TriCount;
+  if (TriCount !== undefined) return TriCount;
+  TriCount = createTextureImage(16 * 16, 1, Uint8Array);
+  const { array } = TriCount;
+  for (let i = 0, il = TriTable.length; i < il; ++i) {
+    array[i] = TriTable[i].length / 3;
+  }
+  return TriCount;
 }
 
 let TriIndices: TextureImage<Uint8Array> | undefined;
 export function getTriIndices(): TextureImage<Uint8Array> {
-    if (TriIndices !== undefined) return TriIndices;
-    TriIndices = createTextureImage(64 * 64, 1, Uint8Array);
-    const { array } = TriIndices;
-    for (let i = 0, il = TriTable.length; i < il; ++i) {
-        for (let j = 0; j < 16; ++j) {
-            if (j < TriTable[i].length) {
-                array[i * 16 + j] = TriTable[i][j];
-            } else {
-                array[i * 16 + j] = 255;
-            }
-        }
+  if (TriIndices !== undefined) return TriIndices;
+  TriIndices = createTextureImage(64 * 64, 1, Uint8Array);
+  const { array } = TriIndices;
+  for (let i = 0, il = TriTable.length; i < il; ++i) {
+    for (let j = 0; j < 16; ++j) {
+      if (j < TriTable[i].length) {
+        array[i * 16 + j] = TriTable[i][j];
+      } else {
+        array[i * 16 + j] = 255;
+      }
     }
-    return TriIndices;
+  }
+  return TriIndices;
 }

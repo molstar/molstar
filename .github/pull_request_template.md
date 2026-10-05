@@ -2,7 +2,6 @@
 
 # Description
 
-
 ## Actions
 
 - [ ] Added description of changes to the `[Unreleased]` section of `CHANGELOG.md`

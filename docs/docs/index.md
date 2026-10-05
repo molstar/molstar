@@ -12,14 +12,13 @@ or
 npm install molstar
 ```
 
-Mol* code can then be imported from the ``molstar/lib/...`` namespace, e.g.
+Mol* code can then be imported from the `molstar/lib/...` namespace, e.g.
 
 ```ts
 import { PluginContext } from 'molstar/lib/mol-plugin/context';
 ```
 
 ## Clone from GitHub
-
 
 ```
 git clone https://github.com/molstar/molstar.git
@@ -28,7 +27,7 @@ npm install
 npm run build
 ```
 
---------------------
+---
 
 For a watch task to automatically rebuild the source code on changes, run
 

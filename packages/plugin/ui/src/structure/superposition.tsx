@@ -9,11 +9,21 @@
 import type { SymmetryOperator } from '@molstar/core/math/geometry';
 import { Mat4 } from '@molstar/core/math/linear-algebra';
 import { SIFTSMapping } from '@molstar/model/props/sequence/sifts-mapping';
-import { QueryContext, type Structure, StructureElement, StructureProperties, StructureSelection } from '@molstar/model/model/structure';
+import {
+  QueryContext,
+  type Structure,
+  StructureElement,
+  StructureProperties,
+  StructureSelection,
+} from '@molstar/model/model/structure';
 import { alignAndSuperpose, superpose } from '@molstar/model/model/structure/structure/util/superposition';
 import { alignAndSuperposeWithSIFTSMapping } from '@molstar/model/model/structure/structure/util/superposition-sifts-mapping';
 import { tmAlign } from '@molstar/model/model/structure/structure/util/tm-align';
-import { isSingleLigandLoci, superposeLigandsByMccs, DefaultLigandMccsOptions } from '@molstar/model/model/structure/structure/util/superposition-ligand';
+import {
+  isSingleLigandLoci,
+  superposeLigandsByMccs,
+  DefaultLigandMccsOptions,
+} from '@molstar/model/model/structure/structure/util/superposition-ligand';
 import { StructureSelectionQueries } from '@molstar/plugin/state/helpers/structure-selection-query';
 import type { StructureSelectionHistoryEntry } from '@molstar/plugin/state/manager/structure/selection';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
@@ -28,548 +38,754 @@ import { stripTags } from '@molstar/core/util/string';
 import { PurePluginUIComponent } from '@molstar/plugin-ui/base';
 import { CollapsableControls } from '@molstar/plugin-ui/controls/collapsable';
 import { Button, IconButton, ToggleButton } from '@molstar/plugin-ui/controls/common';
-import { ArrowDownwardSvg, ArrowUpwardSvg, DeleteOutlinedSvg, HelpOutlineSvg, Icon, SuperposeAtomsSvg, SuperposeChainsSvg, SuperposeLigandsSvg, SuperpositionSvg, TuneSvg } from '@molstar/plugin-ui/controls/icons';
+import {
+  ArrowDownwardSvg,
+  ArrowUpwardSvg,
+  DeleteOutlinedSvg,
+  HelpOutlineSvg,
+  Icon,
+  SuperposeAtomsSvg,
+  SuperposeChainsSvg,
+  SuperposeLigandsSvg,
+  SuperpositionSvg,
+  TuneSvg,
+} from '@molstar/plugin-ui/controls/icons';
 import { ParameterControls } from '@molstar/plugin-ui/controls/parameters';
 import { ToggleSelectionModeButton } from './selection.js';
 
 export class StructureSuperpositionControls extends CollapsableControls {
-    defaultState() {
-        return {
-            isCollapsed: false,
-            header: 'Superposition',
-            brand: { accent: 'gray' as const, svg: SuperpositionSvg },
-            isHidden: true
-        };
-    }
+  defaultState() {
+    return {
+      isCollapsed: false,
+      header: 'Superposition',
+      brand: { accent: 'gray' as const, svg: SuperpositionSvg },
+      isHidden: true,
+    };
+  }
 
-    componentDidMount() {
-        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, sel => {
-            this.setState({ isHidden: sel.structures.length < 2 });
-        });
-    }
+  componentDidMount() {
+    this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, (sel) => {
+      this.setState({ isHidden: sel.structures.length < 2 });
+    });
+  }
 
-    renderControls() {
-        return <>
-            <SuperpositionControls />
-        </>;
-    }
+  renderControls() {
+    return (
+      <>
+        <SuperpositionControls />
+      </>
+    );
+  }
 }
 
 export const StructureSuperpositionParams = {
-    alignSequences: PD.Boolean(true, { isEssential: true, description: 'For Chain-based 3D superposition, perform a sequence alignment and use the aligned residue pairs to guide the 3D superposition.' }),
-    traceOnly: PD.Boolean(true, { description: 'For Chain- and Uniprot-based 3D superposition, base superposition only on CA (and equivalent) atoms.' })
+  alignSequences: PD.Boolean(true, {
+    isEssential: true,
+    description:
+      'For Chain-based 3D superposition, perform a sequence alignment and use the aligned residue pairs to guide the 3D superposition.',
+  }),
+  traceOnly: PD.Boolean(true, {
+    description: 'For Chain- and Uniprot-based 3D superposition, base superposition only on CA (and equivalent) atoms.',
+  }),
 };
 const DefaultStructureSuperpositionOptions = PD.getDefaultValues(StructureSuperpositionParams);
-export type StructureSuperpositionOptions = PD.ValuesFor<typeof StructureSuperpositionParams>
+export type StructureSuperpositionOptions = PD.ValuesFor<typeof StructureSuperpositionParams>;
 
 const SuperpositionTag = 'SuperpositionTransform';
 
 type SuperpositionControlsState = {
-    isBusy: boolean,
-    action?: 'byChains' | 'byAtoms' | 'byTMAlign' | 'byMccs' | 'options',
-    canUseDb?: boolean,
-    canUseLigands?: boolean,
-    options: StructureSuperpositionOptions
-}
+  isBusy: boolean;
+  action?: 'byChains' | 'byAtoms' | 'byTMAlign' | 'byMccs' | 'options';
+  canUseDb?: boolean;
+  canUseLigands?: boolean;
+  options: StructureSuperpositionOptions;
+};
 
 /** True iff the structure contains at least one ligand (the ligand query already excludes ions, water, lipids and saccharides). */
 function structureHasLigand(structure?: Structure): boolean {
-    if (!structure) return false;
-    return !StructureSelection.isEmpty(StructureSelectionQueries.ligand.query(new QueryContext(structure)));
+  if (!structure) return false;
+  return !StructureSelection.isEmpty(StructureSelectionQueries.ligand.query(new QueryContext(structure)));
 }
 
 export interface LociEntry {
-    loci: StructureElement.Loci,
-    label: string,
-    cell: StateObjectCell<PluginStateObject.Molecule.Structure>
+  loci: StructureElement.Loci;
+  label: string;
+  cell: StateObjectCell<PluginStateObject.Molecule.Structure>;
 }
 
 interface AtomsLociEntry extends LociEntry {
-    atoms: StructureSelectionHistoryEntry[]
+  atoms: StructureSelectionHistoryEntry[];
 }
 
 interface LigandsLociEntry extends LociEntry {
-    ligands: StructureSelectionHistoryEntry[]
+  ligands: StructureSelectionHistoryEntry[];
 }
 
-export class SuperpositionControls extends PurePluginUIComponent<{ }, SuperpositionControlsState> {
-    state: SuperpositionControlsState = {
-        isBusy: false,
-        canUseDb: false,
-        canUseLigands: false,
-        action: undefined,
-        options: DefaultStructureSuperpositionOptions
+export class SuperpositionControls extends PurePluginUIComponent<{}, SuperpositionControlsState> {
+  state: SuperpositionControlsState = {
+    isBusy: false,
+    canUseDb: false,
+    canUseLigands: false,
+    action: undefined,
+    options: DefaultStructureSuperpositionOptions,
+  };
+
+  componentDidMount() {
+    this.subscribe(this.selection.events.changed, () => {
+      this.forceUpdate();
+    });
+
+    this.subscribe(this.selection.events.additionsHistoryUpdated, () => {
+      this.forceUpdate();
+    });
+
+    this.subscribe(this.plugin.behaviors.state.isBusy, (v) => {
+      this.setState({ isBusy: v });
+    });
+
+    this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, (sel) => {
+      this.setState({
+        canUseDb: sel.structures.every(
+          (s) => !!s.cell.obj?.data && s.cell.obj.data.models.some((m) => SIFTSMapping.Provider.isApplicable(m)),
+        ),
+        // need at least two ligand-bearing structures to superpose ligands
+        canUseLigands: sel.structures.filter((s) => structureHasLigand(s.cell.obj?.data)).length >= 2,
+      });
+    });
+  }
+
+  get selection() {
+    return this.plugin.managers.structure.selection;
+  }
+
+  async transform(
+    s: StateObjectRef<PluginStateObject.Molecule.Structure>,
+    matrix: Mat4,
+    coordinateSystem?: SymmetryOperator,
+  ) {
+    const r = StateObjectRef.resolveAndCheck(this.plugin.state.data, s);
+    if (!r) return;
+    const o = this.plugin.state.data.selectQ((q) =>
+      q.byRef(r.transform.ref).subtree().withTransformer(StateTransforms.Model.TransformStructureConformation),
+    )[0];
+
+    const transform =
+      coordinateSystem && !Mat4.isIdentity(coordinateSystem.matrix)
+        ? Mat4.mul(Mat4(), coordinateSystem.matrix, matrix)
+        : matrix;
+
+    const params = {
+      transform: {
+        name: 'matrix' as const,
+        params: { data: transform, transpose: false },
+      },
     };
+    const b = o
+      ? this.plugin.state.data.build().to(o).update(params)
+      : this.plugin.state.data
+          .build()
+          .to(s)
+          .insert(StateTransforms.Model.TransformStructureConformation, params, { tags: SuperpositionTag });
+    await this.plugin.runTask(this.plugin.state.data.updateTree(b));
+  }
 
-    componentDidMount() {
-        this.subscribe(this.selection.events.changed, () => {
-            this.forceUpdate();
-        });
+  private getRootStructure(s: Structure) {
+    const parent = this.plugin.helpers.substructureParent.get(s)!;
+    return this.plugin.state.data.selectQ((q) => q.byValue(parent).rootOfType(PluginStateObject.Molecule.Structure))[0]
+      .obj?.data!;
+  }
 
-        this.subscribe(this.selection.events.additionsHistoryUpdated, () => {
-            this.forceUpdate();
-        });
+  superposeChains = async () => {
+    const { query } = this.state.options.traceOnly
+      ? StructureSelectionQueries.trace
+      : StructureSelectionQueries.polymer;
+    const entries = this.chainEntries;
 
-        this.subscribe(this.plugin.behaviors.state.isBusy, v => {
-            this.setState({ isBusy: v });
-        });
+    const locis = entries.map((e) => {
+      const s = StructureElement.Loci.toStructure(e.loci);
+      const loci = StructureSelection.toLociWithSourceUnits(query(new QueryContext(s)));
+      return StructureElement.Loci.remap(loci, this.getRootStructure(e.loci.structure));
+    });
 
-        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, sel => {
-            this.setState({
-                canUseDb: sel.structures.every(s => !!s.cell.obj?.data && s.cell.obj.data.models.some(m => SIFTSMapping.Provider.isApplicable(m))),
-                // need at least two ligand-bearing structures to superpose ligands
-                canUseLigands: sel.structures.filter(s => structureHasLigand(s.cell.obj?.data)).length >= 2
-            });
-        });
+    const pivot = this.plugin.managers.structure.hierarchy.findStructure(locis[0]?.structure);
+    const coordinateSystem = pivot?.transform?.cell.obj?.data.coordinateSystem;
+
+    const transforms = this.state.options.alignSequences ? alignAndSuperpose(locis) : superpose(locis);
+
+    const eA = entries[0];
+    for (let i = 1, il = locis.length; i < il; ++i) {
+      const eB = entries[i];
+      const { bTransform, rmsd } = transforms[i - 1];
+      await this.transform(eB.cell, bTransform, coordinateSystem);
+      const labelA = stripTags(eA.label);
+      const labelB = stripTags(eB.label);
+      this.plugin.log.info(`Superposed [${labelA}] and [${labelB}] with RMSD ${rmsd.toFixed(2)}.`);
+    }
+    await this.cameraReset();
+  };
+
+  superposeAtoms = async () => {
+    const entries = this.atomEntries;
+
+    const atomLocis = entries.map((e) => {
+      return StructureElement.Loci.remap(e.loci, this.getRootStructure(e.loci.structure));
+    });
+    const transforms = superpose(atomLocis);
+
+    const pivot = this.plugin.managers.structure.hierarchy.findStructure(atomLocis[0]?.structure);
+    const coordinateSystem = pivot?.transform?.cell.obj?.data.coordinateSystem;
+
+    const eA = entries[0];
+    for (let i = 1, il = atomLocis.length; i < il; ++i) {
+      const eB = entries[i];
+      const { bTransform, rmsd } = transforms[i - 1];
+      await this.transform(eB.cell, bTransform, coordinateSystem);
+      const labelA = stripTags(eA.label);
+      const labelB = stripTags(eB.label);
+      const count = entries[i].atoms.length;
+      this.plugin.log.info(
+        `Superposed ${count} ${count === 1 ? 'atom' : 'atoms'} of [${labelA}] and [${labelB}] with RMSD ${rmsd.toFixed(2)}.`,
+      );
+    }
+    await this.cameraReset();
+  };
+
+  superposeMccs = async () => {
+    const entries = this.ligandEntries;
+    if (entries.length < 2) return;
+
+    const bad = entries.filter((e) => e.ligands.length !== 1);
+    if (bad.length) {
+      this.plugin.log.error(
+        'Ligand superposition: please select exactly 1 ligand per structure (remove extras in the history list).',
+      );
+      return;
     }
 
-    get selection() {
-        return this.plugin.managers.structure.selection;
-    }
+    const refEntry = entries[0];
+    const refSel = refEntry.ligands[0];
+    const refLoci = StructureElement.Loci.remap(refSel.loci, this.getRootStructure(refSel.loci.structure));
 
-    async transform(s: StateObjectRef<PluginStateObject.Molecule.Structure>, matrix: Mat4, coordinateSystem?: SymmetryOperator) {
-        const r = StateObjectRef.resolveAndCheck(this.plugin.state.data, s);
-        if (!r) return;
-        const o = this.plugin.state.data.selectQ(q => q.byRef(r.transform.ref).subtree().withTransformer(StateTransforms.Model.TransformStructureConformation))[0];
+    const pivot = this.plugin.managers.structure.hierarchy.findStructure(refLoci.structure);
+    const coordinateSystem = pivot?.transform?.cell.obj?.data.coordinateSystem;
 
-        const transform = coordinateSystem && !Mat4.isIdentity(coordinateSystem.matrix)
-            ? Mat4.mul(Mat4(), coordinateSystem.matrix, matrix)
-            : matrix;
+    const mccsAlignTask = Task.create('Ligand Superposition', async (ctx) => {
+      let aligned = 0;
+      for (let i = 1; i < entries.length; i++) {
+        if (ctx.shouldUpdate) await ctx.update(`Superposing ligand ${i} of ${entries.length - 1}...`);
 
-        const params = {
-            transform: {
-                name: 'matrix' as const,
-                params: { data: transform, transpose: false }
-            }
-        };
-        const b = o
-            ? this.plugin.state.data.build().to(o).update(params)
-            : this.plugin.state.data.build().to(s)
-                .insert(StateTransforms.Model.TransformStructureConformation, params, { tags: SuperpositionTag });
-        await this.plugin.runTask(this.plugin.state.data.updateTree(b));
-    }
+        const trgEntry = entries[i];
+        const trgSel = trgEntry.ligands[0];
+        const trgLoci = StructureElement.Loci.remap(trgSel.loci, this.getRootStructure(trgSel.loci.structure));
 
-    private getRootStructure(s: Structure) {
-        const parent = this.plugin.helpers.substructureParent.get(s)!;
-        return this.plugin.state.data.selectQ(q => q.byValue(parent).rootOfType(PluginStateObject.Molecule.Structure))[0].obj?.data!;
-    }
-
-    superposeChains = async () => {
-        const { query } = this.state.options.traceOnly ? StructureSelectionQueries.trace : StructureSelectionQueries.polymer;
-        const entries = this.chainEntries;
-
-        const locis = entries.map(e => {
-            const s = StructureElement.Loci.toStructure(e.loci);
-            const loci = StructureSelection.toLociWithSourceUnits(query(new QueryContext(s)));
-            return StructureElement.Loci.remap(loci, this.getRootStructure(e.loci.structure));
-        });
-
-        const pivot = this.plugin.managers.structure.hierarchy.findStructure(locis[0]?.structure);
-        const coordinateSystem = pivot?.transform?.cell.obj?.data.coordinateSystem;
-
-        const transforms = this.state.options.alignSequences
-            ? alignAndSuperpose(locis)
-            : superpose(locis);
-
-        const eA = entries[0];
-        for (let i = 1, il = locis.length; i < il; ++i) {
-            const eB = entries[i];
-            const { bTransform, rmsd } = transforms[i - 1];
-            await this.transform(eB.cell, bTransform, coordinateSystem);
-            const labelA = stripTags(eA.label);
-            const labelB = stripTags(eB.label);
-            this.plugin.log.info(`Superposed [${labelA}] and [${labelB}] with RMSD ${rmsd.toFixed(2)}.`);
+        const result = superposeLigandsByMccs(refLoci, trgLoci, DefaultLigandMccsOptions);
+        if (!result) {
+          this.plugin.log.warn(`Ligand superposition: insufficient overlap for ${stripTags(trgEntry.label)}.`);
+          continue;
         }
+
+        await this.transform(trgEntry.cell, result.bTransform, coordinateSystem);
+        aligned++;
+
+        const labelA = stripTags(refEntry.label);
+        const labelB = stripTags(trgEntry.label);
+        this.plugin.log.info(
+          `Ligand superposed [${labelA}] and [${labelB}] via ${result.method} using ${result.atomCount} atoms (RMSD ${result.rmsd.toFixed(2)} Å).`,
+        );
+        if (result.truncated)
+          this.plugin.log.warn(
+            `Ligand superposition: MCCS search for [${labelB}] hit its time budget; the alignment may not be optimal.`,
+          );
+      }
+
+      // focus the aligned ligands; the reference is the pivot, so every target now sits on it
+      if (aligned > 0 && !StructureElement.Loci.isEmpty(refLoci)) {
+        this.plugin.managers.camera.focusLoci(refLoci);
+      } else {
         await this.cameraReset();
+      }
+    });
+
+    await this.plugin.runTask(mccsAlignTask, { useOverlay: true });
+  };
+
+  superposeDb = async () => {
+    const input = this.plugin.managers.structure.hierarchy.behaviors.selection.value.structures;
+    const traceOnly = this.state.options.traceOnly;
+
+    const structures = input.map((s) => s.cell.obj?.data!);
+    const { entries, failedPairs, zeroOverlapPairs } = alignAndSuperposeWithSIFTSMapping(structures, { traceOnly });
+
+    const coordinateSystem = input[0]?.transform?.cell.obj?.data.coordinateSystem;
+
+    let rmsd = 0;
+
+    for (const xform of entries) {
+      await this.transform(input[xform.other].cell, xform.transform.bTransform, coordinateSystem);
+      rmsd += xform.transform.rmsd;
+    }
+
+    rmsd /= Math.max(entries.length - 1, 1);
+
+    const formatPairs = (pairs: [number, number][]) => {
+      return `[${pairs.map(([i, j]) => `(${structures[i].models[0].entryId}, ${structures[j].models[0].entryId})`).join(', ')}]`;
     };
 
-    superposeAtoms = async () => {
-        const entries = this.atomEntries;
-
-        const atomLocis = entries.map(e => {
-            return StructureElement.Loci.remap(e.loci, this.getRootStructure(e.loci.structure));
-        });
-        const transforms = superpose(atomLocis);
-
-        const pivot = this.plugin.managers.structure.hierarchy.findStructure(atomLocis[0]?.structure);
-        const coordinateSystem = pivot?.transform?.cell.obj?.data.coordinateSystem;
-
-        const eA = entries[0];
-        for (let i = 1, il = atomLocis.length; i < il; ++i) {
-            const eB = entries[i];
-            const { bTransform, rmsd } = transforms[i - 1];
-            await this.transform(eB.cell, bTransform, coordinateSystem);
-            const labelA = stripTags(eA.label);
-            const labelB = stripTags(eB.label);
-            const count = entries[i].atoms.length;
-            this.plugin.log.info(`Superposed ${count} ${count === 1 ? 'atom' : 'atoms'} of [${labelA}] and [${labelB}] with RMSD ${rmsd.toFixed(2)}.`);
-        }
-        await this.cameraReset();
-    };
-
-    superposeMccs = async () => {
-        const entries = this.ligandEntries;
-        if (entries.length < 2) return;
-
-        const bad = entries.filter(e => e.ligands.length !== 1);
-        if (bad.length) {
-            this.plugin.log.error('Ligand superposition: please select exactly 1 ligand per structure (remove extras in the history list).');
-            return;
-        }
-
-        const refEntry = entries[0];
-        const refSel = refEntry.ligands[0];
-        const refLoci = StructureElement.Loci.remap(refSel.loci, this.getRootStructure(refSel.loci.structure));
-
-        const pivot = this.plugin.managers.structure.hierarchy.findStructure(refLoci.structure);
-        const coordinateSystem = pivot?.transform?.cell.obj?.data.coordinateSystem;
-
-        const mccsAlignTask = Task.create('Ligand Superposition', async ctx => {
-            let aligned = 0;
-            for (let i = 1; i < entries.length; i++) {
-                if (ctx.shouldUpdate) await ctx.update(`Superposing ligand ${i} of ${entries.length - 1}...`);
-
-                const trgEntry = entries[i];
-                const trgSel = trgEntry.ligands[0];
-                const trgLoci = StructureElement.Loci.remap(trgSel.loci, this.getRootStructure(trgSel.loci.structure));
-
-                const result = superposeLigandsByMccs(refLoci, trgLoci, DefaultLigandMccsOptions);
-                if (!result) {
-                    this.plugin.log.warn(`Ligand superposition: insufficient overlap for ${stripTags(trgEntry.label)}.`);
-                    continue;
-                }
-
-                await this.transform(trgEntry.cell, result.bTransform, coordinateSystem);
-                aligned++;
-
-                const labelA = stripTags(refEntry.label);
-                const labelB = stripTags(trgEntry.label);
-                this.plugin.log.info(`Ligand superposed [${labelA}] and [${labelB}] via ${result.method} using ${result.atomCount} atoms (RMSD ${result.rmsd.toFixed(2)} Å).`);
-                if (result.truncated) this.plugin.log.warn(`Ligand superposition: MCCS search for [${labelB}] hit its time budget; the alignment may not be optimal.`);
-            }
-
-            // focus the aligned ligands; the reference is the pivot, so every target now sits on it
-            if (aligned > 0 && !StructureElement.Loci.isEmpty(refLoci)) {
-                this.plugin.managers.camera.focusLoci(refLoci);
-            } else {
-                await this.cameraReset();
-            }
-        });
-
-        await this.plugin.runTask(mccsAlignTask, { useOverlay: true });
-    };
-
-    superposeDb = async () => {
-        const input = this.plugin.managers.structure.hierarchy.behaviors.selection.value.structures;
-        const traceOnly = this.state.options.traceOnly;
-
-        const structures = input.map(s => s.cell.obj?.data!);
-        const { entries, failedPairs, zeroOverlapPairs } = alignAndSuperposeWithSIFTSMapping(structures, { traceOnly });
-
-        const coordinateSystem = input[0]?.transform?.cell.obj?.data.coordinateSystem;
-
-        let rmsd = 0;
-
-        for (const xform of entries) {
-            await this.transform(input[xform.other].cell, xform.transform.bTransform, coordinateSystem);
-            rmsd += xform.transform.rmsd;
-        }
-
-        rmsd /= Math.max(entries.length - 1, 1);
-
-        const formatPairs = (pairs: [number, number][]) => {
-            return `[${pairs.map(([i, j]) => `(${structures[i].models[0].entryId}, ${structures[j].models[0].entryId})`).join(', ')}]`;
-        };
-
-        if (zeroOverlapPairs.length) {
-            this.plugin.log.warn(`Superposition: No UNIPROT mapping overlap between structures ${formatPairs(zeroOverlapPairs)}.`);
-        }
-
-        if (failedPairs.length) {
-            this.plugin.log.error(`Superposition: Failed to superpose structures ${formatPairs(failedPairs)}.`);
-        }
-
-        if (entries.length) {
-            this.plugin.log.info(`Superposed ${entries.length + 1} structures with avg. RMSD ${rmsd.toFixed(2)} Å.`);
-            await this.cameraReset();
-        }
-    };
-
-    superposeTMAlign = async () => {
-        const { query } = this.state.options.traceOnly ? StructureSelectionQueries.trace : StructureSelectionQueries.polymer;
-        const entries = this.chainEntries;
-
-        const locis = entries.map(e => {
-            const s = StructureElement.Loci.toStructure(e.loci);
-            const loci = StructureSelection.toLociWithSourceUnits(query(new QueryContext(s)));
-            return StructureElement.Loci.remap(loci, this.getRootStructure(e.loci.structure));
-        });
-
-        const pivot = this.plugin.managers.structure.hierarchy.findStructure(locis[0]?.structure);
-        const coordinateSystem = pivot?.transform?.cell.obj?.data.coordinateSystem;
-
-        const tmAlignTask = Task.create('TM-align Superposition', async ctx => {
-            const eA = entries[0];
-            for (let i = 1, il = locis.length; i < il; ++i) {
-                if (ctx.shouldUpdate) await ctx.update(`Superposing pair ${i} of ${il - 1}...`);
-
-                const eB = entries[i];
-                const result = tmAlign(locis[0], locis[i]);
-                const { bTransform, tmScoreA, tmScoreB, rmsd, alignedLength } = result;
-                await this.transform(eB.cell, bTransform, coordinateSystem);
-                const labelA = stripTags(eA.label);
-                const labelB = stripTags(eB.label);
-                this.plugin.log.info(`TM-align [${labelA}] and [${labelB}]: TM-score=${tmScoreA.toFixed(4)}/${tmScoreB.toFixed(4)}, RMSD=${rmsd.toFixed(2)} Å, aligned ${alignedLength} residues.`);
-            }
-            await this.cameraReset();
-        });
-        await this.plugin.runTask(tmAlignTask, { useOverlay: true });
-    };
-
-    async cameraReset() {
-        await new Promise(res => requestAnimationFrame(res));
-        PluginCommands.Camera.Reset(this.plugin);
+    if (zeroOverlapPairs.length) {
+      this.plugin.log.warn(
+        `Superposition: No UNIPROT mapping overlap between structures ${formatPairs(zeroOverlapPairs)}.`,
+      );
     }
 
-    toggleByChains = () => this.setState({ action: this.state.action === 'byChains' ? void 0 : 'byChains' });
-    toggleByAtoms = () => this.setState({ action: this.state.action === 'byAtoms' ? void 0 : 'byAtoms' });
-    toggleByTMAlign = () => this.setState({ action: this.state.action === 'byTMAlign' ? void 0 : 'byTMAlign' });
-    toggleByMccs = () => this.setState({ action: this.state.action === 'byMccs' ? void 0 : 'byMccs' });
-    toggleOptions = () => this.setState({ action: this.state.action === 'options' ? void 0 : 'options' });
-
-    highlight(loci: StructureElement.Loci) {
-        this.plugin.managers.interactivity.lociHighlights.highlightOnly({ loci }, false);
+    if (failedPairs.length) {
+      this.plugin.log.error(`Superposition: Failed to superpose structures ${formatPairs(failedPairs)}.`);
     }
 
-    moveHistory(e: StructureSelectionHistoryEntry, direction: 'up' | 'down') {
-        this.plugin.managers.structure.selection.modifyHistory(e, direction, void 0, true);
+    if (entries.length) {
+      this.plugin.log.info(`Superposed ${entries.length + 1} structures with avg. RMSD ${rmsd.toFixed(2)} Å.`);
+      await this.cameraReset();
+    }
+  };
+
+  superposeTMAlign = async () => {
+    const { query } = this.state.options.traceOnly
+      ? StructureSelectionQueries.trace
+      : StructureSelectionQueries.polymer;
+    const entries = this.chainEntries;
+
+    const locis = entries.map((e) => {
+      const s = StructureElement.Loci.toStructure(e.loci);
+      const loci = StructureSelection.toLociWithSourceUnits(query(new QueryContext(s)));
+      return StructureElement.Loci.remap(loci, this.getRootStructure(e.loci.structure));
+    });
+
+    const pivot = this.plugin.managers.structure.hierarchy.findStructure(locis[0]?.structure);
+    const coordinateSystem = pivot?.transform?.cell.obj?.data.coordinateSystem;
+
+    const tmAlignTask = Task.create('TM-align Superposition', async (ctx) => {
+      const eA = entries[0];
+      for (let i = 1, il = locis.length; i < il; ++i) {
+        if (ctx.shouldUpdate) await ctx.update(`Superposing pair ${i} of ${il - 1}...`);
+
+        const eB = entries[i];
+        const result = tmAlign(locis[0], locis[i]);
+        const { bTransform, tmScoreA, tmScoreB, rmsd, alignedLength } = result;
+        await this.transform(eB.cell, bTransform, coordinateSystem);
+        const labelA = stripTags(eA.label);
+        const labelB = stripTags(eB.label);
+        this.plugin.log.info(
+          `TM-align [${labelA}] and [${labelB}]: TM-score=${tmScoreA.toFixed(4)}/${tmScoreB.toFixed(4)}, RMSD=${rmsd.toFixed(2)} Å, aligned ${alignedLength} residues.`,
+        );
+      }
+      await this.cameraReset();
+    });
+    await this.plugin.runTask(tmAlignTask, { useOverlay: true });
+  };
+
+  async cameraReset() {
+    await new Promise((res) => requestAnimationFrame(res));
+    PluginCommands.Camera.Reset(this.plugin);
+  }
+
+  toggleByChains = () => this.setState({ action: this.state.action === 'byChains' ? void 0 : 'byChains' });
+  toggleByAtoms = () => this.setState({ action: this.state.action === 'byAtoms' ? void 0 : 'byAtoms' });
+  toggleByTMAlign = () => this.setState({ action: this.state.action === 'byTMAlign' ? void 0 : 'byTMAlign' });
+  toggleByMccs = () => this.setState({ action: this.state.action === 'byMccs' ? void 0 : 'byMccs' });
+  toggleOptions = () => this.setState({ action: this.state.action === 'options' ? void 0 : 'options' });
+
+  highlight(loci: StructureElement.Loci) {
+    this.plugin.managers.interactivity.lociHighlights.highlightOnly({ loci }, false);
+  }
+
+  moveHistory(e: StructureSelectionHistoryEntry, direction: 'up' | 'down') {
+    this.plugin.managers.structure.selection.modifyHistory(e, direction, void 0, true);
+  }
+
+  focusLoci(loci: StructureElement.Loci) {
+    this.plugin.managers.camera.focusLoci(loci);
+  }
+
+  lociEntry(e: LociEntry, idx: number) {
+    return (
+      <div className="msp-flex-row" key={idx}>
+        <Button
+          noOverflow
+          title="Click to focus. Hover to highlight."
+          onClick={() => this.focusLoci(e.loci)}
+          style={{ width: 'auto', textAlign: 'left' }}
+          onMouseEnter={() => this.highlight(e.loci)}
+          onMouseLeave={() => this.plugin.managers.interactivity.lociHighlights.clearHighlights()}
+        >
+          <span dangerouslySetInnerHTML={{ __html: e.label }} />
+        </Button>
+      </div>
+    );
+  }
+
+  historyEntry(e: StructureSelectionHistoryEntry, idx: number) {
+    const history = this.plugin.managers.structure.selection.additionsHistory;
+    return (
+      <div className="msp-flex-row" key={e.id}>
+        <Button
+          noOverflow
+          title="Click to focus. Hover to highlight."
+          onClick={() => this.focusLoci(e.loci)}
+          style={{ width: 'auto', textAlign: 'left' }}
+          onMouseEnter={() => this.highlight(e.loci)}
+          onMouseLeave={() => this.plugin.managers.interactivity.lociHighlights.clearHighlights()}
+        >
+          {idx}. <span dangerouslySetInnerHTML={{ __html: e.label }} />
+        </Button>
+        {history.length > 1 && (
+          <IconButton
+            svg={ArrowUpwardSvg}
+            small={true}
+            className="msp-form-control"
+            onClick={() => this.moveHistory(e, 'up')}
+            flex="20px"
+            title={'Move up'}
+          />
+        )}
+        {history.length > 1 && (
+          <IconButton
+            svg={ArrowDownwardSvg}
+            small={true}
+            className="msp-form-control"
+            onClick={() => this.moveHistory(e, 'down')}
+            flex="20px"
+            title={'Move down'}
+          />
+        )}
+        <IconButton
+          svg={DeleteOutlinedSvg}
+          small={true}
+          className="msp-form-control"
+          onClick={() => this.plugin.managers.structure.selection.modifyHistory(e, 'remove')}
+          flex
+          title={'Remove'}
+        />
+      </div>
+    );
+  }
+
+  atomsLociEntry(e: AtomsLociEntry, idx: number) {
+    return (
+      <div key={idx}>
+        <div className="msp-control-group-header">
+          <div className="msp-no-overflow" title={e.label}>
+            {e.label}
+          </div>
+        </div>
+        <div className="msp-control-offset">{e.atoms.map((h, i) => this.historyEntry(h, i))}</div>
+      </div>
+    );
+  }
+
+  ligandsLociEntry(e: LigandsLociEntry, idx: number) {
+    return (
+      <div key={idx}>
+        <div className="msp-control-group-header">
+          <div className="msp-no-overflow" title={e.label}>
+            {e.label}
+          </div>
+        </div>
+        <div className="msp-control-offset">{e.ligands.map((h, i) => this.historyEntry(h, i))}</div>
+      </div>
+    );
+  }
+
+  get chainEntries() {
+    const location = StructureElement.Location.create();
+    const entries: LociEntry[] = [];
+    this.plugin.managers.structure.selection.entries.forEach(({ selection }, ref) => {
+      const cell = StateObjectRef.resolveAndCheck(this.plugin.state.data, ref);
+      if (!cell || StructureElement.Loci.isEmpty(selection)) return;
+
+      // only single polymer chain selections
+      const l = StructureElement.Loci.getFirstLocation(selection, location)!;
+      if (selection.elements.length > 1 || StructureProperties.entity.type(l) !== 'polymer') return;
+
+      const stats = StructureElement.Stats.ofLoci(selection);
+      const counts = structureElementStatsLabel(stats, { countsOnly: true });
+      const chain = elementLabel(l, { reverse: true, granularity: 'chain' }).split('|');
+      const label = `${counts} | ${chain[0]} | ${chain[chain.length - 1]}`;
+      entries.push({ loci: selection, label, cell });
+    });
+    return entries;
+  }
+
+  get atomEntries() {
+    const structureEntries = new Map<Structure, StructureSelectionHistoryEntry[]>();
+    const history = this.plugin.managers.structure.selection.additionsHistory;
+
+    for (let i = 0, il = history.length; i < il; ++i) {
+      const e = history[i];
+      if (StructureElement.Loci.size(e.loci) !== 1) continue;
+
+      const k = e.loci.structure;
+      if (structureEntries.has(k)) structureEntries.get(k)!.push(e);
+      else structureEntries.set(k, [e]);
     }
 
-    focusLoci(loci: StructureElement.Loci) {
-        this.plugin.managers.camera.focusLoci(loci);
+    const entries: AtomsLociEntry[] = [];
+    structureEntries.forEach((atoms, structure) => {
+      const cell = this.plugin.helpers.substructureParent.get(structure)!;
+
+      const elements: StructureElement.Loci['elements'][0][] = [];
+      for (let i = 0, il = atoms.length; i < il; ++i) {
+        // note, we don't do loci union here to keep order of selected atoms
+        // for atom pairing during superposition
+        elements.push(atoms[i].loci.elements[0]);
+      }
+
+      const loci = StructureElement.Loci(atoms[0].loci.structure, elements);
+      const label = loci.structure.label.split(' | ')[0];
+      entries.push({ loci, label, cell, atoms });
+    });
+    return entries;
+  }
+
+  get ligandEntries() {
+    const structureEntries = new Map<Structure, StructureSelectionHistoryEntry[]>();
+    const history = this.plugin.managers.structure.selection.additionsHistory;
+
+    for (let i = 0, il = history.length; i < il; ++i) {
+      const e = history[i];
+      if (!isSingleLigandLoci(e.loci)) continue;
+
+      const k = e.loci.structure;
+      if (structureEntries.has(k)) structureEntries.get(k)!.push(e);
+      else structureEntries.set(k, [e]);
     }
 
-    lociEntry(e: LociEntry, idx: number) {
-        return <div className='msp-flex-row' key={idx}>
-            <Button noOverflow title='Click to focus. Hover to highlight.' onClick={() => this.focusLoci(e.loci)} style={{ width: 'auto', textAlign: 'left' }} onMouseEnter={() => this.highlight(e.loci)} onMouseLeave={() => this.plugin.managers.interactivity.lociHighlights.clearHighlights()}>
-                <span dangerouslySetInnerHTML={{ __html: e.label }} />
-            </Button>
-        </div>;
-    }
+    const entries: LigandsLociEntry[] = [];
+    structureEntries.forEach((ligands, structure) => {
+      const cell = this.plugin.helpers.substructureParent.get(structure)!;
 
-    historyEntry(e: StructureSelectionHistoryEntry, idx: number) {
-        const history = this.plugin.managers.structure.selection.additionsHistory;
-        return <div className='msp-flex-row' key={e.id}>
-            <Button noOverflow title='Click to focus. Hover to highlight.' onClick={() => this.focusLoci(e.loci)} style={{ width: 'auto', textAlign: 'left' }} onMouseEnter={() => this.highlight(e.loci)} onMouseLeave={() => this.plugin.managers.interactivity.lociHighlights.clearHighlights()}>
-                {idx}. <span dangerouslySetInnerHTML={{ __html: e.label }} />
-            </Button>
-            {history.length > 1 && <IconButton svg={ArrowUpwardSvg} small={true} className='msp-form-control' onClick={() => this.moveHistory(e, 'up')} flex='20px' title={'Move up'} />}
-            {history.length > 1 && <IconButton svg={ArrowDownwardSvg} small={true} className='msp-form-control' onClick={() => this.moveHistory(e, 'down')} flex='20px' title={'Move down'} />}
-            <IconButton svg={DeleteOutlinedSvg} small={true} className='msp-form-control' onClick={() => this.plugin.managers.structure.selection.modifyHistory(e, 'remove')} flex title={'Remove'} />
-        </div>;
-    }
+      const elements: StructureElement.Loci['elements'][0][] = [];
+      for (let i = 0, il = ligands.length; i < il; ++i) {
+        elements.push(ligands[i].loci.elements[0]);
+      }
 
-    atomsLociEntry(e: AtomsLociEntry, idx: number) {
-        return <div key={idx}>
-            <div className='msp-control-group-header'>
-                <div className='msp-no-overflow' title={e.label}>{e.label}</div>
+      const loci = StructureElement.Loci(ligands[0].loci.structure, elements);
+      const label = loci.structure.label.split(' | ')[0];
+      entries.push({ loci, label, cell, ligands });
+    });
+
+    return entries;
+  }
+
+  toggleHint() {
+    const shouldShowToggleHint = this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode);
+    return shouldShowToggleHint ? (
+      <>
+        {' '}
+        (toggle <ToggleSelectionModeButton inline /> mode)
+      </>
+    ) : null;
+  }
+
+  addByChains() {
+    const entries = this.chainEntries;
+    return (
+      <>
+        {entries.length > 0 && <div className="msp-control-offset">{entries.map((e, i) => this.lociEntry(e, i))}</div>}
+        {entries.length < 2 && (
+          <div className="msp-control-offset msp-help-text">
+            <div className="msp-help-description">
+              <Icon svg={HelpOutlineSvg} inline />
+              Add 2 or more selections{this.toggleHint()} from separate structures. Selections must be limited to single
+              polymer chains or residues therein.
             </div>
-            <div className='msp-control-offset'>
-                {e.atoms.map((h, i) => this.historyEntry(h, i))}
+          </div>
+        )}
+        {entries.length > 1 && (
+          <Button
+            title="Superpose structures by selected chains."
+            className="msp-btn-commit msp-btn-commit-on"
+            onClick={this.superposeChains}
+            style={{ marginTop: '1px' }}
+          >
+            Superpose
+          </Button>
+        )}
+      </>
+    );
+  }
+
+  addByAtoms() {
+    const entries = this.atomEntries;
+    return (
+      <>
+        {entries.length > 0 && (
+          <div className="msp-control-offset">{entries.map((e, i) => this.atomsLociEntry(e, i))}</div>
+        )}
+        {entries.length < 2 && (
+          <div className="msp-control-offset msp-help-text">
+            <div className="msp-help-description">
+              <Icon svg={HelpOutlineSvg} inline />
+              Add 1 or more selections{this.toggleHint()} from separate structures. Selections must be limited to single
+              atoms.
             </div>
-        </div>;
-    }
+          </div>
+        )}
+        {entries.length > 1 && (
+          <Button
+            title="Superpose structures by selected atoms."
+            className="msp-btn-commit msp-btn-commit-on"
+            onClick={this.superposeAtoms}
+            style={{ marginTop: '1px' }}
+          >
+            Superpose
+          </Button>
+        )}
+      </>
+    );
+  }
 
-    ligandsLociEntry(e: LigandsLociEntry, idx: number) {
-        return <div key={idx}>
-            <div className='msp-control-group-header'>
-                <div className='msp-no-overflow' title={e.label}>{e.label}</div>
+  addByTMAlign() {
+    const entries = this.chainEntries;
+    return (
+      <>
+        {entries.length > 0 && <div className="msp-control-offset">{entries.map((e, i) => this.lociEntry(e, i))}</div>}
+        {entries.length < 2 && (
+          <div className="msp-control-offset msp-help-text">
+            <div className="msp-help-description">
+              <Icon svg={HelpOutlineSvg} inline />
+              Add 2 or more selections{this.toggleHint()} from separate structures. Selections must be limited to single
+              polymer chains. TM-align performs structure-based alignment independent of sequence.
             </div>
-            <div className='msp-control-offset'>
-                {e.ligands.map((h, i) => this.historyEntry(h, i))}
+          </div>
+        )}
+        {entries.length > 1 && (
+          <Button
+            title="Superpose structures using TM-align (structure-based alignment)."
+            className="msp-btn-commit msp-btn-commit-on"
+            onClick={this.superposeTMAlign}
+            style={{ marginTop: '1px' }}
+          >
+            TM-align Superpose
+          </Button>
+        )}
+      </>
+    );
+  }
+
+  superposeByDbMapping() {
+    return (
+      <>
+        <Button
+          icon={SuperposeChainsSvg}
+          title="Superpose structures using intersection of residues from SIFTS UNIPROT mapping."
+          onClick={this.superposeDb}
+          disabled={this.state.isBusy}
+        >
+          UniProt
+        </Button>
+      </>
+    );
+  }
+
+  addByMccs() {
+    const entries = this.ligandEntries;
+    return (
+      <>
+        {entries.length > 0 && (
+          <div className="msp-control-offset">{entries.map((e, i) => this.ligandsLociEntry(e, i))}</div>
+        )}
+        {entries.length < 2 && (
+          <div className="msp-control-offset msp-help-text">
+            <div className="msp-help-description">
+              <Icon svg={HelpOutlineSvg} inline />
+              Add 1 selection{this.toggleHint()} per structure (2+ structures total). Selections must be confined to a
+              single ligand residue. Fast path matches atom names when compound name matches.
             </div>
-        </div>;
-    }
+          </div>
+        )}
+        {entries.length > 1 && (
+          <Button
+            title="Superpose structures by selected ligands (atom-name fast path, then Maximum Common Connected Subgraph)."
+            className="msp-btn-commit msp-btn-commit-on"
+            onClick={this.superposeMccs}
+            style={{ marginTop: '1px' }}
+          >
+            Superpose
+          </Button>
+        )}
+      </>
+    );
+  }
 
-    get chainEntries() {
-        const location = StructureElement.Location.create();
-        const entries: LociEntry[] = [];
-        this.plugin.managers.structure.selection.entries.forEach(({ selection }, ref) => {
-            const cell = StateObjectRef.resolveAndCheck(this.plugin.state.data, ref);
-            if (!cell || StructureElement.Loci.isEmpty(selection)) return;
+  private setOptions = (values: StructureSuperpositionOptions) => {
+    this.setState({ options: values });
+  };
 
-            // only single polymer chain selections
-            const l = StructureElement.Loci.getFirstLocation(selection, location)!;
-            if (selection.elements.length > 1 || StructureProperties.entity.type(l) !== 'polymer') return;
-
-            const stats = StructureElement.Stats.ofLoci(selection);
-            const counts = structureElementStatsLabel(stats, { countsOnly: true });
-            const chain = elementLabel(l, { reverse: true, granularity: 'chain' }).split('|');
-            const label = `${counts} | ${chain[0]} | ${chain[chain.length - 1]}`;
-            entries.push({ loci: selection, label, cell });
-        });
-        return entries;
-    }
-
-    get atomEntries() {
-        const structureEntries = new Map<Structure, StructureSelectionHistoryEntry[]>();
-        const history = this.plugin.managers.structure.selection.additionsHistory;
-
-        for (let i = 0, il = history.length; i < il; ++i) {
-            const e = history[i];
-            if (StructureElement.Loci.size(e.loci) !== 1) continue;
-
-            const k = e.loci.structure;
-            if (structureEntries.has(k)) structureEntries.get(k)!.push(e);
-            else structureEntries.set(k, [e]);
-        }
-
-        const entries: AtomsLociEntry[] = [];
-        structureEntries.forEach((atoms, structure) => {
-            const cell = this.plugin.helpers.substructureParent.get(structure)!;
-
-            const elements: StructureElement.Loci['elements'][0][] = [];
-            for (let i = 0, il = atoms.length; i < il; ++i) {
-                // note, we don't do loci union here to keep order of selected atoms
-                // for atom pairing during superposition
-                elements.push(atoms[i].loci.elements[0]);
-            }
-
-            const loci = StructureElement.Loci(atoms[0].loci.structure, elements);
-            const label = loci.structure.label.split(' | ')[0];
-            entries.push({ loci, label, cell, atoms });
-        });
-        return entries;
-    }
-
-    get ligandEntries() {
-        const structureEntries = new Map<Structure, StructureSelectionHistoryEntry[]>();
-        const history = this.plugin.managers.structure.selection.additionsHistory;
-
-        for (let i = 0, il = history.length; i < il; ++i) {
-            const e = history[i];
-            if (!isSingleLigandLoci(e.loci)) continue;
-
-            const k = e.loci.structure;
-            if (structureEntries.has(k)) structureEntries.get(k)!.push(e);
-            else structureEntries.set(k, [e]);
-        }
-
-        const entries: LigandsLociEntry[] = [];
-        structureEntries.forEach((ligands, structure) => {
-            const cell = this.plugin.helpers.substructureParent.get(structure)!;
-
-            const elements: StructureElement.Loci['elements'][0][] = [];
-            for (let i = 0, il = ligands.length; i < il; ++i) {
-                elements.push(ligands[i].loci.elements[0]);
-            }
-
-            const loci = StructureElement.Loci(ligands[0].loci.structure, elements);
-            const label = loci.structure.label.split(' | ')[0];
-            entries.push({ loci, label, cell, ligands });
-        });
-
-        return entries;
-    }
-
-    toggleHint() {
-        const shouldShowToggleHint = this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode);
-        return shouldShowToggleHint ? (<>{' '}(toggle <ToggleSelectionModeButton inline /> mode)</>) : null;
-    }
-
-    addByChains() {
-        const entries = this.chainEntries;
-        return <>
-            {entries.length > 0 && <div className='msp-control-offset'>
-                {entries.map((e, i) => this.lociEntry(e, i))}
-            </div>}
-            {entries.length < 2 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />Add 2 or more selections{this.toggleHint()} from separate structures. Selections must be limited to single polymer chains or residues therein.</div>
-            </div>}
-            {entries.length > 1 && <Button title='Superpose structures by selected chains.' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeChains} style={{ marginTop: '1px' }}>
-                Superpose
-            </Button>}
-        </>;
-    }
-
-    addByAtoms() {
-        const entries = this.atomEntries;
-        return <>
-            {entries.length > 0 && <div className='msp-control-offset'>
-                {entries.map((e, i) => this.atomsLociEntry(e, i))}
-            </div>}
-            {entries.length < 2 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />Add 1 or more selections{this.toggleHint()} from
-                separate structures. Selections must be limited to single atoms.</div>
-            </div>}
-            {entries.length > 1 && <Button title='Superpose structures by selected atoms.' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeAtoms} style={{ marginTop: '1px' }}>
-                Superpose
-            </Button>}
-        </>;
-    }
-
-    addByTMAlign() {
-        const entries = this.chainEntries;
-        return <>
-            {entries.length > 0 && <div className='msp-control-offset'>
-                {entries.map((e, i) => this.lociEntry(e, i))}
-            </div>}
-            {entries.length < 2 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />Add 2 or more selections{this.toggleHint()} from separate structures. Selections must be limited to single polymer chains. TM-align performs structure-based alignment independent of sequence.</div>
-            </div>}
-            {entries.length > 1 && <Button title='Superpose structures using TM-align (structure-based alignment).' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeTMAlign} style={{ marginTop: '1px' }}>
-                TM-align Superpose
-            </Button>}
-        </>;
-    }
-
-    superposeByDbMapping() {
-        return <>
-            <Button icon={SuperposeChainsSvg} title='Superpose structures using intersection of residues from SIFTS UNIPROT mapping.' onClick={this.superposeDb} disabled={this.state.isBusy}>
-                UniProt
-            </Button>
-        </>;
-    }
-
-    addByMccs() {
-        const entries = this.ligandEntries;
-        return <>
-            {entries.length > 0 && <div className='msp-control-offset'>
-                {entries.map((e, i) => this.ligandsLociEntry(e, i))}
-            </div>}
-            {entries.length < 2 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />Add 1 selection{this.toggleHint()} per
-                    structure (2+ structures total). Selections must be confined to a single ligand residue. Fast path matches atom names when compound name matches.</div>
-            </div>}
-            {entries.length > 1 && <Button title='Superpose structures by selected ligands (atom-name fast path, then Maximum Common Connected Subgraph).' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeMccs} style={{ marginTop: '1px' }}>
-                Superpose
-            </Button>}
-        </>;
-    }
-
-    private setOptions = (values: StructureSuperpositionOptions) => {
-        this.setState({ options: values });
-    };
-
-    render() {
-        return <>
-            <div className='msp-flex-row'>
-                <ToggleButton icon={SuperposeChainsSvg} label='Chains' title='Superpose selected polymer chains, optionally guided by a sequence alignment (see Options). Select one chain (or residues within it) per structure; 2+ structures.' toggle={this.toggleByChains} isSelected={this.state.action === 'byChains'} disabled={this.state.isBusy} />
-                <ToggleButton icon={SuperposeChainsSvg} label='TM-align' title='Sequence-independent structural alignment of polymer chains (TM-align) — best when sequence identity is low. Select one chain per structure; 2+ structures.' toggle={this.toggleByTMAlign} isSelected={this.state.action === 'byTMAlign'} disabled={this.state.isBusy} />
-                {this.state.canUseDb && this.superposeByDbMapping()}
-                <ToggleButton icon={TuneSvg} label='' title='Options for chain- and UniProt-based superposition (sequence-guided alignment, trace/CA-only).' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isBusy} style={{ flex: '0 0 40px', padding: 0 }} />
-            </div>
-            <div className='msp-flex-row'>
-                {this.state.canUseLigands && <ToggleButton icon={SuperposeLigandsSvg} label='Ligands' title='Superpose ligands by atom-name match (identical compound) or maximum common connected subgraph (MCCS) otherwise. Select one ligand residue per structure; 2+ structures.' toggle={this.toggleByMccs} isSelected={this.state.action === 'byMccs'} disabled={this.state.isBusy} />}
-                <ToggleButton icon={SuperposeAtomsSvg} label='Atoms' title='Superpose by manually selected atoms, paired in selection order. Pick the same atoms, in the same order, in each structure (1+ per structure).' toggle={this.toggleByAtoms} isSelected={this.state.action === 'byAtoms'} disabled={this.state.isBusy} />
-            </div>
-            {this.state.action === 'byChains' && this.addByChains()}
-            {this.state.action === 'byAtoms' && this.addByAtoms()}
-            {this.state.action === 'byTMAlign' && this.addByTMAlign()}
-            {this.state.action === 'byMccs' && this.state.canUseLigands && this.addByMccs()}
-            {this.state.action === 'options' && <div className='msp-control-offset'>
-                <ParameterControls params={StructureSuperpositionParams} values={this.state.options} onChangeValues={this.setOptions} isDisabled={this.state.isBusy} />
-            </div>}
-        </>;
-    }
+  render() {
+    return (
+      <>
+        <div className="msp-flex-row">
+          <ToggleButton
+            icon={SuperposeChainsSvg}
+            label="Chains"
+            title="Superpose selected polymer chains, optionally guided by a sequence alignment (see Options). Select one chain (or residues within it) per structure; 2+ structures."
+            toggle={this.toggleByChains}
+            isSelected={this.state.action === 'byChains'}
+            disabled={this.state.isBusy}
+          />
+          <ToggleButton
+            icon={SuperposeChainsSvg}
+            label="TM-align"
+            title="Sequence-independent structural alignment of polymer chains (TM-align) — best when sequence identity is low. Select one chain per structure; 2+ structures."
+            toggle={this.toggleByTMAlign}
+            isSelected={this.state.action === 'byTMAlign'}
+            disabled={this.state.isBusy}
+          />
+          {this.state.canUseDb && this.superposeByDbMapping()}
+          <ToggleButton
+            icon={TuneSvg}
+            label=""
+            title="Options for chain- and UniProt-based superposition (sequence-guided alignment, trace/CA-only)."
+            toggle={this.toggleOptions}
+            isSelected={this.state.action === 'options'}
+            disabled={this.state.isBusy}
+            style={{ flex: '0 0 40px', padding: 0 }}
+          />
+        </div>
+        <div className="msp-flex-row">
+          {this.state.canUseLigands && (
+            <ToggleButton
+              icon={SuperposeLigandsSvg}
+              label="Ligands"
+              title="Superpose ligands by atom-name match (identical compound) or maximum common connected subgraph (MCCS) otherwise. Select one ligand residue per structure; 2+ structures."
+              toggle={this.toggleByMccs}
+              isSelected={this.state.action === 'byMccs'}
+              disabled={this.state.isBusy}
+            />
+          )}
+          <ToggleButton
+            icon={SuperposeAtomsSvg}
+            label="Atoms"
+            title="Superpose by manually selected atoms, paired in selection order. Pick the same atoms, in the same order, in each structure (1+ per structure)."
+            toggle={this.toggleByAtoms}
+            isSelected={this.state.action === 'byAtoms'}
+            disabled={this.state.isBusy}
+          />
+        </div>
+        {this.state.action === 'byChains' && this.addByChains()}
+        {this.state.action === 'byAtoms' && this.addByAtoms()}
+        {this.state.action === 'byTMAlign' && this.addByTMAlign()}
+        {this.state.action === 'byMccs' && this.state.canUseLigands && this.addByMccs()}
+        {this.state.action === 'options' && (
+          <div className="msp-control-offset">
+            <ParameterControls
+              params={StructureSuperpositionParams}
+              values={this.state.options}
+              onChangeValues={this.setOptions}
+              isDisabled={this.state.isBusy}
+            />
+          </div>
+        )}
+      </>
+    );
+  }
 }

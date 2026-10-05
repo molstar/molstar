@@ -22,59 +22,59 @@ string1\t-1\t-0.34e3
 string2\t42\t2.44`;
 
 describe('csv reader', () => {
-    it('basic', async () => {
-        const parsed = await parseCsv(csvStringBasic).run();
-        if (parsed.isError) return;
-        const csvFile = parsed.result;
+  it('basic', async () => {
+    const parsed = await parseCsv(csvStringBasic).run();
+    if (parsed.isError) return;
+    const csvFile = parsed.result;
 
-        // csvFile.table.columnNames.forEach(name => {
-        //     const col = csvFile.table.getColumn(name)
-        //     if (col) console.log(name, col.toStringArray())
-        // })
+    // csvFile.table.columnNames.forEach(name => {
+    //     const col = csvFile.table.getColumn(name)
+    //     if (col) console.log(name, col.toStringArray())
+    // })
 
-        const strCol = csvFile.table.getColumn('StrCol');
-        if (strCol) expect(strCol.toStringArray()).toEqual(['string1', 'string2']);
+    const strCol = csvFile.table.getColumn('StrCol');
+    if (strCol) expect(strCol.toStringArray()).toEqual(['string1', 'string2']);
 
-        const intCol = csvFile.table.getColumn('IntCol');
-        if (intCol) expect(intCol.toIntArray()).toEqual([-1, 42]);
+    const intCol = csvFile.table.getColumn('IntCol');
+    if (intCol) expect(intCol.toIntArray()).toEqual([-1, 42]);
 
-        const floatCol = csvFile.table.getColumn('FloatCol');
-        if (floatCol) expect(floatCol.toFloatArray()).toEqual([-340.0, 2.44]);
+    const floatCol = csvFile.table.getColumn('FloatCol');
+    if (floatCol) expect(floatCol.toFloatArray()).toEqual([-340.0, 2.44]);
 
-        expect.assertions(3);
-    });
+    expect.assertions(3);
+  });
 
-    it('advanced', async () => {
-        const parsed = await parseCsv(csvStringAdvanced).run();
-        if (parsed.isError) return;
-        const csvFile = parsed.result;
+  it('advanced', async () => {
+    const parsed = await parseCsv(csvStringAdvanced).run();
+    if (parsed.isError) return;
+    const csvFile = parsed.result;
 
-        const strCol = csvFile.table.getColumn('StrCol');
-        if (strCol) expect(strCol.toStringArray()).toEqual(['string1', ' stri\nng2']);
+    const strCol = csvFile.table.getColumn('StrCol');
+    if (strCol) expect(strCol.toStringArray()).toEqual(['string1', ' stri\nng2']);
 
-        const intCol = csvFile.table.getColumn('Int Col');
-        if (intCol) expect(intCol.toIntArray()).toEqual([-1, 42]);
+    const intCol = csvFile.table.getColumn('Int Col');
+    if (intCol) expect(intCol.toIntArray()).toEqual([-1, 42]);
 
-        const floatCol = csvFile.table.getColumn('FloatCol');
-        if (floatCol) expect(floatCol.toFloatArray()).toEqual([-340.0, 2.44]);
+    const floatCol = csvFile.table.getColumn('FloatCol');
+    if (floatCol) expect(floatCol.toFloatArray()).toEqual([-340.0, 2.44]);
 
-        expect.assertions(3);
-    });
+    expect.assertions(3);
+  });
 
-    it('tabs', async () => {
-        const parsed = await parseCsv(tabString, { delimiter: '\t' }).run();
-        if (parsed.isError) return;
-        const csvFile = parsed.result;
+  it('tabs', async () => {
+    const parsed = await parseCsv(tabString, { delimiter: '\t' }).run();
+    if (parsed.isError) return;
+    const csvFile = parsed.result;
 
-        const strCol = csvFile.table.getColumn('StrCol');
-        if (strCol) expect(strCol.toStringArray()).toEqual(['string1', 'string2']);
+    const strCol = csvFile.table.getColumn('StrCol');
+    if (strCol) expect(strCol.toStringArray()).toEqual(['string1', 'string2']);
 
-        const intCol = csvFile.table.getColumn('IntCol');
-        if (intCol) expect(intCol.toIntArray()).toEqual([-1, 42]);
+    const intCol = csvFile.table.getColumn('IntCol');
+    if (intCol) expect(intCol.toIntArray()).toEqual([-1, 42]);
 
-        const floatCol = csvFile.table.getColumn('FloatCol');
-        if (floatCol) expect(floatCol.toFloatArray()).toEqual([-340.0, 2.44]);
+    const floatCol = csvFile.table.getColumn('FloatCol');
+    if (floatCol) expect(floatCol.toFloatArray()).toEqual([-340.0, 2.44]);
 
-        expect.assertions(3);
-    });
+    expect.assertions(3);
+  });
 });

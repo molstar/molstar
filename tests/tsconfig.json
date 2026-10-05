@@ -5,12 +5,8 @@
     "outDir": "lib",
     "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo"
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "src/**/_test/**"
-  ],
+  "include": ["src/**/*"],
+  "exclude": ["src/**/_test/**"],
   "references": [
     {
       "path": "../packages/graphics"

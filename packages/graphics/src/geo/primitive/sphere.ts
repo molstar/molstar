@@ -11,15 +11,15 @@ import type { Primitive } from './primitive.js';
 
 /** Calculate vertex count for subdived icosahedron */
 export function sphereVertexCount(detail: number) {
-    return 10 * Math.pow(Math.pow(2, detail), 2) + 2;
+  return 10 * Math.pow(Math.pow(2, detail), 2) + 2;
 }
 
 /** Create sphere by subdividing an icosahedron */
 export function Sphere(detail: number, options?: { subset: 'ring' | 'caps' | undefined }): Primitive {
-    const { vertices, indices } = Icosahedron({ subset: options?.subset });
-    const sphere = Polyhedron(vertices, indices, { detail, radius: 1 });
-    if (options?.subset !== undefined) {
-        sphere.normals = sphere.vertices; // prevent ugly surface of sphere subsets when merged into a full sphere
-    }
-    return sphere;
+  const { vertices, indices } = Icosahedron({ subset: options?.subset });
+  const sphere = Polyhedron(vertices, indices, { detail, radius: 1 });
+  if (options?.subset !== undefined) {
+    sphere.normals = sphere.vertices; // prevent ugly surface of sphere subsets when merged into a full sphere
+  }
+  return sphere;
 }

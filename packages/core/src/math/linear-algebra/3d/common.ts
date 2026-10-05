@@ -20,5 +20,5 @@
 export const EPSILON = 0.000001;
 
 export function equalEps(a: number, b: number, eps: number) {
-    return Math.abs(a - b) <= eps;
+  return Math.abs(a - b) <= eps;
 }

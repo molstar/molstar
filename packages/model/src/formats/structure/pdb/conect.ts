@@ -12,120 +12,125 @@ import type { Tokens } from '@molstar/io/reader/common/text/tokenizer';
 import { isMetal } from '@molstar/model/model/structure/model/properties/atomic/types';
 import type { ElementSymbol } from '@molstar/model/model/structure/model/types';
 
-export function parseConect(lines: Tokens, lineStart: number, lineEnd: number, sites: { [K in keyof mmCIF_Schema['atom_site']]?: CifField }): CifCategory {
-    const idMap: { [k: string]: number } = {};
-    for (let i = 0, il = sites.id!.rowCount; i < il; ++i) {
-        idMap[sites.id!.str(i)] = i;
+export function parseConect(
+  lines: Tokens,
+  lineStart: number,
+  lineEnd: number,
+  sites: { [K in keyof mmCIF_Schema['atom_site']]?: CifField },
+): CifCategory {
+  const idMap: { [k: string]: number } = {};
+  for (let i = 0, il = sites.id!.rowCount; i < il; ++i) {
+    idMap[sites.id!.str(i)] = i;
+  }
+
+  const getLine = (n: number) => lines.data.substring(lines.indices[2 * n], lines.indices[2 * n + 1]);
+
+  const id: string[] = [];
+  const conn_type_id: string[] = [];
+  const bondOrder: number[] = [];
+
+  const ptnr1_label_asym_id: string[] = [];
+  const ptnr1_label_seq_id: number[] = [];
+  const ptnr1_auth_seq_id: number[] = [];
+  const ptnr1_label_atom_id: string[] = [];
+  const ptnr1_label_alt_id: string[] = [];
+  const ptnr1_PDB_ins_code: string[] = [];
+
+  const ptnr2_label_asym_id: string[] = [];
+  const ptnr2_label_seq_id: number[] = [];
+  const ptnr2_auth_seq_id: number[] = [];
+  const ptnr2_label_atom_id: string[] = [];
+  const ptnr2_label_alt_id: string[] = [];
+  const ptnr2_PDB_ins_code: string[] = [];
+
+  const pos = [11, 16, 21, 26];
+
+  let k = 1;
+  let currentIdxA = -1;
+  let bondIndex: { [k: number]: number } = {};
+  let hasMultipleBonds = false;
+
+  for (let i = lineStart; i < lineEnd; i++) {
+    const line = getLine(i);
+    const idxA = idMap[parseInt(line.substr(6, 5))];
+
+    if (idxA === undefined) continue;
+
+    if (currentIdxA !== idxA) {
+      currentIdxA = idxA;
+      bondIndex = {};
     }
 
-    const getLine = (n: number) => lines.data.substring(lines.indices[2 * n], lines.indices[2 * n + 1]);
+    for (let j = 0; j < 4; ++j) {
+      const idB = parseInt(line.substr(pos[j], 5));
+      if (Number.isNaN(idB)) continue;
 
-    const id: string[] = [];
-    const conn_type_id: string[] = [];
-    const bondOrder: number[] = [];
+      const idxB = idMap[idB];
+      if (idxB === undefined) continue;
+      if (idxA > idxB) continue;
 
-    const ptnr1_label_asym_id: string[] = [];
-    const ptnr1_label_seq_id: number[] = [];
-    const ptnr1_auth_seq_id: number[] = [];
-    const ptnr1_label_atom_id: string[] = [];
-    const ptnr1_label_alt_id: string[] = [];
-    const ptnr1_PDB_ins_code: string[] = [];
+      // Records where a 'idxB' atom is given multiple times are interpreted
+      // as double/triple bonds, e.g. CONECT 1529 1528 1528 is a double bond
+      if (bondIndex[idxB] !== undefined) {
+        bondOrder[bondIndex[idxB]] += 1;
+        hasMultipleBonds = true;
+        continue;
+      }
+      bondIndex[idxB] = k - 1;
 
-    const ptnr2_label_asym_id: string[] = [];
-    const ptnr2_label_seq_id: number[] = [];
-    const ptnr2_auth_seq_id: number[] = [];
-    const ptnr2_label_atom_id: string[] = [];
-    const ptnr2_label_alt_id: string[] = [];
-    const ptnr2_PDB_ins_code: string[] = [];
+      const atomIdA = sites.type_symbol!.str(idxA) as ElementSymbol;
+      const atomIdB = sites.type_symbol!.str(idxB) as ElementSymbol;
 
-    const pos = [11, 16, 21, 26];
+      if (isMetal(atomIdA) || isMetal(atomIdB)) {
+        id.push(`metalc${k}`);
+        conn_type_id.push('metalc');
+      } else {
+        id.push(`covale${k}`);
+        conn_type_id.push('covale');
+      }
+      bondOrder.push(1);
 
-    let k = 1;
-    let currentIdxA = -1;
-    let bondIndex: {[k: number]: number} = {};
-    let hasMultipleBonds = false;
+      ptnr1_label_asym_id.push(sites.label_asym_id!.str(idxA));
+      ptnr1_label_seq_id.push(sites.label_seq_id!.int(idxA));
+      ptnr1_auth_seq_id.push(sites.auth_seq_id!.int(idxA));
+      ptnr1_label_atom_id.push(sites.label_atom_id!.str(idxA));
+      ptnr1_label_alt_id.push(sites.label_alt_id!.str(idxA));
+      ptnr1_PDB_ins_code.push(sites.pdbx_PDB_ins_code!.str(idxA));
 
-    for (let i = lineStart; i < lineEnd; i++) {
-        const line = getLine(i);
-        const idxA = idMap[parseInt(line.substr(6, 5))];
+      ptnr2_label_asym_id.push(sites.label_asym_id!.str(idxB));
+      ptnr2_label_seq_id.push(sites.label_seq_id!.int(idxB));
+      ptnr2_auth_seq_id.push(sites.auth_seq_id!.int(idxB));
+      ptnr2_label_atom_id.push(sites.label_atom_id!.str(idxB));
+      ptnr2_label_alt_id.push(sites.label_alt_id!.str(idxB));
+      ptnr2_PDB_ins_code.push(sites.pdbx_PDB_ins_code!.str(idxB));
 
-        if (idxA === undefined) continue;
-
-        if (currentIdxA !== idxA) {
-            currentIdxA = idxA;
-            bondIndex = {};
-        }
-
-        for (let j = 0; j < 4; ++j) {
-            const idB = parseInt(line.substr(pos[j], 5));
-            if (Number.isNaN(idB)) continue;
-
-            const idxB = idMap[idB];
-            if (idxB === undefined) continue;
-            if (idxA > idxB) continue;
-
-            // Records where a 'idxB' atom is given multiple times are interpreted
-            // as double/triple bonds, e.g. CONECT 1529 1528 1528 is a double bond
-            if (bondIndex[idxB] !== undefined) {
-                bondOrder[bondIndex[idxB]] += 1;
-                hasMultipleBonds = true;
-                continue;
-            }
-            bondIndex[idxB] = k - 1;
-
-            const atomIdA = sites.type_symbol!.str(idxA) as ElementSymbol;
-            const atomIdB = sites.type_symbol!.str(idxB) as ElementSymbol;
-
-            if (isMetal(atomIdA) || isMetal(atomIdB)) {
-                id.push(`metalc${k}`);
-                conn_type_id.push('metalc');
-            } else {
-                id.push(`covale${k}`);
-                conn_type_id.push('covale');
-            }
-            bondOrder.push(1);
-
-            ptnr1_label_asym_id.push(sites.label_asym_id!.str(idxA));
-            ptnr1_label_seq_id.push(sites.label_seq_id!.int(idxA));
-            ptnr1_auth_seq_id.push(sites.auth_seq_id!.int(idxA));
-            ptnr1_label_atom_id.push(sites.label_atom_id!.str(idxA));
-            ptnr1_label_alt_id.push(sites.label_alt_id!.str(idxA));
-            ptnr1_PDB_ins_code.push(sites.pdbx_PDB_ins_code!.str(idxA));
-
-            ptnr2_label_asym_id.push(sites.label_asym_id!.str(idxB));
-            ptnr2_label_seq_id.push(sites.label_seq_id!.int(idxB));
-            ptnr2_auth_seq_id.push(sites.auth_seq_id!.int(idxB));
-            ptnr2_label_atom_id.push(sites.label_atom_id!.str(idxB));
-            ptnr2_label_alt_id.push(sites.label_alt_id!.str(idxB));
-            ptnr2_PDB_ins_code.push(sites.pdbx_PDB_ins_code!.str(idxB));
-
-            k += 1;
-        }
+      k += 1;
     }
+  }
 
-    const struct_conn: Partial<CifCategory.Fields<mmCIF_Schema['struct_conn']>> = {
-        id: CifField.ofStrings(id),
-        conn_type_id: CifField.ofStrings(conn_type_id),
+  const struct_conn: Partial<CifCategory.Fields<mmCIF_Schema['struct_conn']>> = {
+    id: CifField.ofStrings(id),
+    conn_type_id: CifField.ofStrings(conn_type_id),
 
-        ptnr1_label_asym_id: CifField.ofStrings(ptnr1_label_asym_id),
-        ptnr1_label_seq_id: CifField.ofNumbers(ptnr1_label_seq_id),
-        ptnr1_auth_seq_id: CifField.ofNumbers(ptnr1_auth_seq_id),
-        ptnr1_label_atom_id: CifField.ofStrings(ptnr1_label_atom_id),
-        pdbx_ptnr1_label_alt_id: CifField.ofStrings(ptnr1_label_alt_id),
-        pdbx_ptnr1_PDB_ins_code: CifField.ofStrings(ptnr1_PDB_ins_code),
+    ptnr1_label_asym_id: CifField.ofStrings(ptnr1_label_asym_id),
+    ptnr1_label_seq_id: CifField.ofNumbers(ptnr1_label_seq_id),
+    ptnr1_auth_seq_id: CifField.ofNumbers(ptnr1_auth_seq_id),
+    ptnr1_label_atom_id: CifField.ofStrings(ptnr1_label_atom_id),
+    pdbx_ptnr1_label_alt_id: CifField.ofStrings(ptnr1_label_alt_id),
+    pdbx_ptnr1_PDB_ins_code: CifField.ofStrings(ptnr1_PDB_ins_code),
 
-        ptnr2_label_asym_id: CifField.ofStrings(ptnr2_label_asym_id),
-        ptnr2_label_seq_id: CifField.ofNumbers(ptnr2_label_seq_id),
-        ptnr2_auth_seq_id: CifField.ofNumbers(ptnr2_auth_seq_id),
-        ptnr2_label_atom_id: CifField.ofStrings(ptnr2_label_atom_id),
-        pdbx_ptnr2_label_alt_id: CifField.ofStrings(ptnr2_label_alt_id),
-        pdbx_ptnr2_PDB_ins_code: CifField.ofStrings(ptnr2_PDB_ins_code),
-    };
+    ptnr2_label_asym_id: CifField.ofStrings(ptnr2_label_asym_id),
+    ptnr2_label_seq_id: CifField.ofNumbers(ptnr2_label_seq_id),
+    ptnr2_auth_seq_id: CifField.ofNumbers(ptnr2_auth_seq_id),
+    ptnr2_label_atom_id: CifField.ofStrings(ptnr2_label_atom_id),
+    pdbx_ptnr2_label_alt_id: CifField.ofStrings(ptnr2_label_alt_id),
+    pdbx_ptnr2_PDB_ins_code: CifField.ofStrings(ptnr2_PDB_ins_code),
+  };
 
-    if (hasMultipleBonds) {
-        const valueOrder = ['sing', 'doub', 'trpl', 'quad'];
-        struct_conn.pdbx_value_order = CifField.ofStrings(bondOrder.map(bo => valueOrder[bo - 1] || 'sing'));
-    }
+  if (hasMultipleBonds) {
+    const valueOrder = ['sing', 'doub', 'trpl', 'quad'];
+    struct_conn.pdbx_value_order = CifField.ofStrings(bondOrder.map((bo) => valueOrder[bo - 1] || 'sing'));
+  }
 
-    return CifCategory.ofFields('struct_conn', struct_conn);
+  return CifCategory.ofFields('struct_conn', struct_conn);
 }

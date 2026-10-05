@@ -12,38 +12,38 @@ import type { Tensor } from '../linear-algebra/tensor.js';
 import { Box3D } from './primitives/box3d.js';
 
 export interface PositionData {
-    x: ArrayLike<number>,
-    y: ArrayLike<number>,
-    z: ArrayLike<number>,
-    /** subset of indices into the x/y/z/radius arrays */
-    indices: OrderedSet,
-    /** optional element radius */
-    radius?: ArrayLike<number>,
-    /** optional element id */
-    id?: ArrayLike<number>,
+  x: ArrayLike<number>;
+  y: ArrayLike<number>;
+  z: ArrayLike<number>;
+  /** subset of indices into the x/y/z/radius arrays */
+  indices: OrderedSet;
+  /** optional element radius */
+  radius?: ArrayLike<number>;
+  /** optional element id */
+  id?: ArrayLike<number>;
 }
 
 export type DensityData = {
-    transform: Mat4,
-    field: Tensor,
-    idField: Tensor,
-    resolution: number,
-    maxRadius: number,
-}
+  transform: Mat4;
+  field: Tensor;
+  idField: Tensor;
+  resolution: number;
+  maxRadius: number;
+};
 
 export interface RegularGrid3d {
-    box: Box3D,
-    dimensions: Vec3
+  box: Box3D;
+  dimensions: Vec3;
 }
 
 export function getRegularGrid3dDelta({ box, dimensions }: RegularGrid3d) {
-    return Vec3.div(Vec3(), Box3D.size(Vec3(), box), Vec3.subScalar(Vec3(), dimensions, 1));
+  return Vec3.div(Vec3(), Box3D.size(Vec3(), box), Vec3.subScalar(Vec3(), dimensions, 1));
 }
 
 export function fillGridDim(length: number, start: number, step: number) {
-    const a = new Float32Array(length);
-    for (let i = 0; i < a.length; i++) {
-        a[i] = start + (step * i);
-    }
-    return a;
+  const a = new Float32Array(length);
+  for (let i = 0; i < a.length; i++) {
+    a[i] = start + step * i;
+  }
+  return a;
 }

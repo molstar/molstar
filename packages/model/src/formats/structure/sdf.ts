@@ -12,18 +12,18 @@ import { getMolModels } from './mol.js';
 
 export { SdfFormat };
 
-type SdfFormat = ModelFormat<SdfFileCompound>
+type SdfFormat = ModelFormat<SdfFileCompound>;
 
 namespace SdfFormat {
-    export function is(x?: ModelFormat): x is SdfFormat {
-        return x?.kind === 'sdf';
-    }
+  export function is(x?: ModelFormat): x is SdfFormat {
+    return x?.kind === 'sdf';
+  }
 
-    export function create(mol: SdfFileCompound): SdfFormat {
-        return { kind: 'sdf', name: mol.molFile.title, data: mol };
-    }
+  export function create(mol: SdfFileCompound): SdfFormat {
+    return { kind: 'sdf', name: mol.molFile.title, data: mol };
+  }
 }
 
 export function trajectoryFromSdf(mol: SdfFileCompound): Task<Trajectory> {
-    return Task.create('Parse SDF', ctx => getMolModels(mol.molFile, SdfFormat.create(mol), ctx));
+  return Task.create('Parse SDF', (ctx) => getMolModels(mol.molFile, SdfFormat.create(mol), ctx));
 }

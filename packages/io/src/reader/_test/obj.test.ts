@@ -186,228 +186,228 @@ v 0.5 1.0 0.0
 `;
 
 describe('obj reader', () => {
-    it('parses a simple triangle', async () => {
-        const parsed = await parseObj(objTriangle).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('parses a simple triangle', async () => {
+    const parsed = await parseObj(objTriangle).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.positionCount).toBe(3);
-        expect(obj.triangleCount).toBe(1);
-        // First vertex
-        expect(obj.positions[0]).toBeCloseTo(0.0);
-        expect(obj.positions[1]).toBeCloseTo(0.0);
-        expect(obj.positions[2]).toBeCloseTo(0.0);
-        // Triangle indices (0-based)
-        expect(Array.from(obj.positionIndices)).toEqual([0, 1, 2]);
-    });
+    expect(obj.positionCount).toBe(3);
+    expect(obj.triangleCount).toBe(1);
+    // First vertex
+    expect(obj.positions[0]).toBeCloseTo(0.0);
+    expect(obj.positions[1]).toBeCloseTo(0.0);
+    expect(obj.positions[2]).toBeCloseTo(0.0);
+    // Triangle indices (0-based)
+    expect(Array.from(obj.positionIndices)).toEqual([0, 1, 2]);
+  });
 
-    it('fan-triangulates a quad into two triangles', async () => {
-        const parsed = await parseObj(objQuad).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('fan-triangulates a quad into two triangles', async () => {
+    const parsed = await parseObj(objQuad).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.positionCount).toBe(4);
-        expect(obj.triangleCount).toBe(2);
-        // Fan from vertex 0: (0,1,2) and (0,2,3)
-        expect(Array.from(obj.positionIndices)).toEqual([0, 1, 2, 0, 2, 3]);
-    });
+    expect(obj.positionCount).toBe(4);
+    expect(obj.triangleCount).toBe(2);
+    // Fan from vertex 0: (0,1,2) and (0,2,3)
+    expect(Array.from(obj.positionIndices)).toEqual([0, 1, 2, 0, 2, 3]);
+  });
 
-    it('parses vertex normals with v//vn format', async () => {
-        const parsed = await parseObj(objWithNormals).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('parses vertex normals with v//vn format', async () => {
+    const parsed = await parseObj(objWithNormals).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.normalCount).toBe(3);
-        expect(obj.triangleCount).toBe(1);
-        expect(Array.from(obj.normalIndices)).toEqual([0, 1, 2]);
-        // Normal z component of first normal
-        expect(obj.normals[2]).toBeCloseTo(1.0);
-    });
+    expect(obj.normalCount).toBe(3);
+    expect(obj.triangleCount).toBe(1);
+    expect(Array.from(obj.normalIndices)).toEqual([0, 1, 2]);
+    // Normal z component of first normal
+    expect(obj.normals[2]).toBeCloseTo(1.0);
+  });
 
-    it('parses v/vt/vn format (texture coords ignored)', async () => {
-        const parsed = await parseObj(objWithTexture).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('parses v/vt/vn format (texture coords ignored)', async () => {
+    const parsed = await parseObj(objWithTexture).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.positionCount).toBe(3);
-        expect(obj.normalCount).toBe(1);
-        expect(obj.triangleCount).toBe(1);
-        expect(Array.from(obj.normalIndices)).toEqual([0, 0, 0]);
-    });
+    expect(obj.positionCount).toBe(3);
+    expect(obj.normalCount).toBe(1);
+    expect(obj.triangleCount).toBe(1);
+    expect(Array.from(obj.normalIndices)).toEqual([0, 0, 0]);
+  });
 
-    it('tracks usemtl directives into materialNames and faceGroups', async () => {
-        const parsed = await parseObj(objMultiMaterial).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('tracks usemtl directives into materialNames and faceGroups', async () => {
+    const parsed = await parseObj(objMultiMaterial).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.triangleCount).toBe(2);
-        expect(obj.materialNames).toEqual(['red', 'green']);
-        // triangle 0 → red (0), triangle 1 → green (1)
-        expect(Array.from(obj.faceGroups)).toEqual([0, 1]);
-    });
+    expect(obj.triangleCount).toBe(2);
+    expect(obj.materialNames).toEqual(['red', 'green']);
+    // triangle 0 → red (0), triangle 1 → green (1)
+    expect(Array.from(obj.faceGroups)).toEqual([0, 1]);
+  });
 
-    it('handles negative (relative) vertex indices', async () => {
-        const parsed = await parseObj(objNegativeIndices).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('handles negative (relative) vertex indices', async () => {
+    const parsed = await parseObj(objNegativeIndices).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.triangleCount).toBe(1);
-        // -3, -2, -1 with posCount=3 → 0, 1, 2
-        expect(Array.from(obj.positionIndices)).toEqual([0, 1, 2]);
-    });
+    expect(obj.triangleCount).toBe(1);
+    // -3, -2, -1 with posCount=3 → 0, 1, 2
+    expect(Array.from(obj.positionIndices)).toEqual([0, 1, 2]);
+  });
 
-    it('ignores comments and blank lines', async () => {
-        const parsed = await parseObj(objWithComments).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('ignores comments and blank lines', async () => {
+    const parsed = await parseObj(objWithComments).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.positionCount).toBe(3);
-        expect(obj.triangleCount).toBe(1);
-    });
+    expect(obj.positionCount).toBe(3);
+    expect(obj.triangleCount).toBe(1);
+  });
 
-    it('silently skips unsupported directives', async () => {
-        const parsed = await parseObj(objUnsupportedDirectives).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('silently skips unsupported directives', async () => {
+    const parsed = await parseObj(objUnsupportedDirectives).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.positionCount).toBe(3);
-        expect(obj.triangleCount).toBe(1);
-    });
+    expect(obj.positionCount).toBe(3);
+    expect(obj.triangleCount).toBe(1);
+  });
 
-    it('parses a cube (12 triangles, 8 vertices)', async () => {
-        const parsed = await parseObj(objCube).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('parses a cube (12 triangles, 8 vertices)', async () => {
+    const parsed = await parseObj(objCube).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.positionCount).toBe(8);
-        expect(obj.triangleCount).toBe(12);
-        expect(obj.positionIndices.length).toBe(36); // 12 * 3
-    });
+    expect(obj.positionCount).toBe(8);
+    expect(obj.triangleCount).toBe(12);
+    expect(obj.positionIndices.length).toBe(36); // 12 * 3
+  });
 
-    it('returns no normals when none are defined', async () => {
-        const parsed = await parseObj(objTriangle).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('returns no normals when none are defined', async () => {
+    const parsed = await parseObj(objTriangle).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.normalCount).toBe(0);
-        // All normal indices should be -1
-        expect(Array.from(obj.normalIndices)).toEqual([-1, -1, -1]);
-    });
+    expect(obj.normalCount).toBe(0);
+    // All normal indices should be -1
+    expect(Array.from(obj.normalIndices)).toEqual([-1, -1, -1]);
+  });
 
-    it('default arrays are present', async () => {
-        const parsed = await parseObj(objTriangle).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('default arrays are present', async () => {
+    const parsed = await parseObj(objTriangle).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.positionCount).toBe(3);
-        expect(obj.triangleCount).toBe(1);
-    });
+    expect(obj.positionCount).toBe(3);
+    expect(obj.triangleCount).toBe(1);
+  });
 
-    it('parses CRLF line endings', async () => {
-        const parsed = await parseObj(objCRLF).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('parses CRLF line endings', async () => {
+    const parsed = await parseObj(objCRLF).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.positionCount).toBe(3);
-        expect(obj.triangleCount).toBe(1);
-        expect(Array.from(obj.positionIndices)).toEqual([0, 1, 2]);
-    });
+    expect(obj.positionCount).toBe(3);
+    expect(obj.triangleCount).toBe(1);
+    expect(Array.from(obj.positionIndices)).toEqual([0, 1, 2]);
+  });
 
-    it('handles tabs and leading whitespace before keywords', async () => {
-        const parsed = await parseObj(objLeadingWhitespace).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('handles tabs and leading whitespace before keywords', async () => {
+    const parsed = await parseObj(objLeadingWhitespace).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.positionCount).toBe(3);
-        expect(obj.triangleCount).toBe(1);
-        expect(Array.from(obj.positionIndices)).toEqual([0, 1, 2]);
-    });
+    expect(obj.positionCount).toBe(3);
+    expect(obj.triangleCount).toBe(1);
+    expect(Array.from(obj.positionIndices)).toEqual([0, 1, 2]);
+  });
 
-    it('skips a degenerate face and emits a warning', async () => {
-        const parsed = await parseObj(objDegenerateFace).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('skips a degenerate face and emits a warning', async () => {
+    const parsed = await parseObj(objDegenerateFace).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        // Only the valid triangle survives
-        expect(obj.triangleCount).toBe(1);
-        expect(Array.from(obj.positionIndices)).toEqual([0, 1, 2]);
-        // A warning was recorded for the degenerate face
-        expect(parsed.warnings.length).toBeGreaterThan(0);
-        expect(parsed.warnings.some(w => w.includes('degenerate'))).toBe(true);
-    });
+    // Only the valid triangle survives
+    expect(obj.triangleCount).toBe(1);
+    expect(Array.from(obj.positionIndices)).toEqual([0, 1, 2]);
+    // A warning was recorded for the degenerate face
+    expect(parsed.warnings.length).toBeGreaterThan(0);
+    expect(parsed.warnings.some((w) => w.includes('degenerate'))).toBe(true);
+  });
 
-    it('parses faces with mixed normal/no-normal vertices', async () => {
-        const parsed = await parseObj(objMixedNormals).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('parses faces with mixed normal/no-normal vertices', async () => {
+    const parsed = await parseObj(objMixedNormals).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.positionCount).toBe(3);
-        expect(obj.normalCount).toBe(1);
-        expect(obj.triangleCount).toBe(1);
-        // First and third vertices reference normal 0; the middle has none (-1)
-        expect(Array.from(obj.normalIndices)).toEqual([0, -1, 0]);
-    });
+    expect(obj.positionCount).toBe(3);
+    expect(obj.normalCount).toBe(1);
+    expect(obj.triangleCount).toBe(1);
+    // First and third vertices reference normal 0; the middle has none (-1)
+    expect(Array.from(obj.normalIndices)).toEqual([0, -1, 0]);
+  });
 
-    it('handles negative (relative) normal indices', async () => {
-        const parsed = await parseObj(objNegativeNormalIndices).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('handles negative (relative) normal indices', async () => {
+    const parsed = await parseObj(objNegativeNormalIndices).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.normalCount).toBe(1);
-        expect(obj.triangleCount).toBe(1);
-        // -1 with normCount=1 → 0
-        expect(Array.from(obj.normalIndices)).toEqual([0, 0, 0]);
-    });
+    expect(obj.normalCount).toBe(1);
+    expect(obj.triangleCount).toBe(1);
+    // -1 with normCount=1 → 0
+    expect(Array.from(obj.normalIndices)).toEqual([0, 0, 0]);
+  });
 
-    it('deduplicates reused usemtl material names and maps faceGroups correctly', async () => {
-        const parsed = await parseObj(objReusedMaterial).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('deduplicates reused usemtl material names and maps faceGroups correctly', async () => {
+    const parsed = await parseObj(objReusedMaterial).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.triangleCount).toBe(3);
-        // "red" and "green" each appear once in materialNames
-        expect(obj.materialNames).toEqual(['red', 'green']);
-        // triangle 0 → red (0), triangle 1 → green (1), triangle 2 → red (0) again
-        expect(Array.from(obj.faceGroups)).toEqual([0, 1, 0]);
-    });
+    expect(obj.triangleCount).toBe(3);
+    // "red" and "green" each appear once in materialNames
+    expect(obj.materialNames).toEqual(['red', 'green']);
+    // triangle 0 → red (0), triangle 1 → green (1), triangle 2 → red (0) again
+    expect(Array.from(obj.faceGroups)).toEqual([0, 1, 0]);
+  });
 
-    it('parses an empty file', async () => {
-        const parsed = await parseObj(objEmpty).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('parses an empty file', async () => {
+    const parsed = await parseObj(objEmpty).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.positionCount).toBe(0);
-        expect(obj.normalCount).toBe(0);
-        expect(obj.triangleCount).toBe(0);
-    });
+    expect(obj.positionCount).toBe(0);
+    expect(obj.normalCount).toBe(0);
+    expect(obj.triangleCount).toBe(0);
+  });
 
-    it('parses a file with vertices but no faces', async () => {
-        const parsed = await parseObj(objNoFaces).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('parses a file with vertices but no faces', async () => {
+    const parsed = await parseObj(objNoFaces).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.positionCount).toBe(3);
-        expect(obj.triangleCount).toBe(0);
-        expect(obj.positionIndices.length).toBe(0);
-    });
+    expect(obj.positionCount).toBe(3);
+    expect(obj.triangleCount).toBe(0);
+    expect(obj.positionIndices.length).toBe(0);
+  });
 
-    it('silently skips g and o directives; tracks usemtl into materialNames and faceGroups', async () => {
-        const parsed = await parseObj(objAllThree).run();
-        if (parsed.isError) throw new Error(parsed.message);
-        const obj = parsed.result;
+  it('silently skips g and o directives; tracks usemtl into materialNames and faceGroups', async () => {
+    const parsed = await parseObj(objAllThree).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const obj = parsed.result;
 
-        expect(obj.triangleCount).toBe(2);
-        expect(obj.materialNames).toEqual(['MyMtl']);
-        // both triangles belong to the single material
-        expect(Array.from(obj.faceGroups)).toEqual([0, 0]);
-    });
+    expect(obj.triangleCount).toBe(2);
+    expect(obj.materialNames).toEqual(['MyMtl']);
+    // both triangles belong to the single material
+    expect(Array.from(obj.faceGroups)).toEqual([0, 0]);
+  });
 });
 
 // ─── MTL parser ──────────────────────────────────────────────────────────────
 
 describe('mtl parser', () => {
-    it('parses a single material with Kd', () => {
-        const mtl = parseMtl(`
+  it('parses a single material with Kd', () => {
+    const mtl = parseMtl(`
 newmtl red
 illum 2
 Ns 163
@@ -416,14 +416,14 @@ Kd 1.0 0.0 0.0
 Ks 0.25 0.25 0.25
 d 1
 `);
-        expect(mtl.size).toBe(1);
-        const red = mtl.get('red');
-        expect(red).toBeDefined();
-        expect(red!.Kd).toBe(Color.fromNormalizedRgb(1.0, 0.0, 0.0));
-    });
+    expect(mtl.size).toBe(1);
+    const red = mtl.get('red');
+    expect(red).toBeDefined();
+    expect(red!.Kd).toBe(Color.fromNormalizedRgb(1.0, 0.0, 0.0));
+  });
 
-    it('parses multiple materials', () => {
-        const mtl = parseMtl(`
+  it('parses multiple materials', () => {
+    const mtl = parseMtl(`
 newmtl mat_a
 Kd 1.0 0.0 0.0
 newmtl mat_b
@@ -431,36 +431,36 @@ Kd 0.0 1.0 0.0
 newmtl mat_c
 Kd 0.0 0.0 1.0
 `);
-        expect(mtl.size).toBe(3);
-        expect(mtl.get('mat_a')!.Kd).toBe(Color.fromNormalizedRgb(1, 0, 0));
-        expect(mtl.get('mat_b')!.Kd).toBe(Color.fromNormalizedRgb(0, 1, 0));
-        expect(mtl.get('mat_c')!.Kd).toBe(Color.fromNormalizedRgb(0, 0, 1));
-    });
+    expect(mtl.size).toBe(3);
+    expect(mtl.get('mat_a')!.Kd).toBe(Color.fromNormalizedRgb(1, 0, 0));
+    expect(mtl.get('mat_b')!.Kd).toBe(Color.fromNormalizedRgb(0, 1, 0));
+    expect(mtl.get('mat_c')!.Kd).toBe(Color.fromNormalizedRgb(0, 0, 1));
+  });
 
-    it('ignores comments and blank lines', () => {
-        const mtl = parseMtl(`
+  it('ignores comments and blank lines', () => {
+    const mtl = parseMtl(`
 # This is a comment
 newmtl grey
 # another comment
 Kd 0.5 0.5 0.5
 `);
-        expect(mtl.size).toBe(1);
-        expect(mtl.get('grey')!.Kd).toBe(Color.fromNormalizedRgb(0.5, 0.5, 0.5));
-    });
+    expect(mtl.size).toBe(1);
+    expect(mtl.get('grey')!.Kd).toBe(Color.fromNormalizedRgb(0.5, 0.5, 0.5));
+  });
 
-    it('uses default grey Kd when Kd directive is absent', () => {
-        const mtl = parseMtl(`
+  it('uses default grey Kd when Kd directive is absent', () => {
+    const mtl = parseMtl(`
 newmtl no_kd
 illum 2
 Ns 100
 `);
-        expect(mtl.size).toBe(1);
-        // Default grey: Color(0x808080)
-        expect(mtl.get('no_kd')!.Kd).toBe(Color(0x808080));
-    });
+    expect(mtl.size).toBe(1);
+    // Default grey: Color(0x808080)
+    expect(mtl.get('no_kd')!.Kd).toBe(Color(0x808080));
+  });
 
-    it('ignores Ka, Ks, Ns, Ni, illum, d directives', () => {
-        const mtl = parseMtl(`
+  it('ignores Ka, Ks, Ns, Ni, illum, d directives', () => {
+    const mtl = parseMtl(`
 newmtl full
 illum 2
 Ns 163
@@ -470,33 +470,32 @@ Kd 0.957 0.427 0.263
 Ks 0.25 0.25 0.25
 d 0.5
 `);
-        expect(mtl.size).toBe(1);
-        // Only Kd is captured; d is ignored
-        const mat = mtl.get('full')!;
-        expect(mat.Kd).toBe(Color.fromNormalizedRgb(0.957, 0.427, 0.263));
-        expect((mat as any).d).toBeUndefined();
-    });
+    expect(mtl.size).toBe(1);
+    // Only Kd is captured; d is ignored
+    const mat = mtl.get('full')!;
+    expect(mat.Kd).toBe(Color.fromNormalizedRgb(0.957, 0.427, 0.263));
+    expect((mat as any).d).toBeUndefined();
+  });
 
-    it('returns an empty map for an empty file', () => {
-        const mtl = parseMtl('');
-        expect(mtl.size).toBe(0);
-    });
+  it('returns an empty map for an empty file', () => {
+    const mtl = parseMtl('');
+    expect(mtl.size).toBe(0);
+  });
 
-    it('returns an empty map for a file with only comments', () => {
-        const mtl = parseMtl('# just a comment\n# another');
-        expect(mtl.size).toBe(0);
-    });
+  it('returns an empty map for a file with only comments', () => {
+    const mtl = parseMtl('# just a comment\n# another');
+    expect(mtl.size).toBe(0);
+  });
 
-    it('handles CRLF line endings', () => {
-        const mtl = parseMtl('newmtl cr\r\nKd 0.2 0.4 0.6\r\n');
-        expect(mtl.size).toBe(1);
-        expect(mtl.get('cr')!.Kd).toBe(Color.fromNormalizedRgb(0.2, 0.4, 0.6));
-    });
+  it('handles CRLF line endings', () => {
+    const mtl = parseMtl('newmtl cr\r\nKd 0.2 0.4 0.6\r\n');
+    expect(mtl.size).toBe(1);
+    expect(mtl.get('cr')!.Kd).toBe(Color.fromNormalizedRgb(0.2, 0.4, 0.6));
+  });
 
-    it('parses material names that contain special characters', () => {
-        const mtl = parseMtl('newmtl 0xf46d431\nKd 0.957 0.427 0.263\n');
-        expect(mtl.size).toBe(1);
-        expect(mtl.get('0xf46d431')).toBeDefined();
-    });
+  it('parses material names that contain special characters', () => {
+    const mtl = parseMtl('newmtl 0xf46d431\nKd 0.957 0.427 0.263\n');
+    expect(mtl.size).toBe(1);
+    expect(mtl.get('0xf46d431')).toBeDefined();
+  });
 });
-

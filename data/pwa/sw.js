@@ -12,49 +12,49 @@ const CACHE_NAME = `molstar-viewer-${VERSION}`;
 
 // The static resources that the app needs to function.
 const APP_STATIC_RESOURCES = [
-    'favicon.ico',
-    'index.html',
-    'molstar.css',
-    'molstar.js',
-    'manifest.webmanifest',
-    'logo-144.png',
-    'pwa.js'
+  'favicon.ico',
+  'index.html',
+  'molstar.css',
+  'molstar.js',
+  'manifest.webmanifest',
+  'logo-144.png',
+  'pwa.js',
 ];
 
 async function cacheStaticResources() {
-    const cache = await caches.open(CACHE_NAME);
-    await cache.addAll(APP_STATIC_RESOURCES);
-    await self.skipWaiting(); // Ensures the new service worker takes control immediately.
+  const cache = await caches.open(CACHE_NAME);
+  await cache.addAll(APP_STATIC_RESOURCES);
+  await self.skipWaiting(); // Ensures the new service worker takes control immediately.
 }
 
 async function deleteOldCaches() {
-    const keys = await caches.keys();
-    await Promise.all(
-        keys.map((key) => {
-            if (key !== CACHE_NAME) {
-                return caches.delete(key);
-            }
-        }),
-    );
-    await self.clients.claim(); // Ensures the new service worker takes control immediately.
+  const keys = await caches.keys();
+  await Promise.all(
+    keys.map((key) => {
+      if (key !== CACHE_NAME) {
+        return caches.delete(key);
+      }
+    }),
+  );
+  await self.clients.claim(); // Ensures the new service worker takes control immediately.
 }
 
 async function respondWithCacheFirst(request) {
-    // Try to match the request with the cache
-    const cachedResponse = await caches.match(request);
-    return cachedResponse || fetch(request);
+  // Try to match the request with the cache
+  const cachedResponse = await caches.match(request);
+  return cachedResponse || fetch(request);
 }
 
 self.addEventListener('install', (event) => {
-    // console.log(`Service Worker version ${VERSION} installed.`);
-    event.waitUntil(cacheStaticResources());
+  // console.log(`Service Worker version ${VERSION} installed.`);
+  event.waitUntil(cacheStaticResources());
 });
 
 self.addEventListener('activate', (event) => {
-    // console.log(`Service Worker version ${VERSION} activated.`);
-    event.waitUntil(deleteOldCaches());
+  // console.log(`Service Worker version ${VERSION} activated.`);
+  event.waitUntil(deleteOldCaches());
 });
 
 self.addEventListener('fetch', (event) => {
-    event.respondWith(respondWithCacheFirst(event.request));
+  event.respondWith(respondWithCacheFirst(event.request));
 });

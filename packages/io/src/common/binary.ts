@@ -8,27 +8,27 @@
 export const IsNativeEndianLittle = new Uint16Array(new Uint8Array([0x12, 0x34]).buffer)[0] === 0x3412;
 
 export function flipByteOrder(data: Uint8Array, bytes: number) {
-    const buffer = new ArrayBuffer(data.length);
-    const ret = new Uint8Array(buffer);
-    for (let i = 0, n = data.length; i < n; i += bytes) {
-        for (let j = 0; j < bytes; j++) {
-            ret[i + bytes - j - 1] = data[i + j];
-        }
+  const buffer = new ArrayBuffer(data.length);
+  const ret = new Uint8Array(buffer);
+  for (let i = 0, n = data.length; i < n; i += bytes) {
+    for (let j = 0; j < bytes; j++) {
+      ret[i + bytes - j - 1] = data[i + j];
     }
-    return buffer;
+  }
+  return buffer;
 }
 
 const ChunkSize = 0x7000;
 export function uint8ToString(array: Uint8Array) {
-    if (array.length > ChunkSize) {
-        const c = [];
-        for (let i = 0; i < array.length; i += ChunkSize) {
-            // @ts-ignore
-            c.push(String.fromCharCode.apply(null, array.subarray(i, i + ChunkSize)));
-        }
-        return c.join('');
-    } else {
-        // @ts-ignore
-        return String.fromCharCode.apply(null, array);
+  if (array.length > ChunkSize) {
+    const c = [];
+    for (let i = 0; i < array.length; i += ChunkSize) {
+      // @ts-ignore
+      c.push(String.fromCharCode.apply(null, array.subarray(i, i + ChunkSize)));
     }
+    return c.join('');
+  } else {
+    // @ts-ignore
+    return String.fromCharCode.apply(null, array);
+  }
 }

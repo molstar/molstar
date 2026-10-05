@@ -1,4 +1,3 @@
-
 Support file formats and their extensions.
 
 ## Structure
@@ -10,7 +9,6 @@ Support file formats and their extensions.
 - PDB/PDBQT: pdb, ent, pdbqt
 - SDF: sdf, sd
 - XYZ: xyz
-
 
 ## Topology
 
@@ -29,7 +27,6 @@ Need to be loaded together with a Structure or Topology.
 - TRR: trr
 - XTC: xtc
 
-
 ## Volume
 
 - CCP4/MRC/MAP: ccp4, mrc, map
@@ -37,7 +34,6 @@ Need to be loaded together with a Structure or Topology.
 - DSN6/BRIX: dsn6, brix
 - DX and DXBIN: dx, dxbin
 - DSCIF (DensityServer CIF schema): cif, bcif
-
 
 ## Shape
 

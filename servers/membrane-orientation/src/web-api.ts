@@ -21,98 +21,102 @@ import { ConsoleLogger } from '@molstar/core/util/console-logger';
 const assetManager = new AssetManager();
 
 export function initWebApi(app: express.Express) {
-    function makePath(p: string) {
-        return MembraneServerConfig.apiPrefix + '/' + p;
-    }
+  function makePath(p: string) {
+    return MembraneServerConfig.apiPrefix + '/' + p;
+  }
 
-    app.get(makePath('predict/:id/'), async (req, res) => predictMembraneOrientation(req, res));
+  app.get(makePath('predict/:id/'), async (req, res) => predictMembraneOrientation(req, res));
 
-    app.get(makePath('openapi.json'), (_, res) => {
-        res.writeHead(200, {
-            'Content-Type': 'application/json; charset=utf-8',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'X-Requested-With'
-        });
-        res.end(JSON.stringify(getSchema()));
+  app.get(makePath('openapi.json'), (_, res) => {
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'X-Requested-With',
     });
+    res.end(JSON.stringify(getSchema()));
+  });
 
-    app.use(makePath(''), swaggerUiAssetsHandler());
-    app.get(makePath(''), swaggerUiIndexHandler({
-        openapiJsonUrl: makePath('openapi.json'),
-        apiPrefix: MembraneServerConfig.apiPrefix,
-        title: 'MembraneServer API',
-        shortcutIconLink
-    }));
+  app.use(makePath(''), swaggerUiAssetsHandler());
+  app.get(
+    makePath(''),
+    swaggerUiIndexHandler({
+      openapiJsonUrl: makePath('openapi.json'),
+      apiPrefix: MembraneServerConfig.apiPrefix,
+      title: 'MembraneServer API',
+      shortcutIconLink,
+    }),
+  );
 }
 
 async function predictMembraneOrientation(req: express.Request, res: express.Response) {
-    try {
-        const ctx = { runtime: SyncRuntimeContext, assetManager };
+  try {
+    const ctx = { runtime: SyncRuntimeContext, assetManager };
 
-        const entryId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-        const assemblyId = (Array.isArray(req.query.assemblyId) ? req.query.assemblyId[0] : req.query.assemblyId) as string ?? '1';
-        const p = parseParams(req);
-        ConsoleLogger.log('predictMembraneOrientation', `${entryId}-${assemblyId} with params: ${JSON.stringify(p)}`);
+    const entryId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const assemblyId =
+      ((Array.isArray(req.query.assemblyId) ? req.query.assemblyId[0] : req.query.assemblyId) as string) ?? '1';
+    const p = parseParams(req);
+    ConsoleLogger.log('predictMembraneOrientation', `${entryId}-${assemblyId} with params: ${JSON.stringify(p)}`);
 
-        const cif = await downloadFromPdb(entryId);
-        const models = await getModels(cif);
-        const structure = await getStructure(models.representative, assemblyId);
+    const cif = await downloadFromPdb(entryId);
+    const models = await getModels(cif);
+    const structure = await getStructure(models.representative, assemblyId);
 
-        await MembraneOrientationProvider.attach(ctx, structure, p);
-        const data = MembraneOrientationProvider.get(structure).value;
+    await MembraneOrientationProvider.attach(ctx, structure, p);
+    const data = MembraneOrientationProvider.get(structure).value;
 
-        res.status(200).json(data);
-    } catch (e) {
-        const error = 'Failed to compute membrane orientation';
-        ConsoleLogger.error(error, e);
-        res.status(500).json({ error });
-    }
+    res.status(200).json(data);
+  } catch (e) {
+    const error = 'Failed to compute membrane orientation';
+    ConsoleLogger.error(error, e);
+    res.status(500).json({ error });
+  }
 }
 
 const defaults = PD.getDefaultValues(ANVILParams);
 function parseParams(req: express.Request): ANVILProps {
-    const {
-        numberOfSpherePoints = defaults.numberOfSpherePoints,
-        stepSize = defaults.stepSize,
-        minThickness = defaults.minThickness,
-        maxThickness = defaults.maxThickness,
-        asaCutoff = defaults.asaCutoff,
-        adjust = defaults.adjust,
-        tmdetDefinition = defaults.tmdetDefinition,
-    } = req.query;
-    return {
-        numberOfSpherePoints: Number(numberOfSpherePoints),
-        stepSize: Number(stepSize),
-        minThickness: Number(minThickness),
-        maxThickness: Number(maxThickness),
-        asaCutoff: Number(asaCutoff),
-        adjust: Number(adjust),
-        tmdetDefinition: tmdetDefinition === 'true',
-    };
+  const {
+    numberOfSpherePoints = defaults.numberOfSpherePoints,
+    stepSize = defaults.stepSize,
+    minThickness = defaults.minThickness,
+    maxThickness = defaults.maxThickness,
+    asaCutoff = defaults.asaCutoff,
+    adjust = defaults.adjust,
+    tmdetDefinition = defaults.tmdetDefinition,
+  } = req.query;
+  return {
+    numberOfSpherePoints: Number(numberOfSpherePoints),
+    stepSize: Number(stepSize),
+    minThickness: Number(minThickness),
+    maxThickness: Number(maxThickness),
+    asaCutoff: Number(asaCutoff),
+    adjust: Number(adjust),
+    tmdetDefinition: tmdetDefinition === 'true',
+  };
 }
 
 async function parseCif(data: string | Uint8Array) {
-    const comp = CIF.parse(data);
-    const parsed = await comp.run();
-    if (parsed.isError) throw parsed;
-    return parsed.result;
+  const comp = CIF.parse(data);
+  const parsed = await comp.run();
+  if (parsed.isError) throw parsed;
+  return parsed.result;
 }
 
 async function downloadCif(url: string, isBinary: boolean) {
-    const data = await fetch(url);
-    return parseCif(isBinary ? new Uint8Array(await data.arrayBuffer()) : await data.text());
+  const data = await fetch(url);
+  return parseCif(isBinary ? new Uint8Array(await data.arrayBuffer()) : await data.text());
 }
 
 async function downloadFromPdb(pdb: string) {
-    const parsed = await downloadCif(MembraneServerConfig.bcifSource(pdb), true);
-    return parsed.blocks[0];
+  const parsed = await downloadCif(MembraneServerConfig.bcifSource(pdb), true);
+  return parsed.blocks[0];
 }
 
 async function getModels(frame: CifFrame) {
-    return await trajectoryFromMmCIF(frame).run();
+  return await trajectoryFromMmCIF(frame).run();
 }
 
 async function getStructure(model: Model, assemblyId: string) {
-    const modelStructure = Structure.ofModel(model);
-    return await StructureSymmetry.buildAssembly(modelStructure, assemblyId).run();
+  const modelStructure = Structure.ofModel(model);
+  return await StructureSymmetry.buildAssembly(modelStructure, assemblyId).run();
 }

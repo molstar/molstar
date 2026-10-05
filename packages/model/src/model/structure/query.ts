@@ -16,13 +16,13 @@ import * as atomset from './query/queries/atom-set.js';
 import { Predicates as pred } from './query/predicates.js';
 
 export const Queries = {
-    generators,
-    filters,
-    modifiers,
-    combinators,
-    pred,
-    internal,
-    atomset
+  generators,
+  filters,
+  modifiers,
+  combinators,
+  pred,
+  internal,
+  atomset,
 };
 
 export { StructureSelection, StructureQuery };

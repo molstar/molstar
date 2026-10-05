@@ -7,24 +7,28 @@
 import { createContext } from '../webgl/context.js';
 
 export function getGLContext(width: number, height: number) {
-    const gl = require('gl')(width, height, {
-        alpha: true,
-        depth: true,
-        stencil: true,
-        premultipliedAlpha: true,
-        preserveDrawingBuffer: true,
-        antialias: true,
-    });
-    return createContext(gl);
+  const gl = require('gl')(width, height, {
+    alpha: true,
+    depth: true,
+    stencil: true,
+    premultipliedAlpha: true,
+    preserveDrawingBuffer: true,
+    antialias: true,
+  });
+  return createContext(gl);
 }
 
-export function tryGetGLContext(width: number, height: number, requiredExtensions?: { fragDepth?: boolean, textureFloat?: boolean }) {
-    try {
-        const ctx = getGLContext(width, height);
-        if (requiredExtensions?.fragDepth && !ctx.extensions.fragDepth) return;
-        if (requiredExtensions?.textureFloat && !ctx.extensions.textureFloat) return;
-        return ctx;
-    } catch (e) {
-        return;
-    }
+export function tryGetGLContext(
+  width: number,
+  height: number,
+  requiredExtensions?: { fragDepth?: boolean; textureFloat?: boolean },
+) {
+  try {
+    const ctx = getGLContext(width, height);
+    if (requiredExtensions?.fragDepth && !ctx.extensions.fragDepth) return;
+    if (requiredExtensions?.textureFloat && !ctx.extensions.textureFloat) return;
+    return ctx;
+  } catch (e) {
+    return;
+  }
 }

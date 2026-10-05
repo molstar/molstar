@@ -18,38 +18,40 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type UnitKind, UnitKindOptions } from './visual/util/common.js';
 
 export function getUnitKindsParam(defaultValue: UnitKind[]) {
-    return PD.MultiSelect<UnitKind>(defaultValue, UnitKindOptions, { description: 'For which kinds of units/chains to show the representation visuals.' });
+  return PD.MultiSelect<UnitKind>(defaultValue, UnitKindOptions, {
+    description: 'For which kinds of units/chains to show the representation visuals.',
+  });
 }
 
 export const StructureParams = {
-    unitKinds: getUnitKindsParam(['atomic', 'spheres']),
-    includeParent: PD.Boolean(false, { isHidden: true }),
+  unitKinds: getUnitKindsParam(['atomic', 'spheres']),
+  includeParent: PD.Boolean(false, { isHidden: true }),
 };
-export type StructureParams = typeof StructureParams
+export type StructureParams = typeof StructureParams;
 
 export const StructureMeshParams = { ...Mesh.Params };
-export type StructureMeshParams = typeof StructureMeshParams
+export type StructureMeshParams = typeof StructureMeshParams;
 
 export const StructureSpheresParams = { ...Spheres.Params };
-export type StructureSpheresParams = typeof StructureSpheresParams
+export type StructureSpheresParams = typeof StructureSpheresParams;
 
 export const StructureCylindersParams = { ...Cylinders.Params };
-export type StructureCylindersParams = typeof StructureCylindersParams
+export type StructureCylindersParams = typeof StructureCylindersParams;
 
 export const StructurePointsParams = { ...Points.Params };
-export type StructurePointsParams = typeof StructurePointsParams
+export type StructurePointsParams = typeof StructurePointsParams;
 
 export const StructureLinesParams = { ...Lines.Params };
-export type StructureLinesParams = typeof StructureLinesParams
+export type StructureLinesParams = typeof StructureLinesParams;
 
 export const StructureTextParams = { ...Text.Params };
-export type StructureTextParams = typeof StructureTextParams
+export type StructureTextParams = typeof StructureTextParams;
 
 export const StructureDirectVolumeParams = { ...DirectVolume.Params };
-export type StructureDirectVolumeParams = typeof StructureDirectVolumeParams
+export type StructureDirectVolumeParams = typeof StructureDirectVolumeParams;
 
 export const StructureTextureMeshParams = { ...TextureMesh.Params };
-export type StructureTextureMeshParams = typeof StructureTextureMeshParams
+export type StructureTextureMeshParams = typeof StructureTextureMeshParams;
 
 export const StructureImageParams = { ...Image.Params };
-export type StructureImageParams = typeof StructureImageParams
+export type StructureImageParams = typeof StructureImageParams;

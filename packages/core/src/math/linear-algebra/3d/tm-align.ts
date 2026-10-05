@@ -20,969 +20,942 @@ import { clamp } from '../../interpolate.js';
 export { TMAlign };
 
 namespace TMAlign {
-    export interface Result {
-        /** Transformation matrix for structure B to superpose onto A */
-        bTransform: Mat4;
-        /** TM-score normalized by length of structure A */
-        tmScoreA: number;
-        /** TM-score normalized by length of structure B */
-        tmScoreB: number;
-        /** RMSD of aligned residues */
-        rmsd: number;
-        /** Number of aligned residue pairs */
-        alignedLength: number;
-        /** Sequence identity of aligned residues (if sequences provided) */
-        sequenceIdentity: number;
-        /** Alignment mapping: alignmentA[i] aligns with alignmentB[i] */
-        alignmentA: NumberArray;
-        alignmentB: NumberArray;
+  export interface Result {
+    /** Transformation matrix for structure B to superpose onto A */
+    bTransform: Mat4;
+    /** TM-score normalized by length of structure A */
+    tmScoreA: number;
+    /** TM-score normalized by length of structure B */
+    tmScoreB: number;
+    /** RMSD of aligned residues */
+    rmsd: number;
+    /** Number of aligned residue pairs */
+    alignedLength: number;
+    /** Sequence identity of aligned residues (if sequences provided) */
+    sequenceIdentity: number;
+    /** Alignment mapping: alignmentA[i] aligns with alignmentB[i] */
+    alignmentA: NumberArray;
+    alignmentB: NumberArray;
+  }
+
+  /** Reuse MinimizeRmsd.Positions type for consistency */
+  export type Positions = MinimizeRmsd.Positions;
+  export const Positions = MinimizeRmsd.Positions;
+
+  export interface Input {
+    /** Coordinates of structure A (reference) */
+    a: Positions;
+    /** Coordinates of structure B (mobile) */
+    b: Positions;
+    /** Optional: sequence of structure A for identity calculation */
+    seqA?: string;
+    /** Optional: sequence of structure B for identity calculation */
+    seqB?: string;
+  }
+
+  /**
+   * Compute TM-align between two structures
+   */
+  export function compute(input: Input): Result {
+    let swap = false;
+    if (input.a.x.length < input.b.x.length) {
+      swap = true;
+      input = { a: input.b, b: input.a, seqA: input.seqB, seqB: input.seqA };
     }
 
-    /** Reuse MinimizeRmsd.Positions type for consistency */
-    export type Positions = MinimizeRmsd.Positions;
-    export const Positions = MinimizeRmsd.Positions;
+    const { a, b } = input;
+    const lenA = a.x.length;
+    const lenB = b.x.length;
 
-    export interface Input {
-        /** Coordinates of structure A (reference) */
-        a: Positions;
-        /** Coordinates of structure B (mobile) */
-        b: Positions;
-        /** Optional: sequence of structure A for identity calculation */
-        seqA?: string;
-        /** Optional: sequence of structure B for identity calculation */
-        seqB?: string;
+    if (lenA === 0 || lenB === 0) {
+      return {
+        bTransform: Mat4.identity(),
+        tmScoreA: 0,
+        tmScoreB: 0,
+        rmsd: 0,
+        alignedLength: 0,
+        sequenceIdentity: 0,
+        alignmentA: [],
+        alignmentB: [],
+      };
     }
 
-    /**
-     * Compute TM-align between two structures
-     */
-    export function compute(input: Input): Result {
-        let swap = false;
-        if (input.a.x.length < input.b.x.length) {
-            swap = true;
-            input = { a: input.b, b: input.a, seqA: input.seqB, seqB: input.seqA };
+    // Convert to 2D arrays for internal computation
+    const xa = positionsToArray(a);
+    const ya = positionsToArray(b);
+
+    // Calculate d0 parameters for both normalizations
+    const d0A = calculateD0(lenA);
+    const d0B = calculateD0(lenB);
+    const lMin = Math.min(lenA, lenB);
+    const d0 = Math.min(d0A, d0B);
+    const d0Search = clamp(d0, 4.5, 8);
+    const scoreD8 = 1.5 * Math.pow(lMin, 0.3) + 3.5;
+
+    // Run the TM-align algorithm
+    const state = new TMAlignState(xa, ya, lenA, lenB, d0, d0Search, scoreD8);
+    state.align();
+
+    // Get the final alignment and transformation
+    const { alignmentA, alignmentB, transform } = state.getBestAlignment();
+
+    // Calculate final scores
+    const tmScoreA = calculateTMScore(xa, ya, alignmentA, alignmentB, transform, d0A, lenA);
+    const tmScoreB = calculateTMScore(xa, ya, alignmentA, alignmentB, transform, d0B, lenB);
+    const rmsd = calculateRMSD(xa, ya, alignmentA, alignmentB, transform);
+
+    // Calculate sequence identity if sequences provided
+    let sequenceIdentity = 0;
+    if (input.seqA && input.seqB) {
+      let identical = 0;
+      for (let i = 0; i < alignmentA.length; i++) {
+        if (input.seqA[alignmentA[i]] === input.seqB[alignmentB[i]]) {
+          identical++;
         }
-
-        const { a, b } = input;
-        const lenA = a.x.length;
-        const lenB = b.x.length;
-
-        if (lenA === 0 || lenB === 0) {
-            return {
-                bTransform: Mat4.identity(),
-                tmScoreA: 0,
-                tmScoreB: 0,
-                rmsd: 0,
-                alignedLength: 0,
-                sequenceIdentity: 0,
-                alignmentA: [],
-                alignmentB: []
-            };
-        }
-
-        // Convert to 2D arrays for internal computation
-        const xa = positionsToArray(a);
-        const ya = positionsToArray(b);
-
-        // Calculate d0 parameters for both normalizations
-        const d0A = calculateD0(lenA);
-        const d0B = calculateD0(lenB);
-        const lMin = Math.min(lenA, lenB);
-        const d0 = Math.min(d0A, d0B);
-        const d0Search = clamp(d0, 4.5, 8);
-        const scoreD8 = 1.5 * Math.pow(lMin, 0.3) + 3.5;
-
-        // Run the TM-align algorithm
-        const state = new TMAlignState(xa, ya, lenA, lenB, d0, d0Search, scoreD8);
-        state.align();
-
-        // Get the final alignment and transformation
-        const { alignmentA, alignmentB, transform } = state.getBestAlignment();
-
-        // Calculate final scores
-        const tmScoreA = calculateTMScore(xa, ya, alignmentA, alignmentB, transform, d0A, lenA);
-        const tmScoreB = calculateTMScore(xa, ya, alignmentA, alignmentB, transform, d0B, lenB);
-        const rmsd = calculateRMSD(xa, ya, alignmentA, alignmentB, transform);
-
-        // Calculate sequence identity if sequences provided
-        let sequenceIdentity = 0;
-        if (input.seqA && input.seqB) {
-            let identical = 0;
-            for (let i = 0; i < alignmentA.length; i++) {
-                if (input.seqA[alignmentA[i]] === input.seqB[alignmentB[i]]) {
-                    identical++;
-                }
-            }
-            sequenceIdentity = alignmentA.length > 0 ? identical / alignmentA.length : 0;
-        }
-
-        return swap
-            ? {
-                bTransform: Mat4.invert(transform, transform),
-                tmScoreA: tmScoreB,
-                tmScoreB: tmScoreA,
-                rmsd,
-                alignedLength: alignmentA.length,
-                sequenceIdentity,
-                alignmentA: alignmentB,
-                alignmentB: alignmentA
-            }
-            : {
-                bTransform: transform,
-                tmScoreA,
-                tmScoreB,
-                rmsd,
-                alignedLength: alignmentA.length,
-                sequenceIdentity,
-                alignmentA,
-                alignmentB
-            };
+      }
+      sequenceIdentity = alignmentA.length > 0 ? identical / alignmentA.length : 0;
     }
 
-    /**
-     * Calculate the d0 normalization parameter
-     * d0 = 1.24 * (L - 15)^(1/3) - 1.8 for L > 21
-     * d0 = 0.5 for L <= 21
-     */
-    export function calculateD0(length: number): number {
-        if (length <= 21) return 0.5;
-        const d0 = 1.24 * Math.pow(length - 15, 1 / 3) - 1.8;
-        return Math.max(d0, 0.5);
-    }
-
-    /**
-     * Calculate TM-score for a given alignment and transformation
-     */
-    function calculateTMScore(
-        xa: Vec3[],
-        ya: Vec3[],
-        alignA: NumberArray,
-        alignB: NumberArray,
-        transform: Mat4,
-        d0: number,
-        normLength: number
-    ): number {
-        if (alignA.length === 0) return 0;
-
-        const d02 = d0 * d0;
-        let score = 0;
-        const v = Vec3();
-
-        for (let i = 0; i < alignA.length; i++) {
-            const ai = alignA[i];
-            const bi = alignB[i];
-
-            Vec3.transformMat4(v, ya[bi], transform);
-            const distSq = Vec3.squaredDistance(xa[ai], v);
-            score += 1.0 / (1.0 + distSq / d02);
+    return swap
+      ? {
+          bTransform: Mat4.invert(transform, transform),
+          tmScoreA: tmScoreB,
+          tmScoreB: tmScoreA,
+          rmsd,
+          alignedLength: alignmentA.length,
+          sequenceIdentity,
+          alignmentA: alignmentB,
+          alignmentB: alignmentA,
         }
+      : {
+          bTransform: transform,
+          tmScoreA,
+          tmScoreB,
+          rmsd,
+          alignedLength: alignmentA.length,
+          sequenceIdentity,
+          alignmentA,
+          alignmentB,
+        };
+  }
 
-        return score / normLength;
+  /**
+   * Calculate the d0 normalization parameter
+   * d0 = 1.24 * (L - 15)^(1/3) - 1.8 for L > 21
+   * d0 = 0.5 for L <= 21
+   */
+  export function calculateD0(length: number): number {
+    if (length <= 21) return 0.5;
+    const d0 = 1.24 * Math.pow(length - 15, 1 / 3) - 1.8;
+    return Math.max(d0, 0.5);
+  }
+
+  /**
+   * Calculate TM-score for a given alignment and transformation
+   */
+  function calculateTMScore(
+    xa: Vec3[],
+    ya: Vec3[],
+    alignA: NumberArray,
+    alignB: NumberArray,
+    transform: Mat4,
+    d0: number,
+    normLength: number,
+  ): number {
+    if (alignA.length === 0) return 0;
+
+    const d02 = d0 * d0;
+    let score = 0;
+    const v = Vec3();
+
+    for (let i = 0; i < alignA.length; i++) {
+      const ai = alignA[i];
+      const bi = alignB[i];
+
+      Vec3.transformMat4(v, ya[bi], transform);
+      const distSq = Vec3.squaredDistance(xa[ai], v);
+      score += 1.0 / (1.0 + distSq / d02);
     }
 
-    /**
-     * Calculate RMSD for aligned pairs after transformation
-     */
-    function calculateRMSD(
-        xa: Vec3[],
-        ya: Vec3[],
-        alignA: NumberArray,
-        alignB: NumberArray,
-        transform: Mat4
-    ): number {
-        if (alignA.length === 0) return 0;
+    return score / normLength;
+  }
 
-        let sumSq = 0;
-        const v = Vec3();
+  /**
+   * Calculate RMSD for aligned pairs after transformation
+   */
+  function calculateRMSD(xa: Vec3[], ya: Vec3[], alignA: NumberArray, alignB: NumberArray, transform: Mat4): number {
+    if (alignA.length === 0) return 0;
 
-        for (let i = 0; i < alignA.length; i++) {
-            Vec3.transformMat4(v, ya[alignB[i]], transform);
-            sumSq += Vec3.squaredDistance(xa[alignA[i]], v);
-        }
+    let sumSq = 0;
+    const v = Vec3();
 
-        return Math.sqrt(sumSq / alignA.length);
+    for (let i = 0; i < alignA.length; i++) {
+      Vec3.transformMat4(v, ya[alignB[i]], transform);
+      sumSq += Vec3.squaredDistance(xa[alignA[i]], v);
     }
 
-    /** Convert Positions to 2D array for internal computation */
-    function positionsToArray(pos: Positions): Vec3[] {
-        const n = pos.x.length;
-        const result: Vec3[] = new Array(n);
-        for (let i = 0; i < n; i++) {
-            result[i] = <any>[pos.x[i], pos.y[i], pos.z[i]];
-        }
-        return result;
+    return Math.sqrt(sumSq / alignA.length);
+  }
+
+  /** Convert Positions to 2D array for internal computation */
+  function positionsToArray(pos: Positions): Vec3[] {
+    const n = pos.x.length;
+    const result: Vec3[] = new Array(n);
+    for (let i = 0; i < n; i++) {
+      result[i] = <any>[pos.x[i], pos.y[i], pos.z[i]];
     }
+    return result;
+  }
 }
 
 /**
  * Internal state class for TM-align computation
  */
 class TMAlignState {
-    private xa: Vec3[];
-    private ya: Vec3[];
-    private lenA: number;
-    private lenB: number;
-    private lMin: number;
-    private d0: number;
-    private d0Search: number;
-    private scoreD8: number;
-    private bestScore: number = -1;
-    private bestAlignmentA: NumberArray = [];
-    private bestAlignmentB: NumberArray = [];
-    private bestTransform: Mat4 = Mat4.identity();
+  private xa: Vec3[];
+  private ya: Vec3[];
+  private lenA: number;
+  private lenB: number;
+  private lMin: number;
+  private d0: number;
+  private d0Search: number;
+  private scoreD8: number;
+  private bestScore: number = -1;
+  private bestAlignmentA: NumberArray = [];
+  private bestAlignmentB: NumberArray = [];
+  private bestTransform: Mat4 = Mat4.identity();
 
-    // Working arrays for DP
-    private dpPath: Uint8Array[];
-    private dpVal: Float64Array[];
-    private j2i: number[];
+  // Working arrays for DP
+  private dpPath: Uint8Array[];
+  private dpVal: Float64Array[];
+  private j2i: number[];
 
-    // Working pos vectors
-    private posA: MinimizeRmsd.Positions;
-    private posB: MinimizeRmsd.Positions;
+  // Working pos vectors
+  private posA: MinimizeRmsd.Positions;
+  private posB: MinimizeRmsd.Positions;
 
-    // Cached objects for MinimizeRmsd operations
-    private rmsdResult: MinimizeRmsd.Result;
-    private rmsdState: RmsdTransformState;
+  // Cached objects for MinimizeRmsd operations
+  private rmsdResult: MinimizeRmsd.Result;
+  private rmsdState: RmsdTransformState;
 
-    // Transformed coordinates of structure B
-    private yt: Vec3[];
+  // Transformed coordinates of structure B
+  private yt: Vec3[];
 
-    // Working arrays for alignment indices
-    private tmpAlignA: Uint16Array;
-    private tmpAlignB: Uint16Array;
-    private incrSequence: Uint16Array;
+  // Working arrays for alignment indices
+  private tmpAlignA: Uint16Array;
+  private tmpAlignB: Uint16Array;
+  private incrSequence: Uint16Array;
 
-    constructor(
-        xa: number[][],
-        ya: number[][],
-        lenA: number,
-        lenB: number,
-        d0: number,
-        d0Search: number,
-        scoreD8: number
-    ) {
-        this.xa = <any> xa;
-        this.ya = <any> ya;
-        this.lenA = lenA;
-        this.lenB = lenB;
-        this.lMin = Math.min(lenA, lenB); // internal TM-score normalization length
-        this.d0 = d0;
-        this.d0Search = d0Search;
-        this.scoreD8 = scoreD8;
+  constructor(
+    xa: number[][],
+    ya: number[][],
+    lenA: number,
+    lenB: number,
+    d0: number,
+    d0Search: number,
+    scoreD8: number,
+  ) {
+    this.xa = <any>xa;
+    this.ya = <any>ya;
+    this.lenA = lenA;
+    this.lenB = lenB;
+    this.lMin = Math.min(lenA, lenB); // internal TM-score normalization length
+    this.d0 = d0;
+    this.d0Search = d0Search;
+    this.scoreD8 = scoreD8;
 
-        // Initialize DP arrays
-        const lenRowsA = lenA + 1;
-        const lenColsB = lenB + 1;
-        let startB = 0;
-        const pathBuffer = new Uint8Array(lenRowsA * lenColsB);
-        const valBuffer = new Float64Array(lenRowsA * lenColsB);
-        this.dpPath = new Array(lenRowsA);
-        this.dpVal = new Array(lenRowsA);
-        for (let i = 0; i <= lenA; i++) {
-            startB = i * lenColsB;
-            this.dpPath[i] = pathBuffer.subarray(startB, startB + lenColsB);
-            this.dpVal[i] = valBuffer.subarray(startB, startB + lenColsB);
-        }
-        this.j2i = new Array(lenB).fill(-1);
+    // Initialize DP arrays
+    const lenRowsA = lenA + 1;
+    const lenColsB = lenB + 1;
+    let startB = 0;
+    const pathBuffer = new Uint8Array(lenRowsA * lenColsB);
+    const valBuffer = new Float64Array(lenRowsA * lenColsB);
+    this.dpPath = new Array(lenRowsA);
+    this.dpVal = new Array(lenRowsA);
+    for (let i = 0; i <= lenA; i++) {
+      startB = i * lenColsB;
+      this.dpPath[i] = pathBuffer.subarray(startB, startB + lenColsB);
+      this.dpVal[i] = valBuffer.subarray(startB, startB + lenColsB);
+    }
+    this.j2i = new Array(lenB).fill(-1);
 
-        this.posA = MinimizeRmsd.Positions.empty(lenA);
-        this.posB = MinimizeRmsd.Positions.empty(lenB);
+    this.posA = MinimizeRmsd.Positions.empty(lenA);
+    this.posB = MinimizeRmsd.Positions.empty(lenB);
 
-        // Initialize cached objects for MinimizeRmsd operations
-        this.rmsdResult = {
-            bTransform: Mat4.zero(),
-            rmsd: 0,
-            nAlignedElements: 0
-        };
+    // Initialize cached objects for MinimizeRmsd operations
+    this.rmsdResult = {
+      bTransform: Mat4.zero(),
+      rmsd: 0,
+      nAlignedElements: 0,
+    };
 
-        // Initialize with dummy positions - will be reset on first use
-        this.rmsdState = new RmsdTransformState(
-            { a: this.posA, b: this.posB, length: 0 },
-            this.rmsdResult
-        );
+    // Initialize with dummy positions - will be reset on first use
+    this.rmsdState = new RmsdTransformState({ a: this.posA, b: this.posB, length: 0 }, this.rmsdResult);
 
-        this.yt = Array.from({ length: lenB }, () => [0.1, 0.0, 0.0] as unknown as Vec3);
+    this.yt = Array.from({ length: lenB }, () => [0.1, 0.0, 0.0] as unknown as Vec3);
 
-        this.tmpAlignA = new Uint16Array(lenA);
-        this.tmpAlignB = new Uint16Array(lenB);
-        this.incrSequence = Uint16Array.from({ length: Math.max(lenA, lenB) }, (_, i) => i);
+    this.tmpAlignA = new Uint16Array(lenA);
+    this.tmpAlignB = new Uint16Array(lenB);
+    this.incrSequence = Uint16Array.from({ length: Math.max(lenA, lenB) }, (_, i) => i);
+  }
+
+  /**
+   * Main alignment procedure
+   */
+  align(): void {
+    const { lMin } = this;
+
+    // Strategy 1: Initial global DP alignment
+    this.getInitialAlignment();
+    this.refineAlignment();
+
+    // Strategy 2: Gapless threading with various offsets
+    this.tryGaplessThreading();
+
+    // Strategy 3: Fragment-based initialization
+    // Heuristic: fragment based method is time consuming (x3) and only improves results
+    // for low structure similarity.
+    // See Pandit, Skolnick 2008 Fr-TM-align paper
+    // @link: https://link.springer.com/article/10.1186/1471-2105-9-531
+    if (this.bestScore < 0.5) {
+      // Try small fragments (5-12) with medium search (thorough was too slow)
+      for (let fragLen = 5; fragLen <= Math.min(12, lMin); fragLen++) {
+        this.tryFragmentInitializationMedium(fragLen);
+      }
+
+      // Try medium fragments (16-30) with medium search
+      for (let fragLen = 16; fragLen <= Math.min(30, lMin); fragLen += 2) {
+        this.tryFragmentInitializationMedium(fragLen);
+      }
+
+      // Try larger fragments with strategic sizes
+      const fragLengths = [
+        Math.floor(lMin * 0.15),
+        Math.floor(lMin * 0.25),
+        Math.floor(lMin * 0.4),
+        Math.floor(lMin * 0.6),
+      ].filter((f) => f > 30);
+
+      for (const fragLen of fragLengths) {
+        this.tryFragmentInitializationFast(fragLen);
+      }
     }
 
-    /**
-     * Main alignment procedure
-     */
-    align(): void {
-        const { lMin } = this;
+    // Final refinement passes with different cutoffs
+    this.refineAlignment();
 
-        // Strategy 1: Initial global DP alignment
-        this.getInitialAlignment();
-        this.refineAlignment();
-
-        // Strategy 2: Gapless threading with various offsets
-        this.tryGaplessThreading();
-
-        // Strategy 3: Fragment-based initialization
-        // Heuristic: fragment based method is time consuming (x3) and only improves results
-        // for low structure similarity.
-        // See Pandit, Skolnick 2008 Fr-TM-align paper
-        // @link: https://link.springer.com/article/10.1186/1471-2105-9-531
-        if (this.bestScore < 0.5) {
-            // Try small fragments (5-12) with medium search (thorough was too slow)
-            for (let fragLen = 5; fragLen <= Math.min(12, lMin); fragLen++) {
-                this.tryFragmentInitializationMedium(fragLen);
-            }
-
-            // Try medium fragments (16-30) with medium search
-            for (let fragLen = 16; fragLen <= Math.min(30, lMin); fragLen += 2) {
-                this.tryFragmentInitializationMedium(fragLen);
-            }
-
-            // Try larger fragments with strategic sizes
-            const fragLengths = [
-                Math.floor(lMin * 0.15),
-                Math.floor(lMin * 0.25),
-                Math.floor(lMin * 0.4),
-                Math.floor(lMin * 0.6)
-            ].filter(f => f > 30);
-
-            for (const fragLen of fragLengths) {
-                this.tryFragmentInitializationFast(fragLen);
-            }
-        }
-
-        // Final refinement passes with different cutoffs
-        this.refineAlignment();
-
-        // TM-align uses multiple refinement passes with different d0 values
-        for (let d = this.d0 + 3; d >= Math.max(1, this.d0 - 3); d--) {
-            this.refineWithCutoff(d);
-        }
-
-        // Final pass with tighter cutoff
-        this.refineWithCutoff(this.d0 * 0.8);
-
-        // TM-align performs a final optimization to maximize TM-score
-        // by iteratively removing poorly aligned pairs
-        this.optimizeFinalAlignment();
+    // TM-align uses multiple refinement passes with different d0 values
+    for (let d = this.d0 + 3; d >= Math.max(1, this.d0 - 3); d--) {
+      this.refineWithCutoff(d);
     }
 
-    /**
-     * Optimize final alignment by removing poorly aligned pairs
-     * to maximize TM-score
-     */
-    private optimizeFinalAlignment(): void {
-        const { xa, ya, d0, lMin, tmpAlignA: filteredA, tmpAlignB: filteredB } = this;
+    // Final pass with tighter cutoff
+    this.refineWithCutoff(this.d0 * 0.8);
 
-        // Try different distance cutoffs to find optimal alignment
-        const cutoffs = [8.0, 7.0, 6.0, 5.5, 5.0, 4.5, 4.0];
-        const v = Vec3();
-        let n = 0;
+    // TM-align performs a final optimization to maximize TM-score
+    // by iteratively removing poorly aligned pairs
+    this.optimizeFinalAlignment();
+  }
 
-        for (const cutoff of cutoffs) {
-            const cutoffSq = cutoff * cutoff;
+  /**
+   * Optimize final alignment by removing poorly aligned pairs
+   * to maximize TM-score
+   */
+  private optimizeFinalAlignment(): void {
+    const { xa, ya, d0, lMin, tmpAlignA: filteredA, tmpAlignB: filteredB } = this;
 
-            // Filter pairs by distance
-            n = 0;
+    // Try different distance cutoffs to find optimal alignment
+    const cutoffs = [8.0, 7.0, 6.0, 5.5, 5.0, 4.5, 4.0];
+    const v = Vec3();
+    let n = 0;
 
-            for (let i = 0; i < this.bestAlignmentA.length; i++) {
-                const ai = this.bestAlignmentA[i];
-                const bi = this.bestAlignmentB[i];
+    for (const cutoff of cutoffs) {
+      const cutoffSq = cutoff * cutoff;
 
-                Vec3.transformMat4(v, ya[bi], this.bestTransform);
-                const distSq = Vec3.squaredDistance(v, xa[ai]);
+      // Filter pairs by distance
+      n = 0;
 
-                if (distSq <= cutoffSq) {
-                    filteredA[n] = ai;
-                    filteredB[n] = bi;
-                    n++;
-                }
-            }
+      for (let i = 0; i < this.bestAlignmentA.length; i++) {
+        const ai = this.bestAlignmentA[i];
+        const bi = this.bestAlignmentB[i];
 
-            if (n < 3) break;
+        Vec3.transformMat4(v, ya[bi], this.bestTransform);
+        const distSq = Vec3.squaredDistance(v, xa[ai]);
 
-            // Compute Kabsch on filtered pairs
-            const transform = this.kabsch(filteredA.subarray(0, n), filteredB.subarray(0, n));
-
-            // Score using FULL alignment (not filtered) with new transform
-            const score = this.scoreTM(
-                this.bestAlignmentA,
-                this.bestAlignmentB,
-                transform,
-                d0,
-                lMin
-            );
-
-            if (score > this.bestScore) {
-                this.bestScore = score;
-                Mat4.copy(this.bestTransform, transform);
-            }
+        if (distSq <= cutoffSq) {
+          filteredA[n] = ai;
+          filteredB[n] = bi;
+          n++;
         }
+      }
 
-        // TODO: this seems unnecessary as bestScore corresponds to the bestTransform, unless no refinements happened?
-        // Recompute final score
-        this.bestScore = this.scoreTM(
-            this.bestAlignmentA,
-            this.bestAlignmentB,
-            this.bestTransform,
-            d0,
-            lMin
-        );
+      if (n < 3) break;
+
+      // Compute Kabsch on filtered pairs
+      const transform = this.kabsch(filteredA.subarray(0, n), filteredB.subarray(0, n));
+
+      // Score using FULL alignment (not filtered) with new transform
+      const score = this.scoreTM(this.bestAlignmentA, this.bestAlignmentB, transform, d0, lMin);
+
+      if (score > this.bestScore) {
+        this.bestScore = score;
+        Mat4.copy(this.bestTransform, transform);
+      }
     }
 
-    /**
-     * Calculate TM-score without distance cutoff (for final result)
-     */
-    private scoreTM(
-        alignA: NumberArray,
-        alignB: NumberArray,
-        transform: Mat4,
-        d0: number,
-        normLen: number
-    ): number {
-        const { xa, ya } = this;
-        const d02 = d0 * d0;
-        let score = 0;
-        const v = Vec3();
+    // TODO: this seems unnecessary as bestScore corresponds to the bestTransform, unless no refinements happened?
+    // Recompute final score
+    this.bestScore = this.scoreTM(this.bestAlignmentA, this.bestAlignmentB, this.bestTransform, d0, lMin);
+  }
 
-        for (let i = 0; i < alignA.length; i++) {
-            const ai = alignA[i];
-            const bi = alignB[i];
+  /**
+   * Calculate TM-score without distance cutoff (for final result)
+   */
+  private scoreTM(alignA: NumberArray, alignB: NumberArray, transform: Mat4, d0: number, normLen: number): number {
+    const { xa, ya } = this;
+    const d02 = d0 * d0;
+    let score = 0;
+    const v = Vec3();
 
-            Vec3.transformMat4(v, ya[bi], transform);
+    for (let i = 0; i < alignA.length; i++) {
+      const ai = alignA[i];
+      const bi = alignB[i];
 
-            const distSq = Vec3.squaredDistance(v, xa[ai]);
+      Vec3.transformMat4(v, ya[bi], transform);
 
-            score += 1.0 / (1.0 + distSq / d02);
-        }
+      const distSq = Vec3.squaredDistance(v, xa[ai]);
 
-        return score / normLen;
+      score += 1.0 / (1.0 + distSq / d02);
     }
 
-    /**
-     * Refine with a specific distance cutoff
-     */
-    private refineWithCutoff(cutoff: number): void {
-        if (cutoff < 1) return;
-        const { xa, ya, yt, lMin, d0, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
-        const cutoffSq = cutoff * cutoff;
-        const v = Vec3();
-        let n = 0;
+    return score / normLen;
+  }
 
-        for (let iter = 0; iter < 10; iter++) {
-            if (this.bestAlignmentA.length < 3) break;
+  /**
+   * Refine with a specific distance cutoff
+   */
+  private refineWithCutoff(cutoff: number): void {
+    if (cutoff < 1) return;
+    const { xa, ya, yt, lMin, d0, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
+    const cutoffSq = cutoff * cutoff;
+    const v = Vec3();
+    let n = 0;
 
-            // Use trimmed Kabsch with this cutoff
-            n = 0;
+    for (let iter = 0; iter < 10; iter++) {
+      if (this.bestAlignmentA.length < 3) break;
 
-            for (let i = 0; i < this.bestAlignmentA.length; i++) {
-                const ai = this.bestAlignmentA[i];
-                const bi = this.bestAlignmentB[i];
+      // Use trimmed Kabsch with this cutoff
+      n = 0;
 
-                Vec3.transformMat4(v, ya[bi], this.bestTransform);
+      for (let i = 0; i < this.bestAlignmentA.length; i++) {
+        const ai = this.bestAlignmentA[i];
+        const bi = this.bestAlignmentB[i];
 
-                const distSq = Vec3.squaredDistance(v, xa[ai]);
-                if (distSq <= cutoffSq) {
-                    tmpAlignA[n] = ai;
-                    tmpAlignB[n] = bi;
-                    n++;
-                }
-            }
+        Vec3.transformMat4(v, ya[bi], this.bestTransform);
 
-            if (n < 3) break;
-
-            const trimmedA = tmpAlignA.subarray(0, n);
-            const trimmedB = tmpAlignB.subarray(0, n);
-            const transform = this.kabsch(trimmedA, trimmedB);
-
-            // Transform ya
-            for (let i = 0; i < this.lenB; i++) {
-                Vec3.transformMat4(yt[i], ya[i], transform);
-            }
-
-            // Run DP with transformed coordinates
-            const d = d0Search + 1;
-            this.nwdpStructure(xa, yt, d * d, -0.6);
-
-            // Extract new alignment
-            n = 0;
-            for (let j = 0; j < this.lenB; j++) {
-                if (this.j2i[j] >= 0) {
-                    tmpAlignA[n] = this.j2i[j];
-                    tmpAlignB[n] = j;
-                    n++;
-                }
-            }
-
-            if (n < 3) break;
-
-            const newAlignA = tmpAlignA.subarray(0, n);
-            const newAlignB = tmpAlignB.subarray(0, n);
-
-            // Compute final Kabsch and score
-            const newTransform = this.trimmedKabschWithTransformedCoordinates(newAlignA, newAlignB, yt, scoreD8);
-            const newScore = this.scoreTMWithCutoff(newAlignA, newAlignB, newTransform, d0, lMin, scoreD8);
-
-            if (newScore > this.bestScore) {
-                this.bestScore = newScore;
-                this.bestAlignmentA = newAlignA.slice();
-                this.bestAlignmentB = newAlignB.slice();
-                Mat4.copy(this.bestTransform, newTransform);
-            } else {
-                break;
-            }
+        const distSq = Vec3.squaredDistance(v, xa[ai]);
+        if (distSq <= cutoffSq) {
+          tmpAlignA[n] = ai;
+          tmpAlignB[n] = bi;
+          n++;
         }
+      }
+
+      if (n < 3) break;
+
+      const trimmedA = tmpAlignA.subarray(0, n);
+      const trimmedB = tmpAlignB.subarray(0, n);
+      const transform = this.kabsch(trimmedA, trimmedB);
+
+      // Transform ya
+      for (let i = 0; i < this.lenB; i++) {
+        Vec3.transformMat4(yt[i], ya[i], transform);
+      }
+
+      // Run DP with transformed coordinates
+      const d = d0Search + 1;
+      this.nwdpStructure(xa, yt, d * d, -0.6);
+
+      // Extract new alignment
+      n = 0;
+      for (let j = 0; j < this.lenB; j++) {
+        if (this.j2i[j] >= 0) {
+          tmpAlignA[n] = this.j2i[j];
+          tmpAlignB[n] = j;
+          n++;
+        }
+      }
+
+      if (n < 3) break;
+
+      const newAlignA = tmpAlignA.subarray(0, n);
+      const newAlignB = tmpAlignB.subarray(0, n);
+
+      // Compute final Kabsch and score
+      const newTransform = this.trimmedKabschWithTransformedCoordinates(newAlignA, newAlignB, yt, scoreD8);
+      const newScore = this.scoreTMWithCutoff(newAlignA, newAlignB, newTransform, d0, lMin, scoreD8);
+
+      if (newScore > this.bestScore) {
+        this.bestScore = newScore;
+        this.bestAlignmentA = newAlignA.slice();
+        this.bestAlignmentB = newAlignB.slice();
+        Mat4.copy(this.bestTransform, newTransform);
+      } else {
+        break;
+      }
+    }
+  }
+
+  /**
+   * Try gapless threading - align residue i of A with residue i+offset of B
+   * This is O(n) per offset and provides good initial seeds
+   */
+  private tryGaplessThreading(): void {
+    const { lenA, lenB, lMin, d0, scoreD8, incrSequence } = this;
+
+    // Try various offsets
+    for (let offset = -lenB + 4; offset <= lenA - 4; offset++) {
+      const iStart = Math.max(0, offset);
+      const iEnd = Math.min(lenA, offset + lenB);
+      const n = iEnd - iStart;
+
+      if (n < 4) continue;
+
+      const jStart = iStart - offset;
+      const alignA = incrSequence.subarray(iStart, iEnd);
+      const alignB = incrSequence.subarray(jStart, jStart + n);
+
+      // Compute Kabsch
+      const transform = this.kabsch(alignA, alignB);
+
+      // Score
+      const score = this.scoreTMWithCutoff(alignA, alignB, transform, d0, lMin, scoreD8);
+
+      if (score > this.bestScore * 0.8) {
+        // Promising seed - refine it
+        this.extendFromSeed(transform);
+      }
+    }
+  }
+
+  /**
+   * Medium-thoroughness fragment-based initialization
+   */
+  private tryFragmentInitializationMedium(fragLen: number): void {
+    const { lenA, lenB, lMin, d0, scoreD8, incrSequence } = this;
+    const maxStartA = lenA - fragLen;
+    const maxStartB = lenB - fragLen;
+    // Use fragLen/2 as step for more thorough search
+    const step = Math.max(2, Math.floor(fragLen / 2));
+
+    for (let startA = 0; startA <= maxStartA; startA += step) {
+      const fragA = incrSequence.subarray(startA, startA + fragLen);
+
+      for (let startB = 0; startB <= maxStartB; startB += step) {
+        const fragB = incrSequence.subarray(startB, startB + fragLen);
+
+        // Superpose fragments
+        const transform = this.kabsch(fragA, fragB);
+
+        // Quick score check
+        const quickScore = this.scoreTMWithCutoff(fragA, fragB, transform, d0, lMin, scoreD8);
+
+        if (quickScore > this.bestScore * 0.3) {
+          this.extendFromSeed(transform);
+        }
+      }
+    }
+  }
+
+  /**
+   * Fast fragment-based initialization with large steps
+   */
+  private tryFragmentInitializationFast(fragLen: number): void {
+    const { lenA, lenB, d0, lMin, scoreD8, incrSequence } = this;
+    const maxStartA = lenA - fragLen;
+    const maxStartB = lenB - fragLen;
+    // Use fragment length as step - only try diagonal and near-diagonal positions
+    const step = Math.max(fragLen, 10);
+
+    for (let startA = 0; startA <= maxStartA; startA += step) {
+      const fragA = incrSequence.subarray(startA, startA + fragLen);
+
+      for (let startB = 0; startB <= maxStartB; startB += step) {
+        const fragB = incrSequence.subarray(startB, startB + fragLen);
+
+        // Superpose fragments
+        const transform = this.kabsch(fragA, fragB);
+
+        // Quick score check before full refinement
+        const quickScore = this.scoreTMWithCutoff(fragA, fragB, transform, d0, lMin, scoreD8);
+
+        if (quickScore > this.bestScore * 0.5) {
+          // Promising seed - refine it
+          this.extendFromSeed(transform);
+        }
+      }
+    }
+  }
+
+  /**
+   * Get initial alignment using length-independent approach
+   */
+  private getInitialAlignment(): void {
+    const { xa, ya, lenB, d0, lMin, d0Search, scoreD8, j2i } = this;
+    const d02 = d0Search * d0Search;
+
+    this.nwdpStructure(xa, ya, d02, -0.6);
+
+    // Extract alignment from j2i
+    this.bestAlignmentA = [];
+    this.bestAlignmentB = [];
+    for (let jj = 0; jj < lenB; jj++) {
+      if (j2i[jj] >= 0) {
+        this.bestAlignmentA.push(j2i[jj]);
+        this.bestAlignmentB.push(jj);
+      }
     }
 
-    /**
-     * Try gapless threading - align residue i of A with residue i+offset of B
-     * This is O(n) per offset and provides good initial seeds
-     */
-    private tryGaplessThreading(): void {
-        const { lenA, lenB, lMin, d0, scoreD8, incrSequence } = this;
+    if (this.bestAlignmentA.length >= 3) {
+      Mat4.copy(this.bestTransform, this.kabsch(this.bestAlignmentA, this.bestAlignmentB));
+      this.bestScore = this.scoreTMWithCutoff(
+        this.bestAlignmentA,
+        this.bestAlignmentB,
+        this.bestTransform,
+        d0,
+        lMin,
+        scoreD8,
+      );
+    }
+  }
 
-        // Try various offsets
-        for (let offset = -lenB + 4; offset <= lenA - 4; offset++) {
-            const iStart = Math.max(0, offset);
-            const iEnd = Math.min(lenA, offset + lenB);
-            const n = iEnd - iStart;
+  /**
+   * Extend alignment from a seed transformation with iterative refinement
+   */
+  private extendFromSeed(initialTransform: Mat4): void {
+    const { xa, ya, yt, lenB, lMin, d0, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
 
-            if (n < 4) continue;
+    let currentTransform = initialTransform;
+    let currentAlignA: NumberArray = [];
+    let currentAlignB: NumberArray = [];
+    let prevScore = -1;
+    let n = 0;
 
-            const jStart = iStart - offset;
-            const alignA = incrSequence.subarray(iStart, iEnd);
-            const alignB = incrSequence.subarray(jStart, jStart + n);
+    // Iteratively refine this seed
+    for (let iter = 0; iter < 20; iter++) {
+      // Transform ya by current transform
+      for (let i = 0; i < lenB; i++) {
+        Vec3.transformMat4(yt[i], ya[i], currentTransform);
+      }
 
-            // Compute Kabsch
-            const transform = this.kabsch(alignA, alignB);
+      // Run structure-based DP
+      const d = d0Search + 1;
+      this.nwdpStructure(xa, yt, d * d, -0.6);
 
-            // Score
-            const score = this.scoreTMWithCutoff(alignA, alignB, transform, d0, lMin, scoreD8);
-
-            if (score > this.bestScore * 0.8) {
-                // Promising seed - refine it
-                this.extendFromSeed(transform);
-            }
+      // Extract alignment from j2i
+      n = 0;
+      for (let j = 0; j < lenB; j++) {
+        if (this.j2i[j] >= 0) {
+          tmpAlignA[n] = this.j2i[j];
+          tmpAlignB[n] = j;
+          n++;
         }
+      }
+
+      if (n < 3) break;
+      const alignA = tmpAlignA.subarray(0, n);
+      const alignB = tmpAlignB.subarray(0, n);
+
+      // Check convergence
+      if (this.alignmentsEqual(alignA, alignB, currentAlignA, currentAlignB)) {
+        break;
+      }
+
+      // Use trimmed Kabsch - only use well-aligned pairs for superposition
+      const transform = this.trimmedKabschWithTransformedCoordinates(alignA, alignB, yt, scoreD8);
+
+      // Score this alignment
+      const score = this.scoreTMWithCutoff(alignA, alignB, transform, d0, lMin, scoreD8);
+
+      // Check if score improved
+      if (score <= prevScore) break;
+      prevScore = score;
+
+      // Update current state
+      currentAlignA = alignA.slice();
+      currentAlignB = alignB.slice();
+      currentTransform = transform;
+
+      // Update global best if this is better
+      if (score > this.bestScore) {
+        this.bestScore = score;
+        this.bestAlignmentA = currentAlignA;
+        this.bestAlignmentB = currentAlignB;
+        Mat4.copy(this.bestTransform, transform);
+      }
+    }
+  }
+
+  /**
+   * Kabsch using only well-aligned pairs (distance < cutoff)
+   */
+  private trimmedKabsch(alignA: NumberArray, alignB: NumberArray, currentTransform: Mat4, cutoff: number): Mat4 {
+    const { xa, ya } = this;
+    const cutoffSq = cutoff * cutoff;
+
+    // Find well-aligned pairs
+    const trimmedAlignA: number[] = [];
+    const trimmedAlignB: number[] = [];
+    const v = Vec3();
+
+    for (let i = 0; i < alignA.length; i++) {
+      const ai = alignA[i];
+      const bi = alignB[i];
+
+      Vec3.transformMat4(v, ya[bi], currentTransform);
+      const distSq = Vec3.squaredDistance(v, xa[ai]);
+
+      if (distSq <= cutoffSq) {
+        trimmedAlignA.push(ai);
+        trimmedAlignB.push(bi);
+      }
     }
 
-    /**
-     * Medium-thoroughness fragment-based initialization
-     */
-    private tryFragmentInitializationMedium(fragLen: number): void {
-        const { lenA, lenB, lMin, d0, scoreD8, incrSequence } = this;
-        const maxStartA = lenA - fragLen;
-        const maxStartB = lenB - fragLen;
-        // Use fragLen/2 as step for more thorough search
-        const step = Math.max(2, Math.floor(fragLen / 2));
-
-        for (let startA = 0; startA <= maxStartA; startA += step) {
-            const fragA = incrSequence.subarray(startA, startA + fragLen);
-
-            for (let startB = 0; startB <= maxStartB; startB += step) {
-                const fragB = incrSequence.subarray(startB, startB + fragLen);
-
-                // Superpose fragments
-                const transform = this.kabsch(fragA, fragB);
-
-                // Quick score check
-                const quickScore = this.scoreTMWithCutoff(fragA, fragB, transform, d0, lMin, scoreD8);
-
-                if (quickScore > this.bestScore * 0.3) {
-                    this.extendFromSeed(transform);
-                }
-            }
-        }
+    // Need at least 3 pairs for Kabsch
+    if (trimmedAlignA.length < 3) {
+      // Fall back to using all pairs
+      return this.kabsch(alignA, alignB);
     }
 
-    /**
-     * Fast fragment-based initialization with large steps
-     */
-    private tryFragmentInitializationFast(fragLen: number): void {
-        const { lenA, lenB, d0, lMin, scoreD8, incrSequence } = this;
-        const maxStartA = lenA - fragLen;
-        const maxStartB = lenB - fragLen;
-        // Use fragment length as step - only try diagonal and near-diagonal positions
-        const step = Math.max(fragLen, 10);
+    return this.kabsch(trimmedAlignA, trimmedAlignB);
+  }
 
-        for (let startA = 0; startA <= maxStartA; startA += step) {
-            const fragA = incrSequence.subarray(startA, startA + fragLen);
+  private trimmedKabschWithTransformedCoordinates(
+    alignA: UintArray,
+    alignB: UintArray,
+    yt: Vec3[],
+    cutoff: number,
+  ): Mat4 {
+    const { xa } = this;
+    const cutoffSq = cutoff * cutoff;
 
-            for (let startB = 0; startB <= maxStartB; startB += step) {
-                const fragB = incrSequence.subarray(startB, startB + fragLen);
+    // Find well-aligned pairs
+    const trimmedAlignA: number[] = [];
+    const trimmedAlignB: number[] = [];
 
-                // Superpose fragments
-                const transform = this.kabsch(fragA, fragB);
+    for (let i = 0; i < alignA.length; i++) {
+      const ai = alignA[i];
+      const bi = alignB[i];
 
-                // Quick score check before full refinement
-                const quickScore = this.scoreTMWithCutoff(fragA, fragB, transform, d0, lMin, scoreD8);
+      const distSq = Vec3.squaredDistance(yt[bi], xa[ai]);
 
-                if (quickScore > this.bestScore * 0.5) {
-                    // Promising seed - refine it
-                    this.extendFromSeed(transform);
-                }
-            }
-        }
+      if (distSq <= cutoffSq) {
+        trimmedAlignA.push(ai);
+        trimmedAlignB.push(bi);
+      }
     }
 
-    /**
-     * Get initial alignment using length-independent approach
-     */
-    private getInitialAlignment(): void {
-        const { xa, ya, lenB, d0, lMin, d0Search, scoreD8, j2i } = this;
-        const d02 = d0Search * d0Search;
-
-        this.nwdpStructure(xa, ya, d02, -0.6);
-
-        // Extract alignment from j2i
-        this.bestAlignmentA = [];
-        this.bestAlignmentB = [];
-        for (let jj = 0; jj < lenB; jj++) {
-            if (j2i[jj] >= 0) {
-                this.bestAlignmentA.push(j2i[jj]);
-                this.bestAlignmentB.push(jj);
-            }
-        }
-
-        if (this.bestAlignmentA.length >= 3) {
-            Mat4.copy(this.bestTransform, this.kabsch(this.bestAlignmentA, this.bestAlignmentB));
-            this.bestScore = this.scoreTMWithCutoff(
-                this.bestAlignmentA,
-                this.bestAlignmentB,
-                this.bestTransform,
-                d0,
-                lMin,
-                scoreD8
-            );
-        }
+    // Need at least 3 pairs for Kabsch
+    if (trimmedAlignA.length < 3) {
+      // Fall back to using all pairs
+      return this.kabsch(alignA, alignB);
     }
 
-    /**
-     * Extend alignment from a seed transformation with iterative refinement
-     */
-    private extendFromSeed(initialTransform: Mat4): void {
-        const { xa, ya, yt, lenB, lMin, d0, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
+    return this.kabsch(trimmedAlignA, trimmedAlignB);
+  }
 
-        let currentTransform = initialTransform;
-        let currentAlignA: NumberArray = [];
-        let currentAlignB: NumberArray = [];
-        let prevScore = -1;
-        let n = 0;
+  /**
+   * Refine the current best alignment iteratively
+   */
+  private refineAlignment(): void {
+    const { xa, ya, yt, lMin, lenB, d0, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
+    const maxIterations = 20;
+    let n = 0;
 
-        // Iteratively refine this seed
-        for (let iter = 0; iter < 20; iter++) {
-            // Transform ya by current transform
-            for (let i = 0; i < lenB; i++) {
-                Vec3.transformMat4(yt[i], ya[i], currentTransform);
-            }
+    for (let iter = 0; iter < maxIterations; iter++) {
+      if (this.bestAlignmentA.length < 3) break;
 
-            // Run structure-based DP
-            const d = d0Search + 1;
-            this.nwdpStructure(xa, yt, d * d, -0.6);
+      // Use trimmed Kabsch for refinement
+      const transform = this.trimmedKabsch(this.bestAlignmentA, this.bestAlignmentB, this.bestTransform, scoreD8);
 
-            // Extract alignment from j2i
-            n = 0;
-            for (let j = 0; j < lenB; j++) {
-                if (this.j2i[j] >= 0) {
-                    tmpAlignA[n] = this.j2i[j];
-                    tmpAlignB[n] = j;
-                    n++;
-                }
-            }
+      // Transform ya
+      for (let i = 0; i < lenB; i++) {
+        Vec3.transformMat4(yt[i], ya[i], transform);
+      }
 
-            if (n < 3) break;
-            const alignA = tmpAlignA.subarray(0, n);
-            const alignB = tmpAlignB.subarray(0, n);
+      // Run DP with transformed coordinates
+      const d = d0Search + 1;
+      this.nwdpStructure(xa, yt, d * d, -0.6);
 
-            // Check convergence
-            if (this.alignmentsEqual(alignA, alignB, currentAlignA, currentAlignB)) {
-                break;
-            }
-
-            // Use trimmed Kabsch - only use well-aligned pairs for superposition
-            const transform = this.trimmedKabschWithTransformedCoordinates(alignA, alignB, yt, scoreD8);
-
-            // Score this alignment
-            const score = this.scoreTMWithCutoff(alignA, alignB, transform, d0, lMin, scoreD8);
-
-            // Check if score improved
-            if (score <= prevScore) break;
-            prevScore = score;
-
-            // Update current state
-            currentAlignA = alignA.slice();
-            currentAlignB = alignB.slice();
-            currentTransform = transform;
-
-            // Update global best if this is better
-            if (score > this.bestScore) {
-                this.bestScore = score;
-                this.bestAlignmentA = currentAlignA;
-                this.bestAlignmentB = currentAlignB;
-                Mat4.copy(this.bestTransform, transform);
-            }
+      // Extract new alignment
+      n = 0;
+      for (let j = 0; j < this.lenB; j++) {
+        if (this.j2i[j] >= 0) {
+          tmpAlignA[n] = this.j2i[j];
+          tmpAlignB[n] = j;
+          n++;
         }
+      }
+
+      if (n < 3) break;
+
+      const newAlignA = tmpAlignA.subarray(0, n);
+      const newAlignB = tmpAlignB.subarray(0, n);
+      // Check convergence
+      if (this.alignmentsEqual(newAlignA, newAlignB, this.bestAlignmentA, this.bestAlignmentB)) {
+        break;
+      }
+
+      // Compute new Kabsch and score
+      const newTransform = this.kabsch(newAlignA, newAlignB);
+      const newScore = this.scoreTMWithCutoff(newAlignA, newAlignB, newTransform, d0, lMin, scoreD8);
+
+      if (newScore > this.bestScore) {
+        this.bestScore = newScore;
+        this.bestAlignmentA = newAlignA.slice();
+        this.bestAlignmentB = newAlignB.slice();
+        Mat4.copy(this.bestTransform, newTransform);
+      } else {
+        break;
+      }
+    }
+  }
+
+  /**
+   * Check if two alignments are equal
+   */
+  private alignmentsEqual(a1: NumberArray, b1: NumberArray, a2: NumberArray, b2: NumberArray): boolean {
+    if (a1.length !== a2.length) return false;
+    for (let i = 0; i < a1.length; i++) {
+      if (a1[i] !== a2[i] || b1[i] !== b2[i]) return false;
+    }
+    return true;
+  }
+
+  /**
+   * Calculate TM-score with distance cutoff (score_d8)
+   */
+  private scoreTMWithCutoff(
+    alignA: UintArray,
+    alignB: UintArray,
+    transform: Mat4,
+    d0: number,
+    normLen: number,
+    scoreD8: number,
+  ): number {
+    const { xa, ya } = this;
+    const d02 = d0 * d0;
+    const scoreD8Sq = scoreD8 * scoreD8;
+    let score = 0;
+    const v = Vec3();
+
+    for (let i = 0; i < alignA.length; i++) {
+      const ai = alignA[i];
+      const bi = alignB[i];
+
+      Vec3.transformMat4(v, ya[bi], transform);
+      const distSq = Vec3.squaredDistance(v, xa[ai]);
+
+      if (distSq <= scoreD8Sq) {
+        score += 1.0 / (1.0 + distSq / d02);
+      }
     }
 
-    /**
-     * Kabsch using only well-aligned pairs (distance < cutoff)
-     */
-    private trimmedKabsch(alignA: NumberArray, alignB: NumberArray, currentTransform: Mat4, cutoff: number): Mat4 {
-        const { xa, ya } = this;
-        const cutoffSq = cutoff * cutoff;
+    return score / normLen;
+  }
 
-        // Find well-aligned pairs
-        const trimmedAlignA: number[] = [];
-        const trimmedAlignB: number[] = [];
-        const v = Vec3();
+  /**
+   * Structure-based DP (coordinates already transformed)
+   */
+  private nwdpStructure(xa: Vec3[], yt: Vec3[], d02: number, gapOpen: number): void {
+    const { lenA, lenB, dpPath, dpVal, j2i } = this;
 
-        for (let i = 0; i < alignA.length; i++) {
-            const ai = alignA[i];
-            const bi = alignB[i];
-
-            Vec3.transformMat4(v, ya[bi], currentTransform);
-            const distSq = Vec3.squaredDistance(v, xa[ai]);
-
-            if (distSq <= cutoffSq) {
-                trimmedAlignA.push(ai);
-                trimmedAlignB.push(bi);
-            }
-        }
-
-        // Need at least 3 pairs for Kabsch
-        if (trimmedAlignA.length < 3) {
-            // Fall back to using all pairs
-            return this.kabsch(alignA, alignB);
-        }
-
-        return this.kabsch(trimmedAlignA, trimmedAlignB);
+    // Initialize
+    for (let i = 0; i <= lenA; i++) {
+      dpVal[i][0] = 0.0;
+      dpPath[i][0] = 0;
+    }
+    for (let j = 0; j <= lenB; j++) {
+      dpVal[0][j] = 0.0;
+      dpPath[0][j] = 0;
+      j2i[j] = -1;
     }
 
-    private trimmedKabschWithTransformedCoordinates(alignA: UintArray, alignB: UintArray, yt: Vec3[], cutoff: number): Mat4 {
-        const { xa } = this;
-        const cutoffSq = cutoff * cutoff;
+    // Fill DP matrix
+    for (let i = 1; i <= lenA; i++) {
+      for (let j = 1; j <= lenB; j++) {
+        const distSq = Vec3.squaredDistance(xa[i - 1], yt[j - 1]);
 
-        // Find well-aligned pairs
-        const trimmedAlignA: number[] = [];
-        const trimmedAlignB: number[] = [];
+        const d = dpVal[i - 1][j - 1] + 1.0 / (1.0 + distSq / d02);
+        let h = dpVal[i - 1][j];
+        if (dpPath[i - 1][j]) h += gapOpen;
+        let v = dpVal[i][j - 1];
+        if (dpPath[i][j - 1]) v += gapOpen;
 
-        for (let i = 0; i < alignA.length; i++) {
-            const ai = alignA[i];
-            const bi = alignB[i];
-
-            const distSq = Vec3.squaredDistance(yt[bi], xa[ai]);
-
-            if (distSq <= cutoffSq) {
-                trimmedAlignA.push(ai);
-                trimmedAlignB.push(bi);
-            }
+        if (d >= h && d >= v) {
+          dpPath[i][j] = 1;
+          dpVal[i][j] = d;
+        } else {
+          dpPath[i][j] = 0;
+          dpVal[i][j] = v >= h ? v : h;
         }
-
-        // Need at least 3 pairs for Kabsch
-        if (trimmedAlignA.length < 3) {
-            // Fall back to using all pairs
-            return this.kabsch(alignA, alignB);
-        }
-
-        return this.kabsch(trimmedAlignA, trimmedAlignB);
+      }
     }
 
-    /**
-     * Refine the current best alignment iteratively
-     */
-    private refineAlignment(): void {
-        const { xa, ya, yt, lMin, lenB, d0, d0Search, scoreD8, tmpAlignA, tmpAlignB } = this;
-        const maxIterations = 20;
-        let n = 0;
+    // Traceback
+    let i = lenA;
+    let j = lenB;
+    while (i > 0 && j > 0) {
+      if (dpPath[i][j]) {
+        j2i[j - 1] = i - 1;
+        i--;
+        j--;
+      } else {
+        let h = dpVal[i - 1][j];
+        if (dpPath[i - 1][j]) h += gapOpen;
+        let v = dpVal[i][j - 1];
+        if (dpPath[i][j - 1]) v += gapOpen;
+        if (v >= h) j--;
+        else i--;
+      }
+    }
+  }
 
-        for (let iter = 0; iter < maxIterations; iter++) {
-            if (this.bestAlignmentA.length < 3) break;
+  /**
+   * Kabsch superposition using MinimizeRmsd
+   */
+  private kabsch(alignA: NumberArray, alignB: NumberArray): Mat4 {
+    const n = alignA.length;
+    if (n < 3) return Mat4.identity();
 
-            // Use trimmed Kabsch for refinement
-            const transform = this.trimmedKabsch(
-                this.bestAlignmentA,
-                this.bestAlignmentB,
-                this.bestTransform,
-                scoreD8
-            );
+    const { xa, ya, posA, posB, rmsdResult, rmsdState } = this;
 
-            // Transform ya
-            for (let i = 0; i < lenB; i++) {
-                Vec3.transformMat4(yt[i], ya[i], transform);
-            }
+    let xai = xa[0];
+    let ybi = ya[0];
 
-            // Run DP with transformed coordinates
-            const d = d0Search + 1;
-            this.nwdpStructure(xa, yt, d * d, -0.6);
-
-            // Extract new alignment
-            n = 0;
-            for (let j = 0; j < this.lenB; j++) {
-                if (this.j2i[j] >= 0) {
-                    tmpAlignA[n] = this.j2i[j];
-                    tmpAlignB[n] = j;
-                    n++;
-                }
-            }
-
-            if (n < 3) break;
-
-            const newAlignA = tmpAlignA.subarray(0, n);
-            const newAlignB = tmpAlignB.subarray(0, n);
-            // Check convergence
-            if (this.alignmentsEqual(newAlignA, newAlignB, this.bestAlignmentA, this.bestAlignmentB)) {
-                break;
-            }
-
-            // Compute new Kabsch and score
-            const newTransform = this.kabsch(newAlignA, newAlignB);
-            const newScore = this.scoreTMWithCutoff(newAlignA, newAlignB, newTransform, d0, lMin, scoreD8);
-
-            if (newScore > this.bestScore) {
-                this.bestScore = newScore;
-                this.bestAlignmentA = newAlignA.slice();
-                this.bestAlignmentB = newAlignB.slice();
-                Mat4.copy(this.bestTransform, newTransform);
-            } else {
-                break;
-            }
-        }
+    for (let i = 0; i < n; i++) {
+      xai = xa[alignA[i]];
+      ybi = ya[alignB[i]];
+      (<any>posA.x)[i] = xai[0];
+      (<any>posA.y)[i] = xai[1];
+      (<any>posA.z)[i] = xai[2];
+      (<any>posB.x)[i] = ybi[0];
+      (<any>posB.y)[i] = ybi[1];
+      (<any>posB.z)[i] = ybi[2];
     }
 
-    /**
-     * Check if two alignments are equal
-     */
-    private alignmentsEqual(a1: NumberArray, b1: NumberArray, a2: NumberArray, b2: NumberArray): boolean {
-        if (a1.length !== a2.length) return false;
-        for (let i = 0; i < a1.length; i++) {
-            if (a1[i] !== a2[i] || b1[i] !== b2[i]) return false;
-        }
-        return true;
-    }
+    MinimizeRmsd.compute({ a: posA, b: posB, length: n }, rmsdResult, rmsdState);
+    return rmsdResult.bTransform;
+  }
 
-    /**
-     * Calculate TM-score with distance cutoff (score_d8)
-     */
-    private scoreTMWithCutoff(
-        alignA: UintArray,
-        alignB: UintArray,
-        transform: Mat4,
-        d0: number,
-        normLen: number,
-        scoreD8: number
-    ): number {
-        const { xa, ya } = this;
-        const d02 = d0 * d0;
-        const scoreD8Sq = scoreD8 * scoreD8;
-        let score = 0;
-        const v = Vec3();
-
-        for (let i = 0; i < alignA.length; i++) {
-            const ai = alignA[i];
-            const bi = alignB[i];
-
-            Vec3.transformMat4(v, ya[bi], transform);
-            const distSq = Vec3.squaredDistance(v, xa[ai]);
-
-            if (distSq <= scoreD8Sq) {
-                score += 1.0 / (1.0 + distSq / d02);
-            }
-        }
-
-        return score / normLen;
-    }
-
-    /**
-     * Structure-based DP (coordinates already transformed)
-     */
-    private nwdpStructure(xa: Vec3[], yt: Vec3[], d02: number, gapOpen: number): void {
-        const { lenA, lenB, dpPath, dpVal, j2i } = this;
-
-        // Initialize
-        for (let i = 0; i <= lenA; i++) {
-            dpVal[i][0] = 0.0;
-            dpPath[i][0] = 0;
-        }
-        for (let j = 0; j <= lenB; j++) {
-            dpVal[0][j] = 0.0;
-            dpPath[0][j] = 0;
-            j2i[j] = -1;
-        }
-
-        // Fill DP matrix
-        for (let i = 1; i <= lenA; i++) {
-            for (let j = 1; j <= lenB; j++) {
-                const distSq = Vec3.squaredDistance(xa[i - 1], yt[j - 1]);
-
-                const d = dpVal[i - 1][j - 1] + 1.0 / (1.0 + distSq / d02);
-                let h = dpVal[i - 1][j];
-                if (dpPath[i - 1][j]) h += gapOpen;
-                let v = dpVal[i][j - 1];
-                if (dpPath[i][j - 1]) v += gapOpen;
-
-                if (d >= h && d >= v) {
-                    dpPath[i][j] = 1;
-                    dpVal[i][j] = d;
-                } else {
-                    dpPath[i][j] = 0;
-                    dpVal[i][j] = v >= h ? v : h;
-                }
-            }
-        }
-
-        // Traceback
-        let i = lenA;
-        let j = lenB;
-        while (i > 0 && j > 0) {
-            if (dpPath[i][j]) {
-                j2i[j - 1] = i - 1;
-                i--;
-                j--;
-            } else {
-                let h = dpVal[i - 1][j];
-                if (dpPath[i - 1][j]) h += gapOpen;
-                let v = dpVal[i][j - 1];
-                if (dpPath[i][j - 1]) v += gapOpen;
-                if (v >= h) j--;
-                else i--;
-            }
-        }
-    }
-
-    /**
-     * Kabsch superposition using MinimizeRmsd
-     */
-    private kabsch(alignA: NumberArray, alignB: NumberArray): Mat4 {
-        const n = alignA.length;
-        if (n < 3) return Mat4.identity();
-
-        const { xa, ya, posA, posB, rmsdResult, rmsdState } = this;
-
-        let xai = xa[0];
-        let ybi = ya[0];
-
-        for (let i = 0; i < n; i++) {
-            xai = xa[alignA[i]];
-            ybi = ya[alignB[i]];
-            (<any>posA.x)[i] = xai[0];
-            (<any>posA.y)[i] = xai[1];
-            (<any>posA.z)[i] = xai[2];
-            (<any>posB.x)[i] = ybi[0];
-            (<any>posB.y)[i] = ybi[1];
-            (<any>posB.z)[i] = ybi[2];
-        }
-
-        MinimizeRmsd.compute({ a: posA, b: posB, length: n }, rmsdResult, rmsdState);
-        return rmsdResult.bTransform;
-    }
-
-    /**
-     * Get the best alignment result
-     */
-    getBestAlignment(): { alignmentA: NumberArray; alignmentB: NumberArray; transform: Mat4 } {
-        return {
-            alignmentA: this.bestAlignmentA,
-            alignmentB: this.bestAlignmentB,
-            transform: this.bestTransform
-        };
-    }
+  /**
+   * Get the best alignment result
+   */
+  getBestAlignment(): { alignmentA: NumberArray; alignmentB: NumberArray; transform: Mat4 } {
+    return {
+      alignmentA: this.bestAlignmentA,
+      alignmentB: this.bestAlignmentB,
+      transform: this.bestTransform,
+    };
+  }
 }

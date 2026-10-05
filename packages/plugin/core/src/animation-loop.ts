@@ -14,71 +14,78 @@ import { printTimerResults } from '@molstar/graphics/gl/webgl/timer';
 const MaxProperFrameDelta = 1000 / 30;
 
 export class PluginAnimationLoop {
-    private lastTickT: number = 0;
-    // Proper time is used to prevent animations from skipping
-    // if there is a blocking operation, e.g., shader compilation
-    // The drawback of this is that sometimes the animation will take
-    // longer than intended, but hopefully that's a reasonable tradeoff
-    private properTimeT: number = 0;
+  private lastTickT: number = 0;
+  // Proper time is used to prevent animations from skipping
+  // if there is a blocking operation, e.g., shader compilation
+  // The drawback of this is that sometimes the animation will take
+  // longer than intended, but hopefully that's a reasonable tradeoff
+  private properTimeT: number = 0;
 
-    private currentFrame: number | undefined = undefined;
-    private _isAnimating = false;
+  private currentFrame: number | undefined = undefined;
+  private _isAnimating = false;
 
-    get isAnimating() {
-        return this._isAnimating;
-    }
+  get isAnimating() {
+    return this._isAnimating;
+  }
 
-    async tick(t: number, options?: { isSynchronous?: boolean, manualDraw?: boolean, animation?: PluginAnimationManager.AnimationInfo, updateControls?: boolean, xrFrame?: XRFrame }) {
-        await this.plugin.managers.animation.tick(t, options?.isSynchronous, options?.animation);
-        this.plugin.canvas3d?.tick(t as now.Timestamp, options);
+  async tick(
+    t: number,
+    options?: {
+      isSynchronous?: boolean;
+      manualDraw?: boolean;
+      animation?: PluginAnimationManager.AnimationInfo;
+      updateControls?: boolean;
+      xrFrame?: XRFrame;
+    },
+  ) {
+    await this.plugin.managers.animation.tick(t, options?.isSynchronous, options?.animation);
+    this.plugin.canvas3d?.tick(t as now.Timestamp, options);
 
-        if (isTimingMode) {
-            const timerResults = this.plugin.canvas3d?.webgl.timer.resolve();
-            if (timerResults) {
-                for (const result of timerResults) {
-                    printTimerResults([result]);
-                }
-            }
+    if (isTimingMode) {
+      const timerResults = this.plugin.canvas3d?.webgl.timer.resolve();
+      if (timerResults) {
+        for (const result of timerResults) {
+          printTimerResults([result]);
         }
+      }
     }
+  }
 
-    private frame = (_timestamp?: number, xrFrame?: XRFrame) => {
-        const t = now();
-        const dt = t - this.lastTickT;
-        this.lastTickT = t;
-        this.properTimeT += Math.min(dt, MaxProperFrameDelta);
-        this.tick(this.properTimeT, { xrFrame });
-        if (this._isAnimating) {
-            this.currentFrame = this.plugin.canvas3d?.requestAnimationFrame(this.frame);
-        }
-    };
-
-    resetTime(t: number) {
-        this.plugin.canvas3d?.resetTime(t);
+  private frame = (_timestamp?: number, xrFrame?: XRFrame) => {
+    const t = now();
+    const dt = t - this.lastTickT;
+    this.lastTickT = t;
+    this.properTimeT += Math.min(dt, MaxProperFrameDelta);
+    this.tick(this.properTimeT, { xrFrame });
+    if (this._isAnimating) {
+      this.currentFrame = this.plugin.canvas3d?.requestAnimationFrame(this.frame);
     }
+  };
 
-    start(options?: { immediate?: boolean }) {
-        this.plugin.canvas3d?.resume();
-        this._isAnimating = true;
-        this.resetTime(0);
-        this.properTimeT = 0;
-        this.lastTickT = now();
-        if (options?.immediate) this.frame();
-        else this.currentFrame = this.plugin.canvas3d?.requestAnimationFrame(this.frame);
+  resetTime(t: number) {
+    this.plugin.canvas3d?.resetTime(t);
+  }
+
+  start(options?: { immediate?: boolean }) {
+    this.plugin.canvas3d?.resume();
+    this._isAnimating = true;
+    this.resetTime(0);
+    this.properTimeT = 0;
+    this.lastTickT = now();
+    if (options?.immediate) this.frame();
+    else this.currentFrame = this.plugin.canvas3d?.requestAnimationFrame(this.frame);
+  }
+
+  stop(options?: { noDraw?: boolean }) {
+    this._isAnimating = false;
+    if (this.currentFrame !== undefined) {
+      this.plugin.canvas3d?.cancelAnimationFrame(this.currentFrame);
+      this.currentFrame = undefined;
     }
-
-    stop(options?: { noDraw?: boolean }) {
-        this._isAnimating = false;
-        if (this.currentFrame !== undefined) {
-            this.plugin.canvas3d?.cancelAnimationFrame(this.currentFrame);
-            this.currentFrame = undefined;
-        }
-        if (options?.noDraw) {
-            this.plugin.canvas3d?.pause(options?.noDraw);
-        }
+    if (options?.noDraw) {
+      this.plugin.canvas3d?.pause(options?.noDraw);
     }
+  }
 
-    constructor(private plugin: PluginContext) {
-
-    }
+  constructor(private plugin: PluginContext) {}
 }

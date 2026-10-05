@@ -8,7 +8,7 @@
 import type { Tokens } from '../common/text/tokenizer.js';
 
 export interface PdbFile {
-    lines: Tokens
-    id?: string,
-    variant: 'pdb' | 'pdbqt' | 'pqr'
+  lines: Tokens;
+  id?: string;
+  variant: 'pdb' | 'pdbqt' | 'pqr';
 }

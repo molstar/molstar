@@ -1,15 +1,16 @@
 # wwPDB StructConn extension
 
-The STRUCT_CONN category in the mmCIF file format contains details about the connections between portions of the structure. These can be hydrogen bonds, salt bridges, disulfide bridges and so on (see more at <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/struct_conn.html>).
+The STRUCT_CONN category in the mmCIF file format contains details about the connections between portions of the
+structure. These can be hydrogen bonds, salt bridges, disulfide bridges and so on (see more at
+<https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/struct_conn.html>).
 
 **wwPDB StructConn extension** in Mol* provides functionality to retrieve and visualize these connections.
 
-The extension exposes three functions, located in `src/extensions/wwpdb/struct-conn/index.ts`. 
+The extension exposes three functions, located in `src/extensions/wwpdb/struct-conn/index.ts`.
 
 - `getStructConns` - to retrieve struct_conn records from a loaded structure
 - `inspectStructConn` - to visualize a struct_conn
 - `clearStructConnInspections` - to remove visulizations created by `inspectStructConn`
-
 
 ## Example 1
 
@@ -51,14 +52,17 @@ The following example is a minimal HTML using this functionality:
 </html>
 ```
 
-The PDB ID (`'5elb'`) can be replaced be `undefined`, in which case the functions will apply to the first loaded structure.
-
+The PDB ID (`'5elb'`) can be replaced be `undefined`, in which case the functions will apply to the first loaded
+structure.
 
 ## Example 2
 
-This is a more elaborated example, which automatically loads `5elb` (or any PDB entry given in the URL after `?pdb=`), retrieves the list of struct_conns, and creates a button for each struct_conn. 
+This is a more elaborated example, which automatically loads `5elb` (or any PDB entry given in the URL after `?pdb=`),
+retrieves the list of struct_conns, and creates a button for each struct_conn.
 
-Be aware that some of the struct_conns may be present in the deposited model but not in the preferred assembly (default view). The presented example will raise a dialog window with error message in such cases, e.g. `disulf6` in entry `5elb`.
+Be aware that some of the struct_conns may be present in the deposited model but not in the preferred assembly (default
+view). The presented example will raise a dialog window with error message in such cases, e.g. `disulf6` in entry
+`5elb`.
 
 ```html
 <!DOCTYPE html>

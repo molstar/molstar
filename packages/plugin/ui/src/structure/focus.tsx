@@ -21,234 +21,262 @@ import { Button, IconButton, ToggleButton } from '@molstar/plugin-ui/controls/co
 import { CancelOutlinedSvg, CenterFocusStrongSvg } from '@molstar/plugin-ui/controls/icons';
 
 interface StructureFocusControlsState {
-    isBusy: boolean
-    showAction: boolean
+  isBusy: boolean;
+  showAction: boolean;
 }
 
-function addSymmetryGroupEntries(entries: Map<string, FocusEntry[]>, location: StructureElement.Location, unitSymmetryGroup: Unit.SymmetryGroup, granularity: 'residue' | 'chain') {
-    const idx = SortedArray.indexOf(location.unit.elements, location.element) as UnitIndex;
-    const base = StructureElement.Loci(location.structure, [
-        { unit: location.unit, indices: OrderedSet.ofSingleton(idx) }
-    ]);
-    const extended = granularity === 'residue'
-        ? StructureElement.Loci.extendToWholeResidues(base)
-        : StructureElement.Loci.extendToWholeChains(base);
-    const name = StructureProperties.entity.pdbx_description(location).join(', ');
+function addSymmetryGroupEntries(
+  entries: Map<string, FocusEntry[]>,
+  location: StructureElement.Location,
+  unitSymmetryGroup: Unit.SymmetryGroup,
+  granularity: 'residue' | 'chain',
+) {
+  const idx = SortedArray.indexOf(location.unit.elements, location.element) as UnitIndex;
+  const base = StructureElement.Loci(location.structure, [
+    { unit: location.unit, indices: OrderedSet.ofSingleton(idx) },
+  ]);
+  const extended =
+    granularity === 'residue'
+      ? StructureElement.Loci.extendToWholeResidues(base)
+      : StructureElement.Loci.extendToWholeChains(base);
+  const name = StructureProperties.entity.pdbx_description(location).join(', ');
 
-    for (const u of unitSymmetryGroup.units) {
-        const loci = StructureElement.Loci(extended.structure, [
-            { unit: u, indices: extended.elements[0].indices }
-        ]);
+  for (const u of unitSymmetryGroup.units) {
+    const loci = StructureElement.Loci(extended.structure, [{ unit: u, indices: extended.elements[0].indices }]);
 
-        let label = lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false, granularity });
-        if (!label) label = lociLabel(loci, { hidePrefix: false, htmlStyling: false });
-        if (unitSymmetryGroup.units.length > 1) {
-            label += ` | ${loci.elements[0].unit.conformation.operator.name}`;
-        }
-        const item: FocusEntry = { label, category: name, loci };
-
-        if (entries.has(name)) entries.get(name)!.push(item);
-        else entries.set(name, [item]);
+    let label = lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false, granularity });
+    if (!label) label = lociLabel(loci, { hidePrefix: false, htmlStyling: false });
+    if (unitSymmetryGroup.units.length > 1) {
+      label += ` | ${loci.elements[0].unit.conformation.operator.name}`;
     }
+    const item: FocusEntry = { label, category: name, loci };
+
+    if (entries.has(name)) entries.get(name)!.push(item);
+    else entries.set(name, [item]);
+  }
 }
 
 function getFocusEntries(structure: Structure) {
-    const entityEntries = new Map<string, FocusEntry[]>();
-    const l = StructureElement.Location.create(structure);
+  const entityEntries = new Map<string, FocusEntry[]>();
+  const l = StructureElement.Location.create(structure);
 
-    for (const ug of structure.unitSymmetryGroups) {
-        if (!Unit.isAtomic(ug.units[0])) continue;
+  for (const ug of structure.unitSymmetryGroups) {
+    if (!Unit.isAtomic(ug.units[0])) continue;
 
-        l.unit = ug.units[0];
-        l.element = ug.elements[0];
-        const isMultiChain = Unit.Traits.is(l.unit.traits, Unit.Trait.MultiChain);
-        const entityType = StructureProperties.entity.type(l);
-        const isNonPolymer = entityType === 'non-polymer';
-        const isBranched = entityType === 'branched';
-        const isBirdMolecule = !!StructureProperties.entity.prd_id(l);
+    l.unit = ug.units[0];
+    l.element = ug.elements[0];
+    const isMultiChain = Unit.Traits.is(l.unit.traits, Unit.Trait.MultiChain);
+    const entityType = StructureProperties.entity.type(l);
+    const isNonPolymer = entityType === 'non-polymer';
+    const isBranched = entityType === 'branched';
+    const isBirdMolecule = !!StructureProperties.entity.prd_id(l);
 
-        if (isBirdMolecule) {
-            addSymmetryGroupEntries(entityEntries, l, ug, 'chain');
-        } else if (isNonPolymer && !isMultiChain) {
-            addSymmetryGroupEntries(entityEntries, l, ug, 'residue');
-        } else if (isBranched || (isNonPolymer && isMultiChain)) {
-            const u = l.unit;
-            const { index: residueIndex } = u.model.atomicHierarchy.residueAtomSegments;
-            let prev = -1;
-            for (let i = 0, il = u.elements.length; i < il; ++i) {
-                const eI = u.elements[i];
-                const rI = residueIndex[eI];
-                if (rI !== prev) {
-                    l.element = eI;
-                    addSymmetryGroupEntries(entityEntries, l, ug, 'residue');
-                    prev = rI;
-                }
-            }
+    if (isBirdMolecule) {
+      addSymmetryGroupEntries(entityEntries, l, ug, 'chain');
+    } else if (isNonPolymer && !isMultiChain) {
+      addSymmetryGroupEntries(entityEntries, l, ug, 'residue');
+    } else if (isBranched || (isNonPolymer && isMultiChain)) {
+      const u = l.unit;
+      const { index: residueIndex } = u.model.atomicHierarchy.residueAtomSegments;
+      let prev = -1;
+      for (let i = 0, il = u.elements.length; i < il; ++i) {
+        const eI = u.elements[i];
+        const rI = residueIndex[eI];
+        if (rI !== prev) {
+          l.element = eI;
+          addSymmetryGroupEntries(entityEntries, l, ug, 'residue');
+          prev = rI;
         }
+      }
     }
+  }
 
-    const entries: FocusEntry[] = [];
-    entityEntries.forEach((e, name) => {
-        if (e.length === 1) {
-            entries.push({ label: `${name}: ${e[0].label}`, loci: e[0].loci });
-        } else if (e.length < 2000) {
-            entries.push(...e);
-        }
-    });
+  const entries: FocusEntry[] = [];
+  entityEntries.forEach((e, name) => {
+    if (e.length === 1) {
+      entries.push({ label: `${name}: ${e[0].label}`, loci: e[0].loci });
+    } else if (e.length < 2000) {
+      entries.push(...e);
+    }
+  });
 
-    return entries;
+  return entries;
 }
 
 export class StructureFocusControls extends PluginUIComponent<{}, StructureFocusControlsState> {
-    state = { isBusy: false, showAction: false };
+  state = { isBusy: false, showAction: false };
 
-    componentDidMount() {
-        this.subscribe(this.plugin.managers.structure.focus.behaviors.current, c => {
-            // clear the memo cache
-            this.getSelectionItems([]);
-            this.forceUpdate();
-        });
-
-        this.subscribe(this.plugin.managers.structure.focus.events.historyUpdated, c => {
-            this.forceUpdate();
-        });
-
-        this.subscribe(this.plugin.behaviors.state.isBusy, v => {
-            this.setState({ isBusy: v, showAction: false });
-        });
-    }
-
-    get isDisabled() {
-        return this.state.isBusy || this.plugin.managers.structure.hierarchy.selection.structures.length === 0;
-    }
-
-    getSelectionItems = memoizeLatest((structures: ReadonlyArray<StructureRef>) => {
-        const presetItems: ActionMenu.Items[] = [];
-        for (const s of structures) {
-            const d = s.cell.obj?.data;
-            if (d) {
-                const entries = getFocusEntries(d);
-                if (entries.length > 0) {
-                    presetItems.push([
-                        ActionMenu.Header(d.label, { description: d.label }),
-                        ...ActionMenu.createItems(entries, {
-                            label: f => f.label,
-                            category: f => f.category,
-                            description: f => f.label
-                        })
-                    ]);
-                }
-            }
-        }
-        return presetItems;
+  componentDidMount() {
+    this.subscribe(this.plugin.managers.structure.focus.behaviors.current, (c) => {
+      // clear the memo cache
+      this.getSelectionItems([]);
+      this.forceUpdate();
     });
 
-    get actionItems() {
-        const historyItems: ActionMenu.Items[] = [];
-        const { history } = this.plugin.managers.structure.focus;
-        if (history.length > 0) {
-            historyItems.push([
-                ActionMenu.Header('History', { description: 'Previously focused on items.' }),
-                ...ActionMenu.createItems(history, {
-                    label: f => f.label,
-                    description: f => {
-                        return f.category && f.label !== f.category
-                            ? `${f.category} | ${f.label}`
-                            : f.label;
-                    }
-                })
-            ]);
+    this.subscribe(this.plugin.managers.structure.focus.events.historyUpdated, (c) => {
+      this.forceUpdate();
+    });
+
+    this.subscribe(this.plugin.behaviors.state.isBusy, (v) => {
+      this.setState({ isBusy: v, showAction: false });
+    });
+  }
+
+  get isDisabled() {
+    return this.state.isBusy || this.plugin.managers.structure.hierarchy.selection.structures.length === 0;
+  }
+
+  getSelectionItems = memoizeLatest((structures: ReadonlyArray<StructureRef>) => {
+    const presetItems: ActionMenu.Items[] = [];
+    for (const s of structures) {
+      const d = s.cell.obj?.data;
+      if (d) {
+        const entries = getFocusEntries(d);
+        if (entries.length > 0) {
+          presetItems.push([
+            ActionMenu.Header(d.label, { description: d.label }),
+            ...ActionMenu.createItems(entries, {
+              label: (f) => f.label,
+              category: (f) => f.category,
+              description: (f) => f.label,
+            }),
+          ]);
         }
+      }
+    }
+    return presetItems;
+  });
 
-        const presetItems: ActionMenu.Items[] = this.getSelectionItems(this.plugin.managers.structure.hierarchy.selection.structures);
-        if (presetItems.length === 1) {
-            const item = presetItems[0] as ActionMenu.Items[];
-            const header = item[0] as ActionMenu.Header;
-            header.initiallyExpanded = true;
-        }
-
-        const items: ActionMenu.Items[] = [];
-        if (presetItems.length > 0) items.push(...presetItems);
-        if (historyItems.length > 0) items.push(...historyItems);
-
-        return items;
+  get actionItems() {
+    const historyItems: ActionMenu.Items[] = [];
+    const { history } = this.plugin.managers.structure.focus;
+    if (history.length > 0) {
+      historyItems.push([
+        ActionMenu.Header('History', { description: 'Previously focused on items.' }),
+        ...ActionMenu.createItems(history, {
+          label: (f) => f.label,
+          description: (f) => {
+            return f.category && f.label !== f.category ? `${f.category} | ${f.label}` : f.label;
+          },
+        }),
+      ]);
     }
 
-    selectAction: ActionMenu.OnSelect = (item, e) => {
-        if (!item || !this.state.showAction) {
-            this.setState({ showAction: false });
-            return;
-        }
-        const f = item.value as FocusEntry;
-        if (e?.shiftKey) {
-            this.plugin.managers.structure.focus.addFromLoci(f.loci);
-        } else {
-            this.plugin.managers.structure.focus.set(f);
-        }
-        this.focusCamera(true);
-    };
-
-    focusCamera(optimizeDirection?: boolean) {
-        const { current } = this.plugin.managers.structure.focus;
-        if (!current) return;
-
-        this.plugin.managers.camera.focusLoci(current.loci, {
-            optimizeDirection,
-        });
+    const presetItems: ActionMenu.Items[] = this.getSelectionItems(
+      this.plugin.managers.structure.hierarchy.selection.structures,
+    );
+    if (presetItems.length === 1) {
+      const item = presetItems[0] as ActionMenu.Items[];
+      const header = item[0] as ActionMenu.Header;
+      header.initiallyExpanded = true;
     }
 
+    const items: ActionMenu.Items[] = [];
+    if (presetItems.length > 0) items.push(...presetItems);
+    if (historyItems.length > 0) items.push(...historyItems);
 
-    toggleAction = () => this.setState({ showAction: !this.state.showAction });
+    return items;
+  }
 
-    focusCameraClick = () => {
-        this.focusCamera(false);
-    };
+  selectAction: ActionMenu.OnSelect = (item, e) => {
+    if (!item || !this.state.showAction) {
+      this.setState({ showAction: false });
+      return;
+    }
+    const f = item.value as FocusEntry;
+    if (e?.shiftKey) {
+      this.plugin.managers.structure.focus.addFromLoci(f.loci);
+    } else {
+      this.plugin.managers.structure.focus.set(f);
+    }
+    this.focusCamera(true);
+  };
 
-    clear = () => {
-        this.plugin.managers.structure.focus.clear();
-        this.plugin.managers.camera.reset();
-    };
+  focusCamera(optimizeDirection?: boolean) {
+    const { current } = this.plugin.managers.structure.focus;
+    if (!current) return;
 
-    highlightCurrent = () => {
-        const { current } = this.plugin.managers.structure.focus;
-        if (current) this.plugin.managers.interactivity.lociHighlights.highlightOnly({ loci: current.loci }, false);
-    };
+    this.plugin.managers.camera.focusLoci(current.loci, {
+      optimizeDirection,
+    });
+  }
 
-    clearHighlights = () => {
-        this.plugin.managers.interactivity.lociHighlights.clearHighlights();
-    };
+  toggleAction = () => this.setState({ showAction: !this.state.showAction });
 
-    getToggleBindingLabel() {
-        const t = this.plugin.state.behaviors.transforms.get(FocusLoci.id) as StateTransform<typeof FocusLoci>;
-        if (!t) return '';
-        const binding = t.params?.bindings.clickFocus;
-        if (!binding || Binding.isEmpty(binding)) return '';
-        return Binding.formatTriggers(binding);
+  focusCameraClick = () => {
+    this.focusCamera(false);
+  };
+
+  clear = () => {
+    this.plugin.managers.structure.focus.clear();
+    this.plugin.managers.camera.reset();
+  };
+
+  highlightCurrent = () => {
+    const { current } = this.plugin.managers.structure.focus;
+    if (current) this.plugin.managers.interactivity.lociHighlights.highlightOnly({ loci: current.loci }, false);
+  };
+
+  clearHighlights = () => {
+    this.plugin.managers.interactivity.lociHighlights.clearHighlights();
+  };
+
+  getToggleBindingLabel() {
+    const t = this.plugin.state.behaviors.transforms.get(FocusLoci.id) as StateTransform<typeof FocusLoci>;
+    if (!t) return '';
+    const binding = t.params?.bindings.clickFocus;
+    if (!binding || Binding.isEmpty(binding)) return '';
+    return Binding.formatTriggers(binding);
+  }
+
+  render() {
+    const { current } = this.plugin.managers.structure.focus;
+    const label = current?.label || 'Nothing Focused';
+
+    let title = 'Click to Center Camera';
+    if (!current) {
+      title = 'Select focus using the menu';
+      const binding = this.getToggleBindingLabel();
+      if (binding) {
+        title += `\nor use '${binding}' on element`;
+      }
     }
 
-    render() {
-        const { current } = this.plugin.managers.structure.focus;
-        const label = current?.label || 'Nothing Focused';
-
-        let title = 'Click to Center Camera';
-        if (!current) {
-            title = 'Select focus using the menu';
-            const binding = this.getToggleBindingLabel();
-            if (binding) {
-                title += `\nor use '${binding}' on element`;
-            }
-        }
-
-        return <>
-            <div className='msp-flex-row'>
-                <Button noOverflow onClick={this.focusCameraClick} title={title} onMouseEnter={this.highlightCurrent} onMouseLeave={this.clearHighlights} disabled={this.isDisabled || !current}
-                    style={{ textAlignLast: current ? 'left' : void 0 }}>
-                    {label}
-                </Button>
-                {current && <IconButton svg={CancelOutlinedSvg} onClick={this.clear} title='Clear' className='msp-form-control' flex disabled={this.isDisabled} />}
-                <ToggleButton icon={CenterFocusStrongSvg} title='Select a focus target to center on an show its surroundings. Hold shift to focus on multiple targets.' toggle={this.toggleAction} isSelected={this.state.showAction} disabled={this.isDisabled} style={{ flex: '0 0 40px', padding: 0 }} />
-            </div>
-            {this.state.showAction && <ActionMenu items={this.actionItems} onSelect={this.selectAction} />}
-        </>;
-    }
+    return (
+      <>
+        <div className="msp-flex-row">
+          <Button
+            noOverflow
+            onClick={this.focusCameraClick}
+            title={title}
+            onMouseEnter={this.highlightCurrent}
+            onMouseLeave={this.clearHighlights}
+            disabled={this.isDisabled || !current}
+            style={{ textAlignLast: current ? 'left' : void 0 }}
+          >
+            {label}
+          </Button>
+          {current && (
+            <IconButton
+              svg={CancelOutlinedSvg}
+              onClick={this.clear}
+              title="Clear"
+              className="msp-form-control"
+              flex
+              disabled={this.isDisabled}
+            />
+          )}
+          <ToggleButton
+            icon={CenterFocusStrongSvg}
+            title="Select a focus target to center on an show its surroundings. Hold shift to focus on multiple targets."
+            toggle={this.toggleAction}
+            isSelected={this.state.showAction}
+            disabled={this.isDisabled}
+            style={{ flex: '0 0 40px', padding: 0 }}
+          />
+        </div>
+        {this.state.showAction && <ActionMenu items={this.actionItems} onSelect={this.selectAction} />}
+      </>
+    );
+  }
 }

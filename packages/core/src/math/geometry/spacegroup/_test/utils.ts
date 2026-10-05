@@ -16,41 +16,41 @@ export type { SyminfoEntry };
  * centering translations), translations wrapped into `[0, 1)`.
  */
 export function syminfoOperators(entry: SyminfoEntry): Mat4[] {
-    const symopMats = entry.symops.map(coordinateExpressionToOperator);
-    const cenopMats = entry.cenops.map(coordinateExpressionToOperator);
+  const symopMats = entry.symops.map(coordinateExpressionToOperator);
+  const cenopMats = entry.cenops.map(coordinateExpressionToOperator);
 
-    const result: Mat4[] = [];
-    for (const s of symopMats) {
-        for (const c of cenopMats) {
-            const op = Mat4.clone(s);
-            op[12] = wrap01(op[12] + c[12]);
-            op[13] = wrap01(op[13] + c[13]);
-            op[14] = wrap01(op[14] + c[14]);
-            result.push(op);
-        }
+  const result: Mat4[] = [];
+  for (const s of symopMats) {
+    for (const c of cenopMats) {
+      const op = Mat4.clone(s);
+      op[12] = wrap01(op[12] + c[12]);
+      op[13] = wrap01(op[13] + c[13]);
+      op[14] = wrap01(op[14] + c[14]);
+      result.push(op);
     }
-    return result;
+  }
+  return result;
 }
 
 /** All 540 `SyminfoEntry` records, grouped by ITA spacegroup `number`. */
 export const SyminfoEntriesByNumber: ReadonlyMap<number, SyminfoEntry[]> = (function () {
-    const map = new Map<number, SyminfoEntry[]>();
-    for (const entry of syminfoEntries) {
-        const list = map.get(entry.number);
-        if (list) list.push(entry);
-        else map.set(entry.number, [entry]);
-    }
-    return map;
-}());
+  const map = new Map<number, SyminfoEntry[]>();
+  for (const entry of syminfoEntries) {
+    const list = map.get(entry.number);
+    if (list) list.push(entry);
+    else map.set(entry.number, [entry]);
+  }
+  return map;
+})();
 
 /** Flattened lookup for the entries with a nonzero `ccp4` code. */
 export const SyminfoEntriesByCcp4Number: ReadonlyMap<number, SyminfoEntry> = (function () {
-    const map = new Map<number, SyminfoEntry>();
-    for (const entry of syminfoEntries) {
-        if (entry.ccp4 !== 0) map.set(entry.ccp4, entry);
-    }
-    return map;
-}());
+  const map = new Map<number, SyminfoEntry>();
+  for (const entry of syminfoEntries) {
+    if (entry.ccp4 !== 0) map.set(entry.ccp4, entry);
+  }
+  return map;
+})();
 
 /**
  * Canonical key for a symmetry operator, rounding the rotation part to the
@@ -59,22 +59,22 @@ export const SyminfoEntriesByCcp4Number: ReadonlyMap<number, SyminfoEntry> = (fu
  * floating-point drift compare equal.
  */
 export function opKey(op: ReadonlyMat4): string {
-    const parts: number[] = [];
-    for (const i of [0, 1, 2, 4, 5, 6, 8, 9, 10]) parts.push(Math.round(op[i]));
-    for (const i of [12, 13, 14]) {
-        let v = op[i] % 1;
-        if (v < 0) v += 1;
-        parts.push(Math.round(v * 24) % 24);
-    }
-    return parts.join(',');
+  const parts: number[] = [];
+  for (const i of [0, 1, 2, 4, 5, 6, 8, 9, 10]) parts.push(Math.round(op[i]));
+  for (const i of [12, 13, 14]) {
+    let v = op[i] % 1;
+    if (v < 0) v += 1;
+    parts.push(Math.round(v * 24) % 24);
+  }
+  return parts.join(',');
 }
 
 /** Whether two operator lists contain exactly the same operators (as multisets), via `opKey`. */
 export function sameOperatorSet(a: ReadonlyArray<ReadonlyMat4>, b: ReadonlyArray<ReadonlyMat4>) {
-    if (a.length !== b.length) return false;
-    const ka = a.map(opKey).sort();
-    const kb = b.map(opKey).sort();
-    return ka.every((k, i) => k === kb[i]);
+  if (a.length !== b.length) return false;
+  const ka = a.map(opKey).sort();
+  const kb = b.map(opKey).sort();
+  return ka.every((k, i) => k === kb[i]);
 }
 
 /**
@@ -85,9 +85,9 @@ export function sameOperatorSet(a: ReadonlyArray<ReadonlyMat4>, b: ReadonlyArray
  * the same matrix once wrapped into the smaller rhombohedral cell.
  */
 export function sameOperatorKeySet(a: ReadonlyArray<ReadonlyMat4>, b: ReadonlyArray<ReadonlyMat4>) {
-    const ka = new Set(a.map(opKey));
-    const kb = new Set(b.map(opKey));
-    if (ka.size !== kb.size) return false;
-    for (const k of ka) if (!kb.has(k)) return false;
-    return true;
+  const ka = new Set(a.map(opKey));
+  const kb = new Set(b.map(opKey));
+  if (ka.size !== kb.size) return false;
+  for (const k of ka) if (!kb.has(k)) return false;
+  return true;
 }

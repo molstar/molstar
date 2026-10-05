@@ -7,48 +7,88 @@
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
 import type { WebGLContext } from '../webgl/context.js';
 import { createGraphicsRenderItem, type Transparency } from '../webgl/render-item.js';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, type Values, InternalSchema, SizeSchema, type InternalValues, ElementsSpec, ValueSpec, DefineSpec, GlobalTextureSchema, UniformSpec, type GlobalDefineValues, type GlobalDefines, GlobalDefineSchema, InteriorSchema, AnimationSchema } from './schema.js';
+import {
+  GlobalUniformSchema,
+  BaseSchema,
+  AttributeSpec,
+  type Values,
+  InternalSchema,
+  SizeSchema,
+  type InternalValues,
+  ElementsSpec,
+  ValueSpec,
+  DefineSpec,
+  GlobalTextureSchema,
+  UniformSpec,
+  type GlobalDefineValues,
+  type GlobalDefines,
+  GlobalDefineSchema,
+  InteriorSchema,
+  AnimationSchema,
+} from './schema.js';
 import { CylindersShaderCode } from '../shader-code.js';
 import { ValueCell } from '@molstar/core/util';
 
 export const CylindersSchema = {
-    ...BaseSchema,
-    ...SizeSchema,
-    aGroup: AttributeSpec('float32', 1, 0),
-    aStart: AttributeSpec('float32', 3, 0),
-    aEnd: AttributeSpec('float32', 3, 0),
-    aMapping: AttributeSpec('float32', 3, 0),
-    aScale: AttributeSpec('float32', 1, 0),
-    aCap: AttributeSpec('float32', 1, 0),
-    aColorMode: AttributeSpec('float32', 1, 0),
-    elements: ElementsSpec('uint32'),
+  ...BaseSchema,
+  ...SizeSchema,
+  aGroup: AttributeSpec('float32', 1, 0),
+  aStart: AttributeSpec('float32', 3, 0),
+  aEnd: AttributeSpec('float32', 3, 0),
+  aMapping: AttributeSpec('float32', 3, 0),
+  aScale: AttributeSpec('float32', 1, 0),
+  aCap: AttributeSpec('float32', 1, 0),
+  aColorMode: AttributeSpec('float32', 1, 0),
+  elements: ElementsSpec('uint32'),
 
-    padding: ValueSpec('number'),
-    uDoubleSided: UniformSpec('b', 'material'),
-    dIgnoreLight: DefineSpec('boolean'),
-    dCelShaded: DefineSpec('boolean'),
-    dXrayShaded: DefineSpec('string', ['off', 'on', 'inverted']),
-    dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
-    dSolidInterior: DefineSpec('boolean'),
-    uBumpFrequency: UniformSpec('f', 'material'),
-    uBumpAmplitude: UniformSpec('f', 'material'),
-    dDualColor: DefineSpec('boolean'),
+  padding: ValueSpec('number'),
+  uDoubleSided: UniformSpec('b', 'material'),
+  dIgnoreLight: DefineSpec('boolean'),
+  dCelShaded: DefineSpec('boolean'),
+  dXrayShaded: DefineSpec('string', ['off', 'on', 'inverted']),
+  dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
+  dSolidInterior: DefineSpec('boolean'),
+  uBumpFrequency: UniformSpec('f', 'material'),
+  uBumpAmplitude: UniformSpec('f', 'material'),
+  dDualColor: DefineSpec('boolean'),
 
-    ...InteriorSchema,
-    ...AnimationSchema,
+  ...InteriorSchema,
+  ...AnimationSchema,
 };
-export type CylindersSchema = typeof CylindersSchema
-export type CylindersValues = Values<CylindersSchema>
+export type CylindersSchema = typeof CylindersSchema;
+export type CylindersValues = Values<CylindersSchema>;
 
-export function CylindersRenderable(ctx: WebGLContext, id: number, values: CylindersValues, state: RenderableState, materialId: number, transparency: Transparency, globals: GlobalDefines): Renderable<CylindersValues> {
-    const schema = { ...GlobalUniformSchema, ...GlobalTextureSchema, ...GlobalDefineSchema, ...InternalSchema, ...CylindersSchema };
-const renderValues: CylindersValues & InternalValues & GlobalDefineValues = {
-        ...values,
-        uObjectId: ValueCell.create(id),
-        dLightCount: ValueCell.create(globals.dLightCount),
-        dColorMarker: ValueCell.create(globals.dColorMarker),
-    };
-    const shaderCode = CylindersShaderCode;
-    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, renderValues, materialId, transparency);
-    return createRenderable(renderItem, renderValues, state);
+export function CylindersRenderable(
+  ctx: WebGLContext,
+  id: number,
+  values: CylindersValues,
+  state: RenderableState,
+  materialId: number,
+  transparency: Transparency,
+  globals: GlobalDefines,
+): Renderable<CylindersValues> {
+  const schema = {
+    ...GlobalUniformSchema,
+    ...GlobalTextureSchema,
+    ...GlobalDefineSchema,
+    ...InternalSchema,
+    ...CylindersSchema,
+  };
+  const renderValues: CylindersValues & InternalValues & GlobalDefineValues = {
+    ...values,
+    uObjectId: ValueCell.create(id),
+    dLightCount: ValueCell.create(globals.dLightCount),
+    dColorMarker: ValueCell.create(globals.dColorMarker),
+  };
+  const shaderCode = CylindersShaderCode;
+  const renderItem = createGraphicsRenderItem(
+    ctx,
+    'triangles',
+    shaderCode,
+    schema,
+    renderValues,
+    materialId,
+    transparency,
+  );
+  return createRenderable(renderItem, renderValues, state);
 }

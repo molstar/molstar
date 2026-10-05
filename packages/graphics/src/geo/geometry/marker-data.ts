@@ -11,13 +11,13 @@ import { type TextureImage, createTextureImage } from '@molstar/graphics/gl/rend
 export type MarkerType = 'instance' | 'groupInstance';
 
 export type MarkerData = {
-    uMarker: ValueCell<number>
-    tMarker: ValueCell<TextureImage<Uint8Array>>
-    uMarkerTexDim: ValueCell<Vec2>
-    markerAverage: ValueCell<number>
-    markerStatus: ValueCell<number>
-    dMarkerType: ValueCell<string>
-}
+  uMarker: ValueCell<number>;
+  tMarker: ValueCell<TextureImage<Uint8Array>>;
+  uMarkerTexDim: ValueCell<Vec2>;
+  markerAverage: ValueCell<number>;
+  markerStatus: ValueCell<number>;
+  dMarkerType: ValueCell<string>;
+};
 
 const MarkerCountLut = new Uint8Array(0x0303 + 1);
 MarkerCountLut[0x0001] = 1;
@@ -43,71 +43,71 @@ MarkerCountLut[0x0303] = 2;
  * `src\perf-tests\markers-average.ts`.
  */
 export function getMarkersAverage(array: Uint8Array, count: number): number {
-    if (count === 0) return 0;
+  if (count === 0) return 0;
 
-    const view = new Uint32Array(array.buffer, 0, array.buffer.byteLength >> 2);
-    const viewEnd = (count - 4) >> 2;
-    const backStart = 4 * viewEnd;
+  const view = new Uint32Array(array.buffer, 0, array.buffer.byteLength >> 2);
+  const viewEnd = (count - 4) >> 2;
+  const backStart = 4 * viewEnd;
 
-    let sum = 0;
-    if (viewEnd < 0) {
-        // avoid edge cases with small arrays
-        for (let i = 0; i < count; ++i) {
-            sum += array[i] && 1;
-        }
-    } else {
-        for (let i = 0; i < viewEnd; ++i) {
-            const v = view[i];
-            sum += MarkerCountLut[v & 0xFFFF] + MarkerCountLut[v >> 16];
-        }
-        for (let i = backStart; i < count; ++i) {
-            sum += array[i] && 1;
-        }
+  let sum = 0;
+  if (viewEnd < 0) {
+    // avoid edge cases with small arrays
+    for (let i = 0; i < count; ++i) {
+      sum += array[i] && 1;
     }
-    return sum / count;
+  } else {
+    for (let i = 0; i < viewEnd; ++i) {
+      const v = view[i];
+      sum += MarkerCountLut[v & 0xffff] + MarkerCountLut[v >> 16];
+    }
+    for (let i = backStart; i < count; ++i) {
+      sum += array[i] && 1;
+    }
+  }
+  return sum / count;
 }
 
 export function createMarkers(count: number, type: MarkerType, markerData?: MarkerData): MarkerData {
-    if (markerData) {
-        const markers = createTextureImage(Math.max(1, count), 1, Uint8Array, markerData.tMarker.ref.value.array);
-        markers.array.fill(0, 0, count);
-        ValueCell.updateIfChanged(markerData.uMarker, 0);
-        ValueCell.update(markerData.tMarker, markers);
-        ValueCell.update(markerData.uMarkerTexDim, Vec2.create(markers.width, markers.height));
-        ValueCell.updateIfChanged(markerData.markerAverage, 0);
-        ValueCell.updateIfChanged(markerData.markerStatus, 0);
-        ValueCell.updateIfChanged(markerData.dMarkerType, type);
-        return markerData;
-    } else {
-        const markers = createTextureImage(Math.max(1, count), 1, Uint8Array);
-        return {
-            uMarker: ValueCell.create(0),
-            tMarker: ValueCell.create(markers),
-            uMarkerTexDim: ValueCell.create(Vec2.create(markers.width, markers.height)),
-            markerAverage: ValueCell.create(0),
-            markerStatus: ValueCell.create(0),
-            dMarkerType: ValueCell.create(type),
-        };
-    }
+  if (markerData) {
+    const markers = createTextureImage(Math.max(1, count), 1, Uint8Array, markerData.tMarker.ref.value.array);
+    markers.array.fill(0, 0, count);
+    ValueCell.updateIfChanged(markerData.uMarker, 0);
+    ValueCell.update(markerData.tMarker, markers);
+    ValueCell.update(markerData.uMarkerTexDim, Vec2.create(markers.width, markers.height));
+    ValueCell.updateIfChanged(markerData.markerAverage, 0);
+    ValueCell.updateIfChanged(markerData.markerStatus, 0);
+    ValueCell.updateIfChanged(markerData.dMarkerType, type);
+    return markerData;
+  } else {
+    const markers = createTextureImage(Math.max(1, count), 1, Uint8Array);
+    return {
+      uMarker: ValueCell.create(0),
+      tMarker: ValueCell.create(markers),
+      uMarkerTexDim: ValueCell.create(Vec2.create(markers.width, markers.height)),
+      markerAverage: ValueCell.create(0),
+      markerStatus: ValueCell.create(0),
+      dMarkerType: ValueCell.create(type),
+    };
+  }
 }
 
 const emptyMarkerTexture = { array: new Uint8Array(1), width: 1, height: 1 };
 export function createEmptyMarkers(markerData?: MarkerData): MarkerData {
-    if (markerData) {
-        ValueCell.updateIfChanged(markerData.uMarker, 0);
-        ValueCell.update(markerData.tMarker, emptyMarkerTexture);
-        ValueCell.update(markerData.uMarkerTexDim, Vec2.create(1, 1));
-        ValueCell.updateIfChanged(markerData.markerAverage, 0);
-        ValueCell.updateIfChanged(markerData.markerStatus, 0);
-        return markerData;
-    } else {
-        return {
-            uMarker: ValueCell.create(0),
-            tMarker: ValueCell.create(emptyMarkerTexture),
-            uMarkerTexDim: ValueCell.create(Vec2.create(1, 1)),
-            markerAverage: ValueCell.create(0),
-            markerStatus: ValueCell.create(0),
-            dMarkerType: ValueCell.create('groupInstance'),
-        };
-    }
+  if (markerData) {
+    ValueCell.updateIfChanged(markerData.uMarker, 0);
+    ValueCell.update(markerData.tMarker, emptyMarkerTexture);
+    ValueCell.update(markerData.uMarkerTexDim, Vec2.create(1, 1));
+    ValueCell.updateIfChanged(markerData.markerAverage, 0);
+    ValueCell.updateIfChanged(markerData.markerStatus, 0);
+    return markerData;
+  } else {
+    return {
+      uMarker: ValueCell.create(0),
+      tMarker: ValueCell.create(emptyMarkerTexture),
+      uMarkerTexDim: ValueCell.create(Vec2.create(1, 1)),
+      markerAverage: ValueCell.create(0),
+      markerStatus: ValueCell.create(0),
+      dMarkerType: ValueCell.create('groupInstance'),
+    };
+  }
 }

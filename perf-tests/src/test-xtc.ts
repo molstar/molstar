@@ -10,18 +10,18 @@ import { parseXtc } from '@molstar/io/reader/xtc/parser';
 console.log('reading');
 console.time('read');
 fs.readFile('C:\\Projects\\mol-star\\molstar\\build\\tests\\test.xtc', async (err, data) => {
-    console.log(err);
-    console.timeEnd('read');
-    console.time('parse');
-    const ret = await parseXtc(new Uint8Array(data)).run(o => {
-        console.log(`${o.root.progress.current}/${o.root.progress.max}`);
-    }, 1000);
-    console.timeEnd('parse');
+  console.log(err);
+  console.timeEnd('read');
+  console.time('parse');
+  const ret = await parseXtc(new Uint8Array(data)).run((o) => {
+    console.log(`${o.root.progress.current}/${o.root.progress.max}`);
+  }, 1000);
+  console.timeEnd('parse');
 
-    if (ret.isError) {
-        console.log(ret.message);
-    } else {
-        console.log(ret.result?.frames.length);
-        console.log(ret.result?.frames[0].x[250]);
-    }
+  if (ret.isError) {
+    console.log(ret.message);
+  } else {
+    console.log(ret.result?.frames.length);
+    console.log(ret.result?.frames[0].x[250]);
+  }
 });

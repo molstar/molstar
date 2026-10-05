@@ -19,23 +19,24 @@ import { type Segmentation_Data_Database, Segmentation_Data_Schema } from './cif
 import { SF_Schema, type SF_Database } from './cif/schema/sf.js';
 import { StringLike } from '@molstar/core/util/string-like';
 
-
 export const CIF = {
-    parse: (data: StringLike | Uint8Array) => StringLike.is(data) ? parseCifText(data) : parseCifBinary(data),
-    parseText: parseCifText,
-    parseBinary: parseCifBinary,
-    toDatabaseCollection,
-    toDatabase,
-    schema: {
-        mmCIF: (frame: CifFrame) => toDatabase<mmCIF_Schema, mmCIF_Database>(mmCIF_Schema, frame),
-        CCD: (frame: CifFrame) => toDatabase<CCD_Schema, CCD_Database>(CCD_Schema, frame),
-        BIRD: (frame: CifFrame) => toDatabase<BIRD_Schema, BIRD_Database>(BIRD_Schema, frame),
-        dic: (frame: CifFrame) => toDatabase<dic_Schema, dic_Database>(dic_Schema, frame),
-        cifCore: (frame: CifFrame) => toDatabase<CifCore_Schema, CifCore_Database>(CifCore_Schema, frame, CifCore_Aliases),
-        densityServer: (frame: CifFrame) => toDatabase<DensityServer_Data_Schema, DensityServer_Data_Database>(DensityServer_Data_Schema, frame),
-        segmentation: (frame: CifFrame) => toDatabase<Segmentation_Data_Schema, Segmentation_Data_Database>(Segmentation_Data_Schema, frame),
-        SF: (frame: CifFrame) => toDatabase<SF_Schema, SF_Database>(SF_Schema, frame),
-    }
+  parse: (data: StringLike | Uint8Array) => (StringLike.is(data) ? parseCifText(data) : parseCifBinary(data)),
+  parseText: parseCifText,
+  parseBinary: parseCifBinary,
+  toDatabaseCollection,
+  toDatabase,
+  schema: {
+    mmCIF: (frame: CifFrame) => toDatabase<mmCIF_Schema, mmCIF_Database>(mmCIF_Schema, frame),
+    CCD: (frame: CifFrame) => toDatabase<CCD_Schema, CCD_Database>(CCD_Schema, frame),
+    BIRD: (frame: CifFrame) => toDatabase<BIRD_Schema, BIRD_Database>(BIRD_Schema, frame),
+    dic: (frame: CifFrame) => toDatabase<dic_Schema, dic_Database>(dic_Schema, frame),
+    cifCore: (frame: CifFrame) => toDatabase<CifCore_Schema, CifCore_Database>(CifCore_Schema, frame, CifCore_Aliases),
+    densityServer: (frame: CifFrame) =>
+      toDatabase<DensityServer_Data_Schema, DensityServer_Data_Database>(DensityServer_Data_Schema, frame),
+    segmentation: (frame: CifFrame) =>
+      toDatabase<Segmentation_Data_Schema, Segmentation_Data_Database>(Segmentation_Data_Schema, frame),
+    SF: (frame: CifFrame) => toDatabase<SF_Schema, SF_Database>(SF_Schema, frame),
+  },
 };
 
 export * from './cif/data-model.js';

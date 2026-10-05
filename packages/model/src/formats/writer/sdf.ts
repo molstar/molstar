@@ -8,16 +8,16 @@ import { MolEncoder } from './mol/encoder.js';
 import type { Encoder } from '@molstar/io/writer/cif/encoder';
 
 export namespace SdfWriter {
-    export interface EncoderParams {
-        encoderName?: string,
-        // whether to write ModelServer meta-information (query & params)
-        metaInformation?: boolean,
-        // whether to write hydrogen atoms
-        hydrogens?: boolean
-    }
+  export interface EncoderParams {
+    encoderName?: string;
+    // whether to write ModelServer meta-information (query & params)
+    metaInformation?: boolean;
+    // whether to write hydrogen atoms
+    hydrogens?: boolean;
+  }
 
-    export function createEncoder(params?: EncoderParams): Encoder {
-        const { encoderName = 'mol*', metaInformation = true, hydrogens = true } = params || {};
-        return new MolEncoder(encoderName, metaInformation, hydrogens, '$$$$');
-    }
+  export function createEncoder(params?: EncoderParams): Encoder {
+    const { encoderName = 'mol*', metaInformation = true, hydrogens = true } = params || {};
+    return new MolEncoder(encoderName, metaInformation, hydrogens, '$$$$');
+  }
 }

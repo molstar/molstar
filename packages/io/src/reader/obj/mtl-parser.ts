@@ -16,37 +16,37 @@ import type { MtlFile, MtlMaterial } from './schema.js';
  * All other directives (Ka, Ks, Ns, Ni, illum, d, map_*, etc.) are ignored.
  */
 export function parseMtl(data: string): MtlFile {
-    const materials = new Map<string, MtlMaterial>();
-    let currentName: string | null = null;
-    let currentKd: Color = Color(0x808080); // default grey
+  const materials = new Map<string, MtlMaterial>();
+  let currentName: string | null = null;
+  let currentKd: Color = Color(0x808080); // default grey
 
-    const add = () => {
-        if (currentName !== null) {
-            materials.set(currentName, { Kd: currentKd });
-        }
-    };
-
-    const lines = data.split(/\r?\n/);
-    for (const raw of lines) {
-        const line = raw.trim();
-        if (line.length === 0 || line.charCodeAt(0) === 35 /* '#' */) continue;
-
-        if (line.startsWith('newmtl')) {
-            add(); // Add previous material
-            currentName = line.slice(6).trim();
-            currentKd = Color(0x808080); // reset to default
-        } else if (line.startsWith('Kd')) {
-            const parts = line.slice(2).trim().split(/\s+/);
-            if (parts.length >= 3) {
-                const r = parseFloat(parts[0]);
-                const g = parseFloat(parts[1]);
-                const b = parseFloat(parts[2]);
-                currentKd = Color.fromNormalizedRgb(r, g, b);
-            }
-        }
-        // All other directives are intentionally ignored
+  const add = () => {
+    if (currentName !== null) {
+      materials.set(currentName, { Kd: currentKd });
     }
+  };
 
-    add(); // Add last material
-    return materials;
+  const lines = data.split(/\r?\n/);
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (line.length === 0 || line.charCodeAt(0) === 35 /* '#' */) continue;
+
+    if (line.startsWith('newmtl')) {
+      add(); // Add previous material
+      currentName = line.slice(6).trim();
+      currentKd = Color(0x808080); // reset to default
+    } else if (line.startsWith('Kd')) {
+      const parts = line.slice(2).trim().split(/\s+/);
+      if (parts.length >= 3) {
+        const r = parseFloat(parts[0]);
+        const g = parseFloat(parts[1]);
+        const b = parseFloat(parts[2]);
+        currentKd = Color.fromNormalizedRgb(r, g, b);
+      }
+    }
+    // All other directives are intentionally ignored
+  }
+
+  add(); // Add last material
+  return materials;
 }

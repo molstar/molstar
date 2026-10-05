@@ -17,82 +17,95 @@ import pngjs from 'pngjs';
 import jpegjs from 'jpeg-js';
 
 import { Download, ParseCif } from '@molstar/plugin/state/transforms/data';
-import { ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif } from '@molstar/plugin/state/transforms/model';
+import {
+  ModelFromTrajectory,
+  StructureComponent,
+  StructureFromModel,
+  TrajectoryFromMmCif,
+} from '@molstar/plugin/state/transforms/model';
 import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/representation';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/spec';
 import { type ExternalModules, STYLIZED_POSTPROCESSING } from '@molstar/plugin-headless/screenshot';
 import { setFSModule } from '@molstar/core/util/data-source';
 
-
 setFSModule(fs);
 
 interface Args {
-    pdbId: string,
-    outDirectory: string
+  pdbId: string;
+  outDirectory: string;
 }
 
 function parseArguments(): Args {
-    const parser = new ArgumentParser({ description: 'Example command-line application generating images of PDB structures' });
-    parser.add_argument('pdbId', { help: 'PDB identifier' });
-    parser.add_argument('outDirectory', { help: 'Directory for outputs' });
-    const args = parser.parse_args();
-    return { ...args };
+  const parser = new ArgumentParser({
+    description: 'Example command-line application generating images of PDB structures',
+  });
+  parser.add_argument('pdbId', { help: 'PDB identifier' });
+  parser.add_argument('outDirectory', { help: 'Directory for outputs' });
+  const args = parser.parse_args();
+  return { ...args };
 }
 
 async function main() {
-    const args = parseArguments();
-    const gl = loadNativeModule('gl');
-    const url = `https://www.ebi.ac.uk/pdbe/entry-files/download/${args.pdbId}.bcif`;
-    console.log('PDB ID:', args.pdbId);
-    console.log('Source URL:', url);
-    console.log('Outputs:', args.outDirectory);
+  const args = parseArguments();
+  const gl = loadNativeModule('gl');
+  const url = `https://www.ebi.ac.uk/pdbe/entry-files/download/${args.pdbId}.bcif`;
+  console.log('PDB ID:', args.pdbId);
+  console.log('Source URL:', url);
+  console.log('Outputs:', args.outDirectory);
 
-    // Create a headless plugin
-    const externalModules: ExternalModules = { gl, pngjs, 'jpeg-js': jpegjs };
-    const plugin = new HeadlessPluginContext(externalModules, DefaultPluginSpec(), { width: 800, height: 800 });
-    await plugin.init();
+  // Create a headless plugin
+  const externalModules: ExternalModules = { gl, pngjs, 'jpeg-js': jpegjs };
+  const plugin = new HeadlessPluginContext(externalModules, DefaultPluginSpec(), { width: 800, height: 800 });
+  await plugin.init();
 
-    // Download and visualize data in the plugin
-    const update = plugin.build();
-    const structure = update.toRoot()
-        .apply(Download, { url, isBinary: true })
-        .apply(ParseCif)
-        .apply(TrajectoryFromMmCif)
-        .apply(ModelFromTrajectory)
-        .apply(StructureFromModel);
-    const polymer = structure.apply(StructureComponent, { type: { name: 'static', params: 'polymer' } });
-    const ligand = structure.apply(StructureComponent, { type: { name: 'static', params: 'ligand' } });
-    polymer.apply(StructureRepresentation3D, {
-        type: { name: 'cartoon', params: { alpha: 1 } },
-        colorTheme: { name: 'sequence-id', params: {} },
-    });
-    ligand.apply(StructureRepresentation3D, {
-        type: { name: 'ball-and-stick', params: { sizeFactor: 1 } },
-        colorTheme: { name: 'element-symbol', params: { carbonColor: { name: 'element-symbol', params: {} } } },
-        sizeTheme: { name: 'physical', params: {} },
-    });
-    await update.commit();
+  // Download and visualize data in the plugin
+  const update = plugin.build();
+  const structure = update
+    .toRoot()
+    .apply(Download, { url, isBinary: true })
+    .apply(ParseCif)
+    .apply(TrajectoryFromMmCif)
+    .apply(ModelFromTrajectory)
+    .apply(StructureFromModel);
+  const polymer = structure.apply(StructureComponent, { type: { name: 'static', params: 'polymer' } });
+  const ligand = structure.apply(StructureComponent, { type: { name: 'static', params: 'ligand' } });
+  polymer.apply(StructureRepresentation3D, {
+    type: { name: 'cartoon', params: { alpha: 1 } },
+    colorTheme: { name: 'sequence-id', params: {} },
+  });
+  ligand.apply(StructureRepresentation3D, {
+    type: { name: 'ball-and-stick', params: { sizeFactor: 1 } },
+    colorTheme: { name: 'element-symbol', params: { carbonColor: { name: 'element-symbol', params: {} } } },
+    sizeTheme: { name: 'physical', params: {} },
+  });
+  await update.commit();
 
-    // Export images
-    fs.mkdirSync(args.outDirectory, { recursive: true });
-    await plugin.saveImage(path.join(args.outDirectory, 'basic.png'));
-    await plugin.saveImage(path.join(args.outDirectory, 'basic.jpg'));
-    await plugin.saveImage(path.join(args.outDirectory, 'large.png'), { width: 1600, height: 1200 });
-    await plugin.saveImage(path.join(args.outDirectory, 'large.jpg'), { width: 1600, height: 1200 });
-    await plugin.saveImage(path.join(args.outDirectory, 'stylized.png'), undefined, STYLIZED_POSTPROCESSING);
-    await plugin.saveImage(path.join(args.outDirectory, 'stylized.jpg'), undefined, STYLIZED_POSTPROCESSING);
-    await plugin.saveImage(path.join(args.outDirectory, 'stylized-compressed-jpg.jpg'), undefined, STYLIZED_POSTPROCESSING, undefined, 10);
+  // Export images
+  fs.mkdirSync(args.outDirectory, { recursive: true });
+  await plugin.saveImage(path.join(args.outDirectory, 'basic.png'));
+  await plugin.saveImage(path.join(args.outDirectory, 'basic.jpg'));
+  await plugin.saveImage(path.join(args.outDirectory, 'large.png'), { width: 1600, height: 1200 });
+  await plugin.saveImage(path.join(args.outDirectory, 'large.jpg'), { width: 1600, height: 1200 });
+  await plugin.saveImage(path.join(args.outDirectory, 'stylized.png'), undefined, STYLIZED_POSTPROCESSING);
+  await plugin.saveImage(path.join(args.outDirectory, 'stylized.jpg'), undefined, STYLIZED_POSTPROCESSING);
+  await plugin.saveImage(
+    path.join(args.outDirectory, 'stylized-compressed-jpg.jpg'),
+    undefined,
+    STYLIZED_POSTPROCESSING,
+    undefined,
+    10,
+  );
 
-    // Export state loadable in Mol* Viewer
-    await plugin.saveStateSnapshot(path.join(args.outDirectory, 'molstar-state.molj'));
+  // Export state loadable in Mol* Viewer
+  await plugin.saveStateSnapshot(path.join(args.outDirectory, 'molstar-state.molj'));
 
-    // Cleanup
-    await plugin.clear();
-    plugin.dispose();
+  // Cleanup
+  await plugin.clear();
+  plugin.dispose();
 }
 
-main().catch(error => {
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
 });

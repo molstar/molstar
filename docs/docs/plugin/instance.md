@@ -1,25 +1,37 @@
 # Creating Plugin Instance
 
-
 ## Intro
 
-What is a plugin? A plugin is a collection of modules that provide functionality to the `Mol*` UI. The plugin is responsible for managing the state of the viewer, internal and user interactions. It has been a previous point of confusion for new users of `Mol*` to associate the __viewer__ part of the library with what is further referred to as the __plugin__. These two are closely connected in the `molstar-plugin-ui` module, which is the user-facing part of the library and ultimately provides the viewer, but they are ultimately distinct. 
+What is a plugin? A plugin is a collection of modules that provide functionality to the `Mol*` UI. The plugin is
+responsible for managing the state of the viewer, internal and user interactions. It has been a previous point of
+confusion for new users of `Mol*` to associate the **viewer** part of the library with what is further referred to as
+the **plugin**. These two are closely connected in the `molstar-plugin-ui` module, which is the user-facing part of the
+library and ultimately provides the viewer, but they are ultimately distinct.
 
-
-It is recommended that you inspect the general class structure of [`PluginInitWrapper`](https://github.com/molstar/molstar/blob/6edbae80db340134341631f669eec86543a0f1a8/src/mol-plugin-ui/plugin.tsx#L41), [`PluginUIContext`](https://github.com/molstar/molstar/blob/6edbae80db340134341631f669eec86543a0f1a8/src/mol-plugin-ui/context.ts#L12) and [`PluginUIComponent`](https://github.com/molstar/molstar/blob/6edbae80db340134341631f669eec86543a0f1a8/src/mol-plugin-ui/base.tsx#L16) to better understand the flow of data and events in the plugin. 
-A passing analogy is that a [ `PluginContext` ](https://github.com/molstar/molstar/blob/6edbae80db340134341631f669eec86543a0f1a8/src/mol-plugin/context.ts#L71) is the engine that powers computation, rendering, events and subscriptions inside the molstar UI. All UI components depend on `PluginContext`. 
-
-
+It is recommended that you inspect the general class structure of
+[`PluginInitWrapper`](https://github.com/molstar/molstar/blob/6edbae80db340134341631f669eec86543a0f1a8/src/mol-plugin-ui/plugin.tsx#L41),
+[`PluginUIContext`](https://github.com/molstar/molstar/blob/6edbae80db340134341631f669eec86543a0f1a8/src/mol-plugin-ui/context.ts#L12)
+and
+[`PluginUIComponent`](https://github.com/molstar/molstar/blob/6edbae80db340134341631f669eec86543a0f1a8/src/mol-plugin-ui/base.tsx#L16)
+to better understand the flow of data and events in the plugin. A passing analogy is that a
+[ `PluginContext` ](https://github.com/molstar/molstar/blob/6edbae80db340134341631f669eec86543a0f1a8/src/mol-plugin/context.ts#L71)
+is the engine that powers computation, rendering, events and subscriptions inside the molstar UI. All UI components
+depend on `PluginContext`.
 
 There are 4 basic ways of instantiating the Mol* plugin.
 
-## ``Viewer`` wrapper
+## `Viewer` wrapper
 
-- The most basic usage is to use the ``Viewer`` wrapper. This is best suited for use cases that do not require custom behavior and are mostly about just displaying a structure.
-- See ``Viewer`` class is defined in [src/apps/viewer/app.ts](https://github.com/molstar/molstar/blob/master/src/apps/viewer/app.ts) for available methods
-- See [options.ts](https://github.com/molstar/molstar/blob/master/src/apps/viewer/options.ts) for available plugin options
-- See [embedded.html](https://github.com/molstar/molstar/blob/master/src/apps/viewer/embedded.html) and [mvs.html](https://github.com/molstar/molstar/blob/master/src/apps/viewer/mvs.html) for example usage
-- Importing `molstar.js` will expose `molstar.lib` namespace that allow accessing various functionality without a bundler such as WebPack or esbuild. See the `mvs` example above for basic usage.
+- The most basic usage is to use the `Viewer` wrapper. This is best suited for use cases that do not require custom
+  behavior and are mostly about just displaying a structure.
+- See `Viewer` class is defined in
+  [src/apps/viewer/app.ts](https://github.com/molstar/molstar/blob/master/src/apps/viewer/app.ts) for available methods
+- See [options.ts](https://github.com/molstar/molstar/blob/master/src/apps/viewer/options.ts) for available plugin
+  options
+- See [embedded.html](https://github.com/molstar/molstar/blob/master/src/apps/viewer/embedded.html) and
+  [mvs.html](https://github.com/molstar/molstar/blob/master/src/apps/viewer/mvs.html) for example usage
+- Importing `molstar.js` will expose `molstar.lib` namespace that allow accessing various functionality without a
+  bundler such as WebPack or esbuild. See the `mvs` example above for basic usage.
 - Alternative color themes can be used by importing `theme/dark.css` (or `light/blue`) instead of `molstar.css`
 - See `examples/react` for ways of using the plugin with React.
 
@@ -27,20 +39,23 @@ There are 4 basic ways of instantiating the Mol* plugin.
 
 - Download `molstar` NPM package and use the files from `build/viewer` diractory
 - Use `jsdelivr` CDN
-  - `<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/molstar@latest/build/viewer/molstar.js" />`
-  - `<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/molstar@latest/build/viewer/molstar.css" />`
-  - `@latest` can be replaced by a specific Mol* version, e.g., `@5.4.2`
+    - `<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/molstar@latest/build/viewer/molstar.js" />`
+    - `<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/molstar@latest/build/viewer/molstar.css" />`
+    - `@latest` can be replaced by a specific Mol* version, e.g., `@5.4.2`
 - Clone & build the GitHub repository
-  - This option allows for quite straightforward extension customization, e.g., not including movie export, which reduces the bundle size by ~0.5MB
+    - This option allows for quite straightforward extension customization, e.g., not including movie export, which
+      reduces the bundle size by ~0.5MB
 
 ### Bundle size
 
-By default, the `Viewer` includes all the available extensions. This increases the bundle size significantly, especially by including the `mp4-export`, which is responsible for almost `0.5MB` of compressed bundle size. 
-It is quite easy to reduce this bundle size by cloning the Mol\* repository, editing [extensions.ts](https://github.com/molstar/molstar/blob/master/src/apps/viewer/options.ts) and rebuilding it with `npm run build:apps`. The new build will be available 
-in the `build/viewer` directory (the JS file you will find there is uncompressed, but your hosting setup should include automatic gzip compression, significantly reducing the size).
+By default, the `Viewer` includes all the available extensions. This increases the bundle size significantly, especially
+by including the `mp4-export`, which is responsible for almost `0.5MB` of compressed bundle size. It is quite easy to
+reduce this bundle size by cloning the Mol\* repository, editing
+[extensions.ts](https://github.com/molstar/molstar/blob/master/src/apps/viewer/options.ts) and rebuilding it with
+`npm run build:apps`. The new build will be available in the `build/viewer` directory (the JS file you will find there
+is uncompressed, but your hosting setup should include automatic gzip compression, significantly reducing the size).
 
 Alternatively, you can explore building your own "viewer" using the base Mol\* library. For this, see the options below.
-
 
 ### Example
 
@@ -54,9 +69,9 @@ Alternatively, you can explore building your own "viewer" using the base Mol\* l
         height: 600px;
     }
 </style>
-<!-- 
+<!--
     molstar.js and .css are obtained from
-    - the folder build/viewer after cloning and building the molstar package 
+    - the folder build/viewer after cloning and building the molstar package
     - from the build/viewer folder in the Mol* NPM package
 -->
 <link rel="stylesheet" type="text/css" href="./molstar.css" />
@@ -88,7 +103,7 @@ Alternatively, you can explore building your own "viewer" using the base Mol\* l
 
 ### Using WebPack/esbuild/...
 
-When using WebPack (or other bundler) with the Mol* NPM package installed, the viewer class can be imported using 
+When using WebPack (or other bundler) with the Mol* NPM package installed, the viewer class can be imported using
 
 ```ts
 import { Viewer } from 'molstar/lib/apps/viewer/app'
@@ -98,12 +113,16 @@ function initViewer(target: string | HTMLElement) {
 }
 ```
 
-## ``PluginContext`` with built-in React UI
+## `PluginContext` with built-in React UI
 
-- For more customization options it is possible to use the [``PluginContext``](https://github.com/molstar/molstar/blob/master/src/mol-plugin/context.ts) directly.
-- When creating the plugin instance it is possible to customize the [``PluginSpec``](https://github.com/molstar/molstar/blob/master/src/mol-plugin/spec.ts).
-- The default [``PluginSpec``](https://github.com/molstar/molstar/blob/master/src/mol-plugin/spec.ts) is available [here](https://github.com/molstar/molstar/blob/master/src/mol-plugin/spec.ts).
-- [``PluginConfig``](https://github.com/molstar/molstar/blob/master/src/mol-plugin/config.ts) object provides additional customization options.
+- For more customization options it is possible to use the
+  [`PluginContext`](https://github.com/molstar/molstar/blob/master/src/mol-plugin/context.ts) directly.
+- When creating the plugin instance it is possible to customize the
+  [`PluginSpec`](https://github.com/molstar/molstar/blob/master/src/mol-plugin/spec.ts).
+- The default [`PluginSpec`](https://github.com/molstar/molstar/blob/master/src/mol-plugin/spec.ts) is available
+  [here](https://github.com/molstar/molstar/blob/master/src/mol-plugin/spec.ts).
+- [`PluginConfig`](https://github.com/molstar/molstar/blob/master/src/mol-plugin/config.ts) object provides additional
+  customization options.
 - See the [Viewer State Management](viewer-state.md) section for more information on customizing things like background.
 - See the [Data State Management](data-state.md) section for more information on build the state.
 
@@ -139,8 +158,8 @@ createPlugin(document.getElementById('app')!); // app is a <div> element with po
 
 To use the plugin (with the React UI) inside another React app:
 
-A single-plugin setup is shown the example below. In order to initialize multiple
-plugins, each with its own context and viewport, some extra steps are required (docs section to be added).
+A single-plugin setup is shown the example below. In order to initialize multiple plugins, each with its own context and
+viewport, some extra steps are required (docs section to be added).
 
 ```ts
 import { useEffect, createRef } from "react";
@@ -196,11 +215,15 @@ export function MolStarWrapper() {
 
 ```
 
+Furthermore, if it is desirable in your project to use the `molstar`'s React UI components, but you wish to alter or
+rearrange the layout, you should take a look at the signatures of
+[ `PluginUIComponent` ](https://github.com/molstar/molstar/blob/6edbae80db340134341631f669eec86543a0f1a8/src/mol-plugin-ui/base.tsx#L16)
+which every "control" subclasses.
 
-Furthermore, if it is desirable in your project to use the `molstar`'s React UI components, but you wish to alter or rearrange the layout, you should take a look at the signatures of [ `PluginUIComponent` ](https://github.com/molstar/molstar/blob/6edbae80db340134341631f669eec86543a0f1a8/src/mol-plugin-ui/base.tsx#L16) which every "control" subclasses. 
+[ `SequenceView` ](https://github.com/molstar/molstar/blob/6edbae80db340134341631f669eec86543a0f1a8/src/mol-plugin-ui/sequence.tsx#L221C4-L221C4),
+for example, can be used separately from the `PluginUI`. Yet you would need to pass the `PluginUIContext` to it in order
+for it to observe the changes in the state of the plugin. This can be done via a `PluginContextContainer`:
 
-
-[ `SequenceView` ](https://github.com/molstar/molstar/blob/6edbae80db340134341631f669eec86543a0f1a8/src/mol-plugin-ui/sequence.tsx#L221C4-L221C4), for example, can be used separately from the `PluginUI`. Yet you would need to pass the `PluginUIContext` to it in order for it to observe the changes in the state of the plugin. This can be done via a `PluginContextContainer`:
 ```typescript
 // your_app.plugin: PluginUIContext
 ...
@@ -246,9 +269,10 @@ function MolStar({ model }: { model: MolStarWrapper }) {
 }
 ```
 
-## ``PluginContext`` without built-in React UI
+## `PluginContext` without built-in React UI
 
-- The [``PluginContext``](https://github.com/molstar/molstar/blob/master/src/mol-plugin/context.ts) can be instantiated without using the default React UI.
+- The [`PluginContext`](https://github.com/molstar/molstar/blob/master/src/mol-plugin/context.ts) can be instantiated
+  without using the default React UI.
 
 ```HTML
 <div id='molstar-parent' style='position: absolute; top: 0; left: 0; right: 0; bottom: 0'>
@@ -280,8 +304,8 @@ async function init() {
         return;
     }
 
-    // Example url:"https://files.rcsb.org/download/3j7z.pdb" 
-    // Example url:"https://files.rcsb.org/download/5AFI.cif" 
+    // Example url:"https://files.rcsb.org/download/3j7z.pdb"
+    // Example url:"https://files.rcsb.org/download/5AFI.cif"
     const data = await plugin.builders.data.download({ url: '...' }, { state: { isGhost: true } });
     const trajectory = await plugin.builders.structure.parseTrajectory(data, format); //format is 'mmcif' or 'pdb' etc.
     await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
@@ -289,9 +313,9 @@ async function init() {
 
 ```
 
-## ``Canvas3D`` without built-in state management
+## `Canvas3D` without built-in state management
 
-- The ``PluginContext`` object from the above examples can be completely omitted.
+- The `PluginContext` object from the above examples can be completely omitted.
 - See [Browser Tests](https://github.com/molstar/molstar/tree/master/src/tests/browser) for example usage.
 
 ```ts

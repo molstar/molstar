@@ -6,11 +6,11 @@
  */
 
 export const ColorThemeCategory = {
-    Atom: 'Atom Property',
-    Chain: 'Chain Property',
-    Residue: 'Residue Property',
-    Symmetry: 'Symmetry',
-    Validation: 'Validation',
-    Particle: 'Particle',
-    Misc: 'Miscellaneous',
+  Atom: 'Atom Property',
+  Chain: 'Chain Property',
+  Residue: 'Residue Property',
+  Symmetry: 'Symmetry',
+  Validation: 'Validation',
+  Particle: 'Particle',
+  Misc: 'Miscellaneous',
 };

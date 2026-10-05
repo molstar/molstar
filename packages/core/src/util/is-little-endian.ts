@@ -5,10 +5,10 @@
  */
 
 export function isLittleEndian() {
-    const arrayBuffer = new ArrayBuffer(2);
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const uint16array = new Uint16Array(arrayBuffer);
-    uint8Array[0] = 0xAA;
-    uint8Array[1] = 0xBB;
-    return uint16array[0] === 0xBBAA;
+  const arrayBuffer = new ArrayBuffer(2);
+  const uint8Array = new Uint8Array(arrayBuffer);
+  const uint16array = new Uint16Array(arrayBuffer);
+  uint8Array[0] = 0xaa;
+  uint8Array[1] = 0xbb;
+  return uint16array[0] === 0xbbaa;
 }

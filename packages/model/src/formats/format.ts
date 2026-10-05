@@ -5,4 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export interface ModelFormat<T = unknown> { readonly kind: string, name: string, data: T }
+export interface ModelFormat<T = unknown> {
+  readonly kind: string;
+  name: string;
+  data: T;
+}

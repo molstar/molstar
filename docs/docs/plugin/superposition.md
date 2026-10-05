@@ -1,6 +1,7 @@
 # Structure Superposition
 
-Mol* provides utilities for superposing protein structures, including both sequence-independent (RMSD-based) and structure-based (TM-align) methods.
+Mol* provides utilities for superposing protein structures, including both sequence-independent (RMSD-based) and
+structure-based (TM-align) methods.
 
 ## RMSD-based Superposition
 
@@ -29,7 +30,9 @@ const transforms = superpose([sel1, sel2]);
 
 ## TM-align Superposition
 
-TM-align is a structure-based alignment algorithm that produces the TM-score, a length-independent metric for comparing protein structures. Unlike RMSD, TM-score is normalized to [0, 1] and is more robust for comparing proteins of different sizes.
+TM-align is a structure-based alignment algorithm that produces the TM-score, a length-independent metric for comparing
+protein structures. Unlike RMSD, TM-score is normalized to [0, 1] and is more robust for comparing proteins of different
+sizes.
 
 ### Basic Usage
 
@@ -56,16 +59,16 @@ console.log('Aligned residues:', result.alignedLength);
 
 The `tmAlign` function returns a `TMAlignResult` object with the following properties:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `bTransform` | `Mat4` | Transformation matrix to superpose structure B onto A |
-| `tmScoreA` | `number` | TM-score normalized by length of structure A |
-| `tmScoreB` | `number` | TM-score normalized by length of structure B |
-| `rmsd` | `number` | RMSD of aligned residue pairs (in Angstroms) |
-| `alignedLength` | `number` | Number of aligned residue pairs |
-| `sequenceIdentity` | `number` | Sequence identity of aligned residues (0-1) |
-| `alignmentA` | `number[]` | Indices of aligned residues in structure A |
-| `alignmentB` | `number[]` | Indices of aligned residues in structure B |
+| Property           | Type       | Description                                           |
+| ------------------ | ---------- | ----------------------------------------------------- |
+| `bTransform`       | `Mat4`     | Transformation matrix to superpose structure B onto A |
+| `tmScoreA`         | `number`   | TM-score normalized by length of structure A          |
+| `tmScoreB`         | `number`   | TM-score normalized by length of structure B          |
+| `rmsd`             | `number`   | RMSD of aligned residue pairs (in Angstroms)          |
+| `alignedLength`    | `number`   | Number of aligned residue pairs                       |
+| `sequenceIdentity` | `number`   | Sequence identity of aligned residues (0-1)           |
+| `alignmentA`       | `number[]` | Indices of aligned residues in structure A            |
+| `alignmentB`       | `number[]` | Indices of aligned residues in structure B            |
 
 ### Understanding TM-score
 
@@ -74,12 +77,14 @@ The TM-score is calculated as:
 $$\text{TM-score} = \frac{1}{L} \sum_{i=1}^{L_{ali}} \frac{1}{1 + (d_i/d_0)^2}$$
 
 Where:
+
 - $L$ is the length of the reference protein
 - $L_{ali}$ is the number of aligned residues
 - $d_i$ is the distance between the $i$-th pair of aligned residues after superposition
 - $d_0 = 1.24 \sqrt[3]{L - 15} - 1.8$ is a length-dependent normalization factor
 
 **TM-score interpretation:**
+
 - TM-score > 0.5: Generally indicates proteins with the same fold
 - TM-score > 0.17: Generally indicates proteins with random structural similarity
 
@@ -148,5 +153,7 @@ async function alignStructures(plugin: PluginContext, structure1: any, structure
 
 ## References
 
-- Zhang Y, Skolnick J. "TM-align: a protein structure alignment algorithm based on the TM-score." *Nucleic Acids Research* 33, 2302-2309 (2005). DOI: [10.1093/nar/gki524](https://doi.org/10.1093/nar/gki524)
-- Kabsch W. "A solution for the best rotation to relate two sets of vectors." *Acta Crystallographica* A32, 922-923 (1976).
+- Zhang Y, Skolnick J. "TM-align: a protein structure alignment algorithm based on the TM-score." _Nucleic Acids
+  Research_ 33, 2302-2309 (2005). DOI: [10.1093/nar/gki524](https://doi.org/10.1093/nar/gki524)
+- Kabsch W. "A solution for the best rotation to relate two sets of vectors." _Acta Crystallographica_ A32, 922-923
+  (1976).

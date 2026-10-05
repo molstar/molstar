@@ -13,24 +13,24 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Cylinders } from '@molstar/graphics/geo/geometry/cylinders/cylinders';
 
 export function createCylinders() {
-    const cylinders = Cylinders.createEmpty();
-    const props = PD.getDefaultValues(Cylinders.Params);
-    const values = Cylinders.Utils.createValuesSimple(cylinders, props, ColorNames.orange, 1);
-    const state = Cylinders.Utils.createRenderableState(props);
-    return createRenderObject('cylinders', values, state, -1);
+  const cylinders = Cylinders.createEmpty();
+  const props = PD.getDefaultValues(Cylinders.Params);
+  const values = Cylinders.Utils.createValuesSimple(cylinders, props, ColorNames.orange, 1);
+  const state = Cylinders.Utils.createRenderableState(props);
+  return createRenderObject('cylinders', values, state, -1);
 }
 
 describe('cylinders', () => {
-    const ctx = tryGetGLContext(32, 32, { fragDepth: true });
+  const ctx = tryGetGLContext(32, 32, { fragDepth: true });
 
-    (ctx ? it : it.skip)('basic', async () => {
-        const ctx = getGLContext(32, 32);
-        const scene = Scene.create(ctx);
-        const cylinders = createCylinders();
-        scene.add(cylinders);
-        setDebugMode(true);
-        expect(() => scene.commit()).not.toThrow();
-        setDebugMode(false);
-        ctx.destroy();
-    });
+  (ctx ? it : it.skip)('basic', async () => {
+    const ctx = getGLContext(32, 32);
+    const scene = Scene.create(ctx);
+    const cylinders = createCylinders();
+    scene.add(cylinders);
+    setDebugMode(true);
+    expect(() => scene.commit()).not.toThrow();
+    setDebugMode(false);
+    ctx.destroy();
+  });
 });

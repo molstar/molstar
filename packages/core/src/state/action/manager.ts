@@ -14,88 +14,88 @@ import { RxEventHelper } from '@molstar/core/util/rx-event-helper';
 export { StateActionManager };
 
 class StateActionManager {
-    private ev = RxEventHelper.create();
-    private actions: Map<StateAction['id'], StateAction> = new Map();
-    private fromTypeIndex = new Map<StateObject.Type, StateAction[]>();
+  private ev = RxEventHelper.create();
+  private actions: Map<StateAction['id'], StateAction> = new Map();
+  private fromTypeIndex = new Map<StateObject.Type, StateAction[]>();
 
-    readonly events = {
-        added: this.ev<undefined>(),
-        removed: this.ev<undefined>(),
-    };
+  readonly events = {
+    added: this.ev<undefined>(),
+    removed: this.ev<undefined>(),
+  };
 
-    add(actionOrTransformer: StateAction | StateTransformer) {
-        const action = StateTransformer.is(actionOrTransformer) ? actionOrTransformer.toAction() : actionOrTransformer;
+  add(actionOrTransformer: StateAction | StateTransformer) {
+    const action = StateTransformer.is(actionOrTransformer) ? actionOrTransformer.toAction() : actionOrTransformer;
 
-        if (this.actions.has(action.id)) return this;
+    if (this.actions.has(action.id)) return this;
 
-        this.actions.set(action.id, action);
+    this.actions.set(action.id, action);
 
-        for (const t of action.definition.from) {
-            if (this.fromTypeIndex.has(t.type)) {
-                this.fromTypeIndex.get(t.type)!.push(action);
-            } else {
-                this.fromTypeIndex.set(t.type, [action]);
-            }
-        }
-
-        this.events.added.next(void 0);
-
-        return this;
+    for (const t of action.definition.from) {
+      if (this.fromTypeIndex.has(t.type)) {
+        this.fromTypeIndex.get(t.type)!.push(action);
+      } else {
+        this.fromTypeIndex.set(t.type, [action]);
+      }
     }
 
-    remove(actionOrTransformer: StateAction | StateTransformer | UUID) {
-        const id = StateTransformer.is(actionOrTransformer)
-            ? actionOrTransformer.toAction().id
-            : UUID.is(actionOrTransformer)
-                ? actionOrTransformer
-                : actionOrTransformer.id;
+    this.events.added.next(void 0);
 
-        const action = this.actions.get(id);
-        if (!action) return this;
+    return this;
+  }
 
-        this.actions.delete(id);
-        for (const t of action.definition.from) {
-            const xs = this.fromTypeIndex.get(t.type);
-            if (!xs) continue;
+  remove(actionOrTransformer: StateAction | StateTransformer | UUID) {
+    const id = StateTransformer.is(actionOrTransformer)
+      ? actionOrTransformer.toAction().id
+      : UUID.is(actionOrTransformer)
+        ? actionOrTransformer
+        : actionOrTransformer.id;
 
-            arraySetRemove(xs, action);
-            if (xs.length === 0) this.fromTypeIndex.delete(t.type);
-        }
+    const action = this.actions.get(id);
+    if (!action) return this;
 
-        this.events.removed.next(void 0);
+    this.actions.delete(id);
+    for (const t of action.definition.from) {
+      const xs = this.fromTypeIndex.get(t.type);
+      if (!xs) continue;
 
-        return this;
+      arraySetRemove(xs, action);
+      if (xs.length === 0) this.fromTypeIndex.delete(t.type);
     }
 
-    fromCell(cell: StateObjectCell, ctx: unknown): ReadonlyArray<StateAction> {
-        const obj = cell.obj;
-        if (!obj) return [];
+    this.events.removed.next(void 0);
 
-        const actions = this.fromTypeIndex.get(obj.type);
-        if (!actions) return [];
-        let hasTest = false;
-        for (const a of actions) {
-            if (a.definition.isApplicable) {
-                hasTest = true;
-                break;
-            }
-        }
-        if (!hasTest) return actions;
+    return this;
+  }
 
-        const ret: StateAction[] = [];
-        for (const a of actions) {
-            if (a.definition.isApplicable) {
-                if (a.definition.isApplicable(obj, cell.transform, ctx)) {
-                    ret.push(a);
-                }
-            } else {
-                ret.push(a);
-            }
-        }
-        return ret;
+  fromCell(cell: StateObjectCell, ctx: unknown): ReadonlyArray<StateAction> {
+    const obj = cell.obj;
+    if (!obj) return [];
+
+    const actions = this.fromTypeIndex.get(obj.type);
+    if (!actions) return [];
+    let hasTest = false;
+    for (const a of actions) {
+      if (a.definition.isApplicable) {
+        hasTest = true;
+        break;
+      }
     }
+    if (!hasTest) return actions;
 
-    dispose() {
-        this.ev.dispose();
+    const ret: StateAction[] = [];
+    for (const a of actions) {
+      if (a.definition.isApplicable) {
+        if (a.definition.isApplicable(obj, cell.transform, ctx)) {
+          ret.push(a);
+        }
+      } else {
+        ret.push(a);
+      }
     }
+    return ret;
+  }
+
+  dispose() {
+    this.ev.dispose();
+  }
 }

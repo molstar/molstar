@@ -9,30 +9,28 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { SecondaryStructureProvider } from '@molstar/model/props/computed/secondary-structure';
 
 export const SecondaryStructure = PluginBehavior.create<{ autoAttach: boolean }>({
-    name: 'computed-secondary-structure-prop',
-    category: 'custom-props',
-    display: { name: 'Secondary Structure' },
-    ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
-        private provider = SecondaryStructureProvider;
+  name: 'computed-secondary-structure-prop',
+  category: 'custom-props',
+  display: { name: 'Secondary Structure' },
+  ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
+    private provider = SecondaryStructureProvider;
 
-        update(p: { autoAttach: boolean, showTooltip: boolean }) {
-            const updated = (
-                this.params.autoAttach !== p.autoAttach
-            );
-            this.params.autoAttach = p.autoAttach;
-            this.ctx.customStructureProperties.setDefaultAutoAttach(this.provider.descriptor.name, this.params.autoAttach);
-            return updated;
-        }
+    update(p: { autoAttach: boolean; showTooltip: boolean }) {
+      const updated = this.params.autoAttach !== p.autoAttach;
+      this.params.autoAttach = p.autoAttach;
+      this.ctx.customStructureProperties.setDefaultAutoAttach(this.provider.descriptor.name, this.params.autoAttach);
+      return updated;
+    }
 
-        register(): void {
-            this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
-        }
+    register(): void {
+      this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
+    }
 
-        unregister() {
-            this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
-        }
-    },
-    params: () => ({
-        autoAttach: PD.Boolean(false)
-    })
+    unregister() {
+      this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
+    }
+  },
+  params: () => ({
+    autoAttach: PD.Boolean(false),
+  }),
 });

@@ -10,31 +10,30 @@ import { Download, ReadFile, DownloadBlob, RawData } from '../transforms/data.js
 import { getFileNameInfo } from '@molstar/core/util/file-info';
 
 export class DataBuilder {
-    private get dataState() {
-        return this.plugin.state.data;
-    }
+  private get dataState() {
+    return this.plugin.state.data;
+  }
 
-    rawData(params: StateTransformer.Params<RawData>, options?: Partial<StateTransform.Options>) {
-        const data = this.dataState.build().toRoot().apply(RawData, params, options);
-        return data.commit({ revertOnError: true });
-    }
+  rawData(params: StateTransformer.Params<RawData>, options?: Partial<StateTransform.Options>) {
+    const data = this.dataState.build().toRoot().apply(RawData, params, options);
+    return data.commit({ revertOnError: true });
+  }
 
-    download(params: StateTransformer.Params<Download>, options?: Partial<StateTransform.Options>) {
-        const data = this.dataState.build().toRoot().apply(Download, params, options);
-        return data.commit({ revertOnError: true });
-    }
+  download(params: StateTransformer.Params<Download>, options?: Partial<StateTransform.Options>) {
+    const data = this.dataState.build().toRoot().apply(Download, params, options);
+    return data.commit({ revertOnError: true });
+  }
 
-    downloadBlob(params: StateTransformer.Params<DownloadBlob>, options?: Partial<StateTransform.Options>) {
-        const data = this.dataState.build().toRoot().apply(DownloadBlob, params, options);
-        return data.commit({ revertOnError: true });
-    }
+  downloadBlob(params: StateTransformer.Params<DownloadBlob>, options?: Partial<StateTransform.Options>) {
+    const data = this.dataState.build().toRoot().apply(DownloadBlob, params, options);
+    return data.commit({ revertOnError: true });
+  }
 
-    async readFile(params: StateTransformer.Params<ReadFile>, options?: Partial<StateTransform.Options>) {
-        const data = await this.dataState.build().toRoot().apply(ReadFile, params, options).commit({ revertOnError: true });
-        const fileInfo = getFileNameInfo(params.file?.file?.name ?? '');
-        return { data: data, fileInfo };
-    }
+  async readFile(params: StateTransformer.Params<ReadFile>, options?: Partial<StateTransform.Options>) {
+    const data = await this.dataState.build().toRoot().apply(ReadFile, params, options).commit({ revertOnError: true });
+    const fileInfo = getFileNameInfo(params.file?.file?.name ?? '');
+    return { data: data, fileInfo };
+  }
 
-    constructor(public plugin: PluginContext) {
-    }
+  constructor(public plugin: PluginContext) {}
 }

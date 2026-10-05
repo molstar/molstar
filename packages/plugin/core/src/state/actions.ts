@@ -9,7 +9,7 @@ import * as Volume from './actions/volume.js';
 import * as DataFormat from './actions/file.js';
 
 export const StateActions = {
-    Structure,
-    Volume,
-    DataFormat
+  Structure,
+  Volume,
+  DataFormat,
 };

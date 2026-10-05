@@ -28,86 +28,94 @@ const tmpRef = Vec3();
 const tmpTranslate = Mat4();
 
 interface UnitcellData {
-    cell: Cell
-    ref: Vec3
+  cell: Cell;
+  ref: Vec3;
 }
 
 const CellRef = {
-    origin: 'Origin',
-    model: 'Model'
+  origin: 'Origin',
+  model: 'Model',
 };
 
 const CellAttachment = {
-    corner: 'Corner',
-    center: 'Center'
+  corner: 'Corner',
+  center: 'Center',
 };
 
 const CellParams = {
-    ...Mesh.Params,
-    cellColor: PD.Color(ColorNames.orange),
-    cellScale: PD.Numeric(2, { min: 0.1, max: 5, step: 0.1 }),
-    ref: PD.Select('model', PD.objectToOptions(CellRef), { isEssential: true }),
-    attachment: PD.Select('corner', PD.objectToOptions(CellAttachment), { isEssential: true }),
+  ...Mesh.Params,
+  cellColor: PD.Color(ColorNames.orange),
+  cellScale: PD.Numeric(2, { min: 0.1, max: 5, step: 0.1 }),
+  ref: PD.Select('model', PD.objectToOptions(CellRef), { isEssential: true }),
+  attachment: PD.Select('corner', PD.objectToOptions(CellAttachment), { isEssential: true }),
 };
-type CellParams = typeof CellParams
+type CellParams = typeof CellParams;
 
 const UnitcellVisuals = {
-    'mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<UnitcellData, CellParams>) => ShapeRepresentation(getUnitcellShape, Mesh.Utils),
+  mesh: (ctx: RepresentationContext, getParams: RepresentationParamsGetter<UnitcellData, CellParams>) =>
+    ShapeRepresentation(getUnitcellShape, Mesh.Utils),
 };
 
 export const UnitcellParams = {
-    ...CellParams
+  ...CellParams,
 };
-export type UnitcellParams = typeof UnitcellParams
-export type UnitcellProps = PD.Values<UnitcellParams>
+export type UnitcellParams = typeof UnitcellParams;
+export type UnitcellProps = PD.Values<UnitcellParams>;
 
 function getUnitcellMesh(data: UnitcellData, props: UnitcellProps, mesh?: Mesh) {
-    const state = MeshBuilder.createState(256, 128, mesh);
+  const state = MeshBuilder.createState(256, 128, mesh);
 
-    const { fromFractional } = data.cell;
+  const { fromFractional } = data.cell;
 
-    Vec3.copy(tmpRef, data.ref);
-    if (props.attachment === 'center') {
-        Vec3.trunc(tmpRef, tmpRef);
-        Vec3.subScalar(tmpRef, tmpRef, 0.5);
-    } else {
-        Vec3.floor(tmpRef, tmpRef);
-    }
-    Mat4.fromTranslation(tmpTranslate, tmpRef);
-    const cellCage = transformCage(cloneCage(unitCage), tmpTranslate);
+  Vec3.copy(tmpRef, data.ref);
+  if (props.attachment === 'center') {
+    Vec3.trunc(tmpRef, tmpRef);
+    Vec3.subScalar(tmpRef, tmpRef, 0.5);
+  } else {
+    Vec3.floor(tmpRef, tmpRef);
+  }
+  Mat4.fromTranslation(tmpTranslate, tmpRef);
+  const cellCage = transformCage(cloneCage(unitCage), tmpTranslate);
 
-    const radius = (Math.cbrt(data.cell.volume) / 300) * props.cellScale;
-    state.currentGroup = 1;
-    MeshBuilder.addCage(state, fromFractional, cellCage, radius, 2, 20);
+  const radius = (Math.cbrt(data.cell.volume) / 300) * props.cellScale;
+  state.currentGroup = 1;
+  MeshBuilder.addCage(state, fromFractional, cellCage, radius, 2, 20);
 
-    const sphere = Sphere3D.fromDimensionsAndTransform(Sphere3D(), Vec3.unit, fromFractional);
-    Vec3.transformMat4(tmpRef, tmpRef, fromFractional);
-    Sphere3D.translate(sphere, sphere, tmpRef);
-    Sphere3D.expand(sphere, sphere, radius);
+  const sphere = Sphere3D.fromDimensionsAndTransform(Sphere3D(), Vec3.unit, fromFractional);
+  Vec3.transformMat4(tmpRef, tmpRef, fromFractional);
+  Sphere3D.translate(sphere, sphere, tmpRef);
+  Sphere3D.expand(sphere, sphere, radius);
 
-    const m = MeshBuilder.getMesh(state);
-    m.setBoundingSphere(sphere);
-    return m;
+  const m = MeshBuilder.getMesh(state);
+  m.setBoundingSphere(sphere);
+  return m;
 }
 
 export function getUnitcellLabel(cell: Cell) {
-    return SpacegroupCell.is(cell) ? SpacegroupCell.getLabel(cell) : Cell.getLabel(cell);
+  return SpacegroupCell.is(cell) ? SpacegroupCell.getLabel(cell) : Cell.getLabel(cell);
 }
 
 function getUnitcellShape(ctx: RuntimeContext, data: UnitcellData, props: UnitcellProps, shape?: Shape<Mesh>) {
-    const geo = getUnitcellMesh(data, props, shape && shape.geometry);
-    const label = getUnitcellLabel(data.cell);
-    return ShapeUtils.create(label, data, geo, () => props.cellColor, () => 1, () => label);
+  const geo = getUnitcellMesh(data, props, shape && shape.geometry);
+  const label = getUnitcellLabel(data.cell);
+  return ShapeUtils.create(
+    label,
+    data,
+    geo,
+    () => props.cellColor,
+    () => 1,
+    () => label,
+  );
 }
 
 //
 
 export function getUnitcellData(model: Model, cell: Cell, props: UnitcellProps) {
-    const ref = Vec3();
-    if (props.ref === 'model') {
-        Vec3.transformMat4(ref, Model.getCenter(model), cell.toFractional);
-    }
-    return { cell, ref };
+  const ref = Vec3();
+  if (props.ref === 'model') {
+    Vec3.transformMat4(ref, Model.getCenter(model), cell.toFractional);
+  }
+  return { cell, ref };
 }
 
 /**
@@ -115,14 +123,23 @@ export function getUnitcellData(model: Model, cell: Cell, props: UnitcellProps) 
  * Useful for data that is not backed by a `Model`, e.g. a `ParticleList`.
  */
 export function getUnitcellDataFromSymmetry(cell: Cell, center: Vec3, props: UnitcellProps) {
-    const ref = Vec3();
-    if (props.ref === 'model') {
-        Vec3.transformMat4(ref, center, cell.toFractional);
-    }
-    return { cell, ref };
+  const ref = Vec3();
+  if (props.ref === 'model') {
+    Vec3.transformMat4(ref, center, cell.toFractional);
+  }
+  return { cell, ref };
 }
 
-export type UnitcellRepresentation = Representation<UnitcellData, UnitcellParams>
-export function UnitcellRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<UnitcellData, UnitcellParams>): UnitcellRepresentation {
-    return Representation.createMulti('Unit Cell', ctx, getParams, Representation.StateBuilder, UnitcellVisuals as unknown as Representation.Def<UnitcellData, UnitcellParams>);
+export type UnitcellRepresentation = Representation<UnitcellData, UnitcellParams>;
+export function UnitcellRepresentation(
+  ctx: RepresentationContext,
+  getParams: RepresentationParamsGetter<UnitcellData, UnitcellParams>,
+): UnitcellRepresentation {
+  return Representation.createMulti(
+    'Unit Cell',
+    ctx,
+    getParams,
+    Representation.StateBuilder,
+    UnitcellVisuals as unknown as Representation.Def<UnitcellData, UnitcellParams>,
+  );
 }

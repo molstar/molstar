@@ -9,12 +9,12 @@ import { StateTransforms } from '../../transforms.js';
 import { createTrajectoryAnimation } from '../trajectory.js';
 
 export const AnimateModelIndex = createTrajectoryAnimation({
-    name: 'built-in.animate-model-index',
-    display: { name: 'Animate Trajectory' },
-    transformer: StateTransforms.Model.ModelFromTrajectory,
-    trajectoryType: PluginStateObject.Molecule.Trajectory,
-    noTrajectoryReason: 'No trajectory to animate',
-    getFrameCount: data => data.frameCount,
-    getFrameIndex: params => params.modelIndex,
-    setFrameIndex: modelIndex => ({ modelIndex })
+  name: 'built-in.animate-model-index',
+  display: { name: 'Animate Trajectory' },
+  transformer: StateTransforms.Model.ModelFromTrajectory,
+  trajectoryType: PluginStateObject.Molecule.Trajectory,
+  noTrajectoryReason: 'No trajectory to animate',
+  getFrameCount: (data) => data.frameCount,
+  getFrameIndex: (params) => params.modelIndex,
+  setFrameIndex: (modelIndex) => ({ modelIndex }),
 });

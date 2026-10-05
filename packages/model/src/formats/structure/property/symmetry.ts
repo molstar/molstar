@@ -17,111 +17,122 @@ import type { Table } from '@molstar/core/data/db';
 export { ModelSymmetry };
 
 namespace ModelSymmetry {
-    export const Descriptor: CustomPropertyDescriptor = {
-        name: 'model_symmetry',
+  export const Descriptor: CustomPropertyDescriptor = {
+    name: 'model_symmetry',
+  };
+
+  export const Provider = FormatPropertyProvider.create<Symmetry>(Descriptor, {
+    asDynamic: true,
+    cachePerFormat: true,
+  });
+
+  type Data = {
+    symmetry: Table<mmCIF_Schema['symmetry']>;
+    cell: Table<mmCIF_Schema['cell']>;
+    struct_ncs_oper: Table<mmCIF_Schema['struct_ncs_oper']>;
+    atom_sites: Table<mmCIF_Schema['atom_sites']>;
+    pdbx_struct_assembly: Table<mmCIF_Schema['pdbx_struct_assembly']>;
+    pdbx_struct_assembly_gen: Table<mmCIF_Schema['pdbx_struct_assembly_gen']>;
+    pdbx_struct_oper_list: Table<mmCIF_Schema['pdbx_struct_oper_list']>;
+  };
+
+  export function fromData(data: Data): Symmetry {
+    let assemblies: ReadonlyArray<Assembly> | undefined;
+    let spacegroup: Spacegroup | undefined;
+    let ncsOperators: ReadonlyArray<SymmetryOperator> | undefined;
+    let hasNcsOperators = false;
+
+    const _getSpacegroup = () => {
+      if (!spacegroup) spacegroup = getSpacegroup(data.symmetry, data.cell);
+      return spacegroup;
     };
 
-    export const Provider = FormatPropertyProvider.create<Symmetry>(Descriptor, { asDynamic: true, cachePerFormat: true });
+    return {
+      get assemblies() {
+        if (!assemblies)
+          assemblies = createAssemblies(
+            data.pdbx_struct_assembly,
+            data.pdbx_struct_assembly_gen,
+            data.pdbx_struct_oper_list,
+          );
+        return assemblies;
+      },
+      get spacegroup() {
+        return _getSpacegroup();
+      },
+      get isNonStandardCrystalFrame() {
+        return checkNonStandardCrystalFrame(data.atom_sites, _getSpacegroup());
+      },
+      get ncsOperators() {
+        if (!hasNcsOperators) {
+          ncsOperators = getNcsOperators(data.struct_ncs_oper);
+          hasNcsOperators = true;
+        }
+        return ncsOperators;
+      },
+    };
+  }
 
-    type Data = {
-        symmetry: Table<mmCIF_Schema['symmetry']>
-        cell: Table<mmCIF_Schema['cell']>
-        struct_ncs_oper: Table<mmCIF_Schema['struct_ncs_oper']>
-        atom_sites: Table<mmCIF_Schema['atom_sites']>
-        pdbx_struct_assembly: Table<mmCIF_Schema['pdbx_struct_assembly']>
-        pdbx_struct_assembly_gen: Table<mmCIF_Schema['pdbx_struct_assembly_gen']>
-        pdbx_struct_oper_list: Table<mmCIF_Schema['pdbx_struct_oper_list']>
-    }
-
-    export function fromData(data: Data): Symmetry {
-        let assemblies: ReadonlyArray<Assembly> | undefined;
-        let spacegroup: Spacegroup | undefined;
-        let ncsOperators: ReadonlyArray<SymmetryOperator> | undefined;
-        let hasNcsOperators = false;
-
-        const _getSpacegroup = () => {
-            if (!spacegroup) spacegroup = getSpacegroup(data.symmetry, data.cell);
-            return spacegroup;
-        };
-
-        return {
-            get assemblies() {
-                if (!assemblies) assemblies = createAssemblies(data.pdbx_struct_assembly, data.pdbx_struct_assembly_gen, data.pdbx_struct_oper_list);
-                return assemblies;
-            },
-            get spacegroup() {
-                return _getSpacegroup();
-            },
-            get isNonStandardCrystalFrame() {
-                return checkNonStandardCrystalFrame(data.atom_sites, _getSpacegroup());
-            },
-            get ncsOperators() {
-                if (!hasNcsOperators) {
-                    ncsOperators = getNcsOperators(data.struct_ncs_oper);
-                    hasNcsOperators = true;
-                }
-                return ncsOperators;
-            },
-        };
-    }
-
-    export function fromCell(size: Vec3, anglesInRadians: Vec3): Symmetry {
-        const spaceCell = SpacegroupCell.create('P 1', size, anglesInRadians);
-        const spacegroup = Spacegroup.create(spaceCell);
-        return { assemblies: [], spacegroup, isNonStandardCrystalFrame: false };
-    }
+  export function fromCell(size: Vec3, anglesInRadians: Vec3): Symmetry {
+    const spaceCell = SpacegroupCell.create('P 1', size, anglesInRadians);
+    const spacegroup = Spacegroup.create(spaceCell);
+    return { assemblies: [], spacegroup, isNonStandardCrystalFrame: false };
+  }
 }
 
 function checkNonStandardCrystalFrame(atom_sites: Table<mmCIF_Schema['atom_sites']>, spacegroup: Spacegroup) {
-    if (atom_sites._rowCount === 0) return false;
-    // TODO: parse atom_sites transform and check if it corresponds to the toFractional matrix
-    return false;
+  if (atom_sites._rowCount === 0) return false;
+  // TODO: parse atom_sites transform and check if it corresponds to the toFractional matrix
+  return false;
 }
 
 function getSpacegroupNameOrNumber(symmetry: Table<mmCIF_Schema['symmetry']>) {
-    const groupNumber = symmetry['Int_Tables_number'].value(0);
-    const groupName = symmetry['space_group_name_H-M'].value(0);
-    if (!symmetry['Int_Tables_number'].isDefined) return groupName;
-    if (!symmetry['space_group_name_H-M'].isDefined) return groupNumber;
-    return groupName;
+  const groupNumber = symmetry['Int_Tables_number'].value(0);
+  const groupName = symmetry['space_group_name_H-M'].value(0);
+  if (!symmetry['Int_Tables_number'].isDefined) return groupName;
+  if (!symmetry['space_group_name_H-M'].isDefined) return groupNumber;
+  return groupName;
 }
 
 function getSpacegroup(symmetry: Table<mmCIF_Schema['symmetry']>, cell: Table<mmCIF_Schema['cell']>): Spacegroup {
-    if (symmetry._rowCount === 0 || cell._rowCount === 0) return Spacegroup.ZeroP1;
+  if (symmetry._rowCount === 0 || cell._rowCount === 0) return Spacegroup.ZeroP1;
 
-    const a = cell.length_a.value(0);
-    const b = cell.length_b.value(0);
-    const c = cell.length_c.value(0);
-    if (a === 0 || b === 0 || c === 0) return Spacegroup.ZeroP1;
+  const a = cell.length_a.value(0);
+  const b = cell.length_b.value(0);
+  const c = cell.length_c.value(0);
+  if (a === 0 || b === 0 || c === 0) return Spacegroup.ZeroP1;
 
-    const alpha = cell.angle_alpha.value(0);
-    const beta = cell.angle_beta.value(0);
-    const gamma = cell.angle_gamma.value(0);
-    if (alpha === 0 || beta === 0 || gamma === 0) return Spacegroup.ZeroP1;
+  const alpha = cell.angle_alpha.value(0);
+  const beta = cell.angle_beta.value(0);
+  const gamma = cell.angle_gamma.value(0);
+  if (alpha === 0 || beta === 0 || gamma === 0) return Spacegroup.ZeroP1;
 
-    const nameOrNumber = getSpacegroupNameOrNumber(symmetry);
-    const spaceCell = SpacegroupCell.create(nameOrNumber,
-        Vec3.create(a, b, c),
-        Vec3.scale(Vec3(), Vec3.create(alpha, beta, gamma), Math.PI / 180));
+  const nameOrNumber = getSpacegroupNameOrNumber(symmetry);
+  const spaceCell = SpacegroupCell.create(
+    nameOrNumber,
+    Vec3.create(a, b, c),
+    Vec3.scale(Vec3(), Vec3.create(alpha, beta, gamma), Math.PI / 180),
+  );
 
-    return Spacegroup.create(spaceCell);
+  return Spacegroup.create(spaceCell);
 }
 
 function getNcsOperators(struct_ncs_oper: Table<mmCIF_Schema['struct_ncs_oper']>) {
-    if (struct_ncs_oper._rowCount === 0) return void 0;
-    const { id, matrix, vector } = struct_ncs_oper;
+  if (struct_ncs_oper._rowCount === 0) return void 0;
+  const { id, matrix, vector } = struct_ncs_oper;
 
-    const matrixSpace = mmCIF_Schema.struct_ncs_oper.matrix.space, vectorSpace = mmCIF_Schema.struct_ncs_oper.vector.space;
+  const matrixSpace = mmCIF_Schema.struct_ncs_oper.matrix.space,
+    vectorSpace = mmCIF_Schema.struct_ncs_oper.vector.space;
 
-    const opers: SymmetryOperator[] = [];
-    for (let i = 0; i < struct_ncs_oper._rowCount; i++) {
-        const m = Tensor.toMat3(Mat3(), matrixSpace, matrix.value(i));
-        const v = Tensor.toVec3(Vec3(), vectorSpace, vector.value(i));
-        if (!SymmetryOperator.checkIfRotationAndTranslation(m, v)) continue;
-        // ignore non-identity 'given' NCS operators
-        if (struct_ncs_oper.code.value(i) === 'given' && !Mat3.isIdentity(m) && !Vec3.isZero(v)) continue;
-        const ncsId = id.value(i);
-        opers[opers.length] = SymmetryOperator.ofRotationAndOffset(`ncs_${ncsId}`, m, v, ncsId);
-    }
-    return opers;
+  const opers: SymmetryOperator[] = [];
+  for (let i = 0; i < struct_ncs_oper._rowCount; i++) {
+    const m = Tensor.toMat3(Mat3(), matrixSpace, matrix.value(i));
+    const v = Tensor.toVec3(Vec3(), vectorSpace, vector.value(i));
+    if (!SymmetryOperator.checkIfRotationAndTranslation(m, v)) continue;
+    // ignore non-identity 'given' NCS operators
+    if (struct_ncs_oper.code.value(i) === 'given' && !Mat3.isIdentity(m) && !Vec3.isZero(v)) continue;
+    const ncsId = id.value(i);
+    opers[opers.length] = SymmetryOperator.ofRotationAndOffset(`ncs_${ncsId}`, m, v, ncsId);
+  }
+  return opers;
 }

@@ -13,24 +13,24 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { DirectVolume } from '@molstar/graphics/geo/geometry/direct-volume/direct-volume';
 
 export function createDirectVolume() {
-    const directVolume = DirectVolume.createEmpty();
-    const props = PD.getDefaultValues(DirectVolume.Params);
-    const values = DirectVolume.Utils.createValuesSimple(directVolume, props, ColorNames.orange, 1);
-    const state = DirectVolume.Utils.createRenderableState(props);
-    return createRenderObject('direct-volume', values, state, -1);
+  const directVolume = DirectVolume.createEmpty();
+  const props = PD.getDefaultValues(DirectVolume.Params);
+  const values = DirectVolume.Utils.createValuesSimple(directVolume, props, ColorNames.orange, 1);
+  const state = DirectVolume.Utils.createRenderableState(props);
+  return createRenderObject('direct-volume', values, state, -1);
 }
 
 describe('direct-volume', () => {
-    const ctx = tryGetGLContext(32, 32);
+  const ctx = tryGetGLContext(32, 32);
 
-    (ctx ? it : it.skip)('basic', async () => {
-        const ctx = getGLContext(32, 32);
-        const scene = Scene.create(ctx);
-        const directVolume = createDirectVolume();
-        scene.add(directVolume);
-        setDebugMode(true);
-        expect(() => scene.commit()).not.toThrow();
-        setDebugMode(false);
-        ctx.destroy();
-    });
+  (ctx ? it : it.skip)('basic', async () => {
+    const ctx = getGLContext(32, 32);
+    const scene = Scene.create(ctx);
+    const directVolume = createDirectVolume();
+    scene.add(directVolume);
+    setDebugMode(true);
+    expect(() => scene.commit()).not.toThrow();
+    setDebugMode(false);
+    ctx.destroy();
+  });
 });

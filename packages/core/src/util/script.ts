@@ -4,4 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export interface Script { expression: string, language: 'mol-script' | 'pymol' | 'vmd' | 'jmol' }
+export interface Script {
+  expression: string;
+  language: 'mol-script' | 'pymol' | 'vmd' | 'jmol';
+}

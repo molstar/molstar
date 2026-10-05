@@ -7,9 +7,9 @@
 import type { RuntimeContext } from './runtime-context.js';
 
 export class SynchronousRuntimeContext implements RuntimeContext {
-    shouldUpdate = false;
-    isSynchronous = true;
-    update(progress: string | Partial<RuntimeContext.ProgressUpdate>, dontNotify?: boolean): Promise<void> | void { }
+  shouldUpdate = false;
+  isSynchronous = true;
+  update(progress: string | Partial<RuntimeContext.ProgressUpdate>, dontNotify?: boolean): Promise<void> | void {}
 }
 
 export const SyncRuntimeContext = new SynchronousRuntimeContext();

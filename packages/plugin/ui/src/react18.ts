@@ -7,5 +7,5 @@
 import { createRoot } from 'react-dom/client';
 
 export function renderReact18(element: any, target: Element) {
-    createRoot(target).render(element);
+  createRoot(target).render(element);
 }

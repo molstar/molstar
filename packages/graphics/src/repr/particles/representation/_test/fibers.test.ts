@@ -12,46 +12,45 @@ import { SizeTheme } from '@molstar/graphics/theme/size';
 import { FibersRepresentation, getFibersParams } from '../fibers.js';
 
 function createTestParticles(): ParticleList {
-    return {
-        count: 3,
-        keys: new Int32Array([0, 1, 2]),
-        targets: new Int32Array(3),
-        targetInfo: new Map([[0, {}]]),
-        coordinates: new Float32Array([
-            0, 0, 0,
-            1, 0, 0,
-            2, 0, 0,
-        ]),
-        fibers: {
-            count: 1,
-            offsets: new Int32Array([0, 2]),
-            indices: new Int32Array([1, 2]),
-        },
-        getParticleLabel: index => `${index}`,
-        sourceData: { kind: 'test', name: 'test', data: {} },
-        customProperties: new CustomProperties(),
-        _propertyData: Object.create(null),
-    };
+  return {
+    count: 3,
+    keys: new Int32Array([0, 1, 2]),
+    targets: new Int32Array(3),
+    targetInfo: new Map([[0, {}]]),
+    coordinates: new Float32Array([0, 0, 0, 1, 0, 0, 2, 0, 0]),
+    fibers: {
+      count: 1,
+      offsets: new Int32Array([0, 2]),
+      indices: new Int32Array([1, 2]),
+    },
+    getParticleLabel: (index) => `${index}`,
+    sourceData: { kind: 'test', name: 'test', data: {} },
+    customProperties: new CustomProperties(),
+    _propertyData: Object.create(null),
+  };
 }
 
 describe('fibers representation', () => {
-    it('includes only fiber particles in its all-loci', async () => {
-        const particles = createTestParticles();
-        const representation = FibersRepresentation({
-            colorThemeRegistry: ColorTheme.createRegistry(),
-            sizeThemeRegistry: SizeTheme.createRegistry(),
-        }, getFibersParams);
+  it('includes only fiber particles in its all-loci', async () => {
+    const particles = createTestParticles();
+    const representation = FibersRepresentation(
+      {
+        colorThemeRegistry: ColorTheme.createRegistry(),
+        sizeThemeRegistry: SizeTheme.createRegistry(),
+      },
+      getFibersParams,
+    );
 
-        await representation.createOrUpdate({ visuals: ['lines'] }, particles).run();
+    await representation.createOrUpdate({ visuals: ['lines'] }, particles).run();
 
-        const [loci] = representation.getAllLoci();
-        expect(Particle.isLoci(loci)).toBe(true);
-        if (!Particle.isLoci(loci)) return;
+    const [loci] = representation.getAllLoci();
+    expect(Particle.isLoci(loci)).toBe(true);
+    if (!Particle.isLoci(loci)) return;
 
-        const indices: number[] = [];
-        OrderedSet.forEach(loci.indices, index => indices.push(index));
-        expect(indices).toEqual([1, 2]);
+    const indices: number[] = [];
+    OrderedSet.forEach(loci.indices, (index) => indices.push(index));
+    expect(indices).toEqual([1, 2]);
 
-        representation.destroy();
-    });
+    representation.destroy();
+  });
 });

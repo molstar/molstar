@@ -19,99 +19,99 @@ import { ReaderResult } from '@molstar/io/reader/result';
 import { utf8ReadLong } from '@molstar/core/util/utf8';
 
 function showProgress(p: Progress) {
-    process.stdout.write(`\r${new Array(80).join(' ')}`);
-    process.stdout.write(`\r${Progress.format(p)}`);
+  process.stdout.write(`\r${new Array(80).join(' ')}`);
+  process.stdout.write(`\r${Progress.format(p)}`);
 }
 
 const readFileAsync = fs.promises.readFile;
 const unzipAsync = util.promisify<zlib.InputType, Buffer>(zlib.unzip);
 
 async function readFile(ctx: RuntimeContext, filename: string): Promise<ReaderResult<CifFile>> {
-    const isGz = /\.gz$/i.test(filename);
-    if (filename.match(/\.bcif/)) {
-        let input = await readFileAsync(filename);
-        if (isGz) input = await unzipAsync(input) as NonSharedBuffer;
-        return await CIF.parseBinary(new Uint8Array(input)).runInContext(ctx);
-    } else {
-        const data = isGz ? await unzipAsync(await readFileAsync(filename)) : await readFileAsync(filename);
-        const str = utf8ReadLong(data);
-        const cif = await CIF.parseText(str).runInContext(ctx);
-        return cif;
-    }
+  const isGz = /\.gz$/i.test(filename);
+  if (filename.match(/\.bcif/)) {
+    let input = await readFileAsync(filename);
+    if (isGz) input = (await unzipAsync(input)) as NonSharedBuffer;
+    return await CIF.parseBinary(new Uint8Array(input)).runInContext(ctx);
+  } else {
+    const data = isGz ? await unzipAsync(await readFileAsync(filename)) : await readFileAsync(filename);
+    const str = utf8ReadLong(data);
+    const cif = await CIF.parseText(str).runInContext(ctx);
+    return cif;
+  }
 }
 
 async function getCIF(ctx: RuntimeContext, filename: string) {
-    const parsed = await readFile(ctx, filename);
-    if (parsed.isError) {
-        throw new Error(parsed.toString());
-    }
-    return parsed.result;
+  const parsed = await readFile(ctx, filename);
+  if (parsed.isError) {
+    throw new Error(parsed.toString());
+  }
+  return parsed.result;
 }
 
 function getCategoryInstanceProvider(cat: CifCategory, fields: CifWriter.Field[]): CifWriter.Category {
-    return {
-        name: cat.name,
-        instance: () => CifWriter.categoryInstance(fields, { data: cat, rowCount: cat.rowCount })
-    };
+  return {
+    name: cat.name,
+    instance: () => CifWriter.categoryInstance(fields, { data: cat, rowCount: cat.rowCount }),
+  };
 }
 
 function classify(name: string, field: CifField): CifWriter.Field {
-    const type = getCifFieldType(field);
-    if (type['@type'] === 'str') {
-        return { name, type: CifWriter.Field.Type.Str, value: field.str, valueKind: field.valueKind };
-    } else if (type['@type'] === 'float') {
-        const encoder = classifyFloatArray(field.toFloatArray({ array: Float64Array }));
-        return CifWriter.Field.float(name, field.float, { valueKind: field.valueKind, encoder, typedArray: Float64Array });
-    } else {
-        const encoder = classifyIntArray(field.toIntArray({ array: Int32Array }));
-        return CifWriter.Field.int(name, field.int, { valueKind: field.valueKind, encoder, typedArray: Int32Array });
-    }
+  const type = getCifFieldType(field);
+  if (type['@type'] === 'str') {
+    return { name, type: CifWriter.Field.Type.Str, value: field.str, valueKind: field.valueKind };
+  } else if (type['@type'] === 'float') {
+    const encoder = classifyFloatArray(field.toFloatArray({ array: Float64Array }));
+    return CifWriter.Field.float(name, field.float, { valueKind: field.valueKind, encoder, typedArray: Float64Array });
+  } else {
+    const encoder = classifyIntArray(field.toIntArray({ array: Int32Array }));
+    return CifWriter.Field.int(name, field.int, { valueKind: field.valueKind, encoder, typedArray: Int32Array });
+  }
 }
 
 export function convert(path: string, asText = false, hints?: EncodingStrategyHint[], filter?: string) {
-    return Task.create<Uint8Array>('Convert CIF', async ctx => {
-        const encodingProvider: BinaryEncodingProvider = hints
-            ? CifWriter.createEncodingProviderFromJsonConfig(hints)
-            : { get: (c, f) => void 0 };
-        const cif = await getCIF(ctx, path);
+  return Task.create<Uint8Array>('Convert CIF', async (ctx) => {
+    const encodingProvider: BinaryEncodingProvider = hints
+      ? CifWriter.createEncodingProviderFromJsonConfig(hints)
+      : { get: (c, f) => void 0 };
+    const cif = await getCIF(ctx, path);
 
-        const encoder = CifWriter.createEncoder({
-            binary: !asText,
-            encoderName: 'mol*/ciftools cif2bcif',
-            binaryAutoClassifyEncoding: true,
-            binaryEncodingPovider: encodingProvider
-        });
+    const encoder = CifWriter.createEncoder({
+      binary: !asText,
+      encoderName: 'mol*/ciftools cif2bcif',
+      binaryAutoClassifyEncoding: true,
+      binaryEncodingPovider: encodingProvider,
+    });
 
-        if (filter) {
-            encoder.setFilter(Category.filterOf(filter));
+    if (filter) {
+      encoder.setFilter(Category.filterOf(filter));
+    }
+
+    let maxProgress = 0;
+    for (const b of cif.blocks) {
+      maxProgress += b.categoryNames.length;
+      for (const c of b.categoryNames) maxProgress += b.categories[c].fieldNames.length;
+    }
+
+    let current = 0;
+    for (const b of cif.blocks) {
+      encoder.startDataBlock(b.header);
+      for (const c of b.categoryNames) {
+        const cat = b.categories[c];
+        const fields: CifWriter.Field[] = [];
+        for (const f of cat.fieldNames) {
+          fields.push(classify(f, cat.getField(f)!));
+          current++;
+          if (ctx.shouldUpdate) await ctx.update({ message: 'Encoding...', current, max: maxProgress });
         }
 
-        let maxProgress = 0;
-        for (const b of cif.blocks) {
-            maxProgress += b.categoryNames.length;
-            for (const c of b.categoryNames) maxProgress += b.categories[c].fieldNames.length;
-        }
-
-        let current = 0;
-        for (const b of cif.blocks) {
-            encoder.startDataBlock(b.header);
-            for (const c of b.categoryNames) {
-                const cat = b.categories[c];
-                const fields: CifWriter.Field[] = [];
-                for (const f of cat.fieldNames) {
-                    fields.push(classify(f, cat.getField(f)!));
-                    current++;
-                    if (ctx.shouldUpdate) await ctx.update({ message: 'Encoding...', current, max: maxProgress });
-                }
-
-                encoder.writeCategory(getCategoryInstanceProvider(b.categories[c], fields));
-                current++;
-                if (ctx.shouldUpdate) await ctx.update({ message: 'Encoding...', current, max: maxProgress });
-            }
-        }
-        await ctx.update('Exporting...');
-        const ret = encoder.getData() as Uint8Array;
-        await ctx.update('Done.\n');
-        return ret;
-    }).run(showProgress, 250);
+        encoder.writeCategory(getCategoryInstanceProvider(b.categories[c], fields));
+        current++;
+        if (ctx.shouldUpdate) await ctx.update({ message: 'Encoding...', current, max: maxProgress });
+      }
+    }
+    await ctx.update('Exporting...');
+    const ret = encoder.getData() as Uint8Array;
+    await ctx.update('Done.\n');
+    return ret;
+  }).run(showProgress, 250);
 }

@@ -12,6 +12,6 @@ import type { Shape } from '@molstar/model/model/shape/shape';
  * `Mesh` produced from an OBJ file. It is instanced at each particle position.
  */
 export function createShapeTargetGeometry(shape: Shape, _existing?: Geometry): Geometry {
-    // Rendering accepts geometries constructed by the graphics shape factory.
-    return shape.geometry as Geometry;
+  // Rendering accepts geometries constructed by the graphics shape factory.
+  return shape.geometry as Geometry;
 }

@@ -14,24 +14,27 @@ import { BodyLabelColorThemeProvider } from './theme.js';
  * transformer, registered at module load. For a full interactive UI, see `src/examples/volume-tools/`.
  */
 export const VolumeSegmentorBehavior = PluginBehavior.create({
-    name: 'volume-segmentor',
-    category: 'misc',
-    display: { name: 'Volume Segmentor', description: 'Interactive segmentation of a volume into soft-edged body masks.' },
-    ctor: class extends PluginBehavior.Handler {
-        private manager: VolumeSegmentorManager | undefined;
+  name: 'volume-segmentor',
+  category: 'misc',
+  display: {
+    name: 'Volume Segmentor',
+    description: 'Interactive segmentation of a volume into soft-edged body masks.',
+  },
+  ctor: class extends PluginBehavior.Handler {
+    private manager: VolumeSegmentorManager | undefined;
 
-        register() {
-            this.manager = new VolumeSegmentorManager(this.ctx);
-            VolumeSegmentorManager.register(this.ctx, this.manager);
-            this.ctx.representation.volume.themes.colorThemeRegistry.add(BodyLabelColorThemeProvider);
-        }
+    register() {
+      this.manager = new VolumeSegmentorManager(this.ctx);
+      VolumeSegmentorManager.register(this.ctx, this.manager);
+      this.ctx.representation.volume.themes.colorThemeRegistry.add(BodyLabelColorThemeProvider);
+    }
 
-        unregister() {
-            this.ctx.representation.volume.themes.colorThemeRegistry.remove(BodyLabelColorThemeProvider);
-            VolumeSegmentorManager.unregister(this.ctx);
-            this.manager?.dispose();
-            this.manager = undefined;
-        }
-    },
-    params: () => ({}),
+    unregister() {
+      this.ctx.representation.volume.themes.colorThemeRegistry.remove(BodyLabelColorThemeProvider);
+      VolumeSegmentorManager.unregister(this.ctx);
+      this.manager?.dispose();
+      this.manager = undefined;
+    }
+  },
+  params: () => ({}),
 });
