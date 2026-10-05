@@ -155,9 +155,59 @@ The full plugin composition proposal, slim bundles, renderer redesign, broad
 barrel removal and publishing automation remain outside this structural prototype;
 see [`workspace-prototype.md`](workspace-prototype.md) for the scope and follow-up.
 
-The next tooling step is TypeScript 7 and replacing ESLint with Biome. The current
-workspace still uses TypeScript 6.0.3 and ESLint; migration tasks and acceptance
-checks are recorded in [the implementation plan](workspace-prototype.md#10-next-step-typescript-7-and-biome).
+The workspace uses Biome 2.5.15 for linting, independently of the TypeScript
+compiler API. TypeScript remains at 6.0.3 until the next tooling slice; migration
+tasks are recorded in [the implementation plan](workspace-prototype.md#10-next-step-typescript-7-and-biome).
+
+### Linting and optional formatting
+
+```sh
+pnpm lint          # Check lint rules only; also used by tests and CI
+pnpm lint:fix      # Apply safe lint fixes only
+pnpm format:check  # Check formatting without writing (not a CI gate yet)
+pnpm format        # Reformat supported source/config files
+```
+
+For a focused format, use `pnpm exec biome format --write path/to/file.ts`.
+Formatting is opt-in, including in VS Code: Biome is recommended as the formatter,
+but format on save is disabled in workspace settings. The planned repository-wide
+formatting pass comes after the compiler migration, followed by enabling formatting
+checks in CI. Until that pass, `format:check` is expected to report existing differences.
+Biome does not format Markdown, YAML, or Sass/SCSS; those need a separate formatter
+when completing the full repository formatting pass.
+
+`biome.json` uses four spaces, a 120-column line width, LF endings, single JavaScript
+quotes, double JSX quotes, semicolons, ES5 trailing commas, and optional arrow
+parameter parentheses. JSON uses two spaces. Assist actions, including import
+organization, are disabled. Generated `lib/` and `build/` trees, dependencies,
+`deploy/`, `docs/site/`, `build.mjs`, and Git-ignored files are excluded. Linting
+covers JavaScript/TypeScript files (including tests, scripts, and smoke fixtures),
+matching the previous ESLint language scope. Formatting covers all Biome-supported
+files in that scope of repository exclusions. The 5 MiB file limit includes the
+large alpha-orbitals example data previously linted by ESLint.
+
+Only explicitly selected lint rules are enabled; Biome's recommended preset is
+not enabled. The mapping from the previous ESLint rules is:
+
+| Previous rule | Biome rule / treatment |
+| --- | --- |
+| `eqeqeq: smart` | `suspicious/noDoubleEquals`, allowing null comparisons; other `==` comparisons are rejected, including same-type comparisons ESLint allowed |
+| `no-eval` | `security/noGlobalEval` |
+| `no-new-func` | `nursery/noImpliedEval`; also rejects string arguments to timers |
+| `no-extend-native` | `nursery/noExtendNative` (warning); polyfills have an explicit suppression |
+| `no-unsafe-finally` | `correctness/noUnsafeFinally` (warning) |
+| `no-self-compare` | `suspicious/noSelfCompare` (warning); the NaN polyfill keeps its explicit suppression |
+| `no-var` | `suspicious/noVar` |
+| No default export declarations | `style/noDefaultExport`; also covers default re-exports, with a suppression for the image-loader declaration |
+| `no-throw-literal` | `style/useThrowOnlyError` |
+| `prefer-const` | `style/useConst`; Biome has no matching destructuring/read-before-assignment options |
+| `no-constant-binary-expression` | `suspicious/noConstantBinaryExpressions` |
+| `@typescript-eslint/prefer-namespace-keyword` | `suspicious/useNamespaceKeyword` (warning) |
+| Quotes, semicolons, braces, whitespace, and spacing rules | Optional formatter; not checked by `pnpm lint` during this slice |
+| `spaced-comment`, `no-new-wrappers` | No equivalent enabled; comment spacing and wrapper construction are not enforced |
+
+The two nursery rules are explicitly enabled and the Biome version is pinned.
+These rules may differ from ESLint and may change when Biome is upgraded.
 
 Package exports use wildcard mappings for regular modules, with explicit root and
 directory aliases, TS/TSX exceptions, Sass/CSS patterns, and blocked test paths.

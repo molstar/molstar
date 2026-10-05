@@ -1,0 +1,71 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "maxSize": 5242880,
+    "includes": ["**", "!!**/node_modules", "!!**/build", "!!**/lib", "!!deploy", "!!docs/site", "!build.mjs"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 4,
+    "lineWidth": 120,
+    "lineEnding": "lf"
+  },
+  "assist": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "none",
+      "correctness": {
+        "noUnsafeFinally": "warn"
+      },
+      "security": {
+        "noGlobalEval": "error"
+      },
+      "style": {
+        "noDefaultExport": "error",
+        "useConst": "error",
+        "useThrowOnlyError": "error"
+      },
+      "suspicious": {
+        "noConstantBinaryExpressions": "error",
+        "noDoubleEquals": {
+          "level": "error",
+          "options": {
+            "ignoreNull": true
+          }
+        },
+        "noSelfCompare": "warn",
+        "noVar": "error",
+        "useNamespaceKeyword": "warn"
+      },
+      "nursery": {
+        "noExtendNative": "warn",
+        "noImpliedEval": "error"
+      }
+    },
+    "includes": ["**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}"]
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "es5",
+      "arrowParentheses": "asNeeded"
+    }
+  },
+  "json": {
+    "formatter": {
+      "indentWidth": 2
+    }
+  }
+}

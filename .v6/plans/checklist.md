@@ -59,8 +59,10 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
   This is deferred to settle the integration design, not to remove full validation.
 - [ ] Migrate TypeScript 6 to TypeScript 7, including project references,
   declaration checks, ESM/source conditions, incremental builds, and CI.
-- [ ] Replace ESLint with Biome, documenting rule differences and preserving
-  repository formatting. Keep broad formatting changes separate.
+- [x] Replace ESLint with Biome, documenting rule differences and configuring
+  optional formatting.
+- [ ] Reformat the repository after the TypeScript 7 migration, then enable
+  formatting checks in CI.
 - [ ] Compare clean and incremental builds after tooling changes and rerun the
   install, lint, test, build, workspace, version, tarball, and local smoke checks.
 

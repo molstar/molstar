@@ -498,21 +498,33 @@ mechanical fixes without understanding the dependency problem.
 ## 10. Next step: TypeScript 7 and Biome
 
 After this structural prototype, migrate the workspace compiler to TypeScript 7
-and replace ESLint with Biome. These changes are planned follow-up work, not
-implemented in the current PR.
+and replace ESLint with Biome. Biome linting is implemented with optional
+formatting; the TypeScript 7 migration and repository-wide formatting pass remain
+follow-up work.
 
 - [ ] Replace TypeScript 6.0.3 and JavaScript `tsc` with the TypeScript 7 native
   compiler. Update the shared catalog, package scripts, project-reference builds,
   declaration checks, and CI commands. Preserve strict type checking, ESM/source
   conditions, declaration output, package exports, and incremental rebuilds.
-- [ ] Replace ESLint and its TypeScript parser/plugins with Biome. Map the current
+- [x] Replace ESLint and its TypeScript parser/plugins with Biome. Map the current
   lint rules and exclusions, document unsupported rules and their replacements,
   and update `pnpm lint` and CI. Configure formatting to preserve repository
   conventions and keep any broad formatting changes separate from the tooling
   migration. Remove the superseded ESLint configuration and dependencies.
+  Biome 2.5.15 now runs through `pnpm lint` and existing CI; optional formatting
+  and rule differences are documented in [workspace usage](workspace-usage.md#linting-and-optional-formatting).
+- [ ] After migrating the compiler, reformat the repository as the last step
+  and enable formatting checks in CI. Choose companion tooling for formats
+  Biome does not support (Markdown, YAML, and Sass/SCSS).
 - [ ] Verify a clean install, lint, unit tests, library/app/distribution builds,
   workspace/version checks, all public tarballs, and local consumer smoke checks.
   Compare fresh and incremental build times against the current baseline.
+
+Biome checkpoint (2026-10-05): frozen offline installation and lint passed;
+Biome checked 1,825 files without diagnostics. All 1,504 unit tests passed
+(14 optional native tests skipped). Temporary probes confirmed enforcement of
+eval, Function construction, const declarations, and default exports, and that
+lint accepts unformatted code while formatting remains a separate command.
 
 Baseline: a clean build of 67 TypeScript projects took about 2m 24s locally; the
 incremental rerun took 0.52s. Hosted CI spent about 5m 41s on the library build,

@@ -13,6 +13,7 @@ packages:
   - 'perf-tests'
 
 catalog:
+  '@biomejs/biome': '2.5.15'
   '@types/argparse': '2.0.17'
   '@types/benchmark': '2.1.5'
   '@types/compression': '1.8.1'
@@ -40,8 +41,6 @@ catalog:
   '@types/react': '18.3.31'
   '@types/react-dom': '18.3.7'
   '@types/webxr': '0.5.24'
-  '@typescript-eslint/eslint-plugin': '8.71.0'
-  '@typescript-eslint/parser': '8.71.0'
   'benchmark': '2.1.4'
   'concurrently': '10.0.5'
   'cross-spawn': '7.0.6'
@@ -50,9 +49,7 @@ catalog:
   'esbuild': '0.28.1'
   'esbuild-jest-transform': '2.0.1'
   'esbuild-sass-plugin': '3.7.0'
-  'eslint': '10.7.0'
   'fs-extra': '11.3.6'
-  'globals': '17.13.0'
   'http-server': '14.1.1'
   'jest': '30.5.2'
   'jpeg-js': '0.4.4'

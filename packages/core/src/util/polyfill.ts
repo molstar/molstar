@@ -1,4 +1,4 @@
-/* eslint-disable no-extend-native */
+/* biome-ignore-all lint/nursery/noExtendNative: Polyfills provide missing standard methods. */
 
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
@@ -94,7 +94,8 @@ if (!Number.isInteger) {
 if (!Number.isNaN) {
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isNaN
     Number.isNaN = function isNaN(value) {
-        return value !== value; // eslint-disable-line no-self-compare
+        // biome-ignore lint/suspicious/noSelfCompare: NaN is the only value unequal to itself.
+        return value !== value;
     };
 }
 

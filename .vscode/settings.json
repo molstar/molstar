@@ -1,6 +1,10 @@
 {
     "jest.jestCommandLine": "pnpm jest",
     "typescript.tsdk": "node_modules/typescript/lib",
+    "[javascript][javascriptreact][typescript][typescriptreact][json][jsonc]": {
+        "editor.defaultFormatter": "biomejs.biome",
+        "editor.formatOnSave": false
+    },
     "files.associations": {
         "*.glsl.ts": "glsl",
         "*.frag.ts": "glsl",

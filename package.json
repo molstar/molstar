@@ -13,7 +13,7 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "lint": "eslint .",
+    "lint": "biome lint .",
     "jest": "jest --runInBand",
     "test": "pnpm lint && pnpm jest",
     "build:lib": "node scripts/workspace/version.mjs --write && tsc -b && node scripts/workspace/assets.mjs",
@@ -32,7 +32,10 @@
     "native:run": "node scripts/native.mjs run",
     "test:native": "node scripts/native.mjs test",
     "check:types:full": "node scripts/workspace/typecheck-full.mjs",
-    "check:publish": "pnpm test && pnpm build && pnpm check:types:full && pnpm check:workspace && pnpm version:check && pnpm pack:workspace && node smoke/run.mjs node && node smoke/run.mjs types && node smoke/run.mjs source && node smoke/run.mjs cli"
+    "check:publish": "pnpm test && pnpm build && pnpm check:types:full && pnpm check:workspace && pnpm version:check && pnpm pack:workspace && node smoke/run.mjs node && node smoke/run.mjs types && node smoke/run.mjs source && node smoke/run.mjs cli",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format --write .",
+    "format:check": "biome format ."
   },
   "nodemonConfig": {
     "ignoreRoot": [
@@ -276,8 +279,6 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@types/webxr": "catalog:",
-    "@typescript-eslint/eslint-plugin": "catalog:",
-    "@typescript-eslint/parser": "catalog:",
     "benchmark": "catalog:",
     "concurrently": "catalog:",
     "cross-spawn": "catalog:",
@@ -286,9 +287,7 @@
     "esbuild": "catalog:",
     "esbuild-jest-transform": "catalog:",
     "esbuild-sass-plugin": "catalog:",
-    "eslint": "catalog:",
     "fs-extra": "catalog:",
-    "globals": "catalog:",
     "http-server": "catalog:",
     "jest": "catalog:",
     "jpeg-js": "catalog:",
@@ -302,7 +301,8 @@
     "fflate": "catalog:",
     "playwright": "catalog:",
     "fp-ts": "catalog:",
-    "sass-embedded": "catalog:"
+    "sass-embedded": "catalog:",
+    "@biomejs/biome": "catalog:"
   },
   "private": true,
   "type": "module",

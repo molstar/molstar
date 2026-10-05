@@ -4,7 +4,7 @@
 
 	// List of extensions which should be recommended for users of this workspace.
 	"recommendations": [
-		"dbaeumer.vscode-eslint",
+		"biomejs.biome",
 		"firsttris.vscode-jest-runner",
 		"slevesque.shader",
 		"stpn.vscode-graphql",
