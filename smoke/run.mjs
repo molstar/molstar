@@ -160,7 +160,7 @@ async function nodeCheck() {
 async function typesCheck() {
   await consumer(['@molstar/core', '@molstar/io', '@molstar/plugin', '@molstar/plugin-ui', '@molstar/plugin-headless', '@molstar/mvs-builder'], async ({ dir }) => {
     const ts = resolve(root, 'node_modules/typescript/bin/tsc');
-    if (!await exists(ts)) fail('TypeScript is not installed in the repository; cannot run the packed declarations consumer.');
+    if (!await exists(ts)) fail('TypeScript 7 is not installed in the repository; cannot run the packed declarations consumer.');
     const source = join(dir, 'consumer.tsx');
     await cp(join(here, 'types/consumer.tsx'), source);
     await run(process.execPath, [ts, '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext', '--target', 'ES2022', '--jsx', 'react-jsx', '--types', 'node,webxr', '--typeRoots', join(dir, 'node_modules/@types'), source], { cwd: dir });

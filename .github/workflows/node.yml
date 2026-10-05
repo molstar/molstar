@@ -28,8 +28,10 @@ jobs:
         run: pnpm lint
       - name: Test
         run: xvfb-run --auto-servernum pnpm test:native
-      - name: Build libraries
+      - name: Build libraries with TypeScript 7
         run: time pnpm build:lib
+      - name: Check all imported declarations with TypeScript 7
+        run: pnpm check:types:full
       - name: Build apps and examples
         run: time pnpm build:apps
       - name: Build browser distribution

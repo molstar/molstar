@@ -12,7 +12,8 @@ pnpm test
 pnpm --dir smoke smoke
 ```
 
-`pnpm build:lib` compiles the TypeScript solution and copies package assets.
+`pnpm build:lib` compiles the TypeScript solution with the native TypeScript 7.0.2
+`tsc -b` command and copies package assets.
 `pnpm build:apps` builds apps and browser examples directly from source using the
 `molstar-src` export condition; it does not need a preceding library build.
 `pnpm build:distribution` assembles the Viewer/MVS Stories classic bundles and
@@ -112,7 +113,12 @@ detects drift. No package is published by these commands.
 Normal builds use `skipLibCheck: true`: each project checks its own source and its
 usage of dependency types, without repeatedly checking imported declarations.
 Run `pnpm check:types:full` to force a rebuild with declaration checking enabled
-in every project. Its separate `*.full.tsbuildinfo` caches are not published.
+in every project using the native TypeScript 7 compiler. The check generates
+short-lived configs beside the originals, preserving source paths, package/type
+resolution, and project references while overriding `skipLibCheck`. These configs
+are removed on success or failure. Separate `*.full.tsbuildinfo` caches keep the
+normal incremental caches intact and are not published. CI runs this check after
+the library build, and the publish gate also requires it.
 
 Before publishing, run `pnpm check:publish`. This required release gate lints, tests, builds
 libraries/apps/distributions, runs the full declaration check, verifies workspace
@@ -155,9 +161,20 @@ The full plugin composition proposal, slim bundles, renderer redesign, broad
 barrel removal and publishing automation remain outside this structural prototype;
 see [`workspace-prototype.md`](workspace-prototype.md) for the scope and follow-up.
 
-The workspace uses Biome 2.5.15 for linting, independently of the TypeScript
-compiler API. TypeScript remains at 6.0.3 until the next tooling slice; migration
-tasks are recorded in [the implementation plan](workspace-prototype.md#10-next-step-typescript-7-and-biome).
+The workspace uses TypeScript 7.0.2 for compilation and Biome 2.5.15 for linting.
+The separate `@typescript/typescript6` 6.0.2 development dependency provides only
+AST/config parsing for the workspace inventory, dependency checker, and full-check
+config generator. It does not compile or check source. TypeScript 7.0 has no stable
+replacement for that programmatic API; migrate these helpers when one is available.
+See [Microsoft's compatibility guidance](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-60).
+
+VS Code recommends the TypeScript 7 extension (`TypeScriptTeam.native-preview`)
+and selects the local `node_modules/typescript` package through `js/ts.tsdk.path`.
+Other editors should select their native TypeScript language server. Normal build,
+project-reference, and packed type-consumer commands still use `tsc`, which now
+launches the platform-specific native executable. Retain optional dependencies
+when installing: TypeScript distributes that executable through platform packages.
+Migration evidence is recorded in [the implementation plan](workspace-prototype.md#10-next-step-typescript-7-and-biome).
 
 ### Linting and optional formatting
 

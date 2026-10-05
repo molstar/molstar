@@ -1,7 +1,8 @@
 /** Refresh the compact export/dependency inventory after ownership changes. */
 import fs from 'node:fs';
 import path from 'node:path';
-import ts from 'typescript';
+// AST inspection only; builds and declaration checks use the native TypeScript 7 CLI.
+import ts from '@typescript/typescript6';
 import { compactExports } from './workspace/exports.mjs';
 
 const inventory = JSON.parse(fs.readFileSync('scripts/workspace/inventory.json', 'utf8'));

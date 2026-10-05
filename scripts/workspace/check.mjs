@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { builtinModules } from 'node:module';
-import ts from 'typescript';
+// AST inspection only; builds and declaration checks use the native TypeScript 7 CLI.
+import ts from '@typescript/typescript6';
 import { expandExports, exportTargets } from './exports.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');

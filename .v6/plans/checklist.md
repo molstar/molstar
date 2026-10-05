@@ -57,14 +57,27 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
   expressions with a nonzero CLI exit status. Until this is implemented, the
   builder validates expression shape and the runtime performs compiler validation.
   This is deferred to settle the integration design, not to remove full validation.
-- [ ] Migrate TypeScript 6 to TypeScript 7, including project references,
-  declaration checks, ESM/source conditions, incremental builds, and CI.
+- [x] Migrate compilation to TypeScript 7, including project references,
+  declaration checks, ESM/source conditions, incremental builds, and CI. Retain
+  the separate TypeScript 6 compatibility API for AST/config parsing only.
 - [x] Replace ESLint with Biome, documenting rule differences and configuring
   optional formatting.
 - [ ] Reformat the repository after the TypeScript 7 migration, then enable
   formatting checks in CI.
-- [ ] Compare clean and incremental builds after tooling changes and rerun the
+- [x] Compare clean and incremental builds after tooling changes and rerun the
   install, lint, test, build, workspace, version, tarball, and local smoke checks.
+
+Tooling verification (2026-10-05): native TypeScript 7.0.2 forced compilation
+of all 67 projects took 7.28 s, compared with 22.01 s for TypeScript 6.0.3 using
+the same `skipLibCheck: true` settings. Incremental compiler runs took 0.45 s
+and 0.48 s respectively. A clean `pnpm build:lib` (including assets/version
+staging) took 6.93 s. Fresh frozen-lockfile installation, Biome lint, 1,504 unit
+tests (14 optional native tests skipped), six workspace tooling tests, the full
+native declaration check, app/distribution builds, workspace/version checks,
+all 43 public tarballs, and local Node/types/source/CLI/browser smokes passed.
+The native declaration gate also runs in CI. A CIF writer namespace alias needed
+explicit qualification to preserve TS6 runtime behavior under TS7 emit; public
+exports are unchanged. Broad formatting remains the final pending tooling step.
 
 Build evidence (2026-10-04): a forced rebuild of all 67 compiler projects took
 149.10 s: aggregate checking 137.45 s, emitting 6.64 s. The MP4 project loads

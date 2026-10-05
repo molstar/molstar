@@ -44,8 +44,8 @@ In scope:
 
 Deferred:
 
-- Move the workspace to TypeScript 7 and replace ESLint with Biome as the next
-  tooling step. See [section 10](#10-next-step-typescript-7-and-biome).
+- Repository-wide formatting and enabling format checks in CI after the
+  TypeScript 7/Biome migration. See [section 10](#10-next-step-typescript-7-and-biome).
 - Rendering-backend extraction, GL resource/pass/readback redesign, WebGPU, and
   Blender integration. See [webgpu.md](../designs/webgpu.md).
 - `PluginFeature`, empty registries, explicit base specs, registry-aware presets,
@@ -497,15 +497,18 @@ mechanical fixes without understanding the dependency problem.
 
 ## 10. Next step: TypeScript 7 and Biome
 
-After this structural prototype, migrate the workspace compiler to TypeScript 7
-and replace ESLint with Biome. Biome linting is implemented with optional
-formatting; the TypeScript 7 migration and repository-wide formatting pass remain
-follow-up work.
+The workspace now compiles with native TypeScript 7.0.2 and uses Biome 2.5.15
+for linting with optional formatting. The repository-wide formatting pass and
+enabling format checks in CI remain follow-up work.
 
-- [ ] Replace TypeScript 6.0.3 and JavaScript `tsc` with the TypeScript 7 native
+- [x] Replace TypeScript 6.0.3 and JavaScript `tsc` with the TypeScript 7 native
   compiler. Update the shared catalog, package scripts, project-reference builds,
   declaration checks, and CI commands. Preserve strict type checking, ESM/source
   conditions, declaration output, package exports, and incremental rebuilds.
+  The native compiler retains the `tsc` command. Workspace AST/config inspection
+  uses the separate `@typescript/typescript6` compatibility API without compiling.
+  Full declaration checking runs native builds of temporary config graphs with
+  `skipLibCheck: false` and separate caches; CI now includes this check.
 - [x] Replace ESLint and its TypeScript parser/plugins with Biome. Map the current
   lint rules and exclusions, document unsupported rules and their replacements,
   and update `pnpm lint` and CI. Configure formatting to preserve repository
@@ -516,7 +519,7 @@ follow-up work.
 - [ ] After migrating the compiler, reformat the repository as the last step
   and enable formatting checks in CI. Choose companion tooling for formats
   Biome does not support (Markdown, YAML, and Sass/SCSS).
-- [ ] Verify a clean install, lint, unit tests, library/app/distribution builds,
+- [x] Verify a clean install, lint, unit tests, library/app/distribution builds,
   workspace/version checks, all public tarballs, and local consumer smoke checks.
   Compare fresh and incremental build times against the current baseline.
 
@@ -525,6 +528,25 @@ Biome checked 1,825 files without diagnostics. All 1,504 unit tests passed
 (14 optional native tests skipped). Temporary probes confirmed enforcement of
 eval, Function construction, const declarations, and default exports, and that
 lint accepts unformatted code while formatting remains a separate command.
+
+TypeScript 7 checkpoint (2026-10-05): a fresh frozen-lockfile source install,
+lint, 1,504 unit tests (14 optional native tests skipped), six workspace tooling
+tests, native full declaration checking, app/distribution builds, workspace/version
+checks, all 43 public tarballs, and local Node/types/source/CLI/browser smokes
+passed. The full-check regression tests verify reference graphs, inherited config
+settings, independent caches, and cleanup after compiler failure/success.
+
+| Local compiler measurement (67 projects, `skipLibCheck: true`) | TypeScript 6.0.3 | TypeScript 7.0.2 |
+| --- | --- | --- |
+| Forced rebuild (`pnpm exec tsc -b --force`) | 22.01 s | 7.28 s |
+| Incremental rerun (`pnpm exec tsc -b`) | 0.48 s | 0.45 s |
+
+A clean native `pnpm build:lib`, including version/asset staging, took 6.93 s.
+TS7's emit left the local `import E = Encoding` namespace alias unqualified in
+`CifWriter`, causing the packed Node consumer to fail at module load. Qualifying
+it as `CifWriter.Encoding` restores the TS6 emitted reference and preserves the
+public API. The existing packed runtime smoke caught this despite passing source
+unit tests and compiler checks; all consumers passed after the fix.
 
 Baseline: a clean build of 67 TypeScript projects took about 2m 24s locally; the
 incremental rerun took 0.52s. Hosted CI spent about 5m 41s on the library build,

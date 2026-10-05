@@ -33,7 +33,7 @@ export namespace CifWriter {
         return Field.build<K, D, N>();
     }
 
-    import E = Encoding
+    import E = CifWriter.Encoding
     export const Encodings = {
         deltaRLE: E.by(E.delta).and(E.runLength).and(E.integerPacking),
         fixedPoint2: E.by(E.fixedPoint(100)).and(E.delta).and(E.integerPacking),

@@ -1,6 +1,7 @@
 {
     "jest.jestCommandLine": "pnpm jest",
-    "typescript.tsdk": "node_modules/typescript/lib",
+    "js/ts.experimental.useTsgo": true,
+    "js/ts.tsdk.path": "./node_modules/typescript",
     "[javascript][javascriptreact][typescript][typescriptreact][json][jsonc]": {
         "editor.defaultFormatter": "biomejs.biome",
         "editor.formatOnSave": false
