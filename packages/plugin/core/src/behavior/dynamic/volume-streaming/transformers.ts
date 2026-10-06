@@ -14,7 +14,7 @@ import { Volume } from '@molstar/model/model/volume';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { VolumeRepresentation3DHelpers } from '@molstar/plugin/state/transforms/representation';
 import type { PluginContext } from '@molstar/plugin/context';
-import { VolumeRepresentationRegistry } from '@molstar/graphics/repr/volume/registry';
+import { IsosurfaceRepresentationProvider } from '@molstar/graphics/repr/volume/isosurface';
 import { StateAction, StateObject, StateTransformer } from '@molstar/core/state';
 import { RuntimeContext, Task } from '@molstar/core/task';
 import { Theme } from '@molstar/graphics/theme/theme';
@@ -344,7 +344,7 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
       if (!channel) return StateObject.Null;
 
       const params = createVolumeProps(a.data, srcParams.channel);
-      const provider = VolumeRepresentationRegistry.BuiltIn.isosurface;
+      const provider = IsosurfaceRepresentationProvider;
       const props = params.type.params || {};
       const repr = provider.factory(
         { webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes },

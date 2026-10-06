@@ -5,15 +5,10 @@
  */
 
 import type { SizeType, LocationSize } from '@molstar/graphics/geo/geometry/size-data';
-import { UniformSizeThemeProvider } from './size/uniform.js';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type ThemeDataContext, ThemeRegistry, type ThemeProvider } from './theme.js';
-import { PhysicalSizeThemeProvider } from './size/physical.js';
 import { deepEqual } from '@molstar/core/util';
-import { ShapeGroupSizeThemeProvider } from './size/shape-group.js';
-import { UncertaintySizeThemeProvider } from './size/uncertainty.js';
-import { VolumeValueSizeThemeProvider } from './size/volume-value.js';
-import { ParticleSizeThemeProvider } from './size/particle-size.js';
+import { BuiltInSizeThemes } from './size/catalog.js';
 
 export { SizeTheme };
 interface SizeTheme<P extends PD.Params> {
@@ -52,18 +47,10 @@ namespace SizeTheme {
 
   export type Registry = ThemeRegistry<SizeTheme<any>>;
   export function createRegistry() {
-    return new ThemeRegistry(BuiltIn as { [k: string]: Provider<any> }, EmptyProvider);
+    return new ThemeRegistry(BuiltInSizeThemes as { [k: string]: Provider<any> }, EmptyProvider);
   }
 
-  export const BuiltIn = {
-    'particle-size': ParticleSizeThemeProvider,
-    physical: PhysicalSizeThemeProvider,
-    'shape-group': ShapeGroupSizeThemeProvider,
-    uncertainty: UncertaintySizeThemeProvider,
-    uniform: UniformSizeThemeProvider,
-    'volume-value': VolumeValueSizeThemeProvider,
-  };
-  type _BuiltIn = typeof BuiltIn;
+  type _BuiltIn = typeof BuiltInSizeThemes;
   export type BuiltIn = keyof _BuiltIn;
   export type ParamValues<C extends SizeTheme.Provider<any>> =
     C extends SizeTheme.Provider<infer P> ? PD.Values<P> : never;

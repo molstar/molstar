@@ -15,7 +15,7 @@ import { StateTransforms } from '@molstar/plugin/state/transforms';
 import { PluginBehavior } from '@molstar/plugin/behavior';
 import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import { StateObjectCell, StateSelection, StateTransform } from '@molstar/core/state';
-import { SizeTheme } from '@molstar/graphics/theme/size';
+import { UniformSizeThemeProvider } from '@molstar/graphics/theme/size/uniform';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { PluginCommands } from '@molstar/plugin/commands';
 import type { PluginContext } from '@molstar/plugin/context';
@@ -60,7 +60,7 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
       customDefault: createStructureRepresentationParams(plugin, void 0, {
         type: InteractionsRepresentationProvider,
         color: InteractionTypeColorThemeProvider,
-        size: SizeTheme.BuiltIn.uniform,
+        size: UniformSizeThemeProvider,
       }),
     }),
     components: PD.MultiSelect(FocusComponents, PD.arrayToOptions(FocusComponents)),
