@@ -12,40 +12,47 @@ import { DataLocation } from '@molstar/model/model/location';
 import { DataLoci } from '@molstar/model/model/loci';
 
 export namespace NtCTubeTypes {
-    const DataTag = 'dnatco-tube-segment-data';
-    const DummyTag = 'dnatco-tube-dummy';
+  const DataTag = 'dnatco-tube-segment-data';
+  const DummyTag = 'dnatco-tube-dummy';
 
-    export type Data = {
-        data: DnatcoTypes.Steps,
-    }
+  export type Data = {
+    data: DnatcoTypes.Steps;
+  };
 
-    export type TubeBlock = {
-        step: DnatcoTypes.Step,
-        kind: 'upper' | 'lower' | 'residue-boundary' | 'segment-boundary';
-    }
+  export type TubeBlock = {
+    step: DnatcoTypes.Step;
+    kind: 'upper' | 'lower' | 'residue-boundary' | 'segment-boundary';
+  };
 
-    export interface Location extends DataLocation<TubeBlock> {}
+  export interface Location extends DataLocation<TubeBlock> {}
 
-    export function Location(payload: TubeBlock) {
-        return DataLocation(DataTag, payload, {});
-    }
+  export function Location(payload: TubeBlock) {
+    return DataLocation(DataTag, payload, {});
+  }
 
-    export function isLocation(x: any): x is Location {
-        return !!x && x.kind === 'data-location' && x.tag === DataTag;
-    }
+  export function isLocation(x: any): x is Location {
+    return !!x && x.kind === 'data-location' && x.tag === DataTag;
+  }
 
-    export interface Loci extends DataLoci<DnatcoTypes.Step[], number> {}
-    export interface DummyLoci extends DataLoci<{}, number> {}
+  export interface Loci extends DataLoci<DnatcoTypes.Step[], number> {}
+  export interface DummyLoci extends DataLoci<{}, number> {}
 
-    export function Loci(data: DnatcoTypes.Step[], stepIndices: number[], elements: number[], boundingSphere?: Sphere3D): Loci {
-        return DataLoci(DataTag, data, elements, boundingSphere ? () => boundingSphere : undefined, () => stepIndices[0] !== undefined ? NtCTubeSegmentLabel(data[stepIndices[0]]) : '');
-    }
+  export function Loci(
+    data: DnatcoTypes.Step[],
+    stepIndices: number[],
+    elements: number[],
+    boundingSphere?: Sphere3D,
+  ): Loci {
+    return DataLoci(DataTag, data, elements, boundingSphere ? () => boundingSphere : undefined, () =>
+      stepIndices[0] !== undefined ? NtCTubeSegmentLabel(data[stepIndices[0]]) : '',
+    );
+  }
 
-    export function DummyLoci(): DummyLoci {
-        return DataLoci(DummyTag, {}, [], undefined, () => '');
-    }
+  export function DummyLoci(): DummyLoci {
+    return DataLoci(DummyTag, {}, [], undefined, () => '');
+  }
 
-    export function isLoci(x: any): x is Loci {
-        return !!x && x.kind === 'data-loci' && x.tag === DataTag;
-    }
+  export function isLoci(x: any): x is Loci {
+    return !!x && x.kind === 'data-loci' && x.tag === DataTag;
+  }
 }

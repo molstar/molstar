@@ -12,3 +12,6 @@ b31302ba3ad4ab7f98aedd500b762be642374ff0
 
 # fix eslint warnings
 3b1513adc0048dc4879f1d70874b3e56aaffd10e
+
+# Repository formatting with Biome and Prettier (two-space source indentation)
+9cebd6cd53c270471f62e4d4e2a21df6d36efbec

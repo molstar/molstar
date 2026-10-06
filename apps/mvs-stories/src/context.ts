@@ -8,32 +8,34 @@ import { BehaviorSubject } from 'rxjs';
 import { MVSData } from '@molstar/mvs-builder/mvs-data';
 import type { MVSStoriesViewerModel } from '@molstar/mvs-stories/elements/viewer';
 
-export type MVSStoriesCommand =
-    | { kind: 'load-mvs', format?: 'mvsj' | 'mvsx', url?: string, data?: MVSData | string | Uint8Array<ArrayBuffer> }
-
+export type MVSStoriesCommand = {
+  kind: 'load-mvs';
+  format?: 'mvsj' | 'mvsx';
+  url?: string;
+  data?: MVSData | string | Uint8Array<ArrayBuffer>;
+};
 
 export class MVSStoriesContext {
-    commands = new BehaviorSubject<MVSStoriesCommand | undefined>(undefined);
-    state = {
-        viewers: new BehaviorSubject<{ name?: string, model: MVSStoriesViewerModel }[]>([]),
-        currentStoryData: new BehaviorSubject<string | Uint8Array<ArrayBuffer> | undefined>(undefined),
-        isLoading: new BehaviorSubject(false),
-    };
+  commands = new BehaviorSubject<MVSStoriesCommand | undefined>(undefined);
+  state = {
+    viewers: new BehaviorSubject<{ name?: string; model: MVSStoriesViewerModel }[]>([]),
+    currentStoryData: new BehaviorSubject<string | Uint8Array<ArrayBuffer> | undefined>(undefined),
+    isLoading: new BehaviorSubject(false),
+  };
 
-    dispatch(command: MVSStoriesCommand) {
-        this.commands.next(command);
-    }
+  dispatch(command: MVSStoriesCommand) {
+    this.commands.next(command);
+  }
 
-    constructor(public name?: string) {
-    }
+  constructor(public name?: string) {}
 }
 
-export function getMVSStoriesContext(options?: { name?: string, container?: object }): MVSStoriesContext {
-    const container: any = options?.container ?? window;
-    container.componentContexts ??= {};
-    const name = options?.name ?? '<default>';
-    if (!container.componentContexts[name]) {
-        container.componentContexts[name] = new MVSStoriesContext(options?.name);
-    }
-    return container.componentContexts[name];
+export function getMVSStoriesContext(options?: { name?: string; container?: object }): MVSStoriesContext {
+  const container: any = options?.container ?? window;
+  container.componentContexts ??= {};
+  const name = options?.name ?? '<default>';
+  if (!container.componentContexts[name]) {
+    container.componentContexts[name] = new MVSStoriesContext(options?.name);
+  }
+  return container.componentContexts[name];
 }

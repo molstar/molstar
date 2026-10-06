@@ -8,19 +8,19 @@ import { DefaultPluginUISpec, type PluginUISpec } from '@molstar/plugin-ui/spec'
 import { PluginUIContext } from '@molstar/plugin-ui/context';
 
 export class PluginUIViewModel {
-    readonly plugin: PluginUIContext;
+  readonly plugin: PluginUIContext;
 
-    get initialized() {
-        return this.plugin.initialized;
-    }
+  get initialized() {
+    return this.plugin.initialized;
+  }
 
-    private async init() {
-        await this.plugin.init();
-    }
+  private async init() {
+    await this.plugin.init();
+  }
 
-    constructor(options?: { spec?: PluginUISpec }) {
-        const spec = options?.spec ?? DefaultPluginUISpec();
-        this.plugin = new PluginUIContext(spec);
-        this.init();
-    }
+  constructor(options?: { spec?: PluginUISpec }) {
+    const spec = options?.spec ?? DefaultPluginUISpec();
+    this.plugin = new PluginUIContext(spec);
+    this.init();
+  }
 }

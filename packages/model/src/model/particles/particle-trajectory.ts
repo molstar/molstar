@@ -12,25 +12,25 @@ import type { ParticleList } from './particle-list.js';
  * Mirrors `Trajectory` from `mol-model/structure/trajectory.ts` but for `ParticleList` frames.
  */
 export interface ParticleTrajectory {
-    readonly frameCount: number
+  readonly frameCount: number;
 
-    /** Statically available representative frame. Required for example by certain UI actions. */
-    readonly representative: ParticleList
+  /** Statically available representative frame. Required for example by certain UI actions. */
+  readonly representative: ParticleList;
 
-    /** Return the particle list for the given frame index (0-based). */
-    getFrameAtIndex(i: number): ParticleList | Task<ParticleList>
+  /** Return the particle list for the given frame index (0-based). */
+  getFrameAtIndex(i: number): ParticleList | Task<ParticleList>;
 }
 
 export class ArrayParticleTrajectory implements ParticleTrajectory {
-    readonly frameCount: number;
-    readonly representative: ParticleList;
+  readonly frameCount: number;
+  readonly representative: ParticleList;
 
-    getFrameAtIndex(i: number): ParticleList {
-        return this.frames[i];
-    }
+  getFrameAtIndex(i: number): ParticleList {
+    return this.frames[i];
+  }
 
-    constructor(private frames: ParticleList[]) {
-        this.frameCount = frames.length;
-        this.representative = frames[0];
-    }
+  constructor(private frames: ParticleList[]) {
+    this.frameCount = frames.length;
+    this.representative = frames[0];
+  }
 }

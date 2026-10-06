@@ -13,23 +13,23 @@ import { keywords } from './keywords.js';
 
 export const Properties: string[] = [];
 for (const name in properties) {
-    if (properties[name].isUnsupported) continue;
-    Properties.push(name);
-    if (properties[name].abbr) Properties.push(...properties[name].abbr!);
+  if (properties[name].isUnsupported) continue;
+  Properties.push(name);
+  if (properties[name].abbr) Properties.push(...properties[name].abbr!);
 }
 
 export const Operators: string[] = [];
-operators.forEach(o => {
-    if (o.isUnsupported) return;
-    Operators.push(o.name);
-    if (o.abbr) Operators.push(...o.abbr);
+operators.forEach((o) => {
+  if (o.isUnsupported) return;
+  Operators.push(o.name);
+  if (o.abbr) Operators.push(...o.abbr);
 });
 
 export const Keywords: string[] = [];
 for (const name in keywords) {
-    if (!keywords[name].map) continue;
-    Keywords.push(name);
-    if (keywords[name].abbr) Keywords.push(...keywords[name].abbr!);
+  if (!keywords[name].map) continue;
+  Keywords.push(name);
+  if (keywords[name].abbr) Keywords.push(...keywords[name].abbr!);
 }
 
 export const all = { Properties, Operators: [...Operators, 'of'], Keywords };

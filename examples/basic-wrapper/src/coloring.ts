@@ -10,21 +10,23 @@ import { Model, type ElementIndex } from '@molstar/model/model/structure';
 import { Color } from '@molstar/core/util/color';
 
 export const StripedResidues = CustomElementProperty.create<number>({
-    label: 'Residue Stripes',
-    name: 'basic-wrapper-residue-striping',
-    getData(model: Model) {
-        const map = new Map<ElementIndex, number>();
-        const residueIndex = model.atomicHierarchy.residueAtomSegments.index;
-        for (let i = 0, _i = model.atomicHierarchy.atoms._rowCount; i < _i; i++) {
-            map.set(i as ElementIndex, residueIndex[i] % 2);
-        }
-        return { value: map };
-    },
-    coloring: {
-        getColor(e) { return e === 0 ? Color(0xff0000) : Color(0x0000ff); },
-        defaultColor: Color(0x777777)
-    },
-    getLabel(e) {
-        return e === 0 ? 'Odd stripe' : 'Even stripe';
+  label: 'Residue Stripes',
+  name: 'basic-wrapper-residue-striping',
+  getData(model: Model) {
+    const map = new Map<ElementIndex, number>();
+    const residueIndex = model.atomicHierarchy.residueAtomSegments.index;
+    for (let i = 0, _i = model.atomicHierarchy.atoms._rowCount; i < _i; i++) {
+      map.set(i as ElementIndex, residueIndex[i] % 2);
     }
+    return { value: map };
+  },
+  coloring: {
+    getColor(e) {
+      return e === 0 ? Color(0xff0000) : Color(0x0000ff);
+    },
+    defaultColor: Color(0x777777),
+  },
+  getLabel(e) {
+    return e === 0 ? 'Odd stripe' : 'Even stripe';
+  },
 });

@@ -12,26 +12,26 @@ import type { Handler } from 'express-serve-static-core';
 import { indexTemplate } from './indexTemplate.js';
 
 export function swaggerUiAssetsHandler(options?: ServeStaticOptions): Handler {
-    const opts = options || {};
-    opts.index = false;
-    return express.static(getAbsoluteFSPath(), opts);
+  const opts = options || {};
+  opts.index = false;
+  return express.static(getAbsoluteFSPath(), opts);
 }
 
 export interface SwaggerUIOptions {
-    openapiJsonUrl: string
-    apiPrefix: string
-    title: string
-    shortcutIconLink: string
+  openapiJsonUrl: string;
+  apiPrefix: string;
+  title: string;
+  shortcutIconLink: string;
 }
 
 function createHTML(options: SwaggerUIOptions) {
-    return interpolate(indexTemplate, options);
+  return interpolate(indexTemplate, options);
 }
 
 export function swaggerUiIndexHandler(options: SwaggerUIOptions): express.Handler {
-    const html = createHTML(options);
-    return (req: express.Request, res: express.Response) => {
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(html);
-    };
+  const html = createHTML(options);
+  return (req: express.Request, res: express.Response) => {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(html);
+  };
 }

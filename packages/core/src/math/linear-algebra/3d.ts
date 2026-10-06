@@ -27,8 +27,4 @@ import { EPSILON } from './3d/common.js';
 
 export { Mat4, Mat3, Vec2, Vec3, Vec4, Quat, EPSILON };
 
-export type Vec<T> =
-    T extends 4 ? Vec4 :
-        T extends 3 ? Vec3 :
-            T extends 2 ? Vec2 :
-                number[]
+export type Vec<T> = T extends 4 ? Vec4 : T extends 3 ? Vec3 : T extends 2 ? Vec2 : number[];

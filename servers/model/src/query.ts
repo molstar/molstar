@@ -12,70 +12,86 @@ import { type LocalInput, runLocal } from '@molstar/model-server/server/api-loca
 console.log(`Mol* ModelServer (${VERSION}), (c) 2018-2020 Mol* authors`);
 console.log(``);
 
-const exampleWorkload: LocalInput = [{
+const exampleWorkload: LocalInput = [
+  {
     output: 'c:/test/quick/localapi/1tqn_full.cif',
-    queries: [{
+    queries: [
+      {
         input: 'c:/test/quick/1tqn.cif',
         query: 'full', // same as defined in Api/Queries
-    }]
-}, {
+      },
+    ],
+  },
+  {
     output: 'c:/test/quick/localapi/1tqn_full.bcif',
-    queries: [{
+    queries: [
+      {
         input: 'c:/test/quick/1tqn.cif',
-        query: 'full'
-    }]
-}, {
+        query: 'full',
+      },
+    ],
+  },
+  {
     output: 'c:/test/quick/localapi/1cbs_ligint.cif',
-    queries: [{
+    queries: [
+      {
         input: 'c:/test/quick/1cbs_updated.cif',
         query: 'residueInteraction', // action is case sensitive
-        params: { atom_site: { label_comp_id: 'REA' }, radius: 5 }
-    }]
-}, {
+        params: { atom_site: { label_comp_id: 'REA' }, radius: 5 },
+      },
+    ],
+  },
+  {
     output: 'c:/test/quick/localapi/1cbs_ligint.bcif',
-    queries: [{
+    queries: [
+      {
         input: 'c:/test/quick/1cbs_updated.cif', // multiple files that are repeated will only be parsed once
         query: 'residueInteraction',
-        params: { atom_site: [{ label_comp_id: 'REA' }], radius: 5 } // parameters are just a JSON version of the query string
-    }]
-}, {
+        params: { atom_site: [{ label_comp_id: 'REA' }], radius: 5 }, // parameters are just a JSON version of the query string
+      },
+    ],
+  },
+  {
     output: 'c:/test/quick/localapi/multiple.tar.gz',
-    queries: [{
+    queries: [
+      {
         input: 'c:/test/quick/1cbs_updated.cif',
         query: 'residueInteraction', // action is case sensitive
-        params: { atom_site: { label_comp_id: 'REA' }, radius: 5 }
-    }, {
+        params: { atom_site: { label_comp_id: 'REA' }, radius: 5 },
+      },
+      {
         input: 'c:/test/quick/1tqn.cif',
         query: 'full', // same as defined in Api/Queries
-    }],
+      },
+    ],
     asTarGz: true,
-    gzipLevel: 6
-}];
-
+    gzipLevel: 6,
+  },
+];
 
 if (process.argv.length !== 3) {
-    const help = [
-        `Usage: `,
-        ``,
-        `   node local jobs.json`,
-        ``,
-        `jobs.json is a JSON version of the WebAPI. Query names are case sensitive.`,
-        `The jobs are automatically sorted by inputFilenama and the given file is only loaded once.`,
-        `All processing errors are sent to stderr.`,
-        ``,
-        `Jobs example:`,
-        ``,
-        JSON.stringify(exampleWorkload, null, 2)
-    ];
+  const help = [
+    `Usage: `,
+    ``,
+    `   node local jobs.json`,
+    ``,
+    `jobs.json is a JSON version of the WebAPI. Query names are case sensitive.`,
+    `The jobs are automatically sorted by inputFilenama and the given file is only loaded once.`,
+    `All processing errors are sent to stderr.`,
+    ``,
+    `Jobs example:`,
+    ``,
+    JSON.stringify(exampleWorkload, null, 2),
+  ];
 
-    console.log(help.join('\n'));
+  console.log(help.join('\n'));
 } else {
-    try {
-        const input = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
-        runLocal(input);
-    } catch (e) {
-        console.error(e);
-    }
+  try {
+    const input = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+    runLocal(input);
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 // TODO: write utility that splits jobs into multiple chunks?

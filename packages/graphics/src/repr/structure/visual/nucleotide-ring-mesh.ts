@@ -18,7 +18,17 @@ import { isNucleic } from '@molstar/model/model/structure/model/types';
 import { addCylinder } from '@molstar/graphics/geo/geometry/mesh/builder/cylinder';
 import { addSphere } from '@molstar/graphics/geo/geometry/mesh/builder/sphere';
 import { UnitsMeshParams, type UnitsVisual, UnitsMeshVisual } from '../units-visual.js';
-import { NucleotideLocationIterator, getNucleotideElementLoci, eachNucleotideElement, getNucleotideBaseType, createNucleicIndices, setPurinIndices, setPyrimidineIndices, hasPyrimidineIndices, hasPurinIndices } from './util/nucleotide.js';
+import {
+  NucleotideLocationIterator,
+  getNucleotideElementLoci,
+  eachNucleotideElement,
+  getNucleotideBaseType,
+  createNucleicIndices,
+  setPurinIndices,
+  setPyrimidineIndices,
+  hasPyrimidineIndices,
+  hasPurinIndices,
+} from './util/nucleotide.js';
 import type { VisualUpdateState } from '../../util.js';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 import { Sphere3D } from '@molstar/core/math/geometry';
@@ -38,13 +48,13 @@ const pN9 = Vec3();
 const normal = Vec3();
 
 export const NucleotideRingMeshParams = {
-    sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
-    thicknessFactor: PD.Numeric(1, { min: 0, max: 2, step: 0.01 }),
-    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
-    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
+  sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
+  thicknessFactor: PD.Numeric(1, { min: 0, max: 2, step: 0.01 }),
+  radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
+  detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
 };
 export const DefaultNucleotideRingMeshProps = PD.getDefaultValues(NucleotideRingMeshParams);
-export type NucleotideRingProps = typeof DefaultNucleotideRingMeshProps
+export type NucleotideRingProps = typeof DefaultNucleotideRingMeshProps;
 
 const positionsRing5_6 = new Float32Array(2 * 9 * 3);
 const stripIndicesRing5_6 = new Uint32Array([0, 1, 2, 3, 4, 5, 6, 7, 16, 17, 14, 15, 12, 13, 8, 9, 10, 11, 0, 1]);
@@ -58,125 +68,151 @@ const fanIndicesBottomRing6 = new Uint32Array([1, 3, 5, 7, 9, 11]);
 
 const tmpShiftV = Vec3();
 function shiftPositions(out: NumberArray, dir: Vec3, ...positions: Vec3[]) {
-    for (let i = 0, il = positions.length; i < il; ++i) {
-        const v = positions[i];
-        Vec3.toArray(Vec3.add(tmpShiftV, v, dir), out, (i * 2) * 3);
-        Vec3.toArray(Vec3.sub(tmpShiftV, v, dir), out, (i * 2 + 1) * 3);
-    }
+  for (let i = 0, il = positions.length; i < il; ++i) {
+    const v = positions[i];
+    Vec3.toArray(Vec3.add(tmpShiftV, v, dir), out, i * 2 * 3);
+    Vec3.toArray(Vec3.sub(tmpShiftV, v, dir), out, (i * 2 + 1) * 3);
+  }
 }
 
-function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: NucleotideRingProps, mesh?: Mesh) {
-    if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
+function createNucleotideRingMesh(
+  ctx: VisualContext,
+  unit: Unit,
+  structure: Structure,
+  theme: Theme,
+  props: NucleotideRingProps,
+  mesh?: Mesh,
+) {
+  if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
 
-    const nucleotideElementCount = unit.nucleotideElements.length;
-    if (!nucleotideElementCount) return Mesh.createEmpty(mesh);
+  const nucleotideElementCount = unit.nucleotideElements.length;
+  if (!nucleotideElementCount) return Mesh.createEmpty(mesh);
 
-    const { sizeFactor, thicknessFactor, radialSegments, detail } = props;
+  const { sizeFactor, thicknessFactor, radialSegments, detail } = props;
 
-    const vertexCount = nucleotideElementCount * (26 + radialSegments * 2);
-    const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh);
+  const vertexCount = nucleotideElementCount * (26 + radialSegments * 2);
+  const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh);
 
-    const { elements, model, conformation: c } = unit;
-    const { chainAtomSegments, residueAtomSegments } = model.atomicHierarchy;
-    const { moleculeType } = model.atomicHierarchy.derived.residue;
+  const { elements, model, conformation: c } = unit;
+  const { chainAtomSegments, residueAtomSegments } = model.atomicHierarchy;
+  const { moleculeType } = model.atomicHierarchy.derived.residue;
 
-    const chainIt = Segmentation.transientSegments(chainAtomSegments, elements);
-    const residueIt = Segmentation.transientSegments(residueAtomSegments, elements);
+  const chainIt = Segmentation.transientSegments(chainAtomSegments, elements);
+  const residueIt = Segmentation.transientSegments(residueAtomSegments, elements);
 
-    const radius = 1 * sizeFactor;
-    const thickness = thicknessFactor * sizeFactor;
-    const cylinderProps: CylinderProps = { radiusTop: radius, radiusBottom: radius, radialSegments };
+  const radius = 1 * sizeFactor;
+  const thickness = thicknessFactor * sizeFactor;
+  const cylinderProps: CylinderProps = { radiusTop: radius, radiusBottom: radius, radialSegments };
 
-    let i = 0;
-    while (chainIt.hasNext) {
-        residueIt.setSegment(chainIt.move());
+  let i = 0;
+  while (chainIt.hasNext) {
+    residueIt.setSegment(chainIt.move());
 
-        while (residueIt.hasNext) {
-            const { index: residueIndex } = residueIt.move();
+    while (residueIt.hasNext) {
+      const { index: residueIndex } = residueIt.move();
 
-            if (isNucleic(moleculeType[residueIndex])) {
-                const idx = createNucleicIndices();
+      if (isNucleic(moleculeType[residueIndex])) {
+        const idx = createNucleicIndices();
 
-                builderState.currentGroup = i;
+        builderState.currentGroup = i;
 
-                const { isPurine, isPyrimidine } = getNucleotideBaseType(unit, residueIndex);
+        const { isPurine, isPyrimidine } = getNucleotideBaseType(unit, residueIndex);
 
-                if (isPurine) {
-                    setPurinIndices(idx, unit, residueIndex);
+        if (isPurine) {
+          setPurinIndices(idx, unit, residueIndex);
 
-                    if (idx.N9 !== -1 && idx.trace !== -1) {
-                        c.invariantPosition(idx.N9, pN9); c.invariantPosition(idx.trace, pTrace);
-                        builderState.currentGroup = i;
-                        addCylinder(builderState, pN9, pTrace, 1, cylinderProps);
-                        addSphere(builderState, pN9, radius, detail);
-                    }
+          if (idx.N9 !== -1 && idx.trace !== -1) {
+            c.invariantPosition(idx.N9, pN9);
+            c.invariantPosition(idx.trace, pTrace);
+            builderState.currentGroup = i;
+            addCylinder(builderState, pN9, pTrace, 1, cylinderProps);
+            addSphere(builderState, pN9, radius, detail);
+          }
 
-                    if (hasPurinIndices(idx)) {
-                        c.invariantPosition(idx.N1, pN1); c.invariantPosition(idx.C2, pC2); c.invariantPosition(idx.N3, pN3); c.invariantPosition(idx.C4, pC4); c.invariantPosition(idx.C5, pC5); c.invariantPosition(idx.C6, pC6); c.invariantPosition(idx.N7, pN7); c.invariantPosition(idx.C8, pC8);
+          if (hasPurinIndices(idx)) {
+            c.invariantPosition(idx.N1, pN1);
+            c.invariantPosition(idx.C2, pC2);
+            c.invariantPosition(idx.N3, pN3);
+            c.invariantPosition(idx.C4, pC4);
+            c.invariantPosition(idx.C5, pC5);
+            c.invariantPosition(idx.C6, pC6);
+            c.invariantPosition(idx.N7, pN7);
+            c.invariantPosition(idx.C8, pC8);
 
-                        Vec3.triangleNormal(normal, pN1, pC4, pC5);
-                        Vec3.scale(normal, normal, thickness);
-                        shiftPositions(positionsRing5_6, normal, pN1, pC2, pN3, pC4, pC5, pC6, pN7, pC8, pN9);
+            Vec3.triangleNormal(normal, pN1, pC4, pC5);
+            Vec3.scale(normal, normal, thickness);
+            shiftPositions(positionsRing5_6, normal, pN1, pC2, pN3, pC4, pC5, pC6, pN7, pC8, pN9);
 
-                        MeshBuilder.addTriangleStrip(builderState, positionsRing5_6, stripIndicesRing5_6);
-                        MeshBuilder.addTriangleFan(builderState, positionsRing5_6, fanIndicesTopRing5_6);
-                        MeshBuilder.addTriangleFan(builderState, positionsRing5_6, fanIndicesBottomRing5_6);
-                    }
-                } else if (isPyrimidine) {
-                    setPyrimidineIndices(idx, unit, residueIndex);
+            MeshBuilder.addTriangleStrip(builderState, positionsRing5_6, stripIndicesRing5_6);
+            MeshBuilder.addTriangleFan(builderState, positionsRing5_6, fanIndicesTopRing5_6);
+            MeshBuilder.addTriangleFan(builderState, positionsRing5_6, fanIndicesBottomRing5_6);
+          }
+        } else if (isPyrimidine) {
+          setPyrimidineIndices(idx, unit, residueIndex);
 
-                    if (idx.N1 !== -1 && idx.trace !== -1) {
-                        c.invariantPosition(idx.N1, pN1); c.invariantPosition(idx.trace, pTrace);
-                        builderState.currentGroup = i;
-                        addCylinder(builderState, pN1, pTrace, 1, cylinderProps);
-                        addSphere(builderState, pN1, radius, detail);
-                    }
+          if (idx.N1 !== -1 && idx.trace !== -1) {
+            c.invariantPosition(idx.N1, pN1);
+            c.invariantPosition(idx.trace, pTrace);
+            builderState.currentGroup = i;
+            addCylinder(builderState, pN1, pTrace, 1, cylinderProps);
+            addSphere(builderState, pN1, radius, detail);
+          }
 
-                    if (hasPyrimidineIndices(idx)) {
-                        c.invariantPosition(idx.C2, pC2); c.invariantPosition(idx.N3, pN3); c.invariantPosition(idx.C4, pC4); c.invariantPosition(idx.C5, pC5); c.invariantPosition(idx.C6, pC6);
+          if (hasPyrimidineIndices(idx)) {
+            c.invariantPosition(idx.C2, pC2);
+            c.invariantPosition(idx.N3, pN3);
+            c.invariantPosition(idx.C4, pC4);
+            c.invariantPosition(idx.C5, pC5);
+            c.invariantPosition(idx.C6, pC6);
 
-                        Vec3.triangleNormal(normal, pN1, pC4, pC5);
-                        Vec3.scale(normal, normal, thickness);
-                        shiftPositions(positionsRing6, normal, pN1, pC2, pN3, pC4, pC5, pC6);
+            Vec3.triangleNormal(normal, pN1, pC4, pC5);
+            Vec3.scale(normal, normal, thickness);
+            shiftPositions(positionsRing6, normal, pN1, pC2, pN3, pC4, pC5, pC6);
 
-                        MeshBuilder.addTriangleStrip(builderState, positionsRing6, stripIndicesRing6);
-                        MeshBuilder.addTriangleFan(builderState, positionsRing6, fanIndicesTopRing6);
-                        MeshBuilder.addTriangleFan(builderState, positionsRing6, fanIndicesBottomRing6);
-                    }
-                }
-
-                ++i;
-            }
+            MeshBuilder.addTriangleStrip(builderState, positionsRing6, stripIndicesRing6);
+            MeshBuilder.addTriangleFan(builderState, positionsRing6, fanIndicesTopRing6);
+            MeshBuilder.addTriangleFan(builderState, positionsRing6, fanIndicesBottomRing6);
+          }
         }
+
+        ++i;
+      }
     }
+  }
 
-    const m = MeshBuilder.getMesh(builderState);
+  const m = MeshBuilder.getMesh(builderState);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, radius);
-    m.setBoundingSphere(sphere);
+  const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, radius);
+  m.setBoundingSphere(sphere);
 
-    return m;
+  return m;
 }
 
 export const NucleotideRingParams = {
-    ...UnitsMeshParams,
-    ...NucleotideRingMeshParams
+  ...UnitsMeshParams,
+  ...NucleotideRingMeshParams,
 };
-export type NucleotideRingParams = typeof NucleotideRingParams
+export type NucleotideRingParams = typeof NucleotideRingParams;
 
 export function NucleotideRingVisual(materialId: number): UnitsVisual<NucleotideRingParams> {
-    return UnitsMeshVisual<NucleotideRingParams>({
-        defaultProps: PD.getDefaultValues(NucleotideRingParams),
-        createGeometry: createNucleotideRingMesh,
-        createLocationIterator: NucleotideLocationIterator.fromGroup,
-        getLoci: getNucleotideElementLoci,
-        eachLocation: eachNucleotideElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<NucleotideRingParams>, currentProps: PD.Values<NucleotideRingParams>) => {
-            state.createGeometry = (
-                newProps.sizeFactor !== currentProps.sizeFactor ||
-                newProps.thicknessFactor !== currentProps.thicknessFactor ||
-                newProps.radialSegments !== currentProps.radialSegments
-            );
-        }
-    }, materialId);
+  return UnitsMeshVisual<NucleotideRingParams>(
+    {
+      defaultProps: PD.getDefaultValues(NucleotideRingParams),
+      createGeometry: createNucleotideRingMesh,
+      createLocationIterator: NucleotideLocationIterator.fromGroup,
+      getLoci: getNucleotideElementLoci,
+      eachLocation: eachNucleotideElement,
+      setUpdateState: (
+        state: VisualUpdateState,
+        newProps: PD.Values<NucleotideRingParams>,
+        currentProps: PD.Values<NucleotideRingParams>,
+      ) => {
+        state.createGeometry =
+          newProps.sizeFactor !== currentProps.sizeFactor ||
+          newProps.thicknessFactor !== currentProps.thicknessFactor ||
+          newProps.radialSegments !== currentProps.radialSegments;
+      },
+    },
+    materialId,
+  );
 }

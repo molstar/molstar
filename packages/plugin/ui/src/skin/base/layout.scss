@@ -4,53 +4,44 @@
 @use 'layout/controls-portrait.scss' as *;
 
 @mixin layout {
-    @include layout-common;
+  @include layout-common;
 
-    .msp-layout-standard-outside {
-        position: absolute;
-        @include layout-outside;
+  .msp-layout-standard-outside {
+    position: absolute;
+    @include layout-outside;
+  }
+
+  .msp-layout-standard-landscape {
+    position: absolute;
+    @include layout-landscape;
+  }
+
+  .msp-layout-standard-portrait {
+    position: absolute;
+    @include layout-portrait;
+  }
+
+  .msp-layout-standard-reactive {
+    position: absolute;
+
+    @media (orientation: landscape), (min-width: 1000px) {
+      @include layout-landscape;
     }
 
-    .msp-layout-standard-landscape {
-        position: absolute;
-        @include layout-landscape;
+    @media (orientation: portrait) and (max-width: 1000px) {
+      @include layout-portrait;
+    }
+  }
+
+  .msp-layout-expanded {
+    position: fixed;
+
+    @media (orientation: landscape) {
+      @include layout-landscape;
     }
 
-    .msp-layout-standard-portrait {
-        position: absolute;
-        @include layout-portrait;
+    @media (orientation: portrait) {
+      @include layout-portrait;
     }
-
-    .msp-layout-standard-reactive {
-        position: absolute;
-
-        @media (orientation:landscape),
-        (min-width: 1000px) {
-            @include layout-landscape;
-        }
-
-        ;
-
-        @media (orientation:portrait) and (max-width: 1000px) {
-            @include layout-portrait;
-        }
-
-        ;
-    }
-
-    .msp-layout-expanded {
-        position: fixed;
-
-        @media (orientation:landscape) {
-            @include layout-landscape;
-        }
-
-        ;
-
-        @media (orientation:portrait) {
-            @include layout-portrait;
-        }
-
-        ;
-    }
+  }
 }

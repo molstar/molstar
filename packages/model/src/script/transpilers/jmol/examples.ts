@@ -7,22 +7,29 @@
  * Adapted from MolQL project
  */
 
-export const examples = [{
+export const examples = [
+  {
     name: 'Residue 50 or 135',
-    value: '50 or 135'
-}, {
+    value: '50 or 135',
+  },
+  {
     name: 'Atoms with no covalent bonds',
-    value: 'bondcount = 0'
-}, {
+    value: 'bondcount = 0',
+  },
+  {
     name: 'All 3-10 helices',
-    value: 'substructure = "helix310"'
-}, {
+    value: 'substructure = "helix310"',
+  },
+  {
     name: 'Metal atoms',
-    value: 'metal'
-}, {
+    value: 'metal',
+  },
+  {
     name: 'Atoms invloved in aromatic bonds',
-    value: 'isAromatic'
-}, {
+    value: 'isAromatic',
+  },
+  {
     name: 'Pyrimidine residues',
-    value: 'pyrimidine'
-}];
+    value: 'pyrimidine',
+  },
+];

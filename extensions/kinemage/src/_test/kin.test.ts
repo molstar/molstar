@@ -84,105 +84,104 @@ This is a comprehensive test kinemage file that includes:
 `;
 
 describe('kin reader', () => {
-    it('basic', async () => {
-        const parsed = await parseKin(kinString).run();
-        if (parsed.isError) {
-            console.error('Parse error:', parsed);
-            fail('Parse should not error');
-        }
-        if (parsed.result.length !== 1) {
-            fail(`Expected 1 kinemage, got ${parsed.result.length}`);
-        }
-        const kinemage = parsed.result[0];
+  it('basic', async () => {
+    const parsed = await parseKin(kinString).run();
+    if (parsed.isError) {
+      console.error('Parse error:', parsed);
+      fail('Parse should not error');
+    }
+    if (parsed.result.length !== 1) {
+      fail(`Expected 1 kinemage, got ${parsed.result.length}`);
+    }
+    const kinemage = parsed.result[0];
 
-        const vectors = kinemage.vectorLists;
-        expect(vectors.length).toEqual(1);
+    const vectors = kinemage.vectorLists;
+    expect(vectors.length).toEqual(1);
 
-        const element = vectors[0];
-        expect(element.name).toEqual('x');
-        expect(element.position1Array.length).toEqual(7*3);
+    const element = vectors[0];
+    expect(element.name).toEqual('x');
+    expect(element.position1Array.length).toEqual(7 * 3);
 
-        // Test that colors are parsed correctly
-        expect(element.color1Array.length).toEqual(7);
+    // Test that colors are parsed correctly
+    expect(element.color1Array.length).toEqual(7);
 
-        // Test masters are set up
-        expect(element.masterArray).toContain('bad overlap');
+    // Test masters are set up
+    expect(element.masterArray).toContain('bad overlap');
 
-        expect.assertions(5);
-    });
+    expect.assertions(5);
+  });
 
-    it('complex', async () => {
-        const parsed = await parseKin(kinComplexString).run();
-        if (parsed.isError) {
-            fail('Parse should not error');
-        }
+  it('complex', async () => {
+    const parsed = await parseKin(kinComplexString).run();
+    if (parsed.isError) {
+      fail('Parse should not error');
+    }
 
-        expect(parsed.result.length).toBeGreaterThan(0);
-        const kinemage = parsed.result[0];
+    expect(parsed.result.length).toBeGreaterThan(0);
+    const kinemage = parsed.result[0];
 
-        // Verify structure is valid
-        expect(kinemage.vectorLists).toBeDefined();
-        expect(kinemage.masterDict).toBeDefined();
-        expect(kinemage.groupDict).toBeDefined();
-        expect(kinemage.pointmasterDict).toBeDefined();
+    // Verify structure is valid
+    expect(kinemage.vectorLists).toBeDefined();
+    expect(kinemage.masterDict).toBeDefined();
+    expect(kinemage.groupDict).toBeDefined();
+    expect(kinemage.pointmasterDict).toBeDefined();
 
-        // Test animate groups
-        expect(kinemage.groupsAnimate.length).toEqual(2);
-        expect(kinemage.groupsAnimate).toContain('Structure');
-        expect(kinemage.groupsAnimate).toContain('Contacts');
-        expect(kinemage.activeAnimateGroup).toEqual(0);
+    // Test animate groups
+    expect(kinemage.groupsAnimate.length).toEqual(2);
+    expect(kinemage.groupsAnimate).toContain('Structure');
+    expect(kinemage.groupsAnimate).toContain('Contacts');
+    expect(kinemage.activeAnimateGroup).toEqual(0);
 
-        // Test 2animate groups
-        expect(kinemage.groupsAnimate2.length).toEqual(1);
-        expect(kinemage.groupsAnimate2).toContain('Alternate conformations');
-        expect(kinemage.activeAnimateGroup2).toEqual(0);
+    // Test 2animate groups
+    expect(kinemage.groupsAnimate2.length).toEqual(1);
+    expect(kinemage.groupsAnimate2).toContain('Alternate conformations');
+    expect(kinemage.activeAnimateGroup2).toEqual(0);
 
-        // Test pointmasters
-        expect(Object.keys(kinemage.pointmasterDict).length).toBeGreaterThan(0);
-        expect(kinemage.pointmasterDict['A']).toEqual('Primary atoms');
-        expect(kinemage.pointmasterDict['B']).toEqual('Primary atoms');
-        expect(kinemage.pointmasterDict['X']).toEqual('Secondary atoms');
+    // Test pointmasters
+    expect(Object.keys(kinemage.pointmasterDict).length).toBeGreaterThan(0);
+    expect(kinemage.pointmasterDict['A']).toEqual('Primary atoms');
+    expect(kinemage.pointmasterDict['B']).toEqual('Primary atoms');
+    expect(kinemage.pointmasterDict['X']).toEqual('Secondary atoms');
 
-        // Test masters
-        expect(kinemage.masterDict['main']).toBeDefined();
-        expect(kinemage.masterDict['main'].visible).toEqual(true);
-        expect(kinemage.masterDict['secondary']).toBeDefined();
-        expect(kinemage.masterDict['secondary'].visible).toEqual(false);
+    // Test masters
+    expect(kinemage.masterDict['main']).toBeDefined();
+    expect(kinemage.masterDict['main'].visible).toEqual(true);
+    expect(kinemage.masterDict['secondary']).toBeDefined();
+    expect(kinemage.masterDict['secondary'].visible).toEqual(false);
 
-        // Test list types
-        expect(kinemage.vectorLists.length).toEqual(2);
-        expect(kinemage.dotLists.length).toEqual(1);
-        expect(kinemage.ballLists.length).toEqual(3); // 1 balllist + 2 spherelists
-        expect(kinemage.ribbonLists.length).toEqual(2); // 1 ribbonlist + 1 trianglelist
+    // Test list types
+    expect(kinemage.vectorLists.length).toEqual(2);
+    expect(kinemage.dotLists.length).toEqual(1);
+    expect(kinemage.ballLists.length).toEqual(3); // 1 balllist + 2 spherelists
+    expect(kinemage.ribbonLists.length).toEqual(2); // 1 ribbonlist + 1 trianglelist
 
-        // Test specific list properties
-        const caTrace = kinemage.vectorLists.find(v => v.name === 'CA trace');
-        expect(caTrace).toBeDefined();
-        expect(caTrace?.masterArray).toContain('main');
+    // Test specific list properties
+    const caTrace = kinemage.vectorLists.find((v) => v.name === 'CA trace');
+    expect(caTrace).toBeDefined();
+    expect(caTrace?.masterArray).toContain('main');
 
-        const hBonds = kinemage.dotLists[0];
-        expect(hBonds.name).toEqual('H-bonds');
-        expect(hBonds.positionArray.length).toEqual(9); // 3 dots * 3 coords
+    const hBonds = kinemage.dotLists[0];
+    expect(hBonds.name).toEqual('H-bonds');
+    expect(hBonds.positionArray.length).toEqual(9); // 3 dots * 3 coords
 
-        const cbAtoms = kinemage.ballLists.find(b => b.name === 'CB atoms');
-        expect(cbAtoms).toBeDefined();
-        expect(cbAtoms?.radiusArray.length).toEqual(3);
+    const cbAtoms = kinemage.ballLists.find((b) => b.name === 'CB atoms');
+    expect(cbAtoms).toBeDefined();
+    expect(cbAtoms?.radiusArray.length).toEqual(3);
 
-        const helix = kinemage.ribbonLists.find(r => r.name === 'Alpha helix');
-        expect(helix).toBeDefined();
-        expect(helix?.pairTriangleNormals).toEqual(true); // ribbonlist
+    const helix = kinemage.ribbonLists.find((r) => r.name === 'Alpha helix');
+    expect(helix).toBeDefined();
+    expect(helix?.pairTriangleNormals).toEqual(true); // ribbonlist
 
-        const surface = kinemage.ribbonLists.find(r => r.name === 'Surface patch');
-        expect(surface).toBeDefined();
-        expect(surface?.pairTriangleNormals).toEqual(false); // trianglelist
+    const surface = kinemage.ribbonLists.find((r) => r.name === 'Surface patch');
+    expect(surface).toBeDefined();
+    expect(surface?.pairTriangleNormals).toEqual(false); // trianglelist
 
-        // Test groups
-        expect(Object.keys(kinemage.groupDict).length).toEqual(4);
-        expect(kinemage.groupDict['Structure'].animate).toEqual(true);
-        expect(kinemage.groupDict['Alternate conformations']['2animate']).toEqual(true);
-        expect(kinemage.groupDict['Surface'].off).toEqual(true);
+    // Test groups
+    expect(Object.keys(kinemage.groupDict).length).toEqual(4);
+    expect(kinemage.groupDict['Structure'].animate).toEqual(true);
+    expect(kinemage.groupDict['Alternate conformations']['2animate']).toEqual(true);
+    expect(kinemage.groupDict['Surface'].off).toEqual(true);
 
-        expect.assertions(38);
-    });
-
+    expect.assertions(38);
+  });
 });

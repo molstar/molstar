@@ -8,14 +8,14 @@ import { MolEncoder } from './mol/encoder.js';
 import type { Encoder } from '@molstar/io/writer/cif/encoder';
 
 export namespace MolWriter {
-    export interface EncoderParams {
-        encoderName?: string,
-        // whether to write hydrogen atoms
-        hydrogens?: boolean
-    }
+  export interface EncoderParams {
+    encoderName?: string;
+    // whether to write hydrogen atoms
+    hydrogens?: boolean;
+  }
 
-    export function createEncoder(params?: EncoderParams): Encoder {
-        const { encoderName = 'mol*', hydrogens = true } = params || {};
-        return new MolEncoder(encoderName, false, hydrogens);
-    }
+  export function createEncoder(params?: EncoderParams): Encoder {
+    const { encoderName = 'mol*', hydrogens = true } = params || {};
+    return new MolEncoder(encoderName, false, hydrogens);
+  }
 }

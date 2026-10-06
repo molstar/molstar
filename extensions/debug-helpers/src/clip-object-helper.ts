@@ -25,7 +25,7 @@ import { Sphere } from '@molstar/graphics/geo/primitive/sphere';
 import type { DebugHelper } from '@molstar/graphics/canvas3d/helper/debug-registry';
 
 export const ClipObjectHelperParams = {
-    clipObjects: PD.Boolean(false, { description: 'Show clip-objects of visible render objects.' }),
+  clipObjects: PD.Boolean(false, { description: 'Show clip-objects of visible render objects.' }),
 };
 export type ClipObjectHelperParams = typeof ClipObjectHelperParams;
 export type ClipObjectHelperProps = PD.Values<ClipObjectHelperParams>;
@@ -33,34 +33,53 @@ export type ClipObjectHelperProps = PD.Values<ClipObjectHelperParams>;
 //
 
 /** Serializes clip object params to a string key for deduplication */
-function clipObjectKey(type: number, invert: boolean, position: ArrayLike<number>, posOffset: number, rotation: ArrayLike<number>, rotOffset: number, scale: ArrayLike<number>, scaleOffset: number, transform: ArrayLike<number>, transformOffset: number): string {
-    // Round floats to 5 decimal places to avoid floating point noise
-    const r = (v: number) => Math.round(v * 100000) / 100000;
-    const parts = [
-        type, invert ? 1 : 0,
-        r(position[posOffset]), r(position[posOffset + 1]), r(position[posOffset + 2]),
-        r(rotation[rotOffset]), r(rotation[rotOffset + 1]), r(rotation[rotOffset + 2]), r(rotation[rotOffset + 3]),
-        r(scale[scaleOffset]), r(scale[scaleOffset + 1]), r(scale[scaleOffset + 2]),
-    ];
-    for (let j = 0; j < 16; ++j) {
-        parts.push(r(transform[transformOffset + j]));
-    }
-    return parts.join(',');
+function clipObjectKey(
+  type: number,
+  invert: boolean,
+  position: ArrayLike<number>,
+  posOffset: number,
+  rotation: ArrayLike<number>,
+  rotOffset: number,
+  scale: ArrayLike<number>,
+  scaleOffset: number,
+  transform: ArrayLike<number>,
+  transformOffset: number,
+): string {
+  // Round floats to 5 decimal places to avoid floating point noise
+  const r = (v: number) => Math.round(v * 100000) / 100000;
+  const parts = [
+    type,
+    invert ? 1 : 0,
+    r(position[posOffset]),
+    r(position[posOffset + 1]),
+    r(position[posOffset + 2]),
+    r(rotation[rotOffset]),
+    r(rotation[rotOffset + 1]),
+    r(rotation[rotOffset + 2]),
+    r(rotation[rotOffset + 3]),
+    r(scale[scaleOffset]),
+    r(scale[scaleOffset + 1]),
+    r(scale[scaleOffset + 2]),
+  ];
+  for (let j = 0; j < 16; ++j) {
+    parts.push(r(transform[transformOffset + j]));
+  }
+  return parts.join(',');
 }
 
 type ClipObjectData = {
-    key: string,
-    renderObject: GraphicsRenderObject,
-    indicatorRenderObject: GraphicsRenderObject,
-    mesh: Mesh,
-}
+  key: string;
+  renderObject: GraphicsRenderObject;
+  indicatorRenderObject: GraphicsRenderObject;
+  mesh: Mesh;
+};
 
 const clipObjectColors: Record<number, Color> = {
-    [Clip.Type.plane]: ColorNames.orange,
-    [Clip.Type.sphere]: ColorNames.green,
-    [Clip.Type.cube]: ColorNames.dodgerblue,
-    [Clip.Type.cylinder]: ColorNames.gold,
-    [Clip.Type.infiniteCone]: ColorNames.crimson,
+  [Clip.Type.plane]: ColorNames.orange,
+  [Clip.Type.sphere]: ColorNames.green,
+  [Clip.Type.cube]: ColorNames.dodgerblue,
+  [Clip.Type.cylinder]: ColorNames.gold,
+  [Clip.Type.infiniteCone]: ColorNames.crimson,
 };
 
 const clipMaterialId = getNextMaterialId();
@@ -90,134 +109,147 @@ const _zAxis = Vec3.create(0, 0, 1);
 const _indicatorPos = Vec3();
 
 export class ClipObjectHelper implements DebugHelper<ClipObjectHelperProps> {
-    readonly scene: Scene;
+  readonly scene: Scene;
 
-    private readonly parent: Scene;
-    private _props: ClipObjectHelperProps;
-    private objectsData = new Map<string, ClipObjectData>();
+  private readonly parent: Scene;
+  private _props: ClipObjectHelperProps;
+  private objectsData = new Map<string, ClipObjectData>();
 
-    constructor(ctx: WebGLContext, parent: Scene, props: Partial<ClipObjectHelperProps>) {
-        this.scene = Scene.create(ctx, 'blended');
-        this.parent = parent;
-        this._props = { ...PD.getDefaultValues(ClipObjectHelperParams), ...props };
-    }
+  constructor(ctx: WebGLContext, parent: Scene, props: Partial<ClipObjectHelperProps>) {
+    this.scene = Scene.create(ctx, 'blended');
+    this.parent = parent;
+    this._props = { ...PD.getDefaultValues(ClipObjectHelperParams), ...props };
+  }
 
-    update() {
-        const currentKeys = new Set<string>();
-        const sceneRadius = this.parent.boundingSphereVisible.radius || 50;
+  update() {
+    const currentKeys = new Set<string>();
+    const sceneRadius = this.parent.boundingSphereVisible.radius || 50;
 
-        this.parent.forEach((r, ro) => {
-            if (!ro.state.visible) return;
+    this.parent.forEach((r, ro) => {
+      if (!ro.state.visible) return;
 
-            const count = ro.values.dClipObjectCount.ref.value;
-            if (count === 0) return;
+      const count = ro.values.dClipObjectCount.ref.value;
+      if (count === 0) return;
 
-            const types = ro.values.uClipObjectType.ref.value;
-            const inverts = ro.values.uClipObjectInvert.ref.value;
-            const positions = ro.values.uClipObjectPosition.ref.value;
-            const rotations = ro.values.uClipObjectRotation.ref.value;
-            const scales = ro.values.uClipObjectScale.ref.value;
-            const transforms = ro.values.uClipObjectTransform.ref.value;
+      const types = ro.values.uClipObjectType.ref.value;
+      const inverts = ro.values.uClipObjectInvert.ref.value;
+      const positions = ro.values.uClipObjectPosition.ref.value;
+      const rotations = ro.values.uClipObjectRotation.ref.value;
+      const scales = ro.values.uClipObjectScale.ref.value;
+      const transforms = ro.values.uClipObjectTransform.ref.value;
 
-            for (let i = 0; i < count; ++i) {
-                const type = types[i];
-                if (type === Clip.Type.none) continue;
+      for (let i = 0; i < count; ++i) {
+        const type = types[i];
+        if (type === Clip.Type.none) continue;
 
-                const key = clipObjectKey(
-                    type, inverts[i],
-                    positions, i * 3,
-                    rotations, i * 4,
-                    scales, i * 3,
-                    transforms, i * 16
-                );
+        const key = clipObjectKey(
+          type,
+          inverts[i],
+          positions,
+          i * 3,
+          rotations,
+          i * 4,
+          scales,
+          i * 3,
+          transforms,
+          i * 16,
+        );
 
-                currentKeys.add(key);
+        currentKeys.add(key);
 
-                if (this.objectsData.has(key)) continue;
+        if (this.objectsData.has(key)) continue;
 
-                // Extract per-object params
-                Vec3.fromArray(_position, positions, i * 3);
-                Quat.fromArray(_rotation, rotations, i * 4);
-                Quat.normalize(_rotation, _rotation); // ensure unit quaternion for proper rotation
-                Vec3.fromArray(_scale, scales, i * 3);
-                Mat4.fromArray(_clipTransform, transforms, i * 16);
+        // Extract per-object params
+        Vec3.fromArray(_position, positions, i * 3);
+        Quat.fromArray(_rotation, rotations, i * 4);
+        Quat.normalize(_rotation, _rotation); // ensure unit quaternion for proper rotation
+        Vec3.fromArray(_scale, scales, i * 3);
+        Mat4.fromArray(_clipTransform, transforms, i * 16);
 
-                // Build base transform (translate * rotate) without scale,
-                // so each shape can insert pre-rotations before scale.
-                Mat4.fromQuat(_rotMat, _rotation);
-                Mat4.fromTranslation(_translateMat, _position);
-                Mat4.mul(_baseMat, _translateMat, _rotMat);
+        // Build base transform (translate * rotate) without scale,
+        // so each shape can insert pre-rotations before scale.
+        Mat4.fromQuat(_rotMat, _rotation);
+        Mat4.fromTranslation(_translateMat, _position);
+        Mat4.mul(_baseMat, _translateMat, _rotMat);
 
-                // apply inverse of clip transform
-                if (!Mat4.isIdentity(_clipTransform)) {
-                    Mat4.invert(_invClipTransform, _clipTransform);
-                    Mat4.mul(_baseMat, _invClipTransform, _baseMat);
-                }
+        // apply inverse of clip transform
+        if (!Mat4.isIdentity(_clipTransform)) {
+          Mat4.invert(_invClipTransform, _clipTransform);
+          Mat4.mul(_baseMat, _invClipTransform, _baseMat);
+        }
 
-                const mesh = createClipObjectMesh(type, _baseMat, _scale, sceneRadius);
-                const color = clipObjectColors[type] || ColorNames.white;
-                const renderObject = createClipObjectRenderObject(mesh, color, clipMaterialId, type);
+        const mesh = createClipObjectMesh(type, _baseMat, _scale, sceneRadius);
+        const color = clipObjectColors[type] || ColorNames.white;
+        const renderObject = createClipObjectRenderObject(mesh, color, clipMaterialId, type);
 
-                // Create position/rotation indicator mesh
-                const invert = inverts[i];
-                const indicatorMesh = createIndicatorMesh(_position, _rotation, _clipTransform, _scale, type, invert);
-                const indicatorRenderObject = createIndicatorRenderObject(indicatorMesh, indicatorMaterialId);
+        // Create position/rotation indicator mesh
+        const invert = inverts[i];
+        const indicatorMesh = createIndicatorMesh(_position, _rotation, _clipTransform, _scale, type, invert);
+        const indicatorRenderObject = createIndicatorRenderObject(indicatorMesh, indicatorMaterialId);
 
-                this.scene.add(renderObject);
-                this.scene.add(indicatorRenderObject);
-                this.objectsData.set(key, { key, renderObject, indicatorRenderObject, mesh });
-            }
-        });
+        this.scene.add(renderObject);
+        this.scene.add(indicatorRenderObject);
+        this.objectsData.set(key, { key, renderObject, indicatorRenderObject, mesh });
+      }
+    });
 
-        // Remove clip objects no longer present
-        this.objectsData.forEach((data, key) => {
-            if (!currentKeys.has(key)) {
-                this.scene.remove(data.renderObject);
-                this.scene.remove(data.indicatorRenderObject);
-                this.objectsData.delete(key);
-            }
-        });
+    // Remove clip objects no longer present
+    this.objectsData.forEach((data, key) => {
+      if (!currentKeys.has(key)) {
+        this.scene.remove(data.renderObject);
+        this.scene.remove(data.indicatorRenderObject);
+        this.objectsData.delete(key);
+      }
+    });
 
-        this.scene.update(void 0, false);
-        this.scene.commit();
-    }
+    this.scene.update(void 0, false);
+    this.scene.commit();
+  }
 
-    syncVisibility() {
-        const visible = this._props.clipObjects;
-        this.objectsData.forEach(data => {
-            data.renderObject.state.visible = visible;
-            data.indicatorRenderObject.state.visible = visible;
-        });
-    }
+  syncVisibility() {
+    const visible = this._props.clipObjects;
+    this.objectsData.forEach((data) => {
+      data.renderObject.state.visible = visible;
+      data.indicatorRenderObject.state.visible = visible;
+    });
+  }
 
-    clear() {
-        this.objectsData.clear();
-        this.scene.clear();
-    }
+  clear() {
+    this.objectsData.clear();
+    this.scene.clear();
+  }
 
-    get isEnabled() {
-        return this._props.clipObjects;
-    }
+  get isEnabled() {
+    return this._props.clipObjects;
+  }
 
-    get props() { return this._props as Readonly<ClipObjectHelperProps>; }
+  get props() {
+    return this._props as Readonly<ClipObjectHelperProps>;
+  }
 
-    setProps(props: Partial<ClipObjectHelperProps>) {
-        Object.assign(this._props, props);
-        if (this.isEnabled) this.update();
-    }
+  setProps(props: Partial<ClipObjectHelperProps>) {
+    Object.assign(this._props, props);
+    if (this.isEnabled) this.update();
+  }
 }
 
 //
 
 function createClipObjectMesh(type: number, baseMat: Mat4, scale: Vec3, sceneRadius: number): Mesh {
-    switch (type) {
-        case Clip.Type.plane: return createPlaneMesh(baseMat, sceneRadius);
-        case Clip.Type.sphere: return createSphereMesh(baseMat, scale);
-        case Clip.Type.cube: return createCubeMesh(baseMat, scale);
-        case Clip.Type.cylinder: return createCylinderMesh(baseMat, scale);
-        case Clip.Type.infiniteCone: return createConeMesh(baseMat, scale, sceneRadius);
-        default: return createSphereMesh(baseMat, scale); // fallback
-    }
+  switch (type) {
+    case Clip.Type.plane:
+      return createPlaneMesh(baseMat, sceneRadius);
+    case Clip.Type.sphere:
+      return createSphereMesh(baseMat, scale);
+    case Clip.Type.cube:
+      return createCubeMesh(baseMat, scale);
+    case Clip.Type.cylinder:
+      return createCylinderMesh(baseMat, scale);
+    case Clip.Type.infiniteCone:
+      return createConeMesh(baseMat, scale, sceneRadius);
+    default:
+      return createSphereMesh(baseMat, scale); // fallback
+  }
 }
 
 /**
@@ -227,17 +259,17 @@ function createClipObjectMesh(type: number, baseMat: Mat4, scale: Vec3, sceneRad
  * Sized to cover the scene bounding sphere. Clip scale is ignored (plane is infinite in GLSL).
  */
 function createPlaneMesh(baseMat: Mat4, sceneRadius: number): Mesh {
-    const size = Math.max(sceneRadius * 2, 10);
-    // baseMat * preRotPlane * uniformScale(size)
-    Mat4.mul(_tmpMat, baseMat, preRotPlaneMat);
-    Mat4.scale(_tmpMat, _tmpMat, Vec3.create(size, size, 1));
+  const size = Math.max(sceneRadius * 2, 10);
+  // baseMat * preRotPlane * uniformScale(size)
+  Mat4.mul(_tmpMat, baseMat, preRotPlaneMat);
+  Mat4.scale(_tmpMat, _tmpMat, Vec3.create(size, size, 1));
 
-    const plane = Plane();
-    const builderState = MeshBuilder.createState(256, 128);
-    MeshBuilder.addPrimitive(builderState, _tmpMat, plane);
-    // Add flipped backface for double-sided visibility
-    MeshBuilder.addPrimitiveFlipped(builderState, _tmpMat, plane);
-    return MeshBuilder.getMesh(builderState);
+  const plane = Plane();
+  const builderState = MeshBuilder.createState(256, 128);
+  MeshBuilder.addPrimitive(builderState, _tmpMat, plane);
+  // Add flipped backface for double-sided visibility
+  MeshBuilder.addPrimitiveFlipped(builderState, _tmpMat, plane);
+  return MeshBuilder.getMesh(builderState);
 }
 
 /**
@@ -246,21 +278,21 @@ function createPlaneMesh(baseMat: Mat4, sceneRadius: number): Mesh {
  * Transform: baseMat * scale * 0.5
  */
 function createSphereMesh(baseMat: Mat4, scale: Vec3): Mesh {
-    const detail = 2;
-    const sphere = getSphereForHelper(detail);
-    // baseMat * scale(scale * 0.5)
-    Mat4.scale(_tmpMat, baseMat, Vec3.create(scale[0] * 0.5, scale[1] * 0.5, scale[2] * 0.5));
+  const detail = 2;
+  const sphere = getSphereForHelper(detail);
+  // baseMat * scale(scale * 0.5)
+  Mat4.scale(_tmpMat, baseMat, Vec3.create(scale[0] * 0.5, scale[1] * 0.5, scale[2] * 0.5));
 
-    const vertexCount = 10 * Math.pow(2, 2 * detail) + 2;
-    const builderState = MeshBuilder.createState(vertexCount * 3, vertexCount);
-    MeshBuilder.addPrimitive(builderState, _tmpMat, sphere);
-    return MeshBuilder.getMesh(builderState);
+  const vertexCount = 10 * Math.pow(2, 2 * detail) + 2;
+  const builderState = MeshBuilder.createState(vertexCount * 3, vertexCount);
+  MeshBuilder.addPrimitive(builderState, _tmpMat, sphere);
+  return MeshBuilder.getMesh(builderState);
 }
 
 let _helperSphere: ReturnType<typeof Sphere> | undefined;
 function getSphereForHelper(detail: number) {
-    if (!_helperSphere) _helperSphere = Sphere(detail);
-    return _helperSphere;
+  if (!_helperSphere) _helperSphere = Sphere(detail);
+  return _helperSphere;
 }
 
 /**
@@ -268,13 +300,13 @@ function getSphereForHelper(detail: number) {
  * Box() primitive is ±0.5 (unit cube), so scaling by `scale` gives half-extents of scale*0.5.
  */
 function createCubeMesh(baseMat: Mat4, scale: Vec3): Mesh {
-    // baseMat * scale(scale)
-    Mat4.scale(_tmpMat, baseMat, scale);
+  // baseMat * scale(scale)
+  Mat4.scale(_tmpMat, baseMat, scale);
 
-    const box = Box();
-    const builderState = MeshBuilder.createState(256, 128);
-    MeshBuilder.addPrimitive(builderState, _tmpMat, box);
-    return MeshBuilder.getMesh(builderState);
+  const box = Box();
+  const builderState = MeshBuilder.createState(256, 128);
+  MeshBuilder.addPrimitive(builderState, _tmpMat, box);
+  return MeshBuilder.getMesh(builderState);
 }
 
 /**
@@ -283,14 +315,22 @@ function createCubeMesh(baseMat: Mat4, scale: Vec3): Mesh {
  * Need: X/Z *= scale.x * 0.5 (radius 1 → scale.x*0.5), Y *= scale.y (half-height 0.5 → scale.y*0.5).
  */
 function createCylinderMesh(baseMat: Mat4, scale: Vec3): Mesh {
-    const cyl = Cylinder({ radiusTop: 1, radiusBottom: 1, height: 1, radialSegments: 16, heightSegments: 1, topCap: true, bottomCap: true });
-    // baseMat * scale(scale.x * 0.5, scale.y, scale.x * 0.5) — use scale.x for both radial axes
-    Mat4.scale(_tmpMat, baseMat, Vec3.create(scale[0] * 0.5, scale[1], scale[0] * 0.5));
+  const cyl = Cylinder({
+    radiusTop: 1,
+    radiusBottom: 1,
+    height: 1,
+    radialSegments: 16,
+    heightSegments: 1,
+    topCap: true,
+    bottomCap: true,
+  });
+  // baseMat * scale(scale.x * 0.5, scale.y, scale.x * 0.5) — use scale.x for both radial axes
+  Mat4.scale(_tmpMat, baseMat, Vec3.create(scale[0] * 0.5, scale[1], scale[0] * 0.5));
 
-    const vertexCount = cyl.vertices.length / 3;
-    const builderState = MeshBuilder.createState(vertexCount * 3, vertexCount);
-    MeshBuilder.addPrimitive(builderState, _tmpMat, cyl);
-    return MeshBuilder.getMesh(builderState);
+  const vertexCount = cyl.vertices.length / 3;
+  const builderState = MeshBuilder.createState(vertexCount * 3, vertexCount);
+  MeshBuilder.addPrimitive(builderState, _tmpMat, cyl);
+  return MeshBuilder.getMesh(builderState);
 }
 
 /**
@@ -310,30 +350,56 @@ function createCylinderMesh(baseMat: Mat4, scale: Vec3): Mesh {
  *   4. baseMat: position + rotation of clip object
  */
 function createConeMesh(baseMat: Mat4, scale: Vec3, sceneRadius: number): Mesh {
-    const cone = Cylinder({ radiusTop: 0, radiusBottom: 1, height: 1, radialSegments: 16, heightSegments: 1, topCap: false, bottomCap: true });
+  const cone = Cylinder({
+    radiusTop: 0,
+    radiusBottom: 1,
+    height: 1,
+    radialSegments: 16,
+    heightSegments: 1,
+    topCap: false,
+    bottomCap: true,
+  });
 
-    // Visible length of the (infinite) cone, and base radius matching the GLSL half-angle
-    const coneLength = Math.max(sceneRadius * 2, 10);
-    const tanHalfAngle = (scale[1] || 1) / (scale[0] || 1); // tan(θ) = scaleY / scaleX
-    const baseRadius = coneLength * tanHalfAngle;
+  // Visible length of the (infinite) cone, and base radius matching the GLSL half-angle
+  const coneLength = Math.max(sceneRadius * 2, 10);
+  const tanHalfAngle = (scale[1] || 1) / (scale[0] || 1); // tan(θ) = scaleY / scaleX
+  const baseRadius = coneLength * tanHalfAngle;
 
-    // baseMat * preRotCone * Translate(0, -coneLength/2, 0) * Scale(baseRadius, coneLength, baseRadius)
-    const scaleMat = Mat4.fromScaling(Mat4(), Vec3.create(baseRadius, coneLength, baseRadius));
-    const translateMat = Mat4.fromTranslation(Mat4(), Vec3.create(0, -coneLength * 0.5, 0));
-    Mat4.mul(_tmpMat, translateMat, scaleMat);
-    Mat4.mul(_tmpMat, preRotConeMat, _tmpMat);
-    Mat4.mul(_tmpMat, baseMat, _tmpMat);
+  // baseMat * preRotCone * Translate(0, -coneLength/2, 0) * Scale(baseRadius, coneLength, baseRadius)
+  const scaleMat = Mat4.fromScaling(Mat4(), Vec3.create(baseRadius, coneLength, baseRadius));
+  const translateMat = Mat4.fromTranslation(Mat4(), Vec3.create(0, -coneLength * 0.5, 0));
+  Mat4.mul(_tmpMat, translateMat, scaleMat);
+  Mat4.mul(_tmpMat, preRotConeMat, _tmpMat);
+  Mat4.mul(_tmpMat, baseMat, _tmpMat);
 
-    const vertexCount = cone.vertices.length / 3;
-    const builderState = MeshBuilder.createState(vertexCount * 3, vertexCount);
-    MeshBuilder.addPrimitive(builderState, _tmpMat, cone);
-    return MeshBuilder.getMesh(builderState);
+  const vertexCount = cone.vertices.length / 3;
+  const builderState = MeshBuilder.createState(vertexCount * 3, vertexCount);
+  MeshBuilder.addPrimitive(builderState, _tmpMat, cone);
+  return MeshBuilder.getMesh(builderState);
 }
 
 function createClipObjectRenderObject(mesh: Mesh, color: Color, materialId: number, type: number) {
-    const alpha = type === Clip.Type.plane ? 0.25 : 0.15;
-    const values = Mesh.Utils.createValuesSimple(mesh, { alpha, doubleSided: false, cellSize: 0, batchSize: 0 }, color, 1);
-    return createRenderObject('mesh', values, { disposed: false, visible: true, alphaFactor: 1, pickable: false, colorOnly: false, opaque: false, writeDepth: false }, materialId);
+  const alpha = type === Clip.Type.plane ? 0.25 : 0.15;
+  const values = Mesh.Utils.createValuesSimple(
+    mesh,
+    { alpha, doubleSided: false, cellSize: 0, batchSize: 0 },
+    color,
+    1,
+  );
+  return createRenderObject(
+    'mesh',
+    values,
+    {
+      disposed: false,
+      visible: true,
+      alphaFactor: 1,
+      pickable: false,
+      colorOnly: false,
+      opaque: false,
+      writeDepth: false,
+    },
+    materialId,
+  );
 }
 
 /**
@@ -344,60 +410,89 @@ function createClipObjectRenderObject(mesh: Mesh, color: Color, materialId: numb
  * - InfiniteCone: axis = rotated Z (cone axis is Z in local frame)
  * - Plane with invert: direction is flipped
  */
-function createIndicatorMesh(position: Vec3, rotation: Quat, clipTransform: Mat4, scale: Vec3, type: number, invert: boolean): Mesh {
-    const objectSize = Math.max(scale[0], scale[1], scale[2]);
-    const sphereRadius = Math.max(objectSize * 0.004, 0.01);
-    const cylinderRadius = sphereRadius * 0.4;
-    const axisLength = Math.max(objectSize * 0.1, 2);
+function createIndicatorMesh(
+  position: Vec3,
+  rotation: Quat,
+  clipTransform: Mat4,
+  scale: Vec3,
+  type: number,
+  invert: boolean,
+): Mesh {
+  const objectSize = Math.max(scale[0], scale[1], scale[2]);
+  const sphereRadius = Math.max(objectSize * 0.004, 0.01);
+  const cylinderRadius = sphereRadius * 0.4;
+  const axisLength = Math.max(objectSize * 0.1, 2);
 
-    // Transform position by inverse of clipTransform if non-identity
-    Vec3.copy(_indicatorPos, position);
-    if (!Mat4.isIdentity(clipTransform)) {
-        Mat4.invert(_invClipTransform, clipTransform);
-        Vec3.transformMat4(_indicatorPos, _indicatorPos, _invClipTransform);
-    }
+  // Transform position by inverse of clipTransform if non-identity
+  Vec3.copy(_indicatorPos, position);
+  if (!Mat4.isIdentity(clipTransform)) {
+    Mat4.invert(_invClipTransform, clipTransform);
+    Vec3.transformMat4(_indicatorPos, _indicatorPos, _invClipTransform);
+  }
 
-    // Choose the local-frame axis based on clip type
-    const localAxis = type === Clip.Type.infiniteCone ? _zAxis : _yAxis;
-    Vec3.transformQuat(_axisEnd, localAxis, rotation);
+  // Choose the local-frame axis based on clip type
+  const localAxis = type === Clip.Type.infiniteCone ? _zAxis : _yAxis;
+  Vec3.transformQuat(_axisEnd, localAxis, rotation);
 
-    // Cone opens in -Z locally, so negate to point along the cone opening
-    if (type === Clip.Type.infiniteCone) {
-        Vec3.negate(_axisEnd, _axisEnd);
-    }
+  // Cone opens in -Z locally, so negate to point along the cone opening
+  if (type === Clip.Type.infiniteCone) {
+    Vec3.negate(_axisEnd, _axisEnd);
+  }
 
-    // For planes, the normal points toward the clipped (removed) side.
-    // Flip so the indicator points toward the non-clipped (kept) geometry.
-    // When inverted, the kept side is the normal side, so don't flip.
-    if (type === Clip.Type.plane && !invert) {
-        Vec3.negate(_axisEnd, _axisEnd);
-    }
+  // For planes, the normal points toward the clipped (removed) side.
+  // Flip so the indicator points toward the non-clipped (kept) geometry.
+  // When inverted, the kept side is the normal side, so don't flip.
+  if (type === Clip.Type.plane && !invert) {
+    Vec3.negate(_axisEnd, _axisEnd);
+  }
 
-    // If clipTransform is non-identity, also transform the axis direction
-    if (!Mat4.isIdentity(clipTransform)) {
-        // Transform direction (not position) by inverse clipTransform
-        const endWorld = Vec3();
-        Vec3.add(endWorld, position, Vec3.scale(Vec3(), _axisEnd, axisLength));
-        Vec3.transformMat4(endWorld, endWorld, _invClipTransform);
-        Vec3.sub(_axisEnd, endWorld, _indicatorPos);
-        Vec3.normalize(_axisEnd, _axisEnd);
-    }
+  // If clipTransform is non-identity, also transform the axis direction
+  if (!Mat4.isIdentity(clipTransform)) {
+    // Transform direction (not position) by inverse clipTransform
+    const endWorld = Vec3();
+    Vec3.add(endWorld, position, Vec3.scale(Vec3(), _axisEnd, axisLength));
+    Vec3.transformMat4(endWorld, endWorld, _invClipTransform);
+    Vec3.sub(_axisEnd, endWorld, _indicatorPos);
+    Vec3.normalize(_axisEnd, _axisEnd);
+  }
 
-    // Axis cylinder endpoint
-    const axisEndPoint = Vec3();
-    Vec3.scaleAndAdd(axisEndPoint, _indicatorPos, _axisEnd, axisLength);
+  // Axis cylinder endpoint
+  const axisEndPoint = Vec3();
+  Vec3.scaleAndAdd(axisEndPoint, _indicatorPos, _axisEnd, axisLength);
 
-    const builderState = MeshBuilder.createState(512, 256);
-    // Position sphere
-    addSphere(builderState, _indicatorPos, sphereRadius, 1);
-    // Rotation axis cylinder
-    addCylinder(builderState, _indicatorPos, axisEndPoint, 1, { radiusTop: cylinderRadius, radiusBottom: cylinderRadius, radialSegments: 8 });
-    // Small sphere at tip of axis
-    addSphere(builderState, axisEndPoint, cylinderRadius * 1.5, 1);
-    return MeshBuilder.getMesh(builderState);
+  const builderState = MeshBuilder.createState(512, 256);
+  // Position sphere
+  addSphere(builderState, _indicatorPos, sphereRadius, 1);
+  // Rotation axis cylinder
+  addCylinder(builderState, _indicatorPos, axisEndPoint, 1, {
+    radiusTop: cylinderRadius,
+    radiusBottom: cylinderRadius,
+    radialSegments: 8,
+  });
+  // Small sphere at tip of axis
+  addSphere(builderState, axisEndPoint, cylinderRadius * 1.5, 1);
+  return MeshBuilder.getMesh(builderState);
 }
 
 function createIndicatorRenderObject(mesh: Mesh, materialId: number) {
-    const values = Mesh.Utils.createValuesSimple(mesh, { alpha: 0.7, doubleSided: false, cellSize: 0, batchSize: 0 }, ColorNames.white, 1);
-    return createRenderObject('mesh', values, { disposed: false, visible: true, alphaFactor: 1, pickable: false, colorOnly: false, opaque: false, writeDepth: false }, materialId);
+  const values = Mesh.Utils.createValuesSimple(
+    mesh,
+    { alpha: 0.7, doubleSided: false, cellSize: 0, batchSize: 0 },
+    ColorNames.white,
+    1,
+  );
+  return createRenderObject(
+    'mesh',
+    values,
+    {
+      disposed: false,
+      visible: true,
+      alphaFactor: 1,
+      pickable: false,
+      colorOnly: false,
+      opaque: false,
+      writeDepth: false,
+    },
+    materialId,
+  );
 }

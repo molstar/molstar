@@ -17,92 +17,92 @@ import type { Column } from '@molstar/core/data/db';
 // note that the format is not a fixed column format but white space separated
 
 export interface Mol2Molecule {
-    mol_name: string
-    num_atoms: number
-    num_bonds: number
-    num_subst: number
-    num_feat: number
-    num_sets: number
-    mol_type: string
-    charge_type: string
-    status_bits: string
-    mol_comment: string
+  mol_name: string;
+  num_atoms: number;
+  num_bonds: number;
+  num_subst: number;
+  num_feat: number;
+  num_sets: number;
+  mol_type: string;
+  charge_type: string;
+  status_bits: string;
+  mol_comment: string;
 }
 
 export interface Mol2Atoms {
-    count: number,
+  count: number;
 
-    atom_id: Column<number>,
-    atom_name: Column<string>,
-    x: Column<number>,
-    y: Column<number>,
-    z: Column<number>,
-    atom_type: Column<string>,
+  atom_id: Column<number>;
+  atom_name: Column<string>;
+  x: Column<number>;
+  y: Column<number>;
+  z: Column<number>;
+  atom_type: Column<string>;
 
-    // optional in the format, assign UndefinedColumn if not available
-    subst_id: Column<number>,
-    subst_name: Column<string>,
-    charge: Column<number>,
-    status_bits: Column<string>
+  // optional in the format, assign UndefinedColumn if not available
+  subst_id: Column<number>;
+  subst_name: Column<string>;
+  charge: Column<number>;
+  status_bits: Column<string>;
 }
 
 export interface Mol2Bonds {
-    count: number,
+  count: number;
 
-    bond_id: Column<number>,
-    origin_atom_id: Column<number>,
-    target_atom_id: Column<number>,
-    bond_type: Column<string>,
+  bond_id: Column<number>;
+  origin_atom_id: Column<number>;
+  target_atom_id: Column<number>;
+  bond_type: Column<string>;
 
-    // optional in the format, assign UndefinedColumn if not available
-    status_bits: Column<string>
+  // optional in the format, assign UndefinedColumn if not available
+  status_bits: Column<string>;
 }
 
 export interface Mol2Substructure {
-    count: number,
+  count: number;
 
-    subst_id: Column<number>,
-    subst_name: Column<string>,
-    root_atom: Column<number>,
+  subst_id: Column<number>;
+  subst_name: Column<string>;
+  root_atom: Column<number>;
 
-    // optional in the format, assign UndefinedColumn if not available
-    subst_type: Column<string>,
-    dict_type: Column<string>,
-    chain: Column<string>,
-    sub_type: Column<string>,
-    inter_bonds: Column<number>,
-    status_bits: Column<string>
+  // optional in the format, assign UndefinedColumn if not available
+  subst_type: Column<string>;
+  dict_type: Column<string>;
+  chain: Column<string>;
+  sub_type: Column<string>;
+  inter_bonds: Column<number>;
+  status_bits: Column<string>;
 }
 
 export interface Mol2Crysin {
-    a: number
-    b: number
-    c: number
-    alpha: number
-    beta: number
-    gamma: number
-    /**
-     * space_grp (integer) = the space group number.
-     */
-    spaceGroup: number
-    /**
-     * setting (integer) = defines the axial orientation with respect to the
-     * standard setting defined in the International Tables for X-Ray Crystallography.
-     * For the setting number value see the tables in
-     * Chapter 3.2 of this manual.
-     */
-    setting: number
+  a: number;
+  b: number;
+  c: number;
+  alpha: number;
+  beta: number;
+  gamma: number;
+  /**
+   * space_grp (integer) = the space group number.
+   */
+  spaceGroup: number;
+  /**
+   * setting (integer) = defines the axial orientation with respect to the
+   * standard setting defined in the International Tables for X-Ray Crystallography.
+   * For the setting number value see the tables in
+   * Chapter 3.2 of this manual.
+   */
+  setting: number;
 }
 
 export interface Mol2Structure {
-    molecule: Readonly<Mol2Molecule>,
-    atoms: Readonly<Mol2Atoms>,
-    bonds: Readonly<Mol2Bonds>,
-    substructures?: Readonly<Mol2Substructure>,
-    crysin?: Readonly<Mol2Crysin>
+  molecule: Readonly<Mol2Molecule>;
+  atoms: Readonly<Mol2Atoms>;
+  bonds: Readonly<Mol2Bonds>;
+  substructures?: Readonly<Mol2Substructure>;
+  crysin?: Readonly<Mol2Crysin>;
 }
 
 export interface Mol2File {
-    name: string
-    structures: Mol2Structure[]
+  name: string;
+  structures: Mol2Structure[];
 }

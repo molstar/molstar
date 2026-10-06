@@ -7,16 +7,24 @@
 export { LogEntry };
 
 interface LogEntry {
-    type: LogEntry.Type,
-    timestamp: Date,
-    message: string
+  type: LogEntry.Type;
+  timestamp: Date;
+  message: string;
 }
 
 namespace LogEntry {
-    export type Type = 'message' | 'error' | 'warning' | 'info'
+  export type Type = 'message' | 'error' | 'warning' | 'info';
 
-    export function message(msg: string): LogEntry { return { type: 'message', timestamp: new Date(), message: msg }; }
-    export function error(msg: string): LogEntry { return { type: 'error', timestamp: new Date(), message: msg }; }
-    export function warning(msg: string): LogEntry { return { type: 'warning', timestamp: new Date(), message: msg }; }
-    export function info(msg: string): LogEntry { return { type: 'info', timestamp: new Date(), message: msg }; }
+  export function message(msg: string): LogEntry {
+    return { type: 'message', timestamp: new Date(), message: msg };
+  }
+  export function error(msg: string): LogEntry {
+    return { type: 'error', timestamp: new Date(), message: msg };
+  }
+  export function warning(msg: string): LogEntry {
+    return { type: 'warning', timestamp: new Date(), message: msg };
+  }
+  export function info(msg: string): LogEntry {
+    return { type: 'info', timestamp: new Date(), message: msg };
+  }
 }

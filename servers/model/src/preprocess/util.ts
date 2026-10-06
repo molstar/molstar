@@ -7,11 +7,11 @@
 import { Progress } from '@molstar/core/task';
 
 export function showProgress(p: Progress) {
-    process.stdout.write(`\r${new Array(80).join(' ')}`);
-    process.stdout.write(`\r${Progress.format(p)}`);
+  process.stdout.write(`\r${new Array(80).join(' ')}`);
+  process.stdout.write(`\r${Progress.format(p)}`);
 }
 
 export function clearLine() {
-    process.stdout.write(`\r${new Array(80).join(' ')}`);
-    process.stdout.write(`\r`);
+  process.stdout.write(`\r${new Array(80).join(' ')}`);
+  process.stdout.write(`\r`);
 }

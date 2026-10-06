@@ -1,17 +1,17 @@
 {
-	// See http://go.microsoft.com/fwlink/?LinkId=827846 to learn about workspace recommendations.
-	// Extension identifier format: ${publisher}.${name}. Example: vscode.csharp
+  // See http://go.microsoft.com/fwlink/?LinkId=827846 to learn about workspace recommendations.
+  // Extension identifier format: ${publisher}.${name}. Example: vscode.csharp
 
-	// List of extensions which should be recommended for users of this workspace.
-	"recommendations": [
-		"dbaeumer.vscode-eslint",
-		"firsttris.vscode-jest-runner",
-		"slevesque.shader",
-		"stpn.vscode-graphql",
-		"wayou.vscode-todo-highlight"
-	],
-	// List of extensions recommended by VS Code that should not be recommended for users of this workspace.
-	"unwantedRecommendations": [
-
-	]
+  // List of extensions which should be recommended for users of this workspace.
+  "recommendations": [
+    "biomejs.biome",
+    "esbenp.prettier-vscode",
+    "TypeScriptTeam.native-preview",
+    "firsttris.vscode-jest-runner",
+    "slevesque.shader",
+    "stpn.vscode-graphql",
+    "wayou.vscode-todo-highlight"
+  ],
+  // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
+  "unwantedRecommendations": []
 }

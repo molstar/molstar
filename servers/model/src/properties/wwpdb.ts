@@ -8,10 +8,7 @@ import type { AttachModelProperties } from '@molstar/model-server/property-provi
 import { wwPDB_chemCompBond, wwPDB_chemCompAtom } from './providers/wwpdb.js';
 
 export const attachModelProperties: AttachModelProperties = (args) => {
-    // return a list of promises that start attaching the props in parallel
-    // (if there are downloads etc.)
-    return [
-        wwPDB_chemCompBond(args),
-        wwPDB_chemCompAtom(args)
-    ];
+  // return a list of promises that start attaching the props in parallel
+  // (if there are downloads etc.)
+  return [wwPDB_chemCompBond(args), wwPDB_chemCompAtom(args)];
 };

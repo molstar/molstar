@@ -414,145 +414,144 @@ $$$$
 `;
 
 describe('sdf reader', () => {
-    it('basic', async () => {
-        const parsed = await parseSdf(SdfString).run();
-        if (parsed.isError) {
-            throw new Error(parsed.message);
-        }
-        const compound1 = parsed.result.compounds[0];
-        const compound2 = parsed.result.compounds[1];
-        const compound3 = parsed.result.compounds[2];
-        const { molFile, dataItems } = compound1;
-        const { atoms, bonds } = molFile;
+  it('basic', async () => {
+    const parsed = await parseSdf(SdfString).run();
+    if (parsed.isError) {
+      throw new Error(parsed.message);
+    }
+    const compound1 = parsed.result.compounds[0];
+    const compound2 = parsed.result.compounds[1];
+    const compound3 = parsed.result.compounds[2];
+    const { molFile, dataItems } = compound1;
+    const { atoms, bonds } = molFile;
 
-        expect(parsed.result.compounds.length).toBe(3);
+    expect(parsed.result.compounds.length).toBe(3);
 
-        // number of structures
-        expect(atoms.count).toBe(5);
-        expect(bonds.count).toBe(4);
+    // number of structures
+    expect(atoms.count).toBe(5);
+    expect(bonds.count).toBe(4);
 
-        expect(compound2.molFile.atoms.count).toBe(5);
-        expect(compound2.molFile.bonds.count).toBe(4);
+    expect(compound2.molFile.atoms.count).toBe(5);
+    expect(compound2.molFile.bonds.count).toBe(4);
 
-        expect(atoms.x.value(0)).toBeCloseTo(0, 0.001);
-        expect(atoms.y.value(0)).toBeCloseTo(0.8250, 0.0001);
-        expect(atoms.z.value(0)).toBeCloseTo(0, 0.0001);
-        expect(atoms.type_symbol.value(0)).toBe('O');
+    expect(atoms.x.value(0)).toBeCloseTo(0, 0.001);
+    expect(atoms.y.value(0)).toBeCloseTo(0.825, 0.0001);
+    expect(atoms.z.value(0)).toBeCloseTo(0, 0.0001);
+    expect(atoms.type_symbol.value(0)).toBe('O');
 
-        expect(bonds.atomIdxA.value(3)).toBe(4);
-        expect(bonds.atomIdxB.value(3)).toBe(5);
-        expect(bonds.order.value(3)).toBe(1);
+    expect(bonds.atomIdxA.value(3)).toBe(4);
+    expect(bonds.atomIdxB.value(3)).toBe(5);
+    expect(bonds.order.value(3)).toBe(1);
 
-        expect(dataItems.dataHeader.value(0)).toBe('<DATABASE_ID>');
-        expect(dataItems.data.value(0)).toBe('0');
+    expect(dataItems.dataHeader.value(0)).toBe('<DATABASE_ID>');
+    expect(dataItems.data.value(0)).toBe('0');
 
-        expect(dataItems.dataHeader.value(1)).toBe('<DATABASE_NAME>');
-        expect(dataItems.data.value(1)).toBe('drugbank');
+    expect(dataItems.dataHeader.value(1)).toBe('<DATABASE_NAME>');
+    expect(dataItems.data.value(1)).toBe('drugbank');
 
-        expect(dataItems.dataHeader.value(2)).toBe('5225 <TEST_FIELD>');
-        expect(dataItems.data.value(2)).toBe('whatever');
+    expect(dataItems.dataHeader.value(2)).toBe('5225 <TEST_FIELD>');
+    expect(dataItems.data.value(2)).toBe('whatever');
 
-        expect(dataItems.dataHeader.value(31)).toBe('<SYNONYMS>');
-        expect(dataItems.data.value(31)).toBe('Orthophosphate; Phosphate');
+    expect(dataItems.dataHeader.value(31)).toBe('<SYNONYMS>');
+    expect(dataItems.data.value(31)).toBe('Orthophosphate; Phosphate');
 
-        expect(compound1.dataItems.data.value(0)).toBe('0');
-        expect(compound2.dataItems.data.value(0)).toBe('1');
+    expect(compound1.dataItems.data.value(0)).toBe('0');
+    expect(compound2.dataItems.data.value(0)).toBe('1');
 
-        expect(compound3.dataItems.dataHeader.value(2)).toBe('<PUBCHEM_CONFORMER_DIVERSEORDER>');
-        expect(compound3.dataItems.data.value(2)).toBe('1\n11\n10\n3\n15\n17\n13\n5\n16\n7\n14\n9\n8\n4\n18\n6\n12\n2');
+    expect(compound3.dataItems.dataHeader.value(2)).toBe('<PUBCHEM_CONFORMER_DIVERSEORDER>');
+    expect(compound3.dataItems.data.value(2)).toBe('1\n11\n10\n3\n15\n17\n13\n5\n16\n7\n14\n9\n8\n4\n18\n6\n12\n2');
 
-        expect(compound3.dataItems.dataHeader.value(21)).toBe('<PUBCHEM_COORDINATE_TYPE>');
-        expect(compound3.dataItems.data.value(21)).toBe('2\n5\n10');
-    });
+    expect(compound3.dataItems.dataHeader.value(21)).toBe('<PUBCHEM_COORDINATE_TYPE>');
+    expect(compound3.dataItems.data.value(21)).toBe('2\n5\n10');
+  });
 
-    it('charge parsing in V2000', async () => {
-        const parsed = await parseSdf(SdfString).run();
-        if (parsed.isError) {
-            throw new Error(parsed.message);
-        }
-        const compound1 = parsed.result.compounds[0];
-        const compound2 = parsed.result.compounds[1];
-        const compound3 = parsed.result.compounds[2];
+  it('charge parsing in V2000', async () => {
+    const parsed = await parseSdf(SdfString).run();
+    if (parsed.isError) {
+      throw new Error(parsed.message);
+    }
+    const compound1 = parsed.result.compounds[0];
+    const compound2 = parsed.result.compounds[1];
+    const compound3 = parsed.result.compounds[2];
 
-        const formalCharges1 = {
-            atomIdx: compound1.molFile.formalCharges.atomIdx,
-            charge: compound1.molFile.formalCharges.charge
-        };
-        const formalCharges2 = {
-            atomIdx: compound2.molFile.formalCharges.atomIdx,
-            charge: compound2.molFile.formalCharges.charge
-        };
-        const formalCharges3 = {
-            atomIdx: compound3.molFile.formalCharges.atomIdx,
-            charge: compound3.molFile.formalCharges.charge
-        };
+    const formalCharges1 = {
+      atomIdx: compound1.molFile.formalCharges.atomIdx,
+      charge: compound1.molFile.formalCharges.charge,
+    };
+    const formalCharges2 = {
+      atomIdx: compound2.molFile.formalCharges.atomIdx,
+      charge: compound2.molFile.formalCharges.charge,
+    };
+    const formalCharges3 = {
+      atomIdx: compound3.molFile.formalCharges.atomIdx,
+      charge: compound3.molFile.formalCharges.charge,
+    };
 
-        expect(formalCharges1.atomIdx.rowCount).toBe(3);
-        expect(formalCharges2.atomIdx.rowCount).toBe(3);
-        expect(formalCharges3.atomIdx.rowCount).toBe(0);
+    expect(formalCharges1.atomIdx.rowCount).toBe(3);
+    expect(formalCharges2.atomIdx.rowCount).toBe(3);
+    expect(formalCharges3.atomIdx.rowCount).toBe(0);
 
-        expect(formalCharges1.charge.rowCount === formalCharges1.atomIdx.rowCount).toBe(true);
-        expect(formalCharges2.charge.rowCount === formalCharges2.atomIdx.rowCount).toBe(true);
-        expect(formalCharges3.charge.rowCount === formalCharges3.atomIdx.rowCount).toBe(true);
-    });
+    expect(formalCharges1.charge.rowCount === formalCharges1.atomIdx.rowCount).toBe(true);
+    expect(formalCharges2.charge.rowCount === formalCharges2.atomIdx.rowCount).toBe(true);
+    expect(formalCharges3.charge.rowCount === formalCharges3.atomIdx.rowCount).toBe(true);
+  });
 
+  it('v3000', async () => {
+    const parsed = await parseSdf(V3000SdfString).run();
+    if (parsed.isError) {
+      throw new Error(parsed.message);
+    }
 
-    it('v3000', async () => {
-        const parsed = await parseSdf(V3000SdfString).run();
-        if (parsed.isError) {
-            throw new Error(parsed.message);
-        }
+    expect(parsed.result.compounds.length).toBe(2);
 
-        expect(parsed.result.compounds.length).toBe(2);
+    const compound1 = parsed.result.compounds[0];
+    expect(compound1.molFile.atoms.count).toBe(13);
+    expect(compound1.molFile.atoms.x.rowCount).toBe(13);
+    expect(compound1.molFile.atoms.y.rowCount).toBe(13);
+    expect(compound1.molFile.atoms.z.rowCount).toBe(13);
+    expect(compound1.molFile.atoms.type_symbol.rowCount).toBe(13);
+    expect(compound1.molFile.bonds.count).toBe(14);
+    expect(compound1.molFile.bonds.atomIdxA.rowCount).toBe(14);
+    expect(compound1.molFile.bonds.atomIdxB.rowCount).toBe(14);
+    expect(compound1.molFile.bonds.order.rowCount).toBe(14);
 
-        const compound1 = parsed.result.compounds[0];
-        expect(compound1.molFile.atoms.count).toBe(13);
-        expect(compound1.molFile.atoms.x.rowCount).toBe(13);
-        expect(compound1.molFile.atoms.y.rowCount).toBe(13);
-        expect(compound1.molFile.atoms.z.rowCount).toBe(13);
-        expect(compound1.molFile.atoms.type_symbol.rowCount).toBe(13);
-        expect(compound1.molFile.bonds.count).toBe(14);
-        expect(compound1.molFile.bonds.atomIdxA.rowCount).toBe(14);
-        expect(compound1.molFile.bonds.atomIdxB.rowCount).toBe(14);
-        expect(compound1.molFile.bonds.order.rowCount).toBe(14);
+    expect(compound1.molFile.atoms.x.value(7)).toBe(1.07);
+    expect(compound1.molFile.atoms.y.value(7)).toBe(2.74);
+    expect(compound1.molFile.atoms.z.value(7)).toBe(0.01);
+    expect(compound1.molFile.atoms.type_symbol.value(7)).toBe('Cl');
 
-        expect(compound1.molFile.atoms.x.value(7)).toBe(1.07);
-        expect(compound1.molFile.atoms.y.value(7)).toBe(2.74);
-        expect(compound1.molFile.atoms.z.value(7)).toBe(0.01);
-        expect(compound1.molFile.atoms.type_symbol.value(7)).toBe('Cl');
+    expect(compound1.molFile.bonds.atomIdxA.value(10)).toBe(11);
+    expect(compound1.molFile.bonds.atomIdxB.value(10)).toBe(9);
+    expect(compound1.molFile.bonds.order.value(10)).toBe(2);
 
-        expect(compound1.molFile.bonds.atomIdxA.value(10)).toBe(11);
-        expect(compound1.molFile.bonds.atomIdxB.value(10)).toBe(9);
-        expect(compound1.molFile.bonds.order.value(10)).toBe(2);
+    expect(compound1.molFile.formalCharges.atomIdx.rowCount).toBe(13);
+    for (let i = 0; i < compound1.molFile.atoms.count; i++) {
+      expect(compound1.molFile.formalCharges.charge.value(i)).toBe(0);
+    }
 
-        expect(compound1.molFile.formalCharges.atomIdx.rowCount).toBe(13);
-        for (let i = 0; i < compound1.molFile.atoms.count; i++) {
-            expect(compound1.molFile.formalCharges.charge.value(i)).toBe(0);
-        }
+    expect(compound1.dataItems.dataHeader.rowCount).toBe(2);
+    expect(compound1.dataItems.data.rowCount).toBe(2);
 
-        expect(compound1.dataItems.dataHeader.rowCount).toBe(2);
-        expect(compound1.dataItems.data.rowCount).toBe(2);
+    expect(compound1.dataItems.dataHeader.value(0)).toBe('<Comment>');
+    expect(compound1.dataItems.data.value(0)).toBe(`This is an SDF example.\nWith a multi-line comment.`);
 
-        expect(compound1.dataItems.dataHeader.value(0)).toBe('<Comment>');
-        expect(compound1.dataItems.data.value(0)).toBe(`This is an SDF example.\nWith a multi-line comment.`);
+    expect(compound1.dataItems.dataHeader.value(1)).toBe('<source>');
+    expect(compound1.dataItems.data.value(1)).toBe('This was retrieved from biotech.fyicenter.com');
 
-        expect(compound1.dataItems.dataHeader.value(1)).toBe('<source>');
-        expect(compound1.dataItems.data.value(1)).toBe('This was retrieved from biotech.fyicenter.com');
+    const compound2 = parsed.result.compounds[1];
+    expect(compound2.molFile.atoms.count).toBe(6);
+    expect(compound2.molFile.bonds.count).toBe(5);
 
-        const compound2 = parsed.result.compounds[1];
-        expect(compound2.molFile.atoms.count).toBe(6);
-        expect(compound2.molFile.bonds.count).toBe(5);
+    expect(compound2.molFile.atoms.x.value(4)).toBe(0.622);
+    expect(compound2.molFile.atoms.y.value(4)).toBe(-1.8037);
+    expect(compound2.molFile.atoms.z.value(4)).toBe(0);
+    expect(compound2.molFile.atoms.type_symbol.value(4)).toBe('O');
 
-        expect(compound2.molFile.atoms.x.value(4)).toBe(0.622);
-        expect(compound2.molFile.atoms.y.value(4)).toBe(-1.8037);
-        expect(compound2.molFile.atoms.z.value(4)).toBe(0);
-        expect(compound2.molFile.atoms.type_symbol.value(4)).toBe('O');
+    expect(compound2.molFile.bonds.atomIdxA.value(1)).toBe(1);
+    expect(compound2.molFile.bonds.atomIdxB.value(1)).toBe(3);
+    expect(compound2.molFile.bonds.order.value(1)).toBe(1);
 
-        expect(compound2.molFile.bonds.atomIdxA.value(1)).toBe(1);
-        expect(compound2.molFile.bonds.atomIdxB.value(1)).toBe(3);
-        expect(compound2.molFile.bonds.order.value(1)).toBe(1);
-
-        expect(compound2.dataItems.dataHeader.rowCount).toBe(0);
-        expect(compound2.dataItems.data.rowCount).toBe(0);
-    });
+    expect(compound2.dataItems.dataHeader.rowCount).toBe(0);
+    expect(compound2.dataItems.data.rowCount).toBe(0);
+  });
 });

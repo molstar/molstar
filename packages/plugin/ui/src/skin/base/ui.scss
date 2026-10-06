@@ -14,36 +14,36 @@
 @use './components/toast' as *;
 
 @mixin ui {
-    ::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
-    }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
 
-    ::-webkit-scrollbar-track {
-        //-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.8);
-        border-radius: 0;
-        background-color: color-lower-contrast($control-background, 4%);
-    }
+  ::-webkit-scrollbar-track {
+    //-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.8);
+    border-radius: 0;
+    background-color: color-lower-contrast($control-background, 4%);
+  }
 
-    ::-webkit-scrollbar-thumb {
-        border-radius: 10px;
-        //-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.9);
-        background-color: color-increase-contrast($control-background, 16%);
-        border: solid 1px transparent;
-        background-clip: content-box;
-    }
+  ::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    //-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.9);
+    background-color: color-increase-contrast($control-background, 16%);
+    border: solid 1px transparent;
+    background-clip: content-box;
+  }
 
-    @include controls-base;
-    @include controls;
-    @include help;
-    @include line-graph;
-    @include log;
-    @include slider;
-    @include markdown;
-    @include misc;
-    @include tasks;
-    @include viewport;
-    @include sequence;
-    @include transformer;
-    @include toast;
+  @include controls-base;
+  @include controls;
+  @include help;
+  @include line-graph;
+  @include log;
+  @include slider;
+  @include markdown;
+  @include misc;
+  @include tasks;
+  @include viewport;
+  @include sequence;
+  @include transformer;
+  @include toast;
 }

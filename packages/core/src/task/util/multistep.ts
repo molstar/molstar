@@ -7,11 +7,19 @@
 import { Task } from '../task.js';
 import type { RuntimeContext } from '../execution/runtime-context.js';
 
-export type MultistepFn<P, T> =
-    (params: P, step: (s: number) => Promise<void> | void, ctx: RuntimeContext) => Promise<T>
+export type MultistepFn<P, T> = (
+  params: P,
+  step: (s: number) => Promise<void> | void,
+  ctx: RuntimeContext,
+) => Promise<T>;
 
 function MultistepTask<P, T>(name: string, steps: string[], f: MultistepFn<P, T>, onAbort?: () => void) {
-    return (params: P) => Task.create(name, async ctx => f(params, n => ctx.update({ message: `${steps[n]}`, current: n + 1, max: steps.length }), ctx), onAbort);
+  return (params: P) =>
+    Task.create(
+      name,
+      async (ctx) => f(params, (n) => ctx.update({ message: `${steps[n]}`, current: n + 1, max: steps.length }), ctx),
+      onAbort,
+    );
 }
 
 export { MultistepTask };

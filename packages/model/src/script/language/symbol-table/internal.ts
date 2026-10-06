@@ -10,25 +10,36 @@ import { Arguments, Argument } from '../symbol.js';
 import { symbol } from '../helpers.js';
 
 const generator = {
-    '@header': 'Generators',
+  '@header': 'Generators',
 
-    bundleElement: symbol(Arguments.Dictionary({
-        // TODO: should we use more universal unit keys? (i.e. based on chain and "operator name")
-        groupedUnits: Argument(Type.Any), // SortedArray<number>[],
-        set: Argument(Type.Any), // SortedArray<UnitIndex>
-        ranges: Argument(Type.Any) // SortedArray<UnitIndex>
-    }), Type.Any), // returns BundleElement
+  bundleElement: symbol(
+    Arguments.Dictionary({
+      // TODO: should we use more universal unit keys? (i.e. based on chain and "operator name")
+      groupedUnits: Argument(Type.Any), // SortedArray<number>[],
+      set: Argument(Type.Any), // SortedArray<UnitIndex>
+      ranges: Argument(Type.Any), // SortedArray<UnitIndex>
+    }),
+    Type.Any,
+  ), // returns BundleElement
 
-    bundle: symbol(Arguments.Dictionary({
-        elements: Argument(Type.Any) // BundleElement[]
-    }), Struct.Types.ElementSelectionQuery, 'A selection with single structure containing represented by the bundle.'),
+  bundle: symbol(
+    Arguments.Dictionary({
+      elements: Argument(Type.Any), // BundleElement[]
+    }),
+    Struct.Types.ElementSelectionQuery,
+    'A selection with single structure containing represented by the bundle.',
+  ),
 
-    // Use with caution as this is not "state saveable"
-    // This query should never be used in any State Transform!
-    current: symbol(Arguments.None, Struct.Types.ElementSelectionQuery, 'Current selection provided by the query context. Avoid using this in State Transforms.')
+  // Use with caution as this is not "state saveable"
+  // This query should never be used in any State Transform!
+  current: symbol(
+    Arguments.None,
+    Struct.Types.ElementSelectionQuery,
+    'Current selection provided by the query context. Avoid using this in State Transforms.',
+  ),
 };
 
 export const internal = {
-    '@header': 'Internal Queries',
-    generator
+  '@header': 'Internal Queries',
+  generator,
 };

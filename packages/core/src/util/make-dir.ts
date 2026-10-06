@@ -7,16 +7,16 @@
 import * as fs from 'fs';
 
 export function makeDir(path: string, root?: string): boolean {
-    const dirs = path.split(/\/|\\/g),
-        dir = dirs.shift();
+  const dirs = path.split(/\/|\\/g),
+    dir = dirs.shift();
 
-    root = (root || '') + dir + '/';
+  root = (root || '') + dir + '/';
 
-    try {
-        fs.mkdirSync(root);
-    } catch (e) {
-        if (!fs.statSync(root).isDirectory()) throw new Error(e);
-    }
+  try {
+    fs.mkdirSync(root);
+  } catch (e) {
+    if (!fs.statSync(root).isDirectory()) throw new Error(e);
+  }
 
-    return !dirs.length || makeDir(dirs.join('/'), root);
+  return !dirs.length || makeDir(dirs.join('/'), root);
 }

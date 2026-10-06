@@ -8,7 +8,10 @@ import { parseMolScript } from '@molstar/model/script/language/parser';
 import * as util from 'util';
 import { transpileMolScript } from '@molstar/model/script/script/mol-script/symbols';
 import { formatMolScript } from '@molstar/model/script/language/expression-formatter';
-import { StructureQualityReport, StructureQualityReportProvider } from '@molstar/pdbe-extension/structure-quality-report/prop';
+import {
+  StructureQualityReport,
+  StructureQualityReportProvider,
+} from '@molstar/pdbe-extension/structure-quality-report/prop';
 import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
 
 // import Examples from 'mol-script/script/mol-script/examples'
@@ -47,15 +50,15 @@ const result = compiled(new QueryContext(Structure.Empty));
 console.log(result);
 
 const CustomProp = CustomPropertyDescriptor({
-    name: 'test_prop',
-    cifExport: { prefix: '', categories: [] },
-    symbols: {
-        residueIndex: QuerySymbolRuntime.Dynamic(CustomPropSymbol('custom.test-prop', 'residue-index', Type.Num), ctx => {
-            const e = ctx.element;
-            // console.log(e.element, e.unit.model.atomicHierarchy.residueAtomSegments.index[e.element])
-            return e.unit.model.atomicHierarchy.residueAtomSegments.index[e.element];
-        })
-    }
+  name: 'test_prop',
+  cifExport: { prefix: '', categories: [] },
+  symbols: {
+    residueIndex: QuerySymbolRuntime.Dynamic(CustomPropSymbol('custom.test-prop', 'residue-index', Type.Num), (ctx) => {
+      const e = ctx.element;
+      // console.log(e.element, e.unit.model.atomicHierarchy.residueAtomSegments.index[e.element])
+      return e.unit.model.atomicHierarchy.residueAtomSegments.index[e.element];
+    }),
+  },
 });
 
 DefaultQueryRuntimeTable.addCustomProp(CustomProp);
@@ -63,33 +66,35 @@ DefaultQueryRuntimeTable.addCustomProp(CustomProp);
 DefaultQueryRuntimeTable.addCustomProp(StructureQualityReportProvider.descriptor);
 
 export async function testQ() {
-    const frame = await readCifFile('e:/test/quick/1cbs_updated.cif');
-    const { structure } = await getModelsAndStructure(frame);
-    const model = structure.models[0];
+  const frame = await readCifFile('e:/test/quick/1cbs_updated.cif');
+  const { structure } = await getModelsAndStructure(frame);
+  const model = structure.models[0];
 
-    const rawData = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.entryId.toLowerCase()}`);
-    const data = StructureQualityReport.fromJson(model, await rawData.json());
+  const rawData = await fetch(
+    `https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.entryId.toLowerCase()}`,
+  );
+  const data = StructureQualityReport.fromJson(model, await rawData.json());
 
-    StructureQualityReportProvider.set(model, { serverUrl: '' }, data);
+  StructureQualityReportProvider.set(model, { serverUrl: '' }, data);
 
-    let expr = MolScriptBuilder.struct.generator.atomGroups({
-        'atom-test': MolScriptBuilder.core.rel.eq([
-            MolScriptBuilder.struct.atomProperty.core.elementSymbol(),
-            MolScriptBuilder.es('C')
-        ]),
-        // 'residue-test': MolScriptBuilder.core.rel.eq([
-        //     MolScriptBuilder.struct.atomProperty.macromolecular.label_comp_id(),
-        //     'REA'
-        // ])
-        'residue-test': MolScriptBuilder.core.rel.inRange([CustomProp.symbols.residueIndex.symbol(), 1, 5])
-    });
+  let expr = MolScriptBuilder.struct.generator.atomGroups({
+    'atom-test': MolScriptBuilder.core.rel.eq([
+      MolScriptBuilder.struct.atomProperty.core.elementSymbol(),
+      MolScriptBuilder.es('C'),
+    ]),
+    // 'residue-test': MolScriptBuilder.core.rel.eq([
+    //     MolScriptBuilder.struct.atomProperty.macromolecular.label_comp_id(),
+    //     'REA'
+    // ])
+    'residue-test': MolScriptBuilder.core.rel.inRange([CustomProp.symbols.residueIndex.symbol(), 1, 5]),
+  });
 
-    expr = tsp;
+  expr = tsp;
 
-    const compiled = compile<StructureQuery>(expr);
-    const result = compiled(new QueryContext(structure));
+  const compiled = compile<StructureQuery>(expr);
+  const result = compiled(new QueryContext(structure));
 
-    console.log(result);
+  console.log(result);
 }
 
 testQ();

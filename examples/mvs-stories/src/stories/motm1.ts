@@ -16,23 +16,39 @@ import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import { formatMolScript } from '@molstar/model/script/language/expression-formatter';
 
 // 1pmb->1mbn
-const align = Mat4.fromArray(Mat4.zero(), [0.4634187130865737, -0.7131589697034304, 0.5259728687171936, 0, -0.22944227902330105, -0.6698811108214233, -0.7061273127008398, 0, 0.8559202154942049, 0.2065522332899299, -0.4740643150728161, 0, -52.54880970106205, 37.49099778180445, -6.133850309914719, 1], 0);
+const align = Mat4.fromArray(
+  Mat4.zero(),
+  [
+    0.4634187130865737, -0.7131589697034304, 0.5259728687171936, 0, -0.22944227902330105, -0.6698811108214233,
+    -0.7061273127008398, 0, 0.8559202154942049, 0.2065522332899299, -0.4740643150728161, 0, -52.54880970106205,
+    37.49099778180445, -6.133850309914719, 1,
+  ],
+  0,
+);
 // 1mbo->1myf
-const alignmbo = Mat4.fromArray(Mat4.zero(), [-0.8334619943964441, -0.512838061396133, -0.20576353166796402, 0, -0.20145089001561267, 0.628743285359846, -0.7510655776229758, 0, 0.5145474196737698, -0.5845332204089626, -0.6273453801378679, 0, 11.864847328611186, -1.5261713438028912, 23.638919347623467, 1], 0);
+const alignmbo = Mat4.fromArray(
+  Mat4.zero(),
+  [
+    -0.8334619943964441, -0.512838061396133, -0.20576353166796402, 0, -0.20145089001561267, 0.628743285359846,
+    -0.7510655776229758, 0, 0.5145474196737698, -0.5845332204089626, -0.6273453801378679, 0, 11.864847328611186,
+    -1.5261713438028912, 23.638919347623467, 1,
+  ],
+  0,
+);
 
 const ill_color = (color: string, carbonLightness: number) => ({
-    molstar_color_theme_name: 'illustrative',
-    molstar_color_theme_params: {
-        style: {
-            name: 'uniform',
-            params: {
-                value: decodeColor(color),
-                saturation: 0,
-                lightness: 0,
-            }
-        },
-        carbonLightness: carbonLightness // required parameter
-    }
+  molstar_color_theme_name: 'illustrative',
+  molstar_color_theme_params: {
+    style: {
+      name: 'uniform',
+      params: {
+        value: decodeColor(color),
+        saturation: 0,
+        lightness: 0,
+      },
+    },
+    carbonLightness: carbonLightness, // required parameter
+  },
 });
 
 const GColors2 = ill_color('#947c7c', 0.8);
@@ -59,19 +75,19 @@ HETATM-C------ - 0,9999  0.60, 0.90, 0.60, 1.5
 HETATM-------- - 0,9999  0.40, 0.90, 0.40, 1.5
 */
 const GColors3 = {
-    schema: 'all_atomic', // or maybe just 'atom'
-    category_name: 'atom_site',
-    field_name: 'type_symbol',
-    palette: {
-        kind: 'categorical',
-        // missing_color: ...
-        colors: {
-            'C': '#FFFFFF',
-            'N': '#CCE6FF',
-            'O': '#FFCCCC',
-            'S': '#FFE680',
-        }
-    }
+  schema: 'all_atomic', // or maybe just 'atom'
+  category_name: 'atom_site',
+  field_name: 'type_symbol',
+  palette: {
+    kind: 'categorical',
+    // missing_color: ...
+    colors: {
+      C: '#FFFFFF',
+      N: '#CCE6FF',
+      O: '#FFCCCC',
+      S: '#FFE680',
+    },
+  },
 } as unknown as MVSNodeParams<'color_from_source'>;
 
 const audioPathBase = 'https://raw.githubusercontent.com/molstar/molstar/master';
@@ -82,8 +98,7 @@ const _Audio2 = audioPathBase + '/examples/audio/AudioMOM1_B.mp3';
 const _Audio3 = audioPathBase + '/examples/audio/AudioMOM1_C.mp3';
 const _Audio4 = audioPathBase + '/examples/audio/AudioMOM1_D.mp3';
 
-const q = (expr: string, lang = 'pymol') =>
-    `!query=${encodeURIComponent(expr)}&lang=${lang}&action=highlight,focus`;
+const q = (expr: string, lang = 'pymol') => `!query=${encodeURIComponent(expr)}&lang=${lang}&action=highlight,focus`;
 
 const desc_intro = `
 # Introduction
@@ -137,31 +152,18 @@ You can learn more about the work of Irving Geis at the **[Geis Archive on PDB-1
 Used with permission from the Howard Hughes Medical Institute, Copyright 2015.*
 `;
 
-
 const query1 = MS.struct.generator.atomGroups({
-    'entity-test': MS.core.rel.eq([
-        MS.struct.atomProperty.core.modelEntryId(),
-        '1MBN'
-    ])
+  'entity-test': MS.core.rel.eq([MS.struct.atomProperty.core.modelEntryId(), '1MBN']),
 });
 const firstEntity1 = q(formatMolScript(query1), 'mol-script');
 const query2 = MS.struct.generator.atomGroups({
-    'entity-test': MS.core.rel.eq([
-        MS.struct.atomProperty.core.modelEntryId(),
-        '1PMB'
-    ])
+  'entity-test': MS.core.rel.eq([MS.struct.atomProperty.core.modelEntryId(), '1PMB']),
 });
 const firstEntity2 = q(formatMolScript(query2), 'mol-script');
 
 const query3 = MS.struct.generator.atomGroups({
-    'entity-test': MS.core.rel.eq([
-        MS.struct.atomProperty.core.modelEntryId(),
-        '1MBN'
-    ]),
-    'residue-test': MS.core.set.has([
-        MS.set(12, 140, 87),
-        MS.struct.atomProperty.macromolecular.auth_seq_id()
-    ])
+  'entity-test': MS.core.rel.eq([MS.struct.atomProperty.core.modelEntryId(), '1MBN']),
+  'residue-test': MS.core.set.has([MS.set(12, 140, 87), MS.struct.atomProperty.macromolecular.auth_seq_id()]),
 });
 const charged_residues = q(formatMolScript(query3), 'mol-script');
 
@@ -236,782 +238,813 @@ PDB entry [2jho](https://www.rcsb.org/structure/2jho) includes myoglobin poisone
 `;
 
 const Steps = [
-    {
-        header: 'Introduction',
-        key: 'first-slide',
-        description: desc_intro,
-        linger_duration_ms: 0,
-        state: (): Root => {
-            const builder = createMVSBuilder();
-            const _1mbn = build1mbn(builder, '1MBN');
+  {
+    header: 'Introduction',
+    key: 'first-slide',
+    description: desc_intro,
+    linger_duration_ms: 0,
+    state: (): Root => {
+      const builder = createMVSBuilder();
+      const _1mbn = build1mbn(builder, '1MBN');
 
-            builder.extendRootCustomState({
-                molstar_on_load_markdown_commands: {
-                    'dispose-audio': _Audio1,
-                }
-            });
-
-            const anim = builder.animation(
-                {
-                    custom: {
-                        molstar_trackball: {
-                            name: 'spin',
-                            params: { speed: -0.05 },
-                        }
-                    }
-                }
-            );
-
-            const prims = _1mbn.struct.primitives({
-                ref: 'start-story',
-                label_opacity: 0,
-                label_background_color: 'grey',
-                snapshot_key: 'intro'
-            });
-            prims.label({
-                text: 'Start story',
-                position: [13.5, -4, 7.7],
-                label_size: 8
-            });
-
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'start-story',
-                duration_ms: 1000,
-                start_ms: 1,
-                property: 'label_opacity',
-                start: 0.0,
-                end: 1.0,
-            });
-
-
-            return builder;
+      builder.extendRootCustomState({
+        molstar_on_load_markdown_commands: {
+          'dispose-audio': _Audio1,
         },
-        camera: {
-            position: [13.5, 21.1, 73.1],
-            target: [13.5, 21.1, 7.7],
-            up: [0, 1, 0],
-        } satisfies MVSNodeParams<'camera'>,
-    },
-    {
-        header: 'Molecule of the Month: Myoglobin',
-        key: 'intro',
-        description: description_p0,
-        linger_duration_ms: 45000,
-        transition_duration_ms: 500,
-        state: (): Root => {
-            const builder = createMVSBuilder();
-            // no outline here
+      });
 
-            builder.canvas({ custom: { molstar_postprocessing: { enable_outline: false } } });
-
-            const _1mbn = build1mbn(builder, '1MBN');
-
-            // whale
-            _1mbn.struct.component({ selector: { label_asym_id: 'A' } })
-                .representation({ type: 'spacefill', custom: { molstar_representation_params: { ignoreLight: true } } })
-                .colorFromSource({
-                    schema: 'all_atomic',
-                    category_name: 'atom_site',
-                    field_name: 'type_symbol',
-                    palette: {
-                        kind: 'categorical',
-                        colors: {
-                            'C': '#FFFFFF',
-                            'N': '#CCE6FF',
-                            'O': '#FFCCCC',
-                            'S': '#FFE680',
-                        }
-                    }
-                }).opacity({ ref: 'cpkopa1', opacity: 0.0 });
-
-            _1mbn.struct.component({ selector: { auth_seq_id: 155 } })
-                .representation({ type: 'spacefill', custom: { molstar_representation_params: { ignoreLight: true } } })
-                .color({ custom: GColors2 }).opacity({ ref: 'cpkopa2', opacity: 0.0 });
-
-            addNextButton(builder, 'whale', [13.5, -4, 7.7]);
-
-            builder.extendRootCustomState({
-                molstar_on_load_markdown_commands: {
-                    'play-audio': _Audio1,
-                }
-            });
-            const anim = builder.animation(
-                {
-                    custom: {
-                        molstar_trackball: {
-                            name: 'spin',
-                            params: { speed: -0.05 },
-                        }
-                    }
-                }
-            );
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'lineopa',
-                duration_ms: 2000,
-                start_ms: 0,
-                property: 'opacity',
-                start: 0.0,
-                end: 1.0,
-            });
-
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'ligand',
-                start_ms: 22000,
-                duration_ms: 10000,
-                frequency: 6,
-                alternate_direction: true,
-                property: ['custom', 'molstar_representation_params', 'emissive'],
-                end: 1.0,
-            });
-
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'cpkopa1',
-                duration_ms: 5000,
-                start_ms: 40000,
-                property: 'opacity',
-                start: 0.0,
-                end: 1.0,
-            });
-
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'cpkopa2',
-                duration_ms: 5000,
-                start_ms: 40000,
-                property: 'opacity',
-                start: 0.0,
-                end: 1.0,
-            });
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'next',
-                duration_ms: 2000,
-                start_ms: 43000,
-                property: 'label_opacity',
-                start: 0.0,
-                end: 1.0,
-            });
-            return builder;
+      const anim = builder.animation({
+        custom: {
+          molstar_trackball: {
+            name: 'spin',
+            params: { speed: -0.05 },
+          },
         },
-        camera: {
-            position: [13.5, 21.1, 73.1],
-            target: [13.5, 21.1, 7.7],
-            up: [0, 1, 0],
-        } satisfies MVSNodeParams<'camera'>,
+      });
+
+      const prims = _1mbn.struct.primitives({
+        ref: 'start-story',
+        label_opacity: 0,
+        label_background_color: 'grey',
+        snapshot_key: 'intro',
+      });
+      prims.label({
+        text: 'Start story',
+        position: [13.5, -4, 7.7],
+        label_size: 8,
+      });
+
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'start-story',
+        duration_ms: 1000,
+        start_ms: 1,
+        property: 'label_opacity',
+        start: 0.0,
+        end: 1.0,
+      });
+
+      return builder;
     },
-    {
-        header: 'Myoglobin and Whales',
-        key: 'whale',
-        description: description_p1,
-        linger_duration_ms: 41000,
-        transition_duration_ms: 500,
-        state: (): Root => {
-            const builder = createMVSBuilder();
+    camera: {
+      position: [13.5, 21.1, 73.1],
+      target: [13.5, 21.1, 7.7],
+      up: [0, 1, 0],
+    } satisfies MVSNodeParams<'camera'>,
+  },
+  {
+    header: 'Molecule of the Month: Myoglobin',
+    key: 'intro',
+    description: description_p0,
+    linger_duration_ms: 45000,
+    transition_duration_ms: 500,
+    state: (): Root => {
+      const builder = createMVSBuilder();
+      // no outline here
 
-            const _1mbn = structure(builder, '1mbn').transform({ ref: 'whalex', translation: [-30, 0, 0] });
+      builder.canvas({ custom: { molstar_postprocessing: { enable_outline: false } } });
 
-            // whale
-            _1mbn.component({ selector: { label_asym_id: 'A' } })
-                .representation({ type: 'spacefill', custom: { molstar_representation_params: { ignoreLight: true } } })
-                .colorFromSource({
-                    schema: 'all_atomic', // or maybe just 'atom'
-                    category_name: 'atom_site',
-                    field_name: 'type_symbol',
-                    palette: {
-                        kind: 'categorical',
-                        colors: {
-                            'C': '#FFFFFF',
-                            'N': '#CCE6FF',
-                            'O': '#FFCCCC',
-                            'S': '#FFE680',
-                        }
-                    }
-                });
+      const _1mbn = build1mbn(builder, '1MBN');
 
-            _1mbn.component({ selector: { auth_seq_id: 155 } })
-                .representation({ type: 'spacefill', custom: { molstar_representation_params: { ignoreLight: true } } })
-                .color({ custom: GColors2 });
+      // whale
+      _1mbn.struct
+        .component({ selector: { label_asym_id: 'A' } })
+        .representation({ type: 'spacefill', custom: { molstar_representation_params: { ignoreLight: true } } })
+        .colorFromSource({
+          schema: 'all_atomic',
+          category_name: 'atom_site',
+          field_name: 'type_symbol',
+          palette: {
+            kind: 'categorical',
+            colors: {
+              C: '#FFFFFF',
+              N: '#CCE6FF',
+              O: '#FFCCCC',
+              S: '#FFE680',
+            },
+          },
+        })
+        .opacity({ ref: 'cpkopa1', opacity: 0.0 });
 
-            _1mbn.primitives({
-                ref: 'prims',
-                label_opacity: 1,
-                label_attachment: 'top-center',
-                label_show_tether: true,
-                label_tether_length: 1.0,
-            })
-                .label({
-                    text: 'whale',
-                    position: { label_asym_id: 'A', auth_seq_id: 8 },
-                    label_size: 10
-                });
+      _1mbn.struct
+        .component({ selector: { auth_seq_id: 155 } })
+        .representation({ type: 'spacefill', custom: { molstar_representation_params: { ignoreLight: true } } })
+        .color({ custom: GColors2 })
+        .opacity({ ref: 'cpkopa2', opacity: 0.0 });
 
-            _1mbn.primitives({
-                ref: 'startres',
-                label_opacity: 0,
-            })
-                .label({
-                    text: '★', label_offset: 4,
-                    position: { label_asym_id: 'A', auth_seq_id: 12, atom_id: 96 }, label_size: 5
-                })
-                .label({
-                    text: '★', label_offset: 4,
-                    position: { label_asym_id: 'A', auth_seq_id: 140, auth_atom_id: 'NZ' }, label_size: 5
-                })
-                .label({
-                    text: '★', label_offset: 4,
-                    position: { label_asym_id: 'A', auth_seq_id: 87, auth_atom_id: 'NZ' }, label_size: 5
-                });
+      addNextButton(builder, 'whale', [13.5, -4, 7.7]);
 
-            // the following doesnt work
-            const seld = _1mbn.component({
-                selector: [
-                    { label_asym_id: 'A', auth_seq_id: 12 },
-                    { label_asym_id: 'A', auth_seq_id: 140 },
-                    { label_asym_id: 'A', auth_seq_id: 87 }
-                ]
-            });
-
-            seld.representation({ ref: 'scharged', type: 'surface', surface_type: 'gaussian', custom: { molstar_representation_params: { emissive: 0.0, ignoreLight: true } } })
-                .colorFromSource(GColors3);
-
-            // pig
-            const _1pmb = structure(builder, '1pmb').transform({ ref: 'pig', matrix: align });
-
-            _1pmb.component({ selector: { label_asym_id: 'A' } })
-                .representation({ type: 'spacefill', custom: { molstar_representation_params: { ignoreLight: true } } })
-                .colorFromSource(GColors3);
-
-            _1pmb.component({ selector: { label_asym_id: 'C', auth_seq_id: 154 } })
-                .representation({ type: 'spacefill', custom: { molstar_representation_params: { ignoreLight: true } } })
-                .color({ custom: GColors2 });
-
-
-            _1pmb.primitives({
-                ref: 'labelpig',
-                label_opacity: 1,
-                label_attachment: 'top-center',
-                label_show_tether: true,
-                label_tether_length: 1.0,
-            })
-                .label({
-                    text: 'pig',
-                    position: { label_asym_id: 'A', auth_seq_id: 8 },
-                    label_size: 10
-                });
-
-            builder.extendRootCustomState({
-                molstar_on_load_markdown_commands: {
-                    'play-audio': _Audio2,
-                }
-            });
-
-            const anim = builder.animation(
-                {
-                    custom: {
-                        molstar_trackball: {
-                            name: 'spin',
-                            params: { speed: -0.05 },
-                        }
-                    }
-                });
-            anim.interpolate({
-                kind: 'vec3',
-                target_ref: 'whalex',
-                duration_ms: 10000,
-                start_ms: 16000,
-                property: 'translation',
-                start: [-30, 0, 0],
-                end: [-60, 0, 0],
-            });
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'startres',
-                duration_ms: 1000,
-                start_ms: 20000,
-                property: 'label_opacity',
-                start: 0.0,
-                end: 1.0,
-            });
-            // pig appear at 18s
-            anim.interpolate({
-                kind: 'transform_matrix',
-                target_ref: 'pig',
-                duration_ms: 5000,
-                start_ms: 18000,
-                property: 'matrix',
-                translation_start: [-82.54880970106205, 37.49099778180445, -6.133850309914719],
-                translation_end: [-52.54880970106205, 37.49099778180445, -6.133850309914719],
-            });
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'labelpig',
-                duration_ms: 2000,
-                start_ms: 18000,
-                property: 'label_opacity',
-                start: 0.0,
-                end: 1.0,
-            });
-            addNextButton(builder, 'oxygen', [-18.9, -4, 7.3]);
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'next',
-                duration_ms: 2000,
-                start_ms: 38000,
-                property: 'label_opacity',
-                start: 0.0,
-                end: 1.0,
-            });
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'scharged',
-                start_ms: 20000,
-                duration_ms: 6000,
-                frequency: 6,
-                alternate_direction: true,
-                property: ['custom', 'molstar_representation_params', 'emissive'],
-                start: 0.0,
-                end: 1.0,
-            });
-            return builder;
+      builder.extendRootCustomState({
+        molstar_on_load_markdown_commands: {
+          'play-audio': _Audio1,
         },
-        camera: {
-            position: [-14.6, 116.1, 66.5],
-            target: [-18.9, 21.1, 7.3],
-            up: [-0.0, 0.5, -0.8],
-        } satisfies MVSNodeParams<'camera'>,
-    },
-    {
-        header: 'Oxygen Bound',
-        key: 'oxygen',
-        description: description_p2,
-        linger_duration_ms: 18000,
-        transition_duration_ms: 500,
-        state: (): Root => {
-            const builder = createMVSBuilder();
-            // NMR 1MYF
-            // 1A6N unbound
-            // 1A6M bound
-            // series 2G0R
-            const _1mbo = structure(builder, '1mbo')
-                .transform({ matrix: alignmbo });
-
-            const _1myf = builder
-                .download({ url: pdbUrl('1myf') })
-                .parse({ format: 'bcif' })
-                .modelStructure({ ref: '1myf' });
-
-            const red1 = '#d3a4a6';
-            const red2 = '#d75354';
-
-            const blue1 = '#02d1d1';
-            _1myf.component({ selector: { label_asym_id: 'A' } })
-                .transform({ translation: [0, 0, 0] })
-                .representation({ type: 'spacefill' })
-                .color({ color: red1 })
-                .opacity({ ref: 'spo', opacity: 1.0 });
-
-            // OXYY
-            // should animate in-out in loop
-            _1mbo.component({ selector: { label_asym_id: 'C', auth_seq_id: 155 } })
-                .representation({ type: 'spacefill' })
-                .color({
-                    custom: {
-                        molstar_color_theme_name: 'element-symbol',
-                        molstar_color_theme_params: {
-                            carbonColor: {
-                                name: 'uniform',
-                                params: { value: decodeColor(red2) }
-                            },
-                        }
-                    }
-                });
-
-            _1myf.component({ selector: { label_asym_id: 'A' } })
-                .representation({ type: 'backbone' })
-                .color({ color: red1 });
-
-            _1mbo.component({ selector: { label_asym_id: 'D', auth_seq_id: 555 } })
-                .representation({
-                    ref: 'oxy', type: 'spacefill', custom: {
-                        molstar_representation_params: {
-                            emissive: 0.0
-                        }
-                    }
-                })
-                .color({ color: blue1 });
-
-            _1mbo.component({ selector: { label_asym_id: 'D', auth_seq_id: 555 } })
-                .transform({ ref: 'oxyy', translation: [0, 0, 0] })
-                .representation({ type: 'spacefill' })
-                .color({ color: blue1 })
-                .opacity({ ref: 'oxop', opacity: 0.0 });
-
-            builder.extendRootCustomState({
-                molstar_on_load_markdown_commands: {
-                    'play-audio': _Audio3,
-                }
-            });
-            const anim = builder.animation(
-                {
-                    custom: {
-                        molstar_trackball: {
-                            name: 'spin',
-                            params: { speed: -0.05 },
-                        }
-                    }
-                });
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'spo',
-                duration_ms: 5000,
-                start_ms: 0,
-                property: 'opacity',
-                start: 1.0,
-                end: 0.05,
-            });
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: '1myf',
-                start_ms: 11000,
-                duration_ms: 10000,
-                frequency: 4,
-                alternate_direction: true,
-                property: 'model_index',
-                discrete: true,
-                start: 0,
-                end: 11,
-            });
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'oxy',
-                start_ms: 3000,
-                duration_ms: 10000,
-                frequency: 7,
-                alternate_direction: true,
-                property: ['custom', 'molstar_representation_params', 'emissive'],
-                end: 1.0,
-            });
-            anim.interpolate({
-                kind: 'vec3',
-                target_ref: 'oxyy',
-                duration_ms: 5000,
-                start_ms: 16000,
-                property: 'translation',
-                frequency: 4,
-                alternate_direction: false,
-                start: [5, -5, -20],
-                end: [0, 0, 0],
-                noise_magnitude: 1,
-            });
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'oxop',
-                duration_ms: 1000,
-                start_ms: 15000,
-                property: 'opacity',
-                start: 0.0,
-                end: 1.0,
-            });
-            addNextButton(builder, 'end', [0, -25, 0.0]);
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'next',
-                duration_ms: 2000,
-                start_ms: 18000,
-                property: 'label_opacity',
-                start: 0.0,
-                end: 1.0,
-            });
-            return builder;
+      });
+      const anim = builder.animation({
+        custom: {
+          molstar_trackball: {
+            name: 'spin',
+            params: { speed: -0.05 },
+          },
         },
-        camera: {
-            position: [-2.2, 0.7, -78.5],
-            target: [-0.1, 0.7, 0.6],
-            up: [0, 1, 0],
-        } satisfies MVSNodeParams<'camera'>,
+      });
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'lineopa',
+        duration_ms: 2000,
+        start_ms: 0,
+        property: 'opacity',
+        start: 0.0,
+        end: 1.0,
+      });
+
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'ligand',
+        start_ms: 22000,
+        duration_ms: 10000,
+        frequency: 6,
+        alternate_direction: true,
+        property: ['custom', 'molstar_representation_params', 'emissive'],
+        end: 1.0,
+      });
+
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'cpkopa1',
+        duration_ms: 5000,
+        start_ms: 40000,
+        property: 'opacity',
+        start: 0.0,
+        end: 1.0,
+      });
+
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'cpkopa2',
+        duration_ms: 5000,
+        start_ms: 40000,
+        property: 'opacity',
+        start: 0.0,
+        end: 1.0,
+      });
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'next',
+        duration_ms: 2000,
+        start_ms: 43000,
+        property: 'label_opacity',
+        start: 0.0,
+        end: 1.0,
+      });
+      return builder;
     },
-    {
-        header: 'Conclusion',
-        key: 'end',
-        description: description_p3,
-        linger_duration_ms: 20000,
-        transition_duration_ms: 500,
-        state: (): Root => {
-            const builder = createMVSBuilder();
-            const _1mbn = structure(builder, '1mbn');
-            // resn ALA+VAL+LEU+ILE+MET+PHE+TRP+PRO
-            const carb = ['ALA', 'VAL', 'LEU', 'ILE', 'MET', 'PHE', 'TRP', 'PRO'].map(amk => ({ label_comp_id: amk }));
-            // resn LYS+ARG+HIS+ASP+GLU
-            const chargedp = ['LYS', 'ARG', 'HIS'].map(amk => ({ label_comp_id: amk }));
-            const chargedn = ['ASP', 'GLU'].map(amk => ({ label_comp_id: amk }));
+    camera: {
+      position: [13.5, 21.1, 73.1],
+      target: [13.5, 21.1, 7.7],
+      up: [0, 1, 0],
+    } satisfies MVSNodeParams<'camera'>,
+  },
+  {
+    header: 'Myoglobin and Whales',
+    key: 'whale',
+    description: description_p1,
+    linger_duration_ms: 41000,
+    transition_duration_ms: 500,
+    state: (): Root => {
+      const builder = createMVSBuilder();
 
-            // salt bridge
-            // ASP44-OD1-356-LYS47-NZ-388
-            // LYS77-NZ-613-GLU18-OE1-149
-            // use primitve distance_measurement
-            // and ellipse or ellipsoid with transparancy
-            _1mbn.primitives({ ref: 'dist', label_opacity: 0.0 })
-                .distance({
-                    start: { label_asym_id: 'A', auth_seq_id: 44, atom_id: 356 },
-                    end: { label_asym_id: 'A', auth_seq_id: 47, atom_id: 388 },
-                    radius: 0.1, dash_length: 0.1,
-                    label_size: 2
-                })
-                .distance({
-                    start: { label_asym_id: 'A', auth_seq_id: 77, atom_id: 613 },
-                    end: { label_asym_id: 'A', auth_seq_id: 18, atom_id: 149 },
-                    radius: 0.1, dash_length: 0.1,
-                    label_size: 2
-                });
-            // 44 OD1 22.300 33.300 -6.200
-            // 47 NZ 23.200 32.000 -8.400
-            const r44 = Vec3.create(22.300, 33.300, -6.200);
-            const r47 = Vec3.create(23.200, 32.000, -8.400);
-            getEllipse(builder, r44, r47, 'salt1');
+      const _1mbn = structure(builder, '1mbn').transform({ ref: 'whalex', translation: [-30, 0, 0] });
 
-            // 18 OE1 16.600 22.500 20.500
-            // 77 NZ 14.100 23.600 22.200
-            const r18 = Vec3.create(16.600, 22.500, 20.500);
-            const r77 = Vec3.create(14.100, 23.600, 22.200);
-            getEllipse(builder, r18, r77, 'salt2');
+      // whale
+      _1mbn
+        .component({ selector: { label_asym_id: 'A' } })
+        .representation({ type: 'spacefill', custom: { molstar_representation_params: { ignoreLight: true } } })
+        .colorFromSource({
+          schema: 'all_atomic', // or maybe just 'atom'
+          category_name: 'atom_site',
+          field_name: 'type_symbol',
+          palette: {
+            kind: 'categorical',
+            colors: {
+              C: '#FFFFFF',
+              N: '#CCE6FF',
+              O: '#FFCCCC',
+              S: '#FFE680',
+            },
+          },
+        });
 
-            const a = _1mbn.component({ selector: carb });
-            a.representation({ type: 'ball_and_stick' })
-                .color({ color: '#bec0f2' })
-                .opacity({ ref: 'carb', opacity: 1.0 });
+      _1mbn
+        .component({ selector: { auth_seq_id: 155 } })
+        .representation({ type: 'spacefill', custom: { molstar_representation_params: { ignoreLight: true } } })
+        .color({ custom: GColors2 });
 
-            const b = _1mbn.component({ selector: chargedp });
-            b.representation({ type: 'ball_and_stick' })
-                .color({ custom: ill_color('blue', 3.0) })
-                .opacity({ ref: 'chargedp', opacity: 1.0 });
+      _1mbn
+        .primitives({
+          ref: 'prims',
+          label_opacity: 1,
+          label_attachment: 'top-center',
+          label_show_tether: true,
+          label_tether_length: 1.0,
+        })
+        .label({
+          text: 'whale',
+          position: { label_asym_id: 'A', auth_seq_id: 8 },
+          label_size: 10,
+        });
 
-            const c = _1mbn.component({ selector: chargedn });
-            c.representation({ type: 'ball_and_stick' })
-                .color({ custom: ill_color('red', 3.0) })
-                .opacity({ ref: 'chargedn', opacity: 1.0 });
+      _1mbn
+        .primitives({
+          ref: 'startres',
+          label_opacity: 0,
+        })
+        .label({
+          text: '★',
+          label_offset: 4,
+          position: { label_asym_id: 'A', auth_seq_id: 12, atom_id: 96 },
+          label_size: 5,
+        })
+        .label({
+          text: '★',
+          label_offset: 4,
+          position: { label_asym_id: 'A', auth_seq_id: 140, auth_atom_id: 'NZ' },
+          label_size: 5,
+        })
+        .label({
+          text: '★',
+          label_offset: 4,
+          position: { label_asym_id: 'A', auth_seq_id: 87, auth_atom_id: 'NZ' },
+          label_size: 5,
+        });
 
-            _1mbn.component({ selector: { label_asym_id: 'A' } })
-                .representation({ type: 'backbone' })
-                .color({ color: '#919191' });
+      // the following doesnt work
+      const seld = _1mbn.component({
+        selector: [
+          { label_asym_id: 'A', auth_seq_id: 12 },
+          { label_asym_id: 'A', auth_seq_id: 140 },
+          { label_asym_id: 'A', auth_seq_id: 87 },
+        ],
+      });
 
-            _1mbn.component({ selector: 'ligand' })
-                .representation({
-                    ref: 'ligand', type: 'ball_and_stick',
-                    custom: {
-                        molstar_representation_params: {
-                            emissive: 0.0
-                        }
-                    }
-                })
-                .color({ color: 'orange' });
+      seld
+        .representation({
+          ref: 'scharged',
+          type: 'surface',
+          surface_type: 'gaussian',
+          custom: { molstar_representation_params: { emissive: 0.0, ignoreLight: true } },
+        })
+        .colorFromSource(GColors3);
 
-            builder.extendRootCustomState({
-                molstar_on_load_markdown_commands: {
-                    'play-audio': _Audio4,
-                }
-            });
+      // pig
+      const _1pmb = structure(builder, '1pmb').transform({ ref: 'pig', matrix: align });
 
-            const anim = builder.animation({});
+      _1pmb
+        .component({ selector: { label_asym_id: 'A' } })
+        .representation({ type: 'spacefill', custom: { molstar_representation_params: { ignoreLight: true } } })
+        .colorFromSource(GColors3);
 
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'carb',
-                duration_ms: 2000,
-                start_ms: 8000,
-                frequency: 2,
-                alternate_direction: true,
-                property: 'opacity',
-                start: 0.0,
-                end: 1.0,
-            });
+      _1pmb
+        .component({ selector: { label_asym_id: 'C', auth_seq_id: 154 } })
+        .representation({ type: 'spacefill', custom: { molstar_representation_params: { ignoreLight: true } } })
+        .color({ custom: GColors2 });
 
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'chargedp',
-                duration_ms: 1000,
-                start_ms: 10000,
-                property: 'opacity',
-                start: 0.0,
-                end: 1.0,
-            });
+      _1pmb
+        .primitives({
+          ref: 'labelpig',
+          label_opacity: 1,
+          label_attachment: 'top-center',
+          label_show_tether: true,
+          label_tether_length: 1.0,
+        })
+        .label({
+          text: 'pig',
+          position: { label_asym_id: 'A', auth_seq_id: 8 },
+          label_size: 10,
+        });
 
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'chargedn',
-                duration_ms: 1000,
-                start_ms: 10000,
-                property: 'opacity',
-                start: 0.0,
-                end: 1.0,
-            });
-            // show salt bridge
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'salt1',
-                duration_ms: 1000,
-                start_ms: 11000,
-                property: 'opacity',
-                start: 0.0,
-                end: 0.3,
-            });
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'salt2',
-                duration_ms: 1000,
-                start_ms: 11000,
-                property: 'opacity',
-                start: 0.0,
-                end: 0.3,
-            });
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'dist',
-                duration_ms: 1000,
-                start_ms: 11000,
-                property: 'label_opacity',
-                start: 0.0,
-                end: 1.0,
-            });
-
-            addNextButton(builder, 'intro', [13.5, -10.0, 7.7]);
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'next',
-                duration_ms: 2000,
-                start_ms: 20000,
-                property: 'label_opacity',
-                start: 0.0,
-                end: 1.0,
-            });
-
-            return builder;
+      builder.extendRootCustomState({
+        molstar_on_load_markdown_commands: {
+          'play-audio': _Audio2,
         },
-        camera: {
-            position: [16.0, 47.2, 67.8],
-            target: [13.6, 21.1, 7.6],
-            up: [0.1, 0.9, -0.4],
-        } satisfies MVSNodeParams<'camera'>,
+      });
+
+      const anim = builder.animation({
+        custom: {
+          molstar_trackball: {
+            name: 'spin',
+            params: { speed: -0.05 },
+          },
+        },
+      });
+      anim.interpolate({
+        kind: 'vec3',
+        target_ref: 'whalex',
+        duration_ms: 10000,
+        start_ms: 16000,
+        property: 'translation',
+        start: [-30, 0, 0],
+        end: [-60, 0, 0],
+      });
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'startres',
+        duration_ms: 1000,
+        start_ms: 20000,
+        property: 'label_opacity',
+        start: 0.0,
+        end: 1.0,
+      });
+      // pig appear at 18s
+      anim.interpolate({
+        kind: 'transform_matrix',
+        target_ref: 'pig',
+        duration_ms: 5000,
+        start_ms: 18000,
+        property: 'matrix',
+        translation_start: [-82.54880970106205, 37.49099778180445, -6.133850309914719],
+        translation_end: [-52.54880970106205, 37.49099778180445, -6.133850309914719],
+      });
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'labelpig',
+        duration_ms: 2000,
+        start_ms: 18000,
+        property: 'label_opacity',
+        start: 0.0,
+        end: 1.0,
+      });
+      addNextButton(builder, 'oxygen', [-18.9, -4, 7.3]);
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'next',
+        duration_ms: 2000,
+        start_ms: 38000,
+        property: 'label_opacity',
+        start: 0.0,
+        end: 1.0,
+      });
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'scharged',
+        start_ms: 20000,
+        duration_ms: 6000,
+        frequency: 6,
+        alternate_direction: true,
+        property: ['custom', 'molstar_representation_params', 'emissive'],
+        start: 0.0,
+        end: 1.0,
+      });
+      return builder;
     },
+    camera: {
+      position: [-14.6, 116.1, 66.5],
+      target: [-18.9, 21.1, 7.3],
+      up: [-0.0, 0.5, -0.8],
+    } satisfies MVSNodeParams<'camera'>,
+  },
+  {
+    header: 'Oxygen Bound',
+    key: 'oxygen',
+    description: description_p2,
+    linger_duration_ms: 18000,
+    transition_duration_ms: 500,
+    state: (): Root => {
+      const builder = createMVSBuilder();
+      // NMR 1MYF
+      // 1A6N unbound
+      // 1A6M bound
+      // series 2G0R
+      const _1mbo = structure(builder, '1mbo').transform({ matrix: alignmbo });
+
+      const _1myf = builder
+        .download({ url: pdbUrl('1myf') })
+        .parse({ format: 'bcif' })
+        .modelStructure({ ref: '1myf' });
+
+      const red1 = '#d3a4a6';
+      const red2 = '#d75354';
+
+      const blue1 = '#02d1d1';
+      _1myf
+        .component({ selector: { label_asym_id: 'A' } })
+        .transform({ translation: [0, 0, 0] })
+        .representation({ type: 'spacefill' })
+        .color({ color: red1 })
+        .opacity({ ref: 'spo', opacity: 1.0 });
+
+      // OXYY
+      // should animate in-out in loop
+      _1mbo
+        .component({ selector: { label_asym_id: 'C', auth_seq_id: 155 } })
+        .representation({ type: 'spacefill' })
+        .color({
+          custom: {
+            molstar_color_theme_name: 'element-symbol',
+            molstar_color_theme_params: {
+              carbonColor: {
+                name: 'uniform',
+                params: { value: decodeColor(red2) },
+              },
+            },
+          },
+        });
+
+      _1myf
+        .component({ selector: { label_asym_id: 'A' } })
+        .representation({ type: 'backbone' })
+        .color({ color: red1 });
+
+      _1mbo
+        .component({ selector: { label_asym_id: 'D', auth_seq_id: 555 } })
+        .representation({
+          ref: 'oxy',
+          type: 'spacefill',
+          custom: {
+            molstar_representation_params: {
+              emissive: 0.0,
+            },
+          },
+        })
+        .color({ color: blue1 });
+
+      _1mbo
+        .component({ selector: { label_asym_id: 'D', auth_seq_id: 555 } })
+        .transform({ ref: 'oxyy', translation: [0, 0, 0] })
+        .representation({ type: 'spacefill' })
+        .color({ color: blue1 })
+        .opacity({ ref: 'oxop', opacity: 0.0 });
+
+      builder.extendRootCustomState({
+        molstar_on_load_markdown_commands: {
+          'play-audio': _Audio3,
+        },
+      });
+      const anim = builder.animation({
+        custom: {
+          molstar_trackball: {
+            name: 'spin',
+            params: { speed: -0.05 },
+          },
+        },
+      });
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'spo',
+        duration_ms: 5000,
+        start_ms: 0,
+        property: 'opacity',
+        start: 1.0,
+        end: 0.05,
+      });
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: '1myf',
+        start_ms: 11000,
+        duration_ms: 10000,
+        frequency: 4,
+        alternate_direction: true,
+        property: 'model_index',
+        discrete: true,
+        start: 0,
+        end: 11,
+      });
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'oxy',
+        start_ms: 3000,
+        duration_ms: 10000,
+        frequency: 7,
+        alternate_direction: true,
+        property: ['custom', 'molstar_representation_params', 'emissive'],
+        end: 1.0,
+      });
+      anim.interpolate({
+        kind: 'vec3',
+        target_ref: 'oxyy',
+        duration_ms: 5000,
+        start_ms: 16000,
+        property: 'translation',
+        frequency: 4,
+        alternate_direction: false,
+        start: [5, -5, -20],
+        end: [0, 0, 0],
+        noise_magnitude: 1,
+      });
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'oxop',
+        duration_ms: 1000,
+        start_ms: 15000,
+        property: 'opacity',
+        start: 0.0,
+        end: 1.0,
+      });
+      addNextButton(builder, 'end', [0, -25, 0.0]);
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'next',
+        duration_ms: 2000,
+        start_ms: 18000,
+        property: 'label_opacity',
+        start: 0.0,
+        end: 1.0,
+      });
+      return builder;
+    },
+    camera: {
+      position: [-2.2, 0.7, -78.5],
+      target: [-0.1, 0.7, 0.6],
+      up: [0, 1, 0],
+    } satisfies MVSNodeParams<'camera'>,
+  },
+  {
+    header: 'Conclusion',
+    key: 'end',
+    description: description_p3,
+    linger_duration_ms: 20000,
+    transition_duration_ms: 500,
+    state: (): Root => {
+      const builder = createMVSBuilder();
+      const _1mbn = structure(builder, '1mbn');
+      // resn ALA+VAL+LEU+ILE+MET+PHE+TRP+PRO
+      const carb = ['ALA', 'VAL', 'LEU', 'ILE', 'MET', 'PHE', 'TRP', 'PRO'].map((amk) => ({ label_comp_id: amk }));
+      // resn LYS+ARG+HIS+ASP+GLU
+      const chargedp = ['LYS', 'ARG', 'HIS'].map((amk) => ({ label_comp_id: amk }));
+      const chargedn = ['ASP', 'GLU'].map((amk) => ({ label_comp_id: amk }));
+
+      // salt bridge
+      // ASP44-OD1-356-LYS47-NZ-388
+      // LYS77-NZ-613-GLU18-OE1-149
+      // use primitve distance_measurement
+      // and ellipse or ellipsoid with transparancy
+      _1mbn
+        .primitives({ ref: 'dist', label_opacity: 0.0 })
+        .distance({
+          start: { label_asym_id: 'A', auth_seq_id: 44, atom_id: 356 },
+          end: { label_asym_id: 'A', auth_seq_id: 47, atom_id: 388 },
+          radius: 0.1,
+          dash_length: 0.1,
+          label_size: 2,
+        })
+        .distance({
+          start: { label_asym_id: 'A', auth_seq_id: 77, atom_id: 613 },
+          end: { label_asym_id: 'A', auth_seq_id: 18, atom_id: 149 },
+          radius: 0.1,
+          dash_length: 0.1,
+          label_size: 2,
+        });
+      // 44 OD1 22.300 33.300 -6.200
+      // 47 NZ 23.200 32.000 -8.400
+      const r44 = Vec3.create(22.3, 33.3, -6.2);
+      const r47 = Vec3.create(23.2, 32.0, -8.4);
+      getEllipse(builder, r44, r47, 'salt1');
+
+      // 18 OE1 16.600 22.500 20.500
+      // 77 NZ 14.100 23.600 22.200
+      const r18 = Vec3.create(16.6, 22.5, 20.5);
+      const r77 = Vec3.create(14.1, 23.6, 22.2);
+      getEllipse(builder, r18, r77, 'salt2');
+
+      const a = _1mbn.component({ selector: carb });
+      a.representation({ type: 'ball_and_stick' }).color({ color: '#bec0f2' }).opacity({ ref: 'carb', opacity: 1.0 });
+
+      const b = _1mbn.component({ selector: chargedp });
+      b.representation({ type: 'ball_and_stick' })
+        .color({ custom: ill_color('blue', 3.0) })
+        .opacity({ ref: 'chargedp', opacity: 1.0 });
+
+      const c = _1mbn.component({ selector: chargedn });
+      c.representation({ type: 'ball_and_stick' })
+        .color({ custom: ill_color('red', 3.0) })
+        .opacity({ ref: 'chargedn', opacity: 1.0 });
+
+      _1mbn
+        .component({ selector: { label_asym_id: 'A' } })
+        .representation({ type: 'backbone' })
+        .color({ color: '#919191' });
+
+      _1mbn
+        .component({ selector: 'ligand' })
+        .representation({
+          ref: 'ligand',
+          type: 'ball_and_stick',
+          custom: {
+            molstar_representation_params: {
+              emissive: 0.0,
+            },
+          },
+        })
+        .color({ color: 'orange' });
+
+      builder.extendRootCustomState({
+        molstar_on_load_markdown_commands: {
+          'play-audio': _Audio4,
+        },
+      });
+
+      const anim = builder.animation({});
+
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'carb',
+        duration_ms: 2000,
+        start_ms: 8000,
+        frequency: 2,
+        alternate_direction: true,
+        property: 'opacity',
+        start: 0.0,
+        end: 1.0,
+      });
+
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'chargedp',
+        duration_ms: 1000,
+        start_ms: 10000,
+        property: 'opacity',
+        start: 0.0,
+        end: 1.0,
+      });
+
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'chargedn',
+        duration_ms: 1000,
+        start_ms: 10000,
+        property: 'opacity',
+        start: 0.0,
+        end: 1.0,
+      });
+      // show salt bridge
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'salt1',
+        duration_ms: 1000,
+        start_ms: 11000,
+        property: 'opacity',
+        start: 0.0,
+        end: 0.3,
+      });
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'salt2',
+        duration_ms: 1000,
+        start_ms: 11000,
+        property: 'opacity',
+        start: 0.0,
+        end: 0.3,
+      });
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'dist',
+        duration_ms: 1000,
+        start_ms: 11000,
+        property: 'label_opacity',
+        start: 0.0,
+        end: 1.0,
+      });
+
+      addNextButton(builder, 'intro', [13.5, -10.0, 7.7]);
+      anim.interpolate({
+        kind: 'scalar',
+        target_ref: 'next',
+        duration_ms: 2000,
+        start_ms: 20000,
+        property: 'label_opacity',
+        start: 0.0,
+        end: 1.0,
+      });
+
+      return builder;
+    },
+    camera: {
+      position: [16.0, 47.2, 67.8],
+      target: [13.6, 21.1, 7.6],
+      up: [0.1, 0.9, -0.4],
+    } satisfies MVSNodeParams<'camera'>,
+  },
 ];
 
 function addNextButton(builder: any, snapshotKey: string, position: [number, number, number]) {
-    builder.primitives({
-        ref: 'next',
-        tooltip: 'Click for next part',
-        label_opacity: 0,
-        label_background_color: 'grey',
-        snapshot_key: snapshotKey
+  builder
+    .primitives({
+      ref: 'next',
+      tooltip: 'Click for next part',
+      label_opacity: 0,
+      label_background_color: 'grey',
+      snapshot_key: snapshotKey,
     })
-        .label({
-            ref: 'next_label',
-            position: position,
-            text: 'Next Scene →',
-            label_color: 'white',
-            label_size: 5
-        });
+    .label({
+      ref: 'next_label',
+      position: position,
+      text: 'Next Scene →',
+      label_color: 'white',
+      label_size: 5,
+    });
 }
 function structure(builder: Root, id: string): MVSStructure {
-    return builder
-        .download({ url: pdbUrl(id) })
-        .parse({ format: 'bcif' })
-        .modelStructure();
+  return builder
+    .download({ url: pdbUrl(id) })
+    .parse({ format: 'bcif' })
+    .modelStructure();
 }
 
 function getEllipse(builder: Root, pos1: Vec3, pos2: Vec3, ref: string) {
-    const center = Vec3.add(Vec3(), pos1, pos2);
-    Vec3.scale(center, center, 0.5);
-    const major_axis = Vec3.sub(Vec3(), pos2, pos1);
-    const z_axis = Vec3.create(0, 0, 1);
-    // cross to get minor
-    const minor_axis = Vec3.cross(Vec3(), major_axis, z_axis);
-    return builder.primitives({ ref: ref, opacity: 0.33 }).ellipsoid({
-        center: center as any,
-        major_axis: major_axis as any,
-        minor_axis: minor_axis as any,
-        radius: [5.0, 3.0, 3.0],
-        color: '#cccccc',
-    });
+  const center = Vec3.add(Vec3(), pos1, pos2);
+  Vec3.scale(center, center, 0.5);
+  const major_axis = Vec3.sub(Vec3(), pos2, pos1);
+  const z_axis = Vec3.create(0, 0, 1);
+  // cross to get minor
+  const minor_axis = Vec3.cross(Vec3(), major_axis, z_axis);
+  return builder.primitives({ ref: ref, opacity: 0.33 }).ellipsoid({
+    center: center as any,
+    major_axis: major_axis as any,
+    minor_axis: minor_axis as any,
+    radius: [5.0, 3.0, 3.0],
+    color: '#cccccc',
+  });
 }
 
 function pdbUrl(id: string) {
-    return `https://www.ebi.ac.uk/pdbe/entry-files/download/${id.toLowerCase()}.bcif`;
+  return `https://www.ebi.ac.uk/pdbe/entry-files/download/${id.toLowerCase()}.bcif`;
 }
 
 export function buildStory(): MVSData_States {
-    const snapshots = Steps.map((s, i) => {
-        const builder = s.state();
-        if (s.camera) builder.camera(s.camera);
+  const snapshots = Steps.map((s, i) => {
+    const builder = s.state();
+    if (s.camera) builder.camera(s.camera);
 
-        const description = i > 0 ? `${s.description}\n\n[Go to start](#intro)` : s.description;
+    const description = i > 0 ? `${s.description}\n\n[Go to start](#intro)` : s.description;
 
-        return builder.getSnapshot({
-            title: s.header,
-            key: s.key,
-            description,
-            description_format: 'markdown',
-            linger_duration_ms: s.linger_duration_ms ?? 500,
-            transition_duration_ms: s.transition_duration_ms ?? 1000,
-        });
+    return builder.getSnapshot({
+      title: s.header,
+      key: s.key,
+      description,
+      description_format: 'markdown',
+      linger_duration_ms: s.linger_duration_ms ?? 500,
+      transition_duration_ms: s.transition_duration_ms ?? 1000,
     });
+  });
 
-    return {
-        kind: 'multiple',
-        snapshots,
-        metadata: {
-            title: 'RCSB PDB Molecule of the Month 1',
-            version: '1.0',
-            timestamp: new Date().toISOString(),
-        }
-    };
+  return {
+    kind: 'multiple',
+    snapshots,
+    metadata: {
+      title: 'RCSB PDB Molecule of the Month 1',
+      version: '1.0',
+      timestamp: new Date().toISOString(),
+    },
+  };
 }
 
 function build1mbn(builder: any, pdbId: string) {
-    const struct = structure(builder, '1MBN');
+  const struct = structure(builder, '1MBN');
 
-    struct.component({ selector: 'ligand' })
-        .representation({ ref: 'ligand', type: 'ball_and_stick' })
-        .color({ color: 'orange' });
+  struct
+    .component({ selector: 'ligand' })
+    .representation({ ref: 'ligand', type: 'ball_and_stick' })
+    .color({ color: 'orange' });
 
-    // FE and O should be spacefill
-    struct.component({ selector: { auth_seq_id: 155, label_atom_id: 'FE' } })
-        .representation({ type: 'spacefill' })
-        .color({ color: 'yellow' });
+  // FE and O should be spacefill
+  struct
+    .component({ selector: { auth_seq_id: 155, label_atom_id: 'FE' } })
+    .representation({ type: 'spacefill' })
+    .color({ color: 'yellow' });
 
-    struct.component({ selector: { auth_seq_id: 154 } })
-        .representation({ type: 'spacefill' })
-        .color({ color: 'blue' });
+  struct
+    .component({ selector: { auth_seq_id: 154 } })
+    .representation({ type: 'spacefill' })
+    .color({ color: 'blue' });
 
-    struct.component({ selector: { auth_seq_id: 154 } })
-        .representation({ type: 'spacefill' })
-        .color({ color: 'blue' });
+  struct
+    .component({ selector: { auth_seq_id: 154 } })
+    .representation({ type: 'spacefill' })
+    .color({ color: 'blue' });
 
-    const chA = struct.component({ selector: { label_asym_id: 'A' } });
-    chA.representation({ type: 'surface', surface_type: 'gaussian' })
-        .color({ color: '#ff0303' })
-        .opacity({ ref: 'surfopa', opacity: 0.0 });
+  const chA = struct.component({ selector: { label_asym_id: 'A' } });
+  chA
+    .representation({ type: 'surface', surface_type: 'gaussian' })
+    .color({ color: '#ff0303' })
+    .opacity({ ref: 'surfopa', opacity: 0.0 });
 
-    chA.representation({ type: 'line' })
-        .color({ custom: { molstar_color_theme_name: 'element-symbol' } })
-        .opacity({ ref: 'lineopa', opacity: 0.0 });
+  chA
+    .representation({ type: 'line' })
+    .color({ custom: { molstar_color_theme_name: 'element-symbol' } })
+    .opacity({ ref: 'lineopa', opacity: 0.0 });
 
-    chA.representation({ type: 'cartoon' })
-        .color({ custom: { molstar_color_theme_name: 'secondary-structure' } });
+  chA.representation({ type: 'cartoon' }).color({ custom: { molstar_color_theme_name: 'secondary-structure' } });
 
-    return {
-        struct,
-        refs: {
-            surfaceOpacity: 'surfopa',
-            lineOpacity: 'lineopa',
-        }
-    };
+  return {
+    struct,
+    refs: {
+      surfaceOpacity: 'surfopa',
+      lineOpacity: 'lineopa',
+    },
+  };
 }
 
 function createAudioControls(url: string) {
-    return `
+  return `
   [‹ **▶ Play** ›](${encodeURIComponent(`!play-audio=${url}`)})
   [‹ **⏸ Pause** ›](!pause-audio)
   [‹ **⏹ Stop** ›](!stop-audio)

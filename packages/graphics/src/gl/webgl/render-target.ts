@@ -15,82 +15,92 @@ import type { Renderbuffer } from './renderbuffer.js';
 const getNextRenderTargetId = idFactory();
 
 export interface RenderTarget {
-    readonly id: number
-    readonly texture: Texture
-    readonly framebuffer: Framebuffer
-    readonly depthRenderbuffer: Renderbuffer | null
+  readonly id: number;
+  readonly texture: Texture;
+  readonly framebuffer: Framebuffer;
+  readonly depthRenderbuffer: Renderbuffer | null;
 
-    getByteCount: () => number
+  getByteCount: () => number;
 
-    getWidth: () => number
-    getHeight: () => number
-    /** binds framebuffer */
-    bind: () => void
-    setSize: (width: number, height: number) => void
-    reset: () => void
-    destroy: () => void
+  getWidth: () => number;
+  getHeight: () => number;
+  /** binds framebuffer */
+  bind: () => void;
+  setSize: (width: number, height: number) => void;
+  reset: () => void;
+  destroy: () => void;
 }
 
-export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResources, _width: number, _height: number, depthStencil: 'none' | 'depth' | 'depth-stencil' = 'depth', type: 'uint8' | 'float32' | 'fp16' = 'uint8', filter: TextureFilter = 'nearest', format: 'rgba' | 'alpha' = 'rgba'): RenderTarget {
+export function createRenderTarget(
+  gl: GLRenderingContext,
+  resources: WebGLResources,
+  _width: number,
+  _height: number,
+  depthStencil: 'none' | 'depth' | 'depth-stencil' = 'depth',
+  type: 'uint8' | 'float32' | 'fp16' = 'uint8',
+  filter: TextureFilter = 'nearest',
+  format: 'rgba' | 'alpha' = 'rgba',
+): RenderTarget {
+  if (format === 'alpha' && !isWebGL2(gl)) {
+    throw new Error('cannot render to alpha format in webgl1');
+  }
 
-    if (format === 'alpha' && !isWebGL2(gl)) {
-        throw new Error('cannot render to alpha format in webgl1');
-    }
+  const framebuffer = resources.framebuffer();
+  const targetTexture =
+    type === 'fp16'
+      ? resources.texture('image-float16', format, 'fp16', filter)
+      : type === 'float32'
+        ? resources.texture('image-float32', format, 'float', filter)
+        : resources.texture('image-uint8', format, 'ubyte', filter);
+  // make a depth renderbuffer of the same size as the targetTexture
+  const depthRenderbuffer =
+    depthStencil === 'none'
+      ? null
+      : depthStencil === 'depth-stencil'
+        ? resources.renderbuffer(isWebGL2(gl) ? 'depth32f-stencil8' : 'depth-stencil', 'depth-stencil', _width, _height)
+        : resources.renderbuffer(isWebGL2(gl) ? 'depth32f' : 'depth16', 'depth', _width, _height);
 
-    const framebuffer = resources.framebuffer();
-    const targetTexture = type === 'fp16'
-        ? resources.texture('image-float16', format, 'fp16', filter)
-        : type === 'float32'
-            ? resources.texture('image-float32', format, 'float', filter)
-            : resources.texture('image-uint8', format, 'ubyte', filter);
-    // make a depth renderbuffer of the same size as the targetTexture
-    const depthRenderbuffer = depthStencil === 'none'
-        ? null
-        : depthStencil === 'depth-stencil'
-            ? resources.renderbuffer(isWebGL2(gl) ? 'depth32f-stencil8' : 'depth-stencil', 'depth-stencil', _width, _height)
-            : resources.renderbuffer(isWebGL2(gl) ? 'depth32f' : 'depth16', 'depth', _width, _height);
+  function init() {
+    targetTexture.define(_width, _height);
+    targetTexture.attachFramebuffer(framebuffer, 'color0');
+    if (depthRenderbuffer) depthRenderbuffer.attachFramebuffer(framebuffer);
+  }
+  init();
 
-    function init() {
-        targetTexture.define(_width, _height);
-        targetTexture.attachFramebuffer(framebuffer, 'color0');
-        if (depthRenderbuffer) depthRenderbuffer.attachFramebuffer(framebuffer);
-    }
-    init();
+  let destroyed = false;
 
-    let destroyed = false;
+  return {
+    id: getNextRenderTargetId(),
+    texture: targetTexture,
+    framebuffer,
+    depthRenderbuffer,
 
-    return {
-        id: getNextRenderTargetId(),
-        texture: targetTexture,
-        framebuffer,
-        depthRenderbuffer,
+    getByteCount: () => targetTexture.getByteCount() + (depthRenderbuffer ? depthRenderbuffer.getByteCount() : 0),
 
-        getByteCount: () => targetTexture.getByteCount() + (depthRenderbuffer ? depthRenderbuffer.getByteCount() : 0),
+    getWidth: () => _width,
+    getHeight: () => _height,
+    bind: () => {
+      framebuffer.bind();
+    },
+    setSize: (width: number, height: number) => {
+      if (_width === width && _height === height) {
+        return;
+      }
 
-        getWidth: () => _width,
-        getHeight: () => _height,
-        bind: () => {
-            framebuffer.bind();
-        },
-        setSize: (width: number, height: number) => {
-            if (_width === width && _height === height) {
-                return;
-            }
-
-            _width = width;
-            _height = height;
-            targetTexture.define(_width, _height);
-            if (depthRenderbuffer) depthRenderbuffer.setSize(_width, _height);
-        },
-        reset: () => {
-            init();
-        },
-        destroy: () => {
-            if (destroyed) return;
-            targetTexture.destroy();
-            framebuffer.destroy();
-            if (depthRenderbuffer) depthRenderbuffer.destroy();
-            destroyed = true;
-        }
-    };
+      _width = width;
+      _height = height;
+      targetTexture.define(_width, _height);
+      if (depthRenderbuffer) depthRenderbuffer.setSize(_width, _height);
+    },
+    reset: () => {
+      init();
+    },
+    destroy: () => {
+      if (destroyed) return;
+      targetTexture.destroy();
+      framebuffer.destroy();
+      if (depthRenderbuffer) depthRenderbuffer.destroy();
+      destroyed = true;
+    },
+  };
 }

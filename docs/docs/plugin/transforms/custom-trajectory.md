@@ -1,6 +1,8 @@
 # Load Trajectory from a Custom Format
 
-This section shows a high level example for loading trajectory from custom data in specialized plugin instances. A more complete solution is available for example in form of the [G3D format extension](https://github.com/molstar/molstar/tree/master/src/extensions/g3d).
+This section shows a high level example for loading trajectory from custom data in specialized plugin instances. A more
+complete solution is available for example in form of the
+[G3D format extension](https://github.com/molstar/molstar/tree/master/src/extensions/g3d).
 
 ## Defining and Using a Custom Transformer
 
@@ -33,8 +35,8 @@ export const TrajectoryFromCustomData = CreateTransformer({
 });
 ```
 
-The ``customParse`` function can usually be implemented 
-by modifying/extending an [existing parser already available in Mol*](https://github.com/molstar/molstar/tree/master/src/mol-model-formats/structure).
+The `customParse` function can usually be implemented by modifying/extending an
+[existing parser already available in Mol*](https://github.com/molstar/molstar/tree/master/src/mol-model-formats/structure).
 
 To use the transformer:
 

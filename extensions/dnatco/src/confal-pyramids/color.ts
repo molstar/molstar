@@ -26,50 +26,60 @@ const PyramidsColors = ColorMap({ ...NtCColors });
 type PyramidsColors = typeof PyramidsColors;
 
 export const ConfalPyramidsColorThemeParams = {
-    colors: PD.MappedStatic('default', {
-        'default': PD.EmptyGroup(),
-        'custom': PD.Group(getColorMapParams(PyramidsColors))
-    }),
+  colors: PD.MappedStatic('default', {
+    default: PD.EmptyGroup(),
+    custom: PD.Group(getColorMapParams(PyramidsColors)),
+  }),
 };
 export type ConfalPyramidsColorThemeParams = typeof ConfalPyramidsColorThemeParams;
 
 export function getConfalPyramidsColorThemeParams(ctx: ThemeDataContext) {
-    return PD.clone(ConfalPyramidsColorThemeParams);
+  return PD.clone(ConfalPyramidsColorThemeParams);
 }
 
-export function ConfalPyramidsColorTheme(ctx: ThemeDataContext, props: PD.Values<ConfalPyramidsColorThemeParams>): ColorTheme<ConfalPyramidsColorThemeParams> {
-    const colorMap = props.colors.name === 'default' ? PyramidsColors : props.colors.params;
+export function ConfalPyramidsColorTheme(
+  ctx: ThemeDataContext,
+  props: PD.Values<ConfalPyramidsColorThemeParams>,
+): ColorTheme<ConfalPyramidsColorThemeParams> {
+  const colorMap = props.colors.name === 'default' ? PyramidsColors : props.colors.params;
 
-    function color(location: Location, isSecondary: boolean): Color {
-        if (CPT.isLocation(location)) {
-            const { step, isLower } = location.data;
-            const key = step.NtC + `_${isLower ? 'Lwr' : 'Upr'}` as keyof PyramidsColors;
-            return colorMap[key] ?? ErrorColor;
-        }
-
-        return ErrorColor;
+  function color(location: Location, isSecondary: boolean): Color {
+    if (CPT.isLocation(location)) {
+      const { step, isLower } = location.data;
+      const key = (step.NtC + `_${isLower ? 'Lwr' : 'Upr'}`) as keyof PyramidsColors;
+      return colorMap[key] ?? ErrorColor;
     }
 
-    return {
-        factory: ConfalPyramidsColorTheme,
-        granularity: 'group',
-        color,
-        props,
-        description: Description,
-        legend: TableLegend(ObjectKeys(colorMap).map(k => [k.replace('_', ' '), colorMap[k]] as [string, Color]).concat([['Error', ErrorColor]])),
-    };
+    return ErrorColor;
+  }
+
+  return {
+    factory: ConfalPyramidsColorTheme,
+    granularity: 'group',
+    color,
+    props,
+    description: Description,
+    legend: TableLegend(
+      ObjectKeys(colorMap)
+        .map((k) => [k.replace('_', ' '), colorMap[k]] as [string, Color])
+        .concat([['Error', ErrorColor]]),
+    ),
+  };
 }
 
-export const ConfalPyramidsColorThemeProvider: ColorTheme.Provider<ConfalPyramidsColorThemeParams, 'confal-pyramids'> = {
+export const ConfalPyramidsColorThemeProvider: ColorTheme.Provider<ConfalPyramidsColorThemeParams, 'confal-pyramids'> =
+  {
     name: 'confal-pyramids',
     label: 'Confal Pyramids',
     category: ColorThemeCategory.Residue,
     factory: ConfalPyramidsColorTheme,
     getParams: getConfalPyramidsColorThemeParams,
     defaultValues: PD.getDefaultValues(ConfalPyramidsColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models.some(m => Dnatco.isApplicable(m)),
+    isApplicable: (ctx: ThemeDataContext) =>
+      !!ctx.structure && ctx.structure.models.some((m) => Dnatco.isApplicable(m)),
     ensureCustomProperties: {
-        attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? ConfalPyramidsProvider.attach(ctx, data.structure.models[0], void 0, true) : Promise.resolve(),
-        detach: (data) => data.structure && ConfalPyramidsProvider.ref(data.structure.models[0], false)
-    }
-};
+      attach: (ctx: CustomProperty.Context, data: ThemeDataContext) =>
+        data.structure ? ConfalPyramidsProvider.attach(ctx, data.structure.models[0], void 0, true) : Promise.resolve(),
+      detach: (data) => data.structure && ConfalPyramidsProvider.ref(data.structure.models[0], false),
+    },
+  };

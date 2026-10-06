@@ -7,27 +7,27 @@
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { ChemicalComponentPreset, ChemicalCompontentTrajectoryHierarchyPreset } from './representation.js';
 
-export const wwPDBChemicalComponentDictionary = PluginBehavior.create<{ }>({
-    name: 'wwpdb-chemical-component-dictionary',
-    category: 'representation',
-    display: {
-        name: 'wwPDB Chemical Compontent Dictionary',
-        description: 'Custom representation for data loaded from the CCD.'
-    },
-    ctor: class extends PluginBehavior.Handler<{ }> {
-        register(): void {
-            this.ctx.builders.structure.hierarchy.registerPreset(ChemicalCompontentTrajectoryHierarchyPreset);
-            this.ctx.builders.structure.representation.registerPreset(ChemicalComponentPreset);
-        }
+export const wwPDBChemicalComponentDictionary = PluginBehavior.create<{}>({
+  name: 'wwpdb-chemical-component-dictionary',
+  category: 'representation',
+  display: {
+    name: 'wwPDB Chemical Compontent Dictionary',
+    description: 'Custom representation for data loaded from the CCD.',
+  },
+  ctor: class extends PluginBehavior.Handler<{}> {
+    register(): void {
+      this.ctx.builders.structure.hierarchy.registerPreset(ChemicalCompontentTrajectoryHierarchyPreset);
+      this.ctx.builders.structure.representation.registerPreset(ChemicalComponentPreset);
+    }
 
-        update() {
-            return false;
-        }
+    update() {
+      return false;
+    }
 
-        unregister() {
-            this.ctx.builders.structure.hierarchy.unregisterPreset(ChemicalCompontentTrajectoryHierarchyPreset);
-            this.ctx.builders.structure.representation.unregisterPreset(ChemicalComponentPreset);
-        }
-    },
-    params: () => ({ })
+    unregister() {
+      this.ctx.builders.structure.hierarchy.unregisterPreset(ChemicalCompontentTrajectoryHierarchyPreset);
+      this.ctx.builders.structure.representation.unregisterPreset(ChemicalComponentPreset);
+    }
+  },
+  params: () => ({}),
 });

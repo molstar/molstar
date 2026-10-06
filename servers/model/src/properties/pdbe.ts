@@ -9,11 +9,7 @@ import { PDBe_structureQualityReport, PDBe_preferredAssembly, PDBe_structRefDoma
 import type { AttachModelProperties } from '@molstar/model-server/property-provider';
 
 export const attachModelProperties: AttachModelProperties = (args) => {
-    // return a list of promises that start attaching the props in parallel
-    // (if there are downloads etc.)
-    return [
-        PDBe_structureQualityReport(args),
-        PDBe_preferredAssembly(args),
-        PDBe_structRefDomain(args)
-    ];
+  // return a list of promises that start attaching the props in parallel
+  // (if there are downloads etc.)
+  return [PDBe_structureQualityReport(args), PDBe_preferredAssembly(args), PDBe_structRefDomain(args)];
 };

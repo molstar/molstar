@@ -1,21 +1,20 @@
 @use 'base/colors' with (
-    $default-background: #111318,
-    $font-color: #ccd4e0,
-    $hover-font-color: #51A2FB,
-    $entity-current-font-color: #68BEFD,
-    $msp-btn-remove-background: #DE0A28,
-    $msp-btn-remove-hover-font-color: #F2F4F7,
-    $msp-btn-commit-on-font-color: #68BEFD,
-    $entity-badge-font-color: #ccd4e0,
+  $default-background: #111318,
+  $font-color: #ccd4e0,
+  $hover-font-color: #51a2fb,
+  $entity-current-font-color: #68befd,
+  $msp-btn-remove-background: #de0a28,
+  $msp-btn-remove-hover-font-color: #f2f4f7,
+  $msp-btn-commit-on-font-color: #68befd,
+  $entity-badge-font-color: #ccd4e0,
 
-    $log-message: #0CCA5D,
-    $log-info: #5E3673,
-    $log-warning: #FCC937,
-    $log-error: #FD354B,
+  $log-message: #0cca5d,
+  $log-info: #5e3673,
+  $log-warning: #fcc937,
+  $log-error: #fd354b,
 
-    $logo-background: rgba(0, 0, 0, 0.75),
-
-    $color-adjust-sign: -1,
+  $logo-background: rgba(0, 0, 0, 0.75),
+  $color-adjust-sign: -1
 );
- 
+
 @use 'base/base';

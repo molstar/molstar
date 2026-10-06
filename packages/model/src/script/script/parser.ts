@@ -7,4 +7,4 @@
 
 import type { Expression } from '../language/expression.js';
 
-export type Parser = (source: string) => Expression
+export type Parser = (source: string) => Expression;

@@ -10,6 +10,6 @@ import { Table } from './db/table.js';
 import { Column } from './db/column.js';
 import * as ColumnHelpers from './db/column-helpers.js';
 
-export type DatabaseCollection<T extends Database.Schema> = { [name: string]: Database<T> }
+export type DatabaseCollection<T extends Database.Schema> = { [name: string]: Database<T> };
 
 export { Database, Table, Column, ColumnHelpers };

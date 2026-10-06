@@ -8,4 +8,3 @@ Requires Python 3.x to build. From this directory:
 pip install mkdocs-material
 mkdocs serve
 ```
-

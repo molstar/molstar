@@ -12,40 +12,43 @@ import { TableLegend } from '@molstar/core/util/legend';
 import { defaults } from '@molstar/core/util';
 import { ColorThemeCategory } from './categories.js';
 
-const DefaultColor = Color(0xCCCCCC);
+const DefaultColor = Color(0xcccccc);
 const Description = 'Gives everything the same, uniform color.';
 
 export const UniformColorThemeParams = {
-    value: PD.Color(DefaultColor),
-    saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
-    lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
+  value: PD.Color(DefaultColor),
+  saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
+  lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
 };
-export type UniformColorThemeParams = typeof UniformColorThemeParams
+export type UniformColorThemeParams = typeof UniformColorThemeParams;
 export function getUniformColorThemeParams(ctx: ThemeDataContext) {
-    return UniformColorThemeParams; // TODO return copy
+  return UniformColorThemeParams; // TODO return copy
 }
 
-export function UniformColorTheme(ctx: ThemeDataContext, props: PD.Values<UniformColorThemeParams>): ColorTheme<UniformColorThemeParams> {
-    let color = defaults(props.value, DefaultColor);
-    color = Color.saturate(color, props.saturation);
-    color = Color.lighten(color, props.lightness);
+export function UniformColorTheme(
+  ctx: ThemeDataContext,
+  props: PD.Values<UniformColorThemeParams>,
+): ColorTheme<UniformColorThemeParams> {
+  let color = defaults(props.value, DefaultColor);
+  color = Color.saturate(color, props.saturation);
+  color = Color.lighten(color, props.lightness);
 
-    return {
-        factory: UniformColorTheme,
-        granularity: 'uniform',
-        color: () => color,
-        props: props,
-        description: Description,
-        legend: TableLegend([['uniform', color]])
-    };
+  return {
+    factory: UniformColorTheme,
+    granularity: 'uniform',
+    color: () => color,
+    props: props,
+    description: Description,
+    legend: TableLegend([['uniform', color]]),
+  };
 }
 
 export const UniformColorThemeProvider: ColorTheme.Provider<UniformColorThemeParams, 'uniform'> = {
-    name: 'uniform',
-    label: 'Uniform',
-    category: ColorThemeCategory.Misc,
-    factory: UniformColorTheme,
-    getParams: getUniformColorThemeParams,
-    defaultValues: PD.getDefaultValues(UniformColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => true
+  name: 'uniform',
+  label: 'Uniform',
+  category: ColorThemeCategory.Misc,
+  factory: UniformColorTheme,
+  getParams: getUniformColorThemeParams,
+  defaultValues: PD.getDefaultValues(UniformColorThemeParams),
+  isApplicable: (ctx: ThemeDataContext) => true,
 };

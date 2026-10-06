@@ -8,6 +8,7 @@ This example illustrates:
 ### Usage
 
 - Clone Mol* GitHub repo and build it.
+
 ```bash
   git clone https://github.com/molstar/molstar.git
   cd molstar
@@ -15,7 +16,8 @@ This example illustrates:
   npm build
 ```
 
-- Get `molstar.css` and `index.js` from `build/examples/ihm-restraints` and include these to your HTML page in a similar fashion to [index.html](./index.html):
+- Get `molstar.css` and `index.js` from `build/examples/ihm-restraints` and include these to your HTML page in a similar
+  fashion to [index.html](./index.html):
 
 ```html
     <link rel="stylesheet" type="text/css" href="molstar.css" />
@@ -28,7 +30,8 @@ This example illustrates:
     </script>
 ```
 
-- For interactive development build (for production use `npm run build`) of the example that immediately reflects changes use:
+- For interactive development build (for production use `npm run build`) of the example that immediately reflects
+  changes use:
 
 ```bash
   npm run dev -- -e ihm-restraints

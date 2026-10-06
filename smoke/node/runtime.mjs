@@ -37,6 +37,13 @@ const archive = unzipSync(mvsx);
 assert(archive['index.mvsj'], 'MVSX archive has no index.mvsj');
 const archivedMvs = MVSData.fromMVSJ(new TextDecoder().decode(archive['index.mvsj']));
 assert.equal(MVSData.validationIssues(archivedMvs), undefined, 'MVSX round trip produced invalid MVS data');
-assert.match(archivedMvs.root.children[0].params.url, /^\.\/assets\//, 'MVSX did not rewrite its local structure asset');
-assert(Object.keys(archive).some(name => name.startsWith('./assets/')), 'MVSX archive has no local structure asset');
+assert.match(
+  archivedMvs.root.children[0].params.url,
+  /^\.\/assets\//,
+  'MVSX did not rewrite its local structure asset',
+);
+assert(
+  Object.keys(archive).some((name) => name.startsWith('./assets/')),
+  'MVSX archive has no local structure asset',
+);
 console.log('Node ESM plugin and MVS consumers passed');

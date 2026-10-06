@@ -1,20 +1,23 @@
 # Markdown Extension Manager
 
-The `markdownExtensions` manager in `PluginContext.manager` allows customizing
-the `Markdown` React component to enable executing commands and rendering custom content.
+The `markdownExtensions` manager in `PluginContext.manager` allows customizing the `Markdown` React component to enable
+executing commands and rendering custom content.
 
 The main use case of this is enriching [MolViewSpec](`https://molstar.org/mol-view-spec`) support.
 
 ## API
 
-- `PluginContext.manager.markdownExtensions.register*` functions can be used to register extensions and state/data resolvers to make the the manager work with plugin extension
+- `PluginContext.manager.markdownExtensions.register*` functions can be used to register extensions and state/data
+  resolvers to make the the manager work with plugin extension
 - `PluginContext.manager.markdownExtensions.remove*` can be used to dynamically remove the above
 
 ## Commands
 
-Extends Markdown Hyperlink syntax to support expressions of the form `[title](!c1=v1&c2=v2&...)` into an executable command. The command can be executed either on click, mouse enter, or mouse leave.
+Extends Markdown Hyperlink syntax to support expressions of the form `[title](!c1=v1&c2=v2&...)` into an executable
+command. The command can be executed either on click, mouse enter, or mouse leave.
 
-Generally, the command should be URL encoded, e.g., `a b` => `a%20b` (in JS, `encodeURIComponent`, in Python `urllib.parse.quote_plus/urlencode`).
+Generally, the command should be URL encoded, e.g., `a b` => `a%20b` (in JS, `encodeURIComponent`, in Python
+`urllib.parse.quote_plus/urlencode`).
 
 ### Built-in Commands
 
@@ -31,22 +34,25 @@ Generally, the command should be URL encoded, e.g., `a b` => `a%20b` (in JS, `en
     - (optional) `lang` is one of `mol-script` (default), `pymol`, `vmd`, `jmol`
     - (optional) `action` is an array of `highlight` (default), `focus` (multiple actions can be specified)
     - (optional) `focus-radius` is extra distance applied when focusing the selection (default is `3`)
-    - Example: `[HEM](!query=resn%20HEM%26lang=pymol&action=highlight,focus)` highlights or focuses the HEM residue (the query must be URL encoded because it contains spaces and possibly other special characters)
+    - Example: `[HEM](!query=resn%20HEM%26lang=pymol&action=highlight,focus)` highlights or focuses the HEM residue (the
+      query must be URL encoded because it contains spaces and possibly other special characters)
 - `play-audio=src`, `toggle-audio[=src]`, `stop-audio`, `pause-audio`, `dispose-audio` - Audio playback support
 
 ## Custom Content
 
-Extends Markdown Image syntax to support expressions of the form `![alt](!c1=v1&c2=v2&...)` to render custom elements instead.
+Extends Markdown Image syntax to support expressions of the form `![alt](!c1=v1&c2=v2&...)` to render custom elements
+instead.
 
 ### Built-in Custom Content
+
 - `color-swatch=color` - Renders a box with the provided color
--  Color palettes:
-    - `color-palette-name=name` - Renders a gradient with the provided named color palette (see `mol-util/color/lists.ts` for supported color schemes)
+- Color palettes:
+    - `color-palette-name=name` - Renders a gradient with the provided named color palette (see
+      `mol-util/color/lists.ts` for supported color schemes)
     - `color-palette-colors=color1,color2` - Renders a gradient with the provided colors
     - `color-palette-width=CCS-value` - Specifies the width of the element, defaults to `150px`
     - `color-palette-height=CCS-value` - Specified the height of the element, defaults to `0.5em`
     - `color-palette-discrete` - Renders discrete color list instead of interpolating
-
 
 ## Example
 

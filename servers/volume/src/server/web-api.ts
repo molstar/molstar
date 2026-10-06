@@ -21,193 +21,201 @@ import { swaggerUiIndexHandler, swaggerUiAssetsHandler } from '@molstar/common-s
 import { healthCheck } from '@molstar/common-server/util';
 
 export function init(app: express.Express) {
-    app.locals.mapFile = getMapFileFn();
-    function makePath(p: string) {
-        return `${ServerConfig.apiPrefix}/${p}`;
-    }
+  app.locals.mapFile = getMapFileFn();
+  function makePath(p: string) {
+    return `${ServerConfig.apiPrefix}/${p}`;
+  }
 
-    // Header
-    app.get(makePath(':source/:id/'), (req, res) => getHeader(req, res));
-    // Box /:src/:id/box/:a1,:a2,:a3/:b1,:b2,:b3?text=0|1&space=cartesian|fractional
-    app.get(makePath(':source/:id/box/:a1,:a2,:a3/:b1,:b2,:b3/'), (req, res) => queryBox(req, res, getQueryParams(req, false)));
-    // Cell /:src/:id/cell/?text=0|1&space=cartesian|fractional
-    app.get(makePath(':source/:id/cell/'), (req, res) => queryBox(req, res, getQueryParams(req, true)));
+  // Header
+  app.get(makePath(':source/:id/'), (req, res) => getHeader(req, res));
+  // Box /:src/:id/box/:a1,:a2,:a3/:b1,:b2,:b3?text=0|1&space=cartesian|fractional
+  app.get(makePath(':source/:id/box/:a1,:a2,:a3/:b1,:b2,:b3/'), (req, res) =>
+    queryBox(req, res, getQueryParams(req, false)),
+  );
+  // Cell /:src/:id/cell/?text=0|1&space=cartesian|fractional
+  app.get(makePath(':source/:id/cell/'), (req, res) => queryBox(req, res, getQueryParams(req, true)));
 
-    // Reports server health depending on `healthCheckPath` config prop
-    app.get(makePath('health-check'), (_, res) => healthCheck(res, ServerConfig.healthCheckPath));
+  // Reports server health depending on `healthCheckPath` config prop
+  app.get(makePath('health-check'), (_, res) => healthCheck(res, ServerConfig.healthCheckPath));
 
-    app.get(makePath('openapi.json'), (req, res) => {
-        res.writeHead(200, {
-            'Content-Type': 'application/json; charset=utf-8',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'X-Requested-With'
-        });
-        res.end(JSON.stringify(getSchema()));
+  app.get(makePath('openapi.json'), (req, res) => {
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'X-Requested-With',
     });
+    res.end(JSON.stringify(getSchema()));
+  });
 
-    app.use(makePath(''), swaggerUiAssetsHandler());
-    app.get(makePath(''), swaggerUiIndexHandler({
-        openapiJsonUrl: makePath('openapi.json'),
-        apiPrefix: ServerConfig.apiPrefix,
-        title: 'VolumeServer API',
-        shortcutIconLink
-    }));
+  app.use(makePath(''), swaggerUiAssetsHandler());
+  app.get(
+    makePath(''),
+    swaggerUiIndexHandler({
+      openapiJsonUrl: makePath('openapi.json'),
+      apiPrefix: ServerConfig.apiPrefix,
+      title: 'VolumeServer API',
+      shortcutIconLink,
+    }),
+  );
 }
 
 function getMapFileFn() {
-    const idMap = new Map<string, string>();
-    for (const [type, path] of ServerConfig.idMap) {
-        validateIdPathTemplate(path);
-        idMap.set(type.toLowerCase(), path);
-    }
-    return (type: string, id: string) => {
-        const path = idMap.get(type.toLowerCase());
-        return path ? interpolateIdPath(path, id.toLowerCase()) : void 0;
-    };
+  const idMap = new Map<string, string>();
+  for (const [type, path] of ServerConfig.idMap) {
+    validateIdPathTemplate(path);
+    idMap.set(type.toLowerCase(), path);
+  }
+  return (type: string, id: string) => {
+    const path = idMap.get(type.toLowerCase());
+    return path ? interpolateIdPath(path, id.toLowerCase()) : void 0;
+  };
 }
 
 function wrapResponse(fn: string, res: express.Response) {
-    return {
-        do404(this: any) {
-            if (!this.headerWritten) {
-                res.writeHead(404);
-                this.headerWritten = true;
-            }
-            this.end();
-        },
-        writeHeader(this: any, binary: boolean) {
-            if (this.headerWritten) return;
-            res.writeHead(200, {
-                'Content-Type': binary ? 'application/octet-stream' : 'text/plain; charset=utf-8',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'X-Requested-With',
-                'Content-Disposition': `inline; filename="${fn}"`
-            });
-            this.headerWritten = true;
-        },
-        writeBinary(this: any, data: Uint8Array) {
-            if (!this.headerWritten) this.writeHeader(true);
-            return res.write(Buffer.from(data.buffer));
-        },
-        writeString(this: any, data: string) {
-            if (!this.headerWritten) this.writeHeader(false);
-            return res.write(data);
-        },
-        end(this: any) {
-            if (this.ended) return;
-            res.end();
-            this.ended = true;
-        },
-        ended: false,
-        headerWritten: false
-    };
+  return {
+    do404(this: any) {
+      if (!this.headerWritten) {
+        res.writeHead(404);
+        this.headerWritten = true;
+      }
+      this.end();
+    },
+    writeHeader(this: any, binary: boolean) {
+      if (this.headerWritten) return;
+      res.writeHead(200, {
+        'Content-Type': binary ? 'application/octet-stream' : 'text/plain; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'X-Requested-With',
+        'Content-Disposition': `inline; filename="${fn}"`,
+      });
+      this.headerWritten = true;
+    },
+    writeBinary(this: any, data: Uint8Array) {
+      if (!this.headerWritten) this.writeHeader(true);
+      return res.write(Buffer.from(data.buffer));
+    },
+    writeString(this: any, data: string) {
+      if (!this.headerWritten) this.writeHeader(false);
+      return res.write(data);
+    },
+    end(this: any) {
+      if (this.ended) return;
+      res.end();
+      this.ended = true;
+    },
+    ended: false,
+    headerWritten: false,
+  };
 }
 
 function getSourceInfo(req: express.Request) {
-    return {
-        filename: req.app.locals.mapFile(req.params.source, req.params.id),
-        id: `${req.params.source}/${req.params.id}`
-    };
+  return {
+    filename: req.app.locals.mapFile(req.params.source, req.params.id),
+    id: `${req.params.source}/${req.params.id}`,
+  };
 }
 
 function validateSourceAndId(req: express.Request, res: express.Response) {
-    if (!req.params.source || req.params.source.length > 32 || !req.params.id || req.params.id.length > 32) {
-        res.writeHead(404);
-        res.end();
-        ConsoleLogger.error(`Query Box`, 'Invalid source and/or id');
-        return true;
-    }
-    return false;
+  if (!req.params.source || req.params.source.length > 32 || !req.params.id || req.params.id.length > 32) {
+    res.writeHead(404);
+    res.end();
+    ConsoleLogger.error(`Query Box`, 'Invalid source and/or id');
+    return true;
+  }
+  return false;
 }
 
 async function getHeader(req: express.Request, res: express.Response) {
-    if (validateSourceAndId(req, res)) {
-        return;
-    }
+  if (validateSourceAndId(req, res)) {
+    return;
+  }
 
-    let headerWritten = false;
+  let headerWritten = false;
 
-    try {
-        const { filename, id } = getSourceInfo(req);
-        const header = await Api.getExtendedHeaderJson(filename, id);
-        if (!header) {
-            res.writeHead(404);
-            return;
-        }
-        res.writeHead(200, {
-            'Content-Type': 'application/json; charset=utf-8',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'X-Requested-With'
-        });
-        headerWritten = true;
-        res.write(header);
-    } catch (e) {
-        ConsoleLogger.error(`Header ${req.params.source}/${req.params.id}`, e);
-        if (!headerWritten) {
-            res.writeHead(404);
-        }
-    } finally {
-        res.end();
+  try {
+    const { filename, id } = getSourceInfo(req);
+    const header = await Api.getExtendedHeaderJson(filename, id);
+    if (!header) {
+      res.writeHead(404);
+      return;
     }
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'X-Requested-With',
+    });
+    headerWritten = true;
+    res.write(header);
+  } catch (e) {
+    ConsoleLogger.error(`Header ${req.params.source}/${req.params.id}`, e);
+    if (!headerWritten) {
+      res.writeHead(404);
+    }
+  } finally {
+    res.end();
+  }
 }
 
 function getQueryParams(req: express.Request, isCell: boolean): Data.QueryParams {
-    const a = [+req.params.a1, +req.params.a2, +req.params.a3];
-    const b = [+req.params.b1, +req.params.b2, +req.params.b3];
+  const a = [+req.params.a1, +req.params.a2, +req.params.a3];
+  const b = [+req.params.b1, +req.params.b2, +req.params.b3];
 
-    const detail = Math.min(Math.max(0, (+req.query.detail!) | 0), LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1);
-    const isCartesian = (req.query.space as string || '').toLowerCase() !== 'fractional';
+  const detail = Math.min(
+    Math.max(0, +req.query.detail! | 0),
+    LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1,
+  );
+  const isCartesian = ((req.query.space as string) || '').toLowerCase() !== 'fractional';
 
-    const box: Data.QueryParamsBox = isCell
-        ? { kind: 'Cell' }
-        : (isCartesian
-            ? { kind: 'Cartesian', a: Coords.cartesian(a[0], a[1], a[2]), b: Coords.cartesian(b[0], b[1], b[2]) }
-            : { kind: 'Fractional', a: Coords.fractional(a[0], a[1], a[2]), b: Coords.fractional(b[0], b[1], b[2]) });
+  const box: Data.QueryParamsBox = isCell
+    ? { kind: 'Cell' }
+    : isCartesian
+      ? { kind: 'Cartesian', a: Coords.cartesian(a[0], a[1], a[2]), b: Coords.cartesian(b[0], b[1], b[2]) }
+      : { kind: 'Fractional', a: Coords.fractional(a[0], a[1], a[2]), b: Coords.fractional(b[0], b[1], b[2]) };
 
-    const asBinary = (req.query.encoding as string || '').toLowerCase() !== 'cif';
-    const sourceFilename = req.app.locals.mapFile(req.params.source, req.params.id)!;
+  const asBinary = ((req.query.encoding as string) || '').toLowerCase() !== 'cif';
+  const sourceFilename = req.app.locals.mapFile(req.params.source, req.params.id)!;
 
-    return {
-        sourceFilename,
-        sourceId: `${req.params.source}/${req.params.id}`,
-        asBinary,
-        box,
-        detail
-    };
+  return {
+    sourceFilename,
+    sourceId: `${req.params.source}/${req.params.id}`,
+    asBinary,
+    box,
+    detail,
+  };
 }
 
 async function queryBox(req: express.Request, res: express.Response, params: Data.QueryParams) {
-    if (validateSourceAndId(req, res)) {
-        return;
+  if (validateSourceAndId(req, res)) {
+    return;
+  }
+
+  const source = Array.isArray(req.params.source) ? req.params.source[0] : req.params.source;
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const outputFilename = Api.getOutputFilename(source, id, params);
+  const response = wrapResponse(outputFilename, res);
+
+  try {
+    if (!params.sourceFilename) {
+      response.do404();
+      return;
     }
 
-    const source = Array.isArray(req.params.source) ? req.params.source[0] : req.params.source;
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const outputFilename = Api.getOutputFilename(source, id, params);
-    const response = wrapResponse(outputFilename, res);
-
-    try {
-        if (!params.sourceFilename) {
-            response.do404();
-            return;
-        }
-
-        const ok = await Api.queryBox(params, () => response);
-        if (!ok) {
-            response.do404();
-            return;
-        }
-    } catch (e) {
-        ConsoleLogger.error(`Query Box ${JSON.stringify(req.params || {})} | ${JSON.stringify(req.query || {})}`, e);
-        response.do404();
-    } finally {
-        response.end();
-        queryDone();
+    const ok = await Api.queryBox(params, () => response);
+    if (!ok) {
+      response.do404();
+      return;
     }
+  } catch (e) {
+    ConsoleLogger.error(`Query Box ${JSON.stringify(req.params || {})} | ${JSON.stringify(req.query || {})}`, e);
+    response.do404();
+  } finally {
+    response.end();
+    queryDone();
+  }
 }
 
 function queryDone() {
-    if (State.shutdownOnZeroPending) {
-        process.exit(0);
-    }
+  if (State.shutdownOnZeroPending) {
+    process.exit(0);
+  }
 }

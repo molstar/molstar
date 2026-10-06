@@ -11,29 +11,29 @@ import { Cell } from '@molstar/core/math/geometry/spacegroup/cell';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 
 export function coordinatesFromTrr(file: TrrFile): Task<Coordinates> {
-    return Task.create('Parse TRR', async ctx => {
-        await ctx.update('Converting to coordinates');
+  return Task.create('Parse TRR', async (ctx) => {
+    await ctx.update('Converting to coordinates');
 
-        const deltaTime = Time(file.deltaTime, 'step');
-        const offsetTime = Time(file.timeOffset, deltaTime.unit);
+    const deltaTime = Time(file.deltaTime, 'step');
+    const offsetTime = Time(file.timeOffset, deltaTime.unit);
 
-        const frames: Frame[] = [];
-        for (let i = 0, il = file.frames.length; i < il; ++i) {
-            const box = file.boxes[i];
-            const x = Vec3.fromArray(Vec3(), box, 0);
-            const y = Vec3.fromArray(Vec3(), box, 3);
-            const z = Vec3.fromArray(Vec3(), box, 6);
-            frames.push({
-                elementCount: file.frames[i].count,
-                cell: Cell.fromBasis(x, y, z),
-                x: file.frames[i].x,
-                y: file.frames[i].y,
-                z: file.frames[i].z,
-                xyzOrdering: { isIdentity: true },
-                time: Time(offsetTime.value + deltaTime.value * i, deltaTime.unit)
-            });
-        }
+    const frames: Frame[] = [];
+    for (let i = 0, il = file.frames.length; i < il; ++i) {
+      const box = file.boxes[i];
+      const x = Vec3.fromArray(Vec3(), box, 0);
+      const y = Vec3.fromArray(Vec3(), box, 3);
+      const z = Vec3.fromArray(Vec3(), box, 6);
+      frames.push({
+        elementCount: file.frames[i].count,
+        cell: Cell.fromBasis(x, y, z),
+        x: file.frames[i].x,
+        y: file.frames[i].y,
+        z: file.frames[i].z,
+        xyzOrdering: { isIdentity: true },
+        time: Time(offsetTime.value + deltaTime.value * i, deltaTime.unit),
+      });
+    }
 
-        return Coordinates.create(frames, deltaTime, offsetTime);
-    });
+    return Coordinates.create(frames, deltaTime, offsetTime);
+  });
 }

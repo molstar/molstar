@@ -1,6 +1,8 @@
 # Assign custom conformation to a Model
 
-This document shows how to update model conformation dynamically using the `ModelWithCoordinates` transforms. If this does not work well with your particular use case, it is suggested to write a custom version of `ModelWithCoordinates` with similar usage as outlined in this document.
+This document shows how to update model conformation dynamically using the `ModelWithCoordinates` transforms. If this
+does not work well with your particular use case, it is suggested to write a custom version of `ModelWithCoordinates`
+with similar usage as outlined in this document.
 
 ```ts
 async function animateFirstXCoordinateExample(plugin: PluginContext, url: string, format: BuiltInTrajectoryFormat) {

@@ -37,115 +37,118 @@ const hbondEnergyMinimal = -9.9;
  * E = Q * (1/r(ON) + l/r(CH) - l/r(OH) - l/r(CN))
  */
 function calcHbondEnergy(oPos: Vec3, cPos: Vec3, nPos: Vec3, hPos: Vec3) {
-    const distOH = Vec3.distance(oPos, hPos);
-    const distCH = Vec3.distance(cPos, hPos);
-    const distCN = Vec3.distance(cPos, nPos);
-    const distON = Vec3.distance(oPos, nPos);
+  const distOH = Vec3.distance(oPos, hPos);
+  const distCH = Vec3.distance(cPos, hPos);
+  const distCN = Vec3.distance(cPos, nPos);
+  const distON = Vec3.distance(oPos, nPos);
 
-    const e1 = Q / distOH - Q / distCH;
-    const e2 = Q / distCN - Q / distON;
-    const e = e1 + e2;
+  const e1 = Q / distOH - Q / distCH;
+  const e2 = Q / distCN - Q / distON;
+  const e = e1 + e2;
 
-    // cap lowest possible energy
-    if (e < hbondEnergyMinimal)
-        return hbondEnergyMinimal;
+  // cap lowest possible energy
+  if (e < hbondEnergyMinimal) return hbondEnergyMinimal;
 
-    return e;
+  return e;
 }
 
-export function calcUnitBackboneHbonds(unit: Unit.Atomic, proteinInfo: ProteinInfo, lookup3d: GridLookup3D): DsspHbonds {
-    const { residueIndices, cIndices, hIndices, nIndices, oIndices } = proteinInfo;
+export function calcUnitBackboneHbonds(
+  unit: Unit.Atomic,
+  proteinInfo: ProteinInfo,
+  lookup3d: GridLookup3D,
+): DsspHbonds {
+  const { residueIndices, cIndices, hIndices, nIndices, oIndices } = proteinInfo;
 
-    const { index } = unit.model.atomicHierarchy;
-    const c = unit.conformation;
-    const { traceElementIndex } = unit.model.atomicHierarchy.derived.residue;
+  const { index } = unit.model.atomicHierarchy;
+  const c = unit.conformation;
+  const { traceElementIndex } = unit.model.atomicHierarchy.derived.residue;
 
-    const residueCount = residueIndices.length;
+  const residueCount = residueIndices.length;
 
-    const oAtomResidues: number[] = [];
-    const nAtomResidues: number[] = [];
-    const energies: number[] = [];
+  const oAtomResidues: number[] = [];
+  const nAtomResidues: number[] = [];
+  const energies: number[] = [];
 
-    const oPos = Vec3();
-    const cPos = Vec3();
-    const caPos = Vec3();
-    const nPos = Vec3();
-    const hPos = Vec3();
+  const oPos = Vec3();
+  const cPos = Vec3();
+  const caPos = Vec3();
+  const nPos = Vec3();
+  const hPos = Vec3();
 
-    const cPosPrev = Vec3();
-    const oPosPrev = Vec3();
+  const cPosPrev = Vec3();
+  const oPosPrev = Vec3();
 
-    for (let i = 0, il = residueIndices.length; i < il; ++i) {
-        const oPI = i;
-        const oRI = residueIndices[i];
+  for (let i = 0, il = residueIndices.length; i < il; ++i) {
+    const oPI = i;
+    const oRI = residueIndices[i];
 
-        const oAtom = oIndices[oPI];
-        const cAtom = cIndices[oPI];
-        const caAtom = traceElementIndex[oRI];
+    const oAtom = oIndices[oPI];
+    const cAtom = cIndices[oPI];
+    const caAtom = traceElementIndex[oRI];
 
-        // continue if residue is missing O or C atom
-        if (oAtom === -1 || cAtom === -1) continue;
+    // continue if residue is missing O or C atom
+    if (oAtom === -1 || cAtom === -1) continue;
 
-        // ignore C-terminal residue as acceptor
-        if (index.findAtomOnResidue(oRI, 'OXT') !== -1) continue;
+    // ignore C-terminal residue as acceptor
+    if (index.findAtomOnResidue(oRI, 'OXT') !== -1) continue;
 
-        c.invariantPosition(oAtom, oPos);
-        c.invariantPosition(cAtom, cPos);
-        c.invariantPosition(caAtom as ElementIndex, caPos);
+    c.invariantPosition(oAtom, oPos);
+    c.invariantPosition(cAtom, cPos);
+    c.invariantPosition(caAtom as ElementIndex, caPos);
 
-        const { indices, count } = lookup3d.find(caPos[0], caPos[1], caPos[2], caMaxDist);
+    const { indices, count } = lookup3d.find(caPos[0], caPos[1], caPos[2], caMaxDist);
 
-        for (let j = 0; j < count; ++j) {
-            const nPI = indices[j];
+    for (let j = 0; j < count; ++j) {
+      const nPI = indices[j];
 
-            // ignore bonds within a residue or to prev or next residue
-            if (nPI === oPI || nPI - 1 === oPI || nPI + 1 === oPI) continue;
+      // ignore bonds within a residue or to prev or next residue
+      if (nPI === oPI || nPI - 1 === oPI || nPI + 1 === oPI) continue;
 
-            const nAtom = nIndices[nPI];
-            if (nAtom === -1) continue;
+      const nAtom = nIndices[nPI];
+      if (nAtom === -1) continue;
 
-            c.invariantPosition(nAtom, nPos);
+      c.invariantPosition(nAtom, nPos);
 
-            const hAtom = hIndices[nPI];
-            if (hAtom === -1) {
-                // approximate calculation of H position, TODO factor out
-                if (nPI === 0) continue;
-                const nPIprev = nPI - 1;
+      const hAtom = hIndices[nPI];
+      if (hAtom === -1) {
+        // approximate calculation of H position, TODO factor out
+        if (nPI === 0) continue;
+        const nPIprev = nPI - 1;
 
-                const oAtomPrev = oIndices[nPIprev];
-                const cAtomPrev = cIndices[nPIprev];
-                if (oAtomPrev === -1 || cAtomPrev === -1) continue;
+        const oAtomPrev = oIndices[nPIprev];
+        const cAtomPrev = cIndices[nPIprev];
+        if (oAtomPrev === -1 || cAtomPrev === -1) continue;
 
-                c.invariantPosition(oAtomPrev, oPosPrev);
-                c.invariantPosition(cAtomPrev, cPosPrev);
+        c.invariantPosition(oAtomPrev, oPosPrev);
+        c.invariantPosition(cAtomPrev, cPosPrev);
 
-                Vec3.sub(hPos, cPosPrev, oPosPrev);
-                const dist = Vec3.distance(oPosPrev, cPosPrev);
-                Vec3.scaleAndAdd(hPos, nPos, hPos, 1 / dist);
-            } else {
-                c.invariantPosition(hAtom, hPos);
-            }
+        Vec3.sub(hPos, cPosPrev, oPosPrev);
+        const dist = Vec3.distance(oPosPrev, cPosPrev);
+        Vec3.scaleAndAdd(hPos, nPos, hPos, 1 / dist);
+      } else {
+        c.invariantPosition(hAtom, hPos);
+      }
 
-            const e = calcHbondEnergy(oPos, cPos, nPos, hPos);
-            if (e > hbondEnergyCutoff) continue;
+      const e = calcHbondEnergy(oPos, cPos, nPos, hPos);
+      if (e > hbondEnergyCutoff) continue;
 
-            oAtomResidues[oAtomResidues.length] = oPI;
-            nAtomResidues[nAtomResidues.length] = nPI;
-            energies[energies.length] = e;
-        }
+      oAtomResidues[oAtomResidues.length] = oPI;
+      nAtomResidues[nAtomResidues.length] = nPI;
+      energies[energies.length] = e;
     }
+  }
 
-    return buildHbondGraph(residueCount, oAtomResidues, nAtomResidues, energies);
+  return buildHbondGraph(residueCount, oAtomResidues, nAtomResidues, energies);
 }
 
 function buildHbondGraph(residueCount: number, oAtomResidues: number[], nAtomResidues: number[], energies: number[]) {
-    const builder = new IntAdjacencyGraph.DirectedEdgeBuilder(residueCount, oAtomResidues, nAtomResidues);
-    const _energies = new Float32Array(builder.slotCount);
+  const builder = new IntAdjacencyGraph.DirectedEdgeBuilder(residueCount, oAtomResidues, nAtomResidues);
+  const _energies = new Float32Array(builder.slotCount);
 
-    for (let i = 0, _i = builder.edgeCount; i < _i; i++) {
-        builder.addNextEdge();
-        builder.assignProperty(_energies, energies[i]);
-    }
+  for (let i = 0, _i = builder.edgeCount; i < _i; i++) {
+    builder.addNextEdge();
+    builder.assignProperty(_energies, energies[i]);
+  }
 
-    return builder.createGraph({ energies });
+  return builder.createGraph({ energies });
 }

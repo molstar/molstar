@@ -11,10 +11,16 @@ import { ReaderResult } from '../result.js';
 import { Tokenizer } from '../common/text/tokenizer.js';
 import type { StringLike } from '@molstar/core/util/string-like';
 
-export function parsePDB(data: StringLike, id?: string, variant?: 'pdb' | 'pdbqt' | 'pqr'): Task<ReaderResult<PdbFile>> {
-    return Task.create('Parse PDB', async ctx => ReaderResult.success({
-        lines: await Tokenizer.readAllLinesAsync(data, ctx),
-        id,
-        variant: variant || 'pdb',
-    }));
+export function parsePDB(
+  data: StringLike,
+  id?: string,
+  variant?: 'pdb' | 'pdbqt' | 'pqr',
+): Task<ReaderResult<PdbFile>> {
+  return Task.create('Parse PDB', async (ctx) =>
+    ReaderResult.success({
+      lines: await Tokenizer.readAllLinesAsync(data, ctx),
+      id,
+      variant: variant || 'pdb',
+    }),
+  );
 }

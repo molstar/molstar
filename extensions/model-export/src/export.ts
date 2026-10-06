@@ -15,86 +15,86 @@ import { zip } from '@molstar/core/util/zip/zip';
 
 const ModelExportNameProp = '__ModelExportName__';
 export const ModelExport = {
-    getStructureName(structure: Structure): string | undefined {
-        return structure.inheritedPropertyData[ModelExportNameProp];
-    },
-    setStructureName(structure: Structure, name: string) {
-        return structure.inheritedPropertyData[ModelExportNameProp] = name;
-    }
+  getStructureName(structure: Structure): string | undefined {
+    return structure.inheritedPropertyData[ModelExportNameProp];
+  },
+  setStructureName(structure: Structure, name: string) {
+    return (structure.inheritedPropertyData[ModelExportNameProp] = name);
+  },
 };
 
 export async function exportHierarchy(plugin: PluginContext, options?: { format?: 'cif' | 'bcif' }) {
-    try {
-        await plugin.runTask(_exportHierarchy(plugin, options), { useOverlay: true });
-    } catch (e) {
-        console.error(e);
-        plugin.log.error(`Model export failed. See console for details.`);
-    }
+  try {
+    await plugin.runTask(_exportHierarchy(plugin, options), { useOverlay: true });
+  } catch (e) {
+    console.error(e);
+    plugin.log.error(`Model export failed. See console for details.`);
+  }
 }
 
 function _exportHierarchy(plugin: PluginContext, options?: { format?: 'cif' | 'bcif' }) {
-    return Task.create('Export', async ctx => {
-        await ctx.update({ message: 'Exporting...', isIndeterminate: true, canAbort: false });
+  return Task.create('Export', async (ctx) => {
+    await ctx.update({ message: 'Exporting...', isIndeterminate: true, canAbort: false });
 
-        const format = options?.format ?? 'cif';
-        const { structures } = plugin.managers.structure.hierarchy.current;
+    const format = options?.format ?? 'cif';
+    const { structures } = plugin.managers.structure.hierarchy.current;
 
-        const files: [name: string, data: string | Uint8Array<ArrayBuffer>][] = [];
-        const entryMap = new Map<string, number>();
+    const files: [name: string, data: string | Uint8Array<ArrayBuffer>][] = [];
+    const entryMap = new Map<string, number>();
 
-        for (const _s of structures) {
-            const s = _s.transform?.cell.obj?.data ?? _s.cell.obj?.data;
-            if (!s) continue;
-            if (s.models.length > 1) {
-                plugin.log.warn(`[Export] Skipping ${_s.cell.obj?.label}: Multimodel exports not supported.`);
-                continue;
-            }
-            if (s.units.some(u => !Unit.isAtomic(u))) {
-                plugin.log.warn(`[Export] Skipping ${_s.cell.obj?.label}: Non-atomic model exports not supported.`);
-                continue;
-            }
+    for (const _s of structures) {
+      const s = _s.transform?.cell.obj?.data ?? _s.cell.obj?.data;
+      if (!s) continue;
+      if (s.models.length > 1) {
+        plugin.log.warn(`[Export] Skipping ${_s.cell.obj?.label}: Multimodel exports not supported.`);
+        continue;
+      }
+      if (s.units.some((u) => !Unit.isAtomic(u))) {
+        plugin.log.warn(`[Export] Skipping ${_s.cell.obj?.label}: Non-atomic model exports not supported.`);
+        continue;
+      }
 
-            const name = ModelExport.getStructureName(s) || s.model.entryId || 'unnamed';
+      const name = ModelExport.getStructureName(s) || s.model.entryId || 'unnamed';
 
-            const fileName = entryMap.has(name)
-                ? `${name}_${entryMap.get(name)! + 1}.${format}`
-                : `${name}.${format}`;
-            entryMap.set(name, (entryMap.get(name) ?? 0) + 1);
+      const fileName = entryMap.has(name) ? `${name}_${entryMap.get(name)! + 1}.${format}` : `${name}.${format}`;
+      entryMap.set(name, (entryMap.get(name) ?? 0) + 1);
 
-            await ctx.update({ message: `Exporting ${name}...`, isIndeterminate: true, canAbort: false });
-            if (s.elementCount > 100000) {
-                // Give UI chance to update, only needed for larger structures.
-                await new Promise(res => setTimeout(res, 50));
-            }
+      await ctx.update({ message: `Exporting ${name}...`, isIndeterminate: true, canAbort: false });
+      if (s.elementCount > 100000) {
+        // Give UI chance to update, only needed for larger structures.
+        await new Promise((res) => setTimeout(res, 50));
+      }
 
-            try {
-                files.push([fileName, to_mmCIF(name, s, format === 'bcif', { copyAllCategories: true })]);
-            } catch (e) {
-                if (format === 'cif' && s.elementCount > 2000000) {
-                    plugin.log.warn(`[Export] The structure might be too big to be exported as Text CIF, consider using the BinaryCIF format instead.`);
-                }
-                throw e;
-            }
+      try {
+        files.push([fileName, to_mmCIF(name, s, format === 'bcif', { copyAllCategories: true })]);
+      } catch (e) {
+        if (format === 'cif' && s.elementCount > 2000000) {
+          plugin.log.warn(
+            `[Export] The structure might be too big to be exported as Text CIF, consider using the BinaryCIF format instead.`,
+          );
         }
+        throw e;
+      }
+    }
 
-        if (files.length === 1) {
-            download(new Blob([files[0][1]]), files[0][0]);
-        } else if (files.length > 1) {
-            const zipData: Record<string, Uint8Array<ArrayBuffer>> = {};
-            for (const [fn, data] of files) {
-                if (data instanceof Uint8Array) {
-                    zipData[fn] = data;
-                } else {
-                    const bytes = new Uint8Array(utf8ByteCount(data));
-                    utf8Write(bytes, 0, data);
-                    zipData[fn] = bytes;
-                }
-            }
-            await ctx.update({ message: `Compressing Data...`, isIndeterminate: true, canAbort: false });
-            const buffer = await zip(ctx, zipData);
-            download(new Blob([new Uint8Array(buffer, 0, buffer.byteLength)]), `structures_${getFormattedTime()}.zip`);
+    if (files.length === 1) {
+      download(new Blob([files[0][1]]), files[0][0]);
+    } else if (files.length > 1) {
+      const zipData: Record<string, Uint8Array<ArrayBuffer>> = {};
+      for (const [fn, data] of files) {
+        if (data instanceof Uint8Array) {
+          zipData[fn] = data;
+        } else {
+          const bytes = new Uint8Array(utf8ByteCount(data));
+          utf8Write(bytes, 0, data);
+          zipData[fn] = bytes;
         }
+      }
+      await ctx.update({ message: `Compressing Data...`, isIndeterminate: true, canAbort: false });
+      const buffer = await zip(ctx, zipData);
+      download(new Blob([new Uint8Array(buffer, 0, buffer.byteLength)]), `structures_${getFormattedTime()}.zip`);
+    }
 
-        plugin.log.info(`[Export] Done.`);
-    });
+    plugin.log.info(`[Export] Done.`);
+  });
 }

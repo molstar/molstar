@@ -1,14 +1,24 @@
 # Change Log
-All notable changes to this project will be documented in this file, following the suggestions of [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to [Semantic Versioning](http://semver.org/) for its most widely used - and defacto - public interfaces.
 
-Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
+All notable changes to this project will be documented in this file, following the suggestions of
+[Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to [Semantic Versioning](http://semver.org/) for
+its most widely used - and defacto - public interfaces.
+
+Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major
+versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in
+here.
 
 ## [Unreleased]
-- Fix `IntAdjacencyGraph.connectedComponents` returning the vertex count as the component count for graphs with at least one edge
+
+- Fix `IntAdjacencyGraph.connectedComponents` returning the vertex count as the component count for graphs with at least
+  one edge
 
 ## [v5.13.0] - 2026-10-04
-- BinaryCIF: masked `int`/`float` field values now return the default `0` instead of the value left in the data array, matching the text/mmCIF parsers. Applies to the bulk `toIntArray`/`toFloatArray` APIs as well (#1711)
-- Fix PDB entities with caps: include protein caps listed in SEQRES in the polymer entity and don't make SEQRES entities non-polymer when the first residue is non-polymer
+
+- BinaryCIF: masked `int`/`float` field values now return the default `0` instead of the value left in the data array,
+  matching the text/mmCIF parsers. Applies to the bulk `toIntArray`/`toFloatArray` APIs as well (#1711)
+- Fix PDB entities with caps: include protein caps listed in SEQRES in the polymer entity and don't make SEQRES entities
+  non-polymer when the first residue is non-polymer
 - Separate marking from scene rendering: marking is composed onto the finished image
   - Antialiased marking edges (via `postprocessing.antialiasing`), multi-sampled with the scene's jitter
   - With `renderer.colorMarker`, the marking pass tints marked and dims unmarked regions
@@ -19,35 +29,41 @@ Note that since we don't clearly distinguish between a public and private interf
   - `multiSample.reduceFlicker` only applies when marking is disabled
 - Prefer structure-level visuals for very high (>= 10000) unique unit counts (#1953)
 - Solid interior improvements
-    - Add `solidInterior` param to mesh-based visuals (solid cap where the camera near plane or a clip object cuts a closed surface)
-    - Cap impostor spheres and cylinders with `solidInterior` at clip objects, not only at the camera near plane
-    - Add `solidSurface` option to `StructureComponentManager` (sets `solidInterior` of surface representations)
-    - Default `solidInterior` to `true` for molecular, gaussian and blob surface representations
-- [Breaking] `createRenderTarget` takes a `depthStencil` option (`'none' | 'depth' | 'depth-stencil'`) in place of the `depth` flag
-- Fix back faces of opaque objects missing from the packed depth (outlines and occlusion with the camera inside a surface)
-- Fix pick positions landing on the near plane without the `WEBGL_draw_buffers` extension (depth was not written when rendering every mask)
+  - Add `solidInterior` param to mesh-based visuals (solid cap where the camera near plane or a clip object cuts a
+    closed surface)
+  - Cap impostor spheres and cylinders with `solidInterior` at clip objects, not only at the camera near plane
+  - Add `solidSurface` option to `StructureComponentManager` (sets `solidInterior` of surface representations)
+  - Default `solidInterior` to `true` for molecular, gaussian and blob surface representations
+- [Breaking] `createRenderTarget` takes a `depthStencil` option (`'none' | 'depth' | 'depth-stencil'`) in place of the
+  `depth` flag
+- Fix back faces of opaque objects missing from the packed depth (outlines and occlusion with the camera inside a
+  surface)
+- Fix pick positions landing on the near plane without the `WEBGL_draw_buffers` extension (depth was not written when
+  rendering every mask)
 
 ### v6 workspace prototype (6.0.0-dev.0)
-- Separate the library into core, IO, model, graphics, grouped plugin and MVS packages,
-  with extensions, apps, CLI tools and servers owning their dependencies.
-- Publishable packages share one version from `version.json`; local packing pins internal
-  dependencies to that exact version. The repository root is private.
-- Move the `molstar` browser distribution to `distributions/molstar`, preserving classic
-  Viewer/MVS Stories paths and adding native browser ESM modules with shared chunks.
+
+- Separate the library into core, IO, model, graphics, grouped plugin and MVS packages, with extensions, apps, CLI tools
+  and servers owning their dependencies.
+- Publishable packages share one version from `version.json`; local packing pins internal dependencies to that exact
+  version. The repository root is private.
+- Move the `molstar` browser distribution to `distributions/molstar`, preserving classic Viewer/MVS Stories paths and
+  adding native browser ESM modules with shared chunks.
 - Build apps from source exports, and ship compiled Node ESM, declarations and UI styles.
-- Keep MVS building/validation independent of the plugin and move MP4 headless methods
-  into the explicit MP4 extension. Model shape creation takes an explicit group count;
-  graphics shape creation infers it from geometry.
-- Make native `gl` and `canvas` optional peers, with explicit workspace native
-  setup and test commands instead of installing them during normal setup.
-- Simplify package export maps with wildcards while preserving existing aliases,
-  source/type conditions, Sass/CSS exports, and test exclusions.
+- Keep MVS building/validation independent of the plugin and move MP4 headless methods into the explicit MP4 extension.
+  Model shape creation takes an explicit group count; graphics shape creation infers it from geometry.
+- Make native `gl` and `canvas` optional peers, with explicit workspace native setup and test commands instead of
+  installing them during normal setup.
+- Simplify package export maps with wildcards while preserving existing aliases, source/type conditions, Sass/CSS
+  exports, and test exclusions.
 - Rename colocated unit tests from `_spec/*.spec.ts` to `_test/*.test.ts`.
-- Add isolated consumer smoke checks and workspace CI. See the
-  [workspace guide](.v6/plans/workspace-usage.md) for migration and usage details.
+- Add isolated consumer smoke checks and workspace CI. See the [workspace guide](.v6/plans/workspace-usage.md) for
+  migration and usage details.
 
 ## [v5.12.0] - 2026-09-28
-- Make CIF field lookup case insensitive, so mmCIF files writing `_atom_site.cartn_x` resolve fields like `Cartn_x` instead of leaving coordinates at 0,0,0 (#1941)
+
+- Make CIF field lookup case insensitive, so mmCIF files writing `_atom_site.cartn_x` resolve fields like `Cartn_x`
+  instead of leaving coordinates at 0,0,0 (#1941)
 - Headless rendering:
   - Allow consumers to provide `gl` version 6 through 8
   - Fix browser-only layout/canvas access when rendering without a DOM
@@ -57,8 +73,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Optimize `Renderable` culling with a frame token guard
 - Improve dynamic trackball controls and show param
 - Fix altloc in PDB files receive different atom names (#156)
-- Add `volume-tools/segmentor`: interactive segmentation of a volume into bodies (polygon labelling from several views, remainder assignment, dust removal, handedness flip, per-body extend + cosine soft edge, MRC mask export)
-- **Breaking**: move the `volume-mask` extension to `volume-tools/mask`, alongside the new segmentor; `ViewMask`, its projection and the in-place volume operations are now shared at `volume-tools/`. Update imports from `extensions/volume-mask` to `extensions/volume-tools/mask`
+- Add `volume-tools/segmentor`: interactive segmentation of a volume into bodies (polygon labelling from several views,
+  remainder assignment, dust removal, handedness flip, per-body extend + cosine soft edge, MRC mask export)
+- **Breaking**: move the `volume-mask` extension to `volume-tools/mask`, alongside the new segmentor; `ViewMask`, its
+  projection and the in-place volume operations are now shared at `volume-tools/`. Update imports from
+  `extensions/volume-mask` to `extensions/volume-tools/mask`
 - Merge the `volume-mask` example into a `volume-tools` example, with a landing page and one page per tool
 - Fix `CCP4Writer.writeMrc` for volumes with a non-canonical axis order
 - Fix `CCP4Writer.writeMrc` writing `ISPG = 0`, which marks the data as an image stack rather than a volume
@@ -82,71 +101,76 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add support for multi-chain units in sequence UI
 - Add script to generate spacegroup data from CCP4 syminfo.lib
 - Refactor spacegroup construction
-    - Use syminfo.lib spacegroup data as source
-    - Generate operators from Hall symbols
-    - Introduce change-of-basis settings
-    - Move base functionality from `SpacegroupCell` to `Cell`
+  - Use syminfo.lib spacegroup data as source
+  - Generate operators from Hall symbols
+  - Introduce change-of-basis settings
+  - Move base functionality from `SpacegroupCell` to `Cell`
 - Improve `Cell` handling
-    - Fix volume calculation for non-orthogonal cells
-    - Use as base for `Unitcell` shape
-    - Add `order` property (for AU volume estimation)
+  - Fix volume calculation for non-orthogonal cells
+  - Use as base for `Unitcell` shape
+  - Add `order` property (for AU volume estimation)
 - Add per-format cache for `FormatProperty`
-    - Use for `ModelSymmetry` and `ComponentBond`
+  - Use for `ModelSymmetry` and `ComponentBond`
 - `ModelSymmetry` improvements
-    - Fix property not being dynamic
-    - Defer Symmetry calculation in ModelSymmetry.fromData
+  - Fix property not being dynamic
+  - Defer Symmetry calculation in ModelSymmetry.fromData
 - Support non-default CRYSIN setting in MOL2 format (#338)
 - Fix `ssao-blur` background test: the RG-packed depth never equals `1.0`
 - Fix picking/hover-highlight of the nucleic cartoon polymer-trace on partial structures
 - Fix stale marker data in `VolumeVisual` when a geometry update changes the group count
 - Add Spherical Harmonics to mol-math
 - Add `blob-surface` structure representation
-    - Bin atoms to grid or cluster
-    - Fast option fits ellipsoids to bins
-    - Artistic option fits spherical harmonics to bins
-    - Mesh and wireframe visuals, per-unit & per-structure
+  - Bin atoms to grid or cluster
+  - Fast option fits ellipsoids to bins
+  - Artistic option fits spherical harmonics to bins
+  - Mesh and wireframe visuals, per-unit & per-structure
 - Illumination
-    - Remove `firstStepSize` tracing parameter, derive automatically
-    - Fix illumination `auto` thickness mode never correctly being applied
-    - Fix illumination ray marching stepping over occluders
-    - Evaluate illumination `auto` thickness at the surface being tested
-    - Fix `NaN` in illumination shadows when a light color channel sums to zero
-    - Fix illumination indirect light ignoring `exposure` and the shading clamp
-    - Remove illumination `glow` parameter
-    - Fix sphere/cylinder impostors writing their near surface in the back-depth pass
-    - Fix mesh back faces & cylinder far hits being discarded as `interior` in the back-depth pass
-    - Fix illumination shadows not weighing occlusion by per-light irradiance
+  - Remove `firstStepSize` tracing parameter, derive automatically
+  - Fix illumination `auto` thickness mode never correctly being applied
+  - Fix illumination ray marching stepping over occluders
+  - Evaluate illumination `auto` thickness at the surface being tested
+  - Fix `NaN` in illumination shadows when a light color channel sums to zero
+  - Fix illumination indirect light ignoring `exposure` and the shading clamp
+  - Remove illumination `glow` parameter
+  - Fix sphere/cylinder impostors writing their near surface in the back-depth pass
+  - Fix mesh back faces & cylinder far hits being discarded as `interior` in the back-depth pass
+  - Fix illumination shadows not weighing occlusion by per-light irradiance
 - Add `.parseRaw` to `DataFormatProvider` for out of state tree parsing
 - Carbohydrate symbols
-  - All carbohydrate symbols are rendered with 2 groups (primary and secondary) and can be potentially colored in two colors
+  - All carbohydrate symbols are rendered with 2 groups (primary and secondary) and can be potentially colored in two
+    colors
   - CarbohydrateSymbolColorTheme decides which shape will be colored by one or two colors
   - Changed side length ratio of FlatBox shape from 2:2:1 to 2:1:1
 - Camera improvements
-    - Support multiple camera transition shapes
-    - Add `transitionTrajectory` and `transitionEasing` parameters to `PluginState.Snapshot` (MOLJ) and Plugin State > Save Options
-    - Add `trajectory` and `easing` parameters to `FocusLoci` behavior
-    - Add `cameraResetTrajectory` and `cameraResetEasing` parameters to `Canvas3DParams`
-    - Fix camera reset handling for (temporary) empty scenes (#1903)
+  - Support multiple camera transition shapes
+  - Add `transitionTrajectory` and `transitionEasing` parameters to `PluginState.Snapshot` (MOLJ) and Plugin State >
+    Save Options
+  - Add `trajectory` and `easing` parameters to `FocusLoci` behavior
+  - Add `cameraResetTrajectory` and `cameraResetEasing` parameters to `Canvas3DParams`
+  - Fix camera reset handling for (temporary) empty scenes (#1903)
 - MolViewSpec
-    - Added `transition` node with params `duration_ms`, `trajectory`, `easing`
-    - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
-    - MVS-related custom model properties (and custom structure properties) are hidden in UI (fixes override of default custom properties)
-    - Added `shape` node for rendering meshes from `vtp`, `ply` and `obj` resources
-    - Added support for MolQL selectors (e.g., select a residue + 5 ang surroundings)
-    - Add support for split colors (e.g. 'red/white', applies to carbohydrate symbols and nucleic cartoon)
-    - Add CarbohydrateSymbol color palette
-- Remove `new Function` usage for CSP / SOC2 compliance; server path templates use a whitelist of `${id...}` string methods
+  - Added `transition` node with params `duration_ms`, `trajectory`, `easing`
+  - Snapshot metadata: `linger_duration_ms` renamed to `duration_ms`, deprecated `transition_duration_ms`
+  - MVS-related custom model properties (and custom structure properties) are hidden in UI (fixes override of default
+    custom properties)
+  - Added `shape` node for rendering meshes from `vtp`, `ply` and `obj` resources
+  - Added support for MolQL selectors (e.g., select a residue + 5 ang surroundings)
+  - Add support for split colors (e.g. 'red/white', applies to carbohydrate symbols and nucleic cartoon)
+  - Add CarbohydrateSymbol color palette
+- Remove `new Function` usage for CSP / SOC2 compliance; server path templates use a whitelist of `${id...}` string
+  methods
 - Fix CCP4/MRC volumes with unset cell angles failing to load
 - Fix CCP4/MRC volume `sigma` being taken from the header when the header rms is negative
 - Add Particles as first class objects
-    - `ParticleList` and `ParticleTrajectory`
-    - Formats: ariatomi-em, cryoet-ndjson, dynamo-tbl, relion-star, simularium, cellpack & petworld mmcif
-    - Properties: position, orientation, radius, entity, compartment, custom attributes, fibers
-    - Particles can be decorated with structure, volume, and shape visuals
+  - `ParticleList` and `ParticleTrajectory`
+  - Formats: ariatomi-em, cryoet-ndjson, dynamo-tbl, relion-star, simularium, cellpack & petworld mmcif
+  - Properties: position, orientation, radius, entity, compartment, custom attributes, fibers
+  - Particles can be decorated with structure, volume, and shape visuals
 - Fix bumpiness artifacts on impostor seams and clip boundaries
-    - Change `bumpFrequency` defaults of ball-and-stick (5) and backbone (4)
+  - Change `bumpFrequency` defaults of ball-and-stick (5) and backbone (4)
 
 ## [v5.11.0] - 2026-07-18
+
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)
 - Add `variant` option (rectangle/circle) to the best-fit `Plane` (#358)
 - Add VTK PolyData `.vtp` file format support
@@ -162,9 +186,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix ASA coloring for hydrogens
 - Add `histogramPercentile`, `histogramRobustStats`, `downsampleHistogram` to `mol-math/histogram`
 - Direct-volume transfer function improvements
-    - Add data-aware default control points and preset library
-    - Use log-scale on y-axis in control-points UI
-- Add `defaultSnapshotIndex` argument to `MVSLoadOptions` to enable loading a snapshot other than the first one by default
+  - Add data-aware default control points and preset library
+  - Use log-scale on y-axis in control-points UI
+- Add `defaultSnapshotIndex` argument to `MVSLoadOptions` to enable loading a snapshot other than the first one by
+  default
 - Fix `loaders.loadMvs*` options type
 - Read simulation box from gro and lammps files
 - Add FFT to mol-math
@@ -175,10 +200,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Handle unobserved residues from `entity_poly_seq` (#965)
 - Refine step for coarse BoundaryHelper instances (#1455)
 - Refactor `StructureElement.Loci.getBoundary`
-    - Add `.getBoundingSphere`, reuse whole structure/unit boundary
-    - [Breaking] remove transform argument
+  - Add `.getBoundingSphere`, reuse whole structure/unit boundary
+  - [Breaking] remove transform argument
 
 ## [v5.10.0] - 2026-06-14
+
 - Fix exported image artifacts on transparent background with emissive, bloom, or antialiasing
 - Fix cel-shaded ambient color being stripped to luminance (now uses full RGB, matching the classic lighting path)
 - Fix empty transforms default in `ShapeFromPly`
@@ -196,15 +222,17 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add axis param to camera spin/rock animation
 - Fix SSAO half/quarter resolution textures for multi-scale
 - Camera improvements
-  - Add the option to approximate "least obstructed direction" when focusing camera, accessibe via `PluginContext.managers.camera.focusLoci` with `optimizeDirection` option
-  - Add `CameraFocusOptions.zoomOut` option that zooms out to to make the entire scene visible before focusing on the target
+  - Add the option to approximate "least obstructed direction" when focusing camera, accessibe via
+    `PluginContext.managers.camera.focusLoci` with `optimizeDirection` option
+  - Add `CameraFocusOptions.zoomOut` option that zooms out to to make the entire scene visible before focusing on the
+    target
   - Add easing support in camera transtion
 - Non-covalent interactions: water bridge support
 - Add OBJ format support
-    - Positions, normals, faces
-    - Groups from usemtl directive
-    - Vertex color extension
-    - Sideload MTL files (diffuse color only)
+  - Positions, normals, faces
+  - Groups from usemtl directive
+  - Vertex color extension
+  - Sideload MTL files (diffuse color only)
 - Download Structure From AlphaFoldDB allows IDs with version suffix (version is ignored)
 - Add `loadUrl` method and GET params to Viewer app
 - Add binary PLY format variants support
@@ -213,11 +241,14 @@ Note that since we don't clearly distinguish between a public and private interf
   - Standalong plugin interactivity helper function previously available only via the `Viewer` class
   - View models (and hooks) for more straightforward usage in React (and in other UI libraries)
 - Add `examples/react` that showcases few ways the Mol* can be used together with React
-- Fix default representation plugin option, which resulted in represenations not being shown automatically when using the default plugin spec
-- Track added custom props in `QueryRuntimeTable` to prevent excess "symbol already added" messages when creating multiple instances of a pluing
+- Fix default representation plugin option, which resulted in represenations not being shown automatically when using
+  the default plugin spec
+- Track added custom props in `QueryRuntimeTable` to prevent excess "symbol already added" messages when creating
+  multiple instances of a pluing
 - Handle empty `chem_comp.type`
 
 ## [v5.9.0] - 2026-05-03
+
 - Fix edge case when `PluginSpec.animations` is empty
 - Add 8K UHD option to `ViewportScreenshotHelper`
 - Handle MRC files with empty length header fields
@@ -225,18 +256,19 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Breaking] ComponentBond.Entry.map now returns ComponentBond.Pairs
 - Fix volume slice marking performance regression
 - Add GPU procedural animation (wiggle & tumble)
-    - Per-vertex wiggle via fbm noise (position & group mode)
-    - Per-instance tumble via fbm noise (rotation + translation)
-    - `Wiggle` theme layer for data-driven per-group wiggle
-    - `enableAnimation` Canvas3D param for global toggle
+  - Per-vertex wiggle via fbm noise (position & group mode)
+  - Per-instance tumble via fbm noise (rotation + translation)
+  - `Wiggle` theme layer for data-driven per-group wiggle
+  - `enableAnimation` Canvas3D param for global toggle
 - Add `AnimateTime` built-in for, e.g., exporting procedural animation
 - Add Procedural Animation panels
-    - Viewer: structure dynamics & uncertainty
-    - Mesoscale Explorer: entity dynamics
+  - Viewer: structure dynamics & uncertainty
+  - Mesoscale Explorer: entity dynamics
 - Fix `GraphQLClient` missing required headers
 - [Breaking] Use Record instead of Array for headers (assets & data-source utils)
 
 ## [v5.8.0] - 2026-04-03
+
 - Dependencies: remove `utils.promisify`, `node-fetch` (#1797)
 - Fix circular dependency which causes crash in bundlers (#1791)
 - Add `putty` as a mol-view-spec representation.
@@ -245,49 +277,50 @@ Note that since we don't clearly distinguish between a public and private interf
 - Sequence alignment: Fix return type & improve scoring for unknown residues
 - Use PDB SEQRES block to show unresolved residues in Sequence toolbar
 - Canvas3D debug-helpers
-    - [Breaking] Move helpers to an extension as a PluginBehavior (params are no longer part of Canvas3D)
-    - Add helpers for clip-object, direct-volume, image, mesh
+  - [Breaking] Move helpers to an extension as a PluginBehavior (params are no longer part of Canvas3D)
+  - Add helpers for clip-object, direct-volume, image, mesh
 - Fix StructureComponent node update throwing error when substructure empty
 - CSS: Avoid tooltip box flickering when hovering something under it
 - Volume slice visual
-    - Fix support for volume instances
-    - Fix plane mode: ensure normalized & correctly oriented
+  - Fix support for volume instances
+  - Fix plane mode: ensure normalized & correctly oriented
 - MolViewSpec
-    - Add `VolumeStreamingExtension` (`molstar_volume_streaming` custom property)
-    - Fix focusing empty selections
+  - Add `VolumeStreamingExtension` (`molstar_volume_streaming` custom property)
+  - Fix focusing empty selections
 - Avoid re-calculating static model properties for trajectories
 
 ## [v5.7.0] - 2026-02-28
+
 - Text label improvements
-    - Improve label background vertical centering
-    - Handle label depth variant for correct transparent background
-    - Draw border under text using fragment depth to prevent overlap on adjacent characters
-    - Clamp border width to avoid exceeding SDF range
-    - Increase font atlas quality (2x font size multiplier)
+  - Improve label background vertical centering
+  - Handle label depth variant for correct transparent background
+  - Draw border under text using fragment depth to prevent overlap on adjacent characters
+  - Clamp border width to avoid exceeding SDF range
+  - Increase font atlas quality (2x font size multiplier)
 - TM-align performance improvements (#1745)
 - Disable transparent outline close to opaque elements
 - Add axis param to trackball spin & rock animation
 - Color smoothing fixes (#1747)
-    - Use correct instance for non instance-type
-    - Never transform for non instance-type
-    - Add extra radius to gaussian surface boundingsphere
+  - Use correct instance for non instance-type
+  - Never transform for non instance-type
+  - Add extra radius to gaussian surface boundingsphere
 - MolViewSpec
   - Add `MVSData.toMVSX` function and `mvs-mvsj-to-mvsx.js` CLI utility
 - [Breaking] Add PQR file format support (#157)
-    - Replace `isPdbqt` with `variant` param in `TrajectoryFromPDB`
+  - Replace `isPdbqt` with `variant` param in `TrajectoryFromPDB`
 - Add `CustomVolumeProperty` (like for models and structures)
 - Geometry export
-    - Fix missing `usePalette` support
-    - Fix vertex-based coloring for non-mesh geometries
-    - Support line-strips
-    - Support vertex-based sizing
+  - Fix missing `usePalette` support
+  - Fix vertex-based coloring for non-mesh geometries
+  - Support line-strips
+  - Support vertex-based sizing
 - Support memory efficient line-strips in Lines geometry,
-    - Add `StripLinesBuilder`
+  - Add `StripLinesBuilder`
 - Add `computeFrenetFrames` helper
 - Streamlines support
-    - Add basic calculation method
-    - Add custom-volume-property
-    - Add representation with lines and tube-mesh visuals
+  - Add basic calculation method
+  - Add custom-volume-property
+  - Add representation with lines and tube-mesh visuals
 - Fix `TextCtrl` always moving cursor to end position
 - Add `vertex` and `vertexInstance` granularity support for size themes
 - Add `transform` and `domain` parameters to volume-value size theme
@@ -303,11 +336,13 @@ Note that since we don't clearly distinguish between a public and private interf
 - Guard against `xr-spatial-tracking` blocked in `Permissions-Policy`
 
 ## [v5.6.1] - 2026-01-23
+
 - Disable occlusion culling in `ImagePass` (#1758)
 - MolViewSpec
   - Fix `MVSAnnotationStructureComponent` not updating properly when parent structure changes
 
 ## [v5.6.0] - 2026-01-18
+
 - Handle Hex codes that are submitted with alpha channels by ignoring the alpha channel (#1746)
 - Only show "already registered transformer" warnings in non-production builds
 - Fix `label_seq_id` assignment in PDB parser to use 1-based linear indexing (#1730) if:
@@ -326,40 +361,45 @@ Note that since we don't clearly distinguish between a public and private interf
 - Tweak Gaussian Density smoothness default range (less artefacts)
 - Support `includeParent` for Gaussian Surface (disables GPU support)
 - Support floodfill before surface extraction (`off`, `interior`, `exterior`)
-    - For Isosurface, Molecular Surface, Gaussian Surface
+  - For Isosurface, Molecular Surface, Gaussian Surface
 - Fix `to_mmCIF` writing duplicate categories under certain conditions (#1738)
 - Add stable random number generator (PCG)
-    - ME grayscale colors; dot offset; SSAO hemisphere vectors
-    - Use blue noise for SSAO hemisphere vectors
+  - ME grayscale colors; dot offset; SSAO hemisphere vectors
+  - Use blue noise for SSAO hemisphere vectors
 - Fix SSAO darkening when sampling background/offscreen pixels
 - Adding structure wireframe visuals on molecular and gaussian surfaces
 - Fix caching of `__srcIndexArray__`
 - Prevent self-occlusion on quaternary amine
-- Fix outline postprocessing artifacts (black bands) on membrane layers at grazing view angles in Illustrative mode (#1749)
+- Fix outline postprocessing artifacts (black bands) on membrane layers at grazing view angles in Illustrative mode
+  (#1749)
 - Remove fence from `Canvas3D.render` to not interfer with `requestAnimationFrame`
 - Fix boundingSphere reuse in structure visuals (was triggering extra calculation)
 - Use PDB seqres record to deduce entity information
 - Add lipid components names used in amber ff
 
 ## [v5.5.0] - 2025-12-22
+
 - Viewer app
   - Move viewer extensions, options, and presets to a separate file
-  - Add `molstar.lib` export providing access to a wide range of functionality previously not available from the compiled bundle
-  - Add `Viewer.subscribe` method that keeps track of subscribed plugin events and disposes them together with the parent viewer
+  - Add `molstar.lib` export providing access to a wide range of functionality previously not available from the
+    compiled bundle
+  - Add `Viewer.subscribe` method that keeps track of subscribed plugin events and disposes them together with the
+    parent viewer
   - Add `Viewer.structureInteractivity` that makes it easy to highlight/select elements on the loaded structure
   - Add `viewportBackgroundColor` and `viewportFocusBehavior` options
   - Add `mvs.html` example to showcase the new functionality combined with MolViewSpec
-  - Add dark and blue color theme support (import `theme/dark.css` or `theme/blue.css` instead of the default `molstar.css`)
+  - Add dark and blue color theme support (import `theme/dark.css` or `theme/blue.css` instead of the default
+    `molstar.css`)
 - MolViewSpec extension
   - Add `tryGetPrimitivesFromLoci` that makes it easier to access primitive element data from hover/click interactions
   - Add `getCurrentMVSSnapshot` to obtain source data for the currently displayed snapshot
 - Add TM-align structure-based protein alignment algorithm
-    - New `TMAlign` namespace in `mol-math/linear-algebra/3d/tm-align.ts`
-    - New `tmAlign` function in `mol-model/structure/structure/util/tm-align.ts`
-    - Returns TM-score, RMSD, alignment mapping, and transformation matrix
+  - New `TMAlign` namespace in `mol-math/linear-algebra/3d/tm-align.ts`
+  - New `tmAlign` function in `mol-model/structure/structure/util/tm-align.ts`
+  - Returns TM-score, RMSD, alignment mapping, and transformation matrix
 - Molecular Surface
-    - Fix "auto" quality params not hidden
-    - Fix calculation when probe diameter is smaller then resolution
+  - Fix "auto" quality params not hidden
+  - Fix calculation when probe diameter is smaller then resolution
 - Fix webgl1 shader syntax
 - Fix program not compiled for sync picking
 - Fix missing `gl.flush` for async picking (needed for Safari)
@@ -367,19 +407,22 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add dropdown indicator for mapped parameter definitions and adjust "more options" icon
 - Fix `flipSided` for meshes
 - [Breaking] Interior coloring
-    - Remove global `interiorDarkening`, `interiorColorFlag`, `interiorColor`
-    - Add per-geometry `interiorColor`, `interiorSubstance`
+  - Remove global `interiorDarkening`, `interiorColorFlag`, `interiorColor`
+  - Add per-geometry `interiorColor`, `interiorSubstance`
 - Add `label/auth_comp_id` to `StructureProperties.residue`
-  - Previously, this has been only been present on `.atom` (since residue name can alter on per-atom basis), but this has been a bit confusing for the general use-case
+  - Previously, this has been only been present on `.atom` (since residue name can alter on per-atom basis), but this
+    has been a bit confusing for the general use-case
 - Move canvas "checkered background" logic to `canvas3d.ts` and only apply it when `transparentBackground` is on
   - This prevents ugly flickering during plugin initialization
 - Fix unit hash collision issues (#1721)
 
 ## [v5.4.2] - 2025-12-07
+
 - Fix postprocessing issues with SSAO and outlines for large structures (#1387)
 - Reduce automatic quality on standalone HMD devices
 
 ## [v5.4.1] - 2025-11-16
+
 - Fix ugly camera clipping in snapshot transitions
 - Add viewport button to toggle illumination mode
 - Fix bounding sphere computation for 3D text
@@ -402,6 +445,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Update `guessCifVariant` to detect density files not generated by the VolumeServer
 
 ## [v5.3.0] - 2025-11-05
+
 - Update loading message in MVS Stories Viewer
 - Add `Canvas3D.setAttribs`
 - Fix `normalizeWheel` "spin" calculation fallback
@@ -412,6 +456,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Fix missing default param values in `primitives_from_uri`
 
 ## [v5.2.0] - 2025-10-31
+
 - Handle transparency updates on ImagePass
 - Fix CIF parser edge case when the last token is escaped
 - MolViewSpec
@@ -422,6 +467,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support near camera distance
 
 ## [v5.1.2] - 2025-10-25
+
 - Fix createColorScaleByType when offsets are available
 - Get bond orders from non-standard CONECT records in PDB files
 - Remove outdated `gl_FrontFacing` workaround for buggy drivers
@@ -436,23 +482,28 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support accessing Mol* State nodes by MVS-provided ref
   - Add support for DX map format
   - Better support for coarse structures in MVS:
-    - Support for MVS annotations on coarse structures (color_from_*, tooltip_from_*)
+    - Support for MVS annotations on coarse structures (color_from__, tooltip_from__)
     - Support for MVS labels on coarse structures (label, label_from_*)
-    - (Other things already worked on coarse structures before: tooltip, color,component, primitives, component_from_*, primitives_from_*)
+    - (Other things already worked on coarse structures before: tooltip, color,component, primitives, component_from__,
+      primitives_from__)
   - Tidy up MVS builder:
     - Add `sphere` and `angle` methods
     - [Breaking] Rename builder method primitives_from_uri -> primitivesFromUri
 
 ## [v5.0.0] - 2025-09-28
-- [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
+
+- [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' ->
+  'turbo-no-black', 'rainbow' -> 'simple-rainbow')
 - [Breaking] `Box3D.nearestIntersectionWithRay` -> `Ray3D.intersectBox3D`
 - [Breaking] `Plane3D.distanceToSpher3D` -> `distanceToSphere3D` (fix spelling)
 - [Breaking] fix typo `MarchinCubes` -> `MarchingCubes`
-- [Breaking] `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async` postfix
+- [Breaking] `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async`
+  postfix
 - [Breaking] Add `Volume.instances` support and a `VolumeInstances` transform to dynamically assign it
   - This change is breaking because all volume objects require the `instances` field now.
 - [Breaking] `Canvas3D.identify` now expects `Vec2` or `Ray3D`
-- [Breaking] `TrackballControlsParams.animate.spin.speed` now means "Number of rotations per second" instead of "radians per second"
+- [Breaking] `TrackballControlsParams.animate.spin.speed` now means "Number of rotations per second" instead of "radians
+  per second"
 - [Breaking] `PluginStateSnapshotManager.play` now accepts an options object instead of a single boolean value
 - Update production build to use `esbuild`
 - Emit explicit paths in `import`s in `lib/`
@@ -464,7 +515,8 @@ Note that since we don't clearly distinguish between a public and private interf
   - `representation` node: support custom property `molstar_representation_params`
   - Add `backbone` and `line` representation types
   - `primitives` node: support custom property `molstar_mesh/label/line_params`
-  - `canvas` node: support custom property `molstar_postprocessing` with the ability to customize outline, depth of field, bloom, shadow, occlusion (SSAO), fog, and background
+  - `canvas` node: support custom property `molstar_postprocessing` with the ability to customize outline, depth of
+    field, bloom, shadow, occlusion (SSAO), fog, and background
   - `clip` node support for structure and volume representations
   - `grid_slice` representation support for volumes
   - Support tethers and background for primitive labels
@@ -485,7 +537,8 @@ Note that since we don't clearly distinguish between a public and private interf
   - Trigger markdown commands from primitives using `molstar_markdown_commands` custom extensions
   - Support `molstar_on_load_markdown_commands` custom state on the `root` node
   - Print tree validation errors to plugin log
-- Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
+- Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool',
+  'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements
   - Add `MarkdownExtensionManager` (`PluginContext.managers.markdownExtensions`)
   - Support custom markdown commands to control the plugin via the `[link](!command)` pattern
@@ -498,10 +551,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Avoid calculating rings for coarse-grained structures
 - Fix isosurface compute shader normals when transformation matrix is applied to volume
 - Symmetry operator naming for spacegroup symmetry - parenthesize multi-character indices (1_111-1 -> 1_(11)1(-1))
-- Add `SymmetryOperator.instanceId` that corresponds to a canonical operator name (e.g. ASM-1, ASM-X0-1 for assemblies, 1_555, 1_(11)1(-1) for crystals)
+- Add `SymmetryOperator.instanceId` that corresponds to a canonical operator name (e.g. ASM-1, ASM-X0-1 for assemblies,
+  1_555, 1_(11)1(-1) for crystals)
 - Mol2 Reader
-    - Fix column count parsing
-    - Add support for substructure
+  - Fix column count parsing
+  - Add support for substructure
 - Fix shader error when clipping flags are set without clip objects present
 - Fix wrong group count calculation on geometry update (#1562)
 - Fix wrong instance index in `calcMeshColorSmoothing`
@@ -515,25 +569,27 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add "Open in Mol*" link
   - Add "Edit in MolViewStories" link for story states
 - Add ray-based picking
-    - Render narrow view of scene scene from ray origin & direction to a few pixel sized viewport
-    - Cast ray on every input as opposed to the standard "whole screen" picking
-    - Can be enabled with new `Canvas3dInteractionHelperParams.convertCoordsToRay` param
-    - Allows to have input methods that are 3D pointers in the scene
-    - Add `ray: Ray3D` property to `DragInput`, `ClickInput`, and `MoveInput`
+  - Render narrow view of scene scene from ray origin & direction to a few pixel sized viewport
+  - Cast ray on every input as opposed to the standard "whole screen" picking
+  - Can be enabled with new `Canvas3dInteractionHelperParams.convertCoordsToRay` param
+  - Allows to have input methods that are 3D pointers in the scene
+  - Add `ray: Ray3D` property to `DragInput`, `ClickInput`, and `MoveInput`
 - Add async, non-blocking picking (only WebGL2)
-    - Refactor `Canvas3dInteractionHelper` internals to use async picking for move events
+  - Refactor `Canvas3dInteractionHelper` internals to use async picking for move events
 - Add `enable` param for post-processing effects. If false, no effects are applied.
 - Dot volume representation improvements
-    - Add positional perturbation to avoid camera artifacts
-    - Fix handling of negative isoValues by considering only volume cells with values lower than isoValue (#1559)
-    - Fix volume-value size theme
+  - Add positional perturbation to avoid camera artifacts
+  - Fix handling of negative isoValues by considering only volume cells with values lower than isoValue (#1559)
+  - Fix volume-value size theme
 - Change the parsing of residue names in PDB files from 3-letter to 4-letter.
 - Support versioning transform using a hash function in `mol-state`
 - Support for "state snapshot transitions"
-    - Add `PluginState.Snapshot.transition` that enables associating a state snapshot with a list states that can be animated
-    - Add `AnimateStateSnapshotTransition` animation
-    - Update the snapshots UI to support this feature
-- Use "proper time" in the animation loop to prevent animation skips during blocking operations (e.g., shader complication)
+  - Add `PluginState.Snapshot.transition` that enables associating a state snapshot with a list states that can be
+    animated
+  - Add `AnimateStateSnapshotTransition` animation
+  - Update the snapshots UI to support this feature
+- Use "proper time" in the animation loop to prevent animation skips during blocking operations (e.g., shader
+  complication)
 - Add `Hsl` and (normalized) `Rgb` color spaces
 - Add `Color.interpolateHsl`
 - Add `rotationCenter` property to `TransformParam`
@@ -549,24 +605,26 @@ Note that since we don't clearly distinguish between a public and private interf
 - Switch files.rcsb.org validation report URL to new endpoint /validation/view
 - Improve picking of objects with too many groups, pick whole instance/object
 - Add WebXR support
-    - Requires immersive AR/VR headset
-    - Supplements non-XR: enter/exit XR anytime and see (mostly) the same scene
-    - Add `Canvas3D.xr` for managing XR sessions
-    - Add `PointerHelper` for rendering XR input devices
-    - Add XR button to Viewer and Mesoscale Explorer
-    - Add XR button to render-structure in tests/browser
+  - Requires immersive AR/VR headset
+  - Supplements non-XR: enter/exit XR anytime and see (mostly) the same scene
+  - Add `Canvas3D.xr` for managing XR sessions
+  - Add `PointerHelper` for rendering XR input devices
+  - Add XR button to Viewer and Mesoscale Explorer
+  - Add XR button to render-structure in tests/browser
 - Fix illumination denoising with transparency on transparent background
-- Change the `to_mmCIF` function parameter from `structure` to `structures` to support either a single structure or an array of structures
+- Change the `to_mmCIF` function parameter from `structure` to `structures` to support either a single structure or an
+  array of structures
 - ModelServer and VolumeServer: add configurable robots.txt
 - Adaptive parallel shader compilation
-    - Split shader compilation into linking and finalizing
-    - Start linking as early as possible and wait with finalizing to avoid blocking main thread
-        - Use of `KHR_parallel_shader_compile` extension when available to check status
-    - Add `ShaderManager` to compile shaders based on `Canvas3D` params and `Scene` content
-    - Draw `Scene` only when shaders are ready
+  - Split shader compilation into linking and finalizing
+  - Start linking as early as possible and wait with finalizing to avoid blocking main thread
+    - Use of `KHR_parallel_shader_compile` extension when available to check status
+  - Add `ShaderManager` to compile shaders based on `Canvas3D` params and `Scene` content
+  - Draw `Scene` only when shaders are ready
 - Fix incorrect animation loop handling in the screenshot code
 
 ## [v4.18.0] - 2025-06-08
+
 - MolViewSpec extension:
   - Support for label_comp_id and auth_comp_id in annotations
   - Geometric primitives - do not render if position refers to empty substructure
@@ -584,12 +642,14 @@ Note that since we don't clearly distinguish between a public and private interf
 - Refactor SCSS to not use `@import` (fixes deprecation warnings)
 
 ## [v4.17.0] - 2025-05-22
+
 - Remove `xhr2` dependency for NodeJS, use `fetch`
 - Add `mvs-stories` app included in the `molstar` NPM package
   - Use the app in the corresponding example
 - Interactions extension: remove `salt-bridge` interaction kind (since `ionic` is supported too)
 
 ## [v4.16.0] - 2025-05-20
+
 - Load potentially big text files as `StringLike` to bypass string size limit
 - MolViewSpec extension:
   - Load single-state MVS as if it were multi-state with one state
@@ -599,6 +659,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix camera not being interpolated in MP4 export due to updates in WebGL ContextLost handling
 
 ## [v4.15.0] - 2025-05-19
+
 - IHM improvements:
   - Disable volume streaming
   - Disable validation report visualization
@@ -610,20 +671,23 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add support for attachment points property (`M APO`) to the MOL V2000 parser
 - Add `json-cif` extension that should pave way towards structure editing capabilities in Mol\*
   - JSON-based encoding of the CIF data format
-  - `JSONCifLigandGraph` that enables editing of small molecules via modifying `atom_site` and `molstar_bond_site` categories
+  - `JSONCifLigandGraph` that enables editing of small molecules via modifying `atom_site` and `molstar_bond_site`
+    categories
 - Add `ligand-editor` example that showcases possible use-cases of the `json-cif` extension
 - Breaking (minor): Changed `atom_site.id` indexing to 1-based in `mol-model-formats/structure/mol.ts::getMolModels`.
 - WebGL ContextLost handling
-    - Fix missing framebuffer & drawbuffer re-attachments
-    - Fix missing cube texture re-initialization
-    - Fix missing extensions reset
-    - Fix timer clearing edge case
-    - Add reset support for geometry generated on the GPU
+  - Fix missing framebuffer & drawbuffer re-attachments
+  - Fix missing cube texture re-initialization
+  - Fix missing extensions reset
+  - Fix timer clearing edge case
+  - Add reset support for geometry generated on the GPU
 
 ## [v4.14.1] - 2025-05-09
+
 - Do not raise error when creating duplicate state transformers and print console warning instead
 
 ## [v4.14.0] - 2025-05-07
+
 - Fix `Viewer.loadTrajectory` when loading a topology file
 - Fix `StructConn.residueCantorPairs` to not include identity pairs
 - Add format selection option to image export UI (PNG, WebP, JPEG)
@@ -634,9 +698,11 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add `queryMVSRef` and `createMVSRefMap` utility functions
 - Adjust max resolution of surfaces for auto quality (#1501)
 - Fix switching representation type in Volume UI
-- VolumeServer: Avoid grid expansion when requiring unit cell (avoids including an extra layer of cells outside the unit cell query box)
+- VolumeServer: Avoid grid expansion when requiring unit cell (avoids including an extra layer of cells outside the unit
+  cell query box)
 
 ## [v4.13.0] - 2025-04-14
+
 - Support `--host` option for build-dev.mjs script
 - Add `Viewer.loadFiles` to open supported files
 - Support installing the viewer as a Progressive Web App (PWA)
@@ -654,7 +720,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix an edge case in the UI when the user deletes all colors from the color list
 - Add `interactions` extension and a corresponding example that utilizes it
 - Add element source index to default atomic granularity hover labels
-- Add `StructureElement.Schema` based on corresponding MolViewSpec implementation that allows data-driven selection of structural elements
+- Add `StructureElement.Schema` based on corresponding MolViewSpec implementation that allows data-driven selection of
+  structural elements
 - Add `StructureElement.Loci/Bundle.fromExpression/Query/Schema` helper functions
 - Add `addLinkCylinderMesh` (from `createLinkCylinderMesh`)
 - Add `Unit.transientCache` and `Unit.getCopy`
@@ -687,7 +754,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - Support `spacefill` representation
     - Support `carbohydrate` representation
     - Support for `custom.molstar_use_default_coloring` property on Color node.
-    - Use `atom.ihm.has-seq-id` and `atom.ihm.overlaps-seq-id-range` for matching `label_seq_id` locations to support querying coarse elements.
+    - Use `atom.ihm.has-seq-id` and `atom.ihm.overlaps-seq-id-range` for matching `label_seq_id` locations to support
+      querying coarse elements.
     - Add ihm-restraints example
 - Add `mvs-kinase-story` example
 - Remove static uses of `ColorTheme` and `SizeTheme` fields. Should resolvent "undefined" errors in certain builds
@@ -697,10 +765,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add support for rotating `slice` representation around an axis
 - Add default color support for palette based themes
 - Add `plane` structure representation
-    - Can be colored with any structure theme
-    - Can be colored with the `external-volume` theme
-    - Can show atoms as a cutout
-    - Supports principal axes and bounding box as a reference frame
+  - Can be colored with any structure theme
+  - Can be colored with the `external-volume` theme
+  - Can show atoms as a cutout
+  - Supports principal axes and bounding box as a reference frame
 - Add `Camera` section to "Screenshot / State" controls
 - Add `CoarseIndex` for fast lookup of coarse elements
 
@@ -708,18 +776,18 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix for tubular helices issue (Fixes #1422)
 - Volume UI improvements
-    - Render all volume entries instead of selecting them one-by-one
-    - Toggle visibility of all volumes
-    - More accessible iso value control
+  - Render all volume entries instead of selecting them one-by-one
+  - Toggle visibility of all volumes
+  - More accessible iso value control
 - Support wheel event on sliders
 - MolViewSpec extension:
-    - Add validation for discriminated union params
-    - Primitives: remove triangle_colors, line_colors, have implicit grouping instead; rename many parameters
+  - Add validation for discriminated union params
+  - Primitives: remove triangle_colors, line_colors, have implicit grouping instead; rename many parameters
 - UI configuration options
-    - Support removal of independent selection controls in the viewport
-    - Support custom selection controls
-    - Support for custom granularity dropdown options
-    - Support for custom Sequence Viewer mode options
+  - Support removal of independent selection controls in the viewport
+  - Support custom selection controls
+  - Support for custom granularity dropdown options
+  - Support for custom Sequence Viewer mode options
 - Add `external-structure` theme that colors any geometry by structure properties
 - Support float and half-float data type for direct-volume rendering and GPU isosurface extraction
 - Minor documentation updates
@@ -728,8 +796,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improve/fix palette support in volume color themes
 - Fix `Plane3D.projectPoint`
 - Fix marking related `image` rendering issues
-    - Handle pixels without a group
-    - Take fog into account
+  - Handle pixels without a group
+  - Take fog into account
 - MolViewSpec extension: Initial support for customizable representation parameters
 - Quick Styles section reorganized
 - UI color improvements (scrollbar contrast, toggle button hover color)
@@ -739,7 +807,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add volume dot representation
 - Add volume-value size theme
 - Sequence panel: Mark focused loci (bold+underline)
-- Change modifier key behavior in Normal Mode (default = select only, Ctrl/Cmd = add to selection, Shift = extend last selected range)
+- Change modifier key behavior in Normal Mode (default = select only, Ctrl/Cmd = add to selection, Shift = extend last
+  selected range)
 - Handle Firefox's limit on vertex ids per draw (#1116)
 - Fix behavior of `Vec3.makeRotation(out, a, b)` when `a ≈ -b`
 
@@ -774,17 +843,17 @@ Note that since we don't clearly distinguish between a public and private interf
 - Membrane orientation: Improve `isApplicable` check and error handling (#1316)
 - Fix set fenceSync to null after deleteSync.
 - Fix operator key-based `IndexPairBonds` assignment
-    - Don't add bonds twice
-    - Add `IndexPairs.bySameOperator` to avoid looping over all bonds for each unit
+  - Don't add bonds twice
+  - Add `IndexPairs.bySameOperator` to avoid looping over all bonds for each unit
 - Add `Structure.intraUnitBondMapping`
 - Add more structure-based visuals to avoid too many (small) render-objects
-    - `structure-intra-bond`, `structure-ellipsoid-mesh`, `structure-element-point`, `structure-element-cross`
+  - `structure-intra-bond`, `structure-ellipsoid-mesh`, `structure-element-point`, `structure-element-cross`
 - Upgrade to express v5 (#1311)
 - Fix occupancy check using wrong index for inter-unit bond computation (@rxht, #1321)
 - Fix transparent SSAO for image rendering, e.g., volumne slices (#1332)
 - Fix bonds not shown with `ignoreHydrogens` on (#1315)
-    - Better handle mmCIF files with no entities defined by using `label_asym_id`
-    - Show bonds in water chains when `ignoreHydorgensVariant` is `non-polar`
+  - Better handle mmCIF files with no entities defined by using `label_asym_id`
+  - Show bonds in water chains when `ignoreHydorgensVariant` is `non-polar`
 - Add MembraneServer API, generating data to be consumed in the context of MolViewSpec
 - Fix `StructConn.isExhaustive` for partial models (e.g., returned by the model server)
 - Refactor value swapping in molstar-math to fix SWC (Next.js) build (#1345)
@@ -813,8 +882,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix Sequence View in Safari 18
 - Improve performance of `IndexPairBonds` assignment when operator keys are available
 - ModelArchive QualityAssessment extension:
-    - Add support for ma_qa_metric_local_pairwise mmCIF category
-    - Add PAE plot component
+  - Add support for ma_qa_metric_local_pairwise mmCIF category
+  - Add PAE plot component
 - Add new AlphaFoldDB-PAE example app
 - Add support for LAMMPS data and dump formats
 - Remove extra anti-aliasing from text shader (fixes #1208 & #1306)
@@ -822,20 +891,20 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [v4.7.1] - 2024-09-30
 
 - Improve `resolutionMode` (#1279)
-    - Add `auto` that picks `scaled` for mobile devices and `native` elsewhere
-    - Add `resolution-mode` Viewer GET param
-    - Add `PluginConfig.General.ResolutionMode` config item
+  - Add `auto` that picks `scaled` for mobile devices and `native` elsewhere
+  - Add `resolution-mode` Viewer GET param
+  - Add `PluginConfig.General.ResolutionMode` config item
 
 ## [v4.7.0] - 2024-09-29
 
 - Add illumination mode
-    - Path-traced SSGI
-    - Automatic thickness (estimate)
-        - Base thickness as max(backface depth) - min(frontface depth)
-        - Per object density factor to adjust thickness
-    - Progressively trace samples to keep viewport interactive
-    - Toggle on/off by pressing "G"
-    - `illumination` Viewer GET param
+  - Path-traced SSGI
+  - Automatic thickness (estimate)
+    - Base thickness as max(backface depth) - min(frontface depth)
+    - Per object density factor to adjust thickness
+  - Progressively trace samples to keep viewport interactive
+  - Toggle on/off by pressing "G"
+  - `illumination` Viewer GET param
 - Enables dXrayShaded define when rendering depth
 - Fix handling of PDB files that have chains with same id separated by TER record (#1245)
 - Sequence Panel: Improve visuals of unmodeled sequence positions (#1248)
@@ -844,10 +913,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix shadows with multiple lights
 - Fix impostor sphere interior normal when using orthographic projection
 - Add `resolutionMode` parameter to `Canvas3DContext`
-    - `scaled`, divides by `devicePixelRatio`
-    - `native`, no changes
+  - `scaled`, divides by `devicePixelRatio`
+  - `native`, no changes
 - Add `CustomProperty.Context.errorContext` to support reporting errors during loading of custom properties (#1254)
-    - Use in MolViewSpec extension
+  - Use in MolViewSpec extension
 - Mesoscale Explorer: fix color & style issues
 - Remove use of deprecated SASS explicit color functions
 - Allow "Components" section to display nested components created by "Apply Action > Selection".
@@ -885,8 +954,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Change trackball animate spin speed unit to radians per second
 - Fix `mol-plugin-ui/skin/base/components/misc.scss` syntax to be in line with latest Sass syntax
 - Handle missing theme updates
-    - Fix trajectory-index color-theme not always updated (#896)
-    - Fix bond cylinders not updated on size-theme change with `adjustCylinderLength` enabled (#1215)
+  - Fix trajectory-index color-theme not always updated (#896)
+  - Fix bond cylinders not updated on size-theme change with `adjustCylinderLength` enabled (#1215)
 - Use `OES_texture_float_linear` for SSAO when available
 
 ## [v4.4.1] - 2024-06-30
@@ -896,31 +965,32 @@ Note that since we don't clearly distinguish between a public and private interf
 - Adjust Quick Styles panel button labels
 - Improve camera interpolation code (interpolate camera rotation instead of just position)
 - Mesoscale Explorer
-    - Add `illustrative` coloring option
-    - Press 'C' to toggle between center and zoom & center on click
-    - Add entities selection description
-    - Clicking a leaf node in the right panel tree will center each instance in turn
-    - Add measurement controls to right panel
-    - Mouse left click on label with snapshot key will load snapshot
-    - Mouse hover over label with protein name highlight entities with the same name
-    - Custom ViewportSnapshotDescription with custom MarkdowAnchor
-        - \# other snapshots with a given key \[...](#key)
-        - i highlight a protein with a given NAME \[...](iNAME)
-        - g highlight a group with a given group type and group name \[...](ggrouptype.groupname)
-        - h URLs with a given link \[...](http...)
-    - Snapshot description panel window size and text can be resized and hidden with new icons
-    - Add styles controls to right panel
-    - Add viewport settings to left panel
-    - Add app info component to left panel with interactive tour and doc link
+  - Add `illustrative` coloring option
+  - Press 'C' to toggle between center and zoom & center on click
+  - Add entities selection description
+  - Clicking a leaf node in the right panel tree will center each instance in turn
+  - Add measurement controls to right panel
+  - Mouse left click on label with snapshot key will load snapshot
+  - Mouse hover over label with protein name highlight entities with the same name
+  - Custom ViewportSnapshotDescription with custom MarkdowAnchor
+    - \# other snapshots with a given key \[...](#key)
+    - i highlight a protein with a given NAME \[...](iNAME)
+    - g highlight a group with a given group type and group name \[...](ggrouptype.groupname)
+    - h URLs with a given link \[...](http...)
+  - Snapshot description panel window size and text can be resized and hidden with new icons
+  - Add styles controls to right panel
+  - Add viewport settings to left panel
+  - Add app info component to left panel with interactive tour and doc link
 - Fixes SSAO edge artifacts (#1122)
-    - Add `reuseOcclusion` parameter to multi-sample pass
-    - Add `blurDepthBias` parameter to occlusion pass
-    - Handle near clip in SSAO blur
+  - Add `reuseOcclusion` parameter to multi-sample pass
+  - Add `blurDepthBias` parameter to occlusion pass
+  - Handle near clip in SSAO blur
 - Support reading score from B-factor in pLDDT color theme
 - Add Cel-shading support
-    - `celShaded` geometry parameter
-    - `celSteps` renderer parameter
-- Add the ability to customize the Snapshot Description component via `PluginUISpec.components.viewport.snapshotDescription`
+  - `celShaded` geometry parameter
+  - `celSteps` renderer parameter
+- Add the ability to customize the Snapshot Description component via
+  `PluginUISpec.components.viewport.snapshotDescription`
 - Add `doNotDisposeCanvas3DContext` option to `PluginContext.dispose`
 - Remove support for density data from edmaps.rcsb.org
 
@@ -928,7 +998,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix State Snapshots export animation (#1140)
 - Add depth of field (dof) postprocessing effect
-- Add `SbNcbrTunnels` extension for for visualizing tunnels in molecular structures from ChannelsDB (more info in [tunnels.md](./docs/docs/extensions/tunnels.md))
+- Add `SbNcbrTunnels` extension for for visualizing tunnels in molecular structures from ChannelsDB (more info in
+  [tunnels.md](./docs/docs/extensions/tunnels.md))
 - Fix edge case in minimizing RMSD transform computation
 
 ## [v4.2.0] - 2024-05-04
@@ -938,14 +1009,14 @@ Note that since we don't clearly distinguish between a public and private interf
 - MolViewSpec extension: `loadMVS` supports `keepCamera` parameter
 - Return StateTransform selectors from measurements API (addDistance, addAngle, etc.)
 - Refactor transparency rendering
-    - More uniform behavior for blended, wboit, dpoit
-    - Fix issues with text & image geometry
+  - More uniform behavior for blended, wboit, dpoit
+  - Fix issues with text & image geometry
 - Fix render-spheres example (#1100)
-    - Wrong step size in sphere geometry boundingSphere & groupmapping
-    - Handle empty `instanceGrid` in renderer & renderable
+  - Wrong step size in sphere geometry boundingSphere & groupmapping
+  - Handle empty `instanceGrid` in renderer & renderable
 - Fix bond assignment from `IndexPairBonds`
-    - Can not always be cached in `ElementSetIntraBondCache`
-    - Wrong operator checks in `findPairBonds`
+  - Can not always be cached in `ElementSetIntraBondCache`
+  - Wrong operator checks in `findPairBonds`
 - Fix SSAO artifacts (@corredD, #1082)
 - Fix bumpiness artifacts (#1107, #1084)
 
@@ -957,7 +1028,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix transparency rendering fallback (#1058)
 - Fix SSAO broken when `OES_texture_float_linear` is unavailable
 - Add `normalOffset` to `external-volume` color theme
-    - This can give results similar to pymol's surface_ramp_above_mode=1
+  - This can give results similar to pymol's surface_ramp_above_mode=1
 - Add `rotation` parameter to skybox background
 
 ## [v4.0.1] - 2024-02-19
@@ -972,33 +1043,33 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Breaking] Remove `cellpack` extension (superseded by Mesoscale Explorer app)
 - [Breaking] Set minimal node.js version to 18
 - [Breaking] Generalize rcsb/assembly-symmetry/ extension
-    - Move to assembly-symmetry/
-    - Remove RCSB specific dependencies and prefixes
+  - Move to assembly-symmetry/
+  - Remove RCSB specific dependencies and prefixes
 - [Breaking] Require `WEBGL_depth_texture` webgl extension
-    - Remove `renderbuffer` use
+  - Remove `renderbuffer` use
 - [Breaking] Change build target to ES2018
-    - Custom builds only require ES6 for dependencies like immer.js
+  - Custom builds only require ES6 for dependencies like immer.js
 - [Breaking] Changed `createPluginUI`
-    - The function now takes a single `options` argument
-    - The caller must specify a `render` method that mounts the Mol* react component to DOM
-        - A default `renderReact18` method is provided, but needs to be imported separately
-        - To support React 16 and 17, `ReactDOM.render` can be passed
+  - The function now takes a single `options` argument
+  - The caller must specify a `render` method that mounts the Mol* react component to DOM
+    - A default `renderReact18` method is provided, but needs to be imported separately
+    - To support React 16 and 17, `ReactDOM.render` can be passed
 - Improve `SetUtils` performance using ES6 features
 - [Breaking] Reduce memory usage of `SymmetryOperator.ArrayMapping`
-    - Requires calling methods from instance
+  - Requires calling methods from instance
 - [Breaking] Fix `mol-model/structure/model/properties/seconday-structure.ts` file name (#938)
 - [Breaking] Add `Canvas3DContext` runtime props
-    - Props: pixelScale, pickScale, transparency (blended, wboit, dpoit)
-    - Replaces instantiation-time attribs
+  - Props: pixelScale, pickScale, transparency (blended, wboit, dpoit)
+  - Replaces instantiation-time attribs
 - [Breaking] Change default compile target to ES2018
 - [Breaking] Add culling & LOD support
-    - Cull per-object and per-instance
-    - Cull based on frustum and camera distance
-    - LOD visibility based on camera distance
-    - Special LOD mode for spheres with automatic levels
-    - Occlusion culling (only WebGL2)
-        - Hi-Z pass
-        - Cull based on previous frame's Hi-Z buffer
+  - Cull per-object and per-instance
+  - Cull based on frustum and camera distance
+  - LOD visibility based on camera distance
+  - Special LOD mode for spheres with automatic levels
+  - Occlusion culling (only WebGL2)
+    - Hi-Z pass
+    - Cull based on previous frame's Hi-Z buffer
 - Add stochastic/dithered transparency to fade overlapping LODs in and out
 - Add "Automatic Detail" preset that shows surface/cartoon/ball & stick based on camera distance
 
@@ -1042,11 +1113,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Don't change camera.target unless flyMode or pointerLock are enabled
 - Handle empty CIF files
 - Snapshot improvements:
-    - Add `key` property
-    - Ability to existing snapshot name, key, and description
-    - Support markdown in descriptions (ignores all HTML tags)
-    - Ability to link to snapshots by key from descriptions
-    - Separate UI control showing description of the current snapshot
+  - Add `key` property
+  - Ability to existing snapshot name, key, and description
+  - Support markdown in descriptions (ignores all HTML tags)
+  - Ability to link to snapshots by key from descriptions
+  - Separate UI control showing description of the current snapshot
 - Do not activate drag overlay for non-file content
 - Add `structure-element-sphere` visual to `spacefill` representation
 - Fix missing `await` in `HeadlessPluginContext.saveStateSnapshot`
@@ -1064,8 +1135,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix handling of PDB files with insertion codes (#945)
 - Fix de-/saturate of colors with no hue
 - Improve `distinctColors` function
-    - Add `sort` and `sampleCountFactor` parameters
-    - Fix clustering issues
+  - Add `sort` and `sampleCountFactor` parameters
+  - Fix clustering issues
 - Add `clipPrimitive` option to spheres geometry, clipping whole spheres instead of cutting them
 - Add `DragAndDropManager`
 - Add `options` support for default bond labels
@@ -1084,10 +1155,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - CCD extension: Make visuals for aromatic bonds configurable
 - Add optional `file?: CifFile` to `MmcifFormat.data`
 - Add support for webgl extensions
-    - `WEBGL_clip_cull_distance`
-    - `EXT_conservative_depth`
-    - `WEBGL_stencil_texturing`
-    - `EXT_clip_control`
+  - `WEBGL_clip_cull_distance`
+  - `EXT_conservative_depth`
+  - `WEBGL_stencil_texturing`
+  - `EXT_clip_control`
 - Add `MultiSampleParams.reduceFlicker` (to be able to switch it off)
 - Add `alphaThickness` parameter to adjust alpha of spheres for radius
 - Ability to hide "right" panel from simplified viewport controls
@@ -1129,8 +1200,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Properly switch-off fog
 - Add `approximate` option for spheres rendering
 - Reduce `Spheres` memory usage
-    - Derive mapping from VertexID
-    - Pull position and group from texture
+  - Derive mapping from VertexID
+  - Pull position and group from texture
 - Add `Euler` math primitive
 - Add stride option to element sphere & point visuals
 - Add `disabledExtensions` field to default viewer's options
@@ -1169,22 +1240,23 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add principal axes spec and fix edge cases
 - Add a uniform color theme for NtC tube that still paints residue and segment dividers in a different color
 - Mesh exporter improvements
-    - Support points & lines in glTF export
-    - Set alphaMode and doubleSided in glTF export
-    - Fix flipped cylinder caps
+  - Support points & lines in glTF export
+  - Set alphaMode and doubleSided in glTF export
+  - Fix flipped cylinder caps
 - Fix bond assignments `struct_conn` records referencing waters
 - Add StructConn extension providing functions for inspecting struct_conns
 - Fix `PluginState.setSnapshot` triggering unnecessary state updates
 - Fix an edge case in the `mol-state`'s `State` when trying to apply a transform to an existing Null object
 - Add `SbNcbrPartialCharges` extension for coloring and labeling atoms and residues by partial atomic charges
-  - uses custom mmcif categories `_sb_ncbr_partial_atomic_charges_meta` and `_sb_ncbr_partial_atomic_charges` (more info in [README.md](./src/extensions/sb-ncbr/README.md))
+  - uses custom mmcif categories `_sb_ncbr_partial_atomic_charges_meta` and `_sb_ncbr_partial_atomic_charges` (more info
+    in [README.md](./src/extensions/sb-ncbr/README.md))
 - Parse HEADER record when reading PDB file
 - Support `ignoreHydrogens` in interactions representation
 - Add hydroxyproline (HYP) commonly present in collagen molecules to the list of amino acids
 - Fix assemblies for Archive PDB files (do not generate unique `label_asym_id` if `REMARK 350` is present)
 - Add additional functions to `core.math` in `mol-script`
-    - `cantorPairing`, `sortedCantorPairing`, `invertCantorPairing`,
-    - `trunc`, `sign`
+  - `cantorPairing`, `sortedCantorPairing`, `invertCantorPairing`,
+  - `trunc`, `sign`
 
 ## [v3.34.0] - 2023-04-16
 
@@ -1208,9 +1280,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Selection toggle buttons hidden if selection mode is off
 - Camera focus loci bindings allow reset on click-away to be overridden
 - Input/controls improvements
-    - Move or fly around the scene using keys
-    - Pointer lock to look around scene
-    - Toggle spin/rock animation using keys
+  - Move or fly around the scene using keys
+  - Pointer lock to look around scene
+  - Toggle spin/rock animation using keys
 - Apply bumpiness as lightness variation with `ignoreLight`
 - Remove `JSX` reference from `loci-labels.ts`
 - Fix overpaint/transparency/substance smoothing not updated when geometry changes
@@ -1257,8 +1329,9 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [v3.31.1] - 2023-02-05
 
 - Improve Component camera focus based on the PCA of the structure and the following rules:
-    - The first residue should be in first quadrant if there is only one chain
-    - The average position of the residues of the first chain should be in the first quadrant if there is more than one chain
+  - The first residue should be in first quadrant if there is only one chain
+  - The average position of the residues of the first chain should be in the first quadrant if there is more than one
+    chain
 - Add `HeadlessPluginContext` and `HeadlessScreenshotHelper` to be used in Node.js
 - Add example `image-renderer`
 - Fix wrong offset when rendering text with orthographic projection
@@ -1271,9 +1344,9 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [v3.30.0] - 2023-01-29
 
 - Improve `Dnatco` extension
-    - Factor out common code in `Dnatco` extension
-    - Add `NtC tube` visual. Applicable for structures with NtC annotation
-    - [Breaking] Rename `DnatcoConfalPyramids` to `DnatcoNtCs`
+  - Factor out common code in `Dnatco` extension
+  - Add `NtC tube` visual. Applicable for structures with NtC annotation
+  - [Breaking] Rename `DnatcoConfalPyramids` to `DnatcoNtCs`
 - Improve boundary calculation performance
 - Add option to create & include images in state snapshots
 - Fix SSAO artefacts with high bias values
@@ -1285,18 +1358,19 @@ Note that since we don't clearly distinguish between a public and private interf
 - `meshes` extension: Fixed a bug in mesh visualization (show backfaces when opacity < 1)
 - Add color quick select control to Volume controls
 - Fix `dropFiles` bug
-- Fix some cyclic imports and reduce the use of const enums. This should make it easier to use the library with the `isolatedModules: true` TS config.
+- Fix some cyclic imports and reduce the use of const enums. This should make it easier to use the library with the
+  `isolatedModules: true` TS config.
 - Fix `dropFiles` bug (#679)
 - Add `input type='color'` picker to `CombinedColorControl`
 - Set `ParameterMappingControl` disabled when state is updating
 - Performance tweaks
-    - Update clip `defines` only when changed
-    - Check for identity in structure/unit areEqual methods
-    - Avoid cloning of structure representation parameters
-    - Make SymmetryOperator.createMapping monomorphic
-    - Improve bonding-sphere calculation
-    - Defer Scene properties calculation (markerAverage, opacityAverage, hasOpaque)
-    - Improve checks in in UnitsRepresentation setVisualState
+  - Update clip `defines` only when changed
+  - Check for identity in structure/unit areEqual methods
+  - Avoid cloning of structure representation parameters
+  - Make SymmetryOperator.createMapping monomorphic
+  - Improve bonding-sphere calculation
+  - Defer Scene properties calculation (markerAverage, opacityAverage, hasOpaque)
+  - Improve checks in in UnitsRepresentation setVisualState
 - Add StructureElement.Loci.forEachLocation
 - Add RepresentationRegistry.clear and ThemeRegistry.clear
 - Add generic Loci support for overpaint, substance, clipping themes
@@ -1310,15 +1384,15 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `solidInterior` parameter to sphere/cylinder impostors
 - [Breaking] Tweak `ignoreHydrogens` non-polar handling (introduced in 3.27.0)
 - Add `meshes` and `volumes-and-segmentations` extensions
-    - See https://molstarvolseg.ncbr.muni.cz/ for more info
+  - See https://molstarvolseg.ncbr.muni.cz/ for more info
 - Fix missing support for info in `ParamDefinition.Converted`
 - Add support for multi-visual volume representations
 - Improve volume isosurface bounding-sphere
 - Add basic volume segmentation support to core
-    - Add `Volume.Segment` model
-    - Add `Segmentation` custom volume property
-    - Add `SegmentRepresentation` representation
-    - Add `volume-segment` color theme
+  - Add `Volume.Segment` model
+  - Add `Segmentation` custom volume property
+  - Add `SegmentRepresentation` representation
+  - Add `volume-segment` color theme
 - Fix GPU marching cubes failing for large meshes with webgl2 (due to use of float16)
 
 ## [v3.27.0] - 2022-12-15
@@ -1327,10 +1401,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix 'once' for animations of systems with many frames
 - Better guard against issue (black fringes) with bumpiness in impostors
 - Improve impostor shaders
-    - Fix sphere near-clipping with orthographic projection
-    - Fix cylinder near-clipping
-    - Add interior cylinder caps
-    - Add per-pixel object clipping
+  - Fix sphere near-clipping with orthographic projection
+  - Fix cylinder near-clipping
+  - Add interior cylinder caps
+  - Add per-pixel object clipping
 - Fix `QualityAssessment` assignment bug for structures with different auth vs label sequence numbering
 - Refresh `ApplyActionControl`'s param definition when toggling expanded state
 - Fix `struct_conn` bond assignment for ions
@@ -1338,7 +1412,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [v3.26.0] - 2022-12-04
 
-- Support for ``powerPreference`` webgl attribute. Add ``PluginConfig.General.PowerPreference`` and ``power-preference`` Viewer GET param.
+- Support for `powerPreference` webgl attribute. Add `PluginConfig.General.PowerPreference` and `power-preference`
+  Viewer GET param.
 - Excluded common protein caps `NME` and `ACE` from the ligand selection query
 - Add screen-space shadow post-processing effect
 - Add "Structure Molecular Surface" visual
@@ -1363,7 +1438,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [v3.23.0] - 2022-10-19
 
-- Add `PluginContext.initContainer/mount/unmount` methods; these should make it easier to reuse a plugin context with both custom and built-in UI
+- Add `PluginContext.initContainer/mount/unmount` methods; these should make it easier to reuse a plugin context with
+  both custom and built-in UI
 - Add `PluginContext.canvas3dInitialized`
 - `createPluginUI` now resolves after the 3d canvas has been initialized
 - Change EM Volume Streaming default from `Whole Structure` to `Auto`
@@ -1379,11 +1455,12 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [v3.20.0] - 2022-10-16
 
-- [Breaking] Rename the ``model-index`` color theme to ``trajectory-index``
-- Add a new ``model-index`` color theme that uniquely colors each loaded model
-- Add the new ``model-index`` and ``structure-index`` color themes as an option for the carbon color in the ``element-symbol`` and ``ilustrative`` color themes
-- Add ``structure-index`` color theme that uniquely colors each root structure
-- Add ``nearest`` method to ``Lookup3D``
+- [Breaking] Rename the `model-index` color theme to `trajectory-index`
+- Add a new `model-index` color theme that uniquely colors each loaded model
+- Add the new `model-index` and `structure-index` color themes as an option for the carbon color in the `element-symbol`
+  and `ilustrative` color themes
+- Add `structure-index` color theme that uniquely colors each root structure
+- Add `nearest` method to `Lookup3D`
 - Add mipmap-based blur for skybox backgrounds
 
 ## [v3.19.0] - 2022-10-01
@@ -1391,34 +1468,35 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix "empty textures" error on empty canvas
 - Optimize BinaryCIF integer packing encoder
 - Fix dual depth peeling when post-processing is off or when rendering direct-volumes
-- Add ``cameraClipping.minNear`` parameter
+- Add `cameraClipping.minNear` parameter
 - Fix black artifacts on specular highlights with transparent background
 
 ## [v3.18.0] - 2022-09-17
 
 - Integration of Dual depth peeling - OIT method
 - Stereo camera improvements
-    - Fix param updates not applied
-    - Better param ranges and description
-    - Add timer.mark for left/right camera
+  - Fix param updates not applied
+  - Better param ranges and description
+  - Add timer.mark for left/right camera
 
 ## [v3.17.0] - 2022-09-11
 
-- [Fix] Clone ``Canvas3DParams`` when creating a ``Canvas3D`` instance to prevent shared state between multiple instances
-- Add ``includeResidueTest`` option to ``alignAndSuperposeWithSIFTSMapping``
-- Add ``parentDisplay`` param for interactions representation.
+- [Fix] Clone `Canvas3DParams` when creating a `Canvas3D` instance to prevent shared state between multiple instances
+- Add `includeResidueTest` option to `alignAndSuperposeWithSIFTSMapping`
+- Add `parentDisplay` param for interactions representation.
 - [Experimental] Add support for PyMOL, VMD, and Jmol atom expressions in selection scripts
-- Support for ``failIfMajorPerformanceCaveat`` webgl attribute. Add ``PluginConfig.General.AllowMajorPerformanceCaveat`` and ``allow-major-performance-caveat`` Viewer GET param.
+- Support for `failIfMajorPerformanceCaveat` webgl attribute. Add `PluginConfig.General.AllowMajorPerformanceCaveat` and
+  `allow-major-performance-caveat` Viewer GET param.
 - Fix handling of PDB TER records (#549)
-- Add support for getting multiple loci from a representation (``.getAllLoci()``)
-- Add ``key`` property to intra- and inter-bonds for referencing source data
+- Add support for getting multiple loci from a representation (`.getAllLoci()`)
+- Add `key` property to intra- and inter-bonds for referencing source data
 - Fix click event triggered after move
 
 ## [v3.16.0] - 2022-08-25
 
-- Support ``globalColorParams`` and ``globalSymmetryParams`` in common representation params
-- Support ``label`` parameter in ``Viewer.loadStructureFromUrl``
-- Fix ``ViewportHelpContent`` Mouse Controls section
+- Support `globalColorParams` and `globalSymmetryParams` in common representation params
+- Support `label` parameter in `Viewer.loadStructureFromUrl`
+- Fix `ViewportHelpContent` Mouse Controls section
 
 ## [v3.15.0] - 2022-08-23
 
@@ -1432,39 +1510,39 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improve performance of inter/intra-bonds compute
 - Fix defaultAttribs handling in Canvas3DContext.fromCanvas
 - Confal pyramids extension improvements
-    - Add custom labels to Confal pyramids
-    - Improve naming of some internal types in Confal pyramids extension coordinate
-    - Add example mmCIF file with categories necessary to display Confal pyramids
-    - Change the lookup logic of NtC steps from residues
+  - Add custom labels to Confal pyramids
+  - Improve naming of some internal types in Confal pyramids extension coordinate
+  - Add example mmCIF file with categories necessary to display Confal pyramids
+  - Change the lookup logic of NtC steps from residues
 - Add support for download of gzipped files
 - Don't filter IndexPairBonds by element-based rules in MOL/SDF and MOL2 (without symmetry) models
 - Fix Glycam Saccharide Names used by default
 - Fix GPU surfaces rendering in Safari with WebGL2
-- Add ``fov`` (Field of View) Canvas3D parameter
-- Add ``sceneRadiusFactor`` Canvas3D parameter
+- Add `fov` (Field of View) Canvas3D parameter
+- Add `sceneRadiusFactor` Canvas3D parameter
 - Add background pass (skybox, image, horizontal/radial gradient)
-    - Set simple-settings presets via ``PluginConfig.Background.Styles``
-    - Example presets in new backgrounds extension
-    - Load skybox/image from URL or File (saved in session)
-    - Opacity, saturation, lightness controls for skybox/image
-    - Coverage (viewport or canvas) controls for image/gradient
-- [Breaking] ``AssetManager`` needs to be passed to various graphics related classes
+  - Set simple-settings presets via `PluginConfig.Background.Styles`
+  - Example presets in new backgrounds extension
+  - Load skybox/image from URL or File (saved in session)
+  - Opacity, saturation, lightness controls for skybox/image
+  - Coverage (viewport or canvas) controls for image/gradient
+- [Breaking] `AssetManager` needs to be passed to various graphics related classes
 - Fix SSAO renderable initialization
 - Reduce number of webgl state changes
-    - Add ``viewport`` and ``scissor`` to state object
-    - Add ``hasOpaque`` to scene object
+  - Add `viewport` and `scissor` to state object
+  - Add `hasOpaque` to scene object
 - Handle edge cases where some renderables would not get (correctly) rendered
-    - Fix text background rendering for opaque text
-    - Fix helper scenes not shown when rendering directly to draw target
-- Fix ``CustomElementProperty`` coloring not working
+  - Fix text background rendering for opaque text
+  - Fix helper scenes not shown when rendering directly to draw target
+- Fix `CustomElementProperty` coloring not working
 
 ## [v3.13.0] - 2022-07-24
 
 - Fix: only update camera state if manualReset is off (#494)
 - Improve handling principal axes of points in a plane
 - Add 'material' annotation support for textures
-- More effort to avoid using ``flat`` qualifier in shaders: add ``dVaryingGroup``
-- Enable ``immediateUpdate`` for iso level in isosurface and volume streaming controls
+- More effort to avoid using `flat` qualifier in shaders: add `dVaryingGroup`
+- Enable `immediateUpdate` for iso level in isosurface and volume streaming controls
 - Add support to download CCD from configurable URL
 
 ## [v3.12.1] - 2022-07-20
@@ -1473,21 +1551,23 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [v3.12.0] - 2022-07-17
 
-- Add ``colorMarker`` option to Renderer. This disables the highlight and select marker at a shader level for faster rendering of large scenes in some cases.
+- Add `colorMarker` option to Renderer. This disables the highlight and select marker at a shader level for faster
+  rendering of large scenes in some cases.
 - Bind shared textures only once per pass, not for each render item
 - Fix missing 'material' annotation for some uniforms, causing unnecessary uniform updates
-- Remove use of ``isnan`` in impostor shaders, not needed and causing slowdown
-- Avoid using ``flat`` qualifier in shaders, causing slowdown
-- Improve CellPack's ``adjustStyle`` option (disable ``colorMarker``, set component options, enable marking w/o ghost)
-- Scan all entities when looking for ``struct_conn`` entries (fixes issue when the same ``label_asym_id`` is used in more than one entity)
+- Remove use of `isnan` in impostor shaders, not needed and causing slowdown
+- Avoid using `flat` qualifier in shaders, causing slowdown
+- Improve CellPack's `adjustStyle` option (disable `colorMarker`, set component options, enable marking w/o ghost)
+- Scan all entities when looking for `struct_conn` entries (fixes issue when the same `label_asym_id` is used in more
+  than one entity)
 
 ## [v3.11.0] - 2022-07-04
 
-- Add ``instanceGranularity`` option for marker, transparency, clipping, overpaint, substance data to save memory
+- Add `instanceGranularity` option for marker, transparency, clipping, overpaint, substance data to save memory
 - CellPack extension tweaks
-    - Use instancing to create DNA/RNA curves to save memory
-    - Enable ``instanceGranularity`` by default
-    - Add ``adjustStyle`` option to LoadCellPackModel action (stylized, no multi-sample, no far clipping, chain picking)
+  - Use instancing to create DNA/RNA curves to save memory
+  - Enable `instanceGranularity` by default
+  - Add `adjustStyle` option to LoadCellPackModel action (stylized, no multi-sample, no far clipping, chain picking)
 - Structure Superposition now respects pivot's coordinate system
 
 ## [v3.10.2] - 2022-06-26
@@ -1502,28 +1582,28 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [v3.10.0] - 2022-06-24
 
 - Add support for Glycam saccharide names
-- Add ``PluginConfig.Viewport.ShowTrajectoryControls`` config option
+- Add `PluginConfig.Viewport.ShowTrajectoryControls` config option
 
 ## [v3.9.1] - 2022-06-19
 
-- Fix missing ``super.componentWillUnmount()`` calls (@simeonborko)
-- Fix missing ``uGroupCount`` update for visuals
+- Fix missing `super.componentWillUnmount()` calls (@simeonborko)
+- Fix missing `uGroupCount` update for visuals
 - Fix missing aromatic bond display
 
 ## [v3.9.0] - 2022-05-30
 
 - Improve picking by using drawbuffers (when available) to reduce number of drawcalls
 - GPU timing support
-    - Add ``timing-mode`` Viewer GET param
-    - Add support for webgl timer queries
-    - Add timer marks around GPU render & compute operations
+  - Add `timing-mode` Viewer GET param
+  - Add support for webgl timer queries
+  - Add timer marks around GPU render & compute operations
 - Volume Server CIF: Add check that a data block contains volume data before parsing
-- Fix ``Scene.clear`` not clearing primitives & volumes arrays (@JonStargaryen)
+- Fix `Scene.clear` not clearing primitives & volumes arrays (@JonStargaryen)
 - Fix rendering volumes when wboit is switched off and postprocessing is enabled
 
 ## [v3.8.2] - 2022-05-22
 
-- Fix ``Scene.opacityAverage`` not taking xray shaded into account
+- Fix `Scene.opacityAverage` not taking xray shaded into account
 
 ## [v3.8.1] - 2022-05-14
 
@@ -1536,29 +1616,30 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Add support for outlines around transparent objects
 - Improve per-group transparency when wboit is switched off
-- Improve ``ColorTheme`` typing with ``ColorType`` generic.
-    - Defaults to ``ColorTypeLocation``
-    - Set when using ``ColorTypeDirect`` or ``ColorTypeGrid``
-- Fix case handling of ``struct_conf`` mmCIF enumeration field (#425)
-- Fix ``allowTransparentBackfaces`` for per-group transparency
-- Fix ``FormatRegistry.isApplicable`` returning true for unregistered formats
-- Fix: handle building of ``GridLookup3D`` with zero cell size
-- Fix ``ignoreLight`` for direct-volume rendering with webgl1
+- Improve `ColorTheme` typing with `ColorType` generic.
+  - Defaults to `ColorTypeLocation`
+  - Set when using `ColorTypeDirect` or `ColorTypeGrid`
+- Fix case handling of `struct_conf` mmCIF enumeration field (#425)
+- Fix `allowTransparentBackfaces` for per-group transparency
+- Fix `FormatRegistry.isApplicable` returning true for unregistered formats
+- Fix: handle building of `GridLookup3D` with zero cell size
+- Fix `ignoreLight` for direct-volume rendering with webgl1
 - Fix (non-black) outlines when using transparent background
 
 ## [v3.7.0] - 2022-04-13
 
-- Fix ``xrayShaded`` for texture-mesh geometries
-- [Breaking] Change ``allowTransparentBackfaces`` to ``transparentBackfaces`` with options ``off``, ``on``, ``opaque``. This was only added in 3.6.0, so allowing a breaking change here.
-    - ``off``: don't show (default)
-    - ``on``: show with transparency
-    - ``opaque``: show fully opaque
+- Fix `xrayShaded` for texture-mesh geometries
+- [Breaking] Change `allowTransparentBackfaces` to `transparentBackfaces` with options `off`, `on`, `opaque`. This was
+  only added in 3.6.0, so allowing a breaking change here.
+  - `off`: don't show (default)
+  - `on`: show with transparency
+  - `opaque`: show fully opaque
 - Add option to disable file drop overlay.
 
 ## [v3.6.2] - 2022-04-05
 
 - ModelServer ligand queries: fixes for alternate locations, additional atoms & UNL ligand
-- React 18 friendly ``useBehavior`` hook.
+- React 18 friendly `useBehavior` hook.
 
 ## [v3.6.1] - 2022-04-03
 
@@ -1572,31 +1653,31 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix unit mapping in bondedAtomicPairs MolScript query
 - Improve pdb parsing: handle non unique atom and chain names (fixes #156)
 - Fix volume streaming for entries with multiple contour lists
-- Add ``allowTransparentBackfaces`` parameter to support double-sided rendering of transparent geometries
+- Add `allowTransparentBackfaces` parameter to support double-sided rendering of transparent geometries
 - Fix handling of case insensitive mmCIF enumeration fields (including entity.type)
-- Fix ``disable-wboit`` Viewer GET param
+- Fix `disable-wboit` Viewer GET param
 - Add support for React 18.
-    - Used by importing ``createPluginUI`` from ``mol-plugin-ui/react18``;
-    - In Mol* 4.0, React 18 will become the default option.
+  - Used by importing `createPluginUI` from `mol-plugin-ui/react18`;
+  - In Mol* 4.0, React 18 will become the default option.
 
 ## [v3.5.0] - 2022-03-25
 
 - Fix issues with bounding-sphere & color-smoothing (mostly for small geometries)
-- Support BCIF => CIF conversion in ``cif2bcif`` CLI tool
+- Support BCIF => CIF conversion in `cif2bcif` CLI tool
 
 ## [v3.4.0] - 2022-03-13
 
-- Fix handling of mmcif with empty ``label_*`` fields
+- Fix handling of mmcif with empty `label_*` fields
 - Improve saccharide detection (compare against list from CCD)
 - Fix legend label of hydrophobicity color theme
-- Add ``LoadTrajectory`` action
-- Add ``CustomImportControls`` to left panel
+- Add `LoadTrajectory` action
+- Add `CustomImportControls` to left panel
 - Add Zenodo import extension (load structures, trajectories, volumes, and zip files)
 - Fix loading of some compressed files within sessions
 - Fix wrong element assignment for atoms with Charmm ion names
 - Fix handling of empty symmetry cell data
-- Add support for ``trr`` and ``nctraj`` coordinates files
-- Add support for ``prmtop`` and ``top`` topology files
+- Add support for `trr` and `nctraj` coordinates files
+- Add support for `prmtop` and `top` topology files
 
 ## [v3.3.1] - 2022-02-27
 
@@ -1611,36 +1692,36 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix visual for bonds between two aromatic rings
 - Fix visual for delocalized bonds (parsed from mmcif and mol2)
 - Fix ring computation algorithm
-- Add ``UnitResonance`` property with info about delocalized triplets
+- Add `UnitResonance` property with info about delocalized triplets
 - Resolve marking in main renderer loop to improve overall performance
-- Use ``throttleTime`` instead of ``debounceTime`` in sequence viewer for better responsiveness
-- Change line geometry default ``scaleFactor`` to 2 (3 is too big after fixing line rendering)
+- Use `throttleTime` instead of `debounceTime` in sequence viewer for better responsiveness
+- Change line geometry default `scaleFactor` to 2 (3 is too big after fixing line rendering)
 - Trajectory animation performance improvements
-    - Reuse ``Model.CoarseGrained`` for coordinate trajectories
-    - Avoid calculating ``InterUnitBonds`` when ``Structure.parent`` ones are empty
-    - Reuse unit boundary if sphere has not changed too much
-    - Don't show 'inter-bond' and 'element-cross' visuals in line representations of polymerAndLigand preset
+  - Reuse `Model.CoarseGrained` for coordinate trajectories
+  - Avoid calculating `InterUnitBonds` when `Structure.parent` ones are empty
+  - Reuse unit boundary if sphere has not changed too much
+  - Don't show 'inter-bond' and 'element-cross' visuals in line representations of polymerAndLigand preset
 - Fix additional mononucleotides detected as polymer components
-- Fix and improve ``canRemap`` handling in ``IntraUnitBonds``
+- Fix and improve `canRemap` handling in `IntraUnitBonds`
 - Reuse occlusion for secondary passes during multi-sampling
 - Check if marking passes are needed before doing them
-- Add ``resolutionScale`` parameter to allow trading quality of occlusion for performance
+- Add `resolutionScale` parameter to allow trading quality of occlusion for performance
 
 ## [v3.2.0] - 2022-02-17
 
 - Rename "best database mapping" to "SIFTS Mapping"
-- Add schema and export support for ``atom_site.pdbx_sifts_xref_*`` fields
-- Add schema export support for ``atom_site.pdbx_label_index`` field
+- Add schema and export support for `atom_site.pdbx_sifts_xref_*` fields
+- Add schema export support for `atom_site.pdbx_label_index` field
 - Add `traceOnly` parameter to chain/UniProt-based structure alignment
-- Store ``IndexPairBonds`` as a dynamic property.
+- Store `IndexPairBonds` as a dynamic property.
 
 ## [v3.1.0] - 2022-02-06
 
-- Fix ``xrayShaded`` & ``ignoreLight`` params not working at the same time
-- Add ``ignoreLight`` to component params
+- Fix `xrayShaded` & `ignoreLight` params not working at the same time
+- Add `ignoreLight` to component params
 - Tweaks for cleaner default representation style
-    - Cartoon: use ``nucleotide-ring`` instead of ``nucleotide-block``
-    - Focus: use ``xrayShaded`` instead of opacity; adjust target size; don't show non-covalent interactions twice
+  - Cartoon: use `nucleotide-ring` instead of `nucleotide-block`
+  - Focus: use `xrayShaded` instead of opacity; adjust target size; don't show non-covalent interactions twice
 - Fix representation preset side effects (changing post-processing parameters, see #363)
 - Add Quick Styles panel (default, illustrative, stylized)
 - Fix exported structure missing secondary-structure categories (#364)
@@ -1648,120 +1729,121 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [v3.0.2] - 2022-01-30
 
-- Fix color smoothing of elongated structures (by fixing ``Sphere.expand`` for spheres with highly directional extrema)
+- Fix color smoothing of elongated structures (by fixing `Sphere.expand` for spheres with highly directional extrema)
 - Fix entity label not displayed when multiple instances of the same entity are highlighted
-- Fix empty elements created in ``StructureElement.Loci.extendToAllInstances``
-- Measurement options tweaks (allow larger ``textSize``; make ``customText`` essential)
+- Fix empty elements created in `StructureElement.Loci.extendToAllInstances`
+- Measurement options tweaks (allow larger `textSize`; make `customText` essential)
 - Fix visual visibility sync edge case when changing state snapshots
 
 ## [v3.0.1] - 2022-01-27
 
-- Fix marking pass not working with ``transparentBackground``
+- Fix marking pass not working with `transparentBackground`
 - Fix pdbe xray maps url not https
 - Fix entity-id color theme broken for non-IHM models
-- Improve/fix marking of ``InteractionsInterUnitVisual`` (mark when all contact-feature members are given)
+- Improve/fix marking of `InteractionsInterUnitVisual` (mark when all contact-feature members are given)
 - Add missing "entity-id" and "enity-source" options for carbon coloring to "element-symbol" color theme
 - Fix VolumeServer/query CLI
-- Support automatic iso-value adjustment for VolumeServer data in ``Viewer.loadVolumeFromUrl``
+- Support automatic iso-value adjustment for VolumeServer data in `Viewer.loadVolumeFromUrl`
 - Emit drag event whenever started within viewport (not only for non-empty loci)
 
 ## [v3.0.0] - 2022-01-23
 
 - Assembly handling tweaks:
-    - Do not include suffix for "identity assembly operators"
-    - Do not include assembly-related categories to export if the structure was composed from an assembly
-    - Special case for ``structAsymMap`` if Mol* asym id operator mapping is present
+  - Do not include suffix for "identity assembly operators"
+  - Do not include assembly-related categories to export if the structure was composed from an assembly
+  - Special case for `structAsymMap` if Mol* asym id operator mapping is present
 - Support for opening ZIP files with multiple entries
 - Add Model Export extension
 - Bugfix: Automatically treat empty string as "non-present" value in BinaryCIF writer.
 - Fix coarse model support in entity-id color theme
 - Fix marking of carbohydrate visuals (whole chain could get marked instead of single residue)
 - Add custom colors to "element-symbol", "molecule-type", "residue-name", and "secondary-structure" themes
-- Support/bugfixes for ``atom_site.pdbx_sifts_xref`` categories
-- Improve/fix marking of ``InteractionsIntraUnitVisual`` (mark when all contact-feature members are given)
+- Support/bugfixes for `atom_site.pdbx_sifts_xref` categories
+- Improve/fix marking of `InteractionsIntraUnitVisual` (mark when all contact-feature members are given)
 
 ## [v3.0.0-dev.10] - 2022-01-17
 
-- Fix ``getOperatorsForIndex``
+- Fix `getOperatorsForIndex`
 - Pass animation info (current frame & count) to state animations
-    - Fix camera stutter for "camera spin" animation
+  - Fix camera stutter for "camera spin" animation
 - Add formal charge parsing support for MOL/SDF files (thanks @ptourlas)
-- [Breaking] Cleaner looking ``MembraneOrientationVisuals`` defaults
+- [Breaking] Cleaner looking `MembraneOrientationVisuals` defaults
 - [Breaking] Add rock animation to trackball controls
-    - Add ``animate`` to ``TrackballControlsParams``, remove ``spin`` and ``spinSpeed``
-    - Add ``animate`` to ``SimpleSettingsParams``, remove ``spin``
+  - Add `animate` to `TrackballControlsParams`, remove `spin` and `spinSpeed`
+  - Add `animate` to `SimpleSettingsParams`, remove `spin`
 - Add "camera rock" state animation
 - Add support for custom colors to "molecule-type" theme
 - [Breaking] Add style parameter to "illustrative" color theme
-    - Defaults to "entity-id" style instead of "chain-id"
+  - Defaults to "entity-id" style instead of "chain-id"
 - Add "illustrative" representation preset
 
 ## [v3.0.0-dev.9] - 2022-01-09
 
-- Add PDBj as a ``pdb-provider`` option
+- Add PDBj as a `pdb-provider` option
 - Move Viewer APP to a separate file to allow use without importing light theme & index.html
 - Add symmetry support for mol2 files (only spacegroup setting 1)
 - Fix mol2 files element symbol assignment
-- Improve bond assignment from ``IndexPairBonds``
-    - Add ``key`` field for mapping to source data
-    - Fix assignment of bonds with unphysical length
+- Improve bond assignment from `IndexPairBonds`
+  - Add `key` field for mapping to source data
+  - Fix assignment of bonds with unphysical length
 - Fix label/stats of single atom selection in multi-chain units
 
 ## [v3.0.0-dev.8] - 2021-12-31
 
-- Add ``PluginFeatureDetection`` and disable WBOIT in Safari 15.
-- Add ``disable-wboit`` Viewer GET param
-- Add ``prefer-webgl1`` Viewer GET param
+- Add `PluginFeatureDetection` and disable WBOIT in Safari 15.
+- Add `disable-wboit` Viewer GET param
+- Add `prefer-webgl1` Viewer GET param
 - [Breaking] Refactor direct-volume rendering
-    - Remove isosurface render-mode (use GPU MC instead)
-    - Move coloring into theme (like for other geometries/renderables)
-        - Add ``direct`` color type
-        - Remove color from transfer-function (now only alpha)
-        - Add direct-volume color theme support
-        - Add volume-value color theme
+  - Remove isosurface render-mode (use GPU MC instead)
+  - Move coloring into theme (like for other geometries/renderables)
+    - Add `direct` color type
+    - Remove color from transfer-function (now only alpha)
+    - Add direct-volume color theme support
+    - Add volume-value color theme
 - [Breaking] Use size theme in molecular/gaussian surface & label representations
-    - This is breaking because it was hardcoded to ``physical`` internally but the repr size theme default was ``uniform`` (now ``physical``)
+  - This is breaking because it was hardcoded to `physical` internally but the repr size theme default was `uniform`
+    (now `physical`)
 
 ## [v3.0.0-dev.7] - 2021-12-20
 
 - Reduce number of created programs/shaders
-    - Support specifying variants when creating graphics render-items
-    - Change double-side shader param from define to uniform
-    - Remove dMarkerType shader define (use uMarker as needed)
-    - Support to ignore defines depending on the shader variant
-    - Combine pickObject/pickInstance/pickGroup shader variants into one
-    - Combine markingDepth/markingMask shader variants into one
-    - Correctly set shader define flags for overpaint, transparency, substance, clipping
+  - Support specifying variants when creating graphics render-items
+  - Change double-side shader param from define to uniform
+  - Remove dMarkerType shader define (use uMarker as needed)
+  - Support to ignore defines depending on the shader variant
+  - Combine pickObject/pickInstance/pickGroup shader variants into one
+  - Combine markingDepth/markingMask shader variants into one
+  - Correctly set shader define flags for overpaint, transparency, substance, clipping
 - [Breaking] Add per-object clip rendering properties (variant/objects)
-    - ``SimpleSettingsParams.clipping.variant/objects`` and ``RendererParams.clip`` were removed
+  - `SimpleSettingsParams.clipping.variant/objects` and `RendererParams.clip` were removed
 
 ## [v3.0.0-dev.6] - 2021-12-19
 
 - Enable temporal multi-sampling by default
-    - Fix flickering during marking with camera at rest
-- Enable ``aromaticBonds`` in structure representations by default
-- Add ``PluginConfig.Structure.DefaultRepresentationPreset``
+  - Fix flickering during marking with camera at rest
+- Enable `aromaticBonds` in structure representations by default
+- Add `PluginConfig.Structure.DefaultRepresentationPreset`
 - Add ModelArchive support
-    - schema extensions (e.g., AlphaFold uses it for the pLDDT score)
-    - ModelArchive option in DownloadStructure action
-    - ``model-archive`` GET parameter for Viewer app
-    - ``Viewer.loadModelArchive`` method
+  - schema extensions (e.g., AlphaFold uses it for the pLDDT score)
+  - ModelArchive option in DownloadStructure action
+  - `model-archive` GET parameter for Viewer app
+  - `Viewer.loadModelArchive` method
 - Improve support for loading AlphaFold structures
-    - Automatic coloring by pLDDT
-    - AlphaFold DB option in DownloadStructure action
-    - ``afdb`` GET parameter for Viewer app
-    - ``Viewer.loadAlphaFoldDb`` method
+  - Automatic coloring by pLDDT
+  - AlphaFold DB option in DownloadStructure action
+  - `afdb` GET parameter for Viewer app
+  - `Viewer.loadAlphaFoldDb` method
 - Add QualityAssessment extension (using data from ma_qa_metric_local mmcif category)
-    - pLDDT & qmean score: coloring, repr presets, molql symbol, loci labels (including avg for mutli-residue selections)
-    - pLDDT: selection query
+  - pLDDT & qmean score: coloring, repr presets, molql symbol, loci labels (including avg for mutli-residue selections)
+  - pLDDT: selection query
 - Warn about erroneous symmetry operator matrix (instead of throwing an error)
-- Added ``createPluginUI`` to ``mol-plugin-ui``
-    - Support ``onBeforeUIRender`` to make sure initial UI works with custom presets and similar features.
-- [Breaking] Removed ``createPlugin`` and ``createPluginAsync`` from ``mol-plugin-ui``
-    - Please use ``createPluginUI`` instead
+- Added `createPluginUI` to `mol-plugin-ui`
+  - Support `onBeforeUIRender` to make sure initial UI works with custom presets and similar features.
+- [Breaking] Removed `createPlugin` and `createPluginAsync` from `mol-plugin-ui`
+  - Please use `createPluginUI` instead
 - Improve aromatic bonds handling
-    - Don't detect aromatic bonds for rings < 5 atoms based on planarity
-    - Prefer atoms in aromatic rings as bond reference positions
+  - Don't detect aromatic bonds for rings < 5 atoms based on planarity
+  - Prefer atoms in aromatic rings as bond reference positions
 
 ## [v3.0.0-dev.5] - 2021-12-16
 
@@ -1769,15 +1851,15 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [v3.0.0-dev.4] - 2021-12-14
 
-- Add ``bumpiness`` (per-object and per-group), ``bumpFrequency`` & ``bumpAmplitude`` (per-object) render parameters (#299)
-- Change ``label`` representation defaults: Use text border instead of rectangle background
+- Add `bumpiness` (per-object and per-group), `bumpFrequency` & `bumpAmplitude` (per-object) render parameters (#299)
+- Change `label` representation defaults: Use text border instead of rectangle background
 - Add outline color option to renderer
 - Fix false positives in Model.isFromPdbArchive
 - Add drag and drop support for loading any file, including multiple at once
-    - If there are session files (.molx or .molj) among the dropped files, only the first session will be loaded
+  - If there are session files (.molx or .molj) among the dropped files, only the first session will be loaded
 - Add drag and drop overlay
 - Safari 15.1 - 15.3 WebGL 2 support workaround
-- [Breaking] Move ``react`` and ``react-dom`` to ``peerDependencies``. This might break some builds.
+- [Breaking] Move `react` and `react-dom` to `peerDependencies`. This might break some builds.
 
 ## [v3.0.0-dev.3] - 2021-12-4
 
@@ -1791,10 +1873,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Add multiple lights support (with color, intensity, and direction parameters)
 - [Breaking] Add per-object material rendering properties
-    - ``SimpleSettingsParams.lighting.renderStyle`` and ``RendererParams.style`` were removed
+  - `SimpleSettingsParams.lighting.renderStyle` and `RendererParams.style` were removed
 - Add substance theme with per-group material rendering properties
-- ``StructureComponentManager.Options`` state saving support
-- ``ParamDefinition.Group.presets`` support
+- `StructureComponentManager.Options` state saving support
+- `ParamDefinition.Group.presets` support
 
 ## [v2.4.1] - 2021-11-28
 
@@ -1803,10 +1885,10 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [v2.4.0] - 2021-11-25
 
 - Fix secondary-structure property handling
-    - StructureElement.Property was incorrectly resolving type & key
-    - StructureSelectionQuery helpers 'helix' & 'beta' were not ensuring property availability
+  - StructureElement.Property was incorrectly resolving type & key
+  - StructureSelectionQuery helpers 'helix' & 'beta' were not ensuring property availability
 - Re-enable VAO with better workaround (bind null elements buffer before deleting)
-- Add ``Representation.geometryVersion`` (increments whenever the geometry of any of its visuals changes)
+- Add `Representation.geometryVersion` (increments whenever the geometry of any of its visuals changes)
 - Add support for grid-based smoothing of Overpaint and Transparency visual state for surfaces
 
 ## [v2.3.9] - 2021-11-20
@@ -1821,21 +1903,21 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [v2.3.7] - 2021-11-15
 
-- Added ``ViewerOptions.collapseRightPanel``
-- Added ``Viewer.loadTrajectory`` to support loading "composed" trajectories (e.g. from gro + xtc)
+- Added `ViewerOptions.collapseRightPanel`
+- Added `Viewer.loadTrajectory` to support loading "composed" trajectories (e.g. from gro + xtc)
 - Fix: handle parent in Structure.remapModel
-- Add ``rounded`` and ``square`` helix profile options to Cartoon representation (in addition to the default ``elliptical``)
+- Add `rounded` and `square` helix profile options to Cartoon representation (in addition to the default `elliptical`)
 
 ## [v2.3.6] - 2021-11-8
 
 - Add additional measurement controls: orientation (box, axes, ellipsoid) & plane (best fit)
-- Improve aromatic bond visuals (add ``aromaticScale``, ``aromaticSpacing``, ``aromaticDashCount`` params)
-- [Breaking] Change ``adjustCylinderLength`` default to ``false`` (set to true for focus representation)
+- Improve aromatic bond visuals (add `aromaticScale`, `aromaticSpacing`, `aromaticDashCount` params)
+- [Breaking] Change `adjustCylinderLength` default to `false` (set to true for focus representation)
 - Fix marker highlight color overriding select color
 - CellPack extension update
-    - add binary model support
-    - add compartment (including membrane) geometry support
-    - add latest mycoplasma model example
+  - add binary model support
+  - add compartment (including membrane) geometry support
+  - add latest mycoplasma model example
 - Prefer WebGL1 in Safari 15.1.
 
 ## [v2.3.5] - 2021-10-19
@@ -1848,13 +1930,13 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix pickScale not taken into account in line/point shader
 - Add pixel-scale, pick-scale & pick-padding GET params to Viewer app
 - Fix selecting bonds not adding their atoms in selection manager
-- Add ``preferAtoms`` option to SelectLoci/HighlightLoci behaviors
+- Add `preferAtoms` option to SelectLoci/HighlightLoci behaviors
 - Make the implicit atoms of bond visuals pickable
-    - Add ``preferAtomPixelPadding`` to Canvas3dInteractionHelper
+  - Add `preferAtomPixelPadding` to Canvas3dInteractionHelper
 - Add points & crosses visuals to Line representation
-- Add ``pickPadding`` config option (look around in case target pixel is empty)
-- Add ``multipleBonds`` param to bond visuals with options: off, symmetric, offset
-- Fix ``argparse`` config in servers.
+- Add `pickPadding` config option (look around in case target pixel is empty)
+- Add `multipleBonds` param to bond visuals with options: off, symmetric, offset
+- Fix `argparse` config in servers.
 
 ## [v2.3.3] - 2021-10-01
 
@@ -1870,73 +1952,74 @@ Note that since we don't clearly distinguish between a public and private interf
 - Treat missing occupancy column as occupancy of 1
 - Fix line shader not accounting for aspect ratio
 - [Breaking] Fix point repr & shader
-    - Was unusable with ``wboit``
-    - Replaced ``pointFilledCircle`` & ``pointEdgeBleach`` params by ``pointStyle`` (square, circle, fuzzy)
-    - Set ``pointSizeAttenuation`` to false by default
-    - Set ``sizeTheme`` to ``uniform`` by default
-- Add ``markerPriority`` option to Renderer (useful in combination with edges of marking pass)
-- Add support support for ``chem_comp_bond`` and ``struct_conn`` categories (fixes ModelServer behavior where these categories should have been present)
+  - Was unusable with `wboit`
+  - Replaced `pointFilledCircle` & `pointEdgeBleach` params by `pointStyle` (square, circle, fuzzy)
+  - Set `pointSizeAttenuation` to false by default
+  - Set `sizeTheme` to `uniform` by default
+- Add `markerPriority` option to Renderer (useful in combination with edges of marking pass)
+- Add support support for `chem_comp_bond` and `struct_conn` categories (fixes ModelServer behavior where these
+  categories should have been present)
 - Model and VolumeServer: fix argparse config
 
 ## [v2.3.0] - 2021-09-06
 
 - Take include/exclude flags into account when displaying aromatic bonds
 - Improve marking performance
-    - Avoid unnecessary draw calls/ui updates when marking
-    - Check if loci is superset of visual
-    - Check if loci overlaps with unit visual
-    - Ensure ``Interval`` is used for ranges instead of ``SortedArray``
-    - Add uniform marker type
-    - Special case for reversing previous mark
+  - Avoid unnecessary draw calls/ui updates when marking
+  - Check if loci is superset of visual
+  - Check if loci overlaps with unit visual
+  - Ensure `Interval` is used for ranges instead of `SortedArray`
+  - Add uniform marker type
+  - Special case for reversing previous mark
 - Add optional marking pass
-    - Outlines visible and hidden parts of highlighted/selected groups
-    - Add highlightStrength/selectStrength renderer params
+  - Outlines visible and hidden parts of highlighted/selected groups
+  - Add highlightStrength/selectStrength renderer params
 
 ## [v2.2.3] - 2021-08-25
 
-- Add ``invertCantorPairing`` helper function
-- Add ``Mesh`` processing helper ``.smoothEdges``
-- Smooth border of molecular-surface with ``includeParent`` enabled
-- Hide ``includeParent`` option from gaussian-surface visuals (not particularly useful)
-- Improved ``StructureElement.Loci.size`` performance (for marking large cellpack models)
-- Fix new ``TransformData`` issues (camera/bounding helper not showing up)
-- Improve marking performance (avoid superfluous calls to ``StructureElement.Loci.isWholeStructure``)
+- Add `invertCantorPairing` helper function
+- Add `Mesh` processing helper `.smoothEdges`
+- Smooth border of molecular-surface with `includeParent` enabled
+- Hide `includeParent` option from gaussian-surface visuals (not particularly useful)
+- Improved `StructureElement.Loci.size` performance (for marking large cellpack models)
+- Fix new `TransformData` issues (camera/bounding helper not showing up)
+- Improve marking performance (avoid superfluous calls to `StructureElement.Loci.isWholeStructure`)
 
 ## [v2.2.2] - 2021-08-11
 
-- Fix ``TransformData`` issues [#133](https://github.com/molstar/molstar/issues/133)
-- Fix ``mol-script`` query compiler const expression recognition.
+- Fix `TransformData` issues [#133](https://github.com/molstar/molstar/issues/133)
+- Fix `mol-script` query compiler const expression recognition.
 
 ## [v2.2.1] - 2021-08-02
 
 - Add surrounding atoms (5 Angstrom) structure selection query
-- [Breaking] Add maxDistance prop to ``IndexPairBonds``
-- Fix coordinateSystem not handled in ``Structure.asParent``
-- Add ``dynamicBonds`` to ``Structure`` props (force re-calc on model change)
-    - Expose as optional param in root structure transform helper
+- [Breaking] Add maxDistance prop to `IndexPairBonds`
+- Fix coordinateSystem not handled in `Structure.asParent`
+- Add `dynamicBonds` to `Structure` props (force re-calc on model change)
+  - Expose as optional param in root structure transform helper
 - Add overpaint support to geometry exporters
-- ``InputObserver`` improvements
+- `InputObserver` improvements
   - normalize wheel speed across browsers/platforms
-  - support Safari gestures (used by ``TrackballControls``)
-  - ``PinchInput.fractionDelta`` and use it in ``TrackballControls``
+  - support Safari gestures (used by `TrackballControls`)
+  - `PinchInput.fractionDelta` and use it in `TrackballControls`
 
 ## [v2.2.0] - 2021-07-31
 
-- Add ``tubularHelices`` parameter to Cartoon representation
-- Add ``SdfFormat`` and update SDF parser to be able to parse data headers according to spec (hopefully :)) #230
+- Add `tubularHelices` parameter to Cartoon representation
+- Add `SdfFormat` and update SDF parser to be able to parse data headers according to spec (hopefully :)) #230
 - Fix mononucleotides detected as polymer components (#229)
 - Set default outline scale back to 1
 - Improved DCD reader cell angle handling (interpret near 0 angles as 90 deg)
 - Handle more residue/atom names commonly used in force-fields
-- Add USDZ support to ``geo-export`` extension.
-- Fix ``includeParent`` support for multi-instance bond visuals.
-- Add ``operator`` Loci granularity, selecting everything with the same operator name.
-- Prefer ``_label_seq_id`` fields in secondary structure assignment.
+- Add USDZ support to `geo-export` extension.
+- Fix `includeParent` support for multi-instance bond visuals.
+- Add `operator` Loci granularity, selecting everything with the same operator name.
+- Prefer `_label_seq_id` fields in secondary structure assignment.
 - Support new EMDB API (https://www.ebi.ac.uk/emdb/api/entry/map/[EMBD-ID]) for EM volume contour levels.
-- ``Canvas3D`` tweaks:
-    - Update ``forceDraw`` logic.
-    - Ensure the scene is re-rendered when viewport size changes.
-    - Support ``noDraw`` mode in ``PluginAnimationLoop``.
+- `Canvas3D` tweaks:
+  - Update `forceDraw` logic.
+  - Ensure the scene is re-rendered when viewport size changes.
+  - Support `noDraw` mode in `PluginAnimationLoop`.
 
 ## [v2.1.0] - 2021-07-05
 
@@ -1946,53 +2029,55 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [v2.0.7] - 2021-06-23
 
-- Add ability to specify ``volumeIndex`` in ``Viewer.loadVolumeFromUrl`` to better support Volume Server inputs.
-- Support in-place reordering for trajectory ``Frame.x/y/z`` arrays for better memory efficiency.
+- Add ability to specify `volumeIndex` in `Viewer.loadVolumeFromUrl` to better support Volume Server inputs.
+- Support in-place reordering for trajectory `Frame.x/y/z` arrays for better memory efficiency.
 - Fixed text CIF encoder edge cases (most notably single whitespace not being escaped).
 
 ## [v2.0.6] - 2021-06-01
 
-- Add glTF (GLB) and STL support to ``geo-export`` extension.
+- Add glTF (GLB) and STL support to `geo-export` extension.
 - Protein crosslink improvements
-    - Change O-S bond distance to allow for NOS bridges (doi:10.1038/s41586-021-03513-3)
-    - Added NOS-bridges query & improved disulfide-bridges query
-- Fix #178: ``IndexPairBonds`` for non-single residue structures (bug due to atom reordering).
+  - Change O-S bond distance to allow for NOS bridges (doi:10.1038/s41586-021-03513-3)
+  - Added NOS-bridges query & improved disulfide-bridges query
+- Fix #178: `IndexPairBonds` for non-single residue structures (bug due to atom reordering).
 - Add volumetric color smoothing for MolecularSurface and GaussianSurface representations (#173)
 - Fix nested 3d grid lookup that caused results being overwritten in non-covalent interactions computation.
-- Basic implementation of ``BestDatabaseSequenceMapping`` (parse from CIF, color theme, superposition).
+- Basic implementation of `BestDatabaseSequenceMapping` (parse from CIF, color theme, superposition).
 - Add atom id ranges support to Selection UI.
 
 ## [v2.0.5] - 2021-04-26
 
-- Ability to pass ``Canvas3DContext`` to ``PluginContext.fromCanvas``.
-- Relative frame support for ``Canvas3D`` viewport.
+- Ability to pass `Canvas3DContext` to `PluginContext.fromCanvas`.
+- Relative frame support for `Canvas3D` viewport.
 - Fix bug in screenshot copy UI.
 - Add ability to select residues from a list of identifiers to the Selection UI.
-- Fix SSAO bugs when used with ``Canvas3D`` viewport.
-- Support for  full pausing (no draw) rendering: ``Canvas3D.pause(true)``.
-- Add ``MeshBuilder.addMesh``.
-- Add ``Torus`` primitive.
+- Fix SSAO bugs when used with `Canvas3D` viewport.
+- Support for full pausing (no draw) rendering: `Canvas3D.pause(true)`.
+- Add `MeshBuilder.addMesh`.
+- Add `Torus` primitive.
 - Lazy volume loading support.
-- [Breaking] ``Viewer.loadVolumeFromUrl`` signature change.
-    - ``loadVolumeFromUrl(url, format, isBinary, isovalues, entryId)`` => ``loadVolumeFromUrl({ url, format, isBinary }, isovalues, { entryId, isLazy })``
-- Add ``TextureMesh`` support to ``geo-export`` extension.
+- [Breaking] `Viewer.loadVolumeFromUrl` signature change.
+  - `loadVolumeFromUrl(url, format, isBinary, isovalues, entryId)` =>
+    `loadVolumeFromUrl({ url, format, isBinary }, isovalues, { entryId, isLazy })`
+- Add `TextureMesh` support to `geo-export` extension.
 
 ## [v2.0.4] - 2021-04-20
 
 - [WIP] Mesh export extension
-- ``Structure.eachAtomicHierarchyElement`` (#161)
+- `Structure.eachAtomicHierarchyElement` (#161)
 - Fixed reading multi-line values in SDF format
 - Fixed Measurements UI labels (#166)
 
 ## [v2.0.3] - 2021-04-09
 
-- Add support for ``ColorTheme.palette`` designed for providing gradient-like coloring.
-- [Breaking] The ``zip`` function is now asynchronous and expects a ``RuntimeContext``. Also added ``Zip()`` returning a ``Task``.
-- [Breaking] Add ``CubeGridFormat`` in ``alpha-orbitals`` extension.
+- Add support for `ColorTheme.palette` designed for providing gradient-like coloring.
+- [Breaking] The `zip` function is now asynchronous and expects a `RuntimeContext`. Also added `Zip()` returning a
+  `Task`.
+- [Breaking] Add `CubeGridFormat` in `alpha-orbitals` extension.
 
 ## [v2.0.2] - 2021-03-29
 
-- Add ``Canvas3D.getRenderObjects``.
+- Add `Canvas3D.getRenderObjects`.
 - [WIP] Animate state interpolating, including model trajectories
 - Recognise MSE, SEP, TPO, PTR and PCA as non-standard amino-acids.
 - Fix VolumeFromDensityServerCif transform label

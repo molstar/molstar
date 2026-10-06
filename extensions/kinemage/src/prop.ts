@@ -16,101 +16,105 @@ import { Task } from '@molstar/core/task';
 import type { Kinemage } from '@molstar/kinemage-extension/reader/schema';
 import { parseKin } from '@molstar/kinemage-extension/reader/parser';
 
-export const KinemageParams = {
-};
-export type KinemageParams = typeof KinemageParams
-export type KinemageProps = PD.Values<KinemageParams>
+export const KinemageParams = {};
+export type KinemageParams = typeof KinemageParams;
+export type KinemageProps = PD.Values<KinemageParams>;
 
 export const KinemageDataParams = {
-    ...KinemageParams
+  ...KinemageParams,
 };
-export type KinemageDataParams = typeof KinemageDataParams
-export type KinemageDataProps = PD.Values<KinemageDataParams>
+export type KinemageDataParams = typeof KinemageDataParams;
+export type KinemageDataProps = PD.Values<KinemageDataParams>;
 
 export { KinemageData };
 
 interface KinemageData {
-    /**
-     * List of Kinemages read from one or more files.
-     */
-    readonly kinemages: Kinemage[]
+  /**
+   * List of Kinemages read from one or more files.
+   */
+  readonly kinemages: Kinemage[];
 }
 
 const FileSourceParams = {
-    input: PD.File({ accept: '.kin', multiple: false })
+  input: PD.File({ accept: '.kin', multiple: false }),
 };
-type FileSourceProps = PD.Values<typeof FileSourceParams>
+type FileSourceProps = PD.Values<typeof FileSourceParams>;
 
 namespace KinemageData {
-    export enum Tag {
-        Representation = 'kinemage-3d'
+  export enum Tag {
+    Representation = 'kinemage-3d',
+  }
+
+  export const symbols = {};
+
+  async function loadKinemageData(data: string): Promise<Kinemage[]> {
+    const task = parseKin(data);
+    const result = await task.run();
+    if (result.isError) {
+      throw new Error('Failed to parse KIN data');
+    }
+    return result.result;
+  }
+
+  export async function open(file: FileSourceProps | File): Promise<KinemageData> {
+    let fileToRead: File;
+
+    if (file instanceof File) {
+      fileToRead = file;
+    } else if (file && file.input && file.input.file) {
+      fileToRead = file.input.file;
+    } else {
+      throw new Error('No file given');
     }
 
-    export const symbols = {
-    };
+    const task = Task.create('Load KIN file', async (ctx) => {
+      const data = await fileToRead.text();
+      const kinemages = await loadKinemageData(data);
+      return kinemages;
+    });
 
-    async function loadKinemageData(data: string): Promise<Kinemage[]> {
-        const task = parseKin(data);
-        const result = await task.run();
-        if (result.isError) {
-            throw new Error('Failed to parse KIN data');
-        }
-        return result.result;
-    }
-
-    export async function open(file: FileSourceProps | File): Promise<KinemageData> {
-
-        let fileToRead: File;
-
-        if (file instanceof File) {
-            fileToRead = file;
-        } else if (file && file.input && file.input.file) {
-            fileToRead = file.input.file;
-        } else {
-            throw new Error('No file given');
-        }
-
-        const task = Task.create('Load KIN file', async ctx => {
-            const data = await fileToRead.text();
-            const kinemages = await loadKinemageData(data);
-            return kinemages;
-        });
-
-        const kinemages = await task.run();
-        return { kinemages };
-    }
+    const kinemages = await task.run();
+    return { kinemages };
+  }
 }
 
-export const KinemageDataProvider: CustomStructureProperty.Provider<KinemageDataParams, KinemageData> = CustomStructureProperty.createProvider({
+export const KinemageDataProvider: CustomStructureProperty.Provider<KinemageDataParams, KinemageData> =
+  CustomStructureProperty.createProvider({
     label: 'Kinemage',
     descriptor: CustomPropertyDescriptor({
-        name: 'Kinemage_loaded_data',
-        symbols: KinemageData.symbols,
+      name: 'Kinemage_loaded_data',
+      symbols: KinemageData.symbols,
     }),
     type: 'root',
     defaultParams: KinemageDataParams,
     getParams: (data: Structure) => KinemageDataParams,
     isApplicable,
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<KinemageDataProps>) => {
-        const p = { ...PD.getDefaultValues(KinemageDataParams), ...props };
-        try {
-            return { value: await computeKinemageProps(ctx, data, p) };
-        } catch (e) {
-            // the "Residues Embedded in Membrane" symbol may bypass isApplicable() checks
-            console.warn('Failed to predict membrane orientation. This happens for short peptides and entries without amino acids.');
-            return { value: undefined };
-        }
-    }
-});
+      const p = { ...PD.getDefaultValues(KinemageDataParams), ...props };
+      try {
+        return { value: await computeKinemageProps(ctx, data, p) };
+      } catch (e) {
+        // the "Residues Embedded in Membrane" symbol may bypass isApplicable() checks
+        console.warn(
+          'Failed to predict membrane orientation. This happens for short peptides and entries without amino acids.',
+        );
+        return { value: undefined };
+      }
+    },
+  });
 
 function isApplicable(structure: Structure) {
-    return false;
+  return false;
 }
 
-async function computeKinemageProps(ctx: CustomProperty.Context, data: Structure, props: Partial<KinemageProps>): Promise<KinemageData> {
-    // Return an empty KinemageData object since the actual data will be loaded asynchronously via the `open` method.
-    // This allows the property to be attached to the structure without blocking on file loading.
-    return {
-        kinemages: []
-    };
+async function computeKinemageProps(
+  ctx: CustomProperty.Context,
+  data: Structure,
+  props: Partial<KinemageProps>,
+): Promise<KinemageData> {
+  // Return an empty KinemageData object since the actual data will be loaded asynchronously via the `open` method.
+  // This allows the property to be attached to the structure without blocking on file loading.
+  return {
+    kinemages: [],
+  };
 }

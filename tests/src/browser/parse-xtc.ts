@@ -14,14 +14,14 @@ btn.onclick = run;
 parent.appendChild(btn);
 
 async function run() {
-    const req = await fetch('test.xtc');
-    const data = await req.arrayBuffer();
-    console.log(data.byteLength);
-    console.time('parse');
-    const ret = await parseXtc(new Uint8Array(data)).run(o => {
-        console.log(o.root.progress.current, o.root.progress.max);
-    }, 1000);
-    console.timeEnd('parse');
-    console.log(ret);
-    btn.innerText = 'done';
+  const req = await fetch('test.xtc');
+  const data = await req.arrayBuffer();
+  console.log(data.byteLength);
+  console.time('parse');
+  const ret = await parseXtc(new Uint8Array(data)).run((o) => {
+    console.log(o.root.progress.current, o.root.progress.max);
+  }, 1000);
+  console.timeEnd('parse');
+  console.log(ret);
+  btn.innerText = 'done';
 }

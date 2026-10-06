@@ -29,37 +29,37 @@ extra_javascript:
 nav:
   - 'index.md'
   - Plugin:
-    - Creating Instance: 'plugin/instance.md'
-    - Examples: plugin/examples.md
-    - Custom Library: 'plugin/custom-library.md'
-    - Selections: 'plugin/selections.md'
-    - Superposition: 'plugin/superposition.md'
-    - Viewer State: 'plugin/viewer-state.md'
-    - Data State: 'plugin/data-state.md'
-    - File Formats: 'plugin/file-formats.md'
-    - CIF Schemas: 'plugin/cif-schemas.md'
-    - Managers:
-      - Markdown Extensions: 'plugin/managers/markdown-extensions.md'
-    - State Transforms:
-      - Custom Trajectory: 'plugin/transforms/custom-trajectory.md'
-      - Custom Conformation: 'plugin/transforms/custom-conformation.md'
+      - Creating Instance: 'plugin/instance.md'
+      - Examples: plugin/examples.md
+      - Custom Library: 'plugin/custom-library.md'
+      - Selections: 'plugin/selections.md'
+      - Superposition: 'plugin/superposition.md'
+      - Viewer State: 'plugin/viewer-state.md'
+      - Data State: 'plugin/data-state.md'
+      - File Formats: 'plugin/file-formats.md'
+      - CIF Schemas: 'plugin/cif-schemas.md'
+      - Managers:
+          - Markdown Extensions: 'plugin/managers/markdown-extensions.md'
+      - State Transforms:
+          - Custom Trajectory: 'plugin/transforms/custom-trajectory.md'
+          - Custom Conformation: 'plugin/transforms/custom-conformation.md'
   - Data Access Tools:
-    - 'data-access-tools/model-server.md'
-    - Volume Server:
-      - Overview: 'data-access-tools/volume-server/index.md'
-      - Examples: 'data-access-tools/volume-server/examples.md'
-      - How it Works: 'data-access-tools/volume-server/how-it-works.md'
-      - Data Format: 'data-access-tools/volume-server/response-data-format.md'
-    - 'data-access-tools/plugin-state-server.md'
-    - 'data-access-tools/convert-to-bcif.md'
-    - 'data-access-tools/create-ccd-table.md'
-    - 'data-access-tools/extract-ccd-ions.md'
+      - 'data-access-tools/model-server.md'
+      - Volume Server:
+          - Overview: 'data-access-tools/volume-server/index.md'
+          - Examples: 'data-access-tools/volume-server/examples.md'
+          - How it Works: 'data-access-tools/volume-server/how-it-works.md'
+          - Data Format: 'data-access-tools/volume-server/response-data-format.md'
+      - 'data-access-tools/plugin-state-server.md'
+      - 'data-access-tools/convert-to-bcif.md'
+      - 'data-access-tools/create-ccd-table.md'
+      - 'data-access-tools/extract-ccd-ions.md'
   - Extensions:
-    - MolViewSpec: 'extensions/mvs/index.md'
-    - wwPDB StructConn: 'extensions/struct-conn.md'
-    - Tunnels: 'extensions/tunnels.md'
-    - Interactions: 'extensions/interactions.md'
+      - MolViewSpec: 'extensions/mvs/index.md'
+      - wwPDB StructConn: 'extensions/struct-conn.md'
+      - Tunnels: 'extensions/tunnels.md'
+      - Interactions: 'extensions/interactions.md'
   - Misc:
-    - Interesting PDB entries: misc/interesting-pdb-entries.md
-    - Exporting component data: misc/exporting-components.md
+      - Interesting PDB entries: misc/interesting-pdb-entries.md
+      - Exporting component data: misc/exporting-components.md
 repo_url: https://github.com/molstar/docs

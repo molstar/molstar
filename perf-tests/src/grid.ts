@@ -27,43 +27,45 @@ import { radixSort, sortArray } from '@molstar/core/data/util/sort';
  */
 
 function genCellIds(n: number, elementCount: number, occupiedTarget: number) {
-    const used = new Set<number>();
-    while (used.size < occupiedTarget) used.add((Math.random() * n) | 0);
-    const cells = new Int32Array(used.size);
-    let i = 0;
-    used.forEach(c => { cells[i++] = c; });
+  const used = new Set<number>();
+  while (used.size < occupiedTarget) used.add((Math.random() * n) | 0);
+  const cells = new Int32Array(used.size);
+  let i = 0;
+  used.forEach((c) => {
+    cells[i++] = c;
+  });
 
-    const cellIds = new Int32Array(elementCount);
-    // ensure every picked cell is occupied at least once
-    for (let t = 0; t < cells.length; t++) cellIds[t] = cells[t];
-    for (let t = cells.length; t < elementCount; t++) {
-        cellIds[t] = cells[(Math.random() * cells.length) | 0];
-    }
-    return cellIds;
+  const cellIds = new Int32Array(elementCount);
+  // ensure every picked cell is occupied at least once
+  for (let t = 0; t < cells.length; t++) cellIds[t] = cells[t];
+  for (let t = cells.length; t < elementCount; t++) {
+    cellIds[t] = cells[(Math.random() * cells.length) | 0];
+  }
+  return cellIds;
 }
 
 function scanAll(cellIds: Int32Array, n: number) {
-    const elementCount = cellIds.length;
-    let bucketCount = 0;
-    const grid = new Uint32Array(n);
-    for (let t = 0; t < elementCount; t++) {
-        const idx = cellIds[t];
-        if ((grid[idx] += 1) === 1) bucketCount += 1;
-    }
+  const elementCount = cellIds.length;
+  let bucketCount = 0;
+  const grid = new Uint32Array(n);
+  for (let t = 0; t < elementCount; t++) {
+    const idx = cellIds[t];
+    if ((grid[idx] += 1) === 1) bucketCount += 1;
+  }
 
-    const bucketCounts = new Int32Array(bucketCount);
-    for (let i = 0, j = 0; i < n; i++) {
-        const c = grid[i];
-        if (c > 0) {
-            grid[i] = j + 1;
-            bucketCounts[j] = c;
-            j += 1;
-        }
+  const bucketCounts = new Int32Array(bucketCount);
+  for (let i = 0, j = 0; i < n; i++) {
+    const c = grid[i];
+    if (c > 0) {
+      grid[i] = j + 1;
+      bucketCounts[j] = c;
+      j += 1;
     }
-    return { grid, bucketCounts };
+  }
+  return { grid, bucketCounts };
 }
 
-type Sorter = (occupied: Uint32Array, bucketCount: number, n: number) => ArrayLike<number>
+type Sorter = (occupied: Uint32Array, bucketCount: number, n: number) => ArrayLike<number>;
 
 const sortNative: Sorter = (occupied, bucketCount) => occupied.subarray(0, bucketCount).sort();
 
@@ -72,102 +74,104 @@ const sortQuick: Sorter = (occupied, bucketCount) => sortArray(occupied.subarray
 const sortRadix: Sorter = (occupied, bucketCount, n) => radixSort(occupied.subarray(0, bucketCount), n - 1);
 
 function sortOccupied(cellIds: Int32Array, n: number, sorter: Sorter = sortNative) {
-    const elementCount = cellIds.length;
-    let bucketCount = 0;
-    const grid = new Uint32Array(n);
-    const occupied = new Uint32Array(Math.min(n, elementCount));
-    for (let t = 0; t < elementCount; t++) {
-        const idx = cellIds[t];
-        if ((grid[idx] += 1) === 1) {
-            occupied[bucketCount] = idx;
-            bucketCount += 1;
-        }
+  const elementCount = cellIds.length;
+  let bucketCount = 0;
+  const grid = new Uint32Array(n);
+  const occupied = new Uint32Array(Math.min(n, elementCount));
+  for (let t = 0; t < elementCount; t++) {
+    const idx = cellIds[t];
+    if ((grid[idx] += 1) === 1) {
+      occupied[bucketCount] = idx;
+      bucketCount += 1;
     }
+  }
 
-    const occupiedSorted = sorter(occupied, bucketCount, n);
-    const bucketCounts = new Int32Array(bucketCount);
-    for (let j = 0; j < bucketCount; j++) {
-        const i = occupiedSorted[j];
-        bucketCounts[j] = grid[i];
-        grid[i] = j + 1;
-    }
-    return { grid, bucketCounts };
+  const occupiedSorted = sorter(occupied, bucketCount, n);
+  const bucketCounts = new Int32Array(bucketCount);
+  for (let j = 0; j < bucketCount; j++) {
+    const i = occupiedSorted[j];
+    bucketCounts[j] = grid[i];
+    grid[i] = j + 1;
+  }
+  return { grid, bucketCounts };
 }
 
 function hybridStrategy(cellIds: Int32Array, n: number) {
-    const elementCount = cellIds.length;
-    let bucketCount = 0;
-    const grid = new Uint32Array(n);
-    const occupied = new Uint32Array(Math.min(n, elementCount));
-    for (let t = 0; t < elementCount; t++) {
-        const idx = cellIds[t];
-        if ((grid[idx] += 1) === 1) {
-            occupied[bucketCount] = idx;
-            bucketCount += 1;
-        }
+  const elementCount = cellIds.length;
+  let bucketCount = 0;
+  const grid = new Uint32Array(n);
+  const occupied = new Uint32Array(Math.min(n, elementCount));
+  for (let t = 0; t < elementCount; t++) {
+    const idx = cellIds[t];
+    if ((grid[idx] += 1) === 1) {
+      occupied[bucketCount] = idx;
+      bucketCount += 1;
     }
+  }
 
-    const bucketCounts = new Int32Array(bucketCount);
-    if (bucketCount <= n >>> 2) {
-        const occupiedSorted = sortRadix(occupied, bucketCount, n);
-        for (let j = 0; j < bucketCount; j++) {
-            const i = occupiedSorted[j];
-            bucketCounts[j] = grid[i];
-            grid[i] = j + 1;
-        }
-    } else {
-        for (let i = 0, j = 0; i < n; i++) {
-            const c = grid[i];
-            if (c > 0) {
-                grid[i] = j + 1;
-                bucketCounts[j] = c;
-                j += 1;
-            }
-        }
+  const bucketCounts = new Int32Array(bucketCount);
+  if (bucketCount <= n >>> 2) {
+    const occupiedSorted = sortRadix(occupied, bucketCount, n);
+    for (let j = 0; j < bucketCount; j++) {
+      const i = occupiedSorted[j];
+      bucketCounts[j] = grid[i];
+      grid[i] = j + 1;
     }
-    return { grid, bucketCounts };
+  } else {
+    for (let i = 0, j = 0; i < n; i++) {
+      const c = grid[i];
+      if (c > 0) {
+        grid[i] = j + 1;
+        bucketCounts[j] = c;
+        j += 1;
+      }
+    }
+  }
+  return { grid, bucketCounts };
 }
 
 function verify(cellIds: Int32Array, n: number) {
-    const a = scanAll(cellIds, n);
-    const others = [
-        sortOccupied(cellIds, n, sortNative),
-        sortOccupied(cellIds, n, sortQuick),
-        sortOccupied(cellIds, n, sortRadix),
-        hybridStrategy(cellIds, n),
-    ];
-    for (const other of others) {
-        if (a.bucketCounts.length !== other.bucketCounts.length) throw new Error('bucketCount mismatch');
-        for (let i = 0; i < a.bucketCounts.length; i++) {
-            if (a.bucketCounts[i] !== other.bucketCounts[i]) throw new Error(`bucketCounts mismatch at ${i}`);
-        }
-        for (let i = 0; i < n; i++) {
-            if (a.grid[i] !== other.grid[i]) throw new Error(`grid mismatch at ${i}`);
-        }
+  const a = scanAll(cellIds, n);
+  const others = [
+    sortOccupied(cellIds, n, sortNative),
+    sortOccupied(cellIds, n, sortQuick),
+    sortOccupied(cellIds, n, sortRadix),
+    hybridStrategy(cellIds, n),
+  ];
+  for (const other of others) {
+    if (a.bucketCounts.length !== other.bucketCounts.length) throw new Error('bucketCount mismatch');
+    for (let i = 0; i < a.bucketCounts.length; i++) {
+      if (a.bucketCounts[i] !== other.bucketCounts[i]) throw new Error(`bucketCounts mismatch at ${i}`);
     }
+    for (let i = 0; i < n; i++) {
+      if (a.grid[i] !== other.grid[i]) throw new Error(`grid mismatch at ${i}`);
+    }
+  }
 }
 
 function runTest(n: number, elementCount: number, occupiedTarget: number) {
-    const cellIds = genCellIds(n, elementCount, occupiedTarget);
-    verify(cellIds, n);
+  const cellIds = genCellIds(n, elementCount, occupiedTarget);
+  verify(cellIds, n);
 
-    const label = `n=${n} elements=${elementCount} occupied=${occupiedTarget} (${(100 * occupiedTarget / n).toFixed(2)}%)`;
-    console.log(label);
+  const label = `n=${n} elements=${elementCount} occupied=${occupiedTarget} (${((100 * occupiedTarget) / n).toFixed(2)}%)`;
+  console.log(label);
 
-    const suite = new B.Suite();
-    suite
-        .add('scan all cells', () => scanAll(cellIds, n))
-        .add('sortOccupied (native .sort)', () => sortOccupied(cellIds, n, sortNative))
-        .add('sortOccupied (sortArray quicksort)', () => sortOccupied(cellIds, n, sortQuick))
-        .add('sortOccupied (radix sort)', () => sortOccupied(cellIds, n, sortRadix))
-        .add('hybrid (radix if b <= n / 4)', () => hybridStrategy(cellIds, n))
-        .on('cycle', (e: any) => console.log(`  ${String(e.target)}`))
-        .on('complete', function (this: any) {
-            const sorted = [this[0], this[1], this[2], this[3], this[4]].sort((a, b) => b.hz - a.hz);
-            console.log(`  => fastest: ${sorted[0].name} (${(sorted[0].hz / sorted[1].hz).toFixed(2)}x over ${sorted[1].name})`);
-        })
-        .run();
-    console.log('---------------------');
+  const suite = new B.Suite();
+  suite
+    .add('scan all cells', () => scanAll(cellIds, n))
+    .add('sortOccupied (native .sort)', () => sortOccupied(cellIds, n, sortNative))
+    .add('sortOccupied (sortArray quicksort)', () => sortOccupied(cellIds, n, sortQuick))
+    .add('sortOccupied (radix sort)', () => sortOccupied(cellIds, n, sortRadix))
+    .add('hybrid (radix if b <= n / 4)', () => hybridStrategy(cellIds, n))
+    .on('cycle', (e: any) => console.log(`  ${String(e.target)}`))
+    .on('complete', function (this: any) {
+      const sorted = [this[0], this[1], this[2], this[3], this[4]].sort((a, b) => b.hz - a.hz);
+      console.log(
+        `  => fastest: ${sorted[0].name} (${(sorted[0].hz / sorted[1].hz).toFixed(2)}x over ${sorted[1].name})`,
+      );
+    })
+    .run();
+  console.log('---------------------');
 }
 
 // sparse: large grid capped at MaxVolume, ~32 elements per occupied cell

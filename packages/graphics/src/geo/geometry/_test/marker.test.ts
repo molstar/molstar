@@ -7,10 +7,10 @@
 import { getMarkersAverage } from '../marker-data.js';
 
 describe('marker-data', () => {
-    it('getMarkersAverage', () => {
-        expect(getMarkersAverage(new Uint8Array([0, 0, 0, 0]), 3)).toBe(0);
-        expect(getMarkersAverage(new Uint8Array([0, 0, 1, 0]), 3)).toBe(1 / 3);
-        expect(getMarkersAverage(new Uint8Array([0, 0, 0, 0]), 4)).toBe(0);
-        expect(getMarkersAverage(new Uint8Array([0, 0, 1, 0]), 4)).toBe(1 / 4);
-    });
+  it('getMarkersAverage', () => {
+    expect(getMarkersAverage(new Uint8Array([0, 0, 0, 0]), 3)).toBe(0);
+    expect(getMarkersAverage(new Uint8Array([0, 0, 1, 0]), 3)).toBe(1 / 3);
+    expect(getMarkersAverage(new Uint8Array([0, 0, 0, 0]), 4)).toBe(0);
+    expect(getMarkersAverage(new Uint8Array([0, 0, 1, 0]), 4)).toBe(1 / 4);
+  });
 });

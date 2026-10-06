@@ -34,24 +34,24 @@ canvas3d.requestResize();
 canvas3d.animate();
 
 canvas3d.input.resize.subscribe(() => {
-    resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
-    canvas3dContext.syncPixelScale();
-    canvas3d.requestResize();
+  resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
+  canvas3dContext.syncPixelScale();
+  canvas3d.requestResize();
 });
 
 function linesRepr() {
-    const linesBuilder = LinesBuilder.create();
-    const t = Mat4.identity();
-    const dodecahedronCage = DodecahedronCage();
-    linesBuilder.addCage(t, dodecahedronCage, 0);
-    const lines = linesBuilder.getLines();
+  const linesBuilder = LinesBuilder.create();
+  const t = Mat4.identity();
+  const dodecahedronCage = DodecahedronCage();
+  linesBuilder.addCage(t, dodecahedronCage, 0);
+  const lines = linesBuilder.getLines();
 
-    const props = ParamDefinition.getDefaultValues(Lines.Utils.Params);
-    const values = Lines.Utils.createValuesSimple(lines, props, Color(0xFF0000), 3);
-    const state = Lines.Utils.createRenderableState(props);
-    const renderObject = createRenderObject('lines', values, state, -1);
-    const repr = Representation.fromRenderObject('cage-lines', renderObject);
-    return repr;
+  const props = ParamDefinition.getDefaultValues(Lines.Utils.Params);
+  const values = Lines.Utils.createValuesSimple(lines, props, Color(0xff0000), 3);
+  const state = Lines.Utils.createRenderableState(props);
+  const renderObject = createRenderObject('lines', values, state, -1);
+  const repr = Representation.fromRenderObject('cage-lines', renderObject);
+  return repr;
 }
 
 canvas3d.add(linesRepr());

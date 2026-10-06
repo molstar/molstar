@@ -7,7 +7,7 @@
  */
 
 export const State = {
-    pendingQueries: 0,
-    shutdownOnZeroPending: false,
-    querySerial: 0
+  pendingQueries: 0,
+  shutdownOnZeroPending: false,
+  querySerial: 0,
 };

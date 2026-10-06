@@ -8,19 +8,19 @@ import { deflate, inflate, unzip, zip } from '../zip/zip.js';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 
 describe('zip', () => {
-    it('roundtrip deflate/inflate', async () => {
-        const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7]);
-        const deflated = await deflate(SyncRuntimeContext, data);
-        const inflated = await inflate(SyncRuntimeContext, deflated);
-        expect(inflated).toEqual(data);
-    });
+  it('roundtrip deflate/inflate', async () => {
+    const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7]);
+    const deflated = await deflate(SyncRuntimeContext, data);
+    const inflated = await inflate(SyncRuntimeContext, deflated);
+    expect(inflated).toEqual(data);
+  });
 
-    it('roundtrip zip/unzip', async () => {
-        const data = {
-            'test.foo': new Uint8Array([1, 2, 3, 4, 5, 6, 7])
-        };
-        const zipped = await zip(SyncRuntimeContext, data);
-        const unzipped = await unzip(SyncRuntimeContext, zipped);
-        expect(unzipped).toEqual(data);
-    });
+  it('roundtrip zip/unzip', async () => {
+    const data = {
+      'test.foo': new Uint8Array([1, 2, 3, 4, 5, 6, 7]),
+    };
+    const zipped = await zip(SyncRuntimeContext, data);
+    const unzipped = await unzip(SyncRuntimeContext, zipped);
+    expect(unzipped).toEqual(data);
+  });
 });

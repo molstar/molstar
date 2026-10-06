@@ -10,21 +10,23 @@ import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
 import { Model, Structure } from '@molstar/model/model/structure';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 
-
 /** Parameter definition for custom model property "Is MVS" */
-export type IsMVSModelParams = typeof IsMVSModelParams
+export type IsMVSModelParams = typeof IsMVSModelParams;
 export const IsMVSModelParams = {
-    isMvs: PD.Boolean(false, { description: 'Flag this model as managed by MolViewSpec and enable MolViewSpec features' }),
+  isMvs: PD.Boolean(false, {
+    description: 'Flag this model as managed by MolViewSpec and enable MolViewSpec features',
+  }),
 };
 
 /** Parameter values for custom model property "Is MVS" */
-export type IsMVSModelProps = PD.Values<IsMVSModelParams>
+export type IsMVSModelProps = PD.Values<IsMVSModelParams>;
 
 /** Provider for custom model property "Is MVS" */
-export const IsMVSModelProvider: CustomModelProperty.Provider<IsMVSModelParams, {}> = CustomModelProperty.createProvider({
+export const IsMVSModelProvider: CustomModelProperty.Provider<IsMVSModelParams, {}> =
+  CustomModelProperty.createProvider({
     label: 'MVS',
     descriptor: CustomPropertyDescriptor({
-        name: 'mvs-is-mvs-model',
+      name: 'mvs-is-mvs-model',
     }),
     type: 'static',
     defaultParams: IsMVSModelParams,
@@ -32,13 +34,13 @@ export const IsMVSModelProvider: CustomModelProperty.Provider<IsMVSModelParams, 
     isApplicable: (data: Model) => true,
     obtain: async (ctx: CustomProperty.Context, data: Model, props: Partial<IsMVSModelProps>) => ({ value: {} }),
     isHidden: true,
-});
+  });
 
 /** Decide if the model is flagged as managed by MolViewSpec */
 export function isMVSModel(model: Model): boolean {
-    return !!IsMVSModelProvider.props(model)?.isMvs;
+  return !!IsMVSModelProvider.props(model)?.isMvs;
 }
 /** Decide if the structure is flagged as managed by MolViewSpec */
 export function isMVSStructure(structure: Structure): boolean {
-    return structure.models.some(isMVSModel);
+  return structure.models.some(isMVSModel);
 }

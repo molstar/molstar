@@ -13,24 +13,24 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Points } from '@molstar/graphics/geo/geometry/points/points';
 
 export function createPoints() {
-    const points = Points.createEmpty();
-    const props = PD.getDefaultValues(Points.Params);
-    const values = Points.Utils.createValuesSimple(points, props, ColorNames.orange, 1);
-    const state = Points.Utils.createRenderableState(props);
-    return createRenderObject('points', values, state, -1);
+  const points = Points.createEmpty();
+  const props = PD.getDefaultValues(Points.Params);
+  const values = Points.Utils.createValuesSimple(points, props, ColorNames.orange, 1);
+  const state = Points.Utils.createRenderableState(props);
+  return createRenderObject('points', values, state, -1);
 }
 
 describe('points', () => {
-    const ctx = tryGetGLContext(32, 32);
+  const ctx = tryGetGLContext(32, 32);
 
-    (ctx ? it : it.skip)('basic', async () => {
-        const ctx = getGLContext(32, 32);
-        const scene = Scene.create(ctx);
-        const points = createPoints();
-        scene.add(points);
-        setDebugMode(true);
-        expect(() => scene.commit()).not.toThrow();
-        setDebugMode(false);
-        ctx.destroy();
-    });
+  (ctx ? it : it.skip)('basic', async () => {
+    const ctx = getGLContext(32, 32);
+    const scene = Scene.create(ctx);
+    const points = createPoints();
+    scene.add(points);
+    setDebugMode(true);
+    expect(() => scene.commit()).not.toThrow();
+    setDebugMode(false);
+    ctx.destroy();
+  });
 });

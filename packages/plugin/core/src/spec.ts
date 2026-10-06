@@ -10,7 +10,10 @@ import { AnimateAssemblyUnwind } from '@molstar/plugin/state/animation/built-in/
 import { AnimateCameraSpin } from '@molstar/plugin/state/animation/built-in/camera-spin';
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
 import { AnimateParticleTrajectory } from '@molstar/plugin/state/animation/built-in/particles';
-import { AnimateStateSnapshotTransition, AnimateStateSnapshots } from '@molstar/plugin/state/animation/built-in/state-snapshots';
+import {
+  AnimateStateSnapshotTransition,
+  AnimateStateSnapshots,
+} from '@molstar/plugin/state/animation/built-in/state-snapshots';
 import type { PluginStateAnimation } from '@molstar/plugin/state/animation/model';
 import type { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import type { StateAction, StateTransformer } from '@molstar/core/state';
@@ -21,7 +24,11 @@ import type { PluginLayoutStateProps } from '@molstar/plugin/layout';
 import { StateActions } from '@molstar/plugin/state/actions';
 import { AssignColorVolume } from '@molstar/plugin/state/actions/volume';
 import { StateTransforms } from '@molstar/plugin/state/transforms';
-import { BoxifyVolumeStreaming, CreateVolumeStreamingBehavior, InitVolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
+import {
+  BoxifyVolumeStreaming,
+  CreateVolumeStreamingBehavior,
+  InitVolumeStreaming,
+} from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
 import { AnimateStateInterpolation } from '@molstar/plugin/state/animation/built-in/state-interpolation';
 import { AnimateStructureSpin } from '@molstar/plugin/state/animation/built-in/spin-structure';
 import { AnimateCameraRock } from '@molstar/plugin/state/animation/built-in/camera-rock';
@@ -30,136 +37,145 @@ import { AnimateTime } from '@molstar/plugin/state/animation/built-in/time';
 export { PluginSpec };
 
 interface PluginSpec {
-    actions?: PluginSpec.Action[],
-    behaviors: PluginSpec.Behavior[],
-    animations?: PluginStateAnimation[],
-    customFormats?: [string, DataFormatProvider][],
-    canvas3d?: PartialCanvas3DProps,
-    layout?: {
-        initial?: Partial<PluginLayoutStateProps>,
-    },
-    config?: [PluginConfigItem, unknown][]
+  actions?: PluginSpec.Action[];
+  behaviors: PluginSpec.Behavior[];
+  animations?: PluginStateAnimation[];
+  customFormats?: [string, DataFormatProvider][];
+  canvas3d?: PartialCanvas3DProps;
+  layout?: {
+    initial?: Partial<PluginLayoutStateProps>;
+  };
+  config?: [PluginConfigItem, unknown][];
 }
 
 namespace PluginSpec {
-    export interface Action {
-        action: StateAction | StateTransformer,
-        /* constructible react component with <action.customControl /> */
-        customControl?: any,
-        autoUpdate?: boolean
-    }
+  export interface Action {
+    action: StateAction | StateTransformer;
+    /* constructible react component with <action.customControl /> */
+    customControl?: any;
+    autoUpdate?: boolean;
+  }
 
-    export function Action(action: StateAction | StateTransformer, params?: { customControl?: any /* constructible react component with <action.customControl /> */, autoUpdate?: boolean }): Action {
-        return { action, customControl: params && params.customControl, autoUpdate: params && params.autoUpdate };
-    }
+  export function Action(
+    action: StateAction | StateTransformer,
+    params?: {
+      customControl?: any /* constructible react component with <action.customControl /> */;
+      autoUpdate?: boolean;
+    },
+  ): Action {
+    return { action, customControl: params && params.customControl, autoUpdate: params && params.autoUpdate };
+  }
 
-    export interface Behavior {
-        transformer: StateTransformer,
-        defaultParams?: any
-    }
+  export interface Behavior {
+    transformer: StateTransformer;
+    defaultParams?: any;
+  }
 
-    export function Behavior<T extends StateTransformer>(transformer: T, defaultParams: Partial<StateTransformer.Params<T>> = {}): Behavior {
-        return { transformer, defaultParams };
-    }
+  export function Behavior<T extends StateTransformer>(
+    transformer: T,
+    defaultParams: Partial<StateTransformer.Params<T>> = {},
+  ): Behavior {
+    return { transformer, defaultParams };
+  }
 }
 
 export const DefaultPluginSpec = (): PluginSpec => ({
-    actions: [
-        PluginSpec.Action(StateActions.Structure.DownloadStructure),
-        PluginSpec.Action(StateActions.Volume.DownloadDensity),
-        PluginSpec.Action(StateActions.DataFormat.DownloadFile),
-        PluginSpec.Action(StateActions.DataFormat.OpenFiles),
-        PluginSpec.Action(StateActions.Structure.LoadTrajectory),
-        PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
-        PluginSpec.Action(StateActions.Structure.EnableStructureCustomProps),
+  actions: [
+    PluginSpec.Action(StateActions.Structure.DownloadStructure),
+    PluginSpec.Action(StateActions.Volume.DownloadDensity),
+    PluginSpec.Action(StateActions.DataFormat.DownloadFile),
+    PluginSpec.Action(StateActions.DataFormat.OpenFiles),
+    PluginSpec.Action(StateActions.Structure.LoadTrajectory),
+    PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
+    PluginSpec.Action(StateActions.Structure.EnableStructureCustomProps),
 
-        // Volume streaming
-        PluginSpec.Action(InitVolumeStreaming),
-        PluginSpec.Action(BoxifyVolumeStreaming),
-        PluginSpec.Action(CreateVolumeStreamingBehavior),
+    // Volume streaming
+    PluginSpec.Action(InitVolumeStreaming),
+    PluginSpec.Action(BoxifyVolumeStreaming),
+    PluginSpec.Action(CreateVolumeStreamingBehavior),
 
-        PluginSpec.Action(StateTransforms.Data.Download),
-        PluginSpec.Action(StateTransforms.Data.ParseCif),
-        PluginSpec.Action(StateTransforms.Data.ParseCcp4),
-        PluginSpec.Action(StateTransforms.Data.ParseDsn6),
+    PluginSpec.Action(StateTransforms.Data.Download),
+    PluginSpec.Action(StateTransforms.Data.ParseCif),
+    PluginSpec.Action(StateTransforms.Data.ParseCcp4),
+    PluginSpec.Action(StateTransforms.Data.ParseDsn6),
 
-        PluginSpec.Action(StateTransforms.Model.TrajectoryFromMmCif),
-        PluginSpec.Action(StateTransforms.Model.TrajectoryFromCifCore),
-        PluginSpec.Action(StateTransforms.Model.TrajectoryFromPDB),
-        PluginSpec.Action(StateTransforms.Model.TransformStructureConformation),
-        PluginSpec.Action(StateTransforms.Model.StructureInstances),
-        PluginSpec.Action(StateTransforms.Model.StructureFromModel),
-        PluginSpec.Action(StateTransforms.Model.StructureFromTrajectory),
-        PluginSpec.Action(StateTransforms.Model.ModelFromTrajectory),
-        PluginSpec.Action(StateTransforms.Model.StructureSelectionFromScript),
-        PluginSpec.Action(StateTransforms.Representation.StructureRepresentation3D),
-        PluginSpec.Action(StateTransforms.Representation.StructureSelectionsDistance3D),
-        PluginSpec.Action(StateTransforms.Representation.StructureSelectionsAngle3D),
-        PluginSpec.Action(StateTransforms.Representation.StructureSelectionsDihedral3D),
-        PluginSpec.Action(StateTransforms.Representation.StructureSelectionsLabel3D),
-        PluginSpec.Action(StateTransforms.Representation.StructureSelectionsOrientation3D),
-        PluginSpec.Action(StateTransforms.Representation.ModelUnitcell3D),
-        PluginSpec.Action(StateTransforms.Representation.StructureBoundingBox3D),
-        PluginSpec.Action(StateTransforms.Representation.ExplodeStructureRepresentation3D),
-        PluginSpec.Action(StateTransforms.Representation.SpinStructureRepresentation3D),
-        PluginSpec.Action(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D),
-        PluginSpec.Action(StateTransforms.Representation.OverpaintStructureRepresentation3DFromScript),
-        PluginSpec.Action(StateTransforms.Representation.TransparencyStructureRepresentation3DFromScript),
-        PluginSpec.Action(StateTransforms.Representation.ClippingStructureRepresentation3DFromScript),
-        PluginSpec.Action(StateTransforms.Representation.SubstanceStructureRepresentation3DFromScript),
-        PluginSpec.Action(StateTransforms.Representation.WiggleStructureRepresentation3DFromScript),
-        PluginSpec.Action(StateTransforms.Representation.ThemeStrengthRepresentation3D),
+    PluginSpec.Action(StateTransforms.Model.TrajectoryFromMmCif),
+    PluginSpec.Action(StateTransforms.Model.TrajectoryFromCifCore),
+    PluginSpec.Action(StateTransforms.Model.TrajectoryFromPDB),
+    PluginSpec.Action(StateTransforms.Model.TransformStructureConformation),
+    PluginSpec.Action(StateTransforms.Model.StructureInstances),
+    PluginSpec.Action(StateTransforms.Model.StructureFromModel),
+    PluginSpec.Action(StateTransforms.Model.StructureFromTrajectory),
+    PluginSpec.Action(StateTransforms.Model.ModelFromTrajectory),
+    PluginSpec.Action(StateTransforms.Model.StructureSelectionFromScript),
+    PluginSpec.Action(StateTransforms.Representation.StructureRepresentation3D),
+    PluginSpec.Action(StateTransforms.Representation.StructureSelectionsDistance3D),
+    PluginSpec.Action(StateTransforms.Representation.StructureSelectionsAngle3D),
+    PluginSpec.Action(StateTransforms.Representation.StructureSelectionsDihedral3D),
+    PluginSpec.Action(StateTransforms.Representation.StructureSelectionsLabel3D),
+    PluginSpec.Action(StateTransforms.Representation.StructureSelectionsOrientation3D),
+    PluginSpec.Action(StateTransforms.Representation.ModelUnitcell3D),
+    PluginSpec.Action(StateTransforms.Representation.StructureBoundingBox3D),
+    PluginSpec.Action(StateTransforms.Representation.ExplodeStructureRepresentation3D),
+    PluginSpec.Action(StateTransforms.Representation.SpinStructureRepresentation3D),
+    PluginSpec.Action(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D),
+    PluginSpec.Action(StateTransforms.Representation.OverpaintStructureRepresentation3DFromScript),
+    PluginSpec.Action(StateTransforms.Representation.TransparencyStructureRepresentation3DFromScript),
+    PluginSpec.Action(StateTransforms.Representation.ClippingStructureRepresentation3DFromScript),
+    PluginSpec.Action(StateTransforms.Representation.SubstanceStructureRepresentation3DFromScript),
+    PluginSpec.Action(StateTransforms.Representation.WiggleStructureRepresentation3DFromScript),
+    PluginSpec.Action(StateTransforms.Representation.ThemeStrengthRepresentation3D),
 
-        PluginSpec.Action(AssignColorVolume),
-        PluginSpec.Action(StateTransforms.Volume.VolumeFromCcp4),
-        PluginSpec.Action(StateTransforms.Volume.VolumeFromDsn6),
-        PluginSpec.Action(StateTransforms.Volume.VolumeFromCube),
-        PluginSpec.Action(StateTransforms.Volume.VolumeFromDx),
-        PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
-        PluginSpec.Action(StateTransforms.Volume.VolumeTransform),
-        PluginSpec.Action(StateTransforms.Volume.VolumeInstances),
+    PluginSpec.Action(AssignColorVolume),
+    PluginSpec.Action(StateTransforms.Volume.VolumeFromCcp4),
+    PluginSpec.Action(StateTransforms.Volume.VolumeFromDsn6),
+    PluginSpec.Action(StateTransforms.Volume.VolumeFromCube),
+    PluginSpec.Action(StateTransforms.Volume.VolumeFromDx),
+    PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
+    PluginSpec.Action(StateTransforms.Volume.VolumeTransform),
+    PluginSpec.Action(StateTransforms.Volume.VolumeInstances),
 
-        PluginSpec.Action(StateTransforms.Particles.ParticleListFromRelionStar),
-        PluginSpec.Action(StateTransforms.Particles.ParticleListFromDynamoTbl),
-        PluginSpec.Action(StateTransforms.Particles.ParticleListFromCryoEtDataPortalNdjson),
-        PluginSpec.Action(StateTransforms.Particles.ParticleListFromArtiatomiEm),
-        PluginSpec.Action(StateTransforms.Particles.ParticleListFromMmcifAssembly),
-        PluginSpec.Action(StateTransforms.Particles.ParticleTrajectoryFromSimularium),
-        PluginSpec.Action(StateTransforms.Particles.ParticleListFromTrajectory),
-        PluginSpec.Action(StateTransforms.Particles.ParticleListWithTargets),
-        PluginSpec.Action(StateTransforms.Particles.ParticleListUnitcell3D),
-        PluginSpec.Action(StateTransforms.Particles.ParticlesRepresentation3D),
-    ],
-    behaviors: [
-        PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),
-        PluginSpec.Behavior(PluginBehaviors.Representation.SelectLoci),
-        PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
-        PluginSpec.Behavior(PluginBehaviors.Representation.FocusLoci),
-        PluginSpec.Behavior(PluginBehaviors.Camera.FocusLoci),
-        PluginSpec.Behavior(PluginBehaviors.Camera.CameraAxisHelper),
-        PluginSpec.Behavior(PluginBehaviors.Camera.CameraControls),
-        PluginSpec.Behavior(PluginBehaviors.State.SnapshotControls),
-        PluginSpec.Behavior(StructureFocusRepresentation),
+    PluginSpec.Action(StateTransforms.Particles.ParticleListFromRelionStar),
+    PluginSpec.Action(StateTransforms.Particles.ParticleListFromDynamoTbl),
+    PluginSpec.Action(StateTransforms.Particles.ParticleListFromCryoEtDataPortalNdjson),
+    PluginSpec.Action(StateTransforms.Particles.ParticleListFromArtiatomiEm),
+    PluginSpec.Action(StateTransforms.Particles.ParticleListFromMmcifAssembly),
+    PluginSpec.Action(StateTransforms.Particles.ParticleTrajectoryFromSimularium),
+    PluginSpec.Action(StateTransforms.Particles.ParticleListFromTrajectory),
+    PluginSpec.Action(StateTransforms.Particles.ParticleListWithTargets),
+    PluginSpec.Action(StateTransforms.Particles.ParticleListUnitcell3D),
+    PluginSpec.Action(StateTransforms.Particles.ParticlesRepresentation3D),
+  ],
+  behaviors: [
+    PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),
+    PluginSpec.Behavior(PluginBehaviors.Representation.SelectLoci),
+    PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
+    PluginSpec.Behavior(PluginBehaviors.Representation.FocusLoci),
+    PluginSpec.Behavior(PluginBehaviors.Camera.FocusLoci),
+    PluginSpec.Behavior(PluginBehaviors.Camera.CameraAxisHelper),
+    PluginSpec.Behavior(PluginBehaviors.Camera.CameraControls),
+    PluginSpec.Behavior(PluginBehaviors.State.SnapshotControls),
+    PluginSpec.Behavior(StructureFocusRepresentation),
 
-        PluginSpec.Behavior(PluginBehaviors.CustomProps.StructureInfo),
-        PluginSpec.Behavior(PluginBehaviors.CustomProps.AccessibleSurfaceArea),
-        PluginSpec.Behavior(PluginBehaviors.CustomProps.BestDatabaseSequenceMapping),
-        PluginSpec.Behavior(PluginBehaviors.CustomProps.Interactions),
-        PluginSpec.Behavior(PluginBehaviors.CustomProps.SecondaryStructure),
-        PluginSpec.Behavior(PluginBehaviors.CustomProps.ValenceModel),
-        PluginSpec.Behavior(PluginBehaviors.CustomProps.CrossLinkRestraint),
-        PluginSpec.Behavior(PluginBehaviors.CustomProps.Streamlines),
-    ],
-    animations: [
-        AnimateModelIndex,
-        AnimateParticleTrajectory,
-        AnimateCameraSpin,
-        AnimateCameraRock,
-        AnimateStateSnapshots,
-        AnimateStateSnapshotTransition,
-        AnimateAssemblyUnwind,
-        AnimateStructureSpin,
-        AnimateStateInterpolation,
-        AnimateTime
-    ]
+    PluginSpec.Behavior(PluginBehaviors.CustomProps.StructureInfo),
+    PluginSpec.Behavior(PluginBehaviors.CustomProps.AccessibleSurfaceArea),
+    PluginSpec.Behavior(PluginBehaviors.CustomProps.BestDatabaseSequenceMapping),
+    PluginSpec.Behavior(PluginBehaviors.CustomProps.Interactions),
+    PluginSpec.Behavior(PluginBehaviors.CustomProps.SecondaryStructure),
+    PluginSpec.Behavior(PluginBehaviors.CustomProps.ValenceModel),
+    PluginSpec.Behavior(PluginBehaviors.CustomProps.CrossLinkRestraint),
+    PluginSpec.Behavior(PluginBehaviors.CustomProps.Streamlines),
+  ],
+  animations: [
+    AnimateModelIndex,
+    AnimateParticleTrajectory,
+    AnimateCameraSpin,
+    AnimateCameraRock,
+    AnimateStateSnapshots,
+    AnimateStateSnapshotTransition,
+    AnimateAssemblyUnwind,
+    AnimateStructureSpin,
+    AnimateStateInterpolation,
+    AnimateTime,
+  ],
 });

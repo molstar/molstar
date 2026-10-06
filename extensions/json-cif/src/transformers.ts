@@ -14,17 +14,17 @@ import { parseJSONCif } from '@molstar/json-cif-extension/parser';
 const Transform = StateTransformer.builderFactory('json-cif');
 
 export const ParseJSONCifFileData = Transform({
-    name: 'parse-json-cif-data',
-    from: PluginStateObject.Root,
-    to: PluginStateObject.Format.Cif,
-    params: {
-        data: ParamDefinition.Value<JSONCifFile>(undefined as any, { isHidden: true }),
-    }
+  name: 'parse-json-cif-data',
+  from: PluginStateObject.Root,
+  to: PluginStateObject.Format.Cif,
+  params: {
+    data: ParamDefinition.Value<JSONCifFile>(undefined as any, { isHidden: true }),
+  },
 })({
-    apply({ params }) {
-        return Task.create('Parse JSON Cif', async ctx => {
-            const parsed = parseJSONCif(params.data);
-            return new PluginStateObject.Format.Cif(parsed, { label: 'CIF Data' });
-        });
-    }
+  apply({ params }) {
+    return Task.create('Parse JSON Cif', async (ctx) => {
+      const parsed = parseJSONCif(params.data);
+      return new PluginStateObject.Format.Cif(parsed, { label: 'CIF Data' });
+    });
+  },
 });

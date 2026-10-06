@@ -13,46 +13,46 @@ import { properties } from '../vmd/properties.js';
 import { operators } from '../vmd/operators.js';
 
 const general = {
-    supported: [
-        // trimming
-        '    name CA   ',
-        'name CA   ',
-        '    name CA',
-    ],
-    unsupported: [
-        // variables
-        'name $atomname',
-        'protein and @myselection',
+  supported: [
+    // trimming
+    '    name CA   ',
+    'name CA   ',
+    '    name CA',
+  ],
+  unsupported: [
+    // variables
+    'name $atomname',
+    'protein and @myselection',
 
-        // values outside of comparisons
-        'foobar',
-        '34',
-        'name',
-        'abs(-42)',
-        'abs(21+21)',
-        'sqr(3)',
-        'sqr(x)',
-        'sqr(x+33)',
-        'protein or foobar',
-        '34 and protein',
-        'name or protein',
-    ]
+    // values outside of comparisons
+    'foobar',
+    '34',
+    'name',
+    'abs(-42)',
+    'abs(21+21)',
+    'sqr(3)',
+    'sqr(x)',
+    'sqr(x+33)',
+    'protein or foobar',
+    '34 and protein',
+    'name or protein',
+  ],
 };
 
 describe('vmd general', () => {
-    general.supported.forEach(str => {
-        it(str, () => {
-            transpiler(str);
-            // compile(expr);
-        });
+  general.supported.forEach((str) => {
+    it(str, () => {
+      transpiler(str);
+      // compile(expr);
     });
-    general.unsupported.forEach(str => {
-        it(str, () => {
-            const transpileStr = () => transpiler(str);
-            expect(transpileStr).toThrow();
-            expect(transpileStr).not.toThrow(RangeError);
-        });
+  });
+  general.unsupported.forEach((str) => {
+    it(str, () => {
+      const transpileStr = () => transpiler(str);
+      expect(transpileStr).toThrow();
+      expect(transpileStr).not.toThrow(RangeError);
     });
+  });
 });
 
 describe('vmd keywords', () => u.testKeywords(keywords, transpiler));

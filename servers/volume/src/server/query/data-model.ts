@@ -17,60 +17,65 @@ import type { TypedArrayValueArray } from '@molstar/io/common/typed-array';
 // DATA
 
 export interface Sampling {
-    index: number,
-    rate: number,
-    byteOffset: number,
-    dataDomain: Coords.GridDomain<'Data'>,
-    blockDomain: Coords.GridDomain<'Block'>
+  index: number;
+  rate: number;
+  byteOffset: number;
+  dataDomain: Coords.GridDomain<'Data'>;
+  blockDomain: Coords.GridDomain<'Block'>;
 }
 
 export interface DataContext {
-    file: FileHandle,
-    header: DataFormat.Header,
-    spacegroup: SpacegroupCell,
-    dataBox: Box.Fractional,
-    sampling: Sampling[]
+  file: FileHandle;
+  header: DataFormat.Header;
+  spacegroup: SpacegroupCell;
+  dataBox: Box.Fractional;
+  sampling: Sampling[];
 }
 
 export interface BlockData {
-    sampleCount: number[],
-    values: TypedArrayValueArray
+  sampleCount: number[];
+  values: TypedArrayValueArray;
 }
 
 // QUERY
 
-export type QueryOutputStream = Writer & { end: () => void }
+export type QueryOutputStream = Writer & { end: () => void };
 
 export namespace QueryParamsBox {
-    export type Cartesian = { kind: 'Cartesian', a: Coords.Cartesian, b: Coords.Cartesian }
-    export type Fractional = { kind: 'Fractional', a: Coords.Fractional, b: Coords.Fractional }
-    export type Cell = { kind: 'Cell' }
+  export type Cartesian = { kind: 'Cartesian'; a: Coords.Cartesian; b: Coords.Cartesian };
+  export type Fractional = { kind: 'Fractional'; a: Coords.Fractional; b: Coords.Fractional };
+  export type Cell = { kind: 'Cell' };
 }
-export type QueryParamsBox = QueryParamsBox.Cartesian | QueryParamsBox.Fractional | QueryParamsBox.Cell
+export type QueryParamsBox = QueryParamsBox.Cartesian | QueryParamsBox.Fractional | QueryParamsBox.Cell;
 
 export interface QueryParams {
-    sourceFilename: string,
-    sourceId: string,
-    asBinary: boolean,
-    box: QueryParamsBox,
-    detail: number,
-    forcedSamplingLevel?: number
+  sourceFilename: string;
+  sourceId: string;
+  asBinary: boolean;
+  box: QueryParamsBox;
+  detail: number;
+  forcedSamplingLevel?: number;
 }
 
-export type QueryBlock = { coord: Coords.Grid<'Block'>, offsets: Coords.Fractional[] }
+export type QueryBlock = { coord: Coords.Grid<'Block'>; offsets: Coords.Fractional[] };
 
 export interface QuerySamplingInfo {
-    sampling: Sampling,
-    fractionalBox: Box.Fractional,
-    gridDomain: Coords.GridDomain<'Query'>,
-    blocks: QueryBlock[]
+  sampling: Sampling;
+  fractionalBox: Box.Fractional;
+  gridDomain: Coords.GridDomain<'Query'>;
+  blocks: QueryBlock[];
 }
 
-export type QueryContext = QueryContext.Error | QueryContext.Empty | QueryContext.Data
+export type QueryContext = QueryContext.Error | QueryContext.Empty | QueryContext.Data;
 
 export namespace QueryContext {
-    type Base = { guid: string, params: QueryParams }
-    export type Error = { kind: 'Error', message: string } & Base
-    export type Empty = { kind: 'Empty', data: DataContext } & Base
-    export type Data = { kind: 'Data', data: DataContext, samplingInfo: QuerySamplingInfo, values: TypedArrayValueArray[] } & Base
+  type Base = { guid: string; params: QueryParams };
+  export type Error = { kind: 'Error'; message: string } & Base;
+  export type Empty = { kind: 'Empty'; data: DataContext } & Base;
+  export type Data = {
+    kind: 'Data';
+    data: DataContext;
+    samplingInfo: QuerySamplingInfo;
+    values: TypedArrayValueArray[];
+  } & Base;
 }

@@ -15,37 +15,37 @@ import { openRead } from '@molstar/common-server/open-read';
 export { openRead };
 
 function makeDir(path: string, root?: string): boolean {
-    const dirs = path.split(/\/|\\/g),
-        dir = dirs.shift();
+  const dirs = path.split(/\/|\\/g),
+    dir = dirs.shift();
 
-    root = (root || '') + dir + '/';
+  root = (root || '') + dir + '/';
 
-    try {
-        fs.mkdirSync(root);
-    } catch (e) {
-        if (!fs.statSync(root).isDirectory()) throw new Error(e);
-    }
+  try {
+    fs.mkdirSync(root);
+  } catch (e) {
+    if (!fs.statSync(root).isDirectory()) throw new Error(e);
+  }
 
-    return !dirs.length || makeDir(dirs.join('/'), root);
+  return !dirs.length || makeDir(dirs.join('/'), root);
 }
 
 export function exists(filename: string) {
-    return fs.existsSync(filename);
+  return fs.existsSync(filename);
 }
 
 export function createFile(filename: string) {
-    return new Promise<number>((res, rej) => {
-        if (fs.existsSync(filename)) fs.unlinkSync(filename);
-        makeDir(path.dirname(filename));
-        fs.open(filename, 'w', (err, file) => {
-            if (err) rej(err);
-            else res(file);
-        });
+  return new Promise<number>((res, rej) => {
+    if (fs.existsSync(filename)) fs.unlinkSync(filename);
+    makeDir(path.dirname(filename));
+    fs.open(filename, 'w', (err, file) => {
+      if (err) rej(err);
+      else res(file);
     });
+  });
 }
 
 const smallBuffer = SimpleBuffer.fromBuffer(Buffer.alloc(8));
 export async function writeInt(file: FileHandle, value: number, position: number) {
-    smallBuffer.writeInt32LE(value, 0);
-    await file.writeBuffer(position, smallBuffer, 4);
+  smallBuffer.writeInt32LE(value, 0);
+  await file.writeBuffer(position, smallBuffer, 4);
 }

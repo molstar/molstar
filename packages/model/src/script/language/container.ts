@@ -7,7 +7,7 @@
 import type { Expression } from './expression.js';
 
 export interface Container {
-    source?: string,
-    version: string,
-    expression: Expression
+  source?: string;
+  version: string;
+  expression: Expression;
 }

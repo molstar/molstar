@@ -20,30 +20,36 @@ const SheetDelta = 1.42;
 const posA = Vec3();
 const posB = Vec3();
 
-function zhangSkolnickAtomicSS(unit: Unit.Atomic, residueIndices: SortedArray<ResidueIndex>, i: number, distances: number[], delta: number) {
-    const c = unit.conformation;
-    const { traceElementIndex } = unit.model.atomicHierarchy.derived.residue;
+function zhangSkolnickAtomicSS(
+  unit: Unit.Atomic,
+  residueIndices: SortedArray<ResidueIndex>,
+  i: number,
+  distances: number[],
+  delta: number,
+) {
+  const c = unit.conformation;
+  const { traceElementIndex } = unit.model.atomicHierarchy.derived.residue;
 
-    for (let j = Math.max(0, i - 2); j <= i; ++j) {
-        for (let k = 2; k < 5; ++k) {
-            if (j + k >= residueIndices.length) return false;
+  for (let j = Math.max(0, i - 2); j <= i; ++j) {
+    for (let k = 2; k < 5; ++k) {
+      if (j + k >= residueIndices.length) return false;
 
-            const rA = residueIndices[j];
-            const rB = residueIndices[j + k];
+      const rA = residueIndices[j];
+      const rB = residueIndices[j + k];
 
-            const aA = traceElementIndex[rA];
-            const aB = traceElementIndex[rB];
-            if (aA === -1 || aB === -1) return false;
+      const aA = traceElementIndex[rA];
+      const aB = traceElementIndex[rB];
+      if (aA === -1 || aB === -1) return false;
 
-            c.invariantPosition(aA as ElementIndex, posA);
-            c.invariantPosition(aB as ElementIndex, posB);
-            const d = Vec3.distance(posA, posB);
+      c.invariantPosition(aA as ElementIndex, posA);
+      c.invariantPosition(aB as ElementIndex, posB);
+      const d = Vec3.distance(posA, posB);
 
-            if (Math.abs(d - distances[k - 2]) >= delta) return false;
-        }
+      if (Math.abs(d - distances[k - 2]) >= delta) return false;
     }
+  }
 
-    return true;
+  return true;
 }
 
 /**
@@ -53,64 +59,64 @@ function zhangSkolnickAtomicSS(unit: Unit.Atomic, residueIndices: SortedArray<Re
  * While not as accurate as DSSP, it is faster and works for coarse-grained/backbone-only models.
  */
 export async function computeUnitZhangSkolnik(unit: Unit.Atomic): Promise<SecondaryStructure> {
-    const count = unit.proteinElements.length;
-    const type = new Uint32Array(count) as unknown as SecondaryStructureType[];
-    const keys: number[] = [];
-    const elements: SecondaryStructure.Element[] = [];
+  const count = unit.proteinElements.length;
+  const type = new Uint32Array(count) as unknown as SecondaryStructureType[];
+  const keys: number[] = [];
+  const elements: SecondaryStructure.Element[] = [];
 
-    const { proteinElements, residueIndex } = unit;
-    const residueCount = proteinElements.length;
-    const unitProteinResidues = new Uint32Array(residueCount);
-    for (let i = 0; i < residueCount; ++i) {
-        const rI = residueIndex[proteinElements[i]];
-        unitProteinResidues[i] = rI;
+  const { proteinElements, residueIndex } = unit;
+  const residueCount = proteinElements.length;
+  const unitProteinResidues = new Uint32Array(residueCount);
+  for (let i = 0; i < residueCount; ++i) {
+    const rI = residueIndex[proteinElements[i]];
+    unitProteinResidues[i] = rI;
+  }
+  const residueIndices = SortedArray.ofSortedArray<ResidueIndex>(unitProteinResidues);
+  const getIndex = (rI: ResidueIndex) => SortedArray.indexOf(residueIndices, rI);
+
+  for (let i = 0, il = residueIndices.length; i < il; ++i) {
+    let flag = SecondaryStructureType.Flag.None;
+    if (zhangSkolnickAtomicSS(unit, residueIndices, i, HelixDistances, HelixDelta)) {
+      flag = SecondaryStructureType.Flag.Helix;
+    } else if (zhangSkolnickAtomicSS(unit, residueIndices, i, SheetDistances, SheetDelta)) {
+      flag = SecondaryStructureType.Flag.Beta;
     }
-    const residueIndices = SortedArray.ofSortedArray<ResidueIndex>(unitProteinResidues);
-    const getIndex = (rI: ResidueIndex) => SortedArray.indexOf(residueIndices, rI);
-
-    for (let i = 0, il = residueIndices.length; i < il; ++i) {
-        let flag = SecondaryStructureType.Flag.None;
-        if (zhangSkolnickAtomicSS(unit, residueIndices, i, HelixDistances, HelixDelta)) {
-            flag = SecondaryStructureType.Flag.Helix;
-        } else if (zhangSkolnickAtomicSS(unit, residueIndices, i, SheetDistances, SheetDelta)) {
-            flag = SecondaryStructureType.Flag.Beta;
-        }
-        type[i] = flag;
-        if (elements.length === 0 || flag !== getFlag(elements[elements.length - 1])) {
-            elements[elements.length] = createElement(mapToKind(flag), flag);
-        }
-        keys[i] = elements.length - 1;
+    type[i] = flag;
+    if (elements.length === 0 || flag !== getFlag(elements[elements.length - 1])) {
+      elements[elements.length] = createElement(mapToKind(flag), flag);
     }
+    keys[i] = elements.length - 1;
+  }
 
-    return SecondaryStructure(type, keys, elements, getIndex);
+  return SecondaryStructure(type, keys, elements, getIndex);
 }
 
 function createElement(kind: string, flag: SecondaryStructureType.Flag): SecondaryStructure.Element {
-    if (kind === 'helix') {
-        return { kind: 'helix', flags: flag } as SecondaryStructure.Helix;
-    } else if (kind === 'sheet') {
-        return { kind: 'sheet', flags: flag } as SecondaryStructure.Sheet;
-    } else {
-        return { kind: 'none' };
-    }
+  if (kind === 'helix') {
+    return { kind: 'helix', flags: flag } as SecondaryStructure.Helix;
+  } else if (kind === 'sheet') {
+    return { kind: 'sheet', flags: flag } as SecondaryStructure.Sheet;
+  } else {
+    return { kind: 'none' };
+  }
 }
 
 function mapToKind(flag: SecondaryStructureType.Flag) {
-    if (flag === SecondaryStructureType.Flag.Helix) {
-        return 'helix';
-    } else if (flag === SecondaryStructureType.Flag.Beta) {
-        return 'sheet';
-    } else {
-        return 'none';
-    }
+  if (flag === SecondaryStructureType.Flag.Helix) {
+    return 'helix';
+  } else if (flag === SecondaryStructureType.Flag.Beta) {
+    return 'sheet';
+  } else {
+    return 'none';
+  }
 }
 
 function getFlag(element: SecondaryStructure.Element) {
-    if (element.kind === 'helix') {
-        return element.flags;
-    } else if (element.kind === 'sheet') {
-        return element.flags;
-    } else {
-        return SecondaryStructureType.Flag.None;
-    }
+  if (element.kind === 'helix') {
+    return element.flags;
+  } else if (element.kind === 'sheet') {
+    return element.flags;
+  } else {
+    return SecondaryStructureType.Flag.None;
+  }
 }

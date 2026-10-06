@@ -19,26 +19,31 @@ export type NtCTubeParams = typeof NtCTubeParams;
 export type NtCTubeProps = PD.Values<NtCTubeParams>;
 export type NtCTubeData = PropertyWrapper<NTT.Data | undefined>;
 
-async function fromCif(ctx: CustomProperty.Context, model: Model, props: NtCTubeProps): Promise<CustomProperty.Data<NtCTubeData>> {
-    const info = PropertyWrapper.createInfo();
-    const data = Dnatco.getCifData(model);
-    if (data === undefined) return { value: { info, data: undefined } };
+async function fromCif(
+  ctx: CustomProperty.Context,
+  model: Model,
+  props: NtCTubeProps,
+): Promise<CustomProperty.Data<NtCTubeData>> {
+  const info = PropertyWrapper.createInfo();
+  const data = Dnatco.getCifData(model);
+  if (data === undefined) return { value: { info, data: undefined } };
 
-    const steps = Dnatco.getStepsFromCif(model, data.steps, data.stepsSummary);
-    return { value: { info, data: { data: steps } } };
+  const steps = Dnatco.getStepsFromCif(model, data.steps, data.stepsSummary);
+  return { value: { info, data: { data: steps } } };
 }
 
-export const NtCTubeProvider: CustomModelProperty.Provider<NtCTubeParams, NtCTubeData> = CustomModelProperty.createProvider({
+export const NtCTubeProvider: CustomModelProperty.Provider<NtCTubeParams, NtCTubeData> =
+  CustomModelProperty.createProvider({
     label: 'NtC Tube',
     descriptor: CustomPropertyDescriptor({
-        name: 'ntc-tube',
+      name: 'ntc-tube',
     }),
     type: 'static',
     defaultParams: NtCTubeParams,
     getParams: (data: Model) => NtCTubeParams,
     isApplicable: (data: Model) => Dnatco.isApplicable(data),
     obtain: async (ctx: CustomProperty.Context, data: Model, props: Partial<NtCTubeProps>) => {
-        const p = { ...PD.getDefaultValues(NtCTubeParams), ...props };
-        return fromCif(ctx, data, p);
-    }
-});
+      const p = { ...PD.getDefaultValues(NtCTubeParams), ...props };
+      return fromCif(ctx, data, p);
+    },
+  });

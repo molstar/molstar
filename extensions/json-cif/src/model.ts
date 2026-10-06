@@ -9,23 +9,26 @@ import { Table } from '@molstar/core/data/db';
 export const JSONCifVERSION = '0.1.0';
 
 export interface JSONCifFile {
-    version: string;
-    encoder: string;
-    dataBlocks: JSONCifDataBlock[];
+  version: string;
+  encoder: string;
+  dataBlocks: JSONCifDataBlock[];
 }
 
 export interface JSONCifDataBlock {
-    header: string,
-    categoryNames: string[],
-    categories: Record<string, JSONCifCategory>,
+  header: string;
+  categoryNames: string[];
+  categories: Record<string, JSONCifCategory>;
 }
 
 export interface JSONCifCategory<T extends Record<string, any> = Record<string, any>> {
-    name: string,
-    fieldNames: string[],
-    rows: T[],
+  name: string;
+  fieldNames: string[];
+  rows: T[];
 }
 
-export function getJSONCifCategory<S extends Table.Schema>(block: JSONCifDataBlock, name: string): JSONCifCategory<Table.Row<S>> | undefined {
-    return block.categories[name] as any;
+export function getJSONCifCategory<S extends Table.Schema>(
+  block: JSONCifDataBlock,
+  name: string,
+): JSONCifCategory<Table.Row<S>> | undefined {
+  return block.categories[name] as any;
 }

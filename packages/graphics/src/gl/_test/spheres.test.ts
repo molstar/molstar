@@ -13,24 +13,24 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 
 export function createSpheres() {
-    const spheres = Spheres.createEmpty();
-    const props = PD.getDefaultValues(Spheres.Params);
-    const values = Spheres.Utils.createValuesSimple(spheres, props, ColorNames.orange, 1);
-    const state = Spheres.Utils.createRenderableState(props);
-    return createRenderObject('spheres', values, state, -1);
+  const spheres = Spheres.createEmpty();
+  const props = PD.getDefaultValues(Spheres.Params);
+  const values = Spheres.Utils.createValuesSimple(spheres, props, ColorNames.orange, 1);
+  const state = Spheres.Utils.createRenderableState(props);
+  return createRenderObject('spheres', values, state, -1);
 }
 
 describe('spheres', () => {
-    const ctx = tryGetGLContext(32, 32, { fragDepth: true, textureFloat: true });
+  const ctx = tryGetGLContext(32, 32, { fragDepth: true, textureFloat: true });
 
-    (ctx ? it : it.skip)('basic', async () => {
-        const ctx = getGLContext(32, 32);
-        const scene = Scene.create(ctx);
-        const spheres = createSpheres();
-        scene.add(spheres);
-        setDebugMode(true);
-        expect(() => scene.commit()).not.toThrow();
-        setDebugMode(false);
-        ctx.destroy();
-    });
+  (ctx ? it : it.skip)('basic', async () => {
+    const ctx = getGLContext(32, 32);
+    const scene = Scene.create(ctx);
+    const spheres = createSpheres();
+    scene.add(spheres);
+    setDebugMode(true);
+    expect(() => scene.commit()).not.toThrow();
+    setDebugMode(false);
+    ctx.destroy();
+  });
 });

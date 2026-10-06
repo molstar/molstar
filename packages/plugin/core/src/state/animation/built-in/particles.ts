@@ -9,12 +9,12 @@ import { StateTransforms } from '../../transforms.js';
 import { createTrajectoryAnimation } from '../trajectory.js';
 
 export const AnimateParticleTrajectory = createTrajectoryAnimation({
-    name: 'built-in.animate-particle-trajectory',
-    display: { name: 'Animate Particle Trajectory' },
-    transformer: StateTransforms.Particles.ParticleListFromTrajectory,
-    trajectoryType: PluginStateObject.Particle.Trajectory,
-    noTrajectoryReason: 'No particle trajectory to animate',
-    getFrameCount: data => data.frameCount,
-    getFrameIndex: params => params.frameIndex,
-    setFrameIndex: frameIndex => ({ frameIndex })
+  name: 'built-in.animate-particle-trajectory',
+  display: { name: 'Animate Particle Trajectory' },
+  transformer: StateTransforms.Particles.ParticleListFromTrajectory,
+  trajectoryType: PluginStateObject.Particle.Trajectory,
+  noTrajectoryReason: 'No particle trajectory to animate',
+  getFrameCount: (data) => data.frameCount,
+  getFrameIndex: (params) => params.frameIndex,
+  setFrameIndex: (frameIndex) => ({ frameIndex }),
 });

@@ -14,7 +14,10 @@ import { DebugHelpers } from '@molstar/debug-helpers-extension';
 import { DnatcoNtCs } from '@molstar/dnatco-extension';
 import { G3DFormat } from '@molstar/g3d-extension/format';
 import { GeometryExport } from '@molstar/geo-export-extension';
-import { MAQualityAssessment, MAQualityAssessmentConfig } from '@molstar/model-archive-extension/quality-assessment/behavior';
+import {
+  MAQualityAssessment,
+  MAQualityAssessmentConfig,
+} from '@molstar/model-archive-extension/quality-assessment/behavior';
 import { ModelExport } from '@molstar/model-export-extension';
 import { Mp4Export } from '@molstar/mp4-export-extension';
 import { loadMVS } from '@molstar/mvs';
@@ -36,51 +39,51 @@ import { PluginViewModel } from '@molstar/plugin-extension/view-model';
 import { PluginUIViewModel } from '@molstar/plugin-extension/ui-view-model';
 
 export const ExtensionMap = {
-    // Mol* built-in extensions
-    'mvs': PluginSpec.Behavior(MolViewSpec),
-    'backgrounds': PluginSpec.Behavior(Backgrounds),
-    'debug-helpers': PluginSpec.Behavior(DebugHelpers),
-    'model-export': PluginSpec.Behavior(ModelExport),
-    'mp4-export': PluginSpec.Behavior(Mp4Export),
-    'geo-export': PluginSpec.Behavior(GeometryExport),
-    'zenodo-import': PluginSpec.Behavior(ZenodoImport),
-    'wwpdb-chemical-component-dictionary': PluginSpec.Behavior(wwPDBChemicalComponentDictionary),
-    'kinemage': PluginSpec.Behavior(KinemageExtension),
+  // Mol* built-in extensions
+  mvs: PluginSpec.Behavior(MolViewSpec),
+  backgrounds: PluginSpec.Behavior(Backgrounds),
+  'debug-helpers': PluginSpec.Behavior(DebugHelpers),
+  'model-export': PluginSpec.Behavior(ModelExport),
+  'mp4-export': PluginSpec.Behavior(Mp4Export),
+  'geo-export': PluginSpec.Behavior(GeometryExport),
+  'zenodo-import': PluginSpec.Behavior(ZenodoImport),
+  'wwpdb-chemical-component-dictionary': PluginSpec.Behavior(wwPDBChemicalComponentDictionary),
+  kinemage: PluginSpec.Behavior(KinemageExtension),
 
-    // 3rd party extensions
-    'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
-    'dnatco-ntcs': PluginSpec.Behavior(DnatcoNtCs),
-    'assembly-symmetry': PluginSpec.Behavior(AssemblySymmetry),
-    'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
-    'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
-    'g3d': PluginSpec.Behavior(G3DFormat), // TODO: consider removing this for Mol* 6.0
-    'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
-    'sb-ncbr-partial-charges': PluginSpec.Behavior(SbNcbrPartialCharges),
-    'tunnels': PluginSpec.Behavior(SbNcbrTunnels),
+  // 3rd party extensions
+  'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
+  'dnatco-ntcs': PluginSpec.Behavior(DnatcoNtCs),
+  'assembly-symmetry': PluginSpec.Behavior(AssemblySymmetry),
+  'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
+  'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
+  g3d: PluginSpec.Behavior(G3DFormat), // TODO: consider removing this for Mol* 6.0
+  'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
+  'sb-ncbr-partial-charges': PluginSpec.Behavior(SbNcbrPartialCharges),
+  tunnels: PluginSpec.Behavior(SbNcbrTunnels),
 };
 
 export const PluginExtensions = {
-    wwPDBStructConn: wwPDBStructConnExtensionFunctions,
-    mvs: {
-        MVSData,
-        createBuilder: MVSData.createBuilder,
-        loadMVS,
-        loadMVSData,
-        util: {
-            ...MVSUtil
-        }
+  wwPDBStructConn: wwPDBStructConnExtensionFunctions,
+  mvs: {
+    MVSData,
+    createBuilder: MVSData.createBuilder,
+    loadMVS,
+    loadMVSData,
+    util: {
+      ...MVSUtil,
     },
-    modelArchive: {
-        qualityAssessment: {
-            config: MAQualityAssessmentConfig
-        }
+  },
+  modelArchive: {
+    qualityAssessment: {
+      config: MAQualityAssessmentConfig,
     },
-    plugin: {
-        interactivity,
-        loaders,
-        models: {
-            PluginViewModel,
-            PluginUIViewModel,
-        },
+  },
+  plugin: {
+    interactivity,
+    loaders,
+    models: {
+      PluginViewModel,
+      PluginUIViewModel,
     },
+  },
 };

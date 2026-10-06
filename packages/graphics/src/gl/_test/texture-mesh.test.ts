@@ -13,24 +13,24 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
 
 export function createTextureMesh() {
-    const textureMesh = TextureMesh.createEmpty();
-    const props = PD.getDefaultValues(TextureMesh.Params);
-    const values = TextureMesh.Utils.createValuesSimple(textureMesh, props, ColorNames.orange, 1);
-    const state = TextureMesh.Utils.createRenderableState(props);
-    return createRenderObject('texture-mesh', values, state, -1);
+  const textureMesh = TextureMesh.createEmpty();
+  const props = PD.getDefaultValues(TextureMesh.Params);
+  const values = TextureMesh.Utils.createValuesSimple(textureMesh, props, ColorNames.orange, 1);
+  const state = TextureMesh.Utils.createRenderableState(props);
+  return createRenderObject('texture-mesh', values, state, -1);
 }
 
 describe('texture-mesh', () => {
-    const ctx = tryGetGLContext(32, 32);
+  const ctx = tryGetGLContext(32, 32);
 
-    (ctx ? it : it.skip)('basic', async () => {
-        const ctx = getGLContext(32, 32);
-        const scene = Scene.create(ctx);
-        const textureMesh = createTextureMesh();
-        scene.add(textureMesh);
-        setDebugMode(true);
-        expect(() => scene.commit()).not.toThrow();
-        setDebugMode(false);
-        ctx.destroy();
-    });
+  (ctx ? it : it.skip)('basic', async () => {
+    const ctx = getGLContext(32, 32);
+    const scene = Scene.create(ctx);
+    const textureMesh = createTextureMesh();
+    scene.add(textureMesh);
+    setDebugMode(true);
+    expect(() => scene.commit()).not.toThrow();
+    setDebugMode(false);
+    ctx.destroy();
+  });
 });

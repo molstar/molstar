@@ -48,31 +48,31 @@ canvas3d.animate();
 
 const xrButton = document.createElement('button');
 Object.assign(xrButton.style, {
-    bottom: '30px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    background: 'grey',
-    zIndex: 1000,
-    position: 'absolute',
-    mixBlendMode: 'luminosity',
-    color: 'white',
-    border: 'white 2px solid',
-    padding: '6px',
-    display: 'none',
+  bottom: '30px',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  background: 'grey',
+  zIndex: 1000,
+  position: 'absolute',
+  mixBlendMode: 'luminosity',
+  color: 'white',
+  border: 'white 2px solid',
+  padding: '6px',
+  display: 'none',
 });
 parent.appendChild(xrButton);
 xrButton.onclick = () => {
-    if (canvas3d.xr.isPresenting.value) {
-        canvas3d.xr.end();
-    } else {
-        canvas3d.xr.request();
-    }
+  if (canvas3d.xr.isPresenting.value) {
+    canvas3d.xr.end();
+  } else {
+    canvas3d.xr.request();
+  }
 };
-canvas3d.xr.isPresenting.subscribe(value => {
-    xrButton.textContent = value ? 'Exit XR' : 'Enter XR';
+canvas3d.xr.isPresenting.subscribe((value) => {
+  xrButton.textContent = value ? 'Exit XR' : 'Enter XR';
 });
-canvas3d.xr.isSupported.subscribe(value => {
-    xrButton.style.display = value ? 'block' : 'none';
+canvas3d.xr.isSupported.subscribe((value) => {
+  xrButton.style.display = value ? 'block' : 'none';
 });
 
 const info = document.createElement('div');
@@ -86,175 +86,210 @@ parent.appendChild(info);
 
 let prevReprLoci = Representation.Loci.Empty;
 canvas3d.input.move.pipe(throttleTime(100)).subscribe(({ x, y }) => {
-    const pickingId = canvas3d.identify(Vec2.create(x, y))?.id;
-    let label = '';
-    if (pickingId) {
-        const reprLoci = canvas3d.getLoci(pickingId);
-        label = lociLabel(reprLoci.loci);
-        if (!Representation.Loci.areEqual(prevReprLoci, reprLoci)) {
-            canvas3d.mark(prevReprLoci, MarkerAction.RemoveHighlight);
-            canvas3d.mark(reprLoci, MarkerAction.Highlight);
-            prevReprLoci = reprLoci;
-        }
-    } else {
-        canvas3d.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
-        prevReprLoci = Representation.Loci.Empty;
+  const pickingId = canvas3d.identify(Vec2.create(x, y))?.id;
+  let label = '';
+  if (pickingId) {
+    const reprLoci = canvas3d.getLoci(pickingId);
+    label = lociLabel(reprLoci.loci);
+    if (!Representation.Loci.areEqual(prevReprLoci, reprLoci)) {
+      canvas3d.mark(prevReprLoci, MarkerAction.RemoveHighlight);
+      canvas3d.mark(reprLoci, MarkerAction.Highlight);
+      prevReprLoci = reprLoci;
     }
-    info.innerHTML = label;
+  } else {
+    canvas3d.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+    prevReprLoci = Representation.Loci.Empty;
+  }
+  info.innerHTML = label;
 });
 
 canvas3d.input.resize.subscribe(() => {
-    resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
-    canvas3dContext.syncPixelScale();
-    canvas3d.requestResize();
+  resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
+  canvas3dContext.syncPixelScale();
+  canvas3d.requestResize();
 });
 
 async function parseCif(data: string | Uint8Array) {
-    const comp = CIF.parse(data);
-    const parsed = await comp.run();
-    if (parsed.isError) throw parsed;
-    return parsed.result;
+  const comp = CIF.parse(data);
+  const parsed = await comp.run();
+  if (parsed.isError) throw parsed;
+  return parsed.result;
 }
 
 async function downloadCif(url: string, isBinary: boolean) {
-    const data = await fetch(url);
-    return parseCif(isBinary ? new Uint8Array(await data.arrayBuffer()) : await data.text());
+  const data = await fetch(url);
+  return parseCif(isBinary ? new Uint8Array(await data.arrayBuffer()) : await data.text());
 }
 
 async function downloadFromPdb(pdb: string) {
-    const parsed = await downloadCif(`https://models.rcsb.org/${pdb}.bcif`, true);
-    return parsed.blocks[0];
+  const parsed = await downloadCif(`https://models.rcsb.org/${pdb}.bcif`, true);
+  return parsed.blocks[0];
 }
 
 async function getModels(frame: CifFrame) {
-    return await trajectoryFromMmCIF(frame).run();
+  return await trajectoryFromMmCIF(frame).run();
 }
 
 async function getStructure(model: Model) {
-    return Structure.ofModel(model);
+  return Structure.ofModel(model);
 }
 
 const reprCtx = {
-    webgl: canvas3d.webgl,
-    colorThemeRegistry: ColorTheme.createRegistry(),
-    sizeThemeRegistry: SizeTheme.createRegistry()
+  webgl: canvas3d.webgl,
+  colorThemeRegistry: ColorTheme.createRegistry(),
+  sizeThemeRegistry: SizeTheme.createRegistry(),
 };
 function getCartoonRepr() {
-    return CartoonRepresentationProvider.factory(reprCtx, CartoonRepresentationProvider.getParams);
+  return CartoonRepresentationProvider.factory(reprCtx, CartoonRepresentationProvider.getParams);
 }
 
 function getInteractionRepr() {
-    return InteractionsRepresentationProvider.factory(reprCtx, InteractionsRepresentationProvider.getParams);
+  return InteractionsRepresentationProvider.factory(reprCtx, InteractionsRepresentationProvider.getParams);
 }
 
 function getBallAndStickRepr() {
-    return BallAndStickRepresentationProvider.factory(reprCtx, BallAndStickRepresentationProvider.getParams);
+  return BallAndStickRepresentationProvider.factory(reprCtx, BallAndStickRepresentationProvider.getParams);
 }
 
 function getMolecularSurfaceRepr() {
-    return MolecularSurfaceRepresentationProvider.factory(reprCtx, MolecularSurfaceRepresentationProvider.getParams);
+  return MolecularSurfaceRepresentationProvider.factory(reprCtx, MolecularSurfaceRepresentationProvider.getParams);
 }
 
 function getGaussianSurfaceRepr() {
-    return GaussianSurfaceRepresentationProvider.factory(reprCtx, GaussianSurfaceRepresentationProvider.getParams);
+  return GaussianSurfaceRepresentationProvider.factory(reprCtx, GaussianSurfaceRepresentationProvider.getParams);
 }
 
 function getMembraneOrientationRepr() {
-    return MembraneOrientationRepresentationProvider.factory(reprCtx, MembraneOrientationRepresentationProvider.getParams);
+  return MembraneOrientationRepresentationProvider.factory(
+    reprCtx,
+    MembraneOrientationRepresentationProvider.getParams,
+  );
 }
 
 async function init() {
-    const ctx = { runtime: SyncRuntimeContext, assetManager };
+  const ctx = { runtime: SyncRuntimeContext, assetManager };
 
-    const cif = await downloadFromPdb('3pqr');
-    const models = await getModels(cif);
-    const structure = await getStructure(models.representative);
+  const cif = await downloadFromPdb('3pqr');
+  const models = await getModels(cif);
+  const structure = await getStructure(models.representative);
 
-    console.time('compute SecondaryStructure');
-    await SecondaryStructureProvider.attach(ctx, structure);
-    console.timeEnd('compute SecondaryStructure');
+  console.time('compute SecondaryStructure');
+  await SecondaryStructureProvider.attach(ctx, structure);
+  console.timeEnd('compute SecondaryStructure');
 
-    console.time('compute Membrane Orientation');
-    await MembraneOrientationProvider.attach(ctx, structure);
-    console.timeEnd('compute Membrane Orientation');
+  console.time('compute Membrane Orientation');
+  await MembraneOrientationProvider.attach(ctx, structure);
+  console.timeEnd('compute Membrane Orientation');
 
-    console.time('compute Interactions');
-    await InteractionsProvider.attach(ctx, structure);
-    console.timeEnd('compute Interactions');
-    console.log(InteractionsProvider.get(structure).value);
+  console.time('compute Interactions');
+  await InteractionsProvider.attach(ctx, structure);
+  console.timeEnd('compute Interactions');
+  console.log(InteractionsProvider.get(structure).value);
 
-    const show = {
-        cartoon: true,
-        interaction: true,
-        ballAndStick: true,
-        molecularSurface: false,
-        gaussianSurface: false,
-        membrane: true
-    };
+  const show = {
+    cartoon: true,
+    interaction: true,
+    ballAndStick: true,
+    molecularSurface: false,
+    gaussianSurface: false,
+    membrane: true,
+  };
 
-    const cartoonRepr = getCartoonRepr();
-    const interactionRepr = getInteractionRepr();
-    const ballAndStickRepr = getBallAndStickRepr();
-    const molecularSurfaceRepr = getMolecularSurfaceRepr();
-    const gaussianSurfaceRepr = getGaussianSurfaceRepr();
-    const membraneOrientationRepr = getMembraneOrientationRepr();
+  const cartoonRepr = getCartoonRepr();
+  const interactionRepr = getInteractionRepr();
+  const ballAndStickRepr = getBallAndStickRepr();
+  const molecularSurfaceRepr = getMolecularSurfaceRepr();
+  const gaussianSurfaceRepr = getGaussianSurfaceRepr();
+  const membraneOrientationRepr = getMembraneOrientationRepr();
 
-    if (show.cartoon) {
-        cartoonRepr.setTheme({
-            color: reprCtx.colorThemeRegistry.create('element-symbol', { structure }),
-            size: reprCtx.sizeThemeRegistry.create('uniform', { structure })
-        });
-        await cartoonRepr.createOrUpdate({ ...CartoonRepresentationProvider.defaultValues, quality: 'auto' }, structure).run();
-    }
+  if (show.cartoon) {
+    cartoonRepr.setTheme({
+      color: reprCtx.colorThemeRegistry.create('element-symbol', { structure }),
+      size: reprCtx.sizeThemeRegistry.create('uniform', { structure }),
+    });
+    await cartoonRepr
+      .createOrUpdate({ ...CartoonRepresentationProvider.defaultValues, quality: 'auto' }, structure)
+      .run();
+  }
 
-    if (show.interaction) {
-        interactionRepr.setTheme({
-            color: reprCtx.colorThemeRegistry.create('interaction-type', { structure }),
-            size: reprCtx.sizeThemeRegistry.create('uniform', { structure })
-        });
-        await interactionRepr.createOrUpdate({ ...InteractionsRepresentationProvider.defaultValues, quality: 'auto' }, structure).run();
-    }
+  if (show.interaction) {
+    interactionRepr.setTheme({
+      color: reprCtx.colorThemeRegistry.create('interaction-type', { structure }),
+      size: reprCtx.sizeThemeRegistry.create('uniform', { structure }),
+    });
+    await interactionRepr
+      .createOrUpdate({ ...InteractionsRepresentationProvider.defaultValues, quality: 'auto' }, structure)
+      .run();
+  }
 
-    if (show.ballAndStick) {
-        ballAndStickRepr.setTheme({
-            color: reprCtx.colorThemeRegistry.create('element-symbol', { structure }),
-            size: reprCtx.sizeThemeRegistry.create('uniform', { structure }, { value: 1 })
-        });
-        await ballAndStickRepr.createOrUpdate({ ...BallAndStickRepresentationProvider.defaultValues, quality: 'auto' }, structure).run();
-    }
+  if (show.ballAndStick) {
+    ballAndStickRepr.setTheme({
+      color: reprCtx.colorThemeRegistry.create('element-symbol', { structure }),
+      size: reprCtx.sizeThemeRegistry.create('uniform', { structure }, { value: 1 }),
+    });
+    await ballAndStickRepr
+      .createOrUpdate({ ...BallAndStickRepresentationProvider.defaultValues, quality: 'auto' }, structure)
+      .run();
+  }
 
-    if (show.molecularSurface) {
-        molecularSurfaceRepr.setTheme({
-            color: reprCtx.colorThemeRegistry.create('secondary-structure', { structure }),
-            size: reprCtx.sizeThemeRegistry.create('physical', { structure })
-        });
-        console.time('molecular surface');
-        await molecularSurfaceRepr.createOrUpdate({ ...MolecularSurfaceRepresentationProvider.defaultValues, quality: 'custom', alpha: 0.5, flatShaded: true, doubleSided: true, resolution: 0.3 }, structure).run();
-        console.timeEnd('molecular surface');
-    }
+  if (show.molecularSurface) {
+    molecularSurfaceRepr.setTheme({
+      color: reprCtx.colorThemeRegistry.create('secondary-structure', { structure }),
+      size: reprCtx.sizeThemeRegistry.create('physical', { structure }),
+    });
+    console.time('molecular surface');
+    await molecularSurfaceRepr
+      .createOrUpdate(
+        {
+          ...MolecularSurfaceRepresentationProvider.defaultValues,
+          quality: 'custom',
+          alpha: 0.5,
+          flatShaded: true,
+          doubleSided: true,
+          resolution: 0.3,
+        },
+        structure,
+      )
+      .run();
+    console.timeEnd('molecular surface');
+  }
 
-    if (show.gaussianSurface) {
-        gaussianSurfaceRepr.setTheme({
-            color: reprCtx.colorThemeRegistry.create('secondary-structure', { structure }),
-            size: reprCtx.sizeThemeRegistry.create('physical', { structure })
-        });
-        console.time('gaussian surface');
-        await gaussianSurfaceRepr.createOrUpdate({ ...GaussianSurfaceRepresentationProvider.defaultValues, quality: 'custom', alpha: 1.0, flatShaded: true, doubleSided: true, resolution: 0.3 }, structure).run();
-        console.timeEnd('gaussian surface');
-    }
+  if (show.gaussianSurface) {
+    gaussianSurfaceRepr.setTheme({
+      color: reprCtx.colorThemeRegistry.create('secondary-structure', { structure }),
+      size: reprCtx.sizeThemeRegistry.create('physical', { structure }),
+    });
+    console.time('gaussian surface');
+    await gaussianSurfaceRepr
+      .createOrUpdate(
+        {
+          ...GaussianSurfaceRepresentationProvider.defaultValues,
+          quality: 'custom',
+          alpha: 1.0,
+          flatShaded: true,
+          doubleSided: true,
+          resolution: 0.3,
+        },
+        structure,
+      )
+      .run();
+    console.timeEnd('gaussian surface');
+  }
 
-    if (show.membrane) {
-        await membraneOrientationRepr.createOrUpdate({ ...MembraneOrientationRepresentationProvider.defaultValues, quality: 'auto' }, structure).run();
-    }
+  if (show.membrane) {
+    await membraneOrientationRepr
+      .createOrUpdate({ ...MembraneOrientationRepresentationProvider.defaultValues, quality: 'auto' }, structure)
+      .run();
+  }
 
-    if (show.cartoon) canvas3d.add(cartoonRepr);
-    if (show.interaction) canvas3d.add(interactionRepr);
-    if (show.ballAndStick) canvas3d.add(ballAndStickRepr);
-    if (show.molecularSurface) canvas3d.add(molecularSurfaceRepr);
-    if (show.gaussianSurface) canvas3d.add(gaussianSurfaceRepr);
-    if (show.membrane) canvas3d.add(membraneOrientationRepr);
-    canvas3d.requestCameraReset();
-    // canvas3d.setProps({ trackball: { ...canvas3d.props.trackball, spin: true } })
+  if (show.cartoon) canvas3d.add(cartoonRepr);
+  if (show.interaction) canvas3d.add(interactionRepr);
+  if (show.ballAndStick) canvas3d.add(ballAndStickRepr);
+  if (show.molecularSurface) canvas3d.add(molecularSurfaceRepr);
+  if (show.gaussianSurface) canvas3d.add(gaussianSurfaceRepr);
+  if (show.membrane) canvas3d.add(membraneOrientationRepr);
+  canvas3d.requestCameraReset();
+  // canvas3d.setProps({ trackball: { ...canvas3d.props.trackball, spin: true } })
 }
 
 init();

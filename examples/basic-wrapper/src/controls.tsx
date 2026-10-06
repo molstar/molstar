@@ -7,9 +7,11 @@
 import { PluginUIComponent } from '@molstar/plugin-ui/base';
 
 export class CustomToastMessage extends PluginUIComponent {
-    render() {
-        return <>
-            Custom <i>Toast</i> content. No timeout.
-        </>;
-    }
+  render() {
+    return (
+      <>
+        Custom <i>Toast</i> content. No timeout.
+      </>
+    );
+  }
 }

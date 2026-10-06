@@ -25,97 +25,112 @@ const TwoIssuesColor = Color(0xf46d43);
 const ThreeOrMoreIssuesColor = Color(0xa50026);
 
 const ColorLegend = TableLegend([
-    ['Data unavailable', DefaultColor],
-    ['No issues', NoIssuesColor],
-    ['One issue', OneIssueColor],
-    ['Two issues', TwoIssuesColor],
-    ['Three or more issues', ThreeOrMoreIssuesColor],
+  ['Data unavailable', DefaultColor],
+  ['No issues', NoIssuesColor],
+  ['One issue', OneIssueColor],
+  ['Two issues', TwoIssuesColor],
+  ['Three or more issues', ThreeOrMoreIssuesColor],
 ]);
 
 export function getGeometricQualityColorThemeParams(ctx: ThemeDataContext) {
-    const validationReport = !!ctx.structure && ctx.structure.models.length > 0 && ValidationReportProvider.get(ctx.structure.models[0]).value;
-    const options: [string, string][] = [];
-    if (validationReport) {
-        const kinds = new Set<string>();
-        validationReport.geometryIssues.forEach(v => v.forEach(k => kinds.add(k)));
-        kinds.forEach(k => options.push([k, k]));
-    }
-    return {
-        ignore: PD.MultiSelect([] as string[], options)
-    };
+  const validationReport =
+    !!ctx.structure && ctx.structure.models.length > 0 && ValidationReportProvider.get(ctx.structure.models[0]).value;
+  const options: [string, string][] = [];
+  if (validationReport) {
+    const kinds = new Set<string>();
+    validationReport.geometryIssues.forEach((v) => v.forEach((k) => kinds.add(k)));
+    kinds.forEach((k) => options.push([k, k]));
+  }
+  return {
+    ignore: PD.MultiSelect([] as string[], options),
+  };
 }
-export type GeometricQualityColorThemeParams = ReturnType<typeof getGeometricQualityColorThemeParams>
+export type GeometricQualityColorThemeParams = ReturnType<typeof getGeometricQualityColorThemeParams>;
 
-export function GeometryQualityColorTheme(ctx: ThemeDataContext, props: PD.Values<GeometricQualityColorThemeParams>): ColorTheme<GeometricQualityColorThemeParams> {
-    let color: LocationColor = () => DefaultColor;
+export function GeometryQualityColorTheme(
+  ctx: ThemeDataContext,
+  props: PD.Values<GeometricQualityColorThemeParams>,
+): ColorTheme<GeometricQualityColorThemeParams> {
+  let color: LocationColor = () => DefaultColor;
 
-    const validationReport = !!ctx.structure && ctx.structure.models.length > 0 ? ValidationReportProvider.get(ctx.structure.models[0]) : void 0;
-    const contextHash = validationReport?.version;
+  const validationReport =
+    !!ctx.structure && ctx.structure.models.length > 0 ? ValidationReportProvider.get(ctx.structure.models[0]) : void 0;
+  const contextHash = validationReport?.version;
 
-    const value = validationReport?.value;
-    const model = ctx.structure?.models[0];
+  const value = validationReport?.value;
+  const model = ctx.structure?.models[0];
 
-    if (value && model) {
-        const { geometryIssues, clashes, bondOutliers, angleOutliers } = value;
-        const residueIndex = model.atomicHierarchy.residueAtomSegments.index;
-        const { polymerType } = model.atomicHierarchy.derived.residue;
-        const ignore = new Set(props.ignore);
-        const getColor = (element: ElementIndex) => {
-            const rI = residueIndex[element];
+  if (value && model) {
+    const { geometryIssues, clashes, bondOutliers, angleOutliers } = value;
+    const residueIndex = model.atomicHierarchy.residueAtomSegments.index;
+    const { polymerType } = model.atomicHierarchy.derived.residue;
+    const ignore = new Set(props.ignore);
+    const getColor = (element: ElementIndex) => {
+      const rI = residueIndex[element];
 
-            const value = geometryIssues.get(rI);
-            if (value === undefined) return DefaultColor;
+      const value = geometryIssues.get(rI);
+      if (value === undefined) return DefaultColor;
 
-            let count = SetUtils.differenceSize(value, ignore);
+      let count = SetUtils.differenceSize(value, ignore);
 
-            if (count > 0 && polymerType[rI] === PolymerType.NA) {
-                count = 0;
-                if (!ignore.has('clash') && clashes.getVertexEdgeCount(element) > 0) count += 1;
-                if (!ignore.has('mog-bond-outlier') && bondOutliers.index.has(element)) count += 1;
-                if (!ignore.has('mog-angle-outlier') && angleOutliers.index.has(element)) count += 1;
-            }
+      if (count > 0 && polymerType[rI] === PolymerType.NA) {
+        count = 0;
+        if (!ignore.has('clash') && clashes.getVertexEdgeCount(element) > 0) count += 1;
+        if (!ignore.has('mog-bond-outlier') && bondOutliers.index.has(element)) count += 1;
+        if (!ignore.has('mog-angle-outlier') && angleOutliers.index.has(element)) count += 1;
+      }
 
-            switch (count) {
-                case undefined: return DefaultColor;
-                case 0: return NoIssuesColor;
-                case 1: return OneIssueColor;
-                case 2: return TwoIssuesColor;
-                default: return ThreeOrMoreIssuesColor;
-            }
-        };
-
-        color = (location: Location): Color => {
-            if (StructureElement.Location.is(location) && location.unit.model === model) {
-                return getColor(location.element);
-            } else if (Bond.isLocation(location) && location.aUnit.model === model) {
-                return getColor(location.aUnit.elements[location.aIndex]);
-            }
-            return DefaultColor;
-        };
-    }
-
-    return {
-        factory: GeometryQualityColorTheme,
-        granularity: 'group',
-        preferSmoothing: true,
-        color,
-        props,
-        contextHash,
-        description: 'Assigns residue colors according to the number of (filtered) geometry issues. Data from wwPDB Validation Report, obtained via RCSB PDB.',
-        legend: ColorLegend
+      switch (count) {
+        case undefined:
+          return DefaultColor;
+        case 0:
+          return NoIssuesColor;
+        case 1:
+          return OneIssueColor;
+        case 2:
+          return TwoIssuesColor;
+        default:
+          return ThreeOrMoreIssuesColor;
+      }
     };
-}
 
-export const GeometryQualityColorThemeProvider: ColorTheme.Provider<GeometricQualityColorThemeParams, ValidationReport.Tag.GeometryQuality> = {
-    name: ValidationReport.Tag.GeometryQuality,
-    label: 'Geometry Quality',
-    category: ColorThemeCategory.Validation,
+    color = (location: Location): Color => {
+      if (StructureElement.Location.is(location) && location.unit.model === model) {
+        return getColor(location.element);
+      } else if (Bond.isLocation(location) && location.aUnit.model === model) {
+        return getColor(location.aUnit.elements[location.aIndex]);
+      }
+      return DefaultColor;
+    };
+  }
+
+  return {
     factory: GeometryQualityColorTheme,
-    getParams: getGeometricQualityColorThemeParams,
-    defaultValues: PD.getDefaultValues(getGeometricQualityColorThemeParams({})),
-    isApplicable: (ctx: ThemeDataContext) => ValidationReport.isApplicable(ctx.structure?.models[0]),
-    ensureCustomProperties: {
-        attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? ValidationReportProvider.attach(ctx, data.structure.models[0], void 0, true) : Promise.resolve(),
-        detach: (data) => data.structure && ValidationReportProvider.ref(data.structure.models[0], false)
-    }
+    granularity: 'group',
+    preferSmoothing: true,
+    color,
+    props,
+    contextHash,
+    description:
+      'Assigns residue colors according to the number of (filtered) geometry issues. Data from wwPDB Validation Report, obtained via RCSB PDB.',
+    legend: ColorLegend,
+  };
+}
+
+export const GeometryQualityColorThemeProvider: ColorTheme.Provider<
+  GeometricQualityColorThemeParams,
+  ValidationReport.Tag.GeometryQuality
+> = {
+  name: ValidationReport.Tag.GeometryQuality,
+  label: 'Geometry Quality',
+  category: ColorThemeCategory.Validation,
+  factory: GeometryQualityColorTheme,
+  getParams: getGeometricQualityColorThemeParams,
+  defaultValues: PD.getDefaultValues(getGeometricQualityColorThemeParams({})),
+  isApplicable: (ctx: ThemeDataContext) => ValidationReport.isApplicable(ctx.structure?.models[0]),
+  ensureCustomProperties: {
+    attach: (ctx: CustomProperty.Context, data: ThemeDataContext) =>
+      data.structure ? ValidationReportProvider.attach(ctx, data.structure.models[0], void 0, true) : Promise.resolve(),
+    detach: (data) => data.structure && ValidationReportProvider.ref(data.structure.models[0], false),
+  },
 };

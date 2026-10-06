@@ -14,58 +14,62 @@ import { getPaletteParams, getPalette } from '@molstar/core/util/color/palette';
 import type { TableLegend, ScaleLegend } from '@molstar/core/util/legend';
 import { ColorThemeCategory } from './categories.js';
 
-const DefaultColor = Color(0xCCCCCC);
+const DefaultColor = Color(0xcccccc);
 const Description = 'Gives every structure a unique color based on its index.';
 
 export const StructureIndexColorThemeParams = {
-    ...getPaletteParams({ type: 'colors', colorList: 'many-distinct' }),
+  ...getPaletteParams({ type: 'colors', colorList: 'many-distinct' }),
 };
-export type StructureIndexColorThemeParams = typeof StructureIndexColorThemeParams
+export type StructureIndexColorThemeParams = typeof StructureIndexColorThemeParams;
 export function getStructureIndexColorThemeParams(ctx: ThemeDataContext) {
-    return PD.clone(StructureIndexColorThemeParams);
+  return PD.clone(StructureIndexColorThemeParams);
 }
 
-export function StructureIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<StructureIndexColorThemeParams>): ColorTheme<StructureIndexColorThemeParams> {
-    let color: LocationColor;
-    let legend: ScaleLegend | TableLegend | undefined;
-    let contextHash = -1;
+export function StructureIndexColorTheme(
+  ctx: ThemeDataContext,
+  props: PD.Values<StructureIndexColorThemeParams>,
+): ColorTheme<StructureIndexColorThemeParams> {
+  let color: LocationColor;
+  let legend: ScaleLegend | TableLegend | undefined;
+  let contextHash = -1;
 
-    if (ctx.structure) {
-        const size = (Structure.MaxIndex.get(ctx.structure).value ?? -1) + 1;
-        contextHash = size;
+  if (ctx.structure) {
+    const size = (Structure.MaxIndex.get(ctx.structure).value ?? -1) + 1;
+    contextHash = size;
 
-        const palette = getPalette(size, props);
-        legend = palette.legend;
+    const palette = getPalette(size, props);
+    legend = palette.legend;
 
-        color = (location: Location): Color => {
-            if (StructureElement.Location.is(location)) {
-                return palette.color(Structure.Index.get(location.structure).value || 0)!;
-            } else if (Bond.isLocation(location)) {
-                return palette.color(Structure.Index.get(location.aStructure).value || 0)!;
-            }
-            return DefaultColor;
-        };
-    } else {
-        color = () => DefaultColor;
-    }
-
-    return {
-        factory: StructureIndexColorTheme,
-        granularity: 'instance',
-        color,
-        props,
-        contextHash,
-        description: Description,
-        legend
+    color = (location: Location): Color => {
+      if (StructureElement.Location.is(location)) {
+        return palette.color(Structure.Index.get(location.structure).value || 0)!;
+      } else if (Bond.isLocation(location)) {
+        return palette.color(Structure.Index.get(location.aStructure).value || 0)!;
+      }
+      return DefaultColor;
     };
+  } else {
+    color = () => DefaultColor;
+  }
+
+  return {
+    factory: StructureIndexColorTheme,
+    granularity: 'instance',
+    color,
+    props,
+    contextHash,
+    description: Description,
+    legend,
+  };
 }
 
-export const StructureIndexColorThemeProvider: ColorTheme.Provider<StructureIndexColorThemeParams, 'structure-index'> = {
+export const StructureIndexColorThemeProvider: ColorTheme.Provider<StructureIndexColorThemeParams, 'structure-index'> =
+  {
     name: 'structure-index',
     label: 'Structure Index',
     category: ColorThemeCategory.Chain,
     factory: StructureIndexColorTheme,
     getParams: getStructureIndexColorThemeParams,
     defaultValues: PD.getDefaultValues(StructureIndexColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.elementCount > 0
-};
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.elementCount > 0,
+  };

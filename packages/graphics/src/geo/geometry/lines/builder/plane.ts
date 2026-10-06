@@ -17,18 +17,18 @@ const _c3 = Vec3();
  * Add wireframe edges of a quad to a LinesBuilder.
  */
 export function addPlane(builder: LinesBuilder, corners: ArrayLike<number>, transform: Mat4, group: number) {
-    Vec3.fromArray(_c0, corners, 0);
-    Vec3.fromArray(_c1, corners, 3);
-    Vec3.fromArray(_c2, corners, 6);
-    Vec3.fromArray(_c3, corners, 9);
+  Vec3.fromArray(_c0, corners, 0);
+  Vec3.fromArray(_c1, corners, 3);
+  Vec3.fromArray(_c2, corners, 6);
+  Vec3.fromArray(_c3, corners, 9);
 
-    Vec3.transformMat4(_c0, _c0, transform);
-    Vec3.transformMat4(_c1, _c1, transform);
-    Vec3.transformMat4(_c2, _c2, transform);
-    Vec3.transformMat4(_c3, _c3, transform);
+  Vec3.transformMat4(_c0, _c0, transform);
+  Vec3.transformMat4(_c1, _c1, transform);
+  Vec3.transformMat4(_c2, _c2, transform);
+  Vec3.transformMat4(_c3, _c3, transform);
 
-    builder.addVec(_c0, _c1, group);
-    builder.addVec(_c1, _c2, group);
-    builder.addVec(_c2, _c3, group);
-    builder.addVec(_c3, _c0, group);
+  builder.addVec(_c0, _c1, group);
+  builder.addVec(_c1, _c2, group);
+  builder.addVec(_c2, _c3, group);
+  builder.addVec(_c3, _c0, group);
 }

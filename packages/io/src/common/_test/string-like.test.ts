@@ -1,6 +1,5 @@
 import { ChunkedBigString } from '@molstar/core/util/string-like';
 
-
 const SAMPLE_ASCII = `Basketball is a team sport in which two teams, most commonly 
 of five players each, opposing one another on a rectangular court, compete with 
 the primary objective of shooting a basketball (approximately 9.4 inches (24 cm) 
@@ -68,179 +67,150 @@ const SAMPLE_UNICODE_PA = `ਵਿਕੀਪੀਡੀਆ, ਇੱਕ ਆਜ਼ਾ�
 ਨਾਲ ਖਤਮ ਹੋ ਜਾਂਦੀ ਹੈ, ਤਾਂ ਵਾਧੂ ਸਮੇਂ ਦਾ ਖੇਡ (ਓਵਰਟਾਈਮ) ਲਾਜ਼ਮੀ ਹੁੰਦਾ ਹੈ।
 `;
 
-
 const TESTING_LOG_STRING_CHUNK_SIZE = 3; // chunk of size 8
 
 function testUtf8Decoding(text: string) {
-    const bytes = Buffer.from(text, 'utf-8');
-    const bigString = ChunkedBigString.fromUtf8Data(bytes, undefined, undefined, TESTING_LOG_STRING_CHUNK_SIZE);
-    const redecoded = bigString.toString();
-    expect(redecoded).toEqual(text);
+  const bytes = Buffer.from(text, 'utf-8');
+  const bigString = ChunkedBigString.fromUtf8Data(bytes, undefined, undefined, TESTING_LOG_STRING_CHUNK_SIZE);
+  const redecoded = bigString.toString();
+  expect(redecoded).toEqual(text);
 }
 
 describe('ChunkedBigString.fromUtf8Data', () => {
-    test('decode ASCII', async () => {
-        testUtf8Decoding(SAMPLE_ASCII);
-    });
+  test('decode ASCII', async () => {
+    testUtf8Decoding(SAMPLE_ASCII);
+  });
 
-    test('decode CS', async () => {
-        testUtf8Decoding(SAMPLE_UNICODE_CS);
-    });
+  test('decode CS', async () => {
+    testUtf8Decoding(SAMPLE_UNICODE_CS);
+  });
 
-    test('decode PA', async () => {
-        testUtf8Decoding(SAMPLE_UNICODE_PA);
-    });
+  test('decode PA', async () => {
+    testUtf8Decoding(SAMPLE_UNICODE_PA);
+  });
 });
 
 describe('ChunkedBigString.at', () => {
-    test('at ASCII', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
-        expect(bigString.at(0))
-            .toEqual('B');
-        expect(bigString.at(SAMPLE_ASCII.indexOf('9')))
-            .toEqual('9');
-        expect(bigString.at(10_000))
-            .toEqual(undefined);
-    });
+  test('at ASCII', async () => {
+    const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
+    expect(bigString.at(0)).toEqual('B');
+    expect(bigString.at(SAMPLE_ASCII.indexOf('9'))).toEqual('9');
+    expect(bigString.at(10_000)).toEqual(undefined);
+  });
 
-    test('at CS', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
-        expect(bigString.at(0))
-            .toEqual('Z');
-        expect(bigString.at(SAMPLE_UNICODE_CS.indexOf('ř')))
-            .toEqual('ř');
-        expect(bigString.at(10_000))
-            .toEqual(undefined);
-        expect(bigString.at(-10_000))
-            .toEqual(undefined);
-        expect(bigString.at(-10))
-            .toEqual('n');
-    });
+  test('at CS', async () => {
+    const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
+    expect(bigString.at(0)).toEqual('Z');
+    expect(bigString.at(SAMPLE_UNICODE_CS.indexOf('ř'))).toEqual('ř');
+    expect(bigString.at(10_000)).toEqual(undefined);
+    expect(bigString.at(-10_000)).toEqual(undefined);
+    expect(bigString.at(-10)).toEqual('n');
+  });
 });
 
 describe('ChunkedBigString.charAt', () => {
-    test('charAt ASCII', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
-        expect(bigString.charAt(0))
-            .toEqual('B');
-        expect(bigString.charAt(SAMPLE_ASCII.indexOf('9')))
-            .toEqual('9');
-        expect(bigString.charAt(10_000))
-            .toEqual('');
-    });
+  test('charAt ASCII', async () => {
+    const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
+    expect(bigString.charAt(0)).toEqual('B');
+    expect(bigString.charAt(SAMPLE_ASCII.indexOf('9'))).toEqual('9');
+    expect(bigString.charAt(10_000)).toEqual('');
+  });
 
-    test('charAt CS', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
-        expect(bigString.charAt(0))
-            .toEqual('Z');
-        expect(bigString.charAt(SAMPLE_UNICODE_CS.indexOf('ř')))
-            .toEqual('ř');
-        expect(bigString.charAt(10_000))
-            .toEqual('');
-        expect(bigString.charAt(-10_000))
-            .toEqual('');
-        expect(bigString.charAt(-10))
-            .toEqual('');
-    });
+  test('charAt CS', async () => {
+    const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
+    expect(bigString.charAt(0)).toEqual('Z');
+    expect(bigString.charAt(SAMPLE_UNICODE_CS.indexOf('ř'))).toEqual('ř');
+    expect(bigString.charAt(10_000)).toEqual('');
+    expect(bigString.charAt(-10_000)).toEqual('');
+    expect(bigString.charAt(-10)).toEqual('');
+  });
 });
 
 describe('ChunkedBigString.charCodeAt', () => {
-    test('charCodeAt ASCII', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
-        expect(bigString.charCodeAt(0))
-            .toEqual('B'.charCodeAt(0));
-        expect(bigString.charCodeAt(SAMPLE_ASCII.indexOf('9')))
-            .toEqual('9'.charCodeAt(0));
-        expect(bigString.charCodeAt(10_000))
-            .toEqual(NaN);
-    });
+  test('charCodeAt ASCII', async () => {
+    const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
+    expect(bigString.charCodeAt(0)).toEqual('B'.charCodeAt(0));
+    expect(bigString.charCodeAt(SAMPLE_ASCII.indexOf('9'))).toEqual('9'.charCodeAt(0));
+    expect(bigString.charCodeAt(10_000)).toEqual(NaN);
+  });
 
-    test('charCodeAt CS', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
-        expect(bigString.charCodeAt(0))
-            .toEqual('Z'.charCodeAt(0));
-        expect(bigString.charCodeAt(SAMPLE_UNICODE_CS.indexOf('ř')))
-            .toEqual('ř'.charCodeAt(0));
-        expect(bigString.charCodeAt(10_000))
-            .toEqual(NaN);
-    });
+  test('charCodeAt CS', async () => {
+    const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
+    expect(bigString.charCodeAt(0)).toEqual('Z'.charCodeAt(0));
+    expect(bigString.charCodeAt(SAMPLE_UNICODE_CS.indexOf('ř'))).toEqual('ř'.charCodeAt(0));
+    expect(bigString.charCodeAt(10_000)).toEqual(NaN);
+  });
 });
 
 describe('ChunkedBigString.indexOf', () => {
-    test('indexOf ASCII, within chunk', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
-        expect(bigString.indexOf('Basket'))
-            .toEqual(SAMPLE_ASCII.indexOf('Basket'));
-        expect(bigString.indexOf('another'))
-            .toEqual(SAMPLE_ASCII.indexOf('another'));
-        expect(bigString.indexOf('unicorn'))
-            .toEqual(-1);
-    });
+  test('indexOf ASCII, within chunk', async () => {
+    const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
+    expect(bigString.indexOf('Basket')).toEqual(SAMPLE_ASCII.indexOf('Basket'));
+    expect(bigString.indexOf('another')).toEqual(SAMPLE_ASCII.indexOf('another'));
+    expect(bigString.indexOf('unicorn')).toEqual(-1);
+  });
 
-    test('indexOf ASCII, across chunks', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
-        expect(bigString.indexOf('sport'))
-            .toEqual(SAMPLE_ASCII.indexOf('sport'));
-    });
+  test('indexOf ASCII, across chunks', async () => {
+    const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
+    expect(bigString.indexOf('sport')).toEqual(SAMPLE_ASCII.indexOf('sport'));
+  });
 
-    test('indexOf CS, within chunk', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
-        expect(bigString.indexOf('Zámecký'))
-            .toEqual(SAMPLE_UNICODE_CS.indexOf('Zámecký'));
-        expect(bigString.indexOf('zámkem'))
-            .toEqual(SAMPLE_UNICODE_CS.indexOf('zámkem'));
-        expect(bigString.indexOf('unicorn'))
-            .toEqual(-1);
-    });
+  test('indexOf CS, within chunk', async () => {
+    const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
+    expect(bigString.indexOf('Zámecký')).toEqual(SAMPLE_UNICODE_CS.indexOf('Zámecký'));
+    expect(bigString.indexOf('zámkem')).toEqual(SAMPLE_UNICODE_CS.indexOf('zámkem'));
+    expect(bigString.indexOf('unicorn')).toEqual(-1);
+  });
 
-    test('indexOf CS, across chunks', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
-        expect(bigString.indexOf('městě'))
-            .toEqual(SAMPLE_UNICODE_CS.indexOf('městě'));
-    });
+  test('indexOf CS, across chunks', async () => {
+    const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
+    expect(bigString.indexOf('městě')).toEqual(SAMPLE_UNICODE_CS.indexOf('městě'));
+  });
 
-    test('indexOf CS, with position param', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
-        expect(bigString.indexOf('pivovar')).toEqual(8);
-        expect(bigString.indexOf('pivovar', 8)).toEqual(8);
-        expect(bigString.indexOf('pivovar', 9)).toEqual(286);
-        expect(bigString.indexOf('pivovar', 286)).toEqual(286);
-        expect(bigString.indexOf('pivovar', 287)).toEqual(514);
-        expect(bigString.indexOf('pivovar', 514)).toEqual(514);
-        expect(bigString.indexOf('pivovar', 515)).toEqual(776);
-        expect(bigString.indexOf('pivovar', 776)).toEqual(776);
-        expect(bigString.indexOf('pivovar', 777)).toEqual(983);
-        expect(bigString.indexOf('pivovar', 983)).toEqual(983);
-        expect(bigString.indexOf('pivovar', 984)).toEqual(-1);
-        expect(bigString.indexOf('pivovar', 10_000)).toEqual(-1);
-        expect(bigString.indexOf('pivovar', -10_000)).toEqual(8);
-    });
+  test('indexOf CS, with position param', async () => {
+    const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
+    expect(bigString.indexOf('pivovar')).toEqual(8);
+    expect(bigString.indexOf('pivovar', 8)).toEqual(8);
+    expect(bigString.indexOf('pivovar', 9)).toEqual(286);
+    expect(bigString.indexOf('pivovar', 286)).toEqual(286);
+    expect(bigString.indexOf('pivovar', 287)).toEqual(514);
+    expect(bigString.indexOf('pivovar', 514)).toEqual(514);
+    expect(bigString.indexOf('pivovar', 515)).toEqual(776);
+    expect(bigString.indexOf('pivovar', 776)).toEqual(776);
+    expect(bigString.indexOf('pivovar', 777)).toEqual(983);
+    expect(bigString.indexOf('pivovar', 983)).toEqual(983);
+    expect(bigString.indexOf('pivovar', 984)).toEqual(-1);
+    expect(bigString.indexOf('pivovar', 10_000)).toEqual(-1);
+    expect(bigString.indexOf('pivovar', -10_000)).toEqual(8);
+  });
 });
 
 describe('ChunkedBigString.substring', () => {
-    test('substring ASCII', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
-        expect(bigString.substring())
-            .toEqual(SAMPLE_ASCII);
-        expect(bigString.substring(0, 10))
-            .toEqual('Basketball');
-        expect(bigString.substring(SAMPLE_ASCII.indexOf('mandated')))
-            .toEqual('mandated.\n');
-        expect(bigString.substring(SAMPLE_ASCII.indexOf('opposing team'), SAMPLE_ASCII.indexOf('opposing team') + 'opposing team'.length))
-            .toEqual('opposing team');
-    });
+  test('substring ASCII', async () => {
+    const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
+    expect(bigString.substring()).toEqual(SAMPLE_ASCII);
+    expect(bigString.substring(0, 10)).toEqual('Basketball');
+    expect(bigString.substring(SAMPLE_ASCII.indexOf('mandated'))).toEqual('mandated.\n');
+    expect(
+      bigString.substring(
+        SAMPLE_ASCII.indexOf('opposing team'),
+        SAMPLE_ASCII.indexOf('opposing team') + 'opposing team'.length,
+      ),
+    ).toEqual('opposing team');
+  });
 
-    test('substring CS', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
-        expect(bigString.substring())
-            .toEqual(SAMPLE_UNICODE_CS);
-        expect(bigString.substring(0, 7))
-            .toEqual('Zámecký');
-        expect(bigString.substring(SAMPLE_UNICODE_CS.indexOf('2014')))
-            .toEqual('2014.\n');
-        expect(bigString.substring(SAMPLE_UNICODE_CS.indexOf('Slavnostní otevření'), SAMPLE_UNICODE_CS.indexOf('Slavnostní otevření') + 'Slavnostní otevření'.length))
-            .toEqual('Slavnostní otevření');
-    });
+  test('substring CS', async () => {
+    const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
+    expect(bigString.substring()).toEqual(SAMPLE_UNICODE_CS);
+    expect(bigString.substring(0, 7)).toEqual('Zámecký');
+    expect(bigString.substring(SAMPLE_UNICODE_CS.indexOf('2014'))).toEqual('2014.\n');
+    expect(
+      bigString.substring(
+        SAMPLE_UNICODE_CS.indexOf('Slavnostní otevření'),
+        SAMPLE_UNICODE_CS.indexOf('Slavnostní otevření') + 'Slavnostní otevření'.length,
+      ),
+    ).toEqual('Slavnostní otevření');
+  });
 });
 
 // TODO enforce short chunks (2**3) for tests, otherwise they don't make sense

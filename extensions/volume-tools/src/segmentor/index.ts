@@ -18,5 +18,22 @@ export { BodyLabels } from './labels.js';
 export { computeBodyMask, buildCroppedMaskVolume, scatterToFullBox } from './internal/mask-compute.js';
 export { computeCandidates } from '@molstar/volume-tools-extension/candidates';
 export { flipHandednessInPlace, removeDustInPlace, recomputeStats } from './internal/volume-edit.js';
-export { exportBodyMasks, bodyMaskFileName, downloadVolumeMrc, maskBaseName, orderBodiesBySize, writeBodyMaskMrc } from './internal/export.js';
-export type { BodyId, BodyInfo, LabelStore, AssignMode, BodyMaskParams, BodyMaskResult, GridBox, ViewMask, Point2D } from './types.js';
+export {
+  exportBodyMasks,
+  bodyMaskFileName,
+  downloadVolumeMrc,
+  maskBaseName,
+  orderBodiesBySize,
+  writeBodyMaskMrc,
+} from './internal/export.js';
+export type {
+  BodyId,
+  BodyInfo,
+  LabelStore,
+  AssignMode,
+  BodyMaskParams,
+  BodyMaskResult,
+  GridBox,
+  ViewMask,
+  Point2D,
+} from './types.js';

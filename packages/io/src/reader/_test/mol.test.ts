@@ -113,93 +113,93 @@ M  APO  1   2   1
 M  END`;
 
 describe('mol reader', () => {
-    it('basic', async () => {
-        const parsed = await parseMol(MolString).run();
-        if (parsed.isError) {
-            throw new Error(parsed.message);
-        }
-        const { atoms, bonds } = parsed.result;
+  it('basic', async () => {
+    const parsed = await parseMol(MolString).run();
+    if (parsed.isError) {
+      throw new Error(parsed.message);
+    }
+    const { atoms, bonds } = parsed.result;
 
-        // number of structures
-        expect(atoms.count).toBe(21);
-        expect(bonds.count).toBe(21);
+    // number of structures
+    expect(atoms.count).toBe(21);
+    expect(bonds.count).toBe(21);
 
-        expect(atoms.x.value(0)).toBeCloseTo(1.2333, 0.001);
-        expect(atoms.y.value(0)).toBeCloseTo(0.5540, 0.0001);
-        expect(atoms.z.value(0)).toBeCloseTo(0.7792, 0.0001);
-        expect(atoms.type_symbol.value(0)).toBe('O');
+    expect(atoms.x.value(0)).toBeCloseTo(1.2333, 0.001);
+    expect(atoms.y.value(0)).toBeCloseTo(0.554, 0.0001);
+    expect(atoms.z.value(0)).toBeCloseTo(0.7792, 0.0001);
+    expect(atoms.type_symbol.value(0)).toBe('O');
 
-        expect(bonds.atomIdxA.value(20)).toBe(13);
-        expect(bonds.atomIdxB.value(20)).toBe(20);
-        expect(bonds.order.value(20)).toBe(1);
-    });
-    it('property block charges', async () => {
-        const parsed = await parseMol(MolStringWithPropertyBlockCharge).run();
-        if (parsed.isError) {
-            throw new Error(parsed.message);
-        }
-        const { formalCharges } = parsed.result;
+    expect(bonds.atomIdxA.value(20)).toBe(13);
+    expect(bonds.atomIdxB.value(20)).toBe(20);
+    expect(bonds.order.value(20)).toBe(1);
+  });
+  it('property block charges', async () => {
+    const parsed = await parseMol(MolStringWithPropertyBlockCharge).run();
+    if (parsed.isError) {
+      throw new Error(parsed.message);
+    }
+    const { formalCharges } = parsed.result;
 
-        expect(formalCharges.atomIdx.rowCount).toBe(3);
-        expect(formalCharges.charge.rowCount).toBe(3);
+    expect(formalCharges.atomIdx.rowCount).toBe(3);
+    expect(formalCharges.charge.rowCount).toBe(3);
 
-        expect(formalCharges.atomIdx.value(0)).toBe(2);
-        expect(formalCharges.atomIdx.value(1)).toBe(3);
+    expect(formalCharges.atomIdx.value(0)).toBe(2);
+    expect(formalCharges.atomIdx.value(1)).toBe(3);
 
-        expect(formalCharges.charge.value(0)).toBe(-1);
-        expect(formalCharges.charge.value(1)).toBe(1);
-    });
-    it('multiple charge lines', async () => {
-        const parsed = await parseMol(MolStringWithMultipleChargeLines).run();
-        if (parsed.isError) {
-            throw new Error(parsed.message);
-        }
-        const { formalCharges } = parsed.result;
+    expect(formalCharges.charge.value(0)).toBe(-1);
+    expect(formalCharges.charge.value(1)).toBe(1);
+  });
+  it('multiple charge lines', async () => {
+    const parsed = await parseMol(MolStringWithMultipleChargeLines).run();
+    if (parsed.isError) {
+      throw new Error(parsed.message);
+    }
+    const { formalCharges } = parsed.result;
 
-        expect(formalCharges.atomIdx.rowCount).toBe(3);
-        expect(formalCharges.charge.rowCount).toBe(3);
+    expect(formalCharges.atomIdx.rowCount).toBe(3);
+    expect(formalCharges.charge.rowCount).toBe(3);
 
-        expect(formalCharges.atomIdx.value(0)).toBe(2);
-        expect(formalCharges.atomIdx.value(1)).toBe(3);
+    expect(formalCharges.atomIdx.value(0)).toBe(2);
+    expect(formalCharges.atomIdx.value(1)).toBe(3);
 
-        expect(formalCharges.charge.value(0)).toBe(-1);
-        expect(formalCharges.charge.value(1)).toBe(1);
-    });
+    expect(formalCharges.charge.value(0)).toBe(-1);
+    expect(formalCharges.charge.value(1)).toBe(1);
+  });
 
-    it('atom block charge mapping', async () => {
-        expect(formalChargeMapper(7)).toBe(-3);
-        expect(formalChargeMapper(6)).toBe(-2);
-        expect(formalChargeMapper(5)).toBe(-1);
-        expect(formalChargeMapper(0)).toBe(0);
-        expect(formalChargeMapper(3)).toBe(1);
-        expect(formalChargeMapper(2)).toBe(2);
-        expect(formalChargeMapper(1)).toBe(3);
-        expect(formalChargeMapper(4)).toBe(0);
-    });
-    it('atom block charges', async () => {
-        const parsed = await parseMol(MolStringWithAtomBlockCharge).run();
-        if (parsed.isError) {
-            throw new Error(parsed.message);
-        }
-        const { atoms, formalCharges } = parsed.result;
+  it('atom block charge mapping', async () => {
+    expect(formalChargeMapper(7)).toBe(-3);
+    expect(formalChargeMapper(6)).toBe(-2);
+    expect(formalChargeMapper(5)).toBe(-1);
+    expect(formalChargeMapper(0)).toBe(0);
+    expect(formalChargeMapper(3)).toBe(1);
+    expect(formalChargeMapper(2)).toBe(2);
+    expect(formalChargeMapper(1)).toBe(3);
+    expect(formalChargeMapper(4)).toBe(0);
+  });
+  it('atom block charges', async () => {
+    const parsed = await parseMol(MolStringWithAtomBlockCharge).run();
+    if (parsed.isError) {
+      throw new Error(parsed.message);
+    }
+    const { atoms, formalCharges } = parsed.result;
 
-        /* No property block charges */
-        expect(formalCharges.atomIdx.rowCount).toBe(0);
-        expect(formalCharges.charge.rowCount).toBe(0);
+    /* No property block charges */
+    expect(formalCharges.atomIdx.rowCount).toBe(0);
+    expect(formalCharges.charge.rowCount).toBe(0);
 
-        expect(atoms.formal_charge.value(0)).toBe(1);
-        expect(atoms.formal_charge.value(1)).toBe(0);
-        expect(atoms.formal_charge.value(2)).toBe(0);
-        expect(atoms.formal_charge.value(3)).toBe(0);
-    });
-    it('APO property', async () => {
-        const parsed = await parseMol(MolStringWithAPOProperty).run();
-        if (parsed.isError) {
-            throw new Error(parsed.message);
-        }
-        const { attachmentPoints } = parsed.result;
-        expect(attachmentPoints?.length).toBe(1);
-        expect(attachmentPoints![0].atomIdx).toBe(2);
-        expect(attachmentPoints![0].kind).toBe(1);
-    });
+    expect(atoms.formal_charge.value(0)).toBe(1);
+    expect(atoms.formal_charge.value(1)).toBe(0);
+    expect(atoms.formal_charge.value(2)).toBe(0);
+    expect(atoms.formal_charge.value(3)).toBe(0);
+  });
+  it('APO property', async () => {
+    const parsed = await parseMol(MolStringWithAPOProperty).run();
+    if (parsed.isError) {
+      throw new Error(parsed.message);
+    }
+    const { attachmentPoints } = parsed.result;
+    expect(attachmentPoints?.length).toBe(1);
+    expect(attachmentPoints![0].atomIdx).toBe(2);
+    expect(attachmentPoints![0].kind).toBe(1);
+  });
 });

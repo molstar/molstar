@@ -12,39 +12,48 @@ import type { AssetManager } from '@molstar/core/util/assets';
 import { IlluminationPass } from './illumination.js';
 
 export class Passes {
-    readonly draw: DrawPass;
-    readonly pick: PickPass;
-    readonly multiSample: MultiSamplePass;
-    readonly illumination: IlluminationPass;
+  readonly draw: DrawPass;
+  readonly pick: PickPass;
+  readonly multiSample: MultiSamplePass;
+  readonly illumination: IlluminationPass;
 
-    constructor(private webgl: WebGLContext, assetManager: AssetManager, attribs: Partial<{ pickScale: number, transparency: 'wboit' | 'dpoit' | 'blended' }> = {}) {
-        const drs = this.webgl.getDrawingBufferSize();
-        this.draw = new DrawPass(webgl, assetManager, drs.width, drs.height, attribs.transparency || 'blended');
-        this.pick = new PickPass(webgl, drs.width, drs.height, attribs.pickScale || 0.25);
-        this.multiSample = new MultiSamplePass(webgl, this.draw);
-        this.illumination = new IlluminationPass(webgl, this.draw);
-    }
+  constructor(
+    private webgl: WebGLContext,
+    assetManager: AssetManager,
+    attribs: Partial<{ pickScale: number; transparency: 'wboit' | 'dpoit' | 'blended' }> = {},
+  ) {
+    const drs = this.webgl.getDrawingBufferSize();
+    this.draw = new DrawPass(webgl, assetManager, drs.width, drs.height, attribs.transparency || 'blended');
+    this.pick = new PickPass(webgl, drs.width, drs.height, attribs.pickScale || 0.25);
+    this.multiSample = new MultiSamplePass(webgl, this.draw);
+    this.illumination = new IlluminationPass(webgl, this.draw);
+  }
 
-    getByteCount() {
-        return this.draw.getByteCount() + this.pick.getByteCount() + this.multiSample.getByteCount() + this.illumination.getByteCount();
-    }
+  getByteCount() {
+    return (
+      this.draw.getByteCount() +
+      this.pick.getByteCount() +
+      this.multiSample.getByteCount() +
+      this.illumination.getByteCount()
+    );
+  }
 
-    setPickScale(pickScale: number) {
-        this.pick.setPickScale(pickScale);
-    }
+  setPickScale(pickScale: number) {
+    this.pick.setPickScale(pickScale);
+  }
 
-    setTransparency(transparency: 'wboit' | 'dpoit' | 'blended') {
-        this.draw.setTransparency(transparency);
-    }
+  setTransparency(transparency: 'wboit' | 'dpoit' | 'blended') {
+    this.draw.setTransparency(transparency);
+  }
 
-    updateSize() {
-        const drs = this.webgl.getDrawingBufferSize();
-        // Avoid setting dimensions to 0x0 because it causes "empty textures are not allowed" error.
-        const width = Math.max(drs.width, 2);
-        const height = Math.max(drs.height, 2);
-        this.draw.setSize(width, height);
-        this.pick.setSize(width, height);
-        this.multiSample.syncSize();
-        this.illumination.setSize(width, height);
-    }
+  updateSize() {
+    const drs = this.webgl.getDrawingBufferSize();
+    // Avoid setting dimensions to 0x0 because it causes "empty textures are not allowed" error.
+    const width = Math.max(drs.width, 2);
+    const height = Math.max(drs.height, 2);
+    this.draw.setSize(width, height);
+    this.pick.setSize(width, height);
+    this.multiSample.syncSize();
+    this.illumination.setSize(width, height);
+  }
 }

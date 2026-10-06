@@ -16,44 +16,42 @@ import { NtCTubeColorThemeProvider } from '@molstar/dnatco-extension/ntc-tube/co
 import { NtCTubeProvider } from '@molstar/dnatco-extension/ntc-tube/property';
 import { NtCTubeRepresentationProvider } from '@molstar/dnatco-extension/ntc-tube/representation';
 
+export const DnatcoNtCs = PluginBehavior.create<{ autoAttach: boolean; showToolTip: boolean }>({
+  name: 'dnatco-ntcs',
+  category: 'custom-props',
+  display: {
+    name: 'DNATCO NtC Annotations',
+    description: 'DNATCO NtC Annotations',
+  },
+  ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean; showToolTip: boolean }> {
+    register(): void {
+      this.ctx.customModelProperties.register(ConfalPyramidsProvider, this.params.autoAttach);
+      this.ctx.customModelProperties.register(NtCTubeProvider, this.params.autoAttach);
 
-export const DnatcoNtCs = PluginBehavior.create<{ autoAttach: boolean, showToolTip: boolean }>({
-    name: 'dnatco-ntcs',
-    category: 'custom-props',
-    display: {
-        name: 'DNATCO NtC Annotations',
-        description: 'DNATCO NtC Annotations',
-    },
-    ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showToolTip: boolean }> {
-        register(): void {
-            this.ctx.customModelProperties.register(ConfalPyramidsProvider, this.params.autoAttach);
-            this.ctx.customModelProperties.register(NtCTubeProvider, this.params.autoAttach);
+      this.ctx.representation.structure.themes.colorThemeRegistry.add(ConfalPyramidsColorThemeProvider);
+      this.ctx.representation.structure.registry.add(ConfalPyramidsRepresentationProvider);
+      this.ctx.representation.structure.themes.colorThemeRegistry.add(NtCTubeColorThemeProvider);
+      this.ctx.representation.structure.registry.add(NtCTubeRepresentationProvider);
 
-            this.ctx.representation.structure.themes.colorThemeRegistry.add(ConfalPyramidsColorThemeProvider);
-            this.ctx.representation.structure.registry.add(ConfalPyramidsRepresentationProvider);
-            this.ctx.representation.structure.themes.colorThemeRegistry.add(NtCTubeColorThemeProvider);
-            this.ctx.representation.structure.registry.add(NtCTubeRepresentationProvider);
+      this.ctx.builders.structure.representation.registerPreset(ConfalPyramidsPreset);
+      this.ctx.builders.structure.representation.registerPreset(NtCTubePreset);
+    }
 
-            this.ctx.builders.structure.representation.registerPreset(ConfalPyramidsPreset);
-            this.ctx.builders.structure.representation.registerPreset(NtCTubePreset);
-        }
+    unregister() {
+      this.ctx.customModelProperties.unregister(ConfalPyramidsProvider.descriptor.name);
+      this.ctx.customModelProperties.unregister(NtCTubeProvider.descriptor.name);
 
-        unregister() {
-            this.ctx.customModelProperties.unregister(ConfalPyramidsProvider.descriptor.name);
-            this.ctx.customModelProperties.unregister(NtCTubeProvider.descriptor.name);
+      this.ctx.representation.structure.registry.remove(ConfalPyramidsRepresentationProvider);
+      this.ctx.representation.structure.themes.colorThemeRegistry.remove(ConfalPyramidsColorThemeProvider);
+      this.ctx.representation.structure.registry.remove(NtCTubeRepresentationProvider);
+      this.ctx.representation.structure.themes.colorThemeRegistry.remove(NtCTubeColorThemeProvider);
 
-            this.ctx.representation.structure.registry.remove(ConfalPyramidsRepresentationProvider);
-            this.ctx.representation.structure.themes.colorThemeRegistry.remove(ConfalPyramidsColorThemeProvider);
-            this.ctx.representation.structure.registry.remove(NtCTubeRepresentationProvider);
-            this.ctx.representation.structure.themes.colorThemeRegistry.remove(NtCTubeColorThemeProvider);
-
-            this.ctx.builders.structure.representation.unregisterPreset(ConfalPyramidsPreset);
-            this.ctx.builders.structure.representation.unregisterPreset(NtCTubePreset);
-        }
-    },
-    params: () => ({
-        autoAttach: PD.Boolean(true),
-        showToolTip: PD.Boolean(true)
-    })
+      this.ctx.builders.structure.representation.unregisterPreset(ConfalPyramidsPreset);
+      this.ctx.builders.structure.representation.unregisterPreset(NtCTubePreset);
+    }
+  },
+  params: () => ({
+    autoAttach: PD.Boolean(true),
+    showToolTip: PD.Boolean(true),
+  }),
 });
-

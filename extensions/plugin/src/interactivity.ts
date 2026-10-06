@@ -12,12 +12,12 @@ import type { CameraFocusLociOptions } from '@molstar/plugin/state/manager/camer
 import { PluginContext } from '@molstar/plugin/context';
 
 export interface StructureInteractivityOptions {
-    expression?: (queryBuilder: typeof MolScriptBuilder) => Expression,
-    elements?: StructureElement.Schema,
-    action: 'highlight' | 'select' | 'focus' | ('highlight' | 'select' | 'focus')[],
-    applyGranularity?: boolean,
-    filterStructure?: (structure: Structure) => boolean,
-    focusOptions?: Partial<CameraFocusLociOptions>
+  expression?: (queryBuilder: typeof MolScriptBuilder) => Expression;
+  elements?: StructureElement.Schema;
+  action: 'highlight' | 'select' | 'focus' | ('highlight' | 'select' | 'focus')[];
+  applyGranularity?: boolean;
+  filterStructure?: (structure: Structure) => boolean;
+  focusOptions?: Partial<CameraFocusLociOptions>;
 }
 
 /**
@@ -28,44 +28,54 @@ export interface StructureInteractivityOptions {
  * If neither `expression` nor `elements` are provided, all selections/highlights
  * will be cleared based on the specified `action`.
  */
-export function applyStructureInteractivity(plugin: PluginContext, { expression, elements, action: action_, applyGranularity = false, filterStructure, focusOptions }: StructureInteractivityOptions) {
-    const actions = Array.isArray(action_) ? action_ : [action_];
+export function applyStructureInteractivity(
+  plugin: PluginContext,
+  {
+    expression,
+    elements,
+    action: action_,
+    applyGranularity = false,
+    filterStructure,
+    focusOptions,
+  }: StructureInteractivityOptions,
+) {
+  const actions = Array.isArray(action_) ? action_ : [action_];
 
-    if (!expression && !elements) {
-        if (actions.includes('select')) {
-            plugin.managers.interactivity.lociSelects.deselectAll();
-        }
-        if (actions.includes('highlight')) {
-            plugin.managers.interactivity.lociHighlights.clearHighlights();
-        }
-        return;
-    }
-
+  if (!expression && !elements) {
     if (actions.includes('select')) {
-        plugin.managers.interactivity.lociSelects.deselectAll();
+      plugin.managers.interactivity.lociSelects.deselectAll();
     }
-
-    const structures = plugin.state.data.selectQ(Q => Q.rootsOfType(PluginStateObject.Molecule.Structure));
-    let focused = false;
-    for (const s of structures) {
-        if (!s.obj?.data) continue;
-
-        if (filterStructure && !filterStructure(s.obj.data)) continue;
-
-        const loci = expression
-            ? StructureElement.Loci.fromExpression(s.obj.data, expression)
-            : StructureElement.Loci.fromSchema(s.obj.data, elements!);
-
-        for (const action of actions) {
-            if (action === 'select') {
-                plugin.managers.interactivity.lociSelects.select({ loci }, applyGranularity);
-            } else if (action === 'highlight') {
-                plugin.managers.interactivity.lociHighlights.highlight({ loci }, applyGranularity);
-            } else if (action === 'focus' && !StructureElement.Loci.isEmpty(loci) && !focused) {
-                plugin.managers.camera.focusLoci(loci, focusOptions);
-                focused = true;
-                if (actions.length === 1) return; // if only focusing, focus the first matching structure and return immediately
-            }
-        }
+    if (actions.includes('highlight')) {
+      plugin.managers.interactivity.lociHighlights.clearHighlights();
     }
+    return;
+  }
+
+  if (actions.includes('select')) {
+    plugin.managers.interactivity.lociSelects.deselectAll();
+  }
+
+  const structures = plugin.state.data.selectQ((Q) => Q.rootsOfType(PluginStateObject.Molecule.Structure));
+  let focused = false;
+  for (const s of structures) {
+    if (!s.obj?.data) continue;
+
+    if (filterStructure && !filterStructure(s.obj.data)) continue;
+
+    const loci = expression
+      ? StructureElement.Loci.fromExpression(s.obj.data, expression)
+      : StructureElement.Loci.fromSchema(s.obj.data, elements!);
+
+    for (const action of actions) {
+      if (action === 'select') {
+        plugin.managers.interactivity.lociSelects.select({ loci }, applyGranularity);
+      } else if (action === 'highlight') {
+        plugin.managers.interactivity.lociHighlights.highlight({ loci }, applyGranularity);
+      } else if (action === 'focus' && !StructureElement.Loci.isEmpty(loci) && !focused) {
+        plugin.managers.camera.focusLoci(loci, focusOptions);
+        focused = true;
+        if (actions.length === 1) return; // if only focusing, focus the first matching structure and return immediately
+      }
+    }
+  }
 }

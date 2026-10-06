@@ -7,98 +7,107 @@
 import { omitObjectKeys, pickObjectKeys } from '@molstar/core/util/object';
 import { RequiredField, bool, str } from '@molstar/mvs-builder/tree/generic/field-schema';
 import { SimpleParamsSchema } from '@molstar/mvs-builder/tree/generic/params-schema';
-import { type NodeFor, type ParamsOfKind, type SubtreeOfKind, type TreeFor, TreeSchema } from '@molstar/mvs-builder/tree/generic/tree-schema';
+import {
+  type NodeFor,
+  type ParamsOfKind,
+  type SubtreeOfKind,
+  type TreeFor,
+  TreeSchema,
+} from '@molstar/mvs-builder/tree/generic/tree-schema';
 import { FullMVSTreeSchema } from '@molstar/mvs-builder/tree/mvs/mvs-tree';
 import { MolstarParseFormatT } from '@molstar/mvs-builder/tree/mvs/param-types';
 
-
 /** Schema for `MolstarTree` (intermediate tree representation between `MVSTree` and a real Molstar state) */
 export const MolstarTreeSchema = TreeSchema({
-    rootKind: 'root',
-    nodes: {
-        ...FullMVSTreeSchema.nodes,
-        download: {
-            ...FullMVSTreeSchema.nodes.download,
-            params: SimpleParamsSchema({
-                ...FullMVSTreeSchema.nodes.download.params.fields,
-                /** Specifies whether file is downloaded as bytes array or string */
-                is_binary: RequiredField(bool, 'Specifies whether file is downloaded as bytes array or string'),
-            }),
-        },
-        parse: {
-            ...FullMVSTreeSchema.nodes.parse,
-            params: SimpleParamsSchema({
-                /** File format */
-                format: RequiredField(MolstarParseFormatT, 'File format'),
-            }),
-        },
-        /** Auxiliary node corresponding to Molstar's CoordinatesFrom*. */
-        coordinates: {
-            description: "Auxiliary node corresponding to Molstar's CoordinatesFrom*.",
-            parent: ['parse'],
-            params: SimpleParamsSchema({
-                /** File format */
-                format: RequiredField(MolstarParseFormatT, 'File format'),
-            }),
-        },
-        /** Auxiliary node corresponding to Molstar's TrajectoryFrom*. */
-        trajectory: {
-            description: "Auxiliary node corresponding to Molstar's TrajectoryFrom*.",
-            parent: ['parse'],
-            params: SimpleParamsSchema({
-                /** File format */
-                format: RequiredField(MolstarParseFormatT, 'File format'),
-                ...pickObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['block_header', 'block_index'] as const),
-            }),
-        },
-        /** Auxiliary node corresponding to Molstar's TrajectoryFrom*. */
-        trajectory_with_coordinates: {
-            description: 'Auxiliary node corresponding to assigning a separate coordinates to a trajectory.',
-            parent: ['model'],
-            params: SimpleParamsSchema({
-                /** Coordinates reference */
-                coordinates_ref: RequiredField(str, 'Coordinates reference'),
-            }),
-        },
-        topology_with_coordinates: {
-            description: 'Auxiliary node corresponding to assigning a separate coordinates to a topology.',
-            parent: ['parse'],
-            params: SimpleParamsSchema({
-                format: RequiredField(MolstarParseFormatT, 'File format'),
-                coordinates_ref: RequiredField(str, 'Coordinates reference'),
-            }),
-        },
-        /** Auxiliary node corresponding to Molstar's ModelFromTrajectory. */
-        model: {
-            description: "Auxiliary node corresponding to Molstar's ModelFromTrajectory.",
-            parent: ['trajectory', 'trajectory_with_coordinates', 'topology_with_coordinates'],
-            params: SimpleParamsSchema(
-                pickObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['model_index'] as const)
-            ),
-        },
-        /** Auxiliary node corresponding to Molstar's StructureFromModel. */
-        structure: {
-            ...FullMVSTreeSchema.nodes.structure,
-            parent: ['model'],
-            params: SimpleParamsSchema(
-                omitObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['block_header', 'block_index', 'model_index', 'coordinates_ref'] as const)
-            ),
-        },
-    }
+  rootKind: 'root',
+  nodes: {
+    ...FullMVSTreeSchema.nodes,
+    download: {
+      ...FullMVSTreeSchema.nodes.download,
+      params: SimpleParamsSchema({
+        ...FullMVSTreeSchema.nodes.download.params.fields,
+        /** Specifies whether file is downloaded as bytes array or string */
+        is_binary: RequiredField(bool, 'Specifies whether file is downloaded as bytes array or string'),
+      }),
+    },
+    parse: {
+      ...FullMVSTreeSchema.nodes.parse,
+      params: SimpleParamsSchema({
+        /** File format */
+        format: RequiredField(MolstarParseFormatT, 'File format'),
+      }),
+    },
+    /** Auxiliary node corresponding to Molstar's CoordinatesFrom*. */
+    coordinates: {
+      description: "Auxiliary node corresponding to Molstar's CoordinatesFrom*.",
+      parent: ['parse'],
+      params: SimpleParamsSchema({
+        /** File format */
+        format: RequiredField(MolstarParseFormatT, 'File format'),
+      }),
+    },
+    /** Auxiliary node corresponding to Molstar's TrajectoryFrom*. */
+    trajectory: {
+      description: "Auxiliary node corresponding to Molstar's TrajectoryFrom*.",
+      parent: ['parse'],
+      params: SimpleParamsSchema({
+        /** File format */
+        format: RequiredField(MolstarParseFormatT, 'File format'),
+        ...pickObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['block_header', 'block_index'] as const),
+      }),
+    },
+    /** Auxiliary node corresponding to Molstar's TrajectoryFrom*. */
+    trajectory_with_coordinates: {
+      description: 'Auxiliary node corresponding to assigning a separate coordinates to a trajectory.',
+      parent: ['model'],
+      params: SimpleParamsSchema({
+        /** Coordinates reference */
+        coordinates_ref: RequiredField(str, 'Coordinates reference'),
+      }),
+    },
+    topology_with_coordinates: {
+      description: 'Auxiliary node corresponding to assigning a separate coordinates to a topology.',
+      parent: ['parse'],
+      params: SimpleParamsSchema({
+        format: RequiredField(MolstarParseFormatT, 'File format'),
+        coordinates_ref: RequiredField(str, 'Coordinates reference'),
+      }),
+    },
+    /** Auxiliary node corresponding to Molstar's ModelFromTrajectory. */
+    model: {
+      description: "Auxiliary node corresponding to Molstar's ModelFromTrajectory.",
+      parent: ['trajectory', 'trajectory_with_coordinates', 'topology_with_coordinates'],
+      params: SimpleParamsSchema(
+        pickObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['model_index'] as const),
+      ),
+    },
+    /** Auxiliary node corresponding to Molstar's StructureFromModel. */
+    structure: {
+      ...FullMVSTreeSchema.nodes.structure,
+      parent: ['model'],
+      params: SimpleParamsSchema(
+        omitObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, [
+          'block_header',
+          'block_index',
+          'model_index',
+          'coordinates_ref',
+        ] as const),
+      ),
+    },
+  },
 });
-
 
 /** Node kind in a `MolstarTree` */
 export type MolstarKind = keyof typeof MolstarTreeSchema.nodes;
 
 /** Node in a `MolstarTree` */
-export type MolstarNode<TKind extends MolstarKind = MolstarKind> = NodeFor<typeof MolstarTreeSchema, TKind>
+export type MolstarNode<TKind extends MolstarKind = MolstarKind> = NodeFor<typeof MolstarTreeSchema, TKind>;
 
 /** Params for a specific node kind in a `MolstarTree` */
-export type MolstarNodeParams<TKind extends MolstarKind> = ParamsOfKind<MolstarTree, TKind>
+export type MolstarNodeParams<TKind extends MolstarKind> = ParamsOfKind<MolstarTree, TKind>;
 
 /** Intermediate tree representation between `MVSTree` and a real Molstar state */
-export type MolstarTree = TreeFor<typeof MolstarTreeSchema>
+export type MolstarTree = TreeFor<typeof MolstarTreeSchema>;
 
 /** Any subtree in a `MolstarTree` (e.g. its root doesn't need to be 'root') */
-export type MolstarSubtree<TKind extends MolstarKind = MolstarKind> = SubtreeOfKind<MolstarTree, TKind>
+export type MolstarSubtree<TKind extends MolstarKind = MolstarKind> = SubtreeOfKind<MolstarTree, TKind>;

@@ -13,24 +13,24 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Image } from '@molstar/graphics/geo/geometry/image/image';
 
 export function createImage() {
-    const image = Image.createEmpty();
-    const props = PD.getDefaultValues(Image.Params);
-    const values = Image.Utils.createValuesSimple(image, props, ColorNames.orange, 1);
-    const state = Image.Utils.createRenderableState(props);
-    return createRenderObject('image', values, state, -1);
+  const image = Image.createEmpty();
+  const props = PD.getDefaultValues(Image.Params);
+  const values = Image.Utils.createValuesSimple(image, props, ColorNames.orange, 1);
+  const state = Image.Utils.createRenderableState(props);
+  return createRenderObject('image', values, state, -1);
 }
 
 describe('image', () => {
-    const ctx = tryGetGLContext(32, 32);
+  const ctx = tryGetGLContext(32, 32);
 
-    (ctx ? it : it.skip)('basic', async () => {
-        const ctx = getGLContext(32, 32);
-        const scene = Scene.create(ctx);
-        const image = createImage();
-        scene.add(image);
-        setDebugMode(true);
-        expect(() => scene.commit()).not.toThrow();
-        setDebugMode(false);
-        ctx.destroy();
-    });
+  (ctx ? it : it.skip)('basic', async () => {
+    const ctx = getGLContext(32, 32);
+    const scene = Scene.create(ctx);
+    const image = createImage();
+    scene.add(image);
+    setDebugMode(true);
+    expect(() => scene.commit()).not.toThrow();
+    setDebugMode(false);
+    ctx.destroy();
+  });
 });

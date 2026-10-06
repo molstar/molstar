@@ -8,8 +8,8 @@ import { create } from 'mutative';
 
 /** Apply changes to an immutable-like object */
 export function produce<T>(base: T, recipe: (draft: T) => T | void): T {
-    if (typeof base === 'object' && !('prototype' in (base as any))) {
-        return create({ ...base }, recipe as any) as T;
-    }
-    return create(base, recipe as any) as T;
+  if (typeof base === 'object' && !('prototype' in (base as any))) {
+    return create({ ...base }, recipe as any) as T;
+  }
+  return create(base, recipe as any) as T;
 }

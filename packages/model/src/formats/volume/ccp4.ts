@@ -18,31 +18,31 @@ import { CustomProperties } from '@molstar/model/model/custom-property';
 
 /** When available (e.g. in MRC files) use ORIGIN records instead of N[CRS]START */
 export function getCcp4Origin(header: Ccp4Header): Vec3 {
-    if (header.originX === 0.0 && header.originY === 0.0 && header.originZ === 0.0) {
-        return Vec3.create(header.NCSTART, header.NRSTART, header.NSSTART);
-    } else {
-        return Vec3.create(
-            header.originX / (header.xLength / header.NX),
-            header.originY / (header.yLength / header.NY),
-            header.originZ / (header.zLength / header.NZ)
-        );
-    }
+  if (header.originX === 0.0 && header.originY === 0.0 && header.originZ === 0.0) {
+    return Vec3.create(header.NCSTART, header.NRSTART, header.NSSTART);
+  } else {
+    return Vec3.create(
+      header.originX / (header.xLength / header.NX),
+      header.originY / (header.yLength / header.NY),
+      header.originZ / (header.zLength / header.NZ),
+    );
+  }
 }
 
 export function getCcp4Size(header: Ccp4Header): Vec3 {
-    if (header.xLength === 0.0 && header.yLength === 0.0 && header.zLength === 0.0) {
-        return Vec3.create(header.NX, header.NY, header.NZ);
-    } else {
-        return Vec3.create(header.xLength, header.yLength, header.zLength);
-    }
+  if (header.xLength === 0.0 && header.yLength === 0.0 && header.zLength === 0.0) {
+    return Vec3.create(header.NX, header.NY, header.NZ);
+  } else {
+    return Vec3.create(header.xLength, header.yLength, header.zLength);
+  }
 }
 
 const RightAngle = degToRad(90);
 
 function getCcp4Angle(angleInDegrees: number, name: string) {
-    if (angleInDegrees > 0 && angleInDegrees < 180) return degToRad(angleInDegrees);
-    console.warn(`Invalid cell angle ${name} '${angleInDegrees}', using 90 degrees instead`);
-    return RightAngle;
+  if (angleInDegrees > 0 && angleInDegrees < 180) return degToRad(angleInDegrees);
+  console.warn(`Invalid cell angle ${name} '${angleInDegrees}', using 90 degrees instead`);
+  return RightAngle;
 }
 
 /**
@@ -51,93 +51,104 @@ function getCcp4Angle(angleInDegrees: number, name: string) {
  * write a zero `cellb`), in which case a right angle is assumed.
  */
 export function getCcp4Angles(header: Ccp4Header): Vec3 {
-    return Vec3.create(
-        getCcp4Angle(header.alpha, 'alpha'),
-        getCcp4Angle(header.beta, 'beta'),
-        getCcp4Angle(header.gamma, 'gamma')
-    );
+  return Vec3.create(
+    getCcp4Angle(header.alpha, 'alpha'),
+    getCcp4Angle(header.beta, 'beta'),
+    getCcp4Angle(header.gamma, 'gamma'),
+  );
 }
 
 function getTypedArrayCtor(header: Ccp4Header) {
-    const valueType = getCcp4ValueType(header);
-    switch (valueType) {
-        case TypedArrayValueType.Float32: return Float32Array;
-        case TypedArrayValueType.Int8: return Int8Array;
-        case TypedArrayValueType.Int16: return Int16Array;
-        case TypedArrayValueType.Uint16: return Uint16Array;
-    }
-    throw Error(`${valueType} is not a supported value format.`);
+  const valueType = getCcp4ValueType(header);
+  switch (valueType) {
+    case TypedArrayValueType.Float32:
+      return Float32Array;
+    case TypedArrayValueType.Int8:
+      return Int8Array;
+    case TypedArrayValueType.Int16:
+      return Int16Array;
+    case TypedArrayValueType.Uint16:
+      return Uint16Array;
+  }
+  throw Error(`${valueType} is not a supported value format.`);
 }
 
-export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, offset?: Vec3, label?: string, entryId?: string }): Task<Volume> {
-    return Task.create<Volume>('Create Volume', async ctx => {
-        const { header, values } = source;
-        const size = getCcp4Size(header);
-        if (params && params.voxelSize) Vec3.mul(size, size, params.voxelSize);
-        const angles = getCcp4Angles(header);
-        const spacegroup = header.ISPG > 65536 ? 0 : header.ISPG;
-        const cell = SpacegroupCell.create(spacegroup || 'P 1', size, angles);
+export function volumeFromCcp4(
+  source: Ccp4File,
+  params?: { voxelSize?: Vec3; offset?: Vec3; label?: string; entryId?: string },
+): Task<Volume> {
+  return Task.create<Volume>('Create Volume', async (ctx) => {
+    const { header, values } = source;
+    const size = getCcp4Size(header);
+    if (params && params.voxelSize) Vec3.mul(size, size, params.voxelSize);
+    const angles = getCcp4Angles(header);
+    const spacegroup = header.ISPG > 65536 ? 0 : header.ISPG;
+    const cell = SpacegroupCell.create(spacegroup || 'P 1', size, angles);
 
-        const axis_order_fast_to_slow = Vec3.create(header.MAPC - 1, header.MAPR - 1, header.MAPS - 1);
-        const normalizeOrder = Tensor.convertToCanonicalAxisIndicesFastToSlow(axis_order_fast_to_slow);
+    const axis_order_fast_to_slow = Vec3.create(header.MAPC - 1, header.MAPR - 1, header.MAPS - 1);
+    const normalizeOrder = Tensor.convertToCanonicalAxisIndicesFastToSlow(axis_order_fast_to_slow);
 
-        const grid = [header.NX, header.NY, header.NZ];
-        const extent = normalizeOrder([header.NC, header.NR, header.NS]);
-        const origin = getCcp4Origin(header);
-        if (params?.offset) Vec3.add(origin, origin, params.offset);
-        const gridOrigin = normalizeOrder(origin);
+    const grid = [header.NX, header.NY, header.NZ];
+    const extent = normalizeOrder([header.NC, header.NR, header.NS]);
+    const origin = getCcp4Origin(header);
+    if (params?.offset) Vec3.add(origin, origin, params.offset);
+    const gridOrigin = normalizeOrder(origin);
 
-        const origin_frac = Vec3.create(gridOrigin[0] / grid[0], gridOrigin[1] / grid[1], gridOrigin[2] / grid[2]);
-        const dimensions_frac = Vec3.create(extent[0] / grid[0], extent[1] / grid[1], extent[2] / grid[2]);
+    const origin_frac = Vec3.create(gridOrigin[0] / grid[0], gridOrigin[1] / grid[1], gridOrigin[2] / grid[2]);
+    const dimensions_frac = Vec3.create(extent[0] / grid[0], extent[1] / grid[1], extent[2] / grid[2]);
 
-        const space = Tensor.Space(extent, Tensor.invertAxisOrder(axis_order_fast_to_slow), getTypedArrayCtor(header));
-        const data = Tensor.create(space, Tensor.Data1(values));
+    const space = Tensor.Space(extent, Tensor.invertAxisOrder(axis_order_fast_to_slow), getTypedArrayCtor(header));
+    const data = Tensor.create(space, Tensor.Data1(values));
 
-        // TODO Calculate stats? When to trust header data?
-        // Min/max/mean are reliable (based on LiteMol/DensityServer usage)
-        // These, however, calculate sigma, so no data on that.
+    // TODO Calculate stats? When to trust header data?
+    // Min/max/mean are reliable (based on LiteMol/DensityServer usage)
+    // These, however, calculate sigma, so no data on that.
 
-        // always calculate stats when all stats related values are zero
-        const calcStats = header.AMIN === 0 && header.AMAX === 0 && header.AMEAN === 0 && header.ARMS === 0;
+    // always calculate stats when all stats related values are zero
+    const calcStats = header.AMIN === 0 && header.AMAX === 0 && header.AMEAN === 0 && header.ARMS === 0;
 
-        const volgrid: Grid = {
-            transform: { kind: 'spacegroup', cell, fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3(), origin_frac, dimensions_frac)) },
-            cells: data,
-            stats: {
-                min: (Number.isNaN(header.AMIN) || calcStats) ? arrayMin(values) : header.AMIN,
-                max: (Number.isNaN(header.AMAX) || calcStats) ? arrayMax(values) : header.AMAX,
-                mean: (Number.isNaN(header.AMEAN) || calcStats) ? arrayMean(values) : header.AMEAN,
-                // a negative rms means it was not computed (e.g. IMOD writes -1)
-                sigma: (Number.isNaN(header.ARMS) || header.ARMS <= 0) ? arrayRms(values) : header.ARMS
-            },
-            periodicity: Vec3.isInteger(dimensions_frac) ? 'xyz' : 'none',
-        };
+    const volgrid: Grid = {
+      transform: {
+        kind: 'spacegroup',
+        cell,
+        fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3(), origin_frac, dimensions_frac)),
+      },
+      cells: data,
+      stats: {
+        min: Number.isNaN(header.AMIN) || calcStats ? arrayMin(values) : header.AMIN,
+        max: Number.isNaN(header.AMAX) || calcStats ? arrayMax(values) : header.AMAX,
+        mean: Number.isNaN(header.AMEAN) || calcStats ? arrayMean(values) : header.AMEAN,
+        // a negative rms means it was not computed (e.g. IMOD writes -1)
+        sigma: Number.isNaN(header.ARMS) || header.ARMS <= 0 ? arrayRms(values) : header.ARMS,
+      },
+      periodicity: Vec3.isInteger(dimensions_frac) ? 'xyz' : 'none',
+    };
 
-        return {
-            label: params?.label,
-            entryId: params?.entryId,
-            grid: volgrid,
-            instances: [{ transform: Mat4.identity() }],
-            sourceData: Ccp4Format.create(source),
-            customProperties: new CustomProperties(),
-            _propertyData: Object.create(null),
-            _localPropertyData: Object.create(null),
-        };
-    });
+    return {
+      label: params?.label,
+      entryId: params?.entryId,
+      grid: volgrid,
+      instances: [{ transform: Mat4.identity() }],
+      sourceData: Ccp4Format.create(source),
+      customProperties: new CustomProperties(),
+      _propertyData: Object.create(null),
+      _localPropertyData: Object.create(null),
+    };
+  });
 }
 
 //
 
 export { Ccp4Format };
 
-type Ccp4Format = ModelFormat<Ccp4File>
+type Ccp4Format = ModelFormat<Ccp4File>;
 
 namespace Ccp4Format {
-    export function is(x?: ModelFormat): x is Ccp4Format {
-        return x?.kind === 'ccp4';
-    }
+  export function is(x?: ModelFormat): x is Ccp4Format {
+    return x?.kind === 'ccp4';
+  }
 
-    export function create(ccp4: Ccp4File): Ccp4Format {
-        return { kind: 'ccp4', name: ccp4.name, data: ccp4 };
-    }
+  export function create(ccp4: Ccp4File): Ccp4Format {
+    return { kind: 'ccp4', name: ccp4.name, data: ccp4 };
+  }
 }

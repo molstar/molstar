@@ -18,15 +18,15 @@ import * as DynamicState from '@molstar/plugin/behavior/dynamic/state';
 import * as DynamicCustomProps from '@molstar/plugin/behavior/dynamic/custom-props';
 
 export const BuiltInPluginBehaviors = {
-    State: StaticState,
-    Representation: StaticRepresentation,
-    Camera: StaticCamera,
-    Misc: StaticMisc
+  State: StaticState,
+  Representation: StaticRepresentation,
+  Camera: StaticCamera,
+  Misc: StaticMisc,
 };
 
 export const PluginBehaviors = {
-    Representation: DynamicRepresentation,
-    Camera: DynamicCamera,
-    State: DynamicState,
-    CustomProps: DynamicCustomProps
+  Representation: DynamicRepresentation,
+  Camera: DynamicCamera,
+  State: DynamicState,
+  CustomProps: DynamicCustomProps,
 };

@@ -11,53 +11,53 @@ import type * as P from '@molstar/core/util/monadic-parser';
 import type { Expression } from '../language/expression.js';
 
 export interface AtomGroupArgs {
-    [index: string]: any
-    'entity-test'?: Expression
-    'chain-test'?: Expression
-    'residue-test'?: Expression
-    'atom-test'?: Expression
-    'groupBy'?: Expression
+  [index: string]: any;
+  'entity-test'?: Expression;
+  'chain-test'?: Expression;
+  'residue-test'?: Expression;
+  'atom-test'?: Expression;
+  groupBy?: Expression;
 }
 
 export interface Keyword {
-    '@desc': string
-    abbr?: string[]
-    map?: () => Expression /* not given means the keyword is unsupported */
+  '@desc': string;
+  abbr?: string[];
+  map?: () => Expression /* not given means the keyword is unsupported */;
 }
 
-export type KeywordDict = { [name: string]: Keyword }
+export type KeywordDict = { [name: string]: Keyword };
 
 export interface Property {
-    '@desc': string
-    '@examples': string[]
-    isUnsupported?: boolean
-    isNumeric?: boolean
-    abbr?: string[]
-    regex: RegExp
-    map: (s: string) => any
-    level: 'atom-test' | 'residue-test' | 'chain-test' | 'entity-test'
-    property?: Expression
+  '@desc': string;
+  '@examples': string[];
+  isUnsupported?: boolean;
+  isNumeric?: boolean;
+  abbr?: string[];
+  regex: RegExp;
+  map: (s: string) => any;
+  level: 'atom-test' | 'residue-test' | 'chain-test' | 'entity-test';
+  property?: Expression;
 }
 
-export type PropertyDict = { [name: string]: Property }
+export type PropertyDict = { [name: string]: Property };
 
 export interface Operator {
-    '@desc': string
-    '@examples': string[]
-    name: string
-    abbr?: string[]
-    isUnsupported?: boolean
-    type: (p1: P.MonadicParser<any>, p2: P.MonadicParser<any>, fn: any) => P.MonadicParser<any>
-    rule: P.MonadicParser<any>
-    map: (x: any, y: any, z?: any) => Expression | Expression[]
+  '@desc': string;
+  '@examples': string[];
+  name: string;
+  abbr?: string[];
+  isUnsupported?: boolean;
+  type: (p1: P.MonadicParser<any>, p2: P.MonadicParser<any>, fn: any) => P.MonadicParser<any>;
+  rule: P.MonadicParser<any>;
+  map: (x: any, y: any, z?: any) => Expression | Expression[];
 }
 
-export type OperatorList = Operator[]
+export type OperatorList = Operator[];
 
 export interface Function {
-    '@desc': string
-    '@examples': string[]
-    map?: (x: any) => Expression /* not given means the keyword is unsupported */
+  '@desc': string;
+  '@examples': string[];
+  map?: (x: any) => Expression /* not given means the keyword is unsupported */;
 }
 
-export type FunctionDict = { [name: string]: Function }
+export type FunctionDict = { [name: string]: Function };

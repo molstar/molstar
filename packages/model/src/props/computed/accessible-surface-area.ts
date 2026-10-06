@@ -16,45 +16,52 @@ import { Type } from '@molstar/model/script/language/type';
 import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
 
 export const AccessibleSurfaceAreaParams = {
-    ...ShrakeRupleyComputationParams
+  ...ShrakeRupleyComputationParams,
 };
-export type AccessibleSurfaceAreaParams = typeof AccessibleSurfaceAreaParams
-export type AccessibleSurfaceAreaProps = PD.Values<AccessibleSurfaceAreaParams>
+export type AccessibleSurfaceAreaParams = typeof AccessibleSurfaceAreaParams;
+export type AccessibleSurfaceAreaProps = PD.Values<AccessibleSurfaceAreaParams>;
 
 export const AccessibleSurfaceAreaSymbols = {
-    isBuried: QuerySymbolRuntime.Dynamic(CustomPropSymbol('computed', 'accessible-surface-area.is-buried', Type.Bool),
-        ctx => {
-            if (!Unit.isAtomic(ctx.element.unit)) return false;
-            const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(ctx.element.structure).value;
-            if (!accessibleSurfaceArea) return false;
-            return AccessibleSurfaceArea.getFlag(ctx.element, accessibleSurfaceArea) === AccessibleSurfaceArea.Flags.Buried;
-        }
-    ),
-    isAccessible: QuerySymbolRuntime.Dynamic(CustomPropSymbol('computed', 'accessible-surface-area.is-accessible', Type.Bool),
-        ctx => {
-            if (!Unit.isAtomic(ctx.element.unit)) return false;
-            const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(ctx.element.structure).value;
-            if (!accessibleSurfaceArea) return false;
-            return AccessibleSurfaceArea.getFlag(ctx.element, accessibleSurfaceArea) === AccessibleSurfaceArea.Flags.Accessible;
-        }
-    ),
+  isBuried: QuerySymbolRuntime.Dynamic(
+    CustomPropSymbol('computed', 'accessible-surface-area.is-buried', Type.Bool),
+    (ctx) => {
+      if (!Unit.isAtomic(ctx.element.unit)) return false;
+      const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(ctx.element.structure).value;
+      if (!accessibleSurfaceArea) return false;
+      return AccessibleSurfaceArea.getFlag(ctx.element, accessibleSurfaceArea) === AccessibleSurfaceArea.Flags.Buried;
+    },
+  ),
+  isAccessible: QuerySymbolRuntime.Dynamic(
+    CustomPropSymbol('computed', 'accessible-surface-area.is-accessible', Type.Bool),
+    (ctx) => {
+      if (!Unit.isAtomic(ctx.element.unit)) return false;
+      const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(ctx.element.structure).value;
+      if (!accessibleSurfaceArea) return false;
+      return (
+        AccessibleSurfaceArea.getFlag(ctx.element, accessibleSurfaceArea) === AccessibleSurfaceArea.Flags.Accessible
+      );
+    },
+  ),
 };
 
-export type AccessibleSurfaceAreaValue = AccessibleSurfaceArea
+export type AccessibleSurfaceAreaValue = AccessibleSurfaceArea;
 
-export const AccessibleSurfaceAreaProvider: CustomStructureProperty.Provider<AccessibleSurfaceAreaParams, AccessibleSurfaceAreaValue> = CustomStructureProperty.createProvider({
-    label: 'Accessible Surface Area',
-    descriptor: CustomPropertyDescriptor({
-        name: 'molstar_accessible_surface_area',
-        symbols: AccessibleSurfaceAreaSymbols,
-        // TODO `cifExport`
-    }),
-    type: 'root',
-    defaultParams: AccessibleSurfaceAreaParams,
-    getParams: (data: Structure) => AccessibleSurfaceAreaParams,
-    isApplicable: (data: Structure) => true,
-    obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<AccessibleSurfaceAreaProps>) => {
-        const p = { ...PD.getDefaultValues(AccessibleSurfaceAreaParams), ...props };
-        return { value: await AccessibleSurfaceArea.compute(data, p).runInContext(ctx.runtime) };
-    }
+export const AccessibleSurfaceAreaProvider: CustomStructureProperty.Provider<
+  AccessibleSurfaceAreaParams,
+  AccessibleSurfaceAreaValue
+> = CustomStructureProperty.createProvider({
+  label: 'Accessible Surface Area',
+  descriptor: CustomPropertyDescriptor({
+    name: 'molstar_accessible_surface_area',
+    symbols: AccessibleSurfaceAreaSymbols,
+    // TODO `cifExport`
+  }),
+  type: 'root',
+  defaultParams: AccessibleSurfaceAreaParams,
+  getParams: (data: Structure) => AccessibleSurfaceAreaParams,
+  isApplicable: (data: Structure) => true,
+  obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<AccessibleSurfaceAreaProps>) => {
+    const p = { ...PD.getDefaultValues(AccessibleSurfaceAreaParams), ...props };
+    return { value: await AccessibleSurfaceArea.compute(data, p).runInContext(ctx.runtime) };
+  },
 });

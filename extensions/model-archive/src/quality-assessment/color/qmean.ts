@@ -18,83 +18,88 @@ import { ColorThemeCategory } from '@molstar/graphics/theme/color/categories';
 const DefaultColor = Color(0xaaaaaa);
 
 export function getQmeanScoreColorThemeParams(ctx: ThemeDataContext) {
-    return {
-        metricId: QualityAssessment.getLocalOptions(ctx.structure?.models[0], 'qmean'),
-    };
+  return {
+    metricId: QualityAssessment.getLocalOptions(ctx.structure?.models[0], 'qmean'),
+  };
 }
-export type QmeanScoreColorThemeParams = ReturnType<typeof getQmeanScoreColorThemeParams>
+export type QmeanScoreColorThemeParams = ReturnType<typeof getQmeanScoreColorThemeParams>;
 
-export function QmeanScoreColorTheme(ctx: ThemeDataContext, props: PD.Values<QmeanScoreColorThemeParams>): ColorTheme<QmeanScoreColorThemeParams> {
-    let color: LocationColor = () => DefaultColor;
+export function QmeanScoreColorTheme(
+  ctx: ThemeDataContext,
+  props: PD.Values<QmeanScoreColorThemeParams>,
+): ColorTheme<QmeanScoreColorThemeParams> {
+  let color: LocationColor = () => DefaultColor;
 
-    const scale = ColorScale.create({
-        domain: [0, 1],
-        listOrName: [
-            [Color(0xFF5000), 0.5], [Color(0x025AFD), 1.0]
-        ]
-    });
+  const scale = ColorScale.create({
+    domain: [0, 1],
+    listOrName: [
+      [Color(0xff5000), 0.5],
+      [Color(0x025afd), 1.0],
+    ],
+  });
 
-    if (ctx.structure) {
-        const l = StructureElement.Location.create(ctx.structure.root);
+  if (ctx.structure) {
+    const l = StructureElement.Location.create(ctx.structure.root);
 
-        const getColor = (location: StructureElement.Location): Color => {
-            const { unit, element } = location;
-            if (!Unit.isAtomic(unit)) return DefaultColor;
-            const qualityAssessment = QualityAssessmentProvider.get(unit.model).value;
-            const metric = qualityAssessment?.localMap.get(props.metricId!)?.values ?? qualityAssessment?.qmean;
-            const score = metric?.get(unit.model.atomicHierarchy.residueAtomSegments.index[element]) ?? -1;
-            if (score < 0) {
-                return DefaultColor;
-            } else {
-                return scale.color(score);
-            }
-        };
-
-        color = (location: Location) => {
-            if (StructureElement.Location.is(location)) {
-                return getColor(location);
-            } else if (Bond.isLocation(location)) {
-                l.unit = location.aUnit;
-                l.element = location.aUnit.elements[location.aIndex];
-                return getColor(l);
-            }
-            return DefaultColor;
-        };
-    }
-
-    return {
-        factory: QmeanScoreColorTheme,
-        granularity: 'group',
-        preferSmoothing: true,
-        color,
-        props,
-        description: 'Assigns residue colors according to the QMEAN score.',
-        legend: scale.legend
+    const getColor = (location: StructureElement.Location): Color => {
+      const { unit, element } = location;
+      if (!Unit.isAtomic(unit)) return DefaultColor;
+      const qualityAssessment = QualityAssessmentProvider.get(unit.model).value;
+      const metric = qualityAssessment?.localMap.get(props.metricId!)?.values ?? qualityAssessment?.qmean;
+      const score = metric?.get(unit.model.atomicHierarchy.residueAtomSegments.index[element]) ?? -1;
+      if (score < 0) {
+        return DefaultColor;
+      } else {
+        return scale.color(score);
+      }
     };
+
+    color = (location: Location) => {
+      if (StructureElement.Location.is(location)) {
+        return getColor(location);
+      } else if (Bond.isLocation(location)) {
+        l.unit = location.aUnit;
+        l.element = location.aUnit.elements[location.aIndex];
+        return getColor(l);
+      }
+      return DefaultColor;
+    };
+  }
+
+  return {
+    factory: QmeanScoreColorTheme,
+    granularity: 'group',
+    preferSmoothing: true,
+    color,
+    props,
+    description: 'Assigns residue colors according to the QMEAN score.',
+    legend: scale.legend,
+  };
 }
 
 export const QmeanScoreColorThemeProvider: ColorTheme.Provider<QmeanScoreColorThemeParams, 'qmean-score'> = {
-    name: 'qmean-score',
-    label: 'QMEAN Score',
-    category: ColorThemeCategory.Validation,
-    factory: QmeanScoreColorTheme,
-    getParams: getQmeanScoreColorThemeParams,
-    defaultValues: PD.getDefaultValues(getQmeanScoreColorThemeParams({})),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure?.models.some(m => QualityAssessment.isApplicable(m, 'qmean')),
-    ensureCustomProperties: {
-        attach: async (ctx: CustomProperty.Context, data: ThemeDataContext) => {
-            if (data.structure) {
-                for (const m of data.structure.models) {
-                    await QualityAssessmentProvider.attach(ctx, m, void 0, true);
-                }
-            }
-        },
-        detach: async (data: ThemeDataContext) => {
-            if (data.structure) {
-                for (const m of data.structure.models) {
-                    QualityAssessmentProvider.ref(m, false);
-                }
-            }
+  name: 'qmean-score',
+  label: 'QMEAN Score',
+  category: ColorThemeCategory.Validation,
+  factory: QmeanScoreColorTheme,
+  getParams: getQmeanScoreColorThemeParams,
+  defaultValues: PD.getDefaultValues(getQmeanScoreColorThemeParams({})),
+  isApplicable: (ctx: ThemeDataContext) =>
+    !!ctx.structure?.models.some((m) => QualityAssessment.isApplicable(m, 'qmean')),
+  ensureCustomProperties: {
+    attach: async (ctx: CustomProperty.Context, data: ThemeDataContext) => {
+      if (data.structure) {
+        for (const m of data.structure.models) {
+          await QualityAssessmentProvider.attach(ctx, m, void 0, true);
         }
-    }
+      }
+    },
+    detach: async (data: ThemeDataContext) => {
+      if (data.structure) {
+        for (const m of data.structure.models) {
+          QualityAssessmentProvider.ref(m, false);
+        }
+      }
+    },
+  },
 };

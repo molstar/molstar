@@ -19,62 +19,62 @@ import { CifWriter } from '@molstar/io/writer/cif';
 import { CCD_Schema } from '@molstar/io/reader/cif/schema/ccd';
 
 export async function ensureAvailable(path: string, url: string, forceDownload = false) {
-    if (forceDownload || !fs.existsSync(path)) {
-        console.log(`downloading ${url}...`);
-        const data = await fetch(url);
-        if (!fs.existsSync(DATA_DIR)) {
-            fs.mkdirSync(DATA_DIR);
-        }
-        if (url.endsWith('.gz')) {
-            await writeFileAsync(path, zlib.gunzipSync(await data.arrayBuffer()));
-        } else {
-            await writeFileAsync(path, await data.text());
-        }
-        console.log(`done downloading ${url}`);
+  if (forceDownload || !fs.existsSync(path)) {
+    console.log(`downloading ${url}...`);
+    const data = await fetch(url);
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR);
     }
+    if (url.endsWith('.gz')) {
+      await writeFileAsync(path, zlib.gunzipSync(await data.arrayBuffer()));
+    } else {
+      await writeFileAsync(path, await data.text());
+    }
+    console.log(`done downloading ${url}`);
+  }
 }
 
 export async function ensureDataAvailable(options: DataOptions) {
-    await ensureAvailable(CCD_PATH, options.ccdUrl || CCD_URL, !!options.ccdUrl || options.forceDownload);
-    await ensureAvailable(PVCD_PATH, options.pvcdUrl || PVCD_URL, !!options.pvcdUrl || options.forceDownload);
+  await ensureAvailable(CCD_PATH, options.ccdUrl || CCD_URL, !!options.ccdUrl || options.forceDownload);
+  await ensureAvailable(PVCD_PATH, options.pvcdUrl || PVCD_URL, !!options.pvcdUrl || options.forceDownload);
 }
 
 export async function readFileAsCollection<S extends Database.Schema>(path: string, schema: S) {
-    const parsed = await parseCif(await readFileAsync(path, 'utf8'));
-    return CIF.toDatabaseCollection(schema, parsed.result);
+  const parsed = await parseCif(await readFileAsync(path, 'utf8'));
+  return CIF.toDatabaseCollection(schema, parsed.result);
 }
 
 export async function readCCD() {
-    return readFileAsCollection(CCD_PATH, CCD_Schema);
+  return readFileAsCollection(CCD_PATH, CCD_Schema);
 }
 
 export async function readPVCD() {
-    return readFileAsCollection(PVCD_PATH, CCD_Schema);
+  return readFileAsCollection(PVCD_PATH, CCD_Schema);
 }
 
 async function parseCif(data: string | Uint8Array) {
-    const comp = CIF.parse(data);
-    console.time('parse cif');
-    const parsed = await comp.run(p => console.log(Progress.format(p)), 250);
-    console.timeEnd('parse cif');
-    if (parsed.isError) throw parsed;
-    return parsed;
+  const comp = CIF.parse(data);
+  console.time('parse cif');
+  const parsed = await comp.run((p) => console.log(Progress.format(p)), 250);
+  console.timeEnd('parse cif');
+  if (parsed.isError) throw parsed;
+  return parsed;
 }
 
 export function getEncodedCif(name: string, database: Database<Database.Schema>, binary = false) {
-    const encoder = CifWriter.createEncoder({ binary, encoderName: 'mol*' });
-    CifWriter.Encoder.writeDatabase(encoder, name, database);
-    return encoder.getData();
+  const encoder = CifWriter.createEncoder({ binary, encoderName: 'mol*' });
+  CifWriter.Encoder.writeDatabase(encoder, name, database);
+  return encoder.getData();
 }
 
 export type DataOptions = {
-    ccdUrl?: string,
-    pvcdUrl?: string,
-    forceDownload?: boolean
-}
+  ccdUrl?: string;
+  pvcdUrl?: string;
+  forceDownload?: boolean;
+};
 
 export const DefaultDataOptions: DataOptions = {
-    forceDownload: false
+  forceDownload: false,
 };
 
 const PACKAGE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');

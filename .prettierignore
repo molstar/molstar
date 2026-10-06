@@ -1,0 +1,19 @@
+# Prettier owns Markdown, YAML, and SCSS. Biome owns the other supported formats.
+**/*
+!**/
+!**/*.md
+!**/*.mdx
+!**/*.yaml
+!**/*.yml
+!**/*.scss
+
+# Generated artifacts, dependencies, and lockfiles.
+**/node_modules/
+**/build/
+**/lib/
+deploy/
+docs/site/
+coverage/
+.cache/
+.pnpm-store/
+**/pnpm-lock.yaml

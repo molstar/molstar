@@ -11,90 +11,93 @@ import type { Volume } from '@molstar/model/model/volume';
 import type { Structure } from '@molstar/model/model/structure';
 import type { VolumeStreaming } from './behavior.js';
 
-export class VolumeServerInfo extends PluginStateObject.Create<VolumeServerInfo.Data>({ name: 'Volume Streaming', typeClass: 'Object' }) { }
+export class VolumeServerInfo extends PluginStateObject.Create<VolumeServerInfo.Data>({
+  name: 'Volume Streaming',
+  typeClass: 'Object',
+}) {}
 
 export namespace VolumeServerInfo {
-    export type Kind = 'x-ray' | 'em'
-    export interface EntryData {
-        kind: Kind,
-        // for em, the EMDB access code, for x-ray, the PDB id
-        dataId: string,
-        header: VolumeServerHeader,
-        emDefaultContourLevel?: Volume.IsoValue,
-    }
-    export interface Data {
-        serverUrl: string,
-        entries: EntryData[],
-        structure: Structure,
-        defaultView: VolumeStreaming.ViewTypes,
-        defaultChannelParams: VolumeStreaming.DefaultChannelParams,
-    }
+  export type Kind = 'x-ray' | 'em';
+  export interface EntryData {
+    kind: Kind;
+    // for em, the EMDB access code, for x-ray, the PDB id
+    dataId: string;
+    header: VolumeServerHeader;
+    emDefaultContourLevel?: Volume.IsoValue;
+  }
+  export interface Data {
+    serverUrl: string;
+    entries: EntryData[];
+    structure: Structure;
+    defaultView: VolumeStreaming.ViewTypes;
+    defaultChannelParams: VolumeStreaming.DefaultChannelParams;
+  }
 }
 
 export interface VolumeServerHeader {
-    /** Format version number  */
-    formatVersion: string,
+  /** Format version number  */
+  formatVersion: string;
 
-    /** Axis order from the slowest to fastest moving, same as in CCP4 */
-    axisOrder: number[],
+  /** Axis order from the slowest to fastest moving, same as in CCP4 */
+  axisOrder: number[];
 
-    /** Origin in fractional coordinates, in axisOrder */
-    origin: number[],
+  /** Origin in fractional coordinates, in axisOrder */
+  origin: number[];
 
-    /** Dimensions in fractional coordinates, in axisOrder */
-    dimensions: number[],
+  /** Dimensions in fractional coordinates, in axisOrder */
+  dimensions: number[];
 
-    spacegroup: VolumeServerHeader.Spacegroup,
-    channels: string[],
+  spacegroup: VolumeServerHeader.Spacegroup;
+  channels: string[];
 
-    /** Determines the data type of the values */
-    valueType: VolumeServerHeader.ValueType,
+  /** Determines the data type of the values */
+  valueType: VolumeServerHeader.ValueType;
 
-    /** The value are stored in blockSize^3 cubes */
-    blockSize: number,
-    sampling: VolumeServerHeader.Sampling[],
+  /** The value are stored in blockSize^3 cubes */
+  blockSize: number;
+  sampling: VolumeServerHeader.Sampling[];
 
-    /** Precision data the server can show. */
-    availablePrecisions: VolumeServerHeader.DetailLevel[],
+  /** Precision data the server can show. */
+  availablePrecisions: VolumeServerHeader.DetailLevel[];
 
-    isAvailable: boolean
+  isAvailable: boolean;
 }
 
 export namespace VolumeServerHeader {
-    export type ValueType = 'float32' | 'int8'
+  export type ValueType = 'float32' | 'int8';
 
-    export namespace ValueType {
-        export const Float32: ValueType = 'float32';
-        export const Int8: ValueType = 'int8';
-    }
+  export namespace ValueType {
+    export const Float32: ValueType = 'float32';
+    export const Int8: ValueType = 'int8';
+  }
 
-    export type ValueArray = Float32Array | Int8Array
+  export type ValueArray = Float32Array | Int8Array;
 
-    export type DetailLevel = { precision: number, maxVoxels: number }
+  export type DetailLevel = { precision: number; maxVoxels: number };
 
-    export interface Spacegroup {
-        number: number,
-        size: number[],
-        angles: number[],
-        /** Determine if the data should be treated as periodic or not. (e.g. X-ray = periodic, EM = not periodic) */
-        isPeriodic: boolean,
-    }
+  export interface Spacegroup {
+    number: number;
+    size: number[];
+    angles: number[];
+    /** Determine if the data should be treated as periodic or not. (e.g. X-ray = periodic, EM = not periodic) */
+    isPeriodic: boolean;
+  }
 
-    export interface ValuesInfo {
-        mean: number,
-        sigma: number,
-        min: number,
-        max: number
-    }
+  export interface ValuesInfo {
+    mean: number;
+    sigma: number;
+    min: number;
+    max: number;
+  }
 
-    export interface Sampling {
-        byteOffset: number,
+  export interface Sampling {
+    byteOffset: number;
 
-        /** How many values along each axis were collapsed into 1 */
-        rate: number,
-        valuesInfo: ValuesInfo[],
+    /** How many values along each axis were collapsed into 1 */
+    rate: number;
+    valuesInfo: ValuesInfo[];
 
-        /** Number of samples along each axis, in axisOrder  */
-        sampleCount: number[]
-    }
+    /** Number of samples along each axis, in axisOrder  */
+    sampleCount: number[];
+  }
 }

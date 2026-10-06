@@ -10,7 +10,19 @@ import type { Unit, Structure } from '@molstar/model/model/structure';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
-import { createCurveSegmentState, PolymerTraceIterator, interpolateCurveSegment, interpolateSizes, PolymerLocationIterator, getPolymerElementLoci, eachPolymerElement, StandardTension, StandardShift, NucleicShift, OverhangFactor } from './util/polymer.js';
+import {
+  createCurveSegmentState,
+  PolymerTraceIterator,
+  interpolateCurveSegment,
+  interpolateSizes,
+  PolymerLocationIterator,
+  getPolymerElementLoci,
+  eachPolymerElement,
+  StandardTension,
+  StandardShift,
+  NucleicShift,
+  OverhangFactor,
+} from './util/polymer.js';
 import { isNucleic } from '@molstar/model/model/structure/model/types';
 import { addTube } from '@molstar/graphics/geo/geometry/mesh/builder/tube';
 import { UnitsMeshParams, type UnitsVisual, UnitsMeshVisual } from '../units-visual.js';
@@ -24,110 +36,148 @@ import { Sphere3D } from '@molstar/core/math/geometry';
 import type { StructureGroup } from './util/common.js';
 
 export const PolymerTubeMeshParams = {
-    sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
-    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
-    linearSegments: PD.Numeric(8, { min: 1, max: 48, step: 1 }, BaseGeometry.CustomQualityParamInfo),
-    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
+  sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
+  detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
+  linearSegments: PD.Numeric(8, { min: 1, max: 48, step: 1 }, BaseGeometry.CustomQualityParamInfo),
+  radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
 };
 export const DefaultPolymerTubeMeshProps = PD.getDefaultValues(PolymerTubeMeshParams);
-export type PolymerTubeMeshProps = typeof DefaultPolymerTubeMeshProps
+export type PolymerTubeMeshProps = typeof DefaultPolymerTubeMeshProps;
 
 const tmpV1 = Vec3();
 
-function createPolymerTubeMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerTubeMeshProps, mesh?: Mesh) {
-    const polymerElementCount = unit.polymerElements.length;
+function createPolymerTubeMesh(
+  ctx: VisualContext,
+  unit: Unit,
+  structure: Structure,
+  theme: Theme,
+  props: PolymerTubeMeshProps,
+  mesh?: Mesh,
+) {
+  const polymerElementCount = unit.polymerElements.length;
 
-    if (!polymerElementCount) return Mesh.createEmpty(mesh);
-    const { sizeFactor, detail, linearSegments, radialSegments } = props;
+  if (!polymerElementCount) return Mesh.createEmpty(mesh);
+  const { sizeFactor, detail, linearSegments, radialSegments } = props;
 
-    const vertexCount = linearSegments * radialSegments * polymerElementCount + (radialSegments + 1) * polymerElementCount * 2;
-    const builderState = MeshBuilder.createState(vertexCount, vertexCount / 10, mesh);
+  const vertexCount =
+    linearSegments * radialSegments * polymerElementCount + (radialSegments + 1) * polymerElementCount * 2;
+  const builderState = MeshBuilder.createState(vertexCount, vertexCount / 10, mesh);
 
-    const state = createCurveSegmentState(linearSegments);
-    const { curvePoints, normalVectors, binormalVectors, widthValues, heightValues } = state;
+  const state = createCurveSegmentState(linearSegments);
+  const { curvePoints, normalVectors, binormalVectors, widthValues, heightValues } = state;
 
-    let i = 0;
-    const polymerTraceIt = PolymerTraceIterator(unit, structure, { ignoreSecondaryStructure: true });
-    while (polymerTraceIt.hasNext) {
-        const v = polymerTraceIt.move();
-        builderState.currentGroup = i;
+  let i = 0;
+  const polymerTraceIt = PolymerTraceIterator(unit, structure, { ignoreSecondaryStructure: true });
+  while (polymerTraceIt.hasNext) {
+    const v = polymerTraceIt.move();
+    builderState.currentGroup = i;
 
-        const isNucleicType = isNucleic(v.moleculeType);
-        const shift = isNucleicType ? NucleicShift : StandardShift;
+    const isNucleicType = isNucleic(v.moleculeType);
+    const shift = isNucleicType ? NucleicShift : StandardShift;
 
-        interpolateCurveSegment(state, v, StandardTension, shift);
+    interpolateCurveSegment(state, v, StandardTension, shift);
 
-        const startCap = v.coarseBackboneFirst || v.first;
-        const endCap = v.coarseBackboneLast || v.last;
+    const startCap = v.coarseBackboneFirst || v.first;
+    const endCap = v.coarseBackboneLast || v.last;
 
-        const s0 = theme.size.size(v.centerPrev) * sizeFactor;
-        const s1 = theme.size.size(v.center) * sizeFactor;
-        const s2 = theme.size.size(v.centerNext) * sizeFactor;
+    const s0 = theme.size.size(v.centerPrev) * sizeFactor;
+    const s1 = theme.size.size(v.center) * sizeFactor;
+    const s2 = theme.size.size(v.centerNext) * sizeFactor;
 
-        interpolateSizes(state, s0, s1, s2, s0, s1, s2, shift);
+    interpolateSizes(state, s0, s1, s2, s0, s1, s2, shift);
 
-        let segmentCount = linearSegments;
-        if (v.initial) {
-            segmentCount = Math.max(Math.round(linearSegments * shift), 1);
-            const offset = linearSegments - segmentCount;
-            curvePoints.copyWithin(0, offset * 3);
-            binormalVectors.copyWithin(0, offset * 3);
-            normalVectors.copyWithin(0, offset * 3);
-            widthValues.copyWithin(0, offset * 3);
-            heightValues.copyWithin(0, offset * 3);
-            Vec3.fromArray(tmpV1, curvePoints, 3);
-            Vec3.normalize(tmpV1, Vec3.sub(tmpV1, v.p2, tmpV1));
-            Vec3.scaleAndAdd(tmpV1, v.p2, tmpV1, s1 * OverhangFactor);
-            Vec3.toArray(tmpV1, curvePoints, 0);
-        } else if (v.final) {
-            segmentCount = Math.max(Math.round(linearSegments * (1 - shift)), 1);
-            Vec3.fromArray(tmpV1, curvePoints, segmentCount * 3 - 3);
-            Vec3.normalize(tmpV1, Vec3.sub(tmpV1, v.p2, tmpV1));
-            Vec3.scaleAndAdd(tmpV1, v.p2, tmpV1, s1 * OverhangFactor);
-            Vec3.toArray(tmpV1, curvePoints, segmentCount * 3);
-        }
-
-        if (v.initial === true && v.final === true) {
-            addSphere(builderState, v.p2, s1 * 2, detail);
-        } else if (radialSegments === 2) {
-            addRibbon(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, widthValues, heightValues, 0);
-        } else if (radialSegments === 4) {
-            addSheet(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, widthValues, heightValues, 0, startCap, endCap);
-        } else {
-            addTube(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, radialSegments, widthValues, heightValues, startCap, endCap, 'elliptical');
-        }
-
-        ++i;
+    let segmentCount = linearSegments;
+    if (v.initial) {
+      segmentCount = Math.max(Math.round(linearSegments * shift), 1);
+      const offset = linearSegments - segmentCount;
+      curvePoints.copyWithin(0, offset * 3);
+      binormalVectors.copyWithin(0, offset * 3);
+      normalVectors.copyWithin(0, offset * 3);
+      widthValues.copyWithin(0, offset * 3);
+      heightValues.copyWithin(0, offset * 3);
+      Vec3.fromArray(tmpV1, curvePoints, 3);
+      Vec3.normalize(tmpV1, Vec3.sub(tmpV1, v.p2, tmpV1));
+      Vec3.scaleAndAdd(tmpV1, v.p2, tmpV1, s1 * OverhangFactor);
+      Vec3.toArray(tmpV1, curvePoints, 0);
+    } else if (v.final) {
+      segmentCount = Math.max(Math.round(linearSegments * (1 - shift)), 1);
+      Vec3.fromArray(tmpV1, curvePoints, segmentCount * 3 - 3);
+      Vec3.normalize(tmpV1, Vec3.sub(tmpV1, v.p2, tmpV1));
+      Vec3.scaleAndAdd(tmpV1, v.p2, tmpV1, s1 * OverhangFactor);
+      Vec3.toArray(tmpV1, curvePoints, segmentCount * 3);
     }
 
-    const m = MeshBuilder.getMesh(builderState);
+    if (v.initial === true && v.final === true) {
+      addSphere(builderState, v.p2, s1 * 2, detail);
+    } else if (radialSegments === 2) {
+      addRibbon(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, widthValues, heightValues, 0);
+    } else if (radialSegments === 4) {
+      addSheet(
+        builderState,
+        curvePoints,
+        normalVectors,
+        binormalVectors,
+        segmentCount,
+        widthValues,
+        heightValues,
+        0,
+        startCap,
+        endCap,
+      );
+    } else {
+      addTube(
+        builderState,
+        curvePoints,
+        normalVectors,
+        binormalVectors,
+        segmentCount,
+        radialSegments,
+        widthValues,
+        heightValues,
+        startCap,
+        endCap,
+        'elliptical',
+      );
+    }
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
-    m.setBoundingSphere(sphere);
+    ++i;
+  }
 
-    return m;
+  const m = MeshBuilder.getMesh(builderState);
+
+  const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
+  m.setBoundingSphere(sphere);
+
+  return m;
 }
 
 export const PolymerTubeParams = {
-    ...UnitsMeshParams,
-    ...PolymerTubeMeshParams
+  ...UnitsMeshParams,
+  ...PolymerTubeMeshParams,
 };
-export type PolymerTubeParams = typeof PolymerTubeParams
+export type PolymerTubeParams = typeof PolymerTubeParams;
 
 export function PolymerTubeVisual(materialId: number): UnitsVisual<PolymerTubeParams> {
-    return UnitsMeshVisual<PolymerTubeParams>({
-        defaultProps: PD.getDefaultValues(PolymerTubeParams),
-        createGeometry: createPolymerTubeMesh,
-        createLocationIterator: (structureGroup: StructureGroup) => PolymerLocationIterator.fromGroup(structureGroup, { asSecondary: true }),
-        getLoci: getPolymerElementLoci,
-        eachLocation: eachPolymerElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerTubeParams>, currentProps: PD.Values<PolymerTubeParams>) => {
-            state.createGeometry = (
-                newProps.sizeFactor !== currentProps.sizeFactor ||
-                newProps.detail !== currentProps.detail ||
-                newProps.linearSegments !== currentProps.linearSegments ||
-                newProps.radialSegments !== currentProps.radialSegments
-            );
-        }
-    }, materialId);
+  return UnitsMeshVisual<PolymerTubeParams>(
+    {
+      defaultProps: PD.getDefaultValues(PolymerTubeParams),
+      createGeometry: createPolymerTubeMesh,
+      createLocationIterator: (structureGroup: StructureGroup) =>
+        PolymerLocationIterator.fromGroup(structureGroup, { asSecondary: true }),
+      getLoci: getPolymerElementLoci,
+      eachLocation: eachPolymerElement,
+      setUpdateState: (
+        state: VisualUpdateState,
+        newProps: PD.Values<PolymerTubeParams>,
+        currentProps: PD.Values<PolymerTubeParams>,
+      ) => {
+        state.createGeometry =
+          newProps.sizeFactor !== currentProps.sizeFactor ||
+          newProps.detail !== currentProps.detail ||
+          newProps.linearSegments !== currentProps.linearSegments ||
+          newProps.radialSegments !== currentProps.radialSegments;
+      },
+    },
+    materialId,
+  );
 }

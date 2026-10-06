@@ -10,27 +10,27 @@ import { decode } from '../decoder.js';
 const E = ArrayEncoding;
 
 describe('binary-cif encoder', () => {
-    it('fixedPoint2', async () => {
-        const fixedPoint2 = E.by(E.fixedPoint(100)).and(E.delta).and(E.integerPacking);
+  it('fixedPoint2', async () => {
+    const fixedPoint2 = E.by(E.fixedPoint(100)).and(E.delta).and(E.integerPacking);
 
-        const x = [1.092, 1.960, 0.666, 0.480, 1.267];
-        const y = [7.428, 7.026, 6.851, 7.524, 8.333];
-        const z = [26.270, 26.561, 25.573, 27.055, 25.881];
+    const x = [1.092, 1.96, 0.666, 0.48, 1.267];
+    const y = [7.428, 7.026, 6.851, 7.524, 8.333];
+    const z = [26.27, 26.561, 25.573, 27.055, 25.881];
 
-        const xEnc = fixedPoint2.encode(new Float32Array(x));
-        const yEnc = fixedPoint2.encode(new Float32Array(y));
-        const zEnc = fixedPoint2.encode(new Float32Array(z));
+    const xEnc = fixedPoint2.encode(new Float32Array(x));
+    const yEnc = fixedPoint2.encode(new Float32Array(y));
+    const zEnc = fixedPoint2.encode(new Float32Array(z));
 
-        expect(xEnc.data.length).toEqual(6);
-        expect(yEnc.data.length).toEqual(5);
-        expect(zEnc.data.length).toEqual(6);
+    expect(xEnc.data.length).toEqual(6);
+    expect(yEnc.data.length).toEqual(5);
+    expect(zEnc.data.length).toEqual(6);
 
-        const xDec = decode(xEnc);
-        const yDec = decode(yEnc);
-        const zDec = decode(zEnc);
+    const xDec = decode(xEnc);
+    const yDec = decode(yEnc);
+    const zDec = decode(zEnc);
 
-        x.forEach((a, i) => expect(xDec[i]).toBeCloseTo(a, 2));
-        y.forEach((a, i) => expect(yDec[i]).toBeCloseTo(a, 2));
-        z.forEach((a, i) => expect(zDec[i]).toBeCloseTo(a, 2));
-    });
+    x.forEach((a, i) => expect(xDec[i]).toBeCloseTo(a, 2));
+    y.forEach((a, i) => expect(yDec[i]).toBeCloseTo(a, 2));
+    z.forEach((a, i) => expect(zDec[i]).toBeCloseTo(a, 2));
+  });
 });
