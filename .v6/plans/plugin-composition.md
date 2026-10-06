@@ -271,8 +271,10 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       headless examples, and the smoke fixtures (§3.6, §3.7).
 - [x] Switch the extension and app calls of `PresetStructureRepresentations.auto.apply` in §1.3 to the auto preset's
       defining module.
-- [ ] Build the import-graph check with the catalog manifest (§4.2, §4.3), run from `check:workspace`; later steps
-      extend its rules.
+- [x] Build the import-graph check with the catalog manifest (§4.2, §4.3), run from `check:workspace`; later steps
+      extend its rules. First version: rules a (catalog value imports), b (base entry points reach default-composition
+      modules) and d (type imports to a higher package), with the planned violations in the manifest allowlist (each
+      with a reason and the removing step; stale entries fail).
 
 ### Step 2: registries
 

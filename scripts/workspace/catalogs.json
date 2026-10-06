@@ -1,0 +1,175 @@
+{
+  "layers": [
+    "@molstar/core",
+    "@molstar/io",
+    "@molstar/model",
+    "@molstar/graphics",
+    "@molstar/plugin",
+    "@molstar/plugin-ui"
+  ],
+  "catalogs": [
+    "packages/graphics/src/repr/particles/catalog.ts",
+    "packages/graphics/src/repr/structure/catalog.ts",
+    "packages/graphics/src/repr/volume/catalog.ts",
+    "packages/graphics/src/theme/color/catalog.ts",
+    "packages/graphics/src/theme/size/catalog.ts",
+    "packages/model/src/script/transpilers/all.ts",
+    "packages/plugin/core/src/behavior.ts",
+    "packages/plugin/core/src/behavior/dynamic/custom-props.ts",
+    "packages/plugin/core/src/state/actions.ts",
+    "packages/plugin/core/src/state/builder/structure/hierarchy/catalog.ts",
+    "packages/plugin/core/src/state/builder/structure/presets/catalog.ts",
+    "packages/plugin/core/src/state/formats/coordinates/catalog.ts",
+    "packages/plugin/core/src/state/formats/particles/catalog.ts",
+    "packages/plugin/core/src/state/formats/shape/catalog.ts",
+    "packages/plugin/core/src/state/formats/topology/catalog.ts",
+    "packages/plugin/core/src/state/formats/trajectory/catalog.ts",
+    "packages/plugin/core/src/state/formats/volume/catalog.ts",
+    "packages/plugin/core/src/state/markdown/catalog.ts",
+    "packages/plugin/core/src/state/queries/structure/catalog.ts",
+    "packages/plugin/core/src/state/transforms/catalog.ts"
+  ],
+  "defaultComposition": ["packages/plugin/core/src/default-spec.ts", "packages/plugin/ui/src/default-spec.ts"],
+  "pendingDefaultComposition": ["packages/plugin/core/src/default-registry.ts"],
+  "baseEntryPoints": [
+    "packages/plugin/core/src/context.ts",
+    "packages/plugin/core/src/spec.ts",
+    "packages/plugin/ui/src/index.ts",
+    "packages/plugin/ui/src/spec.ts"
+  ],
+  "allowlist": [
+    {
+      "rule": "a",
+      "from": "packages/graphics/src/repr/particles/registry.ts",
+      "to": "packages/graphics/src/repr/particles/catalog.ts",
+      "reason": "the representation registry constructor preloads every built-in entry from its catalog",
+      "step": "plugin composition step 3 (remove constructor preloads)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/graphics/src/repr/structure/registry.ts",
+      "to": "packages/graphics/src/repr/structure/catalog.ts",
+      "reason": "the representation registry constructor preloads every built-in entry from its catalog",
+      "step": "plugin composition step 3 (remove constructor preloads)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/graphics/src/repr/volume/registry.ts",
+      "to": "packages/graphics/src/repr/volume/catalog.ts",
+      "reason": "the representation registry constructor preloads every built-in entry from its catalog",
+      "step": "plugin composition step 3 (remove constructor preloads)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/graphics/src/theme/color.ts",
+      "to": "packages/graphics/src/theme/color/catalog.ts",
+      "reason": "ThemeRegistry requires a built-in map, and the ColorTheme/SizeTheme namespace exposes BuiltIn from the catalog",
+      "step": "plugin composition step 2 (ThemeRegistry without a built-in map), step 3 (remove preloads)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/graphics/src/theme/size.ts",
+      "to": "packages/graphics/src/theme/size/catalog.ts",
+      "reason": "ThemeRegistry requires a built-in map, and the ColorTheme/SizeTheme namespace exposes BuiltIn from the catalog",
+      "step": "plugin composition step 2 (ThemeRegistry without a built-in map), step 3 (remove preloads)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/plugin/core/src/state/actions/structure.ts",
+      "to": "packages/plugin/core/src/state/formats/trajectory/catalog.ts",
+      "reason": "DownloadStructure builds its URL format list from BuiltInTrajectoryFormats",
+      "step": "plugin composition step 3 (DownloadStructure derives formats from the registry)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/plugin/core/src/state/builder/structure/hierarchy.ts",
+      "to": "packages/plugin/core/src/state/builder/structure/hierarchy/catalog.ts",
+      "reason": "the preset builder constructor preloads the preset catalog and resolves presets from the static map",
+      "step": "plugin composition step 2 (builders resolve through the registry), step 3 (remove preloads)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/plugin/core/src/state/builder/structure/presets/types.ts",
+      "to": "packages/plugin/core/src/state/queries/structure/catalog.ts",
+      "reason": "not in the §1.1 coupling table: the preset parameter definitions use StructureSelectionQueries (Q) from the query catalog",
+      "step": "plugin composition step 3 (presets import what they run)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/plugin/core/src/state/builder/structure/representation.ts",
+      "to": "packages/plugin/core/src/state/builder/structure/presets/catalog.ts",
+      "reason": "the preset builder constructor preloads the preset catalog and resolves presets from the static map",
+      "step": "plugin composition step 2 (builders resolve through the registry), step 3 (remove preloads)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/plugin/core/src/state/formats/registry.ts",
+      "to": "packages/plugin/core/src/state/formats/trajectory/catalog.ts",
+      "reason": "DataFormatRegistry constructor preloads the six built-in format lists",
+      "step": "plugin composition step 3 (DataFormatRegistry no longer imports the format lists)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/plugin/core/src/state/formats/registry.ts",
+      "to": "packages/plugin/core/src/state/formats/volume/catalog.ts",
+      "reason": "DataFormatRegistry constructor preloads the six built-in format lists",
+      "step": "plugin composition step 3 (DataFormatRegistry no longer imports the format lists)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/plugin/core/src/state/formats/registry.ts",
+      "to": "packages/plugin/core/src/state/formats/shape/catalog.ts",
+      "reason": "DataFormatRegistry constructor preloads the six built-in format lists",
+      "step": "plugin composition step 3 (DataFormatRegistry no longer imports the format lists)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/plugin/core/src/state/formats/registry.ts",
+      "to": "packages/plugin/core/src/state/formats/topology/catalog.ts",
+      "reason": "DataFormatRegistry constructor preloads the six built-in format lists",
+      "step": "plugin composition step 3 (DataFormatRegistry no longer imports the format lists)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/plugin/core/src/state/formats/registry.ts",
+      "to": "packages/plugin/core/src/state/formats/coordinates/catalog.ts",
+      "reason": "DataFormatRegistry constructor preloads the six built-in format lists",
+      "step": "plugin composition step 3 (DataFormatRegistry no longer imports the format lists)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/plugin/core/src/state/formats/registry.ts",
+      "to": "packages/plugin/core/src/state/formats/particles/catalog.ts",
+      "reason": "DataFormatRegistry constructor preloads the six built-in format lists",
+      "step": "plugin composition step 3 (DataFormatRegistry no longer imports the format lists)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/plugin/core/src/state/manager/markdown-extensions.ts",
+      "to": "packages/plugin/core/src/state/markdown/catalog.ts",
+      "reason": "MarkdownExtensionManager constructor preloads BuiltInMarkdownExtension",
+      "step": "plugin composition step 3 (remove constructor preloads)"
+    },
+    {
+      "rule": "a",
+      "from": "packages/plugin/core/src/state/queries/structure/registry.ts",
+      "to": "packages/plugin/core/src/state/queries/structure/catalog.ts",
+      "reason": "StructureSelectionQueryRegistry constructor preloads the query catalog",
+      "step": "plugin composition step 3 (remove constructor preloads)"
+    },
+    {
+      "rule": "b",
+      "from": "packages/plugin/ui/src/index.ts",
+      "to": "packages/plugin/ui/src/default-spec.ts",
+      "reason": "createPluginUI falls back to DefaultPluginUISpec() when no spec is passed",
+      "step": "plugin composition step 3 (createPluginUI requires a spec)"
+    },
+    {
+      "rule": "b",
+      "from": "packages/plugin/ui/src/index.ts",
+      "to": "packages/plugin/core/src/default-spec.ts",
+      "reason": "createPluginUI falls back to DefaultPluginUISpec() when no spec is passed",
+      "step": "plugin composition step 3 (createPluginUI requires a spec)"
+    }
+  ]
+}
