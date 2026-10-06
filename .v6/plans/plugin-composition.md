@@ -292,7 +292,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 - [ ] `PluginAnimationManager.unregister`; `PluginDragAndDropEntry`, `fallback` ordering, and `addHandler` options.
 - [x] Cached `toAction()` and id-counted `StateActionManager` in core.
 - [ ] `plugin.register` with atomic conflict checks and idempotent undo; `spec.registry` registered in `init()`.
-- [ ] Preset builders resolve through the registry by `id`, then `alias`: index `alias` in the builders with the §4.2
+- [x] Preset builders resolve through the registry by `id`, then `alias`: index `alias` in the builders with the §4.2
       conflict rule, remove `defaultProvider` and the static-map lookup, add the id/alias-union and `string` overloads
       (`TrajectoryHierarchyBuilder` gains `string`), throw for an unresolved string, and fix `getPresetSelect` defaults.
       Verify that every §1.3 call site, smoke fixture, and documentation example still resolves. (Step 1 already added
@@ -304,7 +304,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       and scope; they throw for empty registries when given data, and return empty mapped params when called without
       data (as `StructureFocusRepresentation` and `extensions/meshes/src/examples.ts:148` do); the three representation
       transformers throw in `apply`/`update` for empty registries. No core-state change.
-- [ ] `PluginConfig.Structure.DefaultHierarchyPreset`.
+- [x] `PluginConfig.Structure.DefaultHierarchyPreset`.
 - [ ] Add catalogs and `DefaultRegistry` (spec §5.3) and register it alongside the existing constructor preloads;
       identity counting makes the duplicates harmless, provided the `StructureSelectionQueryRegistry` constructor pushes
       the catalog's module-scope residue queries instead of creating new ones (otherwise each residue query would be

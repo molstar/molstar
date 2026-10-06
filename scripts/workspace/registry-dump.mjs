@@ -97,8 +97,8 @@ async function dumpTarget(target) {
     },
     formats: names(plugin.dataFormats.list),
     presets: {
-      hierarchy: plugin.builders.structure.hierarchy._providers.map((p) => p.id),
-      representation: plugin.builders.structure.representation._providers.map((p) => p.id),
+      hierarchy: plugin.builders.structure.hierarchy.providers.map((p) => p.id),
+      representation: plugin.builders.structure.representation.providers.map((p) => p.id),
     },
     selectionQueries: plugin.query.structure.registry.list.map((q) => `${q.category || '(none)'}: ${q.label}`),
     lociLabelProviders: plugin.managers.lociLabels.providers.length,

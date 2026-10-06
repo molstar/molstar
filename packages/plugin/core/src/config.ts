@@ -85,6 +85,7 @@ export const PluginConfig = {
   },
   Structure: {
     SizeThresholds: item('structure.size-thresholds', Structure.DefaultSizeThresholds),
+    DefaultHierarchyPreset: item<string>('structure.default-hierarchy-preset', 'preset-trajectory-default'),
     DefaultRepresentationPreset: item<string>(
       'structure.default-representation-preset',
       'preset-structure-representation-auto',

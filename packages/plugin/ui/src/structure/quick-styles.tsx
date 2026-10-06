@@ -141,6 +141,7 @@ async function applyRepresentationPreset(plugin: PluginContext, preset: PresetNa
     case 'default':
       const defaultPreset = plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || AutoPreset.id;
       const provider = plugin.builders.structure.representation.resolveProvider(defaultPreset);
+      if (!provider) throw new Error(`Preset '${defaultPreset}' is not registered in this plugin`);
       await plugin.managers.structure.component.applyPreset(structures, provider);
       break;
     case 'spacefill':
