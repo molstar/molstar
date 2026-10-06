@@ -11,7 +11,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { KinemageDataProvider, KinemageData } from '@molstar/kinemage-extension/prop';
 import { StateTransformer, StateBuilder } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import type { PluginDragAndDropHandler } from '@molstar/plugin/state/manager/drag-and-drop';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { PluginContext } from '@molstar/plugin/context';

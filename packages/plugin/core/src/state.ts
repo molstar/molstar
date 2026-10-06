@@ -29,7 +29,7 @@ import { UUID } from '@molstar/core/util';
 import { memoizeLatest } from '@molstar/core/util/memoize';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { produce } from '@molstar/core/util/produce';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig } from '@molstar/plugin/config';
 import type { PluginContext } from '@molstar/plugin/context';

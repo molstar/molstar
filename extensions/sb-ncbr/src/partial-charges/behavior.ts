@@ -1,5 +1,5 @@
 import type { LociLabelProvider } from '@molstar/plugin/state/manager/loci-label';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { SbNcbrPartialChargesColorThemeProvider } from './color.js';
 import { SbNcbrPartialChargesPropertyProvider } from './property.js';

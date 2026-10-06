@@ -9,7 +9,7 @@ import type { Trajectory } from '@molstar/model/model/structure';
 import { TrajectoryFormatCategory } from '@molstar/plugin/state/formats/trajectory/category';
 import type { TrajectoryFormatProvider } from '@molstar/plugin/state/formats/trajectory/provider';
 import { PluginStateObject as SO, PluginStateTransform } from '@molstar/plugin/state/objects';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/base';
 import { StateAction, StateObjectRef } from '@molstar/core/state';

@@ -13,7 +13,7 @@ import {
 import { MembraneOrientationProvider, MembraneOrientation } from '@molstar/anvil-extension/prop';
 import { StateObjectRef, StateTransformer, StateTransform } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import {
   MembraneOrientationRepresentationProvider,
   MembraneOrientationParams,

@@ -5,7 +5,7 @@
  */
 
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginConfigItem } from '@molstar/plugin/config';
 import { PluginContext } from '@molstar/plugin/context';
 import { StateAction } from '@molstar/core/state';

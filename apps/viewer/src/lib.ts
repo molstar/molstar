@@ -12,7 +12,7 @@ import * as LinearAlgebra3D from '@molstar/core/math/linear-algebra/3d';
 import { PluginContext } from '@molstar/plugin/context';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
 import { PluginConfig } from '@molstar/plugin/config';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { PluginSpec } from '@molstar/plugin/spec';
 import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';

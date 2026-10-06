@@ -52,7 +52,7 @@ import { LogEntry } from '@molstar/core/util/log-entry';
 import { objectForEach } from '@molstar/core/util/object';
 import { RxEventHelper } from '@molstar/core/util/rx-event-helper';
 import { PluginAnimationLoop } from '@molstar/plugin/animation-loop';
-import { BuiltInPluginBehaviors } from '@molstar/plugin/behavior';
+import { BuiltInPluginBehaviors } from '@molstar/plugin/behavior/built-in';
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginCommandManager } from '@molstar/plugin/command';
 import { PluginCommands } from '@molstar/plugin/commands';

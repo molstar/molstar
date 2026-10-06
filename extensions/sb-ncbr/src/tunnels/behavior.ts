@@ -4,7 +4,7 @@
  * @author Dušan Veľký <dvelky@mail.muni.cz>
  */
 
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { DownloadTunnels } from './actions.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import {

@@ -12,7 +12,7 @@ import { ShapeGroup } from '@molstar/model/model/shape';
 import { Volume } from '@molstar/model/model/volume';
 import type { LociLabelProvider } from '@molstar/plugin/state/manager/loci-label';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginContext } from '@molstar/plugin/context';
 import { StateObjectCell, StateSelection, StateTransform } from '@molstar/core/state';
