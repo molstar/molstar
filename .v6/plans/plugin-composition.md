@@ -282,22 +282,23 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       `remove` of an unknown provider is a no-op. `clear()` drops providers and counts.
 - [ ] `has(nameOrProvider)` on representation and theme registries; `RepresentationRegistry.default` typed as possibly
       `undefined`; `ThemeRegistry` without a built-in map.
-- [ ] `DataFormatProvider.name` on every provider (including `G3dProvider` `name: 'g3d'` and the MVSJ/MVSX providers),
-      `DataFormatProvider.withName` (copies memoized in a module-level `WeakMap<provider, Map<name, provider>>`) and
+- [ ] `DataFormatProvider.withName` (copies memoized in a module-level `WeakMap<provider, Map<name, provider>>`) and
       `DataFormatProvider.Unnamed`, and `DataFormatRegistry` as in spec §4.3: `add(provider)` uses `provider.name`;
       `add(name, provider)` registers `provider` when the names match, otherwise the named copy with a deprecation
       warning; `remove(provider)` decrements by identity; `remove(name)` resolves the provider, then decrements, and is
       a no-op for an unknown name; `list` keeps `{ name, provider }` items; `has(name)` is added. Apply the dead-check
-      rewrites in §1.4.
+      rewrites in §1.4. (`DataFormatProvider.name`, the `Id` parameter, and names on every in-repo provider landed in
+      step 1.)
 - [ ] `PluginAnimationManager.unregister`; `PluginDragAndDropEntry`, `fallback` ordering, and `addHandler` options.
 - [ ] Cached `toAction()` and id-counted `StateActionManager` in core.
 - [ ] `plugin.register` with atomic conflict checks and idempotent undo; `spec.registry` registered in `init()`.
-- [ ] Preset builders resolve through the registry by `id`, then `alias`: add the optional `alias` to `PresetProvider`
-      and set it on every built-in preset from §1.3, index it in the builders with the §4.2 conflict rule, remove
-      `defaultProvider` and the static-map lookup, add the id/alias-union and `string` overloads
+- [ ] Preset builders resolve through the registry by `id`, then `alias`: index `alias` in the builders with the §4.2
+      conflict rule, remove `defaultProvider` and the static-map lookup, add the id/alias-union and `string` overloads
       (`TrajectoryHierarchyBuilder` gains `string`), throw for an unresolved string, and fix `getPresetSelect` defaults.
-      Type `LoadTrajectoryParams.preset` in `extensions/plugin/src/loaders.ts` with the hierarchy id and alias unions.
-      Verify that every §1.3 call site, smoke fixture, and documentation example still resolves.
+      Verify that every §1.3 call site, smoke fixture, and documentation example still resolves. (Step 1 already added
+      the optional `alias` to `PresetProvider`, set it on every built-in preset, derived the id/alias unions in the
+      catalogs under `state/builder/structure/{representation,hierarchy}-presets/`, and typed
+      `LoadTrajectoryParams.preset` with the hierarchy alias union.)
 - [ ] Representation-name handling (spec §4.3): the nine param-definition sites fall back to empty mapped params for
       empty registries; the eight helper sites and `buildRepresentation` check names with `has` and warn with provider
       and scope; they throw for empty registries when given data, and return empty mapped params when called without
