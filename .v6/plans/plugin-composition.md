@@ -326,7 +326,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       implicit imports of §1.1 (spec §9). Also delete `PluginContext.dropOverriddenPreloadedFormats` (the transitional
       handling that lets a `customFormats` override replace a preloaded built-in format), and have mesoscale-explorer
       list only the formats, representations, and themes it needs.
-- [ ] Remove the volume-streaming behavior from the `PluginContext` closure. After step 1 it is still reached through
+- [x] Remove the volume-streaming behavior from the `PluginContext` closure. After step 1 it is still reached through
       `state/manager/structure/hierarchy.ts` → `hierarchy-state.ts` → `behavior/dynamic/volume-streaming/behavior.ts`,
       and `behavior/dynamic/volume-streaming/util.ts` through `formats/registry.ts` → the volume catalog →
       `volume/ccp4.ts` → `volume/provider.ts`. Move the shared helpers and type checks to modules that do not import the

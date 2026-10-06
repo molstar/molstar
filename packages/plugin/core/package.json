@@ -19,6 +19,7 @@
       "import": "./lib/context.js"
     },
     "./_test/*": null,
+    "./behavior/dynamic/volume-streaming/_test/*": null,
     "./state/builder/structure/_test/*": null,
     "./state/helpers/_test/*": null,
     "./state/formats/_test/*": null,

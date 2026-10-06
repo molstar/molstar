@@ -9,7 +9,7 @@
 import type { PluginContext } from '@molstar/plugin/context';
 import { Volume } from '@molstar/model/model/volume';
 import { Task } from '@molstar/core/task';
-import { getContourLevelEmdb } from '@molstar/plugin/behavior/dynamic/volume-streaming/util';
+import { getContourLevelEmdb } from '@molstar/plugin/state/helpers/emdb';
 import { RecommendedIsoValue } from '@molstar/model/formats/volume/property';
 import type { StateObjectSelector } from '@molstar/core/state';
 import type { PluginStateObject } from '@molstar/plugin/state/objects';

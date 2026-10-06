@@ -15,7 +15,8 @@ import {
 import { ModelUnitcell3D } from '@molstar/plugin/state/transforms/structure/unitcell';
 import type { StructureComponent } from '@molstar/plugin/state/transforms/structure/selection';
 import type { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
-import { VolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/behavior';
+import type { VolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/behavior';
+import { isVolumeStreamingObject } from '@molstar/plugin/behavior/dynamic/volume-streaming/id';
 import type { CreateVolumeStreamingBehavior } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
 
 export function buildStructureHierarchy(state: State, previous?: StructureHierarchy) {
@@ -375,7 +376,7 @@ const Mapping: [TestCell, ApplyRef, LeaveRef][] = [
 
   // Volume Streaming
   [
-    isType(VolumeStreaming),
+    (cell) => isVolumeStreamingObject(cell.obj),
     (state, cell) => {
       if (!state.currentStructure) return false;
       state.currentStructure.volumeStreaming = createOrUpdateRef(

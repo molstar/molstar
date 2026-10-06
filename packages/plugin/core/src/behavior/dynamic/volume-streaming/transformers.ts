@@ -24,7 +24,8 @@ import { urlCombine } from '@molstar/core/util/url';
 import { PluginConfig } from '@molstar/plugin/config';
 import { VolumeStreaming } from './behavior.js';
 import { VolumeServerHeader, VolumeServerInfo } from './model.js';
-import { getContourLevel, getEmdbIds, getIds, getStreamingMethod } from './util.js';
+import { getIds, getStreamingMethod } from './util.js';
+import { getContourLevel, getEmdbIds } from '@molstar/plugin/state/helpers/emdb';
 
 function createEntry(method: VolumeServerInfo.Kind, dataId: string, emDefaultContourLevel: number): InfoEntryProps {
   return {
