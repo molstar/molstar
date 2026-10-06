@@ -20,6 +20,7 @@
     },
     "./state/builder/structure/_test/*": null,
     "./state/helpers/_test/*": null,
+    "./state/formats/_test/*": null,
     "./state/_test/*": null,
     "./state/manager/_test/*": null
   },

@@ -45,9 +45,11 @@ export class StructureBuilder {
     data: StateObjectRef<SO.Data.Binary | SO.Data.String>,
     format: BuiltInTrajectoryFormat | TrajectoryFormatProvider,
   ) {
+    if (typeof format === 'string' && !this.plugin.dataFormats.has(format)) {
+      throw new Error(`'${format}' is not a supported data format.`);
+    }
     const provider =
       typeof format === 'string' ? (this.plugin.dataFormats.get(format) as TrajectoryFormatProvider) : format;
-    if (!provider) throw new Error(`'${format}' is not a supported data format.`);
     const { trajectory } = await provider.parse(this.plugin, data);
     return trajectory;
   }

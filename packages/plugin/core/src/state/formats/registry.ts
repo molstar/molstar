@@ -7,7 +7,7 @@
 
 import type { FileNameInfo } from '@molstar/core/util/file-info';
 import type { PluginStateObject } from '../objects.js';
-import type { DataFormatProvider } from './provider.js';
+import { DataFormatProvider } from './provider.js';
 import { BuiltInTrajectoryFormats } from '@molstar/plugin/state/formats/trajectory/catalog';
 import { BuiltInVolumeFormats } from '@molstar/plugin/state/formats/volume/catalog';
 import { BuiltInShapeFormats } from '@molstar/plugin/state/formats/shape/catalog';
@@ -15,9 +15,24 @@ import { BuiltInTopologyFormats } from '@molstar/plugin/state/formats/topology/c
 import { BuiltInCoordinatesFormats } from '@molstar/plugin/state/formats/coordinates/catalog';
 import { BuiltInParticlesFormats } from '@molstar/plugin/state/formats/particles/catalog';
 
+const warnedRenames = new WeakMap<object, Set<string>>();
+
+function warnLegacyRename(provider: DataFormatProvider.Unnamed, name: string) {
+  let names = warnedRenames.get(provider);
+  if (!names) {
+    names = new Set();
+    warnedRenames.set(provider, names);
+  }
+  if (names.has(name)) return;
+  names.add(name);
+  console.warn(
+    `DataFormatRegistry.add(name, provider) with a name that differs from provider.name ('${provider.name ?? ''}') is deprecated. Register DataFormatProvider.withName(provider, '${name}') instead.`,
+  );
+}
+
 export class DataFormatRegistry {
   private _list: { name: string; provider: DataFormatProvider }[] = [];
-  private _map = new Map<string, DataFormatProvider>();
+  private _map = new Map<string, { provider: DataFormatProvider; count: number }>();
   private _extensions: Set<string> | undefined = undefined;
   private _binaryExtensions: Set<string> | undefined = undefined;
   private _options: [name: string, label: string, category: string][] | undefined = undefined;
@@ -69,34 +84,90 @@ export class DataFormatRegistry {
   }
 
   constructor() {
-    for (const p of BuiltInVolumeFormats) this.add(p.name, p);
-    for (const p of BuiltInTopologyFormats) this.add(p.name, p);
-    for (const p of BuiltInCoordinatesFormats) this.add(p.name, p);
-    for (const p of BuiltInShapeFormats) this.add(p.name, p);
-    for (const p of BuiltInParticlesFormats) this.add(p.name, p);
-    for (const p of BuiltInTrajectoryFormats) this.add(p.name, p);
+    for (const p of BuiltInVolumeFormats) this.add(p);
+    for (const p of BuiltInTopologyFormats) this.add(p);
+    for (const p of BuiltInCoordinatesFormats) this.add(p);
+    for (const p of BuiltInShapeFormats) this.add(p);
+    for (const p of BuiltInParticlesFormats) this.add(p);
+    for (const p of BuiltInTrajectoryFormats) this.add(p);
   }
 
-  private _clear() {
+  private _invalidate() {
     this._extensions = undefined;
     this._binaryExtensions = undefined;
     this._options = undefined;
     this._autoOrder = undefined;
   }
 
-  add(name: string, provider: DataFormatProvider) {
-    this._clear();
-    this._list.push({ name, provider });
-    this._map.set(name, provider);
+  /**
+   * Returns the message `add` would throw for `provider`, or `undefined` when it can be added.
+   * Does not change the registry.
+   */
+  findConflict(provider: DataFormatProvider): string | undefined {
+    const existing = this._map.get(provider.name);
+    if (existing && existing.provider !== provider) {
+      return `Data format registry: '${provider.name}' is already registered by a different provider.`;
+    }
+    return undefined;
   }
 
-  remove(name: string) {
-    this._clear();
-    this._list.splice(
-      this._list.findIndex((e) => e.name === name),
-      1,
-    );
+  /**
+   * Registers a provider under `provider.name`. Adding the same object again increments its count,
+   * a different object under an existing name throws.
+   *
+   * `add(name, provider)` is deprecated: when `name` differs from `provider.name` it registers
+   * `DataFormatProvider.withName(provider, name)` instead.
+   */
+  add(provider: DataFormatProvider): void;
+  /** @deprecated Use `add(provider)`, and `DataFormatProvider.withName` to register a provider under another name. */
+  add(name: string, provider: DataFormatProvider.Unnamed): void;
+  add(nameOrProvider: string | DataFormatProvider, maybeProvider?: DataFormatProvider.Unnamed) {
+    let provider: DataFormatProvider;
+    if (typeof nameOrProvider === 'string') {
+      const name = nameOrProvider;
+      const source = maybeProvider!;
+      provider = DataFormatProvider.withName(source, name);
+      if (provider !== source) warnLegacyRename(source, name);
+    } else {
+      provider = nameOrProvider;
+    }
+
+    const conflict = this.findConflict(provider);
+    if (conflict) throw new Error(conflict);
+
+    const existing = this._map.get(provider.name);
+    if (existing) {
+      existing.count++;
+      return;
+    }
+    this._invalidate();
+    this._map.set(provider.name, { provider, count: 1 });
+    this._list.push({ name: provider.name, provider });
+  }
+
+  /** Decrements the count of a provider (given by identity or name) and removes it at zero. Unknown is a no-op. */
+  remove(providerOrName: DataFormatProvider | string) {
+    const name = typeof providerOrName === 'string' ? providerOrName : providerOrName.name;
+    const existing = this._map.get(name);
+    if (!existing) return;
+    if (typeof providerOrName !== 'string' && existing.provider !== providerOrName) return;
+    if (--existing.count > 0) return;
+
+    this._invalidate();
     this._map.delete(name);
+    const index = this._list.findIndex((e) => e.name === name);
+    if (index >= 0) this._list.splice(index, 1);
+  }
+
+  /** Drops every provider and count. */
+  clear() {
+    this._invalidate();
+    this._map.clear();
+    this._list = [];
+  }
+
+  has(name: string) {
+    return this._map.has(name);
   }
 
   auto(info: FileNameInfo, dataStateObject: PluginStateObject.Data.Binary | PluginStateObject.Data.String) {
@@ -113,11 +184,9 @@ export class DataFormatRegistry {
   }
 
   get(name: string): DataFormatProvider | undefined {
-    if (this._map.has(name)) {
-      return this._map.get(name)!;
-    } else {
-      throw new Error(`unknown data format name '${name}'`);
-    }
+    const entry = this._map.get(name);
+    if (!entry) throw new Error(`Data format '${name}' is not registered in this plugin.`);
+    return entry.provider;
   }
 
   get list() {

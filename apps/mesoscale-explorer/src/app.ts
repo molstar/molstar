@@ -69,7 +69,7 @@ const Extensions = {
 };
 
 const DefaultMesoscaleExplorerOptions = {
-  customFormats: [] as [string, DataFormatProvider][],
+  customFormats: [] as [string, DataFormatProvider.Unnamed][],
   extensions: ObjectKeys(Extensions),
   layoutIsExpanded: true,
   layoutShowControls: true,
@@ -163,7 +163,10 @@ export class MesoscaleExplorer {
       ],
       animations: [AnimateCameraSpin, AnimateCameraRock, AnimateStateSnapshots],
       customParamEditors: defaultSpec.customParamEditors,
-      customFormats: o?.customFormats,
+      customFormats: o?.customFormats?.map(([name, provider]): [string, DataFormatProvider] => [
+        name,
+        DataFormatProvider.withName(provider, name),
+      ]),
       layout: {
         initial: {
           isExpanded: o.layoutIsExpanded,

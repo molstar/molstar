@@ -311,8 +311,8 @@ const DownloadStructure = StateAction.build({
         } else {
           for (const download of downloadParams) {
             const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
-            const provider = plugin.dataFormats.get(format);
-            if (!provider) throw new Error('unknown file format');
+            if (!plugin.dataFormats.has(format)) throw new Error('unknown file format');
+            const provider = plugin.dataFormats.get(format)!;
             const trajectory = await plugin.builders.structure.parseTrajectory(data, provider);
 
             await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
@@ -583,14 +583,13 @@ export const LoadTrajectory = StateAction.build({
 
         const processUrl = async (url: string | Asset.Url, format: string, isBinary: boolean) => {
           const data = await ctx.builders.data.download({ url, isBinary });
-          const provider = ctx.dataFormats.get(format);
 
-          if (!provider) {
+          if (!ctx.dataFormats.has(format)) {
             ctx.log.warn(`LoadTrajectory: could not find data provider for '${format}'`);
             return;
           }
 
-          return provider.parse(ctx, data);
+          return ctx.dataFormats.get(format)!.parse(ctx, data);
         };
 
         const processFile = async (file: Asset.File | null) => {

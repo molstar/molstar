@@ -282,7 +282,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       `remove` of an unknown provider is a no-op. `clear()` drops providers and counts.
 - [ ] `has(nameOrProvider)` on representation and theme registries; `RepresentationRegistry.default` typed as possibly
       `undefined`; `ThemeRegistry` without a built-in map.
-- [ ] `DataFormatProvider.withName` (copies memoized in a module-level `WeakMap<provider, Map<name, provider>>`) and
+- [x] `DataFormatProvider.withName` (copies memoized in a module-level `WeakMap<provider, Map<name, provider>>`) and
       `DataFormatProvider.Unnamed`, and `DataFormatRegistry` as in spec §4.3: `add(provider)` uses `provider.name`;
       `add(name, provider)` registers `provider` when the names match, otherwise the named copy with a deprecation
       warning; `remove(provider)` decrements by identity; `remove(name)` resolves the provider, then decrements, and is

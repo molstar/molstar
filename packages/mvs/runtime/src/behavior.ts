@@ -91,7 +91,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
         this.ctx.managers.dragAndDrop.addHandler(handler.name, handler.handle);
       }
       for (const format of this.registrables.dataFormats ?? []) {
-        this.ctx.dataFormats.add(format.name, format);
+        this.ctx.dataFormats.add(format);
       }
       for (const action of this.registrables.actions ?? []) {
         this.ctx.state.data.actions.add(action);
@@ -180,7 +180,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
         this.ctx.managers.dragAndDrop.removeHandler(handler.name);
       }
       for (const format of this.registrables.dataFormats ?? []) {
-        this.ctx.dataFormats.remove(format.name);
+        this.ctx.dataFormats.remove(format);
       }
       for (const action of this.registrables.actions ?? []) {
         this.ctx.state.data.actions.remove(action);

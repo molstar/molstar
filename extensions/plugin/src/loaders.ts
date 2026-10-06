@@ -242,7 +242,7 @@ export async function loadVolumeFromUrl(
 ) {
   await plugin.initialized;
 
-  if (!plugin.dataFormats.get(format)) {
+  if (!plugin.dataFormats.has(format)) {
     throw new Error(`Unknown density format: ${format}`);
   }
 

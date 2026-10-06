@@ -130,11 +130,11 @@ export const DownloadFile = StateAction.build({
               );
             }
           } else {
-            const provider = plugin.dataFormats.get(params.format);
-            if (!provider) {
+            if (!plugin.dataFormats.has(params.format)) {
               plugin.log.warn(`DownloadFile: could not find data provider for '${params.format}'`);
               return;
             }
+            const provider = plugin.dataFormats.get(params.format)!;
 
             const data = await plugin.builders.data.download({ url: params.url, isBinary: params.isBinary });
             const parsed = await provider.parse(plugin, data);
