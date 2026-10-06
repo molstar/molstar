@@ -63,7 +63,7 @@ function actions(manager, transformerByDisplay) {
   const key = (a) => transformerByDisplay.get(a.definition.display) ?? `action:${a.definition.display.name}`;
   const byType = {};
   for (const [type, list] of manager.fromTypeIndex) byType[type.name] = list.map(key);
-  return { all: [...manager.actions.values()].map(key), byFromType: byType };
+  return { all: [...manager.actions.values()].map((e) => key(e.action)), byFromType: byType };
 }
 
 async function dumpTarget(target) {

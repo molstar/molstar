@@ -236,12 +236,15 @@ namespace Transformer {
       }
     }
 
+    let action: StateAction<A, void, P> | undefined;
+
     const t: Transformer<A, B, P> = {
       apply(parent, params, props) {
         return StateTransform.create<Transformer<A, B, P>>(parent, t, params, props);
       },
       toAction() {
-        return StateAction.fromTransformer(t);
+        // cached so that a transformer and its action share one identity and id
+        return (action ??= StateAction.fromTransformer(t) as StateAction<A, void, P>);
       },
       namespace,
       id,

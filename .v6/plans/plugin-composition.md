@@ -290,7 +290,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       rewrites in §1.4. (`DataFormatProvider.name`, the `Id` parameter, and names on every in-repo provider landed in
       step 1.)
 - [ ] `PluginAnimationManager.unregister`; `PluginDragAndDropEntry`, `fallback` ordering, and `addHandler` options.
-- [ ] Cached `toAction()` and id-counted `StateActionManager` in core.
+- [x] Cached `toAction()` and id-counted `StateActionManager` in core.
 - [ ] `plugin.register` with atomic conflict checks and idempotent undo; `spec.registry` registered in `init()`.
 - [ ] Preset builders resolve through the registry by `id`, then `alias`: index `alias` in the builders with the §4.2
       conflict rule, remove `defaultProvider` and the static-map lookup, add the id/alias-union and `string` overloads
@@ -317,7 +317,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       registration (spec §4.4) and type `current` as possibly undefined; otherwise the implicit registration would
       always fire first and make the snapshot transition the default animation instead of `AnimateModelIndex`.
 - [ ] `setSnapshot` skips `snapshot.current` with a warning for an unregistered animation name.
-- [ ] Separate fix: count `addCustomProp`/`removeCustomProp` and `addSymbol`/`removeSymbol` in
+- [x] Separate fix: count `addCustomProp`/`removeCustomProp` and `addSymbol`/`removeSymbol` in
       `DefaultQueryRuntimeTable`.
 
 ### Step 3: context decoupling

@@ -23,6 +23,7 @@
     "./model/structure/structure/element/_test/*": null,
     "./model/structure/structure/util/_test/*": null,
     "./script/language/_test/*": null,
+    "./script/runtime/query/_test/*": null,
     "./script/transpilers/_test/*": null
   },
   "files": [

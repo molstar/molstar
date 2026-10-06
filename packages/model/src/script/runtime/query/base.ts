@@ -9,26 +9,44 @@ import { QueryContext, type QueryFn, Structure } from '@molstar/model/model/stru
 import type { MSymbol } from '../../language/symbol.js';
 import type { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
 
+/**
+ * Registrations are counted: the same runtime (or custom property descriptor) added again increments a count and
+ * removal decrements it, taking effect at zero. `DefaultQueryRuntimeTable` is shared by every plugin on a page, so one
+ * plugin unregistering must not remove symbols another plugin still uses. Removing something that is not registered is
+ * a no-op.
+ */
 export class QueryRuntimeTable {
-  private addedProps = new Set<string>();
-  private map = new Map<string, QuerySymbolRuntime>();
+  private addedProps = new Map<string, { desc: CustomPropertyDescriptor<any>; count: number }>();
+  private map = new Map<string, { runtime: QuerySymbolRuntime; count: number }>();
 
   removeSymbol(runtime: QuerySymbolRuntime) {
+    const entry = this.map.get(runtime.symbol.id);
+    if (!entry || entry.runtime !== runtime) return;
+    if (--entry.count > 0) return;
     this.map.delete(runtime.symbol.id);
   }
 
   addSymbol(runtime: QuerySymbolRuntime) {
-    if (this.map.has(runtime.symbol.id)) {
+    const entry = this.map.get(runtime.symbol.id);
+    if (entry) {
+      if (entry.runtime === runtime) {
+        entry.count++;
+        return;
+      }
       console.warn(
-        `Symbol '${runtime.symbol.id}' already added. Call removeSymbol/removeCustomProps re-adding the symbol.`,
+        `Symbol '${runtime.symbol.id}' already added with a different runtime. Call removeSymbol/removeCustomProp before re-adding the symbol.`,
       );
     }
-    this.map.set(runtime.symbol.id, runtime);
+    this.map.set(runtime.symbol.id, { runtime, count: 1 });
   }
 
   addCustomProp(desc: CustomPropertyDescriptor<any>) {
-    if (this.addedProps.has(desc.name)) return;
-    this.addedProps.add(desc.name);
+    const entry = this.addedProps.get(desc.name);
+    if (entry) {
+      if (entry.desc === desc) entry.count++;
+      return;
+    }
+    this.addedProps.set(desc.name, { desc, count: 1 });
 
     if (!desc.symbols) return;
 
@@ -38,6 +56,9 @@ export class QueryRuntimeTable {
   }
 
   removeCustomProp(desc: CustomPropertyDescriptor<any>) {
+    const entry = this.addedProps.get(desc.name);
+    if (!entry || entry.desc !== desc) return;
+    if (--entry.count > 0) return;
     this.addedProps.delete(desc.name);
 
     if (!desc.symbols) return;
@@ -48,7 +69,7 @@ export class QueryRuntimeTable {
   }
 
   getRuntime(id: string) {
-    return this.map.get(id);
+    return this.map.get(id)?.runtime;
   }
 }
 
