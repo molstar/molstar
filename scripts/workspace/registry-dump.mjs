@@ -103,7 +103,7 @@ async function dumpTarget(target) {
     selectionQueries: plugin.query.structure.registry.list.map((q) => `${q.category || '(none)'}: ${q.label}`),
     lociLabelProviders: plugin.managers.lociLabels.providers.length,
     markdownExtensions: names(plugin.managers.markdownExtensions.extension),
-    dragAndDrop: plugin.managers.dragAndDrop.handlers.map(([name]) => name),
+    dragAndDrop: plugin.managers.dragAndDrop.list().map((e) => e.name),
     animations: names(plugin.managers.animation._animations),
     actions: {
       data: actions(plugin.state.data.actions, transformerByDisplay),

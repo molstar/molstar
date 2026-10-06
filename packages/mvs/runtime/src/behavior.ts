@@ -7,7 +7,7 @@
 import { CustomModelProperty } from '@molstar/model/props/common/custom-model-property';
 import { CustomStructureProperty } from '@molstar/model/props/common/custom-structure-property';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
-import type { PluginDragAndDropHandler } from '@molstar/plugin/state/manager/drag-and-drop';
+import type { PluginDragAndDropEntry } from '@molstar/plugin/state/manager/drag-and-drop';
 import type { LociLabelProvider } from '@molstar/plugin/state/manager/loci-label';
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginContext } from '@molstar/plugin/context';
@@ -42,7 +42,7 @@ interface Registrables {
   representations?: StructureRepresentationProvider<any>[];
   colorThemes?: ColorTheme.Provider[];
   lociLabels?: LociLabelProvider[];
-  dragAndDropHandlers?: DragAndDropHandler[];
+  dragAndDropHandlers?: PluginDragAndDropEntry[];
   dataFormats?: DataFormatProvider[];
   actions?: StateAction[];
 }
@@ -88,7 +88,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
         this.ctx.managers.lociLabels.addProvider(provider);
       }
       for (const handler of this.registrables.dragAndDropHandlers ?? []) {
-        this.ctx.managers.dragAndDrop.addHandler(handler.name, handler.handle);
+        this.ctx.managers.dragAndDrop.addEntry(handler);
       }
       for (const format of this.registrables.dataFormats ?? []) {
         this.ctx.dataFormats.add(format);
@@ -177,7 +177,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
         this.ctx.managers.lociLabels.removeProvider(labelProvider);
       }
       for (const handler of this.registrables.dragAndDropHandlers ?? []) {
-        this.ctx.managers.dragAndDrop.removeHandler(handler.name);
+        this.ctx.managers.dragAndDrop.removeEntry(handler);
       }
       for (const format of this.registrables.dataFormats ?? []) {
         this.ctx.dataFormats.remove(format);
@@ -196,14 +196,8 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
 
 export const MolViewSpecBehavior = PluginSpec.Behavior(MolViewSpec);
 
-/** Registrable method for handling dragged-and-dropped files */
-interface DragAndDropHandler {
-  name: string;
-  handle: PluginDragAndDropHandler;
-}
-
 /** DragAndDropHandler handler for `.mvsj` and `.mvsx` files */
-const MVSDragAndDropHandler: DragAndDropHandler = {
+const MVSDragAndDropHandler: PluginDragAndDropEntry = {
   name: 'mvs-mvsj-mvsx',
   /** Load .mvsj and .mvsx files. Delete previous plugin state before loading.
    * If multiple files are provided, merge their MVS data into one state.

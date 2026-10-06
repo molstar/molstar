@@ -289,7 +289,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       a no-op for an unknown name; `list` keeps `{ name, provider }` items; `has(name)` is added. Apply the dead-check
       rewrites in §1.4. (`DataFormatProvider.name`, the `Id` parameter, and names on every in-repo provider landed in
       step 1.)
-- [ ] `PluginAnimationManager.unregister`; `PluginDragAndDropEntry`, `fallback` ordering, and `addHandler` options.
+- [x] `PluginAnimationManager.unregister`; `PluginDragAndDropEntry`, `fallback` ordering, and `addHandler` options.
 - [x] Cached `toAction()` and id-counted `StateActionManager` in core.
 - [ ] `plugin.register` with atomic conflict checks and idempotent undo; `spec.registry` registered in `init()`.
 - [x] Preset builders resolve through the registry by `id`, then `alias`: index `alias` in the builders with the §4.2

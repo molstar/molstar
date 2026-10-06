@@ -27,6 +27,8 @@ export class MarkdownExtensionManager {
   };
 
   private extension: MarkdownExtension[] = [];
+  /** Registration counts by extension name */
+  private extensionCounts = new Map<string, number>();
   private refResolvers: Record<string, (plugin: PluginContext, refs: string[]) => StateObjectCell[]> = {
     default: (plugin: PluginContext, refs: string[]) =>
       refs.map((ref) => plugin.state.data.cells.get(ref)).filter((c) => !!c),
@@ -87,18 +89,47 @@ export class MarkdownExtensionManager {
     delete this.uriResolvers[name];
   }
 
+  /** Returns the message `registerExtension` would throw for `command`, without changing anything. */
+  findConflict(command: MarkdownExtension): string | undefined {
+    const existing = this.extension.find((c) => c.name === command.name);
+    if (existing && existing !== command) {
+      return `MarkdownExtensionManager: a different extension is already registered under the name '${command.name}'.`;
+    }
+    return undefined;
+  }
+
+  /**
+   * Extensions are keyed by `name`. Registering the same object again increments a count,
+   * a different object under an existing name throws.
+   */
   registerExtension(command: MarkdownExtension) {
-    const existing = this.extension.findIndex((c) => c.name === command.name);
-    if (existing >= 0) {
-      this.extension[existing] = command;
+    const conflict = this.findConflict(command);
+    if (conflict) throw new Error(conflict);
+
+    const count = this.extensionCounts.get(command.name);
+    if (count !== undefined) {
+      this.extensionCounts.set(command.name, count + 1);
     } else {
+      this.extensionCounts.set(command.name, 1);
       this.extension.push(command);
     }
   }
 
-  removeExtension(name: string) {
+  /**
+   * Decrements the count of the extension (given by name or object) and removes it at zero.
+   * No-op for an unknown name, or for an object that is not the one registered under its name.
+   */
+  removeExtension(nameOrExtension: string | MarkdownExtension) {
+    const name = typeof nameOrExtension === 'string' ? nameOrExtension : nameOrExtension.name;
     const idx = this.extension.findIndex((c) => c.name === name);
-    if (idx >= 0) {
+    if (idx < 0) return;
+    if (typeof nameOrExtension !== 'string' && this.extension[idx] !== nameOrExtension) return;
+
+    const count = this.extensionCounts.get(name) ?? 1;
+    if (count > 1) {
+      this.extensionCounts.set(name, count - 1);
+    } else {
+      this.extensionCounts.delete(name);
       this.extension.splice(idx, 1);
     }
   }

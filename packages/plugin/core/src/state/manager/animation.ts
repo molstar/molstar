@@ -20,6 +20,8 @@ export { PluginAnimationManager };
 class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationManager.State> {
   private map = new Map<string, PluginStateAnimation>();
   private _animations: PluginStateAnimation[] = [];
+  /** Registration counts by name; 0 for an animation `play` added on demand */
+  private counts = new Map<string, number>();
   private currentTime: number = 0;
 
   private _current: PluginAnimationManager.Current;
@@ -97,11 +99,51 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
     this.triggerUpdate();
   }
 
+  /** Returns the message `register` would throw for `animation`, without changing anything. */
+  findConflict(animation: PluginStateAnimation): string | undefined {
+    const existing = this.map.get(animation.name);
+    if (existing && existing !== animation) {
+      return `PluginAnimationManager: a different animation is already registered under the name '${animation.name}'.`;
+    }
+    return undefined;
+  }
+
+  /**
+   * Animations are keyed by `name`. Registering the same object again increments a count,
+   * a different object under an existing name throws.
+   */
   register(animation: PluginStateAnimation) {
+    const conflict = this.findConflict(animation);
+    if (conflict) throw new Error(conflict);
+
     if (this.map.has(animation.name)) {
-      this.context.log.error(`Animation '${animation.name}' is already registered.`);
+      // also adopts an animation added on demand by `play`
+      this.counts.set(animation.name, (this.counts.get(animation.name) ?? 0) + 1);
       return;
     }
+    this.counts.set(animation.name, 1);
+    this.add(animation);
+  }
+
+  /**
+   * Decrements the count and removes the animation at zero. No-op for an unknown animation
+   * and for one that `play` added on demand. Removing the current animation selects the first remaining one,
+   * or none, and resets the cached params.
+   */
+  unregister(animation: PluginStateAnimation) {
+    if (this.map.get(animation.name) !== animation) return;
+    const count = this.counts.get(animation.name) ?? 0;
+    if (count <= 0) return;
+    if (count > 1) {
+      this.counts.set(animation.name, count - 1);
+      return;
+    }
+
+    this.counts.delete(animation.name);
+    this.remove(animation);
+  }
+
+  private add(animation: PluginStateAnimation) {
     this._params = void 0;
     this.map.set(animation.name, animation);
     this._animations.push(animation);
@@ -112,10 +154,48 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
     }
   }
 
+  private remove(animation: PluginStateAnimation) {
+    this.map.delete(animation.name);
+    const idx = this._animations.indexOf(animation);
+    if (idx >= 0) this._animations.splice(idx, 1);
+    this._params = void 0;
+
+    const current = this._current;
+    if (!current || current.anim !== animation) {
+      this.triggerUpdate();
+      return;
+    }
+
+    // the removed animation is the current one
+    this.isStopped = true;
+    if (this.state.animationState !== 'stopped') {
+      this.updateState({ animationState: 'stopped' });
+      if (this.context.behaviors.state.isAnimating.value) {
+        this.context.behaviors.state.isAnimating.next(false);
+      }
+      if (animation.teardown) {
+        Promise.resolve(animation.teardown(current.paramValues, current.state, this.context)).catch((e) =>
+          console.error(`Failed to tear down animation '${animation.name}'`, e),
+        );
+      }
+    }
+
+    const next = this._animations[0];
+    if (next) {
+      this.updateParams({ current: next.name });
+    } else {
+      this._current = void 0 as any as PluginAnimationManager.Current;
+      this.updateState({ params: { ...this.state.params, current: '' } });
+      this.triggerUpdate();
+    }
+  }
+
   async play<P>(animation: PluginStateAnimation<P>, params: P) {
     await this.stop();
     if (!this.map.has(animation.name)) {
-      this.register(animation);
+      // registered on demand, outside reference counting
+      this.counts.set(animation.name, 0);
+      this.add(animation);
     }
     this.updateParams({ current: animation.name });
     this.updateCurrentParams(params);

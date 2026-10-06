@@ -12,7 +12,7 @@ import { KinemageDataProvider, KinemageData } from '@molstar/kinemage-extension/
 import { StateTransformer, StateBuilder } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
-import type { PluginDragAndDropHandler } from '@molstar/plugin/state/manager/drag-and-drop';
+import type { PluginDragAndDropEntry } from '@molstar/plugin/state/manager/drag-and-drop';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/compiler';
@@ -411,7 +411,7 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
         (this.ctx as any).customControls.set('kinemage', KinemageControls as any);
       }
 
-      this.ctx.managers.dragAndDrop.addHandler(KinemageDragAndDropHandler.name, KinemageDragAndDropHandler.handle);
+      this.ctx.managers.dragAndDrop.addEntry(KinemageDragAndDropHandler);
 
       // Register .kin file handler so opening/dropping .kin is supported via the data formats system
       this.ctx.dataFormats.add(KINFormatProvider);
@@ -431,7 +431,7 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
 
       this.ctx.genericRepresentationControls.delete(Tag.Representation);
 
-      this.ctx.managers.dragAndDrop.removeHandler(KinemageDragAndDropHandler.name);
+      this.ctx.managers.dragAndDrop.removeEntry(KinemageDragAndDropHandler);
 
       // Unregister the .kin data format provider
       this.ctx.dataFormats.remove(KINFormatProvider);
@@ -451,12 +451,6 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
     autoAttach: PD.Boolean(false),
   }),
 });
-
-/** Registerable method for handling dragged-and-dropped files */
-interface DragAndDropHandler {
-  name: string;
-  handle: PluginDragAndDropHandler;
-}
 
 /** Helper function to create all shapes for a kinemage via proper transform chain */
 async function createShapesForKinemage(
@@ -582,7 +576,7 @@ export async function loadKinemageFile(
 }
 
 /** DragAndDropHandler handler for `.kin` files */
-const KinemageDragAndDropHandler: DragAndDropHandler = {
+const KinemageDragAndDropHandler: PluginDragAndDropEntry = {
   name: 'kin',
   async handle(files: File[], plugin: PluginContext): Promise<boolean> {
     let applied = false;

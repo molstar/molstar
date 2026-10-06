@@ -13,14 +13,38 @@ export class StructureSelectionQueryRegistry {
   list: StructureSelectionQuery[] = [];
   options: [StructureSelectionQuery, string, string][] = [];
   version = 1;
+  /** Registration counts by query identity */
+  private counts = new Map<StructureSelectionQuery, number>();
 
+  /** Queries have no key, so registration never conflicts. */
+  findConflict(_q: StructureSelectionQuery): string | undefined {
+    return undefined;
+  }
+
+  /** Registering the same query again increments its count. */
   add(q: StructureSelectionQuery) {
+    const count = this.counts.get(q);
+    if (count !== undefined) {
+      this.counts.set(q, count + 1);
+      return;
+    }
+
+    this.counts.set(q, 1);
     this.list.push(q);
     this.options.push([q, q.label, q.category]);
     this.version += 1;
   }
 
+  /** Decrements the count and removes the query at zero; no-op for an unknown query. */
   remove(q: StructureSelectionQuery) {
+    const count = this.counts.get(q);
+    if (count === undefined) return;
+    if (count > 1) {
+      this.counts.set(q, count - 1);
+      return;
+    }
+
+    this.counts.delete(q);
     const idx = this.list.indexOf(q);
     if (idx !== -1) {
       this.list.splice(idx, 1);
@@ -30,12 +54,15 @@ export class StructureSelectionQueryRegistry {
   }
 
   constructor() {
-    // add built-in
-    this.list.push(
+    // Preload the built-in queries (until the default registry entry registers them, plugin composition step 3).
+    // These are the module-scope query objects, so registering the same objects later only counts.
+    for (const q of [
       ...Object.values(StructureSelectionQueries),
       ...AminoAcidSelectionQueries,
       ...NucleicBaseSelectionQueries,
-    );
-    this.options.push(...this.list.map((q) => [q, q.label, q.category] as [StructureSelectionQuery, string, string]));
+    ]) {
+      this.add(q);
+    }
+    this.version = 1;
   }
 }

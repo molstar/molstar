@@ -22,7 +22,8 @@
     "./state/helpers/_test/*": null,
     "./state/formats/_test/*": null,
     "./state/_test/*": null,
-    "./state/manager/_test/*": null
+    "./state/manager/_test/*": null,
+    "./state/queries/structure/_test/*": null
   },
   "files": [
     "lib",
