@@ -71,7 +71,7 @@ export function assertRepresentationScope(scopeName: RepresentationScope, scope:
   assertSizeThemes(scopeName, scope);
 }
 
-type ProviderKind = 'representation' | 'color theme' | 'size theme';
+export type ProviderKind = 'representation' | 'color theme' | 'size theme';
 
 /** Warns when `name` (if given) is not registered; params are then built as usual and normalization substitutes. */
 export function warnIfUnregistered(

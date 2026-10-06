@@ -17,6 +17,11 @@ import { type EasingKind, EasingParamDefinition } from '@molstar/core/math/easin
 import type { Vec3 } from '@molstar/core/math/linear-algebra';
 import { AnimateStateSnapshotTransition } from '@molstar/plugin/state/animation/built-in/state-snapshots';
 import { PluginComponent } from '@molstar/plugin/state/component';
+import {
+  type ProviderKind,
+  type RepresentationScope,
+  warnIfUnregistered,
+} from '@molstar/plugin/state/helpers/representation-registry';
 import type { PluginAnimationManager } from '@molstar/plugin/state/manager/animation';
 import type { InteractivityManager } from '@molstar/plugin/state/manager/interactivity';
 import type { StructureComponentManager } from '@molstar/plugin/state/manager/structure/component';
@@ -35,6 +40,16 @@ import { PluginConfig } from '@molstar/plugin/config';
 import type { PluginContext } from '@molstar/plugin/context';
 
 export { PluginState };
+
+/**
+ * Representation transformer ids by scope (ids only, so this module does not import the transformers):
+ * `StructureRepresentation3D`, `VolumeRepresentation3D`, and `ParticlesRepresentation3D`.
+ */
+const RepresentationTransformerScopes: { [id: string]: RepresentationScope | undefined } = {
+  'ms-plugin.structure-representation-3d': 'structure',
+  'ms-plugin.volume-representation-3d': 'volume',
+  'ms-plugin.particles-representation-3d': 'particles',
+};
 
 class PluginState extends PluginComponent {
   private get animation() {
@@ -125,6 +140,40 @@ class PluginState extends PluginComponent {
     );
   }
 
+  /**
+   * Warns for each representation type, color theme, and size theme name used by the snapshot's data tree and
+   * transition frames that is not registered in the matching scope; the registry default replaces it when the data
+   * tree is normalized. Reads names only and never throws for a missing name.
+   * Call after the behavior tree is applied, since behaviors may register providers.
+   */
+  reportUnregisteredNames(snapshot: PluginState.Snapshot) {
+    const reported = new Set<string>();
+    const check = (
+      scopeName: RepresentationScope,
+      kind: ProviderKind,
+      registry: Parameters<typeof warnIfUnregistered>[3],
+      name: unknown,
+    ) => {
+      if (typeof name !== 'string') return;
+      const key = `${scopeName}|${kind}|${name}`;
+      if (reported.has(key)) return;
+      reported.add(key);
+      warnIfUnregistered(this.plugin, scopeName, kind, registry, name);
+    };
+    const visit = (tree: State.Snapshot | undefined) => {
+      for (const t of tree?.tree?.transforms ?? []) {
+        const scopeName = RepresentationTransformerScopes[t.transformer];
+        if (!scopeName || !t.params) continue;
+        const { registry, themes } = this.plugin.representation[scopeName];
+        check(scopeName, 'representation', registry, t.params.type?.name);
+        check(scopeName, 'color theme', themes.colorThemeRegistry, t.params.colorTheme?.name);
+        check(scopeName, 'size theme', themes.sizeThemeRegistry, t.params.sizeTheme?.name);
+      }
+    };
+    visit(snapshot.data);
+    for (const frame of snapshot.transition?.frames ?? []) visit(frame.data);
+  }
+
   async setSnapshot(snapshot: PluginState.Snapshot) {
     PluginState.validateSnapshotTransformers(snapshot);
     await this.animation.stop();
@@ -133,6 +182,8 @@ class PluginState extends PluginComponent {
     if (snapshot.structureComponentManager?.options)
       this.plugin.managers.structure.component._setSnapshotState(snapshot.structureComponentManager?.options);
     if (snapshot.behaviour) await this.plugin.runTask(this.behaviors.setSnapshot(snapshot.behaviour));
+    // behaviors have registered their providers by now
+    this.reportUnregisteredNames(snapshot);
     if (snapshot.data) await this.plugin.runTask(this.data.setSnapshot(snapshot.data));
     if (snapshot.canvas3d?.props) {
       const settings: Partial<Canvas3DProps> = PD.normalizeParams(Canvas3DParams, snapshot.canvas3d.props, 'children');

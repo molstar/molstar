@@ -358,6 +358,39 @@ config, then `preset-structure-representation-auto` for Default; `-polymer-and-l
 Lazy-volume loading in the volume source controls uses the isosurface representation and uniform color theme only when
 they are registered, and otherwise falls back to the registry default.
 
+## Plugin composition step 3
+
+Step 3 of [plugin-composition.md](plugin-composition.md) removes implicit defaults from the plugin context.
+
+### View models and hooks require a spec
+
+`PluginViewModel` and `PluginUIViewModel` (`@molstar/plugin-extension`) take `{ spec }` as a required constructor option
+and no longer fall back to `DefaultPluginSpec()` / `DefaultPluginUISpec()`. `useCreatePluginViewModel` and
+`useCreatePluginUIViewModel` require `options.spec` (a spec object) and no longer accept the
+`spec: (defaultSpec) => spec` callback form. Callers import the default spec themselves:
+
+```ts
+// 5.x
+useCreatePluginUIViewModel({ spec: (spec) => ({ ...spec, behaviors: [...spec.behaviors, MyBehavior] }) });
+// 6.0
+const spec = DefaultPluginUISpec();
+useCreatePluginUIViewModel({ spec: { ...spec, behaviors: [...spec.behaviors, MyBehavior] } });
+```
+
+### Drag-and-drop open-files fallback is a registry entry
+
+`DragAndDropManager.handle()` no longer opens unrecognized files itself. The open-anything handler is the
+`{ name: 'open-files', handle, fallback: true }` entry of `DefaultDragAndDrop` (part of `DefaultRegistry`), so it still
+runs after the handlers and the built-in session handling (`.molx`/`.molj`). A plugin without that entry ignores drops
+it does not recognize; add `DefaultDragAndDrop` (or your own fallback handler) to open arbitrary files.
+
+### Snapshot name warnings
+
+`PluginState.setSnapshot` calls the new `PluginState.reportUnregisteredNames(snapshot)` after the behavior tree is
+applied and before the data tree. It logs a warning for each representation type, color theme, and size theme name of
+the structure, volume, and particles representation transformers (data tree and transition frames) that is not
+registered in the matching scope; the registry default replaces it when the data tree is normalized. It never throws.
+
 ## Declaration contracts
 
 `ExternalModules['jpeg-js']` exposes the injected codec's `encode` contract instead of the entire codec module type.

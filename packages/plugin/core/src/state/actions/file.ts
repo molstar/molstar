@@ -87,6 +87,21 @@ export const OpenFiles = StateAction.build({
   }),
 );
 
+/**
+ * Drag-and-drop handler of the `DefaultDragAndDrop` `open-files` entry: opens every dropped file
+ * with the `OpenFiles` action (format detected from the file name, with default visuals).
+ */
+export function openDroppedFiles(files: File[], plugin: PluginContext) {
+  plugin.runTask(
+    plugin.state.data.applyAction(OpenFiles, {
+      files: files.map((f) => Asset.File(f)),
+      format: { name: 'auto', params: {} },
+      visuals: true,
+    }),
+  );
+  return true;
+}
+
 export const DownloadFile = StateAction.build({
   display: { name: 'Download File', description: 'Load one or more file from an URL' },
   from: PluginStateObject.Root,

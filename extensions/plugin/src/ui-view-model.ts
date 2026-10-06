@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import type { PluginUISpec } from '@molstar/plugin-ui/spec';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
 
@@ -19,9 +18,9 @@ export class PluginUIViewModel {
     await this.plugin.init();
   }
 
-  constructor(options?: { spec?: PluginUISpec }) {
-    const spec = options?.spec ?? DefaultPluginUISpec();
-    this.plugin = new PluginUIContext(spec);
+  /** The spec is required: pass `DefaultPluginUISpec()` for the default plugin. */
+  constructor(options: { spec: PluginUISpec }) {
+    this.plugin = new PluginUIContext(options.spec);
     this.init();
   }
 }

@@ -62,6 +62,7 @@ import {
   AnimateStateSnapshots,
 } from '@molstar/plugin/state/animation/built-in/state-snapshots';
 import { StateActions } from '@molstar/plugin/state/actions';
+import { openDroppedFiles } from '@molstar/plugin/state/actions/file';
 import { AssignColorVolume } from '@molstar/plugin/state/actions/volume';
 import { Download } from '@molstar/plugin/state/transforms/data/fetch';
 import { ParseCif } from '@molstar/plugin/state/formats/cif';
@@ -286,12 +287,9 @@ export const DefaultMarkdownExtensions: PluginRegistryEntry = {
   markdownExtensions: BuiltInMarkdownExtension,
 };
 
-/**
- * Empty for now: the open-anything fallback handler moves here when `DragAndDropManager` stops registering it itself
- * (plugin composition step 3).
- */
+/** The open-anything handler: runs after session handling and every other handler, whatever the entry order. */
 export const DefaultDragAndDrop: PluginRegistryEntry = {
-  dragAndDrop: [],
+  dragAndDrop: [{ name: 'open-files', handle: openDroppedFiles, fallback: true }],
 };
 
 export const DefaultAnimations: PluginRegistryEntry = {

@@ -35,6 +35,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "tslib": "catalog:",
+    "@molstar/plugin": "workspace:*",
     "@molstar/plugin-extension": "workspace:*",
     "@molstar/plugin-ui": "workspace:*",
     "@molstar/viewer": "workspace:*",

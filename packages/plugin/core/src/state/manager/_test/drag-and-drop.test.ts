@@ -5,6 +5,7 @@
  */
 
 import type { PluginContext } from '@molstar/plugin/context';
+import { DefaultDragAndDrop } from '../../../default-registry.js';
 import { DragAndDropManager, type PluginDragAndDropHandler } from '../drag-and-drop.js';
 
 function create() {
@@ -156,8 +157,8 @@ describe('DragAndDropManager.handle', () => {
     manager.addHandler('n2', handler(log, 'n2', false));
     await manager.handle([file('x.txt')]);
     expect(log).toEqual(['n2', 'n1', 'f2', 'f1']);
-    // nothing handled: the built-in open-files fallback runs
-    expect(runTask).toHaveBeenCalledTimes(1);
+    // nothing handled and no default entry: the files are not opened
+    expect(runTask).not.toHaveBeenCalled();
   });
 
   it('stops at a fallback handler that handles the files', async () => {
@@ -170,11 +171,50 @@ describe('DragAndDropManager.handle', () => {
     expect(runTask).not.toHaveBeenCalled();
   });
 
-  it('opens files with the built-in fallback when there are no handlers', async () => {
+  it('does not open unrecognized drops without the default entry', async () => {
     const { manager, runTask, applyAction } = create();
     await manager.handle([file('x.txt')]);
-    expect(applyAction).toHaveBeenCalledTimes(1);
-    expect(runTask).toHaveBeenCalledWith('apply-action');
+    expect(applyAction).not.toHaveBeenCalled();
+    expect(runTask).not.toHaveBeenCalled();
+  });
+
+  describe('with DefaultDragAndDrop', () => {
+    function createDefault() {
+      const ctx = create();
+      for (const entry of DefaultDragAndDrop.dragAndDrop!) ctx.manager.addEntry(entry);
+      return ctx;
+    }
+
+    it('opens unrecognized drops with the open-files fallback', async () => {
+      const { manager, runTask, applyAction } = createDefault();
+      await manager.handle([file('x.txt')]);
+      expect(applyAction).toHaveBeenCalledTimes(1);
+      expect(runTask).toHaveBeenCalledWith('apply-action');
+    });
+
+    it('keeps session handling ahead of the open-files fallback', async () => {
+      const { manager, runTask, dispatch } = createDefault();
+      await manager.handle([file('x.molx')]);
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(runTask).not.toHaveBeenCalled();
+    });
+
+    it('runs the open-files fallback after other handlers that do not take the files', async () => {
+      const { manager, runTask } = createDefault();
+      const log: string[] = [];
+      manager.addHandler('other', handler(log, 'other', false));
+      await manager.handle([file('x.txt')]);
+      expect(log).toEqual(['other']);
+      expect(runTask).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not open files another handler took', async () => {
+      const { manager, runTask } = createDefault();
+      const log: string[] = [];
+      manager.addHandler('other', handler(log, 'other', true));
+      await manager.handle([file('x.txt')]);
+      expect(runTask).not.toHaveBeenCalled();
+    });
   });
 
   it('dispose drops all handlers', async () => {

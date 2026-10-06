@@ -361,16 +361,16 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       `updateBehavior` inserts the focus behavior when it is absent. Pick the default query by identity (`current` if
       registered, else the first option) instead of `options[1][0]`, and return an empty select for an empty registry.
 - [ ] `ViewerAutoPreset` and other delegating presets look up optional presets by id and skip them when absent.
-- [ ] Move the open-files drag-and-drop fallback into `DefaultDragAndDrop`.
+- [x] Move the open-files drag-and-drop fallback into `DefaultDragAndDrop`.
 - [ ] `parseTrajectory(blob)` moves into the mmCIF entry's module or becomes format-neutral; the Cube structure path
       imports its transforms. `DownloadStructure` (spec §9), when building params, offers only the sources whose formats
       are registered (`dataFormats.has(name)`), builds the URL format list from the registry, and hides the multi-source
       blob option unless mmCIF is registered.
-- [ ] `PluginViewModel`, `PluginUIViewModel`, and their hooks require an explicit spec.
+- [x] `PluginViewModel`, `PluginUIViewModel`, and their hooks require an explicit spec.
 - [x] UI (spec §10): `createPluginUI` requires a spec; base layout renders minimal structure tools; full tools move to
       `DefaultPluginUISpec().components.structureTools`; quick styles resolve presets by id; volume controls use the
       registry or config; apply the `components` fixes in §3.5.
-- [ ] Add `reportUnregisteredNames` to `setSnapshot` (spec §6.2).
+- [x] Add `reportUnregisteredNames` to `setSnapshot` (spec §6.2).
 
 ### Step 4: slim acceptance and boundary checks
 
@@ -464,7 +464,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 - [ ] Extensions that add an action in `register()` and remove it in `unregister()` (assembly symmetry, SB-NCBR tunnels,
       g3d, volumes and segmentations, MVS) need no change once actions are counted; verify each.
-- [ ] `extensions/plugin` view models and hooks require an explicit spec; the hooks' `spec: (defaultSpec) => spec` form
+- [x] `extensions/plugin` view models and hooks require an explicit spec; the hooks' `spec: (defaultSpec) => spec` form
       is removed, and callers import the default themselves.
 - [ ] Replace catalog value imports with defining-module imports (§1.3).
 - [ ] Optionally replace hand-written provider registration with `plugin.register(entry)` and its undo.
@@ -576,4 +576,4 @@ The registry dump comparison allows only these differences. A step that introduc
 | Registry      | Difference from the baseline                                                                                      |
 | ------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Color themes  | `external-structure` and `external-volume` are present in all three scopes, as in 5.x; the prototype dropped them |
-| Drag and drop | The open-anything handler is listed by name (`DefaultDragAndDrop`, fallback) instead of being hard-coded          |
+| Drag and drop | The open-anything handler is listed as `open-files` (`DefaultDragAndDrop`, fallback) instead of being hard-coded  |

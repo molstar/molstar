@@ -4,8 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
-import { PluginSpec } from '@molstar/plugin/spec';
+import type { PluginSpec } from '@molstar/plugin/spec';
 import { PluginContext } from '@molstar/plugin/context';
 import { SingleAsyncQueue } from '@molstar/core/util/single-async-queue';
 
@@ -29,9 +28,9 @@ export class PluginViewModel {
     this.mountQueue.enqueue(() => this.plugin.unmount());
   }
 
-  constructor(options?: { spec?: PluginSpec }) {
-    const spec = options?.spec ?? DefaultPluginSpec();
-    this.plugin = new PluginContext(spec);
+  /** The spec is required: pass `DefaultPluginSpec()` for the default plugin. */
+  constructor(options: { spec: PluginSpec }) {
+    this.plugin = new PluginContext(options.spec);
     this.init();
   }
 }

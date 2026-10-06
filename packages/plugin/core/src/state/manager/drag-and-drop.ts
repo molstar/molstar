@@ -4,8 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { OpenFiles } from '../actions/file.js';
-import { Asset } from '@molstar/core/util/assets';
 import { PluginCommands } from '@molstar/plugin/commands';
 import type { PluginContext } from '@molstar/plugin/context';
 
@@ -76,10 +74,7 @@ export class DragAndDropManager {
   async handle(files: File[]) {
     if (await this.tryHandlers(files, false)) return;
     if (openSession(this.plugin, files)) return;
-    if (await this.tryHandlers(files, true)) return;
-
-    // TODO: moves into a `fallback` entry in plugin composition step 3
-    openFiles(this.plugin, files);
+    await this.tryHandlers(files, true);
   }
 
   private async tryHandlers(files: File[], fallback: boolean) {
@@ -108,14 +103,4 @@ function openSession(plugin: PluginContext, files: File[]) {
 
   PluginCommands.State.Snapshots.OpenFile(plugin, { file: sessions[0] });
   return true;
-}
-
-function openFiles(plugin: PluginContext, files: File[]) {
-  plugin.runTask(
-    plugin.state.data.applyAction(OpenFiles, {
-      files: files.map((f) => Asset.File(f)),
-      format: { name: 'auto', params: {} },
-      visuals: true,
-    }),
-  );
 }

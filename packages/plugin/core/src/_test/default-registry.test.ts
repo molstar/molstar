@@ -40,7 +40,7 @@ describe('DefaultRegistry', () => {
     expect(DefaultRegistry.length).toBe(new Set(DefaultRegistry).size);
   });
 
-  it('keeps the format order and leaves drag and drop empty', () => {
+  it('keeps the format order and registers the open-files drag and drop fallback', () => {
     const names = DefaultFormats.formats!.map((f) => f.name);
     // volume, topology, coordinates, shape, particles, trajectory
     expect(names.slice(0, 2)).toEqual(['ccp4', 'dsn6']);
@@ -48,7 +48,7 @@ describe('DefaultRegistry', () => {
     expect(names.indexOf('ply')).toBeGreaterThan(names.indexOf('psf'));
     expect(names.indexOf('mmcif')).toBeGreaterThan(names.indexOf('simularium'));
     expect(new Set(names).size).toBe(names.length);
-    expect(DefaultDragAndDrop.dragAndDrop).toEqual([]);
+    expect(DefaultDragAndDrop.dragAndDrop!.map((e) => [e.name, e.fallback])).toEqual([['open-files', true]]);
   });
 
   it('lists the default preset counts', () => {
