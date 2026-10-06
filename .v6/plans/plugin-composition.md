@@ -239,7 +239,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 - [ ] Split the preset modules (spec §7): types-and-helpers module plus one module per preset; the auto preset module
       imports the presets it composes. Preset catalogs derive the id and alias unions
       (`BuiltInTrajectoryHierarchyPresetId`/`Alias`, `BuiltInStructureRepresentationPresetId`/`Alias`).
-- [ ] Split `state/helpers/structure-selection-query.ts` into the `state/queries/structure/` group modules of spec §7,
+- [x] Split `state/helpers/structure-selection-query.ts` into the `state/queries/structure/` group modules of spec §7,
       each exporting its queries and a group entry, plus `catalog.ts`. Create the residue queries once at module scope
       in `residue.ts`. Move the per-structure `get*Queries` helpers to `dynamic.ts`. Remove the unused
       `applyBuiltInSelection`. `helpers/structure-component.ts`, the `StructureComponent` transform, the component

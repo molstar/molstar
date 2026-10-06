@@ -586,7 +586,9 @@ optional functionality only through ids, config, `has`, and `import type`.
 
   ```text
   state/queries/structure/
-    query.ts       # StructureSelectionQuery type and constructor, StructureSelectionCategory, the registry
+    query.ts       # StructureSelectionQuery type and constructor, StructureSelectionCategory
+    registry.ts    # StructureSelectionQueryRegistry (separate from query.ts so the preload does not form an import cycle)
+    common.ts      # entity and residue tests shared by the groups
     basic.ts       # all, current
     type.ts        # polymer, protein, nucleic, water, ion, lipid, branched, ligand, coarse, and their hidden
                    # internal variants (ligandPlusConnected, branchedPlusConnected, ...)
