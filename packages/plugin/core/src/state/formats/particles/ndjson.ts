@@ -14,7 +14,8 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { createParticleListFromCryoEtDataPortalNdjson } from '@molstar/model/formats/particles/ndjson';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { ParticlesFormatCategory } from './category.js';
-import { simpleVisuals } from './provider.js';
+import { simpleVisuals, SimpleParticleVisuals } from './provider.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { ParseCryoEtDataPortalNdjson };
 type ParseCryoEtDataPortalNdjson = typeof ParseCryoEtDataPortalNdjson;
@@ -97,3 +98,10 @@ export const CryoEtDataPortalNdjsonParticlesProvider = DataFormatProvider({
   },
   visuals: simpleVisuals,
 });
+
+/** The CryoEtDataPortalNdjsonParticles data format with its actions and the representations its visuals use. */
+export const CryoEtDataPortalNdjsonParticles: PluginRegistryEntry = {
+  formats: [CryoEtDataPortalNdjsonParticlesProvider],
+  actions: [ParticleListFromCryoEtDataPortalNdjson],
+  ...SimpleParticleVisuals,
+};

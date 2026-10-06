@@ -13,6 +13,7 @@ import { parseDcd } from '@molstar/io/reader/dcd/parser';
 import { coordinatesFromDcd } from '@molstar/model/formats/structure/dcd';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { CoordinatesFormatCategory } from './category.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { CoordinatesFromDcd };
 type CoordinatesFromDcd = typeof CoordinatesFromDcd;
@@ -47,3 +48,8 @@ const DcdProvider = DataFormatProvider({
 });
 
 type DcdProvider = typeof DcdProvider;
+
+/** The Dcd data format. */
+export const Dcd: PluginRegistryEntry = {
+  formats: [DcdProvider],
+};

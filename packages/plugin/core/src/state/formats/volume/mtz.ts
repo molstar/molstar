@@ -22,6 +22,10 @@ import { VolumeRepresentation3DHelpers } from '@molstar/plugin/state/transforms/
 import { Color } from '@molstar/core/util/color/color';
 import { CustomVolumeProperties } from '@molstar/plugin/state/transforms/volume/ops';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
+import { IsosurfaceRepresentationProvider } from '@molstar/graphics/repr/volume/isosurface';
+import { UniformColorThemeProvider } from '@molstar/graphics/theme/color/uniform';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { Isosurface } from '@molstar/plugin/registry/volume/isosurface';
 
 export { ParseMtz };
 type ParseMtz = typeof ParseMtz;
@@ -173,9 +177,9 @@ export const MtzProvider = DataFormatProvider({
             VolumeRepresentation3D,
             VolumeRepresentation3DHelpers.getDefaultParamsStatic(
               plugin,
-              'isosurface',
+              IsosurfaceRepresentationProvider,
               { isoValue, alpha: 1 },
-              'uniform',
+              UniformColorThemeProvider,
               { value: Color(0x3362b2) },
             ),
           ).selector,
@@ -186,16 +190,16 @@ export const MtzProvider = DataFormatProvider({
     if (volumes['fofc'].length > 0) {
       const posParams = VolumeRepresentation3DHelpers.getDefaultParamsStatic(
         plugin,
-        'isosurface',
+        IsosurfaceRepresentationProvider,
         { isoValue: Volume.IsoValue.relative(3), alpha: 0.3 },
-        'uniform',
+        UniformColorThemeProvider,
         { value: Color(0x33bb33) },
       );
       const negParams = VolumeRepresentation3DHelpers.getDefaultParamsStatic(
         plugin,
-        'isosurface',
+        IsosurfaceRepresentationProvider,
         { isoValue: Volume.IsoValue.relative(-3), alpha: 0.3 },
-        'uniform',
+        UniformColorThemeProvider,
         { value: Color(0xbb3333) },
       );
       visuals.push(tree.to(volumes['fofc'][0]).apply(VolumeRepresentation3D, posParams).selector);
@@ -206,3 +210,9 @@ export const MtzProvider = DataFormatProvider({
     return visuals;
   },
 });
+
+/** The Mtz data format and the representations its visuals use. */
+export const Mtz: PluginRegistryEntry = {
+  formats: [MtzProvider],
+  ...Isosurface,
+};

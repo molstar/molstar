@@ -336,10 +336,10 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       preset helpers do not load every query (found by the step 1 import-graph check).
 - [x] Presets import what they run and list it in their entries; add representation entries with their default themes in
       plugin-layer modules; mixed name/provider props in the helpers (spec §5.1); development-mode default-theme check.
-- [ ] Format entries with actions and, for volume, particle, and shape formats, the representation entries and themes
+- [x] Format entries with actions and, for volume, particle, and shape formats, the representation entries and themes
       their `visuals` apply as provider objects (CCP4 includes `Isosurface`). List only actions in today's default
       action list, for example CCP4: `ParseCcp4`, `VolumeFromCcp4`; mmCIF: `ParseCif`, `TrajectoryFromMmCif`; SDF: none.
-- [ ] Policy through config for every site in §1.6. When the configured preset is not registered, loading fails with the
+- [x] Policy through config for every site in §1.6. When the configured preset is not registered, loading fails with the
       preset error.
 - [x] Focus representation behavior: its `nciParams` group passes `InteractionsRepresentationProvider` and
       `InteractionTypeColorThemeProvider`, which only the toggleable `CustomProps.Interactions` behavior registers (and
@@ -362,7 +362,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       registered, else the first option) instead of `options[1][0]`, and return an empty select for an empty registry.
 - [x] `ViewerAutoPreset` and other delegating presets look up optional presets by id and skip them when absent.
 - [x] Move the open-files drag-and-drop fallback into `DefaultDragAndDrop`.
-- [ ] `parseTrajectory(blob)` moves into the mmCIF entry's module or becomes format-neutral; the Cube structure path
+- [x] `parseTrajectory(blob)` moves into the mmCIF entry's module or becomes format-neutral; the Cube structure path
       imports its transforms. `DownloadStructure` (spec §9), when building params, offers only the sources whose formats
       are registered (`dataFormats.has(name)`), builds the URL format list from the registry, and hides the multi-source
       blob option unless mmCIF is registered.

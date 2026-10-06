@@ -16,6 +16,8 @@ import { DataFormatProvider, applyTransformerRaw, rawDataObject } from '@molstar
 import { VolumeFormatCategory } from './category.js';
 import { type VolumeFormatParams, tryObtainRecommendedIsoValue, defaultVisuals } from './provider.js';
 import { CustomVolumeProperties } from '@molstar/plugin/state/transforms/volume/ops';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { Isosurface } from '@molstar/plugin/registry/volume/isosurface';
 
 export { ParseDx };
 type ParseDx = typeof ParseDx;
@@ -86,3 +88,10 @@ export const DxProvider = DataFormatProvider({
   },
   visuals: defaultVisuals,
 });
+
+/** The Dx data format with its actions and the representations its visuals use. */
+export const Dx: PluginRegistryEntry = {
+  formats: [DxProvider],
+  actions: [VolumeFromDx],
+  ...Isosurface,
+};

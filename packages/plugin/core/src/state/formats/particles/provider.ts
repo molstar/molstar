@@ -11,6 +11,17 @@ import { type ParticleList, getParticleTargetGroups } from '@molstar/model/model
 import type { PluginContext } from '@molstar/plugin/context';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import { ParticleListUnitcell3D } from '@molstar/plugin/state/transforms/particles/unitcell';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { ParticleSpacefill } from '@molstar/plugin/registry/particles/spacefill';
+import { ParticleFibers } from '@molstar/plugin/registry/particles/fibers';
+import { ParticleTarget } from '@molstar/plugin/registry/particles/target';
+import { SpacefillParticlesRepresentationProvider } from '@molstar/graphics/repr/particles/representation/spacefill';
+import { FibersRepresentationProvider } from '@molstar/graphics/repr/particles/representation/fibers';
+import { ParticleTargetRepresentationProvider } from '@molstar/graphics/repr/particles/representation/target/representation';
+import { ParticleIndexColorThemeProvider } from '@molstar/graphics/theme/color/particle-index';
+import { ParticleEntityColorThemeProvider } from '@molstar/graphics/theme/color/particle-entity';
+import { ParticleCompartmentColorThemeProvider } from '@molstar/graphics/theme/color/particle-compartment';
+import { ParticleHierarchyColorThemeProvider } from '@molstar/graphics/theme/color/particle-hierarchy';
 
 export interface ParticleFormatData {
   format: StateObjectRef;
@@ -57,21 +68,21 @@ export function complexVisuals(
 
   if (hasTargets) {
     builder.to(data.list).apply(ParticlesRepresentation3D, {
-      type: { name: 'target', params: targetProps?.params ?? {} },
+      type: { name: ParticleTargetRepresentationProvider.name, params: targetProps?.params ?? {} },
       colorTheme: targetProps?.colorTheme ?? { name: colorTheme, params: {} },
     });
   }
 
   if (hasUntargeted) {
     builder.to(data.list).apply(ParticlesRepresentation3D, {
-      type: { name: 'spacefill', params: { excludeTargets: hasTargets } },
+      type: { name: SpacefillParticlesRepresentationProvider.name, params: { excludeTargets: hasTargets } },
       colorTheme: targetProps?.colorTheme ?? { name: colorTheme, params: {} },
       ...(targetProps?.sizeTheme && { sizeTheme: targetProps.sizeTheme }),
     });
 
     if (particleList?.fibers && particleList.fibers.count > 0) {
       builder.to(data.list).apply(ParticlesRepresentation3D, {
-        type: { name: 'fibers', params: {} },
+        type: { name: FibersRepresentationProvider.name, params: {} },
         colorTheme: targetProps?.colorTheme ?? { name: colorTheme, params: {} },
         ...(targetProps?.sizeTheme && { sizeTheme: targetProps.sizeTheme }),
       });
@@ -86,9 +97,38 @@ export function complexVisuals(
 export function simpleVisuals(plugin: PluginContext, data: ParticleFormatData) {
   const builder = plugin.state.data.build();
 
-  builder.to(data.list).apply(ParticlesRepresentation3D, { type: { name: 'spacefill', params: {} } });
+  builder
+    .to(data.list)
+    .apply(ParticlesRepresentation3D, { type: { name: SpacefillParticlesRepresentationProvider.name, params: {} } });
 
   builder.to(data.list).apply(ParticleListUnitcell3D, { attachment: 'center' });
 
   return builder.commit();
 }
+
+/** The particle representations and themes used by `simpleVisuals`. */
+export const SimpleParticleVisuals: PluginRegistryEntry = ParticleSpacefill;
+
+const ComplexEntries = [ParticleSpacefill, ParticleFibers, ParticleTarget];
+
+/**
+ * The particle representations and themes used by `complexVisuals`: spacefill, fibers, and target with their default
+ * themes, and the color themes chosen by what the particle list has (hierarchy, entity, compartment, or particle index).
+ */
+export const ComplexParticleVisuals: PluginRegistryEntry = {
+  particles: {
+    representations: ComplexEntries.flatMap((e) => e.particles!.representations!),
+    themes: {
+      color: [
+        ...new Set([
+          ...ComplexEntries.flatMap((e) => e.particles!.themes!.color!),
+          ParticleIndexColorThemeProvider,
+          ParticleEntityColorThemeProvider,
+          ParticleCompartmentColorThemeProvider,
+          ParticleHierarchyColorThemeProvider,
+        ]),
+      ],
+      size: [...new Set(ComplexEntries.flatMap((e) => e.particles!.themes!.size!))],
+    },
+  },
+};

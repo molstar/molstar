@@ -34,6 +34,11 @@ import {
   CustomStructureProperties,
 } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
+import { PluginConfig } from '@molstar/plugin/config';
+import { IsosurfaceRepresentationProvider } from '@molstar/graphics/repr/volume/isosurface';
+import { UniformColorThemeProvider } from '@molstar/graphics/theme/color/uniform';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { Isosurface } from '@molstar/plugin/registry/volume/isosurface';
 
 export { ParseCube };
 type ParseCube = typeof ParseCube;
@@ -148,18 +153,18 @@ export const CubeProvider = DataFormatProvider({
       const volumePos = surfaces.to(data.volume).apply(
         VolumeRepresentation3D,
         createVolumeRepresentationParams(plugin, volumeData, {
-          type: 'isosurface',
+          type: IsosurfaceRepresentationProvider,
           typeParams: { isoValue: Volume.IsoValue.relative(1), alpha: 0.4 },
-          color: 'uniform',
+          color: UniformColorThemeProvider,
           colorParams: { value: ColorNames.blue },
         }),
       );
       const volumeNeg = surfaces.to(data.volume).apply(
         VolumeRepresentation3D,
         createVolumeRepresentationParams(plugin, volumeData, {
-          type: 'isosurface',
+          type: IsosurfaceRepresentationProvider,
           typeParams: { isoValue: Volume.IsoValue.relative(-1), alpha: 0.4 },
-          color: 'uniform',
+          color: UniformColorThemeProvider,
           colorParams: { value: ColorNames.red },
         }),
       );
@@ -168,23 +173,33 @@ export const CubeProvider = DataFormatProvider({
       const volume = surfaces.to(data.volume).apply(
         VolumeRepresentation3D,
         createVolumeRepresentationParams(plugin, volumeData, {
-          type: 'isosurface',
+          type: IsosurfaceRepresentationProvider,
           typeParams: { isoValue: Volume.IsoValue.relative(2), alpha: 0.4 },
-          color: 'uniform',
+          color: UniformColorThemeProvider,
           colorParams: { value: ColorNames.grey },
         }),
       );
       volumeReprs.push(volume.selector);
     }
 
-    const structure = await plugin.builders.structure.representation.applyPreset(data.structure, 'auto');
+    const structure = await plugin.builders.structure.representation.applyPreset(
+      data.structure,
+      plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) ?? '',
+    );
     await surfaces.commit();
 
     const structureReprs: StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>[] = [];
-    objectForEach(structure?.representations as any, (r: any) => {
+    objectForEach((structure as any)?.representations, (r: any) => {
       if (r) structureReprs.push(r);
     });
 
     return [...volumeReprs, ...structureReprs];
   },
 });
+
+/** The Cube data format with its actions and the representations its visuals use. */
+export const Cube: PluginRegistryEntry = {
+  formats: [CubeProvider],
+  actions: [VolumeFromCube],
+  ...Isosurface,
+};

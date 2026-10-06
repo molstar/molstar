@@ -448,6 +448,52 @@ The Viewer's `ViewerAutoPreset` looks up the model-archive quality-assessment an
 through `plugin.builders.structure.representation.resolveProvider` and skips them when they are not registered, instead
 of importing them; it still falls back to the imported `AutoPreset`.
 
+## Plugin composition step 3: formats and post-load presets
+
+### Format entries
+
+Every built-in data format module exports a registry entry next to its provider: the provider name without `Provider`
+(`SdfProvider` and `Sdf`, `MmcifProvider` and `Mmcif`, `Ccp4Provider` and `Ccp4`, `RelionStarParticlesProvider` and
+`RelionStarParticles`). An entry holds `formats: [provider]` and the actions `DefaultActions` lists for the format
+(CCP4: `ParseCcp4`, `VolumeFromCcp4`; mmCIF: `ParseCif`, `TrajectoryFromMmCif`; PDB, PDBQT, and PQR:
+`TrajectoryFromPDB`; SDF: none), so a slim plugin registers `registry: [Sdf, Ccp4, ...]`. Volume and particle format
+entries also include the representations and themes their `visuals` step builds: `Isosurface` for CCP4, DSN6, DX, Cube,
+density-server CIF, structure-factor CIF, and MTZ, `Segment` for segmentation CIF, and the particle spacefill
+representation or the spacefill, fibers, and target representations with their color themes for the particle formats.
+Shape, topology, coordinates, and trajectory formats carry no representations. The `visuals` steps pass provider objects
+(`IsosurfaceRepresentationProvider`, `UniformColorThemeProvider`) instead of names, and
+`VolumeRepresentation3DHelpers.getDefaultParams` and `getDefaultParamsStatic` accept a provider object or a name for the
+representation and the color and size themes. `DefaultFormats` and `DefaultActions` are unchanged, and the built-in
+catalogs (`BuiltIn*Formats`) still list the providers.
+
+### Post-load presets come from config
+
+Trajectory format `visuals` and the `DownloadStructure` action apply `PluginConfig.Structure.DefaultHierarchyPreset`
+(default `preset-trajectory-default`) instead of `'default'`. `LoadTrajectory`, `AddTrajectory`,
+`StructureHierarchyManager.updateStructure`, and the Cube format apply
+`PluginConfig.Structure.DefaultRepresentationPreset` (default `preset-structure-representation-auto`) instead of
+`'auto'`, and `DownloadStructure` takes both the default of its representation select and the empty-preset check from
+config. A config value that is not registered fails the load with `Preset '<id>' is not registered in this plugin` (the
+actions log it and revert, as for any other error in their transaction); there is no fallback to the default preset. A
+plugin that does not register the default presets sets the two config items.
+
+### `DownloadStructure` depends on the registered formats
+
+`DownloadStructure` offers only the sources whose format is registered (`plugin.dataFormats.has`): PDB, PDB-IHM,
+AlphaFold DB, and Model Archive need `mmcif`, SWISS-MODEL needs `pdb`, PubChem needs `mol`, and URL needs at least one
+trajectory format. The URL format list is the registered formats of the trajectory category in registration order
+(formats that extensions register in that category, such as `g3d` in the Viewer, now appear in it;
+`BuiltInTrajectoryFormat` no longer types the `format` param, which is a `string`), and its default is `mmcif` when
+registered. The "Load all entries into a single trajectory" option is hidden unless `mmcif` is registered. With no
+usable source the action's source select has a single empty option.
+
+### `builders.structure.parseTrajectory(blob)`
+
+The blob overload no longer imports the mmCIF transformers. It calls `parseBlob` of the registered `mmcif` format and
+fails with `parseTrajectory(blob) requires the 'mmcif' data format to be registered in this plugin.` when mmCIF is not
+registered. `parseBlob` is a new optional method of `TrajectoryFormatProvider` implemented by `MmcifProvider`, and
+`parseMmcifBlob(plugin, blob, params)` in `@molstar/plugin/state/formats/trajectory/mmcif` is the same function.
+
 ## Declaration contracts
 
 `ExternalModules['jpeg-js']` exposes the injected codec's `encode` contract instead of the entire codec module type.

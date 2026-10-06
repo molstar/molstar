@@ -13,6 +13,7 @@ import { parseNctraj } from '@molstar/io/reader/nctraj/parser';
 import { coordinatesFromNctraj } from '@molstar/model/formats/structure/nctraj';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { CoordinatesFormatCategory } from './category.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { CoordinatesFromNctraj };
 type CoordinatesFromNctraj = typeof CoordinatesFromNctraj;
@@ -47,3 +48,8 @@ const NctrajProvider = DataFormatProvider({
 });
 
 type NctrajProvider = typeof NctrajProvider;
+
+/** The Nctraj data format. */
+export const Nctraj: PluginRegistryEntry = {
+  formats: [NctrajProvider],
+};

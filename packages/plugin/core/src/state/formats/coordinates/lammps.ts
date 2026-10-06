@@ -13,6 +13,7 @@ import { parseLammpsTrajectory } from '@molstar/io/reader/lammps/traj/parser';
 import { coordinatesFromLammpsTrajectory } from '@molstar/model/formats/structure/lammps-trajectory';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { CoordinatesFormatCategory } from './category.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { CoordinatesFromLammpstraj };
 type CoordinatesFromLammpstraj = typeof CoordinatesFromLammpstraj;
@@ -47,3 +48,8 @@ const LammpsTrajectoryProvider = DataFormatProvider({
 });
 
 type LammpsTrajectoryProvider = typeof LammpsTrajectoryProvider;
+
+/** The LammpsTrajectory data format. */
+export const LammpsTrajectory: PluginRegistryEntry = {
+  formats: [LammpsTrajectoryProvider],
+};

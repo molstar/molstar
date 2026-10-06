@@ -14,6 +14,7 @@ import { trajectoryFromMol } from '@molstar/model/formats/structure/mol';
 import { trajectoryProps } from './helpers.js';
 import { TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
 import { TrajectoryFormatCategory } from './category.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { TrajectoryFromMOL };
 type TrajectoryFromMOL = typeof TrajectoryFromMOL;
@@ -43,3 +44,8 @@ export const MolProvider = TrajectoryFormatProvider({
   ...directTrajectory(TrajectoryFromMOL),
   visuals: defaultVisuals,
 });
+
+/** The Mol data format. */
+export const Mol: PluginRegistryEntry = {
+  formats: [MolProvider],
+};

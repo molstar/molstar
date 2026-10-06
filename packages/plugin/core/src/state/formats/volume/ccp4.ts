@@ -18,6 +18,8 @@ import { DataFormatProvider, applyTransformerRaw, rawDataObject } from '@molstar
 import { VolumeFormatCategory } from './category.js';
 import { type VolumeFormatParams, tryObtainRecommendedIsoValue, defaultVisuals } from './provider.js';
 import { CustomVolumeProperties } from '@molstar/plugin/state/transforms/volume/ops';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { Isosurface } from '@molstar/plugin/registry/volume/isosurface';
 
 export { ParseCcp4 };
 type ParseCcp4 = typeof ParseCcp4;
@@ -94,3 +96,10 @@ export const Ccp4Provider = DataFormatProvider({
   },
   visuals: defaultVisuals,
 });
+
+/** The Ccp4 data format with its actions and the representations its visuals use. */
+export const Ccp4: PluginRegistryEntry = {
+  formats: [Ccp4Provider],
+  actions: [ParseCcp4, VolumeFromCcp4],
+  ...Isosurface,
+};

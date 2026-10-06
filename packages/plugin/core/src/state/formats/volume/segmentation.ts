@@ -26,6 +26,10 @@ import { VolumeRepresentation3DHelpers } from '@molstar/plugin/state/transforms/
 import { ParseCif } from '@molstar/plugin/state/formats/cif';
 import { CustomVolumeProperties } from '@molstar/plugin/state/transforms/volume/ops';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
+import { SegmentRepresentationProvider } from '@molstar/graphics/repr/volume/segment';
+import { VolumeSegmentColorThemeProvider } from '@molstar/graphics/theme/color/volume-segment';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { Segment } from '@molstar/plugin/registry/volume/segment';
 
 export { VolumeFromSegmentationCif };
 type VolumeFromSegmentationCif = typeof VolumeFromSegmentationCif;
@@ -148,10 +152,10 @@ export const SegcifProvider = DataFormatProvider({
             VolumeRepresentation3D,
             VolumeRepresentation3DHelpers.getDefaultParams(
               plugin,
-              'segment',
+              SegmentRepresentationProvider,
               volumes[0].data!,
               { alpha: 1, instanceGranularity: true },
-              'volume-segment',
+              VolumeSegmentColorThemeProvider,
               {},
             ),
           ).selector;
@@ -163,3 +167,9 @@ export const SegcifProvider = DataFormatProvider({
     return visuals;
   },
 });
+
+/** The Segcif data format and the representations its visuals use. */
+export const Segcif: PluginRegistryEntry = {
+  formats: [SegcifProvider],
+  ...Segment,
+};

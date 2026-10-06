@@ -14,6 +14,7 @@ import { trajectoryFromGRO } from '@molstar/model/formats/structure/gro';
 import { trajectoryProps } from './helpers.js';
 import { TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
 import { TrajectoryFormatCategory } from './category.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { TrajectoryFromGRO };
 type TrajectoryFromGRO = typeof TrajectoryFromGRO;
@@ -44,3 +45,8 @@ export const GroProvider = TrajectoryFormatProvider({
   ...directTrajectory(TrajectoryFromGRO),
   visuals: defaultVisuals,
 });
+
+/** The Gro data format. */
+export const Gro: PluginRegistryEntry = {
+  formats: [GroProvider],
+};

@@ -14,6 +14,7 @@ import { parsePsf } from '@molstar/io/reader/psf/parser';
 import { topologyFromPsf } from '@molstar/model/formats/structure/psf';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { TopologyFormatCategory } from './category.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { ParsePsf };
 type ParsePsf = typeof ParsePsf;
@@ -69,3 +70,8 @@ const PsfProvider = DataFormatProvider({
 });
 
 type PsfProvider = typeof PsfProvider;
+
+/** The Psf data format. */
+export const Psf: PluginRegistryEntry = {
+  formats: [PsfProvider],
+};

@@ -20,6 +20,7 @@ import { DataFormatProvider, applyTransformerRaw, rawDataObject } from '@molstar
 import { ShapeFormatCategory } from './category.js';
 import type { StateObjectRef } from '@molstar/core/state';
 import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { ParseObj };
 type ParseObj = typeof ParseObj;
@@ -99,3 +100,8 @@ export const ObjProvider = DataFormatProvider({
     return repr.commit();
   },
 });
+
+/** The Obj data format. */
+export const Obj: PluginRegistryEntry = {
+  formats: [ObjProvider],
+};

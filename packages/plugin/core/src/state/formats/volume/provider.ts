@@ -14,6 +14,7 @@ import { RecommendedIsoValue } from '@molstar/model/formats/volume/property';
 import type { StateObjectSelector } from '@molstar/core/state';
 import type { PluginStateObject } from '@molstar/plugin/state/objects';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
+import { IsosurfaceRepresentationProvider } from '@molstar/graphics/repr/volume/isosurface';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 
 export type VolumeFormatParams = { entryId?: string };
@@ -57,7 +58,7 @@ export async function defaultVisuals(plugin: PluginContext, data: { volume: Volu
     .apply(
       VolumeRepresentation3D,
       createVolumeRepresentationParams(plugin, data.volume.data, {
-        type: 'isosurface',
+        type: IsosurfaceRepresentationProvider,
         typeParams,
       }),
     );

@@ -80,13 +80,6 @@
     },
     {
       "rule": "a",
-      "from": "packages/plugin/core/src/state/actions/structure.ts",
-      "to": "packages/plugin/core/src/state/formats/trajectory/catalog.ts",
-      "reason": "DownloadStructure builds its URL format list from BuiltInTrajectoryFormats",
-      "step": "plugin composition step 3 (DownloadStructure derives formats from the registry)"
-    },
-    {
-      "rule": "a",
       "from": "packages/plugin/core/src/state/builder/structure/hierarchy.ts",
       "to": "packages/plugin/core/src/state/builder/structure/hierarchy-presets/catalog.ts",
       "reason": "the preset builder constructor preloads the preset catalog and resolves presets from the static map",

@@ -17,7 +17,8 @@ import {
 } from '@molstar/model/formats/particles/em';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { ParticlesFormatCategory } from './category.js';
-import { simpleVisuals } from './provider.js';
+import { simpleVisuals, SimpleParticleVisuals } from './provider.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { ParseArtiatomiEm };
 type ParseArtiatomiEm = typeof ParseArtiatomiEm;
@@ -125,3 +126,10 @@ export const ArtiatomiEmParticlesProvider = DataFormatProvider({
   },
   visuals: simpleVisuals,
 });
+
+/** The ArtiatomiEmParticles data format with its actions and the representations its visuals use. */
+export const ArtiatomiEmParticles: PluginRegistryEntry = {
+  formats: [ArtiatomiEmParticlesProvider],
+  actions: [ParticleListFromArtiatomiEm],
+  ...SimpleParticleVisuals,
+};

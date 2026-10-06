@@ -18,6 +18,7 @@ import { ShapeFormatCategory } from './category.js';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StateObjectRef } from '@molstar/core/state';
 import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { ParsePly };
 type ParsePly = typeof ParsePly;
@@ -88,3 +89,8 @@ export const PlyProvider = DataFormatProvider({
     return repr.commit();
   },
 });
+
+/** The Ply data format. */
+export const Ply: PluginRegistryEntry = {
+  formats: [PlyProvider],
+};

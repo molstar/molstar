@@ -14,6 +14,7 @@ import { parsePrmtop } from '@molstar/io/reader/prmtop/parser';
 import { topologyFromPrmtop } from '@molstar/model/formats/structure/prmtop';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { TopologyFormatCategory } from './category.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { ParsePrmtop };
 type ParsePrmtop = typeof ParsePrmtop;
@@ -69,3 +70,8 @@ const PrmtopProvider = DataFormatProvider({
 });
 
 type PrmtopProvider = typeof PrmtopProvider;
+
+/** The Prmtop data format. */
+export const Prmtop: PluginRegistryEntry = {
+  formats: [PrmtopProvider],
+};

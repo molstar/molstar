@@ -13,8 +13,7 @@ import {
   StateObjectCell,
 } from '@molstar/core/state';
 import { PluginStateObject as SO } from '../objects.js';
-import { ParseBlob } from '@molstar/plugin/state/formats/cif';
-import { TrajectoryFromBlob } from '@molstar/plugin/state/formats/trajectory/mmcif';
+import type { ParseBlob } from '@molstar/plugin/state/formats/cif';
 import {
   CustomModelProperties,
   CustomStructureProperties,
@@ -54,14 +53,18 @@ export class StructureBuilder {
     return trajectory;
   }
 
-  private parseTrajectoryBlob(data: StateObjectRef<SO.Data.Blob>, params: StateTransformer.Params<typeof ParseBlob>) {
-    const state = this.dataState;
-    const trajectory = state
-      .build()
-      .to(data)
-      .apply(ParseBlob, params, { state: { isGhost: true } })
-      .apply(TrajectoryFromBlob, void 0);
-    return trajectory.commit({ revertOnError: true });
+  private async parseTrajectoryBlob(
+    data: StateObjectRef<SO.Data.Blob>,
+    params: StateTransformer.Params<typeof ParseBlob>,
+  ) {
+    // the blob path is implemented by the mmCIF format, which is the only one that parses blobs
+    const provider = this.plugin.dataFormats.has('mmcif')
+      ? (this.plugin.dataFormats.get('mmcif') as TrajectoryFormatProvider)
+      : undefined;
+    if (!provider?.parseBlob) {
+      throw new Error(`parseTrajectory(blob) requires the 'mmcif' data format to be registered in this plugin.`);
+    }
+    return provider.parseBlob(this.plugin, data, params);
   }
 
   readonly hierarchy = new TrajectoryHierarchyBuilder(this.plugin);

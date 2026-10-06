@@ -14,6 +14,7 @@ import { parseTop } from '@molstar/io/reader/top/parser';
 import { topologyFromTop } from '@molstar/model/formats/structure/top';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { TopologyFormatCategory } from './category.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { ParseTop };
 type ParseTop = typeof ParseTop;
@@ -69,3 +70,8 @@ const TopProvider = DataFormatProvider({
 });
 
 type TopProvider = typeof TopProvider;
+
+/** The Top data format. */
+export const Top: PluginRegistryEntry = {
+  formats: [TopProvider],
+};

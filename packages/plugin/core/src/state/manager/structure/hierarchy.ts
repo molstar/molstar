@@ -9,6 +9,7 @@ import type { Structure } from '@molstar/model/model/structure';
 import { setSubtreeVisibility } from '@molstar/plugin/behavior/static/state';
 import { PluginCommands } from '@molstar/plugin/commands';
 import type { PluginContext } from '@molstar/plugin/context';
+import { PluginConfig } from '@molstar/plugin/config';
 import { StateTransform, StateTree } from '@molstar/core/state';
 import { SetUtils } from '@molstar/core/util/set';
 import type { TrajectoryHierarchyPresetProvider } from '../../builder/structure/hierarchy-presets/types.js';
@@ -226,7 +227,10 @@ export class StructureHierarchyManager extends PluginComponent {
         const children = this.dataState.tree.children.get(root).toArray();
         await this.remove(children, false);
         await this.plugin.state.updateTransform(this.plugin.state.data, s.cell.transform.ref, params, 'Structure Type');
-        await this.plugin.builders.structure.representation.applyPreset(s.cell.transform.ref, 'auto');
+        await this.plugin.builders.structure.representation.applyPreset(
+          s.cell.transform.ref,
+          this.plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) ?? '',
+        );
       },
       { canUndo: 'Structure Type' },
     );

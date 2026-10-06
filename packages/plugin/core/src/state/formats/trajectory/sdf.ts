@@ -15,6 +15,7 @@ import { trajectoryFromSdf } from '@molstar/model/formats/structure/sdf';
 import { trajectoryProps } from './helpers.js';
 import { TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
 import { TrajectoryFormatCategory } from './category.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { TrajectoryFromSDF };
 type TrajectoryFromSDF = typeof TrajectoryFromSDF;
@@ -55,3 +56,8 @@ export const SdfProvider = TrajectoryFormatProvider({
   ...directTrajectory(TrajectoryFromSDF),
   visuals: defaultVisuals,
 });
+
+/** The Sdf data format. */
+export const Sdf: PluginRegistryEntry = {
+  formats: [SdfProvider],
+};

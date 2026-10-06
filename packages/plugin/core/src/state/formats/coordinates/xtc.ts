@@ -13,6 +13,7 @@ import { parseXtc } from '@molstar/io/reader/xtc/parser';
 import { coordinatesFromXtc } from '@molstar/model/formats/structure/xtc';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { CoordinatesFormatCategory } from './category.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { CoordinatesFromXtc };
 type CoordinatesFromXtc = typeof CoordinatesFromXtc;
@@ -47,3 +48,8 @@ const XtcProvider = DataFormatProvider({
 });
 
 type XtcProvider = typeof XtcProvider;
+
+/** The Xtc data format. */
+export const Xtc: PluginRegistryEntry = {
+  formats: [XtcProvider],
+};

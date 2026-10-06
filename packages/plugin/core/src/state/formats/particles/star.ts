@@ -16,8 +16,9 @@ import { Task } from '@molstar/core/task';
 import { createParticleListFromRelionStar } from '@molstar/model/formats/particles/star';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { ParticlesFormatCategory } from './category.js';
-import { simpleVisuals } from './provider.js';
+import { simpleVisuals, SimpleParticleVisuals } from './provider.js';
 import { ParseCif } from '@molstar/plugin/state/formats/cif';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { ParticleListFromRelionStar };
 type ParticleListFromRelionStar = typeof ParticleListFromRelionStar;
@@ -126,3 +127,10 @@ export const RelionStarParticlesProvider = DataFormatProvider({
   },
   visuals: simpleVisuals,
 });
+
+/** The RelionStarParticles data format with its actions and the representations its visuals use. */
+export const RelionStarParticles: PluginRegistryEntry = {
+  formats: [RelionStarParticlesProvider],
+  actions: [ParticleListFromRelionStar],
+  ...SimpleParticleVisuals,
+};

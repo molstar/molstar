@@ -16,6 +16,7 @@ import { TrajectoryFormatProvider, defaultVisuals } from './provider.js';
 import { TrajectoryFormatCategory } from './category.js';
 import { guessCifVariant, applyTransformerRaw, rawDataObject } from '@molstar/plugin/state/formats/provider';
 import { ParseCif } from '@molstar/plugin/state/formats/cif';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { TrajectoryFromCifCore };
 type TrajectoryFromCifCore = typeof TrajectoryFromCifCore;
@@ -94,3 +95,9 @@ export const CifCoreProvider = TrajectoryFormatProvider({
   },
   visuals: defaultVisuals,
 });
+
+/** The CifCore data format with its actions. */
+export const CifCore: PluginRegistryEntry = {
+  formats: [CifCoreProvider],
+  actions: [TrajectoryFromCifCore],
+};

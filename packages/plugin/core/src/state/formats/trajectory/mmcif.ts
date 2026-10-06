@@ -16,7 +16,10 @@ import { trajectoryProps } from './helpers.js';
 import { TrajectoryFormatProvider, defaultVisuals } from './provider.js';
 import { TrajectoryFormatCategory } from './category.js';
 import { guessCifVariant, applyTransformerRaw, rawDataObject } from '@molstar/plugin/state/formats/provider';
-import { ParseCif } from '@molstar/plugin/state/formats/cif';
+import { ParseBlob, ParseCif } from '@molstar/plugin/state/formats/cif';
+import type { PluginContext } from '@molstar/plugin/context';
+import type { StateObjectRef, StateTransformer } from '@molstar/core/state';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { TrajectoryFromBlob };
 type TrajectoryFromBlob = typeof TrajectoryFromBlob;
@@ -50,6 +53,23 @@ const TrajectoryFromBlob = PluginStateTransform.BuiltIn({
     });
   },
 });
+
+/**
+ * Parses a blob of several mmCIF entries into a single trajectory. `builders.structure.parseTrajectory(blob)` calls
+ * this through the registered mmCIF format.
+ */
+export function parseMmcifBlob(
+  plugin: PluginContext,
+  data: StateObjectRef<SO.Data.Blob>,
+  params: StateTransformer.Params<typeof ParseBlob>,
+) {
+  return plugin.state.data
+    .build()
+    .to(data)
+    .apply(ParseBlob, params, { state: { isGhost: true } })
+    .apply(TrajectoryFromBlob, void 0)
+    .commit({ revertOnError: true });
+}
 
 export { TrajectoryFromMmCif };
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif;
@@ -189,5 +209,12 @@ export const MmcifProvider = TrajectoryFormatProvider({
     const trajectory = await applyTransformerRaw(plugin, ctx, TrajectoryFromMmCif, cif);
     return { trajectory: trajectory.data };
   },
+  parseBlob: parseMmcifBlob,
   visuals: defaultVisuals,
 });
+
+/** The Mmcif data format with its actions. */
+export const Mmcif: PluginRegistryEntry = {
+  formats: [MmcifProvider],
+  actions: [ParseCif, TrajectoryFromMmCif],
+};

@@ -14,6 +14,7 @@ import { trajectoryFromXyz } from '@molstar/model/formats/structure/xyz';
 import { trajectoryProps } from './helpers.js';
 import { TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
 import { TrajectoryFormatCategory } from './category.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { TrajectoryFromXYZ };
 type TrajectoryFromXYZ = typeof TrajectoryFromXYZ;
@@ -43,3 +44,8 @@ export const XyzProvider = TrajectoryFormatProvider({
   ...directTrajectory(TrajectoryFromXYZ),
   visuals: defaultVisuals,
 });
+
+/** The Xyz data format. */
+export const Xyz: PluginRegistryEntry = {
+  formats: [XyzProvider],
+};

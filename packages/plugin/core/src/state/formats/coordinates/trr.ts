@@ -13,6 +13,7 @@ import { parseTrr } from '@molstar/io/reader/trr/parser';
 import { coordinatesFromTrr } from '@molstar/model/formats/structure/trr';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { CoordinatesFormatCategory } from './category.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { CoordinatesFromTrr };
 type CoordinatesFromTrr = typeof CoordinatesFromTrr;
@@ -47,3 +48,8 @@ const TrrProvider = DataFormatProvider({
 });
 
 type TrrProvider = typeof TrrProvider;
+
+/** The Trr data format. */
+export const Trr: PluginRegistryEntry = {
+  formats: [TrrProvider],
+};

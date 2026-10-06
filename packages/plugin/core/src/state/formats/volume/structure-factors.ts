@@ -30,6 +30,10 @@ import { Color } from '@molstar/core/util/color/color';
 import { ParseCif } from '@molstar/plugin/state/formats/cif';
 import { CustomVolumeProperties } from '@molstar/plugin/state/transforms/volume/ops';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
+import { IsosurfaceRepresentationProvider } from '@molstar/graphics/repr/volume/isosurface';
+import { UniformColorThemeProvider } from '@molstar/graphics/theme/color/uniform';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { Isosurface } from '@molstar/plugin/registry/volume/isosurface';
 
 export { VolumeFromStructureFactorsCif };
 type VolumeFromStructureFactorsCif = typeof VolumeFromStructureFactorsCif;
@@ -192,9 +196,9 @@ export const SfcifProvider = DataFormatProvider({
             VolumeRepresentation3D,
             VolumeRepresentation3DHelpers.getDefaultParamsStatic(
               plugin,
-              'isosurface',
+              IsosurfaceRepresentationProvider,
               { isoValue, alpha: 1 },
-              'uniform',
+              UniformColorThemeProvider,
               { value: Color(0x3362b2) },
             ),
           ).selector,
@@ -205,16 +209,16 @@ export const SfcifProvider = DataFormatProvider({
     if (volumes['fofc'].length > 0) {
       const posParams = VolumeRepresentation3DHelpers.getDefaultParamsStatic(
         plugin,
-        'isosurface',
+        IsosurfaceRepresentationProvider,
         { isoValue: Volume.IsoValue.relative(3), alpha: 0.3 },
-        'uniform',
+        UniformColorThemeProvider,
         { value: Color(0x33bb33) },
       );
       const negParams = VolumeRepresentation3DHelpers.getDefaultParamsStatic(
         plugin,
-        'isosurface',
+        IsosurfaceRepresentationProvider,
         { isoValue: Volume.IsoValue.relative(-3), alpha: 0.3 },
-        'uniform',
+        UniformColorThemeProvider,
         { value: Color(0xbb3333) },
       );
       visuals.push(tree.to(volumes['fofc'][0]).apply(VolumeRepresentation3D, posParams).selector);
@@ -226,3 +230,9 @@ export const SfcifProvider = DataFormatProvider({
     return visuals;
   },
 });
+
+/** The Sfcif data format and the representations its visuals use. */
+export const Sfcif: PluginRegistryEntry = {
+  formats: [SfcifProvider],
+  ...Isosurface,
+};

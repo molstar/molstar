@@ -10,13 +10,7 @@ import type { PluginContext } from '@molstar/plugin/context';
 import { StateAction, StateSelection, StateTransformer } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { AutoPreset } from '../builder/structure/representation-presets/auto.js';
-import { EmptyPreset } from '../builder/structure/representation-presets/empty.js';
 import { StructureRepresentationPresetProvider } from '../builder/structure/representation-presets/types.js';
-import {
-  type BuiltInTrajectoryFormat,
-  BuiltInTrajectoryFormats,
-} from '@molstar/plugin/state/formats/trajectory/catalog';
 import { TrajectoryFormatCategory } from '@molstar/plugin/state/formats/trajectory/category';
 import { RootStructureDefinition } from '../helpers/root-structure.js';
 import { PluginStateObject } from '../objects.js';
@@ -34,8 +28,14 @@ import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import { TopologyFormatCategory } from '@molstar/plugin/state/formats/topology/category';
 import { CoordinatesFormatCategory } from '@molstar/plugin/state/formats/coordinates/category';
 
+/** The id of the empty representation preset, which also turns off the unit cell. */
+const EmptyRepresentationPresetId = 'preset-structure-representation-empty';
+
+/** The format of every source that loads an mmCIF file, and of the multi-source blob. */
+const MmcifFormat = 'mmcif';
+
 const DownloadModelRepresentationOptions = (plugin: PluginContext) => {
-  const representationDefault = plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || AutoPreset.id;
+  const representationDefault = plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) ?? '';
   return PD.Group(
     {
       type: RootStructureDefinition.getParams(void 0, 'auto').type,
@@ -47,7 +47,13 @@ const DownloadModelRepresentationOptions = (plugin: PluginContext) => {
         { description: 'Which representation preset to use.' },
       ),
       representationParams: PD.Group(StructureRepresentationPresetProvider.CommonParams, { isHidden: true }),
-      asTrajectory: PD.Optional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' })),
+      // loading a blob is implemented by the mmCIF format
+      asTrajectory: PD.Optional(
+        PD.Boolean(false, {
+          description: 'Load all entries into a single trajectory.',
+          isHidden: !plugin.dataFormats.has(MmcifFormat),
+        }),
+      ),
     },
     { isExpanded: false },
   );
@@ -74,6 +80,30 @@ export const PdbDownloadProvider = {
 };
 export type PdbDownloadProvider = keyof typeof PdbDownloadProvider;
 
+/**
+ * Offers only the sources whose formats are registered: every PDB-like source loads mmCIF, SWISS-MODEL loads PDB,
+ * PubChem loads MOL, and the URL source needs at least one trajectory format.
+ */
+function availableSources<S extends PD.Params>(plugin: PluginContext, sources: S, hasTrajectoryFormats: boolean) {
+  const formats: Record<string, string> = {
+    pdb: MmcifFormat,
+    'pdb-ihm': MmcifFormat,
+    swissmodel: 'pdb',
+    alphafolddb: MmcifFormat,
+    modelarchive: MmcifFormat,
+    pubchem: 'mol',
+  };
+  const available = Object.keys(sources).filter((k) => {
+    const format = formats[k];
+    return format ? plugin.dataFormats.has(format) : hasTrajectoryFormats;
+  });
+  const map: PD.Params = {};
+  for (const k of available) map[k] = sources[k];
+  // without a registered source the action has nothing to offer: its only option is an empty one
+  if (available.length === 0) map[''] = PD.EmptyGroup();
+  return PD.MappedStatic((available.includes('pdb') ? 'pdb' : (available[0] ?? '')) as keyof S, map as S);
+}
+
 export { DownloadStructure };
 type DownloadStructure = typeof DownloadStructure;
 const DownloadStructure = StateAction.build({
@@ -85,97 +115,96 @@ const DownloadStructure = StateAction.build({
   params: (_, plugin: PluginContext) => {
     const options = DownloadModelRepresentationOptions(plugin);
     const defaultPdbProvider = plugin.config.get(PluginConfig.Download.DefaultPdbProvider) || 'pdbe';
-    return {
-      source: PD.MappedStatic('pdb', {
-        pdb: PD.Group(
-          {
-            provider: PD.Group(
-              {
-                id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma/space separated PDB ids.' }),
-                server: PD.MappedStatic(defaultPdbProvider, PdbDownloadProvider),
-              },
-              { pivot: 'id' },
-            ),
-            options,
-          },
-          { isFlat: true, label: 'PDB' },
-        ),
-        'pdb-ihm': PD.Group(
-          {
-            provider: PD.Group(
-              {
-                id: PD.Text('8zzc', { label: 'PDB-IHM Id(s)', description: 'One or more comma/space separated ids.' }),
-                encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
-              },
-              { pivot: 'id' },
-            ),
-            options,
-          },
-          { isFlat: true, label: 'PDB-IHM' },
-        ),
-        swissmodel: PD.Group(
-          {
-            id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
-            options,
-          },
-          {
-            isFlat: true,
-            label: 'SWISS-MODEL',
-            description: 'Loads the best homology model or experimental structure',
-          },
-        ),
-        alphafolddb: PD.Group(
-          {
-            provider: PD.Group(
-              {
-                id: PD.Text('Q8W3K0', {
-                  label: 'ID(s)',
-                  description:
-                    'One or more comma/space separated IDs. Each ID can be either UniProt accession (e.g. Q14676, Q14676-2) or AlphaFoldDB model entity ID (e.g. AF-Q14676-F1, AF-Q14676-2-F1, AF-0000000066074510). Version suffixes (e.g. -v1) will be ignored and the newest model version will be downloaded.',
-                }),
-                encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
-              },
-              { pivot: 'id' },
-            ),
-            options,
-          },
-          { isFlat: true, label: 'AlphaFold DB', description: 'Loads the predicted model if available' },
-        ),
-        modelarchive: PD.Group(
-          {
-            id: PD.Text('ma-bak-cepc-0003', {
-              label: 'Accession Code(s)',
-              description: 'One or more comma/space separated ACs.',
-            }),
-            options,
-          },
-          { isFlat: true, label: 'Model Archive' },
-        ),
-        pubchem: PD.Group(
-          {
-            id: PD.Text('2244,2245', { label: 'PubChem ID', description: 'One or more comma/space separated IDs.' }),
-            options,
-          },
-          { isFlat: true, label: 'PubChem', description: 'Loads 3D conformer from PubChem.' },
-        ),
-        url: PD.Group(
-          {
-            url: PD.Url(''),
-            format: PD.Select<BuiltInTrajectoryFormat>(
-              'mmcif',
-              PD.arrayToOptions(
-                BuiltInTrajectoryFormats.map((f) => f.name),
-                (f) => f,
-              ),
-            ),
-            isBinary: PD.Boolean(false),
-            label: PD.Optional(PD.Text('')),
-            options,
-          },
-          { isFlat: true, label: 'URL' },
-        ),
-      }),
+    const trajectoryFormats = plugin.dataFormats.options
+      .filter((o) => o[2] === TrajectoryFormatCategory)
+      .map((o) => o[0]);
+    const sources = {
+      pdb: PD.Group(
+        {
+          provider: PD.Group(
+            {
+              id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma/space separated PDB ids.' }),
+              server: PD.MappedStatic(defaultPdbProvider, PdbDownloadProvider),
+            },
+            { pivot: 'id' },
+          ),
+          options,
+        },
+        { isFlat: true, label: 'PDB' },
+      ),
+      'pdb-ihm': PD.Group(
+        {
+          provider: PD.Group(
+            {
+              id: PD.Text('8zzc', { label: 'PDB-IHM Id(s)', description: 'One or more comma/space separated ids.' }),
+              encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
+            },
+            { pivot: 'id' },
+          ),
+          options,
+        },
+        { isFlat: true, label: 'PDB-IHM' },
+      ),
+      swissmodel: PD.Group(
+        {
+          id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
+          options,
+        },
+        {
+          isFlat: true,
+          label: 'SWISS-MODEL',
+          description: 'Loads the best homology model or experimental structure',
+        },
+      ),
+      alphafolddb: PD.Group(
+        {
+          provider: PD.Group(
+            {
+              id: PD.Text('Q8W3K0', {
+                label: 'ID(s)',
+                description:
+                  'One or more comma/space separated IDs. Each ID can be either UniProt accession (e.g. Q14676, Q14676-2) or AlphaFoldDB model entity ID (e.g. AF-Q14676-F1, AF-Q14676-2-F1, AF-0000000066074510). Version suffixes (e.g. -v1) will be ignored and the newest model version will be downloaded.',
+              }),
+              encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
+            },
+            { pivot: 'id' },
+          ),
+          options,
+        },
+        { isFlat: true, label: 'AlphaFold DB', description: 'Loads the predicted model if available' },
+      ),
+      modelarchive: PD.Group(
+        {
+          id: PD.Text('ma-bak-cepc-0003', {
+            label: 'Accession Code(s)',
+            description: 'One or more comma/space separated ACs.',
+          }),
+          options,
+        },
+        { isFlat: true, label: 'Model Archive' },
+      ),
+      pubchem: PD.Group(
+        {
+          id: PD.Text('2244,2245', { label: 'PubChem ID', description: 'One or more comma/space separated IDs.' }),
+          options,
+        },
+        { isFlat: true, label: 'PubChem', description: 'Loads 3D conformer from PubChem.' },
+      ),
+      url: PD.Group(
+        {
+          url: PD.Url(''),
+          format: PD.Select<string>(
+            trajectoryFormats.includes(MmcifFormat) ? MmcifFormat : (trajectoryFormats[0] ?? MmcifFormat),
+            PD.arrayToOptions(trajectoryFormats, (f) => f),
+          ),
+          isBinary: PD.Boolean(false),
+          label: PD.Optional(PD.Text('')),
+          options,
+        },
+        { isFlat: true, label: 'URL' },
+      ),
     };
+    return { source: availableSources(plugin, sources, trajectoryFormats.length > 0) };
   },
 })(({ params, state }, plugin: PluginContext) =>
   Task.create('Download Structure', async (ctx) => {
@@ -184,7 +213,7 @@ const DownloadStructure = StateAction.build({
     const src = params.source;
     let downloadParams: StateTransformer.Params<Download>[];
     let asTrajectory = false;
-    let format: BuiltInTrajectoryFormat = 'mmcif';
+    let format: string = MmcifFormat;
 
     switch (src.name) {
       case 'url':
@@ -255,7 +284,7 @@ const DownloadStructure = StateAction.build({
           src.params.provider.encoding === 'bcif',
         );
         asTrajectory = !!src.params.options.asTrajectory;
-        format = 'mmcif';
+        format = MmcifFormat;
         break;
       case 'modelarchive':
         downloadParams = await getDownloadParams(
@@ -265,7 +294,7 @@ const DownloadStructure = StateAction.build({
           false,
         );
         asTrajectory = !!src.params.options.asTrajectory;
-        format = 'mmcif';
+        format = MmcifFormat;
         break;
       case 'pubchem':
         downloadParams = await getDownloadParams(
@@ -282,10 +311,11 @@ const DownloadStructure = StateAction.build({
     }
 
     const representationPreset: any =
-      params.source.params.options.representation ||
-      plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) ||
-      AutoPreset.id;
-    const showUnitcell = representationPreset !== EmptyPreset.id;
+      (params.source.params.options.representation ||
+        plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset)) ??
+      '';
+    const showUnitcell = representationPreset !== EmptyRepresentationPresetId;
+    const hierarchyPreset = plugin.config.get(PluginConfig.Structure.DefaultHierarchyPreset) ?? '';
 
     const structure = src.params.options.type.name === 'auto' ? void 0 : src.params.options.type;
     await state
@@ -302,7 +332,7 @@ const DownloadStructure = StateAction.build({
             formats: downloadParams.map((_, i) => ({ id: '' + i, format: 'cif' as const })),
           });
 
-          await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
+          await plugin.builders.structure.hierarchy.applyPreset(trajectory, hierarchyPreset, {
             structure,
             showUnitcell,
             representationPreset,
@@ -315,7 +345,7 @@ const DownloadStructure = StateAction.build({
             const provider = plugin.dataFormats.get(format)!;
             const trajectory = await plugin.builders.structure.parseTrajectory(data, provider);
 
-            await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
+            await plugin.builders.structure.hierarchy.applyPreset(trajectory, hierarchyPreset, {
               structure,
               showUnitcell,
               representationPreset,
@@ -495,7 +525,10 @@ export const AddTrajectory = StateAction.build({
 
         await state.updateTree(model).runInContext(taskCtx);
         const structure = await ctx.builders.structure.createStructure(model.selector);
-        await ctx.builders.structure.representation.applyPreset(structure, 'auto');
+        await ctx.builders.structure.representation.applyPreset(
+          structure,
+          ctx.config.get(PluginConfig.Structure.DefaultRepresentationPreset) ?? '',
+        );
       })
       .runInContext(taskCtx);
   }),
@@ -647,7 +680,10 @@ export const LoadTrajectory = StateAction.build({
 
           await state.updateTree(traj).runInContext(taskCtx);
           const structure = await ctx.builders.structure.createStructure(traj.selector);
-          await ctx.builders.structure.representation.applyPreset(structure, 'auto');
+          await ctx.builders.structure.representation.applyPreset(
+            structure,
+            ctx.config.get(PluginConfig.Structure.DefaultRepresentationPreset) ?? '',
+          );
         } catch (e) {
           console.error(e);
           ctx.log.error(`Error loading trajectory`);

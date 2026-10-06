@@ -18,6 +18,7 @@ import { ShapeFormatCategory } from './category.js';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StateObjectRef } from '@molstar/core/state';
 import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { ParseVtp };
 type ParseVtp = typeof ParseVtp;
@@ -89,3 +90,8 @@ export const VtpProvider = DataFormatProvider({
     return repr.commit();
   },
 });
+
+/** The Vtp data format. */
+export const Vtp: PluginRegistryEntry = {
+  formats: [VtpProvider],
+};

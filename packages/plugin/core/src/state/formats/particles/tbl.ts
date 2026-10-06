@@ -14,7 +14,8 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { getDynamoTblTomogramIds, createParticleListFromDynamoTbl } from '@molstar/model/formats/particles/tbl';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { ParticlesFormatCategory } from './category.js';
-import { simpleVisuals } from './provider.js';
+import { simpleVisuals, SimpleParticleVisuals } from './provider.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { ParseDynamoTbl };
 type ParseDynamoTbl = typeof ParseDynamoTbl;
@@ -118,3 +119,10 @@ export const DynamoTblParticlesProvider = DataFormatProvider({
   },
   visuals: simpleVisuals,
 });
+
+/** The DynamoTblParticles data format with its actions and the representations its visuals use. */
+export const DynamoTblParticles: PluginRegistryEntry = {
+  formats: [DynamoTblParticlesProvider],
+  actions: [ParticleListFromDynamoTbl],
+  ...SimpleParticleVisuals,
+};

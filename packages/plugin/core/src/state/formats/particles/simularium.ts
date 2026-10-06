@@ -21,8 +21,9 @@ import type { Asset } from '@molstar/core/util/assets';
 import { createSimulariumGeometryResolver } from '@molstar/plugin/state/helpers/particle-targets';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { ParticlesFormatCategory } from './category.js';
-import { type ParticleFormatData, complexVisuals } from './provider.js';
+import { type ParticleFormatData, complexVisuals, ComplexParticleVisuals } from './provider.js';
 import { ParticleListFromTrajectory } from '@molstar/plugin/state/transforms/particles/ops';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { ParseSimularium };
 type ParseSimularium = typeof ParseSimularium;
@@ -132,3 +133,10 @@ export const SimulariumParticlesProvider = DataFormatProvider({
   },
   visuals: (plugin: PluginContext, data: ParticleFormatData) => complexVisuals(plugin, data),
 });
+
+/** The SimulariumParticles data format with its actions and the representations its visuals use. */
+export const SimulariumParticles: PluginRegistryEntry = {
+  formats: [SimulariumParticlesProvider],
+  actions: [ParticleTrajectoryFromSimularium],
+  ...ComplexParticleVisuals,
+};

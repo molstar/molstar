@@ -18,8 +18,9 @@ import { Task } from '@molstar/core/task';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { ParticlesFormatCategory } from './category.js';
 import type { PluginContext } from '@molstar/plugin/context';
-import { type ParticleFormatData, complexVisuals } from './provider.js';
+import { type ParticleFormatData, complexVisuals, ComplexParticleVisuals } from './provider.js';
 import { ParseCif } from '@molstar/plugin/state/formats/cif';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { ParticleListFromMmcifAssembly };
 type ParticleListFromMmcifAssembly = typeof ParticleListFromMmcifAssembly;
@@ -149,3 +150,10 @@ export const MmcifParticlesProvider = DataFormatProvider({
   },
   visuals: (plugin: PluginContext, data: ParticleFormatData) => complexVisuals(plugin, data),
 });
+
+/** The MmcifParticles data format with its actions and the representations its visuals use. */
+export const MmcifParticles: PluginRegistryEntry = {
+  formats: [MmcifParticlesProvider],
+  actions: [ParticleListFromMmcifAssembly],
+  ...ComplexParticleVisuals,
+};

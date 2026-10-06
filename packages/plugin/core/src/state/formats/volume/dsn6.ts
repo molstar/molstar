@@ -18,6 +18,8 @@ import { DataFormatProvider, applyTransformerRaw, rawDataObject } from '@molstar
 import { VolumeFormatCategory } from './category.js';
 import { type VolumeFormatParams, tryObtainRecommendedIsoValue, defaultVisuals } from './provider.js';
 import { CustomVolumeProperties } from '@molstar/plugin/state/transforms/volume/ops';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { Isosurface } from '@molstar/plugin/registry/volume/isosurface';
 
 export { ParseDsn6 };
 type ParseDsn6 = typeof ParseDsn6;
@@ -93,3 +95,10 @@ export const Dsn6Provider = DataFormatProvider({
   },
   visuals: defaultVisuals,
 });
+
+/** The Dsn6 data format with its actions and the representations its visuals use. */
+export const Dsn6: PluginRegistryEntry = {
+  formats: [Dsn6Provider],
+  actions: [ParseDsn6, VolumeFromDsn6],
+  ...Isosurface,
+};

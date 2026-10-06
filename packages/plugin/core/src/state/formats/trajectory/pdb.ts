@@ -15,6 +15,7 @@ import { trajectoryFromPDB } from '@molstar/model/formats/structure/pdb';
 import { trajectoryProps } from './helpers.js';
 import { TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
 import { TrajectoryFormatCategory } from './category.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export { TrajectoryFromPDB };
 type TrajectoryFromPDB = typeof TrajectoryFromPDB;
@@ -67,3 +68,21 @@ export const PqrProvider = TrajectoryFormatProvider({
   ...directTrajectory(TrajectoryFromPDB, { variant: 'pqr' }),
   visuals: defaultVisuals,
 });
+
+/** The Pdb data format with its actions. */
+export const Pdb: PluginRegistryEntry = {
+  formats: [PdbProvider],
+  actions: [TrajectoryFromPDB],
+};
+
+/** The Pdbqt data format with its actions. */
+export const Pdbqt: PluginRegistryEntry = {
+  formats: [PdbqtProvider],
+  actions: [TrajectoryFromPDB],
+};
+
+/** The Pqr data format with its actions. */
+export const Pqr: PluginRegistryEntry = {
+  formats: [PqrProvider],
+  actions: [TrajectoryFromPDB],
+};
