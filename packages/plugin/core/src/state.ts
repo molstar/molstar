@@ -234,12 +234,22 @@ class PluginState extends PluginComponent {
     return this.behaviors.tree.transforms.has(behaviorId);
   }
 
+  /**
+   * Updates the params of a behavior. With a transformer, the behavior is inserted with default params when it is
+   * absent. With a transformer id, only a behavior that is present is updated (use `hasBehavior` to check) and
+   * nothing is inserted; `P` is the params type, usually an `import type` of the behavior module.
+   */
   updateBehavior<T extends StateTransformer>(
     behavior: T,
     params: (old: StateTransformer.Params<T>) => void | StateTransformer.Params<T>,
-  ) {
+  ): Promise<void>;
+  updateBehavior<P = any>(behaviorId: string, params: (old: P) => void | P): Promise<void>;
+  updateBehavior(behavior: StateTransformer | string, params: (old: any) => any): Promise<void> {
     const tree = this.behaviors.build();
-    if (!this.behaviors.tree.transforms.has(behavior.id)) {
+    if (typeof behavior === 'string') {
+      if (!this.behaviors.tree.transforms.has(behavior)) return Promise.resolve();
+      tree.to(behavior).update(params);
+    } else if (!this.behaviors.tree.transforms.has(behavior.id)) {
       const defaultParams = behavior.createDefaultParams(void 0 as any, this.plugin);
       tree
         .to(PluginBehavior.getCategoryId(behavior))

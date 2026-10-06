@@ -4,5 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-/** Transformer id of the structure focus representation behavior. */
-export const StructureFocusRepresentationId = 'create-structure-focus-representation';
+/** Name of the structure focus representation behavior transformer. */
+export const StructureFocusRepresentationName = 'create-structure-focus-representation';
+
+/** Transformer id of the structure focus representation behavior (the `ms-plugin` namespace and the name). */
+export const StructureFocusRepresentationId = `ms-plugin.${StructureFocusRepresentationName}`;

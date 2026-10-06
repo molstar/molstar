@@ -17,7 +17,8 @@ import type { PluginContext } from '@molstar/plugin/context';
 import type { StateObjectRef, StateObjectSelector } from '@molstar/core/state';
 import type { StaticStructureComponentType } from '../../../helpers/structure-component.js';
 import { StructureSelectionQueries as Q } from '@molstar/plugin/state/queries/structure/catalog';
-import { StructureFocusRepresentation } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
+import type { StructureFocusRepresentationProps } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
+import { StructureFocusRepresentationId } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation/id';
 import { createStructureColorThemeParams } from '../../../helpers/structure-representation-params.js';
 import { ChainIdColorThemeProvider } from '@molstar/graphics/theme/color/chain-id';
 import { OperatorNameColorThemeProvider } from '@molstar/graphics/theme/color/operator-name';
@@ -126,24 +127,40 @@ export namespace StructureRepresentationPresetProvider {
     };
   }
 
+  /**
+   * Sets the color theme of the focus representation behavior's target and surroundings representations. Does nothing
+   * when the behavior is absent, and skips a representation whose type or the requested theme is not registered. The
+   * theme defaults to the default color theme of each representation type.
+   */
   export function updateFocusRepr<T extends ColorTheme.BuiltIn>(
     plugin: PluginContext,
     structure: Structure,
     themeName: T | undefined,
     themeParams: ColorTheme.BuiltInParams<T> | undefined,
   ) {
-    if (!plugin.state.hasBehavior(StructureFocusRepresentation)) return;
+    if (!plugin.state.hasBehavior(StructureFocusRepresentationId)) return;
 
-    return plugin.state.updateBehavior(StructureFocusRepresentation, (p) => {
-      const c = createStructureColorThemeParams(
-        plugin,
-        structure,
-        'ball-and-stick',
-        themeName || 'element-symbol',
-        themeParams,
-      );
-      p.surroundingsParams.colorTheme = c;
-      p.targetParams.colorTheme = c;
+    const current = plugin.state.behaviors.cells.get(StructureFocusRepresentationId)?.params?.values as
+      | StructureFocusRepresentationProps
+      | undefined;
+    if (!current) return;
+
+    const { registry, themes } = plugin.representation.structure;
+    if (themeName && !themes.colorThemeRegistry.has(themeName)) return;
+
+    const colorTheme = (type: string) => {
+      if (!registry.has(type)) return;
+      const name = themeName || registry.get(type).defaultColorTheme.name;
+      if (!themes.colorThemeRegistry.has(name)) return;
+      return createStructureColorThemeParams(plugin, structure, type, name, themeParams);
+    };
+    const surroundings = colorTheme(current.surroundingsParams.type.name);
+    const target = colorTheme(current.targetParams.type.name);
+    if (!surroundings && !target) return;
+
+    return plugin.state.updateBehavior<StructureFocusRepresentationProps>(StructureFocusRepresentationId, (p) => {
+      if (surroundings) p.surroundingsParams.colorTheme = surroundings;
+      if (target) p.targetParams.colorTheme = target;
     });
   }
 }

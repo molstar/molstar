@@ -14,11 +14,8 @@ import { typeSymbol, eachBondedAtom } from '../chemistry/util.js';
 import { Elements } from '@molstar/model/model/structure/model/properties/atomic/types';
 import { FeatureType, FeatureGroup, InteractionType } from './common.js';
 import type { ContactProvider } from './contacts.js';
+import { HydrophobicParams } from './params.js';
 
-const HydrophobicParams = {
-  distanceMax: PD.Numeric(4.0, { min: 1, max: 5, step: 0.1 }),
-};
-type HydrophobicParams = typeof HydrophobicParams;
 type HydrophobicProps = PD.Values<HydrophobicParams>;
 
 /**

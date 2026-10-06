@@ -17,7 +17,7 @@ import {
   StructureSelectionFromExpression,
 } from '@molstar/plugin/state/transforms/structure/selection';
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
-import { StructureFocusRepresentationId } from './structure-focus-representation/id.js';
+import { StructureFocusRepresentationName } from './structure-focus-representation/id.js';
 import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import { StateObjectCell, StateSelection, StateTransform } from '@molstar/core/state';
 import { UniformSizeThemeProvider } from '@molstar/graphics/theme/size/uniform';
@@ -82,7 +82,7 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
 
 const FocusComponents = ['target' as const, 'surroundings' as const, 'interactions' as const];
 
-type StructureFocusRepresentationProps = PD.ValuesFor<ReturnType<typeof StructureFocusRepresentationParams>>;
+export type StructureFocusRepresentationProps = PD.ValuesFor<ReturnType<typeof StructureFocusRepresentationParams>>;
 
 export enum StructureFocusRepresentationTags {
   TargetSel = 'structure-focus-target-sel',
@@ -173,6 +173,8 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
     if (
       components.indexOf('interactions') >= 0 &&
       !refs[StructureFocusRepresentationTags.SurrNciRepr] &&
+      // only the toggleable Interactions behavior registers the representation; skip the component without it
+      this.plugin.representation.structure.registry.has(InteractionsRepresentationProvider) &&
       cell.obj &&
       InteractionsRepresentationProvider.isApplicable(cell.obj?.data)
     ) {
@@ -321,7 +323,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
 }
 
 export const StructureFocusRepresentation = PluginBehavior.create({
-  name: StructureFocusRepresentationId,
+  name: StructureFocusRepresentationName,
   display: { name: 'Structure Focus Representation' },
   category: 'interaction',
   ctor: StructureFocusRepresentationBehavior,

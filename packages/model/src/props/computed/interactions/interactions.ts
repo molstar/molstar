@@ -19,13 +19,8 @@ import {
 } from './common.js';
 import { IntraContactsBuilder, InterContactsBuilder } from './contacts-builder.js';
 import { IntMap, OrderedSet } from '@molstar/core/data/int';
-import {
-  addUnitContacts,
-  type ContactTester,
-  addStructureContacts,
-  ContactsParams,
-  type ContactsProps,
-} from './contacts.js';
+import { addUnitContacts, type ContactTester, addStructureContacts } from './contacts.js';
+import { BridgeProviderParams, InteractionsParams, type InteractionsProps, type ContactsProps } from './params.js';
 import { HalogenDonorProvider, HalogenAcceptorProvider, HalogenBondsProvider } from './halogen-bonds.js';
 import {
   HydrogenDonorProvider,
@@ -341,75 +336,10 @@ const ContactProviders = {
 };
 type ContactProviders = typeof ContactProviders;
 
-function getProvidersParams(defaultOn: string[] = []) {
-  const params: {
-    [k in keyof ContactProviders]: PD.Mapped<
-      PD.NamedParamUnion<{
-        on: PD.Group<ContactProviders[k]['params']>;
-        off: PD.Group<{}>;
-      }>
-    >;
-  } = Object.create(null);
-
-  Object.keys(ContactProviders).forEach((k) => {
-    (params as any)[k] = PD.MappedStatic(
-      defaultOn.includes(k) ? 'on' : 'off',
-      {
-        on: PD.Group(ContactProviders[k as keyof ContactProviders].params),
-        off: PD.Group({}),
-      },
-      { cycle: true },
-    );
-  });
-  return params;
-}
-export const ContactProviderParams = getProvidersParams([
-  // 'ionic',
-  'cation-pi',
-  'pi-stacking',
-  'hydrogen-bonds',
-  'halogen-bonds',
-  // 'hydrophobic',
-  'metal-coordination',
-  // 'weak-hydrogen-bonds',
-]);
-
 const BridgeProviders = {
   'water-bridges': WaterBridgesProvider,
 };
 type BridgeProviders = typeof BridgeProviders;
-
-function getBridgeProviderParams(defaultOn: string[] = []) {
-  const params: {
-    [k in keyof BridgeProviders]: PD.Mapped<
-      PD.NamedParamUnion<{
-        on: PD.Group<BridgeProviders[k]['params']>;
-        off: PD.Group<{}>;
-      }>
-    >;
-  } = Object.create(null);
-
-  Object.keys(BridgeProviders).forEach((k) => {
-    (params as any)[k] = PD.MappedStatic(
-      defaultOn.includes(k) ? 'on' : 'off',
-      {
-        on: PD.Group(BridgeProviders[k as keyof BridgeProviders].params),
-        off: PD.Group({}),
-      },
-      { cycle: true },
-    );
-  });
-  return params;
-}
-export const BridgeProviderParams = getBridgeProviderParams([]);
-
-export const InteractionsParams = {
-  providers: PD.Group(ContactProviderParams, { isFlat: true }),
-  bridges: PD.Group(BridgeProviderParams, { isFlat: true }),
-  contacts: PD.Group(ContactsParams, { label: 'Advanced Options' }),
-};
-export type InteractionsParams = typeof InteractionsParams;
-export type InteractionsProps = PD.Values<InteractionsParams>;
 
 export interface ComputeInterctionsOptions {
   skipIntraContacts?: boolean;

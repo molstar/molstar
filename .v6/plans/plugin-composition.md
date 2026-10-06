@@ -341,18 +341,18 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       action list, for example CCP4: `ParseCcp4`, `VolumeFromCcp4`; mmCIF: `ParseCif`, `TrajectoryFromMmCif`; SDF: none.
 - [ ] Policy through config for every site in §1.6. When the configured preset is not registered, loading fails with the
       preset error.
-- [ ] Focus representation behavior: its `nciParams` group passes `InteractionsRepresentationProvider` and
+- [x] Focus representation behavior: its `nciParams` group passes `InteractionsRepresentationProvider` and
       `InteractionTypeColorThemeProvider`, which only the toggleable `CustomProps.Interactions` behavior registers (and
       `DefaultPluginSpec` lists after the focus behavior). Its param defaults are data-less and do not assert
       registration. Before applying the `interactions` focus component it checks
       `registry.has(InteractionsRepresentationProvider)` and skips the component when it is absent, instead of
       substituting another representation. Replace the `SizeTheme.BuiltIn.uniform` read with an import.
-- [ ] `updateFocusRepr` (spec §7): stop naming `ball-and-stick` and `element-symbol` (which would warn and substitute on
+- [x] `updateFocusRepr` (spec §7): stop naming `ball-and-stick` and `element-symbol` (which would warn and substitute on
       every preset in a slim plugin) and value-importing the focus behavior; read the behavior's current representation
       type from its params, skip when that type or the requested theme is not registered (`has`), and reach the behavior
       through `plugin.state.hasBehavior`/`updateBehavior` with the transformer id from the id module and an
       `import type` for its params.
-- [ ] `StructureComponentManager`: move the interactions code out. Keep the `interactions` option slot so
+- [x] `StructureComponentManager`: move the interactions code out. Keep the `interactions` option slot so
       `structureComponentManager.options.interactions` round-trips through snapshot JSON; take its param definition from
       a params-only module instead of `InteractionsProvider`; apply it through a handler the Interactions
       custom-property behavior registers with `managers.structure.component.registerOptionHandler('interactions', ...)`,
