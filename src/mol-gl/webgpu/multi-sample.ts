@@ -1,6 +1,7 @@
 /** Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info. */
 import { Camera } from '../../mol-canvas3d/camera';
-import { JitterVectors, MultiSampleProps } from '../../mol-canvas3d/passes/multi-sample';
+import { JitterVectors } from '../../mol-canvas3d/passes/jitter';
+import { MultiSampleProps } from '../../mol-canvas3d/passes/multi-sample';
 import { WebGPUContext } from './context';
 import { GPUBufferUsage, GPUShaderStage, GPUTextureUsage } from './compat';
 

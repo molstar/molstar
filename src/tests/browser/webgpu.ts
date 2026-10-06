@@ -2,7 +2,8 @@
 
 import { WebGPUImagePass } from '../../mol-canvas3d/passes/webgpu-image';
 import { fromHalfFloat, toHalfFloat } from '../../mol-util/number-conversion';
-import { MultiSampleParams, JitterVectors } from '../../mol-canvas3d/passes/multi-sample';
+import { JitterVectors } from '../../mol-canvas3d/passes/jitter';
+import { MultiSampleParams } from '../../mol-canvas3d/passes/multi-sample';
 import { Camera } from '../../mol-canvas3d/camera';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { GPUTextureUsage } from '../../mol-gl/webgpu/compat';
