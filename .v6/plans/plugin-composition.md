@@ -246,11 +246,11 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       manager, and the UI import the group modules they use; the external-structure theme imports `backbone` from
       `structure.ts`. Build `DefaultSelectionQueries` from the individual queries in today's order and check it against
       the step-0 baseline.
-- [ ] Split behaviors: `BuiltInPluginBehaviors` to its own module; `behavior.ts` becomes only the `PluginBehaviors`
+- [x] Split behaviors: `BuiltInPluginBehaviors` to its own module; `behavior.ts` becomes only the `PluginBehaviors`
       catalog; base modules import `PluginBehavior` from `@molstar/plugin/behavior/behavior`; library code and slim apps
       import behaviors from their defining modules. Add the focus representation id module
       `behavior/dynamic/selection/structure-focus-representation/id.ts`.
-- [ ] Make `StateActions` a catalog module.
+- [x] Make `StateActions` a catalog module.
 - [x] Move `BuiltInMarkdownExtension` into catalog entries; the `query` extension is its own entry and imports no
       transpiler.
 - [x] Split `@molstar/model/script/script` (spec §7): the core module handles `mol-script` only; `transpile.ts` holds
@@ -321,6 +321,11 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 - [ ] Check that every in-repo spec lists `DefaultRegistry` or its own entries, then remove the constructor preloads and
       implicit imports of §1.1 (spec §9).
+- [ ] Remove the volume-streaming behavior from the `PluginContext` closure. After step 1 it is still reached through
+      `state/manager/structure/hierarchy.ts` → `hierarchy-state.ts` → `behavior/dynamic/volume-streaming/behavior.ts`,
+      and `behavior/dynamic/volume-streaming/util.ts` through `formats/registry.ts` → the volume catalog →
+      `volume/ccp4.ts` → `volume/provider.ts`. Move the shared helpers and type checks to modules that do not import the
+      behavior.
 - [ ] Presets import what they run and list it in their entries; add representation entries with their default themes in
       plugin-layer modules; mixed name/provider props in the helpers (spec §5.1); development-mode default-theme check.
 - [ ] Format entries with actions and, for volume, particle, and shape formats, the representation entries and themes
