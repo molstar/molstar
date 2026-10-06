@@ -326,6 +326,38 @@ no name is registered twice. The overriding provider is listed after the built-i
 tie-breaking by registration order sees it last, as in 5.x. mesoscale-explorer keeps its own `customFormats` option
 shape and applies the same rule.
 
+## Plugin composition step 3: UI
+
+### `createPluginUI` requires a spec
+
+`createPluginUI({ target, render, spec })` no longer falls back to `DefaultPluginUISpec()`; `spec` is a required option
+and `@molstar/plugin-ui` (`index.ts`) no longer imports `@molstar/plugin-ui/default-spec`. Pass
+`spec: DefaultPluginUISpec()` (import it from `@molstar/plugin-ui/default-spec`) for the previous behavior.
+
+### Base UI renders minimal structure tools
+
+The base `Plugin` layout (`ControlsWrapper`) no longer falls back to `DefaultStructureTools`. Without
+`spec.components.structureTools` it renders `MinimalStructureTools`: structure source, measurements, components, and the
+behavior-registered custom structure controls. The full tools component (also adding superposition, quick styles,
+procedural animation, volume streaming, volume source, and particle source) moved from `@molstar/plugin-ui/controls` to
+`@molstar/plugin-ui/default-structure-tools` and is set as `DefaultPluginUISpec().components.structureTools`.
+
+A spec that spreads `DefaultPluginUISpec()` but replaces `components` wholesale must spread the default components to
+keep the full tools, or it silently gets the minimal list:
+
+```ts
+const defaultSpec = DefaultPluginUISpec();
+const spec = { ...defaultSpec, components: { ...defaultSpec.components, remoteState: 'none' } };
+```
+
+### Quick styles and volume controls
+
+Quick Styles resolves its presets by id through the representation preset registry (`DefaultRepresentationPreset`
+config, then `preset-structure-representation-auto` for Default; `-polymer-and-ligand`, `-illustrative`, and
+`-molecular-surface` for Cartoon, Spacefill, and Surface) and hides the buttons whose preset is not registered.
+Lazy-volume loading in the volume source controls uses the isosurface representation and uniform color theme only when
+they are registered, and otherwise falls back to the registry default.
+
 ## Declaration contracts
 
 `ExternalModules['jpeg-js']` exposes the injected codec's `encode` contract instead of the entire codec module type.

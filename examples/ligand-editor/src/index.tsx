@@ -55,6 +55,7 @@ async function createViewer() {
       },
     },
     components: {
+      ...spec.components,
       remoteState: 'none',
     },
     behaviors: [...spec.behaviors, MolViewSpecBehavior],

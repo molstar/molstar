@@ -367,7 +367,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       are registered (`dataFormats.has(name)`), builds the URL format list from the registry, and hides the multi-source
       blob option unless mmCIF is registered.
 - [ ] `PluginViewModel`, `PluginUIViewModel`, and their hooks require an explicit spec.
-- [ ] UI (spec §10): `createPluginUI` requires a spec; base layout renders minimal structure tools; full tools move to
+- [x] UI (spec §10): `createPluginUI` requires a spec; base layout renders minimal structure tools; full tools move to
       `DefaultPluginUISpec().components.structureTools`; quick styles resolve presets by id; volume controls use the
       registry or config; apply the `components` fixes in §3.5.
 - [ ] Add `reportUnregisteredNames` to `setSnapshot` (spec §6.2).
@@ -432,12 +432,12 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 ### 3.4 mvs-stories
 
-- [ ] It spreads `DefaultPluginUISpec()`, so it inherits `registry` and needs no registry change. Move the
+- [x] It spreads `DefaultPluginUISpec()`, so it inherits `registry` and needs no registry change. Move the
       `DefaultPluginUISpec` import to `default-spec` and fix `components` in `elements/viewer.tsx` (§3.5).
 
 ### 3.5 Examples
 
-- [ ] `components` overrides: `examples/proteopedia-wrapper`, `examples/basic-wrapper`, `examples/interactions`,
+- [x] `components` overrides: `examples/proteopedia-wrapper`, `examples/basic-wrapper`, `examples/interactions`,
       `examples/ihm-restraints`, `examples/ligand-editor`, and `apps/mvs-stories` (`elements/viewer.tsx`) spread the
       default spec but replace `components` wholesale; each spreads `...defaultSpec.components` into its `components`,
       or it would silently get the minimal tools.

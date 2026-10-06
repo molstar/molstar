@@ -37,6 +37,7 @@ export class MVSStoriesViewerModel extends PluginComponent {
           },
         },
         components: {
+          ...spec.components,
           remoteState: 'none',
           viewport: {
             snapshotDescription: EmptyDescription,

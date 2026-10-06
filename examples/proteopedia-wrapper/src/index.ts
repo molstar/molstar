@@ -71,11 +71,12 @@ class MolStarProteopediaWrapper {
       customColorList?: number[];
     },
   ) {
+    const defaultSpec = DefaultPluginUISpec();
     this.plugin = await createPluginUI({
       target: typeof target === 'string' ? document.getElementById(target)! : target,
       render: renderReact18,
       spec: {
-        ...DefaultPluginUISpec(),
+        ...defaultSpec,
         registry: [...DefaultRegistry.filter((e) => e !== DefaultAnimations), { animations: [AnimateModelIndex] }],
         layout: {
           initial: {
@@ -84,6 +85,7 @@ class MolStarProteopediaWrapper {
           },
         },
         components: {
+          ...defaultSpec.components,
           remoteState: 'none',
         },
       },

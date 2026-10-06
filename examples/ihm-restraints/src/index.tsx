@@ -39,6 +39,7 @@ async function createViewer(root: HTMLElement) {
         },
       },
       components: {
+        ...spec.components,
         remoteState: 'none',
       },
       behaviors: [...spec.behaviors, PluginSpec.Behavior(MolViewSpec)],

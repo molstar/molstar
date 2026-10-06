@@ -39,6 +39,7 @@
     "packages/plugin/core/src/context.ts",
     "packages/plugin/core/src/spec.ts",
     "packages/plugin/ui/src/index.ts",
+    "packages/plugin/ui/src/plugin.tsx",
     "packages/plugin/ui/src/spec.ts"
   ],
   "allowlist": [
@@ -160,27 +161,6 @@
       "to": "packages/plugin/core/src/state/queries/structure/catalog.ts",
       "reason": "StructureSelectionQueryRegistry constructor preloads the query catalog",
       "step": "plugin composition step 3 (remove constructor preloads)"
-    },
-    {
-      "rule": "b",
-      "from": "packages/plugin/ui/src/index.ts",
-      "to": "packages/plugin/ui/src/default-spec.ts",
-      "reason": "createPluginUI falls back to DefaultPluginUISpec() when no spec is passed",
-      "step": "plugin composition step 3 (createPluginUI requires a spec)"
-    },
-    {
-      "rule": "b",
-      "from": "packages/plugin/ui/src/index.ts",
-      "to": "packages/plugin/core/src/default-registry.ts",
-      "reason": "createPluginUI falls back to DefaultPluginUISpec() when no spec is passed",
-      "step": "plugin composition step 3 (createPluginUI requires a spec)"
-    },
-    {
-      "rule": "b",
-      "from": "packages/plugin/ui/src/index.ts",
-      "to": "packages/plugin/core/src/default-spec.ts",
-      "reason": "createPluginUI falls back to DefaultPluginUISpec() when no spec is passed",
-      "step": "plugin composition step 3 (createPluginUI requires a spec)"
     }
   ]
 }

@@ -39,11 +39,12 @@ class BasicWrapper {
   plugin: PluginUIContext;
 
   async init(target: string | HTMLElement) {
+    const defaultSpec = DefaultPluginUISpec();
     this.plugin = await createPluginUI({
       target: typeof target === 'string' ? document.getElementById(target)! : target,
       render: renderReact18,
       spec: {
-        ...DefaultPluginUISpec(),
+        ...defaultSpec,
         layout: {
           initial: {
             isExpanded: false,
@@ -51,6 +52,7 @@ class BasicWrapper {
           },
         },
         components: {
+          ...defaultSpec.components,
           remoteState: 'none',
         },
       },
