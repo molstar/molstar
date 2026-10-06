@@ -11,6 +11,9 @@ import { Loci, isEmptyLoci, isEveryLoci, EveryLoci } from '../mol-model/loci';
 import { MarkerAction, applyMarkerAction, getMarkerInfo, setMarkerValue, getPartialMarkerAverage, MarkerActions, MarkerInfo } from '../mol-util/marker-action';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { WebGLContext } from '../mol-gl/webgl/context';
+import type { WebGPUContext } from '../mol-gl/webgpu/context';
+import { applyMeshOverlaySmoothingWebGPU } from '../mol-gl/webgpu/color-smoothing';
+import { WebGPUTextureData } from '../mol-gl/webgpu/texture-data';
 import { Theme } from '../mol-theme/theme';
 import { Mat4 } from '../mol-math/linear-algebra';
 import { updateTransformData } from '../mol-geo/geometry/transform-data';
@@ -40,6 +43,7 @@ import { applyWiggleValue, clearWiggle, createWiggle, getWiggleAverage } from '.
 export interface VisualContext {
     readonly runtime: RuntimeContext
     readonly webgl?: WebGLContext
+    readonly webgpu?: WebGPUContext
 }
 
 export { Visual };
@@ -65,7 +69,7 @@ interface Visual<D, P extends PD.Params> {
     setWiggle: (wiggle: Wiggle, webgl?: WebGLContext) => void
     setThemeStrength: (strength: { overpaint: number, transparency: number, emissive: number, substance: number, wiggle: number }) => void
     destroy: () => void
-    mustRecreate?: (data: D, props: PD.Values<P>, webgl?: WebGLContext) => boolean
+    mustRecreate?: (data: D, props: PD.Values<P>, webgl?: WebGLContext, webgpu?: WebGPUContext) => boolean
 }
 namespace Visual {
     export type LociApply = (loci: Loci, apply: (interval: Interval) => boolean, isMarking: boolean) => boolean
@@ -165,6 +169,7 @@ namespace Visual {
         geometry: Geometry,
         props: PD.Values<any>,
         webgl?: WebGLContext
+        webgpu?: WebGPUContext
     }
 
     export function setOverpaint(renderObject: GraphicsRenderObject | undefined, overpaint: Overpaint, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
@@ -202,19 +207,23 @@ namespace Visual {
         if (type === 'instance') return;
 
         if (smoothing && hasColorSmoothingProp(smoothing.props)) {
-            const { geometry, props, webgl } = smoothing;
+            const { geometry, props, webgl, webgpu } = smoothing;
             if (geometry.kind === 'mesh') {
                 const { resolution, overpaintTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyMeshOverpaintSmoothing(renderObject.values as any, csp, webgl, overpaintTexture);
+                    const texture = webgpu ? (overpaintTexture instanceof WebGPUTextureData ? overpaintTexture : new WebGPUTextureData()) : overpaintTexture;
+                    if (webgpu) applyMeshOverlaySmoothingWebGPU(webgpu, renderObject.values as any, 'Overpaint', csp, texture as WebGPUTextureData);
+                    else applyMeshOverpaintSmoothing(renderObject.values as any, csp, webgl, texture);
                     (geometry.meta as SurfaceMeta).overpaintTexture = renderObject.values.tOverpaintGrid.ref.value;
                 }
-            } else if (webgl && geometry.kind === 'texture-mesh') {
+            } else if ((webgl || webgpu) && geometry.kind === 'texture-mesh') {
                 const { resolution, overpaintTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyTextureMeshOverpaintSmoothing(renderObject.values as any, csp, webgl, overpaintTexture);
+                    const texture = webgpu ? (overpaintTexture instanceof WebGPUTextureData ? overpaintTexture : new WebGPUTextureData()) : overpaintTexture;
+                    if (webgpu) applyMeshOverlaySmoothingWebGPU(webgpu, renderObject.values as any, 'Overpaint', csp, texture as WebGPUTextureData);
+                    else applyTextureMeshOverpaintSmoothing(renderObject.values as any, csp, webgl!, texture);
                     (geometry.meta as SurfaceMeta).overpaintTexture = renderObject.values.tOverpaintGrid.ref.value;
                 }
             }
@@ -256,19 +265,23 @@ namespace Visual {
         if (type === 'instance') return;
 
         if (smoothing && hasColorSmoothingProp(smoothing.props)) {
-            const { geometry, props, webgl } = smoothing;
+            const { geometry, props, webgl, webgpu } = smoothing;
             if (geometry.kind === 'mesh') {
                 const { resolution, transparencyTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyMeshTransparencySmoothing(renderObject.values as any, csp, webgl, transparencyTexture);
+                    const texture = webgpu ? (transparencyTexture instanceof WebGPUTextureData ? transparencyTexture : new WebGPUTextureData()) : transparencyTexture;
+                    if (webgpu) applyMeshOverlaySmoothingWebGPU(webgpu, renderObject.values as any, 'Transparency', csp, texture as WebGPUTextureData);
+                    else applyMeshTransparencySmoothing(renderObject.values as any, csp, webgl, texture);
                     (geometry.meta as SurfaceMeta).transparencyTexture = renderObject.values.tTransparencyGrid.ref.value;
                 }
-            } else if (webgl && geometry.kind === 'texture-mesh') {
+            } else if ((webgl || webgpu) && geometry.kind === 'texture-mesh') {
                 const { resolution, transparencyTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyTextureMeshTransparencySmoothing(renderObject.values as any, csp, webgl, transparencyTexture);
+                    const texture = webgpu ? (transparencyTexture instanceof WebGPUTextureData ? transparencyTexture : new WebGPUTextureData()) : transparencyTexture;
+                    if (webgpu) applyMeshOverlaySmoothingWebGPU(webgpu, renderObject.values as any, 'Transparency', csp, texture as WebGPUTextureData);
+                    else applyTextureMeshTransparencySmoothing(renderObject.values as any, csp, webgl!, texture);
                     (geometry.meta as SurfaceMeta).transparencyTexture = renderObject.values.tTransparencyGrid.ref.value;
                 }
             }
@@ -309,19 +322,23 @@ namespace Visual {
         if (type === 'instance') return;
 
         if (smoothing && hasColorSmoothingProp(smoothing.props)) {
-            const { geometry, props, webgl } = smoothing;
+            const { geometry, props, webgl, webgpu } = smoothing;
             if (geometry.kind === 'mesh') {
                 const { resolution, emissiveTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyMeshEmissiveSmoothing(renderObject.values as any, csp, webgl, emissiveTexture);
+                    const texture = webgpu ? (emissiveTexture instanceof WebGPUTextureData ? emissiveTexture : new WebGPUTextureData()) : emissiveTexture;
+                    if (webgpu) applyMeshOverlaySmoothingWebGPU(webgpu, renderObject.values as any, 'Emissive', csp, texture as WebGPUTextureData);
+                    else applyMeshEmissiveSmoothing(renderObject.values as any, csp, webgl, texture);
                     (geometry.meta as SurfaceMeta).emissiveTexture = renderObject.values.tEmissiveGrid.ref.value;
                 }
-            } else if (webgl && geometry.kind === 'texture-mesh') {
+            } else if ((webgl || webgpu) && geometry.kind === 'texture-mesh') {
                 const { resolution, emissiveTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyTextureMeshEmissiveSmoothing(renderObject.values as any, csp, webgl, emissiveTexture);
+                    const texture = webgpu ? (emissiveTexture instanceof WebGPUTextureData ? emissiveTexture : new WebGPUTextureData()) : emissiveTexture;
+                    if (webgpu) applyMeshOverlaySmoothingWebGPU(webgpu, renderObject.values as any, 'Emissive', csp, texture as WebGPUTextureData);
+                    else applyTextureMeshEmissiveSmoothing(renderObject.values as any, csp, webgl!, texture);
                     (geometry.meta as SurfaceMeta).emissiveTexture = renderObject.values.tEmissiveGrid.ref.value;
                 }
             }
@@ -363,19 +380,23 @@ namespace Visual {
         if (type === 'instance') return;
 
         if (smoothing && hasColorSmoothingProp(smoothing.props)) {
-            const { geometry, props, webgl } = smoothing;
+            const { geometry, props, webgl, webgpu } = smoothing;
             if (geometry.kind === 'mesh') {
                 const { resolution, substanceTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyMeshSubstanceSmoothing(renderObject.values as any, csp, webgl, substanceTexture);
+                    const texture = webgpu ? (substanceTexture instanceof WebGPUTextureData ? substanceTexture : new WebGPUTextureData()) : substanceTexture;
+                    if (webgpu) applyMeshOverlaySmoothingWebGPU(webgpu, renderObject.values as any, 'Substance', csp, texture as WebGPUTextureData);
+                    else applyMeshSubstanceSmoothing(renderObject.values as any, csp, webgl, texture);
                     (geometry.meta as SurfaceMeta).substanceTexture = renderObject.values.tSubstanceGrid.ref.value;
                 }
-            } else if (webgl && geometry.kind === 'texture-mesh') {
+            } else if ((webgl || webgpu) && geometry.kind === 'texture-mesh') {
                 const { resolution, substanceTexture } = geometry.meta as SurfaceMeta;
                 const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
                 if (csp) {
-                    applyTextureMeshSubstanceSmoothing(renderObject.values as any, csp, webgl, substanceTexture);
+                    const texture = webgpu ? (substanceTexture instanceof WebGPUTextureData ? substanceTexture : new WebGPUTextureData()) : substanceTexture;
+                    if (webgpu) applyMeshOverlaySmoothingWebGPU(webgpu, renderObject.values as any, 'Substance', csp, texture as WebGPUTextureData);
+                    else applyTextureMeshSubstanceSmoothing(renderObject.values as any, csp, webgl!, texture);
                     (geometry.meta as SurfaceMeta).substanceTexture = renderObject.values.tSubstanceGrid.ref.value;
                 }
             }

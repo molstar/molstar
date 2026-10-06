@@ -7,9 +7,18 @@
 import { Scene } from '../../mol-gl/scene';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isDebugMode } from '../../mol-util/debug';
+import { GraphicsRenderable } from '../../mol-gl/renderable';
+import { GraphicsRenderObject } from '../../mol-gl/render-object';
+import { WebGPUContext } from '../../mol-gl/webgpu/context';
+import { WebGPUHelperScene } from './webgpu-scene';
 
-export interface DebugHelper<T extends {} = {}> {
-    readonly scene: Scene;
+export type DebugHelperScene = Pick<Scene, 'add' | 'remove' | 'clear' | 'update' | 'commit'>;
+export interface DebugHelperParent extends Pick<Scene, 'boundingSphere' | 'boundingSphereVisible' | 'has'> {
+    forEach(callback: (value: Pick<GraphicsRenderable, 'values'>, object: GraphicsRenderObject) => void): void;
+}
+
+export interface DebugHelper<T extends {} = {}, S extends DebugHelperScene = Scene> {
+    readonly scene: S;
     update(): void;
     syncVisibility(): void;
     clear(): void;
@@ -18,18 +27,18 @@ export interface DebugHelper<T extends {} = {}> {
     setProps(props: Partial<T>): void;
 }
 
-export class DebugRegistry {
-    readonly ctx: WebGLContext;
-    readonly parent: Scene;
+export class DebugRegistry<S extends DebugHelperScene = Scene, C = WebGLContext, P extends DebugHelperParent = Scene> {
+    readonly ctx: C;
+    readonly parent: P;
 
-    private readonly entries = new Map<string, DebugHelper>();
+    private readonly entries = new Map<string, DebugHelper<{}, S>>();
 
-    constructor(ctx: WebGLContext, parent: Scene) {
+    constructor(ctx: C, parent: P) {
         this.ctx = ctx;
         this.parent = parent;
     }
 
-    register<T extends {}>(name: string, entry: DebugHelper<T>) {
+    register<T extends {}>(name: string, entry: DebugHelper<T, S>) {
         if (this.entries.has(name)) {
             if (isDebugMode) {
                 console.warn(`Debug helper with name '${name}' already exists, replacing.`);
@@ -47,7 +56,7 @@ export class DebugRegistry {
         }
     }
 
-    get scenes(): Scene[] {
+    get scenes(): S[] {
         return Array.from(this.entries.values()).map(e => e.scene);
     }
 
@@ -81,5 +90,14 @@ export class DebugRegistry {
         this.entries.forEach(entry => {
             entry.setProps(props);
         });
+    }
+}
+
+/** Debug helpers use CPU scene ownership with the same geometry builders as WebGL. */
+export class WebGPUDebugRegistry extends DebugRegistry<WebGPUHelperScene, WebGPUContext, DebugHelperParent> {
+    getRenderObjects() {
+        this.update();
+        this.syncVisibility();
+        return this.scenes.flatMap(scene => scene.renderObjects).filter(object => object.state.visible);
     }
 }

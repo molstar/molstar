@@ -5,6 +5,11 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import { computeMarchingCubesTextureMeshWebGPU, WebGPUTextureMeshGeometry } from '../../../mol-gl/webgpu/texture-mesh';
+import { WebGPUTextureData } from '../../../mol-gl/webgpu/texture-data';
+import { computeMarchingCubesMeshWebGPU } from '../../../mol-gl/webgpu/marching-cubes';
+import type { WebGPUPackedScalarField } from '../../../mol-gl/webgpu/marching-cubes';
+import type { WebGPUGaussianDensityBuffer } from '../../../mol-gl/webgpu/gaussian-density';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsMeshParams, UnitsTextureMeshParams, UnitsVisual, UnitsMeshVisual, UnitsTextureMeshVisual } from '../units-visual';
 import { GaussianDensityParams, computeUnitGaussianDensity, computeUnitGaussianDensityTexture2d, GaussianDensityProps, computeStructureGaussianDensity, computeStructureGaussianDensityTexture2d } from './util/gaussian';
@@ -20,6 +25,8 @@ import { extractIsosurface } from '../../../mol-gl/compute/marching-cubes/isosur
 import { Sphere3D } from '../../../mol-math/geometry';
 import { ComplexVisual, ComplexMeshParams, ComplexMeshVisual, ComplexTextureMeshVisual, ComplexTextureMeshParams } from '../complex-visual';
 import { getVolumeSliceInfo, StructureGroup } from './util/common';
+import { WebGPUContext } from '../../../mol-gl/webgpu/context';
+import { applyMeshColorSmoothingWebGPU } from '../../../mol-gl/webgpu/color-smoothing';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { TextureMeshValues } from '../../../mol-gl/renderable/texture-mesh';
@@ -67,19 +74,20 @@ function suitableForGpu(structure: Structure, props: PD.Values<SharedParams>, we
     return areaCells < maxAreaCells;
 }
 
-function useGpu(structure: Structure, props: PD.Values<SharedParams>, webgl?: WebGLContext): boolean {
+function useGpu(structure: Structure, props: PD.Values<SharedParams>, webgl?: WebGLContext, webgpu?: WebGPUContext): boolean {
+    if (webgpu) return !props.includeParent && props.floodfill === 'off' && props.tryUseGpu && props.resolution <= 1;
     return !props.includeParent && props.floodfill === 'off' && props.tryUseGpu && !!webgl && gpuSupport(webgl) && suitableForGpu(structure, props, webgl);
 }
 
-export function GaussianSurfaceVisual(materialId: number, structure: Structure, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) {
-    if (useGpu(structure, props, webgl)) {
+export function GaussianSurfaceVisual(materialId: number, structure: Structure, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) {
+    if (useGpu(structure, props, webgl, webgpu)) {
         return GaussianSurfaceTextureMeshVisual(materialId);
     }
     return GaussianSurfaceMeshVisual(materialId);
 }
 
-export function StructureGaussianSurfaceVisual(materialId: number, structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) {
-    if (useGpu(structure, props, webgl)) {
+export function StructureGaussianSurfaceVisual(materialId: number, structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) {
+    if (useGpu(structure, props, webgl, webgpu)) {
         return StructureGaussianSurfaceTextureMeshVisual(materialId);
     }
     return StructureGaussianSurfaceMeshVisual(materialId);
@@ -92,17 +100,27 @@ type GaussianSurfaceMeta = {
 
 //
 
-async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
+async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps & { tryUseGpu?: boolean }, mesh?: Mesh): Promise<Mesh> {
     const { smoothness, floodfill, includeParent, radiusOffset } = props;
-    const { transform, field, idField, radiusFactor, resolution, maxRadius } = await computeUnitGaussianDensity(structure, unit, theme.size, props).runInContext(ctx.runtime);
+    const density = await computeUnitGaussianDensity(structure, unit, theme.size, props, ctx.webgpu).runInContext(ctx.runtime);
+    const { transform, field, idField, radiusFactor, resolution, maxRadius } = density;
 
     const isoLevel = Math.exp(-smoothness) / radiusFactor;
+    const nativeDensity = floodfill === 'off' ? (density as typeof density & { webgpuDensity?: WebGPUGaussianDensityBuffer }).webgpuDensity : undefined;
     const params = {
         isoLevel,
         scalarField: floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, floodfill) : field,
-        idField
+        idField,
+        ...(nativeDensity ? { webgpuField: nativeDensity as WebGPUPackedScalarField } : {})
     };
-    const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
+    const scalarBytes = (field.data as unknown as { byteLength: number }).byteLength;
+    const useNative = ctx.webgpu && props.tryUseGpu !== false && scalarBytes <= Math.min(ctx.webgpu.device.limits.maxStorageBufferBindingSize, ctx.webgpu.device.limits.maxBufferSize);
+    let surface: Mesh;
+    try {
+        surface = useNative
+            ? await computeMarchingCubesMeshWebGPU(ctx.runtime, ctx.webgpu!, params, mesh)
+            : await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
+    } finally { nativeDensity?.dispose(); }
     (surface.meta.resolution as GaussianSurfaceMeta['resolution']) = resolution;
 
     if (includeParent) {
@@ -134,6 +152,7 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianSurfaceMeshParams>, currentProps: PD.Values<GaussianSurfaceMeshParams>) => {
             state.createGeometry = (
+                newProps.tryUseGpu !== currentProps.tryUseGpu ||
                 newProps.resolution !== currentProps.resolution ||
                 newProps.radiusOffset !== currentProps.radiusOffset ||
                 newProps.smoothness !== currentProps.smoothness ||
@@ -151,14 +170,16 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
                 if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride) state.updateColor = true;
             }
         },
-        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
-            return useGpu(structureGroup.structure, props, webgl);
+        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
+            return useGpu(structureGroup.structure, props, webgl, webgpu);
         },
-        processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
+        processValues: async (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
             const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
             if (csp) {
-                applyMeshColorSmoothing(values, csp, webgl, colorTexture);
+                const texture = webgpu ? (colorTexture instanceof WebGPUTextureData ? colorTexture : new WebGPUTextureData()) : colorTexture;
+                if (webgpu) await applyMeshColorSmoothingWebGPU(webgpu, values, csp, texture as WebGPUTextureData);
+                else applyMeshColorSmoothing(values, csp, webgl, texture);
                 (geometry.meta.colorTexture as GaussianSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
             }
         },
@@ -170,17 +191,27 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
 
 //
 
-async function createStructureGaussianSurfaceMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
+async function createStructureGaussianSurfaceMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps & { tryUseGpu?: boolean }, mesh?: Mesh): Promise<Mesh> {
     const { smoothness, floodfill, includeParent, radiusOffset } = props;
-    const { transform, field, idField, radiusFactor, resolution, maxRadius } = await computeStructureGaussianDensity(structure, theme.size, props).runInContext(ctx.runtime);
+    const density = await computeStructureGaussianDensity(structure, theme.size, props, ctx.webgpu).runInContext(ctx.runtime);
+    const { transform, field, idField, radiusFactor, resolution, maxRadius } = density;
 
     const isoLevel = Math.exp(-smoothness) / radiusFactor;
+    const nativeDensity = floodfill === 'off' ? (density as typeof density & { webgpuDensity?: WebGPUGaussianDensityBuffer }).webgpuDensity : undefined;
     const params = {
         isoLevel,
         scalarField: floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, floodfill) : field,
-        idField
+        idField,
+        ...(nativeDensity ? { webgpuField: nativeDensity as WebGPUPackedScalarField } : {})
     };
-    const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
+    const scalarBytes = (field.data as unknown as { byteLength: number }).byteLength;
+    const useNative = ctx.webgpu && props.tryUseGpu !== false && scalarBytes <= Math.min(ctx.webgpu.device.limits.maxStorageBufferBindingSize, ctx.webgpu.device.limits.maxBufferSize);
+    let surface: Mesh;
+    try {
+        surface = useNative
+            ? await computeMarchingCubesMeshWebGPU(ctx.runtime, ctx.webgpu!, params, mesh)
+            : await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
+    } finally { nativeDensity?.dispose(); }
     (surface.meta.resolution as GaussianSurfaceMeta['resolution']) = resolution;
 
     if (includeParent) {
@@ -212,6 +243,7 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
         eachLocation: eachSerialElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianSurfaceMeshParams>, currentProps: PD.Values<GaussianSurfaceMeshParams>) => {
             state.createGeometry = (
+                newProps.tryUseGpu !== currentProps.tryUseGpu ||
                 newProps.resolution !== currentProps.resolution ||
                 newProps.radiusOffset !== currentProps.radiusOffset ||
                 newProps.smoothness !== currentProps.smoothness ||
@@ -229,14 +261,16 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
                 if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride) state.updateColor = true;
             }
         },
-        mustRecreate: (structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
-            return useGpu(structure, props, webgl);
+        mustRecreate: (structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
+            return useGpu(structure, props, webgl, webgpu);
         },
-        processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
+        processValues: async (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
             const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
             if (csp) {
-                applyMeshColorSmoothing(values, csp, webgl, colorTexture);
+                const texture = webgpu ? (colorTexture instanceof WebGPUTextureData ? colorTexture : new WebGPUTextureData()) : colorTexture;
+                if (webgpu) await applyMeshColorSmoothingWebGPU(webgpu, values, csp, texture as WebGPUTextureData);
+                else applyMeshColorSmoothing(values, csp, webgl, texture);
                 (geometry.meta.colorTexture as GaussianSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
             }
         },
@@ -250,7 +284,20 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
 
 const GaussianSurfaceName = 'gaussian-surface';
 
-function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, textureMesh?: TextureMesh): TextureMesh {
+async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, textureMesh?: TextureMesh): Promise<TextureMesh> {
+    if (ctx.webgpu) {
+        const density = await computeUnitGaussianDensity(structure, unit, theme.size, props, ctx.webgpu).runInContext(ctx.runtime);
+        const extraRadius = props.radiusOffset * (1 + Math.exp(-props.smoothness));
+        const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, density.maxRadius + extraRadius);
+        const nativeDensity = props.floodfill === 'off' ? (density as typeof density & { webgpuDensity?: WebGPUGaussianDensityBuffer }).webgpuDensity : undefined;
+        const params = { isoLevel: Math.exp(-props.smoothness) / density.radiusFactor, scalarField: density.field, idField: density.idField, ...(nativeDensity ? { webgpuField: nativeDensity as WebGPUPackedScalarField } : {}) };
+        let surface: TextureMesh;
+        try {
+            surface = await computeMarchingCubesTextureMeshWebGPU(ctx.runtime, ctx.webgpu, params, density.transform, unit.elements.length, sphere, textureMesh);
+        } finally { nativeDensity?.dispose(); }
+        (surface.meta as GaussianSurfaceMeta).resolution = density.resolution;
+        return surface;
+    }
     const { webgl } = ctx;
     if (!webgl) throw new Error('webgl context required to create gaussian surface texture-mesh');
 
@@ -300,6 +347,9 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianSurfaceMeshParams>, currentProps: PD.Values<GaussianSurfaceMeshParams>) => {
             state.createGeometry = (
+                newProps.tryUseGpu !== currentProps.tryUseGpu ||
+                newProps.includeParent !== currentProps.includeParent ||
+                newProps.floodfill !== currentProps.floodfill ||
                 newProps.resolution !== currentProps.resolution ||
                 newProps.radiusOffset !== currentProps.radiusOffset ||
                 newProps.smoothness !== currentProps.smoothness ||
@@ -315,18 +365,22 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
                 if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride) state.updateColor = true;
             }
         },
-        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
-            return !useGpu(structureGroup.structure, props, webgl);
+        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
+            return !useGpu(structureGroup.structure, props, webgl, webgpu);
         },
-        processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
+        processValues: async (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
             const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
-            if (csp && webgl) {
-                applyTextureMeshColorSmoothing(values, csp, webgl, colorTexture);
+            if (csp && (webgl || webgpu)) {
+                const texture = webgpu ? (colorTexture instanceof WebGPUTextureData ? colorTexture : new WebGPUTextureData()) : colorTexture;
+                if (webgpu) await applyMeshColorSmoothingWebGPU(webgpu, values, csp, texture as WebGPUTextureData);
+                else applyTextureMeshColorSmoothing(values, csp, webgl!, texture);
                 (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
         },
         dispose: (geometry: TextureMesh) => {
+            if (geometry.meta.webgpuGeometry instanceof WebGPUTextureMeshGeometry) geometry.meta.webgpuGeometry.destroy();
+            WebGPUTextureData.disposeTextures(geometry.meta);
             geometry.vertexTexture.ref.value.destroy();
             geometry.groupTexture.ref.value.destroy();
             geometry.normalTexture.ref.value.destroy();
@@ -339,7 +393,20 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
 
 //
 
-function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, textureMesh?: TextureMesh): TextureMesh {
+async function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, textureMesh?: TextureMesh): Promise<TextureMesh> {
+    if (ctx.webgpu) {
+        const density = await computeStructureGaussianDensity(structure, theme.size, props, ctx.webgpu).runInContext(ctx.runtime);
+        const extraRadius = props.radiusOffset * (1 + Math.exp(-props.smoothness));
+        const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, density.maxRadius + extraRadius);
+        const nativeDensity = props.floodfill === 'off' ? (density as typeof density & { webgpuDensity?: WebGPUGaussianDensityBuffer }).webgpuDensity : undefined;
+        const params = { isoLevel: Math.exp(-props.smoothness) / density.radiusFactor, scalarField: density.field, idField: density.idField, ...(nativeDensity ? { webgpuField: nativeDensity as WebGPUPackedScalarField } : {}) };
+        let surface: TextureMesh;
+        try {
+            surface = await computeMarchingCubesTextureMeshWebGPU(ctx.runtime, ctx.webgpu, params, density.transform, structure.elementCount, sphere, textureMesh);
+        } finally { nativeDensity?.dispose(); }
+        (surface.meta as GaussianSurfaceMeta).resolution = density.resolution;
+        return surface;
+    }
     const { webgl } = ctx;
     if (!webgl) throw new Error('webgl context required to create structure gaussian surface texture-mesh');
 
@@ -389,6 +456,9 @@ export function StructureGaussianSurfaceTextureMeshVisual(materialId: number): C
         eachLocation: eachSerialElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<StructureGaussianSurfaceMeshParams>, currentProps: PD.Values<StructureGaussianSurfaceMeshParams>) => {
             state.createGeometry = (
+                newProps.tryUseGpu !== currentProps.tryUseGpu ||
+                newProps.includeParent !== currentProps.includeParent ||
+                newProps.floodfill !== currentProps.floodfill ||
                 newProps.resolution !== currentProps.resolution ||
                 newProps.radiusOffset !== currentProps.radiusOffset ||
                 newProps.smoothness !== currentProps.smoothness ||
@@ -404,18 +474,22 @@ export function StructureGaussianSurfaceTextureMeshVisual(materialId: number): C
                 if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride) state.updateColor = true;
             }
         },
-        mustRecreate: (structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
-            return !useGpu(structure, props, webgl);
+        mustRecreate: (structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
+            return !useGpu(structure, props, webgl, webgpu);
         },
-        processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
+        processValues: async (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
             const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
-            if (csp && webgl) {
-                applyTextureMeshColorSmoothing(values, csp, webgl, colorTexture);
+            if (csp && (webgl || webgpu)) {
+                const texture = webgpu ? (colorTexture instanceof WebGPUTextureData ? colorTexture : new WebGPUTextureData()) : colorTexture;
+                if (webgpu) await applyMeshColorSmoothingWebGPU(webgpu, values, csp, texture as WebGPUTextureData);
+                else applyTextureMeshColorSmoothing(values, csp, webgl!, texture);
                 (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
         },
         dispose: (geometry: TextureMesh) => {
+            if (geometry.meta.webgpuGeometry instanceof WebGPUTextureMeshGeometry) geometry.meta.webgpuGeometry.destroy();
+            WebGPUTextureData.disposeTextures(geometry.meta);
             geometry.vertexTexture.ref.value.destroy();
             geometry.groupTexture.ref.value.destroy();
             geometry.normalTexture.ref.value.destroy();

@@ -9,6 +9,7 @@ import { Viewport } from '../../mol-canvas3d/camera/util';
 import { CameraHelperParams } from '../../mol-canvas3d/helper/camera-helper';
 import { IlluminationProps } from '../../mol-canvas3d/passes/illumination';
 import { ImagePass } from '../../mol-canvas3d/passes/image';
+import { WebGPUImagePass } from '../../mol-canvas3d/passes/webgpu-image';
 import { PostprocessingProps } from '../../mol-canvas3d/passes/postprocessing';
 import { canvasToBlob } from '../../mol-canvas3d/util';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
@@ -47,7 +48,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
         let max = 8192;
         if (this.plugin.canvas3d) {
             const { webgl } = this.plugin.canvas3d;
-            max = Math.floor(Math.min(webgl.maxRenderbufferSize, webgl.maxTextureSize) / 2);
+            max = webgl ? Math.floor(Math.min(webgl.maxRenderbufferSize, webgl.maxTextureSize) / 2) : this.plugin.canvas3d.webgpu?.device.limits.maxTextureDimension2D ?? max;
         }
         return {
             resolution: PD.MappedStatic('viewport', {
@@ -129,8 +130,8 @@ export class ViewportScreenshotHelper extends PluginComponent {
 
     private getCanvasSize() {
         return {
-            width: this.plugin.canvas3d?.webgl.gl.drawingBufferWidth || 0,
-            height: this.plugin.canvas3d?.webgl.gl.drawingBufferHeight || 0
+            width: this.plugin.canvas3dContext?.canvas?.width ?? this.plugin.canvas3d?.webgl?.gl.drawingBufferWidth ?? 0,
+            height: this.plugin.canvas3dContext?.canvas?.height ?? this.plugin.canvas3d?.webgl?.gl.drawingBufferHeight ?? 0
         };
     }
 
@@ -152,7 +153,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
         return {
             ...c.props.postprocessing,
             occlusion: aoProps.name === 'on'
-                ? { name: 'on', params: { ...aoProps.params, samples: 128, resolutionScale: c.webgl.pixelRatio, transparentThreshold: 1 } }
+                ? { name: 'on', params: { ...aoProps.params, samples: 128, resolutionScale: c.input.pixelRatio, transparentThreshold: 1 } }
                 : aoProps
         } as PostprocessingProps;
     }
@@ -173,8 +174,10 @@ export class ViewportScreenshotHelper extends PluginComponent {
 
     private createPass(isPreview: boolean) {
         const c = this.plugin.canvas3d!;
-        const { colorBufferFloat, textureFloat } = c.webgl.extensions;
+        const { colorBufferFloat, textureFloat } = c.webgl?.extensions ?? {};
         return c.getImagePass({
+            renderer: c.props.renderer,
+            dpoitIterations: c.props.dpoitIterations,
             transparentBackground: this.values.transparent,
             cameraHelper: { axes: this.values.axes },
             multiSample: {
@@ -189,16 +192,18 @@ export class ViewportScreenshotHelper extends PluginComponent {
         });
     }
 
-    private _previewPass: ImagePass | undefined;
+    private _previewPass: ImagePass | WebGPUImagePass | undefined;
     private get previewPass() {
         return this._previewPass || (this._previewPass = this.createPass(true));
     }
 
-    private _imagePass: ImagePass | undefined;
+    private _imagePass: ImagePass | WebGPUImagePass | undefined;
     get imagePass() {
         if (this._imagePass) {
             const c = this.plugin.canvas3d!;
             this._imagePass.setProps({
+                renderer: c.props.renderer,
+                dpoitIterations: c.props.dpoitIterations,
                 cameraHelper: { axes: this.values.axes },
                 transparentBackground: this.values.transparent,
                 postprocessing: this.getPostprocessingProps(),
@@ -324,6 +329,9 @@ export class ViewportScreenshotHelper extends PluginComponent {
 
         const canvasProps = this.plugin.canvas3d!.props;
         this.previewPass.setProps({
+            renderer: canvasProps.renderer,
+            dpoitIterations: canvasProps.dpoitIterations,
+            illumination: this.getIlluminationProps(true),
             cameraHelper: { axes: this.values.axes },
             transparentBackground: this.values.transparent,
             postprocessing: canvasProps.postprocessing,

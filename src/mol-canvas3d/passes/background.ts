@@ -54,7 +54,7 @@ const SkyboxParams = {
             pz: PD.File({ label: 'Positive Z / Front', accept: 'image/*' }),
         }, { isExpanded: true, label: 'Files' }),
     }),
-    blur: PD.Numeric(0, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'Note, this only works in WebGL2 or when "EXT_shader_texture_lod" is available.' }),
+    blur: PD.Numeric(0, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'Blur the background using mip levels.' }),
     rotation: PD.Group({
         x: PD.Numeric(0, { min: 0, max: 360, step: 1 }, { immediateUpdate: true }),
         y: PD.Numeric(0, { min: 0, max: 360, step: 1 }, { immediateUpdate: true }),
@@ -69,7 +69,7 @@ const ImageParams = {
         url: PD.Text(''),
         file: PD.File({ accept: 'image/*' }),
     }),
-    blur: PD.Numeric(0, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'Note, this only works in WebGL2 or with power-of-two images and when "EXT_shader_texture_lod" is available.' }),
+    blur: PD.Numeric(0, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'Blur the background using mip levels.' }),
     ...SharedParams,
     coverage: PD.Select('viewport', PD.arrayToOptions(['viewport', 'canvas'])),
 };

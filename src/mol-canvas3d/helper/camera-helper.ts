@@ -27,6 +27,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { assertUnreachable } from '../../mol-util/type-helpers';
 import { Camera, ICamera } from '../camera';
 import { Viewport } from '../camera/util';
+import { WebGPUHelperScene } from './webgpu-scene';
 
 // TODO add scale line/grid
 
@@ -67,8 +68,10 @@ export const CameraHelperParams = {
 export type CameraHelperParams = typeof CameraHelperParams
 export type CameraHelperProps = PD.Values<CameraHelperParams>
 
-export class CameraHelper {
-    scene: Scene;
+type CameraHelperScene = Pick<Scene, 'view' | 'clear' | 'add' | 'commit'>;
+
+export class CameraHelper<S extends CameraHelperScene = Scene> {
+    scene: S;
     camera: Camera;
     props: CameraHelperProps = {
         axes: { name: 'off', params: {} }
@@ -78,8 +81,10 @@ export class CameraHelper {
     private textRenderObject: GraphicsRenderObject | undefined;
     private pixelRatio = 1;
 
-    constructor(private webgl: WebGLContext, props: Partial<CameraHelperProps> = {}) {
-        this.scene = Scene.create(webgl, 'blended');
+    constructor(webgl: WebGLContext, props?: Partial<CameraHelperProps>);
+    constructor(webgl: Pick<WebGLContext, 'pixelRatio'>, props: Partial<CameraHelperProps>, scene: S);
+    constructor(private webgl: Pick<WebGLContext, 'pixelRatio'>, props: Partial<CameraHelperProps> = {}, scene?: S) {
+        this.scene = scene ?? Scene.create(webgl as WebGLContext, 'blended') as unknown as S;
 
         this.camera = new Camera();
         Vec3.set(this.camera.up, 0, 1, 0);
@@ -121,6 +126,10 @@ export class CameraHelper {
 
     get isEnabled() {
         return this.props.axes.name === 'on';
+    }
+
+    getRenderObjects() {
+        return this.isEnabled ? [this.meshRenderObject, this.textRenderObject].filter((o): o is GraphicsRenderObject => !!o) : [];
     }
 
     getLoci(pickingId: PickingId) {
@@ -221,7 +230,7 @@ export enum CameraHelperAxis {
     Origin
 }
 
-function getAxisLabel(axis: number, cameraHelper: CameraHelper) {
+function getAxisLabel(axis: number, cameraHelper: CameraHelper<CameraHelperScene>) {
     const a = cameraHelper.props.axes;
     const x = a.name === 'on' ? a.params.labelX : 'X';
     const y = a.name === 'on' ? a.params.labelY : 'Y';
@@ -238,7 +247,7 @@ function getAxisLabel(axis: number, cameraHelper: CameraHelper) {
     }
 }
 
-function CameraAxesLoci(cameraHelper: CameraHelper, groupId: number, instanceId: number) {
+function CameraAxesLoci(cameraHelper: CameraHelper<CameraHelperScene>, groupId: number, instanceId: number) {
     return DataLoci('camera-axes', cameraHelper, [{ groupId, instanceId }],
         void 0 /** bounding sphere */,
         () => getAxisLabel(groupId, cameraHelper));
@@ -246,6 +255,10 @@ function CameraAxesLoci(cameraHelper: CameraHelper, groupId: number, instanceId:
 export type CameraAxesLoci = ReturnType<typeof CameraAxesLoci>
 export function isCameraAxesLoci(x: Loci): x is CameraAxesLoci {
     return x.kind === 'data-loci' && x.tag === 'camera-axes';
+}
+
+export function createWebGPUCameraHelper(pixelRatio: () => number, props: Partial<CameraHelperProps> = {}) {
+    return new CameraHelper({ get pixelRatio() { return pixelRatio(); } }, props, new WebGPUHelperScene());
 }
 
 function updateCamera(camera: Camera, viewport: Viewport, viewOffset: Camera.ViewOffset) {

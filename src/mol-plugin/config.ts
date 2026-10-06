@@ -25,6 +25,7 @@ function item<T>(key: string, defaultValue?: T) { return new PluginConfigItem(ke
 export const PluginConfig = {
     item,
     General: {
+        RenderingBackend: item<'webgl' | 'webgpu'>('plugin-config.rendering-backend', 'webgpu'),
         IsBusyTimeoutMs: item('plugin-config.is-busy-timeout', 750),
         DisableAntialiasing: item('plugin-config.disable-antialiasing', false),
         DisablePreserveDrawingBuffer: item('plugin-config.disable-preserve-drawing-buffer', false),

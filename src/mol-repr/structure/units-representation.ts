@@ -24,6 +24,7 @@ import { Interval } from '../../mol-data/int';
 import { StructureParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { WebGLContext } from '../../mol-gl/webgl/context';
+import type { WebGPUContext } from '../../mol-gl/webgpu/context';
 import { StructureGroup } from './visual/util/common';
 import { Substance } from '../../mol-theme/substance';
 import { LocationCallback } from '../util';
@@ -40,9 +41,9 @@ function createVisualsMap<P extends StructureParams>() {
 
 export interface UnitsVisual<P extends StructureParams> extends Visual<StructureGroup, P> { }
 
-export function UnitsRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number, structure: Structure, props: PD.Values<P>, webgl?: WebGLContext) => UnitsVisual<P>): StructureRepresentation<P> {
+export function UnitsRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number, structure: Structure, props: PD.Values<P>, webgl?: WebGLContext, webgpu?: WebGPUContext) => UnitsVisual<P>): StructureRepresentation<P> {
     let version = 0;
-    const { webgl } = ctx;
+    const { webgl, webgpu } = ctx;
     const updated = new Subject<number>();
     const materialId = getNextMaterialId();
     const renderObjects: GraphicsRenderObject[] = [];
@@ -74,8 +75,8 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                 _groups = StructureSymmetry.computeChildAwareTransformGroups(structure);
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
-                    const visual = visualCtor(materialId, structure, _props, webgl);
-                    const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure });
+                    const visual = visualCtor(materialId, structure, _props, webgl, webgpu);
+                    const promise = visual.createOrUpdate({ webgl, webgpu, runtime }, _theme, _props, { group, structure });
                     if (promise) await promise;
                     setVisualState(visual, group, _state); // current state for new visual
                     visuals.set(group, { visual, group });
@@ -97,14 +98,14 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                         // console.log('old', visualGroup.group)
                         // console.log('new', group)
                         let { visual } = visualGroup;
-                        if (visual.mustRecreate?.({ group, structure }, _props, webgl)) {
+                        if (visual.mustRecreate?.({ group, structure }, _props, webgl, webgpu)) {
                             visual.destroy();
-                            visual = visualCtor(materialId, structure, _props, webgl);
-                            const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure });
+                            visual = visualCtor(materialId, structure, _props, webgl, webgpu);
+                            const promise = visual.createOrUpdate({ webgl, webgpu, runtime }, _theme, _props, { group, structure });
                             if (promise) await promise;
                             setVisualState(visual, group, _state); // current state for new visual
                         } else {
-                            const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure });
+                            const promise = visual.createOrUpdate({ webgl, webgpu, runtime }, _theme, _props, { group, structure });
                             if (promise) await promise;
                         }
                         visuals.set(group, { visual, group });
@@ -119,8 +120,8 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                     } else {
                         // console.log(label, 'did not find visualGroup to reuse, creating new');
                         // newGroups.push(group)
-                        const visual = visualCtor(materialId, structure, _props, webgl);
-                        const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure });
+                        const visual = visualCtor(materialId, structure, _props, webgl, webgpu);
+                        const promise = visual.createOrUpdate({ webgl, webgpu, runtime }, _theme, _props, { group, structure });
                         if (promise) await promise;
                         setVisualState(visual, group, _state); // current state for new visual
                         visuals.set(group, { visual, group });
@@ -144,15 +145,15 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                     const visualGroup = visuals.get(group);
                     if (visualGroup) {
                         let { visual } = visualGroup;
-                        if (visual.mustRecreate?.({ group, structure }, _props, ctx.webgl)) {
+                        if (visual.mustRecreate?.({ group, structure }, _props, ctx.webgl, ctx.webgpu)) {
                             visual.destroy();
-                            visual = visualCtor(materialId, structure, _props, ctx.webgl);
+                            visual = visualCtor(materialId, structure, _props, ctx.webgl, ctx.webgpu);
                             visualGroup.visual = visual;
-                            const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure });
+                            const promise = visual.createOrUpdate({ webgl, webgpu, runtime }, _theme, _props, { group, structure });
                             if (promise) await promise;
                             setVisualState(visual, group, _state); // current state for new visual
                         } else {
-                            const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure });
+                            const promise = visual.createOrUpdate({ webgl, webgpu, runtime }, _theme, _props, { group, structure });
                             if (promise) await promise;
                         }
                         visualGroup.group = group;
@@ -168,15 +169,15 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                 visuals.forEach(vg => visualsList.push(vg));
                 for (let i = 0, il = visualsList.length; i < il; ++i) {
                     let { visual, group } = visualsList[i];
-                    if (visual.mustRecreate?.({ group, structure: _structure }, _props, ctx.webgl)) {
+                    if (visual.mustRecreate?.({ group, structure: _structure }, _props, ctx.webgl, ctx.webgpu)) {
                         visual.destroy();
-                        visual = visualCtor(materialId, _structure, _props, webgl);
+                        visual = visualCtor(materialId, _structure, _props, webgl, webgpu);
                         visualsList[i].visual = visual;
-                        const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, { group, structure: _structure });
+                        const promise = visual.createOrUpdate({ webgl, webgpu, runtime }, _theme, _props, { group, structure: _structure });
                         if (promise) await promise;
                         setVisualState(visual, group, _state); // current state for new visual
                     } else {
-                        const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props);
+                        const promise = visual.createOrUpdate({ webgl, webgpu, runtime }, _theme, _props);
                         if (promise) await promise;
                     }
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: il });

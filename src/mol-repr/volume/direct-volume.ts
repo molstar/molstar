@@ -24,6 +24,7 @@ import { Interval } from '../../mol-data/int/interval';
 import { OrderedSet } from '../../mol-data/int/ordered-set';
 import { VolumeVisual } from './visual';
 import { clamp } from '../../mol-math/interpolate';
+import { WebGPUTextureData } from '../../mol-gl/webgpu/texture-data';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D();
@@ -122,7 +123,15 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, v
 
 export async function createDirectVolume(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: PD.Values<DirectVolumeParams>, directVolume?: DirectVolume) {
     const { runtime, webgl } = ctx;
-    if (webgl === undefined) throw new Error('DirectVolumeVisual requires `webgl` in VisualContext');
+    if (webgl === undefined) {
+        const dataType = props.dataType;
+        const texture = directVolume?.gridTexture.ref.value instanceof WebGPUTextureData ? directVolume.gridTexture.ref.value : new WebGPUTextureData();
+        texture.load(createVolumeTexture3d(volume, dataType));
+        const gridDimension = volume.grid.cells.space.dimensions as Vec3;
+        const transform = Grid.getGridToCartesianTransform(volume.grid);
+        const { unitToCartn, cellDim } = getUnitToCartn(volume.grid);
+        return DirectVolume.create(getBoundingBox(gridDimension, transform), gridDimension, transform, unitToCartn, cellDim, texture, volume.grid.stats, false, volume.grid.cells.space.axisOrderSlowToFast as Vec3, dataType, directVolume);
+    }
 
     return webgl.isWebGL2 ?
         createDirectVolume3d(runtime, webgl, volume, props, directVolume) :

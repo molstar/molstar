@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { WebGPUTextureData } from '../../../mol-gl/webgpu/texture-data';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { VisualContext } from '../../visual';
@@ -18,6 +19,8 @@ import { CommonSurfaceParams } from './util/common';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { Texture } from '../../../mol-gl/webgl/texture';
+import { WebGPUContext } from '../../../mol-gl/webgpu/context';
+import { applyMeshColorSmoothingWebGPU } from '../../../mol-gl/webgpu/color-smoothing';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { applyMeshColorSmoothing } from '../../../mol-geo/geometry/mesh/color-smoothing';
 import { ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
@@ -97,11 +100,13 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
                 if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride) state.updateColor = true;
             }
         },
-        processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<MolecularSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
+        processValues: async (values: MeshValues, geometry: Mesh, props: PD.Values<MolecularSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
             const { resolution, colorTexture } = geometry.meta as MolecularSurfaceMeta;
             const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
             if (csp) {
-                applyMeshColorSmoothing(values, csp, webgl, colorTexture);
+                const texture = webgpu ? (colorTexture instanceof WebGPUTextureData ? colorTexture : new WebGPUTextureData()) : colorTexture;
+                if (webgpu) await applyMeshColorSmoothingWebGPU(webgpu, values, csp, texture as WebGPUTextureData);
+                else applyMeshColorSmoothing(values, csp, webgl, texture);
                 (geometry.meta as MolecularSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
         },
@@ -169,11 +174,13 @@ export function StructureMolecularSurfaceMeshVisual(materialId: number): Complex
                 if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride) state.updateColor = true;
             }
         },
-        processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<MolecularSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
+        processValues: async (values: MeshValues, geometry: Mesh, props: PD.Values<MolecularSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
             const { resolution, colorTexture } = geometry.meta as MolecularSurfaceMeta;
             const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
             if (csp) {
-                applyMeshColorSmoothing(values, csp, webgl, colorTexture);
+                const texture = webgpu ? (colorTexture instanceof WebGPUTextureData ? colorTexture : new WebGPUTextureData()) : colorTexture;
+                if (webgpu) await applyMeshColorSmoothingWebGPU(webgpu, values, csp, texture as WebGPUTextureData);
+                else applyMeshColorSmoothing(values, csp, webgl, texture);
                 (geometry.meta as MolecularSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
         },

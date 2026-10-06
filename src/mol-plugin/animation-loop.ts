@@ -24,16 +24,20 @@ export class PluginAnimationLoop {
     private currentFrame: number | undefined = undefined;
     private _isAnimating = false;
 
+    get time() { return this.properTimeT; }
+
     get isAnimating() {
         return this._isAnimating;
     }
 
     async tick(t: number, options?: { isSynchronous?: boolean, manualDraw?: boolean, animation?: PluginAnimationManager.AnimationInfo, updateControls?: boolean, xrFrame?: XRFrame }) {
+        const canvas = this.plugin.canvas3d;
         await this.plugin.managers.animation.tick(t, options?.isSynchronous, options?.animation);
+        if (canvas !== this.plugin.canvas3d) return;
         this.plugin.canvas3d?.tick(t as now.Timestamp, options);
 
         if (isTimingMode) {
-            const timerResults = this.plugin.canvas3d?.webgl.timer.resolve();
+            const timerResults = this.plugin.canvas3d?.webgl?.timer.resolve();
             if (timerResults) {
                 for (const result of timerResults) {
                     printTimerResults([result]);
@@ -57,11 +61,11 @@ export class PluginAnimationLoop {
         this.plugin.canvas3d?.resetTime(t);
     }
 
-    start(options?: { immediate?: boolean }) {
+    start(options?: { immediate?: boolean, time?: number }) {
         this.plugin.canvas3d?.resume();
         this._isAnimating = true;
+        this.properTimeT = options?.time ?? 0;
         this.resetTime(0);
-        this.properTimeT = 0;
         this.lastTickT = now();
         if (options?.immediate) this.frame();
         else this.currentFrame = this.plugin.canvas3d?.requestAnimationFrame(this.frame);

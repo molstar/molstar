@@ -21,13 +21,15 @@ import { SizeTheme } from '../../../../mol-theme/size';
 import { hasPolarNeighbour } from '../../../../mol-model-props/computed/chemistry/functional-group';
 import { isDebugMode } from '../../../../mol-util/debug';
 import { WebGLContext } from '../../../../mol-gl/webgl/context';
+import type { WebGPUContext } from '../../../../mol-gl/webgpu/context';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const m4toArray = Mat4.toArray;
 
 let SphereImpostorWarningShown = false;
 
-export function checkSphereImpostorSupport(webgl?: WebGLContext) {
+export function checkSphereImpostorSupport(webgl?: WebGLContext, webgpu?: WebGPUContext) {
+    if (webgpu) return true;
     if (!webgl) {
         if (isDebugMode && !SphereImpostorWarningShown) {
             console.warn('WebGL required for "sphere impostors". Falling back to "sphere mesh".');
@@ -49,7 +51,8 @@ export function checkSphereImpostorSupport(webgl?: WebGLContext) {
 
 let CylinderImpostorWarningShown = false;
 
-export function checkCylinderImpostorSupport(webgl?: WebGLContext) {
+export function checkCylinderImpostorSupport(webgl?: WebGLContext, webgpu?: WebGPUContext) {
+    if (webgpu) return true;
     if (!webgl) {
         if (isDebugMode && !CylinderImpostorWarningShown) {
             console.warn('WebGL required for "cylinder impostors". Falling back to "cylinder mesh".');
@@ -198,7 +201,7 @@ export const CommonSurfaceParams = {
     ignoreHydrogens: PD.Boolean(false, { description: 'Whether or not to include hydrogen atoms in the surface calculation.' }),
     ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
     traceOnly: PD.Boolean(false, { description: 'Whether or not to only use trace atoms in the surface calculation.' }),
-    includeParent: PD.Boolean(false, { description: 'Include elements of the parent structure in surface calculation to get a surface patch of the current structure. Note that this disables GPU support.' }),
+    includeParent: PD.Boolean(false, { description: 'Include elements of the parent structure in surface calculation to get a surface patch of the current structure.' }),
 };
 export const DefaultCommonSurfaceProps = PD.getDefaultValues(CommonSurfaceParams);
 export type CommonSurfaceProps = typeof DefaultCommonSurfaceProps
@@ -331,7 +334,7 @@ export function getStructureConformationAndRadius(structure: Structure, sizeThem
         }
         xs = _xs, ys = _ys, zs = _zs, rs = _rs;
         id = _id;
-        indices = OrderedSet.ofRange(0, id.length);
+        indices = OrderedSet.ofBounds(0, id.length);
     } else {
         const { elementCount } = structure;
         const _xs = new Float32Array(elementCount);
@@ -356,7 +359,7 @@ export function getStructureConformationAndRadius(structure: Structure, sizeThem
         }
         xs = _xs, ys = _ys, zs = _zs, rs = _rs;
         id = fillSerial(new Uint32Array(elementCount));
-        indices = OrderedSet.ofRange(0, id.length);
+        indices = OrderedSet.ofBounds(0, id.length);
     }
 
     const position = { indices, x: xs, y: ys, z: zs, id };

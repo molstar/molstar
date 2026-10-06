@@ -14,6 +14,8 @@ import { GaussianDensityCPU } from './gaussian-density/cpu';
 import { Mat4 } from '../linear-algebra/3d/mat4';
 import { Vec3 } from '../linear-algebra/3d/vec3';
 import { Vec2 } from '../linear-algebra/3d/vec2';
+import { GaussianDensityWebGPU } from '../../mol-gl/webgpu/gaussian-density';
+import type { WebGPUContext } from '../../mol-gl/webgpu/context';
 
 export const DefaultGaussianDensityProps = {
     resolution: 1,
@@ -39,9 +41,9 @@ export type GaussianDensityTextureData = {
     gridTexScale: Vec2
 }
 
-export function computeGaussianDensity(position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps) {
+export function computeGaussianDensity(position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, webgpu?: WebGPUContext) {
     return Task.create('Gaussian Density', async ctx => {
-        return await GaussianDensityCPU(ctx, position, box, radius, props);
+        return webgpu ? await GaussianDensityWebGPU(ctx, webgpu, position, box, radius, props) : await GaussianDensityCPU(ctx, position, box, radius, props);
     });
 }
 

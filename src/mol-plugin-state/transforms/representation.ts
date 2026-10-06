@@ -146,7 +146,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             const provider = plugin.representation.structure.registry.get(params.type.name);
             const data = provider.getData?.(a.data, params.type.params) || a.data;
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, data);
-            const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, provider.getParams);
+            const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, webgpu: plugin.canvas3d?.webgpu, ...plugin.representation.structure.themes }, provider.getParams);
             await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: data }, params);
             repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: data }, params));
 
@@ -1125,7 +1125,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext };
             const provider = plugin.representation.volume.registry.get(params.type.name);
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
-            const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes }, provider.getParams);
+            const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, webgpu: plugin.canvas3d?.webgpu, ...plugin.representation.volume.themes }, provider.getParams);
             await Theme.ensureDependencies(propertyCtx, plugin.representation.volume.themes, { volume: a.data }, params);
             repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data, locationKinds: provider.locationKinds }, params));
 
@@ -1221,7 +1221,7 @@ const ModelUnitcell3D = PluginStateTransform.BuiltIn({
             const symmetry = ModelSymmetry.Provider.get(a.data);
             if (!symmetry) return StateObject.Null;
             const data = getUnitcellData(a.data, symmetry.spacegroup.cell, params);
-            const repr = UnitcellRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => UnitcellParams);
+            const repr = UnitcellRepresentation({ webgl: plugin.canvas3d?.webgl, webgpu: plugin.canvas3d?.webgpu, ...plugin.representation.structure.themes }, () => UnitcellParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
             return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: `Unit Cell`, description: symmetry.spacegroup.name });
         });
@@ -1291,7 +1291,7 @@ const StructureSelectionsDistance3D = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Distance', async ctx => {
             const data = getDistanceDataFromStructureSelections(a.data);
-            const repr = DistanceRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => DistanceParams);
+            const repr = DistanceRepresentation({ webgl: plugin.canvas3d?.webgl, webgpu: plugin.canvas3d?.webgpu, ...plugin.representation.structure.themes }, () => DistanceParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
             return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: `Distance` });
         });
@@ -1324,7 +1324,7 @@ const StructureSelectionsAngle3D = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Angle', async ctx => {
             const data = getAngleDataFromStructureSelections(a.data);
-            const repr = AngleRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => AngleParams);
+            const repr = AngleRepresentation({ webgl: plugin.canvas3d?.webgl, webgpu: plugin.canvas3d?.webgpu, ...plugin.representation.structure.themes }, () => AngleParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
             return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: `Angle` });
         });
@@ -1357,7 +1357,7 @@ const StructureSelectionsDihedral3D = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Dihedral', async ctx => {
             const data = getDihedralDataFromStructureSelections(a.data);
-            const repr = DihedralRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => DihedralParams);
+            const repr = DihedralRepresentation({ webgl: plugin.canvas3d?.webgl, webgpu: plugin.canvas3d?.webgpu, ...plugin.representation.structure.themes }, () => DihedralParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
             return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: `Dihedral` });
         });
@@ -1390,7 +1390,7 @@ const StructureSelectionsLabel3D = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Label', async ctx => {
             const data = getLabelDataFromStructureSelections(a.data);
-            const repr = LabelRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => LabelParams);
+            const repr = LabelRepresentation({ webgl: plugin.canvas3d?.webgl, webgpu: plugin.canvas3d?.webgpu, ...plugin.representation.structure.themes }, () => LabelParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
 
             // Support interactivity when needed
@@ -1433,7 +1433,7 @@ const StructureSelectionsOrientation3D = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Orientation', async ctx => {
             const data = getOrientationDataFromStructureSelections(a.data);
-            const repr = OrientationRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => OrientationParams);
+            const repr = OrientationRepresentation({ webgl: plugin.canvas3d?.webgl, webgpu: plugin.canvas3d?.webgpu, ...plugin.representation.structure.themes }, () => OrientationParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
             return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: `Orientation` });
         });
@@ -1466,7 +1466,7 @@ const StructureSelectionsPlane3D = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Plane', async ctx => {
             const data = getPlaneDataFromStructureSelections(a.data);
-            const repr = PlaneRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => PlaneParams);
+            const repr = PlaneRepresentation({ webgl: plugin.canvas3d?.webgl, webgpu: plugin.canvas3d?.webgpu, ...plugin.representation.structure.themes }, () => PlaneParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
             return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: `Plane` });
         });

@@ -20,6 +20,7 @@ import { BondCylinderParams, BondIterator, getInterBondLoci, eachInterBond, make
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Cylinders } from '../../../mol-geo/geometry/cylinders/cylinders';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
+import type { WebGPUContext } from '../../../mol-gl/webgpu/context';
 import { SortedArray } from '../../../mol-data/int/sorted-array';
 import { SizeTheme } from '../../../mol-theme/size';
 import { EmptyLocationIterator } from '../../../mol-geo/util/location-iterator';
@@ -211,8 +212,8 @@ export const InterUnitBondCylinderParams = {
 };
 export type InterUnitBondCylinderParams = typeof InterUnitBondCylinderParams
 
-export function InterUnitBondCylinderVisual(materialId: number, structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) {
-    return props.tryUseImpostor && checkCylinderImpostorSupport(webgl)
+export function InterUnitBondCylinderVisual(materialId: number, structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) {
+    return props.tryUseImpostor && checkCylinderImpostorSupport(webgl, webgpu)
         ? InterUnitBondCylinderImpostorVisual(materialId)
         : InterUnitBondCylinderMeshVisual(materialId);
 }
@@ -264,8 +265,8 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
                 state.updateSize = true;
             }
         },
-        mustRecreate: (structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) => {
-            return !props.tryUseImpostor || !webgl;
+        mustRecreate: (structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
+            return !props.tryUseImpostor || (!webgl && !webgpu);
         }
     }, materialId);
 }
@@ -313,8 +314,8 @@ export function InterUnitBondCylinderMeshVisual(materialId: number): ComplexVisu
                 state.updateSize = true;
             }
         },
-        mustRecreate: (structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) => {
-            return props.tryUseImpostor && !!webgl;
+        mustRecreate: (structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
+            return props.tryUseImpostor && (!!webgl || !!webgpu);
         }
     }, materialId);
 }

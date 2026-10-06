@@ -14,7 +14,7 @@ import { LinesBuilder } from '../../mol-geo/geometry/lines/lines-builder';
 import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 import { DirectVolumeValues } from '../../mol-gl/renderable/direct-volume';
 import { addBox } from '../../mol-geo/geometry/lines/builder/box';
-import { DebugHelper } from '../../mol-canvas3d/helper/debug-registry';
+import { DebugHelper, DebugHelperParent, DebugHelperScene } from '../../mol-canvas3d/helper/debug-registry';
 
 export const DirectVolumeHelperParams = {
     directVolumeEdges: PD.Boolean(false, { description: 'Show edges of visible direct-volume render objects.' }),
@@ -26,15 +26,17 @@ const directVolumeMaterialId = getNextMaterialId();
 
 type TrackedEntry = { ro: GraphicsRenderObject, version: number };
 
-export class DirectVolumeHelper implements DebugHelper<DirectVolumeHelperProps> {
-    readonly scene: Scene;
+export class DirectVolumeHelper<S extends DebugHelperScene = Scene> implements DebugHelper<DirectVolumeHelperProps, S> {
+    readonly scene: S;
 
-    private readonly parent: Scene;
+    private readonly parent: DebugHelperParent;
     private _props: DirectVolumeHelperProps;
     private renderObjects = new Map<number, TrackedEntry>();
 
-    constructor(ctx: WebGLContext, parent: Scene, props: Partial<DirectVolumeHelperProps>) {
-        this.scene = Scene.create(ctx, 'blended');
+    constructor(ctx: WebGLContext, parent: DebugHelperParent, props: Partial<DirectVolumeHelperProps>);
+    constructor(ctx: undefined, parent: DebugHelperParent, props: Partial<DirectVolumeHelperProps>, scene: S);
+    constructor(ctx: WebGLContext | undefined, parent: DebugHelperParent, props: Partial<DirectVolumeHelperProps>, scene?: S) {
+        this.scene = scene ?? Scene.create(ctx!, 'blended') as unknown as S;
         this.parent = parent;
         this._props = { ...PD.getDefaultValues(DirectVolumeHelperParams), ...props };
     }
@@ -47,7 +49,7 @@ export class DirectVolumeHelper implements DebugHelper<DirectVolumeHelperProps> 
             if (ro.type !== 'direct-volume') return;
 
             const values = ro.values as DirectVolumeValues;
-            const version = values.uUnitToCartn.ref.version + values.uGridDim.ref.version + values.aTransform.ref.version;
+            const version = values.uUnitToCartn.ref.version + values.uGridDim.ref.version + values.aTransform.ref.version + values.uInstanceCount.ref.version;
 
             const existing = this.renderObjects.get(ro.id);
             if (existing && existing.version === version) {

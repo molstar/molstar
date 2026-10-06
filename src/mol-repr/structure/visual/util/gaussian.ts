@@ -14,13 +14,15 @@ import { WebGLContext } from '../../../../mol-gl/webgl/context';
 import { getUnitConformationAndRadius, getStructureConformationAndRadius, CommonSurfaceParams, ensureReasonableResolution } from './common';
 import { BaseGeometry } from '../../../../mol-geo/geometry/base';
 import { GaussianDensityCPU } from '../../../../mol-math/geometry/gaussian-density/cpu';
+import { GaussianDensityWebGPU } from '../../../../mol-gl/webgpu/gaussian-density';
+import type { WebGPUContext } from '../../../../mol-gl/webgpu/context';
 import { SizeTheme } from '../../../../mol-theme/size';
 
 export const GaussianDensityParams = {
     resolution: PD.Numeric(1, { min: 0.1, max: 20, step: 0.1 }, { description: 'Grid resolution/cell spacing.', ...BaseGeometry.CustomQualityParamInfo }),
     radiusOffset: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, { description: 'Extra/offset radius added to the atoms/coarse elements for gaussian calculation. Useful to create coarse, low resolution surfaces.' }),
     smoothness: PD.Numeric(1.5, { min: 1, max: 3, step: 0.1 }, { description: 'Smoothness of the gausian surface, lower is smoother.' }),
-    floodfill: PD.Select('off', PD.arrayToOptions(['off', 'inside', 'outside']), { description: 'If and how to floodfill the gaussian surface. Note that this disables GPU support.' }),
+    floodfill: PD.Select('off', PD.arrayToOptions(['off', 'inside', 'outside']), { description: 'Fill enclosed cavities or exterior space before building the Gaussian surface.' }),
     ...CommonSurfaceParams
 };
 export const DefaultGaussianDensityProps = PD.getDefaultValues(GaussianDensityParams);
@@ -35,11 +37,11 @@ export function getTextureMaxCells(webgl: WebGLContext, structure?: Structure) {
 
 //
 
-export function computeUnitGaussianDensity(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, props: GaussianDensityProps) {
+export function computeUnitGaussianDensity(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, props: GaussianDensityProps & { tryUseGpu?: boolean }, webgpu?: WebGPUContext) {
     const { position, boundary, radius } = getUnitConformationAndRadius(structure, unit, sizeTheme, props);
     const p = ensureReasonableResolution(boundary.box, props);
     return Task.create('Gaussian Density', async ctx => {
-        return await GaussianDensityCPU(ctx, position, boundary.box, radius, p);
+        return webgpu && props.tryUseGpu !== false ? await GaussianDensityWebGPU(ctx, webgpu, position, boundary.box, radius, p) : await GaussianDensityCPU(ctx, position, boundary.box, radius, p);
     });
 }
 
@@ -57,11 +59,11 @@ export function computeUnitGaussianDensityTexture2d(structure: Structure, unit: 
 
 //
 
-export function computeStructureGaussianDensity(structure: Structure, sizeTheme: SizeTheme<any>, props: GaussianDensityProps) {
+export function computeStructureGaussianDensity(structure: Structure, sizeTheme: SizeTheme<any>, props: GaussianDensityProps & { tryUseGpu?: boolean }, webgpu?: WebGPUContext) {
     const { position, boundary, radius } = getStructureConformationAndRadius(structure, sizeTheme, props);
     const p = ensureReasonableResolution(boundary.box, props);
     return Task.create('Gaussian Density', async ctx => {
-        return await GaussianDensityCPU(ctx, position, boundary.box, radius, p);
+        return webgpu && props.tryUseGpu !== false ? await GaussianDensityWebGPU(ctx, webgpu, position, boundary.box, radius, p) : await GaussianDensityCPU(ctx, position, boundary.box, radius, p);
     });
 }
 

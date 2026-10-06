@@ -24,6 +24,7 @@ import { DataLoci, EmptyLoci, isEveryLoci, Loci } from '../../mol-model/loci';
 import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { Visual } from '../../mol-repr/visual';
 import { Interval } from '../../mol-data/int';
+import { WebGPUHelperScene } from './webgpu-scene';
 
 const HandleParams = {
     ...Mesh.Params,
@@ -46,8 +47,10 @@ export const HandleHelperParams = {
 export type HandleHelperParams = typeof HandleHelperParams
 export type HandleHelperProps = PD.Values<HandleHelperParams>
 
-export class HandleHelper {
-    scene: Scene;
+type HandleHelperScene = Pick<Scene, 'clear' | 'add' | 'commit' | 'update'>;
+
+export class HandleHelper<S extends HandleHelperScene = Scene> {
+    scene: S;
     props: HandleHelperProps = {
         handle: { name: 'off', params: {} }
     };
@@ -70,6 +73,7 @@ export class HandleHelper {
             if (props.handle !== undefined) {
                 p.handle.name = props.handle.name;
                 if (props.handle.name === 'on') {
+                    const transform = this.renderObject?.values.aTransform.ref.value.slice();
                     this.scene.clear();
                     this.pixelRatio = this.webgl.pixelRatio;
                     const params = {
@@ -78,6 +82,10 @@ export class HandleHelper {
                         cellSize: 0,
                     };
                     this.renderObject = createHandleRenderObject(params);
+                    if (transform) {
+                        this.renderObject.values.aTransform.ref.value.set(transform);
+                        ValueCell.update(this.renderObject.values.aTransform, this.renderObject.values.aTransform.ref.value);
+                    }
                     this.scene.add(this.renderObject);
                     this.scene.commit();
 
@@ -91,6 +99,11 @@ export class HandleHelper {
         return this.props.handle.name === 'on';
     }
 
+    getRenderObjects() {
+        if (this.isEnabled && this.pixelRatio !== this.webgl.pixelRatio) this.setProps(this.props);
+        return this.isEnabled && this.renderObject ? [this.renderObject] : [];
+    }
+
     // TODO could be a lists of position/rotation if we want to show more than one handle tool,
     //      they would be distingishable by their instanceId
     update(camera: Camera, position: Vec3, rotation: Mat3) {
@@ -100,8 +113,8 @@ export class HandleHelper {
             this.setProps(this.props);
         }
 
-        Mat4.setTranslation(this.renderObject.values.aTransform.ref.value as unknown as Mat4, position);
         Mat4.fromMat3(this.renderObject.values.aTransform.ref.value as unknown as Mat4, rotation);
+        Mat4.setTranslation(this.renderObject.values.aTransform.ref.value as unknown as Mat4, position);
 
         // TODO make invariant to camera scaling by adjusting renderObject transform
 
@@ -137,8 +150,10 @@ export class HandleHelper {
         return Visual.mark(this.renderObject, loci, action, this.eachGroup);
     }
 
-    constructor(private webgl: WebGLContext, props: Partial<HandleHelperProps> = {}) {
-        this.scene = Scene.create(webgl, 'blended');
+    constructor(webgl: WebGLContext, props?: Partial<HandleHelperProps>);
+    constructor(webgl: Pick<WebGLContext, 'pixelRatio'>, props: Partial<HandleHelperProps>, scene: S);
+    constructor(private webgl: Pick<WebGLContext, 'pixelRatio'>, props: Partial<HandleHelperProps> = {}, scene?: S) {
+        this.scene = scene ?? Scene.create(webgl as WebGLContext, 'blended') as unknown as S;
         this.setProps(props);
     }
 }
@@ -189,7 +204,7 @@ export const HandleGroup = {
     // RotateObjectZ: 12,
 } as const;
 
-function HandleLoci(handleHelper: HandleHelper, groupId: number, instanceId: number) {
+function HandleLoci(handleHelper: HandleHelper<HandleHelperScene>, groupId: number, instanceId: number) {
     return DataLoci('handle', handleHelper, [{ groupId, instanceId }],
         (boundingSphere: Sphere3D) => handleHelper.getBoundingSphere(boundingSphere, instanceId),
         () => `Handle Helper | Group Id ${groupId} | Instance Id ${instanceId}`);
@@ -197,6 +212,10 @@ function HandleLoci(handleHelper: HandleHelper, groupId: number, instanceId: num
 export type HandleLoci = ReturnType<typeof HandleLoci>
 export function isHandleLoci(x: Loci): x is HandleLoci {
     return x.kind === 'data-loci' && x.tag === 'handle';
+}
+
+export function createWebGPUHandleHelper(pixelRatio: () => number, props: Partial<HandleHelperProps> = {}) {
+    return new HandleHelper({ get pixelRatio() { return pixelRatio(); } }, props, new WebGPUHelperScene());
 }
 
 function getHandleShape(props: HandleProps, shape?: Shape<Mesh>) {

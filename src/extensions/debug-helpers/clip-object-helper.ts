@@ -22,7 +22,7 @@ import { Box } from '../../mol-geo/primitive/box';
 import { Plane } from '../../mol-geo/primitive/plane';
 import { Cylinder } from '../../mol-geo/primitive/cylinder';
 import { Sphere } from '../../mol-geo/primitive/sphere';
-import { DebugHelper } from '../../mol-canvas3d/helper/debug-registry';
+import { DebugHelper, DebugHelperParent, DebugHelperScene } from '../../mol-canvas3d/helper/debug-registry';
 
 export const ClipObjectHelperParams = {
     clipObjects: PD.Boolean(false, { description: 'Show clip-objects of visible render objects.' }),
@@ -89,15 +89,17 @@ const _yAxis = Vec3.create(0, 1, 0);
 const _zAxis = Vec3.create(0, 0, 1);
 const _indicatorPos = Vec3();
 
-export class ClipObjectHelper implements DebugHelper<ClipObjectHelperProps> {
-    readonly scene: Scene;
+export class ClipObjectHelper<S extends DebugHelperScene = Scene> implements DebugHelper<ClipObjectHelperProps, S> {
+    readonly scene: S;
 
-    private readonly parent: Scene;
+    private readonly parent: DebugHelperParent;
     private _props: ClipObjectHelperProps;
     private objectsData = new Map<string, ClipObjectData>();
 
-    constructor(ctx: WebGLContext, parent: Scene, props: Partial<ClipObjectHelperProps>) {
-        this.scene = Scene.create(ctx, 'blended');
+    constructor(ctx: WebGLContext, parent: DebugHelperParent, props: Partial<ClipObjectHelperProps>);
+    constructor(ctx: undefined, parent: DebugHelperParent, props: Partial<ClipObjectHelperProps>, scene: S);
+    constructor(ctx: WebGLContext | undefined, parent: DebugHelperParent, props: Partial<ClipObjectHelperProps>, scene?: S) {
+        this.scene = scene ?? Scene.create(ctx!, 'blended') as unknown as S;
         this.parent = parent;
         this._props = { ...PD.getDefaultValues(ClipObjectHelperParams), ...props };
     }
@@ -129,7 +131,7 @@ export class ClipObjectHelper implements DebugHelper<ClipObjectHelperProps> {
                     rotations, i * 4,
                     scales, i * 3,
                     transforms, i * 16
-                );
+                ) + (type === Clip.Type.plane || type === Clip.Type.infiniteCone ? `:${sceneRadius}` : '');
 
                 currentKeys.add(key);
 

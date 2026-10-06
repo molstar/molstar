@@ -6,28 +6,25 @@
  *
  * Command-line application for rendering images from MolViewSpec files
  * From Molstar NPM package:
- *     npm install molstar canvas gl jpeg-js pngjs
+ *     bun add molstar webgpu @napi-rs/canvas jpeg-js pngjs
  *     npx mvs-render -i examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
  * From Molstar source code:
- *     npm install
- *     npm install --no-save canvas gl jpeg-js pngjs  // these packages are not listed in Mol* dependencies for performance reasons
- *     npm run build
+ *     bun install
+ *     bun add -d webgpu @napi-rs/canvas jpeg-js pngjs  // these packages are not listed in Mol* dependencies for performance reasons
+ *     bun run build
  *     node lib/commonjs/cli/mvs/mvs-render -i examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
  */
 
 import { ArgumentParser } from 'argparse';
 import fs from 'fs';
-import gl from 'gl';
-import jpegjs from 'jpeg-js';
 import path from 'path';
-import pngjs from 'pngjs';
 
 import { Canvas3DParams } from '../../mol-canvas3d/canvas3d';
-import { setCanvasModule } from '../../mol-geo/geometry/text/font-atlas';
 import { PluginContext } from '../../mol-plugin/context';
 import { HeadlessPluginContext } from '../../mol-plugin/headless-plugin-context';
 import { DefaultPluginSpec, PluginSpec } from '../../mol-plugin/spec';
-import { ExternalModules, defaultCanvas3DParams } from '../../mol-plugin/util/headless-screenshot';
+import { defaultCanvas3DParams } from '../../mol-plugin/util/headless-screenshot';
+import { loadHeadlessModules } from '../../mol-plugin/util/headless-modules';
 import { Task } from '../../mol-task';
 import { setFSModule } from '../../mol-util/data-source';
 import { onelinerJsonString } from '../../mol-util/json';
@@ -42,7 +39,6 @@ import { MVSData } from '../../extensions/mvs/mvs-data';
 
 
 setFSModule(fs);
-setCanvasModule(require('canvas'));
 
 const DEFAULT_SIZE = '800x800';
 
@@ -53,6 +49,7 @@ interface Args {
     size: { width: number, height: number },
     molj: boolean,
     no_extensions: boolean,
+    renderer: 'webgpu' | 'webgl',
 }
 
 /** Return parsed command line arguments for `main` */
@@ -63,6 +60,7 @@ function parseArguments(): Args {
     parser.add_argument('-s', '--size', { help: `Output image resolution, {width}x{height}. Default: ${DEFAULT_SIZE}.`, default: DEFAULT_SIZE });
     parser.add_argument('-m', '--molj', { action: 'store_true', help: `Save Mol* state (.molj) in addition to rendered images (use the same output file paths but with .molj extension)` });
     parser.add_argument('-n', '--no-extensions', { action: 'store_true', help: `Do not apply builtin MVS-loading extensions (not a part of standard MVS specification)` });
+    parser.add_argument('--renderer', { choices: ['webgpu', 'webgl'], default: 'webgpu', help: 'Rendering backend (default: webgpu)' });
     const args = parser.parse_args();
     try {
         const parts = args.size.split('x');
@@ -80,46 +78,51 @@ function parseArguments(): Args {
 /** Main workflow for rendering images from MolViewSpec files */
 async function main(args: Args): Promise<void> {
     const plugin = await createHeadlessPlugin(args);
+    const gpuErrors: string[] = [];
+    const errorSub = plugin.canvas3d?.webgpu?.errors.subscribe(error => gpuErrors.push(error.message));
+    try {
+        for (let i = 0; i < args.input.length; i++) {
+            const input = args.input[i];
+            const output = args.output[i];
+            console.log(`Processing ${input} -> ${output}`);
 
-    for (let i = 0; i < args.input.length; i++) {
-        const input = args.input[i];
-        const output = args.output[i];
-        console.log(`Processing ${input} -> ${output}`);
+            let mvsData: MVSData;
+            let sourceUrl: string | undefined;
+            if (input.toLowerCase().endsWith('.mvsj')) {
+                const data = fs.readFileSync(input, { encoding: 'utf8' });
+                mvsData = MVSData.fromMVSJ(data);
+                sourceUrl = `file://${path.resolve(input)}`;
+            } else if (input.toLowerCase().endsWith('.mvsx')) {
+                const data = fs.readFileSync(input);
+                const mvsx = await plugin.runTask(Task.create('Load MVSX', async ctx => loadMVSX(plugin, ctx, data)));
+                mvsData = mvsx.mvsData;
+                sourceUrl = mvsx.sourceUrl;
+            } else {
+                throw new Error(`Input file name must end with .mvsj or .mvsx: ${input}`);
+            }
+            await loadMVS(plugin, mvsData, { sanityChecks: true, sourceUrl: sourceUrl, extensions: args.no_extensions ? [] : undefined });
 
-        let mvsData: MVSData;
-        let sourceUrl: string | undefined;
-        if (input.toLowerCase().endsWith('.mvsj')) {
-            const data = fs.readFileSync(input, { encoding: 'utf8' });
-            mvsData = MVSData.fromMVSJ(data);
-            sourceUrl = `file://${path.resolve(input)}`;
-        } else if (input.toLowerCase().endsWith('.mvsx')) {
-            const data = fs.readFileSync(input);
-            const mvsx = await plugin.runTask(Task.create('Load MVSX', async ctx => loadMVSX(plugin, ctx, data)));
-            mvsData = mvsx.mvsData;
-            sourceUrl = mvsx.sourceUrl;
-        } else {
-            throw new Error(`Input file name must end with .mvsj or .mvsx: ${input}`);
+            fs.mkdirSync(path.dirname(output), { recursive: true });
+            if (args.molj) {
+                await plugin.saveStateSnapshot(withExtension(output, '.molj'));
+            }
+            if (output.toLowerCase().endsWith('.mp4')) {
+                await plugin.saveAnimation(output);
+            } else {
+                await plugin.saveImage(output);
+            }
+            checkState(plugin);
+            if (gpuErrors.length) throw new Error(gpuErrors.join('\n'));
         }
-        await loadMVS(plugin, mvsData, { sanityChecks: true, sourceUrl: sourceUrl, extensions: args.no_extensions ? [] : undefined });
-
-        fs.mkdirSync(path.dirname(output), { recursive: true });
-        if (args.molj) {
-            await plugin.saveStateSnapshot(withExtension(output, '.molj'));
-        }
-        if (output.toLowerCase().endsWith('.mp4')) {
-            await plugin.saveAnimation(output);
-        } else {
-            await plugin.saveImage(output);
-        }
-        checkState(plugin);
+    } finally {
+        errorSub?.unsubscribe();
+        try { await plugin.clear(); } finally { plugin.dispose(); plugin.renderer.externalModules.webgpu = undefined; }
     }
-    await plugin.clear();
-    plugin.dispose();
 }
 
 /** Return a new and initiatized HeadlessPlugin */
-async function createHeadlessPlugin(args: Pick<Args, 'size'>): Promise<HeadlessPluginContext> {
-    const externalModules: ExternalModules = { gl, pngjs, 'jpeg-js': jpegjs };
+async function createHeadlessPlugin(args: Pick<Args, 'size' | 'renderer'>): Promise<HeadlessPluginContext> {
+    const externalModules = await loadHeadlessModules(args.renderer);
     const spec = DefaultPluginSpec();
     spec.behaviors.push(PluginSpec.Behavior(MolViewSpec));
     spec.behaviors.push(PluginSpec.Behavior(Mp4Export));
@@ -129,7 +132,7 @@ async function createHeadlessPlugin(args: Pick<Args, 'size'>): Promise<HeadlessP
         cameraResetDurationMs: headlessCanvasOptions.cameraResetDurationMs,
         postprocessing: headlessCanvasOptions.postprocessing,
     };
-    const plugin = new HeadlessPluginContext(externalModules, spec, args.size, { canvas: canvasOptions });
+    const plugin = await HeadlessPluginContext.create(externalModules, spec, args.size, { renderingBackend: args.renderer, canvas: canvasOptions });
     try {
         await plugin.init();
     } catch (error) {
@@ -168,4 +171,4 @@ function checkState(plugin: PluginContext): void {
     }
 }
 
-main(parseArguments());
+main(parseArguments()).catch(error => { console.error(error); process.exitCode = 1; });

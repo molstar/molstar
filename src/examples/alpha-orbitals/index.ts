@@ -87,10 +87,15 @@ export class AlphaOrbitalsExample {
 
         this.plugin.managers.interactivity.setProps({ granularity: 'element' });
 
-        if (!canComputeGrid3dOnGPU(this.plugin.canvas3d?.webgl)) {
+        // The example used to gate startup on the legacy WebGL 3D-texture
+        // extension. The default backend is native WebGPU now, where orbital
+        // grids are computed by the WGSL path in the alpha-orbitals extension.
+        // Keep the WebGL capability check only for an explicit legacy backend.
+        const context = this.plugin.canvas3dContext;
+        if (!context?.webgpu && !canComputeGrid3dOnGPU(context?.webgl)) {
             PluginCommands.Toast.Show(this.plugin, {
                 title: 'Error',
-                message: `Browser/device does not support required WebGL extension (OES_texture_float).`
+                message: `Browser/device does not support WebGPU orbital compute or the legacy WebGL OES_texture_float extension.`
             });
             return;
         }

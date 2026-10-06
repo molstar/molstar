@@ -5,6 +5,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import { computeMarchingCubesMeshWebGPU } from '../../mol-gl/webgpu/marching-cubes';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Grid, Volume } from '../../mol-model/volume';
 import { VisualContext } from '../visual';
@@ -18,8 +19,7 @@ import { RepresentationContext, RepresentationParamsGetter, Representation } fro
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
 import { Mat4, Tensor, Vec2, Vec3 } from '../../mol-math/linear-algebra';
-import { fillSerial } from '../../mol-util/array';
-import { createSegmentTexture2d, eachVolumeLoci, getVolumeTexture2dLayout } from './util';
+import { createSegmentTexture2d, createSegmentSampler, eachVolumeLoci, getVolumeTexture2dLayout } from './util';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { BaseGeometry } from '../../mol-geo/geometry/base';
@@ -110,17 +110,12 @@ export function eachSegment(loci: Loci, volume: Volume, key: number, props: Volu
 //
 
 function getSegmentCells(set: number[], bbox: Box3D, cells: Tensor): Tensor {
-    const data = cells.data;
-    const o = cells.space.dataOffset;
+    const sample = createSegmentSampler(cells, set);
 
     const dim = Box3D.size(Vec3(), bbox);
     const [xn, yn, zn] = dim;
-    const xn1 = xn - 1;
-    const yn1 = yn - 1;
-    const zn1 = zn - 1;
 
     const [minx, miny, minz] = bbox.min;
-    const [maxx, maxy, maxz] = bbox.max;
 
     const axisOrder = [...cells.space.axisOrderSlowToFast];
     const segmentSpace = Tensor.Space(dim, axisOrder, Uint8Array);
@@ -132,15 +127,7 @@ function getSegmentCells(set: number[], bbox: Box3D, cells: Tensor): Tensor {
     for (let z = 0; z < zn; ++z) {
         for (let y = 0; y < yn; ++y) {
             for (let x = 0; x < xn; ++x) {
-                const v0 = set.includes(data[o(x + minx, y + miny, z + minz)]) ? 255 : 0;
-                const xp = set.includes(data[o(Math.min(xn1 + maxx, x + 1 + minx), y + miny, z + minz)]) ? 255 : 0;
-                const xn = set.includes(data[o(Math.max(0, x - 1 + minx), y + miny, z + minz)]) ? 255 : 0;
-                const yp = set.includes(data[o(x + minx, Math.min(yn1 + maxy, y + 1 + miny), z + minz)]) ? 255 : 0;
-                const yn = set.includes(data[o(x + minx, Math.max(0, y - 1 + miny), z + minz)]) ? 255 : 0;
-                const zp = set.includes(data[o(x + minx, y + miny, Math.min(zn1 + maxz, z + 1 + minz))]) ? 255 : 0;
-                const zn = set.includes(data[o(x + minx, y + miny, Math.max(0, z - 1 + minz))]) ? 255 : 0;
-
-                segSet(segData, x, y, z, Math.round((v0 + v0 + xp + xn + yp + yn + zp + zn) / 8));
+                segSet(segData, x, y, z, sample(x + minx, y + miny, z + minz));
             }
         }
     }
@@ -148,7 +135,7 @@ function getSegmentCells(set: number[], bbox: Box3D, cells: Tensor): Tensor {
     return segmentCells;
 }
 
-export async function createVolumeSegmentMesh(ctx: VisualContext, volume: Volume, key: Volume.SegmentIndex, theme: Theme, props: VolumeSegmentProps, mesh?: Mesh) {
+export async function createVolumeSegmentMesh(ctx: VisualContext, volume: Volume, key: Volume.SegmentIndex, theme: Theme, props: VolumeSegmentProps & { tryUseGpu?: boolean }, mesh?: Mesh) {
     const segmentation = Volume.Segmentation.get(volume);
     if (!segmentation) throw new Error('missing volume segmentation');
 
@@ -159,13 +146,18 @@ export async function createVolumeSegmentMesh(ctx: VisualContext, volume: Volume
 
     const set = Array.from(segmentation.segments.get(key)!.values());
     const cells = getSegmentCells(set, bbox, volume.grid.cells);
-    const ids = fillSerial(new Int32Array(cells.data.length));
-
-    const surface = await computeMarchingCubesMesh({
-        isoLevel: 128,
-        scalarField: cells,
-        idField: Tensor.create(cells.space, Tensor.Data1(ids))
-    }, mesh).runAsChild(ctx.runtime);
+    // Segment geometry is cropped, but voxel loci refer to the source grid.
+    const ids = new Int32Array(cells.data.length), coordinate = [0, 0, 0];
+    for (let i = 0; i < ids.length; i++) {
+        cells.space.getCoords(i, coordinate);
+        for (let a = 0; a < 3; a++) coordinate[a] = Math.max(0, Math.min(volume.grid.cells.space.dimensions[a] - 1, coordinate[a] + bbox.min[a]));
+        ids[i] = volume.grid.cells.space.dataOffset(...coordinate);
+    }
+    const params = { isoLevel: 128, scalarField: cells, idField: Tensor.create(cells.space, Tensor.Data1(ids)) };
+    const useNative = ctx.webgpu && props.tryUseGpu !== false && cells.space.dimensions.every(d => d >= 2) && cells.data.length * 4 <= Math.min(ctx.webgpu.device.limits.maxStorageBufferBindingSize, ctx.webgpu.device.limits.maxBufferSize);
+    const surface = useNative
+        ? await computeMarchingCubesMeshWebGPU(ctx.runtime, ctx.webgpu!, params, mesh)
+        : await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
 
     const transform = getSegmentTransform(volume.grid, bbox);
     Mesh.transform(surface, transform);
@@ -205,6 +197,7 @@ export function SegmentMeshVisual(materialId: number): VolumeVisual<SegmentMeshP
         getLoci: getSegmentLoci,
         eachLocation: eachSegment,
         setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<SegmentMeshParams>, currentProps: PD.Values<SegmentMeshParams>) => {
+            state.createGeometry = newProps.tryUseGpu !== currentProps.tryUseGpu;
         },
         geometryUtils: Mesh.Utils,
         mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, webgl?: WebGLContext) => {
@@ -294,6 +287,7 @@ export function SegmentTextureMeshVisual(materialId: number): VolumeVisual<Segme
         getLoci: getSegmentLoci,
         eachLocation: eachSegment,
         setUpdateState: (state: VisualUpdateState, newVolume: Volume, currentVolume: Volume, newProps: PD.Values<SegmentMeshParams>, currentProps: PD.Values<SegmentMeshParams>) => {
+            state.createGeometry = newProps.tryUseGpu !== currentProps.tryUseGpu;
         },
         geometryUtils: TextureMesh.Utils,
         mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, webgl?: WebGLContext) => {

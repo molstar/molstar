@@ -180,7 +180,7 @@ export class FontAtlas {
 /** Type of imported `canvas` module (not using `typeof import('canvas')` to avoid missing types) */
 type CanvasModule = any;
 let _canvas: CanvasModule | undefined;
-function getCanvasModule(): CanvasModule {
+export function getCanvasModule(): CanvasModule {
     if (!_canvas) throw new Error('When running in Node.js and wanting to use Canvas API, call mol-util/data-source\'s setCanvasModule function first and pass imported `canvas` module to it.');
     return _canvas;
 }

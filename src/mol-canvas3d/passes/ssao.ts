@@ -345,7 +345,7 @@ export class SsaoPass {
             needsUpdateSsao = true;
 
             this.nSamples = props.samples;
-            ValueCell.update(this.renderable.values.uSamples, getSamples(this.nSamples));
+            ValueCell.update(this.renderable.values.uSamples, getSsaoSamples(this.nSamples));
             ValueCell.updateIfChanged(this.renderable.values.dNSamples, this.nSamples);
         }
 
@@ -613,7 +613,7 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture, depthHalfTe
         tDepthHalfTransparent: ValueCell.create(transparentDepthHalfTexture),
         tDepthQuarterTransparent: ValueCell.create(transparentDepthQuarterTexture),
 
-        uSamples: ValueCell.create(getSamples(32)),
+        uSamples: ValueCell.create(getSsaoSamples(32)),
         dNSamples: ValueCell.create(32),
 
         uProjection: ValueCell.create(Mat4.identity()),
@@ -757,7 +757,7 @@ function getRandomHemisphereVectors(count: number): Vec3[] {
     return _RandomHemisphereVectors;
 }
 
-function getSamples(nSamples: number): number[] {
+export function getSsaoSamples(nSamples: number): number[] {
     const rhv = getRandomHemisphereVectors(nSamples);
     const samples = [];
     for (let i = 0; i < nSamples; i++) {

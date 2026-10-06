@@ -37,6 +37,7 @@ export const DefaultViewerOptions = {
     pickScale: PluginConfig.General.PickScale.defaultValue,
     transparency: PluginConfig.General.Transparency.defaultValue,
     preferWebgl1: PluginConfig.General.PreferWebGl1.defaultValue,
+    renderingBackend: PluginConfig.General.RenderingBackend.defaultValue,
     allowMajorPerformanceCaveat: PluginConfig.General.AllowMajorPerformanceCaveat.defaultValue,
     powerPreference: PluginConfig.General.PowerPreference.defaultValue,
     resolutionMode: PluginConfig.General.ResolutionMode.defaultValue,

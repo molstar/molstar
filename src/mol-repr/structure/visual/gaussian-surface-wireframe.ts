@@ -12,6 +12,9 @@ import { Theme } from '../../../mol-theme/theme';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { computeStructureGaussianDensity, computeUnitGaussianDensity, GaussianDensityParams, GaussianDensityProps } from './util/gaussian';
 import { computeMarchingCubesLines } from '../../../mol-geo/util/marching-cubes/algorithm';
+import { computeMarchingCubesMeshWebGPU } from '../../../mol-gl/webgpu/marching-cubes';
+import type { WebGPUPackedScalarField } from '../../../mol-gl/webgpu/marching-cubes';
+import type { WebGPUGaussianDensityBuffer } from '../../../mol-gl/webgpu/gaussian-density';
 import { UnitsLinesParams, UnitsVisual, UnitsLinesVisual } from '../units-visual';
 import { ElementIterator, getElementLoci, eachElement, getSerialElementLoci, eachSerialElement } from './util/element';
 import { VisualUpdateState } from '../../util';
@@ -21,9 +24,22 @@ import { Tensor } from '../../../mol-math/linear-algebra/tensor';
 
 const SharedParams = {
     ...GaussianDensityParams,
+    tryUseGpu: PD.Boolean(true),
     sizeFactor: PD.Numeric(3, { min: 0, max: 10, step: 0.1 }),
 };
 type SharedParams = typeof SharedParams
+
+async function computeGaussianWireframeLines(ctx: VisualContext, params: Parameters<typeof computeMarchingCubesLines>[0], lines: Lines | undefined, tryUseGpu: boolean) {
+    const field = params.scalarField;
+    const scalarBytes = (field.data as unknown as { byteLength: number }).byteLength;
+    const useNative = !!ctx.webgpu && tryUseGpu && scalarBytes <= Math.min(ctx.webgpu.device.limits.maxStorageBufferBindingSize, ctx.webgpu.device.limits.maxBufferSize);
+    if (!useNative) return computeMarchingCubesLines(params, lines).runAsChild(ctx.runtime);
+    // Native marching cubes already performs the expensive scalar extraction
+    // and compaction. Convert its triangle soup to the legacy line geometry so
+    // wireframe themes and loci keep their existing API and group IDs.
+    const mesh = await computeMarchingCubesMeshWebGPU(ctx.runtime, ctx.webgpu!, params);
+    return Lines.fromMesh(mesh, lines);
+}
 
 export const GaussianWireframeParams = {
     ...UnitsLinesParams,
@@ -37,17 +53,25 @@ export const StructureGaussianWireframeParams = {
 };
 export type StructureGaussianWireframeParams = typeof StructureGaussianWireframeParams
 
-async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
+async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps & { tryUseGpu?: boolean }, lines?: Lines): Promise<Lines> {
     const { smoothness, floodfill, radiusOffset } = props;
-    const { transform, field, idField, maxRadius, radiusFactor } = await computeUnitGaussianDensity(structure, unit, theme.size, props).runInContext(ctx.runtime);
+    const density = await computeUnitGaussianDensity(structure, unit, theme.size, props, ctx.webgpu).runInContext(ctx.runtime);
+    const { transform, field, idField, maxRadius, radiusFactor } = density;
 
     const isoLevel = Math.exp(-smoothness) / radiusFactor;
+    const nativeDensity = props.floodfill === 'off' ? (density as typeof density & { webgpuDensity?: WebGPUGaussianDensityBuffer }).webgpuDensity : undefined;
     const params = {
         isoLevel,
         scalarField: floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, floodfill) : field,
-        idField
+        idField,
+        ...(nativeDensity ? { webgpuField: nativeDensity as WebGPUPackedScalarField } : {})
     };
-    const wireframe = await computeMarchingCubesLines(params, lines).runAsChild(ctx.runtime);
+    let wireframe: Lines;
+    try {
+        wireframe = await computeGaussianWireframeLines(ctx, params, lines, props.tryUseGpu !== false);
+    } finally {
+        nativeDensity?.dispose();
+    }
 
     Lines.transform(wireframe, transform);
 
@@ -68,6 +92,7 @@ export function GaussianWireframeVisual(materialId: number): UnitsVisual<Gaussia
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianWireframeParams>, currentProps: PD.Values<GaussianWireframeParams>) => {
             state.createGeometry = (
+                newProps.tryUseGpu !== currentProps.tryUseGpu ||
                 newProps.resolution !== currentProps.resolution ||
                 newProps.radiusOffset !== currentProps.radiusOffset ||
                 newProps.smoothness !== currentProps.smoothness ||
@@ -83,17 +108,25 @@ export function GaussianWireframeVisual(materialId: number): UnitsVisual<Gaussia
 
 //
 
-async function createStructureGaussianWireframe(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
+async function createStructureGaussianWireframe(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps & { tryUseGpu?: boolean }, lines?: Lines): Promise<Lines> {
     const { smoothness, floodfill, radiusOffset } = props;
-    const { transform, field, idField, maxRadius, radiusFactor } = await computeStructureGaussianDensity(structure, theme.size, props).runInContext(ctx.runtime);
+    const density = await computeStructureGaussianDensity(structure, theme.size, props, ctx.webgpu).runInContext(ctx.runtime);
+    const { transform, field, idField, maxRadius, radiusFactor } = density;
 
     const isoLevel = Math.exp(-smoothness) / radiusFactor;
+    const nativeDensity = props.floodfill === 'off' ? (density as typeof density & { webgpuDensity?: WebGPUGaussianDensityBuffer }).webgpuDensity : undefined;
     const params = {
         isoLevel,
         scalarField: floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, floodfill) : field,
-        idField
+        idField,
+        ...(nativeDensity ? { webgpuField: nativeDensity as WebGPUPackedScalarField } : {})
     };
-    const wireframe = await computeMarchingCubesLines(params, lines).runAsChild(ctx.runtime);
+    let wireframe: Lines;
+    try {
+        wireframe = await computeGaussianWireframeLines(ctx, params, lines, props.tryUseGpu !== false);
+    } finally {
+        nativeDensity?.dispose();
+    }
 
     Lines.transform(wireframe, transform);
 
@@ -113,6 +146,7 @@ export function StructureGaussianWireframeVisual(materialId: number): ComplexVis
         eachLocation: eachSerialElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<StructureGaussianWireframeParams>, currentProps: PD.Values<StructureGaussianWireframeParams>) => {
             state.createGeometry = (
+                newProps.tryUseGpu !== currentProps.tryUseGpu ||
                 newProps.resolution !== currentProps.resolution ||
                 newProps.radiusOffset !== currentProps.radiusOffset ||
                 newProps.smoothness !== currentProps.smoothness ||

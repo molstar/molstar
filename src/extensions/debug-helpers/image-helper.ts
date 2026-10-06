@@ -20,7 +20,7 @@ import { Clip } from '../../mol-util/clip';
 import { addSphere as addLinesSphere } from '../../mol-geo/geometry/lines/builder/sphere';
 import { addBox } from '../../mol-geo/geometry/lines/builder/box';
 import { addPlane } from '../../mol-geo/geometry/lines/builder/plane';
-import { DebugHelper } from '../../mol-canvas3d/helper/debug-registry';
+import { DebugHelper, DebugHelperParent, DebugHelperScene } from '../../mol-canvas3d/helper/debug-registry';
 
 export const ImageHelperParams = {
     imageEdges: PD.Boolean(false, { description: 'Show edges of visible image render objects.' }),
@@ -38,15 +38,17 @@ const _trimRot = Quat();
 const _trimTransform = Mat4();
 const _tmpMat = Mat4();
 
-export class ImageHelper implements DebugHelper<ImageHelperProps> {
-    readonly scene: Scene;
+export class ImageHelper<S extends DebugHelperScene = Scene> implements DebugHelper<ImageHelperProps, S> {
+    readonly scene: S;
 
-    private readonly parent: Scene;
+    private readonly parent: DebugHelperParent;
     private _props: ImageHelperProps;
     private renderObjects = new Map<number, { roList: GraphicsRenderObject[], version: number }>();
 
-    constructor(ctx: WebGLContext, parent: Scene, props: Partial<ImageHelperProps>) {
-        this.scene = Scene.create(ctx, 'blended');
+    constructor(ctx: WebGLContext, parent: DebugHelperParent, props: Partial<ImageHelperProps>);
+    constructor(ctx: undefined, parent: DebugHelperParent, props: Partial<ImageHelperProps>, scene: S);
+    constructor(ctx: WebGLContext | undefined, parent: DebugHelperParent, props: Partial<ImageHelperProps>, scene?: S) {
+        this.scene = scene ?? Scene.create(ctx!, 'blended') as unknown as S;
         this.parent = parent;
         this._props = { ...PD.getDefaultValues(ImageHelperParams), ...props };
     }
@@ -62,7 +64,7 @@ export class ImageHelper implements DebugHelper<ImageHelperProps> {
             const version = values.aPosition.ref.version
                 + values.uTrimType.ref.version + values.uTrimCenter.ref.version
                 + values.uTrimRotation.ref.version + values.uTrimScale.ref.version
-                + values.uTrimTransform.ref.version + values.aTransform.ref.version;
+                + values.uTrimTransform.ref.version + values.aTransform.ref.version + values.uInstanceCount.ref.version;
 
             const existing = this.renderObjects.get(ro.id);
             if (existing && existing.version === version) {

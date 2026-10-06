@@ -35,7 +35,7 @@ export type VolumeParams = typeof VolumeParams
 
 export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, P>, visualCtor: (materialId: number, volume: Volume, key: number, props: PD.Values<P>, webgl?: WebGLContext) => VolumeVisual<P>, getLoci: (volume: Volume, props: PD.Values<P>) => Loci, getKeys: (props: PD.Values<P>, volume: Volume) => ArrayLike<number> = () => [-1]): VolumeRepresentation<P> {
     let version = 0;
-    const { webgl } = ctx;
+    const { webgl, webgpu } = ctx;
     const updated = new Subject<number>();
     const geometryState = new Representation.GeometryState();
     const materialId = getNextMaterialId();
@@ -59,7 +59,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
             visual = visualCtor(materialId, _volume, key, _props, webgl);
             visuals.set(key, visual);
         }
-        return visual.createOrUpdate({ webgl, runtime }, _theme, _props, { volume: _volume, key });
+        return visual.createOrUpdate({ webgl, webgpu, runtime }, _theme, _props, { volume: _volume, key });
     }
 
     function createOrUpdate(props: Partial<PD.Values<P>> = {}, volume?: Volume) {

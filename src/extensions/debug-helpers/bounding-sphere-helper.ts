@@ -18,7 +18,7 @@ import { TransformData } from '../../mol-geo/geometry/transform-data';
 import { sphereVertexCount } from '../../mol-geo/primitive/sphere';
 import { ValueCell } from '../../mol-util';
 import { Geometry } from '../../mol-geo/geometry/geometry';
-import { DebugHelper } from '../../mol-canvas3d/helper/debug-registry';
+import { DebugHelper, DebugHelperParent, DebugHelperScene } from '../../mol-canvas3d/helper/debug-registry';
 
 export const BoundingSphereHelperParams = {
     sceneBoundingSpheres: PD.Boolean(false, { description: 'Show full scene bounding spheres.' }),
@@ -29,20 +29,22 @@ export const BoundingSphereHelperParams = {
 export type BoundingSphereHelperParams = typeof BoundingSphereHelperParams;
 export type BoundingSphereHelperProps = PD.Values<BoundingSphereHelperParams>;
 
-type BoundingSphereData = { boundingSphere: Sphere3D, renderObject: GraphicsRenderObject, mesh: Mesh }
+type BoundingSphereData = { boundingSphere: Sphere3D, renderObject: GraphicsRenderObject<'mesh'>, mesh: Mesh }
 
-export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperProps> {
-    readonly scene: Scene;
+export class BoundingSphereHelper<S extends DebugHelperScene = Scene> implements DebugHelper<BoundingSphereHelperProps, S> {
+    readonly scene: S;
 
-    private readonly parent: Scene;
+    private readonly parent: DebugHelperParent;
     private _props: BoundingSphereHelperProps;
     private objectsData = new Map<GraphicsRenderObject, BoundingSphereData>();
     private instancesData = new Map<GraphicsRenderObject, BoundingSphereData>();
     private sceneData: BoundingSphereData | undefined;
     private visibleSceneData: BoundingSphereData | undefined;
 
-    constructor(ctx: WebGLContext, parent: Scene, props: Partial<BoundingSphereHelperProps>) {
-        this.scene = Scene.create(ctx, 'blended');
+    constructor(ctx: WebGLContext, parent: DebugHelperParent, props: Partial<BoundingSphereHelperProps>);
+    constructor(ctx: undefined, parent: DebugHelperParent, props: Partial<BoundingSphereHelperProps>, scene: S);
+    constructor(ctx: WebGLContext | undefined, parent: DebugHelperParent, props: Partial<BoundingSphereHelperProps>, scene?: S) {
+        this.scene = scene ?? Scene.create(ctx!, 'blended') as unknown as S;
         this.parent = parent;
         this._props = { ...PD.getDefaultValues(BoundingSphereHelperParams), ...props };
     }
@@ -133,7 +135,9 @@ export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperPro
 
     clear() {
         this.sceneData = undefined;
+        this.visibleSceneData = undefined;
         this.objectsData.clear();
+        this.instancesData.clear();
         this.scene.clear();
     }
 
@@ -151,12 +155,14 @@ export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperPro
     }
 }
 
-function updateBoundingSphereData(scene: Scene, boundingSphere: Sphere3D, data: BoundingSphereData | undefined, color: Color, materialId: number, transform?: TransformData) {
+function updateBoundingSphereData(scene: DebugHelperScene, boundingSphere: Sphere3D, data: BoundingSphereData | undefined, color: Color, materialId: number, transform?: TransformData) {
     if (!data || !Sphere3D.equals(data.boundingSphere, boundingSphere)) {
         const mesh = createBoundingSphereMesh(boundingSphere, data && data.mesh);
         const renderObject = data ? data.renderObject : createBoundingSphereRenderObject(mesh, color, materialId, transform);
         if (data) {
             ValueCell.updateIfChanged(renderObject.values.drawCount, Geometry.getDrawCount(mesh));
+            ValueCell.updateIfChanged(renderObject.values.uVertexCount, Geometry.getVertexCount(mesh));
+            Mesh.Utils.updateBoundingSphere(renderObject.values, mesh);
         } else {
             scene.add(renderObject);
         }

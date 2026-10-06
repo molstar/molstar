@@ -8,6 +8,7 @@
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsMeshParams, UnitsSpheresParams, UnitsVisual, UnitsSpheresVisual, UnitsMeshVisual } from '../units-visual';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
+import type { WebGPUContext } from '../../../mol-gl/webgpu/context';
 import { createElementSphereImpostor, ElementIterator, getElementLoci, eachElement, createElementSphereMesh, createStructureElementSphereImpostor, getSerialElementLoci, eachSerialElement, createStructureElementSphereMesh } from './util/element';
 import { VisualUpdateState } from '../../util';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
@@ -34,8 +35,8 @@ export const ElementSphereParams = {
 };
 export type ElementSphereParams = typeof ElementSphereParams
 
-export function ElementSphereVisual(materialId: number, structure: Structure, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) {
-    return props.tryUseImpostor && checkSphereImpostorSupport(webgl)
+export function ElementSphereVisual(materialId: number, structure: Structure, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) {
+    return props.tryUseImpostor && checkSphereImpostorSupport(webgl, webgpu)
         ? ElementSphereImpostorVisual(materialId)
         : ElementSphereMeshVisual(materialId);
 }
@@ -55,8 +56,8 @@ export function ElementSphereImpostorVisual(materialId: number): UnitsVisual<Ele
                 newProps.stride !== currentProps.stride
             );
         },
-        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) => {
-            return !props.tryUseImpostor || !webgl;
+        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
+            return !props.tryUseImpostor || (!webgl && !webgpu);
         }
     }, materialId);
 }
@@ -78,8 +79,8 @@ export function ElementSphereMeshVisual(materialId: number): UnitsVisual<Element
                 newProps.stride !== currentProps.stride
             );
         },
-        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) => {
-            return props.tryUseImpostor && !!webgl;
+        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
+            return props.tryUseImpostor && (!!webgl || !!webgpu);
         }
     }, materialId);
 }
@@ -93,8 +94,8 @@ export const StructureElementSphereParams = {
 };
 export type StructureElementSphereParams = typeof ElementSphereParams
 
-export function StructureElementSphereVisual(materialId: number, structure: Structure, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) {
-    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth && webgl.extensions.textureFloat
+export function StructureElementSphereVisual(materialId: number, structure: Structure, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) {
+    return props.tryUseImpostor && (webgpu || (webgl && webgl.extensions.fragDepth && webgl.extensions.textureFloat))
         ? StructureElementSphereImpostorVisual(materialId)
         : StructureElementSphereMeshVisual(materialId);
 }
@@ -114,8 +115,8 @@ export function StructureElementSphereImpostorVisual(materialId: number): Comple
                 newProps.stride !== currentProps.stride
             );
         },
-        mustRecreate: (structure: Structure, props: PD.Values<StructureElementSphereParams>, webgl?: WebGLContext) => {
-            return !props.tryUseImpostor || !webgl;
+        mustRecreate: (structure: Structure, props: PD.Values<StructureElementSphereParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
+            return !props.tryUseImpostor || (!webgl && !webgpu);
         }
     }, materialId);
 }
@@ -137,8 +138,8 @@ export function StructureElementSphereMeshVisual(materialId: number): ComplexVis
                 newProps.stride !== currentProps.stride
             );
         },
-        mustRecreate: (structure: Structure, props: PD.Values<StructureElementSphereParams>, webgl?: WebGLContext) => {
-            return props.tryUseImpostor && !!webgl;
+        mustRecreate: (structure: Structure, props: PD.Values<StructureElementSphereParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
+            return props.tryUseImpostor && (!!webgl || !!webgpu);
         }
     }, materialId);
 }

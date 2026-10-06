@@ -87,19 +87,19 @@ export class ObjExporter extends MeshExporter<ObjData> {
         const instanceCount = values.uInstanceCount.ref.value;
 
         let interpolatedColors: Uint8Array | undefined;
-        if (webgl && mesh && (colorType === 'volume' || colorType === 'volumeInstance')) {
-            interpolatedColors = ObjExporter.getInterpolatedColors(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType });
+        if (mesh && (colorType === 'volume' || colorType === 'volumeInstance')) {
+            interpolatedColors = await ObjExporter.getInterpolatedColors(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType });
         }
 
         let interpolatedOverpaint: Uint8Array | undefined;
-        if (webgl && mesh && overpaintType === 'volumeInstance') {
-            interpolatedOverpaint = ObjExporter.getInterpolatedOverpaint(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType: overpaintType });
+        if (mesh && overpaintType === 'volumeInstance') {
+            interpolatedOverpaint = await ObjExporter.getInterpolatedOverpaint(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType: overpaintType });
         }
 
         let interpolatedTransparency: Uint8Array | undefined;
-        if (webgl && mesh && transparencyType === 'volumeInstance') {
+        if (mesh && transparencyType === 'volumeInstance') {
             const stride = isGeoTexture ? 4 : 3;
-            interpolatedTransparency = ObjExporter.getInterpolatedTransparency(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType: transparencyType });
+            interpolatedTransparency = await ObjExporter.getInterpolatedTransparency(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType: transparencyType });
         }
 
         await ctx.update({ isIndeterminate: false, current: 0, max: instanceCount });
@@ -108,6 +108,10 @@ export class ObjExporter extends MeshExporter<ObjData> {
             if (ctx.shouldUpdate) await ctx.update({ current: instanceIndex + 1 });
 
             const { vertices, normals, indices, groups, vertexCount, drawCount, vertexMapping } = ObjExporter.getInstance(input, instanceIndex);
+            if (!mesh) {
+                const interpolation = await ObjExporter.getGeneratedInterpolation(input, vertices, vertexCount, instanceIndex);
+                interpolatedColors = interpolation.colors; interpolatedOverpaint = interpolation.overpaint; interpolatedTransparency = interpolation.transparency;
+            }
 
             Mat4.fromArray(t, aTransform, instanceIndex * 16);
             Mat4.mul(t, this.centerTransform, t);
@@ -137,22 +141,22 @@ export class ObjExporter extends MeshExporter<ObjData> {
                 StringBuilder.newline(obj);
             }
 
-            const geoData = { values, groups, vertexCount, instanceIndex, isGeoTexture, mode, vertexMapping };
+            const geoData = { values, groups, vertexCount, instanceIndex, isGeoTexture, mode, vertexMapping, interpolatedInstanceIndex: mesh ? undefined : 0 };
 
             // color
-            const quantizedColors = new Uint8Array(drawCount * 3);
+            const quantizedColors = new Uint8Array(drawCount);
             for (let i = 0; i < drawCount; i += 3) {
                 const v = isGeoTexture ? i : indices![i];
                 const color = ObjExporter.getColor(v, geoData, interpolatedColors, interpolatedOverpaint);
                 Color.toArray(color, quantizedColors, i);
             }
-            ObjExporter.quantizeColors(quantizedColors, vertexCount);
+            ObjExporter.quantizeColors(quantizedColors, drawCount / 3);
 
             // face
             for (let i = 0; i < drawCount; i += 3) {
                 const color = Color.fromArray(quantizedColors, i);
 
-                const transparency = ObjExporter.getTransparency(i, geoData, interpolatedTransparency);
+                const transparency = ObjExporter.getTransparency(isGeoTexture ? i : indices![i], geoData, interpolatedTransparency);
                 const alpha = Math.round(uAlpha * (1 - transparency) * 10) / 10; // quantized
 
                 this.updateMaterial(color, alpha);
@@ -199,6 +203,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
 
     constructor(private filename: string, boundingBox: Box3D) {
         super();
+        this.setOptions({ linesAsTriangles: true, pointsAsTriangles: true });
         StringBuilder.writeSafe(this.obj, `mtllib ${filename}.mtl\n`);
         const tmpV = Vec3();
         Vec3.add(tmpV, boundingBox.min, boundingBox.max);

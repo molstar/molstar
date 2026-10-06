@@ -62,6 +62,7 @@
             var pickPadding = getParam('pick-padding', '[^&]+').trim();
             var transparency = getParam('transparency', '[^&]+').trim().toLowerCase();
             var preferWebgl1 = getParam('prefer-webgl1', '[^&]+').trim() === '1' || void 0;
+            var renderingBackend = getParam('renderer', '[^&]+').trim() || void 0;
             var allowMajorPerformanceCaveat = getParam('allow-major-performance-caveat', '[^&]+').trim() === '1';
             var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
             var illumination = getParam('illumination', '[^&]+').trim() === '1';
@@ -86,6 +87,7 @@
                 pickPadding: isNaN(parseFloat(pickPadding)) ? 1 : parseFloat(pickPadding),
                 transparency: transparency || undefined,
                 preferWebgl1: preferWebgl1,
+                renderingBackend: renderingBackend,
                 allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
                 powerPreference: powerPreference || 'high-performance',
                 illumination: illumination,

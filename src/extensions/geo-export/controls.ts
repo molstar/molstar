@@ -66,7 +66,7 @@ export class GeometryControls extends PluginComponent {
 
                 for (let i = 0, il = renderObjects.length; i < il; ++i) {
                     await ctx.update({ message: `Exporting object ${i}/${il}` });
-                    await renderObjectExporter.add(renderObjects[i], this.plugin.canvas3d?.webgl!, ctx);
+                    await renderObjectExporter.add(renderObjects[i], this.plugin.canvas3d?.webgl, ctx);
                 }
 
                 const blob = await renderObjectExporter.getBlob(ctx);

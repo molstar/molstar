@@ -15,7 +15,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Bond } from '../../mol-model/structure';
 import { TrackballControls } from '../controls/trackball';
 import { Ray3D } from '../../mol-math/geometry/primitives/ray3d';
-import { AsyncPickData } from '../passes/pick';
+import { AsyncPickData, PickData } from '../passes/pick';
 
 type Canvas3D = import('../canvas3d').Canvas3D
 type HoverEvent = import('../canvas3d').Canvas3D.HoverEvent
@@ -90,6 +90,17 @@ export class Canvas3dInteractionHelper {
     }
 
     private handleClick() {
+        if (this.asyncClickIdentify) {
+            const target = this.getTarget();
+            const buttons = this.buttons, button = this.button, modifiers = this.modifiers;
+            const page = Vec2.create(this.endX, this.endY);
+            this.asyncClickIdentify(target).then(pickData => {
+                const loci = this.getLoci(pickData?.id, pickData?.position);
+                this.events.click.next({ current: loci, buttons, button, modifiers, page, position: pickData?.position });
+                this.prevLoci = loci;
+            }).catch(error => console.error('WebGPU click picking failed', error));
+            return;
+        }
         const pickData = this.canvasIdentify(this.getTarget());
         const loci = this.getLoci(pickData?.id, pickData?.position);
         this.events.click.next({ current: loci, buttons: this.buttons, button: this.button, modifiers: this.modifiers, page: Vec2.create(this.endX, this.endY), position: pickData?.position });
@@ -219,7 +230,7 @@ export class Canvas3dInteractionHelper {
         this.ev.dispose();
     }
 
-    constructor(private canvasIdentify: Canvas3D['identify'], private canvasAsyncIdentify: Canvas3D['asyncIdentify'], private lociGetter: Canvas3D['getLoci'], private input: InputObserver, private camera: Camera, private controls: TrackballControls, props: Partial<Canvas3dInteractionHelperProps> = {}) {
+    constructor(private canvasIdentify: Canvas3D['identify'], private canvasAsyncIdentify: Canvas3D['asyncIdentify'], private lociGetter: Canvas3D['getLoci'], private input: InputObserver, private camera: Camera, private controls: TrackballControls, props: Partial<Canvas3dInteractionHelperProps> = {}, private asyncClickIdentify?: (target: Vec2 | Ray3D) => Promise<PickData | undefined>) {
         this.props = { ...PD.getDefaultValues(Canvas3dInteractionHelperParams), ...props };
 
         input.drag.subscribe(({ x, y, buttons, button, modifiers }) => {

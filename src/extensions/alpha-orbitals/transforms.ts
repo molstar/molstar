@@ -111,7 +111,7 @@ export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
                 sphericalOrder: a.data.order,
                 boxExpand: params.boxExpand,
                 gridSpacing: params.gridSpacing.map(e => [e.atomCount, e.spacing] as [number, number])
-            }, a.data.orbitals[params.index], plugin.canvas3d?.webgl).runInContext(ctx);
+            }, a.data.orbitals[params.index], plugin.canvas3d?.webgl, plugin.canvas3d?.webgpu).runInContext(ctx);
             const volume: Volume = {
                 grid: data.grid,
                 instances: [{ transform: Mat4.identity() }],
@@ -145,7 +145,7 @@ export const CreateOrbitalDensityVolume = PluginStateTransform.BuiltIn({
                 sphericalOrder: a.data.order,
                 boxExpand: params.boxExpand,
                 gridSpacing: params.gridSpacing.map(e => [e.atomCount, e.spacing] as [number, number])
-            }, a.data.orbitals, plugin.canvas3d?.webgl).runInContext(ctx);
+            }, a.data.orbitals, plugin.canvas3d?.webgl, plugin.canvas3d?.webgpu).runInContext(ctx);
             const volume: Volume = {
                 grid: data.grid,
                 instances: [{ transform: Mat4.identity() }],
@@ -190,7 +190,7 @@ export const CreateOrbitalRepresentation3D = PluginStateTransform.BuiltIn({
             const provider = plugin.representation.volume.registry.get(params.type.name);
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
             const props = params.type.params || {};
-            const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes }, provider.getParams);
+            const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, webgpu: plugin.canvas3d?.webgpu, ...plugin.representation.volume.themes }, provider.getParams);
             repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data }, params));
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
             repr.setState({ pickable: srcParams.pickable });

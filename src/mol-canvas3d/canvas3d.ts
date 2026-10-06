@@ -41,7 +41,7 @@ import { TransitionTrajectoryParamDefinition, type TransitionTrajectory } from '
 import { Viewport } from './camera/util';
 import { DefaultTrackballControlsAttribs, TrackballControls, TrackballControlsParams } from './controls/trackball';
 import { CameraHelperParams } from './helper/camera-helper';
-import { DebugRegistry } from './helper/debug-registry';
+import { DebugRegistry, WebGPUDebugRegistry } from './helper/debug-registry';
 import { HandleHelperParams } from './helper/handle-helper';
 import { Helper } from './helper/helper';
 import { Canvas3dInteractionHelper, Canvas3dInteractionHelperParams } from './helper/interaction-events';
@@ -57,6 +57,10 @@ import { MarkingParams } from './passes/marking';
 import { MultiSampleHelper, MultiSampleParams, MultiSamplePass } from './passes/multi-sample';
 import { Passes } from './passes/passes';
 import { AsyncPickData, DefaultPickOptions, PickData } from './passes/pick';
+import { WebGPUContext } from '../mol-gl/webgpu/context';
+import { WebGPURenderer } from '../mol-gl/webgpu/renderer';
+import { createWebGPUCanvas3D } from './webgpu';
+import { WebGPUImagePass } from './passes/webgpu-image';
 import { PostprocessingParams } from './passes/postprocessing';
 
 export const CameraFogParams = {
@@ -140,9 +144,11 @@ export { Canvas3DContext };
 /** Can be used to create multiple Canvas3D objects */
 interface Canvas3DContext {
     readonly canvas?: HTMLCanvasElement
-    readonly webgl: WebGLContext
+    readonly webgl?: WebGLContext
+    readonly webgpu?: WebGPUContext
+    readonly webgpuRenderer?: WebGPURenderer
     readonly input: InputObserver
-    readonly passes: Passes
+    readonly passes?: Passes
     readonly attribs: Readonly<Canvas3DContext.Attribs>
     readonly props: Readonly<Canvas3DContext.Props>
     readonly contextLost?: Subject<now.Timestamp>
@@ -157,6 +163,44 @@ interface Canvas3DContext {
 }
 
 namespace Canvas3DContext {
+    /** Native texture rendering without an HTML canvas or DOM input listeners. */
+    export async function fromHeadlessWebGPU(size: { width: number, height: number }, gpu: GPU, assetManager: AssetManager, attribs: Partial<Attribs> = {}, props: Partial<Props> = {}): Promise<Canvas3DContext> {
+        const a = { ...DefaultAttribs, ...attribs }, p = { ...DefaultProps, ...props };
+        const webgpu = await WebGPUContext.createHeadless(size, gpu, { powerPreference: a.powerPreference === 'default' ? undefined : a.powerPreference });
+        let webgpuRenderer: WebGPURenderer;
+        try { webgpuRenderer = await WebGPURenderer.create(webgpu, assetManager); webgpuRenderer.setTransparency(p.transparency); } catch (error) { webgpu.dispose(); throw error; }
+        const input = { ...InputObserver.create(), width: size.width, height: size.height };
+        const contextLost = new Subject<now.Timestamp>(), lossSub = webgpu.lost.subscribe(() => contextLost.next(now()));
+        return {
+            webgpu, webgpuRenderer, input, assetManager, attribs: a, props: p, contextLost, pixelScale: 1,
+            syncPixelScale: () => {}, setProps: props => { if (props?.transparency) webgpuRenderer.setTransparency(props.transparency); Object.assign(p, props); },
+            dispose: () => { lossSub.unsubscribe(); input.dispose(); webgpuRenderer.dispose(); webgpu.dispose(); contextLost.complete(); },
+        };
+    }
+
+    export async function fromCanvasWebGPU(canvas: HTMLCanvasElement, assetManager: AssetManager, attribs: Partial<Attribs> = {}, props: Partial<Props> = {}): Promise<Canvas3DContext> {
+        const a = { ...DefaultAttribs, ...attribs };
+        const p = { ...DefaultProps, ...props };
+        const webgpu = await WebGPUContext.create(canvas, { powerPreference: a.powerPreference === 'default' ? undefined : a.powerPreference });
+        let webgpuRenderer: WebGPURenderer;
+        try { webgpuRenderer = await WebGPURenderer.create(webgpu, assetManager); webgpuRenderer.setTransparency(p.transparency); } catch (error) { webgpu.dispose(); throw error; }
+        const getPixelScale = () => {
+            const ratio = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;
+            return p.resolutionMode === 'scaled' || (p.resolutionMode === 'auto' && isMobileBrowser()) ? p.pixelScale / ratio : p.pixelScale;
+        };
+        const input = InputObserver.fromElement(canvas, { pixelScale: getPixelScale(), preventGestures: true });
+        const changed = new BehaviorSubject<undefined>(undefined);
+        const contextLost = new Subject<now.Timestamp>();
+        const lossSub = webgpu.lost.subscribe(() => contextLost.next(now()));
+        return {
+            canvas, webgpu, webgpuRenderer, input, assetManager, attribs: a, props: p, changed, contextLost,
+            get pixelScale() { return getPixelScale(); },
+            syncPixelScale: () => input.setPixelScale(getPixelScale()),
+            setProps: props => { if (props?.transparency) webgpuRenderer.setTransparency(props.transparency); Object.assign(p, props); input.setPixelScale(getPixelScale()); a.handleResize(); changed.next(undefined); },
+            dispose: () => { lossSub.unsubscribe(); input.dispose(); webgpuRenderer.dispose(); webgpu.dispose(); contextLost.complete(); changed.complete(); },
+        };
+    }
+
     export const DefaultAttribs = {
         powerPreference: 'high-performance' as WebGLContextAttributes['powerPreference'],
         failIfMajorPerformanceCaveat: false,
@@ -179,7 +223,7 @@ namespace Canvas3DContext {
     export const DefaultProps = PD.getDefaultValues(Params);
     export type Props = PD.Values<typeof Params>
 
-    export function fromCanvas(canvas: HTMLCanvasElement, assetManager: AssetManager, attribs: Partial<Attribs> = {}, props: Partial<Props> = {}): Canvas3DContext {
+    export function fromCanvas(canvas: HTMLCanvasElement, assetManager: AssetManager, attribs: Partial<Attribs> = {}, props: Partial<Props> = {}): Canvas3DContext & { webgl: WebGLContext, passes: Passes } {
         const a = { ...DefaultAttribs, ...attribs };
         const p = { ...DefaultProps, ...props };
 
@@ -337,7 +381,8 @@ export interface Canvas3DCameraResetOptions {
 }
 
 interface Canvas3D {
-    readonly webgl: WebGLContext,
+    readonly webgl?: WebGLContext,
+    readonly webgpu?: WebGPUContext,
 
     add(repr: Representation.Any): void
     remove(repr: Representation.Any): void
@@ -392,8 +437,9 @@ interface Canvas3D {
     readonly boundingSphereVisible: Readonly<Sphere3D>
     setProps(props: PartialCanvas3DProps | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void), doNotRequestDraw?: boolean /* = false */): void
     setAttribs(attribs: PartialCanvas3DAttribs): void
-    getImagePass(props: Partial<ImageProps>): ImagePass
+    getImagePass(props: Partial<ImageProps>): ImagePass | WebGPUImagePass
     getRenderObjects(): GraphicsRenderObject[]
+    getRepresentations(): Representation.Any[]
 
     /** Returns a copy of the current Canvas3D instance props */
     readonly props: Readonly<Canvas3DProps>
@@ -402,7 +448,7 @@ interface Canvas3D {
     readonly stats: RendererStats
     readonly interaction: Canvas3dInteractionHelper['events']
 
-    readonly debugRegistry: DebugRegistry
+    readonly debugRegistry?: DebugRegistry | WebGPUDebugRegistry
 
     readonly xr: {
         request(): Promise<void>
@@ -445,8 +491,13 @@ namespace Canvas3D {
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
 
+    export function create(ctx: Canvas3DContext & { webgl: WebGLContext }, props?: Partial<Canvas3DProps>, attribs?: Partial<Canvas3DAttribs>): Canvas3D & { webgl: WebGLContext };
+    export function create(ctx: Canvas3DContext, props?: Partial<Canvas3DProps>, attribs?: Partial<Canvas3DAttribs>): Canvas3D;
     export function create(ctx: Canvas3DContext, props: Partial<Canvas3DProps> = {}, attribs: Partial<Canvas3DAttribs> = {}): Canvas3D {
-        const { webgl, input, passes, assetManager, canvas, contextLost } = ctx;
+        if (ctx.webgpu && ctx.webgpuRenderer) return createWebGPUCanvas3D(ctx, props, attribs);
+        if (!ctx.webgl || !ctx.passes) throw new Error('Canvas3D requires an initialized graphics backend.');
+        const webgl = ctx.webgl, passes = ctx.passes;
+        const { input, assetManager, canvas, contextLost } = ctx;
         const p: Canvas3DProps = { ...deepClone(DefaultCanvas3DParams), ...deepClone(props) };
         const a = { ...deepClone(DefaultCanvas3DAttribs), ...deepClone(attribs) };
 
@@ -1447,6 +1498,7 @@ namespace Canvas3D {
                 scene.forEach((_, ro) => renderObjects.push(ro));
                 return renderObjects;
             },
+            getRepresentations: () => Array.from(reprRenderObjects.keys()),
 
             get props() {
                 return getProps();

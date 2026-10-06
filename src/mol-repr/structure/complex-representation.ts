@@ -21,14 +21,15 @@ import { StructureParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { Transparency } from '../../mol-theme/transparency';
 import { WebGLContext } from '../../mol-gl/webgl/context';
+import type { WebGPUContext } from '../../mol-gl/webgpu/context';
 import { Substance } from '../../mol-theme/substance';
 import { LocationCallback } from '../util';
 import { Emissive } from '../../mol-theme/emissive';
 import { Wiggle } from '../../mol-theme/wiggle';
 
-export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number, structure: Structure, props: PD.Values<P>, webgl?: WebGLContext) => ComplexVisual<P>): StructureRepresentation<P> {
+export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number, structure: Structure, props: PD.Values<P>, webgl?: WebGLContext, webgpu?: WebGPUContext) => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0;
-    const { webgl } = ctx;
+    const { webgl, webgpu } = ctx;
     const updated = new Subject<number>();
     const geometryState = new Representation.GeometryState();
     const materialId = getNextMaterialId();
@@ -52,14 +53,14 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         return Task.create('Creating or updating ComplexRepresentation', async runtime => {
             let newVisual = false;
             if (!visual) {
-                visual = visualCtor(materialId, _structure, _props, webgl);
+                visual = visualCtor(materialId, _structure, _props, webgl, webgpu);
                 newVisual = true;
-            } else if (visual.mustRecreate?.(_structure, _props, webgl)) {
+            } else if (visual.mustRecreate?.(_structure, _props, webgl, webgpu)) {
                 visual.destroy();
-                visual = visualCtor(materialId, _structure, _props, webgl);
+                visual = visualCtor(materialId, _structure, _props, webgl, webgpu);
                 newVisual = true;
             }
-            const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, structure);
+            const promise = visual.createOrUpdate({ webgl, webgpu, runtime }, _theme, _props, structure);
             if (promise) await promise;
             if (newVisual) setState(_state); // current state for new visual
             // update list of renderObjects

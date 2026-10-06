@@ -7,6 +7,7 @@
 
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { WebGLContext } from '../mol-gl/webgl/context';
+import type { WebGPUContext } from '../mol-gl/webgpu/context';
 import { ColorTheme } from '../mol-theme/color';
 import { SizeTheme } from '../mol-theme/size';
 import { ThemeRegistryContext, Theme } from '../mol-theme/theme';
@@ -35,6 +36,7 @@ export type RepresentationProps = { [k: string]: any }
 
 export interface RepresentationContext {
     readonly webgl?: WebGLContext
+    readonly webgpu?: WebGPUContext
     readonly colorThemeRegistry: ColorTheme.Registry
     readonly sizeThemeRegistry: SizeTheme.Registry
 }

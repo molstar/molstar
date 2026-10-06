@@ -203,31 +203,31 @@ export class GlbExporter extends MeshExporter<GlbData> {
         const roughness = values.uRoughness.ref.value;
         const emissive = values.uEmissive.ref.value;
         const doubleSided = values.uDoubleSided?.ref.value || values.hasReflection.ref.value;
-        const alpha = values.uAlpha.ref.value < 1;
+        const alpha = values.uAlpha.ref.value < 1 || dTransparency;
 
         const material = this.addMaterial(metalness, roughness, emissive, doubleSided, alpha);
 
         let interpolatedColors: Uint8Array | undefined;
-        if (webgl && mesh && (colorType === 'volume' || colorType === 'volumeInstance')) {
+        if (mesh && (colorType === 'volume' || colorType === 'volumeInstance')) {
             const stride = isGeoTexture ? 4 : 3;
-            interpolatedColors = GlbExporter.getInterpolatedColors(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType });
+            interpolatedColors = await GlbExporter.getInterpolatedColors(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType });
         }
 
         let interpolatedOverpaint: Uint8Array | undefined;
-        if (webgl && mesh && overpaintType === 'volumeInstance') {
+        if (mesh && overpaintType === 'volumeInstance') {
             const stride = isGeoTexture ? 4 : 3;
-            interpolatedOverpaint = GlbExporter.getInterpolatedOverpaint(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType: overpaintType });
+            interpolatedOverpaint = await GlbExporter.getInterpolatedOverpaint(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType: overpaintType });
         }
 
         let interpolatedTransparency: Uint8Array | undefined;
-        if (webgl && mesh && transparencyType === 'volumeInstance') {
+        if (mesh && transparencyType === 'volumeInstance') {
             const stride = isGeoTexture ? 4 : 3;
-            interpolatedTransparency = GlbExporter.getInterpolatedTransparency(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType: transparencyType });
+            interpolatedTransparency = await GlbExporter.getInterpolatedTransparency(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType: transparencyType });
         }
 
         // instancing
         const sameGeometryBuffers = mesh !== undefined;
-        const sameColorBuffer = sameGeometryBuffers && colorType !== 'instance' && !colorType.endsWith('Instance') && !dTransparency;
+        const sameColorBuffer = sameGeometryBuffers && colorType !== 'instance' && !colorType.endsWith('Instance') && !(values.dOverpaint.ref.value && overpaintType.endsWith('Instance')) && !dTransparency;
         let vertexAccessorIndex: number;
         let normalAccessorIndex: number | undefined;
         let indexAccessorIndex: number | undefined;
@@ -242,6 +242,10 @@ export class GlbExporter extends MeshExporter<GlbData> {
             // create a glTF mesh if needed
             if (instanceIndex === 0 || !sameGeometryBuffers || !sameColorBuffer) {
                 const { vertices, normals, indices, groups, vertexCount, drawCount, vertexMapping } = GlbExporter.getInstance(input, instanceIndex);
+                if (!mesh) {
+                    const interpolation = await GlbExporter.getGeneratedInterpolation(input, vertices, vertexCount, instanceIndex);
+                    interpolatedColors = interpolation.colors; interpolatedOverpaint = interpolation.overpaint; interpolatedTransparency = interpolation.transparency;
+                }
 
                 // create geometry buffers if needed
                 if (instanceIndex === 0 || !sameGeometryBuffers) {
@@ -253,7 +257,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
 
                 // create a color buffer if needed
                 if (instanceIndex === 0 || !sameColorBuffer) {
-                    colorAccessorIndex = this.addColorBuffer({ values, groups, vertexCount, instanceIndex, isGeoTexture, mode, vertexMapping }, interpolatedColors, interpolatedOverpaint, interpolatedTransparency);
+                    colorAccessorIndex = this.addColorBuffer({ values, groups, vertexCount, instanceIndex, isGeoTexture, mode, vertexMapping, interpolatedInstanceIndex: mesh ? undefined : 0 }, interpolatedColors, interpolatedOverpaint, interpolatedTransparency);
                 }
 
                 // glTF mesh

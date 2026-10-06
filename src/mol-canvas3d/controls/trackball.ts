@@ -133,7 +133,7 @@ interface TrackballControls {
     dispose: () => void
 }
 namespace TrackballControls {
-    export function create(input: InputObserver, camera: Camera, scene: Scene, props: Partial<TrackballControlsProps> = {}, attribs: Partial<TrackballControlsAttribs> = {}): TrackballControls {
+    export function create(input: InputObserver, camera: Camera, scene: Pick<Scene, 'boundingSphereVisible'>, props: Partial<TrackballControlsProps> = {}, attribs: Partial<TrackballControlsAttribs> = {}): TrackballControls {
         const p: TrackballControlsProps = {
             ...PD.getDefaultValues(TrackballControlsParams),
             ...props,

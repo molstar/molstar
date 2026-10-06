@@ -6,26 +6,24 @@
  * Thanks to @author Adam Midlik <midlik@gmail.com> for the example code ../image-renderer and https://github.com/midlik/surface-calculator i can make reference to,
  *
  * Example command-line application generating and exporting PubChem SDF structures
- * Build: npm install --no-save gl  // these packages are not listed in dependencies for performance reasons
- *        npm run build
+ * Build: bun add -d webgpu @napi-rs/canvas jpeg-js pngjs  // these packages are not listed in dependencies for performance reasons
+ *        bun run build
  * Run:   node lib/commonjs/examples/glb-export 2519 ../outputs_2519/
  */
 
 import { ArgumentParser } from 'argparse';
 import fs from 'fs';
 import path from 'path';
-import gl from 'gl';
 
 import { Task } from '../../mol-task';
 import { Download } from '../../mol-plugin-state/transforms/data';
-import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { GlbExporter } from '../../extensions/geo-export/glb-exporter';
 import { Box3D } from '../../mol-math/geometry';
 import { ModelFromTrajectory, StructureFromModel, TrajectoryFromSDF } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { HeadlessPluginContext } from '../../mol-plugin/headless-plugin-context';
 import { DefaultPluginSpec } from '../../mol-plugin/spec';
-import { ExternalModules } from '../../mol-plugin/util/headless-screenshot';
+import { loadHeadlessModules } from '../../mol-plugin/util/headless-modules';
 import { setFSModule } from '../../mol-util/data-source';
 
 setFSModule(fs);
@@ -54,8 +52,8 @@ async function main() {
     console.log('Outputs:', args.outDirectory);
 
     // Create a headless plugin
-    const externalModules: ExternalModules = { gl };
-    const plugin = new HeadlessPluginContext(externalModules, DefaultPluginSpec());
+    const externalModules = await loadHeadlessModules();
+    const plugin = await HeadlessPluginContext.create(externalModules, DefaultPluginSpec());
     await plugin.init();
 
     // Download and visualize data in the plugin
@@ -72,16 +70,21 @@ async function main() {
         })
         .commit();
 
-    const meshes = structure.data!.repr.renderObjects.filter(obj => obj.type === 'mesh') as GraphicsRenderObject<'mesh'>[];
+    plugin.canvas3d!.commit(true);
+    const renderObjects = structure.data!.repr.renderObjects;
 
     const boundingSphere = plugin.canvas3d?.boundingSphereVisible!;
     const boundingBox = Box3D.fromSphere3D(Box3D(), boundingSphere);
 
     const renderObjectExporter = new GlbExporter(boundingBox);
 
+    // Match the image-renderer example: callers commonly pass a new output
+    // directory, so create it before the asynchronous export task writes the
+    // GLB file.
+    await fs.promises.mkdir(args.outDirectory, { recursive: true });
     await plugin.runTask(Task.create('Export Geometry', async ctx => {
-        for (let i = 0, il = meshes.length; i < il; ++i) {
-            await renderObjectExporter.add(meshes[i], plugin.canvas3d?.webgl!, ctx);
+        for (let i = 0, il = renderObjects.length; i < il; ++i) {
+            await renderObjectExporter.add(renderObjects[i], plugin.canvas3d?.webgl, ctx);
         }
 
         const blob = await renderObjectExporter.getBlob(ctx);

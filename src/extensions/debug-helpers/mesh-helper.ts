@@ -13,8 +13,9 @@ import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../mol-geo/geometry/lines/lines-builder';
 import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
+import { Mat3 } from '../../mol-math/linear-algebra/3d/mat3';
 import { MeshValues } from '../../mol-gl/renderable/mesh';
-import { DebugHelper } from '../../mol-canvas3d/helper/debug-registry';
+import { DebugHelper, DebugHelperParent, DebugHelperScene } from '../../mol-canvas3d/helper/debug-registry';
 
 export const MeshHelperParams = {
     meshNormals: PD.Boolean(false, { description: 'Show normals of visible mesh render objects.' }),
@@ -29,49 +30,50 @@ const _n = Vec3();
 const _start = Vec3();
 const _end = Vec3();
 
-export class MeshHelper implements DebugHelper<MeshHelperProps> {
-    readonly scene: Scene;
+export class MeshHelper<S extends DebugHelperScene = Scene> implements DebugHelper<MeshHelperProps, S> {
+    readonly scene: S;
 
-    private readonly parent: Scene;
+    private readonly parent: DebugHelperParent;
     private _props: MeshHelperProps;
-    private renderObjects = new Map<number, GraphicsRenderObject>();
+    private renderObjects = new Map<number, { object: GraphicsRenderObject, version: string }>();
 
-    constructor(ctx: WebGLContext, parent: Scene, props: Partial<MeshHelperProps>) {
-        this.scene = Scene.create(ctx, 'blended');
+    constructor(ctx: WebGLContext, parent: DebugHelperParent, props: Partial<MeshHelperProps>);
+    constructor(ctx: undefined, parent: DebugHelperParent, props: Partial<MeshHelperProps>, scene: S);
+    constructor(ctx: WebGLContext | undefined, parent: DebugHelperParent, props: Partial<MeshHelperProps>, scene?: S) {
+        this.scene = scene ?? Scene.create(ctx!, 'blended') as unknown as S;
         this.parent = parent;
         this._props = { ...PD.getDefaultValues(MeshHelperParams), ...props };
     }
 
     update() {
         const previousIds = new Set(this.renderObjects.keys());
-        const currentIds = new Set<number>();
 
         this.parent.forEach((r, ro) => {
             if (!ro.state.visible) return;
             if (ro.type !== 'mesh') return;
 
-            currentIds.add(ro.id);
-
-            // Skip if we already have normals for this render object
-            if (this.renderObjects.has(ro.id)) {
+            const values = ro.values as MeshValues;
+            const version = [values.aPosition, values.aNormal, values.elements, values.aTransform, values.drawCount, values.uInstanceCount, values.boundingSphere].map(cell => cell.ref.version).join(',');
+            const existing = this.renderObjects.get(ro.id);
+            if (existing?.version === version) {
                 previousIds.delete(ro.id);
                 return;
             }
-
-            const values = ro.values as MeshValues;
+            if (existing) { this.scene.remove(existing.object); this.renderObjects.delete(ro.id); }
             const lines = createNormalLines(values);
             if (!lines) return;
 
             const linesRO = createNormalLinesRenderObject(lines, meshHelperMaterialId);
             this.scene.add(linesRO);
-            this.renderObjects.set(ro.id, linesRO);
+            this.renderObjects.set(ro.id, { object: linesRO, version });
+            previousIds.delete(ro.id);
         });
 
         // Remove normals for render objects no longer present
         for (const id of previousIds) {
             const linesRO = this.renderObjects.get(id);
             if (linesRO) {
-                this.scene.remove(linesRO);
+                this.scene.remove(linesRO.object);
                 this.renderObjects.delete(id);
             }
         }
@@ -82,8 +84,8 @@ export class MeshHelper implements DebugHelper<MeshHelperProps> {
 
     syncVisibility() {
         const visible = this._props.meshNormals;
-        this.renderObjects.forEach(ro => {
-            ro.state.visible = visible;
+        this.renderObjects.forEach(entry => {
+            entry.object.state.visible = visible;
         });
     }
 
@@ -129,6 +131,7 @@ function createNormalLines(values: MeshValues): Lines | undefined {
         const tOffset = inst * 16;
         const transform = Mat4();
         Mat4.fromArray(transform, transforms, tOffset);
+        const normalTransform = Mat3.directionTransform(Mat3(), transform);
 
         // Use a set to avoid drawing duplicate normals for shared vertices
         const visited = new Set<number>();
@@ -144,7 +147,7 @@ function createNormalLines(values: MeshValues): Lines | undefined {
 
             // Transform vertex position and normal direction by instance transform
             Vec3.transformMat4(_start, _v, transform);
-            Vec3.transformDirection(_end, _n, transform);
+            Vec3.transformMat3(_end, _n, normalTransform);
             Vec3.normalize(_end, _end);
             Vec3.scaleAndAdd(_end, _start, _end, normalLength);
 

@@ -7,7 +7,7 @@
 
 import { produce } from '../mol-util/produce';
 import { List } from 'immutable';
-import { merge, Subscription } from 'rxjs';
+import { firstValueFrom, merge, Subscription } from 'rxjs';
 import { debounceTime, filter, take, throttleTime } from 'rxjs/operators';
 import { Canvas3D, Canvas3DContext, DefaultCanvas3DParams } from '../mol-canvas3d/canvas3d';
 import { resizeCanvas } from '../mol-canvas3d/util';
@@ -38,6 +38,7 @@ import { Representation } from '../mol-repr/representation';
 import { ParticleRepresentationRegistry } from '../mol-repr/particles/registry';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
 import { VolumeRepresentationRegistry } from '../mol-repr/volume/registry';
+import { PluginStateObject } from '../mol-plugin-state/objects';
 import { StateTransform } from '../mol-state';
 import { RuntimeContext, Scheduler, Task } from '../mol-task';
 import { ColorTheme } from '../mol-theme/color';
@@ -63,6 +64,7 @@ import { SubstructureParentHelper } from './util/substructure-parent-helper';
 import { TaskManager } from './util/task-manager';
 import { PluginToastManager } from './util/toast';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
+import { now } from '../mol-util/now';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { setSaccharideCompIdMapType } from '../mol-model/structure/structure/carbohydrates/constants';
 import { DragAndDropManager } from '../mol-plugin-state/manager/drag-and-drop';
@@ -84,6 +86,79 @@ export class PluginContext {
     };
 
     protected subs: Subscription[] = [];
+    private canvasSubs: Subscription[] = [];
+    private deviceLossSub?: Subscription;
+    private createRecoveryCanvas?: () => Promise<void>;
+    private recovery?: Promise<void>;
+    private recoveryClock?: { wasAnimating: boolean, time: number, camera: ReturnType<Canvas3D['camera']['getSnapshot']>, renderedRefs?: Set<string> };
+    /** The current automatic recovery, also awaitable by exporters and callers. */
+    get webgpuRecovery() { return this.recovery; }
+
+    protected configureWebGPURecovery(create: () => Promise<void>) {
+        this.createRecoveryCanvas = create;
+        this.deviceLossSub?.unsubscribe();
+        this.deviceLossSub = this.canvas3dContext?.webgpu?.lost.subscribe(() => {
+            void this.recoverWebGPU().catch(error => this.log.error(`WebGPU recovery failed: ${error}`));
+        });
+    }
+
+    /** Recreate GPU-owned representations while retaining molecular/volume data and state refs. */
+    recoverWebGPU(): Promise<void> {
+        if (this.recovery) return this.recovery;
+        if (!this.createRecoveryCanvas || !this.canvas3dContext?.webgpu) return Promise.reject(new Error('Native WebGPU recovery is unavailable.'));
+        const create = this.createRecoveryCanvas;
+        const work = (async () => {
+            const clock = this.recoveryClock ?? (this.recoveryClock = { wasAnimating: this.animationLoop.isAnimating, time: this.animationLoop.time, camera: this.canvas3d!.camera.getSnapshot() });
+            const wasAnimating = clock.wasAnimating, animationTime = clock.time;
+            this.animationLoop.stop({ noDraw: true });
+            await firstValueFrom(this.state.data.behaviors.isUpdating.pipe(filter(updating => !updating), take(1)));
+            if (this.disposed) return;
+            await this.dataTransaction(async runtime => {
+                const canvas = this.canvas3d!, context = this.canvas3dContext!;
+                const props = canvas.props, camera = clock.camera;
+                const data = this.state.data, snapshot = data.getSnapshot(), current = data.behaviors.currentObject.value.ref;
+                const states = new Map<string, Representation.State>();
+                const displayed = new Set(canvas.getRepresentations());
+                if (!clock.renderedRefs) clock.renderedRefs = new Set([...data.cells].filter(([, cell]) => PluginStateObject.isRepresentation3D(cell.obj) && displayed.has(cell.obj.data.repr)).map(([ref]) => ref));
+                for (const [ref, cell] of data.cells) if (PluginStateObject.isRepresentation3D(cell.obj)) states.set(ref, { ...cell.obj.data.repr.state });
+                const selection = this.managers.structure.selection.getSnapshot(), focus = this.managers.structure.focus.getSnapshot();
+                canvas.dispose(); context.dispose();
+                await create();
+                this.animationLoop.stop({ noDraw: true });
+                if (this.disposed) { this.canvas3d?.dispose(); this.canvas3dContext?.dispose(); return; }
+                const replacement = this.canvas3d!;
+                replacement.setProps(props);
+                this.events.canvas3d.recreated.next();
+                const remove = data.build(); for (const ref of states.keys()) remove.delete(ref);
+                await data.updateTree(remove).runInContext(runtime);
+                await data.setSnapshot(snapshot).runInContext(runtime);
+                for (const [ref, state] of states) {
+                    const object = data.cells.get(ref)?.obj;
+                    if (PluginStateObject.isRepresentation3D(object)) {
+                        object.data.repr.setState(state);
+                        if (clock.renderedRefs.has(ref)) replacement.update(object.data.repr);
+                        else replacement.remove(object.data.repr);
+                    }
+                }
+                this.managers.structure.selection.setSnapshot(selection); this.managers.structure.focus.setSnapshot(focus);
+                data.setCurrent(current);
+                replacement.commit(true);
+                replacement.camera.setState(camera, 0); replacement.requestCameraReset({ snapshot: camera, durationMs: 0 }); replacement.requestDraw();
+            }, { rethrowErrors: true });
+            if (!this.disposed) {
+                const canvas = this.canvas3d!;
+                await this.canvas3dContext?.webgpuRenderer?.updateBackground(canvas.props.postprocessing);
+                canvas.resume(); canvas.resetTime(0); canvas.camera.setState(clock.camera, 0);
+                canvas.tick(animationTime as now.Timestamp, { updateControls: false });
+                await canvas.webgpu?.device.queue.onSubmittedWorkDone();
+                if (wasAnimating) this.animationLoop.start({ time: animationTime });
+                this.recoveryClock = undefined;
+                this.log.info('WebGPU device restored.');
+            }
+        })();
+        this.recovery = work.finally(() => { this.recovery = undefined; });
+        return this.recovery;
+    }
     private initCanvas3dPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => {}, () => {}];
     private _isInitialized = false;
     private initializedPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => {}, () => {}];
@@ -140,6 +215,13 @@ export class PluginContext {
 
     readonly canvas3dContext: Canvas3DContext | undefined;
     readonly canvas3d: Canvas3D | undefined;
+    /** Attach an already initialized canvas, including DOM-free headless rendering. */
+    protected setCanvas3D(canvas: Canvas3D, context?: Canvas3DContext) {
+        (this.canvas3d as Canvas3D) = canvas;
+        (this.canvas3dContext as Canvas3DContext | undefined) = context;
+        this.canvas3dInit.next(true);
+        this.initCanvas3dPromiseCallbacks[0]();
+    }
     readonly layout = new PluginLayout(this);
     readonly animationLoop = new PluginAnimationLoop(this);
 
@@ -211,6 +293,7 @@ export class PluginContext {
         task: this.managers.task.events,
         canvas3d: {
             settingsUpdated: this.ev(),
+            recreated: this.ev<void>(),
         }
     } as const;
 
@@ -249,13 +332,13 @@ export class PluginContext {
         return this._mount(target, initOptions);
     }
 
-    private _initContainer(options?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
+    private async _initContainer(options?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
         if (this.container) return true;
         const container = new PluginContainer({
             checkeredCanvasBackground: options?.checkeredCanvasBackground,
             canvas: options?.canvas3dContext?.canvas
         });
-        if (!this._initViewer(container.canvas, container.parent, options?.canvas3dContext)) {
+        if (!await this._initViewer(container.canvas, container.parent, options?.canvas3dContext)) {
             return false;
         }
         if (options?.checkeredCanvasBackground) {
@@ -269,10 +352,10 @@ export class PluginContext {
      * Mount the plugin into the target element (assumes the target has "relative"-like positioninig).
      * If initContainer wasn't called separately before, initOptions will be passed to it.
      */
-    private _mount(target: HTMLElement, initOptions?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
+    private async _mount(target: HTMLElement, initOptions?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
         if (this.disposed) throw new Error('Cannot mount a disposed context');
 
-        if (!this._initContainer(initOptions)) return false;
+        if (!await this._initContainer(initOptions)) return false;
         this.container?.mount(target);
         this.handleResize();
         return true;
@@ -282,13 +365,15 @@ export class PluginContext {
         this.container?.unmount();
     }
 
-    private _initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
+    private async _initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
         try {
+            for (const sub of this.canvasSubs) sub.unsubscribe(); this.canvasSubs = [];
             this.layout.setRoot(container);
-            if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
+            if (!this.canvas3d && this.spec.layout?.initial) this.layout.setProps(this.spec.layout.initial);
 
             if (!canvas3dContext) {
-                canvas3dContext = Canvas3DContext.fromCanvas(canvas, this.managers.asset, {
+                const create = this.config.get(PluginConfig.General.RenderingBackend) === 'webgpu' ? Canvas3DContext.fromCanvasWebGPU : Canvas3DContext.fromCanvas;
+                canvas3dContext = await create(canvas, this.managers.asset, {
                     antialias: !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false),
                     preserveDrawingBuffer: !(this.config.get(PluginConfig.General.DisablePreserveDrawingBuffer) ?? false),
                     preferWebGl1: this.config.get(PluginConfig.General.PreferWebGl1) || false,
@@ -322,17 +407,22 @@ export class PluginContext {
             this.animationLoop.start();
             (this.helpers.viewportScreenshot as ViewportScreenshotHelper) = new ViewportScreenshotHelper(this);
 
-            this.subs.push(this.canvas3d!.interaction.click.subscribe(e => this.behaviors.interaction.click.next(e)));
-            this.subs.push(this.canvas3d!.interaction.drag.subscribe(e => this.behaviors.interaction.drag.next(e)));
-            this.subs.push(this.canvas3d!.interaction.hover.subscribe(e => this.behaviors.interaction.hover.next(e)));
-            this.subs.push(this.canvas3d!.input.resize.pipe(debounceTime(50), throttleTime(100, undefined, { leading: false, trailing: true })).subscribe(() => this.handleResize()));
-            this.subs.push(this.canvas3d!.input.keyDown.subscribe(e => this.behaviors.interaction.key.next(e)));
-            this.subs.push(this.canvas3d!.input.keyUp.subscribe(e => this.behaviors.interaction.keyReleased.next(e)));
-            this.subs.push(this.canvas3d!.xr.isPresenting.subscribe(e => this.log.info(`WebXR ${e ? 'enabled' : 'disabled'}`)));
-            this.subs.push(this.canvas3d!.xr.requestFailed.subscribe(e => this.log.error(`WebXR request failed: ${e}`)));
-            this.subs.push(this.layout.events.updated.subscribe(() => requestAnimationFrame(() => this.handleResize())));
+            this.canvasSubs.push(this.canvas3d!.interaction.click.subscribe(e => this.behaviors.interaction.click.next(e)));
+            this.canvasSubs.push(this.canvas3d!.interaction.drag.subscribe(e => this.behaviors.interaction.drag.next(e)));
+            this.canvasSubs.push(this.canvas3d!.interaction.hover.subscribe(e => this.behaviors.interaction.hover.next(e)));
+            this.canvasSubs.push(this.canvas3d!.input.resize.pipe(debounceTime(50), throttleTime(100, undefined, { leading: false, trailing: true })).subscribe(() => this.handleResize()));
+            this.canvasSubs.push(this.canvas3d!.input.keyDown.subscribe(e => this.behaviors.interaction.key.next(e)));
+            this.canvasSubs.push(this.canvas3d!.input.keyUp.subscribe(e => this.behaviors.interaction.keyReleased.next(e)));
+            this.canvasSubs.push(this.canvas3d!.xr.isPresenting.subscribe(e => this.log.info(`WebXR ${e ? 'enabled' : 'disabled'}`)));
+            this.canvasSubs.push(this.canvas3d!.xr.requestFailed.subscribe(e => this.log.error(`WebXR request failed: ${e}`)));
+            this.canvasSubs.push(this.layout.events.updated.subscribe(() => requestAnimationFrame(() => this.handleResize())));
 
             this.handleResize();
+            if (canvas3dContext.webgpu) this.configureWebGPURecovery(async () => {
+                const context = await Canvas3DContext.fromCanvasWebGPU(canvas, this.managers.asset, canvas3dContext!.attribs, canvas3dContext!.props);
+                if (this.disposed) { context.dispose(); return; }
+                if (!await this._initViewer(canvas, container, context)) throw new Error('Could not recreate the WebGPU viewer.');
+            });
 
             Scheduler.setImmediate(() => this.initCanvas3dPromiseCallbacks[0]());
             return true;
@@ -394,10 +484,9 @@ export class PluginContext {
     dispose(options?: { doNotForceWebGLContextLoss?: boolean, doNotDisposeCanvas3DContext?: boolean }) {
         if (this.disposed) return;
 
-        for (const s of this.subs) {
-            s.unsubscribe();
-        }
-        this.subs = [];
+        for (const s of [...this.subs, ...this.canvasSubs]) s.unsubscribe();
+        this.deviceLossSub?.unsubscribe();
+        this.subs = []; this.canvasSubs = [];
 
         this.layout.dispose();
         this.managers.markdownExtensions.audio.dispose();

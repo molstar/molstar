@@ -59,7 +59,7 @@ export class StlExporter extends MeshExporter<StlData> {
             }
 
             // face
-            const triangleBuffer = new ArrayBuffer(50 * drawCount);
+            const triangleBuffer = new ArrayBuffer(50 * (drawCount / 3));
             const dataView = new DataView(triangleBuffer);
             for (let i = 0; i < drawCount; i += 3) {
                 v3fromArray(v1, vertexArray, (isGeoTexture ? i : indices![i]) * 3);
@@ -67,7 +67,7 @@ export class StlExporter extends MeshExporter<StlData> {
                 v3fromArray(v3, vertexArray, (isGeoTexture ? i + 2 : indices![i + 2]) * 3);
                 v3triangleNormal(tmpV, v1, v2, v3);
 
-                const byteOffset = 50 * i;
+                const byteOffset = 50 * (i / 3);
                 dataView.setFloat32(byteOffset, tmpV[0], true);
                 dataView.setFloat32(byteOffset + 4, tmpV[1], true);
                 dataView.setFloat32(byteOffset + 8, tmpV[2], true);
@@ -86,7 +86,7 @@ export class StlExporter extends MeshExporter<StlData> {
             }
 
             this.triangleBuffers.push(triangleBuffer);
-            this.triangleCount += drawCount;
+            this.triangleCount += drawCount / 3;
         }
     }
 
@@ -112,6 +112,7 @@ export class StlExporter extends MeshExporter<StlData> {
 
     constructor(boundingBox: Box3D) {
         super();
+        this.setOptions({ linesAsTriangles: true, pointsAsTriangles: true });
         const tmpV = Vec3();
         Vec3.add(tmpV, boundingBox.min, boundingBox.max);
         Vec3.scale(tmpV, tmpV, -0.5);

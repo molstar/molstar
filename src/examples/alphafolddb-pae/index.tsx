@@ -40,11 +40,23 @@ export class AlphaFoldPAEExample {
         await this.viewer.loadAlphaFoldDb(id);
 
         try {
-            const req = await fetch(`https://alphafold.ebi.ac.uk/files/AF-${id}-F1-predicted_aligned_error_v4.json`);
+            // AlphaFold DB rotates the file version (the current records use
+            // v6). Resolve the document URL through the public prediction API
+            // instead of keeping a stale version in the example.
+            const predictionReq = await fetch(`https://alphafold.ebi.ac.uk/api/prediction/${encodeURIComponent(id)}`);
+            if (!predictionReq.ok) throw new Error(`AlphaFold DB prediction lookup failed (${predictionReq.status}).`);
+            const predictions = await predictionReq.json();
+            const paeUrl = Array.isArray(predictions) ? predictions.find((p: any) => typeof p?.paeDocUrl === 'string')?.paeDocUrl : undefined;
+            if (!paeUrl) throw new Error('AlphaFold DB did not provide a predicted-aligned-error document URL.');
+
+            const req = await fetch(paeUrl);
+            if (!req.ok) throw new Error(`AlphaFold DB PAE download failed (${req.status}).`);
             const json = await req.json();
 
             const model = this.viewer.plugin.managers.structure.hierarchy.current.models[0]?.cell.obj?.data!;
-            const metric = pairwiseMetricFromAlphaFoldDbJson(model, json)!;
+            if (!model) throw new Error('AlphaFold DB model was not loaded.');
+            const metric = pairwiseMetricFromAlphaFoldDbJson(model, json);
+            if (!metric) throw new Error('AlphaFold DB returned an invalid predicted-aligned-error document.');
 
             plotRoot.render(
                 <div className='msp-plugin' style={{ background: 'white' }}>

@@ -5,6 +5,7 @@
  * @author Cai Huiyu <szmun.caihy@gmail.com>
  */
 
+import { WebGPUTextureData } from '../../../mol-gl/webgpu/texture-data';
 import { ValueCell } from '../../../mol-util';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -152,26 +153,33 @@ export namespace TextureMesh {
 
     function createPositionIterator(textureMesh: TextureMesh, transform: TransformData): LocationIterator {
         const webgl = textureMesh.meta.webgl;
-        if (!webgl) return LocationIterator(1, 1, 1, () => NullLocation);
+        const native = textureMesh.vertexTexture.ref.value instanceof WebGPUTextureData && textureMesh.normalTexture.ref.value instanceof WebGPUTextureData;
+        if (!webgl && !native) return LocationIterator(1, 1, 1, () => NullLocation);
 
-        if (!webgl.namedFramebuffers[TextureMeshName]) {
+        if (webgl && !webgl.namedFramebuffers[TextureMeshName]) {
             webgl.namedFramebuffers[TextureMeshName] = webgl.resources.framebuffer();
         }
-        const framebuffer = webgl.namedFramebuffers[TextureMeshName];
+        const framebuffer = webgl?.namedFramebuffers[TextureMeshName];
         const [width, height] = textureMesh.geoTextureDim.ref.value;
 
         let data: { vertices: Float32Array, normals: Float32Array } | undefined = undefined;
         const getData = () => {
+            if (!data && native) {
+                const vertices = (textureMesh.vertexTexture.ref.value as WebGPUTextureData).data.array;
+                const normals = (textureMesh.normalTexture.ref.value as WebGPUTextureData).data.array;
+                if (!(vertices instanceof Float32Array) || !(normals instanceof Float32Array)) throw new Error('Native texture mesh positions and normals must use float arrays.');
+                data = { vertices, normals };
+            }
             if (!data) {
                 const vertices = new Float32Array(width * height * 4);
-                framebuffer.bind();
-                textureMesh.vertexTexture.ref.value.attachFramebuffer(framebuffer, 0);
-                webgl.readPixels(0, 0, width, height, vertices);
+                framebuffer!.bind();
+                textureMesh.vertexTexture.ref.value.attachFramebuffer(framebuffer!, 0);
+                webgl!.readPixels(0, 0, width, height, vertices);
 
                 const normals = new Float32Array(width * height * 4);
-                framebuffer.bind();
-                textureMesh.normalTexture.ref.value.attachFramebuffer(framebuffer, 0);
-                webgl.readPixels(0, 0, width, height, normals);
+                framebuffer!.bind();
+                textureMesh.normalTexture.ref.value.attachFramebuffer(framebuffer!, 0);
+                webgl!.readPixels(0, 0, width, height, normals);
 
                 data = { vertices, normals };
             }

@@ -19,6 +19,7 @@ import { Sphere3D } from '../../../mol-math/geometry';
 import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { sphereVertexCount } from '../../../mol-geo/primitive/sphere';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
+import type { WebGPUContext } from '../../../mol-gl/webgpu/context';
 import { Spheres } from '../../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../../mol-geo/geometry/spheres/spheres-builder';
 import { eachPolymerBackboneElement } from './util/polymer/backbone';
@@ -33,8 +34,8 @@ export const PolymerBackboneSphereParams = {
 };
 export type PolymerBackboneSphereParams = typeof PolymerBackboneSphereParams
 
-export function PolymerBackboneSphereVisual(materialId: number, structure: Structure, props: PD.Values<PolymerBackboneSphereParams>, webgl?: WebGLContext) {
-    return props.tryUseImpostor && checkSphereImpostorSupport(webgl)
+export function PolymerBackboneSphereVisual(materialId: number, structure: Structure, props: PD.Values<PolymerBackboneSphereParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) {
+    return props.tryUseImpostor && checkSphereImpostorSupport(webgl, webgpu)
         ? PolymerBackboneSphereImpostorVisual(materialId)
         : PolymerBackboneSphereMeshVisual(materialId);
 }
@@ -76,8 +77,8 @@ export function PolymerBackboneSphereImpostorVisual(materialId: number): UnitsVi
         getLoci: getPolymerElementLoci,
         eachLocation: eachPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerBackboneSphereParams>, currentProps: PD.Values<PolymerBackboneSphereParams>) => { },
-        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<PolymerBackboneSphereParams>, webgl?: WebGLContext) => {
-            return !props.tryUseImpostor || !webgl;
+        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<PolymerBackboneSphereParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
+            return !props.tryUseImpostor || (!webgl && !webgpu);
         }
     }, materialId);
 }
@@ -125,8 +126,8 @@ export function PolymerBackboneSphereMeshVisual(materialId: number): UnitsVisual
                 newProps.detail !== currentProps.detail
             );
         },
-        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<PolymerBackboneSphereParams>, webgl?: WebGLContext) => {
-            return props.tryUseImpostor && !!webgl;
+        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<PolymerBackboneSphereParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
+            return props.tryUseImpostor && (!!webgl || !!webgpu);
         }
     }, materialId);
 }

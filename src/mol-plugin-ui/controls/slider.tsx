@@ -23,6 +23,7 @@ export class Slider extends React.Component<{
 }, { isChanging: boolean, current: number }> {
 
     state = { isChanging: false, current: 0 };
+    private manualValue: number | undefined;
 
     static getDerivedStateFromProps(props: { value: number }, state: { isChanging: boolean, current: number }) {
         if (state.isChanging || props.value === state.current) return null;
@@ -51,12 +52,17 @@ export class Slider extends React.Component<{
         if (n < this.props.min) n = this.props.min;
         if (n > this.props.max) n = this.props.max;
 
+        // TextInput flushes a pending edit immediately before Enter blurs the
+        // field. React can batch the state update with that blur event.
+        this.manualValue = n;
         this.setState({ current: n, isChanging: true });
     };
 
     onManualBlur = () => {
+        const value = this.manualValue ?? this.state.current;
+        this.manualValue = undefined;
         this.setState({ isChanging: false });
-        this.props.onChange(this.state.current);
+        this.props.onChange(value);
     };
 
     onMouseWheel = (e: WheelEvent) => {

@@ -14,6 +14,9 @@
     "node": ">=22.0.0"
   },
   "scripts": {
+    "test:webgpu": "bun run jest src/mol-gl/webgpu/_spec --runInBand && bun scripts/verify-webgpu.mjs",
+    "test:webgpu-viewer": "bun scripts/build.mjs -a viewer --prd && bun scripts/verify-default-viewer.mjs",
+    "test:webgpu-headless": "bun run build:lib && node scripts/verify-webgpu-headless.mjs",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
     "test": "npm install --no-save \"gl@^8.1.6\" && npm run lint && jest",
@@ -95,10 +98,10 @@
     "Alexander Rose <alexander.rose@weirdbyte.de>",
     "David Sehnal <david.sehnal@gmail.com>",
     "Sebastian Bittrich <sebastian.bittrich@rcsb.org>",
-    "Áron Samuel Kovács <aron.kovacs@mail.muni.cz>",
+    "\u00c1ron Samuel Kov\u00e1cs <aron.kovacs@mail.muni.cz>",
     "Ludovic Autin <autin@scripps.edu>",
-    "Michal Malý <michal.maly@ibt.cas.cz>",
-    "Jiří Černý <jiri.cerny@ibt.cas.cz>",
+    "Michal Mal\u00fd <michal.maly@ibt.cas.cz>",
+    "Ji\u0159\u00ed \u010cern\u00fd <jiri.cerny@ibt.cas.cz>",
     "Panagiotis Tourlas <panagiot_tourlov@hotmail.com>",
     "Adam Midlik <midlik@gmail.com>",
     "Koya Sakuma <koya.sakuma.work@gmail.com>",
@@ -114,7 +117,7 @@
     "Christian Dominguez <christian.99dominguez@gmail.com>",
     "Cai Huiyu <szmun.caihy@gmail.com>",
     "Ryan DiRisio <rjdiris@gmail.com>",
-    "Dušan Veľký <dvelky@mail.muni.cz>",
+    "Du\u0161an Ve\u013ek\u00fd <dvelky@mail.muni.cz>",
     "Neli Fonseca <neli@ebi.ac.uk>",
     "Paul Pillot <paul.pillot@tandemai.com>",
     "Herman Bergwerf <post@hbergwerf.nl>",
@@ -124,7 +127,7 @@
     "Simeon Borko <simeon.borko@gmail.com>",
     "Ventura Rivera <venturaxrivera@gmail.com>",
     "Andy Turner <agdturner@gmail.com>",
-    "Lukáš Polák <admin@lukaspolak.cz>",
+    "Luk\u00e1\u0161 Pol\u00e1k <admin@lukaspolak.cz>",
     "Chetan Mishra <chetan.s115@gmail.com>",
     "Zach Charlop-Powers <zach.charlop.powers@gmail.com>",
     "Kim Juho <juho_kim@outlook.com>",
@@ -135,12 +138,14 @@
     "Tadej Satler <tadej.satler@gmail.com>",
     "Himanshu Raj <himanshuraj6771@gmail.com>",
     "Marek Eibel <108737044+kerrambit@users.noreply.github.com>",
-    "Hakan Akgül <hakan-akgul@outlook.com>",
+    "Hakan Akg\u00fcl <hakan-akgul@outlook.com>",
     "Taylor Hoffmann <taylor@hoffmann.io>",
     "Ivan Niukanen <57656076+niukanen1@users.noreply.github.com>"
   ],
   "license": "MIT",
   "devDependencies": {
+    "@napi-rs/canvas": "^1.0.10",
+    "@playwright/test": "^1.63.0",
     "@types/cors": "^2.8.19",
     "@types/gl": "^6.0.5",
     "@types/jest": "^30.0.0",
@@ -163,12 +168,14 @@
     "http-server": "^14.1.1",
     "jest": "^30.4.2",
     "jpeg-js": "^0.4.4",
+    "pngjs": "^7.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "sass": "^1.101.0",
     "simple-git": "^3.36.0",
     "tsc-alias": "^1.9.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "webgpu": "^0.6.2"
   },
   "dependencies": {
     "@types/argparse": "^2.0.17",
@@ -198,7 +205,9 @@
     "jpeg-js": "^0.4.4",
     "pngjs": "^6.0.0",
     "react": ">=16.14.0",
-    "react-dom": ">=16.14.0"
+    "react-dom": ">=16.14.0",
+    "webgpu": "^0.6.2",
+    "@napi-rs/canvas": "^1.0.10"
   },
   "peerDependenciesMeta": {
     "@google-cloud/storage": {
@@ -214,6 +223,12 @@
       "optional": true
     },
     "pngjs": {
+      "optional": true
+    },
+    "webgpu": {
+      "optional": true
+    },
+    "@napi-rs/canvas": {
       "optional": true
     }
   }

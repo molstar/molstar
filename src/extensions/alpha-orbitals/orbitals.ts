@@ -8,6 +8,8 @@
 
 import { sortArray } from '../../mol-data/util';
 import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d';
+import { WebGPUContext } from '../../mol-gl/webgpu/context';
+import { computeOrbitalGridWebGPU } from './gpu/webgpu';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Task } from '../../mol-task';
 import { isTimingMode } from '../../mol-util/debug';
@@ -16,13 +18,15 @@ import { AlphaOrbital, createGrid, CubeGrid, CubeGridComputationParams, initCube
 import { gpuComputeAlphaOrbitalsGridValues } from './gpu/compute';
 
 export function createSphericalCollocationGrid(
-    params: CubeGridComputationParams, orbital: AlphaOrbital, webgl?: WebGLContext
+    params: CubeGridComputationParams, orbital: AlphaOrbital, webgl?: WebGLContext, webgpu?: WebGPUContext
 ): Task<CubeGrid> {
     return Task.create('Spherical Collocation Grid', async (ctx) => {
         const cubeGrid = initCubeGrid(params);
 
         let matrix: Float32Array;
-        if (canComputeGrid3dOnGPU(webgl)) {
+        if (webgpu) {
+            matrix = await computeOrbitalGridWebGPU(ctx, webgpu, cubeGrid, [orbital]);
+        } else if (canComputeGrid3dOnGPU(webgl)) {
             if (isTimingMode) webgl.timer.mark('createSphericalCollocationGrid');
             matrix = await gpuComputeAlphaOrbitalsGridValues(ctx, webgl, cubeGrid, orbital);
             if (isTimingMode) webgl.timer.markEnd('createSphericalCollocationGrid');

@@ -6,6 +6,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import { computeMarchingCubesMeshWebGPU } from '../../mol-gl/webgpu/marching-cubes';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Grid, Volume } from '../../mol-model/volume';
 import { VisualContext } from '../visual';
@@ -35,7 +36,7 @@ import { VolumeKey, VolumeVisual } from './visual';
 export const VolumeIsosurfaceParams = {
     isoValue: Volume.IsoValueParam,
     wrap: PD.Select('auto', PD.arrayToOptions(['off', 'on', 'auto'] as const)),
-    floodfill: PD.Select('off', PD.arrayToOptions(['off', 'inside', 'outside']), { description: 'If and how to floodfill the volume. Note that this disables GPU support.' }),
+    floodfill: PD.Select('off', PD.arrayToOptions(['off', 'inside', 'outside']), { description: 'If and how to floodfill the volume before surface extraction.' }),
 };
 export type VolumeIsosurfaceParams = typeof VolumeIsosurfaceParams
 export type VolumeIsosurfaceProps = PD.Values<VolumeIsosurfaceParams>
@@ -109,7 +110,7 @@ export function eachIsosurface(loci: Loci, volume: Volume, key: number, props: V
 
 //
 
-export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeIsosurfaceProps, mesh?: Mesh) {
+export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeIsosurfaceProps & { tryUseGpu?: boolean }, mesh?: Mesh) {
     ctx.runtime.update({ message: 'Marching cubes...' });
 
     const isoLevel = Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue;
@@ -118,17 +119,26 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
     if (props.floodfill !== 'off') {
         scalarField = Tensor.createFloodfilled(scalarField, isoLevel, props.floodfill);
     }
-    if (shouldWrap(volume, props.wrap)) {
+    const wrap = shouldWrap(volume, props.wrap);
+    if (wrap) {
         scalarField = createWrappedTensor(scalarField);
     }
 
     const ids = fillSerial(new Int32Array(volume.grid.cells.data.length));
+    let idField = Tensor.create(volume.grid.cells.space, Tensor.Data1(ids));
+    if (wrap) idField = createWrappedTensor(idField);
 
-    const surface = await computeMarchingCubesMesh({
-        isoLevel,
-        scalarField: scalarField,
-        idField: Tensor.create(scalarField.space, Tensor.Data1(ids))
-    }, mesh).runAsChild(ctx.runtime);
+    let surface: Mesh;
+    const scalarBytes = (scalarField.data as unknown as { byteLength: number }).byteLength;
+    if (ctx.webgpu && props.tryUseGpu && scalarField.space.dimensions.every(d => d >= 2) && scalarBytes <= Math.min(ctx.webgpu.device.limits.maxStorageBufferBindingSize, ctx.webgpu.device.limits.maxBufferSize)) {
+        surface = await computeMarchingCubesMeshWebGPU(ctx.runtime, ctx.webgpu, { isoLevel, scalarField }, mesh, 'cell', wrap ? volume.grid.cells.space.dimensions : undefined);
+    } else {
+        surface = await computeMarchingCubesMesh({
+            isoLevel,
+            scalarField,
+            idField
+        }, mesh).runAsChild(ctx.runtime);
+    }
 
     const transform = Grid.getGridToCartesianTransform(volume.grid);
     Mesh.transform(surface, transform);
@@ -166,7 +176,8 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
             state.createGeometry = (
                 !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, newVolume.grid.stats) ||
                 newProps.wrap !== currentProps.wrap ||
-                newProps.floodfill !== currentProps.floodfill
+                newProps.floodfill !== currentProps.floodfill ||
+                newProps.tryUseGpu !== currentProps.tryUseGpu
             );
         },
         geometryUtils: Mesh.Utils,

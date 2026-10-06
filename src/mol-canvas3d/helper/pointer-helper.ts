@@ -20,6 +20,8 @@ import { Camera, ICamera } from '../camera';
 import { Ray3D } from '../../mol-math/geometry/primitives/ray3d';
 import { Viewport } from '../camera/util';
 import { Shape } from '../../mol-model/shape/shape';
+import { WebGPUHelperScene } from './webgpu-scene';
+import { createColors } from '../../mol-geo/geometry/color-data';
 
 export const PointerHelperParams = {
     ...Mesh.Params,
@@ -31,8 +33,10 @@ export const PointerHelperParams = {
 export type PointerHelperParams = typeof PointerHelperParams
 export type PointerHelperProps = PD.Values<PointerHelperParams>
 
-export class PointerHelper {
-    readonly scene: Scene;
+type PointerHelperScene = Pick<Scene, 'add' | 'update' | 'commit'>;
+
+export class PointerHelper<S extends PointerHelperScene = Scene> {
+    readonly scene: S;
     readonly camera: Camera;
     readonly props: PointerHelperProps;
 
@@ -59,12 +63,15 @@ export class PointerHelper {
         return this.props.enabled === 'on';
     }
 
+    getRenderObjects() { return this.isEnabled && this.renderObject.state.visible ? [this.renderObject] : []; }
+
     setCamera(camera: ICamera) {
         Camera.copySnapshot(this.camera.state, camera.state);
         Viewport.copy(this.camera.viewport, camera.viewport);
         Mat4.copy(this.camera.view, camera.view);
         Mat4.copy(this.camera.projection, camera.projection);
         Mat4.copy(this.camera.projectionView, camera.projectionView);
+        Mat4.copy(this.camera.inverseProjectionView, camera.inverseProjectionView);
         Mat4.copy(this.camera.headRotation, camera.headRotation);
         Camera.copyViewOffset(this.camera.viewOffset, camera.viewOffset);
         this.camera.far = camera.far;
@@ -76,6 +83,7 @@ export class PointerHelper {
         this.camera.scale = 1;
 
         this.modelScale = camera.scale;
+        if (this.isEnabled) this.update(this.pointers, this.points, this.hit);
     }
 
     update(pointers: Ray3D[], points: Vec3[], hit: Vec3 | undefined) {
@@ -97,6 +105,7 @@ export class PointerHelper {
         Mesh.Utils.updateBoundingSphere(this.renderObject.values, this.shape.geometry);
         Mesh.Utils.updateValues(this.renderObject.values, this.props);
         Mesh.Utils.updateRenderableState(this.renderObject.state, this.props);
+        createColors(Shape.groupIterator(this.shape), Mesh.Utils.createPositionIterator(this.shape.geometry, this.renderObject.values), Shape.getTheme(this.shape).color, this.renderObject.values);
 
         this.renderObject.state.visible = true;
 
@@ -115,8 +124,10 @@ export class PointerHelper {
         };
     }
 
-    constructor(webgl: WebGLContext, props: Partial<PointerHelperProps> = {}) {
-        this.scene = Scene.create(webgl, 'blended');
+    constructor(webgl: WebGLContext, props?: Partial<PointerHelperProps>);
+    constructor(webgl: Pick<WebGLContext, 'pixelRatio'>, props: Partial<PointerHelperProps>, scene: S);
+    constructor(webgl: Pick<WebGLContext, 'pixelRatio'>, props: Partial<PointerHelperProps> = {}, scene?: S) {
+        this.scene = scene ?? Scene.create(webgl as WebGLContext, 'blended') as unknown as S;
         this.props = { ...PD.getDefaultValues(PointerHelperParams), ...props };
 
         this.camera = new Camera();
@@ -125,6 +136,10 @@ export class PointerHelper {
         this.renderObject = createMeshRenderObject(this.shape, this.props);
         this.scene.add(this.renderObject);
     }
+}
+
+export function createWebGPUPointerHelper(props: Partial<PointerHelperProps> = {}) {
+    return new PointerHelper({ pixelRatio: 1 }, props, new WebGPUHelperScene());
 }
 
 type PointerData = {

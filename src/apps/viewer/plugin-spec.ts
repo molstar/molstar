@@ -85,6 +85,7 @@ export function createViewerSpec(options: Partial<ViewerOptions> = {}): PluginUI
             [PluginConfig.General.PickScale, o.pickScale],
             [PluginConfig.General.Transparency, o.transparency],
             [PluginConfig.General.PreferWebGl1, o.preferWebgl1],
+            [PluginConfig.General.RenderingBackend, o.renderingBackend],
             [PluginConfig.General.AllowMajorPerformanceCaveat, o.allowMajorPerformanceCaveat],
             [PluginConfig.General.PowerPreference, o.powerPreference],
             [PluginConfig.General.ResolutionMode, o.resolutionMode],

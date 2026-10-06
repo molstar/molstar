@@ -4,24 +4,22 @@
  * @author Adam Midlik <midlik@gmail.com>
  *
  * Example command-line application generating images of PDB structures
- * Build: npm install --no-save gl jpeg-js pngjs  // these packages are not listed in dependencies for performance reasons
- *        npm run build
+ * Build: bun add -d webgpu @napi-rs/canvas jpeg-js pngjs  // these packages are not listed in dependencies for performance reasons
+ *        bun run build
  * Run:   node lib/commonjs/examples/image-renderer 1cbs ../outputs_1cbs/
  */
 
 import { ArgumentParser } from 'argparse';
 import fs from 'fs';
 import path from 'path';
-import gl from 'gl';
-import pngjs from 'pngjs';
-import jpegjs from 'jpeg-js';
 
 import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { HeadlessPluginContext } from '../../mol-plugin/headless-plugin-context';
 import { DefaultPluginSpec } from '../../mol-plugin/spec';
-import { ExternalModules, STYLIZED_POSTPROCESSING } from '../../mol-plugin/util/headless-screenshot';
+import { STYLIZED_POSTPROCESSING } from '../../mol-plugin/util/headless-screenshot';
+import { loadHeadlessModules } from '../../mol-plugin/util/headless-modules';
 import { setFSModule } from '../../mol-util/data-source';
 
 
@@ -48,8 +46,8 @@ async function main() {
     console.log('Outputs:', args.outDirectory);
 
     // Create a headless plugin
-    const externalModules: ExternalModules = { gl, pngjs, 'jpeg-js': jpegjs };
-    const plugin = new HeadlessPluginContext(externalModules, DefaultPluginSpec(), { width: 800, height: 800 });
+    const externalModules = await loadHeadlessModules();
+    const plugin = await HeadlessPluginContext.create(externalModules, DefaultPluginSpec(), { width: 800, height: 800 });
     await plugin.init();
 
     // Download and visualize data in the plugin

@@ -136,7 +136,7 @@ export type Light = {
 
 const tmpDir = Vec3();
 const tmpColor = Vec3();
-function getLight(props: RendererProps['light'], light?: Light): Light {
+export function getLight(props: RendererProps['light'], light?: Light): Light {
     const count = props.length;
     const { direction, color } = light || {
         direction: (new Array(count * 3)).fill(0),

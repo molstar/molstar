@@ -8,7 +8,7 @@
 import { Viewport, cameraProject, cameraUnproject } from './camera/util';
 import { CameraTransitionManager, CameraTransitionOptions } from './camera/transition';
 import { BehaviorSubject, Subject } from 'rxjs';
-import { Scene } from '../mol-gl/scene';
+import { Sphere3D } from '../mol-math/geometry/primitives/sphere3d';
 import { assertUnreachable } from '../mol-util/type-helpers';
 import { Ray3D } from '../mol-math/geometry/primitives/ray3d';
 import { Mat4 } from '../mol-math/linear-algebra/3d/mat4';
@@ -57,7 +57,7 @@ export class Camera implements ICamera {
     readonly inverseProjectionView: Mat4 = Mat4.identity();
     readonly headRotation: Mat4 = Mat4.zero();
     readonly viewEye: Mat4 = Mat4.zero();
-    readonly isAsymmetricProjection = false;
+    readonly isAsymmetricProjection: boolean = false;
 
     readonly viewport: Viewport;
     readonly state: Readonly<Camera.Snapshot> = Camera.createDefaultSnapshot();
@@ -311,7 +311,12 @@ export class Camera implements ICamera {
 export namespace Camera {
     export type Mode = 'perspective' | 'orthographic'
 
-    export type SnapshotProvider = Partial<Snapshot> | ((scene: Scene, camera: Camera) => Partial<Snapshot>)
+    /** Backend-independent scene bounds available to camera snapshot callbacks. */
+    export interface SnapshotScene {
+        readonly boundingSphere: Sphere3D
+        readonly boundingSphereVisible: Sphere3D
+    }
+    export type SnapshotProvider = Partial<Snapshot> | ((scene: SnapshotScene, camera: Camera) => Partial<Snapshot>)
 
     /**
      * Sets an offseted view in a larger frustum. This is useful for

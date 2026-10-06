@@ -13,8 +13,9 @@ import { lerp } from '../../../mol-math/interpolate';
 import { Vec2, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { getVolumeTexture2dLayout } from '../../../mol-repr/volume/util';
 import { ValueCell } from '../../../mol-util';
+import { WebGPUTextureData } from '../../../mol-gl/webgpu/texture-data';
 
-interface ColorSmoothingInput {
+export interface ColorSmoothingInput {
     vertexCount: number
     instanceCount: number
     groupCount: number
@@ -76,7 +77,7 @@ export function calcMeshColorSmoothing(input: ColorSmoothingInput, options: Colo
     for (let i = 0; i < instanceCount; ++i) {
         // - use reordered index for access from GPU
         // - use serial index for access from CPU
-        const instanceIndex = (webgl && isInstanceType) ? instanceBuffer[i] : i;
+        const instanceIndex = ((webgl || texture instanceof WebGPUTextureData) && isInstanceType) ? instanceBuffer[i] : i;
         for (let j = 0; j < vertexCount; j += stride) {
             Vec3.fromArray(v, positionBuffer, j * 3);
             if (isInstanceType) Vec3.transformMat4Offset(v, v, transformBuffer, 0, 0, i * 16);
@@ -137,13 +138,20 @@ export function calcMeshColorSmoothing(input: ColorSmoothingInput, options: Colo
     const gridTransform = Vec4.create(min[0], min[1], min[2], scaleFactor);
     const type = isInstanceType ? 'volumeInstance' as const : 'volume' as const;
 
-    if (webgl) {
+    if (webgl || texture instanceof WebGPUTextureData) {
         if (!texture) {
             const format = itemSize === 4 ? 'rgba' :
                 itemSize === 3 ? 'rgb' : 'alpha';
-            texture = webgl.resources.texture('image-uint8', format, 'ubyte', 'linear');
+            texture = webgl!.resources.texture('image-uint8', format, 'ubyte', 'linear');
         }
-        texture.load(textureImage);
+        if (texture instanceof WebGPUTextureData && itemSize !== 4) {
+            const rgba = new Uint8Array(width * height * 4);
+            for (let i = 0; i < width * height; i++) {
+                if (itemSize === 1) rgba[i * 4 + 3] = grid[i];
+                else { rgba.set(grid.subarray(i * 3, i * 3 + 3), i * 4); rgba[i * 4 + 3] = 255; }
+            }
+            texture.load({ array: rgba, width, height });
+        } else texture.load(textureImage);
 
         return { kind: 'volume' as const, texture, gridTexDim, gridDim, gridTransform, type };
     } else {
@@ -217,9 +225,9 @@ export function getTrilinearlyInterpolated(input: ColorInterpolationInput): Text
             Vec3.floor(v0, v);
             Vec3.ceil(v1, v);
 
+            // The unit-cell fraction is zero at exact grid samples. Dividing
+            // by ceil-floor would introduce NaN on integer coordinates.
             Vec3.sub(vd, v, v0);
-            Vec3.sub(v, v1, v0);
-            Vec3.div(vd, vd, v);
 
             const [x0, y0, z0] = v0;
             const [x1, y1, z1] = v1;

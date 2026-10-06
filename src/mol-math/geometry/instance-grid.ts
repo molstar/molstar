@@ -34,7 +34,7 @@ type BottomGrid = {
     readonly cellInstance: Float32Array
 }
 
-export type InstanceGrid = BottomGrid & TopGrid
+export type InstanceGrid = BottomGrid & TopGrid & { readonly invariantBoundingSphere?: Sphere3D }
 
 export type InstanceData = {
     instanceCount: number
@@ -114,6 +114,7 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number, b
     // console.timeEnd('calcInstanceGrid reorder');
 
     const instanceGrid = {
+        invariantBoundingSphere: Sphere3D.clone(instanceData.invariantBoundingSphere),
         cellSize: bottomGrid.cellSize,
         cellCount: bottomGrid.cellCount,
         cellOffsets,

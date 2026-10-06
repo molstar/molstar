@@ -191,7 +191,7 @@ export function createVolumeTexture2d(volume: Volume, variant: 'normals' | 'grou
             : new Float32Array(width * height * itemSize);
     const textureImage = { array, width, height };
 
-    const diff = max - min;
+    const diff = max - min || 1;
     const [xn, yn, zn] = dim;
     const xnp = xn + padding;
     const ynp = yn + padding;
@@ -280,7 +280,7 @@ export function createVolumeTexture3d(volume: Volume, type: 'byte' | 'float' | '
             ? new Uint16Array(width * height * depth * 4)
             : new Float32Array(width * height * depth * 4);
     const textureVolume = { array, width, height, depth };
-    const diff = max - min;
+    const diff = max - min || 1;
 
     const n0 = Vec3();
     const n1 = Vec3();
@@ -328,10 +328,19 @@ export function createVolumeTexture3d(volume: Volume, type: 'byte' | 'float' | '
     return textureVolume;
 }
 
+/** Smoothed segment mask with zero padding outside the source grid. */
+export function createSegmentSampler(cells: Tensor, labels: readonly number[]) {
+    const selected = new Set(labels), dimensions = cells.space.dimensions;
+    const sample = (x: number, y: number, z: number) => {
+        if (x < 0 || y < 0 || z < 0 || x >= dimensions[0] || y >= dimensions[1] || z >= dimensions[2]) return 0;
+        return selected.has(cells.space.get(cells.data, x, y, z)) ? 255 : 0;
+    };
+    return (x: number, y: number, z: number) => Math.round((2 * sample(x, y, z) + sample(x - 1, y, z) + sample(x + 1, y, z) + sample(x, y - 1, z) + sample(x, y + 1, z) + sample(x, y, z - 1) + sample(x, y, z + 1)) / 8);
+}
+
 export function createSegmentTexture2d(volume: Volume, set: number[], bbox: Box3D, padding = 0) {
-    const data = volume.grid.cells.data;
     const dim = Box3D.size(Vec3(), bbox);
-    const o = volume.grid.cells.space.dataOffset;
+    const sample = createSegmentSampler(volume.grid.cells, set);
     const { width, height } = getVolumeTexture2dLayout(dim, padding);
 
     const itemSize = 1;
@@ -339,15 +348,11 @@ export function createSegmentTexture2d(volume: Volume, set: number[], bbox: Box3
     const textureImage = { array, width, height };
 
     const [xn, yn, zn] = dim;
-    const xn1 = xn - 1;
-    const yn1 = yn - 1;
-    const zn1 = zn - 1;
 
     const xnp = xn + padding;
     const ynp = yn + padding;
 
     const [minx, miny, minz] = bbox.min;
-    const [maxx, maxy, maxz] = bbox.max;
 
     for (let z = 0; z < zn; ++z) {
         for (let y = 0; y < yn; ++y) {
@@ -357,15 +362,7 @@ export function createSegmentTexture2d(volume: Volume, set: number[], bbox: Box3
                 const px = column * xnp + x;
                 const index = itemSize * ((row * ynp * width) + (y * width) + px);
 
-                const v0 = set.includes(data[o(x + minx, y + miny, z + minz)]) ? 255 : 0;
-                const xp = set.includes(data[o(Math.min(xn1 + maxx, x + 1 + minx), y + miny, z + minz)]) ? 255 : 0;
-                const xn = set.includes(data[o(Math.max(0, x - 1 + minx), y + miny, z + minz)]) ? 255 : 0;
-                const yp = set.includes(data[o(x + minx, Math.min(yn1 + maxy, y + 1 + miny), z + minz)]) ? 255 : 0;
-                const yn = set.includes(data[o(x + minx, Math.max(0, y - 1 + miny), z + minz)]) ? 255 : 0;
-                const zp = set.includes(data[o(x + minx, y + miny, Math.min(zn1 + maxz, z + 1 + minz))]) ? 255 : 0;
-                const zn = set.includes(data[o(x + minx, y + miny, Math.max(0, z - 1 + minz))]) ? 255 : 0;
-
-                array[index] = Math.round((v0 + v0 + xp + xn + yp + yn + zp + zn) / 8);
+                array[index] = sample(x + minx, y + miny, z + minz);
             }
         }
     }

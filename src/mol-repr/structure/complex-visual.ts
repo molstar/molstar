@@ -36,6 +36,8 @@ import { resolveInstanceGranularity } from '../../mol-geo/geometry/base';
 import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams, StructureTextureMeshParams, StructureSpheresParams, StructurePointsParams, StructureImageParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
+import { WebGPUTextureData } from '../../mol-gl/webgpu/texture-data';
+import { WebGPUContext } from '../../mol-gl/webgpu/context';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isPromiseLike } from '../../mol-util/type-helpers';
 import { Substance } from '../../mol-theme/substance';
@@ -63,7 +65,7 @@ interface ComplexVisualBuilder<P extends StructureParams, G extends Geometry> {
     eachLocation(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean): boolean,
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure): void
     mustRecreate?: (structure: Structure, props: PD.Values<P>) => boolean
-    processValues?: (values: RenderObjectValues<G['kind']>, geometry: G, props: PD.Values<P>, theme: Theme, webgl?: WebGLContext) => void
+    processValues?: (values: RenderObjectValues<G['kind']>, geometry: G, props: PD.Values<P>, theme: Theme, webgl?: WebGLContext, webgpu?: WebGPUContext) => void | Promise<void>
     dispose?: (geometry: G) => void
 }
 
@@ -88,6 +90,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     let currentStructure: Structure;
 
     let geometry: G;
+    let nativeWebGPU: WebGPUContext | undefined;
     let geometryVersion = -1;
     let locationIt: LocationIterator;
     let positionIt: LocationIterator;
@@ -256,7 +259,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
     function finalize(ctx: VisualContext) {
         if (renderObject) {
-            processValues?.(renderObject.values, geometry, currentProps, currentTheme, ctx.webgl);
+            return processValues?.(renderObject.values, geometry, currentProps, currentTheme, ctx.webgl, ctx.webgpu);
         }
     }
 
@@ -265,20 +268,21 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         get renderObject() { return locationIt && locationIt.count ? renderObject : undefined; },
         get geometryVersion() { return geometryVersion; },
         createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
+            nativeWebGPU = ctx.webgpu;
             prepareUpdate(theme, props, structure || currentStructure);
             if (updateState.createGeometry) {
                 const newGeometry = createGeometry(ctx, newStructure, newTheme, newProps, geometry);
                 if (isPromiseLike(newGeometry)) {
                     return newGeometry.then(g => {
                         update(g);
-                        finalize(ctx);
+                        return finalize(ctx);
                     });
                 }
                 update(newGeometry);
             } else {
                 update();
             }
-            finalize(ctx);
+            return finalize(ctx);
         },
         getLoci(pickingId: PickingId) {
             if (!renderObject) return EmptyLoci;
@@ -313,19 +317,19 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             Visual.setTransform(renderObject, matrix, instanceMatrices);
         },
         setOverpaint(overpaint: Overpaint, webgl?: WebGLContext) {
-            const smoothing = { geometry, props: currentProps, webgl };
+            const smoothing = { geometry, props: currentProps, webgl, webgpu: nativeWebGPU };
             Visual.setOverpaint(renderObject, overpaint, lociApply, true, smoothing);
         },
         setTransparency(transparency: Transparency, webgl?: WebGLContext) {
-            const smoothing = { geometry, props: currentProps, webgl };
+            const smoothing = { geometry, props: currentProps, webgl, webgpu: nativeWebGPU };
             Visual.setTransparency(renderObject, transparency, lociApply, true, smoothing);
         },
         setEmissive(emissive: Emissive, webgl?: WebGLContext) {
-            const smoothing = { geometry, props: currentProps, webgl };
+            const smoothing = { geometry, props: currentProps, webgl, webgpu: nativeWebGPU };
             Visual.setEmissive(renderObject, emissive, lociApply, true, smoothing);
         },
         setSubstance(substance: Substance, webgl?: WebGLContext) {
-            const smoothing = { geometry, props: currentProps, webgl };
+            const smoothing = { geometry, props: currentProps, webgl, webgpu: nativeWebGPU };
             Visual.setSubstance(renderObject, substance, lociApply, true, smoothing);
         },
         setClipping(clipping: Clipping) {
@@ -339,6 +343,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         },
         destroy() {
             dispose?.(geometry);
+            if (geometry && (geometry.kind === 'mesh' || geometry.kind === 'texture-mesh')) WebGPUTextureData.disposeTextures(geometry.meta);
             if (renderObject) {
                 renderObject.state.disposed = true;
                 renderObject = undefined;

@@ -21,6 +21,7 @@ import { VisualUpdateState } from '../../util';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
+import type { WebGPUContext } from '../../../mol-gl/webgpu/context';
 import { Spheres } from '../../../mol-geo/geometry/spheres/spheres';
 import { sphereVertexCount } from '../../../mol-geo/primitive/sphere';
 import { SpheresBuilder } from '../../../mol-geo/geometry/spheres/spheres-builder';
@@ -56,8 +57,8 @@ interface NucleotideAtomicElementImpostorProps {
     sizeFactor: number,
 }
 
-export function NucleotideAtomicElementVisual(materialId: number, structure: Structure, props: PD.Values<NucleotideAtomicElementParams>, webgl?: WebGLContext) {
-    return props.tryUseImpostor && checkSphereImpostorSupport(webgl)
+export function NucleotideAtomicElementVisual(materialId: number, structure: Structure, props: PD.Values<NucleotideAtomicElementParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) {
+    return props.tryUseImpostor && checkSphereImpostorSupport(webgl, webgpu)
         ? NucleotideAtomicElementImpostorVisual(materialId)
         : NucleotideAtomicElementMeshVisual(materialId);
 }
@@ -164,8 +165,8 @@ export function NucleotideAtomicElementImpostorVisual(materialId: number): Units
                 newProps.sizeFactor !== currentProps.sizeFactor
             );
         },
-        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<NucleotideAtomicElementParams>, webgl?: WebGLContext) => {
-            return !props.tryUseImpostor || !webgl;
+        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<NucleotideAtomicElementParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
+            return !props.tryUseImpostor || (!webgl && !webgpu);
         }
     }, materialId);
 }
@@ -287,8 +288,8 @@ export function NucleotideAtomicElementMeshVisual(materialId: number): UnitsVisu
                 newProps.detail !== currentProps.detail
             );
         },
-        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<NucleotideAtomicElementParams>, webgl?: WebGLContext) => {
-            return props.tryUseImpostor && !!webgl;
+        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<NucleotideAtomicElementParams>, webgl?: WebGLContext, webgpu?: WebGPUContext) => {
+            return props.tryUseImpostor && (!!webgl || !!webgpu);
         }
     }, materialId);
 }

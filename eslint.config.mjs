@@ -10,6 +10,7 @@ export default defineConfig([{
         "deploy/*",
         "docs/site/*",
         "lib/*",
+        "tmp/**",
         "eslint.config.mjs",
         "build.mjs",
     ]
@@ -109,4 +110,7 @@ export default defineConfig([{
         "@typescript-eslint/prefer-namespace-keyword": "warn",
         "@typescript-eslint/semi": ["off", null],
     },
+}, {
+    files: ["scripts/verify-webgpu-headless.mjs"],
+    languageOptions: { ecmaVersion: 2022 },
 }]);
