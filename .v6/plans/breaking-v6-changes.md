@@ -367,7 +367,9 @@ Step 3 of [plugin-composition.md](plugin-composition.md) removes implicit defaul
 `PluginViewModel` and `PluginUIViewModel` (`@molstar/plugin-extension`) take `{ spec }` as a required constructor option
 and no longer fall back to `DefaultPluginSpec()` / `DefaultPluginUISpec()`. `useCreatePluginViewModel` and
 `useCreatePluginUIViewModel` require `options.spec` (a spec object) and no longer accept the
-`spec: (defaultSpec) => spec` callback form. Callers import the default spec themselves:
+`spec: (defaultSpec) => spec` callback form. Callers import the default spec themselves. The classic Viewer global
+(`molstar.PluginExtensions.plugin.models`) exposes app-level subclasses that keep the 5.x default when no spec is given
+(`apps/viewer/src/view-models.ts`).
 
 ```ts
 // 5.x

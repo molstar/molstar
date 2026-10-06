@@ -35,8 +35,7 @@ import * as MVSUtil from '@molstar/mvs/util';
 import { KinemageExtension } from '@molstar/kinemage-extension/behavior';
 import * as interactivity from '@molstar/plugin-extension/interactivity';
 import * as loaders from '@molstar/plugin-extension/loaders';
-import { PluginViewModel } from '@molstar/plugin-extension/view-model';
-import { PluginUIViewModel } from '@molstar/plugin-extension/ui-view-model';
+import { ViewerPluginUIViewModel, ViewerPluginViewModel } from '@molstar/viewer/view-models';
 
 export const ExtensionMap = {
   // Mol* built-in extensions
@@ -82,8 +81,8 @@ export const PluginExtensions = {
     interactivity,
     loaders,
     models: {
-      PluginViewModel,
-      PluginUIViewModel,
+      PluginViewModel: ViewerPluginViewModel,
+      PluginUIViewModel: ViewerPluginUIViewModel,
     },
   },
 };
