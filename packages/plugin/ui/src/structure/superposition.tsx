@@ -24,7 +24,8 @@ import {
   superposeLigandsByMccs,
   DefaultLigandMccsOptions,
 } from '@molstar/model/model/structure/structure/util/superposition-ligand';
-import { StructureSelectionQueries } from '@molstar/plugin/state/helpers/structure-selection-query';
+import { trace } from '@molstar/plugin/state/queries/structure/structure';
+import { ligand, polymer } from '@molstar/plugin/state/queries/structure/type';
 import type { StructureSelectionHistoryEntry } from '@molstar/plugin/state/manager/structure/selection';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { StateTransforms } from '@molstar/plugin/state/transforms';
@@ -104,7 +105,7 @@ type SuperpositionControlsState = {
 /** True iff the structure contains at least one ligand (the ligand query already excludes ions, water, lipids and saccharides). */
 function structureHasLigand(structure?: Structure): boolean {
   if (!structure) return false;
-  return !StructureSelection.isEmpty(StructureSelectionQueries.ligand.query(new QueryContext(structure)));
+  return !StructureSelection.isEmpty(ligand.query(new QueryContext(structure)));
 }
 
 export interface LociEntry {
@@ -196,9 +197,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
   }
 
   superposeChains = async () => {
-    const { query } = this.state.options.traceOnly
-      ? StructureSelectionQueries.trace
-      : StructureSelectionQueries.polymer;
+    const { query } = this.state.options.traceOnly ? trace : polymer;
     const entries = this.chainEntries;
 
     const locis = entries.map((e) => {
@@ -348,9 +347,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
   };
 
   superposeTMAlign = async () => {
-    const { query } = this.state.options.traceOnly
-      ? StructureSelectionQueries.trace
-      : StructureSelectionQueries.polymer;
+    const { query } = this.state.options.traceOnly ? trace : polymer;
     const entries = this.chainEntries;
 
     const locis = entries.map((e) => {

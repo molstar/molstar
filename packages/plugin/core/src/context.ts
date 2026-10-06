@@ -17,7 +17,7 @@ import type { Model, Structure } from '@molstar/model/model/structure';
 import { DataBuilder } from '@molstar/plugin/state/builder/data';
 import { StructureBuilder } from '@molstar/plugin/state/builder/structure';
 import { DataFormatRegistry } from '@molstar/plugin/state/formats/registry';
-import { StructureSelectionQueryRegistry } from '@molstar/plugin/state/helpers/structure-selection-query';
+import { StructureSelectionQueryRegistry } from '@molstar/plugin/state/queries/structure/registry';
 import { PluginAnimationManager } from '@molstar/plugin/state/manager/animation';
 import { CameraManager } from '@molstar/plugin/state/manager/camera';
 import { InteractivityManager } from '@molstar/plugin/state/manager/interactivity';

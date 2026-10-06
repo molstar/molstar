@@ -16,7 +16,7 @@ import { Structure } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import { StateObjectRef, StateObjectSelector } from '@molstar/core/state';
 import type { StaticStructureComponentType } from '../../helpers/structure-component.js';
-import { StructureSelectionQueries as Q } from '../../helpers/structure-selection-query.js';
+import { StructureSelectionQueries as Q } from '@molstar/plugin/state/queries/structure/catalog';
 import { PluginConfig } from '@molstar/plugin/config';
 import { StructureFocusRepresentation } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
 import { createStructureColorThemeParams } from '../../helpers/structure-representation-params.js';

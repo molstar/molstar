@@ -36,7 +36,8 @@ import {
   createStructureSizeThemeParams,
   isSurfaceRepresentationType,
 } from '../../helpers/structure-representation-params.js';
-import { StructureSelectionQueries, StructureSelectionQuery } from '../../helpers/structure-selection-query.js';
+import { current } from '@molstar/plugin/state/queries/structure/basic';
+import { StructureSelectionQuery } from '@molstar/plugin/state/queries/structure/query';
 import { StructureRepresentation3D } from '../../transforms/representation.js';
 import type {
   StructureHierarchyRef,
@@ -525,9 +526,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
               params.selection,
               componentKey,
               {
-                label:
-                  params.options.label ||
-                  (params.selection === StructureSelectionQueries.current ? 'Custom Selection' : ''),
+                label: params.options.label || (params.selection === current ? 'Custom Selection' : ''),
               },
             );
           }

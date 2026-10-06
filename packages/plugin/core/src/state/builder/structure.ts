@@ -18,7 +18,7 @@ import type { RootStructureDefinition } from '../helpers/root-structure.js';
 import type { StructureComponentParams, StaticStructureComponentType } from '../helpers/structure-component.js';
 import type { BuiltInTrajectoryFormat, TrajectoryFormatProvider } from '../formats/trajectory.js';
 import { StructureRepresentationBuilder } from './structure/representation.js';
-import type { StructureSelectionQuery } from '../helpers/structure-selection-query.js';
+import type { StructureSelectionQuery } from '@molstar/plugin/state/queries/structure/query';
 import { Task } from '@molstar/core/task';
 import { StructureElement } from '@molstar/model/model/structure';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';

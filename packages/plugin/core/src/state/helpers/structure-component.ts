@@ -18,7 +18,18 @@ import {
 } from '@molstar/model/model/structure';
 import { StructureQueryHelper } from './structure-query.js';
 import { PluginStateObject as SO } from '../objects.js';
-import { StructureSelectionQueries } from './structure-selection-query.js';
+import { all } from '@molstar/plugin/state/queries/structure/basic';
+import {
+  ion,
+  lipid,
+  nucleic,
+  polymer,
+  protein,
+  branchedPlusConnected,
+  ligandPlusConnected,
+  coarse,
+} from '@molstar/plugin/state/queries/structure/type';
+import { nonStandardPolymer } from '@molstar/plugin/state/queries/structure/residue';
 import { StateTransformer, StateObject } from '@molstar/core/state';
 import { Script } from '@molstar/model/script/script';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
@@ -73,21 +84,21 @@ export function createStructureComponent(
       let query: StructureQuery;
       switch (params.type.params) {
         case 'all':
-          query = StructureSelectionQueries.all.query;
+          query = all.query;
           label = 'All';
           break;
 
         case 'polymer':
-          query = StructureSelectionQueries.polymer.query;
+          query = polymer.query;
           label = 'Polymer';
           break;
 
         case 'protein':
-          query = StructureSelectionQueries.protein.query;
+          query = protein.query;
           label = 'Protein';
           break;
         case 'nucleic':
-          query = StructureSelectionQueries.nucleic.query;
+          query = nucleic.query;
           label = 'Nucleic';
           break;
         case 'water':
@@ -95,30 +106,30 @@ export function createStructureComponent(
           label = 'Water';
           break;
         case 'ion':
-          query = StructureSelectionQueries.ion.query;
+          query = ion.query;
           label = 'Ion';
           break;
         case 'lipid':
-          query = StructureSelectionQueries.lipid.query;
+          query = lipid.query;
           label = 'Lipid';
           break;
 
         case 'branched':
-          query = StructureSelectionQueries.branchedPlusConnected.query;
+          query = branchedPlusConnected.query;
           label = 'Branched';
           break;
         case 'ligand':
-          query = StructureSelectionQueries.ligandPlusConnected.query;
+          query = ligandPlusConnected.query;
           label = 'Ligand';
           break;
 
         case 'non-standard':
-          query = StructureSelectionQueries.nonStandardPolymer.query;
+          query = nonStandardPolymer.query;
           label = 'Non-standard';
           break;
 
         case 'coarse':
-          query = StructureSelectionQueries.coarse.query;
+          query = coarse.query;
           label = 'Coarse';
           break;
 

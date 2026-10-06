@@ -15,10 +15,7 @@ import { ClashesRepresentationProvider } from './representation.js';
 import { DensityFitColorThemeProvider } from './color/density-fit.js';
 import { cantorPairing } from '@molstar/core/data/util';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/compiler';
-import {
-  StructureSelectionQuery,
-  StructureSelectionCategory,
-} from '@molstar/plugin/state/helpers/structure-selection-query';
+import { StructureSelectionQuery, StructureSelectionCategory } from '@molstar/plugin/state/queries/structure/query';
 import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import { Task } from '@molstar/core/task';
 import {

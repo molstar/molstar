@@ -45,7 +45,15 @@ import {
   updateStructureComponent,
 } from '../helpers/structure-component.js';
 import { StructureQueryHelper } from '../helpers/structure-query.js';
-import { StructureSelectionQueries } from '../helpers/structure-selection-query.js';
+import {
+  branchedPlusConnected,
+  coarse,
+  ligandPlusConnected,
+  nucleic,
+  polymer,
+  protein,
+} from '@molstar/plugin/state/queries/structure/type';
+import { nonStandardPolymer } from '@molstar/plugin/state/queries/structure/residue';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects.js';
 import { parseMol } from '@molstar/io/reader/mol/parser';
 import { trajectoryFromMol } from '@molstar/model/formats/structure/mol';
@@ -1303,16 +1311,16 @@ const StructureComplexElement = PluginStateTransform.BuiltIn({
     let query: StructureQuery, label: string;
     switch (params.type) {
       case 'polymer':
-        query = StructureSelectionQueries.polymer.query;
+        query = polymer.query;
         label = 'Polymer';
         break;
 
       case 'protein':
-        query = StructureSelectionQueries.protein.query;
+        query = protein.query;
         label = 'Protein';
         break;
       case 'nucleic':
-        query = StructureSelectionQueries.nucleic.query;
+        query = nucleic.query;
         label = 'Nucleic';
         break;
       case 'water':
@@ -1321,21 +1329,21 @@ const StructureComplexElement = PluginStateTransform.BuiltIn({
         break;
 
       case 'branched':
-        query = StructureSelectionQueries.branchedPlusConnected.query;
+        query = branchedPlusConnected.query;
         label = 'Branched';
         break;
       case 'ligand':
-        query = StructureSelectionQueries.ligandPlusConnected.query;
+        query = ligandPlusConnected.query;
         label = 'Ligand';
         break;
 
       case 'non-standard':
-        query = StructureSelectionQueries.nonStandardPolymer.query;
+        query = nonStandardPolymer.query;
         label = 'Non-standard';
         break;
 
       case 'coarse':
-        query = StructureSelectionQueries.coarse.query;
+        query = coarse.query;
         label = 'Coarse';
         break;
 

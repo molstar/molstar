@@ -23,10 +23,7 @@ import { HydrophobicityColorThemeProvider } from '@molstar/graphics/theme/color/
 import { PluginStateObject, PluginStateTransform } from '@molstar/plugin/state/objects';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/compiler';
-import {
-  StructureSelectionQuery,
-  StructureSelectionCategory,
-} from '@molstar/plugin/state/helpers/structure-selection-query';
+import { StructureSelectionQuery, StructureSelectionCategory } from '@molstar/plugin/state/queries/structure/query';
 import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import type { GenericRepresentationRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 

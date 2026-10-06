@@ -11,10 +11,7 @@ import { Loci } from '@molstar/model/model/loci';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/compiler';
 import { PLDDTConfidenceColorThemeProvider } from './color/plddt.js';
 import { QualityAssessment, QualityAssessmentProvider } from './prop.js';
-import {
-  StructureSelectionCategory,
-  StructureSelectionQuery,
-} from '@molstar/plugin/state/helpers/structure-selection-query';
+import { StructureSelectionCategory, StructureSelectionQuery } from '@molstar/plugin/state/queries/structure/query';
 import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import { OrderedSet } from '@molstar/core/data/int';
 import { cantorPairing } from '@molstar/core/data/util';
