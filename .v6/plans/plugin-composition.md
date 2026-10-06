@@ -236,7 +236,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 - [x] Format catalogs become provider arrays and derive the format name types (spec §8); add `BuiltInVolumeFormat` and
       `BuiltInShapeFormat`, keep `BuildIn*` as deprecated aliases. Add the `Id` parameter and `const` helper to
       `DataFormatProvider` and forward it from `TrajectoryFormatProvider` and its siblings.
-- [ ] Split the preset modules (spec §7): types-and-helpers module plus one module per preset; the auto preset module
+- [x] Split the preset modules (spec §7): types-and-helpers module plus one module per preset; the auto preset module
       imports the presets it composes. Preset catalogs derive the id and alias unions
       (`BuiltInTrajectoryHierarchyPresetId`/`Alias`, `BuiltInStructureRepresentationPresetId`/`Alias`).
 - [x] Split `state/helpers/structure-selection-query.ts` into the `state/queries/structure/` group modules of spec §7,
@@ -269,7 +269,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       changes which modules register transformers.
 - [ ] Migrate every consumer of the facade, the moved default specs, and moved modules, including `cli/mvs-render`, the
       headless examples, and the smoke fixtures (§3.6, §3.7).
-- [ ] Switch the extension and app calls of `PresetStructureRepresentations.auto.apply` in §1.3 to the auto preset's
+- [x] Switch the extension and app calls of `PresetStructureRepresentations.auto.apply` in §1.3 to the auto preset's
       defining module.
 - [ ] Build the import-graph check with the catalog manifest (§4.2, §4.3), run from `check:workspace`; later steps
       extend its rules.

@@ -16,10 +16,8 @@ import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import { OrderedSet } from '@molstar/core/data/int';
 import { cantorPairing } from '@molstar/core/data/util';
 import { QmeanScoreColorThemeProvider } from './color/qmean.js';
-import {
-  PresetStructureRepresentations,
-  StructureRepresentationPresetProvider,
-} from '@molstar/plugin/state/builder/structure/representation-preset';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/presets/auto';
 import { StateObjectRef } from '@molstar/core/state';
 import { MAPairwiseScorePlotPanel } from './pairwise/ui.js';
 import { PluginConfigItem } from '@molstar/plugin/config';
@@ -223,7 +221,7 @@ export const QualityAssessmentPLDDTPreset = StructureRepresentationPresetProvide
     if (!structureCell || !structure) return {};
 
     const colorTheme = PLDDTConfidenceColorThemeProvider.name as any;
-    return await PresetStructureRepresentations.auto.apply(
+    return await AutoPreset.apply(
       ref,
       { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } },
       plugin,
@@ -248,7 +246,7 @@ export const QualityAssessmentQmeanPreset = StructureRepresentationPresetProvide
     if (!structureCell || !structure) return {};
 
     const colorTheme = QmeanScoreColorThemeProvider.name as any;
-    return await PresetStructureRepresentations.auto.apply(
+    return await AutoPreset.apply(
       ref,
       { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } },
       plugin,

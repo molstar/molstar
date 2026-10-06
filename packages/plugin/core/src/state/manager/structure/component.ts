@@ -27,7 +27,7 @@ import { UUID } from '@molstar/core/util';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { objectForEach } from '@molstar/core/util/object';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { StructureRepresentationPresetProvider } from '../../builder/structure/representation-preset.js';
+import type { StructureRepresentationPresetProvider } from '../../builder/structure/presets/types.js';
 import { StatefulPluginComponent } from '../../component.js';
 import type { StructureComponentParams } from '../../helpers/structure-component.js';
 import { setStructureOverpaint } from '../../helpers/structure-overpaint.js';

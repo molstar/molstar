@@ -6,10 +6,8 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import {
-  StructureRepresentationPresetProvider,
-  PresetStructureRepresentations,
-} from '@molstar/plugin/state/builder/structure/representation-preset';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/presets/auto';
 import { MembraneOrientationProvider, MembraneOrientation } from '@molstar/anvil-extension/prop';
 import { StateObjectRef, StateTransformer, StateTransform } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
@@ -192,7 +190,7 @@ export const MembraneOrientationPreset = StructureRepresentationPresetProvider({
 
     const membraneOrientation = await tryCreateMembraneOrientation(plugin, structureCell);
     const colorTheme = HydrophobicityColorThemeProvider.name as any;
-    const preset = await PresetStructureRepresentations.auto.apply(
+    const preset = await AutoPreset.apply(
       ref,
       { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } },
       plugin,

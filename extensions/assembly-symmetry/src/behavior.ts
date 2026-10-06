@@ -24,10 +24,8 @@ import { PluginContext } from '@molstar/plugin/context';
 import { StateTransformer, StateAction, StateObject, StateTransform, StateObjectRef } from '@molstar/core/state';
 import type { GenericRepresentationRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { AssemblySymmetryControls } from '@molstar/assembly-symmetry-extension/ui';
-import {
-  StructureRepresentationPresetProvider,
-  PresetStructureRepresentations,
-} from '@molstar/plugin/state/builder/structure/representation-preset';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/presets/auto';
 
 const Tag = AssemblySymmetryData.Tag;
 
@@ -219,7 +217,7 @@ export const AssemblySymmetryPreset = StructureRepresentationPresetProvider({
     const assemblySymmetry = await tryCreateAssemblySymmetry(plugin, structureCell);
     const colorTheme =
       getAssemblySymmetryConfig(plugin).ApplyColors && assemblySymmetry.isOk ? (Tag.Cluster as any) : undefined;
-    const preset = await PresetStructureRepresentations.auto.apply(
+    const preset = await AutoPreset.apply(
       ref,
       { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } },
       plugin,

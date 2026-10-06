@@ -7,7 +7,10 @@
  */
 
 import { PostprocessingParams } from '@molstar/graphics/canvas3d/passes/postprocessing';
-import { PresetStructureRepresentations } from '@molstar/plugin/state/builder/structure/representation-preset';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/presets/auto';
+import { IllustrativePreset } from '@molstar/plugin/state/builder/structure/presets/illustrative';
+import { MolecularSurfacePreset } from '@molstar/plugin/state/builder/structure/presets/molecular-surface';
+import { PolymerAndLigandPreset } from '@molstar/plugin/state/builder/structure/presets/polymer-and-ligand';
 import { PluginConfig } from '@molstar/plugin/config';
 import type { PluginContext } from '@molstar/plugin/context';
 import { Color } from '@molstar/core/util/color';
@@ -136,25 +139,18 @@ async function applyRepresentationPreset(plugin: PluginContext, preset: PresetNa
 
   switch (preset) {
     case 'default':
-      const defaultPreset =
-        plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
+      const defaultPreset = plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || AutoPreset.id;
       const provider = plugin.builders.structure.representation.resolveProvider(defaultPreset);
       await plugin.managers.structure.component.applyPreset(structures, provider);
       break;
     case 'spacefill':
-      await plugin.managers.structure.component.applyPreset(structures, PresetStructureRepresentations.illustrative);
+      await plugin.managers.structure.component.applyPreset(structures, IllustrativePreset);
       break;
     case 'cartoon':
-      await plugin.managers.structure.component.applyPreset(
-        structures,
-        PresetStructureRepresentations['polymer-and-ligand'],
-      );
+      await plugin.managers.structure.component.applyPreset(structures, PolymerAndLigandPreset);
       break;
     case 'surface':
-      await plugin.managers.structure.component.applyPreset(
-        structures,
-        PresetStructureRepresentations['molecular-surface'],
-      );
+      await plugin.managers.structure.component.applyPreset(structures, MolecularSurfacePreset);
       break;
   }
 }

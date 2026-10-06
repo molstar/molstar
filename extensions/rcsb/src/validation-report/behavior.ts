@@ -18,10 +18,8 @@ import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/co
 import { StructureSelectionQuery, StructureSelectionCategory } from '@molstar/plugin/state/queries/structure/query';
 import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import { Task } from '@molstar/core/task';
-import {
-  StructureRepresentationPresetProvider,
-  PresetStructureRepresentations,
-} from '@molstar/plugin/state/builder/structure/representation-preset';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/presets/auto';
 import { StateObjectRef } from '@molstar/core/state';
 import { Model } from '@molstar/model/model/structure';
 
@@ -329,7 +327,7 @@ export const ValidationReportGeometryQualityPreset = StructureRepresentationPres
     );
 
     const colorTheme = GeometryQualityColorThemeProvider.name as any;
-    const { components, representations } = await PresetStructureRepresentations.auto.apply(
+    const { components, representations } = await AutoPreset.apply(
       ref,
       { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } },
       plugin,
@@ -399,7 +397,7 @@ export const ValidationReportDensityFitPreset = StructureRepresentationPresetPro
     );
 
     const colorTheme = DensityFitColorThemeProvider.name as any;
-    return await PresetStructureRepresentations.auto.apply(
+    return await AutoPreset.apply(
       ref,
       { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } },
       plugin,
@@ -436,7 +434,7 @@ export const ValidationReportRandomCoilIndexPreset = StructureRepresentationPres
     );
 
     const colorTheme = RandomCoilIndexColorThemeProvider.name as any;
-    return await PresetStructureRepresentations.auto.apply(
+    return await AutoPreset.apply(
       ref,
       { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } },
       plugin,

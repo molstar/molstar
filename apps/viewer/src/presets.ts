@@ -11,10 +11,8 @@ import {
 } from '@molstar/model-archive-extension/quality-assessment/behavior';
 import { QualityAssessment } from '@molstar/model-archive-extension/quality-assessment/prop';
 import { SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider } from '@molstar/sb-ncbr-extension';
-import {
-  PresetStructureRepresentations,
-  StructureRepresentationPresetProvider,
-} from '@molstar/plugin/state/builder/structure/representation-preset';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/presets/auto';
 import { StateObjectRef } from '@molstar/core/state';
 
 export const ViewerAutoPreset = StructureRepresentationPresetProvider({
@@ -44,7 +42,7 @@ export const ViewerAutoPreset = StructureRepresentationPresetProvider({
     } else if (!!structure.models.some((m) => SbNcbrPartialChargesPropertyProvider.isApplicable(m))) {
       return await SbNcbrPartialChargesPreset.apply(ref, params, plugin);
     } else {
-      return await PresetStructureRepresentations.auto.apply(ref, params, plugin);
+      return await AutoPreset.apply(ref, params, plugin);
     }
   },
 });

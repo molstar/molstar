@@ -10,10 +10,9 @@ import type { PluginContext } from '@molstar/plugin/context';
 import { StateAction, StateSelection, StateTransformer } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import {
-  PresetStructureRepresentations,
-  StructureRepresentationPresetProvider,
-} from '../builder/structure/representation-preset.js';
+import { AutoPreset } from '../builder/structure/presets/auto.js';
+import { EmptyPreset } from '../builder/structure/presets/empty.js';
+import { StructureRepresentationPresetProvider } from '../builder/structure/presets/types.js';
 import {
   type BuiltInTrajectoryFormat,
   BuiltInTrajectoryFormats,
@@ -36,8 +35,7 @@ import { TopologyFormatCategory } from '@molstar/plugin/state/formats/topology/c
 import { CoordinatesFormatCategory } from '@molstar/plugin/state/formats/coordinates/category';
 
 const DownloadModelRepresentationOptions = (plugin: PluginContext) => {
-  const representationDefault =
-    plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
+  const representationDefault = plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || AutoPreset.id;
   return PD.Group(
     {
       type: RootStructureDefinition.getParams(void 0, 'auto').type,
@@ -286,8 +284,8 @@ const DownloadStructure = StateAction.build({
     const representationPreset: any =
       params.source.params.options.representation ||
       plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) ||
-      PresetStructureRepresentations.auto.id;
-    const showUnitcell = representationPreset !== PresetStructureRepresentations.empty.id;
+      AutoPreset.id;
+    const showUnitcell = representationPreset !== EmptyPreset.id;
 
     const structure = src.params.options.type.name === 'auto' ? void 0 : src.params.options.type;
     await state

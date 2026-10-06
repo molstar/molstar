@@ -11,7 +11,7 @@ import { PluginCommands } from '@molstar/plugin/commands';
 import type { PluginContext } from '@molstar/plugin/context';
 import { StateTransform, StateTree } from '@molstar/core/state';
 import { SetUtils } from '@molstar/core/util/set';
-import type { TrajectoryHierarchyPresetProvider } from '../../builder/structure/hierarchy-preset.js';
+import type { TrajectoryHierarchyPresetProvider } from '../../builder/structure/hierarchy/types.js';
 import { PluginComponent } from '../../component.js';
 import { PluginStateObject } from '../../objects.js';
 import {

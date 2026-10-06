@@ -9,8 +9,8 @@ import { Volume } from '@molstar/model/model/volume';
 import { DownloadFile, OpenFiles } from '@molstar/plugin/state/actions/file';
 import { DownloadStructure, PdbDownloadProvider } from '@molstar/plugin/state/actions/structure';
 import { DownloadDensity } from '@molstar/plugin/state/actions/volume';
-import { PresetTrajectoryHierarchy } from '@molstar/plugin/state/builder/structure/hierarchy-preset';
-import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-preset';
+import type { BuiltInTrajectoryHierarchyPresetAlias } from '@molstar/plugin/state/builder/structure/hierarchy/catalog';
+import type { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/presets/types';
 import type { BuiltInCoordinatesFormat } from '@molstar/plugin/state/formats/coordinates/catalog';
 import type { BuiltInTopologyFormat } from '@molstar/plugin/state/formats/topology/catalog';
 import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
@@ -511,5 +511,5 @@ export interface LoadTrajectoryParams {
         format: BuiltInCoordinatesFormat;
       };
   coordinatesLabel?: string;
-  preset?: keyof PresetTrajectoryHierarchy;
+  preset?: BuiltInTrajectoryHierarchyPresetAlias;
 }

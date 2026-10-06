@@ -7,10 +7,8 @@
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { DownloadTunnels } from './actions.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import {
-  PresetStructureRepresentations,
-  StructureRepresentationPresetProvider,
-} from '@molstar/plugin/state/builder/structure/representation-preset';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/presets/auto';
 import { Model, Structure } from '@molstar/model/model/structure';
 import { PluginContext } from '@molstar/plugin/context';
 import { StateObjectRef } from '@molstar/core/state';
@@ -93,7 +91,7 @@ export const TunnelsPreset = StructureRepresentationPresetProvider({
       await update.commit();
     });
 
-    const preset = await PresetStructureRepresentations.auto.apply(ref, { ...params }, plugin);
+    const preset = await AutoPreset.apply(ref, { ...params }, plugin);
 
     return { components: preset.components, representations: { ...preset.representations } };
   },

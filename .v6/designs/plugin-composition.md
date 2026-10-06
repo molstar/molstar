@@ -571,7 +571,9 @@ optional functionality only through ids, config, `has`, and `import type`.
 - **Presets.** The preset modules split into a types-and-helpers module (`PresetProvider` interfaces, `CommonParams`,
   `reprBuilder`, `presetStaticComponent`, `updateFocusRepr`) and one module per preset (or small group) exporting the
   provider and its entry. `PresetStructureRepresentations` and `PresetTrajectoryHierarchy` become catalogs. The builders
-  import types only.
+  import types only. Layout: `state/builder/structure/presets/` (`types.ts`, one module per representation preset,
+  `catalog.ts`) and `state/builder/structure/hierarchy/` (`types.ts`, one module per hierarchy preset,
+  `crystal-symmetry.ts` shared by `unitcell` and `supercell`, `catalog.ts`).
 - **Focus representation.** Presets and `StructureComponentManager` reach the focus representation behavior only through
   a small id module, `plugin.state.hasBehavior`/`updateBehavior`, and `import type` for its params. They do not name
   representations or themes for it, and they update the behavior only when it is present instead of inserting it (plan

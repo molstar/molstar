@@ -13,7 +13,8 @@ import { isProductionMode } from '@molstar/core/util/debug';
 import { objectForEach } from '@molstar/core/util/object';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { PluginStateObject } from '../../objects.js';
-import { PresetTrajectoryHierarchy, TrajectoryHierarchyPresetProvider } from './hierarchy-preset.js';
+import { PresetTrajectoryHierarchy } from './hierarchy/catalog.js';
+import type { TrajectoryHierarchyPresetProvider } from './hierarchy/types.js';
 import { arrayRemoveInPlace } from '@molstar/core/util/array';
 
 // TODO factor out code shared with StructureRepresentationBuilder?
