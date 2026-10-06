@@ -5,7 +5,7 @@
  */
 
 import { PluginStateObject as SO } from '../../objects.js';
-import type { StateTransforms } from '../../transforms.js';
+import type { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import { StateObject, StateTransform, State, StateObjectCell, StateTree, StateTransformer } from '@molstar/core/state';
 
 export function buildParticleHierarchy(state: State, previous?: ParticleHierarchy) {
@@ -45,11 +45,7 @@ function ParticleListRef(cell: StateObjectCell<SO.Particle.List>): ParticleListR
 }
 
 export interface ParticleRepresentationRef
-  extends RefBase<
-    'particle-representation',
-    SO.Particle.Representation3D,
-    StateTransforms['Particles']['ParticlesRepresentation3D']
-  > {
+  extends RefBase<'particle-representation', SO.Particle.Representation3D, typeof ParticlesRepresentation3D> {
   list: ParticleListRef;
 }
 

@@ -11,7 +11,11 @@ import { InteractionTypeColorThemeProvider } from '@molstar/graphics/props/compu
 import { StructureElement } from '@molstar/model/model/structure';
 import { createStructureRepresentationParams } from '@molstar/plugin/state/helpers/structure-representation-params';
 import type { PluginStateObject } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import {
+  StructureSelectionFromBundle,
+  StructureSelectionFromExpression,
+} from '@molstar/plugin/state/transforms/structure/selection';
 import { PluginBehavior } from '@molstar/plugin/behavior';
 import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import { StateObjectCell, StateSelection, StateTransform } from '@molstar/core/state';
@@ -25,10 +29,7 @@ import { getInteriorParam } from '@molstar/graphics/geo/geometry/interior';
 import { getAnimationParam } from '@molstar/graphics/geo/geometry/animation';
 
 const StructureFocusRepresentationParams = (plugin: PluginContext) => {
-  const reprParams = StateTransforms.Representation.StructureRepresentation3D.definition.params!(
-    void 0,
-    plugin,
-  ) as PD.Params;
+  const reprParams = StructureRepresentation3D.definition.params!(void 0, plugin) as PD.Params;
   return {
     expandRadius: PD.Numeric(5, { min: 1, max: 10, step: 1 }),
     targetParams: PD.Group(reprParams, {
@@ -133,7 +134,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
       refs[StructureFocusRepresentationTags.TargetSel] = builder
         .to(cell)
         .apply(
-          StateTransforms.Model.StructureSelectionFromBundle,
+          StructureSelectionFromBundle,
           { bundle: StructureElement.Bundle.Empty, label: '[Focus] Target' },
           { tags: StructureFocusRepresentationTags.TargetSel },
         ).ref;
@@ -143,7 +144,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
       refs[StructureFocusRepresentationTags.SurrSel] = builder
         .to(cell)
         .apply(
-          StateTransforms.Model.StructureSelectionFromExpression,
+          StructureSelectionFromExpression,
           { expression: MS.struct.generator.empty(), label: this.surrLabel },
           { tags: StructureFocusRepresentationTags.SurrSel },
         ).ref;
@@ -155,7 +156,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
     if (components.indexOf('target') >= 0 && !refs[StructureFocusRepresentationTags.TargetRepr]) {
       refs[StructureFocusRepresentationTags.TargetRepr] = builder
         .to(refs[StructureFocusRepresentationTags.TargetSel]!)
-        .apply(StateTransforms.Representation.StructureRepresentation3D, this.getReprParams(this.params.targetParams), {
+        .apply(StructureRepresentation3D, this.getReprParams(this.params.targetParams), {
           tags: StructureFocusRepresentationTags.TargetRepr,
         }).ref;
     }
@@ -163,11 +164,9 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
     if (components.indexOf('surroundings') >= 0 && !refs[StructureFocusRepresentationTags.SurrRepr]) {
       refs[StructureFocusRepresentationTags.SurrRepr] = builder
         .to(refs[StructureFocusRepresentationTags.SurrSel]!)
-        .apply(
-          StateTransforms.Representation.StructureRepresentation3D,
-          this.getReprParams(this.params.surroundingsParams),
-          { tags: StructureFocusRepresentationTags.SurrRepr },
-        ).ref;
+        .apply(StructureRepresentation3D, this.getReprParams(this.params.surroundingsParams), {
+          tags: StructureFocusRepresentationTags.SurrRepr,
+        }).ref;
     }
 
     if (
@@ -178,7 +177,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
     ) {
       refs[StructureFocusRepresentationTags.SurrNciRepr] = builder
         .to(refs[StructureFocusRepresentationTags.SurrSel]!)
-        .apply(StateTransforms.Representation.StructureRepresentation3D, this.getReprParams(this.params.nciParams), {
+        .apply(StructureRepresentation3D, this.getReprParams(this.params.nciParams), {
           tags: StructureFocusRepresentationTags.SurrNciRepr,
         }).ref;
     }
@@ -201,12 +200,12 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
     const update = state.build();
     const bundle = StructureElement.Bundle.Empty;
     for (const f of foci) {
-      update.to(f).update(StateTransforms.Model.StructureSelectionFromBundle, (old) => ({ ...old, bundle }));
+      update.to(f).update(StructureSelectionFromBundle, (old) => ({ ...old, bundle }));
     }
 
     const expression = MS.struct.generator.empty();
     for (const s of surrs) {
-      update.to(s).update(StateTransforms.Model.StructureSelectionFromExpression, (old) => ({ ...old, expression }));
+      update.to(s).update(StructureSelectionFromExpression, (old) => ({ ...old, expression }));
     }
 
     return PluginCommands.State.Update(this.plugin, {
@@ -245,14 +244,12 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
 
     builder
       .to(refs[StructureFocusRepresentationTags.TargetSel]!)
-      .update(StateTransforms.Model.StructureSelectionFromBundle, (old) => ({ ...old, bundle: residueBundle }));
-    builder
-      .to(refs[StructureFocusRepresentationTags.SurrSel]!)
-      .update(StateTransforms.Model.StructureSelectionFromExpression, (old) => ({
-        ...old,
-        expression: surroundings,
-        label: this.surrLabel,
-      }));
+      .update(StructureSelectionFromBundle, (old) => ({ ...old, bundle: residueBundle }));
+    builder.to(refs[StructureFocusRepresentationTags.SurrSel]!).update(StructureSelectionFromExpression, (old) => ({
+      ...old,
+      expression: surroundings,
+      label: this.surrLabel,
+    }));
 
     await PluginCommands.State.Update(this.plugin, {
       state,

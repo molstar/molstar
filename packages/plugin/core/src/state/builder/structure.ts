@@ -13,7 +13,16 @@ import {
   StateObjectCell,
 } from '@molstar/core/state';
 import { PluginStateObject as SO } from '../objects.js';
-import { StateTransforms } from '../transforms.js';
+import { ParseBlob } from '@molstar/plugin/state/formats/cif';
+import { TrajectoryFromBlob } from '@molstar/plugin/state/formats/trajectory/mmcif';
+import {
+  CustomModelProperties,
+  CustomStructureProperties,
+  ModelFromTrajectory,
+  StructureFromModel,
+} from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { ModelUnitcell3D } from '@molstar/plugin/state/transforms/structure/unitcell';
+import { StructureComponent } from '@molstar/plugin/state/transforms/structure/selection';
 import type { RootStructureDefinition } from '../helpers/root-structure.js';
 import type { StructureComponentParams, StaticStructureComponentType } from '../helpers/structure-component.js';
 import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
@@ -43,16 +52,13 @@ export class StructureBuilder {
     return trajectory;
   }
 
-  private parseTrajectoryBlob(
-    data: StateObjectRef<SO.Data.Blob>,
-    params: StateTransformer.Params<StateTransforms['Data']['ParseBlob']>,
-  ) {
+  private parseTrajectoryBlob(data: StateObjectRef<SO.Data.Blob>, params: StateTransformer.Params<typeof ParseBlob>) {
     const state = this.dataState;
     const trajectory = state
       .build()
       .to(data)
-      .apply(StateTransforms.Data.ParseBlob, params, { state: { isGhost: true } })
-      .apply(StateTransforms.Model.TrajectoryFromBlob, void 0);
+      .apply(ParseBlob, params, { state: { isGhost: true } })
+      .apply(TrajectoryFromBlob, void 0);
     return trajectory.commit({ revertOnError: true });
   }
 
@@ -65,7 +71,7 @@ export class StructureBuilder {
   ): Promise<StateObjectSelector<SO.Molecule.Trajectory>>;
   parseTrajectory(
     blob: StateObjectRef<SO.Data.Blob>,
-    params: StateTransformer.Params<StateTransforms['Data']['ParseBlob']>,
+    params: StateTransformer.Params<typeof ParseBlob>,
   ): Promise<StateObjectSelector<SO.Molecule.Trajectory>>;
   parseTrajectory(data: StateObjectRef, params: any) {
     const cell = StateObjectRef.resolveAndCheck(this.dataState, data as StateObjectRef);
@@ -80,34 +86,31 @@ export class StructureBuilder {
 
   createModel(
     trajectory: StateObjectRef<SO.Molecule.Trajectory>,
-    params?: StateTransformer.Params<StateTransforms['Model']['ModelFromTrajectory']>,
+    params?: StateTransformer.Params<typeof ModelFromTrajectory>,
     initialState?: Partial<StateTransform.State>,
   ) {
     const state = this.dataState;
     const model = state
       .build()
       .to(trajectory)
-      .apply(StateTransforms.Model.ModelFromTrajectory, params || { modelIndex: 0 }, { state: initialState });
+      .apply(ModelFromTrajectory, params || { modelIndex: 0 }, { state: initialState });
 
     return model.commit({ revertOnError: true });
   }
 
   insertModelProperties(
     model: StateObjectRef<SO.Molecule.Model>,
-    params?: StateTransformer.Params<StateTransforms['Model']['CustomModelProperties']>,
+    params?: StateTransformer.Params<typeof CustomModelProperties>,
     initialState?: Partial<StateTransform.State>,
   ) {
     const state = this.dataState;
-    const props = state
-      .build()
-      .to(model)
-      .apply(StateTransforms.Model.CustomModelProperties, params, { state: initialState });
+    const props = state.build().to(model).apply(CustomModelProperties, params, { state: initialState });
     return props.commit({ revertOnError: true });
   }
 
   tryCreateUnitcell(
     model: StateObjectRef<SO.Molecule.Model>,
-    params?: StateTransformer.Params<StateTransforms['Representation']['ModelUnitcell3D']>,
+    params?: StateTransformer.Params<typeof ModelUnitcell3D>,
     initialState?: Partial<StateTransform.State>,
   ) {
     const state = this.dataState;
@@ -116,10 +119,7 @@ export class StructureBuilder {
     const cell = ModelSymmetry.Provider.get(m)?.spacegroup.cell;
     if (SpacegroupCell.isZero(cell)) return;
 
-    const unitcell = state
-      .build()
-      .to(model)
-      .apply(StateTransforms.Representation.ModelUnitcell3D, params, { state: initialState });
+    const unitcell = state.build().to(model).apply(ModelUnitcell3D, params, { state: initialState });
     return unitcell.commit({ revertOnError: true });
   }
 
@@ -142,26 +142,22 @@ export class StructureBuilder {
     const structure = state
       .build()
       .to(modelRef)
-      .apply(
-        StateTransforms.Model.StructureFromModel,
-        { type: params || { name: 'assembly', params: {} } },
-        { state: initialState, tags },
-      );
+      .apply(StructureFromModel, { type: params || { name: 'assembly', params: {} } }, { state: initialState, tags });
 
     return structure.commit({ revertOnError: true });
   }
 
   insertStructureProperties(
     structure: StateObjectRef<SO.Molecule.Structure>,
-    params?: StateTransformer.Params<StateTransforms['Model']['CustomStructureProperties']>,
+    params?: StateTransformer.Params<typeof CustomStructureProperties>,
   ) {
     const state = this.dataState;
-    const props = state.build().to(structure).apply(StateTransforms.Model.CustomStructureProperties, params);
+    const props = state.build().to(structure).apply(CustomStructureProperties, params);
     return props.commit({ revertOnError: true });
   }
 
   isComponentTransform(cell: StateObjectCell) {
-    return cell.transform.transformer === StateTransforms.Model.StructureComponent;
+    return cell.transform.transformer === StructureComponent;
   }
 
   /** returns undefined if the component is empty/null */
@@ -176,7 +172,7 @@ export class StructureBuilder {
     const root = state.build().to(structure);
 
     const keyTag = `structure-component-${key}`;
-    const component = root.applyOrUpdateTagged(keyTag, StateTransforms.Model.StructureComponent, params, {
+    const component = root.applyOrUpdateTagged(keyTag, StructureComponent, params, {
       tags: tags ? [...tags, keyTag] : [keyTag],
     });
 

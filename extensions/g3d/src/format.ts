@@ -23,7 +23,8 @@ import {
   G3dSymbols,
   G3dInfoDataProperty,
 } from '@molstar/g3d-extension/model';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { StructureSelectionFromExpression } from '@molstar/plugin/state/transforms/structure/selection';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { createStructureRepresentationParams } from '@molstar/plugin/state/helpers/structure-representation-params';
 import { stringToWords } from '@molstar/core/util/string';
 import { objectForEach } from '@molstar/core/util/object';
@@ -67,11 +68,11 @@ async function defaultStructure(plugin: PluginContext, data: { trajectory: State
 
   for (const h of info.haplotypes) {
     components
-      .apply(StateTransforms.Model.StructureSelectionFromExpression, {
+      .apply(StructureSelectionFromExpression, {
         expression: g3dHaplotypeQuery(h),
         label: stringToWords(h),
       })
-      .apply(StateTransforms.Representation.StructureRepresentation3D, repr);
+      .apply(StructureRepresentation3D, repr);
   }
 
   await components.commit();

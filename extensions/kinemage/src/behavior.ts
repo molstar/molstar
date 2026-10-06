@@ -16,7 +16,8 @@ import type { PluginDragAndDropHandler } from '@molstar/plugin/state/manager/dra
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/compiler';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
+import { RawData } from '@molstar/plugin/state/transforms/data/fetch';
 import {
   shapePointsFromKin,
   shapeLinesFromKin,
@@ -474,25 +475,25 @@ async function createShapesForKinemage(
     await update
       .to(visControllerSelector.ref)
       .apply(KinemageShapePointsProvider, {}, { state: { isGhost: true } })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+      .apply(ShapeRepresentation3D);
   }
   if (kinData.vectorLists.length > 0) {
     await update
       .to(visControllerSelector.ref)
       .apply(KinemageShapeLinesProvider, {}, { state: { isGhost: true } })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+      .apply(ShapeRepresentation3D);
   }
   if (kinData.ribbonLists.length > 0) {
     await update
       .to(visControllerSelector.ref)
       .apply(KinemageShapeMeshProvider, {}, { state: { isGhost: true } })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D, { doubleSided: true });
+      .apply(ShapeRepresentation3D, { doubleSided: true });
   }
   if (kinData.ballLists.length > 0) {
     await update
       .to(visControllerSelector.ref)
       .apply(KinemageShapeSpheresProvider, {}, { state: { isGhost: true } })
-      .apply(StateTransforms.Representation.ShapeRepresentation3D);
+      .apply(ShapeRepresentation3D);
   }
 }
 
@@ -501,7 +502,7 @@ async function applyKinemageToState(plugin: PluginContext, data: string, label?:
   const update = plugin.state.data.build();
 
   // Create String data node
-  const dataNode = update.toRoot().apply(StateTransforms.Data.RawData, { data, label: label || 'Kinemage File' });
+  const dataNode = update.toRoot().apply(RawData, { data, label: label || 'Kinemage File' });
 
   // Parse into KinemageObject
   const parsedNode = dataNode.apply(ParseKinemage, { label });

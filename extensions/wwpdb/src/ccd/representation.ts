@@ -7,7 +7,7 @@
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { StateObjectRef, StateTransform } from '@molstar/core/state';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { TransformStructureConformation } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import {
   StructureRepresentationPresetProvider,
   presetStaticComponent,
@@ -158,7 +158,7 @@ function transform(plugin: PluginContext, s: StateObjectRef<PluginStateObject.Mo
   const b = plugin.state.data
     .build()
     .to(s)
-    .insert(StateTransforms.Model.TransformStructureConformation, {
+    .insert(TransformStructureConformation, {
       transform: { name: 'matrix', params: { data: matrix, transpose: false } },
     });
   return plugin.runTask(plugin.state.data.updateTree(b));

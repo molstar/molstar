@@ -5,8 +5,8 @@
 <script type="importmap" id="smoke-importmap"></script>
 <script type="module">
   window.smokeReady = (async () => {
-    const [{ PluginContext }, { PluginConfig }, { StateTransforms }, { StateTransformer }, { Color }, { createPluginUI }, { DefaultPluginUISpec }, { renderReact18 }] = await Promise.all([
-      import('@molstar/plugin'), import('@molstar/plugin/config'), import('@molstar/plugin/state/transforms'), import('@molstar/core/state'), import('@molstar/core/util/color'),
+    const [{ PluginContext }, { PluginConfig }, { TrajectoryFromPDB }, { StateTransformer }, { Color }, { createPluginUI }, { DefaultPluginUISpec }, { renderReact18 }] = await Promise.all([
+      import('@molstar/plugin'), import('@molstar/plugin/config'), import('@molstar/plugin/state/formats/trajectory/pdb'), import('@molstar/core/state'), import('@molstar/core/util/color'),
       import('@molstar/plugin-ui'), import('@molstar/plugin-ui/default-spec'), import('@molstar/plugin-ui/react18')
     ]);
     const plugin = await createPluginUI({ target: document.getElementById('app'), render: renderReact18, spec: DefaultPluginUISpec() });
@@ -16,11 +16,11 @@
     plugin.canvas3d?.commit(true);
     window.smokePlugin = plugin;
     window.smokeResult = {
-      transforms: typeof StateTransforms,
+      transforms: typeof TrajectoryFromPDB,
       config: typeof PluginConfig,
       color: Color(0x336699),
       pluginContextIdentity: plugin instanceof PluginContext,
-      transformerRegistryIdentity: StateTransformer.get(StateTransforms.Model.TrajectoryFromPDB.id) === StateTransforms.Model.TrajectoryFromPDB,
+      transformerRegistryIdentity: StateTransformer.get(TrajectoryFromPDB.id) === TrajectoryFromPDB,
       structures: plugin.managers.structure.hierarchy.current.structures.length,
       representations: plugin.canvas3d?.reprCount.value ?? 0
     };

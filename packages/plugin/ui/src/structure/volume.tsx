@@ -16,7 +16,7 @@ import type {
   VolumeRepresentationRef,
 } from '@molstar/plugin/state/manager/volume/hierarchy-state';
 import type { PluginStateObject } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { FocusLoci } from '@molstar/plugin/behavior/dynamic/representation';
 import { VolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/behavior';
 import { InitVolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
@@ -273,7 +273,7 @@ export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceCo
         const repr = plugin.build();
         for (const iso of isovalues) {
           repr.to(parsed.volumes?.[iso.volumeIndex ?? 0] ?? parsed.volume).apply(
-            StateTransforms.Representation.VolumeRepresentation3D,
+            VolumeRepresentation3D,
             createVolumeRepresentationParams(this.plugin, firstVolume.data!, {
               type: 'isosurface',
               typeParams: {

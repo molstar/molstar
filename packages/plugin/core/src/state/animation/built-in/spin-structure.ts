@@ -8,7 +8,7 @@ import { PluginCommands } from '@molstar/plugin/commands';
 import { StateSelection } from '@molstar/core/state';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { PluginStateObject } from '../../objects.js';
-import { StateTransforms } from '../../transforms.js';
+import { SpinStructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/animation';
 import { PluginStateAnimation } from '../model.js';
 
 export const AnimateStructureSpin = PluginStateAnimation.create({
@@ -28,21 +28,12 @@ export const AnimateStructureSpin = PluginStateAnimation.create({
     let changed = false;
     for (const r of reprs) {
       const spins = state.select(
-        StateSelection.Generators.ofTransformer(
-          StateTransforms.Representation.SpinStructureRepresentation3D,
-          r.transform.ref,
-        ),
+        StateSelection.Generators.ofTransformer(SpinStructureRepresentation3D, r.transform.ref),
       );
       if (spins.length > 0) continue;
 
       changed = true;
-      update
-        .to(r.transform.ref)
-        .apply(
-          StateTransforms.Representation.SpinStructureRepresentation3D,
-          { t: 0 },
-          { tags: 'animate-structure-spin' },
-        );
+      update.to(r.transform.ref).apply(SpinStructureRepresentation3D, { t: 0 }, { tags: 'animate-structure-spin' });
     }
 
     if (!changed) return;
@@ -64,9 +55,7 @@ export const AnimateStructureSpin = PluginStateAnimation.create({
   },
   async apply(animState, t, ctx) {
     const state = ctx.plugin.state.data;
-    const anims = state.select(
-      StateSelection.Generators.ofTransformer(StateTransforms.Representation.SpinStructureRepresentation3D),
-    );
+    const anims = state.select(StateSelection.Generators.ofTransformer(SpinStructureRepresentation3D));
 
     if (anims.length === 0) {
       return { kind: 'finished' };

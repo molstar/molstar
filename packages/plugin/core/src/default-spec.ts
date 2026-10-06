@@ -6,6 +6,7 @@
  */
 
 import '@molstar/model/script/transpilers/all';
+import '@molstar/plugin/state/transforms/catalog';
 import { AnimateAssemblyUnwind } from '@molstar/plugin/state/animation/built-in/assembly-unwind';
 import { AnimateCameraSpin } from '@molstar/plugin/state/animation/built-in/camera-spin';
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
@@ -18,7 +19,55 @@ import { PluginBehaviors } from '@molstar/plugin/behavior';
 import { StructureFocusRepresentation } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
 import { StateActions } from '@molstar/plugin/state/actions';
 import { AssignColorVolume } from '@molstar/plugin/state/actions/volume';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { Download } from '@molstar/plugin/state/transforms/data/fetch';
+import { ParseCif } from '@molstar/plugin/state/formats/cif';
+import { ParseCcp4, VolumeFromCcp4 } from '@molstar/plugin/state/formats/volume/ccp4';
+import { ParseDsn6, VolumeFromDsn6 } from '@molstar/plugin/state/formats/volume/dsn6';
+import { TrajectoryFromMmCif } from '@molstar/plugin/state/formats/trajectory/mmcif';
+import { TrajectoryFromCifCore } from '@molstar/plugin/state/formats/trajectory/cif-core';
+import { TrajectoryFromPDB } from '@molstar/plugin/state/formats/trajectory/pdb';
+import {
+  ModelFromTrajectory,
+  StructureFromModel,
+  StructureFromTrajectory,
+  StructureInstances,
+  TransformStructureConformation,
+} from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { StructureSelectionFromScript } from '@molstar/plugin/state/transforms/structure/selection';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import {
+  StructureSelectionsAngle3D,
+  StructureSelectionsDihedral3D,
+  StructureSelectionsDistance3D,
+  StructureSelectionsLabel3D,
+  StructureSelectionsOrientation3D,
+} from '@molstar/plugin/state/transforms/structure/measurement';
+import { ModelUnitcell3D } from '@molstar/plugin/state/transforms/structure/unitcell';
+import { StructureBoundingBox3D } from '@molstar/plugin/state/transforms/structure/bounding-box';
+import {
+  ExplodeStructureRepresentation3D,
+  SpinStructureRepresentation3D,
+  UnwindStructureAssemblyRepresentation3D,
+} from '@molstar/plugin/state/transforms/structure/animation';
+import { OverpaintStructureRepresentation3DFromScript } from '@molstar/plugin/state/transforms/structure/effects/overpaint';
+import { TransparencyStructureRepresentation3DFromScript } from '@molstar/plugin/state/transforms/structure/effects/transparency';
+import { ClippingStructureRepresentation3DFromScript } from '@molstar/plugin/state/transforms/structure/effects/clipping';
+import { SubstanceStructureRepresentation3DFromScript } from '@molstar/plugin/state/transforms/structure/effects/substance';
+import { WiggleStructureRepresentation3DFromScript } from '@molstar/plugin/state/transforms/structure/effects/wiggle';
+import { ThemeStrengthRepresentation3D } from '@molstar/plugin/state/transforms/structure/effects/theme-strength';
+import { VolumeFromCube } from '@molstar/plugin/state/formats/volume/cube';
+import { VolumeFromDx } from '@molstar/plugin/state/formats/volume/dx';
+import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
+import { VolumeInstances, VolumeTransform } from '@molstar/plugin/state/transforms/volume/ops';
+import { ParticleListFromRelionStar } from '@molstar/plugin/state/formats/particles/star';
+import { ParticleListFromDynamoTbl } from '@molstar/plugin/state/formats/particles/tbl';
+import { ParticleListFromCryoEtDataPortalNdjson } from '@molstar/plugin/state/formats/particles/ndjson';
+import { ParticleListFromArtiatomiEm } from '@molstar/plugin/state/formats/particles/em';
+import { ParticleListFromMmcifAssembly } from '@molstar/plugin/state/formats/particles/mmcif-assembly';
+import { ParticleTrajectoryFromSimularium } from '@molstar/plugin/state/formats/particles/simularium';
+import { ParticleListFromTrajectory, ParticleListWithTargets } from '@molstar/plugin/state/transforms/particles/ops';
+import { ParticleListUnitcell3D } from '@molstar/plugin/state/transforms/particles/unitcell';
+import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import {
   BoxifyVolumeStreaming,
   CreateVolumeStreamingBehavior,
@@ -45,57 +94,57 @@ export const DefaultPluginSpec = (): PluginSpec => ({
     PluginSpec.Action(BoxifyVolumeStreaming),
     PluginSpec.Action(CreateVolumeStreamingBehavior),
 
-    PluginSpec.Action(StateTransforms.Data.Download),
-    PluginSpec.Action(StateTransforms.Data.ParseCif),
-    PluginSpec.Action(StateTransforms.Data.ParseCcp4),
-    PluginSpec.Action(StateTransforms.Data.ParseDsn6),
+    PluginSpec.Action(Download),
+    PluginSpec.Action(ParseCif),
+    PluginSpec.Action(ParseCcp4),
+    PluginSpec.Action(ParseDsn6),
 
-    PluginSpec.Action(StateTransforms.Model.TrajectoryFromMmCif),
-    PluginSpec.Action(StateTransforms.Model.TrajectoryFromCifCore),
-    PluginSpec.Action(StateTransforms.Model.TrajectoryFromPDB),
-    PluginSpec.Action(StateTransforms.Model.TransformStructureConformation),
-    PluginSpec.Action(StateTransforms.Model.StructureInstances),
-    PluginSpec.Action(StateTransforms.Model.StructureFromModel),
-    PluginSpec.Action(StateTransforms.Model.StructureFromTrajectory),
-    PluginSpec.Action(StateTransforms.Model.ModelFromTrajectory),
-    PluginSpec.Action(StateTransforms.Model.StructureSelectionFromScript),
-    PluginSpec.Action(StateTransforms.Representation.StructureRepresentation3D),
-    PluginSpec.Action(StateTransforms.Representation.StructureSelectionsDistance3D),
-    PluginSpec.Action(StateTransforms.Representation.StructureSelectionsAngle3D),
-    PluginSpec.Action(StateTransforms.Representation.StructureSelectionsDihedral3D),
-    PluginSpec.Action(StateTransforms.Representation.StructureSelectionsLabel3D),
-    PluginSpec.Action(StateTransforms.Representation.StructureSelectionsOrientation3D),
-    PluginSpec.Action(StateTransforms.Representation.ModelUnitcell3D),
-    PluginSpec.Action(StateTransforms.Representation.StructureBoundingBox3D),
-    PluginSpec.Action(StateTransforms.Representation.ExplodeStructureRepresentation3D),
-    PluginSpec.Action(StateTransforms.Representation.SpinStructureRepresentation3D),
-    PluginSpec.Action(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D),
-    PluginSpec.Action(StateTransforms.Representation.OverpaintStructureRepresentation3DFromScript),
-    PluginSpec.Action(StateTransforms.Representation.TransparencyStructureRepresentation3DFromScript),
-    PluginSpec.Action(StateTransforms.Representation.ClippingStructureRepresentation3DFromScript),
-    PluginSpec.Action(StateTransforms.Representation.SubstanceStructureRepresentation3DFromScript),
-    PluginSpec.Action(StateTransforms.Representation.WiggleStructureRepresentation3DFromScript),
-    PluginSpec.Action(StateTransforms.Representation.ThemeStrengthRepresentation3D),
+    PluginSpec.Action(TrajectoryFromMmCif),
+    PluginSpec.Action(TrajectoryFromCifCore),
+    PluginSpec.Action(TrajectoryFromPDB),
+    PluginSpec.Action(TransformStructureConformation),
+    PluginSpec.Action(StructureInstances),
+    PluginSpec.Action(StructureFromModel),
+    PluginSpec.Action(StructureFromTrajectory),
+    PluginSpec.Action(ModelFromTrajectory),
+    PluginSpec.Action(StructureSelectionFromScript),
+    PluginSpec.Action(StructureRepresentation3D),
+    PluginSpec.Action(StructureSelectionsDistance3D),
+    PluginSpec.Action(StructureSelectionsAngle3D),
+    PluginSpec.Action(StructureSelectionsDihedral3D),
+    PluginSpec.Action(StructureSelectionsLabel3D),
+    PluginSpec.Action(StructureSelectionsOrientation3D),
+    PluginSpec.Action(ModelUnitcell3D),
+    PluginSpec.Action(StructureBoundingBox3D),
+    PluginSpec.Action(ExplodeStructureRepresentation3D),
+    PluginSpec.Action(SpinStructureRepresentation3D),
+    PluginSpec.Action(UnwindStructureAssemblyRepresentation3D),
+    PluginSpec.Action(OverpaintStructureRepresentation3DFromScript),
+    PluginSpec.Action(TransparencyStructureRepresentation3DFromScript),
+    PluginSpec.Action(ClippingStructureRepresentation3DFromScript),
+    PluginSpec.Action(SubstanceStructureRepresentation3DFromScript),
+    PluginSpec.Action(WiggleStructureRepresentation3DFromScript),
+    PluginSpec.Action(ThemeStrengthRepresentation3D),
 
     PluginSpec.Action(AssignColorVolume),
-    PluginSpec.Action(StateTransforms.Volume.VolumeFromCcp4),
-    PluginSpec.Action(StateTransforms.Volume.VolumeFromDsn6),
-    PluginSpec.Action(StateTransforms.Volume.VolumeFromCube),
-    PluginSpec.Action(StateTransforms.Volume.VolumeFromDx),
-    PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
-    PluginSpec.Action(StateTransforms.Volume.VolumeTransform),
-    PluginSpec.Action(StateTransforms.Volume.VolumeInstances),
+    PluginSpec.Action(VolumeFromCcp4),
+    PluginSpec.Action(VolumeFromDsn6),
+    PluginSpec.Action(VolumeFromCube),
+    PluginSpec.Action(VolumeFromDx),
+    PluginSpec.Action(VolumeRepresentation3D),
+    PluginSpec.Action(VolumeTransform),
+    PluginSpec.Action(VolumeInstances),
 
-    PluginSpec.Action(StateTransforms.Particles.ParticleListFromRelionStar),
-    PluginSpec.Action(StateTransforms.Particles.ParticleListFromDynamoTbl),
-    PluginSpec.Action(StateTransforms.Particles.ParticleListFromCryoEtDataPortalNdjson),
-    PluginSpec.Action(StateTransforms.Particles.ParticleListFromArtiatomiEm),
-    PluginSpec.Action(StateTransforms.Particles.ParticleListFromMmcifAssembly),
-    PluginSpec.Action(StateTransforms.Particles.ParticleTrajectoryFromSimularium),
-    PluginSpec.Action(StateTransforms.Particles.ParticleListFromTrajectory),
-    PluginSpec.Action(StateTransforms.Particles.ParticleListWithTargets),
-    PluginSpec.Action(StateTransforms.Particles.ParticleListUnitcell3D),
-    PluginSpec.Action(StateTransforms.Particles.ParticlesRepresentation3D),
+    PluginSpec.Action(ParticleListFromRelionStar),
+    PluginSpec.Action(ParticleListFromDynamoTbl),
+    PluginSpec.Action(ParticleListFromCryoEtDataPortalNdjson),
+    PluginSpec.Action(ParticleListFromArtiatomiEm),
+    PluginSpec.Action(ParticleListFromMmcifAssembly),
+    PluginSpec.Action(ParticleTrajectoryFromSimularium),
+    PluginSpec.Action(ParticleListFromTrajectory),
+    PluginSpec.Action(ParticleListWithTargets),
+    PluginSpec.Action(ParticleListUnitcell3D),
+    PluginSpec.Action(ParticlesRepresentation3D),
   ],
   behaviors: [
     PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),

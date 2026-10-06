@@ -15,7 +15,7 @@ import { Model, Structure } from '@molstar/model/model/structure';
 import { PluginContext } from '@molstar/plugin/context';
 import { StateObjectRef } from '@molstar/core/state';
 import { getTunnelsConfig, TunnelsDataParams } from './props.js';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
 import type { Tunnel, ChannelsDBdata, TunnelDB } from './data-model.js';
 import { TunnelShapeProvider, TunnelFromRawData } from './representation.js';
 import { ColorGenerator } from '@molstar/meshes-extension/mesh-utils';
@@ -89,7 +89,7 @@ export const TunnelsPreset = StructureRepresentationPresetProvider({
           webgl,
           colorTheme: ColorGenerator.next().value,
         })
-        .apply(StateTransforms.Representation.ShapeRepresentation3D);
+        .apply(ShapeRepresentation3D);
       await update.commit();
     });
 

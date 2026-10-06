@@ -11,7 +11,9 @@ import { Volume } from '@molstar/model/model/volume';
 import { createStructureRepresentationParams } from '@molstar/plugin/state/helpers/structure-representation-params';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { ModelFromTrajectory, StructureFromModel } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { PluginContext } from '@molstar/plugin/context';
 import { StateObjectSelector } from '@molstar/core/state';
 import { Asset } from '@molstar/core/util/assets';
@@ -137,20 +139,16 @@ export async function runMolsurfaceExample(plugin: PluginContext) {
   console.log('trajectory', trajectory);
 
   // Node "Model 1" ("transformer": "ms-plugin.model-from-trajectory") -> var model
-  const model = await plugin.build().to(trajectory).apply(StateTransforms.Model.ModelFromTrajectory).commit();
+  const model = await plugin.build().to(trajectory).apply(ModelFromTrajectory).commit();
   console.log('model:', model);
 
   // Node "Model 91 elements" ("transformer": "ms-plugin.structure-from-model") -> var structure
-  const structure = await plugin.build().to(model).apply(StateTransforms.Model.StructureFromModel).commit();
+  const structure = await plugin.build().to(model).apply(StructureFromModel).commit();
   console.log('structure:', structure);
 
   // Node "Molecular Surface" ("transformer": "ms-plugin.structure-representation-3d") -> var repr
   const reprParams = createStructureRepresentationParams(plugin, undefined, { type: 'molecular-surface' });
-  const repr = await plugin
-    .build()
-    .to(structure)
-    .apply(StateTransforms.Representation.StructureRepresentation3D, reprParams)
-    .commit();
+  const repr = await plugin.build().to(structure).apply(StructureRepresentation3D, reprParams).commit();
   console.log('repr:', repr);
 }
 
@@ -190,7 +188,7 @@ export async function runIsosurfaceExample(plugin: PluginContext, db_url: string
     color: 'uniform',
     colorParams: { value: Color(0x00aaaa) },
   });
-  root.to(volume).apply(StateTransforms.Representation.VolumeRepresentation3D, volumeParams);
+  root.to(volume).apply(VolumeRepresentation3D, volumeParams);
 
   volumeParams = createVolumeRepresentationParams(plugin, volumeData, {
     type: 'isosurface',
@@ -203,7 +201,7 @@ export async function runIsosurfaceExample(plugin: PluginContext, db_url: string
     color: 'uniform',
     colorParams: { value: Color(0x8800aa) },
   });
-  root.to(volume).apply(StateTransforms.Representation.VolumeRepresentation3D, volumeParams);
+  root.to(volume).apply(VolumeRepresentation3D, volumeParams);
   await root.commit();
 }
 

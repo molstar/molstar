@@ -5,16 +5,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as _ from '@molstar/plugin/state/transforms';
+import '@molstar/plugin/state/transforms/catalog';
 import { StateTransformer, StateObject } from '@molstar/core/state';
 import { StringBuilder } from '@molstar/core/util';
 import * as fs from 'fs';
 import { paramsToMd } from '@molstar/state-docs-cli/pd-to-md';
 import { PluginContext } from '@molstar/plugin/context';
 import { ParamDefinition } from '@molstar/core/util/param-definition';
-
-// force the transform to be evaluated
-_.StateTransforms.Data.Download.id;
 
 // Empty plugin context
 const ctx = new PluginContext({

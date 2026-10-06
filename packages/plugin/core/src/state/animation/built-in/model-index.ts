@@ -5,13 +5,13 @@
  */
 
 import { PluginStateObject } from '../../objects.js';
-import { StateTransforms } from '../../transforms.js';
+import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { createTrajectoryAnimation } from '../trajectory.js';
 
 export const AnimateModelIndex = createTrajectoryAnimation({
   name: 'built-in.animate-model-index',
   display: { name: 'Animate Trajectory' },
-  transformer: StateTransforms.Model.ModelFromTrajectory,
+  transformer: ModelFromTrajectory,
   trajectoryType: PluginStateObject.Molecule.Trajectory,
   noTrajectoryReason: 'No trajectory to animate',
   getFrameCount: (data) => data.frameCount,

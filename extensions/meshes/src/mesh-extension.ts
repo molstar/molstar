@@ -15,7 +15,7 @@ import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { Shape } from '@molstar/model/model/shape';
 import type { ShapeProvider } from '@molstar/graphics/geo/shape/provider';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { ParseCif } from '@molstar/plugin/state/formats/cif';
 import { Download } from '@molstar/plugin/state/transforms/data/fetch';
 import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
 import { PluginContext } from '@molstar/plugin/context';
@@ -226,7 +226,7 @@ export async function createMeshFromUrl(
   ).ref;
   const parsedDataNode = await update
     .to(rawDataNodeRef)
-    .apply(StateTransforms.Data.ParseCif)
+    .apply(ParseCif)
     .apply(
       ParseMeshlistTransformer,
       {

@@ -17,8 +17,8 @@ import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { PluginSpec } from '@molstar/plugin/spec';
 import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import { PluginStateObject, PluginStateTransform } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
 import { StateActions } from '@molstar/plugin/state/actions';
+import { StateTransforms } from '@molstar/viewer/state-transforms';
 import { PluginExtensions } from '@molstar/viewer/extensions';
 
 export const lib = {

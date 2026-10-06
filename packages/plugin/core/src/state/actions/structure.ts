@@ -21,7 +21,6 @@ import {
 import { TrajectoryFormatCategory } from '@molstar/plugin/state/formats/trajectory/category';
 import { RootStructureDefinition } from '../helpers/root-structure.js';
 import { PluginStateObject } from '../objects.js';
-import { StateTransforms } from '../transforms.js';
 import type { Download } from '@molstar/plugin/state/transforms/data/fetch';
 import {
   CustomModelProperties,
@@ -407,7 +406,7 @@ export const UpdateTrajectory = StateAction.build({
     by: PD.Optional(PD.Numeric(1, { min: -1, max: 1, step: 1 })),
   },
 })(({ params, state }) => {
-  const models = state.selectQ((q) => q.ofTransformer(StateTransforms.Model.ModelFromTrajectory));
+  const models = state.selectQ((q) => q.ofTransformer(ModelFromTrajectory));
 
   const update = state.build();
 
@@ -494,7 +493,7 @@ export const AddTrajectory = StateAction.build({
             },
             { dependsOn },
           )
-          .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
+          .apply(ModelFromTrajectory, { modelIndex: 0 });
 
         await state.updateTree(model).runInContext(taskCtx);
         const structure = await ctx.builders.structure.createStructure(model.selector);
@@ -647,7 +646,7 @@ export const LoadTrajectory = StateAction.build({
               modelRef: model.ref,
               coordinatesRef: coordinates.ref,
             })
-            .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
+            .apply(ModelFromTrajectory, { modelIndex: 0 });
 
           await state.updateTree(traj).runInContext(taskCtx);
           const structure = await ctx.builders.structure.createStructure(traj.selector);

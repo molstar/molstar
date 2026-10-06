@@ -9,7 +9,11 @@ import type { PresetProvider } from '../preset-provider.js';
 import type { PluginStateObject } from '../../objects.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { StateObjectRef, StateTransformer } from '@molstar/core/state';
-import { StateTransforms } from '../../transforms.js';
+import {
+  CustomModelProperties,
+  CustomStructureProperties,
+  ModelFromTrajectory,
+} from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { RootStructureDefinition } from '../../helpers/root-structure.js';
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from './representation-preset.js';
 import type { PluginContext } from '@molstar/plugin/context';
@@ -31,11 +35,9 @@ export namespace TrajectoryHierarchyPresetProvider {
     P extends TrajectoryHierarchyPresetProvider<infer _, infer S> ? S : never;
 
   export const CommonParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
-    modelProperties: PD.Optional(
-      PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.CustomModelProperties, void 0, plugin)),
-    ),
+    modelProperties: PD.Optional(PD.Group(StateTransformer.getParamDefinition(CustomModelProperties, void 0, plugin))),
     structureProperties: PD.Optional(
-      PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.CustomStructureProperties, void 0, plugin)),
+      PD.Group(StateTransformer.getParamDefinition(CustomStructureProperties, void 0, plugin)),
     ),
     representationPreset: PD.Optional(PD.Text<keyof PresetStructureRepresentations>('auto' as const)),
   });
@@ -44,9 +46,7 @@ export namespace TrajectoryHierarchyPresetProvider {
 const CommonParams = TrajectoryHierarchyPresetProvider.CommonParams;
 
 const DefaultParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
-  model: PD.Optional(
-    PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.ModelFromTrajectory, a, plugin)),
-  ),
+  model: PD.Optional(PD.Group(StateTransformer.getParamDefinition(ModelFromTrajectory, a, plugin))),
   showUnitcell: PD.Optional(PD.Boolean(false)),
   structure: PD.Optional(RootStructureDefinition.getParams(void 0, 'assembly').type),
   representationPresetParams: PD.Optional(PD.Group(StructureRepresentationPresetProvider.CommonParams)),
@@ -155,9 +155,7 @@ const allModels = TrajectoryHierarchyPresetProvider({
 });
 
 const CrystalSymmetryParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
-  model: PD.Optional(
-    PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.ModelFromTrajectory, a, plugin)),
-  ),
+  model: PD.Optional(PD.Group(StateTransformer.getParamDefinition(ModelFromTrajectory, a, plugin))),
   ...CommonParams(a, plugin),
 });
 
@@ -242,9 +240,7 @@ const supercell = TrajectoryHierarchyPresetProvider({
 });
 
 const CrystalContactsParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
-  model: PD.Optional(
-    PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.ModelFromTrajectory, a, plugin)),
-  ),
+  model: PD.Optional(PD.Group(StateTransformer.getParamDefinition(ModelFromTrajectory, a, plugin))),
   ...CommonParams(a, plugin),
 });
 

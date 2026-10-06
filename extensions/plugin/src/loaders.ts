@@ -17,7 +17,8 @@ import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/traj
 import type { BuildInVolumeFormat } from '@molstar/plugin/state/formats/volume/catalog';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { DeflateData, Download, LazyVolume } from '@molstar/plugin/state/transforms/data/fetch';
+import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { TrajectoryFromModelAndCoordinates } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig } from '@molstar/plugin/config';
@@ -247,7 +248,7 @@ export async function loadVolumeFromUrl(
 
   if (options?.isLazy) {
     const update = plugin.build();
-    update.toRoot().apply(StateTransforms.Data.LazyVolume, {
+    update.toRoot().apply(LazyVolume, {
       url,
       format,
       entryId: options?.entryId,
@@ -270,7 +271,7 @@ export async function loadVolumeFromUrl(
         parsed.volumes?.[iso.volumeIndex ?? 0] ?? parsed.volume;
       const volumeData = volume.cell!.obj!.data;
       repr.to(volume).apply(
-        StateTransforms.Representation.VolumeRepresentation3D,
+        VolumeRepresentation3D,
         createVolumeRepresentationParams(plugin, firstVolume.data!, {
           type: 'isosurface',
           typeParams: { alpha: iso.alpha ?? 1, isoValue: Volume.adjustedIsoValue(volumeData, iso.value, iso.type) },
@@ -297,8 +298,8 @@ export async function loadFullResolutionEMDBMap(
     const data = await plugin
       .build()
       .toRoot()
-      .apply(StateTransforms.Data.Download, { url, isBinary: true, label: emdbId }, { state: { isGhost: true } })
-      .apply(StateTransforms.Data.DeflateData)
+      .apply(Download, { url, isBinary: true, label: emdbId }, { state: { isGhost: true } })
+      .apply(DeflateData)
       .commit();
 
     const parsed = await plugin.dataFormats.get('ccp4')!.parse(plugin, data, { entryId: emdbId });
@@ -310,7 +311,7 @@ export async function loadFullResolutionEMDBMap(
       .build()
       .to(volume)
       .apply(
-        StateTransforms.Representation.VolumeRepresentation3D,
+        VolumeRepresentation3D,
         createVolumeRepresentationParams(plugin, firstVolume.data!, {
           type: 'isosurface',
           typeParams: { alpha: 1, isoValue: options.isoValue },

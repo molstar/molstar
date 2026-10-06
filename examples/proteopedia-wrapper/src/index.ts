@@ -9,7 +9,17 @@ import { type Canvas3DProps, DefaultCanvas3DParams } from '@molstar/graphics/can
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
 import { createStructureRepresentationParams } from '@molstar/plugin/state/helpers/structure-representation-params';
 import { PluginStateObject, PluginStateObject as PSO } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { Download } from '@molstar/plugin/state/transforms/data/fetch';
+import { ParseCif } from '@molstar/plugin/state/formats/cif';
+import { TrajectoryFromMmCif } from '@molstar/plugin/state/formats/trajectory/mmcif';
+import { TrajectoryFromPDB } from '@molstar/plugin/state/formats/trajectory/pdb';
+import { ModelFromTrajectory, StructureFromModel } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import {
+  StructureComplexElement,
+  StructureSelectionFromExpression,
+} from '@molstar/plugin/state/transforms/structure/selection';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import { CreateGroup } from '@molstar/plugin/state/transforms/misc/group';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { renderReact18 } from '@molstar/plugin-ui/react18';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
@@ -91,16 +101,13 @@ class MolStarProteopediaWrapper {
   }
 
   private download(b: StateBuilder.To<PSO.Root>, url: string, isBinary: boolean) {
-    return b.apply(StateTransforms.Data.Download, { url: Asset.Url(url), isBinary });
+    return b.apply(Download, { url: Asset.Url(url), isBinary });
   }
 
   private model(b: StateBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats) {
-    const parsed =
-      format === 'cif'
-        ? b.apply(StateTransforms.Data.ParseCif).apply(StateTransforms.Model.TrajectoryFromMmCif)
-        : b.apply(StateTransforms.Model.TrajectoryFromPDB);
+    const parsed = format === 'cif' ? b.apply(ParseCif).apply(TrajectoryFromMmCif) : b.apply(TrajectoryFromPDB);
 
-    return parsed.apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 }, { ref: StateElements.Model });
+    return parsed.apply(ModelFromTrajectory, { modelIndex: 0 }, { ref: StateElements.Model });
   }
 
   private structure(assemblyId: string) {
@@ -117,15 +124,11 @@ class MolStarProteopediaWrapper {
           },
     };
 
-    const s = model.apply(StateTransforms.Model.StructureFromModel, props, { ref: StateElements.Assembly });
+    const s = model.apply(StructureFromModel, props, { ref: StateElements.Assembly });
 
-    s.apply(
-      StateTransforms.Model.StructureComplexElement,
-      { type: 'atomic-sequence' },
-      { ref: StateElements.Sequence },
-    );
-    s.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' }, { ref: StateElements.Het });
-    s.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' }, { ref: StateElements.Water });
+    s.apply(StructureComplexElement, { type: 'atomic-sequence' }, { ref: StateElements.Sequence });
+    s.apply(StructureComplexElement, { type: 'atomic-het' }, { ref: StateElements.Het });
+    s.apply(StructureComplexElement, { type: 'water' }, { ref: StateElements.Water });
 
     return s;
   }
@@ -145,7 +148,7 @@ class MolStarProteopediaWrapper {
       } else {
         root.applyOrUpdate(
           StateElements.SequenceVisual,
-          StateTransforms.Representation.StructureRepresentation3D,
+          StructureRepresentation3D,
           createStructureRepresentationParams(this.plugin, structure, {
             type: (style.sequence && style.sequence.kind) || 'cartoon',
             color: (style.sequence && style.sequence.coloring) || 'unit-index',
@@ -164,7 +167,7 @@ class MolStarProteopediaWrapper {
         } else {
           root.applyOrUpdate(
             StateElements.HetVisual,
-            StateTransforms.Representation.StructureRepresentation3D,
+            StructureRepresentation3D,
             createStructureRepresentationParams(this.plugin, structure, {
               type: (style.hetGroups && style.hetGroups.kind) || 'ball-and-stick',
               color: style.hetGroups && style.hetGroups.coloring,
@@ -184,7 +187,7 @@ class MolStarProteopediaWrapper {
         } else {
           root.applyOrUpdate(
             StateElements.Het3DSNFG,
-            StateTransforms.Representation.StructureRepresentation3D,
+            StructureRepresentation3D,
             createStructureRepresentationParams(this.plugin, structure, { type: 'carbohydrate' }),
           );
         }
@@ -198,7 +201,7 @@ class MolStarProteopediaWrapper {
       } else {
         root.applyOrUpdate(
           StateElements.WaterVisual,
-          StateTransforms.Representation.StructureRepresentation3D,
+          StructureRepresentation3D,
           createStructureRepresentationParams(this.plugin, structure, {
             type: (style.water && style.water.kind) || 'ball-and-stick',
             typeParams: { alpha: 0.51 },
@@ -267,7 +270,7 @@ class MolStarProteopediaWrapper {
               params: {},
             },
       };
-      tree.to(StateElements.Assembly).update(StateTransforms.Model.StructureFromModel, (p) => ({ ...p, ...props }));
+      tree.to(StateElements.Assembly).update(StructureFromModel, (p) => ({ ...p, ...props }));
       await this.applyState(tree);
     }
 
@@ -370,14 +373,10 @@ class MolStarProteopediaWrapper {
       };
 
       if (!params || !!params.sequence) {
-        tree
-          .to(StateElements.SequenceVisual)
-          .update(StateTransforms.Representation.StructureRepresentation3D, (old) => ({ ...old, colorTheme }));
+        tree.to(StateElements.SequenceVisual).update(StructureRepresentation3D, (old) => ({ ...old, colorTheme }));
       }
       if (params && !!params.het) {
-        tree
-          .to(StateElements.HetVisual)
-          .update(StateTransforms.Representation.StructureRepresentation3D, (old) => ({ ...old, colorTheme }));
+        tree.to(StateElements.HetVisual).update(StructureRepresentation3D, (old) => ({ ...old, colorTheme }));
       }
 
       await PluginCommands.State.Update(this.plugin, { state, tree });
@@ -435,22 +434,22 @@ class MolStarProteopediaWrapper {
 
       const group = update
         .to(StateElements.Assembly)
-        .group(StateTransforms.Misc.CreateGroup, { label: compId }, { ref: StateElements.HetGroupFocusGroup });
+        .group(CreateGroup, { label: compId }, { ref: StateElements.HetGroupFocusGroup });
       const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
       const coreSel = group.apply(
-        StateTransforms.Model.StructureSelectionFromExpression,
+        StructureSelectionFromExpression,
         { label: 'Core', expression: core },
         { ref: StateElements.HetGroupFocus },
       );
 
       coreSel.apply(
-        StateTransforms.Representation.StructureRepresentation3D,
+        StructureRepresentation3D,
         createStructureRepresentationParams(this.plugin, asm.data, {
           type: 'ball-and-stick',
         }),
       );
       coreSel.apply(
-        StateTransforms.Representation.StructureRepresentation3D,
+        StructureRepresentation3D,
         createStructureRepresentationParams(this.plugin, asm.data, {
           type: 'label',
           typeParams: { level: 'element' },
@@ -459,12 +458,12 @@ class MolStarProteopediaWrapper {
       );
 
       group
-        .apply(StateTransforms.Model.StructureSelectionFromExpression, {
+        .apply(StructureSelectionFromExpression, {
           label: 'Surroundings',
           expression: surroundings,
         })
         .apply(
-          StateTransforms.Representation.StructureRepresentation3D,
+          StructureRepresentation3D,
           createStructureRepresentationParams(this.plugin, asm.data, {
             type: 'ball-and-stick',
             color: 'uniform',
@@ -483,12 +482,12 @@ class MolStarProteopediaWrapper {
         const onlySurroundings = MS.struct.modifier.exceptBy({ 0: surroundings, by: exclude });
 
         group
-          .apply(StateTransforms.Model.StructureSelectionFromExpression, {
+          .apply(StructureSelectionFromExpression, {
             label: 'Surroundings (only)',
             expression: onlySurroundings,
           })
           .apply(
-            StateTransforms.Representation.StructureRepresentation3D,
+            StructureRepresentation3D,
             createStructureRepresentationParams(this.plugin, asm.data, {
               type: 'label',
               typeParams: { level: 'residue' },

@@ -133,6 +133,9 @@ import {
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { VolumeRepresentation3DHelpers } from '@molstar/plugin/state/transforms/volume/representation-helpers';
 
+// The `molstar.lib.plugin.StateTransforms` global exists for classic-script compatibility: pages that load the
+// Viewer bundle with a plain `<script>` tag cannot import leaf modules. Library code imports each transformer from
+// its defining module instead of an aggregate object like this one.
 export const StateTransforms = {
   Data: {
     Download,
@@ -269,5 +272,3 @@ export const StateTransforms = {
     getBoxMesh,
   },
 };
-
-export type StateTransforms = typeof StateTransforms;

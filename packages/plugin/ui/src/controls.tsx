@@ -10,7 +10,6 @@ import ReactMarkdown from 'react-markdown';
 import { UpdateTrajectory } from '@molstar/plugin/state/actions/structure';
 import type { LociLabel } from '@molstar/plugin/state/manager/loci-label';
 import type { PluginStateObject } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
 import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { PluginCommands } from '@molstar/plugin/commands';
 import type { StateTransformer } from '@molstar/core/state';
@@ -50,7 +49,7 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
   private update = () => {
     const state = this.plugin.state.data;
 
-    const models = state.selectQ((q) => q.ofTransformer(StateTransforms.Model.ModelFromTrajectory));
+    const models = state.selectQ((q) => q.ofTransformer(ModelFromTrajectory));
 
     if (models.length === 0) {
       this.setState({ show: false });
