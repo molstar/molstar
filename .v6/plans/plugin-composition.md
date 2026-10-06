@@ -202,7 +202,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 ### Step 1: module splits
 
-- [ ] Remove the `StateTransforms` facade and its lazy getters (and with them the #1791 cycle). Split the seven
+- [x] Remove the `StateTransforms` facade and its lazy getters (and with them the #1791 cycle). Split the seven
       transform modules into this layout (exact file names are settled during the split):
 
       ```text
@@ -226,11 +226,11 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
         particles/{catalog,star,tbl,ndjson,em,simularium,mmcif-assembly}.ts
       ```
 
-- [ ] Move format-specific parse and conversion transformers next to their providers (`formats/trajectory/sdf.ts` holds
+- [x] Move format-specific parse and conversion transformers next to their providers (`formats/trajectory/sdf.ts` holds
       `TrajectoryFromSDF`, `SdfProvider`, and the `Sdf` entry). Move `VolumeRepresentation3DHelpers`, `getTrajectory`,
       `getBoxMesh`, and the measurement-data helpers out of the large modules. Move format category constants to small
       modules.
-- [ ] Add `state/transforms/catalog.ts`, which value-imports every built-in transform and format module and exports
+- [x] Add `state/transforms/catalog.ts`, which value-imports every built-in transform and format module and exports
       nothing (spec §6.1). Several transformers (`ImportString`, `ImportJson`, `ParseJson`) are imported by nothing
       else.
 - [ ] Format catalogs become provider arrays and derive the format name types (spec §8); add `BuiltInVolumeFormat` and
