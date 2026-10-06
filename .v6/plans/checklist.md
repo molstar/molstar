@@ -106,7 +106,8 @@ allow the caller to choose timestamps that are reproducible across time zones.
 
 These were reported as existing on master, rather than refactor regressions.
 
-- [ ] Investigate the `state-docs` crash in `getOrientationParticlesParams`.
+- [x] Investigate the `state-docs` crash in `getOrientationParticlesParams`. Fixed in plugin composition step 4:
+      data-less param getters (orientation particles, particle target, operator-hkl theme) accept missing data.
 - [ ] Investigate the membrane-orientation server's `--bcifSource` handling.
 - [ ] Recheck reported Node startup and ball-and-stick timing differences with repeated runs before making performance
       changes.
