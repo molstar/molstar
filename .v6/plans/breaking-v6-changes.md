@@ -218,7 +218,9 @@ The format name types (`BuiltInTrajectoryFormat`, `BuiltInVolumeFormat`, ...) ar
 
 The `BuiltIn` values were removed from the `ColorTheme` and `SizeTheme` namespaces and from
 `StructureRepresentationRegistry`, `VolumeRepresentationRegistry`, and `ParticleRepresentationRegistry`. The `BuiltIn`
-types, `BuiltInParams`, and `createRegistry()` keep their names and behavior. Read the values from the catalogs:
+types, `BuiltInParams`, and `createRegistry()` keep their names; `ColorTheme.createRegistry()` and
+`SizeTheme.createRegistry()` return empty registries
+([Registries start empty](#plugin-composition-step-3-registries-start-empty)). Read the values from the catalogs:
 
 | v5 value                                  | v6 catalog export                                                                 |
 | ----------------------------------------- | --------------------------------------------------------------------------------- |
@@ -273,9 +275,9 @@ the plugin or the snapshot manager changes. `StateTransformer.has(id)` is a non-
 
 ## Plugin composition step 2
 
-Step 2 of [plugin-composition.md](plugin-composition.md) replaces three spec fields with registry entries. The
-constructor preloads (formats, representations, themes, presets, selection queries, markdown extensions) are still in
-place, so a literal spec still receives those until step 3; only actions and animations are affected now.
+Step 2 of [plugin-composition.md](plugin-composition.md) replaces three spec fields with registry entries. Step 3
+([Registries start empty](#plugin-composition-step-3-registries-start-empty)) then removes the constructor preloads
+(formats, representations, themes, presets, selection queries, markdown extensions).
 
 ### `PluginSpec.actions`, `animations`, and `customFormats` removed
 
@@ -309,11 +311,9 @@ functionality: snapshot transitions and the UI snapshot controls play it directl
 animation, instead of writing `paramValues` into the previously selected animation. `PluginContext.initCustomFormats`,
 `initDataActions`, and `initAnimations` are removed (they were private).
 
-What step 3 changes: it removes the constructor preloads, after which a literal spec gets no formats, representations,
-themes, presets, selection queries, or markdown extensions either, and must list `DefaultRegistry` (or its own entries).
-Until then, `PluginContext.init()` drops a preloaded built-in format when a `spec.registry` entry lists a different
-provider under the same name, so a custom format can still override a built-in one; step 3 deletes this transitional
-handling.
+What step 3 changes: see [Registries start empty](#plugin-composition-step-3-registries-start-empty); a literal spec
+gets no formats, representations, themes, presets, selection queries, or markdown extensions either, and must list
+`DefaultRegistry` (or its own entries).
 
 ### Viewer and mesoscale-explorer `customFormats`
 
@@ -325,6 +325,40 @@ entry last. A custom name that equals a built-in format name (for example `['pdb
 no name is registered twice. The overriding provider is listed after the built-ins, so for that format `auto()`
 tie-breaking by registration order sees it last, as in 5.x. mesoscale-explorer keeps its own `customFormats` option
 shape and applies the same rule.
+
+## Plugin composition step 3: registries start empty
+
+`new PluginContext(spec)` (and `PluginUIContext`, `HeadlessPluginContext`) starts with empty registries. After `init()`
+a plugin whose spec lists nothing has no representations, color or size themes (in the structure, volume, and particles
+scopes), data formats, trajectory-hierarchy or representation presets, selection queries, markdown extensions,
+drag-and-drop handlers, actions, or animations; it has only what `spec.registry` and the behaviors register. A literal
+spec that relied on the implicit catalog adds `DefaultRegistry` (or its own entries):
+
+```ts
+// 5.x: a literal spec received every built-in provider
+const spec = { behaviors: [...] };
+// 6.0
+import { DefaultRegistry } from '@molstar/plugin/default-registry';
+const spec = { registry: DefaultRegistry, behaviors: [...] };
+```
+
+Specs built from `DefaultPluginSpec()` or `DefaultPluginUISpec()` list `DefaultRegistry` already and are unchanged.
+
+- `ColorTheme.createRegistry()` and `SizeTheme.createRegistry()` return empty registries. Code that creates a
+  `RepresentationContext` by hand (for example `colorThemeRegistry: ColorTheme.createRegistry()`) must add the themes it
+  uses (`BuiltInColorThemes` from `@molstar/graphics/theme/color/catalog`, or single providers).
+- `StructureRepresentationRegistry`, `VolumeRepresentationRegistry`, and `ParticleRepresentationRegistry` constructors
+  add nothing; `DataFormatRegistry`, `TrajectoryHierarchyBuilder`, `StructureRepresentationBuilder`,
+  `StructureSelectionQueryRegistry`, and `MarkdownExtensionManager` constructors add nothing either. The modules that
+  define these classes no longer import any catalog.
+- `PluginContext.dropOverriddenPreloadedFormats` (the transitional handling that let a `customFormats` entry replace a
+  preloaded built-in format) is removed. The Viewer and mesoscale-explorer replace the matching default entry as
+  described above, so a custom format with a built-in name still overrides it; a different provider under an existing
+  format name in any other spec is an error, as for every registry.
+- mesoscale-explorer no longer clears registries after `init()`; it lists spacefill with its themes, the `uniform` and
+  `illustrative` color themes, the mmCIF format, its three animations, and its custom formats.
+- The import-graph check requires `@molstar/plugin/context`, `@molstar/plugin/spec`, `@molstar/plugin-ui`, and the base
+  UI entry points to reach no catalog module by value.
 
 ## Plugin composition step 3: UI
 

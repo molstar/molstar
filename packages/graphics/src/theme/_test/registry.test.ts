@@ -141,16 +141,8 @@ describe('ThemeRegistry', () => {
     expect(names(r)).toEqual(['z', 'y', 'x']);
   });
 
-  it('createRegistry preloads the built-in catalogs', () => {
-    const color = ColorTheme.createRegistry();
-    expect(color.has('uniform')).toBe(true);
-    expect(color.list.length).toBeGreaterThan(10);
-    const size = SizeTheme.createRegistry();
-    expect(size.has('uniform')).toBe(true);
-    // adding a preloaded built-in again counts instead of throwing
-    const uniform = color.get('uniform');
-    expect(() => color.add(uniform)).not.toThrow();
-    color.remove(uniform);
-    expect(color.has('uniform')).toBe(true);
+  it('createRegistry returns empty registries', () => {
+    expect(ColorTheme.createRegistry().list).toEqual([]);
+    expect(SizeTheme.createRegistry().list).toEqual([]);
   });
 });

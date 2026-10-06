@@ -6,8 +6,6 @@
  */
 
 import type { StructureSelectionQuery } from './query.js';
-import { StructureSelectionQueries } from './catalog.js';
-import { AminoAcidSelectionQueries, NucleicBaseSelectionQueries } from './residue.js';
 
 export class StructureSelectionQueryRegistry {
   list: StructureSelectionQuery[] = [];
@@ -51,18 +49,5 @@ export class StructureSelectionQueryRegistry {
       this.options.splice(idx, 1);
       this.version += 1;
     }
-  }
-
-  constructor() {
-    // Preload the built-in queries (until the default registry entry registers them, plugin composition step 3).
-    // These are the module-scope query objects, so registering the same objects later only counts.
-    for (const q of [
-      ...Object.values(StructureSelectionQueries),
-      ...AminoAcidSelectionQueries,
-      ...NucleicBaseSelectionQueries,
-    ]) {
-      this.add(q);
-    }
-    this.version = 1;
   }
 }

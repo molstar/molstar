@@ -6,6 +6,7 @@
 
 import type { PluginContext } from '@molstar/plugin/context';
 import { MarkdownExtensionManager, type MarkdownExtension } from '../markdown-extensions.js';
+import { BuiltInMarkdownExtension } from '../../markdown/catalog.js';
 
 function create() {
   return new MarkdownExtensionManager({} as unknown as PluginContext);
@@ -75,9 +76,16 @@ describe('MarkdownExtensionManager extensions', () => {
     expect(e.execute).toHaveBeenCalledTimes(1);
   });
 
+  it('starts empty', () => {
+    const manager = create();
+    expect((manager as any).extension as MarkdownExtension[]).toEqual([]);
+    expect(manager.tryRender({}, [])).toBe(null);
+  });
+
   it('registers the same built-in extensions again by counting', () => {
     const manager = create();
     const builtIn = (manager as any).extension as MarkdownExtension[];
+    for (const e of BuiltInMarkdownExtension) manager.registerExtension(e);
     expect(builtIn.length).toBeGreaterThan(0);
     const before = [...builtIn];
     for (const e of before) manager.registerExtension(e);

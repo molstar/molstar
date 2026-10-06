@@ -13,10 +13,9 @@ import type {
   ColorTypeLocation,
 } from '@molstar/graphics/geo/geometry/color-data';
 import { deepEqual } from '@molstar/core/util';
-import { objectForEach } from '@molstar/core/util/object';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type ThemeDataContext, ThemeRegistry, type ThemeProvider } from './theme.js';
-import { BuiltInColorThemes } from './color/catalog.js';
+import type { BuiltInColorThemes } from './color/catalog.js';
 import type { ScaleLegend, TableLegend } from '@molstar/core/util/legend';
 import type { Texture, TextureFilter } from '@molstar/graphics/gl/webgl/texture';
 import type { Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
@@ -173,7 +172,6 @@ namespace ColorTheme {
   export type Registry = ThemeRegistry<ColorTheme<any, any>>;
   export function createRegistry() {
     const registry: Registry = new ThemeRegistry(EmptyProvider);
-    objectForEach(BuiltInColorThemes as { [k: string]: Provider<any, any, any> }, (p) => registry.add(p));
     return registry;
   }
 

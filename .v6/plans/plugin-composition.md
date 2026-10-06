@@ -262,7 +262,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       modules now (the default registry takes it over in step 2) and to the Viewer, so no consumer loses a language.
 - [x] Move the graphics built-in maps to catalog modules (`@molstar/graphics/repr/structure/catalog`,
       `@molstar/graphics/theme/color/catalog`, ...) wrapped in `namedCatalog`; namespace types type-import them;
-      namespace values are removed. Constructors still preload in this step.
+      namespace values are removed. Constructors kept preloading until step 3 removed the preloads.
 - [x] Move `DefaultPluginSpec` to `@molstar/plugin/default-spec` and `DefaultPluginUISpec` to
       `@molstar/plugin-ui/default-spec`; the `spec` modules keep only types and helpers.
 - [x] Land transformer-id snapshot validation (`validateSnapshotTransformers`, spec §6.2) in this step, since the split
@@ -322,10 +322,12 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 ### Step 3: context decoupling
 
-- [ ] Check that every in-repo spec lists `DefaultRegistry` or its own entries, then remove the constructor preloads and
+- [x] Check that every in-repo spec lists `DefaultRegistry` or its own entries, then remove the constructor preloads and
       implicit imports of §1.1 (spec §9). Also delete `PluginContext.dropOverriddenPreloadedFormats` (the transitional
       handling that lets a `customFormats` override replace a preloaded built-in format), and have mesoscale-explorer
-      list only the formats, representations, and themes it needs.
+      list only the formats, representations, and themes it needs. Done: the registries, builders, selection-query
+      registry, markdown manager, and `ColorTheme`/`SizeTheme.createRegistry()` start empty and import no catalog; the
+      import-graph allowlist is empty, and the base entry points may reach no catalog (rule c).
 - [x] Remove the volume-streaming behavior from the `PluginContext` closure. After step 1 it is still reached through
       `state/manager/structure/hierarchy.ts` → `hierarchy-state.ts` → `behavior/dynamic/volume-streaming/behavior.ts`,
       and `behavior/dynamic/volume-streaming/util.ts` through `formats/registry.ts` → the volume catalog →
@@ -417,14 +419,17 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 ### 3.2 mesoscale-explorer
 
 - [x] Keep the `customFormats` option and convert it like the Viewer, including the override handling.
-- [ ] Replace the literal spec (`actions: defaultSpec.actions`, three animations) and the post-`init()`
+- [x] Replace the literal spec (`actions: defaultSpec.actions`, three animations) and the post-`init()`
       `registry.clear()`/`lociLabels.clearProviders()` with an explicit registry: spacefill with its themes, the
       `uniform` and `illustrative` structure color themes it applies by name (`data/state.ts`, `ui/entities.tsx`,
       `ui/states.tsx`), any other theme it names, its formats and actions, and its three animations. Today it clears
       only the structure representation registry and keeps every theme. It sets themes through direct state updates and
       `StructureRepresentation3D` applies (`data/*/preset.ts`), not the builders or helpers, so a theme it names but
       does not register would be substituted with the registry default silently (spec §4.3); the registry must list
-      every theme it names.
+      every theme it names. Done: it lists `Spacefill` (element-symbol and `physical` themes), `uniform` and
+      `illustrative`, the mmCIF entry (`Mmcif`, with its actions), its three animations, and the custom formats; the
+      loci-label clearing was a no-op (no listed behavior adds a provider) and is gone, and it lists no other actions
+      (its own actions are applied directly, not looked up in the registry).
 
 ### 3.3 docking-viewer
 
@@ -516,7 +521,7 @@ manifest in the same change.
 
 - [ ] Rejects value imports of catalog modules outside catalog modules, default-composition modules, and apps.
 - [ ] Rejects type imports that point to a higher package.
-- [ ] Rejects value imports of default specs or catalogs from the base entry points (`@molstar/plugin/context`,
+- [x] Rejects value imports of default specs or catalogs from the base entry points (`@molstar/plugin/context`,
       `@molstar/plugin/spec`, `@molstar/plugin-ui`, `@molstar/plugin-ui/spec`), including the modules split in step 1.
 - [ ] Includes extensions, servers, and CLI packages.
 - [ ] Checks the slim example's graph against the excluded-module list (spec §12), including UI modules.

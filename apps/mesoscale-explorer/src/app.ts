@@ -5,7 +5,10 @@
  */
 
 import { Mp4Export } from '@molstar/mp4-export-extension';
-import { DefaultActions, DefaultFormats } from '@molstar/plugin/default-registry';
+import { Mmcif } from '@molstar/plugin/state/formats/trajectory/mmcif';
+import { Spacefill } from '@molstar/plugin/registry/structure/spacefill';
+import { UniformColorThemeProvider } from '@molstar/graphics/theme/color/uniform';
+import { IllustrativeColorThemeProvider } from '@molstar/graphics/theme/color/illustrative';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { renderReact18 } from '@molstar/plugin-ui/react18';
@@ -21,7 +24,6 @@ import type { SaccharideCompIdMapType } from '@molstar/model/model/structure/str
 import { Backgrounds } from '@molstar/backgrounds-extension';
 import { LeftPanel, RightPanel } from '@molstar/mesoscale-explorer/ui/panels';
 import { Color } from '@molstar/core/util/color';
-import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
 import { PluginBehaviors } from '@molstar/plugin/behavior';
 import { MesoFocusLoci } from '@molstar/mesoscale-explorer/behavior/camera';
 import { type GraphicsMode, MesoscaleState } from '@molstar/mesoscale-explorer/data/state';
@@ -65,16 +67,23 @@ export type MesoscaleExplorerState = {
 //
 
 /**
- * The providers the explorer lists: the default formats and actions, its three animations, and the custom formats,
- * which come last. As in 5.x, a custom name that equals a built-in format name overrides it: `DefaultFormats` is
- * replaced by a copy without that provider, so no name is registered twice.
+ * The providers the explorer lists, and nothing else. Its presets set themes through direct state updates, so every
+ * theme it names must be here, or the registry default is substituted silently: the spacefill representation with its
+ * element-symbol color and `physical` size themes (the explorer names `physical`), and the `uniform` and `illustrative`
+ * structure color themes. It lists the mmCIF format with its actions because it reads `.cif` and `.bcif` and needs
+ * their extensions registered (the other formats of a zip archive are parsed through transformers directly), its three
+ * animations, and the custom formats, which come last.
+ *
+ * As in 5.x, a custom name that equals a built-in format name overrides it: the mmCIF entry is replaced by a copy
+ * without that provider, so no name is registered twice.
  */
 function createRegistry(customFormats: [string, DataFormatProvider.Unnamed][] | undefined): PluginRegistryEntry[] {
   const formats = (customFormats ?? []).map(([name, provider]) => DataFormatProvider.withName(provider, name));
   const customNames = new Set(formats.map((f) => f.name));
   return [
-    DefaultActions,
-    { ...DefaultFormats, formats: DefaultFormats.formats!.filter((f) => !customNames.has(f.name)) },
+    Spacefill,
+    { structure: { themes: { color: [UniformColorThemeProvider, IllustrativeColorThemeProvider] } } },
+    { ...Mmcif, formats: Mmcif.formats!.filter((f) => !customNames.has(f.name)) },
     { animations: [AnimateCameraSpin, AnimateCameraRock, AnimateStateSnapshots] },
     { formats },
   ];
@@ -275,16 +284,11 @@ export class MesoscaleExplorer {
       },
     });
 
-    plugin.representation.structure.registry.clear();
-    plugin.representation.structure.registry.add(SpacefillRepresentationProvider);
-
     plugin.state.setSnapshotParams({
       image: true,
       componentManager: false,
       structureSelection: true,
     });
-
-    plugin.managers.lociLabels.clearProviders();
 
     plugin.managers.dragAndDrop.addHandler('mesoscale-explorer', (files) => {
       const sessions = files.filter((f) => {

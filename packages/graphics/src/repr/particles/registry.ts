@@ -5,16 +5,10 @@
  */
 
 import type { ParticleList } from '@molstar/model/model/particles/particle-list';
-import { objectForEach } from '@molstar/core/util/object';
 import { type Representation, type RepresentationProvider, RepresentationRegistry } from '../representation.js';
-import { BuiltInParticleRepresentations } from './catalog.js';
+import type { BuiltInParticleRepresentations } from './catalog.js';
 
-export class ParticleRepresentationRegistry extends RepresentationRegistry<ParticleList, Representation.State> {
-  constructor() {
-    super();
-    objectForEach(BuiltInParticleRepresentations, (p) => this.add(p as any));
-  }
-}
+export class ParticleRepresentationRegistry extends RepresentationRegistry<ParticleList, Representation.State> {}
 
 export namespace ParticleRepresentationRegistry {
   type _BuiltIn = typeof BuiltInParticleRepresentations;

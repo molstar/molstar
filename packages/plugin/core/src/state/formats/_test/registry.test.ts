@@ -18,9 +18,7 @@ function format(name: string, extra: Partial<DataFormatProvider> = {}) {
 }
 
 function empty() {
-  const registry = new DataFormatRegistry();
-  registry.clear();
-  return registry;
+  return new DataFormatRegistry();
 }
 
 const names = (registry: DataFormatRegistry) => registry.list.map((e) => e.name);
@@ -51,18 +49,21 @@ describe('DataFormatProvider.withName', () => {
 });
 
 describe('DataFormatRegistry', () => {
-  it('preloads the built-in formats', () => {
+  it('starts empty', () => {
     const registry = new DataFormatRegistry();
-    expect(registry.has('mmcif')).toBe(true);
-    expect(registry.has('ccp4')).toBe(true);
-    expect(registry.get('mmcif')!.name).toBe('mmcif');
+    expect(registry.list).toHaveLength(0);
+    expect(registry.has('mmcif')).toBe(false);
+    expect(registry.extensions.size).toBe(0);
+    expect(() => registry.get('mmcif')).toThrow(/not registered/);
   });
 
   it('clear drops everything', () => {
     const registry = new DataFormatRegistry();
+    registry.add(format('a', { stringExtensions: ['abc'] }));
+    expect(registry.extensions.size).toBe(1);
     registry.clear();
     expect(registry.list).toHaveLength(0);
-    expect(registry.has('mmcif')).toBe(false);
+    expect(registry.has('a')).toBe(false);
     expect(registry.extensions.size).toBe(0);
   });
 

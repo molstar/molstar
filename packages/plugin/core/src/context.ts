@@ -604,22 +604,6 @@ export class PluginContext {
     }
   }
 
-  /**
-   * Transitional (removed with the constructor preloads in plugin composition step 3): the format registry still
-   * preloads every built-in provider, so a registry entry that lists a different provider under a built-in name, such
-   * as the Viewer's `customFormats` override, would conflict with the preloaded one. Drop the preloaded provider so the
-   * listed one replaces it, as `customFormats` did in 5.x.
-   */
-  private dropOverriddenPreloadedFormats(registry: readonly PluginRegistryEntry[]) {
-    for (const entry of registry) {
-      for (const provider of entry.formats ?? []) {
-        if (this.dataFormats.has(provider.name) && this.dataFormats.get(provider.name) !== provider) {
-          this.dataFormats.remove(provider.name);
-        }
-      }
-    }
-  }
-
   async init() {
     try {
       this.subs.push(this.events.log.subscribe((e) => (this.log.entries = this.log.entries.push(e))));
@@ -631,10 +615,7 @@ export class PluginContext {
       (this.managers.lociLabels as LociLabelManager) = new LociLabelManager(this);
       (this.builders.structure as StructureBuilder) = new StructureBuilder(this);
 
-      if (this.spec.registry?.length) {
-        this.dropOverriddenPreloadedFormats(this.spec.registry);
-        this.register(this.spec.registry);
-      }
+      if (this.spec.registry?.length) this.register(this.spec.registry);
 
       await this.initBehaviors();
 

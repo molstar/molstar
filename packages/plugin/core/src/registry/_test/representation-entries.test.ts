@@ -131,7 +131,11 @@ describe('representation registry entries', () => {
 });
 
 describe('default theme check', () => {
-  const missing = "Volume representation 'direct-volume' default color theme 'volume-value' is not registered";
+  // the representation alone, without the entry that brings its themes
+  const missing = [
+    "Volume representation 'direct-volume' default color theme 'volume-value' is not registered",
+    "Volume representation 'direct-volume' default size theme 'uniform' is not registered",
+  ];
 
   async function createPlugin(registry: PluginRegistryEntry[] = []) {
     const plugin = new PluginContext({ behaviors: [], registry });
@@ -141,14 +145,6 @@ describe('default theme check', () => {
     });
     await plugin.init();
     return { plugin, warnings };
-  }
-
-  // The registries preload the built-in providers, so a missing default theme is made by removing it.
-  // Only `direct-volume` uses `volume-value` as its default color theme.
-  function removeVolumeValueTheme(plugin: PluginContext) {
-    const registry = plugin.representation.volume.themes.colorThemeRegistry;
-    const provider = registry.get('volume-value');
-    while (registry.has('volume-value')) registry.remove(provider);
   }
 
   afterEach(() => setProductionMode(false));
@@ -170,41 +166,40 @@ describe('default theme check', () => {
 
   it('warns after register for a representation whose default theme is not registered, once', async () => {
     const { plugin, warnings } = await createPlugin();
-    removeVolumeValueTheme(plugin);
     expect(warnings).toEqual([]);
 
     plugin.register({ volume: { representations: DirectVolume.volume!.representations } });
-    expect(warnings).toEqual([missing]);
+    expect(warnings).toEqual(missing);
 
     // Not repeated by later checks
     plugin.register(Isosurface);
-    expect(warnings).toEqual([missing]);
+    expect(warnings).toEqual(missing);
 
     // The check does not register anything
     expect(plugin.representation.volume.themes.colorThemeRegistry.has('volume-value')).toBe(false);
   });
 
   it('warns at the end of init for the spec registry', async () => {
-    const plugin = new PluginContext({ behaviors: [], registry: [{ volume: { representations: [] } }] });
-    removeVolumeValueTheme(plugin);
+    const plugin = new PluginContext({
+      behaviors: [],
+      registry: [{ volume: { representations: DirectVolume.volume!.representations } }],
+    });
     const warnings: string[] = [];
     plugin.events.log.subscribe((e) => {
       if (e.type === 'warning') warnings.push(e.message);
     });
     await plugin.init();
-    expect(warnings).toEqual([missing]);
+    expect(warnings).toEqual(missing);
   });
 
   it('is silent when the entry brings the default themes', async () => {
     const { plugin, warnings } = await createPlugin();
-    removeVolumeValueTheme(plugin);
     plugin.register(DirectVolume);
     expect(warnings).toEqual([]);
   });
 
   it('does not run in production mode', async () => {
     const { plugin, warnings } = await createPlugin();
-    removeVolumeValueTheme(plugin);
     setProductionMode(true);
     plugin.register({ volume: { representations: DirectVolume.volume!.representations } });
     expect(warnings).toEqual([]);

@@ -9,13 +9,14 @@ import { PluginBehaviors } from '@molstar/plugin/behavior';
 import { StructureFocusRepresentation } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
 import { StructureFocusRepresentationId } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation/id';
 import { PluginContext } from '@molstar/plugin/context';
-import { PluginSpec } from '@molstar/plugin/spec';
+import { PluginSpec, type PluginRegistryEntry } from '@molstar/plugin/spec';
+import { DefaultSelectionQueries } from '@molstar/plugin/default-registry';
 import type { PluginState } from '@molstar/plugin/state';
 import { current, all } from '@molstar/plugin/state/queries/structure/basic';
 import { StructureComponentManager } from '../structure/component.js';
 
-async function createPlugin(behaviors: PluginSpec['behaviors'] = []) {
-  const plugin = new PluginContext({ behaviors });
+async function createPlugin(behaviors: PluginSpec['behaviors'] = [], registry: PluginRegistryEntry[] = []) {
+  const plugin = new PluginContext({ behaviors, registry });
   await plugin.init();
   return plugin;
 }
@@ -168,7 +169,7 @@ describe('StructureComponentManager.setOptions and the focus representation beha
 
 describe('StructureComponentManager default selection query', () => {
   it('picks current by identity, not by position', async () => {
-    const plugin = await createPlugin();
+    const plugin = await createPlugin([], [DefaultSelectionQueries]);
     const { options } = plugin.query.structure.registry;
     const index = options.findIndex((o) => o[0] === current);
     expect(index).toBeGreaterThanOrEqual(0);
@@ -185,7 +186,7 @@ describe('StructureComponentManager default selection query', () => {
   });
 
   it('picks the first option when current is not registered', async () => {
-    const plugin = await createPlugin();
+    const plugin = await createPlugin([], [DefaultSelectionQueries]);
     plugin.query.structure.registry.remove(current);
     const { options } = plugin.query.structure.registry;
     expect(options[0][0]).toBe(all);
@@ -199,7 +200,6 @@ describe('StructureComponentManager default selection query', () => {
   it('returns an empty select for an empty registry', async () => {
     const plugin = await createPlugin();
     const registry = plugin.query.structure.registry;
-    for (const q of [...registry.list]) registry.remove(q);
     expect(registry.options).toHaveLength(0);
 
     expect(StructureComponentManager.getDefaultSelectionQuery(registry.options)).toBeUndefined();

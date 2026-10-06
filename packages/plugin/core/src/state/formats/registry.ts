@@ -8,12 +8,6 @@
 import type { FileNameInfo } from '@molstar/core/util/file-info';
 import type { PluginStateObject } from '../objects.js';
 import { DataFormatProvider } from './provider.js';
-import { BuiltInTrajectoryFormats } from '@molstar/plugin/state/formats/trajectory/catalog';
-import { BuiltInVolumeFormats } from '@molstar/plugin/state/formats/volume/catalog';
-import { BuiltInShapeFormats } from '@molstar/plugin/state/formats/shape/catalog';
-import { BuiltInTopologyFormats } from '@molstar/plugin/state/formats/topology/catalog';
-import { BuiltInCoordinatesFormats } from '@molstar/plugin/state/formats/coordinates/catalog';
-import { BuiltInParticlesFormats } from '@molstar/plugin/state/formats/particles/catalog';
 
 const warnedRenames = new WeakMap<object, Set<string>>();
 
@@ -72,7 +66,7 @@ export class DataFormatRegistry {
   /**
    * Providers ordered for `auto()`: higher `priority` first, ties broken by registration
    * order (stable sort). Explicit priority makes auto-detection independent of the order
-   * providers happen to be registered in the constructor below.
+   * providers happen to be registered in.
    */
   get autoOrder() {
     if (this._autoOrder) return this._autoOrder;
@@ -81,15 +75,6 @@ export class DataFormatRegistry {
       .sort((a, b) => (b.entry.provider.priority ?? 0) - (a.entry.provider.priority ?? 0) || a.index - b.index)
       .map(({ entry }) => entry);
     return this._autoOrder;
-  }
-
-  constructor() {
-    for (const p of BuiltInVolumeFormats) this.add(p);
-    for (const p of BuiltInTopologyFormats) this.add(p);
-    for (const p of BuiltInCoordinatesFormats) this.add(p);
-    for (const p of BuiltInShapeFormats) this.add(p);
-    for (const p of BuiltInParticlesFormats) this.add(p);
-    for (const p of BuiltInTrajectoryFormats) this.add(p);
   }
 
   private _invalidate() {

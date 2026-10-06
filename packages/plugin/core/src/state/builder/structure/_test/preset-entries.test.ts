@@ -11,6 +11,7 @@ import { PluginConfig } from '@molstar/plugin/config';
 import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import '@molstar/plugin/state/transforms/catalog';
 import { Structure } from '@molstar/model/model/structure';
+import { PdbProvider } from '@molstar/plugin/state/formats/trajectory/pdb';
 import { DefaultPresets } from '@molstar/plugin/default-registry';
 import { PresetStructureRepresentations } from '../representation-presets/catalog.js';
 import { PresetTrajectoryHierarchy } from '../hierarchy-presets/catalog.js';
@@ -56,16 +57,7 @@ async function createPlugin(entry: PluginRegistryEntry) {
   });
   await plugin.init();
 
-  // The registries preload the built-in providers; only what the entry brings may be there.
-  for (const scope of [
-    plugin.representation.structure,
-    plugin.representation.volume,
-    plugin.representation.particles,
-  ]) {
-    scope.registry.clear();
-    scope.themes.colorThemeRegistry.clear();
-    scope.themes.sizeThemeRegistry.clear();
-  }
+  // The registries start empty; only what the entry brings is there.
   plugin.register(entry);
 
   // Presets build and commit a representation tree. Nothing here renders, so the commits are skipped.
@@ -80,7 +72,7 @@ async function createPlugin(entry: PluginRegistryEntry) {
 
 async function loadStructure(plugin: PluginContext) {
   const data = await plugin.builders.data.rawData({ data: Fixture, label: 'fixture' });
-  const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+  const trajectory = await plugin.builders.structure.parseTrajectory(data, PdbProvider);
   const model = await plugin.builders.structure.createModel(trajectory);
   const structure = await plugin.builders.structure.createStructure(model);
   return { trajectory, structure };

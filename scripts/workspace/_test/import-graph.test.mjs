@@ -102,6 +102,39 @@ test('base entry points must not reach default-composition modules transitively'
   });
 });
 
+test('base entry points must not reach any catalog transitively (rule c)', async () => {
+  const files = clean();
+  files[`${LIB}/src/context.ts`] = "import { helper } from './helper.js';\nexport const Context = helper;\n";
+  files[`${LIB}/src/helper.ts`] = "import { Catalog } from './catalog.js';\nexport const helper = Catalog;\n";
+  // the helper is a base module too, so rule a reports its direct import as well
+  await withFixture(files, baseManifest(), ({ errors }) => {
+    assert.equal(errors.length, 2, errors.join('\n'));
+    assert.ok(errors.some((e) => /rule a: packages\/lib\/src\/helper\.ts value-imports catalog module/.test(e)));
+    const c = errors.find((e) => /rule c:/.test(e));
+    assert.match(
+      c,
+      /base entry point packages\/lib\/src\/context\.ts reaches catalog module packages\/lib\/src\/catalog\.ts/,
+    );
+    assert.match(c, /context\.ts -> packages\/lib\/src\/helper\.ts -> packages\/lib\/src\/catalog\.ts/);
+  });
+});
+
+test('a base entry point reaching a catalog only through a default-composition module is reported once, by rule b', async () => {
+  const files = clean();
+  files[`${LIB}/src/context.ts`] = "import { Spec } from './default-spec.js';\nexport const Context = Spec;\n";
+  await withFixture(files, baseManifest(), ({ errors }) => {
+    assert.equal(errors.length, 1, errors.join('\n'));
+    assert.match(errors[0], /rule b: base entry point packages\/lib\/src\/context\.ts reaches default-composition/);
+  });
+});
+
+test('a base entry point is checked against a catalog it only type-imports (allowed)', async () => {
+  const files = clean();
+  files[`${LIB}/src/context.ts`] =
+    "import type { Catalog } from './catalog.js';\nexport type Context = typeof Catalog;\n";
+  await withFixture(files, baseManifest(), ({ errors }) => assert.deepEqual(errors, []));
+});
+
 test('allowlisted violations pass', async () => {
   const files = clean();
   files[`${LIB}/src/base.ts`] = "import { Catalog } from './catalog.js';\nexport const B = Catalog;\n";

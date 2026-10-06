@@ -215,12 +215,14 @@ describe('format entries', () => {
   it('registers into a plugin', async () => {
     const plugin = new PluginContext({ behaviors: [], registry: [] });
     await plugin.init();
-    // the registries still preload the built-in formats, so a format is registered twice with its entry
+    expect(plugin.dataFormats.list).toEqual([]);
     const unregister = plugin.register([Sdf, Ccp4, Mmcif]);
     expect(plugin.dataFormats.has('sdf')).toBe(true);
     expect(plugin.dataFormats.has('ccp4')).toBe(true);
     expect(plugin.dataFormats.has('mmcif')).toBe(true);
+    expect(plugin.dataFormats.list.map((f) => f.name)).toEqual(['sdf', 'ccp4', 'mmcif']);
     unregister();
+    expect(plugin.dataFormats.list).toEqual([]);
     plugin.dispose();
   });
 

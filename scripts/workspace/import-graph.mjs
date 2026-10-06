@@ -8,6 +8,8 @@
  * Rules:
  *   a. A value import of a catalog module is allowed only from a catalog module, a default-composition module, or an app.
  *   b. Base entry points must not reach a default-composition module by value (transitively).
+ *   c. Base entry points must not reach any catalog module by value (transitively). The search does not continue past a
+ *      catalog or default-composition module: the first one on each path is reported (default-composition modules by b).
  *   d. A type-only import must not point to a higher package (manifest `layers` order).
  *
  * Known violations live in the manifest allowlist with a reason and the plan step that removes them. The check fails
@@ -152,12 +154,13 @@ export function classify(file, manifest) {
   return 'base';
 }
 
-function shortestPath(value, start, isGoal) {
+function shortestPath(value, start, isGoal, isBarrier = () => false) {
   const previous = new Map([[start, undefined]]);
   const queue = [start];
   const found = new Map();
   for (let i = 0; i < queue.length; i++) {
     const current = queue[i];
+    if (current !== start && isBarrier(current)) continue;
     for (const next of value.get(current) ?? []) {
       if (previous.has(next)) continue;
       previous.set(next, current);
@@ -194,6 +197,19 @@ export function findViolations(graph, manifest) {
         from: entry,
         to,
         message: `base entry point ${entry} reaches default-composition module ${to} by value: ${chain.join(' -> ')}`,
+      });
+    const catalogs = shortestPath(
+      graph.value,
+      entry,
+      (file) => manifest.catalogs.includes(file),
+      (file) => manifest.catalogs.includes(file) || manifest.defaultComposition.includes(file),
+    );
+    for (const [to, chain] of catalogs)
+      violations.push({
+        rule: 'c',
+        from: entry,
+        to,
+        message: `base entry point ${entry} reaches catalog module ${to} by value: ${chain.join(' -> ')}`,
       });
   }
   const layer = new Map(manifest.layers.map((name, index) => [name, index]));

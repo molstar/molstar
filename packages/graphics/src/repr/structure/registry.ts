@@ -5,17 +5,11 @@
  */
 
 import type { Structure } from '@molstar/model/model/structure';
-import { objectForEach } from '@molstar/core/util/object';
 import { RepresentationRegistry, type RepresentationProvider } from '../representation.js';
-import { BuiltInStructureRepresentations } from './catalog.js';
+import type { BuiltInStructureRepresentations } from './catalog.js';
 import type { StructureRepresentationState } from './representation.js';
 
-export class StructureRepresentationRegistry extends RepresentationRegistry<Structure, StructureRepresentationState> {
-  constructor() {
-    super();
-    objectForEach(BuiltInStructureRepresentations, (p) => this.add(p as any));
-  }
-}
+export class StructureRepresentationRegistry extends RepresentationRegistry<Structure, StructureRepresentationState> {}
 
 export namespace StructureRepresentationRegistry {
   type _BuiltIn = typeof BuiltInStructureRepresentations;

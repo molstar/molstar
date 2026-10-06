@@ -7,7 +7,6 @@
 import type { StateObjectCell } from '@molstar/core/state';
 import type { PluginContext } from '@molstar/plugin/context';
 import { BehaviorSubject } from 'rxjs';
-import { BuiltInMarkdownExtension } from '../markdown/catalog.js';
 
 export type MarkdownExtensionEvent = 'click' | 'mouse-enter' | 'mouse-leave';
 
@@ -272,11 +271,7 @@ export class MarkdownExtensionManager {
     },
   };
 
-  constructor(public plugin: PluginContext) {
-    for (const command of BuiltInMarkdownExtension) {
-      this.registerExtension(command);
-    }
-  }
+  constructor(public plugin: PluginContext) {}
 }
 
 export function defaultParseMarkdownCommandArgs(input: string | undefined): Record<string, string> | undefined {

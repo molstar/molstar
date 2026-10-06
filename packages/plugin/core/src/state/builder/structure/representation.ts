@@ -8,7 +8,6 @@ import type { PluginContext } from '@molstar/plugin/context';
 import { StateBuilder, StateObjectRef, StateObjectSelector, StateTransform } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
 import { isProductionMode } from '@molstar/core/util/debug';
-import { objectForEach } from '@molstar/core/util/object';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import {
   createStructureRepresentationParams,
@@ -22,7 +21,7 @@ import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/stru
 import {
   type BuiltInStructureRepresentationPresetAlias,
   type BuiltInStructureRepresentationPresetId,
-  PresetStructureRepresentations,
+  type PresetStructureRepresentations,
 } from './representation-presets/catalog.js';
 import type { StructureRepresentationPresetProvider } from './representation-presets/types.js';
 import { PresetRegistry } from '../preset-registry.js';
@@ -216,9 +215,7 @@ export class StructureRepresentationBuilder {
       : builder.to(structure).apply(StructureRepresentation3D, params, { state: options?.initialState }).selector;
   }
 
-  constructor(public plugin: PluginContext) {
-    objectForEach(PresetStructureRepresentations, (r) => this.registerPreset(r));
-  }
+  constructor(public plugin: PluginContext) {}
 }
 
 export namespace StructureRepresentationBuilder {

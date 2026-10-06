@@ -9,6 +9,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { PluginConfig } from '@molstar/plugin/config';
 import { PluginContext } from '@molstar/plugin/context';
 import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { DefaultFormats } from '@molstar/plugin/default-registry';
 import { Ccp4 } from '../../formats/volume/ccp4.js';
 import { Mmcif } from '../../formats/trajectory/mmcif.js';
 import { Mol } from '../../formats/trajectory/mol.js';
@@ -17,16 +18,15 @@ import { Sdf } from '../../formats/trajectory/sdf.js';
 import { Xyz } from '../../formats/trajectory/xyz.js';
 import { TrajectoryHierarchyPresetProvider } from '../../builder/structure/hierarchy-presets/types.js';
 import { StructureRepresentationPresetProvider } from '../../builder/structure/representation-presets/types.js';
+import { EmptyPresetEntry } from '../../builder/structure/representation-presets/empty.js';
 import { DownloadStructure } from '../structure.js';
 
 const AllSources = ['pdb', 'pdb-ihm', 'swissmodel', 'alphafolddb', 'modelarchive', 'pubchem', 'url'];
 
 /** A plugin with the given format entries only. */
 async function createPlugin(...formats: PluginRegistryEntry[]) {
-  const plugin = new PluginContext({ behaviors: [], registry: [] });
+  const plugin = new PluginContext({ behaviors: [], registry: formats });
   await plugin.init();
-  plugin.dataFormats.clear();
-  plugin.register(formats);
   return plugin;
 }
 
@@ -46,8 +46,7 @@ function getParams(plugin: PluginContext) {
 
 describe('DownloadStructure params', () => {
   it('offers every source and the trajectory formats of the registry by default', async () => {
-    const plugin = new PluginContext({ behaviors: [], registry: [] });
-    await plugin.init();
+    const plugin = await createPlugin(DefaultFormats);
     const { sources, urlFormat, source, asTrajectory } = getParams(plugin);
     expect(sources).toEqual(AllSources);
     expect(source.defaultValue.name).toBe('pdb');
@@ -109,7 +108,7 @@ describe('DownloadStructure params', () => {
   });
 
   it('defaults the representation preset to the configured one', async () => {
-    const plugin = await createPlugin(Mmcif);
+    const plugin = await createPlugin(Mmcif, EmptyPresetEntry);
     plugin.config.set(PluginConfig.Structure.DefaultRepresentationPreset, 'preset-structure-representation-empty');
     const { map } = getParams(plugin);
     expect(map('pdb').params.options.params.representation.defaultValue).toBe('preset-structure-representation-empty');
@@ -137,7 +136,7 @@ describe('DownloadStructure presets', () => {
   });
 
   async function createDownloadPlugin() {
-    const plugin = await createPlugin(Pdb);
+    const plugin = await createPlugin(Pdb, EmptyPresetEntry);
     plugin.register({ structure: { presets: { hierarchy: [hierarchy], representation: [representation] } } });
     jest
       .spyOn(plugin.builders.data, 'download')

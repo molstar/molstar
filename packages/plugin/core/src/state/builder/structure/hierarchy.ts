@@ -9,13 +9,12 @@ import type { PluginContext } from '@molstar/plugin/context';
 import { StateObjectRef } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
 import { isProductionMode } from '@molstar/core/util/debug';
-import { objectForEach } from '@molstar/core/util/object';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { PluginStateObject } from '../../objects.js';
 import {
   type BuiltInTrajectoryHierarchyPresetAlias,
   type BuiltInTrajectoryHierarchyPresetId,
-  PresetTrajectoryHierarchy,
+  type PresetTrajectoryHierarchy,
 } from './hierarchy-presets/catalog.js';
 import type { TrajectoryHierarchyPresetProvider } from './hierarchy-presets/types.js';
 import { PluginConfig } from '@molstar/plugin/config';
@@ -145,7 +144,5 @@ export class TrajectoryHierarchyBuilder {
     return this.plugin.runTask(task);
   }
 
-  constructor(public plugin: PluginContext) {
-    objectForEach(PresetTrajectoryHierarchy, (r) => this.registerPreset(r));
-  }
+  constructor(public plugin: PluginContext) {}
 }

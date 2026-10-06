@@ -7,6 +7,7 @@
 import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import { StructureSelectionQuery } from '../query.js';
 import { StructureSelectionQueryRegistry } from '../registry.js';
+import { StructureSelectionQueries } from '../catalog.js';
 import { AminoAcidSelectionQueries, NucleicBaseSelectionQueries, ResidueSelectionQueries } from '../residue.js';
 
 function query(label: string) {
@@ -14,17 +15,26 @@ function query(label: string) {
 }
 
 describe('StructureSelectionQueryRegistry', () => {
-  it('preloads the built-in queries without duplicates', () => {
+  it('starts empty', () => {
     const registry = new StructureSelectionQueryRegistry();
-    expect(registry.list.length).toBeGreaterThan(0);
-    expect(new Set(registry.list).size).toBe(registry.list.length);
-    expect(registry.options.length).toBe(registry.list.length);
-    expect(registry.options.map((o) => o[0])).toEqual(registry.list);
+    expect(registry.list).toEqual([]);
+    expect(registry.options).toEqual([]);
+    expect(registry.version).toBe(1);
   });
 
-  it('preloads the module-scope residue queries, so registering them again only counts', () => {
+  it('registers the built-in queries without duplicates, and registering them again only counts', () => {
     const registry = new StructureSelectionQueryRegistry();
+    const builtIn = [
+      ...Object.values(StructureSelectionQueries),
+      ...AminoAcidSelectionQueries,
+      ...NucleicBaseSelectionQueries,
+    ];
+    for (const q of builtIn) registry.add(q);
     const size = registry.list.length;
+    expect(size).toBe(builtIn.length);
+    expect(new Set(registry.list).size).toBe(size);
+    expect(registry.options.map((o) => o[0])).toEqual(registry.list);
+
     const version = registry.version;
     for (const q of ResidueSelectionQueries) {
       expect(registry.list).toContain(q);
@@ -32,12 +42,6 @@ describe('StructureSelectionQueryRegistry', () => {
     }
     expect(registry.list.length).toBe(size);
     expect(registry.version).toBe(version);
-    expect(registry.list.filter((q) => AminoAcidSelectionQueries.includes(q)).length).toBe(
-      AminoAcidSelectionQueries.length,
-    );
-    expect(registry.list.filter((q) => NucleicBaseSelectionQueries.includes(q)).length).toBe(
-      NucleicBaseSelectionQueries.length,
-    );
 
     // the built-ins are still there after one matching removal each
     for (const q of ResidueSelectionQueries) registry.remove(q);

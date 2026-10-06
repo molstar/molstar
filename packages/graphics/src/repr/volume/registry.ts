@@ -4,17 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { objectForEach } from '@molstar/core/util/object';
 import { RepresentationRegistry, type Representation, type RepresentationProvider } from '../representation.js';
-import { BuiltInVolumeRepresentations } from './catalog.js';
+import type { BuiltInVolumeRepresentations } from './catalog.js';
 import type { Volume } from '@molstar/model/model/volume';
 
-export class VolumeRepresentationRegistry extends RepresentationRegistry<Volume, Representation.State> {
-  constructor() {
-    super();
-    objectForEach(BuiltInVolumeRepresentations, (p) => this.add(p as any));
-  }
-}
+export class VolumeRepresentationRegistry extends RepresentationRegistry<Volume, Representation.State> {}
 
 export namespace VolumeRepresentationRegistry {
   type _BuiltIn = typeof BuiltInVolumeRepresentations;

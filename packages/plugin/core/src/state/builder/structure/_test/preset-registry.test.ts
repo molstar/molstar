@@ -17,6 +17,19 @@ function createPlugin() {
   return { config: new PluginConfigManager() } as unknown as PluginContext;
 }
 
+/** The builders start empty; these tests start from the full built-in catalog. */
+function hierarchyBuilder(plugin: PluginContext) {
+  const builder = new TrajectoryHierarchyBuilder(plugin);
+  for (const p of Object.values(PresetTrajectoryHierarchy)) builder.registerPreset(p);
+  return builder;
+}
+
+function representationBuilder(plugin: PluginContext) {
+  const builder = new StructureRepresentationBuilder(plugin);
+  for (const p of Object.values(PresetStructureRepresentations)) builder.registerPreset(p);
+  return builder;
+}
+
 function hierarchyPreset(id: string, alias?: string) {
   return TrajectoryHierarchyPresetProvider({
     id,
@@ -36,13 +49,20 @@ function representationPreset(id: string, alias?: string) {
 }
 
 describe('TrajectoryHierarchyBuilder presets', () => {
-  it('preloads the built-in catalog in order', () => {
+  it('starts empty', () => {
     const builder = new TrajectoryHierarchyBuilder(createPlugin());
+    expect(builder.providers).toEqual([]);
+    expect(builder.resolveProvider('default')).toBeUndefined();
+    expect(() => builder.applyPreset({} as any, 'default')).toThrow("Preset 'default' is not registered");
+  });
+
+  it('keeps the built-in catalog in registration order', () => {
+    const builder = hierarchyBuilder(createPlugin());
     expect(builder.providers).toEqual(Object.values(PresetTrajectoryHierarchy));
   });
 
   it('resolves by id, then alias', () => {
-    const builder = new TrajectoryHierarchyBuilder(createPlugin());
+    const builder = hierarchyBuilder(createPlugin());
     for (const p of Object.values(PresetTrajectoryHierarchy)) {
       expect(builder.resolveProvider(p.id)).toBe(p);
       expect(builder.resolveProvider(p.alias)).toBe(p);
@@ -62,12 +82,12 @@ describe('TrajectoryHierarchyBuilder presets', () => {
   });
 
   it('throws for an unresolved string', () => {
-    const builder = new TrajectoryHierarchyBuilder(createPlugin());
+    const builder = hierarchyBuilder(createPlugin());
     expect(() => builder.applyPreset({} as any, 'nope')).toThrow("Preset 'nope' is not registered in this plugin");
   });
 
   it('counts registrations of the same object and removes at zero', () => {
-    const builder = new TrajectoryHierarchyBuilder(createPlugin());
+    const builder = hierarchyBuilder(createPlugin());
     const p = hierarchyPreset('a', 'a-alias');
     builder.registerPreset(p);
     builder.registerPreset(p);
@@ -89,7 +109,7 @@ describe('TrajectoryHierarchyBuilder presets', () => {
   });
 
   it('throws on a different object under an existing id or alias', () => {
-    const builder = new TrajectoryHierarchyBuilder(createPlugin());
+    const builder = hierarchyBuilder(createPlugin());
     const a = hierarchyPreset('a', 'a-alias');
     builder.registerPreset(a);
 
@@ -108,7 +128,7 @@ describe('TrajectoryHierarchyBuilder presets', () => {
   });
 
   it('findConflict reports without changing anything', () => {
-    const builder = new TrajectoryHierarchyBuilder(createPlugin());
+    const builder = hierarchyBuilder(createPlugin());
     const a = hierarchyPreset('a', 'a-alias');
     const count = builder.providers.length;
     expect(builder.findConflict(a)).toBeUndefined();
@@ -125,7 +145,7 @@ describe('TrajectoryHierarchyBuilder presets', () => {
 
   it('getPresetSelect defaults to the configured preset when registered, otherwise the first option', () => {
     const plugin = createPlugin();
-    const builder = new TrajectoryHierarchyBuilder(plugin);
+    const builder = hierarchyBuilder(plugin);
     expect(builder.getPresetSelect().defaultValue).toBe('preset-trajectory-default');
 
     plugin.config.set(PluginConfig.Structure.DefaultHierarchyPreset, 'preset-trajectory-unitcell');
@@ -138,13 +158,20 @@ describe('TrajectoryHierarchyBuilder presets', () => {
 });
 
 describe('StructureRepresentationBuilder presets', () => {
-  it('preloads the built-in catalog in order', () => {
+  it('starts empty', () => {
     const builder = new StructureRepresentationBuilder(createPlugin());
+    expect(builder.providers).toEqual([]);
+    expect(builder.resolveProvider('auto')).toBeUndefined();
+    expect(() => builder.applyPreset({} as any, 'auto')).toThrow("Preset 'auto' is not registered");
+  });
+
+  it('keeps the built-in catalog in registration order', () => {
+    const builder = representationBuilder(createPlugin());
     expect(builder.providers).toEqual(Object.values(PresetStructureRepresentations));
   });
 
   it('resolves by id, then alias', () => {
-    const builder = new StructureRepresentationBuilder(createPlugin());
+    const builder = representationBuilder(createPlugin());
     for (const p of Object.values(PresetStructureRepresentations)) {
       expect(builder.resolveProvider(p.id)).toBe(p);
       expect(builder.resolveProvider(p.alias)).toBe(p);
@@ -159,12 +186,12 @@ describe('StructureRepresentationBuilder presets', () => {
   });
 
   it('throws for an unresolved string', () => {
-    const builder = new StructureRepresentationBuilder(createPlugin());
+    const builder = representationBuilder(createPlugin());
     expect(() => builder.applyPreset({} as any, 'nope')).toThrow("Preset 'nope' is not registered in this plugin");
   });
 
   it('no longer resolves unregistered built-ins', () => {
-    const builder = new StructureRepresentationBuilder(createPlugin());
+    const builder = representationBuilder(createPlugin());
     builder.unregisterPreset(PresetStructureRepresentations.auto);
     expect(builder.resolveProvider('auto')).toBeUndefined();
     expect(() => builder.applyPreset({} as any, 'auto')).toThrow("Preset 'auto' is not registered in this plugin");
@@ -172,7 +199,7 @@ describe('StructureRepresentationBuilder presets', () => {
   });
 
   it('counts registrations of the same object and removes at zero', () => {
-    const builder = new StructureRepresentationBuilder(createPlugin());
+    const builder = representationBuilder(createPlugin());
     const p = representationPreset('a', 'a-alias');
     builder.registerPreset(p);
     builder.registerPreset(p);
@@ -185,7 +212,7 @@ describe('StructureRepresentationBuilder presets', () => {
   });
 
   it('throws on id and alias conflicts and findConflict agrees', () => {
-    const builder = new StructureRepresentationBuilder(createPlugin());
+    const builder = representationBuilder(createPlugin());
     const a = representationPreset('a', 'a-alias');
     builder.registerPreset(a);
 
@@ -207,7 +234,7 @@ describe('StructureRepresentationBuilder presets', () => {
 
   it('getPresetSelect defaults to the configured preset when registered, otherwise the first option', () => {
     const plugin = createPlugin();
-    const builder = new StructureRepresentationBuilder(plugin);
+    const builder = representationBuilder(plugin);
     expect(builder.getPresetSelect().defaultValue).toBe('preset-structure-representation-auto');
 
     plugin.config.set(PluginConfig.Structure.DefaultRepresentationPreset, 'preset-structure-representation-mesoscale');
