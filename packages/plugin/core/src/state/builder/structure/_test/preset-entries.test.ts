@@ -17,6 +17,7 @@ import { PresetStructureRepresentations } from '../representation-presets/catalo
 import { PresetTrajectoryHierarchy } from '../hierarchy-presets/catalog.js';
 import { AutoPresetEntry } from '../representation-presets/auto.js';
 import { AtomicDetailPresetEntry } from '../representation-presets/atomic-detail.js';
+import { BallAndStickPreset, BallAndStickPresetEntry } from '../representation-presets/ball-and-stick.js';
 import { AutoLodPresetEntry } from '../representation-presets/auto-lod.js';
 import { CoarseSurfacePresetEntry } from '../representation-presets/coarse-surface.js';
 import { EmptyPresetEntry } from '../representation-presets/empty.js';
@@ -104,6 +105,9 @@ const RepresentationEntries: [string, PluginRegistryEntry, keyof typeof PresetSt
   ['mesoscale', MesoscalePresetEntry, 'mesoscale'],
 ];
 
+/** Presets that are not built in: they are not in the catalog or in `DefaultPresets`. */
+const ExtraRepresentationEntries: [string, PluginRegistryEntry][] = [['ball-and-stick', BallAndStickPresetEntry]];
+
 const HierarchyEntries: [PluginRegistryEntry, keyof typeof PresetTrajectoryHierarchy][] = [
   [DefaultHierarchyPresetEntry, 'default'],
   [AllModelsHierarchyPresetEntry, 'all-models'],
@@ -133,6 +137,20 @@ describe('representation preset entries', () => {
     }
   });
 
+  it('the ball-and-stick entry has its preset and what the preset builds, and is not a default preset', () => {
+    const entry = BallAndStickPresetEntry;
+    expect(Object.keys(entry)).toEqual(['structure']);
+    expect(Object.keys(entry.structure!).sort()).toEqual(['presets', 'representations', 'themes']);
+    expect(entry.structure!.presets!.representation).toEqual([BallAndStickPreset]);
+    expect(BallAndStickPreset.id).toBe('preset-structure-representation-ball-and-stick');
+    expect(BallAndStickPreset.alias).toBe('ball-and-stick');
+    expect(entry.structure!.representations!.map((r) => r.name)).toEqual(['ball-and-stick']);
+    expect(entry.structure!.themes!.color!.map((t) => t.name)).toEqual(['element-symbol']);
+    expect(entry.structure!.themes!.size!.map((t) => t.name)).toEqual(['physical']);
+    expect(DefaultPresets.structure!.presets!.representation).not.toContain(BallAndStickPreset);
+    expect(Object.values(PresetStructureRepresentations)).not.toContain(BallAndStickPreset);
+  });
+
   it('the auto entry includes the presets it chooses between', () => {
     const ids = AutoPresetEntry.structure!.presets!.representation!.map((p) => p.id);
     expect(ids).toEqual([
@@ -144,7 +162,7 @@ describe('representation preset entries', () => {
     ]);
   });
 
-  for (const [name, entry] of RepresentationEntries) {
+  for (const [name, entry] of [...RepresentationEntries, ...ExtraRepresentationEntries]) {
     it(`'${name}' registered alone has everything its preset builds`, async () => {
       const { plugin, warnings } = await createPlugin(entry);
       const calls = recordRepresentations(plugin);
@@ -184,7 +202,7 @@ describe('representation preset entries', () => {
       expect(imports.filter((l) => /catalog/.test(l))).toEqual([]);
       count++;
     }
-    expect(count).toBe(RepresentationEntries.length + 1); // + types
+    expect(count).toBe(RepresentationEntries.length + ExtraRepresentationEntries.length + 1); // + types
   });
 
   it('DefaultPresets lists the preset of each entry in the 5.x order', () => {
