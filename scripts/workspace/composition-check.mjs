@@ -67,7 +67,7 @@ const { StructureRepresentation3D } = await import(
 );
 const { DefaultFormats } = await import(lib('packages/plugin/core/lib/default-registry.js'));
 
-const crambin = fixture('examples/1crn.cif');
+const crambin = fixture('data/examples/1crn.cif');
 const tinyPdb = fixture('smoke/fixtures/tiny.pdb');
 
 async function createDefaultPlugin() {

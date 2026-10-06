@@ -32,7 +32,7 @@ be substituted by specific version.
 
 ```html
 <script>
-mvsStories.loadFromURL('https://raw.githubusercontent.com/molstar/molstar/master/examples/mvs/1cbs.mvsj');
+mvsStories.loadFromURL('https://raw.githubusercontent.com/molstar/molstar/master/data/examples/mvs/1cbs.mvsj');
 </script>
 ```
 

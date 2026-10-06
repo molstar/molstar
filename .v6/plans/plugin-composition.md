@@ -535,12 +535,12 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       behavior's entry registers them (the multilayer theme is built per plugin).
 - [x] Tests: `_test/registry.test.ts` loads a coverage document (every representation type and variant, color kinds,
       labels, the interactions extension, volume representations) and asserts every emitted name is registered and the
-      registry lists exactly what MVS names; `_test/mvs-only-plugin.test.ts` loads `examples/mvs/1cbs.mvsj` (structure
-      from the local `examples/1cbs_full.bcif`, label nodes removed because Node has no canvas) into a plugin with
-      `registry: [MVSRuntimeRegistry, ...MVSFormats, MVSMarkdownExtensions]` and only the `MolViewSpec` behavior, with
-      no warnings or errors and the requested representations applied. The loader maps parse formats to transformers
-      directly, so the format entries are not needed for loading (the test also loads with `[MVSRuntimeRegistry]`
-      alone).
+      registry lists exactly what MVS names; `_test/mvs-only-plugin.test.ts` loads `data/examples/mvs/1cbs.mvsj`
+      (structure from the local `data/examples/1cbs_full.bcif`, label nodes removed because Node has no canvas) into a
+      plugin with `registry: [MVSRuntimeRegistry, ...MVSFormats, MVSMarkdownExtensions]` and only the `MolViewSpec`
+      behavior, with no warnings or errors and the requested representations applied. The loader maps parse formats to
+      transformers directly, so the format entries are not needed for loading (the test also loads with
+      `[MVSRuntimeRegistry]` alone).
 
 ## 4. Tooling
 
@@ -704,7 +704,7 @@ dereferenced their data when called without it (`getOrientationParticlesParams`,
 `getOperatorHklColorThemeParams` with `Structure.Empty`); they now accept the missing data.
 
 - Item 13, runtime: on the step 4 tree, the built Viewer (1CBS), mesoscale-explorer (local 1CRN mmCIF via `url`),
-  docking-viewer (local `ace2.pdbqt` + `ace2-hit.mol2`), mvs-stories (`examples/mvs/kinase-story.mvsj`), and the
+  docking-viewer (local `ace2.pdbqt` + `ace2-hit.mol2`), mvs-stories (`data/examples/mvs/kinase-story.mvsj`), and the
   proteopedia-wrapper, basic-wrapper, interactions, ligand-editor, ihm-restraints, lighting, alpha-orbitals, react,
   alphafolddb-pae, volume-tools, and slim-plugin examples were opened in a browser from a static server. All loaded and
   rendered without plugin warnings or errors. Unrelated: the alphafolddb-pae example's PAE request

@@ -20,7 +20,7 @@ import { MVSRuntimeRegistry } from '@molstar/mvs/registry';
 
 setFSModule(fs);
 
-const LocalStructure = `file://${process.cwd()}/examples/1cbs_full.bcif`;
+const LocalStructure = `file://${process.cwd()}/data/examples/1cbs_full.bcif`;
 
 type Scope = 'structure' | 'volume';
 type Names = { representations: Set<string>; color: Set<string>; size: Set<string> };

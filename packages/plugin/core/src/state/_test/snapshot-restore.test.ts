@@ -12,7 +12,7 @@ import type { PluginState } from '@molstar/plugin/state';
 import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { StateTransform } from '@molstar/core/state';
 
-const crambin = fs.readFileSync(path.resolve(__dirname, '../../../../../../examples/1crn.cif'), 'utf8');
+const crambin = fs.readFileSync(path.resolve(__dirname, '../../../../../../data/examples/1crn.cif'), 'utf8');
 
 async function createPlugin() {
   const plugin = new PluginContext(DefaultPluginSpec());

@@ -11,7 +11,7 @@ import { StructureElement } from '@molstar/model/model/structure';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 
-const crambin = fs.readFileSync(path.resolve(__dirname, '../../../../../examples/1crn.cif'), 'utf8');
+const crambin = fs.readFileSync(path.resolve(__dirname, '../../../../../data/examples/1crn.cif'), 'utf8');
 
 describe('the default plugin spec and script languages', () => {
   it('evaluates PyMOL, VMD and Jmol scripts (the default spec imports transpilers/all)', async () => {

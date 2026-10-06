@@ -65,13 +65,13 @@ const MVSFormats: PluginRegistryEntry[] = [
 const MVSMarkdownExtensions: PluginRegistryEntry = { markdownExtensions: BuiltInMarkdownExtension };
 
 /**
- * `examples/mvs/1cbs.mvsj` with its structure read from the local copy in `examples`. The label nodes are removed:
+ * `data/examples/mvs/1cbs.mvsj` with its structure read from the local copy in `data/examples`. The label nodes are removed:
  * labels render text through the canvas API, which Node does not have.
  */
 function createLocalDocument() {
-  const mvsj = JSON.parse(fs.readFileSync('examples/mvs/1cbs.mvsj', 'utf8'));
+  const mvsj = JSON.parse(fs.readFileSync('data/examples/mvs/1cbs.mvsj', 'utf8'));
   const visit = (node: any) => {
-    if (node.kind === 'download') node.params.url = `file://${process.cwd()}/examples/1cbs_full.bcif`;
+    if (node.kind === 'download') node.params.url = `file://${process.cwd()}/data/examples/1cbs_full.bcif`;
     node.children = node.children?.filter((c: any) => c.kind !== 'label');
     node.children?.forEach(visit);
   };

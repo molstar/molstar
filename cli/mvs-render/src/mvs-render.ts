@@ -7,7 +7,7 @@
  * Command-line application for rendering images from MolViewSpec files
  * Installed package: npm install @molstar/mvs-render-cli gl canvas
  * Workspace setup: pnpm native:install -- --canvas && pnpm build:lib
- * Workspace run: pnpm native:run -- node cli/mvs-render/lib/mvs-render.js -i examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
+ * Workspace run: pnpm native:run -- node cli/mvs-render/lib/mvs-render.js -i data/examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
  */
 
 import { ArgumentParser } from 'argparse';
