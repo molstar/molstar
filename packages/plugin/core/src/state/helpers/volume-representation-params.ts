@@ -12,6 +12,18 @@ import type { StateTransformer } from '@molstar/core/state';
 import type { ColorTheme } from '@molstar/graphics/theme/color';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import {
+  assertColorThemes,
+  assertRepresentations,
+  assertRepresentationScope,
+  assertSizeThemes,
+  emptyMappedValue,
+  hasColorThemes,
+  hasRepresentations,
+  hasRepresentationScope,
+  hasSizeThemes,
+  warnUnregisteredNames,
+} from './representation-registry.js';
 import type { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 
 export interface VolumeRepresentationBuiltInProps<
@@ -66,6 +78,20 @@ export function createVolumeRepresentationParams(
   volume?: Volume,
   props: any = {},
 ): StateTransformer.Params<VolumeRepresentation3D> {
+  const scope = ctx.representation.volume;
+  if (volume) assertRepresentationScope('volume', scope);
+  else if (!hasRepresentationScope(scope)) {
+    // nothing to build params from; applying them fails in the transformer
+    return { type: emptyMappedValue(), colorTheme: emptyMappedValue(), sizeTheme: emptyMappedValue() };
+  }
+
+  warnUnregisteredNames(ctx, 'volume', scope, {
+    type: props.type || undefined,
+    color: props.color || undefined,
+    size: props.size || undefined,
+    checkColor: true,
+    checkSize: true,
+  });
   const p = props as VolumeRepresentationBuiltInProps;
   if (typeof p.type === 'string' || typeof p.color === 'string' || typeof p.size === 'string')
     return createParamsByName(ctx, volume || Volume.One, props);
@@ -99,8 +125,22 @@ export function createVolumeColorThemeParams(
   themeName?: string,
   params?: any,
 ): StateTransformer.Params<VolumeRepresentation3D>['colorTheme'] {
-  const { registry, themes } = ctx.representation.volume;
-  const repr = registry.get(typeName || (registry.default?.name ?? ''));
+  const scope = ctx.representation.volume;
+  const { registry, themes } = scope;
+  if (volume) {
+    assertRepresentations('volume', scope);
+    assertColorThemes('volume', scope);
+  } else if (!(hasRepresentations(scope) && hasColorThemes(scope))) {
+    // nothing to build params from; applying them fails in the transformer
+    return emptyMappedValue();
+  }
+  warnUnregisteredNames(ctx, 'volume', scope, {
+    type: typeName || undefined,
+    color: themeName || undefined,
+    checkColor: true,
+    checkSize: false,
+  });
+  const repr = registry.get(typeName || registry.default!.name);
   const color = themes.colorThemeRegistry.get(themeName || repr.defaultColorTheme.name);
   const colorDefaultParams = PD.getDefaultValues(color.getParams({ volume: volume || Volume.One }));
   if (color.name === repr.defaultColorTheme.name) Object.assign(colorDefaultParams, repr.defaultColorTheme.props);
@@ -128,8 +168,22 @@ export function createVolumeSizeThemeParams(
   themeName?: string,
   params?: any,
 ): StateTransformer.Params<VolumeRepresentation3D>['sizeTheme'] {
-  const { registry, themes } = ctx.representation.volume;
-  const repr = registry.get(typeName || (registry.default?.name ?? ''));
+  const scope = ctx.representation.volume;
+  const { registry, themes } = scope;
+  if (volume) {
+    assertRepresentations('volume', scope);
+    assertSizeThemes('volume', scope);
+  } else if (!(hasRepresentations(scope) && hasSizeThemes(scope))) {
+    // nothing to build params from; applying them fails in the transformer
+    return emptyMappedValue();
+  }
+  warnUnregisteredNames(ctx, 'volume', scope, {
+    type: typeName || undefined,
+    size: themeName || undefined,
+    checkSize: true,
+    checkColor: false,
+  });
+  const repr = registry.get(typeName || registry.default!.name);
   const size = themes.sizeThemeRegistry.get(themeName || repr.defaultSizeTheme.name);
   const sizeDefaultParams = PD.getDefaultValues(size.getParams({ volume: volume || Volume.One }));
   if (size.name === repr.defaultSizeTheme.name) Object.assign(sizeDefaultParams, repr.defaultSizeTheme.props);
@@ -143,7 +197,7 @@ function createParamsByName(
 ): StateTransformer.Params<VolumeRepresentation3D> {
   const typeProvider =
     (props.type && ctx.representation.volume.registry.get(props.type)) ||
-    ctx.representation.volume.registry.get(ctx.representation.volume.registry.default?.name ?? '');
+    ctx.representation.volume.registry.get(ctx.representation.volume.registry.default!.name);
   const colorProvider =
     (props.color && ctx.representation.volume.themes.colorThemeRegistry.get(props.color)) ||
     ctx.representation.volume.themes.colorThemeRegistry.get(typeProvider.defaultColorTheme.name);
@@ -169,8 +223,7 @@ function createParamsProvider(
   const { themes: themeCtx } = ctx.representation.volume;
   const themeDataCtx = { volume };
 
-  const repr =
-    props.type || ctx.representation.volume.registry.get(ctx.representation.volume.registry.default?.name ?? '');
+  const repr = props.type || ctx.representation.volume.registry.get(ctx.representation.volume.registry.default!.name);
   const reprDefaultParams = PD.getDefaultValues(repr.getParams(themeCtx, volume));
   const reprParams = Object.assign(reprDefaultParams, props.typeParams);
 

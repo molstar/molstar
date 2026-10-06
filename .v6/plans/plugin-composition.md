@@ -299,7 +299,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       the optional `alias` to `PresetProvider`, set it on every built-in preset, derived the id/alias unions in the
       catalogs under `state/builder/structure/{representation,hierarchy}-presets/`, and typed
       `LoadTrajectoryParams.preset` with the hierarchy alias union.)
-- [ ] Representation-name handling (spec §4.3): the nine param-definition sites fall back to empty mapped params for
+- [x] Representation-name handling (spec §4.3): the nine param-definition sites fall back to empty mapped params for
       empty registries; the eight helper sites and `buildRepresentation` check names with `has` and warn with provider
       and scope; they throw for empty registries when given data, and return empty mapped params when called without
       data (as `StructureFocusRepresentation` and `extensions/meshes/src/examples.ts:148` do); the three representation

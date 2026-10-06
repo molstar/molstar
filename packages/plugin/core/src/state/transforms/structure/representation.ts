@@ -13,6 +13,12 @@ import { Task } from '@molstar/core/task';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { StateTransformer } from '@molstar/core/state';
 import { Color } from '@molstar/core/util/color';
+import {
+  assertRepresentationScope,
+  emptyMappedParams,
+  hasColorThemes,
+  hasSizeThemes,
+} from '../../helpers/representation-registry.js';
 
 export { StructureRepresentation3D };
 type StructureRepresentation3D = typeof StructureRepresentation3D;
@@ -22,8 +28,12 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
   from: SO.Molecule.Structure,
   to: SO.Molecule.Structure.Representation3D,
   params: (a, ctx: PluginContext) => {
-    const { registry, themes: themeCtx } = ctx.representation.structure;
-    const type = registry.get(registry.default?.name ?? '');
+    const scope = ctx.representation.structure;
+    const { registry, themes: themeCtx } = scope;
+    // Param definitions never throw; without a registered representation or theme the params are empty mapped params
+    const type = registry.default?.provider;
+    const hasColor = !!type && hasColorThemes(scope);
+    const hasSize = !!type && hasSizeThemes(scope);
 
     if (!a) {
       const colorThemeInfo = {
@@ -36,18 +46,24 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
       };
 
       return {
-        type: PD.Mapped<any>(registry.default?.name ?? '', registry.types, (name) =>
-          PD.Group<any>(registry.get(name).getParams(themeCtx, Structure.Empty)),
-        ),
-        colorTheme: PD.Mapped<any>(
-          type.defaultColorTheme.name,
-          themeCtx.colorThemeRegistry.types,
-          (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ structure: Structure.Empty })),
-          colorThemeInfo,
-        ),
-        sizeTheme: PD.Mapped<any>(type.defaultSizeTheme.name, themeCtx.sizeThemeRegistry.types, (name) =>
-          PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ structure: Structure.Empty })),
-        ),
+        type: registry.default
+          ? PD.Mapped<any>(registry.default.name, registry.types, (name) =>
+              PD.Group<any>(registry.get(name).getParams(themeCtx, Structure.Empty)),
+            )
+          : emptyMappedParams(),
+        colorTheme: hasColor
+          ? PD.Mapped<any>(
+              type.defaultColorTheme.name,
+              themeCtx.colorThemeRegistry.types,
+              (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ structure: Structure.Empty })),
+              colorThemeInfo,
+            )
+          : emptyMappedParams(),
+        sizeTheme: hasSize
+          ? PD.Mapped<any>(type.defaultSizeTheme.name, themeCtx.sizeThemeRegistry.types, (name) =>
+              PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ structure: Structure.Empty })),
+            )
+          : emptyMappedParams(),
       };
     }
 
@@ -62,20 +78,24 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     };
 
     return {
-      type: PD.Mapped<any>(registry.default?.name ?? '', registry.getApplicableTypes(a.data), (name) =>
-        PD.Group<any>(registry.get(name).getParams(themeCtx, a.data)),
-      ),
-      colorTheme: PD.Mapped<any>(
-        type.defaultColorTheme.name,
-        themeCtx.colorThemeRegistry.getApplicableTypes(dataCtx),
-        (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams(dataCtx)),
-        colorThemeInfo,
-      ),
-      sizeTheme: PD.Mapped<any>(
-        type.defaultSizeTheme.name,
-        themeCtx.sizeThemeRegistry.getApplicableTypes(dataCtx),
-        (name) => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx)),
-      ),
+      type: registry.default
+        ? PD.Mapped<any>(registry.default.name, registry.getApplicableTypes(a.data), (name) =>
+            PD.Group<any>(registry.get(name).getParams(themeCtx, a.data)),
+          )
+        : emptyMappedParams(),
+      colorTheme: hasColor
+        ? PD.Mapped<any>(
+            type.defaultColorTheme.name,
+            themeCtx.colorThemeRegistry.getApplicableTypes(dataCtx),
+            (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams(dataCtx)),
+            colorThemeInfo,
+          )
+        : emptyMappedParams(),
+      sizeTheme: hasSize
+        ? PD.Mapped<any>(type.defaultSizeTheme.name, themeCtx.sizeThemeRegistry.getApplicableTypes(dataCtx), (name) =>
+            PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx)),
+          )
+        : emptyMappedParams(),
     };
   },
 })({
@@ -87,6 +107,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     );
   },
   apply({ a, params, cache }, plugin: PluginContext) {
+    assertRepresentationScope('structure', plugin.representation.structure);
     return Task.create('Structure Representation', async (ctx) => {
       const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext };
       const provider = plugin.representation.structure.registry.get(params.type.name);
@@ -105,6 +126,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     });
   },
   update({ a, b, oldParams, newParams, cache }, plugin: PluginContext) {
+    assertRepresentationScope('structure', plugin.representation.structure);
     return Task.create('Structure Representation', async (ctx) => {
       if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
 

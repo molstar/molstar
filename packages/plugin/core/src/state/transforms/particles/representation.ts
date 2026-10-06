@@ -11,6 +11,12 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Task } from '@molstar/core/task';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { StateTransformer } from '@molstar/core/state';
+import {
+  assertRepresentationScope,
+  emptyMappedParams,
+  hasColorThemes,
+  hasSizeThemes,
+} from '../../helpers/representation-registry.js';
 
 export { ParticlesRepresentation3D };
 type ParticlesRepresentation3D = typeof ParticlesRepresentation3D;
@@ -20,8 +26,12 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
   from: SO.Particle.List,
   to: SO.Particle.Representation3D,
   params: (a, ctx: PluginContext) => {
-    const { registry, themes: themeCtx } = ctx.representation.particles;
-    const type = registry.get(registry.default?.name ?? '');
+    const scope = ctx.representation.particles;
+    const { registry, themes: themeCtx } = scope;
+    // Param definitions never throw; without a registered representation or theme the params are empty mapped params
+    const type = registry.default?.provider;
+    const hasColor = !!type && hasColorThemes(scope);
+    const hasSize = !!type && hasSizeThemes(scope);
 
     if (!a) {
       const colorThemeInfo = {
@@ -34,18 +44,24 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
       };
 
       return {
-        type: PD.Mapped<any>(registry.default?.name ?? '', registry.types, (name) =>
-          PD.Group<any>(registry.get(name).getParams(themeCtx, undefined as any)),
-        ),
-        colorTheme: PD.Mapped<any>(
-          type.defaultColorTheme.name,
-          themeCtx.colorThemeRegistry.types,
-          (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({})),
-          colorThemeInfo,
-        ),
-        sizeTheme: PD.Mapped<any>(type.defaultSizeTheme.name, themeCtx.sizeThemeRegistry.types, (name) =>
-          PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({})),
-        ),
+        type: registry.default
+          ? PD.Mapped<any>(registry.default.name, registry.types, (name) =>
+              PD.Group<any>(registry.get(name).getParams(themeCtx, undefined as any)),
+            )
+          : emptyMappedParams(),
+        colorTheme: hasColor
+          ? PD.Mapped<any>(
+              type.defaultColorTheme.name,
+              themeCtx.colorThemeRegistry.types,
+              (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({})),
+              colorThemeInfo,
+            )
+          : emptyMappedParams(),
+        sizeTheme: hasSize
+          ? PD.Mapped<any>(type.defaultSizeTheme.name, themeCtx.sizeThemeRegistry.types, (name) =>
+              PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({})),
+            )
+          : emptyMappedParams(),
       };
     }
 
@@ -60,20 +76,24 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
     };
 
     return {
-      type: PD.Mapped<any>(registry.default?.name ?? '', registry.getApplicableTypes(a.data), (name) =>
-        PD.Group<any>(registry.get(name).getParams(themeCtx, a.data)),
-      ),
-      colorTheme: PD.Mapped<any>(
-        type.defaultColorTheme.name,
-        themeCtx.colorThemeRegistry.getApplicableTypes(dataCtx),
-        (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams(dataCtx)),
-        colorThemeInfo,
-      ),
-      sizeTheme: PD.Mapped<any>(
-        type.defaultSizeTheme.name,
-        themeCtx.sizeThemeRegistry.getApplicableTypes(dataCtx),
-        (name) => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx)),
-      ),
+      type: registry.default
+        ? PD.Mapped<any>(registry.default.name, registry.getApplicableTypes(a.data), (name) =>
+            PD.Group<any>(registry.get(name).getParams(themeCtx, a.data)),
+          )
+        : emptyMappedParams(),
+      colorTheme: hasColor
+        ? PD.Mapped<any>(
+            type.defaultColorTheme.name,
+            themeCtx.colorThemeRegistry.getApplicableTypes(dataCtx),
+            (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams(dataCtx)),
+            colorThemeInfo,
+          )
+        : emptyMappedParams(),
+      sizeTheme: hasSize
+        ? PD.Mapped<any>(type.defaultSizeTheme.name, themeCtx.sizeThemeRegistry.getApplicableTypes(dataCtx), (name) =>
+            PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx)),
+          )
+        : emptyMappedParams(),
     };
   },
 })({
@@ -81,6 +101,7 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
     return oldParams.type.name === newParams.type.name;
   },
   apply({ a, params }, plugin: PluginContext) {
+    assertRepresentationScope('particles', plugin.representation.particles);
     return Task.create('Particles Representation', async (ctx) => {
       const themes = plugin.representation.particles.themes;
       const provider = plugin.representation.particles.registry.get(params.type.name);
@@ -92,6 +113,7 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
     });
   },
   update({ a, b, oldParams, newParams }, plugin: PluginContext) {
+    assertRepresentationScope('particles', plugin.representation.particles);
     return Task.create('Particles Representation', async (ctx) => {
       if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
 

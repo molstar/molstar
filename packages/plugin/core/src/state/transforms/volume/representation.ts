@@ -13,6 +13,12 @@ import { Task } from '@molstar/core/task';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { VolumeRepresentation3DHelpers } from './representation-helpers.js';
 import { StateTransformer } from '@molstar/core/state';
+import {
+  assertRepresentationScope,
+  emptyMappedParams,
+  hasColorThemes,
+  hasSizeThemes,
+} from '../../helpers/representation-registry.js';
 
 export { VolumeRepresentation3D };
 type VolumeRepresentation3D = typeof VolumeRepresentation3D;
@@ -22,38 +28,50 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
   from: SO.Volume.Data,
   to: SO.Volume.Representation3D,
   params: (a, ctx: PluginContext) => {
-    const { registry, themes: themeCtx } = ctx.representation.volume;
-    const type = registry.get(registry.default?.name ?? '');
+    const scope = ctx.representation.volume;
+    const { registry, themes: themeCtx } = scope;
+    // Param definitions never throw; without a registered representation or theme the params are empty mapped params
+    const type = registry.default?.provider;
+    const hasColor = !!type && hasColorThemes(scope);
+    const hasSize = !!type && hasSizeThemes(scope);
 
     if (!a) {
       return {
-        type: PD.Mapped<any>(registry.default?.name ?? '', registry.types, (name) =>
-          PD.Group<any>(registry.get(name).getParams(themeCtx, Volume.One)),
-        ),
-        colorTheme: PD.Mapped<any>(type.defaultColorTheme.name, themeCtx.colorThemeRegistry.types, (name) =>
-          PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ volume: Volume.One })),
-        ),
-        sizeTheme: PD.Mapped<any>(type.defaultSizeTheme.name, themeCtx.sizeThemeRegistry.types, (name) =>
-          PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ volume: Volume.One })),
-        ),
+        type: registry.default
+          ? PD.Mapped<any>(registry.default.name, registry.types, (name) =>
+              PD.Group<any>(registry.get(name).getParams(themeCtx, Volume.One)),
+            )
+          : emptyMappedParams(),
+        colorTheme: hasColor
+          ? PD.Mapped<any>(type.defaultColorTheme.name, themeCtx.colorThemeRegistry.types, (name) =>
+              PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ volume: Volume.One })),
+            )
+          : emptyMappedParams(),
+        sizeTheme: hasSize
+          ? PD.Mapped<any>(type.defaultSizeTheme.name, themeCtx.sizeThemeRegistry.types, (name) =>
+              PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ volume: Volume.One })),
+            )
+          : emptyMappedParams(),
       };
     }
 
     const dataCtx = { volume: a.data };
     return {
-      type: PD.Mapped<any>(registry.default?.name ?? '', registry.types, (name) =>
-        PD.Group<any>(registry.get(name).getParams(themeCtx, a.data)),
-      ),
-      colorTheme: PD.Mapped<any>(
-        type.defaultColorTheme.name,
-        themeCtx.colorThemeRegistry.getApplicableTypes(dataCtx),
-        (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams(dataCtx)),
-      ),
-      sizeTheme: PD.Mapped<any>(
-        type.defaultSizeTheme.name,
-        themeCtx.sizeThemeRegistry.getApplicableTypes(dataCtx),
-        (name) => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx)),
-      ),
+      type: registry.default
+        ? PD.Mapped<any>(registry.default.name, registry.types, (name) =>
+            PD.Group<any>(registry.get(name).getParams(themeCtx, a.data)),
+          )
+        : emptyMappedParams(),
+      colorTheme: hasColor
+        ? PD.Mapped<any>(type.defaultColorTheme.name, themeCtx.colorThemeRegistry.getApplicableTypes(dataCtx), (name) =>
+            PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams(dataCtx)),
+          )
+        : emptyMappedParams(),
+      sizeTheme: hasSize
+        ? PD.Mapped<any>(type.defaultSizeTheme.name, themeCtx.sizeThemeRegistry.getApplicableTypes(dataCtx), (name) =>
+            PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx)),
+          )
+        : emptyMappedParams(),
     };
   },
 })({
@@ -61,6 +79,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     return oldParams.type.name === newParams.type.name;
   },
   apply({ a, params }, plugin: PluginContext) {
+    assertRepresentationScope('volume', plugin.representation.volume);
     return Task.create('Volume Representation', async (ctx) => {
       const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext };
       const provider = plugin.representation.volume.registry.get(params.type.name);
@@ -87,6 +106,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     });
   },
   update({ a, b, oldParams, newParams }, plugin: PluginContext) {
+    assertRepresentationScope('volume', plugin.representation.volume);
     return Task.create('Volume Representation', async (ctx) => {
       if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
 

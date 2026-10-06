@@ -13,6 +13,18 @@ import type { StateTransformer } from '@molstar/core/state';
 import type { ColorTheme } from '@molstar/graphics/theme/color';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import {
+  assertColorThemes,
+  assertRepresentations,
+  assertRepresentationScope,
+  assertSizeThemes,
+  emptyMappedValue,
+  hasColorThemes,
+  hasRepresentations,
+  hasRepresentationScope,
+  hasSizeThemes,
+  warnUnregisteredNames,
+} from './representation-registry.js';
 import type { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 
 export function isSurfaceRepresentationType(name: string) {
@@ -71,6 +83,20 @@ export function createStructureRepresentationParams(
   structure?: Structure,
   props: any = {},
 ): StateTransformer.Params<StructureRepresentation3D> {
+  const scope = ctx.representation.structure;
+  if (structure) assertRepresentationScope('structure', scope);
+  else if (!hasRepresentationScope(scope)) {
+    // nothing to build params from; applying them fails in the transformer
+    return { type: emptyMappedValue(), colorTheme: emptyMappedValue(), sizeTheme: emptyMappedValue() };
+  }
+
+  warnUnregisteredNames(ctx, 'structure', scope, {
+    type: props.type || undefined,
+    color: props.color || undefined,
+    size: props.size || undefined,
+    checkColor: true,
+    checkSize: true,
+  });
   const p = props as StructureRepresentationBuiltInProps;
   if (typeof p.type === 'string' || typeof p.color === 'string' || typeof p.size === 'string')
     return createParamsByName(ctx, structure || Structure.Empty, props);
@@ -104,8 +130,22 @@ export function createStructureColorThemeParams(
   themeName?: string,
   params?: any,
 ): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] {
-  const { registry, themes } = ctx.representation.structure;
-  const repr = registry.get(typeName || (registry.default?.name ?? ''));
+  const scope = ctx.representation.structure;
+  const { registry, themes } = scope;
+  if (structure) {
+    assertRepresentations('structure', scope);
+    assertColorThemes('structure', scope);
+  } else if (!(hasRepresentations(scope) && hasColorThemes(scope))) {
+    // nothing to build params from; applying them fails in the transformer
+    return emptyMappedValue();
+  }
+  warnUnregisteredNames(ctx, 'structure', scope, {
+    type: typeName || undefined,
+    color: themeName || undefined,
+    checkColor: true,
+    checkSize: false,
+  });
+  const repr = registry.get(typeName || registry.default!.name);
   const color = themes.colorThemeRegistry.get(themeName || repr.defaultColorTheme.name);
   const colorDefaultParams = PD.getDefaultValues(color.getParams({ structure: structure || Structure.Empty }));
   if (color.name === repr.defaultColorTheme.name) Object.assign(colorDefaultParams, repr.defaultColorTheme.props);
@@ -133,8 +173,22 @@ export function createStructureSizeThemeParams(
   themeName?: string,
   params?: any,
 ): StateTransformer.Params<StructureRepresentation3D>['sizeTheme'] {
-  const { registry, themes } = ctx.representation.structure;
-  const repr = registry.get(typeName || (registry.default?.name ?? ''));
+  const scope = ctx.representation.structure;
+  const { registry, themes } = scope;
+  if (structure) {
+    assertRepresentations('structure', scope);
+    assertSizeThemes('structure', scope);
+  } else if (!(hasRepresentations(scope) && hasSizeThemes(scope))) {
+    // nothing to build params from; applying them fails in the transformer
+    return emptyMappedValue();
+  }
+  warnUnregisteredNames(ctx, 'structure', scope, {
+    type: typeName || undefined,
+    size: themeName || undefined,
+    checkSize: true,
+    checkColor: false,
+  });
+  const repr = registry.get(typeName || registry.default!.name);
   const size = themes.sizeThemeRegistry.get(themeName || repr.defaultSizeTheme.name);
   const sizeDefaultParams = PD.getDefaultValues(size.getParams({ structure: structure || Structure.Empty }));
   if (size.name === repr.defaultSizeTheme.name) Object.assign(sizeDefaultParams, repr.defaultSizeTheme.props);
@@ -148,7 +202,7 @@ function createParamsByName(
 ): StateTransformer.Params<StructureRepresentation3D> {
   const typeProvider =
     (props.type && ctx.representation.structure.registry.get(props.type)) ||
-    ctx.representation.structure.registry.get(ctx.representation.structure.registry.default?.name ?? '');
+    ctx.representation.structure.registry.get(ctx.representation.structure.registry.default!.name);
   const colorProvider =
     (props.color && ctx.representation.structure.themes.colorThemeRegistry.get(props.color)) ||
     ctx.representation.structure.themes.colorThemeRegistry.get(typeProvider.defaultColorTheme.name);
@@ -175,7 +229,7 @@ function createParamsProvider(
   const themeDataCtx = { structure };
 
   const repr =
-    props.type || ctx.representation.structure.registry.get(ctx.representation.structure.registry.default?.name ?? '');
+    props.type || ctx.representation.structure.registry.get(ctx.representation.structure.registry.default!.name);
   const reprDefaultParams = PD.getDefaultValues(repr.getParams(themeCtx, structure));
   const reprParams = Object.assign(reprDefaultParams, props.typeParams);
 
