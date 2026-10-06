@@ -42,8 +42,8 @@ Deferred:
 
 - Rendering-backend extraction, GL resource/pass/readback redesign, WebGPU, and Blender integration. See
   [webgpu.md](../designs/webgpu.md).
-- `PluginFeature`, empty registries, explicit base specs, registry-aware presets, slim-plugin bundle guarantees, and
-  comprehensive transformer/catalog splitting.
+- Plugin registry entries, empty registries, explicit base specs, registry-aware presets, slim-plugin bundle guarantees,
+  and comprehensive transformer/catalog splitting.
 - Comprehensive convenience-barrel removal and `StateTransforms` facade removal. Remove or split existing modules when
   needed for package boundaries; track the remaining work. Do not introduce new convenience barrels or compatibility
   shims.

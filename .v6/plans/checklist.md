@@ -92,8 +92,9 @@ allow the caller to choose timestamps that are reproducible across time zones.
 
 - [ ] Rendering-backend extraction and GL resource/pass/readback redesign.
 - [ ] WebGPU and Blender integration.
-- [ ] Plugin features, empty registries, explicit base specs, registry-aware presets, slim-plugin guarantees, and
-      transformer/catalog splitting.
+- [ ] Plugin composition per [plugin-composition.md](../designs/plugin-composition.md): empty registries,
+      `spec.registry` entries, explicit base specs, presets that import what they run, transformer/catalog splitting,
+      snapshot pre-validation, and slim-plugin guarantees.
 - [ ] Remaining convenience-barrel cleanup and `StateTransforms` facade removal.
 - [ ] Broader test-runner migration and maintainer skills/documentation rewrite.
 - [ ] Fast types, isolated declarations, and the corresponding API annotations.

@@ -41,32 +41,31 @@ Libraries with ancillary bins and server packages retain their domain names. See
 
 ## Plugin composition
 
-Registries start empty. A `PluginFeature` contributes formats, transforms/actions, representations, themes, and
-behaviors without registering them on import.
+See the [plugin-composition design](plugin-composition.md).
+
+Registries start empty. `PluginSpec.registry` lists declarative entries (formats, representations, themes, presets,
+selection queries, and similar providers) that `PluginContext` registers in order, without dependency resolution.
 
 ```ts
-import { PluginSpec } from '@molstar/plugin/spec';
-import { Core } from '@molstar/plugin/features/core';
-import { Sdf } from '@molstar/plugin/state/formats/trajectory/sdf';
-import { BallAndStick } from '@molstar/graphics/repr/structure/representation/ball-and-stick';
-
-const spec = PluginSpec.fromFeatures(Core, Sdf, BallAndStick, {
-    canvas3d: { /* custom overrides */ },
-});
+const spec: PluginSpec = {
+  registry: [Sdf, DefaultHierarchyPreset, BallAndStickPreset],
+  behaviors: [/* ... */],
+};
 ```
 
-The optional last argument supplies settings and extra actions/behaviors. Base entry points, including `createPluginUI`,
-take an explicit spec. Full defaults come from `DefaultPluginSpec` in `@molstar/plugin/default-spec` or
-`DefaultPluginUISpec` in `@molstar/plugin-ui/default-spec`. Viewer extensions remain app choices.
+What is included is what the spec imports and lists; single-file builds tree-shake the same way. Behaviors are unchanged
+and can reuse the entry format through `plugin.register(entry)`. Presets import the providers they run; choices such as
+a format's default preset go through config. Base entry points, including `createPluginUI`, take an explicit spec. Full
+defaults come from `DefaultPluginSpec` in `@molstar/plugin/default-spec` or `DefaultPluginUISpec` in
+`@molstar/plugin-ui/default-spec`. Viewer extensions remain app choices.
 
-Defaults and catalogs stay in their owning packages behind explicit entry points. Lean roots and runtime leaves must not
-import or re-export them. Split transform modules, remove the `StateTransforms` convenience facade and its lazy getters,
-and migrate all consumers to individual transformers. Enforce these module boundaries in CI. Keep built-in name types
-for completion without introducing upward package dependencies. Presets choose applicable registered representations and
-themes.
+Remove the `StateTransforms` facade and split transform modules by functionality, placing format-specific transformers
+next to their providers. Transformers stay globally registered on import; snapshot loading checks their ids before
+changing state. Keep `BuiltIn*` name types, imported with `import type` from catalog modules. Enforce module boundaries
+in CI.
 
-The SDF/ball-and-stick example must render while excluding unrelated parsers, cartoon/volume representations, and MP4
-export. Verify the import graph, bundle, and rendering; empty registries alone are insufficient.
+The SDF/ball-and-stick example must render while excluding unrelated parsers, representations, presets, and MP4 export.
+Verify the import graph, bundle, and rendering; empty registries alone are insufficient.
 
 ## Imports, ESM, and builds
 
@@ -131,7 +130,7 @@ classic-script globals, APIs, CSS/assets, and custom elements. Existing MVS HTML
 a CDN must work without edits; verify against the packed candidate before advancing `latest`. See the
 [browser compatibility contract](architecture.md#93-compatibility-contract). Library consumers migrate from
 `lib/mol-*`/CJS to scoped packages. Keep transformer identifiers and snapshot JSON; restoring a snapshot requires its
-features to be loaded.
+transformers and providers to be loaded.
 
 Rename tests to `_test/**/*.test.ts`. Add `.agents/` maintainer skills for extensions, formats, representations,
 apps/examples, servers, and dependency updates, referenced by root `AGENTS.md`. Rewrite mkdocs for packages,
@@ -150,7 +149,8 @@ Then use separate, buildable phases:
 
 1. pnpm/workspace preparation.
 2. Dependency audit, relocations, explicit type imports, and cycle removal.
-3. Split transform/catalog modules, introduce features and empty registries, and validate default/slim compositions.
+3. Split transform/catalog modules, introduce empty registries and `spec.registry`, and validate default/slim
+   compositions.
 4. ESM-only runtime and `.js` relative imports, including scripts and bins.
 5. Physical package moves, exports, direct dependencies, per-app builds, and packed-consumer checks.
 6. Finish MVS, extension/server/CLI packaging, migration tool, skills, mkdocs, CI, and downstream validation.
