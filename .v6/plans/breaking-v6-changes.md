@@ -342,6 +342,9 @@ import { DefaultRegistry } from '@molstar/plugin/default-registry';
 const spec = { registry: DefaultRegistry, behaviors: [...] };
 ```
 
+Script-tag code using the classic Viewer global does the same with `molstar.lib.plugin.DefaultRegistry`, which the
+Viewer now exposes next to `DefaultPluginSpec` and `DefaultPluginUISpec`.
+
 Specs built from `DefaultPluginSpec()` or `DefaultPluginUISpec()` list `DefaultRegistry` already and are unchanged.
 
 - `ColorTheme.createRegistry()` and `SizeTheme.createRegistry()` return empty registries. Code that creates a

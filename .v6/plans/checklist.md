@@ -92,10 +92,11 @@ allow the caller to choose timestamps that are reproducible across time zones.
 
 - [ ] Rendering-backend extraction and GL resource/pass/readback redesign.
 - [ ] WebGPU and Blender integration.
-- [ ] Plugin composition per the [design](../designs/plugin-composition.md) and [plan](plugin-composition.md): empty
+- [x] Plugin composition per the [design](../designs/plugin-composition.md) and [plan](plugin-composition.md): empty
       registries, `spec.registry` entries, explicit base specs, presets that import what they run, transformer/catalog
       splitting, snapshot pre-validation, and slim-plugin guarantees.
-- [ ] Remaining convenience-barrel cleanup and `StateTransforms` facade removal.
+- [ ] Remaining convenience-barrel cleanup. The `StateTransforms` facade was removed in plugin composition step 1 (the
+      classic Viewer global keeps an app-level object).
 - [ ] Broader test-runner migration and maintainer skills/documentation rewrite.
 - [ ] Fast types, isolated declarations, and the corresponding API annotations.
 - [ ] JSR publication, migration CLI, and downstream migration validation.

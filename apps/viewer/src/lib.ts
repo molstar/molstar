@@ -14,6 +14,7 @@ import { PluginUIContext } from '@molstar/plugin-ui/context';
 import { PluginConfig } from '@molstar/plugin/config';
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { DefaultRegistry } from '@molstar/plugin/default-registry';
 import { PluginSpec } from '@molstar/plugin/spec';
 import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import { PluginStateObject, PluginStateTransform } from '@molstar/plugin/state/objects';
@@ -54,6 +55,7 @@ export const lib = {
     StateActions,
     DefaultPluginSpec,
     DefaultPluginUISpec,
+    DefaultRegistry,
   },
   extensions: {
     ...PluginExtensions,

@@ -1,6 +1,7 @@
 # Plugin composition implementation plan
 
-Status: planned, not started (2026-10-06). Line numbers below refer to commit `477703ca5`.
+Status: steps 0–5 implemented and verified (2026-10-06). The migration-tool rules in §5 remain open for
+`@molstar/migrate-6-cli`. Line numbers in the inventories refer to commit `477703ca5`.
 
 This plan implements the [plugin-composition design](../designs/plugin-composition.md) ("the spec"; `spec §N` refers to
 its sections). The spec holds the contract, rules, and decisions; this plan holds the ordered steps, call-site
@@ -410,9 +411,10 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 ### 3.1 Viewer (`apps/viewer`)
 
-- [ ] Spec: `registry: [...DefaultRegistry, ViewerEntry, customFormatsEntry]`, with the custom-formats entry last so
+- [x] Spec: `registry: [...DefaultRegistry, ViewerEntry, customFormatsEntry]`, with the custom-formats entry last so
       built-in format order and `auto()` tie-breaking are unchanged. `ViewerAutoPreset` may move into `ViewerEntry` or
-      stay registered in `onBeforeUIRender`; its entry includes only the auto preset it falls back to.
+      stay registered in `onBeforeUIRender`; its entry includes only the auto preset it falls back to. Done as
+      `createViewerRegistry` (`apps/viewer/src/registry.ts`); `ViewerAutoPreset` stays registered in `onBeforeUIRender`.
 - [x] Convert `customFormats` as in spec §11: type it `[name: string, provider: DataFormatProvider.Unnamed][]` and
       register `DataFormatProvider.withName(provider, name)` for each tuple. `G3dProvider` gains `name: 'g3d'`, so the
       default tuple passes through unchanged.
@@ -422,10 +424,10 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       would break `Viewer.create`. When a `customFormats` name equals a format in `DefaultFormats`, the Viewer registers
       `{ ...DefaultFormats, formats: DefaultFormats.formats.filter((p) => !customNames.has(p.name)) }` in its place,
       then appends the custom-formats entry. `get(name)` returns the custom provider as in 5.x.
-- [ ] `loadTrajectory({ preset })` keeps accepting the hierarchy short keys through the preset aliases, and also accepts
+- [x] `loadTrajectory({ preset })` keeps accepting the hierarchy short keys through the preset aliases, and also accepts
       ids.
-- [ ] Import `@molstar/model/script/transpilers/all` at the top of the Viewer entry.
-- [ ] `molstar.lib.plugin` (`apps/viewer/src/lib.ts`): keep `StateTransforms` as an app-level object literal with the
+- [x] Import `@molstar/model/script/transpilers/all` at the top of the Viewer entry.
+- [x] `molstar.lib.plugin` (`apps/viewer/src/lib.ts`): keep `StateTransforms` as an app-level object literal with the
       same `Data`/`Misc`/`Model`/`Particles`/`Volume`/`Representation`/`Shape` keys and member names, assembled from the
       split modules; no library module imports it. Keep `StateActions`, `DefaultPluginSpec`, and `DefaultPluginUISpec`
       as values from their new modules, and add `DefaultRegistry` so script-tag code can migrate a literal spec with
@@ -462,16 +464,17 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       default spec but replace `components` wholesale; each spreads `...defaultSpec.components` into its `components`,
       or it would silently get the minimal tools.
 - [x] `proteopedia-wrapper` replaces `DefaultAnimations` instead of overriding `animations`.
-- [ ] `examples/interactions` and `examples/basic-wrapper` use preset ids (§1.3).
-- [ ] `examples/image-renderer` and `examples/glb-export`: default specs from `default-spec`, leaf transformer imports.
+- [x] ~~`examples/interactions` and `examples/basic-wrapper` use preset ids (§1.3).~~ Superseded: built-in presets keep
+      their short keys as aliases, so these calls work unchanged (verified in a browser).
+- [x] `examples/image-renderer` and `examples/glb-export`: default specs from `default-spec`, leaf transformer imports.
 
 ### 3.6 Smoke fixtures
 
 - [x] `smoke/headless/capture.mjs`, `smoke/browser/viewer/index.html`, `smoke/browser/library/index.html`,
       `smoke/node/runtime.mjs`, and `smoke/types/consumer.tsx` import the default specs from `default-spec`, replace
       `spec.actions` checks with `plugin.state.data.actions` lookups, and replace `StateTransforms` with leaf imports.
-- [ ] `smoke/headless/capture.mjs` and `smoke/browser/library/index.html` rewrite `applyPreset(trajectory, 'default')`
-      to `'preset-trajectory-default'` (§1.3).
+- [x] ~~`smoke/headless/capture.mjs` and `smoke/browser/library/index.html` rewrite `applyPreset(trajectory, 'default')`
+      to `'preset-trajectory-default'` (§1.3).~~ Superseded by preset aliases; `'default'` resolves unchanged.
 
 ### 3.7 CLI tools
 
@@ -573,11 +576,11 @@ manifest in the same change.
 
 `scripts/workspace/import-graph.mjs`, run from `check:workspace`:
 
-- [ ] Rejects value imports of catalog modules outside catalog modules, default-composition modules, and apps.
-- [ ] Rejects type imports that point to a higher package.
+- [x] Rejects value imports of catalog modules outside catalog modules, default-composition modules, and apps.
+- [x] Rejects type imports that point to a higher package.
 - [x] Rejects value imports of default specs or catalogs from the base entry points (`@molstar/plugin/context`,
       `@molstar/plugin/spec`, `@molstar/plugin-ui`, `@molstar/plugin-ui/spec`), including the modules split in step 1.
-- [ ] Includes extensions, servers, and CLI packages.
+- [x] Includes extensions, servers, and CLI packages.
 - [x] Checks the slim example's graph against the excluded-module list (spec §12), including UI modules (rule e), and
       the spec §5.4 boundary (rule f).
 
