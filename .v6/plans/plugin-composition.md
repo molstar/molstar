@@ -278,7 +278,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 ### Step 2: registries
 
-- [ ] Reference counting in every registry and manager with the per-registry keys and duplicate rules of spec §4.2;
+- [x] Reference counting in every registry and manager with the per-registry keys and duplicate rules of spec §4.2;
       `remove` of an unknown provider is a no-op. `clear()` drops providers and counts.
 - [x] `has(nameOrProvider)` on representation and theme registries; `RepresentationRegistry.default` typed as possibly
       `undefined`; `ThemeRegistry` without a built-in map.
