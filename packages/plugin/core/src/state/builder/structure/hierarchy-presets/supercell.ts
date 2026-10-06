@@ -8,6 +8,9 @@
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { Model } from '@molstar/model/model/structure';
 import { applyCrystalSymmetry, CrystalSymmetryParams } from './crystal-symmetry.js';
+import { OperatorHklColorThemeProvider } from '@molstar/graphics/theme/color/operator-hkl';
+import { mergeRegistryEntries } from '@molstar/plugin/registry/merge';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { TrajectoryHierarchyPresetProvider } from './types.js';
 
 export const SupercellHierarchyPreset = TrajectoryHierarchyPresetProvider({
@@ -31,3 +34,9 @@ export const SupercellHierarchyPreset = TrajectoryHierarchyPresetProvider({
     );
   },
 });
+
+/** The super cell hierarchy preset with the `operator-hkl` color theme it applies. */
+export const SupercellHierarchyPresetEntry: PluginRegistryEntry = mergeRegistryEntries(
+  { structure: { presets: { hierarchy: [SupercellHierarchyPreset] } } },
+  { structure: { themes: { color: [OperatorHklColorThemeProvider] } } },
+);

@@ -393,6 +393,61 @@ applied and before the data tree. It logs a warning for each representation type
 the structure, volume, and particles representation transformers (data tree and transition frames) that is not
 registered in the matching scope; the registry default replaces it when the data tree is normalized. It never throws.
 
+## Plugin composition step 3: presets
+
+### Mixed name and provider props
+
+`createStructureRepresentationParams`, `createVolumeRepresentationParams`, and the structure representation builder
+(`addRepresentation`, `buildRepresentation`) accept a name or a provider in each of `type`, `color`, and `size` and
+resolve each field on its own, so `{ type: CartoonRepresentationProvider, color: 'element-symbol' }` works. The "any
+string field selects the by-name path" dispatch is gone. The params types follow the field: a provider gives its params,
+a built-in name gives `BuiltInParams`, and any other string gives `{}`. The prop types are now
+`StructureRepresentationProps<R, C, S>` and `VolumeRepresentationProps<R, C, S>` with `R`, `C`, and `S` constrained to a
+provider or a string (the new `*RepresentationRef`, `*ColorThemeRef`, and `*SizeThemeRef` types);
+`*RepresentationBuiltInProps` is kept as the name-only alias. The builder methods are generic in `R`, `C`, and `S`
+instead of in the whole props object, so the params of each field are checked against that field; a call that previously
+compiled only because the props were checked against the union of every built-in's params can now fail to compile (for
+example `colorParams: { palette }` on `illustrative`). Names that are not registered still warn and use the registry
+default, and an empty registry still throws.
+
+### Presets import what they run and export entries
+
+Each representation preset passes provider objects (and the imported theme providers for its fixed color themes) to the
+builder instead of names, and its module exports an entry next to the preset: `EmptyPresetEntry`, `AutoPresetEntry`,
+`AtomicDetailPresetEntry`, `PolymerCartoonPresetEntry`, `PolymerAndLigandPresetEntry`, `ProteinAndNucleicPresetEntry`,
+`CoarseSurfacePresetEntry`, `IllustrativePresetEntry`, `MolecularSurfacePresetEntry`, `AutoLodPresetEntry`, and
+`MesoscalePresetEntry`. An entry lists its own preset first, followed by the representation entries (and theme
+providers) it builds; `AutoPresetEntry` also includes the entries of the presets `auto` chooses between. The hierarchy
+presets export `DefaultHierarchyPresetEntry`, `AllModelsHierarchyPresetEntry`, `UnitcellHierarchyPresetEntry`,
+`SupercellHierarchyPresetEntry`, and `CrystalContactsHierarchyPresetEntry` with the color themes they apply (and, for
+all-models, the default preset it delegates to). Hierarchy preset entries do not include a representation preset; that
+is the configured one. `@molstar/plugin/registry/merge` exports `mergeRegistryEntries(...entries)` for building such
+entries. `DefaultPresets` is built from these entries and lists the same 5 hierarchy and 11 representation presets in
+the same order. The preset providers keep their names.
+
+### Hierarchy preset `representationPreset`
+
+The `representationPreset` param of every hierarchy preset is typed with the built-in id and alias unions (`import type`
+from the catalog) and no longer defaults to `'auto'`: when it is absent or empty the preset applies
+`PluginConfig.Structure.DefaultRepresentationPreset`, and the hierarchy presets no longer import the `auto` preset. The
+configured preset is resolved through the registry, so a hierarchy preset applied to a plugin that has not registered it
+fails with `Preset '<id>' is not registered in this plugin`. Calls that relied on the old `'auto'` param default and a
+config that names another preset now get the configured preset.
+
+### `presetSelectionComponent`
+
+`presetSelectionComponent(plugin, structure, query, tag, params?)` takes a `StructureSelectionQuery` object and a tag
+instead of a `StructureSelectionQueries` key; the component key stays `selection-<tag>`. Import the query from its
+module (for example `protein` and `nucleic` from `@molstar/plugin/state/queries/structure/type`). The module no longer
+imports the query catalog. Replace `presetSelectionComponent(plugin, s, 'protein')` with
+`presetSelectionComponent(plugin, s, protein, 'protein')`.
+
+### Delegating presets
+
+The Viewer's `ViewerAutoPreset` looks up the model-archive quality-assessment and SB-NCBR partial-charges presets by id
+through `plugin.builders.structure.representation.resolveProvider` and skips them when they are not registered, instead
+of importing them; it still falls back to the imported `AutoPreset`.
+
 ## Declaration contracts
 
 `ExternalModules['jpeg-js']` exposes the injected codec's `encode` contract instead of the entire codec module type.

@@ -10,6 +10,10 @@
 import { StateObjectRef } from '@molstar/core/state';
 import { Structure } from '@molstar/model/model/structure';
 import { PluginConfig } from '@molstar/plugin/config';
+import { mergeRegistryEntries } from '@molstar/plugin/registry/merge';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
+import { GaussianSurface } from '@molstar/plugin/registry/structure/gaussian-surface';
 import { StructureRepresentationPresetProvider, presetStaticComponent, BuiltInPresetGroupName } from './types.js';
 
 const CommonParams = StructureRepresentationPresetProvider.CommonParams;
@@ -67,7 +71,7 @@ export const CoarseSurfacePreset = StructureRepresentationPresetProvider({
         update,
         components.polymer,
         {
-          type: 'gaussian-surface',
+          type: GaussianSurfaceRepresentationProvider,
           typeParams: { ...surfaceTypeParams, ...gaussianProps },
           color: symmetryColor,
           colorParams: symmetryColorParams,
@@ -78,7 +82,7 @@ export const CoarseSurfacePreset = StructureRepresentationPresetProvider({
         update,
         components.lipid,
         {
-          type: 'gaussian-surface',
+          type: GaussianSurfaceRepresentationProvider,
           typeParams: { ...surfaceTypeParams, ...gaussianProps },
           color: symmetryColor,
           colorParams: symmetryColorParams,
@@ -93,3 +97,9 @@ export const CoarseSurfacePreset = StructureRepresentationPresetProvider({
     return { components, representations };
   },
 });
+
+/** The CoarseSurfacePreset preset with the representations and themes it builds. */
+export const CoarseSurfacePresetEntry: PluginRegistryEntry = mergeRegistryEntries(
+  { structure: { presets: { representation: [CoarseSurfacePreset] } } },
+  GaussianSurface,
+);

@@ -11,7 +11,18 @@ import { StateObjectRef } from '@molstar/core/state';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { IndexPairBonds } from '@molstar/model/formats/structure/property/bonds/index-pair';
 import { StructConn } from '@molstar/model/formats/structure/property/bonds/struct_conn';
-import type { StructureRepresentationRegistry } from '@molstar/graphics/repr/structure/registry';
+import { BallAndStickRepresentationProvider } from '@molstar/graphics/repr/structure/representation/ball-and-stick';
+import { CarbohydrateRepresentationProvider } from '@molstar/graphics/repr/structure/representation/carbohydrate';
+import { LineRepresentationProvider } from '@molstar/graphics/repr/structure/representation/line';
+import { PointRepresentationProvider } from '@molstar/graphics/repr/structure/representation/point';
+import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
+import { mergeRegistryEntries } from '@molstar/plugin/registry/merge';
+import { BallAndStick } from '@molstar/plugin/registry/structure/ball-and-stick';
+import { Carbohydrate } from '@molstar/plugin/registry/structure/carbohydrate';
+import { Line } from '@molstar/plugin/registry/structure/line';
+import { Point } from '@molstar/plugin/registry/structure/point';
+import { Spacefill } from '@molstar/plugin/registry/structure/spacefill';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { StructureRepresentationPresetProvider, presetStaticComponent, BuiltInPresetGroupName } from './types.js';
 
 const CommonParams = StructureRepresentationPresetProvider.CommonParams;
@@ -51,13 +62,17 @@ export const AtomicDetailPreset = StructureRepresentationPresetProvider({
     const m = structure.models[0];
     const bondsGiven = !!IndexPairBonds.Provider.get(m) || StructConn.isExhaustive(m);
 
-    let atomicType: StructureRepresentationRegistry.BuiltIn = 'ball-and-stick';
+    let atomicType:
+      | typeof BallAndStickRepresentationProvider
+      | typeof PointRepresentationProvider
+      | typeof SpacefillRepresentationProvider
+      | typeof LineRepresentationProvider = BallAndStickRepresentationProvider;
     if (structure.isCoarseGrained || highUnitCount) {
-      atomicType = veryHighElementCount ? 'point' : 'spacefill';
+      atomicType = veryHighElementCount ? PointRepresentationProvider : SpacefillRepresentationProvider;
     } else if (lowResidueElementRatio && !bondsGiven) {
-      atomicType = 'spacefill';
+      atomicType = SpacefillRepresentationProvider;
     } else if (highElementCount) {
-      atomicType = 'line';
+      atomicType = LineRepresentationProvider;
     }
     const showCarbohydrateSymbol = params.showCarbohydrateSymbol && !highElementCount && !lowResidueElementRatio;
 
@@ -91,7 +106,7 @@ export const AtomicDetailPreset = StructureRepresentationPresetProvider({
           update,
           components.branched,
           {
-            type: 'carbohydrate',
+            type: CarbohydrateRepresentationProvider,
             typeParams: { ...typeParams, alpha: 0.4, visuals: ['carbohydrate-symbol'] },
             color,
             colorParams: globalColorParams,
@@ -112,3 +127,13 @@ export const AtomicDetailPreset = StructureRepresentationPresetProvider({
     return { components, representations };
   },
 });
+
+/** The atomic detail preset with the representations it builds. */
+export const AtomicDetailPresetEntry: PluginRegistryEntry = mergeRegistryEntries(
+  { structure: { presets: { representation: [AtomicDetailPreset] } } },
+  BallAndStick,
+  Spacefill,
+  Point,
+  Line,
+  Carbohydrate,
+);

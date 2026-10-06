@@ -31,57 +31,67 @@ export function isSurfaceRepresentationType(name: string) {
   return name.endsWith('-surface');
 }
 
-export interface StructureRepresentationBuiltInProps<
+/** A representation of the scope, given as a provider or as a registered name. */
+export type StructureRepresentationRef = RepresentationProvider<Structure> | string;
+/** A color theme, given as a provider or as a registered name. */
+export type StructureColorThemeRef = ColorTheme.Provider | string;
+/** A size theme, given as a provider or as a registered name. */
+export type StructureSizeThemeRef = SizeTheme.Provider | string;
+
+/** Params of a representation reference: a provider's params, the params of a built-in name, or `{}` for other names. */
+export type StructureRepresentationParamsOf<R extends StructureRepresentationRef> = [R] extends [
+  RepresentationProvider<Structure>,
+]
+  ? Partial<RepresentationProvider.ParamValues<R>>
+  : [R] extends [StructureRepresentationRegistry.BuiltIn]
+    ? StructureRepresentationRegistry.BuiltInParams<R>
+    : {};
+/** Params of a color theme reference: a provider's params, the params of a built-in name, or `{}` for other names. */
+export type StructureColorThemeParamsOf<C extends StructureColorThemeRef> = [C] extends [ColorTheme.Provider]
+  ? Partial<ColorTheme.ParamValues<C>>
+  : [C] extends [ColorTheme.BuiltIn]
+    ? ColorTheme.BuiltInParams<C>
+    : {};
+/** Params of a size theme reference: a provider's params, the params of a built-in name, or `{}` for other names. */
+export type StructureSizeThemeParamsOf<S extends StructureSizeThemeRef> = [S] extends [SizeTheme.Provider]
+  ? Partial<SizeTheme.ParamValues<S>>
+  : [S] extends [SizeTheme.BuiltIn]
+    ? SizeTheme.BuiltInParams<S>
+    : {};
+
+/**
+ * Each of `type`, `color`, and `size` is a provider or a name and is resolved independently, so a provider can be
+ * combined with a theme name. The params types follow the field: a provider's params, the params of a built-in name, or
+ * `{}` for any other name.
+ */
+export interface StructureRepresentationProps<
+  R extends StructureRepresentationRef = StructureRepresentationRef,
+  C extends StructureColorThemeRef = StructureColorThemeRef,
+  S extends StructureSizeThemeRef = StructureSizeThemeRef,
+> {
+  type?: R;
+  typeParams?: StructureRepresentationParamsOf<R>;
+  color?: C;
+  colorParams?: StructureColorThemeParamsOf<C>;
+  size?: S;
+  sizeParams?: StructureSizeThemeParamsOf<S>;
+}
+
+/** Props with representation, color theme, and size theme names. */
+export type StructureRepresentationBuiltInProps<
   R extends StructureRepresentationRegistry.BuiltIn = StructureRepresentationRegistry.BuiltIn,
   C extends ColorTheme.BuiltIn = ColorTheme.BuiltIn,
   S extends SizeTheme.BuiltIn = SizeTheme.BuiltIn,
-> {
-  /** Using any registered name will work, but code completion will break */
-  type?: R;
-  typeParams?: StructureRepresentationRegistry.BuiltInParams<R>;
-  /** Using any registered name will work, but code completion will break */
-  color?: C;
-  colorParams?: ColorTheme.BuiltInParams<C>;
-  /** Using any registered name will work, but code completion will break */
-  size?: S;
-  sizeParams?: SizeTheme.BuiltInParams<S>;
-}
-
-export interface StructureRepresentationProps<
-  R extends RepresentationProvider<Structure> = RepresentationProvider<Structure>,
-  C extends ColorTheme.Provider = ColorTheme.Provider,
-  S extends SizeTheme.Provider = SizeTheme.Provider,
-> {
-  type?: R;
-  typeParams?: Partial<RepresentationProvider.ParamValues<R>>;
-  color?: C;
-  colorParams?: Partial<ColorTheme.ParamValues<C>>;
-  size?: S;
-  sizeParams?: Partial<SizeTheme.ParamValues<S>>;
-}
+> = StructureRepresentationProps<R, C, S>;
 
 export function createStructureRepresentationParams<
-  R extends StructureRepresentationRegistry.BuiltIn,
-  C extends ColorTheme.BuiltIn,
-  S extends SizeTheme.BuiltIn,
+  R extends StructureRepresentationRef = StructureRepresentationRef,
+  C extends StructureColorThemeRef = StructureColorThemeRef,
+  S extends StructureSizeThemeRef = StructureSizeThemeRef,
 >(
   ctx: PluginContext,
   structure?: Structure,
-  props?: StructureRepresentationBuiltInProps<R, C, S>,
-): StateTransformer.Params<StructureRepresentation3D>;
-export function createStructureRepresentationParams<
-  R extends RepresentationProvider<Structure>,
-  C extends ColorTheme.Provider,
-  S extends SizeTheme.Provider,
->(
-  ctx: PluginContext,
-  structure?: Structure,
-  props?: StructureRepresentationProps<R, C, S>,
-): StateTransformer.Params<StructureRepresentation3D>;
-export function createStructureRepresentationParams(
-  ctx: PluginContext,
-  structure?: Structure,
-  props: any = {},
+  props: StructureRepresentationProps<R, C, S> = {},
 ): StateTransformer.Params<StructureRepresentation3D> {
   const scope = ctx.representation.structure;
   if (structure) assertRepresentationScope('structure', scope);
@@ -97,10 +107,7 @@ export function createStructureRepresentationParams(
     checkColor: true,
     checkSize: true,
   });
-  const p = props as StructureRepresentationBuiltInProps;
-  if (typeof p.type === 'string' || typeof p.color === 'string' || typeof p.size === 'string')
-    return createParamsByName(ctx, structure || Structure.Empty, props);
-  return createParamsProvider(ctx, structure || Structure.Empty, props);
+  return createParams(ctx, structure || Structure.Empty, props);
 }
 
 export function getStructureThemeTypes(ctx: PluginContext, structure?: Structure) {
@@ -195,50 +202,31 @@ export function createStructureSizeThemeParams(
   return { name: size.name, params: Object.assign(sizeDefaultParams, params) };
 }
 
-function createParamsByName(
-  ctx: PluginContext,
-  structure: Structure,
-  props: StructureRepresentationBuiltInProps,
-): StateTransformer.Params<StructureRepresentation3D> {
-  const typeProvider =
-    (props.type && ctx.representation.structure.registry.get(props.type)) ||
-    ctx.representation.structure.registry.get(ctx.representation.structure.registry.default!.name);
-  const colorProvider =
-    (props.color && ctx.representation.structure.themes.colorThemeRegistry.get(props.color)) ||
-    ctx.representation.structure.themes.colorThemeRegistry.get(typeProvider.defaultColorTheme.name);
-  const sizeProvider =
-    (props.size && ctx.representation.structure.themes.sizeThemeRegistry.get(props.size)) ||
-    ctx.representation.structure.themes.sizeThemeRegistry.get(typeProvider.defaultSizeTheme.name);
-
-  return createParamsProvider(ctx, structure, {
-    type: typeProvider,
-    typeParams: props.typeParams,
-    color: colorProvider,
-    colorParams: props.colorParams,
-    size: sizeProvider,
-    sizeParams: props.sizeParams,
-  });
-}
-
-function createParamsProvider(
+function createParams(
   ctx: PluginContext,
   structure: Structure,
   props: StructureRepresentationProps = {},
 ): StateTransformer.Params<StructureRepresentation3D> {
-  const { themes: themeCtx } = ctx.representation.structure;
+  const { registry, themes: themeCtx } = ctx.representation.structure;
   const themeDataCtx = { structure };
 
+  // Each field is a provider or a name and is resolved on its own.
   const repr =
-    props.type || ctx.representation.structure.registry.get(ctx.representation.structure.registry.default!.name);
+    (typeof props.type === 'string' ? props.type && registry.get(props.type) : props.type) ||
+    registry.get(registry.default!.name);
   const reprDefaultParams = PD.getDefaultValues(repr.getParams(themeCtx, structure));
   const reprParams = Object.assign(reprDefaultParams, props.typeParams);
 
-  const color = props.color || themeCtx.colorThemeRegistry.get(repr.defaultColorTheme.name);
+  const color =
+    (typeof props.color === 'string' ? props.color && themeCtx.colorThemeRegistry.get(props.color) : props.color) ||
+    themeCtx.colorThemeRegistry.get(repr.defaultColorTheme.name);
   const colorDefaultParams = PD.getDefaultValues(color.getParams(themeDataCtx));
   if (color.name === repr.defaultColorTheme.name) Object.assign(colorDefaultParams, repr.defaultColorTheme.props);
   const colorParams = Object.assign(colorDefaultParams, props.colorParams);
 
-  const size = props.size || themeCtx.sizeThemeRegistry.get(repr.defaultSizeTheme.name);
+  const size =
+    (typeof props.size === 'string' ? props.size && themeCtx.sizeThemeRegistry.get(props.size) : props.size) ||
+    themeCtx.sizeThemeRegistry.get(repr.defaultSizeTheme.name);
   const sizeDefaultParams = PD.getDefaultValues(size.getParams(themeDataCtx));
   if (size.name === repr.defaultSizeTheme.name) Object.assign(sizeDefaultParams, repr.defaultSizeTheme.props);
   const sizeParams = Object.assign(sizeDefaultParams, props.sizeParams);

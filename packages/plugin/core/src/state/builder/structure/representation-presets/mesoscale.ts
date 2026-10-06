@@ -10,6 +10,11 @@
 import { StateObjectRef } from '@molstar/core/state';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
+import { mergeRegistryEntries } from '@molstar/plugin/registry/merge';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
+import { EntityIdColorThemeProvider } from '@molstar/graphics/theme/color/entity-id';
+import { Spacefill } from '@molstar/plugin/registry/structure/spacefill';
 import { StructureRepresentationPresetProvider, presetStaticComponent } from './types.js';
 
 const CommonParams = StructureRepresentationPresetProvider.CommonParams;
@@ -57,7 +62,7 @@ export const MesoscalePreset = StructureRepresentationPresetProvider({
         update,
         components.all,
         {
-          type: 'spacefill',
+          type: SpacefillRepresentationProvider,
           typeParams: {
             ...typeParams,
             instanceGranularity: true,
@@ -66,7 +71,7 @@ export const MesoscalePreset = StructureRepresentationPresetProvider({
             alphaThickness,
             clipPrimitive: true,
           },
-          color: color || 'entity-id',
+          color: color || EntityIdColorThemeProvider,
         },
         { tag: 'all' },
       ),
@@ -78,3 +83,10 @@ export const MesoscalePreset = StructureRepresentationPresetProvider({
     return { components, representations };
   },
 });
+
+/** The MesoscalePreset preset with the representations and themes it builds. */
+export const MesoscalePresetEntry: PluginRegistryEntry = mergeRegistryEntries(
+  { structure: { presets: { representation: [MesoscalePreset] } } },
+  Spacefill,
+  { structure: { themes: { color: [EntityIdColorThemeProvider] } } },
+);

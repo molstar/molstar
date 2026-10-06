@@ -11,9 +11,8 @@ import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/
 import type { PluginStateObject } from '../../../objects.js';
 import { RootStructureDefinition } from '../../../helpers/root-structure.js';
 import type { PluginContext } from '@molstar/plugin/context';
-import { PluginConfig } from '@molstar/plugin/config';
 import { StructureRepresentationPresetProvider } from '../representation-presets/types.js';
-import { AutoPreset } from '../representation-presets/auto.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { TrajectoryHierarchyPresetProvider } from './types.js';
 
 const CommonParams = TrajectoryHierarchyPresetProvider.CommonParams;
@@ -51,10 +50,7 @@ export const DefaultHierarchyPreset = TrajectoryHierarchyPresetProvider({
       params.showUnitcell === void 0 || !!params.showUnitcell
         ? await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: true })
         : void 0;
-    const representationPreset =
-      params.representationPreset ||
-      plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) ||
-      AutoPreset.id;
+    const representationPreset = TrajectoryHierarchyPresetProvider.getRepresentationPreset(plugin, params);
     const representation = await plugin.builders.structure.representation.applyPreset(
       structureProperties,
       representationPreset,
@@ -71,3 +67,8 @@ export const DefaultHierarchyPreset = TrajectoryHierarchyPresetProvider({
     };
   },
 });
+
+/** The default hierarchy preset. The representation preset it applies comes from config, so the entry has none. */
+export const DefaultHierarchyPresetEntry: PluginRegistryEntry = {
+  structure: { presets: { hierarchy: [DefaultHierarchyPreset] } },
+};

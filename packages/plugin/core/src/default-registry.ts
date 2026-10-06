@@ -44,8 +44,22 @@ import { BuiltInCoordinatesFormats } from '@molstar/plugin/state/formats/coordin
 import { BuiltInShapeFormats } from '@molstar/plugin/state/formats/shape/catalog';
 import { BuiltInParticlesFormats } from '@molstar/plugin/state/formats/particles/catalog';
 import { BuiltInTrajectoryFormats } from '@molstar/plugin/state/formats/trajectory/catalog';
-import { PresetTrajectoryHierarchy } from '@molstar/plugin/state/builder/structure/hierarchy-presets/catalog';
-import { PresetStructureRepresentations } from '@molstar/plugin/state/builder/structure/representation-presets/catalog';
+import { DefaultHierarchyPresetEntry } from '@molstar/plugin/state/builder/structure/hierarchy-presets/default';
+import { AllModelsHierarchyPresetEntry } from '@molstar/plugin/state/builder/structure/hierarchy-presets/all-models';
+import { UnitcellHierarchyPresetEntry } from '@molstar/plugin/state/builder/structure/hierarchy-presets/unitcell';
+import { SupercellHierarchyPresetEntry } from '@molstar/plugin/state/builder/structure/hierarchy-presets/supercell';
+import { CrystalContactsHierarchyPresetEntry } from '@molstar/plugin/state/builder/structure/hierarchy-presets/crystal-contacts';
+import { EmptyPresetEntry } from '@molstar/plugin/state/builder/structure/representation-presets/empty';
+import { AutoPresetEntry } from '@molstar/plugin/state/builder/structure/representation-presets/auto';
+import { AtomicDetailPresetEntry } from '@molstar/plugin/state/builder/structure/representation-presets/atomic-detail';
+import { PolymerCartoonPresetEntry } from '@molstar/plugin/state/builder/structure/representation-presets/polymer-cartoon';
+import { PolymerAndLigandPresetEntry } from '@molstar/plugin/state/builder/structure/representation-presets/polymer-and-ligand';
+import { ProteinAndNucleicPresetEntry } from '@molstar/plugin/state/builder/structure/representation-presets/protein-and-nucleic';
+import { CoarseSurfacePresetEntry } from '@molstar/plugin/state/builder/structure/representation-presets/coarse-surface';
+import { IllustrativePresetEntry } from '@molstar/plugin/state/builder/structure/representation-presets/illustrative';
+import { MolecularSurfacePresetEntry } from '@molstar/plugin/state/builder/structure/representation-presets/molecular-surface';
+import { AutoLodPresetEntry } from '@molstar/plugin/state/builder/structure/representation-presets/auto-lod';
+import { MesoscalePresetEntry } from '@molstar/plugin/state/builder/structure/representation-presets/mesoscale';
 import { StructureSelectionQueries } from '@molstar/plugin/state/queries/structure/catalog';
 import {
   AminoAcidSelectionQueries,
@@ -264,11 +278,36 @@ export const DefaultFormats: PluginRegistryEntry = {
   ],
 };
 
+// A preset entry lists its own preset first, followed by the presets it delegates to.
+const ownPreset = <P>(presets: readonly P[] | undefined) => presets![0];
+
+/*
+ * The hierarchy and representation presets of 5.x in their 5.x order. Each preset entry also carries the
+ * representations and themes the preset builds; the default entries above register those.
+ */
 export const DefaultPresets: PluginRegistryEntry = {
   structure: {
     presets: {
-      hierarchy: Object.values(PresetTrajectoryHierarchy),
-      representation: Object.values(PresetStructureRepresentations),
+      hierarchy: [
+        DefaultHierarchyPresetEntry,
+        AllModelsHierarchyPresetEntry,
+        UnitcellHierarchyPresetEntry,
+        SupercellHierarchyPresetEntry,
+        CrystalContactsHierarchyPresetEntry,
+      ].map((e) => ownPreset(e.structure!.presets!.hierarchy)),
+      representation: [
+        EmptyPresetEntry,
+        AutoPresetEntry,
+        AtomicDetailPresetEntry,
+        PolymerCartoonPresetEntry,
+        PolymerAndLigandPresetEntry,
+        ProteinAndNucleicPresetEntry,
+        CoarseSurfacePresetEntry,
+        IllustrativePresetEntry,
+        MolecularSurfacePresetEntry,
+        AutoLodPresetEntry,
+        MesoscalePresetEntry,
+      ].map((e) => ownPreset(e.structure!.presets!.representation)),
     },
   },
 };

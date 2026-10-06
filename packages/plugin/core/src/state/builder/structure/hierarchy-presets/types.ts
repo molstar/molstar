@@ -11,7 +11,11 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { StateTransformer } from '@molstar/core/state';
 import { CustomModelProperties, CustomStructureProperties } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import type { PluginContext } from '@molstar/plugin/context';
-import type { BuiltInStructureRepresentationPresetAlias } from '../representation-presets/catalog.js';
+import { PluginConfig } from '@molstar/plugin/config';
+import type {
+  BuiltInStructureRepresentationPresetAlias,
+  BuiltInStructureRepresentationPresetId,
+} from '../representation-presets/catalog.js';
 
 export interface TrajectoryHierarchyPresetProvider<
   P = any,
@@ -30,11 +34,19 @@ export namespace TrajectoryHierarchyPresetProvider {
   export type State<P extends TrajectoryHierarchyPresetProvider> =
     P extends TrajectoryHierarchyPresetProvider<infer _, infer S> ? S : never;
 
+  /** The representation preset to apply: the `representationPreset` param, else the configured default preset. */
+  export function getRepresentationPreset(plugin: PluginContext, params: { representationPreset?: string }): string {
+    return params.representationPreset || plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || '';
+  }
+
   export const CommonParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
     modelProperties: PD.Optional(PD.Group(StateTransformer.getParamDefinition(CustomModelProperties, void 0, plugin))),
     structureProperties: PD.Optional(
       PD.Group(StateTransformer.getParamDefinition(CustomStructureProperties, void 0, plugin)),
     ),
-    representationPreset: PD.Optional(PD.Text<BuiltInStructureRepresentationPresetAlias>('auto' as const)),
+    /** A representation preset id or alias. When absent, `PluginConfig.Structure.DefaultRepresentationPreset` is used. */
+    representationPreset: PD.Optional(
+      PD.Text<BuiltInStructureRepresentationPresetId | BuiltInStructureRepresentationPresetAlias>(''),
+    ),
   });
 }

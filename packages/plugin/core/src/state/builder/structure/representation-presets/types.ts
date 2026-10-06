@@ -16,7 +16,7 @@ import type { Structure } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StateObjectRef, StateObjectSelector } from '@molstar/core/state';
 import type { StaticStructureComponentType } from '../../../helpers/structure-component.js';
-import { StructureSelectionQueries as Q } from '@molstar/plugin/state/queries/structure/catalog';
+import type { StructureSelectionQuery } from '@molstar/plugin/state/queries/structure/query';
 import type { StructureFocusRepresentationProps } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
 import { StructureFocusRepresentationId } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation/id';
 import { createStructureColorThemeParams } from '../../../helpers/structure-representation-params.js';
@@ -178,11 +178,16 @@ export function presetStaticComponent(
   return plugin.builders.structure.tryCreateComponentStatic(structure, type, params);
 }
 
+/**
+ * Creates a component from a selection query. The component's key is `selection-<tag>`; import the query from its
+ * module (for example `protein` from `@molstar/plugin/state/queries/structure/type`) instead of the query catalog.
+ */
 export function presetSelectionComponent(
   plugin: PluginContext,
   structure: StateObjectRef<PluginStateObject.Molecule.Structure>,
-  query: keyof typeof Q,
+  query: StructureSelectionQuery,
+  tag: string,
   params?: { label?: string; tags?: string[] },
 ) {
-  return plugin.builders.structure.tryCreateComponentFromSelection(structure, Q[query], `selection-${query}`, params);
+  return plugin.builders.structure.tryCreateComponentFromSelection(structure, query, `selection-${tag}`, params);
 }

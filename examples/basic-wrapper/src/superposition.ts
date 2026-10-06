@@ -17,6 +17,7 @@ import { StateObjectRef } from '@molstar/core/state';
 import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
 import { TransformStructureConformation } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { Asset } from '@molstar/core/util/assets';
+import { Color } from '@molstar/core/util/color';
 
 export type SuperpositionTestInput = {
   pdbId: string;
@@ -271,7 +272,7 @@ async function addChainRepresentation(
     await plugin.builders.structure.representation.addRepresentation(component, {
       type: 'cartoon',
       color: 'uniform',
-      colorParams: { value: color },
+      colorParams: { value: Color(color) },
     });
   }
 }

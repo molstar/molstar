@@ -10,10 +10,11 @@ import { StateObjectRef } from '@molstar/core/state';
 import type { PluginStateObject } from '../../../objects.js';
 import type { PluginContext } from '@molstar/plugin/context';
 import { getStructureQuality } from '@molstar/graphics/repr/util';
-import { PluginConfig } from '@molstar/plugin/config';
 import { StructureRepresentationPresetProvider } from '../representation-presets/types.js';
-import { AutoPreset } from '../representation-presets/auto.js';
-import { DefaultHierarchyPreset } from './default.js';
+import { TrajectoryIndexColorThemeProvider } from '@molstar/graphics/theme/color/trajectory-index';
+import { mergeRegistryEntries } from '@molstar/plugin/registry/merge';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { DefaultHierarchyPreset, DefaultHierarchyPresetEntry } from './default.js';
 import { TrajectoryHierarchyPresetProvider } from './types.js';
 
 const CommonParams = TrajectoryHierarchyPresetProvider.CommonParams;
@@ -61,10 +62,7 @@ export const AllModelsHierarchyPreset = TrajectoryHierarchyPresetProvider({
       const quality = structure.obj
         ? getStructureQuality(structure.obj.data, { elementCountFactor: tr.frameCount })
         : 'medium';
-      const representationPreset =
-        params.representationPreset ||
-        plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) ||
-        AutoPreset.id;
+      const representationPreset = TrajectoryHierarchyPresetProvider.getRepresentationPreset(plugin, params);
       await builder.representation.applyPreset(structureProperties, representationPreset, {
         theme: { globalName: 'trajectory-index' },
         quality,
@@ -74,3 +72,10 @@ export const AllModelsHierarchyPreset = TrajectoryHierarchyPresetProvider({
     return { models, structures };
   },
 });
+
+/** The all-models hierarchy preset with the default preset it delegates to and the `trajectory-index` color theme. */
+export const AllModelsHierarchyPresetEntry: PluginRegistryEntry = mergeRegistryEntries(
+  { structure: { presets: { hierarchy: [AllModelsHierarchyPreset] } } },
+  DefaultHierarchyPresetEntry,
+  { structure: { themes: { color: [TrajectoryIndexColorThemeProvider] } } },
+);

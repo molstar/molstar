@@ -9,6 +9,14 @@
 
 import { StateObjectRef } from '@molstar/core/state';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
+import { mergeRegistryEntries } from '@molstar/plugin/registry/merge';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { BallAndStickRepresentationProvider } from '@molstar/graphics/repr/structure/representation/ball-and-stick';
+import { CartoonRepresentationProvider } from '@molstar/graphics/repr/structure/representation/cartoon';
+import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
+import { BallAndStick } from '@molstar/plugin/registry/structure/ball-and-stick';
+import { Cartoon } from '@molstar/plugin/registry/structure/cartoon';
+import { GaussianSurface } from '@molstar/plugin/registry/structure/gaussian-surface';
 import { StructureRepresentationPresetProvider, presetStaticComponent } from './types.js';
 
 const CommonParams = StructureRepresentationPresetProvider.CommonParams;
@@ -50,7 +58,7 @@ export const AutoLodPreset = StructureRepresentationPresetProvider({
         update,
         components.all,
         {
-          type: 'gaussian-surface',
+          type: GaussianSurfaceRepresentationProvider,
           typeParams: { ...surfaceTypeParams, lod: Vec3.create(30, 10000000, 100) },
           color: symmetryColor,
           colorParams: symmetryColorParams,
@@ -61,7 +69,7 @@ export const AutoLodPreset = StructureRepresentationPresetProvider({
         update,
         components.all,
         {
-          type: 'cartoon',
+          type: CartoonRepresentationProvider,
           typeParams: { ...typeParams, lod: Vec3.create(-20, 300, 100) },
           color: symmetryColor,
           colorParams: symmetryColorParams,
@@ -72,7 +80,7 @@ export const AutoLodPreset = StructureRepresentationPresetProvider({
         update,
         components.all,
         {
-          type: 'ball-and-stick',
+          type: BallAndStickRepresentationProvider,
           typeParams: { ...typeParams, lod: Vec3.create(-20, 40, 20) },
           color,
           colorParams: ballAndStickColor,
@@ -87,3 +95,11 @@ export const AutoLodPreset = StructureRepresentationPresetProvider({
     return { components, representations };
   },
 });
+
+/** The AutoLodPreset preset with the representations and themes it builds. */
+export const AutoLodPresetEntry: PluginRegistryEntry = mergeRegistryEntries(
+  { structure: { presets: { representation: [AutoLodPreset] } } },
+  GaussianSurface,
+  Cartoon,
+  BallAndStick,
+);

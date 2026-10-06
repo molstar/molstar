@@ -8,6 +8,11 @@
  */
 
 import { StateObjectRef } from '@molstar/core/state';
+import { mergeRegistryEntries } from '@molstar/plugin/registry/merge';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { MolecularSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/molecular-surface';
+import { EntityIdColorThemeProvider } from '@molstar/graphics/theme/color/entity-id';
+import { MolecularSurface } from '@molstar/plugin/registry/structure/molecular-surface';
 import { StructureRepresentationPresetProvider, presetStaticComponent } from './types.js';
 
 const CommonParams = StructureRepresentationPresetProvider.CommonParams;
@@ -41,9 +46,9 @@ export const MolecularSurfacePreset = StructureRepresentationPresetProvider({
         update,
         components.all,
         {
-          type: 'molecular-surface',
+          type: MolecularSurfaceRepresentationProvider,
           typeParams: surfaceTypeParams,
-          color: 'entity-id',
+          color: EntityIdColorThemeProvider,
           colorParams: { overrideWater: true },
         },
         { tag: 'all' },
@@ -55,3 +60,10 @@ export const MolecularSurfacePreset = StructureRepresentationPresetProvider({
     return { components, representations };
   },
 });
+
+/** The MolecularSurfacePreset preset with the representations and themes it builds. */
+export const MolecularSurfacePresetEntry: PluginRegistryEntry = mergeRegistryEntries(
+  { structure: { presets: { representation: [MolecularSurfacePreset] } } },
+  MolecularSurface,
+  { structure: { themes: { color: [EntityIdColorThemeProvider] } } },
+);

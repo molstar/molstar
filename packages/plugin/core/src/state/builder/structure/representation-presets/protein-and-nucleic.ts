@@ -8,6 +8,13 @@
  */
 
 import { StateObjectRef } from '@molstar/core/state';
+import { mergeRegistryEntries } from '@molstar/plugin/registry/merge';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { CartoonRepresentationProvider } from '@molstar/graphics/repr/structure/representation/cartoon';
+import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
+import { Cartoon } from '@molstar/plugin/registry/structure/cartoon';
+import { GaussianSurface } from '@molstar/plugin/registry/structure/gaussian-surface';
+import { nucleic, protein } from '@molstar/plugin/state/queries/structure/type';
 import { StructureRepresentationPresetProvider, presetSelectionComponent, BuiltInPresetGroupName } from './types.js';
 
 const CommonParams = StructureRepresentationPresetProvider.CommonParams;
@@ -28,8 +35,8 @@ export const ProteinAndNucleicPreset = StructureRepresentationPresetProvider({
     if (!structureCell) return {};
 
     const components = {
-      protein: await presetSelectionComponent(plugin, structureCell, 'protein'),
-      nucleic: await presetSelectionComponent(plugin, structureCell, 'nucleic'),
+      protein: await presetSelectionComponent(plugin, structureCell, protein, 'protein'),
+      nucleic: await presetSelectionComponent(plugin, structureCell, nucleic, 'nucleic'),
     };
 
     const structure = structureCell.obj!.data;
@@ -48,14 +55,14 @@ export const ProteinAndNucleicPreset = StructureRepresentationPresetProvider({
       protein: builder.buildRepresentation(
         update,
         components.protein,
-        { type: 'cartoon', typeParams, color: symmetryColor, colorParams: symmetryColorParams },
+        { type: CartoonRepresentationProvider, typeParams, color: symmetryColor, colorParams: symmetryColorParams },
         { tag: 'protein' },
       ),
       nucleic: builder.buildRepresentation(
         update,
         components.nucleic,
         {
-          type: 'gaussian-surface',
+          type: GaussianSurfaceRepresentationProvider,
           typeParams: { ...surfaceTypeParams, ...gaussianProps },
           color: symmetryColor,
           colorParams: symmetryColorParams,
@@ -70,3 +77,10 @@ export const ProteinAndNucleicPreset = StructureRepresentationPresetProvider({
     return { components, representations };
   },
 });
+
+/** The ProteinAndNucleicPreset preset with the representations and themes it builds. */
+export const ProteinAndNucleicPresetEntry: PluginRegistryEntry = mergeRegistryEntries(
+  { structure: { presets: { representation: [ProteinAndNucleicPreset] } } },
+  Cartoon,
+  GaussianSurface,
+);

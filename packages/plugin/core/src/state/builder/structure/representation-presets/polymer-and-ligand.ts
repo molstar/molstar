@@ -8,6 +8,19 @@
  */
 
 import { StateObjectRef } from '@molstar/core/state';
+import { mergeRegistryEntries } from '@molstar/plugin/registry/merge';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { BallAndStickRepresentationProvider } from '@molstar/graphics/repr/structure/representation/ball-and-stick';
+import { CarbohydrateRepresentationProvider } from '@molstar/graphics/repr/structure/representation/carbohydrate';
+import { CartoonRepresentationProvider } from '@molstar/graphics/repr/structure/representation/cartoon';
+import { LineRepresentationProvider } from '@molstar/graphics/repr/structure/representation/line';
+import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
+import { ChainIdColorThemeProvider } from '@molstar/graphics/theme/color/chain-id';
+import { BallAndStick } from '@molstar/plugin/registry/structure/ball-and-stick';
+import { Carbohydrate } from '@molstar/plugin/registry/structure/carbohydrate';
+import { Cartoon } from '@molstar/plugin/registry/structure/cartoon';
+import { Line } from '@molstar/plugin/registry/structure/line';
+import { Spacefill } from '@molstar/plugin/registry/structure/spacefill';
 import { StructureRepresentationPresetProvider, presetStaticComponent, BuiltInPresetGroupName } from './types.js';
 
 const CommonParams = StructureRepresentationPresetProvider.CommonParams;
@@ -42,8 +55,14 @@ export const PolymerAndLigandPreset = StructureRepresentationPresetProvider({
     const structure = structureCell.obj!.data;
 
     // TODO make configurable
-    const waterType = (components.water?.obj?.data?.elementCount || 0) > 50_000 ? 'line' : 'ball-and-stick';
-    const lipidType = (components.lipid?.obj?.data?.elementCount || 0) > 20_000 ? 'line' : 'ball-and-stick';
+    const waterType =
+      (components.water?.obj?.data?.elementCount || 0) > 50_000
+        ? LineRepresentationProvider
+        : BallAndStickRepresentationProvider;
+    const lipidType =
+      (components.lipid?.obj?.data?.elementCount || 0) > 20_000
+        ? LineRepresentationProvider
+        : BallAndStickRepresentationProvider;
 
     const {
       update,
@@ -60,31 +79,36 @@ export const PolymerAndLigandPreset = StructureRepresentationPresetProvider({
       polymer: builder.buildRepresentation(
         update,
         components.polymer,
-        { type: 'cartoon', typeParams, color: symmetryColor, colorParams: symmetryColorParams },
+        { type: CartoonRepresentationProvider, typeParams, color: symmetryColor, colorParams: symmetryColorParams },
         { tag: 'polymer' },
       ),
       ligand: builder.buildRepresentation(
         update,
         components.ligand,
-        { type: 'ball-and-stick', typeParams, color, colorParams: ballAndStickColor },
+        { type: BallAndStickRepresentationProvider, typeParams, color, colorParams: ballAndStickColor },
         { tag: 'ligand' },
       ),
       nonStandard: builder.buildRepresentation(
         update,
         components.nonStandard,
-        { type: 'ball-and-stick', typeParams, color, colorParams: ballAndStickColor },
+        { type: BallAndStickRepresentationProvider, typeParams, color, colorParams: ballAndStickColor },
         { tag: 'non-standard' },
       ),
       branchedBallAndStick: builder.buildRepresentation(
         update,
         components.branched,
-        { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.3 }, color, colorParams: ballAndStickColor },
+        {
+          type: BallAndStickRepresentationProvider,
+          typeParams: { ...typeParams, alpha: 0.3 },
+          color,
+          colorParams: ballAndStickColor,
+        },
         { tag: 'branched-ball-and-stick' },
       ),
       branchedSnfg3d: builder.buildRepresentation(
         update,
         components.branched,
-        { type: 'carbohydrate', typeParams, color, colorParams: globalColorParams },
+        { type: CarbohydrateRepresentationProvider, typeParams, color, colorParams: globalColorParams },
         { tag: 'branched-snfg-3d' },
       ),
       water: builder.buildRepresentation(
@@ -95,7 +119,7 @@ export const PolymerAndLigandPreset = StructureRepresentationPresetProvider({
           typeParams: {
             ...typeParams,
             alpha: 0.6,
-            visuals: waterType === 'line' ? ['intra-bond', 'element-point'] : undefined,
+            visuals: waterType === LineRepresentationProvider ? ['intra-bond', 'element-point'] : undefined,
           },
           color,
           colorParams: { carbonColor: { name: 'element-symbol', params: {} }, ...globalColorParams },
@@ -106,7 +130,7 @@ export const PolymerAndLigandPreset = StructureRepresentationPresetProvider({
         update,
         components.ion,
         {
-          type: 'ball-and-stick',
+          type: BallAndStickRepresentationProvider,
           typeParams,
           color,
           colorParams: { carbonColor: { name: 'element-symbol', params: {} }, ...globalColorParams },
@@ -118,7 +142,11 @@ export const PolymerAndLigandPreset = StructureRepresentationPresetProvider({
         components.lipid,
         {
           type: lipidType,
-          typeParams: { ...typeParams, alpha: 0.6, visuals: lipidType === 'line' ? ['intra-bond'] : undefined },
+          typeParams: {
+            ...typeParams,
+            alpha: 0.6,
+            visuals: lipidType === LineRepresentationProvider ? ['intra-bond'] : undefined,
+          },
           color,
           colorParams: { carbonColor: { name: 'element-symbol', params: {} }, ...globalColorParams },
         },
@@ -127,7 +155,12 @@ export const PolymerAndLigandPreset = StructureRepresentationPresetProvider({
       coarse: builder.buildRepresentation(
         update,
         components.coarse,
-        { type: 'spacefill', typeParams, color: color || 'chain-id', colorParams: globalColorParams },
+        {
+          type: SpacefillRepresentationProvider,
+          typeParams,
+          color: color || ChainIdColorThemeProvider,
+          colorParams: globalColorParams,
+        },
         { tag: 'coarse' },
       ),
     };
@@ -138,3 +171,14 @@ export const PolymerAndLigandPreset = StructureRepresentationPresetProvider({
     return { components, representations };
   },
 });
+
+/** The PolymerAndLigandPreset preset with the representations and themes it builds. */
+export const PolymerAndLigandPresetEntry: PluginRegistryEntry = mergeRegistryEntries(
+  { structure: { presets: { representation: [PolymerAndLigandPreset] } } },
+  Cartoon,
+  BallAndStick,
+  Carbohydrate,
+  Line,
+  Spacefill,
+  { structure: { themes: { color: [ChainIdColorThemeProvider] } } },
+);

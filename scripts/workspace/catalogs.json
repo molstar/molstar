@@ -94,13 +94,6 @@
     },
     {
       "rule": "a",
-      "from": "packages/plugin/core/src/state/builder/structure/representation-presets/types.ts",
-      "to": "packages/plugin/core/src/state/queries/structure/catalog.ts",
-      "reason": "not in the §1.1 coupling table: the preset parameter definitions use StructureSelectionQueries (Q) from the query catalog",
-      "step": "plugin composition step 3 (presets import what they run)"
-    },
-    {
-      "rule": "a",
       "from": "packages/plugin/core/src/state/builder/structure/representation.ts",
       "to": "packages/plugin/core/src/state/builder/structure/representation-presets/catalog.ts",
       "reason": "the preset builder constructor preloads the preset catalog and resolves presets from the static map",

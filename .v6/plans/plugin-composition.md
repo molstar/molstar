@@ -331,10 +331,10 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       and `behavior/dynamic/volume-streaming/util.ts` through `formats/registry.ts` → the volume catalog →
       `volume/ccp4.ts` → `volume/provider.ts`. Move the shared helpers and type checks to modules that do not import the
       behavior.
-- [ ] `state/builder/structure/representation-presets/types.ts` value-imports the selection-query catalog for
+- [x] `state/builder/structure/representation-presets/types.ts` value-imports the selection-query catalog for
       `presetSelectionComponent` (keyed lookup by catalog key); import the individual queries or take a query object, so
       preset helpers do not load every query (found by the step 1 import-graph check).
-- [ ] Presets import what they run and list it in their entries; add representation entries with their default themes in
+- [x] Presets import what they run and list it in their entries; add representation entries with their default themes in
       plugin-layer modules; mixed name/provider props in the helpers (spec §5.1); development-mode default-theme check.
 - [ ] Format entries with actions and, for volume, particle, and shape formats, the representation entries and themes
       their `visuals` apply as provider objects (CCP4 includes `Isosurface`). List only actions in today's default
@@ -360,7 +360,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       in `setOptions` goes through the same id module and runs only when `plugin.state.hasBehavior(id)`; today
       `updateBehavior` inserts the focus behavior when it is absent. Pick the default query by identity (`current` if
       registered, else the first option) instead of `options[1][0]`, and return an empty select for an empty registry.
-- [ ] `ViewerAutoPreset` and other delegating presets look up optional presets by id and skip them when absent.
+- [x] `ViewerAutoPreset` and other delegating presets look up optional presets by id and skip them when absent.
 - [x] Move the open-files drag-and-drop fallback into `DefaultDragAndDrop`.
 - [ ] `parseTrajectory(blob)` moves into the mmCIF entry's module or becomes format-neutral; the Cube structure path
       imports its transforms. `DownloadStructure` (spec §9), when building params, offers only the sources whose formats

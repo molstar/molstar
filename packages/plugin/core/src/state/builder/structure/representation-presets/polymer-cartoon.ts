@@ -8,6 +8,10 @@
  */
 
 import { StateObjectRef } from '@molstar/core/state';
+import { mergeRegistryEntries } from '@molstar/plugin/registry/merge';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
+import { CartoonRepresentationProvider } from '@molstar/graphics/repr/structure/representation/cartoon';
+import { Cartoon } from '@molstar/plugin/registry/structure/cartoon';
 import { StructureRepresentationPresetProvider, presetStaticComponent, BuiltInPresetGroupName } from './types.js';
 
 const CommonParams = StructureRepresentationPresetProvider.CommonParams;
@@ -39,7 +43,7 @@ export const PolymerCartoonPreset = StructureRepresentationPresetProvider({
       polymer: builder.buildRepresentation(
         update,
         components.polymer,
-        { type: 'cartoon', typeParams, color: symmetryColor, colorParams: symmetryColorParams },
+        { type: CartoonRepresentationProvider, typeParams, color: symmetryColor, colorParams: symmetryColorParams },
         { tag: 'polymer' },
       ),
     };
@@ -50,3 +54,9 @@ export const PolymerCartoonPreset = StructureRepresentationPresetProvider({
     return { components, representations };
   },
 });
+
+/** The PolymerCartoonPreset preset with the representations and themes it builds. */
+export const PolymerCartoonPresetEntry: PluginRegistryEntry = mergeRegistryEntries(
+  { structure: { presets: { representation: [PolymerCartoonPreset] } } },
+  Cartoon,
+);

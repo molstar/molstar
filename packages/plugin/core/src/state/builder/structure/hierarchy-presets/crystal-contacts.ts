@@ -12,8 +12,9 @@ import type { PluginStateObject } from '../../../objects.js';
 import type { PluginContext } from '@molstar/plugin/context';
 import { Model } from '@molstar/model/model/structure';
 import { OperatorNameColorThemeProvider } from '@molstar/graphics/theme/color/operator-name';
-import { PluginConfig } from '@molstar/plugin/config';
-import { AutoPreset } from '../representation-presets/auto.js';
+import { ElementSymbolColorThemeProvider } from '@molstar/graphics/theme/color/element-symbol';
+import { mergeRegistryEntries } from '@molstar/plugin/registry/merge';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { TrajectoryHierarchyPresetProvider } from './types.js';
 
 const CommonParams = TrajectoryHierarchyPresetProvider.CommonParams;
@@ -48,10 +49,7 @@ export const CrystalContactsHierarchyPreset = TrajectoryHierarchyPresetProvider(
     const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 
     const unitcell = await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: true });
-    const representationPreset =
-      params.representationPreset ||
-      plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) ||
-      AutoPreset.id;
+    const representationPreset = TrajectoryHierarchyPresetProvider.getRepresentationPreset(plugin, params);
     const representation = await plugin.builders.structure.representation.applyPreset(
       structureProperties,
       representationPreset,
@@ -77,3 +75,9 @@ export const CrystalContactsHierarchyPreset = TrajectoryHierarchyPresetProvider(
     };
   },
 });
+
+/** The crystal contacts hierarchy preset with the `operator-name` and `element-symbol` color themes it applies. */
+export const CrystalContactsHierarchyPresetEntry: PluginRegistryEntry = mergeRegistryEntries(
+  { structure: { presets: { hierarchy: [CrystalContactsHierarchyPreset] } } },
+  { structure: { themes: { color: [OperatorNameColorThemeProvider, ElementSymbolColorThemeProvider] } } },
+);

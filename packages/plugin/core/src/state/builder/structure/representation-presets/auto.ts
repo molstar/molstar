@@ -11,10 +11,12 @@ import { StateObjectRef } from '@molstar/core/state';
 import { Structure } from '@molstar/model/model/structure';
 import { PluginConfig } from '@molstar/plugin/config';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
-import { CoarseSurfacePreset } from './coarse-surface.js';
-import { PolymerCartoonPreset } from './polymer-cartoon.js';
-import { PolymerAndLigandPreset } from './polymer-and-ligand.js';
-import { AtomicDetailPreset } from './atomic-detail.js';
+import { CoarseSurfacePreset, CoarseSurfacePresetEntry } from './coarse-surface.js';
+import { PolymerCartoonPreset, PolymerCartoonPresetEntry } from './polymer-cartoon.js';
+import { PolymerAndLigandPreset, PolymerAndLigandPresetEntry } from './polymer-and-ligand.js';
+import { AtomicDetailPreset, AtomicDetailPresetEntry } from './atomic-detail.js';
+import { mergeRegistryEntries } from '@molstar/plugin/registry/merge';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { StructureRepresentationPresetProvider } from './types.js';
 
 const CommonParams = StructureRepresentationPresetProvider.CommonParams;
@@ -55,3 +57,12 @@ export const AutoPreset = StructureRepresentationPresetProvider({
     }
   },
 });
+
+/** The auto preset with the presets it chooses between, and through them their representations and themes. */
+export const AutoPresetEntry: PluginRegistryEntry = mergeRegistryEntries(
+  { structure: { presets: { representation: [AutoPreset] } } },
+  CoarseSurfacePresetEntry,
+  PolymerCartoonPresetEntry,
+  PolymerAndLigandPresetEntry,
+  AtomicDetailPresetEntry,
+);

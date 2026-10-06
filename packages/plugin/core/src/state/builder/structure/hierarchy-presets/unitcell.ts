@@ -8,6 +8,7 @@
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { Model } from '@molstar/model/model/structure';
 import { applyCrystalSymmetry, CrystalSymmetryParams } from './crystal-symmetry.js';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { TrajectoryHierarchyPresetProvider } from './types.js';
 
 export const UnitcellHierarchyPreset = TrajectoryHierarchyPresetProvider({
@@ -31,3 +32,8 @@ export const UnitcellHierarchyPreset = TrajectoryHierarchyPresetProvider({
     );
   },
 });
+
+/** The unit cell hierarchy preset. */
+export const UnitcellHierarchyPresetEntry: PluginRegistryEntry = {
+  structure: { presets: { hierarchy: [UnitcellHierarchyPreset] } },
+};

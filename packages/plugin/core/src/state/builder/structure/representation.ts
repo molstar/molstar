@@ -12,8 +12,10 @@ import { objectForEach } from '@molstar/core/util/object';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import {
   createStructureRepresentationParams,
-  type StructureRepresentationBuiltInProps,
+  type StructureColorThemeRef,
   type StructureRepresentationProps,
+  type StructureRepresentationRef,
+  type StructureSizeThemeRef,
 } from '../../helpers/structure-representation-params.js';
 import type { PluginStateObject } from '../../objects.js';
 import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
@@ -161,19 +163,19 @@ export class StructureRepresentationBuilder {
     return this.plugin.runTask(task);
   }
 
-  async addRepresentation<P extends StructureRepresentationBuiltInProps>(
+  /** `type`, `color`, and `size` are each a provider or a name (see `StructureRepresentationProps`). */
+  async addRepresentation<
+    R extends StructureRepresentationRef = StructureRepresentationRef,
+    C extends StructureColorThemeRef = StructureColorThemeRef,
+    S extends StructureSizeThemeRef = StructureSizeThemeRef,
+  >(
     structure: StateObjectRef<PluginStateObject.Molecule.Structure>,
-    props: P,
-    options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>,
-  ): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>;
-  async addRepresentation<P extends StructureRepresentationProps>(
-    structure: StateObjectRef<PluginStateObject.Molecule.Structure>,
-    props: P,
+    props: StructureRepresentationProps<R, C, S>,
     options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>,
   ): Promise<StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>>;
   async addRepresentation(
     structure: StateObjectRef<PluginStateObject.Molecule.Structure>,
-    props: any,
+    props: StructureRepresentationProps<any, any, any>,
     options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>,
   ) {
     const repr = this.dataState.build();
@@ -184,22 +186,21 @@ export class StructureRepresentationBuilder {
     return selector;
   }
 
-  buildRepresentation<P extends StructureRepresentationBuiltInProps>(
+  /** `type`, `color`, and `size` are each a provider or a name (see `StructureRepresentationProps`). */
+  buildRepresentation<
+    R extends StructureRepresentationRef = StructureRepresentationRef,
+    C extends StructureColorThemeRef = StructureColorThemeRef,
+    S extends StructureSizeThemeRef = StructureSizeThemeRef,
+  >(
     builder: StateBuilder.Root,
     structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined,
-    props: P,
-    options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>,
-  ): StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>;
-  buildRepresentation<P extends StructureRepresentationProps>(
-    builder: StateBuilder.Root,
-    structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined,
-    props: P,
+    props: StructureRepresentationProps<R, C, S>,
     options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>,
   ): StateObjectSelector<PluginStateObject.Molecule.Structure.Representation3D>;
   buildRepresentation(
     builder: StateBuilder.Root,
     structure: StateObjectRef<PluginStateObject.Molecule.Structure> | undefined,
-    props: any,
+    props: StructureRepresentationProps<any, any, any>,
     options?: Partial<StructureRepresentationBuilder.AddRepresentationOptions>,
   ) {
     if (!structure) return;

@@ -11,8 +11,6 @@ import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/
 import type { PluginStateObject } from '../../../objects.js';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { Vec3 } from '@molstar/core/math/linear-algebra';
-import { PluginConfig } from '@molstar/plugin/config';
-import { AutoPreset } from '../representation-presets/auto.js';
 import { TrajectoryHierarchyPresetProvider } from './types.js';
 
 const CommonParams = TrajectoryHierarchyPresetProvider.CommonParams;
@@ -40,10 +38,7 @@ export async function applyCrystalSymmetry(
   const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 
   const unitcell = await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: false });
-  const representationPreset =
-    params.representationPreset ||
-    plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) ||
-    AutoPreset.id;
+  const representationPreset = TrajectoryHierarchyPresetProvider.getRepresentationPreset(plugin, params);
   const representation = await plugin.builders.structure.representation.applyPreset(
     structureProperties,
     representationPreset,

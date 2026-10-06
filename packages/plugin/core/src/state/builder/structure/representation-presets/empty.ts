@@ -7,6 +7,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { StructureRepresentationPresetProvider } from './types.js';
 
 export const EmptyPreset = StructureRepresentationPresetProvider({
@@ -17,3 +18,6 @@ export const EmptyPreset = StructureRepresentationPresetProvider({
     return {};
   },
 });
+
+/** The empty preset; it builds nothing. */
+export const EmptyPresetEntry: PluginRegistryEntry = { structure: { presets: { representation: [EmptyPreset] } } };

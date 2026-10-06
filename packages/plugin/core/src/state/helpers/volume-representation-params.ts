@@ -26,57 +26,67 @@ import {
 } from './representation-registry.js';
 import type { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 
-export interface VolumeRepresentationBuiltInProps<
+/** A representation of the scope, given as a provider or as a registered name. */
+export type VolumeRepresentationRef = RepresentationProvider<Volume> | string;
+/** A color theme, given as a provider or as a registered name. */
+export type VolumeColorThemeRef = ColorTheme.Provider | string;
+/** A size theme, given as a provider or as a registered name. */
+export type VolumeSizeThemeRef = SizeTheme.Provider | string;
+
+/** Params of a representation reference: a provider's params, the params of a built-in name, or `{}` for other names. */
+export type VolumeRepresentationParamsOf<R extends VolumeRepresentationRef> = [R] extends [
+  RepresentationProvider<Volume>,
+]
+  ? Partial<RepresentationProvider.ParamValues<R>>
+  : [R] extends [VolumeRepresentationRegistry.BuiltIn]
+    ? VolumeRepresentationRegistry.BuiltInParams<R>
+    : {};
+/** Params of a color theme reference: a provider's params, the params of a built-in name, or `{}` for other names. */
+export type VolumeColorThemeParamsOf<C extends VolumeColorThemeRef> = [C] extends [ColorTheme.Provider]
+  ? Partial<ColorTheme.ParamValues<C>>
+  : [C] extends [ColorTheme.BuiltIn]
+    ? ColorTheme.BuiltInParams<C>
+    : {};
+/** Params of a size theme reference: a provider's params, the params of a built-in name, or `{}` for other names. */
+export type VolumeSizeThemeParamsOf<S extends VolumeSizeThemeRef> = [S] extends [SizeTheme.Provider]
+  ? Partial<SizeTheme.ParamValues<S>>
+  : [S] extends [SizeTheme.BuiltIn]
+    ? SizeTheme.BuiltInParams<S>
+    : {};
+
+/**
+ * Each of `type`, `color`, and `size` is a provider or a name and is resolved independently, so a provider can be
+ * combined with a theme name. The params types follow the field: a provider's params, the params of a built-in name, or
+ * `{}` for any other name.
+ */
+export interface VolumeRepresentationProps<
+  R extends VolumeRepresentationRef = VolumeRepresentationRef,
+  C extends VolumeColorThemeRef = VolumeColorThemeRef,
+  S extends VolumeSizeThemeRef = VolumeSizeThemeRef,
+> {
+  type?: R;
+  typeParams?: VolumeRepresentationParamsOf<R>;
+  color?: C;
+  colorParams?: VolumeColorThemeParamsOf<C>;
+  size?: S;
+  sizeParams?: VolumeSizeThemeParamsOf<S>;
+}
+
+/** Props with representation, color theme, and size theme names. */
+export type VolumeRepresentationBuiltInProps<
   R extends VolumeRepresentationRegistry.BuiltIn = VolumeRepresentationRegistry.BuiltIn,
   C extends ColorTheme.BuiltIn = ColorTheme.BuiltIn,
   S extends SizeTheme.BuiltIn = SizeTheme.BuiltIn,
-> {
-  /** Using any registered name will work, but code completion will break */
-  type?: R;
-  typeParams?: VolumeRepresentationRegistry.BuiltInParams<R>;
-  /** Using any registered name will work, but code completion will break */
-  color?: C;
-  colorParams?: ColorTheme.BuiltInParams<C>;
-  /** Using any registered name will work, but code completion will break */
-  size?: S;
-  sizeParams?: SizeTheme.BuiltInParams<S>;
-}
-
-export interface VolumeRepresentationProps<
-  R extends RepresentationProvider<Volume> = RepresentationProvider<Volume>,
-  C extends ColorTheme.Provider = ColorTheme.Provider,
-  S extends SizeTheme.Provider = SizeTheme.Provider,
-> {
-  type?: R;
-  typeParams?: Partial<RepresentationProvider.ParamValues<R>>;
-  color?: C;
-  colorParams?: Partial<ColorTheme.ParamValues<C>>;
-  size?: S;
-  sizeParams?: Partial<SizeTheme.ParamValues<S>>;
-}
+> = VolumeRepresentationProps<R, C, S>;
 
 export function createVolumeRepresentationParams<
-  R extends VolumeRepresentationRegistry.BuiltIn,
-  C extends ColorTheme.BuiltIn,
-  S extends SizeTheme.BuiltIn,
+  R extends VolumeRepresentationRef = VolumeRepresentationRef,
+  C extends VolumeColorThemeRef = VolumeColorThemeRef,
+  S extends VolumeSizeThemeRef = VolumeSizeThemeRef,
 >(
   ctx: PluginContext,
   volume?: Volume,
-  props?: VolumeRepresentationBuiltInProps<R, C, S>,
-): StateTransformer.Params<VolumeRepresentation3D>;
-export function createVolumeRepresentationParams<
-  R extends RepresentationProvider<Volume>,
-  C extends ColorTheme.Provider,
-  S extends SizeTheme.Provider,
->(
-  ctx: PluginContext,
-  volume?: Volume,
-  props?: VolumeRepresentationProps<R, C, S>,
-): StateTransformer.Params<VolumeRepresentation3D>;
-export function createVolumeRepresentationParams(
-  ctx: PluginContext,
-  volume?: Volume,
-  props: any = {},
+  props: VolumeRepresentationProps<R, C, S> = {},
 ): StateTransformer.Params<VolumeRepresentation3D> {
   const scope = ctx.representation.volume;
   if (volume) assertRepresentationScope('volume', scope);
@@ -92,10 +102,7 @@ export function createVolumeRepresentationParams(
     checkColor: true,
     checkSize: true,
   });
-  const p = props as VolumeRepresentationBuiltInProps;
-  if (typeof p.type === 'string' || typeof p.color === 'string' || typeof p.size === 'string')
-    return createParamsByName(ctx, volume || Volume.One, props);
-  return createParamsProvider(ctx, volume || Volume.One, props);
+  return createParams(ctx, volume || Volume.One, props);
 }
 
 export function getVolumeThemeTypes(ctx: PluginContext, volume?: Volume) {
@@ -190,49 +197,31 @@ export function createVolumeSizeThemeParams(
   return { name: size.name, params: Object.assign(sizeDefaultParams, params) };
 }
 
-function createParamsByName(
-  ctx: PluginContext,
-  volume: Volume,
-  props: VolumeRepresentationBuiltInProps,
-): StateTransformer.Params<VolumeRepresentation3D> {
-  const typeProvider =
-    (props.type && ctx.representation.volume.registry.get(props.type)) ||
-    ctx.representation.volume.registry.get(ctx.representation.volume.registry.default!.name);
-  const colorProvider =
-    (props.color && ctx.representation.volume.themes.colorThemeRegistry.get(props.color)) ||
-    ctx.representation.volume.themes.colorThemeRegistry.get(typeProvider.defaultColorTheme.name);
-  const sizeProvider =
-    (props.size && ctx.representation.volume.themes.sizeThemeRegistry.get(props.size)) ||
-    ctx.representation.volume.themes.sizeThemeRegistry.get(typeProvider.defaultSizeTheme.name);
-
-  return createParamsProvider(ctx, volume, {
-    type: typeProvider,
-    typeParams: props.typeParams,
-    color: colorProvider,
-    colorParams: props.colorParams,
-    size: sizeProvider,
-    sizeParams: props.sizeParams,
-  });
-}
-
-function createParamsProvider(
+function createParams(
   ctx: PluginContext,
   volume: Volume,
   props: VolumeRepresentationProps = {},
 ): StateTransformer.Params<VolumeRepresentation3D> {
-  const { themes: themeCtx } = ctx.representation.volume;
+  const { registry, themes: themeCtx } = ctx.representation.volume;
   const themeDataCtx = { volume };
 
-  const repr = props.type || ctx.representation.volume.registry.get(ctx.representation.volume.registry.default!.name);
+  // Each field is a provider or a name and is resolved on its own.
+  const repr =
+    (typeof props.type === 'string' ? props.type && registry.get(props.type) : props.type) ||
+    registry.get(registry.default!.name);
   const reprDefaultParams = PD.getDefaultValues(repr.getParams(themeCtx, volume));
   const reprParams = Object.assign(reprDefaultParams, props.typeParams);
 
-  const color = props.color || themeCtx.colorThemeRegistry.get(repr.defaultColorTheme.name);
+  const color =
+    (typeof props.color === 'string' ? props.color && themeCtx.colorThemeRegistry.get(props.color) : props.color) ||
+    themeCtx.colorThemeRegistry.get(repr.defaultColorTheme.name);
   const colorDefaultParams = PD.getDefaultValues(color.getParams(themeDataCtx));
   if (color.name === repr.defaultColorTheme.name) Object.assign(colorDefaultParams, repr.defaultColorTheme.props);
   const colorParams = Object.assign(colorDefaultParams, props.colorParams);
 
-  const size = props.size || themeCtx.sizeThemeRegistry.get(repr.defaultSizeTheme.name);
+  const size =
+    (typeof props.size === 'string' ? props.size && themeCtx.sizeThemeRegistry.get(props.size) : props.size) ||
+    themeCtx.sizeThemeRegistry.get(repr.defaultSizeTheme.name);
   const sizeDefaultParams = PD.getDefaultValues(size.getParams(themeDataCtx));
   if (size.name === repr.defaultSizeTheme.name) Object.assign(sizeDefaultParams, repr.defaultSizeTheme.props);
   const sizeParams = Object.assign(sizeDefaultParams, props.sizeParams);
