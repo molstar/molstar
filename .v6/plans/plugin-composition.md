@@ -267,7 +267,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       `@molstar/plugin-ui/default-spec`; the `spec` modules keep only types and helpers.
 - [ ] Land transformer-id snapshot validation (`validateSnapshotTransformers`, spec §6.2) in this step, since the split
       changes which modules register transformers.
-- [ ] Migrate every consumer of the facade, the moved default specs, and moved modules, including `cli/mvs-render`, the
+- [x] Migrate every consumer of the facade, the moved default specs, and moved modules, including `cli/mvs-render`, the
       headless examples, and the smoke fixtures (§3.6, §3.7).
 - [x] Switch the extension and app calls of `PresetStructureRepresentations.auto.apply` in §1.3 to the auto preset's
       defining module.
