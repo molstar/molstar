@@ -2,6 +2,7 @@
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -65,14 +66,14 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean;
       const updated = this.params.autoAttach !== p.autoAttach;
       this.params.autoAttach = p.autoAttach;
       this.params.showTooltip = p.showTooltip;
-      this.ctx.customStructureProperties.setDefaultAutoAttach(this.provider.descriptor.name, this.params.autoAttach);
+      this.ctx.customModelProperties.setDefaultAutoAttach(this.provider.descriptor.name, this.params.autoAttach);
       return updated;
     }
 
     unregister() {
       DefaultQueryRuntimeTable.removeCustomProp(this.provider.descriptor);
 
-      this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
+      this.ctx.customModelProperties.unregister(this.provider.descriptor.name);
 
       this.ctx.managers.lociLabels.removeProvider(this.labelProvider);
 

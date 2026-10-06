@@ -67,14 +67,14 @@ export const MAQualityAssessment = PluginBehavior.create<{ autoAttach: boolean; 
       const updated = this.params.autoAttach !== p.autoAttach;
       this.params.autoAttach = p.autoAttach;
       this.params.showTooltip = p.showTooltip;
-      this.ctx.customStructureProperties.setDefaultAutoAttach(this.provider.descriptor.name, this.params.autoAttach);
+      this.ctx.customModelProperties.setDefaultAutoAttach(this.provider.descriptor.name, this.params.autoAttach);
       return updated;
     }
 
     unregister() {
       DefaultQueryRuntimeTable.removeCustomProp(this.provider.descriptor);
 
-      this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
+      this.ctx.customModelProperties.unregister(this.provider.descriptor.name);
 
       this.ctx.managers.lociLabels.removeProvider(this.labelProvider);
 
