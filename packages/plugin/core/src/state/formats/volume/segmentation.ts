@@ -85,6 +85,7 @@ const VolumeFromSegmentationCif = PluginStateTransform.BuiltIn({
 });
 
 export const SegcifProvider = DataFormatProvider({
+  name: 'segcif',
   label: 'Segmentation CIF',
   description: 'Segmentation CIF',
   category: VolumeFormatCategory,

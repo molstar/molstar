@@ -76,6 +76,7 @@ const ParticleListFromCryoEtDataPortalNdjson = PluginStateTransform.BuiltIn({
 });
 
 export const CryoEtDataPortalNdjsonParticlesProvider = DataFormatProvider({
+  name: 'cryoet_ndjson_particles',
   label: 'CryoET NDJSON Particles',
   description: 'CryoET NDJSON Particles',
   category: ParticlesFormatCategory,

@@ -34,6 +34,7 @@ const CoordinatesFromDcd = PluginStateTransform.BuiltIn({
 
 export { DcdProvider };
 const DcdProvider = DataFormatProvider({
+  name: 'dcd',
   label: 'DCD',
   description: 'DCD',
   category: CoordinatesFormatCategory,

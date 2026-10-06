@@ -67,6 +67,7 @@ const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
 });
 
 export const Ccp4Provider = DataFormatProvider({
+  name: 'ccp4',
   label: 'CCP4/MRC/MAP',
   description: 'CCP4/MRC/MAP',
   category: VolumeFormatCategory,

@@ -86,6 +86,7 @@ const VolumeFromStructureFactorsCif = PluginStateTransform.BuiltIn({
 type SfcifParams = { entryId?: string };
 
 export const SfcifProvider = DataFormatProvider({
+  name: 'sfcif',
   label: 'Structure Factors CIF',
   description: 'mmCIF structure factor file with reflection data (pdbx_FWT/pdbx_PHWT map coefficients)',
   category: VolumeFormatCategory,

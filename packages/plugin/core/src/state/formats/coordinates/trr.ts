@@ -34,6 +34,7 @@ const CoordinatesFromTrr = PluginStateTransform.BuiltIn({
 
 export { TrrProvider };
 const TrrProvider = DataFormatProvider({
+  name: 'trr',
   label: 'TRR',
   description: 'TRR',
   category: CoordinatesFormatCategory,

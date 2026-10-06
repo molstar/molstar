@@ -43,7 +43,7 @@ interface Registrables {
   colorThemes?: ColorTheme.Provider[];
   lociLabels?: LociLabelProvider[];
   dragAndDropHandlers?: DragAndDropHandler[];
-  dataFormats?: { name: string; provider: DataFormatProvider }[];
+  dataFormats?: DataFormatProvider[];
   actions?: StateAction[];
 }
 
@@ -67,10 +67,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
       ],
       lociLabels: [CustomTooltipsLabelProvider, MVSAnnotationTooltipsLabelProvider],
       dragAndDropHandlers: [MVSDragAndDropHandler],
-      dataFormats: [
-        { name: 'MVSJ', provider: MVSJFormatProvider },
-        { name: 'MVSX', provider: MVSXFormatProvider },
-      ],
+      dataFormats: [MVSJFormatProvider, MVSXFormatProvider],
       actions: [LoadMvsData],
     };
 
@@ -94,7 +91,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
         this.ctx.managers.dragAndDrop.addHandler(handler.name, handler.handle);
       }
       for (const format of this.registrables.dataFormats ?? []) {
-        this.ctx.dataFormats.add(format.name, format.provider);
+        this.ctx.dataFormats.add(format.name, format);
       }
       for (const action of this.registrables.actions ?? []) {
         this.ctx.state.data.actions.add(action);

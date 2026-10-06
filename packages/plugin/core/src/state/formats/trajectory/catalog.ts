@@ -17,18 +17,18 @@ import { SdfProvider } from './sdf.js';
 import { Mol2Provider } from './mol2.js';
 
 export const BuiltInTrajectoryFormats = [
-  ['mmcif', MmcifProvider] as const,
-  ['cifCore', CifCoreProvider] as const,
-  ['pdb', PdbProvider] as const,
-  ['pdbqt', PdbqtProvider] as const,
-  ['pqr', PqrProvider] as const,
-  ['gro', GroProvider] as const,
-  ['xyz', XyzProvider] as const,
-  ['lammps_data', LammpsDataProvider] as const,
-  ['lammps_traj_data', LammpsTrajectoryDataProvider] as const,
-  ['mol', MolProvider] as const,
-  ['sdf', SdfProvider] as const,
-  ['mol2', Mol2Provider] as const,
+  MmcifProvider,
+  CifCoreProvider,
+  PdbProvider,
+  PdbqtProvider,
+  PqrProvider,
+  GroProvider,
+  XyzProvider,
+  LammpsDataProvider,
+  LammpsTrajectoryDataProvider,
+  MolProvider,
+  SdfProvider,
+  Mol2Provider,
 ] as const;
 
-export type BuiltInTrajectoryFormat = (typeof BuiltInTrajectoryFormats)[number][0];
+export type BuiltInTrajectoryFormat = (typeof BuiltInTrajectoryFormats)[number]['name'];

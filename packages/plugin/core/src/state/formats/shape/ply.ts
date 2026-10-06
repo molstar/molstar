@@ -60,6 +60,7 @@ const ShapeFromPly = PluginStateTransform.BuiltIn({
 });
 
 export const PlyProvider = DataFormatProvider({
+  name: 'ply',
   label: 'PLY',
   description: 'PLY',
   category: ShapeFormatCategory,

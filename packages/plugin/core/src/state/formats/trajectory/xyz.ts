@@ -12,7 +12,7 @@ import { Task } from '@molstar/core/task';
 import { parseXyz } from '@molstar/io/reader/xyz/parser';
 import { trajectoryFromXyz } from '@molstar/model/formats/structure/xyz';
 import { trajectoryProps } from './helpers.js';
-import { type TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
+import { TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
 import { TrajectoryFormatCategory } from './category.js';
 
 export { TrajectoryFromXYZ };
@@ -34,11 +34,12 @@ const TrajectoryFromXYZ = PluginStateTransform.BuiltIn({
   },
 });
 
-export const XyzProvider: TrajectoryFormatProvider = {
+export const XyzProvider = TrajectoryFormatProvider({
+  name: 'xyz',
   label: 'XYZ',
   description: 'XYZ',
   category: TrajectoryFormatCategory,
   stringExtensions: ['xyz'],
   ...directTrajectory(TrajectoryFromXYZ),
   visuals: defaultVisuals,
-};
+});

@@ -13,7 +13,7 @@ import { Model, ArrayTrajectory, type Trajectory } from '@molstar/model/model/st
 import { trajectoryFromMmCIF, trajectoryFromCCD } from '@molstar/model/formats/structure/mmcif';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { trajectoryProps } from './helpers.js';
-import { type TrajectoryFormatProvider, defaultVisuals } from './provider.js';
+import { TrajectoryFormatProvider, defaultVisuals } from './provider.js';
 import { TrajectoryFormatCategory } from './category.js';
 import { guessCifVariant, applyTransformerRaw, rawDataObject } from '@molstar/plugin/state/formats/provider';
 import { ParseCif } from '@molstar/plugin/state/formats/cif';
@@ -155,7 +155,8 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
   },
 });
 
-export const MmcifProvider: TrajectoryFormatProvider = {
+export const MmcifProvider = TrajectoryFormatProvider({
+  name: 'mmcif',
   label: 'mmCIF',
   description: 'mmCIF',
   category: TrajectoryFormatCategory,
@@ -167,7 +168,7 @@ export const MmcifProvider: TrajectoryFormatProvider = {
     if (info.ext === 'cif' || info.ext === 'bcif') return guessCifVariant(info, data) === -1;
     return false;
   },
-  parse: async (plugin, data, params) => {
+  parse: async (plugin, data, params?) => {
     const state = plugin.state.data;
     const cif = state
       .build()
@@ -189,4 +190,4 @@ export const MmcifProvider: TrajectoryFormatProvider = {
     return { trajectory: trajectory.data };
   },
   visuals: defaultVisuals,
-};
+});

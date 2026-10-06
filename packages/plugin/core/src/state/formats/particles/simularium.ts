@@ -107,6 +107,7 @@ const ParticleTrajectoryFromSimularium = PluginStateTransform.BuiltIn({
 });
 
 export const SimulariumParticlesProvider = DataFormatProvider({
+  name: 'simularium_particles',
   label: 'Simularium Particles',
   description: 'Simularium Particles',
   category: ParticlesFormatCategory,

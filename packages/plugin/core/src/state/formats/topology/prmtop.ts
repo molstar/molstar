@@ -50,6 +50,7 @@ const TopologyFromPrmtop = PluginStateTransform.BuiltIn({
 
 export { PrmtopProvider };
 const PrmtopProvider = DataFormatProvider({
+  name: 'prmtop',
   label: 'PRMTOP',
   description: 'PRMTOP',
   category: TopologyFormatCategory,

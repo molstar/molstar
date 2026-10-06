@@ -69,12 +69,12 @@ export class DataFormatRegistry {
   }
 
   constructor() {
-    for (const [id, p] of BuiltInVolumeFormats) this.add(id, p);
-    for (const [id, p] of BuiltInTopologyFormats) this.add(id, p);
-    for (const [id, p] of BuiltInCoordinatesFormats) this.add(id, p);
-    for (const [id, p] of BuiltInShapeFormats) this.add(id, p);
-    for (const [id, p] of BuiltInParticlesFormats) this.add(id, p);
-    for (const [id, p] of BuiltInTrajectoryFormats) this.add(id, p);
+    for (const p of BuiltInVolumeFormats) this.add(p.name, p);
+    for (const p of BuiltInTopologyFormats) this.add(p.name, p);
+    for (const p of BuiltInCoordinatesFormats) this.add(p.name, p);
+    for (const p of BuiltInShapeFormats) this.add(p.name, p);
+    for (const p of BuiltInParticlesFormats) this.add(p.name, p);
+    for (const p of BuiltInTrajectoryFormats) this.add(p.name, p);
   }
 
   private _clear() {

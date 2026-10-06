@@ -166,7 +166,7 @@ const DownloadStructure = StateAction.build({
             format: PD.Select<BuiltInTrajectoryFormat>(
               'mmcif',
               PD.arrayToOptions(
-                BuiltInTrajectoryFormats.map((f) => f[0]),
+                BuiltInTrajectoryFormats.map((f) => f.name),
                 (f) => f,
               ),
             ),

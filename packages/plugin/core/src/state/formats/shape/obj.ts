@@ -72,6 +72,7 @@ const ShapeFromObj = PluginStateTransform.BuiltIn({
 });
 
 export const ObjProvider = DataFormatProvider({
+  name: 'obj',
   label: 'OBJ',
   description: 'OBJ',
   category: ShapeFormatCategory,

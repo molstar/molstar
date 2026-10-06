@@ -12,7 +12,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Task } from '@molstar/core/task';
 import { trajectoryFromCifCore } from '@molstar/model/formats/structure/cif-core';
 import { trajectoryProps } from './helpers.js';
-import { type TrajectoryFormatProvider, defaultVisuals } from './provider.js';
+import { TrajectoryFormatProvider, defaultVisuals } from './provider.js';
 import { TrajectoryFormatCategory } from './category.js';
 import { guessCifVariant, applyTransformerRaw, rawDataObject } from '@molstar/plugin/state/formats/provider';
 import { ParseCif } from '@molstar/plugin/state/formats/cif';
@@ -62,7 +62,8 @@ const TrajectoryFromCifCore = PluginStateTransform.BuiltIn({
   },
 });
 
-export const CifCoreProvider: TrajectoryFormatProvider = {
+export const CifCoreProvider = TrajectoryFormatProvider({
+  name: 'cifCore',
   label: 'cifCore',
   description: 'CIF Core',
   category: TrajectoryFormatCategory,
@@ -71,7 +72,7 @@ export const CifCoreProvider: TrajectoryFormatProvider = {
     if (info.ext === 'cif') return guessCifVariant(info, data) === 'coreCif';
     return false;
   },
-  parse: async (plugin, data, params) => {
+  parse: async (plugin, data, params?) => {
     const state = plugin.state.data;
     const cif = state
       .build()
@@ -92,4 +93,4 @@ export const CifCoreProvider: TrajectoryFormatProvider = {
     return { trajectory: trajectory.data };
   },
   visuals: defaultVisuals,
-};
+});

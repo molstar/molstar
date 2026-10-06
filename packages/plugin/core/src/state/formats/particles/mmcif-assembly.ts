@@ -114,6 +114,7 @@ const ParticleListFromMmcifAssembly = PluginStateTransform.BuiltIn({
 });
 
 export const MmcifParticlesProvider = DataFormatProvider({
+  name: 'mmcif_particles',
   label: 'mmCIF Particles',
   description: 'mmCIF Particles (CellPack / PetWorld assemblies)',
   category: ParticlesFormatCategory,

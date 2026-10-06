@@ -58,6 +58,7 @@ const VolumeFromDx = PluginStateTransform.BuiltIn({
 });
 
 export const DxProvider = DataFormatProvider({
+  name: 'dx',
   label: 'DX',
   description: 'DX',
   category: VolumeFormatCategory,

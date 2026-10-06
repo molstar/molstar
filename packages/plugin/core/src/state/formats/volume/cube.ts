@@ -105,6 +105,7 @@ const VolumeFromCube = PluginStateTransform.BuiltIn({
 });
 
 export const CubeProvider = DataFormatProvider({
+  name: 'cube',
   label: 'Cube',
   description: 'Cube',
   category: VolumeFormatCategory,

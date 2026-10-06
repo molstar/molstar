@@ -13,7 +13,7 @@ import { parseSdf } from '@molstar/io/reader/sdf/parser';
 import { type Model, ArrayTrajectory } from '@molstar/model/model/structure';
 import { trajectoryFromSdf } from '@molstar/model/formats/structure/sdf';
 import { trajectoryProps } from './helpers.js';
-import { type TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
+import { TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
 import { TrajectoryFormatCategory } from './category.js';
 
 export { TrajectoryFromSDF };
@@ -46,11 +46,12 @@ const TrajectoryFromSDF = PluginStateTransform.BuiltIn({
   },
 });
 
-export const SdfProvider: TrajectoryFormatProvider = {
+export const SdfProvider = TrajectoryFormatProvider({
+  name: 'sdf',
   label: 'SDF',
   description: 'SDF',
   category: TrajectoryFormatCategory,
   stringExtensions: ['sdf', 'sd'],
   ...directTrajectory(TrajectoryFromSDF),
   visuals: defaultVisuals,
-};
+});

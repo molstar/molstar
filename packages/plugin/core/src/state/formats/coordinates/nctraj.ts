@@ -34,6 +34,7 @@ const CoordinatesFromNctraj = PluginStateTransform.BuiltIn({
 
 export { NctrajProvider };
 const NctrajProvider = DataFormatProvider({
+  name: 'nctraj',
   label: 'NCTRAJ',
   description: 'NCTRAJ',
   category: CoordinatesFormatCategory,

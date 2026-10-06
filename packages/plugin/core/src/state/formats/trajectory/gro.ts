@@ -12,7 +12,7 @@ import { Task } from '@molstar/core/task';
 import { parseGRO } from '@molstar/io/reader/gro/parser';
 import { trajectoryFromGRO } from '@molstar/model/formats/structure/gro';
 import { trajectoryProps } from './helpers.js';
-import { type TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
+import { TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
 import { TrajectoryFormatCategory } from './category.js';
 
 export { TrajectoryFromGRO };
@@ -34,7 +34,8 @@ const TrajectoryFromGRO = PluginStateTransform.BuiltIn({
   },
 });
 
-export const GroProvider: TrajectoryFormatProvider = {
+export const GroProvider = TrajectoryFormatProvider({
+  name: 'gro',
   label: 'GRO',
   description: 'GRO',
   category: TrajectoryFormatCategory,
@@ -42,4 +43,4 @@ export const GroProvider: TrajectoryFormatProvider = {
   binaryExtensions: [],
   ...directTrajectory(TrajectoryFromGRO),
   visuals: defaultVisuals,
-};
+});

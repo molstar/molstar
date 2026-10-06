@@ -62,6 +62,7 @@ const ShapeFromVtp = PluginStateTransform.BuiltIn({
 });
 
 export const VtpProvider = DataFormatProvider({
+  name: 'vtp',
   label: 'VTP',
   description: 'VTK PolyData (VTP)',
   category: ShapeFormatCategory,

@@ -13,7 +13,9 @@ import { RuntimeContext, Task } from '@molstar/core/task';
 import type { FileNameInfo } from '@molstar/core/util/file-info';
 import { PluginStateObject } from '../objects.js';
 
-export interface DataFormatProvider<P = any, R = any, V = any, D = any> {
+export interface DataFormatProvider<P = any, R = any, V = any, D = any, Id extends string = string> {
+  /** Registration name of the format, used in format params and `DownloadFile` options. */
+  readonly name: Id;
   label: string;
   description: string;
   category?: string;
@@ -42,7 +44,8 @@ export interface DataFormatProvider<P = any, R = any, V = any, D = any> {
   defaultData?: D;
 }
 
-export function DataFormatProvider<P extends DataFormatProvider>(provider: P): P {
+/** Identity helper that type checks a provider and keeps its `name` a literal type. */
+export function DataFormatProvider<const T extends DataFormatProvider>(provider: T): T {
   return provider;
 }
 

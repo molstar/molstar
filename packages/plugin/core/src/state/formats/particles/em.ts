@@ -103,6 +103,7 @@ const ParticleListFromArtiatomiEm = PluginStateTransform.BuiltIn({
 });
 
 export const ArtiatomiEmParticlesProvider = DataFormatProvider({
+  name: 'artiatomi_em_particles',
   label: 'Artiatomi EM Particles',
   description: 'Artiatomi EM Particles',
   category: ParticlesFormatCategory,

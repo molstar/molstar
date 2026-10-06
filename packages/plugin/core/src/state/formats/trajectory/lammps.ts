@@ -16,7 +16,7 @@ import { trajectoryFromLammpsData } from '@molstar/model/formats/structure/lammp
 import { trajectoryProps } from './helpers.js';
 import { parseLammpsTrajectory } from '@molstar/io/reader/lammps/traj/parser';
 import { trajectoryFromLammpsTrajectory } from '@molstar/model/formats/structure/lammps-trajectory';
-import { type TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
+import { TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
 import { TrajectoryFormatCategory } from './category.js';
 
 export { TrajectoryFromLammpsData };
@@ -63,20 +63,22 @@ const TrajectoryFromLammpsTrajData = PluginStateTransform.BuiltIn({
   },
 });
 
-export const LammpsDataProvider: TrajectoryFormatProvider = {
+export const LammpsDataProvider = TrajectoryFormatProvider({
+  name: 'lammps_data',
   label: 'Lammps Data',
   description: 'Lammps Data',
   category: TrajectoryFormatCategory,
   stringExtensions: ['data'],
   ...directTrajectory(TrajectoryFromLammpsData),
   visuals: defaultVisuals,
-};
+});
 
-export const LammpsTrajectoryDataProvider: TrajectoryFormatProvider = {
+export const LammpsTrajectoryDataProvider = TrajectoryFormatProvider({
+  name: 'lammps_traj_data',
   label: 'Lammps Trajectory Data',
   description: 'Lammps Trajectory Data',
   category: TrajectoryFormatCategory,
   stringExtensions: ['lammpstrj'],
   ...directTrajectory(TrajectoryFromLammpsTrajData),
   visuals: defaultVisuals,
-};
+});

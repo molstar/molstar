@@ -50,6 +50,7 @@ const TopologyFromTop = PluginStateTransform.BuiltIn({
 
 export { TopProvider };
 const TopProvider = DataFormatProvider({
+  name: 'top',
   label: 'TOP',
   description: 'TOP',
   category: TopologyFormatCategory,

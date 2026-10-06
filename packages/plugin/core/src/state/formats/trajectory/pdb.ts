@@ -13,7 +13,7 @@ import { Task } from '@molstar/core/task';
 import { parsePDB } from '@molstar/io/reader/pdb/parser';
 import { trajectoryFromPDB } from '@molstar/model/formats/structure/pdb';
 import { trajectoryProps } from './helpers.js';
-import { type TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
+import { TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
 import { TrajectoryFormatCategory } from './category.js';
 
 export { TrajectoryFromPDB };
@@ -38,29 +38,32 @@ const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
   },
 });
 
-export const PdbProvider: TrajectoryFormatProvider = {
+export const PdbProvider = TrajectoryFormatProvider({
+  name: 'pdb',
   label: 'PDB',
   description: 'PDB',
   category: TrajectoryFormatCategory,
   stringExtensions: ['pdb', 'ent'],
   ...directTrajectory(TrajectoryFromPDB),
   visuals: defaultVisuals,
-};
+});
 
-export const PdbqtProvider: TrajectoryFormatProvider = {
+export const PdbqtProvider = TrajectoryFormatProvider({
+  name: 'pdbqt',
   label: 'PDBQT',
   description: 'PDBQT',
   category: TrajectoryFormatCategory,
   stringExtensions: ['pdbqt'],
   ...directTrajectory(TrajectoryFromPDB, { variant: 'pdbqt' }),
   visuals: defaultVisuals,
-};
+});
 
-export const PqrProvider: TrajectoryFormatProvider = {
+export const PqrProvider = TrajectoryFormatProvider({
+  name: 'pqr',
   label: 'PQR',
   description: 'PQR',
   category: TrajectoryFormatCategory,
   stringExtensions: ['pqr'],
   ...directTrajectory(TrajectoryFromPDB, { variant: 'pqr' }),
   visuals: defaultVisuals,
-};
+});

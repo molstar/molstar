@@ -86,6 +86,7 @@ const VolumeFromDensityServerCif = PluginStateTransform.BuiltIn({
 type DsCifParams = { entryId?: string | string[] };
 
 export const DscifProvider = DataFormatProvider({
+  name: 'dscif',
   label: 'DensityServer CIF',
   description: 'DensityServer CIF',
   category: VolumeFormatCategory,

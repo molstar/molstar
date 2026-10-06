@@ -12,7 +12,7 @@ import { Task } from '@molstar/core/task';
 import { parseMol } from '@molstar/io/reader/mol/parser';
 import { trajectoryFromMol } from '@molstar/model/formats/structure/mol';
 import { trajectoryProps } from './helpers.js';
-import { type TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
+import { TrajectoryFormatProvider, directTrajectory, defaultVisuals } from './provider.js';
 import { TrajectoryFormatCategory } from './category.js';
 
 export { TrajectoryFromMOL };
@@ -34,11 +34,12 @@ const TrajectoryFromMOL = PluginStateTransform.BuiltIn({
   },
 });
 
-export const MolProvider: TrajectoryFormatProvider = {
+export const MolProvider = TrajectoryFormatProvider({
+  name: 'mol',
   label: 'MOL',
   description: 'MOL',
   category: TrajectoryFormatCategory,
   stringExtensions: ['mol'],
   ...directTrajectory(TrajectoryFromMOL),
   visuals: defaultVisuals,
-};
+});

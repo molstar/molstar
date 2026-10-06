@@ -16,14 +16,17 @@ import { SfcifProvider } from './structure-factors.js';
 import { MtzProvider } from './mtz.js';
 
 export const BuiltInVolumeFormats = [
-  ['ccp4', Ccp4Provider] as const,
-  ['dsn6', Dsn6Provider] as const,
-  ['cube', CubeProvider] as const,
-  ['dx', DxProvider] as const,
-  ['dscif', DscifProvider] as const,
-  ['segcif', SegcifProvider] as const,
-  ['sfcif', SfcifProvider] as const,
-  ['mtz', MtzProvider] as const,
+  Ccp4Provider,
+  Dsn6Provider,
+  CubeProvider,
+  DxProvider,
+  DscifProvider,
+  SegcifProvider,
+  SfcifProvider,
+  MtzProvider,
 ] as const;
 
-export type BuildInVolumeFormat = (typeof BuiltInVolumeFormats)[number][0];
+export type BuiltInVolumeFormat = (typeof BuiltInVolumeFormats)[number]['name'];
+
+/** @deprecated use BuiltInVolumeFormat */
+export type BuildInVolumeFormat = BuiltInVolumeFormat;

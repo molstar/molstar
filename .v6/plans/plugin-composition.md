@@ -233,7 +233,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 - [x] Add `state/transforms/catalog.ts`, which value-imports every built-in transform and format module and exports
       nothing (spec §6.1). Several transformers (`ImportString`, `ImportJson`, `ParseJson`) are imported by nothing
       else.
-- [ ] Format catalogs become provider arrays and derive the format name types (spec §8); add `BuiltInVolumeFormat` and
+- [x] Format catalogs become provider arrays and derive the format name types (spec §8); add `BuiltInVolumeFormat` and
       `BuiltInShapeFormat`, keep `BuildIn*` as deprecated aliases. Add the `Id` parameter and `const` helper to
       `DataFormatProvider` and forward it from `TrajectoryFormatProvider` and its siblings.
 - [ ] Split the preset modules (spec §7): types-and-helpers module plus one module per preset; the auto preset module

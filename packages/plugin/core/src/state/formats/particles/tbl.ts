@@ -97,6 +97,7 @@ const ParticleListFromDynamoTbl = PluginStateTransform.BuiltIn({
 });
 
 export const DynamoTblParticlesProvider = DataFormatProvider({
+  name: 'dynamo_tbl_particles',
   label: 'Dynamo TBL Particles',
   description: 'Dynamo TBL Particles',
   category: ParticlesFormatCategory,

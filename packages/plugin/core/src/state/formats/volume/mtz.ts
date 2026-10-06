@@ -96,6 +96,7 @@ const VolumeFromMtz = PluginStateTransform.BuiltIn({
 type MtzParams = { entryId?: string };
 
 export const MtzProvider = DataFormatProvider({
+  name: 'mtz',
   label: 'MTZ',
   description: 'CCP4 MTZ reflection data file with amplitude and phase columns',
   category: VolumeFormatCategory,

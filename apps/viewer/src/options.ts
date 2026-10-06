@@ -15,7 +15,7 @@ import '@molstar/core/util/polyfill';
 import { ObjectKeys } from '@molstar/core/util/type-helpers';
 import { ExtensionMap } from '@molstar/viewer/extensions';
 
-const CustomFormats: [string, DataFormatProvider][] = [['g3d', G3dProvider] as const];
+const CustomFormats: [string, DataFormatProvider][] = [[G3dProvider.name, G3dProvider]];
 
 export const DefaultViewerOptions = {
   customFormats: CustomFormats as [string, DataFormatProvider][],

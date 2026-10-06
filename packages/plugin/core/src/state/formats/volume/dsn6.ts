@@ -66,6 +66,7 @@ const VolumeFromDsn6 = PluginStateTransform.BuiltIn({
 });
 
 export const Dsn6Provider = DataFormatProvider({
+  name: 'dsn6',
   label: 'DSN6/BRIX',
   description: 'DSN6/BRIX',
   category: VolumeFormatCategory,

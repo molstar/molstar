@@ -13,11 +13,11 @@ import { NctrajProvider } from './nctraj.js';
 import { LammpsTrajectoryProvider } from './lammps.js';
 
 export const BuiltInCoordinatesFormats = [
-  ['dcd', DcdProvider] as const,
-  ['xtc', XtcProvider] as const,
-  ['trr', TrrProvider] as const,
-  ['nctraj', NctrajProvider] as const,
-  ['lammpstrj', LammpsTrajectoryProvider] as const,
+  DcdProvider,
+  XtcProvider,
+  TrrProvider,
+  NctrajProvider,
+  LammpsTrajectoryProvider,
 ] as const;
 
-export type BuiltInCoordinatesFormat = (typeof BuiltInCoordinatesFormats)[number][0];
+export type BuiltInCoordinatesFormat = (typeof BuiltInCoordinatesFormats)[number]['name'];

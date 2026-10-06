@@ -14,7 +14,7 @@ import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/bui
 import type { BuiltInCoordinatesFormat } from '@molstar/plugin/state/formats/coordinates/catalog';
 import type { BuiltInTopologyFormat } from '@molstar/plugin/state/formats/topology/catalog';
 import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
-import type { BuildInVolumeFormat } from '@molstar/plugin/state/formats/volume/catalog';
+import type { BuiltInVolumeFormat } from '@molstar/plugin/state/formats/volume/catalog';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { DeflateData, Download, LazyVolume } from '@molstar/plugin/state/transforms/data/fetch';
@@ -236,7 +236,7 @@ export async function loadModelArchive(plugin: PluginContext, id: string) {
  */
 export async function loadVolumeFromUrl(
   plugin: PluginContext,
-  { url, format, isBinary }: { url: string; format: BuildInVolumeFormat; isBinary: boolean },
+  { url, format, isBinary }: { url: string; format: BuiltInVolumeFormat; isBinary: boolean },
   isovalues: VolumeIsovalueInfo[],
   options?: { entryId?: string | string[]; isLazy?: boolean },
 ) {

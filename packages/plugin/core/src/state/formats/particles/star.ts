@@ -105,6 +105,7 @@ const ParticleListFromRelionStar = PluginStateTransform.BuiltIn({
 });
 
 export const RelionStarParticlesProvider = DataFormatProvider({
+  name: 'relion_star_particles',
   label: 'RELION STAR Particles',
   description: 'RELION STAR Particles',
   category: ParticlesFormatCategory,

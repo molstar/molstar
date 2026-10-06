@@ -50,6 +50,7 @@ const TopologyFromPsf = PluginStateTransform.BuiltIn({
 
 export { PsfProvider };
 const PsfProvider = DataFormatProvider({
+  name: 'psf',
   label: 'PSF',
   description: 'PSF',
   category: TopologyFormatCategory,

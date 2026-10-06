@@ -7,7 +7,7 @@
 
 import type { Trajectory } from '@molstar/model/model/structure';
 import { TrajectoryFormatCategory } from '@molstar/plugin/state/formats/trajectory/category';
-import type { TrajectoryFormatProvider } from '@molstar/plugin/state/formats/trajectory/provider';
+import { TrajectoryFormatProvider } from '@molstar/plugin/state/formats/trajectory/provider';
 import { PluginStateObject as SO, PluginStateTransform } from '@molstar/plugin/state/objects';
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginContext } from '@molstar/plugin/context';
@@ -29,7 +29,8 @@ import { createStructureRepresentationParams } from '@molstar/plugin/state/helpe
 import { stringToWords } from '@molstar/core/util/string';
 import { objectForEach } from '@molstar/core/util/object';
 
-export const G3dProvider: TrajectoryFormatProvider = {
+export const G3dProvider = TrajectoryFormatProvider({
+  name: 'g3d',
   label: 'G3D',
   description: 'G3D',
   category: TrajectoryFormatCategory,
@@ -45,7 +46,7 @@ export const G3dProvider: TrajectoryFormatProvider = {
     return { trajectory };
   },
   visuals: defaultStructure,
-};
+});
 
 async function defaultStructure(plugin: PluginContext, data: { trajectory: StateObjectRef<SO.Molecule.Trajectory> }) {
   const builder = plugin.builders.structure;

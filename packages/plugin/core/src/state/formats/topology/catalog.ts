@@ -9,10 +9,6 @@ import { PsfProvider } from './psf.js';
 import { PrmtopProvider } from './prmtop.js';
 import { TopProvider } from './top.js';
 
-export const BuiltInTopologyFormats = [
-  ['psf', PsfProvider] as const,
-  ['prmtop', PrmtopProvider] as const,
-  ['top', TopProvider] as const,
-] as const;
+export const BuiltInTopologyFormats = [PsfProvider, PrmtopProvider, TopProvider] as const;
 
-export type BuiltInTopologyFormat = (typeof BuiltInTopologyFormats)[number][0];
+export type BuiltInTopologyFormat = (typeof BuiltInTopologyFormats)[number]['name'];

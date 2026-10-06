@@ -414,7 +414,7 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
       this.ctx.managers.dragAndDrop.addHandler(KinemageDragAndDropHandler.name, KinemageDragAndDropHandler.handle);
 
       // Register .kin file handler so opening/dropping .kin is supported via the data formats system
-      this.ctx.dataFormats.add('KIN', KINFormatProvider);
+      this.ctx.dataFormats.add(KINFormatProvider.name, KINFormatProvider);
     }
 
     update(p: { autoAttach: boolean }) {
@@ -434,7 +434,7 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
       this.ctx.managers.dragAndDrop.removeHandler(KinemageDragAndDropHandler.name);
 
       // Unregister the .kin data format provider
-      this.ctx.dataFormats.remove('KIN');
+      this.ctx.dataFormats.remove(KINFormatProvider.name);
 
       // Remove right-panel controls
       try {
@@ -596,7 +596,8 @@ const KinemageDragAndDropHandler: DragAndDropHandler = {
   },
 };
 
-const KINFormatProvider: DataFormatProvider = DataFormatProvider({
+const KINFormatProvider = DataFormatProvider({
+  name: 'KIN',
   label: 'KIN',
   description: 'Kinemage',
   category: 'Miscellaneous',

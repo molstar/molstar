@@ -16,7 +16,13 @@ export interface TrajectoryFormatProvider<
   R extends { trajectory: StateObjectRef<PluginStateObject.Molecule.Trajectory> } = {
     trajectory: StateObjectRef<PluginStateObject.Molecule.Trajectory>;
   },
-> extends DataFormatProvider<P, R> {}
+  Id extends string = string,
+> extends DataFormatProvider<P, R, any, any, Id> {}
+
+/** Identity helper that type checks a trajectory provider and keeps its `name` a literal type. */
+export function TrajectoryFormatProvider<const T extends TrajectoryFormatProvider>(provider: T): T {
+  return provider;
+}
 
 export function defaultVisuals(
   plugin: PluginContext,

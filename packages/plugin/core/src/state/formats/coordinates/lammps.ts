@@ -34,6 +34,7 @@ const CoordinatesFromLammpstraj = PluginStateTransform.BuiltIn({
 
 export { LammpsTrajectoryProvider };
 const LammpsTrajectoryProvider = DataFormatProvider({
+  name: 'lammpstrj',
   label: 'LAMMPSTRAJ',
   description: 'LAMMPSTRAJ',
   category: CoordinatesFormatCategory,

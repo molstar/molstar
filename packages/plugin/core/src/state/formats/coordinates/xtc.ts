@@ -34,6 +34,7 @@ const CoordinatesFromXtc = PluginStateTransform.BuiltIn({
 
 export { XtcProvider };
 const XtcProvider = DataFormatProvider({
+  name: 'xtc',
   label: 'XTC',
   description: 'XTC',
   category: CoordinatesFormatCategory,
