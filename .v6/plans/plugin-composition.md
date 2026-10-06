@@ -396,8 +396,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       `model/structure/export/categories/utils.ts` imports `getCifFieldType` from `data-model` instead of `reader/cif`;
       `state/builder/structure/{representation,hierarchy}.ts` used `import { type ... }` of the preset catalogs, which
       `verbatimModuleSyntax` keeps as a side-effect import (now `import type`).
-- [ ] Complete the acceptance checklist (§6): audited in step 4 (see the evidence under §6); open are the slim browser
-      items and the run-time check of the apps that need a browser.
+- [x] Complete the acceptance checklist (§6): audited in step 4; see the evidence under §6.
 
 ### Step 5: extensions and MVS
 
@@ -589,7 +588,7 @@ Add to `@molstar/migrate-6-cli` ([architecture §9.2](../designs/architecture.md
 - [x] `Viewer.create` with a `customFormats` tuple that overrides a built-in name (for example `['pdb', MyPdbProvider]`)
       loads that format with the custom provider.
 - [x] `viewer.loadTrajectory({ ..., preset: 'all-models' })` still works.
-- [ ] mesoscale-explorer, docking-viewer, mvs-stories, proteopedia-wrapper, the examples and smoke fixtures in §3,
+- [x] mesoscale-explorer, docking-viewer, mvs-stories, proteopedia-wrapper, the examples and smoke fixtures in §3,
       `cli/mvs-render`, and `cli/state-docs` build and behave as before.
 
 Left open. The slim-app items (the cartoon snapshot and the PyMOL script) are covered by the slim browser smoke test,
@@ -662,6 +661,14 @@ workspace checks (`registry-compare.mjs`, `composition-check.mjs`) after the exi
 Failures the audit found and fixed: `cli/state-docs` threw with the default plugin because three param getters
 dereferenced their data when called without it (`getOrientationParticlesParams`, `getParticleTargetParams`,
 `getOperatorHklColorThemeParams` with `Structure.Empty`); they now accept the missing data.
+
+- Item 13, runtime: on the step 4 tree, the built Viewer (1CBS), mesoscale-explorer (local 1CRN mmCIF via `url`),
+  docking-viewer (local `ace2.pdbqt` + `ace2-hit.mol2`), mvs-stories (`examples/mvs/kinase-story.mvsj`), and the
+  proteopedia-wrapper, basic-wrapper, interactions, ligand-editor, ihm-restraints, lighting, alpha-orbitals, react,
+  alphafolddb-pae, volume-tools, and slim-plugin examples were opened in a browser from a static server. All loaded and
+  rendered without plugin warnings or errors. Unrelated: the alphafolddb-pae example's PAE request
+  (`..._predicted_aligned_error_v4.json`) now returns 404 from AlphaFold DB; mesoscale-explorer's deploy-time extras
+  (`../extras/driver.*`, `../examples/list.json`) are absent from a plain build.
 
 ### 6.1 Intentional registry differences
 
