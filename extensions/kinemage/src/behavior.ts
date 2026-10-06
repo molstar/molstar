@@ -12,6 +12,7 @@ import { KinemageDataProvider, KinemageData } from '@molstar/kinemage-extension/
 import { StateTransformer, StateBuilder } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import type { PluginDragAndDropEntry } from '@molstar/plugin/state/manager/drag-and-drop';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { PluginContext } from '@molstar/plugin/context';
@@ -397,6 +398,7 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
   },
   ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
     private provider = KinemageDataProvider;
+    private unregisterEntry: (() => void) | undefined;
 
     register(): void {
       DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
@@ -411,10 +413,12 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
         (this.ctx as any).customControls.set('kinemage', KinemageControls as any);
       }
 
-      this.ctx.managers.dragAndDrop.addEntry(KinemageDragAndDropHandler);
-
-      // Register .kin file handler so opening/dropping .kin is supported via the data formats system
-      this.ctx.dataFormats.add(KINFormatProvider);
+      // Register the .kin file handler so opening/dropping .kin is supported via the data formats system
+      const entry: PluginRegistryEntry = {
+        formats: [KINFormatProvider],
+        dragAndDrop: [KinemageDragAndDropHandler],
+      };
+      this.unregisterEntry = this.ctx.register(entry);
     }
 
     update(p: { autoAttach: boolean }) {
@@ -431,10 +435,9 @@ export const KinemageExtension = PluginBehavior.create<{ autoAttach: boolean }>(
 
       this.ctx.genericRepresentationControls.delete(Tag.Representation);
 
-      this.ctx.managers.dragAndDrop.removeEntry(KinemageDragAndDropHandler);
-
-      // Unregister the .kin data format provider
-      this.ctx.dataFormats.remove(KINFormatProvider);
+      // Unregister the .kin data format provider and drag-and-drop handler
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
 
       // Remove right-panel controls
       try {

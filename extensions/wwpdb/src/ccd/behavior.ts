@@ -5,6 +5,7 @@
  */
 
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { ChemicalComponentPreset, ChemicalCompontentTrajectoryHierarchyPreset } from './representation.js';
 
 export const wwPDBChemicalComponentDictionary = PluginBehavior.create<{}>({
@@ -15,9 +16,18 @@ export const wwPDBChemicalComponentDictionary = PluginBehavior.create<{}>({
     description: 'Custom representation for data loaded from the CCD.',
   },
   ctor: class extends PluginBehavior.Handler<{}> {
+    private unregisterEntry: (() => void) | undefined;
+
     register(): void {
-      this.ctx.builders.structure.hierarchy.registerPreset(ChemicalCompontentTrajectoryHierarchyPreset);
-      this.ctx.builders.structure.representation.registerPreset(ChemicalComponentPreset);
+      const entry: PluginRegistryEntry = {
+        structure: {
+          presets: {
+            hierarchy: [ChemicalCompontentTrajectoryHierarchyPreset],
+            representation: [ChemicalComponentPreset],
+          },
+        },
+      };
+      this.unregisterEntry = this.ctx.register(entry);
     }
 
     update() {
@@ -25,8 +35,8 @@ export const wwPDBChemicalComponentDictionary = PluginBehavior.create<{}>({
     }
 
     unregister() {
-      this.ctx.builders.structure.hierarchy.unregisterPreset(ChemicalCompontentTrajectoryHierarchyPreset);
-      this.ctx.builders.structure.representation.unregisterPreset(ChemicalComponentPreset);
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
     }
   },
   params: () => ({}),

@@ -400,7 +400,8 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 ### Step 5: extensions and MVS
 
-- [ ] Move extensions and MVS to `plugin.register` where it simplifies them (§3.8, §3.9).
+- [x] Move extensions to `plugin.register` where it simplifies them (§3.8).
+- [ ] Move MVS to `plugin.register` (§3.9).
 
 ## 3. Per-consumer migration
 
@@ -481,12 +482,38 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 ### 3.8 Extensions
 
-- [ ] Extensions that add an action in `register()` and remove it in `unregister()` (assembly symmetry, SB-NCBR tunnels,
-      g3d, volumes and segmentations, MVS) need no change once actions are counted; verify each.
+- [x] Extensions that add an action in `register()` and remove it in `unregister()` (assembly symmetry, SB-NCBR tunnels,
+      g3d, volumes and segmentations; MVS is §3.9) need no change once actions are counted; verified. The four now
+      register the action inside their entry (below), so the count is one per registration and the spec's own entry
+      keeps the action when the behavior is toggled off. `apps/viewer/src/_test/extension-registry.test.ts` pins this
+      for assembly symmetry, tunnels and g3d (count 1 with the behavior, 2 with an app entry listing the same action, 1
+      after the behavior is removed, 0 after the entry's undo);
+      `extensions/volumes-and-segmentations/src/_test/behavior.test.ts` does the same for `LoadVolseg`.
 - [x] `extensions/plugin` view models and hooks require an explicit spec; the hooks' `spec: (defaultSpec) => spec` form
       is removed, and callers import the default themselves.
-- [ ] Replace catalog value imports with defining-module imports (§1.3).
-- [ ] Optionally replace hand-written provider registration with `plugin.register(entry)` and its undo.
+- [x] Replace catalog value imports with defining-module imports (§1.3): nothing remained in `extensions/` (the
+      `AutoPreset` imports were switched in step 1; `extensions/plugin` only has `import type` of catalog modules, which
+      the import-graph check allows).
+- [x] Replace hand-written provider registration with one `plugin.register(entry)` call and its undo, built in
+      `register()` (so it can close over the behavior, as the loci label providers do) and undone in `unregister()`:
+      anvil (representation, selection query, preset), assembly symmetry (cluster color theme, preset, action), dnatco
+      (color themes, representations, presets), g3d (loci label, action), kinemage (`KIN` format, drag-and-drop
+      handler), model-archive quality assessment (color themes, query, presets, loci label), PDBe structure quality
+      (color theme, loci label), RCSB validation report (color themes, representation, query, presets, loci label),
+      SB-NCBR partial charges (color theme, preset, loci label) and tunnels (preset, action), volume tools mask and
+      segmentor (volume color themes), volumes and segmentations (action), wwPDB CCD (hierarchy and representation
+      presets). Each entry lists its providers in the order the hand-written code registered them, so registry order is
+      unchanged (the registry comparison in `check:workspace` passes). Public exports are unchanged.
+- [x] Left imperative, as the spec (§3.3) says or because an entry would not simplify them: custom model, structure and
+      volume properties with their `autoAttach` retuning in `update()`, `DefaultQueryRuntimeTable` custom properties and
+      symbols (RCSB, PDBe, MA, g3d, anvil, kinemage), UI maps (`customStructureControls`,
+      `genericRepresentationControls`, `customImportControls`: assembly symmetry, anvil, kinemage, MA pairwise plot,
+      geo/model/mp4 export, zenodo import, volseg), the backgrounds config, debug helpers (canvas debug registry), the
+      mesh streaming behavior, and the volseg entry's loci label provider (`entry-root.ts`), which is created and
+      removed with each loaded entry rather than by the behavior. The geo, model and mp4 export and the Zenodo import
+      behaviors only register UI map entries, so they have nothing to put in an entry.
+- [x] Jest loads `.tsx` modules (`tsx` module extension, the `react-jsx` transform, an image stub) and maps
+      `@molstar/volseg-api-extension`, so a test can load the extension behaviors that import their UI.
 
 ### 3.9 MVS (`packages/mvs/runtime`)
 

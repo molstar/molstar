@@ -20,6 +20,7 @@ import {
 import { HydrophobicityColorThemeProvider } from '@molstar/graphics/theme/color/hydrophobicity';
 import { PluginStateObject, PluginStateTransform } from '@molstar/plugin/state/objects';
 import { PluginContext } from '@molstar/plugin/context';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/compiler';
 import { StructureSelectionQuery, StructureSelectionCategory } from '@molstar/plugin/state/queries/structure/query';
 import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
@@ -36,14 +37,21 @@ export const ANVILMembraneOrientation = PluginBehavior.create<{ autoAttach: bool
   },
   ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
     private provider = MembraneOrientationProvider;
+    private unregisterEntry: (() => void) | undefined;
 
     register(): void {
       DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
 
       this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
 
-      this.ctx.representation.structure.registry.add(MembraneOrientationRepresentationProvider);
-      this.ctx.query.structure.registry.add(isTransmembrane);
+      const entry: PluginRegistryEntry = {
+        structure: {
+          representations: [MembraneOrientationRepresentationProvider],
+          presets: { representation: [MembraneOrientationPreset] },
+          selectionQueries: [isTransmembrane],
+        },
+      };
+      this.unregisterEntry = this.ctx.register(entry);
 
       this.ctx.genericRepresentationControls.set(Tag.Representation, (selection) => {
         const refs: GenericRepresentationRef[] = [];
@@ -55,7 +63,6 @@ export const ANVILMembraneOrientation = PluginBehavior.create<{ autoAttach: bool
         });
         return [refs, 'Membrane Orientation'];
       });
-      this.ctx.builders.structure.representation.registerPreset(MembraneOrientationPreset);
     }
 
     update(p: { autoAttach: boolean }) {
@@ -70,11 +77,10 @@ export const ANVILMembraneOrientation = PluginBehavior.create<{ autoAttach: bool
 
       this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
 
-      this.ctx.representation.structure.registry.remove(MembraneOrientationRepresentationProvider);
-      this.ctx.query.structure.registry.remove(isTransmembrane);
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
 
       this.ctx.genericRepresentationControls.delete(Tag.Representation);
-      this.ctx.builders.structure.representation.unregisterPreset(MembraneOrientationPreset);
     }
   },
   params: () => ({

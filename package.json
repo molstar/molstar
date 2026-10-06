@@ -52,13 +52,14 @@
   "jest": {
     "moduleFileExtensions": [
       "ts",
+      "tsx",
       "js"
     ],
     "transform": {
-      "\\.ts$": [
+      "\\.tsx?$": [
         "esbuild-jest-transform",
         {
-          "tsconfigRaw": "{\"compilerOptions\":{\"useDefineForClassFields\":false}}"
+          "tsconfigRaw": "{\"compilerOptions\":{\"useDefineForClassFields\":false,\"jsx\":\"react-jsx\"}}"
         }
       ]
     },
@@ -70,6 +71,7 @@
     },
     "testRegex": "\\.test\\.ts$",
     "moduleNameMapper": {
+      "\\.(jpe?g|png|gif|svg|webp)$": "<rootDir>/scripts/jest-file-stub.cjs",
       "^@molstar/docking-viewer$": "<rootDir>/apps/docking-viewer/src/index.ts",
       "^@molstar/docking-viewer/(.*)$": "<rootDir>/apps/docking-viewer/src/$1",
       "^@molstar/mesoscale-explorer$": "<rootDir>/apps/mesoscale-explorer/src/index.ts",
@@ -168,6 +170,7 @@
       "^@molstar/rcsb-extension/(.*)$": "<rootDir>/extensions/rcsb/src/$1",
       "^@molstar/sb-ncbr-extension$": "<rootDir>/extensions/sb-ncbr/src/index.ts",
       "^@molstar/sb-ncbr-extension/(.*)$": "<rootDir>/extensions/sb-ncbr/src/$1",
+      "^@molstar/volseg-api-extension/(.*)$": "<rootDir>/extensions/volseg-api/src/$1",
       "^@molstar/volume-tools-extension$": "<rootDir>/extensions/volume-tools/src/index.ts",
       "^@molstar/volume-tools-extension/(.*)$": "<rootDir>/extensions/volume-tools/src/$1",
       "^@molstar/volumes-and-segmentations-extension$": "<rootDir>/extensions/volumes-and-segmentations/src/index.ts",

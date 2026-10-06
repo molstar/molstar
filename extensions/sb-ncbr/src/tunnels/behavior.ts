@@ -11,6 +11,7 @@ import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/bui
 import { AutoPreset } from '@molstar/plugin/state/builder/structure/representation-presets/auto';
 import { Model, Structure } from '@molstar/model/model/structure';
 import { PluginContext } from '@molstar/plugin/context';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { StateObjectRef } from '@molstar/core/state';
 import { getTunnelsConfig, TunnelsDataParams } from './props.js';
 import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
@@ -25,13 +26,18 @@ export const SbNcbrTunnels = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'SB NCBR Tunnels',
   },
   ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
+    private unregisterEntry: (() => void) | undefined;
+
     register(): void {
-      this.ctx.state.data.actions.add(DownloadTunnels);
-      this.ctx.builders.structure.representation.registerPreset(TunnelsPreset);
+      const entry: PluginRegistryEntry = {
+        structure: { presets: { representation: [TunnelsPreset] } },
+        actions: [DownloadTunnels],
+      };
+      this.unregisterEntry = this.ctx.register(entry);
     }
     unregister() {
-      this.ctx.state.data.actions.remove(DownloadTunnels);
-      this.ctx.builders.structure.representation.unregisterPreset(TunnelsPreset);
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
     }
   },
   params: () => ({

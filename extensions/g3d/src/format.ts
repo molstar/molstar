@@ -11,6 +11,7 @@ import { TrajectoryFormatProvider } from '@molstar/plugin/state/formats/trajecto
 import { PluginStateObject as SO, PluginStateTransform } from '@molstar/plugin/state/objects';
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginContext } from '@molstar/plugin/context';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/base';
 import { StateAction, StateObjectRef } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
@@ -190,15 +191,20 @@ export const G3DFormat = PluginBehavior.create<{ autoAttach: boolean; showToolti
     description: 'G3D Format Support',
   },
   ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean; showTooltip: boolean }> {
+    private unregisterEntry: (() => void) | undefined;
+
     register() {
-      this.ctx.state.data.actions.add(LoadG3D);
+      const entry: PluginRegistryEntry = {
+        lociLabels: [G3dLabelProvider],
+        actions: [LoadG3D],
+      };
+      this.unregisterEntry = this.ctx.register(entry);
       objectForEach(G3dSymbols, (s) => DefaultQueryRuntimeTable.addSymbol(s));
-      this.ctx.managers.lociLabels.addProvider(G3dLabelProvider);
     }
     unregister() {
-      this.ctx.state.data.actions.remove(LoadG3D);
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
       objectForEach(G3dSymbols, (s) => DefaultQueryRuntimeTable.removeSymbol(s));
-      this.ctx.managers.lociLabels.removeProvider(G3dLabelProvider);
     }
   },
 });
