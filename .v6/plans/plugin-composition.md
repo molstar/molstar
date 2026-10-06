@@ -291,7 +291,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       step 1.)
 - [x] `PluginAnimationManager.unregister`; `PluginDragAndDropEntry`, `fallback` ordering, and `addHandler` options.
 - [x] Cached `toAction()` and id-counted `StateActionManager` in core.
-- [ ] `plugin.register` with atomic conflict checks and idempotent undo; `spec.registry` registered in `init()`.
+- [x] `plugin.register` with atomic conflict checks and idempotent undo; `spec.registry` registered in `init()`.
 - [x] Preset builders resolve through the registry by `id`, then `alias`: index `alias` in the builders with the §4.2
       conflict rule, remove `defaultProvider` and the static-map lookup, add the id/alias-union and `string` overloads
       (`TrajectoryHierarchyBuilder` gains `string`), throw for an unresolved string, and fix `getPresetSelect` defaults.
@@ -305,7 +305,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       data (as `StructureFocusRepresentation` and `extensions/meshes/src/examples.ts:148` do); the three representation
       transformers throw in `apply`/`update` for empty registries. No core-state change.
 - [x] `PluginConfig.Structure.DefaultHierarchyPreset`.
-- [ ] Add catalogs and `DefaultRegistry` (spec §5.3) and register it alongside the existing constructor preloads;
+- [x] Add catalogs and `DefaultRegistry` (spec §5.3) and register it alongside the existing constructor preloads;
       identity counting makes the duplicates harmless, provided the `StructureSelectionQueryRegistry` constructor pushes
       the catalog's module-scope residue queries instead of creating new ones (otherwise each residue query would be
       listed twice until step 3). `DefaultThemes` includes the `ExternalColorThemes` entry (spec §5.4), exported from

@@ -54,6 +54,7 @@ export function createViewerSpec(options: Partial<ViewerOptions> = {}): PluginUI
     canvas3d: {
       ...defaultSpec.canvas3d,
     },
+    registry: defaultSpec.registry,
     actions: defaultSpec.actions,
     behaviors: [...baseBehaviors, ...o.extensions.filter((e) => !disabledExtension.has(e)).map((e) => ExtensionMap[e])],
     animations: [...(defaultSpec.animations || [])],

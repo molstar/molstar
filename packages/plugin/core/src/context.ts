@@ -57,7 +57,8 @@ import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginCommandManager } from '@molstar/plugin/command';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig, PluginConfigManager } from '@molstar/plugin/config';
-import type { PluginSpec } from '@molstar/plugin/spec';
+import type { PluginRegistryEntry, PluginSpec } from '@molstar/plugin/spec';
+import { registerEntries } from '@molstar/plugin/registry-entry';
 import { PluginState } from '@molstar/plugin/state';
 import { SubstructureParentHelper } from '@molstar/plugin/util/substructure-parent-helper';
 import { TaskManager } from '@molstar/plugin/util/task-manager';
@@ -570,6 +571,21 @@ export class PluginContext {
     await this.runTask(this.state.behaviors.updateTree(tree, { doNotUpdateCurrent: true, doNotLogTiming: true }));
   }
 
+  /**
+   * Registers the providers of one or more entries, in the fixed order of the registry contract, and returns an
+   * idempotent function that removes exactly what this call registered.
+   *
+   * Checks every provider against existing registrations and against each other first; on a conflict it throws one
+   * error listing all of them and changes nothing. Must be called after `init()` has created the managers, which is
+   * the case for `spec.registry`, behaviors, and everything that runs later.
+   */
+  register(entry: PluginRegistryEntry | readonly PluginRegistryEntry[]): () => void {
+    if (!this.managers.interactivity || !this.managers.lociLabels || !this.builders.structure) {
+      throw new Error('PluginContext.register called before init()');
+    }
+    return registerEntries(this, entry);
+  }
+
   private initCustomFormats() {
     if (!this.spec.customFormats) return;
 
@@ -601,7 +617,6 @@ export class PluginContext {
     try {
       this.subs.push(this.events.log.subscribe((e) => (this.log.entries = this.log.entries.push(e))));
 
-      this.initCustomFormats();
       this.initBehaviorEvents();
       this.initBuiltInBehavior();
 
@@ -609,6 +624,9 @@ export class PluginContext {
       (this.managers.lociLabels as LociLabelManager) = new LociLabelManager(this);
       (this.builders.structure as StructureBuilder) = new StructureBuilder(this);
 
+      if (this.spec.registry?.length) this.register(this.spec.registry);
+
+      this.initCustomFormats();
       this.initAnimations();
       this.initDataActions();
 
