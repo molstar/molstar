@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -35,6 +35,59 @@ uniform vec4 uInteriorSubstance;
     const bool solidInterior = true;
 #else
     const bool solidInterior = false;
+#endif
+
+bool isCap = false;
+
+#ifdef dSolidInterior
+    bool solidInteriorCap(
+        in vec3 rayOrigin, in vec3 rayDir, in float frontT, in float t,
+        in float frontDepth, in bool objectClipped, in vec3 frontModelPosition,
+        inout vec3 cameraNormal, inout vec3 modelPosition, inout vec3 viewPosition, inout float fragmentDepth
+    ){
+        vec3 cameraRayOrigin = (uView * vec4(rayOrigin, 1.0)).xyz;
+        vec3 cameraRayDir = (uView * vec4(rayDir, 0.0)).xyz;
+        float nearT = - (uNear + cameraRayOrigin.z) / cameraRayDir.z;
+        float sNear = frontDepth > 0.0 ? 0.0 : clamp((nearT - frontT) / (t - frontT), 0.0, 1.0);
+        #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+            float sCap = objectClipped || frontDepth <= 0.0 ? clipExit(frontModelPosition / uModelScale, modelPosition / uModelScale, sNear) : sNear;
+            if (sCap < 0.0) return false;
+        #else
+            float sCap = sNear;
+        #endif
+        if (sCap == sNear && frontDepth <= 0.0) {
+            fragmentDepth = 0.0 + (0.0000002 / vSize);
+            cameraNormal = -rayDir;
+            viewPosition = cameraRayOrigin + nearT * cameraRayDir;
+            modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
+        }
+        #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+            else if (objectClipped || frontDepth <= 0.0) {
+                modelPosition = mix(frontModelPosition, modelPosition, sCap);
+                viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
+                fragmentDepth = calcDepth(viewPosition) + (0.0000002 / vSize);
+                cameraNormal = -clipNormal(modelPosition / uModelScale);
+                isCap = true;
+            }
+        #endif
+        return true;
+    }
+
+    // back-depth pass: move the exit point towards the entry until it is not clipped
+    bool solidInteriorBackCap(in vec3 entryPosition, inout vec3 cameraNormal, inout vec3 modelPosition, inout vec3 viewPosition, inout float fragmentDepth) {
+        #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+            float s = clipExit(modelPosition / uModelScale, entryPosition / uModelScale, 0.0);
+            if (s < 0.0) return false;
+            if (s > 0.0) {
+                modelPosition = mix(modelPosition, entryPosition, s);
+                viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
+                fragmentDepth = calcDepth(viewPosition);
+                cameraNormal = -clipNormal(modelPosition / uModelScale);
+                isCap = true;
+            }
+        #endif
+        return fragmentDepth > 0.0;
+    }
 #endif
 
 // adapted from https://www.shadertoy.com/view/4lcSRn
@@ -74,6 +127,9 @@ bool CylinderImpostor(
 
     bool clipped = false;
     bool objectClipped = false;
+    float frontT = 0.0;
+    float frontDepth = 1.0;
+    vec3 frontModelPosition = rayOrigin;
 
     #if defined(dRenderVariant_depth)
         // back-depth pass wants the farthest intersection
@@ -86,20 +142,23 @@ bool CylinderImpostor(
     h = sqrt(h);
     float t = (-k1 - h) / k2;
     float y = baoc + t * bard;
+    #ifdef dSolidInterior
+        // entry into the closed cylinder: body entry clamped to the end-cap slab
+        vec3 entryPosition = rayOrigin + (abs(bard) > 0.0 ? max(t, min(-baoc / bard, (baba - baoc) / bard)) : t) * rayDir;
+    #endif
     if (!depthBack && y > 0.0 && y < baba) {
         interior = false;
         cameraNormal = (oc + t * rayDir - ba * y / baba) / radius;
         modelPosition = rayOrigin + t * rayDir;
         viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
         fragmentDepth = calcDepth(viewPosition);
+        frontT = t;
+        frontDepth = fragmentDepth;
+        frontModelPosition = modelPosition;
         #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-            if (clipTest(modelPosition)) {
+            if (clipTest(modelPosition / uModelScale)) {
                 objectClipped = true;
                 fragmentDepth = -1.0;
-                #ifdef dSolidInterior
-                    topCap = !topInterior;
-                    bottomCap = !bottomInterior;
-                #endif
             }
         #endif
         if (fragmentDepth > 0.0) return true;
@@ -116,14 +175,13 @@ bool CylinderImpostor(
                 modelPosition = rayOrigin + t * rayDir;
                 viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
                 fragmentDepth = calcDepth(viewPosition);
+                frontT = t;
+                frontDepth = fragmentDepth;
+                frontModelPosition = modelPosition;
                 #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-                    if (clipTest(modelPosition)) {
+                    if (clipTest(modelPosition / uModelScale)) {
                         objectClipped = true;
                         fragmentDepth = -1.0;
-                        #ifdef dSolidInterior
-                            topCap = !topInterior;
-                            bottomCap = !bottomInterior;
-                        #endif
                     }
                 #endif
                 if (fragmentDepth > 0.0) {
@@ -146,14 +204,13 @@ bool CylinderImpostor(
                 modelPosition = rayOrigin + t * rayDir;
                 viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
                 fragmentDepth = calcDepth(viewPosition);
+                frontT = t;
+                frontDepth = fragmentDepth;
+                frontModelPosition = modelPosition;
                 #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-                    if (clipTest(modelPosition)) {
+                    if (clipTest(modelPosition / uModelScale)) {
                         objectClipped = true;
                         fragmentDepth = -1.0;
-                        #ifdef dSolidInterior
-                            topCap = !topInterior;
-                            bottomCap = !bottomInterior;
-                        #endif
                     }
                 #endif
                 if (fragmentDepth > 0.0) {
@@ -183,17 +240,9 @@ bool CylinderImpostor(
             fragmentDepth = calcDepth(viewPosition);
             if (fragmentDepth > 0.0) {
                 #ifdef dSolidInterior
-                    if (!objectClipped && !depthBack) {
-                        fragmentDepth = 0.0 + (0.0000002 / vSize);
-                        cameraNormal = -rayDir;
-
-                        // intersection of ray in model space with near plane in camera space
-                        vec3 cameraRayOrigin = (uView * vec4(rayOrigin, 1.0)).xyz;
-                        vec3 cameraRayDir = (uView * vec4(rayDir, 0.0)).xyz;
-                        float nearT = - (uNear + cameraRayOrigin.z) / cameraRayDir.z;
-                        viewPosition = cameraRayOrigin + nearT * cameraRayDir;
-                        modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
-                    }
+                    if (depthBack) {
+                        if (!solidInteriorBackCap(entryPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
+                    } else if (!solidInteriorCap(rayOrigin, rayDir, frontT, t, frontDepth, objectClipped, frontModelPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
                 #endif
                 return true;
             }
@@ -210,17 +259,9 @@ bool CylinderImpostor(
                 fragmentDepth = calcDepth(viewPosition);
                 if (fragmentDepth > 0.0) {
                     #ifdef dSolidInterior
-                        if (!objectClipped && !depthBack) {
-                            fragmentDepth = 0.0 + (0.0000002 / vSize);
-                            cameraNormal = -rayDir;
-
-                            // intersection of ray in model space with near plane in camera space
-                            vec3 cameraRayOrigin = (uView * vec4(rayOrigin, 1.0)).xyz;
-                            vec3 cameraRayDir = (uView * vec4(rayDir, 0.0)).xyz;
-                            float nearT = - (uNear + cameraRayOrigin.z) / cameraRayDir.z;
-                            viewPosition = cameraRayOrigin + nearT * cameraRayDir;
-                            modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
-                        }
+                        if (depthBack) {
+                            if (!solidInteriorBackCap(entryPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
+                        } else if (!solidInteriorCap(rayOrigin, rayDir, frontT, t, frontDepth, objectClipped, frontModelPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
                     #endif
                     return true;
                 }
@@ -236,17 +277,9 @@ bool CylinderImpostor(
                 fragmentDepth = calcDepth(viewPosition);
                 if (fragmentDepth > 0.0) {
                     #ifdef dSolidInterior
-                        if (!objectClipped && !depthBack) {
-                            fragmentDepth = 0.0 + (0.0000002 / vSize);
-                            cameraNormal = -rayDir;
-
-                            // intersection of ray in model space with near plane in camera space
-                            vec3 cameraRayOrigin = (uView * vec4(rayOrigin, 1.0)).xyz;
-                            vec3 cameraRayDir = (uView * vec4(rayDir, 0.0)).xyz;
-                            float nearT = - (uNear + cameraRayOrigin.z) / cameraRayDir.z;
-                            viewPosition = cameraRayOrigin + nearT * cameraRayDir;
-                            modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
-                        }
+                        if (depthBack) {
+                            if (!solidInteriorBackCap(entryPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
+                        } else if (!solidInteriorCap(rayOrigin, rayDir, frontT, t, frontDepth, objectClipped, frontModelPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
                     #endif
                     return true;
                 }
@@ -277,7 +310,9 @@ void main() {
     vec3 vModelPosition = modelPosition;
 
     #include fade_lod
-    #include clip_pixel
+    if (!isCap) {
+        #include clip_pixel
+    }
 
     #ifdef dNeedsNormal
         mat3 normalMatrix = adjoint(uView);
@@ -300,6 +335,7 @@ void main() {
     #elif defined(dRenderVariant_depth)
         gl_FragColor = material;
     #elif defined(dRenderVariant_marking)
+        #include apply_marking
         gl_FragColor = material;
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
