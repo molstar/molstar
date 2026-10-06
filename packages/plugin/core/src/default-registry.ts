@@ -12,9 +12,32 @@ import type { SizeTheme } from '@molstar/graphics/theme/size';
 import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { BuiltInColorThemes } from '@molstar/graphics/theme/color/catalog';
 import { BuiltInSizeThemes } from '@molstar/graphics/theme/size/catalog';
-import { BuiltInStructureRepresentations } from '@molstar/graphics/repr/structure/catalog';
-import { BuiltInVolumeRepresentations } from '@molstar/graphics/repr/volume/catalog';
-import { BuiltInParticleRepresentations } from '@molstar/graphics/repr/particles/catalog';
+import { Cartoon } from '@molstar/plugin/registry/structure/cartoon';
+import { Backbone } from '@molstar/plugin/registry/structure/backbone';
+import { BallAndStick } from '@molstar/plugin/registry/structure/ball-and-stick';
+import { BlobSurface } from '@molstar/plugin/registry/structure/blob-surface';
+import { Carbohydrate } from '@molstar/plugin/registry/structure/carbohydrate';
+import { Ellipsoid } from '@molstar/plugin/registry/structure/ellipsoid';
+import { GaussianSurface } from '@molstar/plugin/registry/structure/gaussian-surface';
+import { GaussianVolume } from '@molstar/plugin/registry/structure/gaussian-volume';
+import { Label } from '@molstar/plugin/registry/structure/label';
+import { Line } from '@molstar/plugin/registry/structure/line';
+import { MolecularSurface } from '@molstar/plugin/registry/structure/molecular-surface';
+import { Orientation } from '@molstar/plugin/registry/structure/orientation';
+import { Plane } from '@molstar/plugin/registry/structure/plane';
+import { Point } from '@molstar/plugin/registry/structure/point';
+import { Putty } from '@molstar/plugin/registry/structure/putty';
+import { Spacefill } from '@molstar/plugin/registry/structure/spacefill';
+import { Polyhedron } from '@molstar/plugin/registry/structure/polyhedron';
+import { DirectVolume } from '@molstar/plugin/registry/volume/direct-volume';
+import { Dot } from '@molstar/plugin/registry/volume/dot';
+import { Isosurface } from '@molstar/plugin/registry/volume/isosurface';
+import { Segment } from '@molstar/plugin/registry/volume/segment';
+import { Slice } from '@molstar/plugin/registry/volume/slice';
+import { ParticleSpacefill } from '@molstar/plugin/registry/particles/spacefill';
+import { ParticleOrientation } from '@molstar/plugin/registry/particles/orientation';
+import { ParticleFibers } from '@molstar/plugin/registry/particles/fibers';
+import { ParticleTarget } from '@molstar/plugin/registry/particles/target';
 import { BuiltInVolumeFormats } from '@molstar/plugin/state/formats/volume/catalog';
 import { BuiltInTopologyFormats } from '@molstar/plugin/state/formats/topology/catalog';
 import { BuiltInCoordinatesFormats } from '@molstar/plugin/state/formats/coordinates/catalog';
@@ -117,16 +140,47 @@ export const DefaultThemes: PluginRegistryEntry = {
   particles: { themes: { color: ColorThemes, size: SizeThemes } },
 };
 
+/*
+ * The representation entries each carry the representation and its default themes; the default entries below list the
+ * representation providers alone, in the order of the 5.x built-in catalogs. The themes come in with `DefaultThemes`.
+ */
+
 export const DefaultStructureRepresentations: PluginRegistryEntry = {
-  structure: { representations: Object.values(BuiltInStructureRepresentations) },
+  structure: {
+    representations: [
+      Cartoon,
+      Backbone,
+      BallAndStick,
+      BlobSurface,
+      Carbohydrate,
+      Ellipsoid,
+      GaussianSurface,
+      GaussianVolume,
+      Label,
+      Line,
+      MolecularSurface,
+      Orientation,
+      Plane,
+      Point,
+      Putty,
+      Spacefill,
+      Polyhedron,
+    ].flatMap((e) => e.structure!.representations!),
+  },
 };
 
 export const DefaultVolumeRepresentations: PluginRegistryEntry = {
-  volume: { representations: Object.values(BuiltInVolumeRepresentations) },
+  volume: {
+    representations: [DirectVolume, Dot, Isosurface, Segment, Slice].flatMap((e) => e.volume!.representations!),
+  },
 };
 
 export const DefaultParticleRepresentations: PluginRegistryEntry = {
-  particles: { representations: Object.values(BuiltInParticleRepresentations) },
+  particles: {
+    representations: [ParticleSpacefill, ParticleOrientation, ParticleFibers, ParticleTarget].flatMap(
+      (e) => e.particles!.representations!,
+    ),
+  },
 };
 
 export const DefaultActions: PluginRegistryEntry = {

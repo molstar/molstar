@@ -58,6 +58,7 @@ import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig, PluginConfigManager } from '@molstar/plugin/config';
 import type { PluginRegistryEntry, PluginSpec } from '@molstar/plugin/spec';
 import { registerEntries } from '@molstar/plugin/registry-entry';
+import { checkDefaultThemes } from '@molstar/plugin/registry-check';
 import { PluginState } from '@molstar/plugin/state';
 import { SubstructureParentHelper } from '@molstar/plugin/util/substructure-parent-helper';
 import { TaskManager } from '@molstar/plugin/util/task-manager';
@@ -585,7 +586,22 @@ export class PluginContext {
     if (!this.managers.interactivity || !this.managers.lociLabels || !this.builders.structure) {
       throw new Error('PluginContext.register called before init()');
     }
-    return registerEntries(this, entry);
+    const undo = registerEntries(this, entry);
+    // While `init()` runs the registrations are still arriving (spec registry, behaviors); it checks once at its end.
+    if (this._isInitialized) this.checkDefaultThemes();
+    return undo;
+  }
+
+  private readonly warnedDefaultThemes = new Set<string>();
+
+  /** Development mode only: warns for registered representations whose default themes are not registered. */
+  private checkDefaultThemes() {
+    if (isProductionMode) return;
+    try {
+      checkDefaultThemes(this, this.warnedDefaultThemes);
+    } catch (e) {
+      this.log.error(`Default theme check failed: ${e}`);
+    }
   }
 
   /**
@@ -625,6 +641,8 @@ export class PluginContext {
       this.log.message(`Mol* Plugin ${PLUGIN_VERSION}`);
       if (!isProductionMode) this.log.message(`Development mode enabled`);
       if (isDebugMode) this.log.message(`Debug mode enabled`);
+
+      this.checkDefaultThemes();
 
       this._isInitialized = true;
       this.initializedPromiseCallbacks[0]();

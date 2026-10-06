@@ -20,6 +20,7 @@
     },
     "./_test/*": null,
     "./behavior/dynamic/volume-streaming/_test/*": null,
+    "./registry/_test/*": null,
     "./state/builder/structure/_test/*": null,
     "./state/helpers/_test/*": null,
     "./state/formats/_test/*": null,
