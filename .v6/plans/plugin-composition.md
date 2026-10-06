@@ -310,20 +310,22 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       the catalog's module-scope residue queries instead of creating new ones (otherwise each residue query would be
       listed twice until step 3). `DefaultThemes` includes the `ExternalColorThemes` entry (spec §5.4), exported from
       `themes/external-*`.
-- [ ] Remove the three spec fields with the constructor check (spec §3.1); convert the Viewer and mesoscale
+- [x] Remove the three spec fields with the constructor check (spec §3.1); convert the Viewer and mesoscale
       `customFormats` (§3.1, §3.2); migrate every in-repo spec (Viewer, docking-viewer, mesoscale-explorer, mvs-stories,
       examples, smoke fixtures, `cli/state-docs`, `cli/mvs-render`).
-- [ ] In the same change that removes `spec.animations`, delete `initAnimations` and its implicit snapshot-transition
+- [x] In the same change that removes `spec.animations`, delete `initAnimations` and its implicit snapshot-transition
       registration (spec §4.4) and type `current` as possibly undefined; otherwise the implicit registration would
       always fire first and make the snapshot transition the default animation instead of `AnimateModelIndex`.
-- [ ] `setSnapshot` skips `snapshot.current` with a warning for an unregistered animation name.
+- [x] `setSnapshot` skips `snapshot.current` with a warning for an unregistered animation name.
 - [x] Separate fix: count `addCustomProp`/`removeCustomProp` and `addSymbol`/`removeSymbol` in
       `DefaultQueryRuntimeTable`.
 
 ### Step 3: context decoupling
 
 - [ ] Check that every in-repo spec lists `DefaultRegistry` or its own entries, then remove the constructor preloads and
-      implicit imports of §1.1 (spec §9).
+      implicit imports of §1.1 (spec §9). Also delete `PluginContext.dropOverriddenPreloadedFormats` (the transitional
+      handling that lets a `customFormats` override replace a preloaded built-in format), and have mesoscale-explorer
+      list only the formats, representations, and themes it needs.
 - [ ] Remove the volume-streaming behavior from the `PluginContext` closure. After step 1 it is still reached through
       `state/manager/structure/hierarchy.ts` → `hierarchy-state.ts` → `behavior/dynamic/volume-streaming/behavior.ts`,
       and `behavior/dynamic/volume-streaming/util.ts` through `formats/registry.ts` → the volume catalog →
@@ -394,10 +396,10 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 - [ ] Spec: `registry: [...DefaultRegistry, ViewerEntry, customFormatsEntry]`, with the custom-formats entry last so
       built-in format order and `auto()` tie-breaking are unchanged. `ViewerAutoPreset` may move into `ViewerEntry` or
       stay registered in `onBeforeUIRender`; its entry includes only the auto preset it falls back to.
-- [ ] Convert `customFormats` as in spec §11: type it `[name: string, provider: DataFormatProvider.Unnamed][]` and
+- [x] Convert `customFormats` as in spec §11: type it `[name: string, provider: DataFormatProvider.Unnamed][]` and
       register `DataFormatProvider.withName(provider, name)` for each tuple. `G3dProvider` gains `name: 'g3d'`, so the
       default tuple passes through unchanged.
-- [ ] Overriding a built-in format: in 5.x a tuple whose name matches a built-in format (`['pdb', MyPdbProvider]`)
+- [x] Overriding a built-in format: in 5.x a tuple whose name matches a built-in format (`['pdb', MyPdbProvider]`)
       overrides it for `dataFormats.get(name)`, because the custom formats are added after the built-ins and the map
       keeps the last one. In 6.0 that would be a different provider under an existing key, which rejects `init()` and
       would break `Viewer.create`. When a `customFormats` name equals a format in `DefaultFormats`, the Viewer registers
@@ -414,7 +416,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 ### 3.2 mesoscale-explorer
 
-- [ ] Keep the `customFormats` option and convert it like the Viewer, including the override handling.
+- [x] Keep the `customFormats` option and convert it like the Viewer, including the override handling.
 - [ ] Replace the literal spec (`actions: defaultSpec.actions`, three animations) and the post-`init()`
       `registry.clear()`/`lociLabels.clearProviders()` with an explicit registry: spacefill with its themes, the
       `uniform` and `illustrative` structure color themes it applies by name (`data/state.ts`, `ui/entities.tsx`,
@@ -426,7 +428,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 ### 3.3 docking-viewer
 
-- [ ] Add `DefaultRegistry` (or a narrower list) to its literal spec.
+- [x] Add `DefaultRegistry` (or a narrower list) to its literal spec.
 
 ### 3.4 mvs-stories
 
@@ -439,13 +441,13 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       `examples/ihm-restraints`, `examples/ligand-editor`, and `apps/mvs-stories` (`elements/viewer.tsx`) spread the
       default spec but replace `components` wholesale; each spreads `...defaultSpec.components` into its `components`,
       or it would silently get the minimal tools.
-- [ ] `proteopedia-wrapper` replaces `DefaultAnimations` instead of overriding `animations`.
+- [x] `proteopedia-wrapper` replaces `DefaultAnimations` instead of overriding `animations`.
 - [ ] `examples/interactions` and `examples/basic-wrapper` use preset ids (§1.3).
 - [ ] `examples/image-renderer` and `examples/glb-export`: default specs from `default-spec`, leaf transformer imports.
 
 ### 3.6 Smoke fixtures
 
-- [ ] `smoke/headless/capture.mjs`, `smoke/browser/viewer/index.html`, `smoke/browser/library/index.html`,
+- [x] `smoke/headless/capture.mjs`, `smoke/browser/viewer/index.html`, `smoke/browser/library/index.html`,
       `smoke/node/runtime.mjs`, and `smoke/types/consumer.tsx` import the default specs from `default-spec`, replace
       `spec.actions` checks with `plugin.state.data.actions` lookups, and replace `StateTransforms` with leaf imports.
 - [ ] `smoke/headless/capture.mjs` and `smoke/browser/library/index.html` rewrite `applyPreset(trajectory, 'default')`
@@ -453,10 +455,10 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 ### 3.7 CLI tools
 
-- [ ] `cli/state-docs` imports the transformer catalog instead of the facade, builds its context from
+- [x] `cli/state-docs` imports the transformer catalog instead of the facade, builds its context from
       `DefaultPluginSpec()`, and awaits `init()`, so the generated docs keep listing every built-in representation and
       theme.
-- [ ] `cli/mvs-render`: same treatment as the smoke fixtures.
+- [x] `cli/mvs-render`: same treatment as the smoke fixtures.
 
 ### 3.8 Extensions
 

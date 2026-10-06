@@ -271,6 +271,61 @@ names unregistered transformers throws one error listing all missing ids
 the plugin or the snapshot manager changes. `StateTransformer.has(id)` is a non-throwing registration check;
 `StateTransformer.get` still throws for unknown ids.
 
+## Plugin composition step 2
+
+Step 2 of [plugin-composition.md](plugin-composition.md) replaces three spec fields with registry entries. The
+constructor preloads (formats, representations, themes, presets, selection queries, markdown extensions) are still in
+place, so a literal spec still receives those until step 3; only actions and animations are affected now.
+
+### `PluginSpec.actions`, `animations`, and `customFormats` removed
+
+`PluginSpec` no longer has `actions`, `animations`, or `customFormats`. The `PluginContext` constructor throws
+`PluginSpec.<key> was removed in 6.0; use registry entries (see the migration guide)` when any of the three keys has a
+value other than `undefined`; a key present with `undefined` (for example `customFormats: o?.customFormats`) is ignored.
+This is a check, not an alias. The replacements are entries of `PluginSpec.registry`:
+
+| 5.x                                 | 6.0                                                                                                                                     |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `actions: [PluginSpec.Action(a)]`   | `registry: [..., { actions: [a] }]`                                                                                                     |
+| `animations: [...]`                 | `registry: [..., { animations: [...] }]`                                                                                                |
+| `customFormats: [[name, provider]]` | `registry: [..., { formats: [DataFormatProvider.withName(provider, name)] }]`                                                           |
+| `actions: defaultSpec.actions`      | `registry: DefaultRegistry` (or `defaultSpec.registry`), or the `DefaultActions` entry                                                  |
+| `animations: [AnimateModelIndex]`   | replace the default entry: `registry: [...DefaultRegistry.filter((e) => e !== DefaultAnimations), { animations: [AnimateModelIndex] }]` |
+
+`DefaultPluginSpec()` and `DefaultPluginUISpec()` return `{ registry: DefaultRegistry, behaviors, ... }` and no longer
+carry `actions` or `animations`, so code that read `defaultSpec.actions`/`defaultSpec.animations` (or
+`plugin.spec.actions`) must read the registry entries (`DefaultActions.actions`, `DefaultAnimations.animations`) or the
+plugin (`plugin.state.data.actions`, `plugin.managers.animation.animations`). A literal spec that did not spread the
+default spec gets no actions and no animations until it lists them (for example `registry: DefaultRegistry`); a spec
+that listed `actions: defaultSpec.actions` and `animations: defaultSpec.animations` becomes
+`registry: defaultSpec.registry`.
+
+What changes now: actions and animations come only from `registry` (and behaviors); `PluginContext` no longer registers
+`AnimateStateSnapshotTransition` when no animations are listed, so `plugin.managers.animation.current` is `undefined`
+(it is typed `Current | undefined`) until an animation is registered. `AnimateStateSnapshotTransition` stays base
+functionality: snapshot transitions and the UI snapshot controls play it directly and `play()` registers it on demand.
+`DefaultAnimations` keeps it in its current position, so the default animation remains `AnimateModelIndex`.
+`PluginAnimationManager.setSnapshot` skips `snapshot.current` and logs a warning when the snapshot names an unregistered
+animation, instead of writing `paramValues` into the previously selected animation. `PluginContext.initCustomFormats`,
+`initDataActions`, and `initAnimations` are removed (they were private).
+
+What step 3 changes: it removes the constructor preloads, after which a literal spec gets no formats, representations,
+themes, presets, selection queries, or markdown extensions either, and must list `DefaultRegistry` (or its own entries).
+Until then, `PluginContext.init()` drops a preloaded built-in format when a `spec.registry` entry lists a different
+provider under the same name, so a custom format can still override a built-in one; step 3 deletes this transitional
+handling.
+
+### Viewer and mesoscale-explorer `customFormats`
+
+`Viewer.create` options are unchanged, including `customFormats: [name, provider][]` with `DataFormatProvider.Unnamed`
+providers. The Viewer builds
+`registry: [...DefaultRegistry, { formats: customFormats.map(([n, p]) => withName(p, n)) }]` with the custom-formats
+entry last. A custom name that equals a built-in format name (for example `['pdb', MyPdb]`) still overrides it:
+`DefaultFormats` is replaced by a copy without that provider, so `dataFormats.get(name)` returns the custom provider and
+no name is registered twice. The overriding provider is listed after the built-ins, so for that format `auto()`
+tie-breaking by registration order sees it last, as in 5.x. mesoscale-explorer keeps its own `customFormats` option
+shape and applies the same rule.
+
 ## Declaration contracts
 
 `ExternalModules['jpeg-js']` exposes the injected codec's `encode` contract instead of the entire codec module type.

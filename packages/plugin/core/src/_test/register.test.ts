@@ -390,18 +390,19 @@ describe('PluginContext.register', () => {
       expect(plugin.isInitialized).toBe(false);
     });
 
-    it('registers the legacy spec fields after spec.registry', async () => {
-      const a = providers('a');
-      const plugin = new PluginContext({
-        behaviors: [],
-        registry: [{ animations: [a.animation], actions: [a.action] }],
-        animations: [a.animation],
-        actions: [{ action: a.action }],
-        customFormats: [['c-format', providers('c').format]],
-      });
+    it.each(['actions', 'animations', 'customFormats'])('rejects the removed spec field %s', (key) => {
+      const spec = { behaviors: [], [key]: [] } as any;
+      expect(() => new PluginContext(spec)).toThrow(
+        `PluginSpec.${key} was removed in 6.0; use registry entries (see the migration guide)`,
+      );
+    });
+
+    it('ignores removed spec keys whose value is undefined', async () => {
+      const spec = { behaviors: [], actions: undefined, animations: undefined, customFormats: undefined } as any;
+      const plugin = new PluginContext(spec);
       await plugin.init();
-      expect(snapshot(plugin).animations).toContain('a-animation');
-      expect(snapshot(plugin).formats).toContain('c-format');
+      expect(plugin.managers.animation.animations).toEqual([]);
+      expect(plugin.managers.animation.current).toBeUndefined();
     });
 
     it('does not let a behavior-style removal remove a provider the spec also registered', async () => {

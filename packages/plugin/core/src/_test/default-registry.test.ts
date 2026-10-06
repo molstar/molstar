@@ -64,11 +64,10 @@ describe('DefaultRegistry', () => {
     }
   });
 
-  it('DefaultPluginSpec lists the registry and keeps its actions and animations', () => {
+  it('DefaultPluginSpec lists the registry and no removed spec fields', () => {
     const spec = DefaultPluginSpec();
     expect(spec.registry).toBe(DefaultRegistry);
-    expect(spec.actions!.map((a) => a.action)).toEqual(DefaultActions.actions);
-    expect(spec.animations).toEqual(DefaultAnimations.animations);
+    expect(Object.keys(spec).sort()).toEqual(['behaviors', 'registry']);
   });
 
   it('registers into a plugin with the default spec', async () => {

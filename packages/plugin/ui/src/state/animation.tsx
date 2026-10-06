@@ -33,10 +33,11 @@ export class AnimationControls extends PluginUIComponent<{ onStart?: () => void 
 
   render() {
     const anim = this.plugin.managers.animation;
-    if (anim.isEmpty) return null;
+    const current = anim.current;
+    if (anim.isEmpty || !current) return null;
 
     const isDisabled = anim.state.animationState === 'playing';
-    const canApply = anim.current.anim.canApply?.(this.plugin);
+    const canApply = current.anim.canApply?.(this.plugin);
 
     return (
       <>
@@ -47,8 +48,8 @@ export class AnimationControls extends PluginUIComponent<{ onStart?: () => void 
           isDisabled={isDisabled}
         />
         <ParameterControls
-          params={anim.current.params}
-          values={anim.current.paramValues}
+          params={current.params}
+          values={current.paramValues}
           onChange={this.updateCurrentParams}
           isDisabled={isDisabled}
         />

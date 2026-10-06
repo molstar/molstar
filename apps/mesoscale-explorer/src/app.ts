@@ -5,6 +5,7 @@
  */
 
 import { Mp4Export } from '@molstar/mp4-export-extension';
+import { DefaultActions, DefaultFormats } from '@molstar/plugin/default-registry';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { renderReact18 } from '@molstar/plugin-ui/react18';
@@ -13,7 +14,7 @@ import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import type { PluginUISpec } from '@molstar/plugin-ui/spec';
 import { PluginConfig } from '@molstar/plugin/config';
 import type { PluginLayoutControlsDisplay } from '@molstar/plugin/layout';
-import { PluginSpec } from '@molstar/plugin/spec';
+import { PluginSpec, type PluginRegistryEntry } from '@molstar/plugin/spec';
 import '@molstar/core/util/polyfill';
 import { ObjectKeys } from '@molstar/core/util/type-helpers';
 import type { SaccharideCompIdMapType } from '@molstar/model/model/structure/structure/carbohydrates/constants';
@@ -62,6 +63,22 @@ export type MesoscaleExplorerState = {
 };
 
 //
+
+/**
+ * The providers the explorer lists: the default formats and actions, its three animations, and the custom formats,
+ * which come last. As in 5.x, a custom name that equals a built-in format name overrides it: `DefaultFormats` is
+ * replaced by a copy without that provider, so no name is registered twice.
+ */
+function createRegistry(customFormats: [string, DataFormatProvider.Unnamed][] | undefined): PluginRegistryEntry[] {
+  const formats = (customFormats ?? []).map(([name, provider]) => DataFormatProvider.withName(provider, name));
+  const customNames = new Set(formats.map((f) => f.name));
+  return [
+    DefaultActions,
+    { ...DefaultFormats, formats: DefaultFormats.formats!.filter((f) => !customNames.has(f.name)) },
+    { animations: [AnimateCameraSpin, AnimateCameraRock, AnimateStateSnapshots] },
+    { formats },
+  ];
+}
 
 const Extensions = {
   backgrounds: PluginSpec.Behavior(Backgrounds),
@@ -150,7 +167,7 @@ export class MesoscaleExplorer {
     const defaultSpec = DefaultPluginUISpec();
 
     const spec: PluginUISpec = {
-      actions: defaultSpec.actions,
+      registry: createRegistry(o.customFormats),
       behaviors: [
         PluginSpec.Behavior(PluginBehaviors.Camera.CameraAxisHelper),
         PluginSpec.Behavior(PluginBehaviors.Camera.CameraControls),
@@ -161,12 +178,7 @@ export class MesoscaleExplorer {
         PluginSpec.Behavior(PluginBehaviors.Representation.SelectLoci),
         ...o.extensions.map((e) => Extensions[e]),
       ],
-      animations: [AnimateCameraSpin, AnimateCameraRock, AnimateStateSnapshots],
       customParamEditors: defaultSpec.customParamEditors,
-      customFormats: o?.customFormats?.map(([name, provider]): [string, DataFormatProvider] => [
-        name,
-        DataFormatProvider.withName(provider, name),
-      ]),
       layout: {
         initial: {
           isExpanded: o.layoutIsExpanded,

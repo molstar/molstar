@@ -7,15 +7,11 @@
 
 import { PluginBehaviors } from '@molstar/plugin/behavior';
 import { StructureFocusRepresentation } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
-import { DefaultActions, DefaultAnimations, DefaultRegistry } from '@molstar/plugin/default-registry';
+import { DefaultRegistry } from '@molstar/plugin/default-registry';
 import { PluginSpec } from '@molstar/plugin/spec';
 
 export const DefaultPluginSpec = (): PluginSpec => ({
   registry: DefaultRegistry,
-  // Kept until the spec fields are removed; the entries registered through `registry` already list the same
-  // actions and animations, so these only count again.
-  actions: DefaultActions.actions!.map((a) => PluginSpec.Action(a as Parameters<typeof PluginSpec.Action>[0])),
-  animations: [...DefaultAnimations.animations!],
   behaviors: [
     PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),
     PluginSpec.Behavior(PluginBehaviors.Representation.SelectLoci),

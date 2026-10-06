@@ -32,7 +32,6 @@ import { StructureSelectionManager } from '@molstar/plugin/state/manager/structu
 import { ParticleHierarchyManager } from '@molstar/plugin/state/manager/particles/hierarchy';
 import { VolumeHierarchyManager } from '@molstar/plugin/state/manager/volume/hierarchy';
 import { MarkdownExtensionManager } from '@molstar/plugin/state/manager/markdown-extensions';
-import { AnimateStateSnapshotTransition } from '@molstar/plugin/state/animation/built-in/state-snapshots';
 import { type LeftPanelTabName, PluginLayout } from '@molstar/plugin/layout';
 import { Representation } from '@molstar/graphics/repr/representation';
 import { ParticleRepresentationRegistry } from '@molstar/graphics/repr/particles/registry';
@@ -72,6 +71,9 @@ import { PluginContainer } from '@molstar/plugin/container';
 import type { Volume } from '@molstar/model/model/volume';
 
 export type PluginInitializedState = { kind: 'no' } | { kind: 'yes' } | { kind: 'error'; error: any };
+
+/** `PluginSpec` keys removed in 6.0; the constructor rejects them with a pointer to registry entries. */
+const REMOVED_SPEC_KEYS = ['actions', 'animations', 'customFormats'] as const;
 
 export class PluginContext {
   runTask = <T>(task: Task<T>, params?: { useOverlay?: boolean }) => this.managers.task.run(task, params);
@@ -586,30 +588,19 @@ export class PluginContext {
     return registerEntries(this, entry);
   }
 
-  private initCustomFormats() {
-    if (!this.spec.customFormats) return;
-
-    for (const f of this.spec.customFormats) {
-      this.dataFormats.add(f[0], f[1]);
-    }
-  }
-
-  private initAnimations() {
-    if (!this.spec.animations?.length) {
-      // If no animations are specified, register the built-in state snapshot transition animation
-      // which is used by MVS. This ensures that PluginAnimationManager.current is always defined.
-      this.managers.animation.register(AnimateStateSnapshotTransition);
-      return;
-    }
-    for (const anim of this.spec.animations) {
-      this.managers.animation.register(anim);
-    }
-  }
-
-  private initDataActions() {
-    if (!this.spec.actions) return;
-    for (const a of this.spec.actions) {
-      this.state.data.actions.add(a.action);
+  /**
+   * Transitional (removed with the constructor preloads in plugin composition step 3): the format registry still
+   * preloads every built-in provider, so a registry entry that lists a different provider under a built-in name, such
+   * as the Viewer's `customFormats` override, would conflict with the preloaded one. Drop the preloaded provider so the
+   * listed one replaces it, as `customFormats` did in 5.x.
+   */
+  private dropOverriddenPreloadedFormats(registry: readonly PluginRegistryEntry[]) {
+    for (const entry of registry) {
+      for (const provider of entry.formats ?? []) {
+        if (this.dataFormats.has(provider.name) && this.dataFormats.get(provider.name) !== provider) {
+          this.dataFormats.remove(provider.name);
+        }
+      }
     }
   }
 
@@ -624,11 +615,10 @@ export class PluginContext {
       (this.managers.lociLabels as LociLabelManager) = new LociLabelManager(this);
       (this.builders.structure as StructureBuilder) = new StructureBuilder(this);
 
-      if (this.spec.registry?.length) this.register(this.spec.registry);
-
-      this.initCustomFormats();
-      this.initAnimations();
-      this.initDataActions();
+      if (this.spec.registry?.length) {
+        this.dropOverriddenPreloadedFormats(this.spec.registry);
+        this.register(this.spec.registry);
+      }
 
       await this.initBehaviors();
 
@@ -645,6 +635,11 @@ export class PluginContext {
   }
 
   constructor(public spec: PluginSpec) {
+    for (const key of REMOVED_SPEC_KEYS) {
+      if ((spec as Record<string, unknown>)[key] !== undefined) {
+        throw new Error(`PluginSpec.${key} was removed in 6.0; use registry entries (see the migration guide)`);
+      }
+    }
     setSaccharideCompIdMapType(this.config.get(PluginConfig.Structure.SaccharideCompIdMapType) ?? 'default');
   }
 }

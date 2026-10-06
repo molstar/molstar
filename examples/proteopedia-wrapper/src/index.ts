@@ -6,6 +6,7 @@
 
 import * as ReactDOM from 'react-dom';
 import { type Canvas3DProps, DefaultCanvas3DParams } from '@molstar/graphics/canvas3d/canvas3d';
+import { DefaultAnimations, DefaultRegistry } from '@molstar/plugin/default-registry';
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
 import { createStructureRepresentationParams } from '@molstar/plugin/state/helpers/structure-representation-params';
 import { PluginStateObject, PluginStateObject as PSO } from '@molstar/plugin/state/objects';
@@ -75,7 +76,7 @@ class MolStarProteopediaWrapper {
       render: renderReact18,
       spec: {
         ...DefaultPluginUISpec(),
-        animations: [AnimateModelIndex],
+        registry: [...DefaultRegistry.filter((e) => e !== DefaultAnimations), { animations: [AnimateModelIndex] }],
         layout: {
           initial: {
             isExpanded: false,

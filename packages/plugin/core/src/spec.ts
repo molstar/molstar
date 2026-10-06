@@ -28,10 +28,7 @@ export { PluginSpec };
 interface PluginSpec {
   /** Providers registered by `PluginContext.init()`, in order, before behaviors are initialized. */
   registry?: readonly PluginRegistryEntry[];
-  actions?: PluginSpec.Action[];
   behaviors: PluginSpec.Behavior[];
-  animations?: PluginStateAnimation[];
-  customFormats?: [string, DataFormatProvider][];
   canvas3d?: PartialCanvas3DProps;
   layout?: {
     initial?: Partial<PluginLayoutStateProps>;

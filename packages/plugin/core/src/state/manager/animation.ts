@@ -24,7 +24,7 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
   private counts = new Map<string, number>();
   private currentTime: number = 0;
 
-  private _current: PluginAnimationManager.Current;
+  private _current: PluginAnimationManager.Current | undefined = void 0;
   private _params?: PD.For<PluginAnimationManager.State['params']> = void 0;
 
   readonly events = {
@@ -35,8 +35,9 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
   get isEmpty() {
     return this._animations.length === 0;
   }
-  get current() {
-    return this._current!;
+  /** The selected animation, or `undefined` when none is registered. */
+  get current(): PluginAnimationManager.Current | undefined {
+    return this._current;
   }
 
   get animations() {
@@ -94,7 +95,7 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
   }
 
   updateCurrentParams(values: any) {
-    if (this.isEmpty) return;
+    if (!this._current) return;
     this._current.paramValues = { ...this._current.paramValues, ...values };
     this.triggerUpdate();
   }
@@ -184,7 +185,7 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
     if (next) {
       this.updateParams({ current: next.name });
     } else {
-      this._current = void 0 as any as PluginAnimationManager.Current;
+      this._current = void 0;
       this.updateState({ params: { ...this.state.params, current: '' } });
       this.triggerUpdate();
     }
@@ -217,31 +218,36 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
   private isApplying = false;
 
   async start() {
+    if (!this._current) return;
+
     this.updateState({ animationState: 'playing' });
     if (!this.context.behaviors.state.isAnimating.value) {
       this.context.behaviors.state.isAnimating.next(true);
     }
     this.triggerUpdate();
 
-    const anim = this._current.anim;
-    let initialState = this._current.anim.initialState(this._current.paramValues, this.context);
+    const current = this._current;
+    if (!current) return;
+
+    const anim = current.anim;
+    let initialState = anim.initialState(current.paramValues, this.context);
     if (anim.setup) {
-      const state = await anim.setup(this._current.paramValues, initialState, this.context);
+      const state = await anim.setup(current.paramValues, initialState, this.context);
       if (state) initialState = state;
     }
 
-    this._current.lastTime = 0;
-    this._current.startedTime = -1;
-    this._current.state = initialState;
+    current.lastTime = 0;
+    current.startedTime = -1;
+    current.state = initialState;
     this.isStopped = false;
   }
 
   async stop() {
     this.isStopped = true;
     if (this.state.animationState !== 'stopped') {
-      const anim = this._current.anim;
-      if (anim.teardown) {
-        await anim.teardown(this._current.paramValues, this._current.state, this.context);
+      const current = this._current;
+      if (current?.anim.teardown) {
+        await current.anim.teardown(current.paramValues, current.state, this.context);
       }
 
       this.updateState({ animationState: 'stopped' });
@@ -274,33 +280,35 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
   }
 
   private async applyFrame(animation?: PluginAnimationManager.AnimationInfo) {
+    const current = this._current;
+    if (!current) return;
+
     const t = this.currentTime;
-    if (this._current.startedTime < 0) this._current.startedTime = t;
-    const newState = await this._current.anim.apply(
-      this._current.state,
-      { lastApplied: this._current.lastTime, current: t - this._current.startedTime, animation },
-      { params: this._current.paramValues, plugin: this.context },
+    if (current.startedTime < 0) current.startedTime = t;
+    const newState = await current.anim.apply(
+      current.state,
+      { lastApplied: current.lastTime, current: t - current.startedTime, animation },
+      { params: current.paramValues, plugin: this.context },
     );
 
     if (newState.kind === 'finished') {
       this.stop();
     } else if (newState.kind === 'next') {
-      this._current.state = newState.state;
-      this._current.lastTime = t - this._current.startedTime;
+      current.state = newState.state;
+      current.lastTime = t - current.startedTime;
     }
     this.triggerApply();
   }
 
   getSnapshot(): PluginAnimationManager.Snapshot {
-    if (!this.current) return { state: this.state };
+    const current = this._current;
+    if (!current) return { state: this.state };
 
     return {
       state: this.state,
       current: {
-        paramValues: this._current.paramValues,
-        state: this._current.anim.stateSerialization
-          ? this._current.anim.stateSerialization.toJSON(this._current.state)
-          : this._current.state,
+        paramValues: current.paramValues,
+        state: current.anim.stateSerialization ? current.anim.stateSerialization.toJSON(current.state) : current.state,
       },
     };
   }
@@ -311,9 +319,17 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
     this.updateParams(snapshot.state.params);
 
     if (snapshot.current) {
-      this.current.paramValues = snapshot.current.paramValues;
-      this.current.state = this._current.anim.stateSerialization
-        ? this._current.anim.stateSerialization.fromJSON(snapshot.current.state)
+      const name = snapshot.state.params.current;
+      const current = this._current;
+      if (!current || current.anim.name !== name) {
+        // `updateParams` ignores an unregistered name, so `current` would still be the previous animation
+        this.context.log.warn(`Animation '${name}' of the snapshot is not registered; skipping its state.`);
+        return;
+      }
+
+      current.paramValues = snapshot.current.paramValues;
+      current.state = current.anim.stateSerialization
+        ? current.anim.stateSerialization.fromJSON(snapshot.current.state)
         : snapshot.current.state;
       this.triggerUpdate();
       if (this.state.animationState === 'playing') this.resume();
@@ -321,14 +337,17 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
   }
 
   private async resume() {
-    this._current.lastTime = 0;
-    this._current.startedTime = -1;
-    const anim = this._current.anim;
+    const current = this._current;
+    if (!current) return;
+
+    current.lastTime = 0;
+    current.startedTime = -1;
+    const anim = current.anim;
     if (!this.context.behaviors.state.isAnimating.value) {
       this.context.behaviors.state.isAnimating.next(true);
     }
     if (anim.setup) {
-      await anim.setup(this._current.paramValues, this._current.state, this.context);
+      await anim.setup(current.paramValues, current.state, this.context);
     }
     this.isStopped = false;
   }

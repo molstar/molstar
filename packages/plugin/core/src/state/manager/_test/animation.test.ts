@@ -9,8 +9,13 @@ import { BehaviorSubject } from 'rxjs';
 import type { PluginStateAnimation } from '../../animation/model.js';
 import { PluginAnimationManager } from '../animation.js';
 
+const warnings: string[] = [];
+
 function create() {
-  const context = { behaviors: { state: { isAnimating: new BehaviorSubject(false) } } } as unknown as PluginContext;
+  const context = {
+    behaviors: { state: { isAnimating: new BehaviorSubject(false) } },
+    log: { warn: (message: string) => warnings.push(message) },
+  } as unknown as PluginContext;
   return new PluginAnimationManager(context);
 }
 
@@ -92,7 +97,7 @@ describe('PluginAnimationManager registration', () => {
     expect(manager.getParams().current).toBeDefined();
 
     manager.unregister(b);
-    expect(manager.current.anim).toBe(a);
+    expect(manager.current?.anim).toBe(a);
     expect(JSON.stringify(manager.getParams())).not.toContain('Display b');
   });
 
@@ -106,7 +111,7 @@ describe('PluginAnimationManager registration', () => {
     manager.register(c);
 
     manager.unregister(a);
-    expect(manager.current.anim).toBe(b);
+    expect(manager.current?.anim).toBe(b);
     expect(manager.state.params.current).toBe('b');
     expect(JSON.stringify(manager.getParams())).not.toContain('Display a');
   });
@@ -122,7 +127,7 @@ describe('PluginAnimationManager registration', () => {
 
     // registering again selects it
     manager.register(a);
-    expect(manager.current.anim).toBe(a);
+    expect(manager.current?.anim).toBe(a);
   });
 
   it('stops and tears down a playing current animation when it is removed', async () => {
@@ -138,7 +143,7 @@ describe('PluginAnimationManager registration', () => {
     manager.unregister(a);
     expect(manager.isAnimating).toBe(false);
     expect(teardown).toHaveBeenCalledTimes(1);
-    expect(manager.current.anim).toBe(b);
+    expect(manager.current?.anim).toBe(b);
   });
 
   it('adopts an animation added on demand by play without removing it on unregister', async () => {
@@ -156,5 +161,54 @@ describe('PluginAnimationManager registration', () => {
     manager.register(a);
     manager.unregister(a);
     expect(manager.animations).toEqual([]);
+  });
+});
+
+describe('PluginAnimationManager current and snapshots', () => {
+  beforeEach(() => {
+    warnings.length = 0;
+  });
+
+  it('has no current animation until one is registered', () => {
+    const manager = create();
+    expect(manager.current).toBeUndefined();
+    expect(manager.isAnimatingStateTransition).toBe(false);
+    expect(manager.getSnapshot().current).toBeUndefined();
+    manager.updateCurrentParams({ x: 1 });
+    expect(manager.current).toBeUndefined();
+
+    const a = animation('a');
+    manager.register(a);
+    expect(manager.current?.anim).toBe(a);
+    manager.unregister(a);
+    expect(manager.current).toBeUndefined();
+  });
+
+  it('restores the state of a registered animation', () => {
+    const manager = create();
+    manager.register(animation('a'));
+    manager.register(animation('b'));
+    manager.setSnapshot({
+      state: { params: { current: 'b' }, animationState: 'stopped' },
+      current: { paramValues: { x: 1 }, state: { y: 2 } },
+    });
+    expect(manager.current?.anim.name).toBe('b');
+    expect(manager.current?.paramValues).toEqual({ x: 1 });
+    expect(manager.current?.state).toEqual({ y: 2 });
+    expect(warnings).toEqual([]);
+  });
+
+  it('skips the state of an unregistered animation and warns', () => {
+    const manager = create();
+    manager.register(animation('a'));
+    const before = manager.current!.paramValues;
+    manager.setSnapshot({
+      state: { params: { current: 'missing' }, animationState: 'stopped' },
+      current: { paramValues: { x: 1 }, state: { y: 2 } },
+    });
+    expect(manager.current?.anim.name).toBe('a');
+    expect(manager.current?.paramValues).toBe(before);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain("'missing'");
   });
 });

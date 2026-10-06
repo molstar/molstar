@@ -83,7 +83,7 @@ class Viewer {
     const defaultSpec = DefaultPluginUISpec();
 
     const spec: PluginUISpec = {
-      actions: defaultSpec.actions,
+      registry: defaultSpec.registry,
       behaviors: [
         PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci, { mark: false }),
         PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
@@ -93,7 +93,6 @@ class Viewer {
         PluginSpec.Behavior(PluginBehaviors.CustomProps.Interactions),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.SecondaryStructure),
       ],
-      animations: defaultSpec.animations,
       customParamEditors: defaultSpec.customParamEditors,
       layout: {
         initial: {

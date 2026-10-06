@@ -35,11 +35,12 @@
     const selectionRoundTrip = selectedAtoms === structureData.elementCount && restoredSelectedAtoms === selectedAtoms;
     const trajectoryFromPdb = TrajectoryFromPDB;
     const registeredTransformer = StateTransformer.get(trajectoryFromPdb.id);
-    const viewerAction = viewer.plugin.spec.actions?.find(entry => entry.action.id === trajectoryFromPdb.id)?.action;
+    const pdbCell = { obj: { type: trajectoryFromPdb.definition.from[0].type }, transform: {} };
+    const viewerAction = viewer.plugin.state.data.actions.fromCell(pdbCell, viewer.plugin).find(a => a.id === trajectoryFromPdb.toAction().id);
     const identities = {
       pluginUiContext: viewer.plugin instanceof PluginUIContext,
       transformerRegistry: registeredTransformer === trajectoryFromPdb,
-      viewerUsesSameTransformer: viewerAction === trajectoryFromPdb,
+      viewerUsesSameTransformer: viewerAction === trajectoryFromPdb.toAction(),
       transformerId: trajectoryFromPdb.id
     };
     window.smokeViewer = viewer;

@@ -13,7 +13,7 @@ import { ExtensionMap } from '@molstar/viewer/extensions';
 import { DefaultViewerOptions, type ViewerOptions } from '@molstar/viewer/options';
 import { NoPrimaryFocusLociBindings } from '@molstar/plugin/behavior/dynamic/camera';
 import { PluginSpec } from '@molstar/plugin/spec';
-import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
+import { createViewerRegistry } from '@molstar/viewer/registry';
 import { ViewerAutoPreset } from '@molstar/viewer/presets';
 
 export function createViewerSpec(options: Partial<ViewerOptions> = {}): PluginUISpec {
@@ -54,15 +54,9 @@ export function createViewerSpec(options: Partial<ViewerOptions> = {}): PluginUI
     canvas3d: {
       ...defaultSpec.canvas3d,
     },
-    registry: defaultSpec.registry,
-    actions: defaultSpec.actions,
+    registry: createViewerRegistry(o.customFormats),
     behaviors: [...baseBehaviors, ...o.extensions.filter((e) => !disabledExtension.has(e)).map((e) => ExtensionMap[e])],
-    animations: [...(defaultSpec.animations || [])],
     customParamEditors: defaultSpec.customParamEditors,
-    customFormats: o?.customFormats?.map(([name, provider]): [string, DataFormatProvider] => [
-      name,
-      DataFormatProvider.withName(provider, name),
-    ]),
     layout: {
       initial: {
         isExpanded: o.layoutIsExpanded,
