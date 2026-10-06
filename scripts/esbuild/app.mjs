@@ -27,7 +27,6 @@ for (let i = 0; i < args.length; i++) {
   }
   if (!args[i].startsWith('-')) positional.push(args[i]);
 }
-const timestamp = Number(process.env.MOLSTAR_BUILD_TIMESTAMP ?? Date.now());
 const version = JSON.parse(fs.readFileSync(path.join(root, 'version.json'), 'utf8')).version;
 const inventoryPath = path.join(root, 'scripts/workspace/inventory.json');
 const inventory = fs.existsSync(inventoryPath) ? JSON.parse(fs.readFileSync(inventoryPath, 'utf8')) : { packages: [] };
@@ -188,7 +187,6 @@ async function buildPackage(rawPkg) {
       'process.env.NODE_ENV': JSON.stringify(production ? 'production' : 'development'),
       'process.env.DEBUG': JSON.stringify(process.env.DEBUG || false),
       __MOLSTAR_PLUGIN_VERSION__: JSON.stringify(version),
-      __MOLSTAR_BUILD_TIMESTAMP__: String(timestamp),
     },
     logLevel: 'info',
   };

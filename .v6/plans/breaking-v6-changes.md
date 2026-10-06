@@ -171,11 +171,10 @@ loads native modules. A rendering command still needs the caller to install them
 
 ## Version metadata
 
-`PLUGIN_VERSION` is generated from `version.json` rather than falling back to `'(development)'` outside a bundle.
-`PLUGIN_VERSION_DATE` comes from version synchronization and is reused for the same version unless
-`MOLSTAR_BUILD_TIMESTAMP` is explicitly provided to `version:sync`/`build:lib`. It is no longer automatically the time
-of every application bundle build. The old `__MOLSTAR_PLUGIN_VERSION__`/`__MOLSTAR_BUILD_TIMESTAMP__` definitions do not
-control the generated module's values.
+`PLUGIN_VERSION` is generated from `version.json` rather than falling back to `'(development)'` outside a bundle. The
+plugin startup log displays only this version. `PLUGIN_VERSION_DATE` and the build timestamp override have been removed.
+Additional build identification metadata is deferred in the v6 checklist. The old `__MOLSTAR_PLUGIN_VERSION__`
+definition does not control the generated module's value.
 
 ## CLI generated imports and entrypoints
 

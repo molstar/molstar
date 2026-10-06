@@ -214,7 +214,8 @@ with the release. Independent package versioning is deferred.
 - Internal dependencies use `workspace:*` in source manifests. Validate exact matching release versions in the packed
   manifests.
 - A local synchronization command updates public manifests and generates the runtime version shared by library and app
-  builds. Generate the build timestamp once per build invocation; version checks must not create timestamp-only churn.
+  builds using only the version from `version.json`. Additional build identification metadata is deferred in the v6
+  checklist. Version checks do not write generated metadata.
 - A read-only check rejects inconsistent public versions, internal ranges, or missing public-package inventory entries.
   Include peer/optional internal edges.
 - Private apps/examples/tooling are excluded from public version synchronization; their dependencies still use workspace

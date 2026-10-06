@@ -96,6 +96,9 @@ All public packages release together. Change `version.json`, run `pnpm version:s
 ranges are `workspace:*`; `pnpm pack` replaces them with the exact release version. `pnpm version:check` detects drift.
 No package is published by these commands.
 
+`version:sync` and `build:lib` generate `PLUGIN_VERSION` from `version.json`. The plugin startup log displays only this
+version. Additional build identification metadata is deferred in the v6 checklist.
+
 Normal builds use `skipLibCheck: true`: each project checks its own source and its usage of dependency types, without
 repeatedly checking imported declarations. Run `pnpm check:types:full` to force a rebuild with declaration checking
 enabled in every project using the native TypeScript 7 compiler. The check generates short-lived configs beside the

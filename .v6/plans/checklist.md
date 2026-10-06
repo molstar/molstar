@@ -52,6 +52,9 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
       incremental builds, and CI. Retain the separate TypeScript 6 compatibility API for AST/config parsing only.
 - [x] Replace ESLint with Biome, documenting rule differences and configuring optional formatting.
 - [x] Reformat the repository after the TypeScript 7 migration, then enable formatting checks in CI.
+- [ ] Revisit build identification metadata beyond the release version, including whether to expose a Git commit
+      fingerprint and how to support Windows and source archives. For now, generate and display only the version from
+      `version.json`.
 - [x] Compare clean and incremental builds after tooling changes and rerun the install, lint, test, build, workspace,
       version, tarball, and local smoke checks.
 

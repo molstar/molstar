@@ -63,7 +63,7 @@ import { SubstructureParentHelper } from '@molstar/plugin/util/substructure-pare
 import { TaskManager } from '@molstar/plugin/util/task-manager';
 import { PluginToastManager } from '@molstar/plugin/util/toast';
 import { ViewportScreenshotHelper } from '@molstar/plugin/util/viewport-screenshot';
-import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from '@molstar/plugin/version';
+import { PLUGIN_VERSION } from '@molstar/plugin/version';
 import { setSaccharideCompIdMapType } from '@molstar/model/model/structure/structure/carbohydrates/constants';
 import { DragAndDropManager } from '@molstar/plugin/state/manager/drag-and-drop';
 import { ErrorContext } from '@molstar/core/util/error-context';
@@ -614,7 +614,7 @@ export class PluginContext {
 
       await this.initBehaviors();
 
-      this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
+      this.log.message(`Mol* Plugin ${PLUGIN_VERSION}`);
       if (!isProductionMode) this.log.message(`Development mode enabled`);
       if (isDebugMode) this.log.message(`Debug mode enabled`);
 

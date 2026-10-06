@@ -213,7 +213,6 @@ await esbuild.build({
     __MOLSTAR_PLUGIN_VERSION__: JSON.stringify(
       JSON.parse(await fs.readFile(path.join(root, 'version.json'), 'utf8')).version,
     ),
-    __MOLSTAR_BUILD_TIMESTAMP__: String(Number(process.env.MOLSTAR_BUILD_TIMESTAMP ?? Date.now())),
   },
   logLevel: 'info',
 });
