@@ -23,7 +23,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
   to: SO.Molecule.Structure.Representation3D,
   params: (a, ctx: PluginContext) => {
     const { registry, themes: themeCtx } = ctx.representation.structure;
-    const type = registry.get(registry.default.name);
+    const type = registry.get(registry.default?.name ?? '');
 
     if (!a) {
       const colorThemeInfo = {
@@ -36,7 +36,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
       };
 
       return {
-        type: PD.Mapped<any>(registry.default.name, registry.types, (name) =>
+        type: PD.Mapped<any>(registry.default?.name ?? '', registry.types, (name) =>
           PD.Group<any>(registry.get(name).getParams(themeCtx, Structure.Empty)),
         ),
         colorTheme: PD.Mapped<any>(
@@ -62,7 +62,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     };
 
     return {
-      type: PD.Mapped<any>(registry.default.name, registry.getApplicableTypes(a.data), (name) =>
+      type: PD.Mapped<any>(registry.default?.name ?? '', registry.getApplicableTypes(a.data), (name) =>
         PD.Group<any>(registry.get(name).getParams(themeCtx, a.data)),
       ),
       colorTheme: PD.Mapped<any>(

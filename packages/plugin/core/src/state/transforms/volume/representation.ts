@@ -23,11 +23,11 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
   to: SO.Volume.Representation3D,
   params: (a, ctx: PluginContext) => {
     const { registry, themes: themeCtx } = ctx.representation.volume;
-    const type = registry.get(registry.default.name);
+    const type = registry.get(registry.default?.name ?? '');
 
     if (!a) {
       return {
-        type: PD.Mapped<any>(registry.default.name, registry.types, (name) =>
+        type: PD.Mapped<any>(registry.default?.name ?? '', registry.types, (name) =>
           PD.Group<any>(registry.get(name).getParams(themeCtx, Volume.One)),
         ),
         colorTheme: PD.Mapped<any>(type.defaultColorTheme.name, themeCtx.colorThemeRegistry.types, (name) =>
@@ -41,7 +41,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
 
     const dataCtx = { volume: a.data };
     return {
-      type: PD.Mapped<any>(registry.default.name, registry.types, (name) =>
+      type: PD.Mapped<any>(registry.default?.name ?? '', registry.types, (name) =>
         PD.Group<any>(registry.get(name).getParams(themeCtx, a.data)),
       ),
       colorTheme: PD.Mapped<any>(

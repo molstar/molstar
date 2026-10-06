@@ -106,8 +106,10 @@ export class RepresentationRegistry<D, S extends Representation.State> {
   private _list: { name: string; provider: RepresentationProvider<D, any, any> }[] = [];
   private _map = new Map<string, RepresentationProvider<D, any, any>>();
   private _name = new Map<RepresentationProvider<D, any, any>, string>();
+  private _count = new Map<RepresentationProvider<D, any, any>, number>();
 
-  get default() {
+  /** The first registered entry, or `undefined` when the registry is empty. */
+  get default(): { name: string; provider: RepresentationProvider<D, any, any> } | undefined {
     return this._list[0];
   }
   get types(): [string, string][] {
@@ -116,14 +118,30 @@ export class RepresentationRegistry<D, S extends Representation.State> {
 
   constructor() {}
 
+  /** Returns the message `add(provider)` would throw, or `undefined` when it would succeed. Changes nothing. */
+  findConflict(provider: RepresentationProvider<D, any, any>): string | undefined {
+    const existing = this._map.get(provider.name);
+    if (existing && existing !== provider) {
+      return `Representation '${provider.name}' is already registered with a different provider.`;
+    }
+    return undefined;
+  }
+
+  /** Registering the same object again increments a count; a different object under the same name throws. */
   add<P extends PD.Params>(provider: RepresentationProvider<D, P, S>) {
-    if (this._map.has(provider.name)) {
-      throw new Error(`${provider.name} already registered.`);
+    const conflict = this.findConflict(provider);
+    if (conflict) throw new Error(conflict);
+
+    const count = this._count.get(provider);
+    if (count !== undefined) {
+      this._count.set(provider, count + 1);
+      return;
     }
 
     this._list.push({ name: provider.name, provider });
     this._map.set(provider.name, provider);
     this._name.set(provider, provider.name);
+    this._count.set(provider, 1);
   }
 
   getName(provider: RepresentationProvider<D, any, any>): string {
@@ -131,18 +149,24 @@ export class RepresentationRegistry<D, S extends Representation.State> {
     return this._name.get(provider)!;
   }
 
+  /** Decrements the count and removes the provider at zero. Removing an unknown provider is a no-op. */
   remove(provider: RepresentationProvider<D, any, any>) {
-    const name = provider.name;
-
-    this._list.splice(
-      this._list.findIndex((e) => e.name === name),
-      1,
-    );
-    const p = this._map.get(name);
-    if (p) {
-      this._map.delete(name);
-      this._name.delete(p);
+    const count = this._count.get(provider);
+    if (count === undefined) return;
+    if (count > 1) {
+      this._count.set(provider, count - 1);
+      return;
     }
+
+    this._count.delete(provider);
+    this._map.delete(provider.name);
+    this._name.delete(provider);
+    const i = this._list.findIndex((e) => e.provider === provider);
+    if (i >= 0) this._list.splice(i, 1);
+  }
+
+  has(nameOrProvider: string | RepresentationProvider<D, any, any>): boolean {
+    return typeof nameOrProvider === 'string' ? this._map.has(nameOrProvider) : this._count.has(nameOrProvider);
   }
 
   get<P extends PD.Params>(name: string): RepresentationProvider<D, P, S> {
@@ -165,6 +189,7 @@ export class RepresentationRegistry<D, S extends Representation.State> {
     this._list.length = 0;
     this._map.clear();
     this._name.clear();
+    this._count.clear();
   }
 }
 

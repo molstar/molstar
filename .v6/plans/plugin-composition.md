@@ -280,7 +280,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 - [ ] Reference counting in every registry and manager with the per-registry keys and duplicate rules of spec §4.2;
       `remove` of an unknown provider is a no-op. `clear()` drops providers and counts.
-- [ ] `has(nameOrProvider)` on representation and theme registries; `RepresentationRegistry.default` typed as possibly
+- [x] `has(nameOrProvider)` on representation and theme registries; `RepresentationRegistry.default` typed as possibly
       `undefined`; `ThemeRegistry` without a built-in map.
 - [x] `DataFormatProvider.withName` (copies memoized in a module-level `WeakMap<provider, Map<name, provider>>`) and
       `DataFormatProvider.Unnamed`, and `DataFormatRegistry` as in spec §4.3: `add(provider)` uses `provider.name`;

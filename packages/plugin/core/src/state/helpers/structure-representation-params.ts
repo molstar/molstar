@@ -105,7 +105,7 @@ export function createStructureColorThemeParams(
   params?: any,
 ): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] {
   const { registry, themes } = ctx.representation.structure;
-  const repr = registry.get(typeName || registry.default.name);
+  const repr = registry.get(typeName || (registry.default?.name ?? ''));
   const color = themes.colorThemeRegistry.get(themeName || repr.defaultColorTheme.name);
   const colorDefaultParams = PD.getDefaultValues(color.getParams({ structure: structure || Structure.Empty }));
   if (color.name === repr.defaultColorTheme.name) Object.assign(colorDefaultParams, repr.defaultColorTheme.props);
@@ -134,7 +134,7 @@ export function createStructureSizeThemeParams(
   params?: any,
 ): StateTransformer.Params<StructureRepresentation3D>['sizeTheme'] {
   const { registry, themes } = ctx.representation.structure;
-  const repr = registry.get(typeName || registry.default.name);
+  const repr = registry.get(typeName || (registry.default?.name ?? ''));
   const size = themes.sizeThemeRegistry.get(themeName || repr.defaultSizeTheme.name);
   const sizeDefaultParams = PD.getDefaultValues(size.getParams({ structure: structure || Structure.Empty }));
   if (size.name === repr.defaultSizeTheme.name) Object.assign(sizeDefaultParams, repr.defaultSizeTheme.props);
@@ -148,7 +148,7 @@ function createParamsByName(
 ): StateTransformer.Params<StructureRepresentation3D> {
   const typeProvider =
     (props.type && ctx.representation.structure.registry.get(props.type)) ||
-    ctx.representation.structure.registry.default.provider;
+    ctx.representation.structure.registry.get(ctx.representation.structure.registry.default?.name ?? '');
   const colorProvider =
     (props.color && ctx.representation.structure.themes.colorThemeRegistry.get(props.color)) ||
     ctx.representation.structure.themes.colorThemeRegistry.get(typeProvider.defaultColorTheme.name);
@@ -174,7 +174,8 @@ function createParamsProvider(
   const { themes: themeCtx } = ctx.representation.structure;
   const themeDataCtx = { structure };
 
-  const repr = props.type || ctx.representation.structure.registry.default.provider;
+  const repr =
+    props.type || ctx.representation.structure.registry.get(ctx.representation.structure.registry.default?.name ?? '');
   const reprDefaultParams = PD.getDefaultValues(repr.getParams(themeCtx, structure));
   const reprParams = Object.assign(reprDefaultParams, props.typeParams);
 

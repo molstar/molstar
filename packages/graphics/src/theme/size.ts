@@ -8,6 +8,7 @@ import type { SizeType, LocationSize } from '@molstar/graphics/geo/geometry/size
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type ThemeDataContext, ThemeRegistry, type ThemeProvider } from './theme.js';
 import { deepEqual } from '@molstar/core/util';
+import { objectForEach } from '@molstar/core/util/object';
 import { BuiltInSizeThemes } from './size/catalog.js';
 
 export { SizeTheme };
@@ -47,7 +48,9 @@ namespace SizeTheme {
 
   export type Registry = ThemeRegistry<SizeTheme<any>>;
   export function createRegistry() {
-    return new ThemeRegistry(BuiltInSizeThemes as { [k: string]: Provider<any> }, EmptyProvider);
+    const registry: Registry = new ThemeRegistry(EmptyProvider);
+    objectForEach(BuiltInSizeThemes as { [k: string]: Provider<any> }, (p) => registry.add(p));
+    return registry;
   }
 
   type _BuiltIn = typeof BuiltInSizeThemes;

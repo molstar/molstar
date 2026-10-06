@@ -100,7 +100,7 @@ export function createVolumeColorThemeParams(
   params?: any,
 ): StateTransformer.Params<VolumeRepresentation3D>['colorTheme'] {
   const { registry, themes } = ctx.representation.volume;
-  const repr = registry.get(typeName || registry.default.name);
+  const repr = registry.get(typeName || (registry.default?.name ?? ''));
   const color = themes.colorThemeRegistry.get(themeName || repr.defaultColorTheme.name);
   const colorDefaultParams = PD.getDefaultValues(color.getParams({ volume: volume || Volume.One }));
   if (color.name === repr.defaultColorTheme.name) Object.assign(colorDefaultParams, repr.defaultColorTheme.props);
@@ -129,7 +129,7 @@ export function createVolumeSizeThemeParams(
   params?: any,
 ): StateTransformer.Params<VolumeRepresentation3D>['sizeTheme'] {
   const { registry, themes } = ctx.representation.volume;
-  const repr = registry.get(typeName || registry.default.name);
+  const repr = registry.get(typeName || (registry.default?.name ?? ''));
   const size = themes.sizeThemeRegistry.get(themeName || repr.defaultSizeTheme.name);
   const sizeDefaultParams = PD.getDefaultValues(size.getParams({ volume: volume || Volume.One }));
   if (size.name === repr.defaultSizeTheme.name) Object.assign(sizeDefaultParams, repr.defaultSizeTheme.props);
@@ -143,7 +143,7 @@ function createParamsByName(
 ): StateTransformer.Params<VolumeRepresentation3D> {
   const typeProvider =
     (props.type && ctx.representation.volume.registry.get(props.type)) ||
-    ctx.representation.volume.registry.default.provider;
+    ctx.representation.volume.registry.get(ctx.representation.volume.registry.default?.name ?? '');
   const colorProvider =
     (props.color && ctx.representation.volume.themes.colorThemeRegistry.get(props.color)) ||
     ctx.representation.volume.themes.colorThemeRegistry.get(typeProvider.defaultColorTheme.name);
@@ -169,7 +169,8 @@ function createParamsProvider(
   const { themes: themeCtx } = ctx.representation.volume;
   const themeDataCtx = { volume };
 
-  const repr = props.type || ctx.representation.volume.registry.default.provider;
+  const repr =
+    props.type || ctx.representation.volume.registry.get(ctx.representation.volume.registry.default?.name ?? '');
   const reprDefaultParams = PD.getDefaultValues(repr.getParams(themeCtx, volume));
   const reprParams = Object.assign(reprDefaultParams, props.typeParams);
 
