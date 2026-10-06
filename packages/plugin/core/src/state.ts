@@ -104,7 +104,29 @@ class PluginState extends PluginComponent {
     };
   }
 
+  /**
+   * Throws one error listing every transformer id used by the snapshot (behavior tree, data tree, and
+   * transition frame data trees) that is not registered. Reads ids only; resolves and imports nothing.
+   * Call before applying a snapshot so a failing snapshot leaves the plugin unchanged.
+   */
+  static validateSnapshotTransformers(snapshot: PluginState.Snapshot) {
+    const missing = new Set<string>();
+    const visit = (tree: State.Snapshot | undefined) => {
+      for (const t of tree?.tree?.transforms ?? []) {
+        if (!StateTransformer.has(t.transformer)) missing.add(t.transformer);
+      }
+    };
+    visit(snapshot.behaviour);
+    visit(snapshot.data);
+    for (const frame of snapshot.transition?.frames ?? []) visit(frame.data);
+    if (missing.size === 0) return;
+    throw new Error(
+      `Snapshot uses transformers that are not available in this plugin: ${Array.from(missing).join(', ')}. Import the modules that define them.`,
+    );
+  }
+
   async setSnapshot(snapshot: PluginState.Snapshot) {
+    PluginState.validateSnapshotTransformers(snapshot);
     await this.animation.stop();
 
     // this needs to go 1st since these changes are already baked into the behavior and data state

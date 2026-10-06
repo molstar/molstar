@@ -200,6 +200,11 @@ namespace Transformer {
     return Array.from(registry.values());
   }
 
+  /** Non-throwing check whether a transformer with the given id is registered. */
+  export function has(id: string): boolean {
+    return registry.has(id as Id);
+  }
+
   export function get(id: string): Transformer {
     const t = registry.get(id as Id);
     if (!t) {
