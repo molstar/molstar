@@ -5,7 +5,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import '@molstar/model/script/transpilers/all';
 import type { PartialCanvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import type { PluginStateAnimation } from '@molstar/plugin/state/animation/model';
 import type { DataFormatProvider } from '@molstar/plugin/state/formats/provider';

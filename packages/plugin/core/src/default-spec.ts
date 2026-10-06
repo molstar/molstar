@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import '@molstar/model/script/transpilers/all';
 import { AnimateAssemblyUnwind } from '@molstar/plugin/state/animation/built-in/assembly-unwind';
 import { AnimateCameraSpin } from '@molstar/plugin/state/animation/built-in/camera-spin';
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
