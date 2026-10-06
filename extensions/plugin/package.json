@@ -17,7 +17,8 @@
       "molstar-src": "./src/react.tsx",
       "types": "./lib/react.d.ts",
       "import": "./lib/react.js"
-    }
+    },
+    "./_test/*": null
   },
   "files": [
     "lib",

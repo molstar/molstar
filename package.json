@@ -26,7 +26,7 @@
     "clean:lib": "node scripts/clean.js --lib",
     "rebuild": "pnpm clean && pnpm build",
     "pack:workspace": "node scripts/workspace/pack.mjs",
-    "check:workspace": "node --test scripts/workspace/_test/*.test.mjs && node scripts/workspace/check.mjs && node scripts/workspace/slim-bundle.mjs",
+    "check:workspace": "node --test scripts/workspace/_test/*.test.mjs && node scripts/workspace/check.mjs && node scripts/workspace/slim-bundle.mjs && node scripts/workspace/registry-compare.mjs && node scripts/workspace/composition-check.mjs",
     "version:check": "node scripts/workspace/version.mjs --check",
     "version:sync": "node scripts/workspace/version.mjs --write",
     "dev:apps": "node scripts/esbuild/app.mjs --dev --kind app",

@@ -270,9 +270,9 @@ export function ParticleTargetRepresentation(
   };
 }
 
-function getParticleTargetParams(ctx: RepresentationContext, particles: ParticleList) {
+function getParticleTargetParams(ctx: RepresentationContext, particles: ParticleList | undefined) {
   let params = ParticleTargetRepresentationParams;
-  if (particles.targetMapping?.size) {
+  if (particles?.targetMapping?.size) {
     params = PD.clone(ParticleTargetRepresentationParams);
     let hasStructure = false;
     let hasVolume = false;

@@ -396,7 +396,8 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       `model/structure/export/categories/utils.ts` imports `getCifFieldType` from `data-model` instead of `reader/cif`;
       `state/builder/structure/{representation,hierarchy}.ts` used `import { type ... }` of the preset catalogs, which
       `verbatimModuleSyntax` keeps as a side-effect import (now `import type`).
-- [ ] Complete the acceptance checklist (§6): the slim item is done; the rest is checked as the other steps land.
+- [ ] Complete the acceptance checklist (§6): audited in step 4 (see the evidence under §6); open are the slim browser
+      items and the run-time check of the apps that need a browser.
 
 ### Step 5: extensions and MVS
 
@@ -521,6 +522,8 @@ runs once in step 0 and again for the acceptance comparison; `--out <dir>` write
   so a transformer-derived action is keyed by its transformer id and any other action by `action:<display name>`.
 - `transformer-ids.json` records the sorted ids from `StateTransformer.getAll()`.
 - Both files include the commit they were generated from; the rest of the output is deterministic.
+- `scripts/workspace/registry-compare.mjs` (run by `check:workspace`) dumps both targets again and compares them with
+  the baseline, allowing only the §6.1 differences.
 
 ### 4.2 Catalog manifest
 
@@ -565,29 +568,100 @@ Add to `@molstar/migrate-6-cli` ([architecture §9.2](../designs/architecture.md
 
 - [x] The slim example renders an SDF ligand, and the import graph and the split and single-file bundles exclude every
       module in the spec §12 exclusion table (`pnpm check:workspace`; rendering checked by `node smoke/run.mjs slim`).
-- [ ] The providers registered by `DefaultPluginSpec`, and by the Viewer with default options, match the step-0 baseline
+- [x] The providers registered by `DefaultPluginSpec`, and by the Viewer with default options, match the step-0 baseline
       of each registry (names and order), apart from the differences in §6.1 and the Viewer's own entries.
-- [ ] The `StateTransformer` ids registered after importing `DefaultPluginSpec` contain the baseline id set.
-- [ ] Existing snapshots restore in the Viewer. A snapshot needing an unimported transformer fails before changing
+- [x] The `StateTransformer` ids registered after importing `DefaultPluginSpec` contain the baseline id set.
+- [x] Existing snapshots restore in the Viewer. A snapshot needing an unimported transformer fails before changing
       state.
-- [ ] Built-in preset short keys resolve through their aliases, including `loadTrajectory({ preset: 'all-models' })`.
+- [x] Built-in preset short keys resolve through their aliases, including `loadTrajectory({ preset: 'all-models' })`.
       Loading an unregistered format or an unknown preset id or alias produces a clear error.
-- [ ] Building a representation through the builders or helpers with an unregistered type, color, or size name logs a
+- [x] Building a representation through the builders or helpers with an unregistered type, color, or size name logs a
       warning naming the provider and scope and renders the registry default. Restoring a snapshot that names an
       unregistered representation or theme reports it the same way.
-- [ ] With an empty representation, color theme, or size theme registry in a scope, the helpers and a direct `apply` of
+- [x] With an empty representation, color theme, or size theme registry in a scope, the helpers and a direct `apply` of
       `StructureRepresentation3D`, `VolumeRepresentation3D`, or `ParticlesRepresentation3D` fail with a clear error.
 - [x] In the slim app, loading a snapshot with a cartoon representation reports `cartoon` as unregistered and renders
       the registry default (`node smoke/run.mjs slim`).
-- [ ] A PyMOL script in the slim app fails with the script-language error (checked by `node smoke/run.mjs slim`); the
-      default plugin and the Viewer evaluate it (not yet checked).
-- [ ] `register` with a conflicting entry throws and changes nothing; the undo is idempotent; a behavior's
+- [x] A PyMOL script in the slim app fails with the script-language error (`node smoke/run.mjs slim`); the default
+      plugin and the Viewer evaluate it (`script-languages.test.ts`, `composition-check.mjs`).
+- [x] `register` with a conflicting entry throws and changes nothing; the undo is idempotent; a behavior's
       `unregister()` does not remove a provider the spec also registered.
-- [ ] `Viewer.create` with a `customFormats` tuple that overrides a built-in name (for example `['pdb', MyPdbProvider]`)
+- [x] `Viewer.create` with a `customFormats` tuple that overrides a built-in name (for example `['pdb', MyPdbProvider]`)
       loads that format with the custom provider.
-- [ ] `viewer.loadTrajectory({ ..., preset: 'all-models' })` still works.
+- [x] `viewer.loadTrajectory({ ..., preset: 'all-models' })` still works.
 - [ ] mesoscale-explorer, docking-viewer, mvs-stories, proteopedia-wrapper, the examples and smoke fixtures in §3,
       `cli/mvs-render`, and `cli/state-docs` build and behave as before.
+
+Left open. The slim-app items (the cartoon snapshot and the PyMOL script) are covered by the slim browser smoke test,
+not by this audit; the default plugin and Viewer half of the PyMOL item is verified below. The last item is verified for
+the builds, the type checks, the smoke fixtures, `cli/mvs-render` and `cli/state-docs`, but nothing exercises the
+mesoscale-explorer, docking-viewer, proteopedia-wrapper, or the other examples at run time: their specs are built inside
+`create`/`main` functions that need a browser, and the native headless smoke (`smoke/headless`, needs `gl`) was not run.
+
+#### Evidence
+
+Run with `pnpm build:lib` first. Jest tests are named by file and test; `pnpm check:workspace` runs the two new
+workspace checks (`registry-compare.mjs`, `composition-check.mjs`) after the existing ones.
+
+1. Slim example: `scripts/workspace/import-graph.mjs` rule e/f, `scripts/workspace/slim-bundle.mjs`, and the browser
+   render, as recorded under step 4.
+2. Registry baseline: `scripts/workspace/registry-compare.mjs` dumps both targets (`registry-dump.mjs`: default spec,
+   and the Viewer spec plus `ViewerAutoPreset`) and compares them with `.v6/baselines/registry.json`. The only
+   differences are the two in §6.1: `external-structure` and `external-volume` in the color themes of all three scopes
+   (both targets) and `open-files` in drag and drop (both targets); the Viewer adds nothing of its own. Complements:
+   `_test/default-registry.test.ts` ("registers into a plugin with the default spec", "DefaultThemes includes the
+   external color themes in all three scopes") and `_test/empty-registries.test.ts` ("the default spec registers the 5.x
+   provider sets in the 5.x order").
+3. Transformer ids: the same script checks that every id of `.v6/baselines/transformer-ids.json` is still registered
+   (the sets are identical today).
+4. Snapshots: `packages/plugin/core/src/state/_test/snapshot-restore.test.ts` ("rebuilds the data tree and the
+   representations", "restores through the snapshot manager entry format as well", "fails before changing anything when
+   a transformer is not imported") builds a snapshot from a real default plugin (crambin, JSON round trip) and restores
+   it into a fresh one. `scripts/workspace/composition-check.mjs` restores the same snapshot in a plugin with the real
+   `createViewerSpec` ("a default-plugin snapshot restores in a plugin with the Viewer spec", "a snapshot needing an
+   unregistered transformer fails before changing the Viewer plugin"). Earlier unit tests:
+   `_test/snapshot-validation.test.ts` ("fails before any side effect when a transformer is not registered") and
+   `manager/_test/snapshots.test.ts` ("leaves the manager unchanged when any entry names an unregistered transformer").
+   The repository has no `.molj` from before the refactor, so the snapshot comes from this tree; the transformer id set
+   (item 3) and the unchanged snapshot format are what make older snapshots restore.
+5. Aliases and errors: `state/builder/structure/_test/preset-aliases.test.ts` (every catalog key and id resolves in the
+   default plugin; "give a clear error for an unknown id or alias"), `preset-names.test.ts`, `preset-registry.test.ts`
+   ("resolves by id, then alias", "throws for an unresolved string"); `extensions/plugin/src/_test/loaders.test.ts`
+   ("applies the 'all-models' preset through its alias, with one structure per frame", "fails with a clear error for an
+   unknown preset", "fails with a clear error naming the unregistered format"); `_test/empty-registries.test.ts` ("does
+   not use a built-in provider when a name is requested").
+6. Unregistered names: `state/builder/structure/_test/unregistered-names.test.ts` (a real plugin, `addRepresentation`
+   with an unregistered type, color and size warns with scope and kind and stores the registry defaults),
+   `state/helpers/_test/representation-registry.test.ts` ("warn for an unregistered structure representation...", "warn
+   in the volume helpers"), `state/_test/report-unregistered-names.test.ts`, and the cartoon-less restore in
+   `snapshot-restore.test.ts` ("reports a representation that is not registered and renders the registry default").
+7. Empty registries: `state/helpers/_test/representation-registry.test.ts` ("representation param helpers with empty
+   registries") and `state/transforms/_test/representation-registry.test.ts` ("apply throws without representations",
+   "apply and update throw without color themes", "... without size themes", for the structure, volume and particles
+   transformers).
+8. Scripts (default plugin and Viewer): `_test/script-languages.test.ts` (the default plugin evaluates PyMOL, VMD and
+   Jmol scripts), `packages/model/src/script/_test/languages.test.ts` (without a transpiler import only `mol-script` is
+   available and the others throw "is not available in this build"; `transpilers/all` enables all), and
+   `composition-check.mjs` ("the Viewer spec evaluates a PyMOL script"). The slim half stays with the browser smoke.
+9. `register`: `_test/register.test.ts` ("throws one error listing every conflict and changes nothing", "does not
+   register anything before a conflict later in the input", "decrements exactly the registrations it made and is
+   idempotent", "does not let a behavior-style removal remove a provider the spec also registered").
+10. Viewer `customFormats`: `apps/viewer/src/_test/registry.test.ts` ("lets a custom format override a built-in one, as
+    in 5.x", "loads data with the custom provider of an overridden built-in format") and `composition-check.mjs`
+    ("Viewer customFormats overrides a built-in format and loads the data with the custom provider", with
+    `createViewerSpec`).
+11. `loadTrajectory`: `loaders.test.ts` as in item 5, and `composition-check.mjs` ("Viewer loadTrajectory({ preset:
+    'all-models' }) works").
+12. Consumers: `pnpm build:apps` builds the Viewer, mesoscale-explorer, docking-viewer, mvs-stories and every example
+    (including proteopedia-wrapper, basic-wrapper, interactions, ihm-restraints, ligand-editor, and slim-plugin);
+    `pnpm check:types:full` covers the rest of the workspace; `smoke/run.mjs node`, `types`, `source`, `cli` and
+    `browser` (Viewer and library pages, classic Viewer and MVS Stories) pass on the packed artifacts;
+    `composition-check.mjs` runs `cli/mvs-render --help` and `cli/state-docs`, whose output must list every registered
+    representation and theme (`cli/state-docs/src/_test/state-docs.test.ts` does the same in jest).
+
+Failures the audit found and fixed: `cli/state-docs` threw with the default plugin because three param getters
+dereferenced their data when called without it (`getOrientationParticlesParams`, `getParticleTargetParams`,
+`getOperatorHklColorThemeParams` with `Structure.Empty`); they now accept the missing data.
 
 ### 6.1 Intentional registry differences
 
