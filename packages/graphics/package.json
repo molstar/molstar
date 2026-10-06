@@ -18,7 +18,9 @@
     "./geo/geometry/_test/*": null,
     "./gl/_test/*": null,
     "./repr/particles/representation/_test/*": null,
-    "./repr/volume/_test/*": null
+    "./repr/volume/_test/*": null,
+    "./repr/_test/*": null,
+    "./theme/_test/*": null
   },
   "files": [
     "lib",
