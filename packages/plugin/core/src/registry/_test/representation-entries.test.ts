@@ -165,9 +165,7 @@ describe('default theme check', () => {
       if (e.type === 'warning') warnings.push(e.message);
     });
     await plugin.init();
-    // The cross-link restraint representation names a default color theme `cross-link-restraint` while its theme is
-    // registered as `cross-link`; the check found this existing mismatch, which is not part of the entries.
-    expect(warnings.filter((w) => !w.includes("'cross-link-restraint'"))).toEqual([]);
+    expect(warnings).toEqual([]);
   });
 
   it('warns after register for a representation whose default theme is not registered, once', async () => {

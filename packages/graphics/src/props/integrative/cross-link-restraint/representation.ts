@@ -189,7 +189,7 @@ export const CrossLinkRestraintRepresentationProvider = StructureRepresentationP
   factory: CrossLinkRestraintRepresentation,
   getParams: getCrossLinkRestraintParams,
   defaultValues: PD.getDefaultValues(CrossLinkRestraintParams),
-  defaultColorTheme: { name: CrossLinkRestraint.Tag.CrossLinkRestraint },
+  defaultColorTheme: { name: 'cross-link' },
   defaultSizeTheme: { name: 'uniform' },
   isApplicable: (structure: Structure) => CrossLinkRestraint.isApplicable(structure),
   ensureCustomProperties: {
