@@ -23,7 +23,7 @@ const baseManifest = () => ({
 });
 
 /** Writes a synthetic workspace: package manifests with a wildcard `molstar-src` export plus the given sources. */
-async function withFixture(files, manifest, run) {
+async function withFixture(files, manifest, run, exclusions) {
   const root = await mkdtemp(path.join(tmpdir(), 'molstar import graph '));
   try {
     for (const pkg of packages)
@@ -35,7 +35,7 @@ async function withFixture(files, manifest, run) {
       await mkdir(path.dirname(path.join(root, file)), { recursive: true });
       await writeFile(path.join(root, file), text);
     }
-    return await run(checkImportGraph({ root, packages, manifest }));
+    return await run(checkImportGraph({ root, packages, manifest, exclusions }));
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -67,15 +67,28 @@ test('catalogs, default-composition modules and apps may value-import catalogs',
   await withFixture(files, manifest, ({ errors }) => assert.deepEqual(errors, []));
 });
 
-test('a value import of a catalog from a base module is a violation, a type import is not', async () => {
+test('a value import of a catalog from a base module is a violation, an `import type` is not', async () => {
   const files = clean();
   files[`${LIB}/src/base.ts`] = "import { Catalog } from './catalog.js';\nexport const B = Catalog;\n";
   files[`${LIB}/src/typed.ts`] = "import type { Catalog } from './catalog.js';\nexport type T = typeof Catalog;\n";
-  files[`${LIB}/src/inline.ts`] =
-    "import { type Catalog } from './catalog.js';\nexport function f(c: typeof Catalog) { return c; }\n";
+  files[`${LIB}/src/typed-names.ts`] =
+    "import type { Catalog, Catalog as C2 } from './catalog.js';\nexport type T2 = typeof Catalog | typeof C2;\n";
   await withFixture(files, baseManifest(), ({ errors }) => {
     assert.equal(errors.length, 1, errors.join('\n'));
     assert.match(errors[0], /rule a: packages\/lib\/src\/base\.ts value-imports catalog module/);
+  });
+});
+
+test('under verbatimModuleSyntax only `import type` is erased: `import { type A }` and type-position uses still import', async () => {
+  const files = clean();
+  files[`${LIB}/src/inline.ts`] =
+    "import { type Catalog } from './catalog.js';\nexport function f(c: typeof Catalog) { return c; }\n";
+  files[`${LIB}/src/plain.ts`] =
+    "import { Catalog } from './catalog.js';\nexport function g(c: typeof Catalog) { return c; }\n";
+  await withFixture(files, baseManifest(), ({ errors }) => {
+    assert.equal(errors.length, 2, errors.join('\n'));
+    assert.ok(errors.some((e) => /rule a: packages\/lib\/src\/inline\.ts value-imports catalog module/.test(e)));
+    assert.ok(errors.some((e) => /rule a: packages\/lib\/src\/plain\.ts value-imports catalog module/.test(e)));
   });
 });
 
@@ -234,4 +247,159 @@ test('ignored directories do not contribute edges', async () => {
   files[`${LIB}/src/_test/base.ts`] = "import { Catalog } from '../catalog.js';\nexport const B = Catalog;\n";
   files[`${LIB}/lib/base.ts`] = "import { Catalog } from '../src/catalog.js';\nexport const B = Catalog;\n";
   await withFixture(files, baseManifest(), ({ errors }) => assert.deepEqual(errors, []));
+});
+
+const slimExclusions = () => ({
+  entry: `${APP}/src/index.ts`,
+  excluded: [
+    { name: 'Heavy format', paths: [`${LIB}/src/heavy/*.ts`] },
+    { name: 'Presets', paths: [`${LIB}/src/presets/{a,b}.ts`] },
+  ],
+  knownLeaks: [],
+  boundary: {
+    sources: [`${LIB}/src/queries/*`],
+    forbidden: { 'transform modules': [`${LIB}/src/transforms/**`], PluginContext: [`${LIB}/src/context.ts`] },
+  },
+});
+
+const slimFiles = () => ({
+  ...clean(),
+  [`${APP}/src/index.ts`]: "import { Slim } from '@molstar/lib/slim';\nconsole.log(Slim);\n",
+  [`${LIB}/src/slim.ts`]: "import { Util } from './util.js';\nexport const Slim = Util;\n",
+  [`${LIB}/src/util.ts`]: 'export const Util = 1;\n',
+  [`${LIB}/src/heavy/parser.ts`]: 'export const Parser = 1;\n',
+  [`${LIB}/src/presets/a.ts`]: "import { Parser } from '../heavy/parser.js';\nexport const A = Parser;\n",
+  [`${LIB}/src/presets/c.ts`]: 'export const C = 1;\n',
+  [`${LIB}/src/queries/plain.ts`]: 'export const Plain = 1;\n',
+});
+
+test('slim example: an excluded module reached by value is reported with its chain (rule e)', async () => {
+  const files = slimFiles();
+  files[`${LIB}/src/util.ts`] = "import { A } from './presets/a.js';\nexport const Util = A;\n";
+  await withFixture(
+    files,
+    baseManifest(),
+    ({ errors }) => {
+      // The first excluded module on the path is reported; what it imports follows from it.
+      assert.equal(errors.length, 1, errors.join('\n'));
+      assert.match(
+        errors[0],
+        /rule e: slim example apps\/app\/src\/index\.ts reaches excluded module packages\/lib\/src\/presets\/a\.ts \(Presets\)/,
+      );
+      assert.match(
+        errors[0],
+        /apps\/app\/src\/index\.ts -> packages\/lib\/src\/slim\.ts -> packages\/lib\/src\/util\.ts -> packages\/lib\/src\/presets\/a\.ts$/,
+      );
+    },
+    slimExclusions(),
+  );
+});
+
+test('slim example: unreached and type-imported excluded modules pass, `import { type A }` does not', async () => {
+  const files = slimFiles();
+  files[`${LIB}/src/util.ts`] =
+    "import type { A } from './presets/a.js';\nexport const Util: A | undefined = undefined;\n";
+  await withFixture(files, baseManifest(), ({ errors }) => assert.deepEqual(errors, []), slimExclusions());
+
+  files[`${LIB}/src/util.ts`] =
+    "import { type A } from './presets/a.js';\nexport const Util: A | undefined = undefined;\n";
+  await withFixture(
+    files,
+    baseManifest(),
+    ({ errors }) => {
+      assert.equal(errors.length, 1, errors.join('\n'));
+      assert.match(errors[0], /rule e:.*presets\/a\.ts/);
+    },
+    slimExclusions(),
+  );
+});
+
+test('slim example: known leaks are allowed, and stale or incomplete ones fail', async () => {
+  const files = slimFiles();
+  files[`${LIB}/src/util.ts`] = "import { A } from './presets/a.js';\nexport const Util = A;\n";
+  const exclusions = slimExclusions();
+  exclusions.knownLeaks = [{ path: `${LIB}/src/presets/a.ts`, reason: 'needs a design decision', decision: 'split a' }];
+  // a leak does not hide what it imports
+  await withFixture(
+    files,
+    baseManifest(),
+    ({ errors }) => {
+      assert.equal(errors.length, 1, errors.join('\n'));
+      assert.match(
+        errors[0],
+        /rule e:.*heavy\/parser\.ts \(Heavy format\).*presets\/a\.ts -> packages\/lib\/src\/heavy\/parser\.ts/,
+      );
+    },
+    exclusions,
+  );
+  exclusions.knownLeaks.push({ path: `${LIB}/src/heavy/parser.ts`, reason: 'imported by a', decision: 'split a' });
+  await withFixture(files, baseManifest(), ({ errors }) => assert.deepEqual(errors, []), exclusions);
+
+  exclusions.knownLeaks.push({ path: `${LIB}/src/presets/b.ts`, reason: 'gone', decision: 'none' });
+  await withFixture(
+    files,
+    baseManifest(),
+    ({ errors }) => {
+      assert.equal(errors.length, 1, errors.join('\n'));
+      assert.match(errors[0], /stale known leak.*presets\/b\.ts/);
+    },
+    exclusions,
+  );
+
+  exclusions.knownLeaks = [{ path: `${LIB}/src/presets/a.ts`, reason: '' }];
+  await withFixture(
+    files,
+    baseManifest(),
+    ({ errors }) =>
+      assert.ok(
+        errors.some((e) => /needs a path, a reason and a decision/.test(e)),
+        errors.join('\n'),
+      ),
+    exclusions,
+  );
+});
+
+test('boundary modules must not reach transform modules, PluginContext or catalogs by value (rule f)', async () => {
+  const files = slimFiles();
+  files[`${LIB}/src/queries/q.ts`] = "import { T } from '../transforms/t.js';\nexport const Q = T;\n";
+  files[`${LIB}/src/transforms/t.ts`] = "import { Context } from '../context.js';\nexport const T = Context;\n";
+  files[`${LIB}/src/queries/via-catalog.ts`] = "import { Catalog } from '../catalog.js';\nexport const V = Catalog;\n";
+  files[`${LIB}/src/queries/typed.ts`] =
+    "import type { Context } from '../context.js';\nexport type Q2 = typeof Context;\n";
+  await withFixture(
+    files,
+    baseManifest(),
+    ({ errors }) => {
+      const f = errors.filter((e) => /rule f:/.test(e));
+      assert.ok(
+        f.some((e) =>
+          /queries\/q\.ts reaches transform modules module packages\/lib\/src\/transforms\/t\.ts by value: .*q\.ts -> .*t\.ts$/.test(
+            e,
+          ),
+        ),
+        errors.join('\n'),
+      );
+      assert.ok(
+        f.some((e) => /via-catalog\.ts reaches catalog module packages\/lib\/src\/catalog\.ts/.test(e)),
+        errors.join('\n'),
+      );
+      assert.ok(!f.some((e) => /typed\.ts/.test(e)), errors.join('\n'));
+      assert.equal(f.length, 2, errors.join('\n'));
+    },
+    slimExclusions(),
+  );
+});
+
+test('a boundary source glob that matches no module is reported', async () => {
+  const exclusions = slimExclusions();
+  exclusions.boundary.sources.push(`${LIB}/src/nothing/*`);
+  await withFixture(
+    slimFiles(),
+    baseManifest(),
+    ({ errors }) => {
+      assert.equal(errors.length, 1, errors.join('\n'));
+      assert.match(errors[0], /boundary source matches no module: packages\/lib\/src\/nothing\/\*/);
+    },
+    exclusions,
+  );
 });

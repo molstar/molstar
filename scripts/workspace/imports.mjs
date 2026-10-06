@@ -1,7 +1,14 @@
 // AST inspection only; builds and declaration checks use the native TypeScript 7 CLI.
 import ts from '@typescript/typescript6';
 
-/** Lists the import/export/require/dynamic-import specifiers of a source file, flagging type-only ones. */
+/**
+ * Lists the import/export/require/dynamic-import specifiers of a source file.
+ *
+ * `typeOnly` flags imports whose bindings are all used in type positions. `erased` flags what the compiler removes
+ * under `verbatimModuleSyntax`, which is only `import type` / `export type` declarations and import types: every other
+ * import declaration stays in the output, including `import { type A }` (emitted as `import {} from '...'`) and a
+ * binding used only as a type. A bundler therefore evaluates the module unless `erased` is true.
+ */
 export function importsFrom(file, source) {
   const result = [];
   function isTypeOnlyImport(node) {
@@ -39,23 +46,27 @@ export function importsFrom(file, source) {
   }
   const visit = (node) => {
     if (ts.isImportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier))
-      result.push({ specifier: node.moduleSpecifier.text, typeOnly: isTypeOnlyImport(node) });
+      result.push({
+        specifier: node.moduleSpecifier.text,
+        typeOnly: isTypeOnlyImport(node),
+        erased: !!node.importClause?.isTypeOnly,
+      });
     if (ts.isExportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier))
-      result.push({ specifier: node.moduleSpecifier.text, typeOnly: node.isTypeOnly });
+      result.push({ specifier: node.moduleSpecifier.text, typeOnly: node.isTypeOnly, erased: node.isTypeOnly });
     if (
       ts.isImportEqualsDeclaration(node) &&
       ts.isExternalModuleReference(node.moduleReference) &&
       node.moduleReference.expression &&
       ts.isStringLiteral(node.moduleReference.expression)
     )
-      result.push({ specifier: node.moduleReference.expression.text, typeOnly: false });
+      result.push({ specifier: node.moduleReference.expression.text, typeOnly: false, erased: false });
     if (
       ts.isCallExpression(node) &&
       node.expression.kind === ts.SyntaxKind.ImportKeyword &&
       node.arguments.length === 1 &&
       ts.isStringLiteral(node.arguments[0])
     )
-      result.push({ specifier: node.arguments[0].text, typeOnly: false });
+      result.push({ specifier: node.arguments[0].text, typeOnly: false, erased: false });
     if (
       ts.isCallExpression(node) &&
       ts.isIdentifier(node.expression) &&
@@ -63,9 +74,9 @@ export function importsFrom(file, source) {
       node.arguments.length === 1 &&
       ts.isStringLiteral(node.arguments[0])
     )
-      result.push({ specifier: node.arguments[0].text, typeOnly: false });
+      result.push({ specifier: node.arguments[0].text, typeOnly: false, erased: false });
     if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal))
-      result.push({ specifier: node.argument.literal.text, typeOnly: true });
+      result.push({ specifier: node.argument.literal.text, typeOnly: true, erased: true });
     ts.forEachChild(node, visit);
   };
   visit(source);

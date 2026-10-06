@@ -376,13 +376,25 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 ### Step 4: slim acceptance and boundary checks
 
-- [ ] Write the new `BallAndStickPreset` (`preset-structure-representation-ball-and-stick`) and the slim example of spec
-      §12.
-- [ ] Pin the excluded-module list in the import-graph check; add the esbuild metafile checks for a split and a
-      single-file build and a rendering smoke test.
-- [ ] Add an import-graph assertion that `themes/external-structure`, `themes/external-volume`, and
-      `state/queries/structure/*` reach no transform module, `PluginContext`, or catalog by value (spec §5.4).
-- [ ] Complete the acceptance checklist (§6).
+- [x] Write the new `BallAndStickPreset` (`preset-structure-representation-ball-and-stick`) and the slim example of spec
+      §12. Done: `representation-presets/ball-and-stick.ts` (`BallAndStickPreset`, `BallAndStickPresetEntry`, not in
+      `DefaultPresets`) and `examples/slim-plugin`.
+- [x] Pin the excluded-module list in the import-graph check; add the esbuild metafile checks for a split and a
+      single-file build. Done: `scripts/workspace/slim-exclusions.json` (shared by `import-graph.mjs` rule e and
+      `slim-bundle.mjs`, which `check:workspace` runs); the import-graph check now follows `verbatimModuleSyntax`
+      (`import { type A }` is a value import).
+- [ ] Rendering smoke test. The built example was loaded in a browser and rendered the ligand without console errors
+      (`window.slimPluginReady`); an automated fixture in `smoke/` is not added (the harness serves the packed
+      distribution and needs Playwright).
+- [x] Add an import-graph assertion that `themes/external-structure`, `themes/external-volume`, and
+      `state/queries/structure/*` reach no transform module, `PluginContext`, or catalog by value (spec §5.4). Done:
+      rule f, from the `boundary` section of `slim-exclusions.json`.
+- [x] Fix the leaks the checks found: `MmcifFormat` moved to `formats/structure/mmcif-format.ts` (the mmCIF parser
+      module `mmcif.ts` re-exports it and keeps the property-provider registrations);
+      `model/structure/export/categories/utils.ts` imports `getCifFieldType` from `data-model` instead of `reader/cif`;
+      `state/builder/structure/{representation,hierarchy}.ts` used `import { type ... }` of the preset catalogs, which
+      `verbatimModuleSyntax` keeps as a side-effect import (now `import type`).
+- [ ] Complete the acceptance checklist (§6): the slim item is done; the rest is checked as the other steps land.
 
 ### Step 5: extensions and MVS
 
@@ -524,7 +536,8 @@ manifest in the same change.
 - [x] Rejects value imports of default specs or catalogs from the base entry points (`@molstar/plugin/context`,
       `@molstar/plugin/spec`, `@molstar/plugin-ui`, `@molstar/plugin-ui/spec`), including the modules split in step 1.
 - [ ] Includes extensions, servers, and CLI packages.
-- [ ] Checks the slim example's graph against the excluded-module list (spec §12), including UI modules.
+- [x] Checks the slim example's graph against the excluded-module list (spec §12), including UI modules (rule e), and
+      the spec §5.4 boundary (rule f).
 
 ## 5. Migration-tool additions
 
@@ -548,8 +561,8 @@ Add to `@molstar/migrate-6-cli` ([architecture §9.2](../designs/architecture.md
 
 ## 6. Acceptance checklist
 
-- [ ] The slim example renders an SDF ligand, and the import graph and the split and single-file bundles exclude every
-      module in the spec §12 exclusion table.
+- [x] The slim example renders an SDF ligand, and the import graph and the split and single-file bundles exclude every
+      module in the spec §12 exclusion table (`pnpm check:workspace`; rendering verified in a browser).
 - [ ] The providers registered by `DefaultPluginSpec`, and by the Viewer with default options, match the step-0 baseline
       of each registry (names and order), apart from the differences in §6.1 and the Viewer's own entries.
 - [ ] The `StateTransformer` ids registered after importing `DefaultPluginSpec` contain the baseline id set.

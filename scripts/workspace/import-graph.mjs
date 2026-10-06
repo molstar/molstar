@@ -11,6 +11,11 @@
  *   c. Base entry points must not reach any catalog module by value (transitively). The search does not continue past a
  *      catalog or default-composition module: the first one on each path is reported (default-composition modules by b).
  *   d. A type-only import must not point to a higher package (manifest `layers` order).
+ *   e. The slim example entry (`slim-exclusions.json`, plan step 4) must not reach an excluded module by value
+ *      (transitively), except for the known leaks listed there. The first excluded module on each path is reported
+ *      with its import chain.
+ *   f. The boundary modules of `slim-exclusions.json` (external color themes and structure queries, spec §5.4) must not
+ *      reach a transform module, `PluginContext` or any catalog / default-composition module by value.
  *
  * Known violations live in the manifest allowlist with a reason and the plan step that removes them. The check fails
  * on any violation that is not allowlisted and on allowlist entries that no longer match a violation.
@@ -21,6 +26,7 @@ import { fileURLToPath } from 'node:url';
 import ts from '@typescript/typescript6';
 import { resolveExport } from './exports.mjs';
 import { importsFrom } from './imports.mjs';
+import { exclusionErrors, findExcluded, globToRegExp, loadExclusions } from './slim-exclusions.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const APP_ROOTS = ['apps/', 'examples/', 'cli/', 'servers/', 'smoke/'];
@@ -140,7 +146,9 @@ export function buildImportGraph({ root, packages }) {
         const toPkg = ownerOf(target);
         if (fromPkg && toPkg && fromPkg.name !== toPkg.name)
           types.push({ from, to, fromPkg: fromPkg.name, toPkg: toPkg.name });
-      } else if (to !== from) edges.add(to);
+      }
+      // Only `import type` is erased (verbatimModuleSyntax); `import { type A }` still evaluates the module.
+      if (!imported.erased && to !== from) edges.add(to);
     }
     value.set(from, edges);
   }
@@ -175,8 +183,94 @@ function shortestPath(value, start, isGoal, isBarrier = () => false) {
   return found;
 }
 
+/** Rules e and f (see the header): the slim example's excluded modules and the query/theme boundary. */
+export function findSlimViolations(graph, manifest, exclusions) {
+  const violations = [];
+  const files = [...graph.files];
+  const { violations: excluded } = findExcluded(files, exclusions);
+  if (!graph.files.has(exclusions.entry))
+    return [
+      {
+        rule: 'e',
+        from: exclusions.entry,
+        to: exclusions.entry,
+        message: `slim example entry does not exist or is not scanned: ${exclusions.entry}`,
+      },
+    ];
+  // Known leaks are not barriers: what they import is reported too, so it is a conscious decision to list it.
+  const reached = shortestPath(
+    graph.value,
+    exclusions.entry,
+    (file) => excluded.has(file),
+    (file) => excluded.has(file),
+  );
+  for (const [to, chain] of reached)
+    violations.push({
+      rule: 'e',
+      from: exclusions.entry,
+      to,
+      message: `slim example ${exclusions.entry} reaches excluded module ${to} (${excluded.get(to)}) by value: ${chain.join(' -> ')}`,
+    });
+  const everything = shortestPath(graph.value, exclusions.entry, () => true);
+  for (const leak of exclusions.knownLeaks ?? []) {
+    const re = globToRegExp(leak.path);
+    if (![...everything.keys()].some((file) => re.test(file)))
+      violations.push({
+        rule: 'e',
+        from: exclusions.entry,
+        to: leak.path,
+        message: `slim-exclusions.json: stale known leak (the slim example no longer reaches it, remove it): ${leak.path}`,
+      });
+  }
+
+  const boundary = exclusions.boundary;
+  if (boundary) {
+    const forbidden = Object.entries(boundary.forbidden ?? {}).map(([name, globs]) => ({
+      name,
+      regExps: globs.map(globToRegExp),
+    }));
+    const forbiddenName = (file) => {
+      if (manifest.catalogs.includes(file)) return 'catalog';
+      if (manifest.defaultComposition.includes(file)) return 'default composition';
+      return forbidden.find((f) => f.regExps.some((re) => re.test(file)))?.name;
+    };
+    const sources = files.filter(
+      (file) =>
+        boundary.sources.some((glob) => globToRegExp(glob).test(file)) &&
+        // a catalog in the boundary directory is the catalog itself
+        !manifest.catalogs.includes(file),
+    );
+    for (const glob of boundary.sources) {
+      const re = globToRegExp(glob);
+      if (!files.some((file) => re.test(file)))
+        violations.push({
+          rule: 'f',
+          from: glob,
+          to: glob,
+          message: `slim-exclusions.json: boundary source matches no module: ${glob}`,
+        });
+    }
+    for (const source of sources) {
+      const found = shortestPath(
+        graph.value,
+        source,
+        (file) => !!forbiddenName(file),
+        (file) => !!forbiddenName(file),
+      );
+      for (const [to, chain] of found)
+        violations.push({
+          rule: 'f',
+          from: source,
+          to,
+          message: `${source} reaches ${forbiddenName(to)} module ${to} by value: ${chain.join(' -> ')}`,
+        });
+    }
+  }
+  return violations;
+}
+
 /** Finds all rule violations without applying the allowlist. Each has a stable `key` used by the allowlist. */
-export function findViolations(graph, manifest) {
+export function findViolations(graph, manifest, exclusions) {
   const violations = [];
   for (const [from, edges] of graph.value) {
     if (['catalog', 'default-composition', 'app'].includes(classify(from, manifest))) continue;
@@ -222,6 +316,7 @@ export function findViolations(graph, manifest) {
         message: `${edge.from} (${edge.fromPkg}) type-imports ${edge.to} from the higher package ${edge.toPkg}`,
       });
   }
+  if (exclusions) violations.push(...findSlimViolations(graph, manifest, exclusions));
   const keyOf = (violation) => `${violation.rule} ${violation.from} -> ${violation.to}`;
   for (const violation of violations) violation.key = keyOf(violation);
   return violations;
@@ -256,11 +351,22 @@ function manifestErrors(root, graph, manifest) {
   return errors;
 }
 
+/** The slim-plugin exclusions, or `undefined` when the workspace has none (rules e and f are then skipped). */
+function loadOptionalExclusions(root) {
+  return fs.existsSync(path.join(root, 'scripts/workspace/slim-exclusions.json')) ? loadExclusions(root) : undefined;
+}
+
 /** Runs the whole check and returns the list of error messages (empty when the graph is valid). */
-export function checkImportGraph({ root = repoRoot, packages, manifest = loadManifest(root) }) {
+export function checkImportGraph({
+  root = repoRoot,
+  packages,
+  manifest = loadManifest(root),
+  exclusions = loadOptionalExclusions(root),
+}) {
   const graph = buildImportGraph({ root, packages });
   const errors = manifestErrors(root, graph, manifest);
-  const violations = findViolations(graph, manifest);
+  if (exclusions) errors.push(...exclusionErrors(exclusions));
+  const violations = findViolations(graph, manifest, exclusions);
   const allowlist = manifest.allowlist ?? [];
   const entries = new Map();
   for (const entry of allowlist) {

@@ -740,45 +740,67 @@ Base modules must not value-import catalogs or optional functionality:
 
 ## 12. Acceptance
 
+The slim example is `examples/slim-plugin` (`@molstar/slim-plugin-example`), built by `pnpm build:apps`:
+
 ```ts
-import type { PluginSpec } from '@molstar/plugin/spec';
+import { HighlightLoci, SelectLoci } from '@molstar/plugin/behavior/dynamic/representation';
+import { FocusLoci as CameraFocusLoci } from '@molstar/plugin/behavior/dynamic/camera';
 import { PluginConfig } from '@molstar/plugin/config';
+import { PluginSpec } from '@molstar/plugin/spec';
+import { DefaultHierarchyPresetEntry } from '@molstar/plugin/state/builder/structure/hierarchy-presets/default';
+import { BallAndStickPresetEntry } from '@molstar/plugin/state/builder/structure/representation-presets/ball-and-stick';
 import { Sdf } from '@molstar/plugin/state/formats/trajectory/sdf';
-import { DefaultHierarchyPreset } from '@molstar/plugin/state/builder/structure/hierarchy-presets/default';
-import { BallAndStickPreset } from '@molstar/plugin/state/builder/structure/representation-presets/ball-and-stick';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { renderReact18 } from '@molstar/plugin-ui/react18';
+import type { PluginUISpec } from '@molstar/plugin-ui/spec';
 
-const spec: PluginSpec = {
-  registry: [Sdf, DefaultHierarchyPreset, BallAndStickPreset],
-  behaviors: [/* highlight, select, camera */],
+const spec: PluginUISpec = {
+  registry: [Sdf, DefaultHierarchyPresetEntry, BallAndStickPresetEntry],
+  behaviors: [PluginSpec.Behavior(HighlightLoci), PluginSpec.Behavior(SelectLoci), PluginSpec.Behavior(CameraFocusLoci)],
   config: [[PluginConfig.Structure.DefaultRepresentationPreset, 'preset-structure-representation-ball-and-stick']],
 };
 const plugin = await createPluginUI({ target: document.getElementById('app')!, spec, render: renderReact18 });
-const data = await plugin.builders.data.download({ url: '/ligand.sdf' }, { state: { isGhost: true } });
+const data = await plugin.builders.data.download({ url: Asset.Url('ligand.sdf') }, { state: { isGhost: true } });
 const trajectory = await plugin.builders.structure.parseTrajectory(data, 'sdf');
 await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'preset-trajectory-default');
 ```
 
-Module paths are illustrative. `BallAndStickPreset` (`preset-structure-representation-ball-and-stick`) is a new preset
-written for this target. The example relies on the base layout's minimal structure tools (§10) and enables no script
-language.
+`BallAndStickPreset` (`preset-structure-representation-ball-and-stick`, alias `ball-and-stick`) is a new preset written
+for this target in `representation-presets/ball-and-stick.ts`; `BallAndStickPresetEntry` brings it with the
+`BallAndStick` representation entry. It is not part of `DefaultPresets`. The example relies on the base layout's minimal
+structure tools (§10), imports each behavior from its defining module rather than `PluginBehaviors`, and enables no
+script language. The ligand (`ligand.sdf`) ships with the example.
 
-The example must render an SDF ligand while the import graph and bundle exclude the modules below. Verify with the
-import-graph check (including the UI modules and the modules split in §7), esbuild metafile output for both a split and
-a single-file build, and a rendering smoke test. The check names the excluded modules concretely; the acceptance step
-pins the final list, starting from:
+The example renders an SDF ligand while the import graph and the bundles exclude the modules below. Three checks, all
+run by `pnpm check:workspace`, enforce this against the list pinned in `scripts/workspace/slim-exclusions.json` (path
+globs, shared by the checks):
 
-| Exclusion              | Modules                                                                                          |
-| ---------------------- | ------------------------------------------------------------------------------------------------ |
-| mmCIF parser           | `@molstar/model/formats/structure/mmcif`, `@molstar/plugin/state/formats/trajectory/mmcif`       |
-| CCP4 parser            | `@molstar/io/reader/ccp4/*`, `@molstar/plugin/state/formats/volume/ccp4`                         |
-| Cartoon                | `@molstar/graphics/repr/structure/representation/cartoon`                                        |
-| Volume representations | `@molstar/graphics/repr/volume/{direct-volume,isosurface,slice,dot,segment}`                     |
-| Other presets          | Every preset module except the default hierarchy and ball-and-stick presets; the preset catalogs |
-| Query catalog          | The selection-query catalog module (`StructureSelectionQueries`)                                 |
-| Script transpilers     | `@molstar/model/script/transpilers/{all,pymol,vmd,jmol}` and the parsers under them              |
-| MP4 export             | `@molstar/mp4-export-extension`                                                                  |
+- **Import graph** (`scripts/workspace/import-graph.mjs`, rule e): the example entry's value-import graph, including the
+  UI modules and the modules split in §7, reaches no excluded module. The first excluded module on each path is reported
+  with its import chain. The graph follows the compiler's `verbatimModuleSyntax` semantics: only `import type` and
+  `export type` are erased, so `import { type A } from './catalog.js'` still evaluates the module and counts as a value
+  import (rule f below and rules a and c use the same edges). Rule f asserts the §5.4 boundary: `themes/external-*.ts`
+  and `state/queries/structure/*` reach no transform module, `PluginContext` (`context.ts`), or catalog by value.
+- **Bundles** (`scripts/workspace/slim-bundle.mjs`): esbuild builds the entry as split ESM and as a single IIFE file
+  with the app build's conditions and minification, and fails when either metafile lists an excluded input, printing the
+  import chain from the metafile `imports`. It also prints the sizes of both builds and of the default-spec Viewer
+  build.
+- **Rendering**: the built example loads and renders the ligand without console errors (`window.slimPluginReady`
+  resolves with the plugin).
+
+`slim-exclusions.json` can list a module the example still reaches under `knownLeaks`, each with a reason and the
+decision needed to remove it; there are none. The pinned exclusions:
+
+| Exclusion              | Modules                                                                                                                                                                                                                                                     |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| mmCIF parser           | `@molstar/model/formats/structure/mmcif` (not `mmcif-format`, which holds only the `MmcifFormat` type and kind guard), `@molstar/plugin/state/formats/trajectory/mmcif`, the CIF text and binary readers (`@molstar/io/reader/cif`, `cif/{text,binary}/**`) |
+| CCP4 parser            | `@molstar/io/reader/ccp4/*`, `@molstar/plugin/state/formats/volume/ccp4`                                                                                                                                                                                    |
+| Cartoon                | `@molstar/graphics/repr/structure/representation/cartoon`, `@molstar/plugin/registry/structure/cartoon`                                                                                                                                                     |
+| Volume representations | `@molstar/graphics/repr/volume/{direct-volume,isosurface,slice,dot,segment}` and their `@molstar/plugin/registry/volume/*` entries                                                                                                                          |
+| Other presets          | Every representation preset module except `ball-and-stick` and `types`, every hierarchy preset module except `default`, `crystal-symmetry` (a helper) and `types`                                                                                           |
+| Catalogs               | Every `catalog.ts` (including the preset catalogs and the selection-query catalog, `StructureSelectionQueries`), `default-spec.ts`, `default-registry.ts`, `behavior.ts`, `behavior/dynamic/custom-props.ts`, `state/actions.ts`                            |
+| Script transpilers     | `@molstar/model/script/transpilers/**` (`all`, `pymol`, `vmd`, `jmol`, and the parsers under them)                                                                                                                                                          |
+| MP4 export             | `@molstar/mp4-export-extension` (`extensions/mp4-export/**`)                                                                                                                                                                                                |
 
 Beyond the slim target, the default compositions must register the same providers as the step-0 baseline (apart from
 listed intentional differences), existing snapshots must restore in the Viewer, and the error and warning behavior of

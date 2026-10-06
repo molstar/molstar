@@ -157,6 +157,12 @@
       "private": true
     },
     {
+      "name": "@molstar/slim-plugin-example",
+      "path": "examples/slim-plugin",
+      "kind": "example",
+      "private": true
+    },
+    {
       "name": "@molstar/examples-standalone",
       "path": "examples/standalone",
       "kind": "tests",
