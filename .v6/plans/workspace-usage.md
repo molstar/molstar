@@ -17,6 +17,10 @@ condition; it does not need a preceding library build. `pnpm build:distribution`
 classic bundles and browser ESM modules in `distributions/molstar/build`. `pnpm pack:workspace` creates local public
 package tarballs in `build/packages` and checks their version ranges and published entry points/assets.
 
+`tsc -b` does not delete output for removed or moved sources, so a local `lib/` can keep stale modules that would be
+packed. `pnpm clean` removes all generated `lib/` and `build/` output (`clean:lib` and `clean:build` remove one kind),
+and `pnpm rebuild` cleans before building. `pnpm check:publish` builds through `rebuild`.
+
 Use `pnpm dev` to watch all browser apps and examples on one server, or `pnpm dev:apps -- viewer` for a source-based
 Viewer dev server. Each browser app/example also has its own `build` and `dev` scripts. Select examples from the root
 with `pnpm dev:examples -- basic-wrapper`. Both selectors accept `--port 1340` and `--help` to list available browser
