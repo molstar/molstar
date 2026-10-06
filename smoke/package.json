@@ -8,6 +8,7 @@
     "smoke:types": "node ./run.mjs types",
     "smoke:browser": "node ./run.mjs browser",
     "smoke:source": "node ./run.mjs source",
+    "smoke:slim": "node ./run.mjs slim",
     "smoke:cli": "node ./run.mjs cli",
     "smoke:headless": "node ./run.mjs headless"
   },

@@ -785,8 +785,10 @@ globs, shared by the checks):
   with the app build's conditions and minification, and fails when either metafile lists an excluded input, printing the
   import chain from the metafile `imports`. It also prints the sizes of both builds and of the default-spec Viewer
   build.
-- **Rendering**: the built example loads and renders the ligand without console errors (`window.slimPluginReady`
-  resolves with the plugin).
+- **Rendering** (`node smoke/run.mjs slim`, not part of `check:workspace`): the packed packages are installed into a
+  consumer project, the example sources are bundled from them, and the page loads and renders the ligand without console
+  errors (`window.slimPluginReady` resolves with the plugin). The check also asserts the registered providers, the
+  unregistered-`cartoon` snapshot warning, and the PyMOL script error.
 
 `slim-exclusions.json` can list a module the example still reaches under `knownLeaks`, each with a reason and the
 decision needed to remove it; there are none. The pinned exclusions:

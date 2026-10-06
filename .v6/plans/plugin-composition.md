@@ -383,9 +383,11 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       single-file build. Done: `scripts/workspace/slim-exclusions.json` (shared by `import-graph.mjs` rule e and
       `slim-bundle.mjs`, which `check:workspace` runs); the import-graph check now follows `verbatimModuleSyntax`
       (`import { type A }` is a value import).
-- [ ] Rendering smoke test. The built example was loaded in a browser and rendered the ligand without console errors
-      (`window.slimPluginReady`); an automated fixture in `smoke/` is not added (the harness serves the packed
-      distribution and needs Playwright).
+- [x] Rendering smoke test. Done: `node smoke/run.mjs slim` (`smoke/slim/`, included in `all`, `smoke:slim`) installs
+      the packed packages the example imports, bundles a copy of the example sources with esbuild and the `molstar-src`
+      condition, and drives the page with Playwright: no page or console errors, a visible ball-and-stick representation
+      with render objects, exactly the slim providers, the unregistered-`cartoon` snapshot warning and default, and the
+      PyMOL script error.
 - [x] Add an import-graph assertion that `themes/external-structure`, `themes/external-volume`, and
       `state/queries/structure/*` reach no transform module, `PluginContext`, or catalog by value (spec §5.4). Done:
       rule f, from the `boundary` section of `slim-exclusions.json`.
@@ -562,7 +564,7 @@ Add to `@molstar/migrate-6-cli` ([architecture §9.2](../designs/architecture.md
 ## 6. Acceptance checklist
 
 - [x] The slim example renders an SDF ligand, and the import graph and the split and single-file bundles exclude every
-      module in the spec §12 exclusion table (`pnpm check:workspace`; rendering verified in a browser).
+      module in the spec §12 exclusion table (`pnpm check:workspace`; rendering checked by `node smoke/run.mjs slim`).
 - [ ] The providers registered by `DefaultPluginSpec`, and by the Viewer with default options, match the step-0 baseline
       of each registry (names and order), apart from the differences in §6.1 and the Viewer's own entries.
 - [ ] The `StateTransformer` ids registered after importing `DefaultPluginSpec` contain the baseline id set.
@@ -575,10 +577,10 @@ Add to `@molstar/migrate-6-cli` ([architecture §9.2](../designs/architecture.md
       unregistered representation or theme reports it the same way.
 - [ ] With an empty representation, color theme, or size theme registry in a scope, the helpers and a direct `apply` of
       `StructureRepresentation3D`, `VolumeRepresentation3D`, or `ParticlesRepresentation3D` fail with a clear error.
-- [ ] In the slim app, loading a snapshot with a cartoon representation reports `cartoon` as unregistered and renders
-      the registry default.
-- [ ] A PyMOL script in the slim app fails with the script-language error; the default plugin and the Viewer evaluate
-      it.
+- [x] In the slim app, loading a snapshot with a cartoon representation reports `cartoon` as unregistered and renders
+      the registry default (`node smoke/run.mjs slim`).
+- [ ] A PyMOL script in the slim app fails with the script-language error (checked by `node smoke/run.mjs slim`); the
+      default plugin and the Viewer evaluate it (not yet checked).
 - [ ] `register` with a conflicting entry throws and changes nothing; the undo is idempotent; a behavior's
       `unregister()` does not remove a provider the spec also registered.
 - [ ] `Viewer.create` with a `customFormats` tuple that overrides a built-in name (for example `['pdb', MyPdbProvider]`)
