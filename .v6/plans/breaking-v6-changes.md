@@ -205,8 +205,8 @@ is removed; after enabling the language, call `parse(language, text)` from `@mol
 type; the `DataFormatProvider(...)` helper takes a `const` type parameter for the same reason. Custom providers must add
 `name`. `BuiltInTrajectoryFormats`, `BuiltInVolumeFormats`, `BuiltInShapeFormats`, `BuiltInTopologyFormats`,
 `BuiltInCoordinatesFormats`, and `BuiltInParticlesFormats` are now `as const` provider arrays instead of
-`[name, provider]` tuples; read `provider.name` instead of the first tuple element. `PluginSpec.formats` and
-`DataFormatRegistry.add(name, provider)` keep their `[name, provider]` shape.
+`[name, provider]` tuples; read `provider.name` instead of the first tuple element. `PluginSpec.customFormats` and
+`DataFormatRegistry.add(name, provider)` keep their `[name, provider]` shape in this step.
 
 The format name types (`BuiltInTrajectoryFormat`, `BuiltInVolumeFormat`, ...) are derived from the catalogs and live in
 `@molstar/plugin/state/formats/<family>/catalog`. `BuiltInVolumeFormat` and `BuiltInShapeFormat` are new; the misspelled
