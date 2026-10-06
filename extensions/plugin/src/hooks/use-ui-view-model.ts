@@ -5,7 +5,8 @@
  */
 
 import { useRef } from 'react';
-import { DefaultPluginUISpec, type PluginUISpec } from '@molstar/plugin-ui/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
+import type { PluginUISpec } from '@molstar/plugin-ui/spec';
 import { PluginUIViewModel } from '@molstar/plugin-extension/ui-view-model';
 
 export function useCreatePluginUIViewModel<T extends PluginUIViewModel = PluginUIViewModel>(options?: {

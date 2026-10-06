@@ -5,7 +5,8 @@
  */
 
 import { AssemblySymmetryConfig } from '@molstar/assembly-symmetry-extension';
-import { DefaultPluginUISpec, type PluginUISpec } from '@molstar/plugin-ui/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
+import type { PluginUISpec } from '@molstar/plugin-ui/spec';
 import { PluginBehaviors } from '@molstar/plugin/behavior';
 import { PluginConfig } from '@molstar/plugin/config';
 import { ExtensionMap } from '@molstar/viewer/extensions';

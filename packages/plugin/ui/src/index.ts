@@ -8,7 +8,8 @@
 import { createElement } from 'react';
 import { Plugin } from '@molstar/plugin-ui/plugin';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
-import { DefaultPluginUISpec, type PluginUISpec } from '@molstar/plugin-ui/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
+import type { PluginUISpec } from '@molstar/plugin-ui/spec';
 
 export async function createPluginUI(options: {
   target: HTMLElement;

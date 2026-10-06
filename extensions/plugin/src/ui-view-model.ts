@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { DefaultPluginUISpec, type PluginUISpec } from '@molstar/plugin-ui/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
+import type { PluginUISpec } from '@molstar/plugin-ui/spec';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
 
 export class PluginUIViewModel {

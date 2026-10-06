@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { DefaultPluginSpec, PluginSpec } from '@molstar/plugin/spec';
+import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { PluginSpec } from '@molstar/plugin/spec';
 import { PluginContext } from '@molstar/plugin/context';
 import { SingleAsyncQueue } from '@molstar/core/util/single-async-queue';
 

@@ -24,6 +24,11 @@
       "types": "./lib/context.d.ts",
       "import": "./lib/context.js"
     },
+    "./default-spec": {
+      "molstar-src": "./src/default-spec.ts",
+      "types": "./lib/default-spec.d.ts",
+      "import": "./lib/default-spec.js"
+    },
     "./hooks/use-behavior": {
       "molstar-src": "./src/hooks/use-behavior.ts",
       "types": "./lib/hooks/use-behavior.d.ts",

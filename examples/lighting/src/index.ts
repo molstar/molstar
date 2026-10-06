@@ -9,7 +9,7 @@ import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/traj
 import { createPluginUI } from '@molstar/plugin-ui';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
 import { renderReact18 } from '@molstar/plugin-ui/react18';
-import { DefaultPluginUISpec } from '@molstar/plugin-ui/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { Asset } from '@molstar/core/util/assets';
 import { Color } from '@molstar/core/util/color';

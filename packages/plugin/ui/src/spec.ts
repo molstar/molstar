@@ -7,10 +7,8 @@
  */
 
 import type { StateTransformParameters } from '@molstar/plugin-ui/state/common';
-import { CreateVolumeStreamingBehavior } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
-import { DefaultPluginSpec, type PluginSpec } from '@molstar/plugin/spec';
+import type { PluginSpec } from '@molstar/plugin/spec';
 import type { StateAction, StateTransformer } from '@molstar/core/state';
-import { VolumeStreamingCustomControls } from '@molstar/plugin-ui/custom/volume';
 import type { Loci } from '@molstar/model/model/loci';
 import type { SequenceViewMode } from '@molstar/plugin-ui/sequence';
 
@@ -60,8 +58,3 @@ export namespace PluginUISpec {
     bottom?: React.ComponentClass | React.FC | 'none';
   }
 }
-
-export const DefaultPluginUISpec = (): PluginUISpec => ({
-  ...DefaultPluginSpec(),
-  customParamEditors: [[CreateVolumeStreamingBehavior, VolumeStreamingCustomControls]],
-});

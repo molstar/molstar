@@ -21,7 +21,8 @@ npm install esbuild --save-dev
 Create new file `src/index.ts` (or `.js` if you don't want to use TypeScript):
 
 ```ts
-import { DefaultPluginSpec, PluginSpec } from 'molstar/lib/mol-plugin/spec';
+import { DefaultPluginSpec } from 'molstar/lib/mol-plugin/default-spec';
+import type { PluginSpec } from 'molstar/lib/mol-plugin/spec';
 import { PluginContext } from 'molstar/lib/mol-plugin/context';
 
 export async function initViewer(element: string | HTMLDivElement, options?: { spec?: PluginSpec }) {
@@ -123,7 +124,8 @@ responsibility. The below examples show how to (re)use the Mol\* React UI.
     import React from 'react';
     import { createRoot } from 'react-dom/client';
 
-    import { DefaultPluginUISpec, PluginUISpec } from 'molstar/lib/mol-plugin-ui/spec';
+    import { DefaultPluginUISpec } from 'molstar/lib/mol-plugin-ui/default-spec';
+    import type { PluginUISpec } from 'molstar/lib/mol-plugin-ui/spec';
     import { PluginUIContext } from 'molstar/lib/mol-plugin-ui/context';
     import { Plugin } from 'molstar/lib/mol-plugin-ui/plugin';
 

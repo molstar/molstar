@@ -13,7 +13,7 @@ import { StateTransforms } from '@molstar/plugin/state/transforms';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { renderReact18 } from '@molstar/plugin-ui/react18';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
-import { DefaultPluginUISpec } from '@molstar/plugin-ui/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import {
   CreateVolumeStreamingInfo,
   InitVolumeStreaming,

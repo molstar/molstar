@@ -16,7 +16,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { renderReact18 } from '@molstar/plugin-ui/react18';
-import { DefaultPluginUISpec } from '@molstar/plugin-ui/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import { PluginConfig } from '@molstar/plugin/config';
 import { PluginContext } from '@molstar/plugin/context';
 import { PluginSpec } from '@molstar/plugin/spec';

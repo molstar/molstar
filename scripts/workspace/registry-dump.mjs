@@ -31,7 +31,7 @@ function lib(path) {
 
 async function createPlugin(target) {
   if (target === 'default') {
-    const { DefaultPluginSpec } = await import(lib('packages/plugin/core/lib/spec.js'));
+    const { DefaultPluginSpec } = await import(lib('packages/plugin/core/lib/default-spec.js'));
     const { PluginContext } = await import(lib('packages/plugin/core/lib/context.js'));
     const plugin = new PluginContext(DefaultPluginSpec());
     await plugin.init();

@@ -25,7 +25,7 @@ function loadNativeModule(name, envName) {
 const gl = loadNativeModule('gl', 'MOLSTAR_SMOKE_GL');
 const pngjs = loadNativeModule('pngjs', 'MOLSTAR_SMOKE_PNGJS');
 const { HeadlessPluginContext } = await import('@molstar/plugin-headless/context');
-const { DefaultPluginSpec } = await import('@molstar/plugin/spec');
+const { DefaultPluginSpec } = await import('@molstar/plugin/default-spec');
 const { setFSModule } = await import('@molstar/core/util/data-source');
 setFSModule(fs);
 

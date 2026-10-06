@@ -19,7 +19,7 @@ import { PluginUIContext } from '@molstar/plugin-ui/context';
 import { useBehavior } from '@molstar/plugin-ui/hooks/use-behavior';
 import { Plugin } from '@molstar/plugin-ui/plugin';
 import '@molstar/plugin-ui/skin/light.scss';
-import { DefaultPluginUISpec } from '@molstar/plugin-ui/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig } from '@molstar/plugin/config';
 import { StateObjectSelector } from '@molstar/core/state';

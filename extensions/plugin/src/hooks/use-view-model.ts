@@ -5,7 +5,8 @@
  */
 
 import { type MutableRefObject, useEffect, useRef } from 'react';
-import { DefaultPluginSpec, PluginSpec } from '@molstar/plugin/spec';
+import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { PluginSpec } from '@molstar/plugin/spec';
 import { PluginViewModel } from '@molstar/plugin-extension/view-model';
 
 export function useCreatePluginViewModel<T extends PluginViewModel>(options?: {

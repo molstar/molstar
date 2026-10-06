@@ -7,7 +7,7 @@
   window.smokeReady = (async () => {
     const [{ PluginContext }, { PluginConfig }, { StateTransforms }, { StateTransformer }, { Color }, { createPluginUI }, { DefaultPluginUISpec }, { renderReact18 }] = await Promise.all([
       import('@molstar/plugin'), import('@molstar/plugin/config'), import('@molstar/plugin/state/transforms'), import('@molstar/core/state'), import('@molstar/core/util/color'),
-      import('@molstar/plugin-ui'), import('@molstar/plugin-ui/spec'), import('@molstar/plugin-ui/react18')
+      import('@molstar/plugin-ui'), import('@molstar/plugin-ui/default-spec'), import('@molstar/plugin-ui/react18')
     ]);
     const plugin = await createPluginUI({ target: document.getElementById('app'), render: renderReact18, spec: DefaultPluginUISpec() });
     const data = await plugin.builders.data.download({ url: '/fixtures/tiny.pdb', isBinary: false });

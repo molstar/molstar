@@ -24,7 +24,7 @@ import { Box3D } from '@molstar/core/math/geometry';
 import { ModelFromTrajectory, StructureFromModel, TrajectoryFromSDF } from '@molstar/plugin/state/transforms/model';
 import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/representation';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
-import { DefaultPluginSpec } from '@molstar/plugin/spec';
+import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import type { ExternalModules } from '@molstar/plugin-headless/screenshot';
 import { setFSModule } from '@molstar/core/util/data-source';
 
