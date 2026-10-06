@@ -401,7 +401,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 ### Step 5: extensions and MVS
 
 - [x] Move extensions to `plugin.register` where it simplifies them (§3.8).
-- [ ] Move MVS to `plugin.register` (§3.9).
+- [x] Move MVS to `plugin.register` and add `MVSRuntimeRegistry` (§3.9).
 
 ## 3. Per-consumer migration
 
@@ -517,16 +517,27 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 ### 3.9 MVS (`packages/mvs/runtime`)
 
-- [ ] `MolViewSpec.register()` builds one entry from the provider part of `Registrables`
-      (`mvs/runtime/src/behavior.ts`): representations, color themes (including the multilayer theme that
+- [x] `MolViewSpec.register()` builds one entry from the provider part of `Registrables` (`mvs/runtime/src/behavior.ts`,
+      `createMVSRegistryEntry`): representations, color themes (including the multilayer theme that
       `makeMultilayerColorThemeProvider` builds from this plugin's registry), loci labels, the drag-and-drop handler
-      (already `{ name, handle }`), the `MVSJ`/`MVSX` formats (providers gain `name`; the `{ name, provider }` wrapper
-      goes), and its actions. It passes the entry to `plugin.register` and calls the undo in `unregister()`.
-- [ ] Custom model and structure properties (registered with the `autoAttach` param and retuned in `update()`) and the
+      (already `{ name, handle }`), the `MVSJ`/`MVSX` formats (providers already had `name`), and its action. It passes
+      the entry to `plugin.register` and calls the undo in `unregister()`; the generic per-category loops are gone.
+- [x] Custom model and structure properties (registered with the `autoAttach` param and retuned in `update()`) and the
       state and markdown ref/URI resolvers stay imperative.
-- [ ] Add `MVSRuntimeRegistry` in a catalog module listed in the manifest: every representation and color/size theme
-      provider MVS can name. MVS names them in `load-helpers.ts` and in `load-extensions/non-covalent-interactions.ts`
-      (`interactions` and `interaction-type` from the non-covalent-interactions extension).
+- [x] Add `MVSRuntimeRegistry` in a catalog module listed in the manifest (`packages/mvs/runtime/src/registry.ts`): the
+      nine structure representations of the `representation` node plus `interactions`, the volume `isosurface` and
+      `slice`, and the color/size themes MVS names (`load-helpers.ts`, `load-extensions/non-covalent-interactions.ts`).
+      `interactions` and `interaction-type` come from `@molstar/graphics/props/computed/*` (the extension only names
+      them), which `@molstar/mvs` already depends on. The MVS label representations and color themes are not in it: the
+      behavior's entry registers them (the multilayer theme is built per plugin).
+- [x] Tests: `_test/registry.test.ts` loads a coverage document (every representation type and variant, color kinds,
+      labels, the interactions extension, volume representations) and asserts every emitted name is registered and the
+      registry lists exactly what MVS names; `_test/mvs-only-plugin.test.ts` loads `examples/mvs/1cbs.mvsj` (structure
+      from the local `examples/1cbs_full.bcif`, label nodes removed because Node has no canvas) into a plugin with
+      `registry: [MVSRuntimeRegistry, ...MVSFormats, MVSMarkdownExtensions]` and only the `MolViewSpec` behavior, with
+      no warnings or errors and the requested representations applied. The loader maps parse formats to transformers
+      directly, so the format entries are not needed for loading (the test also loads with `[MVSRuntimeRegistry]`
+      alone).
 
 ## 4. Tooling
 

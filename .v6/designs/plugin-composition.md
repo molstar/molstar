@@ -715,11 +715,23 @@ Base modules must not value-import catalogs or optional functionality:
   A behavior may replace hand-written registration with `plugin.register(entry)`, built from plugin state if needed, and
   call the undo in `unregister()`. An extension can also export a plain entry for providers that never need toggling.
   Custom properties and resolvers stay imperative (§3.3). Extensions are base modules for the import-graph check.
-- **MVS.** Only the provider part of the MVS `Registrables` record (`mvs/runtime/src/behavior.ts`) becomes an entry,
-  which `MolViewSpec.register()` builds and registers with an undo; custom properties and resolvers stay imperative. MVS
-  documents select representations and themes by name, so MVS is a deliberate catalog consumer: the runtime exports
-  `MVSRuntimeRegistry`, listing every representation and color/size theme provider MVS can name. An MVS-only app lists
-  it plus the format entries and markdown extensions MVS uses.
+- **MVS.** Only the provider part of the MVS `Registrables` record (`mvs/runtime/src/behavior.ts`) becomes an entry.
+  `createMVSRegistryEntry(colorThemeRegistry)` builds it (the `MolViewSpec` behavior's `register()` passes the plugin's
+  color theme registry, from which the multilayer theme is built) and the behavior registers it with `plugin.register`
+  and calls the undo in `unregister()`. The entry holds the label representations (`mvs-custom-label`,
+  `mvs-annotation-label`), the color themes (`mvs-split-uniform`, `mvs-annotation`, `mvs-multilayer`), the `MVSJ` and
+  `MVSX` formats, the two loci label providers, the drag-and-drop handler, and the `LoadMvsData` action. Custom model
+  and structure properties (registered with the `autoAttach` param and retuned in `update()`) and the state and markdown
+  ref and URI resolvers stay imperative. MVS documents select representations and themes by name, so MVS is a deliberate
+  catalog consumer: `@molstar/mvs/registry` (a catalog module) exports `MVSRuntimeRegistry`, one entry listing every
+  representation and color/size theme provider that MVS names and that the plugin or graphics own: the nine structure
+  representations of the `representation` node plus `interactions` (named by the non-covalent-interactions loading
+  extension), the `isosurface` and `slice` volume representations, and the themes the loader names (`uniform`,
+  `element-symbol`, `interaction-type`, `physical`, `uncertainty`) together with the default themes of the listed
+  representations. A test derives every name the loader can emit and asserts that it is registered by
+  `MVSRuntimeRegistry` or by the behavior's own entry. An MVS-only app lists `MVSRuntimeRegistry` and the `MolViewSpec`
+  behavior; the loader names transformers directly rather than through the format registry, so it needs no format
+  entries, and the markdown extensions matter only for the commands that snapshot descriptions contain.
 - **Viewer.** The registry is `[...DefaultRegistry, ViewerEntry, customFormatsEntry]`, with the custom-formats entry
   last so built-in format order and `auto()` tie-breaking are unchanged. `customFormats` keeps its `[name, provider]`
   shape with `DataFormatProvider.Unnamed` providers, each registered through `withName` (§3.1). A tuple whose name
