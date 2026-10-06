@@ -5,7 +5,8 @@ headless capture have passed. Consumer smoke checks run locally for now; CI reta
 checks.
 
 See [workspace-usage.md](workspace-usage.md) for commands and consumer examples, and
-[migration-map.json](migration-map.json) for source ownership changes.
+[migration-map.json](migration-map.json) and [migration-symbols.json](migration-symbols.json) for source ownership
+changes.
 
 This plan covers a packaging-first prototype of the repository architecture in
 [architecture.md](../designs/architecture.md) and [summary.md](../designs/summary.md). It records the planning

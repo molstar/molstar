@@ -109,7 +109,8 @@ behavior at the mapped module paths.
 ## Other helper moves requiring new imports
 
 These are symbol-level moves within formerly larger modules; the whole-file migration map alone is insufficient for
-these imports.
+these imports. Symbol moves from the plugin composition split are recorded in `migration-symbols.json` and described in
+_Plugin composition step 1_ below.
 
 | Public API                                                                                                                          | v5 module                            | v6 import                                              |
 | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------ |
@@ -137,6 +138,139 @@ because they depend on plugin state objects and selection queries. Bring them ba
 composition work, as tracked in the checklist. Existing presets/snapshots that request these themes cannot rely on
 default registration until that work is done.
 
+## Plugin composition step 1
+
+Step 1 of [plugin-composition.md](plugin-composition.md) split facades and large modules so that applications compose
+the plugin from catalogs instead of importing everything. Whole-file ownership stays in `migration-map.json`; where a v5
+module was split, its entry maps to an array of the files that received its contents, or to `null` when nothing succeeds
+it. [`migration-symbols.json`](migration-symbols.json) maps each exported symbol of an affected v5 module to its current
+defining module (`null` when removed). `scripts/workspace/check.mjs` verifies that every target and symbol in both files
+still exists.
+
+### `StateTransforms` removed
+
+`StateTransforms` and `@molstar/plugin/state/transforms` no longer exist. Import each transformer from its defining
+module; the `StateTransforms.<Namespace>.<Name>` keys in `migration-symbols.json` list all 120 members.
+
+| v5                                                         | v6 import                                                   |
+| ---------------------------------------------------------- | ----------------------------------------------------------- |
+| `StateTransforms.Data.Download`                            | `@molstar/plugin/state/transforms/data/fetch`               |
+| `StateTransforms.Data.ParseCif`                            | `@molstar/plugin/state/formats/cif`                         |
+| `StateTransforms.Model.TrajectoryFromMmCif`                | `@molstar/plugin/state/formats/trajectory/mmcif`            |
+| `StateTransforms.Model.StructureFromModel`                 | `@molstar/plugin/state/transforms/structure/hierarchy`      |
+| `StateTransforms.Model.StructureComponent`                 | `@molstar/plugin/state/transforms/structure/selection`      |
+| `StateTransforms.Representation.StructureRepresentation3D` | `@molstar/plugin/state/transforms/structure/representation` |
+| `StateTransforms.Volume.VolumeFromCcp4`                    | `@molstar/plugin/state/formats/volume/ccp4`                 |
+
+The classic Viewer global `molstar.lib.plugin.StateTransforms` keeps its shape (the same seven namespaces and 120
+members). It is now an app-level object in `@molstar/viewer/state-transforms` for classic-script pages that cannot
+import leaf modules. The `StateTransforms` type alias (`typeof` the facade) is gone with the facade. Neither
+`@molstar/viewer/lib` nor `@molstar/viewer/state-transforms` exports a `StateTransforms` type by name; where the type is
+needed, use `typeof StateTransforms` imported from `@molstar/viewer/state-transforms`.
+
+### Transform and format modules split
+
+The seven transform modules and the six format modules are split by functionality:
+`state/transforms/{data,misc, particles,shape,structure,volume}/...` (structure effects live in `structure/effects/`)
+and `state/formats/{trajectory,coordinates,topology,volume,shape,particles}/<format>.ts`. Format-specific transformers
+(`ParseCcp4`, `VolumeFromCcp4`, `TrajectoryFromPDB`, ...) live next to their provider in the format module. Each format
+family also has `provider.ts`, `category.ts`, and `catalog.ts` modules for shared helpers, the category, and the
+built-in provider list.
+
+`@molstar/plugin/state/transforms/catalog` imports every built-in transform and format module for its registration side
+effects and exports nothing. The default spec imports it, so a plugin built from `DefaultPluginSpec` registers all
+built-in transformer ids. A custom spec must import the modules it uses, or the catalog, before it restores snapshots
+(see _Snapshot loading_).
+
+### Default specs
+
+`DefaultPluginSpec` moved to `@molstar/plugin/default-spec` and `DefaultPluginUISpec` to
+`@molstar/plugin-ui/default-spec`. `@molstar/plugin/spec` and `@molstar/plugin-ui/spec` keep only types and helpers
+(`PluginSpec`, `PluginUISpec`). The classic Viewer globals `molstar.lib.plugin.DefaultPluginSpec` and
+`DefaultPluginUISpec` are unchanged.
+
+### Script languages
+
+PyMOL, VMD, and Jmol are no longer enabled implicitly. Import `@molstar/model/script/transpilers/pymol`, `.../vmd`,
+`.../jmol`, or `@molstar/model/script/transpilers/all` to enable a language; the default plugin spec and the Viewer
+import `all`. Using a language that was not imported throws `Script language '<x>' is not available in this build`.
+`mol-script` is always available. `Script.getAvailableLanguages()` returns `mol-script` plus the registered languages,
+and the script-language select in the plugin UI lists only those. The `_transpiler` object exported by `transpilers/all`
+is removed; after enabling the language, call `parse(language, text)` from `@molstar/model/script/transpile` (or
+`Script.toExpression`), or import `transpiler` from `.../transpilers/<lang>/parser` directly.
+
+### Data format providers
+
+`DataFormatProvider` requires a `name` and gains an `Id extends string` type parameter so the name keeps its literal
+type; the `DataFormatProvider(...)` helper takes a `const` type parameter for the same reason. Custom providers must add
+`name`. `BuiltInTrajectoryFormats`, `BuiltInVolumeFormats`, `BuiltInShapeFormats`, `BuiltInTopologyFormats`,
+`BuiltInCoordinatesFormats`, and `BuiltInParticlesFormats` are now `as const` provider arrays instead of
+`[name, provider]` tuples; read `provider.name` instead of the first tuple element. `PluginSpec.formats` and
+`DataFormatRegistry.add(name, provider)` keep their `[name, provider]` shape.
+
+The format name types (`BuiltInTrajectoryFormat`, `BuiltInVolumeFormat`, ...) are derived from the catalogs and live in
+`@molstar/plugin/state/formats/<family>/catalog`. `BuiltInVolumeFormat` and `BuiltInShapeFormat` are new; the misspelled
+`BuildInVolumeFormat` and `BuildInShapeFormat` remain as deprecated aliases. `MmcifProvider.parse` and
+`CifCoreProvider.parse` take an optional `params` argument. The volume formats' parameter type, formerly an unexported
+`Params`, is exported as `VolumeFormatParams` from `@molstar/plugin/state/formats/volume/provider`.
+
+### Graphics catalogs
+
+The `BuiltIn` values were removed from the `ColorTheme` and `SizeTheme` namespaces and from
+`StructureRepresentationRegistry`, `VolumeRepresentationRegistry`, and `ParticleRepresentationRegistry`. The `BuiltIn`
+types, `BuiltInParams`, and `createRegistry()` keep their names and behavior. Read the values from the catalogs:
+
+| v5 value                                  | v6 catalog export                                                                 |
+| ----------------------------------------- | --------------------------------------------------------------------------------- |
+| `ColorTheme.BuiltIn`                      | `BuiltInColorThemes` from `@molstar/graphics/theme/color/catalog`                 |
+| `SizeTheme.BuiltIn`                       | `BuiltInSizeThemes` from `@molstar/graphics/theme/size/catalog`                   |
+| `StructureRepresentationRegistry.BuiltIn` | `BuiltInStructureRepresentations` from `@molstar/graphics/repr/structure/catalog` |
+| `VolumeRepresentationRegistry.BuiltIn`    | `BuiltInVolumeRepresentations` from `@molstar/graphics/repr/volume/catalog`       |
+| `ParticleRepresentationRegistry.BuiltIn`  | `BuiltInParticleRepresentations` from `@molstar/graphics/repr/particles/catalog`  |
+
+Catalogs are built with the new `namedCatalog` helper (`@molstar/graphics/util/named-catalog`), which checks at compile
+time that each key equals its provider's `name`; the runtime key/name check in the registry constructors is removed.
+
+### Selection queries
+
+`@molstar/plugin/state/helpers/structure-selection-query` is split into `@molstar/plugin/state/queries/structure/*`:
+`catalog` (`StructureSelectionQueries`), `registry` (`StructureSelectionQueryRegistry`), `query`
+(`StructureSelectionQuery`, `StructureSelectionCategory`), `dynamic` (`ResidueQuery`, `ElementSymbolQuery`,
+`EntityDescriptionQuery`, and the `get*Queries` helpers), and the category modules `basic`, `bond`, `common`,
+`manipulate`, `residue`, `structure`, and `type`. `applyBuiltInSelection` was unused and is removed; apply
+`StructureSelectionFromExpression` with `StructureSelectionQueries[name].expression` instead.
+
+### Structure presets
+
+Representation presets moved from `state/builder/structure/representation-preset` to
+`state/builder/structure/representation-presets/`, and hierarchy presets from `.../hierarchy-preset` to
+`.../hierarchy-presets/`: one module per preset, plus `types` (`StructureRepresentationPresetProvider`,
+`TrajectoryHierarchyPresetProvider`, `presetStaticComponent`, `presetSelectionComponent`) and `catalog`
+(`PresetStructureRepresentations`, `PresetTrajectoryHierarchy`). Presets gain an optional `alias` (for example `auto`,
+`default`, `all-models`) next to `id`; `PresetProvider` and both provider helpers take `Id` and `Alias` type parameters.
+The catalogs export the name types `BuiltInStructureRepresentationPresetId`,
+`BuiltInStructureRepresentationPresetAlias`, `BuiltInTrajectoryHierarchyPresetId`, and
+`BuiltInTrajectoryHierarchyPresetAlias`. The `auto` preset is its own module, `representation-presets/auto`.
+
+### Behaviors and markdown extensions
+
+`BuiltInPluginBehaviors` moved to `@molstar/plugin/behavior/built-in`; `PluginBehaviors` stays in
+`@molstar/plugin/behavior`. `@molstar/plugin/behavior` no longer re-exports `PluginBehavior`; import it from
+`@molstar/plugin/behavior/behavior`. The built-in markdown extensions moved out of
+`@molstar/plugin/state/manager/markdown-extensions` into `@molstar/plugin/state/markdown/*`: `BuiltInMarkdownExtension`
+is exported from `.../markdown/catalog`, and the individual extensions are in the sibling modules (`audio`, `camera`,
+`highlight`, `query`, `snapshots`). `MarkdownExtension`, `MarkdownExtensionManager`, and
+`defaultParseMarkdownCommandArgs` stay in the manager module.
+
+### Snapshot loading
+
+Restoring a snapshot (`PluginState.setSnapshot`, and every entry of `PluginStateSnapshotManager.setStateSnapshot`) first
+checks that each transformer id in the behavior tree, data tree, and transition frames is registered. A snapshot that
+names unregistered transformers throws one error listing all missing ids
+(`Snapshot uses transformers that are not available in this plugin: <ids>. Import the modules that define them.`) before
+the plugin or the snapshot manager changes. `StateTransformer.has(id)` is a non-throwing registration check;
+`StateTransformer.get` still throws for unknown ids.
+
 ## Declaration contracts
 
 `ExternalModules['jpeg-js']` exposes the injected codec's `encode` contract instead of the entire codec module type.
@@ -157,8 +291,9 @@ not provide compiler semantics.
 ## Distribution and import paths
 
 Compiled packages use ESM and new package subpaths. Old monolithic CommonJS and source paths require migration; use
-`migration-map.json` for ownership mappings. Classic Viewer/MVS Stories asset paths and globals remain available,
-subject to the shape API changes above. Package exports exclude tests and build caches.
+`migration-map.json` for ownership mappings and `migration-symbols.json` for symbols whose module was split or removed.
+Classic Viewer/MVS Stories asset paths and globals remain available, subject to the shape API changes above. Package
+exports exclude tests and build caches.
 
 `molstar` now packages only browser distributions. Library/server/CLI consumers must install the owning `@molstar/*`
 packages instead of importing `molstar/lib/...` or `molstar/lib/commonjs/...`. There is no CommonJS build or `require`

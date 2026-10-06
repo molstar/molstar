@@ -7,6 +7,7 @@ import ts from '@typescript/typescript6';
 import { expandExports, exportTargets } from './exports.mjs';
 import { importsFrom } from './imports.mjs';
 import { checkImportGraph } from './import-graph.mjs';
+import { checkMigrationRecords } from './migration-records.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const inventory = JSON.parse(fs.readFileSync(path.join(root, 'scripts/workspace/inventory.json'), 'utf8'));
@@ -237,6 +238,7 @@ function visit(name) {
 }
 for (const pkg of packages) visit(pkg.name);
 errors.push(...checkImportGraph({ root, packages }).errors);
+errors.push(...checkMigrationRecords({ root }).errors);
 if (errors.length) {
   const priority = (error) =>
     /package dependency cycle|cross-package relative import|missing direct dependency|undeclared external import|missing from inventory/.test(
@@ -252,5 +254,5 @@ if (errors.length) {
   process.exitCode = 1;
 } else
   console.log(
-    `Workspace manifests, ${sourceOnly ? 'source aliases' : 'compiled exports'}, direct imports, package graph and import graph are valid (${packages.length} packages).`,
+    `Workspace manifests, ${sourceOnly ? 'source aliases' : 'compiled exports'}, direct imports, package graph, import graph and migration records are valid (${packages.length} packages).`,
   );
