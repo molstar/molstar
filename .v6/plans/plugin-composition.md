@@ -328,6 +328,9 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       and `behavior/dynamic/volume-streaming/util.ts` through `formats/registry.ts` → the volume catalog →
       `volume/ccp4.ts` → `volume/provider.ts`. Move the shared helpers and type checks to modules that do not import the
       behavior.
+- [ ] `state/builder/structure/presets/types.ts` value-imports the selection-query catalog for
+      `presetSelectionComponent` (keyed lookup by catalog key); import the individual queries or take a query object, so
+      preset helpers do not load every query (found by the step 1 import-graph check).
 - [ ] Presets import what they run and list it in their entries; add representation entries with their default themes in
       plugin-layer modules; mixed name/provider props in the helpers (spec §5.1); development-mode default-theme check.
 - [ ] Format entries with actions and, for volume, particle, and shape formats, the representation entries and themes
