@@ -18,6 +18,7 @@ import { buildStory } from '@molstar/mvs-stories-example/stories/molql';
 import { compile } from '@molstar/model/script/runtime/query/base';
 import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import { parse } from '@molstar/model/script/transpile';
+import '@molstar/model/script/transpilers/pymol';
 
 describe('MVS MolQL selectors', () => {
   const molql = MS.struct.generator.atomGroups({});

@@ -6,7 +6,7 @@
 
 import { transpileMolScript } from './script/mol-script/symbols.js';
 import { parseMolScript } from './language/parser.js';
-import { parse } from './transpile.js';
+import { getRegisteredLanguages, parse } from './transpile.js';
 import type { Expression } from './language/expression.js';
 import {
   type StructureElement,
@@ -18,7 +18,6 @@ import {
 } from '@molstar/model/model/structure';
 import { compile } from './runtime/query/compiler.js';
 import { MolScriptBuilder } from './language/builder.js';
-import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import type { Script } from '@molstar/core/util/script';
 
 export { ScriptImpl as Script };
@@ -46,19 +45,18 @@ namespace ScriptImpl {
     return a.language === b.language && a.expression === b.expression;
   }
 
+  /** `mol-script` plus the languages enabled by importing a `transpilers/<lang>` module */
+  export function getAvailableLanguages(): Language[] {
+    return ['mol-script', ...getRegisteredLanguages()];
+  }
+
   export function toExpression(script: Script): Expression {
-    switch (script.language) {
-      case 'mol-script':
-        const parsed = parseMolScript(script.expression);
-        if (parsed.length === 0) throw new Error('No query');
-        return transpileMolScript(parsed[0]);
-      case 'pymol':
-      case 'jmol':
-      case 'vmd':
-        return parse(script.language, script.expression);
-      default:
-        assertUnreachable(script.language);
+    if (script.language === 'mol-script') {
+      const parsed = parseMolScript(script.expression);
+      if (parsed.length === 0) throw new Error('No query');
+      return transpileMolScript(parsed[0]);
     }
+    return parse(script.language, script.expression);
   }
 
   export function toQuery(script: Script): QueryFn<StructureSelection> {

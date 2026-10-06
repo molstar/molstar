@@ -4,8 +4,10 @@
  * Adapted from MolQL project
  **/
 
-import { Transpiler } from '../transpiler.js';
-import { _transpiler as transpilers } from '../all.js';
+import type { Transpiler } from '../transpiler.js';
+import { transpiler as jmol } from '../jmol/parser.js';
+import { transpiler as pymol } from '../pymol/parser.js';
+import { transpiler as vmd } from '../vmd/parser.js';
 
 function testTranspilerExamples(name: string, transpiler: Transpiler) {
   describe(`${name} examples`, () => {
@@ -20,6 +22,6 @@ function testTranspilerExamples(name: string, transpiler: Transpiler) {
   });
 }
 
-testTranspilerExamples('pymol', transpilers.pymol);
-testTranspilerExamples('vmd', transpilers.vmd);
-testTranspilerExamples('jmol', transpilers.jmol);
+testTranspilerExamples('pymol', pymol);
+testTranspilerExamples('vmd', vmd);
+testTranspilerExamples('jmol', jmol);
