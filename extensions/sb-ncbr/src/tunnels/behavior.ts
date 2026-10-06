@@ -7,8 +7,8 @@
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { DownloadTunnels } from './actions.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/presets/types';
-import { AutoPreset } from '@molstar/plugin/state/builder/structure/presets/auto';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/representation-presets/auto';
 import { Model, Structure } from '@molstar/model/model/structure';
 import { PluginContext } from '@molstar/plugin/context';
 import { StateObjectRef } from '@molstar/core/state';

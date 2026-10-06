@@ -12,7 +12,7 @@ import type { PluginStateObject } from '../../../objects.js';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { Vec3 } from '@molstar/core/math/linear-algebra';
 import { PluginConfig } from '@molstar/plugin/config';
-import { AutoPreset } from '../presets/auto.js';
+import { AutoPreset } from '../representation-presets/auto.js';
 import { TrajectoryHierarchyPresetProvider } from './types.js';
 
 const CommonParams = TrajectoryHierarchyPresetProvider.CommonParams;

@@ -9,7 +9,7 @@ import { Structure, Model } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PdbDownloadProvider } from '@molstar/plugin/state/actions/structure';
 import type { EmdbDownloadProvider } from '@molstar/plugin/state/actions/volume';
-import type { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/presets/types';
+import type { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
 import { PluginFeatureDetection } from '@molstar/plugin/features';
 import type { SaccharideCompIdMapType } from '@molstar/model/model/structure/structure/carbohydrates/constants';
 import type { BackgroundProps } from '@molstar/graphics/canvas3d/passes/background';

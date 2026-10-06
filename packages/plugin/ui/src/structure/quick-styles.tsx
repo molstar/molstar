@@ -7,10 +7,10 @@
  */
 
 import { PostprocessingParams } from '@molstar/graphics/canvas3d/passes/postprocessing';
-import { AutoPreset } from '@molstar/plugin/state/builder/structure/presets/auto';
-import { IllustrativePreset } from '@molstar/plugin/state/builder/structure/presets/illustrative';
-import { MolecularSurfacePreset } from '@molstar/plugin/state/builder/structure/presets/molecular-surface';
-import { PolymerAndLigandPreset } from '@molstar/plugin/state/builder/structure/presets/polymer-and-ligand';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/representation-presets/auto';
+import { IllustrativePreset } from '@molstar/plugin/state/builder/structure/representation-presets/illustrative';
+import { MolecularSurfacePreset } from '@molstar/plugin/state/builder/structure/representation-presets/molecular-surface';
+import { PolymerAndLigandPreset } from '@molstar/plugin/state/builder/structure/representation-presets/polymer-and-ligand';
 import { PluginConfig } from '@molstar/plugin/config';
 import type { PluginContext } from '@molstar/plugin/context';
 import { Color } from '@molstar/core/util/color';

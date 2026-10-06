@@ -9,7 +9,7 @@ import { InteractionTypeColorThemeProvider } from '@molstar/graphics/props/compu
 import {
   presetStaticComponent,
   StructureRepresentationPresetProvider,
-} from '@molstar/plugin/state/builder/structure/presets/types';
+} from '@molstar/plugin/state/builder/structure/representation-presets/types';
 import { StructureSelectionQuery } from '@molstar/plugin/state/queries/structure/query';
 import { ligand } from '@molstar/plugin/state/queries/structure/type';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';

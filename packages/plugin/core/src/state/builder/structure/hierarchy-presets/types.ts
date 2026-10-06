@@ -11,7 +11,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { StateTransformer } from '@molstar/core/state';
 import { CustomModelProperties, CustomStructureProperties } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import type { PluginContext } from '@molstar/plugin/context';
-import type { BuiltInStructureRepresentationPresetAlias } from '../presets/catalog.js';
+import type { BuiltInStructureRepresentationPresetAlias } from '../representation-presets/catalog.js';
 
 export interface TrajectoryHierarchyPresetProvider<
   P = any,

@@ -1,5 +1,5 @@
-import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/presets/types';
-import { AutoPreset } from '@molstar/plugin/state/builder/structure/presets/auto';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/representation-presets/auto';
 import { StateObjectRef } from '@molstar/core/state';
 import { SbNcbrPartialChargesPropertyProvider } from './property.js';
 import { SbNcbrPartialChargesColorThemeProvider } from './color.js';

@@ -11,14 +11,14 @@ import { TransformStructureConformation } from '@molstar/plugin/state/transforms
 import {
   StructureRepresentationPresetProvider,
   presetStaticComponent,
-} from '@molstar/plugin/state/builder/structure/presets/types';
+} from '@molstar/plugin/state/builder/structure/representation-presets/types';
 import { PluginContext } from '@molstar/plugin/context';
 import { Mat4 } from '@molstar/core/math/linear-algebra';
 import { Structure } from '@molstar/model/model/structure';
 import { CCDFormat } from '@molstar/model/formats/structure/mmcif';
 import { MinimizeRmsd } from '@molstar/core/math/linear-algebra/3d/minimize-rmsd';
 import { SetUtils } from '@molstar/core/util/set';
-import { TrajectoryHierarchyPresetProvider } from '@molstar/plugin/state/builder/structure/hierarchy/types';
+import { TrajectoryHierarchyPresetProvider } from '@molstar/plugin/state/builder/structure/hierarchy-presets/types';
 import { capitalize } from '@molstar/core/util/string';
 
 const CCDParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({

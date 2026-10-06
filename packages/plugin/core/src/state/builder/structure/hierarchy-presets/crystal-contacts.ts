@@ -9,48 +9,45 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { StateTransformer } from '@molstar/core/state';
 import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import type { PluginStateObject } from '../../../objects.js';
-import { RootStructureDefinition } from '../../../helpers/root-structure.js';
 import type { PluginContext } from '@molstar/plugin/context';
+import { Model } from '@molstar/model/model/structure';
+import { OperatorNameColorThemeProvider } from '@molstar/graphics/theme/color/operator-name';
 import { PluginConfig } from '@molstar/plugin/config';
-import { StructureRepresentationPresetProvider } from '../presets/types.js';
-import { AutoPreset } from '../presets/auto.js';
+import { AutoPreset } from '../representation-presets/auto.js';
 import { TrajectoryHierarchyPresetProvider } from './types.js';
 
 const CommonParams = TrajectoryHierarchyPresetProvider.CommonParams;
 
-const DefaultParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
+const CrystalContactsParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
   model: PD.Optional(PD.Group(StateTransformer.getParamDefinition(ModelFromTrajectory, a, plugin))),
-  showUnitcell: PD.Optional(PD.Boolean(false)),
-  structure: PD.Optional(RootStructureDefinition.getParams(void 0, 'assembly').type),
-  representationPresetParams: PD.Optional(PD.Group(StructureRepresentationPresetProvider.CommonParams)),
   ...CommonParams(a, plugin),
 });
 
-export const DefaultHierarchyPreset = TrajectoryHierarchyPresetProvider({
-  id: 'preset-trajectory-default',
-  alias: 'default',
+export const CrystalContactsHierarchyPreset = TrajectoryHierarchyPresetProvider({
+  id: 'preset-trajectory-crystal-contacts',
+  alias: 'crystalContacts',
   display: {
-    name: 'Default (Assembly)',
+    name: 'Crystal Contacts',
     group: 'Preset',
-    description: 'Shows the first assembly or, if that is unavailable, the first model.',
+    description: 'Showsasymetric unit and chains from neighbours within 5 \u212B, i.e., symmetry mates.',
   },
   isApplicable: (o) => {
-    return true;
+    return Model.hasCrystalSymmetry(o.data.representative);
   },
-  params: DefaultParams,
+  params: CrystalContactsParams,
   async apply(trajectory, params, plugin) {
     const builder = plugin.builders.structure;
 
     const model = await builder.createModel(trajectory, params.model);
     const modelProperties = await builder.insertModelProperties(model, params.modelProperties);
 
-    const structure = await builder.createStructure(modelProperties || model, params.structure);
+    const structure = await builder.createStructure(modelProperties || model, {
+      name: 'symmetry-mates',
+      params: { radius: 5 },
+    });
     const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 
-    const unitcell =
-      params.showUnitcell === void 0 || !!params.showUnitcell
-        ? await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: true })
-        : void 0;
+    const unitcell = await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: true });
     const representationPreset =
       params.representationPreset ||
       plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) ||
@@ -58,7 +55,16 @@ export const DefaultHierarchyPreset = TrajectoryHierarchyPresetProvider({
     const representation = await plugin.builders.structure.representation.applyPreset(
       structureProperties,
       representationPreset,
-      params.representationPresetParams,
+      {
+        theme: {
+          globalName: 'operator-name',
+          carbonColor: 'operator-name',
+          focus: {
+            name: 'element-symbol',
+            params: { carbonColor: { name: 'operator-name', params: OperatorNameColorThemeProvider.defaultValues } },
+          },
+        },
+      },
     );
 
     return {

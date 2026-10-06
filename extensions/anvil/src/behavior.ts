@@ -6,8 +6,8 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/presets/types';
-import { AutoPreset } from '@molstar/plugin/state/builder/structure/presets/auto';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/representation-presets/auto';
 import { MembraneOrientationProvider, MembraneOrientation } from '@molstar/anvil-extension/prop';
 import { StateObjectRef, StateTransformer, StateTransform } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';

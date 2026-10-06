@@ -11,8 +11,8 @@ import type { PluginStateObject } from '../../../objects.js';
 import type { PluginContext } from '@molstar/plugin/context';
 import { getStructureQuality } from '@molstar/graphics/repr/util';
 import { PluginConfig } from '@molstar/plugin/config';
-import { StructureRepresentationPresetProvider } from '../presets/types.js';
-import { AutoPreset } from '../presets/auto.js';
+import { StructureRepresentationPresetProvider } from '../representation-presets/types.js';
+import { AutoPreset } from '../representation-presets/auto.js';
 import { DefaultHierarchyPreset } from './default.js';
 import { TrajectoryHierarchyPresetProvider } from './types.js';
 

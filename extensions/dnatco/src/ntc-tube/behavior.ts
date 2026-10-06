@@ -10,8 +10,8 @@ import { NtCTubeProvider } from './property.js';
 import { NtCTubeRepresentationProvider } from './representation.js';
 import { DnatcoTypes } from '@molstar/dnatco-extension/types';
 import { Dnatco } from '@molstar/dnatco-extension/property';
-import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/presets/types';
-import { AutoPreset } from '@molstar/plugin/state/builder/structure/presets/auto';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/representation-presets/auto';
 import { StateObjectRef } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
 

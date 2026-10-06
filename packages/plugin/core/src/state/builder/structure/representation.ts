@@ -18,8 +18,8 @@ import {
 } from '../../helpers/structure-representation-params.js';
 import type { PluginStateObject } from '../../objects.js';
 import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
-import { PresetStructureRepresentations } from './presets/catalog.js';
-import type { StructureRepresentationPresetProvider } from './presets/types.js';
+import { PresetStructureRepresentations } from './representation-presets/catalog.js';
+import type { StructureRepresentationPresetProvider } from './representation-presets/types.js';
 import { arrayRemoveInPlace } from '@molstar/core/util/array';
 import { PluginConfig } from '@molstar/plugin/config';
 

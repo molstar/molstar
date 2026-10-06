@@ -8,12 +8,12 @@ import {
   type BuiltInTrajectoryHierarchyPresetAlias,
   type BuiltInTrajectoryHierarchyPresetId,
   PresetTrajectoryHierarchy,
-} from '../hierarchy/catalog.js';
+} from '../hierarchy-presets/catalog.js';
 import {
   type BuiltInStructureRepresentationPresetAlias,
   type BuiltInStructureRepresentationPresetId,
   PresetStructureRepresentations,
-} from '../presets/catalog.js';
+} from '../representation-presets/catalog.js';
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 function assertType<_T extends true>() {}

@@ -10,9 +10,9 @@ import type { PluginContext } from '@molstar/plugin/context';
 import { StateAction, StateSelection, StateTransformer } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { AutoPreset } from '../builder/structure/presets/auto.js';
-import { EmptyPreset } from '../builder/structure/presets/empty.js';
-import { StructureRepresentationPresetProvider } from '../builder/structure/presets/types.js';
+import { AutoPreset } from '../builder/structure/representation-presets/auto.js';
+import { EmptyPreset } from '../builder/structure/representation-presets/empty.js';
+import { StructureRepresentationPresetProvider } from '../builder/structure/representation-presets/types.js';
 import {
   type BuiltInTrajectoryFormat,
   BuiltInTrajectoryFormats,

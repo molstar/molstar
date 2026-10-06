@@ -24,8 +24,8 @@ import { PluginContext } from '@molstar/plugin/context';
 import { StateTransformer, StateAction, StateObject, StateTransform, StateObjectRef } from '@molstar/core/state';
 import type { GenericRepresentationRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { AssemblySymmetryControls } from '@molstar/assembly-symmetry-extension/ui';
-import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/presets/types';
-import { AutoPreset } from '@molstar/plugin/state/builder/structure/presets/auto';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/representation-presets/auto';
 
 const Tag = AssemblySymmetryData.Tag;
 
