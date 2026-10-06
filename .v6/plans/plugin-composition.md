@@ -194,10 +194,11 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 ### Step 0: baselines
 
-- [ ] Before step 1 changes which modules register transformers, run `scripts/workspace/registry-dump.mjs` (§4.1) on the
+- [x] Before step 1 changes which modules register transformers, run `scripts/workspace/registry-dump.mjs` (§4.1) on the
       v6 prototype head for both `DefaultPluginSpec()` and the Viewer with default options.
-- [ ] Commit `.v6/baselines/registry.json` and `.v6/baselines/transformer-ids.json`. The prototype matches 5.x apart
-      from the external color themes, which §6.1 lists.
+- [x] Commit `.v6/baselines/registry.json` and `.v6/baselines/transformer-ids.json`, generated at `f088fae56`. The
+      prototype is expected to match 5.x apart from the external color themes, which §6.1 lists; a 5.x dump was not
+      generated.
 
 ### Step 1: module splits
 
@@ -472,10 +473,22 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 
 ### 4.1 Registry baseline dump
 
-`scripts/workspace/registry-dump.mjs` writes `.v6/baselines/registry.json` (per registry and scope: names in order;
-actions by id in order, per state object type; animations; markdown extensions; drag-and-drop names) and
-`.v6/baselines/transformer-ids.json`, for both `DefaultPluginSpec()` and the Viewer with default options. It runs once
-in step 0 and again for the acceptance comparison.
+`scripts/workspace/registry-dump.mjs` (run with `node`, after `pnpm build:lib`) writes `.v6/baselines/registry.json` and
+`.v6/baselines/transformer-ids.json` for two targets: `default` (`new PluginContext(DefaultPluginSpec())`) and `viewer`
+(`new PluginUIContext(createViewerSpec({}))` plus the `ViewerAutoPreset` registration that `Viewer.create` does). It
+runs once in step 0 and again for the acceptance comparison; `--out <dir>` writes elsewhere.
+
+- Each target runs in its own Node process after `init()`, so the dump includes what behaviors register and the global
+  transformer registry holds only what that target imports. No UI is rendered and no canvas is created.
+- Node needs two shims for browser-oriented modules: `globalThis.window = globalThis`, and a module load hook that turns
+  image and style imports into URL strings.
+- `registry.json` records, per target: representations and color/size themes per scope (registry order), format names,
+  hierarchy and representation preset ids, selection queries (`category: label`), the number of loci label providers
+  (they have no names), markdown extension, drag-and-drop, and animation names, data and behavior state actions (all,
+  and per `from` type), spec behavior ids, and custom model/structure/volume property names. Actions have random UUIDs,
+  so a transformer-derived action is keyed by its transformer id and any other action by `action:<display name>`.
+- `transformer-ids.json` records the sorted ids from `StateTransformer.getAll()`.
+- Both files include the commit they were generated from; the rest of the output is deterministic.
 
 ### 4.2 Catalog manifest
 
