@@ -7,7 +7,7 @@
 import { Column } from '@molstar/core/data/db';
 import { CIF, CifBlock, CifCategory, CifFile } from '@molstar/io/reader/cif';
 import { toTable } from '@molstar/io/reader/cif/schema';
-import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
+import { MmcifFormat } from '@molstar/model/formats/structure/mmcif-format';
 import { CustomModelProperty } from '@molstar/model/props/common/custom-model-property';
 import { CustomProperty } from '@molstar/model/props/common/custom-property';
 import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';

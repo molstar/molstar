@@ -11,7 +11,7 @@ import type { CifExportContext } from '../../structure.js';
 import type { Model } from '../model.js';
 import { Column, Table } from '@molstar/core/data/db';
 import { CifWriter } from '@molstar/io/writer/cif';
-import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
+import { MmcifFormat } from '@molstar/model/formats/structure/mmcif-format';
 import { toTable } from '@molstar/io/reader/cif/schema';
 
 export namespace GlobalModelTransformInfo {

@@ -7,7 +7,7 @@
 import { CifWriter } from '@molstar/io/writer/cif';
 import type { Model } from '@molstar/model/model/structure';
 import { dateToUtcString } from '@molstar/core/util/date';
-import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
+import { MmcifFormat } from '@molstar/model/formats/structure/mmcif-format';
 
 interface PropertyWrapper<Data> {
   info: PropertyWrapper.Info;

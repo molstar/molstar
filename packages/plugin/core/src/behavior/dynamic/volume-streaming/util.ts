@@ -7,7 +7,7 @@
 
 import { Structure, Model } from '@molstar/model/model/structure';
 import type { VolumeServerInfo } from './model.js';
-import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
+import { MmcifFormat } from '@molstar/model/formats/structure/mmcif-format';
 
 export function getStreamingMethod(s?: Structure, defaultKind: VolumeServerInfo.Kind = 'x-ray'): VolumeServerInfo.Kind {
   if (!s) return defaultKind;

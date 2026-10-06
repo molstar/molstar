@@ -11,10 +11,10 @@ import { Task } from '@molstar/core/task';
 import { isProductionMode } from '@molstar/core/util/debug';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { PluginStateObject } from '../../objects.js';
-import {
-  type BuiltInTrajectoryHierarchyPresetAlias,
-  type BuiltInTrajectoryHierarchyPresetId,
-  type PresetTrajectoryHierarchy,
+import type {
+  BuiltInTrajectoryHierarchyPresetAlias,
+  BuiltInTrajectoryHierarchyPresetId,
+  PresetTrajectoryHierarchy,
 } from './hierarchy-presets/catalog.js';
 import type { TrajectoryHierarchyPresetProvider } from './hierarchy-presets/types.js';
 import { PluginConfig } from '@molstar/plugin/config';
