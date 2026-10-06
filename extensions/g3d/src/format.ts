@@ -6,7 +6,8 @@
  */
 
 import type { Trajectory } from '@molstar/model/model/structure';
-import { TrajectoryFormatCategory, type TrajectoryFormatProvider } from '@molstar/plugin/state/formats/trajectory';
+import { TrajectoryFormatCategory } from '@molstar/plugin/state/formats/trajectory/category';
+import type { TrajectoryFormatProvider } from '@molstar/plugin/state/formats/trajectory/provider';
 import { PluginStateObject as SO, PluginStateTransform } from '@molstar/plugin/state/objects';
 import { PluginBehavior } from '@molstar/plugin/behavior';
 import { PluginContext } from '@molstar/plugin/context';

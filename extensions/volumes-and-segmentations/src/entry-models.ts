@@ -4,9 +4,10 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Download, ParseCif } from '@molstar/plugin/state/transforms/data';
-import { CreateGroup } from '@molstar/plugin/state/transforms/misc';
-import { TrajectoryFromMmCif } from '@molstar/plugin/state/transforms/model';
+import { Download } from '@molstar/plugin/state/transforms/data/fetch';
+import { ParseCif } from '@molstar/plugin/state/formats/cif';
+import { CreateGroup } from '@molstar/plugin/state/transforms/misc/group';
+import { TrajectoryFromMmCif } from '@molstar/plugin/state/formats/trajectory/mmcif';
 import { setSubtreeVisibility } from '@molstar/plugin/behavior/static/state';
 import { StateObjectRef, StateObjectSelector } from '@molstar/core/state';
 

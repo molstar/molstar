@@ -12,7 +12,7 @@ import type { StateTransformer } from '@molstar/core/state';
 import type { ColorTheme } from '@molstar/graphics/theme/color';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { VolumeRepresentation3D } from '../transforms/representation.js';
+import type { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 
 export interface VolumeRepresentationBuiltInProps<
   R extends VolumeRepresentationRegistry.BuiltIn = VolumeRepresentationRegistry.BuiltIn,

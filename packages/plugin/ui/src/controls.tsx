@@ -11,7 +11,7 @@ import { UpdateTrajectory } from '@molstar/plugin/state/actions/structure';
 import type { LociLabel } from '@molstar/plugin/state/manager/loci-label';
 import type { PluginStateObject } from '@molstar/plugin/state/objects';
 import { StateTransforms } from '@molstar/plugin/state/transforms';
-import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/model';
+import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { PluginCommands } from '@molstar/plugin/commands';
 import type { StateTransformer } from '@molstar/core/state';
 import { PluginReactContext, PluginUIComponent } from '@molstar/plugin-ui/base';

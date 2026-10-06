@@ -22,12 +22,13 @@ import {
   StructureQuery,
 } from '@molstar/model/model/structure';
 import { atoms } from '@molstar/model/model/structure/query/queries/generators';
-import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory';
+import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
 import {
   MultiStructureSelectionFromBundle,
   StructureSelectionFromBundle,
-} from '@molstar/plugin/state/transforms/model';
-import { ShapeRepresentation3D, StructureRepresentation3D } from '@molstar/plugin/state/transforms/representation';
+} from '@molstar/plugin/state/transforms/structure/selection';
+import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { useBehavior } from '@molstar/plugin-ui/hooks/use-behavior';
 import { renderReact18 } from '@molstar/plugin-ui/react18';

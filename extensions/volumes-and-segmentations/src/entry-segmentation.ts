@@ -7,9 +7,10 @@
 import { Volume } from '@molstar/model/model/volume';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import { StateTransforms } from '@molstar/plugin/state/transforms';
-import { Download, ParseCif } from '@molstar/plugin/state/transforms/data';
-import { CreateGroup } from '@molstar/plugin/state/transforms/misc';
-import { VolumeFromSegmentationCif } from '@molstar/plugin/state/transforms/volume';
+import { Download } from '@molstar/plugin/state/transforms/data/fetch';
+import { ParseCif } from '@molstar/plugin/state/formats/cif';
+import { CreateGroup } from '@molstar/plugin/state/transforms/misc/group';
+import { VolumeFromSegmentationCif } from '@molstar/plugin/state/formats/volume/segmentation';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { Color } from '@molstar/core/util/color';
 

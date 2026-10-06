@@ -8,12 +8,12 @@
 import type { FileNameInfo } from '@molstar/core/util/file-info';
 import type { PluginStateObject } from '../objects.js';
 import type { DataFormatProvider } from './provider.js';
-import { BuiltInTrajectoryFormats } from './trajectory.js';
-import { BuiltInVolumeFormats } from './volume.js';
-import { BuiltInShapeFormats } from './shape.js';
-import { BuiltInTopologyFormats } from './topology.js';
-import { BuiltInCoordinatesFormats } from './coordinates.js';
-import { BuiltInParticlesFormats } from './particles.js';
+import { BuiltInTrajectoryFormats } from '@molstar/plugin/state/formats/trajectory/catalog';
+import { BuiltInVolumeFormats } from '@molstar/plugin/state/formats/volume/catalog';
+import { BuiltInShapeFormats } from '@molstar/plugin/state/formats/shape/catalog';
+import { BuiltInTopologyFormats } from '@molstar/plugin/state/formats/topology/catalog';
+import { BuiltInCoordinatesFormats } from '@molstar/plugin/state/formats/coordinates/catalog';
+import { BuiltInParticlesFormats } from '@molstar/plugin/state/formats/particles/catalog';
 
 export class DataFormatRegistry {
   private _list: { name: string; provider: DataFormatProvider }[] = [];

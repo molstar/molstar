@@ -7,10 +7,10 @@
 import { DownloadFile } from '@molstar/plugin/state/actions/file';
 import { DownloadStructure, LoadTrajectory } from '@molstar/plugin/state/actions/structure';
 import { DownloadDensity } from '@molstar/plugin/state/actions/volume';
-import { CoordinatesFormatCategory } from '@molstar/plugin/state/formats/coordinates';
-import { TopologyFormatCategory } from '@molstar/plugin/state/formats/topology';
-import { TrajectoryFormatCategory } from '@molstar/plugin/state/formats/trajectory';
-import { VolumeFormatCategory } from '@molstar/plugin/state/formats/volume';
+import { CoordinatesFormatCategory } from '@molstar/plugin/state/formats/coordinates/category';
+import { TopologyFormatCategory } from '@molstar/plugin/state/formats/topology/category';
+import { TrajectoryFormatCategory } from '@molstar/plugin/state/formats/trajectory/category';
+import { VolumeFormatCategory } from '@molstar/plugin/state/formats/volume/category';
 import { CollapsableControls, type CollapsableState } from '@molstar/plugin-ui/controls/collapsable';
 import { Button } from '@molstar/plugin-ui/controls/common';
 import { OpenInBrowserSvg } from '@molstar/plugin-ui/controls/icons';

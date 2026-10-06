@@ -16,8 +16,8 @@ import {
 import * as loaders from '@molstar/plugin-extension/loaders';
 import { Volume } from '@molstar/model/model/volume';
 import { PluginComponent } from '@molstar/plugin/state/component';
-import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory';
-import type { BuildInVolumeFormat } from '@molstar/plugin/state/formats/volume';
+import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
+import type { BuildInVolumeFormat } from '@molstar/plugin/state/formats/volume/catalog';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
 import { renderReact18 } from '@molstar/plugin-ui/react18';

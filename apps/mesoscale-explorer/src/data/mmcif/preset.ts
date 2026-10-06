@@ -7,7 +7,7 @@
 import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
 import { Model } from '@molstar/model/model/structure/model/model';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/representation';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { PluginContext } from '@molstar/plugin/context';
 import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
 import { StateObjectRef, StateObjectSelector, StateBuilder } from '@molstar/core/state';

@@ -13,7 +13,7 @@ import type { StateTransformer } from '@molstar/core/state';
 import type { ColorTheme } from '@molstar/graphics/theme/color';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { StructureRepresentation3D } from '../transforms/representation.js';
+import type { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 
 export function isSurfaceRepresentationType(name: string) {
   return name.endsWith('-surface');

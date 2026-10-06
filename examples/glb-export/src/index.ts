@@ -17,12 +17,13 @@ import path from 'path';
 import { loadNativeModule } from '@molstar/plugin-headless/native';
 
 import { Task } from '@molstar/core/task';
-import { Download } from '@molstar/plugin/state/transforms/data';
+import { Download } from '@molstar/plugin/state/transforms/data/fetch';
 import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
 import { GlbExporter } from '@molstar/geo-export-extension/glb-exporter';
 import { Box3D } from '@molstar/core/math/geometry';
-import { ModelFromTrajectory, StructureFromModel, TrajectoryFromSDF } from '@molstar/plugin/state/transforms/model';
-import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/representation';
+import { ModelFromTrajectory, StructureFromModel } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { TrajectoryFromSDF } from '@molstar/plugin/state/formats/trajectory/sdf';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import type { ExternalModules } from '@molstar/plugin-headless/screenshot';

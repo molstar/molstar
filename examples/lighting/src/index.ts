@@ -5,7 +5,7 @@
  */
 
 import type { Canvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
-import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory';
+import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
 import { renderReact18 } from '@molstar/plugin-ui/react18';

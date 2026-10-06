@@ -14,7 +14,7 @@ import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import { Expression } from '@molstar/model/script/language/expression';
 import { compile } from '@molstar/model/script/runtime/query/compiler';
 import { StateObjectRef } from '@molstar/core/state';
-import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory';
+import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
 import { StateTransforms } from '@molstar/plugin/state/transforms';
 import { Asset } from '@molstar/core/util/assets';
 

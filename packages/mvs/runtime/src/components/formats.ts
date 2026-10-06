@@ -9,7 +9,7 @@ import { murmurHash3_128_fromBytes } from '@molstar/core/data/util';
 import { StringLike } from '@molstar/core/util/string-like';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
-import { Download } from '@molstar/plugin/state/transforms/data';
+import { Download } from '@molstar/plugin/state/transforms/data/fetch';
 import { PluginContext } from '@molstar/plugin/context';
 import { StateAction, StateObjectRef } from '@molstar/core/state';
 import { RuntimeContext, Task } from '@molstar/core/task';

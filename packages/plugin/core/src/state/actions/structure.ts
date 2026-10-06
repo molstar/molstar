@@ -17,24 +17,24 @@ import {
 import {
   type BuiltInTrajectoryFormat,
   BuiltInTrajectoryFormats,
-  TrajectoryFormatCategory,
-} from '../formats/trajectory.js';
+} from '@molstar/plugin/state/formats/trajectory/catalog';
+import { TrajectoryFormatCategory } from '@molstar/plugin/state/formats/trajectory/category';
 import { RootStructureDefinition } from '../helpers/root-structure.js';
 import { PluginStateObject } from '../objects.js';
 import { StateTransforms } from '../transforms.js';
-import type { Download } from '../transforms/data.js';
+import type { Download } from '@molstar/plugin/state/transforms/data/fetch';
 import {
   CustomModelProperties,
   CustomStructureProperties,
   ModelFromTrajectory,
   TrajectoryFromModelAndCoordinates,
-} from '../transforms/model.js';
+} from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { Asset } from '@molstar/core/util/assets';
 import { PluginConfig } from '@molstar/plugin/config';
 import { getFileNameInfo } from '@molstar/core/util/file-info';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
-import { TopologyFormatCategory } from '../formats/topology.js';
-import { CoordinatesFormatCategory } from '../formats/coordinates.js';
+import { TopologyFormatCategory } from '@molstar/plugin/state/formats/topology/category';
+import { CoordinatesFormatCategory } from '@molstar/plugin/state/formats/coordinates/category';
 
 const DownloadModelRepresentationOptions = (plugin: PluginContext) => {
   const representationDefault =

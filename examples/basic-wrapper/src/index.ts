@@ -8,7 +8,7 @@ import { PDBeStructureQualityReport } from '@molstar/pdbe-extension';
 import { EmptyLoci } from '@molstar/model/model/loci';
 import { StructureSelection } from '@molstar/model/model/structure';
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
-import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory';
+import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
 import { renderReact18 } from '@molstar/plugin-ui/react18';

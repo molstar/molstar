@@ -38,7 +38,7 @@ import {
 } from '../../helpers/structure-representation-params.js';
 import { current } from '@molstar/plugin/state/queries/structure/basic';
 import { StructureSelectionQuery } from '@molstar/plugin/state/queries/structure/query';
-import { StructureRepresentation3D } from '../../transforms/representation.js';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import type {
   StructureHierarchyRef,
   StructureComponentRef,

@@ -12,7 +12,7 @@ import { Model } from '@molstar/model/model/structure';
 import { GlobalModelTransformInfo } from '@molstar/model/model/structure/model/properties/global-transform';
 import { Volume } from '@molstar/model/model/volume';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
-import { VolumeRepresentation3DHelpers } from '@molstar/plugin/state/transforms/representation';
+import { VolumeRepresentation3DHelpers } from '@molstar/plugin/state/transforms/volume/representation-helpers';
 import type { PluginContext } from '@molstar/plugin/context';
 import { IsosurfaceRepresentationProvider } from '@molstar/graphics/repr/volume/isosurface';
 import { StateAction, StateObject, StateTransformer } from '@molstar/core/state';

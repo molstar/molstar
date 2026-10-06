@@ -11,7 +11,7 @@ import { Task } from '@molstar/core/task';
 import { getFileNameInfo } from '@molstar/core/util/file-info';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { PluginStateObject } from '../objects.js';
-import type { Download } from '../transforms/data.js';
+import type { Download } from '@molstar/plugin/state/transforms/data/fetch';
 import type { DataFormatProvider } from '../formats/provider.js';
 import { Asset } from '@molstar/core/util/assets';
 import { StateTransforms } from '../transforms.js';

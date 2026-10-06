@@ -6,7 +6,7 @@
  */
 
 import { Structure } from '@molstar/model/model/structure';
-import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory';
+import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
 import { PluginStateObject as PSO, PluginStateTransform } from '@molstar/plugin/state/objects';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { renderReact18 } from '@molstar/plugin-ui/react18';

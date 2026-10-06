@@ -16,14 +16,12 @@ import { loadNativeModule } from '@molstar/plugin-headless/native';
 import pngjs from 'pngjs';
 import jpegjs from 'jpeg-js';
 
-import { Download, ParseCif } from '@molstar/plugin/state/transforms/data';
-import {
-  ModelFromTrajectory,
-  StructureComponent,
-  StructureFromModel,
-  TrajectoryFromMmCif,
-} from '@molstar/plugin/state/transforms/model';
-import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/representation';
+import { Download } from '@molstar/plugin/state/transforms/data/fetch';
+import { ParseCif } from '@molstar/plugin/state/formats/cif';
+import { ModelFromTrajectory, StructureFromModel } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { StructureComponent } from '@molstar/plugin/state/transforms/structure/selection';
+import { TrajectoryFromMmCif } from '@molstar/plugin/state/formats/trajectory/mmcif';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { type ExternalModules, STYLIZED_POSTPROCESSING } from '@molstar/plugin-headless/screenshot';
