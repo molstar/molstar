@@ -251,19 +251,19 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       import behaviors from their defining modules. Add the focus representation id module
       `behavior/dynamic/selection/structure-focus-representation/id.ts`.
 - [ ] Make `StateActions` a catalog module.
-- [ ] Move `BuiltInMarkdownExtension` into catalog entries; the `query` extension is its own entry and imports no
+- [x] Move `BuiltInMarkdownExtension` into catalog entries; the `query` extension is its own entry and imports no
       transpiler.
-- [ ] Split `@molstar/model/script/script` (spec §7): the core module handles `mol-script` only; `transpile.ts` holds
+- [x] Split `@molstar/model/script/script` (spec §7): the core module handles `mol-script` only; `transpile.ts` holds
       the module-global transpiler table and no longer imports `transpilers/all.ts`; add
       `transpilers/{pymol,vmd,jmol}.ts` registering modules (the parsers stay in the `<lang>/` directories), and make
       `transpilers/all.ts` import all three instead of exporting `_transpiler`. `parse` throws the spec §7
       script-language error for an unregistered language; the script-param UI lists registered languages only. The
       direct `parse` users in §1.5 import `transpilers/pymol`. Add the `transpilers/all` import to the default spec
       modules now (the default registry takes it over in step 2) and to the Viewer, so no consumer loses a language.
-- [ ] Move the graphics built-in maps to catalog modules (`@molstar/graphics/repr/structure/catalog`,
+- [x] Move the graphics built-in maps to catalog modules (`@molstar/graphics/repr/structure/catalog`,
       `@molstar/graphics/theme/color/catalog`, ...) wrapped in `namedCatalog`; namespace types type-import them;
       namespace values are removed. Constructors still preload in this step.
-- [ ] Move `DefaultPluginSpec` to `@molstar/plugin/default-spec` and `DefaultPluginUISpec` to
+- [x] Move `DefaultPluginSpec` to `@molstar/plugin/default-spec` and `DefaultPluginUISpec` to
       `@molstar/plugin-ui/default-spec`; the `spec` modules keep only types and helpers.
 - [ ] Land transformer-id snapshot validation (`validateSnapshotTransformers`, spec §6.2) in this step, since the split
       changes which modules register transformers.
