@@ -5,6 +5,15 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add native WebGPU rendering as the default backend across the Viewer, plugin APIs,
+  headless tools, examples and MVS rendering, while retaining WebGL as an explicit
+  compatibility option.
+- Add native WebGPU compute paths for Gaussian density, marching cubes, isosurfaces,
+  orbital grids, color smoothing and texture meshes, with browser and headless
+  verification coverage.
+- Fix WebGPU example behavior for AlphaFold PAE, alpha-orbitals, GLB export and
+  image rendering.
+
 ## [v5.13.0] - 2026-10-04
 - BinaryCIF: masked `int`/`float` field values now return the default `0` instead of the value left in the data array, matching the text/mmCIF parsers. Applies to the bulk `toIntArray`/`toFloatArray` APIs as well (#1711)
 - Fix PDB entities with caps: include protein caps listed in SEQRES in the polymer entity and don't make SEQRES entities non-polymer when the first residue is non-polymer
