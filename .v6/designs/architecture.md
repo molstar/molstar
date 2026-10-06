@@ -78,7 +78,7 @@ Keep recognizable subpaths, removing the `mol-` prefix. The table is the target 
 | `@molstar/plugin-ui`        | React UI, UI-spec types, and an explicit default UI-spec entry point                                         |
 | `@molstar/plugin-headless`  | Reusable Node headless plugin context, screenshot helpers, and output handling                               |
 | `@molstar/mvs-builder`      | Standalone MolViewSpec schema, builder, serialization, and validation                                        |
-| `@molstar/mvs`              | MolViewSpec runtime, feature, and loader                                                                     |
+| `@molstar/mvs`              | MolViewSpec runtime, plugin behavior and registry entries, and loader                                        |
 | `@molstar/<name>-extension` | Individual extensions and their dependencies                                                                 |
 | `@molstar/viewer`           | Published Viewer API and app                                                                                 |
 | `@molstar/<name>-server`    | Model, volume, and plugin-state servers                                                                      |
@@ -286,7 +286,7 @@ unused code. The policy avoids the aggregation risk without assuming every barre
   An export-map alias may point directly to an implementation file without adding a wrapper barrel.
 - **Do not substitute aggregate convenience objects.** Remove `StateTransforms` and migrate consumers to transformer
   leaves. Preserve transformer identifiers and required registration behavior, not the aggregate access syntax.
-- **Keep deliberate composition explicit.** Default specs and registration catalogs assemble complete feature sets for
+- **Keep deliberate composition explicit.** Default specs and registration catalogs assemble complete provider sets for
   app composition. They are not general symbol-import entry points. Base runtime modules and individual providers must
   not depend on them; enforce that boundary even within a package.
 
@@ -448,7 +448,8 @@ coverage, and the `deno pack` alternative. Retain pnpm/`tsc -b` and its complete
 
 ## 6. Plugin composition
 
-The detailed design is in [plugin-composition.md](plugin-composition.md); this section summarizes it.
+The detailed design is in [plugin-composition.md](plugin-composition.md), and the ordered steps, call-site inventories,
+and acceptance checklist are in the [implementation plan](../plans/plugin-composition.md); this section summarizes them.
 
 - `PluginContext` starts with empty registries. A new `PluginSpec.registry` field lists declarative
   `PluginRegistryEntry` records (formats, representations and themes per scope, presets, selection queries, loci labels,
@@ -462,7 +463,11 @@ The detailed design is in [plugin-composition.md](plugin-composition.md); this s
 - Behaviors are unchanged. They can reuse the entry format through `plugin.register(entry)`, which returns a function
   that undoes the registration.
 - Presets and other code import the providers they run and include them in their entries. Policy choices, such as which
-  preset a format applies after loading, go through config and the registries.
+  preset a format applies after loading, go through config and the registries. Presets resolve by `id` or an optional
+  `alias`; built-in presets keep their short keys as aliases.
+- Unregistered representation and theme names keep today's lenient substitution of the registry default, with a warning
+  where the plugin sees the name; an empty registry is an error.
+- PyMOL, VMD, and Jmol script support is enabled by importing its transpiler module, like transformer registration.
 - Transformers stay in the global registry when their module is imported. The `StateTransforms` facade is removed and
   transform modules are split by functionality, with format-specific transformers next to their format providers.
   Snapshot loading checks all transformer ids before changing any state.
@@ -473,7 +478,7 @@ The detailed design is in [plugin-composition.md](plugin-composition.md); this s
   import defaults or catalogs as values.
 
 The slim-plugin acceptance target (render an SDF ligand without unrelated parsers, representations, presets, or MP4
-export in the import graph and bundle) is defined in [plugin-composition §11](plugin-composition.md#11-acceptance).
+export in the import graph and bundle) is defined in [plugin-composition §12](plugin-composition.md#12-acceptance).
 
 ## 7. MolViewSpec, extensions, and apps
 
@@ -482,7 +487,7 @@ Split `extensions/mvs` into:
 | Package                | API and responsibilities                                                                                       |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `@molstar/mvs-builder` | Schema, `createMVSBuilder`, `MVSData`, MVSJ/MVSX serialization/validation, `mvs-validate`, schema-printing CLI |
-| `@molstar/mvs`         | `loadMVS`/`loadMVSData`, plugin feature, annotations, cameras, runtime representations                         |
+| `@molstar/mvs`         | `loadMVS`/`loadMVSData`, plugin behavior and registry entries, annotations, cameras, runtime representations   |
 
 The builder replaces [molviewspec-ts](https://github.com/molstar/mol-view-spec/tree/master/molviewspec-ts) and the JSR
 `@molstar/molviewspec` distribution after API/parity checks. Publish the replacement to npm and JSR. Own `io-ts` and any
@@ -564,7 +569,7 @@ those tests.
 
 Add `.agents/` skills for `add-extension`, `add-example-app`, `add-app`, `add-format`, `add-representation`,
 `add-server`, and `update-dependencies`. Root `AGENTS.md` points to them. Each skill covers package ownership, imports,
-feature registration, tests, and build wiring. The dependency skill covers catalog/version updates, lockfile refresh,
+registry entries, tests, and build wiring. The dependency skill covers catalog/version updates, lockfile refresh,
 validation, and advisory checks. Update skills when architecture changes.
 
 Rewrite mkdocs installation, plugin, examples, formats, extensions, MVS, and clone/build instructions. Add package
@@ -587,7 +592,8 @@ branch references. Docs and skills ship with the implementation.
 - For each JSR package, run publication dry runs with `--allow-slow-types` and test its source/dependency graph with the
   pinned Deno version. Preserve public type precision through normal TypeScript checks and native npm
   declaration/consumer checks; fast-type compliance is not a v6 release gate.
-- Run the slim-plugin acceptance example and the full Viewer; test snapshots with their required features registered.
+- Run the slim-plugin acceptance example and the full Viewer; test snapshots with their required transformers imported
+  and providers registered.
 - Before advancing `molstar@latest`, test existing Viewer/MVS HTML fixtures against the packed root package, routing
   their unchanged CDN URLs to the candidate assets. Verify classic script loading, globals/API calls, custom-element
   registration, CSS/assets, MVSJ/MVSX loading, and independent named story contexts. Inspect both CDN directories in the
@@ -650,15 +656,21 @@ changes. It should:
 5. Update Mol* package dependencies and migrate removed barrel/facade imports to defining modules where symbol
    resolution is unambiguous. Report dynamic `StateTransforms` access and re-export side effects for manual migration.
    Flag unsupported CommonJS usage, implicit default specs, relocated APIs, and unintended full-catalog imports.
+6. Migrate plugin specs: rewrite removed `actions`/`animations`/`customFormats` fields into `registry` entries, add
+   `DefaultRegistry` to literal specs that relied on the implicit catalog, filter the matching default entry in
+   spread-and-override specs, keep the full structure tools when a spec replaces `components`, and report specs and
+   script languages it cannot resolve. The
+   [plugin-composition plan](../plans/plugin-composition.md#5-migration-tool-additions) lists the rules.
 
 No promise of a fully automatic upgrade. Validate idempotence and representative transformations, then run the tool
 against `pdbe-molstar` and `rcsb-molstar` and smoke-test the resulting apps.
 
 ### 9.3 Compatibility contract
 
-Keep transformer identifiers, snapshot JSON, feature/provider name strings, `PluginSpec.Action`/`Behavior`, and the
-`createPluginUI`/`Viewer.create` entry-point names. Snapshots still require their referenced features to be loaded.
-Explicit specs and registration replace implicit catalog loading in base entry points.
+Keep transformer identifiers, snapshot JSON, provider name strings, `PluginSpec.Action`/`Behavior`, and the
+`createPluginUI`/`Viewer.create` entry-point names. Snapshots still require their transformers to be imported; a
+representation or theme name that is not registered falls back to the registry default with a warning. Explicit specs
+and registration replace implicit catalog loading in base entry points.
 
 Remove CommonJS and legacy deep import paths. Existing applications using library imports must migrate imports and
 dependencies; installing `molstar@6` alone does not upgrade those consumers. There is no library compatibility-shim
@@ -668,8 +680,15 @@ The root `molstar` package preserves the existing CDN app contract:
 
 | App         | Retained paths                                                                                  | Browser API                                      |
 | ----------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Viewer      | `build/viewer/`, including existing JS/CSS and supporting files                                 | Existing `molstar` global and Viewer API         |
+| Viewer      | `build/viewer/`, including existing JS/CSS and supporting files                                 | Existing `molstar` global and Viewer API (below) |
 | MVS Stories | `build/mvs-stories/`, including `mvs-stories.js`, `mvs-stories.css`, HTML, and supporting files | Existing `mvsStories` global and custom elements |
+
+Accepted carve-out for the Viewer global: the library values under `molstar.lib.plugin` (`DefaultPluginSpec`,
+`DefaultPluginUISpec`, `StateActions`, and the added `DefaultRegistry`) follow the 6.0 library API. `StateTransforms`
+stays on the global with its 5.x keys and members, assembled from the split modules. Hand-built specs that use the
+removed `actions`/`animations`/`customFormats` fields throw, and literal specs get empty registries. `Viewer.create` and
+its options, including `customFormats`, and the Viewer's methods are unchanged
+([plugin-composition §11](plugin-composition.md#11-extensions-mvs-and-apps)).
 
 For MVS Stories, preserve the exports in the [app entry point](../src/apps/mvs-stories/index.tsx): `getContext`,
 `loadFromURL`, `loadFromData`, `loadFromID`, `downloadCurrentStory`, and `MVSData`, including their existing arguments,
@@ -679,7 +698,7 @@ classic script loads.
 
 Existing HTML using `https://cdn.jsdelivr.net/npm/molstar@latest/build/mvs-stories/mvs-stories.js` and the corresponding
 CSS must work unchanged when `latest` advances to v6. Preserve equivalent package paths on other CDNs. Do not require
-`type="module"`, scoped-package imports, new initialization calls, or edits to generated HTML. Internal feature
+`type="module"`, scoped-package imports, new initialization calls, or edits to generated HTML. Internal plugin
 composition and dependency packaging may change behind these app APIs. This compatibility promise is separate from
 publishing a new stories library.
 
@@ -714,7 +733,7 @@ or generator migration phase.
 | 0     | Verify package names; introduce pnpm, the workspace skeleton, and matching CI                                                                                                                                                                                                                                       |
 | 1     | Audit and relocate reverse dependencies in §3.2; break plugin cycles and add explicit type imports. Record final API locations and verify the proposed package graph, including declaration edges. Retain existing module settings and override `verbatimModuleSyntax: false` for the temporary CJS build if needed |
 | 2     | Split transform/provider modules and default-spec entry points; remove convenience barrels and the transform facade, split mixed implementation modules, migrate consumers to defining-module imports, and remove lazy getters; rename tests                                                                        |
-| 3     | Introduce empty registries, `spec.registry` entries, explicit base specs, and presets that import what they run; prove the slim example and full default composition                                                                                                                                                |
+| 3     | Introduce empty reference-counted registries, `spec.registry` entries, explicit base specs, id-only preset lookup, and presets that import what they run; prove the slim example and full default composition ([plugin-composition plan](../plans/plugin-composition.md) steps 2–4)                                 |
 | 4     | Drop CJS; set `type: module`, `NodeNext`, and `verbatimModuleSyntax`; use `.js` relative specifiers in source. Convert CommonJS globals/tooling and smoke-test emitted bins                                                                                                                                         |
 | 5     | Move into grouped workspace packages; add exports, project references, direct dependencies, and per-app esbuild. Verify clean builds and packed consumers; stage the CDN-only `molstar` package                                                                                                                     |
 | 6     | Finish standalone MVS builder/runtime, headless library, extension and server/CLI packaging; verify npm/JSR builder parity, headless dependency isolation, and command installation/migration instructions                                                                                                          |

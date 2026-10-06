@@ -41,7 +41,8 @@ Libraries with ancillary bins and server packages retain their domain names. See
 
 ## Plugin composition
 
-See the [plugin-composition design](plugin-composition.md).
+See the [plugin-composition design](plugin-composition.md) and its
+[implementation plan](../plans/plugin-composition.md).
 
 Registries start empty. `PluginSpec.registry` lists declarative entries (formats, representations, themes, presets,
 selection queries, and similar providers) that `PluginContext` registers in order, without dependency resolution.
@@ -50,14 +51,19 @@ selection queries, and similar providers) that `PluginContext` registers in orde
 const spec: PluginSpec = {
   registry: [Sdf, DefaultHierarchyPreset, BallAndStickPreset],
   behaviors: [/* ... */],
+  config: [[PluginConfig.Structure.DefaultRepresentationPreset, 'preset-structure-representation-ball-and-stick']],
 };
+// ... create the plugin, download and parse an SDF file
+await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
 ```
 
 What is included is what the spec imports and lists; single-file builds tree-shake the same way. Behaviors are unchanged
-and can reuse the entry format through `plugin.register(entry)`. Presets import the providers they run; choices such as
-a format's default preset go through config. Base entry points, including `createPluginUI`, take an explicit spec. Full
-defaults come from `DefaultPluginSpec` in `@molstar/plugin/default-spec` or `DefaultPluginUISpec` in
-`@molstar/plugin-ui/default-spec`. Viewer extensions remain app choices.
+and can reuse the entry format through `plugin.register(entry)`. Presets import the providers they run and are applied
+by id or alias; choices such as a format's default preset go through config. Unregistered representation and theme names
+fall back to the registry default, with a warning from the builders, param helpers, and snapshot restore. PyMOL, VMD,
+and Jmol scripts work when the app imports their transpiler modules. Base entry points, including `createPluginUI`, take
+an explicit spec. Full defaults come from `DefaultPluginSpec` in `@molstar/plugin/default-spec` or `DefaultPluginUISpec`
+in `@molstar/plugin-ui/default-spec`. Viewer extensions remain app choices.
 
 Remove the `StateTransforms` facade and split transform modules by functionality, placing format-specific transformers
 next to their providers. Transformers stay globally registered on import; snapshot loading checks their ids before
@@ -130,7 +136,8 @@ classic-script globals, APIs, CSS/assets, and custom elements. Existing MVS HTML
 a CDN must work without edits; verify against the packed candidate before advancing `latest`. See the
 [browser compatibility contract](architecture.md#93-compatibility-contract). Library consumers migrate from
 `lib/mol-*`/CJS to scoped packages. Keep transformer identifiers and snapshot JSON; restoring a snapshot requires its
-transformers and providers to be loaded.
+transformers to be imported, and unregistered representation or theme names fall back to the registry default with a
+warning.
 
 Rename tests to `_test/**/*.test.ts`. Add `.agents/` maintainer skills for extensions, formats, representations,
 apps/examples, servers, and dependency updates, referenced by root `AGENTS.md`. Rewrite mkdocs for packages,
