@@ -25,6 +25,10 @@ uniform vec3 uOcclusionColor;
 uniform vec3 uFogColor;
 uniform bool uTransparentBackground;
 uniform vec2 uOcclusionOffset;
+uniform sampler2D tSsaoDepthTransparent;
+uniform bool uHasSsaoTransparent;
+uniform sampler2D tTransparentDepth;
+uniform bool uHasTransparentDepth;
 
 uniform sampler2D tBase;
 uniform sampler2D tShaded;
@@ -49,17 +53,18 @@ void main() {
     vec2 coords = gl_FragCoord.xy * uTexSizeInv;
 
     // coverage of the visible unmarked geometry, see dim.frag
-    float dimAlpha = 0.0;
+    float dimCoverage = 0.0;
     float dimFogAlpha = 1.0;
     if (uDimStrength > 0.0) {
         vec4 d = texture2D(tDimTexture, coords);
-        dimAlpha = d.r * uDimStrength;
+        dimCoverage = d.r;
         dimFogAlpha = d.r / max(d.g, 0.001);
     }
 
     // solid fill covering the interior of marked regions, sampled directly from the mask
     vec3 fillRgb = vec3(0.0);
     float fillAlpha = 0.0;
+    float fillOpacity = 1.0;
     float fillFogAlpha = 1.0;
     if (uHighlightFillStrength > 0.0 || uSelectFillStrength > 0.0) {
         vec4 m = texture2D(tMaskTexture, coords);
@@ -72,17 +77,31 @@ void main() {
             fillFogAlpha = marked.z;
             // marked.x: 1.0 = hidden, 0.0 = visible; without depth test every marked texel reads as hidden
             float visibility = uDepthTest && marked.x > 0.5 ? 0.0 : 1.0;
-            fillAlpha = coverage * fillStrength * visibility * fillFogAlpha * unpackMarkingOpacity(marked.x);
+            fillOpacity = unpackMarkingOpacity(marked.x);
+            fillAlpha = coverage * fillStrength * visibility * fillFogAlpha * fillOpacity;
         }
     }
+
+    float layerAlpha = 0.0;
+    if (uHasTransparentDepth && (uDimStrength > 0.0 || fillAlpha > 0.0)) {
+        vec2 layer = unpackRGBAToDepthWithAlpha(texture2D(tTransparentDepth, coords));
+        if (layer.x < 0.9999) layerAlpha = layer.y;
+    }
+    bool layerMarked = fillAlpha > 0.0 && fillOpacity < 0.98;
+    float dimLayer = uDimStrength > 0.0 && !layerMarked ? layerAlpha : 0.0;
+    float dimOpaque = (1.0 - dimLayer) * dimCoverage;
+    float dimAlpha = uDimStrength * (dimLayer + dimOpaque);
+    if (fillOpacity >= 0.98) fillAlpha *= 1.0 - layerAlpha;
 
     // keep the shading of the image, so that blending toward the color does not wash it out
     vec3 dimRgb = uDimColor;
     if (dimAlpha > 0.0 || fillAlpha > 0.0) {
         #if defined(dMarkingShading_ssao)
             float occlusion = unpackSsao(texture2D(tSsaoDepth, coords + uOcclusionOffset));
-            dimRgb = applyOcclusion(dimRgb, occlusion, dimFogAlpha);
-            fillRgb = applyOcclusion(fillRgb, occlusion, fillFogAlpha);
+            float occlusionLayer = uHasSsaoTransparent ? unpackSsao(texture2D(tSsaoDepthTransparent, coords + uOcclusionOffset)) : 1.0;
+            float dimWeight = dimLayer + dimOpaque;
+            dimRgb = applyOcclusion(dimRgb, dimWeight > 0.0 ? (occlusionLayer * dimLayer + occlusion * dimOpaque) / dimWeight : occlusion, dimFogAlpha);
+            fillRgb = applyOcclusion(fillRgb, fillOpacity < 0.98 ? occlusionLayer : occlusion, fillFogAlpha);
         #elif defined(dMarkingShading_traced)
             float baseLuminance = luminance(texture2D(tBase, coords).rgb);
             float shadedLuminance = luminance(texture2D(tShaded, coords).rgb);
