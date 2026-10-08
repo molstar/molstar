@@ -189,6 +189,10 @@ built-in transformer ids. A custom spec must import the modules it uses, or the 
 (`PluginSpec`, `PluginUISpec`). The classic Viewer globals `molstar.lib.plugin.DefaultPluginSpec` and
 `DefaultPluginUISpec` are unchanged.
 
+Both default-spec modules load `DefaultRegistry` and every built-in catalog. Apps that compose their own registry and
+only want the default UI parts import `DefaultPluginUIComponents()` and `DefaultPluginUICustomParamEditors()` from
+`@molstar/plugin-ui/default-ui` instead; `DefaultPluginUISpec()` is composed from them.
+
 ### Script languages
 
 PyMOL, VMD, and Jmol are no longer enabled implicitly. Import `@molstar/model/script/transpilers/pymol`, `.../vmd`,

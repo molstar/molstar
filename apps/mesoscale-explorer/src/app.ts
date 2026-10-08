@@ -13,7 +13,7 @@ import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { renderReact18 } from '@molstar/plugin-ui/react18';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
-import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
+import { DefaultPluginUIComponents, DefaultPluginUICustomParamEditors } from '@molstar/plugin-ui/default-ui';
 import type { PluginUISpec } from '@molstar/plugin-ui/spec';
 import { PluginConfig } from '@molstar/plugin/config';
 import type { PluginLayoutControlsDisplay } from '@molstar/plugin/layout';
@@ -173,7 +173,7 @@ export class MesoscaleExplorer {
     }
 
     const o: MesoscaleExplorerOptions = { ...DefaultMesoscaleExplorerOptions, ...definedOptions };
-    const defaultSpec = DefaultPluginUISpec();
+    const defaultComponents = DefaultPluginUIComponents();
 
     const spec: PluginUISpec = {
       registry: createRegistry(o.customFormats),
@@ -187,7 +187,7 @@ export class MesoscaleExplorer {
         PluginSpec.Behavior(PluginBehaviors.Representation.SelectLoci),
         ...o.extensions.map((e) => Extensions[e]),
       ],
-      customParamEditors: defaultSpec.customParamEditors,
+      customParamEditors: DefaultPluginUICustomParamEditors(),
       layout: {
         initial: {
           isExpanded: o.layoutIsExpanded,
@@ -202,9 +202,9 @@ export class MesoscaleExplorer {
         },
       },
       components: {
-        ...defaultSpec.components,
+        ...defaultComponents,
         controls: {
-          ...defaultSpec.components?.controls,
+          ...defaultComponents.controls,
           top: 'none',
           bottom: 'none',
           left: LeftPanel,

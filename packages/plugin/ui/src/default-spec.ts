@@ -6,14 +6,12 @@
  * @author Ventura Rivera <venturaxrivera@gmail.com>
  */
 
-import { CreateVolumeStreamingBehavior } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
-import { VolumeStreamingCustomControls } from '@molstar/plugin-ui/custom/volume';
-import { DefaultStructureTools } from '@molstar/plugin-ui/default-structure-tools';
+import { DefaultPluginUIComponents, DefaultPluginUICustomParamEditors } from '@molstar/plugin-ui/default-ui';
 import type { PluginUISpec } from '@molstar/plugin-ui/spec';
 
 export const DefaultPluginUISpec = (): PluginUISpec => ({
   ...DefaultPluginSpec(),
-  components: { structureTools: DefaultStructureTools },
-  customParamEditors: [[CreateVolumeStreamingBehavior, VolumeStreamingCustomControls]],
+  components: DefaultPluginUIComponents(),
+  customParamEditors: DefaultPluginUICustomParamEditors(),
 });

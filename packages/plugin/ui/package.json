@@ -29,6 +29,11 @@
       "types": "./lib/default-spec.d.ts",
       "import": "./lib/default-spec.js"
     },
+    "./default-ui": {
+      "molstar-src": "./src/default-ui.ts",
+      "types": "./lib/default-ui.d.ts",
+      "import": "./lib/default-ui.js"
+    },
     "./hooks/use-behavior": {
       "molstar-src": "./src/hooks/use-behavior.ts",
       "types": "./lib/hooks/use-behavior.d.ts",

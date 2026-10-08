@@ -138,6 +138,13 @@ export function checkMetafile(metafile, exclusions, label = 'bundle') {
 
 const format = (n) => `${n.toLocaleString('en-US')} bytes`;
 
+const ReducedRegistryApps = ['apps/mesoscale-explorer/src/index.ts'];
+const FullRegistryModules = [
+  'packages/plugin/core/src/default-registry.ts',
+  'packages/plugin/core/src/default-spec.ts',
+  'packages/plugin/ui/src/default-spec.ts',
+];
+
 async function main() {
   const started = Date.now();
   const exclusions = loadExclusions(repoRoot);
@@ -151,6 +158,17 @@ async function main() {
     errors.push(...checked.errors);
     for (const [file, leak] of checked.known) console.warn(`known leak (${mode}): ${file}: ${leak.reason}`);
     console.log(`slim example, ${mode}: ${Object.keys(result.metafile.inputs).length} modules, ${format(bytes)}`);
+  }
+  // Apps that compose their own registry must not load the full built-in set through a default spec.
+  for (const entry of ReducedRegistryApps) {
+    const result = await buildEntry({ entry, mode: 'single file' });
+    const files = Object.keys(result.metafile.inputs).map((file) => file.split(path.sep).join('/'));
+    for (const file of files.filter((f) => FullRegistryModules.includes(f))) {
+      errors.push(
+        `${entry}: ${file} is in the bundle, imported through: ${importChain(result.metafile, file).join(' -> ')}`,
+      );
+    }
+    console.log(`${entry}, single file: ${files.length} modules, ${format(outputBytes(result.metafile))}`);
   }
   if (!process.argv.includes('--no-viewer')) {
     const result = await buildEntry({ entry: 'apps/viewer/src/index.ts', mode: 'single file' });

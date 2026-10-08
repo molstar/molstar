@@ -699,6 +699,10 @@ Base modules must not value-import catalogs or optional functionality:
   `structureTools`, the base layout renders a minimal list (structure source, components, measurements) that reaches no
   catalog. A spec that spreads `DefaultPluginUISpec()` but replaces `components` must spread the default components to
   keep the full tools.
+- `@molstar/plugin-ui/default-ui` holds the registry-free UI defaults (`DefaultPluginUIComponents()`,
+  `DefaultPluginUICustomParamEditors()`) that `DefaultPluginUISpec()` is composed from, so an app with its own registry
+  (mesoscale-explorer) takes the default UI parts without loading `DefaultRegistry`; `check:workspace` asserts this for
+  mesoscale-explorer.
 - Quick styles resolve presets by id through the registry (`DefaultRepresentationPreset`, then fixed ids) and hide
   buttons whose preset is not registered, instead of importing the preset map.
 - The volume controls take the representation type from the volume registry or config and import transformers from leaf
