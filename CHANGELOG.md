@@ -14,6 +14,7 @@ here.
   one edge
 - Fix RCSB validation report and ModelArchive quality assessment behaviors updating auto-attach and unregistering via
   the custom structure property registry instead of the custom model property registry they register with
+- Fix interpolation of camera rotation
 
 ## [v5.13.0] - 2026-10-04
 
