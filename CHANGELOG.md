@@ -5,7 +5,6 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - ModelServer and VolumeServer: support chained string operations in path templates and fix `substring` to use an exclusive end index instead of a length (#1963)
-- Update dependencies to address npm audit findings, including scoped `js-yaml` and `shell-quote` overrides, and adapt the deployment script to `simple-git` v4
 
 ## [v5.13.0] - 2026-10-04
 - BinaryCIF: masked `int`/`float` field values now return the default `0` instead of the value left in the data array, matching the text/mmCIF parsers. Applies to the bulk `toIntArray`/`toFloatArray` APIs as well (#1711)
