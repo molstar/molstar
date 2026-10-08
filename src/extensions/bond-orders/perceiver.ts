@@ -4,7 +4,7 @@
  * @author Paul Pillot <paul.pillot@tandemai.com>
  *
  * Placeholder intra-residue bond-order overlay. The real algorithm is ported
- * into `perceiveIntra` later; the signature (structure, unit, bonds, rings, mode) does not change.
+ * into `perceiveIntra` later.
  */
 
 import { IntAdjacencyGraph } from '../../mol-math/graph';
@@ -14,12 +14,12 @@ import { BondType, WaterNames } from '../../mol-model/structure/model/types';
 import { IntraUnitBonds } from '../../mol-model/structure/structure/unit/bonds/data';
 import type { UnitRings } from '../../mol-model/structure/structure/unit/rings';
 
-export type BondOrdersMode = 'model' | 'force';
+export type BondOrdersMode = 'none' | 'auto' | 'forceCompute';
 
 /**
  * Clone `bonds` edge props and overlay placeholder orders on intra-residue covalent edges.
- * Topology (`offset` / `a` / `b`) is unchanged. `structure` and `rings` are unused by the
- * placeholder but are required by the real algorithm.
+ * Topology (`offset` / `a` / `b`) is unchanged. `structure` and `rings` are
+ * unused by the placeholder but are required by the real algorithm.
  */
 export function perceiveIntra(structure: Structure, unit: Unit.Atomic, bonds: IntraUnitBonds, rings: UnitRings, mode: BondOrdersMode): IntraUnitBonds {
     void structure;
@@ -50,7 +50,7 @@ export function perceiveIntra(structure: Structure, unit: Unit.Atomic, bonds: In
             if (residueIndex[elements[v]] !== rU) continue;
             if (!BondType.isCovalent(flags[i])) continue;
 
-            if (mode === 'model') {
+            if (mode === 'auto') {
                 if (order[i] !== 1 || !BondType.is(flags[i], BondType.Flag.Computed)) continue;
             }
 

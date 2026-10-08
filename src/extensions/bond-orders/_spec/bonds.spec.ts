@@ -9,19 +9,20 @@ import { SortedArray } from '../../../mol-data/int';
 import { CIF } from '../../../mol-io/reader/cif';
 import { parseMol } from '../../../mol-io/reader/mol/parser';
 import { parsePDB } from '../../../mol-io/reader/pdb/parser';
-import { IntAdjacencyGraph } from '../../../mol-math/graph';
 import { trajectoryFromMmCIF } from '../../../mol-model-formats/structure/mmcif';
 import { trajectoryFromMol } from '../../../mol-model-formats/structure/mol';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 import { trajectoryFromPDB } from '../../../mol-model-formats/structure/pdb';
 import { Structure, Unit } from '../../../mol-model/structure';
-import { ElementIndex } from '../../../mol-model/structure/model';
+import { ElementIndex, Model } from '../../../mol-model/structure/model';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { computeIntraUnitBonds } from '../../../mol-model/structure/structure/unit/bonds/intra-compute';
-import { IntraUnitBonds } from '../../../mol-model/structure/structure/unit/bonds/data';
 import { ElementSetIntraBondCache } from '../../../mol-model/structure/structure/unit/bonds/element-set-intra-bond-cache';
-import { BondOrderProviderName, registerBondOrderProviders, unregisterBondOrderProviders } from '../provider';
-import { BondProvider, BondProviderRegistry } from '../../../mol-model/structure/structure/unit/bonds/bond-provider';
+import { BondProvider, BondProviderRegistry, ModelBondProvider } from '../../../mol-model/structure/structure/unit/bonds/bond-provider';
+import { createModelBondProviderProperty } from '../../../mol-model-props/common/model-bond-provider';
+import { AssetManager } from '../../../mol-util/assets';
+import { SyncRuntimeContext } from '../../../mol-task/execution/synchronous';
+import { BondOrderProvider, BondOrderProviderName } from '../provider';
+import { BondOrdersMode } from '../perceiver';
 
 const PdbWithConectLigand = [
     'ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N  ',
@@ -94,11 +95,11 @@ LIG C1 C2 sing 1
 #
 `;
 
-async function structureFromPdb(pdbText: string): Promise<Structure> {
+async function modelFromPdb(pdbText: string): Promise<Model> {
     const parsed = await parsePDB(pdbText, 'TST').run();
     if (parsed.isError) throw new Error(parsed.message);
     const trajectory = await trajectoryFromPDB(parsed.result).run();
-    return Structure.ofModel(trajectory.representative);
+    return trajectory.representative;
 }
 
 function atomicUnits(structure: Structure): Unit.Atomic[] {
@@ -139,15 +140,50 @@ function collectCompElements(unit: Unit.Atomic, compId: string): ElementIndex[] 
     return els;
 }
 
-describe('bond provider registry', () => {
+const bondProviderRegistry = new BondProviderRegistry();
+bondProviderRegistry.add(BondOrderProvider);
+const modelBondProviderProperty = createModelBondProviderProperty(bondProviderRegistry);
+const propertyContext = {
+    runtime: SyncRuntimeContext,
+    assetManager: new AssetManager(),
+};
+
+async function selectBondOrderProvider(model: Model, mode: BondOrdersMode) {
+    const props = {
+        provider: {
+            name: BondOrderProviderName,
+            params: { mode },
+        },
+    };
+    const isAttached = model.customProperties.hasReference(ModelBondProvider.Descriptor);
+    await modelBondProviderProperty.attach(propertyContext, model, props, !isAttached);
+}
+
+function structureWithSelectedBondProvider(model: Model): Structure {
+    const bondProviderProps = ModelBondProvider.get(model);
+    const context: BondProvider.Context = {};
+    const provider = bondProviderProps ? bondProviderRegistry.get(bondProviderProps.name) : undefined;
+    const bondProvider = provider?.isApplicable(model)
+        ? provider.factory(model, bondProviderProps!.params, context)
+        : undefined;
+    const structure = Structure.ofModel(model, { bondProvider });
+    if (bondProvider) context.structure = structure;
+    return structure;
+}
+
+async function structureFromPdb(pdbText: string, mode: BondOrdersMode): Promise<Structure> {
+    const model = await modelFromPdb(pdbText);
+    await selectBondOrderProvider(model, mode);
+    return structureWithSelectedBondProvider(model);
+}
+
+describe('bond provider custom model property', () => {
     it('perceives CONECT ligand C-C lazily via unit.bonds and getChild subsets', async () => {
-        const structure = await structureFromPdb(PdbWithConectLigand);
+        const structure = await structureFromPdb(PdbWithConectLigand, 'auto');
         for (const unit of atomicUnits(structure)) {
             expect(unit.props.bonds).toBeUndefined();
         }
 
-        const registered = registerBondOrderProviders(structure, 'model');
-        expect(registered.length).toBe(1);
         for (const unit of atomicUnits(structure)) {
             expect(unit.props.bonds).toBeUndefined();
         }
@@ -157,7 +193,7 @@ describe('bond provider registry', () => {
         expect(countCompCCOrder(ligUnit, 'LIG', 2)).toBeGreaterThan(0);
         const perceived = ligUnit.bonds;
         expect(ligUnit.bonds).toBe(perceived);
-        expect(ligUnit.props.bonds).toBeUndefined();
+        expect(ligUnit.props.bonds).toBe(perceived);
         expect(ElementSetIntraBondCache.get(ligUnit.model).get(ligUnit.elements)).toBeUndefined();
         expect(ligUnit.props.rings).toBeDefined();
         expect((ligUnit.props.rings as any)._aromaticRings).toBeUndefined();
@@ -171,56 +207,51 @@ describe('bond provider registry', () => {
     });
 
     it('does not customize models that already have IndexPairBonds', async () => {
-        const structure = await structureFromPdb(PdbWithConectLigand);
-        const model = structure.model;
+        const model = await modelFromPdb(PdbWithConectLigand);
         const existing = IndexPairBonds.fromData({
             pairs: { indexA: Column.ofIntArray([]), indexB: Column.ofIntArray([]) },
             count: model.atomicHierarchy.atoms._rowCount,
         });
         IndexPairBonds.Provider.set(model, existing);
 
-        const registered = registerBondOrderProviders(structure, 'model');
-        expect(registered.length).toBe(1);
+        await selectBondOrderProvider(model, 'auto');
+        const structure = structureWithSelectedBondProvider(model);
         expect(IndexPairBonds.Provider.get(model)).toBe(existing);
         void (structure.units[0] as Unit.Atomic).bonds;
     });
 
     it('does not perceive components covered by IntraBondOrderTable', async () => {
-        const structure = await structureFromPdb(PdbWithKnownHis);
-        const registered = registerBondOrderProviders(structure, 'model');
+        const structure = await structureFromPdb(PdbWithKnownHis, 'auto');
         const unit = unitWithComp(structure, 'HIS');
 
         expect(countCompCCOrder(unit, 'HIS', 2)).toBe(1);
-        expect(registered.length).toBe(1);
     });
 
     it('skips mol/SDF graphs and leaves file orders unchanged', async () => {
         const parsed = await parseMol(MolWithSingleCC).run();
         if (parsed.isError) throw new Error(parsed.message);
         const trajectory = await trajectoryFromMol(parsed.result).run();
-        const structure = Structure.ofModel(trajectory.representative);
-        const existing = IndexPairBonds.Provider.get(structure.model);
+        const model = trajectory.representative;
+        const existing = IndexPairBonds.Provider.get(model);
         expect(existing).toBeDefined();
 
+        const before = Array.from((Structure.ofModel(model).units[0] as Unit.Atomic).bonds.edgeProps.order);
+        await selectBondOrderProvider(model, 'forceCompute');
+        const structure = structureWithSelectedBondProvider(model);
         const unit = structure.units[0] as Unit.Atomic;
-        const before = Array.from(unit.bonds.edgeProps.order);
-
-        const registered = registerBondOrderProviders(structure, 'force');
-        expect(registered.length).toBe(1);
-        expect(IndexPairBonds.Provider.get(structure.model)).toBe(existing);
+        expect(IndexPairBonds.Provider.get(model)).toBe(existing);
         expect(Array.from(unit.bonds.edgeProps.order)).toEqual(before);
         expect(countCompCCOrder(unit, 'MOL', 1)).toBeGreaterThan(0);
         expect(countCompCCOrder(unit, 'MOL', 2)).toBe(0);
     });
 
-    it('leaves chem_comp_bond dictionary orders alone in model mode', async () => {
+    it('leaves chem_comp_bond dictionary orders alone in auto mode', async () => {
         const parsed = await CIF.parseText(MmcifWithChemCompBond).run();
         if (parsed.isError) throw new Error(parsed.message);
         const trajectory = await trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result).run();
-        const structure = Structure.ofModel(trajectory.representative);
-
-        const registered = registerBondOrderProviders(structure, 'model');
-        expect(registered.length).toBe(1);
+        const model = trajectory.representative;
+        await selectBondOrderProvider(model, 'auto');
+        const structure = structureWithSelectedBondProvider(model);
 
         const ligUnit = unitWithComp(structure, 'LIG');
         expect(countCompCCOrder(ligUnit, 'LIG', 1)).toBeGreaterThan(0);
@@ -237,113 +268,31 @@ describe('bond provider registry', () => {
         expect(sawComputed).toBe(false);
     });
 
-    it('looks up providers by name and explicitly selects the active provider', async () => {
-        const structure = await structureFromPdb(PdbWithConectLigand);
-        const unit = unitWithComp(structure, 'LIG');
-        const calls: string[] = [];
+    it('supports none, auto, and forceCompute modes through the model property', async () => {
+        const parsed = await CIF.parseText(MmcifWithChemCompBond).run();
+        if (parsed.isError) throw new Error(parsed.message);
+        const trajectory = await trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result).run();
+        const model = trajectory.representative;
 
-        const double: BondProvider = {
-            name: 'double',
-            getBonds: providerUnit => {
-                calls.push('double');
-                return withOrder(computeIntraUnitBonds(providerUnit), 2);
-            }
-        };
-        const triple: BondProvider = {
-            name: 'triple',
-            getBonds: providerUnit => {
-                calls.push('triple');
-                return withOrder(computeIntraUnitBonds(providerUnit), 3);
-            }
-        };
+        await selectBondOrderProvider(model, 'auto');
+        const autoStructure = structureWithSelectedBondProvider(model);
+        const autoUnit = unitWithComp(autoStructure, 'LIG');
+        const autoProvider = autoUnit.props.bondProvider;
+        expect(autoProvider).toBeDefined();
+        expect(countCompCCOrder(autoUnit, 'LIG', 1)).toBeGreaterThan(0);
+        expect(countCompCCOrder(autoUnit, 'LIG', 2)).toBe(0);
 
-        const defaultBonds = unit.bonds;
-        expect(defaultBonds.edgeProps.order[0]).toBe(1);
-        const registry = BondProviderRegistry.get(structure.model);
-        registry.add(double);
-        registry.add({ ...triple, name: double.name });
-        registry.add(triple);
-        expect(registry.get('double')).toBe(double);
-        expect(registry.get('triple')).toBe(triple);
-        expect(unit.bonds.edgeProps.order[0]).toBe(1);
-        expect(calls).toEqual([]);
+        await selectBondOrderProvider(model, 'forceCompute');
+        expect(countCompCCOrder(autoUnit, 'LIG', 2)).toBe(0);
+        const forceStructure = structureWithSelectedBondProvider(model);
+        const forceUnit = unitWithComp(forceStructure, 'LIG');
+        expect(forceUnit.props.bondProvider).not.toBe(autoProvider);
+        expect(countCompCCOrder(forceUnit, 'LIG', 2)).toBeGreaterThan(0);
 
-        registry.select('double');
-        expect(unit.bonds.edgeProps.order[0]).toBe(2);
-        expect(calls).toEqual(['double']);
-
-        registry.select('triple');
-        expect(unit.bonds.edgeProps.order[0]).toBe(3);
-        expect(calls).toEqual(['double', 'triple']);
-
-        registry.remove(triple);
-        expect(unit.bonds).toBe(defaultBonds);
-        expect(computeIntraUnitBonds(unit).edgeProps.order[0]).toBe(1);
-        expect(calls).toEqual(['double', 'triple']);
-    });
-
-    it('returns to default computation when the active provider detaches', async () => {
-        const structure = await structureFromPdb(PdbWithConectLigand);
-        const unit = unitWithComp(structure, 'LIG');
-        const previous: BondProvider = {
-            name: 'previous',
-            getBonds: providerUnit => withOrder(computeIntraUnitBonds(providerUnit), 3)
-        };
-
-        const registry = BondProviderRegistry.get(structure.model);
-        registry.add(previous);
-        registry.select(previous.name);
-
-        const registered = registerBondOrderProviders(structure, 'model');
-        expect(registry.active).toBe(registered[0].provider);
-
-        unregisterBondOrderProviders(registered);
-        expect(registry.active).toBeUndefined();
-        expect(registry.get(previous.name)).toBe(previous);
-        expect(unit.bonds.edgeProps.order[0]).toBe(1);
-    });
-
-    it('keeps duplicate provider registration idempotent', async () => {
-        const structure = await structureFromPdb(PdbWithConectLigand);
-        const registry = BondProviderRegistry.get(structure.model);
-        const first = registerBondOrderProviders(structure, 'model');
-        const duplicate = registerBondOrderProviders(structure, 'force');
-
-        expect(registry.active).toBe(first[0].provider);
-        expect(registry.get(BondOrderProviderName)).toBe(first[0].provider);
-
-        unregisterBondOrderProviders(duplicate);
-        expect(registry.active).toBe(first[0].provider);
-
-        unregisterBondOrderProviders(first);
-        expect(registry.active).toBeUndefined();
-    });
-
-    it('falls back without registering on multi-model structures', async () => {
-        const structureA = await structureFromPdb(PdbWithConectLigand);
-        const structureB = await structureFromPdb(PdbWithKnownHis);
-        const source = structureB.units[0];
-        const unitB = source.getCopy(
-            structureA.units.length,
-            source.invariantId + structureA.units.length,
-            source.chainGroupId + structureA.units.length
-        );
-        const structure = Structure.create([...structureA.units, unitB]);
-
-        expect(structure.models.length).toBe(2);
-        expect(registerBondOrderProviders(structure, 'model')).toEqual([]);
-
-        const unit = unitWithComp(structureA, 'LIG');
-        expect(countCompCCOrder(unit, 'LIG', 1)).toBeGreaterThan(0);
-        expect(countCompCCOrder(unit, 'LIG', 2)).toBe(0);
+        await selectBondOrderProvider(model, 'none');
+        const noneStructure = structureWithSelectedBondProvider(model);
+        const noneUnit = unitWithComp(noneStructure, 'LIG');
+        expect(countCompCCOrder(noneUnit, 'LIG', 1)).toBeGreaterThan(0);
+        expect(countCompCCOrder(noneUnit, 'LIG', 2)).toBe(0);
     });
 });
-
-function withOrder(bonds: IntraUnitBonds, value: number): IntraUnitBonds {
-    const order = new Int8Array(bonds.edgeProps.order.length);
-    order.fill(value);
-    return IntAdjacencyGraph.create(bonds.offset, bonds.a, bonds.b, bonds.edgeCount, {
-        ...bonds.edgeProps,
-        order,
-    }, bonds.props) as IntraUnitBonds;
-}

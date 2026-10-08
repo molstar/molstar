@@ -5,9 +5,7 @@
  */
 
 export { BondOrders } from './behavior';
-export { PerceiveBondOrders } from './transforms';
 export { BondOrdersTrajectoryPreset } from './preset';
-export { BondOrderProvider, registerBondOrderProviders, unregisterBondOrderProviders } from './provider';
+export { BondOrderProvider } from './provider';
 export { perceiveIntra } from './perceiver';
 export type { BondOrdersMode } from './perceiver';
-export type { RegisteredBondOrderProvider } from './provider';

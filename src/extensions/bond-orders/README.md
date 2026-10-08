@@ -1,69 +1,52 @@
-# Bond Orders extension: provider-registry POC
+# Bond Orders extension: plugin-scoped provider POC
 
-Each model gets a `BondProviderRegistry` lazily through
-`BondProviderRegistry.get(model)`; `unit.bonds` first asks the explicitly selected provider
-and falls through to Mol*'s implementation when the provider returns
-`undefined`.
+Available bond providers live in `PluginContext.model.bondProviderRegistry`. A dynamic
+`CustomModelProperty` exposes the applicable providers and stores only the provider name and
+parameters. Models contain no provider registry or active provider instance.
 
-The public read path remains `unit.bonds`. A provider owns the full graph computation: it can
-replace it, build a graph from scratch, or decline a unit so the built-in path handles it.
+The public read path remains `unit.bonds`. Each atomic Unit receives one provider instance when
+its Structure is built. The first `unit.bonds` access calls that provider and stores the result
+in `unit.props.bonds`; subsequent accesses return the same graph. Returning `undefined` uses
+the complete built-in `ElementSetIntraBondCache` and `computeIntraUnitBonds` path.
 
-> `perceiveIntra` function in perveivers.ts is still a placeholder: eligible C–C bonds become double. Water and
+> `perceiveIntra` is still a placeholder: eligible C–C bonds become double. Water and
 > components covered by `IntraBondOrderTable` are left unchanged.
-> The genuine bond perception implementation can replace it without changing the registry contract.
 
-## Core API
+## Provider lifecycle
 
-`BondProviderRegistry.get(model)` stores and retrieves a model-scoped registry through the
-model's dynamic property data, without adding a field to `Model` or changing model creation:
-
-```ts
-interface BondProvider {
-    readonly name: string
-    getBonds(unit: Unit.Atomic): IntraUnitBonds | undefined
-}
-```
-
-Providers are registered by name with `add(provider)` and retrieved with `get(name)`, following
-the same named-catalog pattern as other Mol* registries. Duplicate `add` calls are idempotent
-and keep the first provider registered under a name. `select(name)` activates one provider;
-selections are not stacked. Identity-checked `remove(provider)` restores default computation
-only when removing the registered active instance.
-
-Provider dispatch happens before `unit.props.bonds` and `ElementSetIntraBondCache`. A provided
-graph bypasses both caches. Returning `undefined` leaves the complete built-in cache and
-`computeIntraUnitBonds` path untouched. The registry therefore tracks no units and performs
-no cache invalidation.
-
-## Extension lifecycle
-
-The `PerceiveBondOrders` Structure decorator does no bond computation. For a single-model
-Structure it registers and selects one `BondOrderProvider`, then returns the same Structure
-data. Disposal removes only that provider instance. Multi-model Structures are unsupported
-and left on the built-in path.
+The `BondOrders` plugin behavior adds the stateless bond-order provider to
+`ctx.model.bondProviderRegistry` and registers the model-property bridge with
+`ctx.customModelProperties`. `StructureFromModel` resolves the stored provider props against
+the plugin registry and creates a fresh bond-provider instance for that Structure. The instance is
+passed through `RootStructureDefinition` and `StructureBuilder` to every atomic Unit. Once the
+final assembly or symmetry Structure has been built, its Structure context is assigned to the
+provider, allowing the real perceiver to inspect `structure.interUnitBonds` without changing
+the `getBonds(unit)` contract.
 
 ```mermaid
 flowchart TD
-  D["PerceiveBondOrders decorator"] --> R["registry.add(provider)"]
-  R --> A["registry.select(provider.name)"]
-  A --> L["later: unit.bonds"]
+  B["BondOrders behavior"] --> R["PluginContext.model.bondProviderRegistry"]
+  R --> M["CustomModelProperties provider props"]
+  M --> T["StructureFromModel resolves provider"]
+  T --> S["StructureBuilder injects provider into Units"]
+  S --> C["Final Structure assigned to provider context"]
+  C --> L["later: unit.bonds"]
   L --> P{"provider returns graph?"}
-  P -- yes --> O["return provider graph directly"]
-  P -- no --> C{"unit/element-set cache hit?"}
-  C -- yes --> O2["return cached built-in graph"]
-  C -- no --> B["computeIntraUnitBonds"]
-  B --> S["cache built-in graph"]
-  S --> O2
+  P -- yes --> O["cache graph in unit.props.bonds"]
+  P -- no --> H{"built-in cache hit?"}
+  H -- yes --> O
+  H -- no --> D["computeIntraUnitBonds"]
+  D --> O
 ```
 
-The provider captures the decorated `Structure`, so the real perceiver can inspect inter-unit
-neighbours lazily. It owns an element-set cache for its final graphs; removing the provider
-releases that cache without touching core caches.
+For non-`IndexPairBonds` models, the provider calls `findBonds` directly to obtain the baseline
+graph. While perception computes `unit.rings` or traverses intra-unit neighbors, a
+provider-owned `WeakMap` supplies that baseline graph to recursive `unit.bonds` access. The
+outer call then replaces the temporary baseline cache with the final perceived graph.
 
-For supported non-`IndexPairBonds` models, the provider calls `findBonds` directly. While
-perception computes `unit.rings`, a provider-owned `WeakMap` supplies that baseline graph to
-the recursive `unit.bonds` access. This avoids recursion without changing Mol*'s ring code.
-Perception uses only ring topology; aromatic ring/index getters remain lazy.
+Changing the provider name or its parameters does not mutate existing Units. The new props
+are applied the next time a Structure is created; automatic recreation of existing Structures
+is intentionally left for future work.
 
 ## Usage
 
@@ -83,8 +66,9 @@ await plugin.builders.structure.hierarchy.applyPreset(
 
 The preset accepts `bondOrdersMode`:
 
-- `model`: modify only order-1 covalent edges marked `Computed`.
-- `force`: allow the perceiver to replace all eligible intra-residue covalent orders.
+- `none`: create Units without a custom provider and use Mol*'s built-in bond path.
+- `auto`: modify only order-1 covalent edges marked `Computed`.
+- `forceCompute`: allow the perceiver to replace all eligible intra-residue covalent orders.
 
 ## Format behavior
 
@@ -94,7 +78,5 @@ The preset accepts `bondOrdersMode`:
   can distinguish unknown orders from explicit singles.
 - SDF/mol/mol2 already expose file orders through `IndexPairBonds`; the demonstration
   `BondOrderProvider` returns `undefined`, preserving the built-in cached file graph.
-- `getChild` units run through the same registry and therefore expose the same customization.
-- Explicit trajectory ensembles and merged/docking Structures contain multiple models and
-  deliberately fall back to built-in bonds. The normal default and “All Models” presets create
-  separate single-model Structures and remain supported.
+- `getChild`, copied, and symmetry-operated Units retain the provider assigned by their root
+  Structure.

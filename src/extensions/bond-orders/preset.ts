@@ -13,7 +13,8 @@ import { RootStructureDefinition } from '../../mol-plugin-state/helpers/root-str
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
 import { TrajectoryHierarchyPresetProvider } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
 import { PluginConfig } from '../../mol-plugin/config';
-import { PerceiveBondOrders } from './transforms';
+import { ModelBondProvider } from '../../mol-model/structure/structure/unit/bonds/bond-provider';
+import { BondOrderProviderName } from './provider';
 import { BondOrdersMode } from './perceiver';
 
 const BondOrdersParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
@@ -21,9 +22,10 @@ const BondOrdersParams = (a: PluginStateObject.Molecule.Trajectory | undefined, 
     showUnitcell: PD.Optional(PD.Boolean(false)),
     structure: PD.Optional(RootStructureDefinition.getParams(void 0, 'assembly').type),
     representationPresetParams: PD.Optional(PD.Group(StructureRepresentationPresetProvider.CommonParams)),
-    bondOrdersMode: PD.Select<BondOrdersMode>('model', [
-        ['model', 'Model (fill unknown orders)'],
-        ['force', 'Force (re-perceive all)'],
+    bondOrdersMode: PD.Select<BondOrdersMode>('auto', [
+        ['none', 'None'],
+        ['auto', 'Auto'],
+        ['forceCompute', 'Force Compute'],
     ]),
     ...TrajectoryHierarchyPresetProvider.CommonParams(a, plugin)
 });
@@ -40,14 +42,26 @@ export const BondOrdersTrajectoryPreset = TrajectoryHierarchyPresetProvider({
         const builder = plugin.builders.structure;
 
         const model = await builder.createModel(trajectory, params.model);
-        const modelProperties = await builder.insertModelProperties(model, params.modelProperties);
-
+        const defaultModelProperties = PD.getDefaultValues(plugin.customModelProperties.getParams(model.obj?.data));
+        const requestedModelProperties = params.modelProperties ?? defaultModelProperties;
+        const modelProperties = await builder.insertModelProperties(model, {
+            ...requestedModelProperties,
+            autoAttach: Array.from(new Set([
+                ...requestedModelProperties.autoAttach,
+                ModelBondProvider.Descriptor.name,
+            ])),
+            properties: {
+                ...requestedModelProperties.properties,
+                [ModelBondProvider.Descriptor.name]: {
+                    provider: {
+                        name: BondOrderProviderName,
+                        params: { mode: params.bondOrdersMode },
+                    },
+                },
+            },
+        });
         const structure = await builder.createStructure(modelProperties || model, params.structure);
-        const perceived = await plugin.state.data.build()
-            .to(structure)
-            .apply(PerceiveBondOrders, { mode: params.bondOrdersMode })
-            .commit();
-        const structureProperties = await builder.insertStructureProperties(perceived, params.structureProperties);
+        const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 
         const unitcell = params.showUnitcell === void 0 || !!params.showUnitcell ? await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: true }) : void 0;
         const representationPreset = params.representationPreset || plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
@@ -57,7 +71,7 @@ export const BondOrdersTrajectoryPreset = TrajectoryHierarchyPresetProvider({
             model,
             modelProperties,
             unitcell,
-            structure: perceived,
+            structure,
             structureProperties,
             representation
         };

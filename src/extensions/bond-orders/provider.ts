@@ -5,37 +5,41 @@
  */
 
 import { IndexPairBonds } from '../../mol-model-formats/structure/property/bonds/index-pair';
-import { BondProvider, BondProviderRegistry } from '../../mol-model/structure/structure/unit/bonds/bond-provider';
+import { BondProvider } from '../../mol-model/structure/structure/unit/bonds/bond-provider';
 import { Model } from '../../mol-model/structure/model/model';
 import { hasIntraBondOrderFromTable } from '../../mol-model/structure/model/properties/atomic/bonds';
 import { BondType, WaterNames } from '../../mol-model/structure/model/types';
-import { Structure } from '../../mol-model/structure/structure/structure';
 import { Unit } from '../../mol-model/structure/structure/unit';
 import { DefaultBondComputationProps } from '../../mol-model/structure/structure/unit/bonds/common';
 import { IntraUnitBonds } from '../../mol-model/structure/structure/unit/bonds/data';
 import { ElementSetIntraBondCache } from '../../mol-model/structure/structure/unit/bonds/element-set-intra-bond-cache';
 import { findBonds } from '../../mol-model/structure/structure/unit/bonds/intra-compute';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { BondOrdersMode, perceiveIntra } from './perceiver';
 
 export const BondOrderProviderName = 'bond-order-perception';
 
-/**
- * Lazy bond-order customization registered on a model.
- *
- * The provider owns structure-specific context while the registry integration is
- * generic. A future implementation can replace `perceiveIntra` without changing
- * `unit.bonds` or the registry contract.
- */
-export class BondOrderProvider implements BondProvider {
-    readonly name = BondOrderProviderName;
+export const BondOrderProviderParams = {
+    mode: PD.Select<BondOrdersMode>('none', [
+        ['none', 'None'],
+        ['auto', 'Auto'],
+        ['forceCompute', 'Force Compute'],
+    ]),
+};
+
+class BondOrderProviderInstance implements BondProvider {
     private readonly cache = new ElementSetIntraBondCache();
     private readonly computing = new WeakMap<Unit.Atomic, IntraUnitBonds>();
 
-    constructor(readonly structure: Structure, readonly mode: BondOrdersMode) {
+    constructor(readonly context: BondProvider.Context, readonly model: Model, readonly mode: BondOrdersMode) {
     }
 
     getBonds(unit: Unit.Atomic): IntraUnitBonds | undefined {
+        if (unit.model !== this.model || this.mode === 'none') return undefined;
         if (IndexPairBonds.Provider.get(unit.model)) return undefined;
+
+        const structure = this.context.structure;
+        if (!structure) return undefined;
 
         const inProgress = this.computing.get(unit);
         if (inProgress) return inProgress;
@@ -53,7 +57,7 @@ export class BondOrderProvider implements BondProvider {
 
         this.computing.set(unit, bonds);
         try {
-            const perceived = perceiveIntra(this.structure, unit, bonds, unit.rings, this.mode);
+            const perceived = perceiveIntra(structure, unit, bonds, unit.rings, this.mode);
             this.cache.set(unit.elements, perceived);
             return perceived;
         } finally {
@@ -62,29 +66,15 @@ export class BondOrderProvider implements BondProvider {
     }
 }
 
-export interface RegisteredBondOrderProvider {
-    readonly model: Model
-    readonly provider: BondOrderProvider
-}
-
-export function registerBondOrderProviders(structure: Structure, mode: BondOrdersMode): RegisteredBondOrderProvider[] {
-    if (structure.models.length !== 1) return [];
-
-    const registered: RegisteredBondOrderProvider[] = [];
-    const model = structure.models[0];
-    const registry = BondProviderRegistry.get(model);
-    const provider = new BondOrderProvider(structure, mode);
-    registry.add(provider);
-    registry.select(provider.name);
-    registered.push({ model, provider });
-    return registered;
-}
-
-export function unregisterBondOrderProviders(registered: ReadonlyArray<RegisteredBondOrderProvider>) {
-    for (const { model, provider } of registered) {
-        BondProviderRegistry.get(model).remove(provider);
-    }
-}
+export const BondOrderProvider: BondProvider.Provider<typeof BondOrderProviderParams> = {
+    name: BondOrderProviderName,
+    label: 'Bond Order Perception',
+    getParams: () => BondOrderProviderParams,
+    isApplicable: model => !IndexPairBonds.Provider.get(model),
+    factory: (model, props, context) => props.mode === 'none'
+        ? undefined
+        : new BondOrderProviderInstance(context, model, props.mode),
+};
 
 function hasPerceivableBond(unit: Unit.Atomic, bonds: IntraUnitBonds, mode: BondOrdersMode) {
     const { elements, residueIndex } = unit;
@@ -100,7 +90,7 @@ function hasPerceivableBond(unit: Unit.Atomic, bonds: IntraUnitBonds, mode: Bond
             const v = b[i];
             if (u >= v || type_symbol.value(elements[v]) !== 'C') continue;
             if (residueIndex[elements[v]] !== residueIndex[eU] || !BondType.isCovalent(flags[i])) continue;
-            if (mode === 'force' || (order[i] === 1 && BondType.is(flags[i], BondType.Flag.Computed))) return true;
+            if (mode === 'forceCompute' || (order[i] === 1 && BondType.is(flags[i], BondType.Flag.Computed))) return true;
         }
     }
     return false;

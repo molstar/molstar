@@ -27,7 +27,7 @@ import { Boundary, getBoundary, getFastBoundary } from '../../../mol-math/geomet
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-cache';
-import { BondProviderRegistry } from './unit/bonds/bond-provider';
+import type { BondProvider } from './unit/bonds/bond-provider';
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 import { getResonance, UnitResonance } from './unit/resonance';
 
@@ -238,7 +238,7 @@ namespace Unit {
 
         getChild(elements: StructureElement.Set): Unit {
             if (elements.length === this.elements.length) return this;
-            return new Atomic(this.id, this.invariantId, this.chainGroupId, this.traits, this.model, elements, this.conformation, AtomicProperties());
+            return new Atomic(this.id, this.invariantId, this.chainGroupId, this.traits, this.model, elements, this.conformation, AtomicProperties(this.props.bondProvider));
         }
 
         getCopy(id: number, invariantId: number, chainGroupId: number, options?: GetCopyOptions): Unit {
@@ -309,13 +309,11 @@ namespace Unit {
         }
 
         get bonds() {
-            const provided = BondProviderRegistry.get(this.model).active?.getBonds(this);
-            if (provided !== undefined) return provided;
-
             if (this.props.bonds) return this.props.bonds;
 
             const cache = ElementSetIntraBondCache.get(this.model);
-            let bonds = cache.get(this.elements);
+            let bonds = this.props.bondProvider?.getBonds(this);
+            if (!bonds) bonds = cache.get(this.elements);
             if (!bonds) {
                 bonds = computeIntraUnitBonds(this);
                 if (bonds.props?.cacheable) {
@@ -404,6 +402,7 @@ namespace Unit {
     }
 
     interface AtomicProperties extends BaseProperties {
+        bondProvider?: BondProvider
         bonds?: IntraUnitBonds
         rings?: UnitRings
         resonance?: UnitResonance
@@ -412,8 +411,8 @@ namespace Unit {
         residueCount?: number
     }
 
-    function AtomicProperties(): AtomicProperties {
-        return BaseProperties();
+    export function AtomicProperties(bondProvider?: BondProvider): AtomicProperties {
+        return { ...BaseProperties(), bondProvider };
     }
 
     class Coarse<K extends Kind.Gaussians | Kind.Spheres, C extends CoarseSphereConformation | CoarseGaussianConformation> implements Base {

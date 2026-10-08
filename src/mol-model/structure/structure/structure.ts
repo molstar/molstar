@@ -16,6 +16,7 @@ import { StructureLookup3D } from './util/lookup3d';
 import { CoarseElements } from '../model/properties/coarse';
 import { StructureSubsetBuilder } from './util/subset-builder';
 import { InterUnitBonds, computeInterUnitBonds, Bond } from './unit/bonds';
+import type { BondProvider } from './unit/bonds/bond-provider';
 import { StructureSymmetry } from './symmetry';
 import { StructureProperties } from './properties';
 import { ResidueIndex, ChainIndex, EntityIndex } from '../model/indexing';
@@ -638,6 +639,7 @@ namespace Structure {
         masterModel?: Model
         /** Representative model for structures of a model trajectory */
         representativeModel?: Model
+        bondProvider?: BondProvider
     }
 
     /** Represents a single structure */
@@ -756,7 +758,8 @@ namespace Structure {
                 const u = structure.units[j];
                 const invariantId = u.invariantId + count;
                 const chainGroupId = u.chainGroupId + count;
-                const newUnit = Unit.create(units.length, invariantId, chainGroupId, u.traits, u.kind, u.model, u.conformation.operator, u.elements);
+                const props = Unit.isAtomic(u) ? Unit.AtomicProperties(u.props.bondProvider) : undefined;
+                const newUnit = Unit.create(units.length, invariantId, chainGroupId, u.traits, u.kind, u.model, u.conformation.operator, u.elements, props);
                 units.push(newUnit);
             }
             count = units.length;
@@ -961,7 +964,8 @@ namespace Structure {
         addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set, traits: Unit.Traits, invariantId?: number): Unit {
             if (invariantId === undefined) invariantId = this.invariantId();
             const chainGroupId = this.inChainGroup ? this.chainGroupId : ++this.chainGroupId;
-            const unit = Unit.create(this.units.length, invariantId, chainGroupId, traits, kind, model, operator, elements);
+            const props = kind === Unit.Kind.Atomic ? Unit.AtomicProperties(this.props.bondProvider) : undefined;
+            const unit = Unit.create(this.units.length, invariantId, chainGroupId, traits, kind, model, operator, elements, props);
             return this.add(unit);
         }
 

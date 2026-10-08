@@ -55,7 +55,8 @@ export function mergeUnitsWithSameOperator(units: readonly Unit[], id: number, i
         elements = SortedArray.union(elements, SortedArray.ofRange(start, end));
     }
 
-    return Unit.create(id, invariantId, 0, u.traits | Unit.Trait.MultiChain, u.kind, u.model, u.conformation.operator, elements);
+    const props = Unit.isAtomic(u) ? Unit.AtomicProperties(u.props.bondProvider) : undefined;
+    return Unit.create(id, invariantId, 0, u.traits | Unit.Trait.MultiChain, u.kind, u.model, u.conformation.operator, elements, props);
 }
 
 /**
