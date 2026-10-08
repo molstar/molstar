@@ -28,7 +28,7 @@ node lib/commonjs/servers/model/server --sourceMap pdb-bcif '/opt/data/bcif/${id
 | `--shutdownTimeoutVarianceMinutes` | Modifies the shutdown timer by +/- `timeoutVarianceMinutes` (to avoid multiple instances shutting at the same time) |
 | `--maxQueryManyQueries` | Maximum number of queries allowed by the query-many at a time |
 | `--defaultSource` | modifies which 'sourceMap' source to use by default |
-| `--sourceMap` | Map `id`s for a `source` to a file path. Example: `pdb-bcif '../../data/bcif/${id}.bcif'` - JS expressions can be used inside `${}`, e.g. `${id.substr(1, 2)}/${id}.mdb` Can be specified multiple times. The `SOURCE` variable (e.g. `pdb-bcif`) is arbitrary and depends on how you plan to use the server. Supported formats: cif, bcif, cif.gz, bcif.gz |
+| `--sourceMap` | Map `id`s for a `source` to a file path. Example: `pdb-bcif '../../data/bcif/${id}.bcif'`. Inside `${}`, use `id` with optional chained calls to `toLowerCase()`, `toUpperCase()`, `substr(n, m)`, `substring(n[, m])`, or `slice(n[, m])`, e.g. `${id.substring(1, 3).toLowerCase()}/${id.toLowerCase()}.bcif`. Calls are applied in order. Indices are non-negative integers; `substr` takes a start and length, while `substring` and `slice` take a start and optional exclusive end index. Can be specified multiple times. The `SOURCE` variable (e.g. `pdb-bcif`) is arbitrary and depends on how you plan to use the server. Supported formats: cif, bcif, cif.gz, bcif.gz |
 | `--sourceMapUrl` | Same as `--sourceMap` but for URL. `--sourceMapUrl src url format` Example: `pdb-cif 'https://www.ebi.ac.uk/pdbe/entry-files/download/${id}_updated.cif' cif` Supported formats: cif, bcif, cif.gz, bcif.gz. Supported protocols: http://, https://, gs:// |
 
 ```sh
