@@ -22,7 +22,7 @@ catalog:
   '@types/node': '22.20.1'
   '@types/swagger-ui-dist': '3.30.6'
   'argparse': '2.0.1'
-  'compression': '1.8.1'
+  'compression': '1.8.2'
   'cors': '2.8.6'
   'express': '5.2.1'
   'h264-mp4-encoder': '1.0.12'
@@ -58,7 +58,7 @@ catalog:
   'react-dom': '18.3.1'
   'sass': '1.105.1'
   'sass-embedded': '1.105.1'
-  'simple-git': '3.36.0'
+  'simple-git': '4.0.2'
   'tsc-alias': '1.9.7'
   'typescript': '7.0.2'
   '@typescript/typescript6': '6.0.2'
@@ -71,6 +71,9 @@ catalog:
   '@types/express-serve-static-core': '5.1.2'
 
 overrides:
+  '@istanbuljs/load-nyc-config>js-yaml': '^4.3.2'
+  'concurrently>shell-quote': '^1.12.0'
+  'source-map-js': '^1.2.2'
   '@types/express-serve-static-core': '5.1.2'
   '@types/node': '22.20.1'
 

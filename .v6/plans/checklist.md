@@ -102,8 +102,8 @@ allow the caller to choose timestamps that are reproducible across time zones.
 - [ ] JSR publication, migration CLI, and downstream migration validation.
 - [ ] Publishing automation, release coordination, and stable-release readiness.
 - [ ] Before v6 is ready, forward-port every bug fix from the `v5` branch (`git log master..origin/v5`). Most files have
-      moved, so apply fixes by hand using `migration-map.json` rather than by merging. Pending as of 2026-10-08: server
-      path interpolation and vulnerable dependency updates (molstar/molstar#1964, released in 5.13.1).
+      moved, so apply fixes by hand using `migration-map.json` rather than by merging. Ported through 5.13.1
+      (2026-10-08): molstar/molstar#1964, server path interpolation and dependency updates.
 - [ ] Capture a representative pre-migration Viewer render comparison baseline.
 
 ## Other review findings to revisit
