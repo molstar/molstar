@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+
+## [v5.13.1] - 2026-10-08
 - ModelServer and VolumeServer: support chained string operations in path templates and fix `substring` to use an exclusive end index instead of a length (#1963)
 
 ## [v5.13.0] - 2026-10-04
