@@ -16,12 +16,13 @@ import { Assembly, Symmetry } from '../../mol-model/structure/model/properties/s
 import { PluginStateObject as SO } from '../objects';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 import { assertUnreachable } from '../../mol-util/type-helpers';
+import type { BondProvider } from '../../mol-model/structure/structure/unit/bonds/bond-provider';
 
 const CommonStructureParams = {
     dynamicBonds: PD.Optional(PD.Boolean(false, { description: 'Ensure bonds are recalculated upon model changes. Also enables calculation of inter-unit bonds in water molecules and ions.' })),
     mergeBySymmetry: PD.Optional(PD.Boolean(false, { description: 'Merge structure units that share the same symmetry operator into a single unit.' })),
 };
-type CommonStructureProps = PD.ValuesFor<typeof CommonStructureParams>
+type CommonStructureProps = PD.ValuesFor<typeof CommonStructureParams> & Pick<Structure.Props, 'bondProvider'>
 
 export namespace RootStructureDefinition {
     export function getParams(model?: Model, defaultValue?: 'auto' | 'model' | 'assembly' | 'symmetry' | 'symmetry-mates' | 'symmetry-assembly') {
@@ -166,8 +167,8 @@ export namespace RootStructureDefinition {
         return new SO.Molecule.Structure(s, objProps);
     }
 
-    export async function create(plugin: PluginContext, ctx: RuntimeContext, model: Model, params?: Params): Promise<SO.Molecule.Structure> {
-        const props = params?.params;
+    export async function create(plugin: PluginContext, ctx: RuntimeContext, model: Model, params?: Params, bondProvider?: BondProvider): Promise<SO.Molecule.Structure> {
+        const props: CommonStructureProps = { ...params?.params, bondProvider };
         const symmetry = ModelSymmetry.Provider.get(model);
         if (!symmetry || !params || params.name === 'model') {
             const s = Structure.ofModel(model, props);

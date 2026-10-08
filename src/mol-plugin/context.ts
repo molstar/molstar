@@ -69,6 +69,7 @@ import { DragAndDropManager } from '../mol-plugin-state/manager/drag-and-drop';
 import { ErrorContext } from '../mol-util/error-context';
 import { PluginContainer } from './container';
 import { Volume } from '../mol-model/volume';
+import { BondProviderRegistry } from '../mol-model/structure/structure/unit/bonds/bond-provider';
 
 export type PluginInitializedState =
     | { kind: 'no' }
@@ -217,6 +218,10 @@ export class PluginContext {
     readonly customModelProperties = new CustomProperty.Registry<Model>();
     readonly customStructureProperties = new CustomProperty.Registry<Structure>();
     readonly customVolumeProperties = new CustomProperty.Registry<Volume>();
+
+    readonly model = {
+        bondProviderRegistry: new BondProviderRegistry()
+    } as const;
 
     readonly customStructureControls = new Map<string, { new(): any /* constructible react components with <action.customControl /> */ }>();
     readonly customImportControls = new Map<string, { new(): any /* constructible react components with <action.customControl /> */ }>();

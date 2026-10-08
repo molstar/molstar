@@ -55,6 +55,7 @@ import { coordinatesFromNctraj } from '../../mol-model-formats/structure/nctraj'
 import { topologyFromPrmtop } from '../../mol-model-formats/structure/prmtop';
 import { topologyFromTop } from '../../mol-model-formats/structure/top';
 import { getTransformFromParams, TransformParam, transformParamsNeedCentroid } from './helpers';
+import { BondProvider, ModelBondProvider } from '../../mol-model/structure/structure/unit/bonds/bond-provider';
 
 export { CoordinatesFromDcd };
 export { CoordinatesFromXtc };
@@ -631,7 +632,19 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Structure', async ctx => {
-            return RootStructureDefinition.create(plugin, ctx, a.data, params && params.type);
+            const bondProviderProps = ModelBondProvider.get(a.data);
+            if (!bondProviderProps) {
+                return RootStructureDefinition.create(plugin, ctx, a.data, params && params.type);
+            }
+
+            const provider = plugin.model.bondProviderRegistry.get(bondProviderProps.name);
+            const bondProviderContext: BondProvider.Context = {};
+            const bondProvider = provider?.isApplicable(a.data)
+                ? provider.factory(a.data, bondProviderProps.params, bondProviderContext)
+                : undefined;
+            const structure = await RootStructureDefinition.create(plugin, ctx, a.data, params && params.type, bondProvider);
+            if (bondProvider) bondProviderContext.structure = structure.data;
+            return structure;
         });
     },
     update: ({ a, b, oldParams, newParams }) => {

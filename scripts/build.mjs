@@ -29,6 +29,7 @@ const Apps = [
     { kind: 'example', name: 'interactions' },
     { kind: 'example', name: 'ligand-editor' },
     { kind: 'example', name: 'volume-tools' },
+    { kind: 'example', name: 'bond-orders' },
     { kind: 'example', name: 'react' },
 ];
 

@@ -287,7 +287,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
                 atomA[atomA.length] = _aI;
                 atomB[atomB.length] = _bI;
                 order[order.length] = getIntraBondOrderFromTable(compId, atomIdA, label_atom_id.value(bI));
-                flags[flags.length] = (isMetal ? BondType.Flag.MetallicCoordination : BondType.Flag.Covalent) | BondType.Flag.Computed;
+                flags[flags.length] = (isMetal ? BondType.Flag.MetallicCoordination : BondType.Flag.Covalent) | BondType.Flag.Computed | BondType.Flag.OrderUnknown;
                 key[key.length] = -1;
 
                 const seqIdB = label_seq_id.value(rbI);
@@ -362,4 +362,4 @@ function computeIntraUnitBonds(unit: Unit.Atomic, props?: Partial<BondComputatio
     }
 }
 
-export { computeIntraUnitBonds };
+export { computeIntraUnitBonds, findBonds };
