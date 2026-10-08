@@ -38,10 +38,9 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
 
 ## Deferred validation and tooling
 
-- [ ] Bring back `external-structure` and `external-volume` color themes during registry composition work. Their
-      implementations depend on `PluginStateObject` and, for structures, the plugin backbone selection query. They
-      remain in `@molstar/plugin/themes/*` but are intentionally unregistered in this prototype. Resolve those
-      dependencies and define explicit composition; do not add special registration logic to `PluginContext`.
+- [x] Bring back `external-structure` and `external-volume` color themes during registry composition work. Done in
+      plugin composition: the `ExternalColorThemes` entry (`@molstar/plugin/themes/external`) is part of
+      `DefaultRegistry`; `PluginContext` has no special registration logic.
 
 - [ ] Restore full MolQL validation in `mvs-validate` by importing mol-script. Decide how to expose the compiler
       dependency without making the standalone builder depend on plugin/rendering code. Then reject unknown symbols and
@@ -107,6 +106,7 @@ allow the caller to choose timestamps that are reproducible across time zones.
 - [ ] Fast types, isolated declarations, and the corresponding API annotations.
 - [ ] JSR publication, migration CLI, and downstream migration validation.
 - [ ] Publishing automation, release coordination, and stable-release readiness.
+- [ ] Write the v6 `CHANGELOG.md` section from the [changelog draft](changelog.md).
 - [ ] Before v6 is ready, forward-port every bug fix from the `v5` branch (`git log master..origin/v5`). Most files have
       moved, so apply fixes by hand using `migration-map.json` rather than by merging. Ported through 5.13.1
       (2026-10-08): molstar/molstar#1964, server path interpolation and dependency updates.

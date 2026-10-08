@@ -127,16 +127,13 @@ no longer exported by the graphics transform-data module.
 tokenizer retains its type re-export, so the mapped tokenizer import remains valid. `openRead` now lives in
 `@molstar/common-server/open-read`; the volume server's mapped common/file module retains its re-export and behavior.
 
-## Temporary: external color themes unavailable by default
+## External color themes
 
-`ColorTheme.createRegistry()` in graphics no longer includes `external-structure` or `external-volume`. They are also
-intentionally absent from the default plugin registries for this prototype. The special registration helper in
-`PluginContext` has been removed; it uses the ordinary graphics registry factory.
-
-Implementations remain at `@molstar/plugin/themes/external-structure` and `@molstar/plugin/themes/external-volume`
-because they depend on plugin state objects and selection queries. Bring them back through the planned registry
-composition work, as tracked in the checklist. Existing presets/snapshots that request these themes cannot rely on
-default registration until that work is done.
+`ColorTheme.createRegistry()` in graphics no longer includes `external-structure` or `external-volume`, and the special
+registration helper in `PluginContext` is gone. The implementations live at `@molstar/plugin/themes/external-structure`
+and `@molstar/plugin/themes/external-volume` because they depend on plugin state objects and selection queries. Plugin
+composition registers them again through the `ExternalColorThemes` entry (`@molstar/plugin/themes/external`), which
+`DefaultRegistry` includes; specs with their own registry add the entry to use them.
 
 ## Plugin composition step 1
 
