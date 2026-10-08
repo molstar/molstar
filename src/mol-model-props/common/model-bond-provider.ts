@@ -10,10 +10,8 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { CustomModelProperty } from './custom-model-property';
 import { CustomProperty } from './custom-property';
 
-const EmptyProviderName = '';
-
 const DefaultModelBondProviderParams = {
-    provider: PD.Mapped<any>(EmptyProviderName, [[EmptyProviderName, 'None']], () => PD.Value<any>({})),
+    provider: PD.Mapped<any>('', [['', 'None']], () => PD.Value<any>({})),
 };
 
 export type ModelBondProviderParams = typeof DefaultModelBondProviderParams
