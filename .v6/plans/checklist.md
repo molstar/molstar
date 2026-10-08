@@ -98,6 +98,12 @@ allow the caller to choose timestamps that are reproducible across time zones.
 - [ ] Remaining convenience-barrel cleanup. The `StateTransforms` facade was removed in plugin composition step 1 (the
       classic Viewer global keeps an app-level object).
 - [ ] Broader test-runner migration and maintainer skills/documentation rewrite.
+- [ ] In the documentation rewrite, cover plugin composition. `docs/` is deployed from `master` and still describes the
+      published 5.x `molstar/lib/...` paths, so these pages keep their 5.x imports until then:
+      `docs/docs/plugin/custom-library.md` and `instance.md` (`DefaultPluginSpec`/`DefaultPluginUISpec` now come from
+      `@molstar/plugin/default-spec` and `@molstar/plugin-ui/default-spec`; literal specs add `DefaultRegistry`),
+      `docs/docs/extensions/tunnels.md` (`StateTransforms` is gone; import `ShapeRepresentation3D` directly), and
+      `docs/docs/plugin/selections.md` (selection queries are split under `@molstar/plugin/state/queries/structure/*`).
 - [ ] Fast types, isolated declarations, and the corresponding API annotations.
 - [ ] JSR publication, migration CLI, and downstream migration validation.
 - [ ] Publishing automation, release coordination, and stable-release readiness.

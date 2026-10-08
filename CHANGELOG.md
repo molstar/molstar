@@ -14,6 +14,14 @@ here.
   one edge
 - Fix RCSB validation report and ModelArchive quality assessment behaviors updating auto-attach and unregistering via
   the custom structure property registry instead of the custom model property registry they register with
+- [Breaking] v6 plugin composition: plugin registries start empty and a plugin registers only what `PluginSpec.registry`
+  lists. `DefaultRegistry` (`@molstar/plugin/default-registry`), `DefaultPluginSpec()` and `DefaultPluginUISpec()`
+  provide the full built-in set; `Viewer.create` is unchanged. The full list of API changes and migration notes is in
+  `.v6/plans/breaking-v6-changes.md` (#1961)
+- Register the `external-structure` and `external-volume` color themes again (#1961)
+- Fix the cross-link restraint representation's default color theme name (`cross-link`); it fell back to the first
+  registered theme (#1961)
+- Fix the `state-docs` CLI crashing on parameters that need data, and create its output folder (#1961)
 
 ## [v5.13.1] - 2026-10-08
 

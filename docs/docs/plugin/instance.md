@@ -127,8 +127,7 @@ function initViewer(target: string | HTMLElement) {
 - See the [Data State Management](data-state.md) section for more information on build the state.
 
 ```ts
-import { DefaultPluginUISpec } from 'molstar/lib/mol-plugin-ui/default-spec';
-import type { PluginUISpec } from 'molstar/lib/mol-plugin-ui/spec';
+import { DefaultPluginUISpec, PluginUISpec } from 'molstar/lib/mol-plugin-ui/spec';
 import { createPluginUI } from 'molstar/lib/mol-plugin-ui';
 import { renderReact18 } from 'molstar/lib/mol-plugin-ui/react18';
 import { PluginConfig } from 'molstar/lib/mol-plugin/config';
@@ -282,8 +281,7 @@ function MolStar({ model }: { model: MolStarWrapper }) {
 ```
 
 ```ts
-import { DefaultPluginSpec } from 'molstar/lib/mol-plugin/default-spec';
-import type { PluginSpec } from 'molstar/lib/mol-plugin/spec';
+import { DefaultPluginSpec, PluginSpec } from 'molstar/lib/mol-plugin/spec';
 import { PluginContext  } from 'molstar/lib/mol-plugin/context';
 import { PluginConfig } from 'molstar/lib/mol-plugin/config';
 
