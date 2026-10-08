@@ -6,11 +6,13 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { produce } from '../mol-util/produce';
 import { merge } from 'rxjs';
 import { Camera } from '../mol-canvas3d/camera';
+import { TransitionTrajectory, TransitionTrajectoryParamDefinition } from '../mol-canvas3d/camera/transition-functions';
 import { Canvas3DContext, Canvas3DParams, Canvas3DProps } from '../mol-canvas3d/canvas3d';
+import { EasingKind, EasingParamDefinition } from '../mol-math/easing';
 import { Vec3 } from '../mol-math/linear-algebra';
+import { AnimateStateSnapshotTransition } from '../mol-plugin-state/animation/built-in/state-snapshots';
 import { PluginComponent } from '../mol-plugin-state/component';
 import { PluginAnimationManager } from '../mol-plugin-state/manager/animation';
 import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
@@ -19,17 +21,15 @@ import { StructureFocusSnapshot } from '../mol-plugin-state/manager/structure/fo
 import { StructureSelectionSnapshot } from '../mol-plugin-state/manager/structure/selection';
 import { PluginStateObject as SO } from '../mol-plugin-state/objects';
 import { State, StateTransform, StateTransformer } from '../mol-state';
+import { Scheduler } from '../mol-task';
 import { UUID } from '../mol-util';
+import { memoizeLatest } from '../mol-util/memoize';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
+import { produce } from '../mol-util/produce';
 import { PluginBehavior } from './behavior';
 import { PluginCommands } from './commands';
 import { PluginConfig } from './config';
 import { PluginContext } from './context';
-import { AnimateStateSnapshotTransition } from '../mol-plugin-state/animation/built-in/state-snapshots';
-import { Scheduler } from '../mol-task';
-import { memoizeLatest } from '../mol-util/memoize';
-import { TransitionTrajectory, TransitionTrajectoryParamDefinition } from '../mol-canvas3d/camera/transition-functions';
-import { EasingKind, EasingParamDefinition } from '../mol-math/easing';
 
 export { PluginState };
 
@@ -181,8 +181,9 @@ class PluginState extends PluginComponent {
         return PluginCommands.State.Update(this.plugin, { state, tree, options: { canUndo } });
     }
 
-    hasBehavior(behavior: StateTransformer) {
-        return this.behaviors.tree.transforms.has(behavior.id);
+    hasBehavior(behavior: StateTransformer | string) {
+        const behaviorId = typeof behavior === 'string' ? behavior : behavior.id;
+        return this.behaviors.tree.transforms.has(behaviorId);
     }
 
     updateBehavior<T extends StateTransformer>(behavior: T, params: (old: StateTransformer.Params<T>) => (void | StateTransformer.Params<T>)) {

@@ -1,8 +1,23 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
+
+import { Renderer } from '../mol-gl/renderer';
+import { Frame } from '../mol-gl/renderable';
+import { Scene } from '../mol-gl/scene';
+import { Camera, ICamera } from './camera';
+import { StereoCamera } from './camera/stereo';
+import { Helper } from './helper/helper';
+
+export type RenderContext<C extends ICamera | StereoCamera = Camera | StereoCamera> = {
+    renderer: Renderer;
+    camera: C;
+    scene: Scene;
+    helper: Helper;
+    frame: Frame;
+}
 
 /** Set canvas size taking `devicePixelRatio` into account */
 export function setCanvasSize(canvas: HTMLCanvasElement, width: number, height: number, scale = 1) {

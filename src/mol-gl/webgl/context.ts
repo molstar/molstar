@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { GLRenderingContext, isWebGL2 } from './compat';
@@ -221,6 +222,10 @@ function createStats() {
             frustum: 0,
             occlusion: 0,
         },
+
+        cacheHits: {
+            cull: 0
+        }
     };
     return stats;
 }
@@ -284,7 +289,7 @@ export interface WebGLContext {
     /** Cache for textures, managed by consumers */
     readonly namedTextures: { [name: string]: Texture }
 
-    createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter, format?: 'rgba' | 'alpha') => RenderTarget
+    createRenderTarget: (width: number, height: number, depthStencil?: 'none' | 'depth' | 'depth-stencil', type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter, format?: 'rgba' | 'alpha') => RenderTarget
     createDrawTarget: () => RenderTarget
     bindDrawingBuffer: () => void
     getDrawingBufferSize: () => { width: number, height: number }
@@ -411,6 +416,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
                         antialias: true,
                         alpha: true,
                         depth: true,
+                        stencil: true,
                         framebufferScaleFactor: pixelScale * (options?.resolutionScale ?? 1),
                     });
                     await xr.session.updateRenderState({ baseLayer: xr.layer });
@@ -436,8 +442,8 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             pixelScale = value;
         },
 
-        createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter, format?: 'rgba' | 'alpha') => {
-            const renderTarget = createRenderTarget(gl, resources, width, height, depth, type, filter, format);
+        createRenderTarget: (width: number, height: number, depthStencil?: 'none' | 'depth' | 'depth-stencil', type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter, format?: 'rgba' | 'alpha') => {
+            const renderTarget = createRenderTarget(gl, resources, width, height, depthStencil, type, filter, format);
             renderTargets.add(renderTarget);
             return {
                 ...renderTarget,

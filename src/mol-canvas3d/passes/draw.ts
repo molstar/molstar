@@ -11,34 +11,29 @@ import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Renderer } from '../../mol-gl/renderer';
 import { Scene } from '../../mol-gl/scene';
 import { Texture } from '../../mol-gl/webgl/texture';
-import { Camera, ICamera } from '../camera';
+import { ICamera } from '../camera';
+import { Viewport } from '../camera/util';
 import { ValueCell } from '../../mol-util';
 import { Vec2 } from '../../mol-math/linear-algebra';
-import { Helper } from '../helper/helper';
 
 import { StereoCamera } from '../camera/stereo';
 import { WboitPass } from './wboit';
 import { DpoitPass } from './dpoit';
 import { AntialiasingPass, PostprocessingPass, PostprocessingProps } from './postprocessing';
-import { MarkingPass, MarkingProps } from './marking';
+import { MarkingPass, MarkingProps, MarkingShading, SingleSample } from './marking';
 import { CopyRenderable, createCopyRenderable } from '../../mol-gl/compute/util';
 import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 import { AssetManager } from '../../mol-util/assets';
 import { DofPass } from './dof';
 import { BloomPass } from './bloom';
+import { SsaoPass } from './ssao';
+import { RenderContext } from '../util';
 
 type Props = {
     postprocessing: PostprocessingProps;
     marking: MarkingProps;
     transparentBackground: boolean;
     dpoitIterations: number;
-}
-
-type RenderContext = {
-    renderer: Renderer;
-    camera: Camera | StereoCamera;
-    scene: Scene;
-    helper: Helper;
 }
 
 type TransparencyMode = 'wboit' | 'dpoit' | 'blended'
@@ -56,13 +51,13 @@ export class DrawPass {
     readonly depthTargetTransparent: RenderTarget;
     private depthTargetOpaque: RenderTarget | null;
 
-    private copyFboTarget: CopyRenderable;
-    private copyFboPostprocessing: CopyRenderable;
+    private copyFbo: CopyRenderable;
 
     readonly wboit: WboitPass;
     readonly dpoit: DpoitPass;
     readonly marking: MarkingPass;
     readonly postprocessing: PostprocessingPass;
+    private readonly ssaoShading: MarkingShading;
     readonly antialiasing: AntialiasingPass;
     readonly dof: DofPass;
 
@@ -82,6 +77,7 @@ export class DrawPass {
             this.transparencyMode = 'blended';
         }
         this.depthTextureOpaque.detachFramebuffer(this.postprocessing.target.framebuffer, 'depth');
+        this.marking.invalidate();
     }
     get transparency() {
         return this.transparencyMode;
@@ -90,30 +86,30 @@ export class DrawPass {
     constructor(private webgl: WebGLContext, assetManager: AssetManager, width: number, height: number, transparency: 'wboit' | 'dpoit' | 'blended') {
         const { extensions, resources, isWebGL2 } = webgl;
         this.drawTarget = webgl.createDrawTarget();
-        this.colorTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'linear');
-        this.transparentColorTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
+        this.colorTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
+        this.transparentColorTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
         this.packedDepth = !extensions.depthTexture;
 
-        this.depthTargetTransparent = webgl.createRenderTarget(width, height);
+        this.depthTargetTransparent = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
         this.depthTextureTransparent = this.depthTargetTransparent.texture;
 
-        this.depthTargetOpaque = this.packedDepth ? webgl.createRenderTarget(width, height) : null;
+        this.depthTargetOpaque = this.packedDepth ? webgl.createRenderTarget(width, height, 'depth-stencil') : null;
 
-        this.depthTextureOpaque = this.depthTargetOpaque ? this.depthTargetOpaque.texture : resources.texture('image-depth', 'depth', isWebGL2 ? 'float' : 'ushort', 'nearest');
+        this.depthTextureOpaque = this.depthTargetOpaque ? this.depthTargetOpaque.texture : resources.texture('image-depth', 'depth-stencil', isWebGL2 ? 'float-stencil' : 'uint24-8', 'nearest');
         if (!this.packedDepth) {
             this.depthTextureOpaque.define(width, height);
         }
 
         this.wboit = new WboitPass(webgl, width, height);
-        this.dpoit = new DpoitPass(webgl, width, height);
+        this.dpoit = new DpoitPass(webgl, width, height, this.colorTarget.depthRenderbuffer);
         this.marking = new MarkingPass(webgl, width, height);
         this.postprocessing = new PostprocessingPass(webgl, assetManager, this);
+        this.ssaoShading = { name: 'ssao', ssao: this.postprocessing.ssao.ssaoDepthTexture };
         this.antialiasing = new AntialiasingPass(webgl, width, height);
         this.dof = new DofPass(webgl, width, height);
 
-        this.copyFboTarget = createCopyRenderable(webgl, this.colorTarget.texture);
-        this.copyFboPostprocessing = createCopyRenderable(webgl, this.postprocessing.target.texture);
+        this.copyFbo = createCopyRenderable(webgl, this.colorTarget.texture);
 
         this.setTransparency(transparency);
     }
@@ -140,6 +136,7 @@ export class DrawPass {
         this.wboit.reset();
         this.dpoit.reset();
         this.postprocessing.reset();
+        this.marking.invalidate();
     }
 
     setSize(width: number, height: number) {
@@ -157,8 +154,7 @@ export class DrawPass {
                 this.depthTextureOpaque.define(width, height);
             }
 
-            ValueCell.update(this.copyFboTarget.values.uTexSize, Vec2.set(this.copyFboTarget.values.uTexSize.ref.value, width, height));
-            ValueCell.update(this.copyFboPostprocessing.values.uTexSize, Vec2.set(this.copyFboPostprocessing.values.uTexSize.ref.value, width, height));
+            ValueCell.update(this.copyFbo.values.uTexSize, Vec2.set(this.copyFbo.values.uTexSize.ref.value, width, height));
         }
 
         if (this.wboit.supported) {
@@ -432,20 +428,23 @@ export class DrawPass {
         }
     }
 
-    private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props) {
+    private _render(ctx: RenderContext<ICamera>, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props, skipMarking: boolean) {
+        const { renderer, camera, scene, frame } = ctx;
         if (camera.disabled) return;
 
         const volumeRendering = scene.volumes.renderables.length > 0;
         const postprocessingEnabled = PostprocessingPass.isEnabled(props.postprocessing);
         const antialiasingEnabled = AntialiasingPass.isEnabled(props.postprocessing);
-        const markingEnabled = MarkingPass.isEnabled(props.marking);
         const dofEnabled = DofPass.isEnabled(props.postprocessing);
+        const hasMarking = !skipMarking && MarkingPass.hasMarking(scene, props);
+        // marking is composed onto the finished image, which therefore has to be readable
+        const offscreen = !toDrawingBuffer || hasMarking;
 
         const { x, y, width, height } = camera.viewport;
         renderer.setViewport(x, y, width, height);
-        renderer.update(camera, scene);
+        renderer.update(camera, scene, frame);
 
-        if (transparentBackground && !antialiasingEnabled && toDrawingBuffer && !postprocessingEnabled) {
+        if (transparentBackground && !antialiasingEnabled && !dofEnabled && !offscreen && !postprocessingEnabled) {
             this.drawTarget.bind();
             renderer.clear(false);
         }
@@ -458,33 +457,31 @@ export class DrawPass {
             this._renderDpoit(renderer, camera, scene, props.dpoitIterations, transparentBackground, props.postprocessing);
             oitEnabled = true;
         } else {
-            this._renderBlended(renderer, camera, scene, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && toDrawingBuffer, transparentBackground, props.postprocessing);
+            this._renderBlended(renderer, camera, scene, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && !dofEnabled && !offscreen, transparentBackground, props.postprocessing);
         }
 
         const target = postprocessingEnabled
             ? this.postprocessing.target
-            : !toDrawingBuffer || volumeRendering || oitEnabled
+            : offscreen || volumeRendering || oitEnabled || dofEnabled
                 ? this.colorTarget
                 : this.drawTarget;
 
-        if (markingEnabled && scene.markerAverage > 0) {
-            const markingDepthTest = props.marking.ghostEdgeStrength < 1;
-            if (markingDepthTest && scene.markerAverage !== 1) {
-                this.marking.depthTarget.bind();
-                renderer.clear(false, true);
-                renderer.renderMarkingDepth(scene.primitives, camera);
-            }
+        target.bind();
+        this._renderHelpers(ctx, target);
 
-            this.marking.maskTarget.bind();
-            renderer.clear(false, true);
-            renderer.renderMarkingMask(scene.primitives, camera, markingDepthTest ? this.marking.depthTarget.texture : null);
+        const output = this._renderOutput(camera, scene, props, { offscreen, postprocessingEnabled, antialiasingEnabled, dofEnabled, volumeRendering, oitEnabled });
 
-            this.marking.update(props.marking);
-            this.marking.render(camera.viewport, target);
-        } else {
-            target.bind();
+        if (!output) {
+            this.marking.invalidate();
+        } else if (!skipMarking) {
+            this.marking.present(ctx, props, { base: output, toDrawingBuffer, offsets: SingleSample, restart: true, samples: 1, shading: this.getMarkingShading(props.postprocessing) });
         }
 
+        this.webgl.gl.flush();
+    }
+
+    private _renderHelpers(ctx: RenderContext<ICamera>, target: RenderTarget) {
+        const { renderer, camera, helper, frame } = ctx;
         if (helper.debug.isEnabled || helper.pointer.isEnabled) {
             if (!this.packedDepth) {
                 this.depthTextureOpaque.attachFramebuffer(target.framebuffer, 'depth');
@@ -497,7 +494,7 @@ export class DrawPass {
             }
             if (helper.pointer.isEnabled) {
                 helper.pointer.setCamera(camera);
-                renderer.update(helper.pointer.camera, helper.pointer.scene);
+                renderer.update(helper.pointer.camera, helper.pointer.scene, frame);
                 renderer.renderBlended(helper.pointer.scene, helper.pointer.camera);
             }
             if (!this.packedDepth) {
@@ -509,59 +506,76 @@ export class DrawPass {
         }
         if (helper.camera.isEnabled) {
             helper.camera.update(camera);
-            renderer.update(helper.camera.camera, helper.camera.scene);
+            renderer.update(helper.camera.camera, helper.camera.scene, frame);
             renderer.renderBlended(helper.camera.scene, helper.camera.camera);
         }
+    }
+
+    /** Returns the target the finished image ended up in, or undefined when it went to the drawing buffer. */
+    private _renderOutput(camera: ICamera, scene: Scene, props: Props, flags: { offscreen: boolean, postprocessingEnabled: boolean, antialiasingEnabled: boolean, dofEnabled: boolean, volumeRendering: boolean, oitEnabled: boolean }): RenderTarget | undefined {
+            const { offscreen, postprocessingEnabled, antialiasingEnabled, dofEnabled, volumeRendering, oitEnabled } = flags;
+            const toBuffer = !offscreen;
 
         let needsTargetCopy = false;
 
         if (antialiasingEnabled) {
-            const input = PostprocessingPass.isEnabled(props.postprocessing)
+            const input = postprocessingEnabled
                 ? this.postprocessing.target.texture
                 : this.colorTarget.texture;
-            this.antialiasing.render(camera, input, toDrawingBuffer && !dofEnabled, props.postprocessing);
-        } else if (toDrawingBuffer && !DofPass.isEnabled(props.postprocessing)) {
+            this.antialiasing.render(camera, input, toBuffer && !dofEnabled, props.postprocessing);
+        } else if (toBuffer && !dofEnabled) {
             needsTargetCopy = true;
         }
 
         if (dofEnabled && props.postprocessing.dof.name === 'on') {
-            const input = AntialiasingPass.isEnabled(props.postprocessing)
+            const input = antialiasingEnabled
                 ? this.antialiasing.target.texture
-                : PostprocessingPass.isEnabled(props.postprocessing)
+                : postprocessingEnabled
                     ? this.postprocessing.target.texture
                     : this.colorTarget.texture;
             this.dof.update(camera, input, this.depthTargetOpaque?.texture || this.depthTextureOpaque, this.depthTextureTransparent, props.postprocessing.dof.params, scene.boundingSphereVisible);
-            this.dof.render(camera.viewport, toDrawingBuffer ? undefined : this.getColorTarget(props.postprocessing));
-        } else if (toDrawingBuffer && !AntialiasingPass.isEnabled(props.postprocessing)) {
+            this.dof.render(camera.viewport, toBuffer ? undefined : this.getColorTarget(props.postprocessing));
+        } else if (toBuffer && !antialiasingEnabled) {
             needsTargetCopy = true;
         }
 
         if (needsTargetCopy) {
-            this.drawTarget.bind();
-
-            this.webgl.state.disable(this.webgl.gl.DEPTH_TEST);
             if (postprocessingEnabled) {
-                this.copyFboPostprocessing.render();
+                this.copyToDrawingBuffer(this.postprocessing.target, camera.viewport);
             } else if (volumeRendering || oitEnabled) {
-                this.copyFboTarget.render();
+                this.copyToDrawingBuffer(this.colorTarget, camera.viewport);
             }
         }
 
-        this.webgl.gl.flush();
+        return offscreen ? this.getColorTarget(props.postprocessing) : undefined;
     }
 
-    render(ctx: RenderContext, props: Props, toDrawingBuffer: boolean) {
+    private copyToDrawingBuffer(src: RenderTarget, viewport: Viewport) {
+        const { gl, state } = this.webgl;
+
+        if (this.copyFbo.values.tColor.ref.value !== src.texture) {
+            ValueCell.update(this.copyFbo.values.tColor, src.texture);
+            this.copyFbo.update();
+        }
+
+        this.drawTarget.bind();
+        state.enable(gl.SCISSOR_TEST);
+        state.disable(gl.BLEND);
+        state.disable(gl.DEPTH_TEST);
+        state.depthMask(false);
+
+        const { x, y, width, height } = viewport;
+        state.viewport(x, y, width, height);
+        state.scissor(x, y, width, height);
+        this.copyFbo.render();
+    }
+
+    render(ctx: RenderContext, props: Props, toDrawingBuffer: boolean, skipMarking = false) {
         if (isTimingMode) this.webgl.timer.mark('DrawPass.render');
-        const { renderer, camera, scene, helper } = ctx;
+        const { renderer, camera, scene } = ctx;
 
         this.postprocessing.setTransparentBackground(props.transparentBackground);
-        const pp = props.postprocessing;
-        const backgroundEnabled = this.postprocessing.background.isEnabled(pp);
-        // premultiplied scene so bloom can composite the solid background last
-        const bloomCompositesBackground = !props.transparentBackground && !backgroundEnabled &&
-            BloomPass.isEnabled(pp) && pp.bloom.name === 'on' &&
-            !(pp.bloom.params.mode === 'emissive' && scene.emissiveAverage === 0);
-        const transparentBackground = props.transparentBackground || backgroundEnabled || bloomCompositesBackground;
+        const transparentBackground = this.isTransparentBackground(scene, props);
 
         renderer.setTransparentBackground(transparentBackground);
         renderer.setDrawingBufferSize(this.colorTarget.getWidth(), this.colorTarget.getHeight());
@@ -569,15 +583,32 @@ export class DrawPass {
 
         if (StereoCamera.is(camera)) {
             if (isTimingMode) this.webgl.timer.mark('StereoCamera.left');
-            this._render(renderer, camera.left, scene, helper, toDrawingBuffer, transparentBackground, props);
+            this._render({ ...ctx, camera: camera.left }, toDrawingBuffer, transparentBackground, props, skipMarking);
             if (isTimingMode) this.webgl.timer.markEnd('StereoCamera.left');
             if (isTimingMode) this.webgl.timer.mark('StereoCamera.right');
-            this._render(renderer, camera.right, scene, helper, toDrawingBuffer, transparentBackground, props);
+            this._render({ ...ctx, camera: camera.right }, toDrawingBuffer, transparentBackground, props, skipMarking);
             if (isTimingMode) this.webgl.timer.markEnd('StereoCamera.right');
+            // only the second eye is left in the target, which is not a valid recompose source
+            this.marking.invalidate();
         } else {
-            this._render(renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, props);
+            this._render({ ...ctx, camera }, toDrawingBuffer, transparentBackground, props, skipMarking);
         }
         if (isTimingMode) this.webgl.timer.markEnd('DrawPass.render');
+    }
+
+    private isTransparentBackground(scene: Scene, props: Props) {
+        const pp = props.postprocessing;
+        const backgroundEnabled = this.postprocessing.background.isEnabled(pp);
+        // premultiplied scene so bloom can composite the solid background last
+        const bloomCompositesBackground = !props.transparentBackground && !backgroundEnabled &&
+            BloomPass.isEnabled(pp) && pp.bloom.name === 'on' &&
+            !(pp.bloom.params.mode === 'emissive' && scene.emissiveAverage === 0);
+        return props.transparentBackground || backgroundEnabled || bloomCompositesBackground;
+    }
+
+    /** shading of the last render that marking tint and dim keep, or null if there is none */
+    getMarkingShading(postprocessingProps: PostprocessingProps): MarkingShading | null {
+        return SsaoPass.isEnabled(postprocessingProps) ? this.ssaoShading : null;
     }
 
     getColorTarget(postprocessingProps: PostprocessingProps): RenderTarget {

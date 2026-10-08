@@ -26,7 +26,7 @@ vec3 applyWiggle(vec3 pos, float groupId, float instanceId) {
         #if defined(dWiggleType_instance)
             amplitude += readFromTexture(tWiggle, instanceId, uWiggleTexDim).a * uWiggleStrength;
         #elif defined(dWiggleType_groupInstance)
-            amplitude += readFromTexture(tWiggle, instanceId * float(uGroupCount) + groupId, uWiggleTexDim).a * uWiggleStrength;
+            amplitude += readFromTexture(tWiggle, groupInstanceIndex(instanceId, groupId), uWiggleTexDim).a * uWiggleStrength;
         #endif
     #endif
     if (amplitude > 0.0 && uWiggleSpeed > 0.0 && uWiggleFrequency > 0.0) {
@@ -56,7 +56,7 @@ mat4 applyTumble(mat4 transform, float instanceIndex, float objectId) {
     if (!uEnableAnimation) return transform;
     if (uTumbleAmplitude > 0.0 && uTumbleSpeed > 0.0 && uTumbleFrequency > 0.0) {
         // Scale amplitude inversely with bounding-sphere radius (Stokes-Einstein: D ~ 1/r)
-        float amplitude = uTumbleAmplitude / max(uInvariantBoundingSphere.w, 1.0);
+        float amplitude = uTumbleAmplitude / max(InvariantBoundingSphere.w, 1.0);
         float t = uTime * uTumbleSpeed;
         float seed = (instanceIndex * 127.1 + objectId * 311.7) * uTumbleFrequency;
 
@@ -84,7 +84,7 @@ mat4 applyTumble(mat4 transform, float instanceIndex, float objectId) {
         ) * amplitude;
 
         // Bounding-sphere center transformed by the linear part only (no translation)
-        vec3 localCenter = mat3(transform) * uInvariantBoundingSphere.xyz;
+        vec3 localCenter = mat3(transform) * InvariantBoundingSphere.xyz;
 
         // Rotate basis vectors
         mat4 result = transform;

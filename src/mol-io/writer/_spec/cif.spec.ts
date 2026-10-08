@@ -3,6 +3,7 @@ import { CifWriter } from '../cif';
 import { decodeMsgPack } from '../../common/msgpack/decode';
 import { EncodedFile, EncodedCategory } from '../../common/binary-cif';
 import { Field } from '../../reader/cif/binary/field';
+import { parseCifBinary } from '../../reader/cif/binary/parser';
 import { TextEncoder } from '../cif/encoder/text';
 import * as C from '../cif/encoder';
 import { Column, Database, Table } from '../../../mol-data/db';
@@ -63,6 +64,28 @@ test('cif writer value escaping', async () => {
     for (let i = 0; i < values.length; i++) {
         expect(values[i]).toBe(parsed?.[i]);
     }
+});
+
+describe('binary case-insensitive field lookup', () => {
+    it('lowercase column name', async () => {
+        const cartn_x = Data.CifField.ofNumbers([1, 2, 3]);
+        const cartn_y = Data.CifField.ofNumbers([4, 5, 6]);
+        const cartn_z = Data.CifField.ofNumbers([7, 8, 9]);
+        const cat = Data.CifCategory.ofFields('atom_site', { 'cartn_x': cartn_x, 'CARTN_Y': cartn_y, 'Cartn_z': cartn_z });
+
+        const encoder = CifWriter.createEncoder({ binary: true, binaryAutoClassifyEncoding: true });
+        const result = await processCategories(encoder, [cat]);
+        if (result.isError) {
+            expect(false).toBe(true);
+            return;
+        }
+        const decoded = result.result;
+
+        const atom_site = decoded.blocks[0].categories['atom_site'];
+        expect(atom_site.getField('Cartn_x')!.float(1)).toBe(2);
+        expect(atom_site.getField('cartn_y')!.float(2)).toBe(6);
+        expect(atom_site.getField('cartn_z')!.float(0)).toBe(7);
+    });
 });
 
 describe('encoding-config', () => {
@@ -178,6 +201,23 @@ function getCategoryInstanceProvider(cat: Data.CifCategory, fields: CifWriter.Fi
         name: cat.name,
         instance: () => CifWriter.categoryInstance(fields, { data: cat, rowCount: cat.rowCount })
     };
+}
+
+function processCategories(encoder: C.Encoder, categories: Data.CifCategory[]) {
+    encoder.startDataBlock('test');
+
+    for (const cat of categories) {
+        const fields: CifWriter.Field[] = [];
+        for (const f of cat.fieldNames) {
+            fields.push(wrap(f, cat.getField(f)!));
+        }
+        encoder.writeCategory(getCategoryInstanceProvider(cat, fields));
+    }
+
+    const encoded = encoder.getData() as Uint8Array;
+
+    const result = parseCifBinary(encoded).run();
+    return result;
 }
 
 function wrap(name: string, field: Data.CifField): CifWriter.Field {

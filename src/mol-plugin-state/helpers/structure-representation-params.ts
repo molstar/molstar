@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Structure } from '../../mol-model/structure';
@@ -13,6 +14,10 @@ import { ColorTheme } from '../../mol-theme/color';
 import { SizeTheme } from '../../mol-theme/size';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StructureRepresentation3D } from '../transforms/representation';
+
+export function isSurfaceRepresentationType(name: string) {
+    return name.endsWith('-surface');
+}
 
 export interface StructureRepresentationBuiltInProps<
     R extends StructureRepresentationRegistry.BuiltIn = StructureRepresentationRegistry.BuiltIn,

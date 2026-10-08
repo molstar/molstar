@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+
+## [v5.13.1] - 2026-10-08
+- ModelServer and VolumeServer: support chained string operations in path templates and fix `substring` to use an exclusive end index instead of a length (#1963)
+
+## [v5.13.0] - 2026-10-04
+- BinaryCIF: masked `int`/`float` field values now return the default `0` instead of the value left in the data array, matching the text/mmCIF parsers. Applies to the bulk `toIntArray`/`toFloatArray` APIs as well (#1711)
+- Fix PDB entities with caps: include protein caps listed in SEQRES in the polymer entity and don't make SEQRES entities non-polymer when the first residue is non-polymer
+- Separate marking from scene rendering: marking is composed onto the finished image
+  - Antialiased marking edges (via `postprocessing.antialiasing`), multi-sampled with the scene's jitter
+  - With `renderer.colorMarker`, the marking pass tints marked and dims unmarked regions
+  - Tint and dim strengths are weighted by fragment opacity
+  - Marking-only changes (e.g. hover, select) no longer trigger a full re-render
+  - `marking.edgeScale` is no longer rounded to whole pixels
+  - Move `JitterVectors` from `passes/multi-sample` to `passes/jitter`
+  - `multiSample.reduceFlicker` only applies when marking is disabled
+- Prefer structure-level visuals for very high (>= 10000) unique unit counts (#1953)
+- Solid interior improvements
+    - Add `solidInterior` param to mesh-based visuals (solid cap where the camera near plane or a clip object cuts a closed surface)
+    - Cap impostor spheres and cylinders with `solidInterior` at clip objects, not only at the camera near plane
+    - Add `solidSurface` option to `StructureComponentManager` (sets `solidInterior` of surface representations)
+    - Default `solidInterior` to `true` for molecular, gaussian and blob surface representations
+- [Breaking] `createRenderTarget` takes a `depthStencil` option (`'none' | 'depth' | 'depth-stencil'`) in place of the `depth` flag
+- Fix back faces of opaque objects missing from the packed depth (outlines and occlusion with the camera inside a surface)
+- Fix pick positions landing on the near plane without the `WEBGL_draw_buffers` extension (depth was not written when rendering every mask)
+
+## [v5.12.0] - 2026-09-28
+- Make CIF field lookup case insensitive, so mmCIF files writing `_atom_site.cartn_x` resolve fields like `Cartn_x` instead of leaving coordinates at 0,0,0 (#1941)
+- Headless rendering:
+  - Allow consumers to provide `gl` version 6 through 8
+  - Fix browser-only layout/canvas access when rendering without a DOM
+  - Fix version handling in commonjs
+  - Tests for `HeadlessPluginContext`
+- Merge representation render-objects to reduce draw-calls
+- Optimize `Renderable` culling with a frame token guard
 - Improve dynamic trackball controls and show param
 - Fix altloc in PDB files receive different atom names (#156)
 - Add `volume-tools/segmentor`: interactive segmentation of a volume into bodies (polygon labelling from several views, remainder assignment, dust removal, handedness flip, per-body extend + cosine soft edge, MRC mask export)
@@ -20,6 +54,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix CPU surface/volume visuals rebuilding on every update if GPU path is unavailable
 - Fix `floodfill` not applied on the gaussian surface wireframe
 - Fix `traceOnly` update being ignored by the molecular surface wireframe visuals
+- Fix SSAO artifacts near viewport edges by clamping off-screen samples instead of discarding them
+- Fix illumination trace reading color/normal/depth outside viewport bounds
 - Added support for molecular atom_style in lammps data files
 - Added element symbol detection in lammps data file
 - Fix inconsistent atomic weight for some elements in `ElementAtomWeights`
@@ -80,6 +116,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - MVS-related custom model properties (and custom structure properties) are hidden in UI (fixes override of default custom properties)
     - Added `shape` node for rendering meshes from `vtp`, `ply` and `obj` resources
     - Added support for MolQL selectors (e.g., select a residue + 5 ang surroundings)
+    - Add support for split colors (e.g. 'red/white', applies to carbohydrate symbols and nucleic cartoon)
+    - Add CarbohydrateSymbol color palette
 - Remove `new Function` usage for CSP / SOC2 compliance; server path templates use a whitelist of `${id...}` string methods
 - Fix CCP4/MRC volumes with unset cell angles failing to load
 - Fix CCP4/MRC volume `sigma` being taken from the header when the header rms is negative
@@ -88,6 +126,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - Formats: ariatomi-em, cryoet-ndjson, dynamo-tbl, relion-star, simularium, cellpack & petworld mmcif
     - Properties: position, orientation, radius, entity, compartment, custom attributes, fibers
     - Particles can be decorated with structure, volume, and shape visuals
+- Fix bumpiness artifacts on impostor seams and clip boundaries
+    - Change `bumpFrequency` defaults of ball-and-stick (5) and backbone (4)
 
 ## [v5.11.0] - 2026-07-18
 - Fix LAMMPS unsorted-atom handling (trajectory frame ordering and data-file bonds)

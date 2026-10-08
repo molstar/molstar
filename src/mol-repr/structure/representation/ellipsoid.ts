@@ -44,7 +44,7 @@ export function getEllipsoidParams(ctx: ThemeRegistryContext, structure: Structu
     if (size >= Structure.Size.Huge) {
         params = PD.clone(params);
         params.visuals.defaultValue = ['ellipsoid-mesh', 'intra-bond'];
-    } else if (structure.unitSymmetryGroups.length > 500) {
+    } else if (structure.unitSymmetryGroups.length > 10000) {
         params = PD.clone(params);
         params.visuals.defaultValue = ['structure-ellipsoid-mesh', 'structure-intra-bond'];
     }

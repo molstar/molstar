@@ -1,11 +1,13 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { PickType, Renderer } from '../../mol-gl/renderer';
+import { Frame } from '../../mol-gl/renderable';
 import { Scene } from '../../mol-gl/scene';
 import { PixelPackBuffer } from '../../mol-gl/webgl/buffer';
 import { isWebGL2 } from '../../mol-gl/webgl/compat';
@@ -99,9 +101,7 @@ export class PickPass {
             this.groupPickTexture.attachFramebuffer(this.framebuffer, 'color2');
             this.depthPickTexture.attachFramebuffer(this.framebuffer, 'color3');
 
-            this.depthRenderbuffer = isWebGL2(gl)
-                ? resources.renderbuffer('depth32f', 'depth', this.pickWidth, this.pickHeight)
-                : resources.renderbuffer('depth16', 'depth', this.pickWidth, this.pickHeight);
+            this.depthRenderbuffer = resources.renderbuffer(isWebGL2(gl) ? 'depth32f-stencil8' : 'depth-stencil', 'depth-stencil', this.pickWidth, this.pickHeight);
 
             this.depthRenderbuffer.attachFramebuffer(this.framebuffer);
 
@@ -110,10 +110,10 @@ export class PickPass {
             this.groupPickTexture.attachFramebuffer(this.groupPickFramebuffer, 'color0');
             this.depthPickTexture.attachFramebuffer(this.depthPickFramebuffer, 'color0');
         } else {
-            this.objectPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
-            this.instancePickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
-            this.groupPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
-            this.depthPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
+            this.objectPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
+            this.instancePickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
+            this.groupPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
+            this.depthPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
         }
     }
 
@@ -258,9 +258,9 @@ export class PickPass {
         }
     }
 
-    private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: 'pick' | 'depth', pickType: number) {
+    private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: 'pick' | 'depth', pickType: number, frame: Frame) {
         renderer.clear(false);
-        renderer.update(camera, scene);
+        renderer.update(camera, scene, frame);
         renderer.renderPick(scene.primitives, camera, variant, pickType);
 
         if (helper.handle.isEnabled) {
@@ -269,31 +269,31 @@ export class PickPass {
 
         if (helper.camera.isEnabled) {
             helper.camera.update(camera);
-            renderer.update(helper.camera.camera, helper.camera.scene);
+            renderer.update(helper.camera.camera, helper.camera.scene, frame);
             renderer.renderPick(helper.camera.scene, helper.camera.camera, variant, pickType);
         }
     }
 
-    render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper) {
+    render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, frame: Frame) {
         if (this.webgl.extensions.drawBuffers) {
             this.framebuffer.bind();
-            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.None);
+            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.None, frame);
             // if (this.pickWidth < 256) {
             //     printTextureImage(readTexture(this.webgl, this.groupPickTexture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
             // }
         } else {
             this.objectPickTarget.bind();
-            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Object);
+            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Object, frame);
 
             this.instancePickTarget.bind();
-            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Instance);
+            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Instance, frame);
 
             this.groupPickTarget.bind();
-            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Group);
+            this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Group, frame);
             // printTextureImage(readTexture(this.webgl, this.groupPickTarget.texture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
 
             this.depthPickTarget.bind();
-            this.renderVariant(renderer, camera, scene, helper, 'depth', PickType.None);
+            this.renderVariant(renderer, camera, scene, helper, 'depth', PickType.None, frame);
         }
     }
 }

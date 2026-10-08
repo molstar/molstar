@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -65,6 +65,17 @@ namespace Frustum3D {
         for (let i = 0 as PlaneIndex; i < 6; ++i) {
             const distance = Plane3D.distanceToPoint(frustum[i], center);
             if (distance < negRadius) return false;
+        }
+        return true;
+    }
+
+    export function containsSphere3D(frustum: Frustum3D, sphere: Sphere3D) {
+        const center = sphere.center;
+        const radius = sphere.radius;
+
+        for (let i = 0 as PlaneIndex; i < 6; ++i) {
+            const distance = Plane3D.distanceToPoint(frustum[i], center);
+            if (distance < radius) return false;
         }
         return true;
     }

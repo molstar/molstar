@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -91,6 +91,25 @@ export function resolveInstanceGranularity(value: InstanceGranularityValue, grou
 
 //
 
+export type RenderMergedValue = true | false | 'auto'
+export const RenderMergedOptions: [RenderMergedValue, string][] = [[true, 'On'], [false, 'Off'], ['auto', 'Auto']];
+
+/**
+ * Threshold (in number of mergeable units) above which `renderMerged: 'auto'`
+ * resolves to `true`.
+ */
+export const AutoRenderMergedThreshold = 100;
+
+/**
+ * Resolves the `renderMerged` param value to a boolean.
+ */
+export function resolveRenderMerged(value: RenderMergedValue, unitCount: number): boolean {
+    if (value === 'auto') return unitCount > AutoRenderMergedThreshold;
+    return value;
+}
+
+//
+
 export namespace BaseGeometry {
     export const MaterialCategory: PD.Info = { category: 'Material' };
     export const ShadingCategory: PD.Info = { category: 'Shading' };
@@ -108,6 +127,7 @@ export namespace BaseGeometry {
         emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
         density: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }, { description: 'Density value to estimate object thickness.' }),
         instanceGranularity: PD.Select<InstanceGranularityValue>('auto', InstanceGranularityOptions, { description: 'Use instance granularity for marker, transparency, clipping, overpaint, substance data to save memory. When set to `auto`, granularity is enabled if `groupCount * instanceCount` exceeds `AutoInstanceGranularityThreshold`.' }),
+        renderMerged: PD.Select<RenderMergedValue>('auto', RenderMergedOptions, { description: 'Render all units of the representation through a single shared render item per geometry kind to reduce draw calls. When set to `auto`, enabled if the number of mergeable units exceeds `AutoRenderMergedThreshold`. Supported for spheres, mesh, cylinders, lines, and points geometry.' }),
         lod: PD.Vec3(Vec3(), undefined, { ...CullingLodCategory, description: 'Level of detail.', fieldLabels: { x: 'Min Distance', y: 'Max Distance', z: 'Overlap (Shader)' } }),
         cellSize: PD.Numeric(200, { min: 0, max: 5000, step: 100 }, { ...CullingLodCategory, description: 'Instance grid cell size.' }),
         batchSize: PD.Numeric(2000, { min: 0, max: 50000, step: 500 }, { ...CullingLodCategory, description: 'Instance grid batch size.' }),

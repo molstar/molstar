@@ -31,6 +31,8 @@ import { Emissive } from '../../mol-theme/emissive';
 import { Wiggle } from '../../mol-theme/wiggle';
 import { HashMap } from '../../mol-util/map';
 import { hash2 } from '../../mol-data/util';
+import { RenderMergedValue } from '../../mol-geo/geometry/base';
+import { mergeRenderObjectsByType, pickMergedLoci, MergedEntry } from '../merged';
 
 function createVisualsMap<P extends StructureParams>() {
     return new HashMap<Unit.SymmetryGroup, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>(group => hash2(group.hashCode, group.transformHash), Unit.SymmetryGroup.areInvariantElementsEqual);
@@ -47,6 +49,8 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     const geometryState = new Representation.GeometryState();
     const _state = StructureRepresentationStateBuilder.create();
     let visuals = createVisualsMap<P>();
+
+    let mergedByType = new Map<string, MergedEntry<UnitsVisual<P>>>();
 
     let _structure: Structure;
     let _groups: ReadonlyArray<Unit.SymmetryGroup>;
@@ -180,12 +184,14 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
             }
             // update list of renderObjects
             renderObjects.length = 0;
+            const entries: { visual: UnitsVisual<P>, renderObject: GraphicsRenderObject }[] = [];
             visuals.forEach(({ visual }) => {
                 if (visual.renderObject) {
-                    renderObjects.push(visual.renderObject);
+                    entries.push({ visual, renderObject: visual.renderObject });
                     geometryState.add(visual.renderObject.id, visual.geometryVersion);
                 }
             });
+            updateRenderObjectList(entries);
             geometryState.snapshot();
             // set new structure
             if (structure) _structure = structure;
@@ -194,7 +200,22 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         });
     }
 
+    function updateRenderObjectList(entries: { visual: UnitsVisual<P>, renderObject: GraphicsRenderObject }[]) {
+        // from BaseGeometry.Params, part of every units visual's props
+        const renderMerged = (_props as { renderMerged?: RenderMergedValue }).renderMerged ?? false;
+        mergedByType = mergeRenderObjectsByType(entries, renderMerged, mergedByType, renderObjects);
+    }
+
+    function getMergedLoci(pickingId: PickingId): Loci | undefined {
+        return pickMergedLoci(mergedByType, pickingId, (visual, index, localInstanceId, object) =>
+            visual.getLoci({ ...pickingId, objectId: object.members[index].id, instanceId: localInstanceId })
+        );
+    }
+
     function getLoci(pickingId: PickingId) {
+        const mergedLoci = getMergedLoci(pickingId);
+        if (mergedLoci !== undefined) return mergedLoci;
+
         let loci: Loci = EmptyLoci;
         visuals.forEach(({ visual }) => {
             const _loci = visual.getLoci(pickingId);
@@ -312,6 +333,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     function destroy() {
         visuals.forEach(({ visual }) => visual.destroy());
         visuals.clear();
+        mergedByType.clear();
     }
 
     return {

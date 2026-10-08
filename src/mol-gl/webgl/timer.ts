@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -49,6 +49,8 @@ function clearStats(stats: WebGLStats) {
     stats.culled.lod = 0;
     stats.culled.frustum = 0;
     stats.culled.occlusion = 0;
+
+    stats.cacheHits.cull = 0;
 }
 
 export type TimerResult = {

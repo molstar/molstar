@@ -13,6 +13,7 @@ import { ComplexRepresentation, StructureRepresentation, StructureRepresentation
 import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 const BlobSurfaceVisuals = {
     'blob-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, BlobSurfaceMeshParams>) => UnitsRepresentation('Blob surface mesh', ctx, getParams, BlobSurfaceMeshVisual),
@@ -25,6 +26,7 @@ export const BlobSurfaceParams = {
     ...BlobSurfaceMeshParams,
     ...BlobSurfaceWireframeParams,
     visuals: PD.MultiSelect(['blob-surface-mesh'], PD.objectToOptions(BlobSurfaceVisuals)),
+    solidInterior: PD.Boolean(true, { ...BaseGeometry.ShadingCategory, description: 'Render a solid cap where the camera near plane or a clip object cuts a closed surface' }),
 };
 export type BlobSurfaceParams = typeof BlobSurfaceParams
 export function getBlobSurfaceParams(ctx: ThemeRegistryContext, structure: Structure) {

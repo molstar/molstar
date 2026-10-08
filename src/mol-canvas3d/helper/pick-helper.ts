@@ -1,10 +1,11 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Renderer } from '../../mol-gl/renderer';
+import { Frame, createFrame } from '../../mol-gl/renderable';
 import { Scene } from '../../mol-gl/scene';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
@@ -66,10 +67,14 @@ export class PickHelper {
         this.dirty = true;
     }
 
-    private render(camera: Camera | StereoCamera) {
+    private render(camera: Camera | StereoCamera, frame?: Frame) {
         if (isTimingMode) this.webgl.timer.mark('PickHelper.render', { captureStats: true });
         const { pickX, pickY, pickWidth, pickHeight, halfPickWidth } = this;
         const { renderer, scene, helper } = this;
+
+        // share one frame across both eyes (and with the caller's frame, e.g. Canvas3D's, when given)
+        // so a resting camera can reuse the main draw's cull instead of always recomputing
+        const f = frame ?? createFrame();
 
         renderer.setTransparentBackground(false);
         renderer.setDrawingBufferSize(pickWidth, pickHeight);
@@ -77,13 +82,13 @@ export class PickHelper {
 
         if (StereoCamera.is(camera)) {
             renderer.setViewport(pickX, pickY, halfPickWidth, pickHeight);
-            this.pickPass.render(renderer, camera.left, scene, helper);
+            this.pickPass.render(renderer, camera.left, scene, helper, f);
 
             renderer.setViewport(pickX + halfPickWidth, pickY, pickWidth - halfPickWidth, pickHeight);
-            this.pickPass.render(renderer, camera.right, scene, helper);
+            this.pickPass.render(renderer, camera.right, scene, helper, f);
         } else {
             renderer.setViewport(pickX, pickY, pickWidth, pickHeight);
-            this.pickPass.render(renderer, camera, scene, helper);
+            this.pickPass.render(renderer, camera, scene, helper, f);
         }
 
         this.dirty = false;
@@ -149,13 +154,13 @@ export class PickHelper {
         }
     }
 
-    identify(x: number, y: number, camera: Camera | StereoCamera): PickData | undefined {
+    identify(x: number, y: number, camera: Camera | StereoCamera, frame?: Frame): PickData | undefined {
         this.prepare();
 
         if (this.dirty) {
             if (isTimingMode) this.webgl.timer.mark('PickHelper.identify');
             this.webgl.resources.finalizePrograms(['pick'], true);
-            this.render(camera);
+            this.render(camera, frame);
             this.buffers.read();
             if (isTimingMode) this.webgl.timer.markEnd('PickHelper.identify');
         }
@@ -163,12 +168,12 @@ export class PickHelper {
         return this.getPickData(x, y, camera);
     }
 
-    asyncIdentify(x: number, y: number, camera: Camera | StereoCamera): AsyncPickData | undefined {
+    asyncIdentify(x: number, y: number, camera: Camera | StereoCamera, frame?: Frame): AsyncPickData | undefined {
         this.prepare();
 
         if (this.dirty) {
             if (isTimingMode) this.webgl.timer.mark('PickHelper.asyncIdentify');
-            this.render(camera);
+            this.render(camera, frame);
             this.buffers.asyncRead();
             if (isTimingMode) this.webgl.timer.markEnd('PickHelper.asyncIdentify');
         }
@@ -201,8 +206,8 @@ export class PickHelper {
         this.pickPadding = options.pickPadding;
 
         if (!checkAsyncPickingSupport(webgl)) {
-            this.asyncIdentify = (x, y, camera) => ({
-                tryGet: () => this.identify(x, y, camera)
+            this.asyncIdentify = (x, y, camera, frame) => ({
+                tryGet: () => this.identify(x, y, camera, frame)
             });
         }
     }

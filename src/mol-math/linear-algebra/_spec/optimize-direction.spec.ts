@@ -18,7 +18,6 @@ describe('OptimizeDirection', () => {
         ];
         const dir = leastObstructedDirection(points);
 
-        console.log('dir', dir);
         expect(dir).toBeDefined();
         expect(dir[0]).toBeCloseTo(0, 6);
         expect(dir[1]).toBeCloseTo(0, 6);

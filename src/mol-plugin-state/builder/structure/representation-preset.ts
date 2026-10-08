@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { PresetProvider } from '../preset-provider';
@@ -92,8 +93,9 @@ export namespace StructureRepresentationPresetProvider {
             : color;
         const symmetryColorParams = params.theme?.symmetryColorParams ? { ...params.theme?.globalColorParams, ...params.theme?.symmetryColorParams } : { ...params.theme?.globalColorParams };
         const globalColorParams = params.theme?.globalColorParams ? { ...params.theme?.globalColorParams } : undefined;
+        const surfaceTypeParams = { ...typeParams, solidInterior: plugin.managers.structure.component.state.options.solidSurface };
 
-        return { update, builder, color, symmetryColor, symmetryColorParams, globalColorParams, typeParams, ballAndStickColor };
+        return { update, builder, color, symmetryColor, symmetryColorParams, globalColorParams, typeParams, surfaceTypeParams, ballAndStickColor };
     }
 
     export function updateFocusRepr<T extends ColorTheme.BuiltIn>(plugin: PluginContext, structure: Structure, themeName: T | undefined, themeParams: ColorTheme.BuiltInParams<T> | undefined) {
@@ -230,11 +232,11 @@ const proteinAndNucleic = StructureRepresentationPresetProvider({
             smoothness: structure.isCoarseGrained ? 1.0 : 1.5,
         };
 
-        const { update, builder, typeParams, symmetryColor, symmetryColorParams } = reprBuilder(plugin, params, structure);
+        const { update, builder, typeParams, surfaceTypeParams, symmetryColor, symmetryColorParams } = reprBuilder(plugin, params, structure);
 
         const representations = {
             protein: builder.buildRepresentation(update, components.protein, { type: 'cartoon', typeParams, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'protein' }),
-            nucleic: builder.buildRepresentation(update, components.nucleic, { type: 'gaussian-surface', typeParams: { ...typeParams, ...gaussianProps }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'nucleic' })
+            nucleic: builder.buildRepresentation(update, components.nucleic, { type: 'gaussian-surface', typeParams: { ...surfaceTypeParams, ...gaussianProps }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'nucleic' })
         };
 
         await update.commit({ revertOnError: true });
@@ -269,7 +271,6 @@ const coarseSurface = StructureRepresentationPresetProvider({
                 traceOnly: !structure.isCoarseGrained,
                 radiusOffset: 2,
                 smoothness: 1,
-                visuals: ['structure-gaussian-surface-mesh']
             });
         } else if (size === Structure.Size.Huge) {
             Object.assign(gaussianProps, {
@@ -283,11 +284,11 @@ const coarseSurface = StructureRepresentationPresetProvider({
             });
         }
 
-        const { update, builder, typeParams, symmetryColor, symmetryColorParams } = reprBuilder(plugin, params, structure);
+        const { update, builder, surfaceTypeParams, symmetryColor, symmetryColorParams } = reprBuilder(plugin, params, structure);
 
         const representations = {
-            polymer: builder.buildRepresentation(update, components.polymer, { type: 'gaussian-surface', typeParams: { ...typeParams, ...gaussianProps }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'polymer' }),
-            lipid: builder.buildRepresentation(update, components.lipid, { type: 'gaussian-surface', typeParams: { ...typeParams, ...gaussianProps }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'lipid' })
+            polymer: builder.buildRepresentation(update, components.polymer, { type: 'gaussian-surface', typeParams: { ...surfaceTypeParams, ...gaussianProps }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'polymer' }),
+            lipid: builder.buildRepresentation(update, components.lipid, { type: 'gaussian-surface', typeParams: { ...surfaceTypeParams, ...gaussianProps }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'lipid' })
         };
 
         await update.commit({ revertOnError: true });
@@ -447,12 +448,12 @@ const molecularSurface = StructureRepresentationPresetProvider({
 
         const structure = structureCell.obj!.data;
 
-        const { update, builder, typeParams, color } = reprBuilder(plugin, params, structure);
+        const { update, builder, surfaceTypeParams, color } = reprBuilder(plugin, params, structure);
 
         const representations = {
             all: builder.buildRepresentation(update, components.all, {
                 type: 'molecular-surface',
-                typeParams,
+                typeParams: surfaceTypeParams,
                 color: 'entity-id',
                 colorParams: { overrideWater: true },
             }, { tag: 'all' }),
@@ -481,10 +482,10 @@ const autoLod = StructureRepresentationPresetProvider({
 
         const structure = structureCell.obj!.data;
 
-        const { update, builder, typeParams, color, symmetryColor, symmetryColorParams, ballAndStickColor } = reprBuilder(plugin, params, structure);
+        const { update, builder, typeParams, surfaceTypeParams, color, symmetryColor, symmetryColorParams, ballAndStickColor } = reprBuilder(plugin, params, structure);
 
         const representations = {
-            gaussianSurface: builder.buildRepresentation(update, components.all, { type: 'gaussian-surface', typeParams: { ...typeParams, lod: Vec3.create(30, 10000000, 100) }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'gaussian-surface' }),
+            gaussianSurface: builder.buildRepresentation(update, components.all, { type: 'gaussian-surface', typeParams: { ...surfaceTypeParams, lod: Vec3.create(30, 10000000, 100) }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'gaussian-surface' }),
             cartoon: builder.buildRepresentation(update, components.all, { type: 'cartoon', typeParams: { ...typeParams, lod: Vec3.create(-20, 300, 100) }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'cartoon' }),
             ballAndStick: builder.buildRepresentation(update, components.all, { type: 'ball-and-stick', typeParams: { ...typeParams, lod: Vec3.create(-20, 40, 20) }, color, colorParams: ballAndStickColor }, { tag: 'ball-and-stick' }),
         };

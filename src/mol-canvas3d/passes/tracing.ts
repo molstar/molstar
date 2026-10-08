@@ -27,18 +27,11 @@ import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Color } from '../../mol-util/color/color';
 import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
-import { Helper } from '../helper/helper';
 import { accumulate_frag } from '../../mol-gl/shader/illumination/accumulate.frag';
 import { now } from '../../mol-util/now';
 import { clamp } from '../../mol-math/interpolate';
 import { DrawPass } from './draw';
-
-type RenderContext = {
-    renderer: Renderer;
-    camera: Camera;
-    scene: Scene;
-    helper: Helper;
-}
+import { RenderContext } from '../util';
 
 export const TracingParams = {
     rendersPerFrame: PD.Interval([1, 16], { min: 1, max: 64, step: 1 }, { description: 'Number of rays per pixel each frame. May be adjusted to reach targetFps but will stay within given interval.' }),
@@ -116,10 +109,10 @@ export class TracingPass {
         this.normalTextureOpaque.attachFramebuffer(this.framebuffer, 'color1');
         this.colorTextureOpaque.attachFramebuffer(this.framebuffer, 'color2');
 
-        this.thicknessTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'nearest');
-        this.holdTarget = webgl.createRenderTarget(width, height, false, 'float32');
-        this.accumulateTarget = webgl.createRenderTarget(width, height, false, 'float32');
-        this.composeTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
+        this.thicknessTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
+        this.holdTarget = webgl.createRenderTarget(width, height, 'none', 'float32');
+        this.accumulateTarget = webgl.createRenderTarget(width, height, 'none', 'float32');
+        this.composeTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
         this.traceRenderable = getTraceRenderable(webgl, this.colorTextureOpaque, this.normalTextureOpaque, this.shadedTextureOpaque, this.thicknessTarget.texture, this.accumulateTarget.texture, this.drawPass.depthTextureOpaque);
         this.accumulateRenderable = getAccumulateRenderable(webgl, this.holdTarget.texture);
@@ -282,7 +275,7 @@ export class TracingPass {
         };
     }
 
-    render(ctx: RenderContext, transparentBackground: boolean, props: TracingProps, iteration: number, forceRenderInput: boolean) {
+    render(ctx: RenderContext<Camera>, transparentBackground: boolean, props: TracingProps, iteration: number, forceRenderInput: boolean) {
         const { rendersPerFrame, refineSteps, steps } = this.getAdjustedProps(props, iteration);
 
         if (isTimingMode) {
@@ -291,7 +284,7 @@ export class TracingPass {
             });
         }
 
-        const { renderer, camera, scene } = ctx;
+        const { renderer, camera, scene, frame } = ctx;
         const { gl, state } = this.webgl;
         const { x, y, width, height } = camera.viewport;
 
@@ -301,7 +294,7 @@ export class TracingPass {
             renderer.setDrawingBufferSize(this.composeTarget.getWidth(), this.composeTarget.getHeight());
             renderer.setPixelRatio(this.webgl.pixelRatio);
             renderer.setViewport(x, y, width, height);
-            renderer.update(camera, scene);
+            renderer.update(camera, scene, frame);
             this.renderInput(renderer, camera, scene, props);
         }
 

@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 export const mesh_vert = `
@@ -32,6 +33,10 @@ attribute float aInstance;
 
 varying vec3 vNormal;
 
+#ifdef dSolidInterior
+    uniform int uSolidInteriorPass;
+#endif
+
 void main(){
     int vertexId = VertexID;
 
@@ -39,6 +44,13 @@ void main(){
     #include assign_marker_varying
     #include assign_clipping_varying
     #include assign_position
+
+    #ifdef dSolidInterior
+        if (uSolidInteriorPass != 0) {
+            gl_Position.z = min(gl_Position.z, gl_Position.w * 0.9999);
+        }
+    #endif
+
     #include assign_color_varying
     #include clip_instance
 
