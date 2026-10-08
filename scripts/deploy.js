@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-const git = require('simple-git');
+const { simpleGit: git } = require('simple-git');
 const path = require('path');
 const fs = require('fs');
 const fse = require('fs-extra');

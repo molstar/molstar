@@ -82,6 +82,8 @@ function addServerArgs(parser: argparse.ArgumentParser) {
             'Example: x-ray \'../../data/mdb/xray/${id}-ccp4.mdb\'',
             '',
             '  - Supported ${id...} expressions inside ${}: id, id.toLowerCase(), id.toUpperCase(), id.substr(n, m), id.substring(n), id.substring(n, m), id.slice(n), id.slice(n, m)',
+            '  - Calls can be chained in order, e.g. ${id.substring(1, 3).toLowerCase()} or ${id.toLowerCase().substr(1, 2)}.',
+            '  - Indices are non-negative integers. substr(n, m) uses a length; substring(n, m) and slice(n, m) use an exclusive end index.',
             '  - Can be specified multiple times.',
             '  - The `TYPE` variable (e.g. `x-ray`) is arbitrary and depends on how you plan to use the server.',
             '    By default, Mol* Viewer uses `x-ray` and `em`, but any particular use case may vary. ',

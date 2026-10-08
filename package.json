@@ -166,9 +166,17 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "sass": "^1.105.1",
-    "simple-git": "^3.36.0",
+    "simple-git": "^4.0.2",
     "tsc-alias": "^1.9.7",
     "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^4.3.2"
+    },
+    "concurrently": {
+      "shell-quote": "^1.12.0"
+    }
   },
   "dependencies": {
     "@types/argparse": "^2.0.17",
@@ -178,7 +186,7 @@
     "@types/node": "^22.20.1",
     "@types/swagger-ui-dist": "3.30.6",
     "argparse": "^2.0.1",
-    "compression": "^1.8.1",
+    "compression": "^1.8.2",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "h264-mp4-encoder": "^1.0.12",
