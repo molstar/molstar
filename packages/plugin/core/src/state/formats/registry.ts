@@ -170,11 +170,18 @@ export class DataFormatRegistry {
 
   get(name: string): DataFormatProvider | undefined {
     const entry = this._map.get(name);
-    if (!entry) throw new Error(`Data format '${name}' is not registered in this plugin.`);
+    if (!entry) throw new Error(unregisteredFormatMessage(name, this._list.length === 0));
     return entry.provider;
   }
 
   get list() {
     return this._list;
   }
+}
+
+/** The most common cause of an empty format registry is a 5.x-style spec without `registry`, so say how to fix it. */
+export function unregisteredFormatMessage(name: string, registryIsEmpty: boolean) {
+  const message = `Data format '${name}' is not registered in this plugin.`;
+  if (!registryIsEmpty) return message;
+  return `${message} No data formats are registered: plugin registries start empty, so add format entries to \`spec.registry\` (for the full built-in set, use \`DefaultRegistry\` from '@molstar/plugin/default-registry' or \`DefaultPluginSpec()\`).`;
 }

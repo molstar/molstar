@@ -63,7 +63,9 @@ describe('loadTrajectory without the format', () => {
   it('fails with a clear error naming the unregistered format', async () => {
     const plugin = new PluginContext({ ...DefaultPluginSpec(), registry: [] });
     await plugin.init();
-    await expect(loadTrajectory(plugin, modelAndCoords())).rejects.toThrow(/'pdb' is not a supported data format/);
+    await expect(loadTrajectory(plugin, modelAndCoords())).rejects.toThrow(
+      /Data format 'pdb' is not registered in this plugin/,
+    );
     plugin.dispose();
   });
 });

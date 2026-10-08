@@ -9,6 +9,7 @@ import { SizeTheme } from './size.js';
 import type { Structure } from '@molstar/model/model/structure';
 import type { Volume } from '@molstar/model/model/volume';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { isProductionMode } from '@molstar/core/util/debug';
 import type { Shape } from '@molstar/model/model/shape';
 import type { CustomProperty } from '@molstar/model/props/common/custom-property';
 import type { ColorType } from '@molstar/graphics/geo/geometry/color-data';
@@ -98,6 +99,14 @@ function getTypes(list: { name: string; provider: ThemeProvider<any, any> }[]) {
   return list.map((e) => [e.name, e.provider.label, e.provider.category] as [string, string, string]);
 }
 
+function unregisteredThemeMessage(name: string, kind: 'color' | 'size' | undefined) {
+  const label = kind === 'color' ? 'Color theme' : kind === 'size' ? 'Size theme' : 'Theme';
+  const hint = kind
+    ? ` Registries start empty: add the providers you use (all built-ins: \`BuiltIn${kind === 'color' ? 'Color' : 'Size'}Themes\` from '@molstar/graphics/theme/${kind}/catalog').`
+    : '';
+  return `${label} '${name}' is not registered; the empty theme is used.${hint}`;
+}
+
 export class ThemeRegistry<T extends ColorTheme<any, any> | SizeTheme<any>> {
   private _list: { name: string; provider: ThemeProvider<T, any> }[] = [];
   private _map = new Map<string, ThemeProvider<T, any>>();
@@ -115,7 +124,16 @@ export class ThemeRegistry<T extends ColorTheme<any, any> | SizeTheme<any>> {
     return getTypes(this._list);
   }
 
-  constructor(private emptyProvider: ThemeProvider<T, any>) {}
+  private _warned = new Set<string>();
+
+  /**
+   * `kind` names the theme kind in the development-mode warning that `get` logs for an unregistered name, since a
+   * registry from `ColorTheme.createRegistry()` or `SizeTheme.createRegistry()` starts empty.
+   */
+  constructor(
+    private emptyProvider: ThemeProvider<T, any>,
+    private kind?: 'color' | 'size',
+  ) {}
 
   private sort() {
     this._list.sort((a, b) => {
@@ -174,8 +192,15 @@ export class ThemeRegistry<T extends ColorTheme<any, any> | SizeTheme<any>> {
     return typeof nameOrProvider === 'string' ? this._map.has(nameOrProvider) : this._count.has(nameOrProvider);
   }
 
+  /** Returns the empty provider for an unregistered name; outside production mode this warns once per name. */
   get<P extends PD.Params>(name: string): ThemeProvider<T, P> {
-    return this._map.get(name) || this.emptyProvider;
+    const provider = this._map.get(name);
+    if (provider) return provider;
+    if (name && !isProductionMode && !this._warned.has(name)) {
+      this._warned.add(name);
+      console.warn(unregisteredThemeMessage(name, this.kind));
+    }
+    return this.emptyProvider;
   }
 
   getName(provider: ThemeProvider<T, any>): string {

@@ -47,7 +47,7 @@ namespace SizeTheme {
 
   export type Registry = ThemeRegistry<SizeTheme<any>>;
   export function createRegistry() {
-    const registry: Registry = new ThemeRegistry(EmptyProvider);
+    const registry: Registry = new ThemeRegistry(EmptyProvider, 'size');
     return registry;
   }
 

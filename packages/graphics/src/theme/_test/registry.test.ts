@@ -145,4 +145,23 @@ describe('ThemeRegistry', () => {
     expect(ColorTheme.createRegistry().list).toEqual([]);
     expect(SizeTheme.createRegistry().list).toEqual([]);
   });
+
+  it('warns once per unregistered name outside production mode', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const r = ColorTheme.createRegistry();
+      expect(r.get('chain-id')).toBe(ColorTheme.EmptyProvider);
+      r.get('chain-id');
+      r.get('');
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0][0]).toContain("Color theme 'chain-id' is not registered");
+      expect(warn.mock.calls[0][0]).toContain("'@molstar/graphics/theme/color/catalog'");
+
+      r.add(provider('chain-id'));
+      expect(r.get('chain-id').name).toBe('chain-id');
+      expect(warn).toHaveBeenCalledTimes(1);
+    } finally {
+      warn.mockRestore();
+    }
+  });
 });

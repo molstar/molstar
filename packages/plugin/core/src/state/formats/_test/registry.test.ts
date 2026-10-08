@@ -182,6 +182,13 @@ describe('DataFormatRegistry', () => {
     expect(() => registry.get('b')).toThrow("Data format 'b' is not registered in this plugin.");
   });
 
+  it('points an empty registry at DefaultRegistry', () => {
+    expect(() => empty().get('mmcif')).toThrow(/No data formats are registered.*DefaultRegistry/);
+    const registry = empty();
+    registry.add(format('a'));
+    expect(() => registry.get('mmcif')).not.toThrow(/DefaultRegistry/);
+  });
+
   it('keeps priority-then-registration order for auto', () => {
     const registry = empty();
     const info = { ext: 'x' } as any;

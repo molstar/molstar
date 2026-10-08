@@ -34,6 +34,7 @@ import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetr
 import { SpacegroupCell } from '@molstar/core/math/geometry';
 import type { Expression } from '@molstar/model/script/language/expression';
 import { TrajectoryHierarchyBuilder } from './structure/hierarchy.js';
+import { unregisteredFormatMessage } from '../formats/registry.js';
 
 export class StructureBuilder {
   private get dataState() {
@@ -45,7 +46,7 @@ export class StructureBuilder {
     format: BuiltInTrajectoryFormat | TrajectoryFormatProvider,
   ) {
     if (typeof format === 'string' && !this.plugin.dataFormats.has(format)) {
-      throw new Error(`'${format}' is not a supported data format.`);
+      throw new Error(unregisteredFormatMessage(format, this.plugin.dataFormats.list.length === 0));
     }
     const provider =
       typeof format === 'string' ? (this.plugin.dataFormats.get(format) as TrajectoryFormatProvider) : format;

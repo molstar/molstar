@@ -171,7 +171,7 @@ namespace ColorTheme {
 
   export type Registry = ThemeRegistry<ColorTheme<any, any>>;
   export function createRegistry() {
-    const registry: Registry = new ThemeRegistry(EmptyProvider);
+    const registry: Registry = new ThemeRegistry(EmptyProvider, 'color');
     return registry;
   }
 
