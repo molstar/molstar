@@ -69,4 +69,5 @@ StringBuilder.write(builder, '----------------------------');
 StringBuilder.newline(builder);
 transformers.forEach((t) => writeTransformer(t));
 
+fs.mkdirSync('docs/state', { recursive: true });
 fs.writeFileSync(`docs/state/transforms.md`, StringBuilder.getString(builder));

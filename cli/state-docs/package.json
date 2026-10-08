@@ -18,7 +18,8 @@
       "molstar-src": "./src/index.ts",
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
-    }
+    },
+    "./_test/*": null
   },
   "files": [
     "lib",

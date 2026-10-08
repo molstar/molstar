@@ -459,6 +459,8 @@ async function slimCheck() {
         await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'load', timeout: 30000 });
         await page.waitForFunction(() => Boolean(window.slimPluginReady), undefined, { timeout: 30000 });
         await page.evaluate(() => window.slimPluginReady.then(() => undefined));
+        // The representation reaches the scene on the commit after the state update resolves.
+        await page.waitForFunction(() => window.slimSmoke.describe().reprCount > 0, undefined, { timeout: 30000 });
         timings.load = Date.now() - pageStart;
 
         // 1. The SDF ligand renders as ball-and-stick.
