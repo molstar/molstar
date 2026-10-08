@@ -289,10 +289,10 @@ describe('bond provider custom model property', () => {
         expect(forceUnit.props.bondProvider).not.toBe(autoProvider);
         expect(countCompCCOrder(forceUnit, 'LIG', 2)).toBeGreaterThan(0);
 
-        await selectBondOrderProvider(model, 'none');
-        const noneStructure = structureWithSelectedBondProvider(model);
-        const noneUnit = unitWithComp(noneStructure, 'LIG');
-        expect(countCompCCOrder(noneUnit, 'LIG', 1)).toBeGreaterThan(0);
-        expect(countCompCCOrder(noneUnit, 'LIG', 2)).toBe(0);
+        await selectBondOrderProvider(model, 'model');
+        const modelStructure = structureWithSelectedBondProvider(model);
+        const modelUnit = unitWithComp(modelStructure, 'LIG');
+        expect(countCompCCOrder(modelUnit, 'LIG', 1)).toBeGreaterThan(0);
+        expect(countCompCCOrder(modelUnit, 'LIG', 2)).toBe(0);
     });
 });

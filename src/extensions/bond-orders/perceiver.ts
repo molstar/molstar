@@ -14,7 +14,7 @@ import { BondType, WaterNames } from '../../mol-model/structure/model/types';
 import { IntraUnitBonds } from '../../mol-model/structure/structure/unit/bonds/data';
 import type { UnitRings } from '../../mol-model/structure/structure/unit/rings';
 
-export type BondOrdersMode = 'none' | 'auto' | 'forceCompute';
+export type BondOrdersMode = 'model' | 'auto' | 'forceCompute';
 
 /**
  * Clone `bonds` edge props and overlay placeholder orders on intra-residue covalent edges.

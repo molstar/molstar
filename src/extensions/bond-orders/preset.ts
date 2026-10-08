@@ -23,7 +23,7 @@ const BondOrdersParams = (a: PluginStateObject.Molecule.Trajectory | undefined, 
     structure: PD.Optional(RootStructureDefinition.getParams(void 0, 'assembly').type),
     representationPresetParams: PD.Optional(PD.Group(StructureRepresentationPresetProvider.CommonParams)),
     bondOrdersMode: PD.Select<BondOrdersMode>('auto', [
-        ['none', 'None'],
+        ['model', 'Model'],
         ['auto', 'Auto'],
         ['forceCompute', 'Force Compute'],
     ]),

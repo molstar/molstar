@@ -20,8 +20,8 @@ import { BondOrdersMode, perceiveIntra } from './perceiver';
 export const BondOrderProviderName = 'bond-order-perception';
 
 export const BondOrderProviderParams = {
-    mode: PD.Select<BondOrdersMode>('none', [
-        ['none', 'None'],
+    mode: PD.Select<BondOrdersMode>('model', [
+        ['model', 'Model'],
         ['auto', 'Auto'],
         ['forceCompute', 'Force Compute'],
     ]),
@@ -35,7 +35,7 @@ class BondOrderProviderInstance implements BondProvider {
     }
 
     getBonds(unit: Unit.Atomic): IntraUnitBonds | undefined {
-        if (unit.model !== this.model || this.mode === 'none') return undefined;
+        if (unit.model !== this.model || this.mode === 'model') return undefined;
         if (IndexPairBonds.Provider.get(unit.model)) return undefined;
 
         const structure = this.context.structure;
@@ -71,7 +71,7 @@ export const BondOrderProvider: BondProvider.Provider<typeof BondOrderProviderPa
     label: 'Bond Order Perception',
     getParams: () => BondOrderProviderParams,
     isApplicable: model => !IndexPairBonds.Provider.get(model),
-    factory: (model, props, context) => props.mode === 'none'
+    factory: (model, props, context) => props.mode === 'model'
         ? undefined
         : new BondOrderProviderInstance(context, model, props.mode),
 };
@@ -90,7 +90,7 @@ function hasPerceivableBond(unit: Unit.Atomic, bonds: IntraUnitBonds, mode: Bond
             const v = b[i];
             if (u >= v || type_symbol.value(elements[v]) !== 'C') continue;
             if (residueIndex[elements[v]] !== residueIndex[eU] || !BondType.isCovalent(flags[i])) continue;
-            if (mode === 'forceCompute' || (order[i] === 1 && BondType.is(flags[i], BondType.Flag.Computed))) return true;
+            if (mode === 'forceCompute' || (order[i] === 1 && BondType.is(flags[i], BondType.Flag.OrderUnknown))) return true;
         }
     }
     return false;
