@@ -51,7 +51,7 @@ export function perceiveIntra(structure: Structure, unit: Unit.Atomic, bonds: In
             if (!BondType.isCovalent(flags[i])) continue;
 
             if (mode === 'auto') {
-                if (order[i] !== 1 || !BondType.is(flags[i], BondType.Flag.Computed)) continue;
+                if (order[i] !== 1 || !BondType.is(flags[i], BondType.Flag.OrderUnknown)) continue;
             }
 
             if (type_symbol.value(eU) === 'C' && type_symbol.value(elements[v]) === 'C') {

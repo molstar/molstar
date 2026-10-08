@@ -181,7 +181,7 @@ export namespace StructConn {
                 case 'metalc': flags = BondType.Flag.MetallicCoordination; break;
             }
 
-            if (orderUnknown && type === 'covale') flags |= BondType.Flag.Computed;
+            if (orderUnknown && type === 'covale') flags |= BondType.Flag.OrderUnknown;
 
             entries.push({
                 rowIndex: i, flags, order, distance: pdbx_dist_value.value(i), partnerA, partnerB

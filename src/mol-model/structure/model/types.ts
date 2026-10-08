@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { BitFlags } from '../../../mol-util/bit-flags';
@@ -635,7 +636,8 @@ export namespace BondType {
         HydrogenBond = 0x4,
         Disulfide = 0x8,
         Aromatic = 0x10,
-        Computed = 0x20
+        Computed = 0x20,
+        OrderUnknown = 0x40,
         // currently at most 16 flags are supported!!
     }
 
