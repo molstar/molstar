@@ -694,7 +694,7 @@ export namespace Vec3 {
     return sub(out, p, tmpProject);
   }
 
-  /** Get a vector that is similar to `b` but orthogonal to `a` */
+  /** Get a unit vector with direction similar to `b` but orthogonal to `a` */
   export function orthogonalize(out: Vec3, a: Vec3, b: Vec3): Vec3 {
     // Regular case (`b` not parallel to `a`)
     normalize(out, cross(out, cross(out, a, b), a));
