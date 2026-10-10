@@ -419,6 +419,12 @@
       "path": "extensions/volseg-api",
       "kind": "extension",
       "private": false
+    },
+    {
+      "name": "@molstar/query-language",
+      "path": "packages/query-language",
+      "kind": "library",
+      "private": false
     }
   ]
 }

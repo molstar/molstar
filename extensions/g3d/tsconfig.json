@@ -19,6 +19,9 @@
     },
     {
       "path": "../../packages/model"
+    },
+    {
+      "path": "../../packages/query-language"
     }
   ]
 }

@@ -33,7 +33,8 @@
     "tslib": "catalog:",
     "@molstar/plugin": "workspace:*",
     "@molstar/core": "workspace:*",
-    "@molstar/model": "workspace:*"
+    "@molstar/model": "workspace:*",
+    "@molstar/query-language": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

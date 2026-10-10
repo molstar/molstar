@@ -11,8 +11,8 @@ import { type Structure, Unit } from '@molstar/model/model/structure';
 import { CustomStructureProperty } from '../common/custom-structure-property.js';
 import type { CustomProperty } from '../common/custom-property.js';
 import { QuerySymbolRuntime } from '@molstar/model/script/runtime/query/compiler';
-import { CustomPropSymbol } from '@molstar/model/script/language/symbol';
-import { Type } from '@molstar/model/script/language/type';
+import { CustomPropSymbol } from '@molstar/query-language/language/symbol';
+import { Type } from '@molstar/query-language/language/type';
 import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
 
 export const AccessibleSurfaceAreaParams = {

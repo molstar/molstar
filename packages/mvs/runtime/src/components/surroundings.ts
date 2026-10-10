@@ -7,7 +7,7 @@
 import { StructureElement } from '@molstar/model/model/structure';
 import { createStructureComponent } from '@molstar/plugin/state/helpers/structure-component';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
-import { MolScriptBuilder } from '@molstar/model/script/language/builder';
+import { MolScriptBuilder } from '@molstar/query-language/language/builder';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 
 export const StructureSurroundingsParams = {

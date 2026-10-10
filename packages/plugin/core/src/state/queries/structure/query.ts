@@ -9,7 +9,7 @@ import type { CustomProperty } from '@molstar/model/props/common/custom-property
 import { QueryContext, StructureSelection } from '@molstar/model/model/structure';
 import type { Structure, StructureQuery } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
-import type { Expression } from '@molstar/model/script/language/expression';
+import type { Expression } from '@molstar/query-language/language/expression';
 import { compile } from '@molstar/model/script/runtime/query/compiler';
 import type { RuntimeContext } from '@molstar/core/task';
 

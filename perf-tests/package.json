@@ -32,6 +32,7 @@
     "@molstar/core": "workspace:*",
     "@molstar/io": "workspace:*",
     "@molstar/model": "workspace:*",
+    "@molstar/query-language": "workspace:*",
     "@molstar/structure-info-cli": "workspace:*",
     "@molstar/pdbe-extension": "workspace:*"
   },

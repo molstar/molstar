@@ -120,10 +120,10 @@ Modules that reach `transpilers/all.ts` through `@molstar/model/script/script` t
 `state/transforms/model.ts`, `state/transforms/representation.ts`, `state/manager/markdown-extensions.ts` (the `query`
 extension), and the UI parameter controls. After the script split (step 1) none of them reaches a transpiler.
 
-Direct `parse` users of `@molstar/model/script/transpile`, which reaches `transpilers/all.ts` today:
+Direct `parse` users of `@molstar/query-language/transpile`, which reaches `transpilers/all.ts` today:
 `packages/model/src/script/script.ts`, `examples/mvs-stories/src/stories/molql.ts` (`parse('pymol', ...)` at module
 level), and `packages/mvs/runtime/src/_test/molql.test.ts` (`parse('pymol', ...)`). After the split the last two import
-`@molstar/model/script/transpilers/pymol` (or `all`) themselves.
+`@molstar/query-language/transpilers/pymol` (or `all`) themselves.
 
 ### 1.6 Hard-coded policy and provider names
 
@@ -426,7 +426,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       then appends the custom-formats entry. `get(name)` returns the custom provider as in 5.x.
 - [x] `loadTrajectory({ preset })` keeps accepting the hierarchy short keys through the preset aliases, and also accepts
       ids.
-- [x] Import `@molstar/model/script/transpilers/all` at the top of the Viewer entry.
+- [x] Import `@molstar/query-language/transpilers/all` at the top of the Viewer entry.
 - [x] `molstar.lib.plugin` (`apps/viewer/src/lib.ts`): keep `StateTransforms` as an app-level object literal with the
       same `Data`/`Misc`/`Model`/`Particles`/`Volume`/`Representation`/`Shape` keys and member names, assembled from the
       split modules; no library module imports it. Keep `StateActions`, `DefaultPluginSpec`, and `DefaultPluginUISpec`
@@ -632,11 +632,11 @@ Add to `@molstar/migrate-6-cli` ([architecture §9.2](../designs/architecture.md
 - [x] mesoscale-explorer, docking-viewer, mvs-stories, proteopedia-wrapper, the examples and smoke fixtures in §3,
       `cli/mvs-render`, and `cli/state-docs` build and behave as before.
 
-Left open. The slim-app items (the cartoon snapshot and the PyMOL script) are covered by the slim browser smoke test,
-not by this audit; the default plugin and Viewer half of the PyMOL item is verified below. The last item is verified for
-the builds, the type checks, the smoke fixtures, `cli/mvs-render` and `cli/state-docs`, but nothing exercises the
-mesoscale-explorer, docking-viewer, proteopedia-wrapper, or the other examples at run time: their specs are built inside
-`create`/`main` functions that need a browser, and the native headless smoke (`smoke/headless`, needs `gl`) was not run.
+The slim-app items (the cartoon snapshot and the PyMOL script) are covered by the slim browser smoke test; the default
+plugin and Viewer half of the PyMOL item is verified below. Browser runtime checks for mesoscale-explorer,
+docking-viewer, proteopedia-wrapper, and the other examples are recorded under item 13 below. The native headless smoke
+(`smoke/headless`, needs `gl`) was not run in this composition audit; earlier hosted native validation is recorded in
+the workspace plan.
 
 #### Evidence
 

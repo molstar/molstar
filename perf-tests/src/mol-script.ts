@@ -1,21 +1,19 @@
-import { MolScriptBuilder } from '@molstar/model/script/language/builder';
+import { MolScriptBuilder } from '@molstar/query-language/language/builder';
 import { compile, QuerySymbolRuntime, DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/compiler';
 import { QueryContext, Structure, StructureQuery } from '@molstar/model/model/structure';
 import { readCifFile, getModelsAndStructure } from '@molstar/structure-info-cli/model';
-import { CustomPropSymbol } from '@molstar/model/script/language/symbol';
-import { Type } from '@molstar/model/script/language/type';
-import { parseMolScript } from '@molstar/model/script/language/parser';
+import { CustomPropSymbol } from '@molstar/query-language/language/symbol';
+import { Type } from '@molstar/query-language/language/type';
+import { parseMolScript } from '@molstar/query-language/language/parser';
 import * as util from 'util';
-import { transpileMolScript } from '@molstar/model/script/script/mol-script/symbols';
-import { formatMolScript } from '@molstar/model/script/language/expression-formatter';
+import { transpileMolScript } from '@molstar/query-language/script/mol-script/symbols';
+import { formatMolScript } from '@molstar/query-language/language/expression-formatter';
 import {
   StructureQualityReport,
   StructureQualityReportProvider,
 } from '@molstar/pdbe-extension/structure-quality-report/prop';
 import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
 
-// import Examples from 'mol-script/script/mol-script/examples'
-// import { parseMolScript } from 'mol-script/script/mol-script/parser'
 // //import { compileAST } from 'mol-script/script/mol-script/compile';
 
 // for (const e of Examples) {

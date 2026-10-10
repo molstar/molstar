@@ -12,8 +12,8 @@ import { createMVSBuilder, Structure as MVSStructure, Root } from '@molstar/mvs-
 import type { MVSNodeParams } from '@molstar/mvs-builder/tree/mvs/mvs-tree';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
-import { formatMolScript } from '@molstar/model/script/language/expression-formatter';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
+import { formatMolScript } from '@molstar/query-language/language/expression-formatter';
 
 // 1pmb->1mbn
 const align = Mat4.fromArray(

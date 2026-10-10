@@ -23,7 +23,7 @@ import { PluginContext } from '@molstar/plugin/context';
 import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/compiler';
 import { StructureSelectionQuery, StructureSelectionCategory } from '@molstar/plugin/state/queries/structure/query';
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import type { GenericRepresentationRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 
 const Tag = MembraneOrientation.Tag;

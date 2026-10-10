@@ -9,8 +9,8 @@
 
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { MolScriptBuilder } from '@molstar/model/script/language/builder';
-import type { Expression } from '@molstar/model/script/language/expression';
+import { MolScriptBuilder } from '@molstar/query-language/language/builder';
+import type { Expression } from '@molstar/query-language/language/expression';
 import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
 import {
   StructureSelection as Sel,

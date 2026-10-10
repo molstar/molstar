@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 
 export const proteinEntityTest = MS.core.logic.and([
   MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),

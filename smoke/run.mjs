@@ -699,6 +699,15 @@ async function browserCheck() {
 
 async function cliCheck() {
   await consumer(
+    ['@molstar/mvs-builder'],
+    async ({ dir }) => {
+      const fixture = join(dir, 'molql.mjs');
+      await cp(join(here, 'molql/consumer.mjs'), fixture);
+      await run(process.execPath, [fixture], { cwd: dir });
+    },
+    { name: 'molql-consumer' },
+  );
+  await consumer(
     ['@molstar/mvs-builder', '@molstar/cifschema-cli'],
     async ({ dir }) => {
       const bin = join(dir, 'node_modules/.bin', process.platform === 'win32' ? 'mvs-validate.cmd' : 'mvs-validate');

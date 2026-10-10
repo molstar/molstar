@@ -12,7 +12,7 @@ import { StructureComponent } from '@molstar/plugin/state/transforms/structure/s
 import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { setSubtreeVisibility } from '@molstar/plugin/behavior/static/state';
 import { PluginContext } from '@molstar/plugin/context';
-import { MolScriptBuilder } from '@molstar/model/script/language/builder';
+import { MolScriptBuilder } from '@molstar/query-language/language/builder';
 import { ColorNames } from '@molstar/core/util/color/names';
 
 /** Amount by which to expand the camera radius when zooming to atoms involved in struct_conn (angstroms) */

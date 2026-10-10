@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CustomPropSymbol } from '../../../language/symbol.js';
-import { Type } from '../../../language/type.js';
+import { CustomPropSymbol } from '@molstar/query-language/language/symbol';
+import { Type } from '@molstar/query-language/language/type';
 import { QueryRuntimeTable, QuerySymbolRuntime } from '../base.js';
 import type { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
 

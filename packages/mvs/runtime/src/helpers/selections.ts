@@ -15,7 +15,7 @@ import {
   StructureElement,
 } from '@molstar/model/model/structure';
 import type { CoarseElements } from '@molstar/model/model/structure/model/properties/coarse';
-import { Expression } from '@molstar/model/script/language/expression';
+import { Expression } from '@molstar/query-language/language/expression';
 import { arrayExtend, filterInPlace, range, sortIfNeeded } from '@molstar/core/util/array';
 import { ElementRanges } from './element-ranges.js';
 import {

@@ -18,6 +18,9 @@
       "path": "../../packages/model"
     },
     {
+      "path": "../../packages/query-language"
+    },
+    {
       "path": "../../packages/graphics"
     }
   ]

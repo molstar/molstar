@@ -6,8 +6,8 @@
 
 import { Structure, StructureElement } from '@molstar/model/model/structure';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { MolScriptBuilder } from '@molstar/model/script/language/builder';
-import { Expression } from '@molstar/model/script/language/expression';
+import { MolScriptBuilder } from '@molstar/query-language/language/builder';
+import { Expression } from '@molstar/query-language/language/expression';
 import type { CameraFocusLociOptions } from '@molstar/plugin/state/manager/camera';
 import { PluginContext } from '@molstar/plugin/context';
 

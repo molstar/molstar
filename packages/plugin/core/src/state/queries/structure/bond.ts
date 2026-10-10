@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import { BondType } from '@molstar/model/model/structure/model/types';
 import { StructureSelectionCategory, StructureSelectionQuery } from './query.js';
 

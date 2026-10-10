@@ -6,7 +6,8 @@
  */
 
 import * as iots from 'io-ts';
-import { Expression } from '@molstar/mvs-builder/expression';
+import { Expression } from '@molstar/query-language/language/expression';
+import { expressionValidationIssues } from '@molstar/query-language/language/validation';
 import { ColorNames } from '@molstar/mvs-builder/color-names';
 import {
   bool,
@@ -212,7 +213,7 @@ export const ComponentExpressionT = new iots.Type<ComponentExpressionT>(
   (value) => value,
 );
 
-/** A MolQL expression serialized as JSON. Compiler semantics are validated by the MVS runtime. */
+/** A MolQL expression serialized as JSON. Symbol and argument names are validated by MVSData and the runtime. */
 export interface MolQLExpressionT {
   molql: unknown;
 }
@@ -647,12 +648,13 @@ function validateMolQLExpression(
   return validation === true ? iots.success(wrapper) : iots.failure(value, context, validation);
 }
 
-/** Validate the standalone JSON expression shape; the runtime performs compiler validation. */
+/** Validate expression syntax only; name validation uses an explicit symbol vocabulary outside the fixed codec. */
 function validateMolQLSyntax(molql: unknown): true | string {
-  if (!Expression.is(molql) || !Expression.isApply(molql)) {
+  if (!molql || typeof molql !== 'object' || !Expression.isApply(molql as Expression)) {
     return 'MolQL expression must be a MolScript application';
   }
-  return true;
+  const issues = expressionValidationIssues(molql, { syntaxOnly: true });
+  return issues ? issues.join('; ') : true;
 }
 
 function hasMolQLProperty(x: any): x is { molql: unknown } {

@@ -5,8 +5,8 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
-import type { Expression } from '@molstar/model/script/language/expression';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
+import type { Expression } from '@molstar/query-language/language/expression';
 import type { QueryContext } from '../../query.js';
 import type { Structure } from '../structure.js';
 import { Bundle } from './bundle.js';

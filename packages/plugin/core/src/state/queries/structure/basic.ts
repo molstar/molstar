@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import { StructureSelectionQuery } from './query.js';
 
 export const all = StructureSelectionQuery('All', MS.struct.generator.all(), { category: '', priority: 1000 });
