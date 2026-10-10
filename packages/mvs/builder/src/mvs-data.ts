@@ -312,10 +312,15 @@ function snapshotValidationIssues(
   const issues = [...(state ?? []), ...(animation ?? [])];
   const nameOptions = { getSymbol: options.getMolQLSymbol };
   const rootPath = path ? `${path}.root` : 'root';
-  if (!state) issues.push(...(molQLValidationIssues(snapshot.root, nameOptions, rootPath) ?? []));
+  if (!state) {
+    issues.push(...(molQLValidationIssues(snapshot.root, { ...nameOptions, schema: MVSTreeSchema }, rootPath) ?? []));
+  }
   if (!animation && 'animation' in snapshot && snapshot.animation !== undefined) {
     const animationPath = path ? `${path}.animation` : 'animation';
-    issues.push(...(molQLValidationIssues(snapshot.animation, nameOptions, animationPath) ?? []));
+    issues.push(
+      ...(molQLValidationIssues(snapshot.animation, { ...nameOptions, schema: MVSAnimationSchema }, animationPath) ??
+        []),
+    );
   }
   return issues.length ? issues : undefined;
 }

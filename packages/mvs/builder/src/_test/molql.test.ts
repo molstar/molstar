@@ -40,6 +40,36 @@ describe('Standalone MVS MolQL authoring and validation', () => {
     expect(MVSData.validationIssues(data)?.join('\n')).toContain("Unknown argument 'chain-tset'");
   });
 
+  it('ignores MolQL-looking values in extra parameters unless extra parameters are forbidden', () => {
+    const data = state(B.struct.generator.all());
+    const extra = { molql: { head: { name: 'custom.future-query' } } };
+    (data.root as any).params = { extension_data: extra };
+    expect(MVSData.validationIssues(data)).toBeUndefined();
+    expect(MVSData.validationIssues(data, { noExtra: false })).toBeUndefined();
+    expect(MVSData.validationIssues(data, { noExtra: true })?.join('\n')).toContain(
+      'Unknown parameter "extension_data"',
+    );
+
+    const component = data.root.children![0].children![0].children![0].children![0];
+    (component.params as any).selector = extra;
+    expect(MVSData.validationIssues(data)?.join('\n')).toContain("Unknown callable symbol 'custom.future-query'");
+  });
+
+  it('ignores extra parameters in discriminated primitive schemas and snapshots', () => {
+    const builder = MVSData.createBuilder();
+    const structure = builder.download({ url: 'example.bcif' }).parse({ format: 'bcif' }).modelStructure();
+    structure.primitives().label({ position: [0, 0, 0], text: 'label' });
+    const data = MVSData.stateToStates(builder.getState());
+    const primitive = data.snapshots[0].root.children![0].children![0].children![0].children![0].children![0];
+    (primitive.params as any).extension_data = { molql: { head: { name: 'unknown' } } };
+    expect(MVSData.validationIssues(data)).toBeUndefined();
+    expect(MVSData.validationIssues(data, { noExtra: true })?.join('\n')).toContain(
+      'Unknown parameter "extension_data"',
+    );
+    (primitive.params as any).position = { molql: { head: { name: 'unknown' } } };
+    expect(MVSData.validationIssues(data)?.join('\n')).toContain('.position.molql.head.name');
+  });
+
   it('validates every snapshot and primitive position with its path', () => {
     const builder = MVSData.createBuilder();
     const structure = builder.download({ url: 'example.bcif' }).parse({ format: 'bcif' }).modelStructure({ ref: 's' });

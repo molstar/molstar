@@ -48,10 +48,30 @@ for (const language of ['mol-script', 'pymol', 'vmd', 'jmol']) {
 }
 assert.equal(expressionValidationIssues(B.re('^C')), undefined);
 assert.throws(() => compileScript('pymol', '('));
+assert.equal(expressionValidationIssues(compileScript('mol-script', '(sel.atom.res true)')), undefined);
+assert.throws(() => compileScript('mol-script', '(sel.atom.res :typo true)'), /Unknown argument 'typo'/);
+assert.throws(
+  () => compileScript('mol-script', '(sel.atom.res :typo (not-a-function))'),
+  /Unknown callable symbol 'not-a-function'/,
+);
+assert.throws(
+  () => compileScript('mol-script', '(sel.atom.all) (not-a-function)'),
+  /Expected exactly one MolScript expression/,
+);
 const cli = fileURLToPath(new URL('../bin/mvs-validate.mjs', import.meta.resolve('@molstar/mvs-builder')));
 const valid = spawnSync(process.execPath, [cli, ...files], { encoding: 'utf8' });
 assert.equal(valid.status, 0, valid.stderr);
 assert.equal(valid.stdout.split('\n').filter((line) => line.startsWith('OK')).length, 4);
+const extra = state(B.struct.generator.all());
+extra.root.params = { extension_data: { molql: { head: { name: 'custom.future-query' } } } };
+assert(MVSData.isValid(extra));
+assert.match(MVSData.validationIssues(extra, { noExtra: true }).join('\n'), /Unknown parameter/);
+writeFileSync('extra.mvsj', MVSData.toMVSJ(extra));
+const allowedExtra = spawnSync(process.execPath, [cli, 'extra.mvsj'], { encoding: 'utf8' });
+assert.equal(allowedExtra.status, 0, allowedExtra.stderr);
+const rejectedExtra = spawnSync(process.execPath, [cli, '--no-extra', 'extra.mvsj'], { encoding: 'utf8' });
+assert.equal(rejectedExtra.status, 1, rejectedExtra.stderr);
+assert.match(rejectedExtra.stderr, /Unknown parameter/);
 const invalid = [
   [
     'unknown.mvsj',

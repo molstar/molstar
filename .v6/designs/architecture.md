@@ -585,6 +585,9 @@ of the four supported languages. It parses/translates text, then validates calla
 compile executable queries or evaluate constants. Existing supported syntax and unsupported-feature errors are
 preserved; this does not promise full parity with the original PyMOL, VMD, or Jmol engines.
 
+MolScript input must contain exactly one expression. Callable and argument names are also checked against the alias and
+macro tables before expansion, so unused macro arguments cannot hide invalid syntax or misspelled names.
+
 The text-only `Script` API lives at `@molstar/query-language/script`. Its `toExpression` dispatch preserves explicit
 registration: import `@molstar/query-language/transpilers/<lang>` or `transpilers/all` to enable non-MolScript languages
 for plugin use. Direct `transpilers/<lang>/parser` imports work without registration. `compileScript` imports all four
@@ -611,7 +614,8 @@ runtime's global table.
 
 Fixed MVS schema codecs enforce expression syntax and the existing application-root rule. `MVSData.validationIssues` and
 `isValid` additionally validate names throughout scene and animation trees, multiple snapshots, and primitive positions
-with `structure_ref`. Supply custom definitions through `options.getMolQLSymbol`. The default CLI knows only the
+with `structure_ref`. Only parameters declared by the node schema are inspected; extra parameters remain ignored unless
+`noExtra` is enabled. Supply custom definitions through `options.getMolQLSymbol`. The default CLI knows only the
 standard vocabulary and reports custom callable names as unknown. CLI failures include the file and expression path,
 return a nonzero status, and do not prevent later files from being checked. MVS runtime validation uses registered
 runtime symbol definitions, then retains executable compilation as the execution-support check.

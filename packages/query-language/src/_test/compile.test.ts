@@ -18,6 +18,40 @@ describe('Text-to-MolQL compilation without runtime registration', () => {
     expect(JSON.stringify(expression)).toContain('structure-query.generator.all');
   });
 
+  it.each([
+    '(sel.atom.res :typo true)',
+    '(sel.atom.res :typo (not-a-function))',
+    '(sel.atom.atoms true false)',
+    '(sel.atom.atom-groups :atom-test (sel.atom.res :typo true))',
+    '(sel.atom.res (not-a-function))',
+    '(bond.is :typo true)',
+  ])('rejects invalid arguments and calls before expanding macros: %s', (source) => {
+    expect(() => compileScript('mol-script', source)).toThrow(/Unknown argument|Unknown callable symbol/);
+  });
+
+  it.each([
+    '(sel.atom.res true)',
+    '(sel.atom.chains (= atom.chain `A`))',
+    '(sel.atom.atoms :0 true)',
+    '(structure-query.generator.all)',
+  ])('accepts valid macros and canonical calls: %s', (source) => {
+    expect(expressionValidationIssues(compileScript('mol-script', source))).toBeUndefined();
+  });
+
+  it.each([
+    '(sel.atom.all) (not-a-function)',
+    '(sel.atom.all) (sel.atom.atom-groups :atom-tset true)',
+    '(sel.atom.all) (sel.atom.all)',
+  ])('rejects multiple top-level expressions: %s', (source) => {
+    expect(() => compileScript('mol-script', source)).toThrow('Expected exactly one MolScript expression');
+  });
+
+  it('accepts comments around a single expression', () => {
+    expect(compileScript('mol-script', '; before\n(sel.atom.all)\n; after\n')).toEqual(
+      compileScript('mol-script', '(sel.atom.all)'),
+    );
+  });
+
   for (const [language, examples] of [
     ['pymol', pymol],
     ['vmd', vmd],

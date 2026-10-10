@@ -6,12 +6,17 @@
 
 import { expressionValidationIssues } from '@molstar/query-language/language/validation';
 import type { ExpressionValidationOptions } from '@molstar/query-language/language/validation';
-import type { Tree } from './tree/generic/tree-schema.js';
+import type { Tree, TreeSchema } from './tree/generic/tree-schema.js';
+
+export interface MolQLValidationOptions extends ExpressionValidationOptions {
+  /** Only inspect parameters declared by this schema. Extra parameters are handled by structural validation. */
+  schema?: TreeSchema;
+}
 
 /** Validate MolQL in scene/animation trees, including primitive positions, without loading the query runtime. */
 export function molQLValidationIssues(
   tree: Tree,
-  options: ExpressionValidationOptions = {},
+  options: MolQLValidationOptions = {},
   path = 'tree',
 ): string[] | undefined {
   const issues: string[] = [];
@@ -32,7 +37,12 @@ export function molQLValidationIssues(
     }
   };
   const visitNode = (node: Tree, path: string) => {
-    visitParams(node.params, `${path}.params`);
+    const params = (node.params ?? {}) as Record<string, unknown>;
+    const schema = options.schema?.nodes[node.kind]?.params;
+    const fields =
+      schema?.type === 'simple' ? schema.fields : schema?.cases[params[schema.discriminator] as string]?.fields;
+    const keys = options.schema ? Object.keys(fields ?? {}) : Object.keys(params);
+    for (const key of keys) visitParams(params[key], `${path}.params.${key}`);
     node.children?.forEach((child, i) => visitNode(child, `${path}.children[${i}]`));
   };
   visitNode(tree, path);

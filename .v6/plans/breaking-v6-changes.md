@@ -68,25 +68,20 @@ accessing geometry-specific fields.
 changing geometry group counts after creation must recreate the shape with the correct count instead of relying on the
 old getter. The model contract still marks `groupCount` readonly.
 
-## Temporary: standalone MolQL validation
+## Standalone MolQL validation
 
-The standalone builder and `mvs-validate` check MolQL expression structure but do not compile expressions. An unknown
-symbol can therefore pass CLI validation. The MVS runtime still performs compiler validation and rejects it when
-loading.
+The standalone builder and `mvs-validate` validate MolQL syntax, callable names, and argument names against
+`@molstar/query-language` symbol tables without loading the molecular query runtime. Unknown callable names fail
+standalone validation by default; custom definitions can be supplied to `MVSData.validationIssues`/`isValid` through
+`getMolQLSymbol`. Runtime validation also checks executable compilation.
 
-Standalone syntax and field-name validation is being designed as a pass against mol-script symbol/argument tables,
-without loading the molecular query runtime. MolQL builder exposure and the package dependency boundary are part of the
-same [design discussion](../designs/architecture.md#72-molql-builder-and-validation-design). These changes are not
-implemented yet; see the open validation item in [checklist.md](checklist.md).
+`@molstar/mvs-builder/molql` exposes `MolScriptBuilder` and `compileScript` for MolScript, PyMOL, VMD, and Jmol text.
+Language-only imports moved to `@molstar/query-language`; executable compiler/runtime functionality remains under
+`@molstar/model/script/...`. See [the detailed migration notes](#standalone-query-language-and-mvs-molql-validation) and
+the [validation design](../designs/architecture.md#72-molql-builder-and-validation-design).
 
-This also affects `MVSData.validationIssues`/`isValid` and schema decoding of MolQL selectors in the standalone builder.
-Runtime sanity checks invoke the compiler validation for both scene and animation trees, and selector loading still
-compiles expressions. A syntactically valid unknown symbol can pass standalone checks.
-
-The standalone `@molstar/mvs-builder/expression` module exposes JSON expression construction/shape checks only. Use
-`@molstar/model/script/...` for MolScript compiler/runtime functionality. New `@molstar/mvs/behavior-id` constants keep
-the existing `molviewspec` name and `ms-plugin.molviewspec` transformer ID; the loader now checks that stable ID without
-importing the behavior module. Serialized snapshot identity is unchanged.
+The `@molstar/mvs/behavior-id` constants keep the existing `molviewspec` name and `ms-plugin.molviewspec` transformer
+ID; the loader checks that stable ID without importing the behavior module. Serialized snapshot identity is unchanged.
 
 ## Headless MP4 integration
 
