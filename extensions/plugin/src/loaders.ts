@@ -9,16 +9,17 @@ import { Volume } from '@molstar/model/model/volume';
 import { DownloadFile, OpenFiles } from '@molstar/plugin/state/actions/file';
 import { DownloadStructure, PdbDownloadProvider } from '@molstar/plugin/state/actions/structure';
 import { DownloadDensity } from '@molstar/plugin/state/actions/volume';
-import { PresetTrajectoryHierarchy } from '@molstar/plugin/state/builder/structure/hierarchy-preset';
-import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-preset';
-import type { BuiltInCoordinatesFormat } from '@molstar/plugin/state/formats/coordinates';
-import type { BuiltInTopologyFormat } from '@molstar/plugin/state/formats/topology';
-import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory';
-import type { BuildInVolumeFormat } from '@molstar/plugin/state/formats/volume';
+import type { BuiltInTrajectoryHierarchyPresetAlias } from '@molstar/plugin/state/builder/structure/hierarchy-presets/catalog';
+import type { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
+import type { BuiltInCoordinatesFormat } from '@molstar/plugin/state/formats/coordinates/catalog';
+import type { BuiltInTopologyFormat } from '@molstar/plugin/state/formats/topology/catalog';
+import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
+import type { BuiltInVolumeFormat } from '@molstar/plugin/state/formats/volume/catalog';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
-import { TrajectoryFromModelAndCoordinates } from '@molstar/plugin/state/transforms/model';
+import { DeflateData, Download, LazyVolume } from '@molstar/plugin/state/transforms/data/fetch';
+import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
+import { TrajectoryFromModelAndCoordinates } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig } from '@molstar/plugin/config';
 import { PluginContext } from '@molstar/plugin/context';
@@ -235,19 +236,19 @@ export async function loadModelArchive(plugin: PluginContext, id: string) {
  */
 export async function loadVolumeFromUrl(
   plugin: PluginContext,
-  { url, format, isBinary }: { url: string; format: BuildInVolumeFormat; isBinary: boolean },
+  { url, format, isBinary }: { url: string; format: BuiltInVolumeFormat; isBinary: boolean },
   isovalues: VolumeIsovalueInfo[],
   options?: { entryId?: string | string[]; isLazy?: boolean },
 ) {
   await plugin.initialized;
 
-  if (!plugin.dataFormats.get(format)) {
+  if (!plugin.dataFormats.has(format)) {
     throw new Error(`Unknown density format: ${format}`);
   }
 
   if (options?.isLazy) {
     const update = plugin.build();
-    update.toRoot().apply(StateTransforms.Data.LazyVolume, {
+    update.toRoot().apply(LazyVolume, {
       url,
       format,
       entryId: options?.entryId,
@@ -270,7 +271,7 @@ export async function loadVolumeFromUrl(
         parsed.volumes?.[iso.volumeIndex ?? 0] ?? parsed.volume;
       const volumeData = volume.cell!.obj!.data;
       repr.to(volume).apply(
-        StateTransforms.Representation.VolumeRepresentation3D,
+        VolumeRepresentation3D,
         createVolumeRepresentationParams(plugin, firstVolume.data!, {
           type: 'isosurface',
           typeParams: { alpha: iso.alpha ?? 1, isoValue: Volume.adjustedIsoValue(volumeData, iso.value, iso.type) },
@@ -297,8 +298,8 @@ export async function loadFullResolutionEMDBMap(
     const data = await plugin
       .build()
       .toRoot()
-      .apply(StateTransforms.Data.Download, { url, isBinary: true, label: emdbId }, { state: { isGhost: true } })
-      .apply(StateTransforms.Data.DeflateData)
+      .apply(Download, { url, isBinary: true, label: emdbId }, { state: { isGhost: true } })
+      .apply(DeflateData)
       .commit();
 
     const parsed = await plugin.dataFormats.get('ccp4')!.parse(plugin, data, { entryId: emdbId });
@@ -310,7 +311,7 @@ export async function loadFullResolutionEMDBMap(
       .build()
       .to(volume)
       .apply(
-        StateTransforms.Representation.VolumeRepresentation3D,
+        VolumeRepresentation3D,
         createVolumeRepresentationParams(plugin, firstVolume.data!, {
           type: 'isosurface',
           typeParams: { alpha: 1, isoValue: options.isoValue },
@@ -510,5 +511,5 @@ export interface LoadTrajectoryParams {
         format: BuiltInCoordinatesFormat;
       };
   coordinatesLabel?: string;
-  preset?: keyof PresetTrajectoryHierarchy;
+  preset?: BuiltInTrajectoryHierarchyPresetAlias;
 }

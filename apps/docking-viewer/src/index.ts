@@ -6,13 +6,14 @@
  */
 
 import { Structure } from '@molstar/model/model/structure';
-import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory';
+import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
 import { PluginStateObject as PSO, PluginStateTransform } from '@molstar/plugin/state/objects';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { renderReact18 } from '@molstar/plugin-ui/react18';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
 import type { PluginLayoutControlsDisplay } from '@molstar/plugin/layout';
-import { DefaultPluginUISpec, type PluginUISpec } from '@molstar/plugin-ui/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
+import type { PluginUISpec } from '@molstar/plugin-ui/spec';
 import { PluginBehaviors } from '@molstar/plugin/behavior';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig } from '@molstar/plugin/config';
@@ -82,7 +83,7 @@ class Viewer {
     const defaultSpec = DefaultPluginUISpec();
 
     const spec: PluginUISpec = {
-      actions: defaultSpec.actions,
+      registry: defaultSpec.registry,
       behaviors: [
         PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci, { mark: false }),
         PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
@@ -92,7 +93,6 @@ class Viewer {
         PluginSpec.Behavior(PluginBehaviors.CustomProps.Interactions),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.SecondaryStructure),
       ],
-      animations: defaultSpec.animations,
       customParamEditors: defaultSpec.customParamEditors,
       layout: {
         initial: {

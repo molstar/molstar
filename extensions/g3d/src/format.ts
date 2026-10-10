@@ -6,10 +6,12 @@
  */
 
 import type { Trajectory } from '@molstar/model/model/structure';
-import { TrajectoryFormatCategory, type TrajectoryFormatProvider } from '@molstar/plugin/state/formats/trajectory';
+import { TrajectoryFormatCategory } from '@molstar/plugin/state/formats/trajectory/category';
+import { TrajectoryFormatProvider } from '@molstar/plugin/state/formats/trajectory/provider';
 import { PluginStateObject as SO, PluginStateTransform } from '@molstar/plugin/state/objects';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginContext } from '@molstar/plugin/context';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/base';
 import { StateAction, StateObjectRef } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
@@ -22,12 +24,14 @@ import {
   G3dSymbols,
   G3dInfoDataProperty,
 } from '@molstar/g3d-extension/model';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { StructureSelectionFromExpression } from '@molstar/plugin/state/transforms/structure/selection';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { createStructureRepresentationParams } from '@molstar/plugin/state/helpers/structure-representation-params';
 import { stringToWords } from '@molstar/core/util/string';
 import { objectForEach } from '@molstar/core/util/object';
 
-export const G3dProvider: TrajectoryFormatProvider = {
+export const G3dProvider = TrajectoryFormatProvider({
+  name: 'g3d',
   label: 'G3D',
   description: 'G3D',
   category: TrajectoryFormatCategory,
@@ -43,7 +47,7 @@ export const G3dProvider: TrajectoryFormatProvider = {
     return { trajectory };
   },
   visuals: defaultStructure,
-};
+});
 
 async function defaultStructure(plugin: PluginContext, data: { trajectory: StateObjectRef<SO.Molecule.Trajectory> }) {
   const builder = plugin.builders.structure;
@@ -66,11 +70,11 @@ async function defaultStructure(plugin: PluginContext, data: { trajectory: State
 
   for (const h of info.haplotypes) {
     components
-      .apply(StateTransforms.Model.StructureSelectionFromExpression, {
+      .apply(StructureSelectionFromExpression, {
         expression: g3dHaplotypeQuery(h),
         label: stringToWords(h),
       })
-      .apply(StateTransforms.Representation.StructureRepresentation3D, repr);
+      .apply(StructureRepresentation3D, repr);
   }
 
   await components.commit();
@@ -187,15 +191,20 @@ export const G3DFormat = PluginBehavior.create<{ autoAttach: boolean; showToolti
     description: 'G3D Format Support',
   },
   ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean; showTooltip: boolean }> {
+    private unregisterEntry: (() => void) | undefined;
+
     register() {
-      this.ctx.state.data.actions.add(LoadG3D);
+      const entry: PluginRegistryEntry = {
+        lociLabels: [G3dLabelProvider],
+        actions: [LoadG3D],
+      };
+      this.unregisterEntry = this.ctx.register(entry);
       objectForEach(G3dSymbols, (s) => DefaultQueryRuntimeTable.addSymbol(s));
-      this.ctx.managers.lociLabels.addProvider(G3dLabelProvider);
     }
     unregister() {
-      this.ctx.state.data.actions.remove(LoadG3D);
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
       objectForEach(G3dSymbols, (s) => DefaultQueryRuntimeTable.removeSymbol(s));
-      this.ctx.managers.lociLabels.removeProvider(G3dLabelProvider);
     }
   },
 });

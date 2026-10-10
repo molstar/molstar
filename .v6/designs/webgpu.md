@@ -568,8 +568,8 @@ Mechanical imports can be migrated automatically. Resource ownership, synchronou
 integrations need a manual-work report. Existing WebGL-only integrations may use `backends/webgl/interop`, with runtime
 backend checks; shared code must not depend on that entry point.
 
-Backend selection is separate from `PluginFeature` format/representation registration. Registering a representation does
-not guarantee backend support: its applicability check must account for capabilities and available fallbacks. Keep
+Backend selection is separate from plugin registry entries for formats and representations. Registering a representation
+does not guarantee backend support: its applicability check must account for capabilities and available fallbacks. Keep
 transformer identifiers, picking IDs, and scene semantics stable; include any unavoidable public API breaks in the
 migration guide.
 

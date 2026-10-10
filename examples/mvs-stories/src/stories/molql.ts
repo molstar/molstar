@@ -8,6 +8,7 @@ import type { MVSData_States } from '@molstar/mvs-builder/mvs-data';
 import { createMVSBuilder } from '@molstar/mvs-builder/tree/mvs/mvs-builder';
 import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import { parse } from '@molstar/model/script/transpile';
+import '@molstar/model/script/transpilers/pymol';
 
 const imatinib = MS.struct.generator.atomGroups({
   'chain-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_asym_id(), 'G']),

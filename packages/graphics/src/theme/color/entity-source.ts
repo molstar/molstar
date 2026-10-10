@@ -17,7 +17,7 @@ import { getPaletteParams, getPalette } from '@molstar/core/util/color/palette';
 import type { TableLegend, ScaleLegend } from '@molstar/core/util/legend';
 import { isInteger } from '@molstar/core/util/number';
 import { ColorLists, getColorListFromName } from '@molstar/core/util/color/lists';
-import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
+import { MmcifFormat } from '@molstar/model/formats/structure/mmcif-format';
 import { ColorThemeCategory } from './categories.js';
 
 const DefaultList = 'dark-2';

@@ -3,7 +3,7 @@ import spawn from 'cross-spawn';
 import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile, access } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
-import { dirname, extname, isAbsolute, join, relative, resolve } from 'node:path';
+import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
 
@@ -12,7 +12,7 @@ const root = resolve(here, '..');
 const rootRequire = createRequire(import.meta.url);
 const args = new Set(process.argv.slice(2));
 const mode = [...args].find((arg) => !arg.startsWith('--')) ?? 'all';
-const validModes = ['node', 'types', 'browser', 'source', 'cli', 'headless', 'all'];
+const validModes = ['node', 'types', 'browser', 'source', 'slim', 'cli', 'headless', 'all'];
 if (args.has('--serve') && mode !== 'browser') throw new Error('--serve requires browser mode.');
 if (!validModes.includes(mode)) throw new Error(`Unknown smoke mode '${mode}'. Choose ${validModes.join(', ')}.`);
 const run = (command, commandArgs, options = {}) =>
@@ -308,6 +308,256 @@ async function sourceCheck() {
   console.log('Source-condition bundle passed');
 }
 
+async function slimCheck() {
+  const esbuildPath = resolve(root, 'node_modules/esbuild/lib/main.js');
+  if (!(await exists(esbuildPath))) fail('esbuild is not installed; slim smoke cannot run.');
+  const esbuildModule = await import(pathToFileURL(esbuildPath));
+  const esbuild = esbuildModule.default ?? esbuildModule;
+  const started = Date.now();
+  const timings = {};
+  const diagnostics = resolve(root, 'build/smoke-diagnostics/slim');
+  await rm(diagnostics, { recursive: true, force: true });
+  await consumer(
+    // the packages the slim example imports (@molstar/plugin, @molstar/core, @molstar/plugin-ui) and @molstar/model for
+    // `Script`; their internal dependency closure is installed from the packed tarballs
+    ['@molstar/plugin', '@molstar/core', '@molstar/plugin-ui', '@molstar/model'],
+    async ({ dir }) => {
+      timings.install = Date.now() - started;
+      // The example sources are copied unchanged; the harness (smoke/slim/harness.js) imports the entry, so the bundle
+      // resolves every package from the consumer's node_modules.
+      const exampleSource = join(root, 'examples/slim-plugin/src');
+      await cp(exampleSource, join(dir, 'slim-example'), { recursive: true });
+      await cp(join(here, 'slim/harness.js'), join(dir, 'harness.js'));
+      const site = join(dir, 'site');
+      await mkdir(site, { recursive: true });
+      await cp(join(here, 'slim/index.html'), join(site, 'index.html'));
+      await cp(join(exampleSource, 'ligand.sdf'), join(site, 'ligand.sdf'));
+      const buildStart = Date.now();
+      const result = await esbuild.build({
+        absWorkingDir: dir,
+        entryPoints: [join(dir, 'harness.js')],
+        bundle: true,
+        platform: 'browser',
+        format: 'iife',
+        outfile: join(site, 'slim.js'),
+        conditions: ['molstar-src', 'import', 'default'],
+        external: ['crypto', 'fs', 'path', 'stream'],
+        // The example imports its page, ligand, and skin; the page and the ligand are served from `site/` and the
+        // skin is not needed to check the plugin state.
+        loader: { '.html': 'empty', '.sdf': 'empty', '.scss': 'empty', '.css': 'empty' },
+        tsconfigRaw: {
+          compilerOptions: {
+            target: 'ES2022',
+            jsx: 'react-jsx',
+            useDefineForClassFields: false,
+            verbatimModuleSyntax: true,
+          },
+        },
+        plugins: [
+          {
+            // sources import `./x.js` for `./x.ts`, as in scripts/esbuild/app.mjs
+            name: 'molstar-source-js-extension',
+            setup(build) {
+              build.onResolve({ filter: /^\./ }, async (args) => {
+                if (!args.path.endsWith('.js')) return null;
+                const file = resolve(args.resolveDir, args.path);
+                if (await exists(file)) return null;
+                for (const ext of ['.ts', '.tsx']) {
+                  const source = file.slice(0, -'.js'.length) + ext;
+                  if (await exists(source)) return { path: source };
+                }
+                return null;
+              });
+            },
+          },
+        ],
+        define: {
+          'process.env.NODE_ENV': JSON.stringify('production'),
+          'process.env.DEBUG': JSON.stringify(false),
+          __MOLSTAR_PLUGIN_VERSION__: JSON.stringify('smoke'),
+        },
+        minify: true,
+        minifyIdentifiers: false,
+        metafile: true,
+        logLevel: 'error',
+      });
+      timings.bundle = Date.now() - buildStart;
+      const inputs = Object.keys(result.metafile.inputs).map((path) => path.split('\\').join('/'));
+      assert(
+        inputs.some((path) => /node_modules\/@molstar\/plugin\/src\//.test(path)),
+        `The slim bundle resolved no installed package source: ${inputs.slice(0, 10).join(', ')}`,
+      );
+      const outside = inputs.filter((path) => path.startsWith('..'));
+      assert.deepEqual(
+        outside,
+        [],
+        `The slim bundle consumed files outside the consumer project: ${outside.join(', ')}`,
+      );
+      const excluded = inputs.filter((path) =>
+        /\/representation\/cartoon\.ts$|\/formats\/structure\/mmcif\.ts$|\/reader\/ccp4\/|\/state\/formats\/volume\/ccp4\.ts$|\/transpilers\/(pymol|vmd|jmol)\//.test(
+          path,
+        ),
+      );
+      assert.deepEqual(excluded, [], `The slim bundle contains excluded modules: ${excluded.join(', ')}`);
+
+      const types = {
+        '.html': 'text/html',
+        '.js': 'text/javascript',
+        '.css': 'text/css',
+        '.sdf': 'chemical/x-mdl-sdfile',
+      };
+      const server = createServer(async (req, res) => {
+        try {
+          let pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+          if (pathname === '/') pathname = '/index.html';
+          if (pathname === '/favicon.ico') {
+            res.writeHead(204);
+            res.end();
+            return;
+          }
+          const file = resolve(site, `.${pathname}`);
+          if (!file.startsWith(site + sep)) {
+            res.writeHead(403);
+            res.end('forbidden');
+            return;
+          }
+          const body = await readFile(file);
+          res.writeHead(200, { 'content-type': types[extname(file)] ?? 'application/octet-stream' });
+          res.end(body);
+        } catch (error) {
+          res.writeHead(error.code === 'ENOENT' ? 404 : 500);
+          res.end(error.code === 'ENOENT' ? 'not found' : error.message);
+        }
+      });
+      await new Promise((resolveListen, rejectListen) => {
+        server.once('error', rejectListen);
+        server.listen(0, '127.0.0.1', () => {
+          server.removeListener('error', rejectListen);
+          resolveListen();
+        });
+      });
+      const { port } = server.address();
+      const consoleLog = [];
+      const browserErrors = [];
+      let browser;
+      let page;
+      try {
+        browser = await launchBrowser();
+        page = await browser.newPage({ viewport: { width: 800, height: 600 } });
+        page.on('pageerror', (error) => browserErrors.push(`pageerror: ${error.stack ?? error.message}`));
+        page.on('requestfailed', (request) =>
+          browserErrors.push(`requestfailed: ${request.url()} ${request.failure()?.errorText}`),
+        );
+        page.on('response', (response) => {
+          if (response.status() >= 400) browserErrors.push(`HTTP ${response.status()} ${response.url()}`);
+        });
+        page.on('console', (message) => {
+          consoleLog.push(`[${message.type()}] ${message.text()}`);
+          if (message.type() === 'error') browserErrors.push(`console.error: ${message.text()}`);
+        });
+        const pageStart = Date.now();
+        await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'load', timeout: 30000 });
+        await page.waitForFunction(() => Boolean(window.slimPluginReady), undefined, { timeout: 30000 });
+        await page.evaluate(() => window.slimPluginReady.then(() => undefined));
+        // The representation reaches the scene on the commit after the state update resolves.
+        await page.waitForFunction(() => window.slimSmoke.describe().reprCount > 0, undefined, { timeout: 30000 });
+        timings.load = Date.now() - pageStart;
+
+        // 1. The SDF ligand renders as ball-and-stick.
+        const loaded = await page.evaluate(() => window.slimSmoke.describe());
+        assert.equal(loaded.structures, 1, `Expected one structure: ${JSON.stringify(loaded)}`);
+        const ballAndStick = loaded.structureReprs.filter((r) => r.type === 'ball-and-stick');
+        assert(ballAndStick.length > 0, `No ball-and-stick representation: ${JSON.stringify(loaded.structureReprs)}`);
+        assert.equal(
+          loaded.structureReprs.length,
+          ballAndStick.length,
+          `Unexpected representation types: ${JSON.stringify(loaded.structureReprs)}`,
+        );
+        for (const repr of ballAndStick) {
+          assert.equal(repr.status, 'ok', `Representation ${repr.ref} is not ok: ${JSON.stringify(repr)}`);
+          assert(repr.visible, `Representation ${repr.ref} is not visible`);
+          assert(repr.renderObjectsWithGeometry > 0, `Representation ${repr.ref} has no render objects with geometry`);
+        }
+        assert(loaded.reprCount > 0, `canvas3d has no representations: ${JSON.stringify(loaded)}`);
+        assert(loaded.sceneRenderObjects > 0, `canvas3d has no render objects: ${JSON.stringify(loaded)}`);
+        assert((await page.locator('canvas').count()) > 0, 'The slim plugin did not create a render canvas');
+
+        // 2. Only the slim set of providers is registered.
+        assert.deepEqual(loaded.registered, {
+          structureRepresentations: ['ball-and-stick'],
+          formats: ['sdf'],
+          hierarchyPresets: ['preset-trajectory-default'],
+          representationPresets: ['preset-structure-representation-ball-and-stick'],
+          scriptLanguages: ['mol-script'],
+        });
+
+        // 3. A snapshot naming `cartoon` reports it as unregistered and renders the registry default.
+        const restored = await page.evaluate(() => window.slimSmoke.restoreCartoonSnapshot());
+        assert(restored.changed > 0, 'The snapshot has no structure representation to rewrite');
+        const afterRestore = await page.evaluate(() => window.slimSmoke.describe());
+        const warnings = await page.evaluate(() => window.slimSmoke.warnings);
+        assert(
+          warnings.includes(
+            "Structure representation 'cartoon' is not registered in this plugin; the registry default is used",
+          ),
+          `Missing the unregistered-cartoon warning; got ${JSON.stringify(warnings)}`,
+        );
+        assert.equal(afterRestore.structureReprs.length, restored.changed, JSON.stringify(afterRestore.structureReprs));
+        for (const repr of afterRestore.structureReprs) {
+          assert.equal(repr.type, 'ball-and-stick', `Restored representation is ${repr.type}: ${JSON.stringify(repr)}`);
+          assert.equal(repr.status, 'ok', `Restored representation ${repr.ref} is not ok: ${JSON.stringify(repr)}`);
+          assert(repr.renderObjectsWithGeometry > 0, `Restored representation ${repr.ref} has no render objects`);
+        }
+        assert(afterRestore.sceneRenderObjects > 0, 'canvas3d has no render objects after restoring the snapshot');
+
+        // 4. A PyMOL script fails; the language is not enabled in the slim build.
+        assert.equal(
+          await page.evaluate(() => window.slimSmoke.evaluatePyMol()),
+          "Script language 'pymol' is not available in this build",
+        );
+
+        assert.deepEqual(browserErrors, [], `Browser runtime or asset errors: ${browserErrors.join('; ')}`);
+      } catch (error) {
+        await mkdir(diagnostics, { recursive: true });
+        await writeFile(join(diagnostics, 'console.log'), `${consoleLog.join('\n')}\n\n${browserErrors.join('\n')}\n`);
+        await page?.screenshot({ path: join(diagnostics, 'screenshot.png') }).catch(() => undefined);
+        console.error(`Slim smoke diagnostics saved to ${relative(root, diagnostics)}`);
+        throw error;
+      } finally {
+        await browser?.close();
+        await new Promise((resolveClose) => server.close(resolveClose));
+      }
+    },
+    {
+      name: 'slim-consumer',
+      extraDependencies: { react: await catalogVersion('react'), 'react-dom': await catalogVersion('react-dom') },
+    },
+  );
+  console.log(
+    `Slim plugin renders the SDF ligand with only the slim providers (install ${timings.install} ms, bundle ${timings.bundle} ms, page ${timings.load} ms, total ${Date.now() - started} ms)`,
+  );
+}
+
+/** Launches headless Chromium through the workspace Playwright (`MOLSTAR_SMOKE_BROWSER` overrides the executable). */
+async function launchBrowser() {
+  const playwrightPath = resolve(root, 'node_modules/playwright/index.mjs');
+  if (!(await exists(playwrightPath)))
+    fail(
+      'Browser automation unavailable: install Playwright in the workspace to execute browser smoke pages. Pages and local fixture are ready, but browser behavior is unverified.',
+    );
+  const { chromium } = await import(pathToFileURL(playwrightPath));
+  const browserPath =
+    process.env.MOLSTAR_SMOKE_BROWSER ||
+    ((await exists('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'))
+      ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+      : undefined);
+  return chromium.launch({
+    headless: true,
+    ...(browserPath ? { executablePath: browserPath } : {}),
+    args: ['--use-angle=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'],
+  });
+}
+
 async function browserCheck() {
   const packedDistribution = await unpackDistribution();
   const dist = join(packedDistribution, 'build/esm');
@@ -403,22 +653,7 @@ async function browserCheck() {
   const browserErrors = [];
   let browser;
   try {
-    const playwrightPath = resolve(root, 'node_modules/playwright/index.mjs');
-    if (!(await exists(playwrightPath)))
-      fail(
-        'Browser automation unavailable: install Playwright in the workspace to execute browser smoke pages. Pages and local fixture are ready, but browser behavior is unverified.',
-      );
-    const { chromium } = await import(pathToFileURL(playwrightPath));
-    const browserPath =
-      process.env.MOLSTAR_SMOKE_BROWSER ||
-      ((await exists('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'))
-        ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-        : undefined);
-    browser = await chromium.launch({
-      headless: true,
-      ...(browserPath ? { executablePath: browserPath } : {}),
-      args: ['--use-angle=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'],
-    });
+    browser = await launchBrowser();
     for (const pagePath of ['/viewer/', '/library/', '/classic/viewer.html', '/classic/mvs-stories.html']) {
       const page = await browser.newPage();
       page.on('pageerror', (error) => browserErrors.push(`${pagePath}: ${error.stack ?? error.message}`));
@@ -549,6 +784,7 @@ const checks =
         ['node', nodeCheck],
         ['types', typesCheck],
         ['source', sourceCheck],
+        ['slim', slimCheck],
         ['cli', cliCheck],
         ['browser', browserCheck],
       ]
@@ -559,6 +795,7 @@ const checks =
             node: nodeCheck,
             types: typesCheck,
             source: sourceCheck,
+            slim: slimCheck,
             cli: cliCheck,
             browser: browserCheck,
             headless: headlessCheck,

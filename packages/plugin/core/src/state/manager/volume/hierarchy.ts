@@ -9,7 +9,7 @@ import type { PluginContext } from '@molstar/plugin/context';
 import { PluginComponent } from '../../component.js';
 import { buildVolumeHierarchy, VolumeHierarchy, type VolumeHierarchyRef, type VolumeRef } from './hierarchy-state.js';
 import { createVolumeRepresentationParams } from '../../helpers/volume-representation-params.js';
-import { StateTransforms } from '../../transforms.js';
+import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 
 export class VolumeHierarchyManager extends PluginComponent {
   private state = {
@@ -110,7 +110,7 @@ export class VolumeHierarchyManager extends PluginComponent {
       .build()
       .to(ref.cell)
       .apply(
-        StateTransforms.Representation.VolumeRepresentation3D,
+        VolumeRepresentation3D,
         createVolumeRepresentationParams(this.plugin, ref.cell.obj?.data, {
           type: type as any,
         }),

@@ -27,7 +27,7 @@ export const OperatorHklColorThemeParams = {
 export type OperatorHklColorThemeParams = typeof OperatorHklColorThemeParams;
 export function getOperatorHklColorThemeParams(ctx: ThemeDataContext) {
   const params = PD.clone(OperatorHklColorThemeParams);
-  if (ctx.structure) {
+  if (ctx.structure && !ctx.structure.isEmpty) {
     if (getOperatorHklSerialMap(ctx.structure.root).map.size > ColorLists[DefaultList].list.length) {
       params.palette.defaultValue.name = 'colors';
       params.palette.defaultValue.params = {

@@ -15,10 +15,7 @@ import { AccessibleSurfaceAreaColorThemeProvider } from '@molstar/graphics/props
 import { OrderedSet } from '@molstar/core/data/int';
 import { arraySum } from '@molstar/core/util/array';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/compiler';
-import {
-  StructureSelectionQuery,
-  StructureSelectionCategory,
-} from '@molstar/plugin/state/helpers/structure-selection-query';
+import { StructureSelectionQuery, StructureSelectionCategory } from '@molstar/plugin/state/queries/structure/query';
 import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 
 export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean; showTooltip: boolean }>({

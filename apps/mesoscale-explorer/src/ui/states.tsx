@@ -5,7 +5,7 @@
  */
 
 import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
-import { MmcifProvider } from '@molstar/plugin/state/formats/trajectory';
+import { MmcifProvider } from '@molstar/plugin/state/formats/trajectory/mmcif';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { Button, ExpandGroup, IconButton } from '@molstar/plugin-ui/controls/common';
 import {

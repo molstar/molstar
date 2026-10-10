@@ -6,7 +6,7 @@
  *
  * Command-line application for converting MolViewSpec MVSJ into MSVX files
  * Build: npm run build
- * Run:   node lib/commonjs/cli/mvs/mvs-mvsj-to-mvsx -i examples/mvs/1cbs.mvsj -o tmp/1cbs.mvsx
+ * Run:   node lib/commonjs/cli/mvs/mvs-mvsj-to-mvsx -i data/examples/mvs/1cbs.mvsj -o tmp/1cbs.mvsx
  */
 
 import { ArgumentParser } from 'argparse';

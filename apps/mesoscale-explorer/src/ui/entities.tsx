@@ -30,7 +30,7 @@ import {
 } from '@molstar/plugin-ui/controls/parameters';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Clip } from '@molstar/core/util/clip';
-import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/representation';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { Color } from '@molstar/core/util/color';
 import { CombinedColorControl } from '@molstar/plugin-ui/controls/color';
 import { MarkerAction } from '@molstar/core/util/marker-action';

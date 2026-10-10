@@ -16,18 +16,14 @@ import { ClashesRepresentationProvider } from './representation.js';
 import { DensityFitColorThemeProvider } from './color/density-fit.js';
 import { cantorPairing } from '@molstar/core/data/util';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/compiler';
-import {
-  StructureSelectionQuery,
-  StructureSelectionCategory,
-} from '@molstar/plugin/state/helpers/structure-selection-query';
+import { StructureSelectionQuery, StructureSelectionCategory } from '@molstar/plugin/state/queries/structure/query';
 import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import { Task } from '@molstar/core/task';
-import {
-  StructureRepresentationPresetProvider,
-  PresetStructureRepresentations,
-} from '@molstar/plugin/state/builder/structure/representation-preset';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/representation-presets/auto';
 import { StateObjectRef } from '@molstar/core/state';
 import { Model } from '@molstar/model/model/structure';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean; showTooltip: boolean }>({
   name: 'rcsb-validation-report-prop',
@@ -48,23 +44,31 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean;
       },
     };
 
+    private unregisterEntry: (() => void) | undefined;
+
     register(): void {
       DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
 
       this.ctx.customModelProperties.register(this.provider, this.params.autoAttach);
 
-      this.ctx.managers.lociLabels.addProvider(this.labelProvider);
-
-      this.ctx.representation.structure.themes.colorThemeRegistry.add(DensityFitColorThemeProvider);
-      this.ctx.representation.structure.themes.colorThemeRegistry.add(GeometryQualityColorThemeProvider);
-      this.ctx.representation.structure.themes.colorThemeRegistry.add(RandomCoilIndexColorThemeProvider);
-
-      this.ctx.representation.structure.registry.add(ClashesRepresentationProvider);
-      this.ctx.query.structure.registry.add(hasClash);
-
-      this.ctx.builders.structure.representation.registerPreset(ValidationReportGeometryQualityPreset);
-      this.ctx.builders.structure.representation.registerPreset(ValidationReportDensityFitPreset);
-      this.ctx.builders.structure.representation.registerPreset(ValidationReportRandomCoilIndexPreset);
+      const entry: PluginRegistryEntry = {
+        structure: {
+          themes: {
+            color: [DensityFitColorThemeProvider, GeometryQualityColorThemeProvider, RandomCoilIndexColorThemeProvider],
+          },
+          representations: [ClashesRepresentationProvider],
+          presets: {
+            representation: [
+              ValidationReportGeometryQualityPreset,
+              ValidationReportDensityFitPreset,
+              ValidationReportRandomCoilIndexPreset,
+            ],
+          },
+          selectionQueries: [hasClash],
+        },
+        lociLabels: [this.labelProvider],
+      };
+      this.unregisterEntry = this.ctx.register(entry);
     }
 
     update(p: { autoAttach: boolean; showTooltip: boolean }) {
@@ -80,18 +84,8 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean;
 
       this.ctx.customModelProperties.unregister(this.provider.descriptor.name);
 
-      this.ctx.managers.lociLabels.removeProvider(this.labelProvider);
-
-      this.ctx.representation.structure.themes.colorThemeRegistry.remove(DensityFitColorThemeProvider);
-      this.ctx.representation.structure.themes.colorThemeRegistry.remove(GeometryQualityColorThemeProvider);
-      this.ctx.representation.structure.themes.colorThemeRegistry.remove(RandomCoilIndexColorThemeProvider);
-
-      this.ctx.representation.structure.registry.remove(ClashesRepresentationProvider);
-      this.ctx.query.structure.registry.remove(hasClash);
-
-      this.ctx.builders.structure.representation.unregisterPreset(ValidationReportGeometryQualityPreset);
-      this.ctx.builders.structure.representation.unregisterPreset(ValidationReportDensityFitPreset);
-      this.ctx.builders.structure.representation.unregisterPreset(ValidationReportRandomCoilIndexPreset);
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
     }
   },
   params: () => ({
@@ -333,7 +327,7 @@ export const ValidationReportGeometryQualityPreset = StructureRepresentationPres
     );
 
     const colorTheme = GeometryQualityColorThemeProvider.name as any;
-    const { components, representations } = await PresetStructureRepresentations.auto.apply(
+    const { components, representations } = await AutoPreset.apply(
       ref,
       { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } },
       plugin,
@@ -403,7 +397,7 @@ export const ValidationReportDensityFitPreset = StructureRepresentationPresetPro
     );
 
     const colorTheme = DensityFitColorThemeProvider.name as any;
-    return await PresetStructureRepresentations.auto.apply(
+    return await AutoPreset.apply(
       ref,
       { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } },
       plugin,
@@ -440,7 +434,7 @@ export const ValidationReportRandomCoilIndexPreset = StructureRepresentationPres
     );
 
     const colorTheme = RandomCoilIndexColorThemeProvider.name as any;
-    return await PresetStructureRepresentations.auto.apply(
+    return await AutoPreset.apply(
       ref,
       { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } },
       plugin,

@@ -80,6 +80,9 @@
       "path": "./examples/react"
     },
     {
+      "path": "./examples/slim-plugin"
+    },
+    {
       "path": "./examples/standalone"
     },
     {

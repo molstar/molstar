@@ -20,7 +20,7 @@ import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { renderReact18 } from '@molstar/plugin-ui/react18';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
-import { DefaultPluginUISpec } from '@molstar/plugin-ui/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig } from '@molstar/plugin/config';
 import { StateObjectSelector, StateTransformer } from '@molstar/core/state';

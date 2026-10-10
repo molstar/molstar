@@ -21,7 +21,7 @@ import type { Topology } from '../topology.js';
 import { Task } from '@molstar/core/task';
 import { IndexPairBonds } from '@molstar/model/formats/structure/property/bonds/index-pair';
 import { createModels } from '@molstar/model/formats/structure/basic/parser';
-import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
+import { MmcifFormat } from '@molstar/model/formats/structure/mmcif-format';
 import type { ChainIndex, ElementIndex } from './indexing.js';
 import type { SymmetryOperator } from '@molstar/core/math/geometry';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';

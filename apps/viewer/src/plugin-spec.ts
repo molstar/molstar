@@ -5,13 +5,15 @@
  */
 
 import { AssemblySymmetryConfig } from '@molstar/assembly-symmetry-extension';
-import { DefaultPluginUISpec, type PluginUISpec } from '@molstar/plugin-ui/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
+import type { PluginUISpec } from '@molstar/plugin-ui/spec';
 import { PluginBehaviors } from '@molstar/plugin/behavior';
 import { PluginConfig } from '@molstar/plugin/config';
 import { ExtensionMap } from '@molstar/viewer/extensions';
 import { DefaultViewerOptions, type ViewerOptions } from '@molstar/viewer/options';
 import { NoPrimaryFocusLociBindings } from '@molstar/plugin/behavior/dynamic/camera';
 import { PluginSpec } from '@molstar/plugin/spec';
+import { createViewerRegistry } from '@molstar/viewer/registry';
 import { ViewerAutoPreset } from '@molstar/viewer/presets';
 
 export function createViewerSpec(options: Partial<ViewerOptions> = {}): PluginUISpec {
@@ -52,11 +54,9 @@ export function createViewerSpec(options: Partial<ViewerOptions> = {}): PluginUI
     canvas3d: {
       ...defaultSpec.canvas3d,
     },
-    actions: defaultSpec.actions,
+    registry: createViewerRegistry(o.customFormats),
     behaviors: [...baseBehaviors, ...o.extensions.filter((e) => !disabledExtension.has(e)).map((e) => ExtensionMap[e])],
-    animations: [...(defaultSpec.animations || [])],
     customParamEditors: defaultSpec.customParamEditors,
-    customFormats: o?.customFormats,
     layout: {
       initial: {
         isExpanded: o.layoutIsExpanded,

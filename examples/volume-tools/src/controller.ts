@@ -7,7 +7,7 @@ import { BehaviorSubject } from 'rxjs';
 import { OrderedSet } from '@molstar/core/data/int';
 import { PluginContext } from '@molstar/plugin/context';
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { setSubtreeVisibility } from '@molstar/plugin/behavior/static/state';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import { Volume } from '@molstar/model/model/volume';
@@ -228,7 +228,7 @@ export class VolumeMaskController {
     for (const repr of volItem.representations) {
       const params = repr.cell.transform.params as any;
       if (params?.type?.name !== 'isosurface') continue;
-      builder.to(repr.cell).update(StateTransforms.Representation.VolumeRepresentation3D, (old) => ({
+      builder.to(repr.cell).update(VolumeRepresentation3D, (old) => ({
         ...old,
         type: { name: 'isosurface', params: { ...old.type.params, isoValue: value } },
       }));
@@ -329,7 +329,7 @@ export class VolumeMaskController {
       if (params?.type?.name !== 'isosurface') continue;
       if (!show && params?.colorTheme?.name !== MaskSelectionColorThemeProvider.name) continue;
 
-      builder.to(repr.cell).update(StateTransforms.Representation.VolumeRepresentation3D, (old: any) => ({
+      builder.to(repr.cell).update(VolumeRepresentation3D, (old: any) => ({
         ...old,
         colorTheme: show
           ? {
@@ -359,7 +359,7 @@ export class VolumeMaskController {
 
     const builder = this.plugin.build();
     for (const repr of directReprs) {
-      builder.to(repr.cell).update(StateTransforms.Representation.VolumeRepresentation3D, (old) => ({
+      builder.to(repr.cell).update(VolumeRepresentation3D, (old) => ({
         ...old,
         type: { ...old.type, params: { ...old.type.params, alpha: value } },
       }));
@@ -423,11 +423,7 @@ export class VolumeMaskController {
       color: 'uniform',
       colorParams: { value: MASK_OVERLAY_COLOR },
     });
-    await this.plugin
-      .build()
-      .to(maskRef)
-      .apply(StateTransforms.Representation.VolumeRepresentation3D, reprParams)
-      .commit();
+    await this.plugin.build().to(maskRef).apply(VolumeRepresentation3D, reprParams).commit();
 
     const maskVolObj = this.plugin.state.data.select(maskRef)[0]?.obj as SO.Volume.Data | undefined;
     if (maskVolObj) {

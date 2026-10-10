@@ -219,8 +219,8 @@ export const OrientationParticlesParams = {
 export type OrientationParticlesParams = typeof OrientationParticlesParams;
 export type OrientationParticlesProps = PD.Values<OrientationParticlesParams>;
 
-export function getOrientationParticlesParams(_ctx: ThemeRegistryContext, data: ParticleList) {
-  const hasRotations = !!data.rotations;
+export function getOrientationParticlesParams(_ctx: ThemeRegistryContext, data: ParticleList | undefined) {
+  const hasRotations = !!data?.rotations;
   return {
     ...OrientationParticlesParams,
     visuals: PD.MultiSelect(

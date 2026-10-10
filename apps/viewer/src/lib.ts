@@ -12,12 +12,14 @@ import * as LinearAlgebra3D from '@molstar/core/math/linear-algebra/3d';
 import { PluginContext } from '@molstar/plugin/context';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
 import { PluginConfig } from '@molstar/plugin/config';
-import { PluginBehavior } from '@molstar/plugin/behavior';
-import { DefaultPluginSpec, PluginSpec } from '@molstar/plugin/spec';
-import { DefaultPluginUISpec } from '@molstar/plugin-ui/spec';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
+import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { DefaultRegistry } from '@molstar/plugin/default-registry';
+import { PluginSpec } from '@molstar/plugin/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import { PluginStateObject, PluginStateTransform } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
 import { StateActions } from '@molstar/plugin/state/actions';
+import { StateTransforms } from '@molstar/viewer/state-transforms';
 import { PluginExtensions } from '@molstar/viewer/extensions';
 
 export const lib = {
@@ -53,6 +55,7 @@ export const lib = {
     StateActions,
     DefaultPluginSpec,
     DefaultPluginUISpec,
+    DefaultRegistry,
   },
   extensions: {
     ...PluginExtensions,

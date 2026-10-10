@@ -5,17 +5,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import {
-  QualityAssessmentPLDDTPreset,
-  QualityAssessmentQmeanPreset,
-} from '@molstar/model-archive-extension/quality-assessment/behavior';
 import { QualityAssessment } from '@molstar/model-archive-extension/quality-assessment/prop';
-import { SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider } from '@molstar/sb-ncbr-extension';
-import {
-  PresetStructureRepresentations,
-  StructureRepresentationPresetProvider,
-} from '@molstar/plugin/state/builder/structure/representation-preset';
+import { SbNcbrPartialChargesPropertyProvider } from '@molstar/sb-ncbr-extension/partial-charges/property';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/representation-presets/auto';
 import { StateObjectRef } from '@molstar/core/state';
+
+/*
+ * The model-archive and SB-NCBR presets belong to behaviors that can be turned off, so they are looked up by id and
+ * skipped when they are not registered instead of being imported here.
+ */
+const QualityAssessmentPLDDTPresetId = 'preset-structure-representation-ma-quality-assessment-plddt';
+const QualityAssessmentQmeanPresetId = 'preset-structure-representation-ma-quality-assessment-qmean';
+const SbNcbrPartialChargesPresetId = 'sb-ncbr-partial-charges-preset';
 
 export const ViewerAutoPreset = StructureRepresentationPresetProvider({
   id: 'preset-structure-representation-viewer-auto',
@@ -37,14 +39,21 @@ export const ViewerAutoPreset = StructureRepresentationPresetProvider({
     const structure = structureCell?.obj?.data;
     if (!structureCell || !structure) return {};
 
-    if (!!structure.models.some((m) => QualityAssessment.isApplicable(m, 'pLDDT'))) {
-      return await QualityAssessmentPLDDTPreset.apply(ref, params, plugin);
-    } else if (!!structure.models.some((m) => QualityAssessment.isApplicable(m, 'qmean'))) {
-      return await QualityAssessmentQmeanPreset.apply(ref, params, plugin);
-    } else if (!!structure.models.some((m) => SbNcbrPartialChargesPropertyProvider.isApplicable(m))) {
-      return await SbNcbrPartialChargesPreset.apply(ref, params, plugin);
-    } else {
-      return await PresetStructureRepresentations.auto.apply(ref, params, plugin);
+    const builder = plugin.builders.structure.representation;
+    const optional: [() => boolean, string][] = [
+      [() => structure.models.some((m) => QualityAssessment.isApplicable(m, 'pLDDT')), QualityAssessmentPLDDTPresetId],
+      [() => structure.models.some((m) => QualityAssessment.isApplicable(m, 'qmean')), QualityAssessmentQmeanPresetId],
+      [
+        () => structure.models.some((m) => SbNcbrPartialChargesPropertyProvider.isApplicable(m)),
+        SbNcbrPartialChargesPresetId,
+      ],
+    ];
+    for (const [isApplicable, id] of optional) {
+      if (!isApplicable()) continue;
+      // skipped when the behavior that owns the preset is not active
+      const preset = builder.resolveProvider(id);
+      if (preset) return await preset.apply(ref, params, plugin);
     }
+    return await AutoPreset.apply(ref, params, plugin);
   },
 });

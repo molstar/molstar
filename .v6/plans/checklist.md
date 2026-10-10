@@ -38,10 +38,9 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
 
 ## Deferred validation and tooling
 
-- [ ] Bring back `external-structure` and `external-volume` color themes during registry composition work. Their
-      implementations depend on `PluginStateObject` and, for structures, the plugin backbone selection query. They
-      remain in `@molstar/plugin/themes/*` but are intentionally unregistered in this prototype. Resolve those
-      dependencies and define explicit composition; do not add special registration logic to `PluginContext`.
+- [x] Bring back `external-structure` and `external-volume` color themes during registry composition work. Done in
+      plugin composition: the `ExternalColorThemes` entry (`@molstar/plugin/themes/external`) is part of
+      `DefaultRegistry`; `PluginContext` has no special registration logic.
 
 - [ ] Restore full MolQL validation in `mvs-validate` by importing mol-script. Decide how to expose the compiler
       dependency without making the standalone builder depend on plugin/rendering code. Then reject unknown symbols and
@@ -92,20 +91,33 @@ allow the caller to choose timestamps that are reproducible across time zones.
 
 - [ ] Rendering-backend extraction and GL resource/pass/readback redesign.
 - [ ] WebGPU and Blender integration.
-- [ ] Plugin features, empty registries, explicit base specs, registry-aware presets, slim-plugin guarantees, and
-      transformer/catalog splitting.
-- [ ] Remaining convenience-barrel cleanup and `StateTransforms` facade removal.
+- [x] Plugin composition per the [design](../designs/plugin-composition.md) and [plan](plugin-composition.md): empty
+      registries, `spec.registry` entries, explicit base specs, presets that import what they run, transformer/catalog
+      splitting, snapshot pre-validation, and slim-plugin guarantees.
+- [ ] Remaining convenience-barrel cleanup. The `StateTransforms` facade was removed in plugin composition step 1 (the
+      classic Viewer global keeps an app-level object).
 - [ ] Broader test-runner migration and maintainer skills/documentation rewrite.
+- [ ] In the documentation rewrite, cover plugin composition. `docs/` is deployed from `master` and still describes the
+      published 5.x `molstar/lib/...` paths, so these pages keep their 5.x imports until then:
+      `docs/docs/plugin/custom-library.md` and `instance.md` (`DefaultPluginSpec`/`DefaultPluginUISpec` now come from
+      `@molstar/plugin/default-spec` and `@molstar/plugin-ui/default-spec`; literal specs add `DefaultRegistry`),
+      `docs/docs/extensions/tunnels.md` (`StateTransforms` is gone; import `ShapeRepresentation3D` directly), and
+      `docs/docs/plugin/selections.md` (selection queries are split under `@molstar/plugin/state/queries/structure/*`).
 - [ ] Fast types, isolated declarations, and the corresponding API annotations.
 - [ ] JSR publication, migration CLI, and downstream migration validation.
 - [ ] Publishing automation, release coordination, and stable-release readiness.
+- [ ] Write the v6 `CHANGELOG.md` section from the [changelog draft](changelog.md).
+- [ ] Before v6 is ready, forward-port every bug fix from the `v5` branch (`git log master..origin/v5`). Most files have
+      moved, so apply fixes by hand using `migration-map.json` rather than by merging. Ported through 5.13.1
+      (2026-10-08): molstar/molstar#1964, server path interpolation and dependency updates.
 - [ ] Capture a representative pre-migration Viewer render comparison baseline.
 
 ## Other review findings to revisit
 
 These were reported as existing on master, rather than refactor regressions.
 
-- [ ] Investigate the `state-docs` crash in `getOrientationParticlesParams`.
+- [x] Investigate the `state-docs` crash in `getOrientationParticlesParams`. Fixed in plugin composition step 4:
+      data-less param getters (orientation particles, particle target, operator-hkl theme) accept missing data.
 - [ ] Investigate the membrane-orientation server's `--bcifSource` handling.
 - [ ] Recheck reported Node startup and ball-and-stick timing differences with repeated runs before making performance
       changes.

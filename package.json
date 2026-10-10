@@ -21,8 +21,12 @@
     "build:distribution": "node scripts/distribution.mjs",
     "build": "pnpm build:lib && pnpm build:apps && pnpm build:distribution",
     "build:workspace": "pnpm build",
+    "clean": "node scripts/clean.js --all",
+    "clean:build": "node scripts/clean.js --build",
+    "clean:lib": "node scripts/clean.js --lib",
+    "rebuild": "pnpm clean && pnpm build",
     "pack:workspace": "node scripts/workspace/pack.mjs",
-    "check:workspace": "node --test scripts/workspace/_test/*.test.mjs && node scripts/workspace/check.mjs",
+    "check:workspace": "node --test scripts/workspace/_test/*.test.mjs && node scripts/workspace/check.mjs && node scripts/workspace/slim-bundle.mjs && node scripts/workspace/registry-compare.mjs && node scripts/workspace/composition-check.mjs",
     "version:check": "node scripts/workspace/version.mjs --check",
     "version:sync": "node scripts/workspace/version.mjs --write",
     "dev:apps": "node scripts/esbuild/app.mjs --dev --kind app",
@@ -32,7 +36,7 @@
     "native:run": "node scripts/native.mjs run",
     "test:native": "node scripts/native.mjs test",
     "check:types:full": "node scripts/workspace/typecheck-full.mjs",
-    "check:publish": "pnpm format:check && pnpm test && pnpm build && pnpm check:types:full && pnpm check:workspace && pnpm version:check && pnpm pack:workspace && node smoke/run.mjs node && node smoke/run.mjs types && node smoke/run.mjs source && node smoke/run.mjs cli",
+    "check:publish": "pnpm format:check && pnpm test && pnpm rebuild && pnpm check:types:full && pnpm check:workspace && pnpm version:check && pnpm pack:workspace && node smoke/run.mjs node && node smoke/run.mjs types && node smoke/run.mjs source && node smoke/run.mjs cli",
     "lint:fix": "biome lint --write .",
     "format": "biome format --write . && prettier --write \"**/*.{md,mdx,yaml,yml,scss}\"",
     "format:check": "biome format . && prettier --check \"**/*.{md,mdx,yaml,yml,scss}\""
@@ -48,13 +52,14 @@
   "jest": {
     "moduleFileExtensions": [
       "ts",
+      "tsx",
       "js"
     ],
     "transform": {
-      "\\.ts$": [
+      "\\.tsx?$": [
         "esbuild-jest-transform",
         {
-          "tsconfigRaw": "{\"compilerOptions\":{\"useDefineForClassFields\":false}}"
+          "tsconfigRaw": "{\"compilerOptions\":{\"useDefineForClassFields\":false,\"jsx\":\"react-jsx\"}}"
         }
       ]
     },
@@ -66,6 +71,7 @@
     },
     "testRegex": "\\.test\\.ts$",
     "moduleNameMapper": {
+      "\\.(jpe?g|png|gif|svg|webp)$": "<rootDir>/scripts/jest-file-stub.cjs",
       "^@molstar/docking-viewer$": "<rootDir>/apps/docking-viewer/src/index.ts",
       "^@molstar/docking-viewer/(.*)$": "<rootDir>/apps/docking-viewer/src/$1",
       "^@molstar/mesoscale-explorer$": "<rootDir>/apps/mesoscale-explorer/src/index.ts",
@@ -118,6 +124,8 @@
       "^@molstar/proteopedia-wrapper-example/(.*)$": "<rootDir>/examples/proteopedia-wrapper/src/$1",
       "^@molstar/react-example$": "<rootDir>/examples/react/src/index.tsx",
       "^@molstar/react-example/(.*)$": "<rootDir>/examples/react/src/$1",
+      "^@molstar/slim-plugin-example$": "<rootDir>/examples/slim-plugin/src/index.ts",
+      "^@molstar/slim-plugin-example/(.*)$": "<rootDir>/examples/slim-plugin/src/$1",
       "^@molstar/examples-standalone$": "<rootDir>/examples/standalone/src/index.ts",
       "^@molstar/examples-standalone/(.*)$": "<rootDir>/examples/standalone/src/$1",
       "^@molstar/volume-tools-example$": "<rootDir>/examples/volume-tools/src/index.tsx",
@@ -162,6 +170,7 @@
       "^@molstar/rcsb-extension/(.*)$": "<rootDir>/extensions/rcsb/src/$1",
       "^@molstar/sb-ncbr-extension$": "<rootDir>/extensions/sb-ncbr/src/index.ts",
       "^@molstar/sb-ncbr-extension/(.*)$": "<rootDir>/extensions/sb-ncbr/src/$1",
+      "^@molstar/volseg-api-extension/(.*)$": "<rootDir>/extensions/volseg-api/src/$1",
       "^@molstar/volume-tools-extension$": "<rootDir>/extensions/volume-tools/src/index.ts",
       "^@molstar/volume-tools-extension/(.*)$": "<rootDir>/extensions/volume-tools/src/$1",
       "^@molstar/volumes-and-segmentations-extension$": "<rootDir>/extensions/volumes-and-segmentations/src/index.ts",

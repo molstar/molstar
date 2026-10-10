@@ -25,7 +25,7 @@ function loadNativeModule(name, envName) {
 const gl = loadNativeModule('gl', 'MOLSTAR_SMOKE_GL');
 const pngjs = loadNativeModule('pngjs', 'MOLSTAR_SMOKE_PNGJS');
 const { HeadlessPluginContext } = await import('@molstar/plugin-headless/context');
-const { DefaultPluginSpec } = await import('@molstar/plugin/spec');
+const { DefaultPluginSpec } = await import('@molstar/plugin/default-spec');
 const { setFSModule } = await import('@molstar/core/util/data-source');
 setFSModule(fs);
 
@@ -35,10 +35,16 @@ assert(
   !packageNames.includes('@molstar/mp4-export-extension'),
   'Headless dependency closure must not include the MP4 export extension',
 );
+const registryEntries = [spec.registry ?? []].flat();
 const defaultExtensionNames = [
-  ...(spec.actions ?? []).map((entry) => entry.action?.id ?? entry.action?.name ?? ''),
+  ...registryEntries
+    .flatMap((entry) => entry.actions ?? [])
+    .map((action) => action?.action ?? action)
+    .map((action) => action?.id ?? action?.name ?? ''),
   ...(spec.behaviors ?? []).map((entry) => entry.transformer?.id ?? entry.transformer?.name ?? ''),
-  ...(spec.animations ?? []).map((animation) => animation?.id ?? animation?.name ?? animation?.constructor?.name ?? ''),
+  ...registryEntries
+    .flatMap((entry) => entry.animations ?? [])
+    .map((animation) => animation?.id ?? animation?.name ?? animation?.constructor?.name ?? ''),
 ];
 for (const name of defaultExtensionNames) {
   assert(!/mp4|h264/i.test(String(name)), `MP4/H264 extension was added to the base plugin spec: ${name}`);

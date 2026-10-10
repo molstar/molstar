@@ -4,18 +4,17 @@
  * @author Dušan Veľký <dvelky@mail.muni.cz>
  */
 
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { DownloadTunnels } from './actions.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import {
-  PresetStructureRepresentations,
-  StructureRepresentationPresetProvider,
-} from '@molstar/plugin/state/builder/structure/representation-preset';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/representation-presets/auto';
 import { Model, Structure } from '@molstar/model/model/structure';
 import { PluginContext } from '@molstar/plugin/context';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { StateObjectRef } from '@molstar/core/state';
 import { getTunnelsConfig, TunnelsDataParams } from './props.js';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
 import type { Tunnel, ChannelsDBdata, TunnelDB } from './data-model.js';
 import { TunnelShapeProvider, TunnelFromRawData } from './representation.js';
 import { ColorGenerator } from '@molstar/meshes-extension/mesh-utils';
@@ -27,13 +26,18 @@ export const SbNcbrTunnels = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'SB NCBR Tunnels',
   },
   ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
+    private unregisterEntry: (() => void) | undefined;
+
     register(): void {
-      this.ctx.state.data.actions.add(DownloadTunnels);
-      this.ctx.builders.structure.representation.registerPreset(TunnelsPreset);
+      const entry: PluginRegistryEntry = {
+        structure: { presets: { representation: [TunnelsPreset] } },
+        actions: [DownloadTunnels],
+      };
+      this.unregisterEntry = this.ctx.register(entry);
     }
     unregister() {
-      this.ctx.state.data.actions.remove(DownloadTunnels);
-      this.ctx.builders.structure.representation.unregisterPreset(TunnelsPreset);
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
     }
   },
   params: () => ({
@@ -89,11 +93,11 @@ export const TunnelsPreset = StructureRepresentationPresetProvider({
           webgl,
           colorTheme: ColorGenerator.next().value,
         })
-        .apply(StateTransforms.Representation.ShapeRepresentation3D);
+        .apply(ShapeRepresentation3D);
       await update.commit();
     });
 
-    const preset = await PresetStructureRepresentations.auto.apply(ref, { ...params }, plugin);
+    const preset = await AutoPreset.apply(ref, { ...params }, plugin);
 
     return { components: preset.components, representations: { ...preset.representations } };
   },

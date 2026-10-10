@@ -5,21 +5,17 @@
  */
 
 import { type MutableRefObject, useEffect, useRef } from 'react';
-import { DefaultPluginSpec, PluginSpec } from '@molstar/plugin/spec';
+import type { PluginSpec } from '@molstar/plugin/spec';
 import { PluginViewModel } from '@molstar/plugin-extension/view-model';
 
-export function useCreatePluginViewModel<T extends PluginViewModel>(options?: {
-  spec?: PluginSpec | ((defaultSpec: PluginSpec) => PluginSpec);
+export function useCreatePluginViewModel<T extends PluginViewModel>(options: {
+  spec: PluginSpec;
   model?: (spec: PluginSpec) => T;
 }): T {
   const model = useRef<T>();
   if (!model.current) {
-    const spec = options?.spec
-      ? typeof options.spec === 'function'
-        ? options.spec(DefaultPluginSpec())
-        : options.spec
-      : DefaultPluginSpec();
-    model.current = options?.model ? options.model(spec) : (new PluginViewModel({ spec }) as T);
+    const { spec } = options;
+    model.current = options.model ? options.model(spec) : (new PluginViewModel({ spec }) as T);
   }
   return model.current!;
 }

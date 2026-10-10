@@ -8,7 +8,7 @@ import { StateBuilder, StateObjectRef } from '@molstar/core/state';
 import { StructureFromPetworld } from './model.js';
 import { Color } from '@molstar/core/util/color';
 import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
-import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/representation';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { PluginContext } from '@molstar/plugin/context';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import {

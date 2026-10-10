@@ -6,7 +6,7 @@ See the [short summary](summary.md) for the main decisions.
 ## 1. Scope
 
 Mol* 6.0 moves to a pnpm workspace of ESM packages grouped by layer. Parsers, representations, and themes become
-explicit plugin features; `DefaultPluginSpec()` remains the full built-in composition. Apps keep esbuild, with
+explicit plugin registry entries; `DefaultPluginSpec()` remains the full built-in composition. Apps keep esbuild, with
 dependencies and build configuration owned by each app.
 
 Ship `@molstar/migrate-6-cli` with the release to handle mechanical import changes and report manual work. The unscoped
@@ -78,7 +78,7 @@ Keep recognizable subpaths, removing the `mol-` prefix. The table is the target 
 | `@molstar/plugin-ui`        | React UI, UI-spec types, and an explicit default UI-spec entry point                                         |
 | `@molstar/plugin-headless`  | Reusable Node headless plugin context, screenshot helpers, and output handling                               |
 | `@molstar/mvs-builder`      | Standalone MolViewSpec schema, builder, serialization, and validation                                        |
-| `@molstar/mvs`              | MolViewSpec runtime, feature, and loader                                                                     |
+| `@molstar/mvs`              | MolViewSpec runtime, plugin behavior and registry entries, and loader                                        |
 | `@molstar/<name>-extension` | Individual extensions and their dependencies                                                                 |
 | `@molstar/viewer`           | Published Viewer API and app                                                                                 |
 | `@molstar/<name>-server`    | Model, volume, and plugin-state servers                                                                      |
@@ -286,7 +286,7 @@ unused code. The policy avoids the aggregation risk without assuming every barre
   An export-map alias may point directly to an implementation file without adding a wrapper barrel.
 - **Do not substitute aggregate convenience objects.** Remove `StateTransforms` and migrate consumers to transformer
   leaves. Preserve transformer identifiers and required registration behavior, not the aggregate access syntax.
-- **Keep deliberate composition explicit.** Default specs and registration catalogs assemble complete feature sets for
+- **Keep deliberate composition explicit.** Default specs and registration catalogs assemble complete provider sets for
   app composition. They are not general symbol-import entry points. Base runtime modules and individual providers must
   not depend on them; enforce that boundary even within a package.
 
@@ -448,138 +448,37 @@ coverage, and the `deno pack` alternative. Retain pnpm/`tsc -b` and its complete
 
 ## 6. Plugin composition
 
-### 6.1 Empty registries and explicit specs
+The detailed design is in [plugin-composition.md](plugin-composition.md), and the ordered steps, call-site inventories,
+and acceptance checklist are in the [implementation plan](../plans/plugin-composition.md); this section summarizes them.
 
-`PluginContext` creates empty registries for formats, structure/volume/particle representations, and themes.
-`PluginSpec` supplies their contents along with existing actions, behaviors, animations, config, canvas, and layout
-settings.
+- `PluginContext` starts with empty registries. A new `PluginSpec.registry` field lists declarative
+  `PluginRegistryEntry` records (formats, representations and themes per scope, presets, selection queries, loci labels,
+  markdown extensions, drag-and-drop handlers, actions, animations). `init()` registers them in order without resolving
+  dependencies, so creating a plugin from a spec stays cheap.
+- The spec keeps `behaviors`, `config`, `canvas3d`, and `layout`. Spec-level `actions`, `animations`, and
+  `customFormats` move into registry entries, and `DataFormatProvider` gains a required `name`.
+- What is included is what the spec imports and lists. Entries have no `requires`; each lists the providers it directly
+  needs, and registries count references by provider identity so overlaps are safe. Composition uses only static
+  imports, so single-file builds tree-shake like split builds.
+- Behaviors are unchanged. They can reuse the entry format through `plugin.register(entry)`, which returns a function
+  that undoes the registration.
+- Presets and other code import the providers they run and include them in their entries. Policy choices, such as which
+  preset a format applies after loading, go through config and the registries. Presets resolve by `id` or an optional
+  `alias`; built-in presets keep their short keys as aliases.
+- Unregistered representation and theme names keep today's lenient substitution of the registry default, with a warning
+  where the plugin sees the name; an empty registry is an error.
+- PyMOL, VMD, and Jmol script support is enabled by importing its transpiler module, like transformer registration.
+- Transformers stay in the global registry when their module is imported. The `StateTransforms` facade is removed and
+  transform modules are split by functionality, with format-specific transformers next to their format providers.
+  Snapshot loading checks all transformer ids before changing any state.
+- `BuiltInTrajectoryFormat` and sibling name types remain, derived in catalog modules and used elsewhere only through
+  `import type`.
+- `DefaultPluginSpec` (`@molstar/plugin/default-spec`) and `DefaultPluginUISpec` (`@molstar/plugin-ui/default-spec`)
+  assemble the full built-in registry. Base entry points, including `createPluginUI`, take an explicit spec and never
+  import defaults or catalogs as values.
 
-Keep `customFormats` as a deprecated append-only alias for `formats` during 6.x. Initialize themes, representations,
-formats, actions, then behaviors/animations. Register themes in the relevant structure, volume, or particle scope.
-
-`@molstar/plugin/spec` and `@molstar/plugin-ui/spec` contain types and composition helpers. They must not import default
-catalogs. This also applies to `createPluginUI`: its base entry point takes an explicit spec instead of importing
-`DefaultPluginUISpec` for an omitted argument. The lean package root entry points must not re-export default specs or
-full catalogs.
-
-Defaults and catalogs share packages with the runtime but remain separate modules. Slim consumers install those files
-without importing them; isolation comes from the module graph. Enforce these boundaries with lint/import-graph checks
-and bundle validation.
-
-For the full built-in composition:
-
-```ts
-import { createPluginUI } from '@molstar/plugin-ui';
-import { renderReact18 } from '@molstar/plugin-ui/react18';
-import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
-
-const plugin = await createPluginUI({
-    target: document.getElementById('app')!,
-    spec: DefaultPluginUISpec(),
-    render: renderReact18,
-});
-```
-
-`DefaultPluginSpec` is exported from `@molstar/plugin/default-spec`; `DefaultPluginUISpec` extends it with UI defaults.
-Both preserve the existing built-in composition. Compositions that import extension packages remain in the Viewer or
-other apps, so plugin defaults do not acquire dependencies back on extensions.
-
-### 6.2 Features
-
-A `PluginFeature` groups declarative contributions: formats, transformers/actions, representations, themes, behaviors,
-and any presets they require. Importing a feature does not mutate registries. Format features live at plugin level;
-representation features may live in graphics and must not depend on plugin at runtime or through published types. Keep
-their contribution contract in graphics or adapt it structurally at the plugin boundary.
-
-The proposed call shape remains:
-
-```ts
-PluginSpec.fromFeatures(Core, Sdf, BallAndStick, {
-    canvas3d: { /* custom overrides */ },
-});
-```
-
-The last argument is optional spec options. Give feature values a discriminator so the helper can distinguish a trailing
-feature from options; type the API with overloads or tuple rest parameters. Do not declare a parameter after a rest
-parameter.
-
-Composition must define and test these rules:
-
-- Process features in order; deduplicate identical contributions by registry key/transformer identity.
-- Report conflicting providers for the same key instead of silently choosing one.
-- Append extra actions/behaviors from options. Apply explicit settings such as canvas/layout overrides without losing
-  feature contributions.
-- Preserve existing behavior-based registration, such as interactions, with a defined initialization order.
-
-SDF contributes `SdfProvider`, `TrajectoryFromSDF`, and its action. Ball-and-stick contributes its representation and
-default element-symbol/uniform color and physical/uniform size themes. `Core` contributes shared data/model/structure
-transforms, structure representation infrastructure, camera/highlight behaviors, uniform themes, and the minimal
-hierarchy/preset path used below.
-
-### 6.3 Remove implicit catalog imports
-
-Split `transforms/data.ts` and `transforms/model.ts` into per-operation/per-format modules. Apply the same rule to
-representation/theme registries, builders, UI controls, and preset helpers: a registry class or base entry point must
-not value-import all providers.
-
-Use one path convention throughout:
-
-- SDF reader: `@molstar/io/reader/sdf/parser`
-- SDF model conversion: `@molstar/model/formats/structure/sdf`
-- SDF feature/provider: `@molstar/plugin/state/formats/trajectory/sdf`
-- Ball-and-stick feature/provider: `@molstar/graphics/repr/structure/representation/ball-and-stick`
-
-Keep full catalogs in explicit modules in the packages that own their providers. Default-spec modules assemble them;
-runtime leaves and base entry points never import the default specs or full catalogs. All consumers use individual
-transformer/provider imports; there is no full transform convenience facade.
-
-Transformer name strings remain unchanged. Importing a transform leaf must retain whatever registration is necessary for
-snapshots and actions; account for that behavior when auditing side-effect annotations.
-
-### 6.4 Built-in names and preset fallback
-
-Retain `BuiltInTrajectoryFormat` and sibling types for completion. Use `import type` at call sites. Keep names/type
-metadata in the owning package and verify the full catalogs against it. Deriving a type from a local catalog is also
-valid if the import is type-only and creates no upward package dependency.
-
-A built-in name can typecheck while being absent from a particular plugin. Runtime lookup should report a clear
-missing-format/provider error. Preserve extension-provider and string overloads where supported today.
-
-Presets must consult available representations and themes. When a preferred representation is missing, select an
-applicable registered provider and its registered defaults. Today's `registry.default` is simply the first entry; it
-does not check applicability. Define the no-applicable-provider case explicitly, and avoid building duplicate fallback
-visuals for the same component.
-
-### 6.5 Slim-plugin acceptance example
-
-```ts
-import { PluginSpec } from '@molstar/plugin/spec';
-import { Core } from '@molstar/plugin/features/core';
-import { Sdf } from '@molstar/plugin/state/formats/trajectory/sdf';
-import { BallAndStick } from '@molstar/graphics/repr/structure/representation/ball-and-stick';
-import { createPluginUI } from '@molstar/plugin-ui';
-import { renderReact18 } from '@molstar/plugin-ui/react18';
-import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/types';
-
-const spec = PluginSpec.fromFeatures(Core, Sdf, BallAndStick, {
-    canvas3d: { /* custom overrides */ },
-});
-const plugin = await createPluginUI({
-    target: document.getElementById('app')!,
-    spec,
-    render: renderReact18,
-});
-const format: BuiltInTrajectoryFormat = 'sdf';
-const data = await plugin.builders.data.download(
-    { url: '/ligand.sdf' }, { state: { isGhost: true } }
-);
-const trajectory = await plugin.builders.structure.parseTrajectory(data, format);
-await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
-```
-
-This is a release acceptance target: render an SDF ligand while excluding unrelated mmCIF/CCP4 parsers, cartoon/volume
-representations, and MP4 export from the runtime import graph and app bundle. Verify with an import-graph check, esbuild
-metadata, and a rendering smoke test. Empty registries alone do not prove the result.
+The slim-plugin acceptance target (render an SDF ligand without unrelated parsers, representations, presets, or MP4
+export in the import graph and bundle) is defined in [plugin-composition §12](plugin-composition.md#12-acceptance).
 
 ## 7. MolViewSpec, extensions, and apps
 
@@ -588,7 +487,7 @@ Split `extensions/mvs` into:
 | Package                | API and responsibilities                                                                                       |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `@molstar/mvs-builder` | Schema, `createMVSBuilder`, `MVSData`, MVSJ/MVSX serialization/validation, `mvs-validate`, schema-printing CLI |
-| `@molstar/mvs`         | `loadMVS`/`loadMVSData`, plugin feature, annotations, cameras, runtime representations                         |
+| `@molstar/mvs`         | `loadMVS`/`loadMVSData`, plugin behavior and registry entries, annotations, cameras, runtime representations   |
 
 The builder replaces [molviewspec-ts](https://github.com/molstar/mol-view-spec/tree/master/molviewspec-ts) and the JSR
 `@molstar/molviewspec` distribution after API/parity checks. Publish the replacement to npm and JSR. Own `io-ts` and any
@@ -598,9 +497,9 @@ dependency. An optional core peer would not make unconditional core imports opti
 The runtime imports the builder as a dependency; do not bundle a second copy into it. Python stays in the
 [mol-view-spec repository](https://github.com/molstar/mol-view-spec).
 
-Other extensions become `@molstar/<name>-extension`. Each owns its direct dependencies, exports features/behaviors, and
-imports UI only when needed. Viewer dependencies and imports define its extension set; a smaller app declares and
-imports only its selected extensions.
+Other extensions become `@molstar/<name>-extension`. Each owns its direct dependencies, exports registry
+entries/behaviors, and imports UI only when needed. Viewer dependencies and imports define its extension set; a smaller
+app declares and imports only its selected extensions.
 
 `@molstar/viewer` is published. Docking viewer, mesoscale explorer, MVS Stories, and examples remain private workspace
 app packages; the built MVS Stories app is nevertheless distributed through the root `molstar` package. Preserve that
@@ -670,7 +569,7 @@ those tests.
 
 Add `.agents/` skills for `add-extension`, `add-example-app`, `add-app`, `add-format`, `add-representation`,
 `add-server`, and `update-dependencies`. Root `AGENTS.md` points to them. Each skill covers package ownership, imports,
-feature registration, tests, and build wiring. The dependency skill covers catalog/version updates, lockfile refresh,
+registry entries, tests, and build wiring. The dependency skill covers catalog/version updates, lockfile refresh,
 validation, and advisory checks. Update skills when architecture changes.
 
 Rewrite mkdocs installation, plugin, examples, formats, extensions, MVS, and clone/build instructions. Add package
@@ -693,7 +592,8 @@ branch references. Docs and skills ship with the implementation.
 - For each JSR package, run publication dry runs with `--allow-slow-types` and test its source/dependency graph with the
   pinned Deno version. Preserve public type precision through normal TypeScript checks and native npm
   declaration/consumer checks; fast-type compliance is not a v6 release gate.
-- Run the slim-plugin acceptance example and the full Viewer; test snapshots with their required features registered.
+- Run the slim-plugin acceptance example and the full Viewer; test snapshots with their required transformers imported
+  and providers registered.
 - Before advancing `molstar@latest`, test existing Viewer/MVS HTML fixtures against the packed root package, routing
   their unchanged CDN URLs to the candidate assets. Verify classic script loading, globals/API calls, custom-element
   registration, CSS/assets, MVSJ/MVSX loading, and independent named story contexts. Inspect both CDN directories in the
@@ -756,15 +656,21 @@ changes. It should:
 5. Update Mol* package dependencies and migrate removed barrel/facade imports to defining modules where symbol
    resolution is unambiguous. Report dynamic `StateTransforms` access and re-export side effects for manual migration.
    Flag unsupported CommonJS usage, implicit default specs, relocated APIs, and unintended full-catalog imports.
+6. Migrate plugin specs: rewrite removed `actions`/`animations`/`customFormats` fields into `registry` entries, add
+   `DefaultRegistry` to literal specs that relied on the implicit catalog, filter the matching default entry in
+   spread-and-override specs, keep the full structure tools when a spec replaces `components`, and report specs and
+   script languages it cannot resolve. The
+   [plugin-composition plan](../plans/plugin-composition.md#5-migration-tool-additions) lists the rules.
 
 No promise of a fully automatic upgrade. Validate idempotence and representative transformations, then run the tool
 against `pdbe-molstar` and `rcsb-molstar` and smoke-test the resulting apps.
 
 ### 9.3 Compatibility contract
 
-Keep transformer identifiers, snapshot JSON, feature/provider name strings, `PluginSpec.Action`/`Behavior`, and the
-`createPluginUI`/`Viewer.create` entry-point names. Snapshots still require their referenced features to be loaded.
-Explicit specs and registration replace implicit catalog loading in base entry points.
+Keep transformer identifiers, snapshot JSON, provider name strings, `PluginSpec.Action`/`Behavior`, and the
+`createPluginUI`/`Viewer.create` entry-point names. Snapshots still require their transformers to be imported; a
+representation or theme name that is not registered falls back to the registry default with a warning. Explicit specs
+and registration replace implicit catalog loading in base entry points.
 
 Remove CommonJS and legacy deep import paths. Existing applications using library imports must migrate imports and
 dependencies; installing `molstar@6` alone does not upgrade those consumers. There is no library compatibility-shim
@@ -774,8 +680,15 @@ The root `molstar` package preserves the existing CDN app contract:
 
 | App         | Retained paths                                                                                  | Browser API                                      |
 | ----------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Viewer      | `build/viewer/`, including existing JS/CSS and supporting files                                 | Existing `molstar` global and Viewer API         |
+| Viewer      | `build/viewer/`, including existing JS/CSS and supporting files                                 | Existing `molstar` global and Viewer API (below) |
 | MVS Stories | `build/mvs-stories/`, including `mvs-stories.js`, `mvs-stories.css`, HTML, and supporting files | Existing `mvsStories` global and custom elements |
+
+Accepted carve-out for the Viewer global: the library values under `molstar.lib.plugin` (`DefaultPluginSpec`,
+`DefaultPluginUISpec`, `StateActions`, and the added `DefaultRegistry`) follow the 6.0 library API. `StateTransforms`
+stays on the global with its 5.x keys and members, assembled from the split modules. Hand-built specs that use the
+removed `actions`/`animations`/`customFormats` fields throw, and literal specs get empty registries. `Viewer.create` and
+its options, including `customFormats`, and the Viewer's methods are unchanged
+([plugin-composition §11](plugin-composition.md#11-extensions-mvs-and-apps)).
 
 For MVS Stories, preserve the exports in the [app entry point](../src/apps/mvs-stories/index.tsx): `getContext`,
 `loadFromURL`, `loadFromData`, `loadFromID`, `downloadCurrentStory`, and `MVSData`, including their existing arguments,
@@ -785,7 +698,7 @@ classic script loads.
 
 Existing HTML using `https://cdn.jsdelivr.net/npm/molstar@latest/build/mvs-stories/mvs-stories.js` and the corresponding
 CSS must work unchanged when `latest` advances to v6. Preserve equivalent package paths on other CDNs. Do not require
-`type="module"`, scoped-package imports, new initialization calls, or edits to generated HTML. Internal feature
+`type="module"`, scoped-package imports, new initialization calls, or edits to generated HTML. Internal plugin
 composition and dependency packaging may change behind these app APIs. This compatibility promise is separate from
 publishing a new stories library.
 
@@ -820,7 +733,7 @@ or generator migration phase.
 | 0     | Verify package names; introduce pnpm, the workspace skeleton, and matching CI                                                                                                                                                                                                                                       |
 | 1     | Audit and relocate reverse dependencies in §3.2; break plugin cycles and add explicit type imports. Record final API locations and verify the proposed package graph, including declaration edges. Retain existing module settings and override `verbatimModuleSyntax: false` for the temporary CJS build if needed |
 | 2     | Split transform/provider modules and default-spec entry points; remove convenience barrels and the transform facade, split mixed implementation modules, migrate consumers to defining-module imports, and remove lazy getters; rename tests                                                                        |
-| 3     | Introduce features, empty registries, explicit base specs, and registry-aware presets; prove the slim example and full default composition                                                                                                                                                                          |
+| 3     | Introduce empty reference-counted registries, `spec.registry` entries, explicit base specs, id-only preset lookup, and presets that import what they run; prove the slim example and full default composition ([plugin-composition plan](../plans/plugin-composition.md) steps 2–4)                                 |
 | 4     | Drop CJS; set `type: module`, `NodeNext`, and `verbatimModuleSyntax`; use `.js` relative specifiers in source. Convert CommonJS globals/tooling and smoke-test emitted bins                                                                                                                                         |
 | 5     | Move into grouped workspace packages; add exports, project references, direct dependencies, and per-app esbuild. Verify clean builds and packed consumers; stage the CDN-only `molstar` package                                                                                                                     |
 | 6     | Finish standalone MVS builder/runtime, headless library, extension and server/CLI packaging; verify npm/JSR builder parity, headless dependency isolation, and command installation/migration instructions                                                                                                          |

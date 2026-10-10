@@ -13,10 +13,25 @@ import { Structure } from '@molstar/model/model/structure';
 import { trajectoryFromSdf } from '@molstar/model/formats/structure/sdf';
 import { ColorTheme } from '@molstar/graphics/theme/color';
 import { SizeTheme } from '@molstar/graphics/theme/size';
+import { BuiltInColorThemes } from '@molstar/graphics/theme/color/catalog';
+import { BuiltInSizeThemes } from '@molstar/graphics/theme/size/catalog';
 import type { RepresentationContext } from '@molstar/graphics/repr/representation';
 import { BallAndStickRepresentationProvider } from '@molstar/graphics/repr/structure/representation/ball-and-stick';
 import { StructureRepresentationProvider } from '@molstar/graphics/repr/structure/representation';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+
+// the registries start empty; these tests render with every built-in theme
+function createColorThemeRegistry() {
+  const registry = ColorTheme.createRegistry();
+  for (const p of Object.values(BuiltInColorThemes)) registry.add(p as ColorTheme.Provider<any, any, any>);
+  return registry;
+}
+
+function createSizeThemeRegistry() {
+  const registry = SizeTheme.createRegistry();
+  for (const p of Object.values(BuiltInSizeThemes)) registry.add(p as SizeTheme.Provider<any>);
+  return registry;
+}
 
 async function downloadPubChemSdf(cid: number) {
   const root = 'https://pubchem.ncbi.nlm.nih.gov/rest';
@@ -58,8 +73,8 @@ function main() {
 
   const reprCtx: RepresentationContext = {
     webgl: canvas3dContext.webgl,
-    colorThemeRegistry: ColorTheme.createRegistry(),
-    sizeThemeRegistry: SizeTheme.createRegistry(),
+    colorThemeRegistry: createColorThemeRegistry(),
+    sizeThemeRegistry: createSizeThemeRegistry(),
   };
 
   for (let i = 0; i < cids.length; i++) {

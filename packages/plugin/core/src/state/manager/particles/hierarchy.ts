@@ -13,7 +13,7 @@ import {
   type ParticleHierarchyRef,
   type ParticleListRef,
 } from './hierarchy-state.js';
-import { StateTransforms } from '../../transforms.js';
+import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 
 export class ParticleHierarchyManager extends PluginComponent {
   private state = {
@@ -108,7 +108,7 @@ export class ParticleHierarchyManager extends PluginComponent {
     const update = this.dataState
       .build()
       .to(ref.cell)
-      .apply(StateTransforms.Particles.ParticlesRepresentation3D, { type: { name: type, params: {} } });
+      .apply(ParticlesRepresentation3D, { type: { name: type, params: {} } });
 
     return update.commit({ canUndo: 'Add Representation' });
   }

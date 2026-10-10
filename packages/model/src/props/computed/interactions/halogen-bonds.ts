@@ -18,12 +18,8 @@ import { Elements } from '@molstar/model/model/structure/model/properties/atomic
 import { degToRad } from '@molstar/core/math/misc';
 import { FeatureType, FeatureGroup, InteractionType } from './common.js';
 import type { ContactProvider } from './contacts.js';
+import { HalogenBondsParams } from './params.js';
 
-const HalogenBondsParams = {
-  distanceMax: PD.Numeric(4.0, { min: 1, max: 5, step: 0.1 }),
-  angleMax: PD.Numeric(30, { min: 0, max: 60, step: 1 }),
-};
-type HalogenBondsParams = typeof HalogenBondsParams;
 type HalogenBondsProps = PD.Values<HalogenBondsParams>;
 
 const halBondElements = [Elements.CL, Elements.BR, Elements.I, Elements.AT] as ElementSymbol[];

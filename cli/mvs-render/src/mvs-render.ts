@@ -7,7 +7,7 @@
  * Command-line application for rendering images from MolViewSpec files
  * Installed package: npm install @molstar/mvs-render-cli gl canvas
  * Workspace setup: pnpm native:install -- --canvas && pnpm build:lib
- * Workspace run: pnpm native:run -- node cli/mvs-render/lib/mvs-render.js -i examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
+ * Workspace run: pnpm native:run -- node cli/mvs-render/lib/mvs-render.js -i data/examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
  */
 
 import { ArgumentParser } from 'argparse';
@@ -21,7 +21,8 @@ import { Canvas3DParams } from '@molstar/graphics/canvas3d/canvas3d';
 import { setCanvasModule } from '@molstar/graphics/geo/geometry/text/font-atlas';
 import { PluginContext } from '@molstar/plugin/context';
 import { Mp4HeadlessPluginContext as HeadlessPluginContext } from '@molstar/mp4-export-extension/headless';
-import { DefaultPluginSpec, PluginSpec } from '@molstar/plugin/spec';
+import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { PluginSpec } from '@molstar/plugin/spec';
 import { type ExternalModules, defaultCanvas3DParams } from '@molstar/plugin-headless/screenshot';
 import { Task } from '@molstar/core/task';
 import { setFSModule } from '@molstar/core/util/data-source';

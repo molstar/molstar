@@ -29,7 +29,7 @@ import { ElementSymbol } from '@molstar/model/model/structure/model/types';
 import { range } from '@molstar/core/util/array';
 import { UUID } from '@molstar/core/util/uuid';
 import type { ModelFormat } from '../../format.js';
-import { MmcifFormat } from '../mmcif.js';
+import { MmcifFormat } from '../mmcif-format.js';
 import type { AtomSite } from './schema.js';
 
 function findHierarchyOffsets(atom_site: AtomSite) {

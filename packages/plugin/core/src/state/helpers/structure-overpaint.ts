@@ -7,7 +7,8 @@
 
 import { Structure, StructureElement } from '@molstar/model/model/structure';
 import type { PluginStateObject } from '../objects.js';
-import { StateTransforms } from '../transforms.js';
+import type { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import { OverpaintStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/overpaint';
 import type { PluginContext } from '@molstar/plugin/context';
 import { StateBuilder, StateObjectCell, StateSelection, StateTransform } from '@molstar/core/state';
 import { Overpaint } from '@molstar/graphics/theme/overpaint';
@@ -19,12 +20,9 @@ type OverpaintEachReprCallback = (
   update: StateBuilder.Root,
   repr: StateObjectCell<
     PluginStateObject.Molecule.Structure.Representation3D,
-    StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>
+    StateTransform<typeof StructureRepresentation3D>
   >,
-  overpaint?: StateObjectCell<
-    any,
-    StateTransform<typeof StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle>
-  >,
+  overpaint?: StateObjectCell<any, StateTransform<typeof OverpaintStructureRepresentation3DFromBundle>>,
 ) => Promise<void>;
 const OverpaintManagerTag = 'overpaint-controls';
 
@@ -56,13 +54,9 @@ export async function setStructureOverpaint(
       update.to(overpaintCell).update(Overpaint.toBundle(filtered));
     } else {
       const filtered = getFilteredBundle([layer], structure);
-      update
-        .to(repr.transform.ref)
-        .apply(
-          StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle,
-          Overpaint.toBundle(filtered),
-          { tags: OverpaintManagerTag },
-        );
+      update.to(repr.transform.ref).apply(OverpaintStructureRepresentation3DFromBundle, Overpaint.toBundle(filtered), {
+        tags: OverpaintManagerTag,
+      });
     }
   });
 }
@@ -91,7 +85,7 @@ async function eachRepr(
     for (const r of c.representations) {
       const overpaint = state.select(
         StateSelection.Generators.ofTransformer(
-          StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle,
+          OverpaintStructureRepresentation3DFromBundle,
           r.cell.transform.ref,
         ).withTag(OverpaintManagerTag),
       );

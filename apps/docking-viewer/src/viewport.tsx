@@ -9,11 +9,9 @@ import { InteractionTypeColorThemeProvider } from '@molstar/graphics/props/compu
 import {
   presetStaticComponent,
   StructureRepresentationPresetProvider,
-} from '@molstar/plugin/state/builder/structure/representation-preset';
-import {
-  StructureSelectionQueries,
-  StructureSelectionQuery,
-} from '@molstar/plugin/state/helpers/structure-selection-query';
+} from '@molstar/plugin/state/builder/structure/representation-presets/types';
+import { StructureSelectionQuery } from '@molstar/plugin/state/queries/structure/query';
+import { ligand } from '@molstar/plugin/state/queries/structure/type';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { PluginUIComponent } from '@molstar/plugin-ui/base';
 import { LociLabels } from '@molstar/plugin-ui/controls';
@@ -72,7 +70,7 @@ const ligandPlusSurroundings = StructureSelectionQuery(
   'Surrounding Residues (5 \u212B) of Ligand plus Ligand itself',
   MS.struct.modifier.union([
     MS.struct.modifier.includeSurroundings({
-      0: StructureSelectionQueries.ligand.expression,
+      0: ligand.expression,
       radius: 5,
       'as-whole-residues': true,
     }),
@@ -84,7 +82,7 @@ const ligandSurroundings = StructureSelectionQuery(
   MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
       0: ligandPlusSurroundings.expression,
-      by: StructureSelectionQueries.ligand.expression,
+      by: ligand.expression,
     }),
   ]),
 );
@@ -128,7 +126,7 @@ export const StructurePreset = StructureRepresentationPresetProvider({
           type: 'cartoon',
           typeParams: { ...typeParams, material: CustomMaterial },
           color: 'chain-id',
-          colorParams: { palette: (plugin.customState as any).colorPalette },
+          colorParams: { palette: (plugin.customState as any).colorPalette } as any,
         },
         { tag: 'polymer' },
       ),
@@ -175,7 +173,7 @@ export const IllustrativePreset = StructureRepresentationPresetProvider({
           type: 'spacefill',
           typeParams: { ...typeParams, ignoreLight: true },
           color: 'illustrative',
-          colorParams: { palette: (plugin.customState as any).colorPalette },
+          colorParams: { palette: (plugin.customState as any).colorPalette } as any,
         },
         { tag: 'polymer' },
       ),

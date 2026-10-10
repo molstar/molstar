@@ -18,6 +18,7 @@ import { ValenceModelProvider } from '../valence-model.js';
 import { degToRad } from '@molstar/core/math/misc';
 import { FeatureType, FeatureGroup, InteractionType } from './common.js';
 import type { ContactProvider } from './contacts.js';
+import { IonicParams, PiStackingParams, CationPiParams } from './params.js';
 import { Segmentation } from '@molstar/core/data/int';
 import {
   isGuanidine,
@@ -30,25 +31,10 @@ import {
 } from '../chemistry/functional-group.js';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 
-const IonicParams = {
-  distanceMax: PD.Numeric(5.0, { min: 0, max: 8, step: 0.1 }),
-};
-type IonicParams = typeof IonicParams;
 type IonicProps = PD.Values<IonicParams>;
 
-const PiStackingParams = {
-  distanceMax: PD.Numeric(5.5, { min: 1, max: 8, step: 0.1 }),
-  offsetMax: PD.Numeric(2.0, { min: 0, max: 4, step: 0.1 }),
-  angleDevMax: PD.Numeric(30, { min: 0, max: 180, step: 1 }),
-};
-type PiStackingParams = typeof PiStackingParams;
 type PiStackingProps = PD.Values<PiStackingParams>;
 
-const CationPiParams = {
-  distanceMax: PD.Numeric(6.0, { min: 1, max: 8, step: 0.1 }),
-  offsetMax: PD.Numeric(2.0, { min: 0, max: 4, step: 0.1 }),
-};
-type CationPiParams = typeof CationPiParams;
 type CationPiProps = PD.Values<CationPiParams>;
 
 //

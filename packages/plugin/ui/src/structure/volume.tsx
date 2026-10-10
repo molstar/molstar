@@ -16,7 +16,7 @@ import type {
   VolumeRepresentationRef,
 } from '@molstar/plugin/state/manager/volume/hierarchy-state';
 import type { PluginStateObject } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { FocusLoci } from '@molstar/plugin/behavior/dynamic/representation';
 import { VolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/behavior';
 import { InitVolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
@@ -270,21 +270,29 @@ export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceCo
         const firstVolume = (parsed.volume || parsed.volumes[0]) as StateObjectSelector<PluginStateObject.Volume.Data>;
         if (!firstVolume?.isOk) throw new Error('Failed to parse any volume.');
 
+        // Lazy volumes carry isovalues, so they ask for an isosurface with a uniform color. When the plugin registers
+        // no such representation or theme, the registry default is used and the isosurface-only parameters are dropped.
+        const { registry, themes } = plugin.representation.volume;
+        const hasIsosurface = registry.has('isosurface');
+        const hasUniformColor = themes.colorThemeRegistry.has('uniform');
+
         const repr = plugin.build();
         for (const iso of isovalues) {
           repr.to(parsed.volumes?.[iso.volumeIndex ?? 0] ?? parsed.volume).apply(
-            StateTransforms.Representation.VolumeRepresentation3D,
+            VolumeRepresentation3D,
             createVolumeRepresentationParams(this.plugin, firstVolume.data!, {
-              type: 'isosurface',
-              typeParams: {
-                alpha: iso.alpha ?? 1,
-                isoValue:
-                  iso.type === 'absolute'
-                    ? { kind: 'absolute', absoluteValue: iso.value }
-                    : { kind: 'relative', relativeValue: iso.value },
-              },
-              color: 'uniform',
-              colorParams: { value: iso.color },
+              type: hasIsosurface ? 'isosurface' : undefined,
+              typeParams: hasIsosurface
+                ? {
+                    alpha: iso.alpha ?? 1,
+                    isoValue:
+                      iso.type === 'absolute'
+                        ? { kind: 'absolute', absoluteValue: iso.value }
+                        : { kind: 'relative', relativeValue: iso.value },
+                  }
+                : undefined,
+              color: hasUniformColor ? 'uniform' : undefined,
+              colorParams: hasUniformColor ? { value: iso.color } : undefined,
             }),
           );
         }

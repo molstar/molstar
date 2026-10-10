@@ -5,7 +5,8 @@ headless capture have passed. Consumer smoke checks run locally for now; CI reta
 checks.
 
 See [workspace-usage.md](workspace-usage.md) for commands and consumer examples, and
-[migration-map.json](migration-map.json) for source ownership changes.
+[migration-map.json](migration-map.json) and [migration-symbols.json](migration-symbols.json) for source ownership
+changes.
 
 This plan covers a packaging-first prototype of the repository architecture in
 [architecture.md](../designs/architecture.md) and [summary.md](../designs/summary.md). It records the planning
@@ -42,8 +43,8 @@ Deferred:
 
 - Rendering-backend extraction, GL resource/pass/readback redesign, WebGPU, and Blender integration. See
   [webgpu.md](../designs/webgpu.md).
-- `PluginFeature`, empty registries, explicit base specs, registry-aware presets, slim-plugin bundle guarantees, and
-  comprehensive transformer/catalog splitting.
+- Plugin registry entries, empty registries, explicit base specs, registry-aware presets, slim-plugin bundle guarantees,
+  and comprehensive transformer/catalog splitting.
 - Comprehensive convenience-barrel removal and `StateTransforms` facade removal. Remove or split existing modules when
   needed for package boundaries; track the remaining work. Do not introduce new convenience barrels or compatibility
   shims.

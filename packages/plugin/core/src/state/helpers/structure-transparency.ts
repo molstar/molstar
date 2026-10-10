@@ -7,7 +7,8 @@
 
 import { Structure, StructureElement } from '@molstar/model/model/structure';
 import type { PluginStateObject } from '../objects.js';
-import { StateTransforms } from '../transforms.js';
+import type { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import { TransparencyStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/transparency';
 import type { PluginContext } from '@molstar/plugin/context';
 import { StateBuilder, StateObjectCell, StateSelection, StateTransform } from '@molstar/core/state';
 import type { StructureComponentRef } from '../manager/structure/hierarchy-state.js';
@@ -18,12 +19,9 @@ type TransparencyEachReprCallback = (
   update: StateBuilder.Root,
   repr: StateObjectCell<
     PluginStateObject.Molecule.Structure.Representation3D,
-    StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>
+    StateTransform<typeof StructureRepresentation3D>
   >,
-  transparency?: StateObjectCell<
-    any,
-    StateTransform<typeof StateTransforms.Representation.TransparencyStructureRepresentation3DFromBundle>
-  >,
+  transparency?: StateObjectCell<any, StateTransform<typeof TransparencyStructureRepresentation3DFromBundle>>,
 ) => Promise<void>;
 const TransparencyManagerTag = 'transparency-controls';
 
@@ -56,11 +54,9 @@ export async function setStructureTransparency(
       const filtered = getFilteredBundle([layer], structure);
       update
         .to(repr.transform.ref)
-        .apply(
-          StateTransforms.Representation.TransparencyStructureRepresentation3DFromBundle,
-          Transparency.toBundle(filtered),
-          { tags: TransparencyManagerTag },
-        );
+        .apply(TransparencyStructureRepresentation3DFromBundle, Transparency.toBundle(filtered), {
+          tags: TransparencyManagerTag,
+        });
     }
   });
 }
@@ -89,7 +85,7 @@ async function eachRepr(
     for (const r of c.representations) {
       const transparency = state.select(
         StateSelection.Generators.ofTransformer(
-          StateTransforms.Representation.TransparencyStructureRepresentation3DFromBundle,
+          TransparencyStructureRepresentation3DFromBundle,
           r.cell.transform.ref,
         ).withTag(TransparencyManagerTag),
       );

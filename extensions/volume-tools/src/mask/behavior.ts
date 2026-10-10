@@ -4,6 +4,7 @@
  */
 
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { MaskSelectionColorThemeProvider } from './theme.js';
 
 /** PluginBehavior that marks the mask tool as active in the plugin. */
@@ -13,11 +14,15 @@ export const VolumeMaskBehavior = PluginBehavior.create({
   display: { name: 'Volume Mask Creator' },
   ctor: class extends PluginBehavior.Handler {
     // MaskVolumeFromSource is a BuiltIn transformer, registered at module load.
+    private unregisterEntry: (() => void) | undefined;
+
     register() {
-      this.ctx.representation.volume.themes.colorThemeRegistry.add(MaskSelectionColorThemeProvider);
+      const entry: PluginRegistryEntry = { volume: { themes: { color: [MaskSelectionColorThemeProvider] } } };
+      this.unregisterEntry = this.ctx.register(entry);
     }
     unregister() {
-      this.ctx.representation.volume.themes.colorThemeRegistry.remove(MaskSelectionColorThemeProvider);
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
     }
   },
   params: () => ({}),

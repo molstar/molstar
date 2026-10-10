@@ -17,7 +17,7 @@ import type { Model, Structure } from '@molstar/model/model/structure';
 import { DataBuilder } from '@molstar/plugin/state/builder/data';
 import { StructureBuilder } from '@molstar/plugin/state/builder/structure';
 import { DataFormatRegistry } from '@molstar/plugin/state/formats/registry';
-import { StructureSelectionQueryRegistry } from '@molstar/plugin/state/helpers/structure-selection-query';
+import { StructureSelectionQueryRegistry } from '@molstar/plugin/state/queries/structure/registry';
 import { PluginAnimationManager } from '@molstar/plugin/state/manager/animation';
 import { CameraManager } from '@molstar/plugin/state/manager/camera';
 import { InteractivityManager } from '@molstar/plugin/state/manager/interactivity';
@@ -32,7 +32,6 @@ import { StructureSelectionManager } from '@molstar/plugin/state/manager/structu
 import { ParticleHierarchyManager } from '@molstar/plugin/state/manager/particles/hierarchy';
 import { VolumeHierarchyManager } from '@molstar/plugin/state/manager/volume/hierarchy';
 import { MarkdownExtensionManager } from '@molstar/plugin/state/manager/markdown-extensions';
-import { AnimateStateSnapshotTransition } from '@molstar/plugin/state/animation/built-in/state-snapshots';
 import { type LeftPanelTabName, PluginLayout } from '@molstar/plugin/layout';
 import { Representation } from '@molstar/graphics/repr/representation';
 import { ParticleRepresentationRegistry } from '@molstar/graphics/repr/particles/registry';
@@ -52,12 +51,14 @@ import { LogEntry } from '@molstar/core/util/log-entry';
 import { objectForEach } from '@molstar/core/util/object';
 import { RxEventHelper } from '@molstar/core/util/rx-event-helper';
 import { PluginAnimationLoop } from '@molstar/plugin/animation-loop';
-import { BuiltInPluginBehaviors } from '@molstar/plugin/behavior';
+import { BuiltInPluginBehaviors } from '@molstar/plugin/behavior/built-in';
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginCommandManager } from '@molstar/plugin/command';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig, PluginConfigManager } from '@molstar/plugin/config';
-import type { PluginSpec } from '@molstar/plugin/spec';
+import type { PluginRegistryEntry, PluginSpec } from '@molstar/plugin/spec';
+import { registerEntries } from '@molstar/plugin/registry-entry';
+import { checkDefaultThemes } from '@molstar/plugin/registry-check';
 import { PluginState } from '@molstar/plugin/state';
 import { SubstructureParentHelper } from '@molstar/plugin/util/substructure-parent-helper';
 import { TaskManager } from '@molstar/plugin/util/task-manager';
@@ -71,6 +72,9 @@ import { PluginContainer } from '@molstar/plugin/container';
 import type { Volume } from '@molstar/model/model/volume';
 
 export type PluginInitializedState = { kind: 'no' } | { kind: 'yes' } | { kind: 'error'; error: any };
+
+/** `PluginSpec` keys removed in 6.0; the constructor rejects them with a pointer to registry entries. */
+const REMOVED_SPEC_KEYS = ['actions', 'animations', 'customFormats'] as const;
 
 export class PluginContext {
   runTask = <T>(task: Task<T>, params?: { useOverlay?: boolean }) => this.managers.task.run(task, params);
@@ -570,30 +574,33 @@ export class PluginContext {
     await this.runTask(this.state.behaviors.updateTree(tree, { doNotUpdateCurrent: true, doNotLogTiming: true }));
   }
 
-  private initCustomFormats() {
-    if (!this.spec.customFormats) return;
-
-    for (const f of this.spec.customFormats) {
-      this.dataFormats.add(f[0], f[1]);
+  /**
+   * Registers the providers of one or more entries, in the fixed order of the registry contract, and returns an
+   * idempotent function that removes exactly what this call registered.
+   *
+   * Checks every provider against existing registrations and against each other first; on a conflict it throws one
+   * error listing all of them and changes nothing. Must be called after `init()` has created the managers, which is
+   * the case for `spec.registry`, behaviors, and everything that runs later.
+   */
+  register(entry: PluginRegistryEntry | readonly PluginRegistryEntry[]): () => void {
+    if (!this.managers.interactivity || !this.managers.lociLabels || !this.builders.structure) {
+      throw new Error('PluginContext.register called before init()');
     }
+    const undo = registerEntries(this, entry);
+    // While `init()` runs the registrations are still arriving (spec registry, behaviors); it checks once at its end.
+    if (this._isInitialized) this.checkDefaultThemes();
+    return undo;
   }
 
-  private initAnimations() {
-    if (!this.spec.animations?.length) {
-      // If no animations are specified, register the built-in state snapshot transition animation
-      // which is used by MVS. This ensures that PluginAnimationManager.current is always defined.
-      this.managers.animation.register(AnimateStateSnapshotTransition);
-      return;
-    }
-    for (const anim of this.spec.animations) {
-      this.managers.animation.register(anim);
-    }
-  }
+  private readonly warnedDefaultThemes = new Set<string>();
 
-  private initDataActions() {
-    if (!this.spec.actions) return;
-    for (const a of this.spec.actions) {
-      this.state.data.actions.add(a.action);
+  /** Development mode only: warns for registered representations whose default themes are not registered. */
+  private checkDefaultThemes() {
+    if (isProductionMode) return;
+    try {
+      checkDefaultThemes(this, this.warnedDefaultThemes);
+    } catch (e) {
+      this.log.error(`Default theme check failed: ${e}`);
     }
   }
 
@@ -601,7 +608,6 @@ export class PluginContext {
     try {
       this.subs.push(this.events.log.subscribe((e) => (this.log.entries = this.log.entries.push(e))));
 
-      this.initCustomFormats();
       this.initBehaviorEvents();
       this.initBuiltInBehavior();
 
@@ -609,14 +615,15 @@ export class PluginContext {
       (this.managers.lociLabels as LociLabelManager) = new LociLabelManager(this);
       (this.builders.structure as StructureBuilder) = new StructureBuilder(this);
 
-      this.initAnimations();
-      this.initDataActions();
+      if (this.spec.registry?.length) this.register(this.spec.registry);
 
       await this.initBehaviors();
 
       this.log.message(`Mol* Plugin ${PLUGIN_VERSION}`);
       if (!isProductionMode) this.log.message(`Development mode enabled`);
       if (isDebugMode) this.log.message(`Debug mode enabled`);
+
+      this.checkDefaultThemes();
 
       this._isInitialized = true;
       this.initializedPromiseCallbacks[0]();
@@ -627,6 +634,11 @@ export class PluginContext {
   }
 
   constructor(public spec: PluginSpec) {
+    for (const key of REMOVED_SPEC_KEYS) {
+      if ((spec as Record<string, unknown>)[key] !== undefined) {
+        throw new Error(`PluginSpec.${key} was removed in 6.0; use registry entries (see the migration guide)`);
+      }
+    }
     setSaccharideCompIdMapType(this.config.get(PluginConfig.Structure.SaccharideCompIdMapType) ?? 'default');
   }
 }

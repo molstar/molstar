@@ -7,7 +7,8 @@
 
 import { Structure, StructureElement } from '@molstar/model/model/structure';
 import type { PluginStateObject } from '../objects.js';
-import { StateTransforms } from '../transforms.js';
+import type { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import { ClippingStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/clipping';
 import type { PluginContext } from '@molstar/plugin/context';
 import { StateBuilder, StateObjectCell, StateSelection, StateTransform } from '@molstar/core/state';
 import type { StructureComponentRef } from '../manager/structure/hierarchy-state.js';
@@ -18,12 +19,9 @@ type ClippingEachReprCallback = (
   update: StateBuilder.Root,
   repr: StateObjectCell<
     PluginStateObject.Molecule.Structure.Representation3D,
-    StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>
+    StateTransform<typeof StructureRepresentation3D>
   >,
-  clipping?: StateObjectCell<
-    any,
-    StateTransform<typeof StateTransforms.Representation.ClippingStructureRepresentation3DFromBundle>
-  >,
+  clipping?: StateObjectCell<any, StateTransform<typeof ClippingStructureRepresentation3DFromBundle>>,
 ) => Promise<void>;
 const ClippingManagerTag = 'clipping-controls';
 
@@ -56,11 +54,7 @@ export async function setStructureClipping(
       const filtered = getFilteredBundle([layer], structure);
       update
         .to(repr.transform.ref)
-        .apply(
-          StateTransforms.Representation.ClippingStructureRepresentation3DFromBundle,
-          Clipping.toBundle(filtered),
-          { tags: ClippingManagerTag },
-        );
+        .apply(ClippingStructureRepresentation3DFromBundle, Clipping.toBundle(filtered), { tags: ClippingManagerTag });
     }
   });
 }
@@ -76,7 +70,7 @@ async function eachRepr(
     for (const r of c.representations) {
       const clipping = state.select(
         StateSelection.Generators.ofTransformer(
-          StateTransforms.Representation.ClippingStructureRepresentation3DFromBundle,
+          ClippingStructureRepresentation3DFromBundle,
           r.cell.transform.ref,
         ).withTag(ClippingManagerTag),
       );

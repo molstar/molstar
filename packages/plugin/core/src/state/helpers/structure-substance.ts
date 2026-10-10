@@ -7,7 +7,8 @@
 
 import { Structure, StructureElement } from '@molstar/model/model/structure';
 import type { PluginStateObject } from '../objects.js';
-import { StateTransforms } from '../transforms.js';
+import type { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import { SubstanceStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/substance';
 import type { PluginContext } from '@molstar/plugin/context';
 import { StateBuilder, StateObjectCell, StateSelection, StateTransform } from '@molstar/core/state';
 import { Substance } from '@molstar/graphics/theme/substance';
@@ -19,12 +20,9 @@ type SubstanceEachReprCallback = (
   update: StateBuilder.Root,
   repr: StateObjectCell<
     PluginStateObject.Molecule.Structure.Representation3D,
-    StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>
+    StateTransform<typeof StructureRepresentation3D>
   >,
-  substance?: StateObjectCell<
-    any,
-    StateTransform<typeof StateTransforms.Representation.SubstanceStructureRepresentation3DFromBundle>
-  >,
+  substance?: StateObjectCell<any, StateTransform<typeof SubstanceStructureRepresentation3DFromBundle>>,
 ) => Promise<void>;
 const SubstanceManagerTag = 'substance-controls';
 
@@ -56,13 +54,9 @@ export async function setStructureSubstance(
       update.to(substanceCell).update(Substance.toBundle(filtered));
     } else {
       const filtered = getFilteredBundle([layer], structure);
-      update
-        .to(repr.transform.ref)
-        .apply(
-          StateTransforms.Representation.SubstanceStructureRepresentation3DFromBundle,
-          Substance.toBundle(filtered),
-          { tags: SubstanceManagerTag },
-        );
+      update.to(repr.transform.ref).apply(SubstanceStructureRepresentation3DFromBundle, Substance.toBundle(filtered), {
+        tags: SubstanceManagerTag,
+      });
     }
   });
 }
@@ -91,7 +85,7 @@ async function eachRepr(
     for (const r of c.representations) {
       const substance = state.select(
         StateSelection.Generators.ofTransformer(
-          StateTransforms.Representation.SubstanceStructureRepresentation3DFromBundle,
+          SubstanceStructureRepresentation3DFromBundle,
           r.cell.transform.ref,
         ).withTag(SubstanceManagerTag),
       );

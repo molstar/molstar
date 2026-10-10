@@ -79,16 +79,39 @@ function idSubstrLike(id: string, start: number, length: number): string {
 
 function evaluateIdPathExpression(expr: string, id: string): string {
   const trimmed = expr.trim();
-  if (trimmed === 'id') return id;
-  if (trimmed === 'id.toLowerCase()') return id.toLowerCase();
-  if (trimmed === 'id.toUpperCase()') return id.toUpperCase();
-  const substrMatch = /^id\.(?:substr|substring)\((\d+),\s*(\d+)\)$/.exec(trimmed);
-  if (substrMatch) return idSubstrLike(id, +substrMatch[1], +substrMatch[2]);
-  const substringMatch = /^id\.substring\((\d+)\)$/.exec(trimmed);
-  if (substringMatch) return id.substring(+substringMatch[1]);
-  const sliceMatch = /^id\.slice\((\d+)(?:,\s*(\d+))?\)$/.exec(trimmed);
-  if (sliceMatch) return id.slice(+sliceMatch[1], sliceMatch[2] !== undefined ? +sliceMatch[2] : undefined);
-  throw new Error(`Unsupported id path expression: \${${expr}}`);
+  const unsupported = () => new Error(`Unsupported id path expression: \${${expr}}`);
+  if (!trimmed.startsWith('id')) throw unsupported();
+
+  let remaining = trimmed.substring(2);
+  let value = id;
+  while (remaining.length > 0) {
+    const call = /^\.(toLowerCase|toUpperCase|substr|substring|slice)\(([^()]*)\)/.exec(remaining);
+    if (!call) throw unsupported();
+    const method = call[1];
+    const args = call[2].trim();
+    if (method === 'toLowerCase' || method === 'toUpperCase') {
+      if (args !== '') throw unsupported();
+      value = method === 'toLowerCase' ? value.toLowerCase() : value.toUpperCase();
+    } else {
+      const indices = /^(\d+)(?:,\s*(\d+))?$/.exec(args);
+      if (!indices || (method === 'substr' && indices[2] === undefined)) throw unsupported();
+      const start = +indices[1];
+      const endOrLength = indices[2] !== undefined ? +indices[2] : undefined;
+      switch (method) {
+        case 'substr':
+          value = idSubstrLike(value, start, endOrLength!);
+          break;
+        case 'substring':
+          value = value.substring(start, endOrLength);
+          break;
+        case 'slice':
+          value = value.slice(start, endOrLength);
+          break;
+      }
+    }
+    remaining = remaining.substring(call[0].length);
+  }
+  return value;
 }
 
 /** Validate that a path template only uses supported `${id…}` expressions. */

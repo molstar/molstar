@@ -17,6 +17,10 @@ condition; it does not need a preceding library build. `pnpm build:distribution`
 classic bundles and browser ESM modules in `distributions/molstar/build`. `pnpm pack:workspace` creates local public
 package tarballs in `build/packages` and checks their version ranges and published entry points/assets.
 
+`tsc -b` does not delete output for removed or moved sources, so a local `lib/` can keep stale modules that would be
+packed. `pnpm clean` removes all generated `lib/` and `build/` output (`clean:lib` and `clean:build` remove one kind),
+and `pnpm rebuild` cleans before building. `pnpm check:publish` builds through `rebuild`.
+
 Use `pnpm dev` to watch all browser apps and examples on one server, or `pnpm dev:apps -- viewer` for a source-based
 Viewer dev server. Each browser app/example also has its own `build` and `dev` scripts. Select examples from the root
 with `pnpm dev:examples -- basic-wrapper`. Both selectors accept `--port 1340` and `--help` to list available browser
@@ -44,8 +48,12 @@ choices and is not a runtime resolver.
 | `distributions/molstar`    | `molstar`                  | Browser distribution artifacts                             |
 
 Extensions, apps, servers and CLI tools own their manifests in their corresponding top-level directories. The filename
-migration inventory is in [`migration-map.json`](migration-map.json). Cross-package imports use public package subpaths
-rather than relative paths into another package's source.
+migration inventory is in [`migration-map.json`](migration-map.json): each v5 source path maps to its v6 path, to an
+array of v6 paths when the file was split into several modules, or to `null` when it was removed.
+[`migration-symbols.json`](migration-symbols.json) maps the exported symbols of split or partly removed v5 modules to
+their current modules (`null` when removed). `scripts/workspace/check.mjs` fails when a target in either file no longer
+exists or a symbol is not exported by its target. Cross-package imports use public package subpaths rather than relative
+paths into another package's source.
 
 Data-only shapes belong to model; rendering shape factories/helpers belong to `@molstar/graphics/geo/shape/shape`. Model
 `Shape.create` takes an explicit group count; the graphics factory derives it from geometry. Model-aware

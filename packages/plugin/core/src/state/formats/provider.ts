@@ -13,7 +13,9 @@ import { RuntimeContext, Task } from '@molstar/core/task';
 import type { FileNameInfo } from '@molstar/core/util/file-info';
 import { PluginStateObject } from '../objects.js';
 
-export interface DataFormatProvider<P = any, R = any, V = any, D = any> {
+export interface DataFormatProvider<P = any, R = any, V = any, D = any, Id extends string = string> {
+  /** Registration name of the format, used in format params and `DownloadFile` options. */
+  readonly name: Id;
   label: string;
   description: string;
   category?: string;
@@ -42,8 +44,42 @@ export interface DataFormatProvider<P = any, R = any, V = any, D = any> {
   defaultData?: D;
 }
 
-export function DataFormatProvider<P extends DataFormatProvider>(provider: P): P {
+/** Identity helper that type checks a provider and keeps its `name` a literal type. */
+export function DataFormatProvider<const T extends DataFormatProvider>(provider: T): T {
   return provider;
+}
+
+const namedCopies = new WeakMap<object, Map<string, DataFormatProvider>>();
+
+export namespace DataFormatProvider {
+  /** A provider that may lack a `name`, such as the user-supplied `customFormats` of the Viewer. */
+  export type Unnamed<P = any, R = any, V = any, D = any, Id extends string = string> = Omit<
+    DataFormatProvider<P, R, V, D, Id>,
+    'name'
+  > & { name?: Id };
+
+  /**
+   * Returns `provider` when it is already called `name`, otherwise a copy that has `name`. Copies are
+   * memoized, so repeated calls with the same arguments return the same object (the copy is a separate
+   * identity from `provider`).
+   */
+  export function withName<P = any, R = any, V = any, D = any>(
+    provider: Unnamed<P, R, V, D>,
+    name: string,
+  ): DataFormatProvider<P, R, V, D> {
+    if (provider.name === name) return provider as DataFormatProvider<P, R, V, D>;
+    let copies = namedCopies.get(provider);
+    if (!copies) {
+      copies = new Map();
+      namedCopies.set(provider, copies);
+    }
+    let copy = copies.get(name);
+    if (!copy) {
+      copy = { ...provider, name };
+      copies.set(name, copy);
+    }
+    return copy as DataFormatProvider<P, R, V, D>;
+  }
 }
 
 export function rawDataObject(data: StringLike | Uint8Array) {

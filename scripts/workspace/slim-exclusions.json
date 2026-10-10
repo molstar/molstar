@@ -1,0 +1,75 @@
+{
+  "entry": "examples/slim-plugin/src/index.ts",
+  "excluded": [
+    {
+      "name": "mmCIF parser",
+      "paths": [
+        "packages/model/src/formats/structure/mmcif.ts",
+        "packages/io/src/reader/cif.ts",
+        "packages/io/src/reader/cif/{text,binary}/**",
+        "packages/plugin/core/src/state/formats/trajectory/mmcif.ts"
+      ]
+    },
+    {
+      "name": "CCP4 parser",
+      "paths": ["packages/io/src/reader/ccp4/**", "packages/plugin/core/src/state/formats/volume/ccp4.ts"]
+    },
+    {
+      "name": "Cartoon",
+      "paths": [
+        "packages/graphics/src/repr/structure/representation/cartoon.ts",
+        "packages/plugin/core/src/registry/structure/cartoon.ts"
+      ]
+    },
+    {
+      "name": "Volume representations",
+      "paths": [
+        "packages/graphics/src/repr/volume/{direct-volume,isosurface,slice,dot,segment}.ts",
+        "packages/plugin/core/src/registry/volume/{direct-volume,isosurface,slice,dot,segment}.ts"
+      ]
+    },
+    {
+      "name": "Other representation presets",
+      "paths": [
+        "packages/plugin/core/src/state/builder/structure/representation-presets/{atomic-detail,auto-lod,auto,coarse-surface,empty,illustrative,mesoscale,molecular-surface,polymer-and-ligand,polymer-cartoon,protein-and-nucleic}.ts"
+      ]
+    },
+    {
+      "name": "Other hierarchy presets",
+      "paths": [
+        "packages/plugin/core/src/state/builder/structure/hierarchy-presets/{all-models,crystal-contacts,supercell,unitcell}.ts"
+      ]
+    },
+    {
+      "name": "Query catalog",
+      "paths": ["packages/plugin/core/src/state/queries/structure/catalog.ts"]
+    },
+    {
+      "name": "Script transpilers",
+      "paths": ["packages/model/src/script/transpilers/**"]
+    },
+    {
+      "name": "MP4 export",
+      "paths": ["extensions/mp4-export/**"]
+    },
+    {
+      "name": "Catalogs and default compositions",
+      "paths": [
+        "**/catalog.ts",
+        "**/default-spec.ts",
+        "**/default-registry.ts",
+        "packages/plugin/core/src/behavior.ts",
+        "packages/plugin/core/src/behavior/dynamic/custom-props.ts",
+        "packages/plugin/core/src/state/actions.ts"
+      ]
+    }
+  ],
+  "knownLeaks": [],
+  "boundary": {
+    "sources": ["packages/plugin/core/src/themes/external-*.ts", "packages/plugin/core/src/state/queries/structure/*"],
+    "forbidden": {
+      "transform": ["packages/plugin/core/src/state/transforms/**"],
+      "PluginContext": ["packages/plugin/core/src/context.ts", "packages/plugin/ui/src/context.ts"]
+    }
+  }
+}

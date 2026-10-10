@@ -21,13 +21,12 @@ import { PluginStateTransform, PluginStateObject } from '@molstar/plugin/state/o
 import { Task } from '@molstar/core/task';
 import { PluginConfigItem } from '@molstar/plugin/config';
 import { PluginContext } from '@molstar/plugin/context';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { StateTransformer, StateAction, StateObject, StateTransform, StateObjectRef } from '@molstar/core/state';
 import type { GenericRepresentationRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { AssemblySymmetryControls } from '@molstar/assembly-symmetry-extension/ui';
-import {
-  StructureRepresentationPresetProvider,
-  PresetStructureRepresentations,
-} from '@molstar/plugin/state/builder/structure/representation-preset';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/representation-presets/auto';
 
 const Tag = AssemblySymmetryData.Tag;
 
@@ -40,11 +39,18 @@ export const AssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean }>({
   },
   ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
     private provider = AssemblySymmetryProvider;
+    private unregisterEntry: (() => void) | undefined;
 
     register(): void {
-      this.ctx.state.data.actions.add(InitAssemblySymmetry3D);
+      const entry: PluginRegistryEntry = {
+        structure: {
+          themes: { color: [AssemblySymmetryClusterColorThemeProvider] },
+          presets: { representation: [AssemblySymmetryPreset] },
+        },
+        actions: [InitAssemblySymmetry3D],
+      };
+      this.unregisterEntry = this.ctx.register(entry);
       this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
-      this.ctx.representation.structure.themes.colorThemeRegistry.add(AssemblySymmetryClusterColorThemeProvider);
 
       this.ctx.genericRepresentationControls.set(Tag.Representation, (selection) => {
         const refs: GenericRepresentationRef[] = [];
@@ -57,7 +63,6 @@ export const AssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean }>({
         return [refs, 'Symmetries'];
       });
       this.ctx.customStructureControls.set(Tag.Representation, AssemblySymmetryControls as any);
-      this.ctx.builders.structure.representation.registerPreset(AssemblySymmetryPreset);
     }
 
     update(p: { autoAttach: boolean }) {
@@ -68,13 +73,12 @@ export const AssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean }>({
     }
 
     unregister() {
-      this.ctx.state.data.actions.remove(InitAssemblySymmetry3D);
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
       this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
-      this.ctx.representation.structure.themes.colorThemeRegistry.remove(AssemblySymmetryClusterColorThemeProvider);
 
       this.ctx.genericRepresentationControls.delete(Tag.Representation);
       this.ctx.customStructureControls.delete(Tag.Representation);
-      this.ctx.builders.structure.representation.unregisterPreset(AssemblySymmetryPreset);
     }
   },
   params: () => ({
@@ -219,7 +223,7 @@ export const AssemblySymmetryPreset = StructureRepresentationPresetProvider({
     const assemblySymmetry = await tryCreateAssemblySymmetry(plugin, structureCell);
     const colorTheme =
       getAssemblySymmetryConfig(plugin).ApplyColors && assemblySymmetry.isOk ? (Tag.Cluster as any) : undefined;
-    const preset = await PresetStructureRepresentations.auto.apply(
+    const preset = await AutoPreset.apply(
       ref,
       { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } },
       plugin,

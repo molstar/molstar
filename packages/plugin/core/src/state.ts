@@ -17,6 +17,11 @@ import { type EasingKind, EasingParamDefinition } from '@molstar/core/math/easin
 import type { Vec3 } from '@molstar/core/math/linear-algebra';
 import { AnimateStateSnapshotTransition } from '@molstar/plugin/state/animation/built-in/state-snapshots';
 import { PluginComponent } from '@molstar/plugin/state/component';
+import {
+  type ProviderKind,
+  type RepresentationScope,
+  warnIfUnregistered,
+} from '@molstar/plugin/state/helpers/representation-registry';
 import type { PluginAnimationManager } from '@molstar/plugin/state/manager/animation';
 import type { InteractivityManager } from '@molstar/plugin/state/manager/interactivity';
 import type { StructureComponentManager } from '@molstar/plugin/state/manager/structure/component';
@@ -29,12 +34,22 @@ import { UUID } from '@molstar/core/util';
 import { memoizeLatest } from '@molstar/core/util/memoize';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { produce } from '@molstar/core/util/produce';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig } from '@molstar/plugin/config';
 import type { PluginContext } from '@molstar/plugin/context';
 
 export { PluginState };
+
+/**
+ * Representation transformer ids by scope (ids only, so this module does not import the transformers):
+ * `StructureRepresentation3D`, `VolumeRepresentation3D`, and `ParticlesRepresentation3D`.
+ */
+const RepresentationTransformerScopes: { [id: string]: RepresentationScope | undefined } = {
+  'ms-plugin.structure-representation-3d': 'structure',
+  'ms-plugin.volume-representation-3d': 'volume',
+  'ms-plugin.particles-representation-3d': 'particles',
+};
 
 class PluginState extends PluginComponent {
   private get animation() {
@@ -104,13 +119,71 @@ class PluginState extends PluginComponent {
     };
   }
 
+  /**
+   * Throws one error listing every transformer id used by the snapshot (behavior tree, data tree, and
+   * transition frame data trees) that is not registered. Reads ids only; resolves and imports nothing.
+   * Call before applying a snapshot so a failing snapshot leaves the plugin unchanged.
+   */
+  static validateSnapshotTransformers(snapshot: PluginState.Snapshot) {
+    const missing = new Set<string>();
+    const visit = (tree: State.Snapshot | undefined) => {
+      for (const t of tree?.tree?.transforms ?? []) {
+        if (!StateTransformer.has(t.transformer)) missing.add(t.transformer);
+      }
+    };
+    visit(snapshot.behaviour);
+    visit(snapshot.data);
+    for (const frame of snapshot.transition?.frames ?? []) visit(frame.data);
+    if (missing.size === 0) return;
+    throw new Error(
+      `Snapshot uses transformers that are not available in this plugin: ${Array.from(missing).join(', ')}. Import the modules that define them.`,
+    );
+  }
+
+  /**
+   * Warns for each representation type, color theme, and size theme name used by the snapshot's data tree and
+   * transition frames that is not registered in the matching scope; the registry default replaces it when the data
+   * tree is normalized. Reads names only and never throws for a missing name.
+   * Call after the behavior tree is applied, since behaviors may register providers.
+   */
+  reportUnregisteredNames(snapshot: PluginState.Snapshot) {
+    const reported = new Set<string>();
+    const check = (
+      scopeName: RepresentationScope,
+      kind: ProviderKind,
+      registry: Parameters<typeof warnIfUnregistered>[3],
+      name: unknown,
+    ) => {
+      if (typeof name !== 'string') return;
+      const key = `${scopeName}|${kind}|${name}`;
+      if (reported.has(key)) return;
+      reported.add(key);
+      warnIfUnregistered(this.plugin, scopeName, kind, registry, name);
+    };
+    const visit = (tree: State.Snapshot | undefined) => {
+      for (const t of tree?.tree?.transforms ?? []) {
+        const scopeName = RepresentationTransformerScopes[t.transformer];
+        if (!scopeName || !t.params) continue;
+        const { registry, themes } = this.plugin.representation[scopeName];
+        check(scopeName, 'representation', registry, t.params.type?.name);
+        check(scopeName, 'color theme', themes.colorThemeRegistry, t.params.colorTheme?.name);
+        check(scopeName, 'size theme', themes.sizeThemeRegistry, t.params.sizeTheme?.name);
+      }
+    };
+    visit(snapshot.data);
+    for (const frame of snapshot.transition?.frames ?? []) visit(frame.data);
+  }
+
   async setSnapshot(snapshot: PluginState.Snapshot) {
+    PluginState.validateSnapshotTransformers(snapshot);
     await this.animation.stop();
 
     // this needs to go 1st since these changes are already baked into the behavior and data state
     if (snapshot.structureComponentManager?.options)
       this.plugin.managers.structure.component._setSnapshotState(snapshot.structureComponentManager?.options);
     if (snapshot.behaviour) await this.plugin.runTask(this.behaviors.setSnapshot(snapshot.behaviour));
+    // behaviors have registered their providers by now
+    this.reportUnregisteredNames(snapshot);
     if (snapshot.data) await this.plugin.runTask(this.data.setSnapshot(snapshot.data));
     if (snapshot.canvas3d?.props) {
       const settings: Partial<Canvas3DProps> = PD.normalizeParams(Canvas3DParams, snapshot.canvas3d.props, 'children');
@@ -212,12 +285,22 @@ class PluginState extends PluginComponent {
     return this.behaviors.tree.transforms.has(behaviorId);
   }
 
+  /**
+   * Updates the params of a behavior. With a transformer, the behavior is inserted with default params when it is
+   * absent. With a transformer id, only a behavior that is present is updated (use `hasBehavior` to check) and
+   * nothing is inserted; `P` is the params type, usually an `import type` of the behavior module.
+   */
   updateBehavior<T extends StateTransformer>(
     behavior: T,
     params: (old: StateTransformer.Params<T>) => void | StateTransformer.Params<T>,
-  ) {
+  ): Promise<void>;
+  updateBehavior<P = any>(behaviorId: string, params: (old: P) => void | P): Promise<void>;
+  updateBehavior(behavior: StateTransformer | string, params: (old: any) => any): Promise<void> {
     const tree = this.behaviors.build();
-    if (!this.behaviors.tree.transforms.has(behavior.id)) {
+    if (typeof behavior === 'string') {
+      if (!this.behaviors.tree.transforms.has(behavior)) return Promise.resolve();
+      tree.to(behavior).update(params);
+    } else if (!this.behaviors.tree.transforms.has(behavior.id)) {
       const defaultParams = behavior.createDefaultParams(void 0 as any, this.plugin);
       tree
         .to(PluginBehavior.getCategoryId(behavior))

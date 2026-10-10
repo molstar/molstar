@@ -16,6 +16,7 @@
       "!!deploy",
       "!!docs/site",
       "!build.mjs",
+      "!.v6/baselines",
       "!**/package-lock.json",
       "!**/npm-shrinkwrap.json"
     ]

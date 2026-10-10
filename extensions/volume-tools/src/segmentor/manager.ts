@@ -8,7 +8,7 @@ import { Volume } from '@molstar/model/model/volume';
 import { StatefulPluginComponent } from '@molstar/plugin/state/component';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { PluginContext } from '@molstar/plugin/context';
 import { StateObjectCell, StateTransform } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
@@ -163,7 +163,7 @@ export class VolumeSegmentorManager extends StatefulPluginComponent<VolumeSegmen
   private volumeReprsOf(ref: StateTransform.Ref): StateObjectCell[] {
     const state = this.plugin.state.data;
     return state
-      .selectQ((q) => q.ofTransformer(StateTransforms.Representation.VolumeRepresentation3D, ref))
+      .selectQ((q) => q.ofTransformer(VolumeRepresentation3D, ref))
       .filter((c) => {
         // The nearest (non-decorator) volume ancestor must be the target itself:
         // representations of the body mask previews sit under their own derived volumes.
@@ -248,7 +248,7 @@ export class VolumeSegmentorManager extends StatefulPluginComponent<VolumeSegmen
     try {
       const builder = this.plugin.build();
       for (const cell of reprs) {
-        builder.to(cell).update(StateTransforms.Representation.VolumeRepresentation3D, (old) => ({
+        builder.to(cell).update(VolumeRepresentation3D, (old) => ({
           ...old,
           type: { name: 'isosurface', params: { ...old.type.params, wrap: 'off', isoValue } },
           colorTheme: { name: BodyLabelColorThemeProvider.name, params: { unassignedColor: UnassignedColor, version } },
@@ -266,7 +266,7 @@ export class VolumeSegmentorManager extends StatefulPluginComponent<VolumeSegmen
     const version = this.store?.version ?? 0;
     const builder = this.plugin.build();
     for (const cell of reprs) {
-      builder.to(cell).update(StateTransforms.Representation.VolumeRepresentation3D, (old) => ({
+      builder.to(cell).update(VolumeRepresentation3D, (old) => ({
         ...old,
         colorTheme:
           old.colorTheme.name === BodyLabelColorThemeProvider.name
@@ -321,7 +321,7 @@ export class VolumeSegmentorManager extends StatefulPluginComponent<VolumeSegmen
     if (reprs.length > 0) {
       const builder = this.plugin.build();
       for (const cell of reprs) {
-        builder.to(cell).update(StateTransforms.Representation.VolumeRepresentation3D, (old) => ({
+        builder.to(cell).update(VolumeRepresentation3D, (old) => ({
           ...old,
           type: { name: 'isosurface', params: { ...old.type.params, isoValue: value } },
         }));
@@ -710,7 +710,7 @@ export class VolumeSegmentorManager extends StatefulPluginComponent<VolumeSegmen
           !Volume.IsoValue.areSame(old.threshold, transformParams.threshold, this.volume!.grid.stats);
         const builder = this.plugin.build();
         if (paramsChanged) builder.to(existing.mask).update(BodyMaskFromLabels, () => transformParams);
-        builder.to(existing.repr).update(StateTransforms.Representation.VolumeRepresentation3D, (o) => ({
+        builder.to(existing.repr).update(VolumeRepresentation3D, (o) => ({
           ...o,
           colorTheme: { name: 'uniform', params: { value: body.color } },
         }));
@@ -734,7 +734,7 @@ export class VolumeSegmentorManager extends StatefulPluginComponent<VolumeSegmen
       const repr = await this.plugin
         .build()
         .to(mask.ref)
-        .apply(StateTransforms.Representation.VolumeRepresentation3D, reprParams, { tags: BodyMaskFromLabelsTag })
+        .apply(VolumeRepresentation3D, reprParams, { tags: BodyMaskFromLabelsTag })
         .commit({ canUndo: false });
       this.previewRefs.set(id, { mask: mask.ref, repr: repr.ref });
     }

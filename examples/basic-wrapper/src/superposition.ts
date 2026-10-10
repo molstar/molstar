@@ -14,9 +14,10 @@ import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import { Expression } from '@molstar/model/script/language/expression';
 import { compile } from '@molstar/model/script/runtime/query/compiler';
 import { StateObjectRef } from '@molstar/core/state';
-import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
+import { TransformStructureConformation } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { Asset } from '@molstar/core/util/assets';
+import { Color } from '@molstar/core/util/color';
 
 export type SuperpositionTestInput = {
   pdbId: string;
@@ -153,7 +154,7 @@ function transform(plugin: PluginContext, s: StateObjectRef<PSO.Molecule.Structu
   const b = plugin.state.data
     .build()
     .to(s)
-    .insert(StateTransforms.Model.TransformStructureConformation, {
+    .insert(TransformStructureConformation, {
       transform: { name: 'matrix', params: { data: matrix, transpose: false } },
     });
   return plugin.runTask(plugin.state.data.updateTree(b));
@@ -271,7 +272,7 @@ async function addChainRepresentation(
     await plugin.builders.structure.representation.addRepresentation(component, {
       type: 'cartoon',
       color: 'uniform',
-      colorParams: { value: color },
+      colorParams: { value: Color(color) },
     });
   }
 }

@@ -14,6 +14,14 @@ here.
   one edge
 - Fix RCSB validation report and ModelArchive quality assessment behaviors updating auto-attach and unregistering via
   the custom structure property registry instead of the custom model property registry they register with
+- Fix the cross-link restraint representation's default color theme name (`cross-link`); it fell back to the first
+  registered theme
+- Fix the `state-docs` CLI crashing on parameters that need data, and create its output folder
+
+## [v5.13.1] - 2026-10-08
+
+- ModelServer and VolumeServer: support chained string operations in path templates and fix `substring` to use an
+  exclusive end index instead of a length (#1963)
 
 ## [v5.13.0] - 2026-10-04
 

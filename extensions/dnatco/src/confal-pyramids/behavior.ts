@@ -10,10 +10,8 @@ import { ConfalPyramidsProvider } from './property.js';
 import { ConfalPyramidsRepresentationProvider } from './representation.js';
 import { Dnatco } from '@molstar/dnatco-extension/property';
 import { DnatcoTypes } from '@molstar/dnatco-extension/types';
-import {
-  StructureRepresentationPresetProvider,
-  PresetStructureRepresentations,
-} from '@molstar/plugin/state/builder/structure/representation-preset';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/representation-presets/auto';
 import { StateObjectRef } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
 
@@ -42,7 +40,7 @@ export const ConfalPyramidsPreset = StructureRepresentationPresetProvider({
       }),
     );
 
-    const { components, representations } = await PresetStructureRepresentations.auto.apply(ref, { ...params }, plugin);
+    const { components, representations } = await AutoPreset.apply(ref, { ...params }, plugin);
 
     const pyramids = await plugin.builders.structure.tryCreateComponentStatic(structureCell, 'nucleic', {
       label: 'Confal Pyramids',

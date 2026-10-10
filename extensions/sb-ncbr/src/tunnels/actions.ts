@@ -5,7 +5,7 @@
  */
 
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
 import { PluginContext } from '@molstar/plugin/context';
 import { StateAction } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
@@ -125,7 +125,7 @@ export const DownloadTunnels = StateAction.build({
             .apply(TunnelShapeProvider, {
               webgl,
             })
-            .apply(StateTransforms.Representation.ShapeRepresentation3D);
+            .apply(ShapeRepresentation3D);
 
           await update.commit();
         }

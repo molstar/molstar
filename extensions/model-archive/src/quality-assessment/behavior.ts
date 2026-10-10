@@ -11,21 +11,17 @@ import { Loci } from '@molstar/model/model/loci';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/compiler';
 import { PLDDTConfidenceColorThemeProvider } from './color/plddt.js';
 import { QualityAssessment, QualityAssessmentProvider } from './prop.js';
-import {
-  StructureSelectionCategory,
-  StructureSelectionQuery,
-} from '@molstar/plugin/state/helpers/structure-selection-query';
+import { StructureSelectionCategory, StructureSelectionQuery } from '@molstar/plugin/state/queries/structure/query';
 import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
 import { OrderedSet } from '@molstar/core/data/int';
 import { cantorPairing } from '@molstar/core/data/util';
 import { QmeanScoreColorThemeProvider } from './color/qmean.js';
-import {
-  PresetStructureRepresentations,
-  StructureRepresentationPresetProvider,
-} from '@molstar/plugin/state/builder/structure/representation-preset';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/representation-presets/auto';
 import { StateObjectRef } from '@molstar/core/state';
 import { MAPairwiseScorePlotPanel } from './pairwise/ui.js';
 import { PluginConfigItem } from '@molstar/plugin/config';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export const MAQualityAssessmentConfig = {
   EnablePairwiseScorePlot: new PluginConfigItem('ma-quality-assessment-prop.enable-pairwise-score-plot', true),
@@ -48,20 +44,22 @@ export const MAQualityAssessment = PluginBehavior.create<{ autoAttach: boolean; 
       },
     };
 
+    private unregisterEntry: (() => void) | undefined;
+
     register(): void {
       DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
 
       this.ctx.customModelProperties.register(this.provider, this.params.autoAttach);
 
-      this.ctx.managers.lociLabels.addProvider(this.labelProvider);
-
-      this.ctx.representation.structure.themes.colorThemeRegistry.add(PLDDTConfidenceColorThemeProvider);
-      this.ctx.representation.structure.themes.colorThemeRegistry.add(QmeanScoreColorThemeProvider);
-
-      this.ctx.query.structure.registry.add(confidentPLDDT);
-
-      this.ctx.builders.structure.representation.registerPreset(QualityAssessmentPLDDTPreset);
-      this.ctx.builders.structure.representation.registerPreset(QualityAssessmentQmeanPreset);
+      const entry: PluginRegistryEntry = {
+        structure: {
+          themes: { color: [PLDDTConfidenceColorThemeProvider, QmeanScoreColorThemeProvider] },
+          presets: { representation: [QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset] },
+          selectionQueries: [confidentPLDDT],
+        },
+        lociLabels: [this.labelProvider],
+      };
+      this.unregisterEntry = this.ctx.register(entry);
 
       if (this.ctx.config.get(MAQualityAssessmentConfig.EnablePairwiseScorePlot)) {
         this.ctx.customStructureControls.set('ma-quality-assessment-pairwise-plot', MAPairwiseScorePlotPanel as any);
@@ -81,15 +79,8 @@ export const MAQualityAssessment = PluginBehavior.create<{ autoAttach: boolean; 
 
       this.ctx.customModelProperties.unregister(this.provider.descriptor.name);
 
-      this.ctx.managers.lociLabels.removeProvider(this.labelProvider);
-
-      this.ctx.representation.structure.themes.colorThemeRegistry.remove(PLDDTConfidenceColorThemeProvider);
-      this.ctx.representation.structure.themes.colorThemeRegistry.remove(QmeanScoreColorThemeProvider);
-
-      this.ctx.query.structure.registry.remove(confidentPLDDT);
-
-      this.ctx.builders.structure.representation.unregisterPreset(QualityAssessmentPLDDTPreset);
-      this.ctx.builders.structure.representation.unregisterPreset(QualityAssessmentQmeanPreset);
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
 
       this.ctx.customStructureControls.delete('ma-quality-assessment-pairwise-plot');
     }
@@ -226,7 +217,7 @@ export const QualityAssessmentPLDDTPreset = StructureRepresentationPresetProvide
     if (!structureCell || !structure) return {};
 
     const colorTheme = PLDDTConfidenceColorThemeProvider.name as any;
-    return await PresetStructureRepresentations.auto.apply(
+    return await AutoPreset.apply(
       ref,
       { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } },
       plugin,
@@ -251,7 +242,7 @@ export const QualityAssessmentQmeanPreset = StructureRepresentationPresetProvide
     if (!structureCell || !structure) return {};
 
     const colorTheme = QmeanScoreColorThemeProvider.name as any;
-    return await PresetStructureRepresentations.auto.apply(
+    return await AutoPreset.apply(
       ref,
       { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } },
       plugin,

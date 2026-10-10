@@ -12,9 +12,9 @@ import { Model } from '@molstar/model/model/structure';
 import { GlobalModelTransformInfo } from '@molstar/model/model/structure/model/properties/global-transform';
 import { Volume } from '@molstar/model/model/volume';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
-import { VolumeRepresentation3DHelpers } from '@molstar/plugin/state/transforms/representation';
+import { VolumeRepresentation3DHelpers } from '@molstar/plugin/state/transforms/volume/representation-helpers';
 import type { PluginContext } from '@molstar/plugin/context';
-import { VolumeRepresentationRegistry } from '@molstar/graphics/repr/volume/registry';
+import { IsosurfaceRepresentationProvider } from '@molstar/graphics/repr/volume/isosurface';
 import { StateAction, StateObject, StateTransformer } from '@molstar/core/state';
 import { RuntimeContext, Task } from '@molstar/core/task';
 import { Theme } from '@molstar/graphics/theme/theme';
@@ -24,7 +24,8 @@ import { urlCombine } from '@molstar/core/util/url';
 import { PluginConfig } from '@molstar/plugin/config';
 import { VolumeStreaming } from './behavior.js';
 import { VolumeServerHeader, VolumeServerInfo } from './model.js';
-import { getContourLevel, getEmdbIds, getIds, getStreamingMethod } from './util.js';
+import { getIds, getStreamingMethod } from './util.js';
+import { getContourLevel, getEmdbIds } from '@molstar/plugin/state/helpers/emdb';
 
 function createEntry(method: VolumeServerInfo.Kind, dataId: string, emDefaultContourLevel: number): InfoEntryProps {
   return {
@@ -344,7 +345,7 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
       if (!channel) return StateObject.Null;
 
       const params = createVolumeProps(a.data, srcParams.channel);
-      const provider = VolumeRepresentationRegistry.BuiltIn.isosurface;
+      const provider = IsosurfaceRepresentationProvider;
       const props = params.type.params || {};
       const repr = provider.factory(
         { webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes },

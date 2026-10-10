@@ -18,7 +18,18 @@
       "types": "./lib/context.d.ts",
       "import": "./lib/context.js"
     },
-    "./state/helpers/_test/*": null
+    "./_test/*": null,
+    "./behavior/dynamic/volume-streaming/_test/*": null,
+    "./registry/_test/*": null,
+    "./behavior/dynamic/selection/_test/*": null,
+    "./state/actions/_test/*": null,
+    "./state/builder/structure/_test/*": null,
+    "./state/helpers/_test/*": null,
+    "./state/formats/_test/*": null,
+    "./state/_test/*": null,
+    "./state/manager/_test/*": null,
+    "./state/queries/structure/_test/*": null,
+    "./state/transforms/_test/*": null
   },
   "files": [
     "lib",

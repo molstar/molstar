@@ -5,13 +5,13 @@
  */
 
 import { PluginStateObject } from '../../objects.js';
-import { StateTransforms } from '../../transforms.js';
+import { ParticleListFromTrajectory } from '@molstar/plugin/state/transforms/particles/ops';
 import { createTrajectoryAnimation } from '../trajectory.js';
 
 export const AnimateParticleTrajectory = createTrajectoryAnimation({
   name: 'built-in.animate-particle-trajectory',
   display: { name: 'Animate Particle Trajectory' },
-  transformer: StateTransforms.Particles.ParticleListFromTrajectory,
+  transformer: ParticleListFromTrajectory,
   trajectoryType: PluginStateObject.Particle.Trajectory,
   noTrajectoryReason: 'No particle trajectory to animate',
   getFrameCount: (data) => data.frameCount,

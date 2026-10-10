@@ -5,21 +5,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as _ from '@molstar/plugin/state/transforms';
+import '@molstar/plugin/state/transforms/catalog';
 import { StateTransformer, StateObject } from '@molstar/core/state';
 import { StringBuilder } from '@molstar/core/util';
 import * as fs from 'fs';
 import { paramsToMd } from '@molstar/state-docs-cli/pd-to-md';
 import { PluginContext } from '@molstar/plugin/context';
+import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { ParamDefinition } from '@molstar/core/util/param-definition';
 
-// force the transform to be evaluated
-_.StateTransforms.Data.Download.id;
-
-// Empty plugin context
-const ctx = new PluginContext({
-  behaviors: [],
-});
+// The default plugin, so the docs list every built-in representation and theme
+const ctx = new PluginContext(DefaultPluginSpec());
+await ctx.init();
 
 const builder = StringBuilder.create();
 
@@ -72,4 +69,5 @@ StringBuilder.write(builder, '----------------------------');
 StringBuilder.newline(builder);
 transformers.forEach((t) => writeTransformer(t));
 
+fs.mkdirSync('docs/state', { recursive: true });
 fs.writeFileSync(`docs/state/transforms.md`, StringBuilder.getString(builder));

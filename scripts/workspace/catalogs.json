@@ -1,0 +1,47 @@
+{
+  "layers": [
+    "@molstar/core",
+    "@molstar/io",
+    "@molstar/model",
+    "@molstar/graphics",
+    "@molstar/plugin",
+    "@molstar/plugin-ui"
+  ],
+  "catalogs": [
+    "packages/graphics/src/repr/particles/catalog.ts",
+    "packages/graphics/src/repr/structure/catalog.ts",
+    "packages/graphics/src/repr/volume/catalog.ts",
+    "packages/graphics/src/theme/color/catalog.ts",
+    "packages/graphics/src/theme/size/catalog.ts",
+    "packages/model/src/script/transpilers/all.ts",
+    "packages/mvs/runtime/src/registry.ts",
+    "packages/plugin/core/src/behavior.ts",
+    "packages/plugin/core/src/behavior/dynamic/custom-props.ts",
+    "packages/plugin/core/src/state/actions.ts",
+    "packages/plugin/core/src/state/builder/structure/hierarchy-presets/catalog.ts",
+    "packages/plugin/core/src/state/builder/structure/representation-presets/catalog.ts",
+    "packages/plugin/core/src/state/formats/coordinates/catalog.ts",
+    "packages/plugin/core/src/state/formats/particles/catalog.ts",
+    "packages/plugin/core/src/state/formats/shape/catalog.ts",
+    "packages/plugin/core/src/state/formats/topology/catalog.ts",
+    "packages/plugin/core/src/state/formats/trajectory/catalog.ts",
+    "packages/plugin/core/src/state/formats/volume/catalog.ts",
+    "packages/plugin/core/src/state/markdown/catalog.ts",
+    "packages/plugin/core/src/state/queries/structure/catalog.ts",
+    "packages/plugin/core/src/state/transforms/catalog.ts"
+  ],
+  "defaultComposition": [
+    "packages/plugin/core/src/default-registry.ts",
+    "packages/plugin/core/src/default-spec.ts",
+    "packages/plugin/ui/src/default-spec.ts"
+  ],
+  "pendingDefaultComposition": [],
+  "baseEntryPoints": [
+    "packages/plugin/core/src/context.ts",
+    "packages/plugin/core/src/spec.ts",
+    "packages/plugin/ui/src/index.ts",
+    "packages/plugin/ui/src/plugin.tsx",
+    "packages/plugin/ui/src/spec.ts"
+  ],
+  "allowlist": []
+}

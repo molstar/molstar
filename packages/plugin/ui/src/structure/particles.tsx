@@ -10,7 +10,7 @@ import type {
   ParticleListRef,
   ParticleRepresentationRef,
 } from '@molstar/plugin/state/manager/particles/hierarchy-state';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { ParticleListFromTrajectory } from '@molstar/plugin/state/transforms/particles/ops';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { State } from '@molstar/core/state';
 import { Color } from '@molstar/core/util/color';
@@ -146,7 +146,7 @@ export class ParticleSourceControls extends CollapsableControls<{}, ParticleSour
     const list = this.plugin.managers.particles.hierarchy.selection;
     if (!list) return null;
     // only frames extracted from a multi-frame trajectory expose a frame index to scrub through
-    if (list.cell.transform.transformer !== StateTransforms.Particles.ParticleListFromTrajectory) return null;
+    if (list.cell.transform.transformer !== ParticleListFromTrajectory) return null;
 
     const params = list.cell.params?.definition;
     if (!params) return null;

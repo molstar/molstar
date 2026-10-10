@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { StructureSurroundings } from '@molstar/mvs/components/surroundings';
 import type { MolstarLoadingExtension } from '@molstar/mvs/load';
 import { UpdateTarget } from '@molstar/mvs/load-generic';
@@ -35,7 +35,7 @@ export const NonCovalentInteractionsExtension: MolstarLoadingExtension<{}> = {
       nullIfEmpty: false,
     });
     // Bubble on target
-    UpdateTarget.apply(updateTarget, StateTransforms.Representation.StructureRepresentation3D, {
+    UpdateTarget.apply(updateTarget, StructureRepresentation3D, {
       type: {
         name: 'ball-and-stick',
         params: {
@@ -52,7 +52,7 @@ export const NonCovalentInteractionsExtension: MolstarLoadingExtension<{}> = {
       sizeTheme: { name: 'physical', params: {} },
     });
     // Ball-and-stick on surrounding
-    UpdateTarget.apply(surroundings, StateTransforms.Representation.StructureRepresentation3D, {
+    UpdateTarget.apply(surroundings, StructureRepresentation3D, {
       type: {
         name: 'ball-and-stick',
         params: { sizeFactor: 0.16, excludeTypes: ['hydrogen-bond', 'metal-coordination'] },
@@ -61,7 +61,7 @@ export const NonCovalentInteractionsExtension: MolstarLoadingExtension<{}> = {
       sizeTheme: { name: 'physical', params: {} },
     });
     // Non-covalent interactions
-    UpdateTarget.apply(surroundings, StateTransforms.Representation.StructureRepresentation3D, {
+    UpdateTarget.apply(surroundings, StructureRepresentation3D, {
       type: { name: 'interactions', params: {} },
       colorTheme: { name: 'interaction-type', params: {} },
       sizeTheme: { name: 'uniform', params: {} },

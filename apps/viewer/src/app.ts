@@ -7,6 +7,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import '@molstar/model/script/transpilers/all';
 import type { MVSLoadOptions } from '@molstar/mvs/load';
 import {
   applyStructureInteractivity,
@@ -15,8 +16,8 @@ import {
 import * as loaders from '@molstar/plugin-extension/loaders';
 import { Volume } from '@molstar/model/model/volume';
 import { PluginComponent } from '@molstar/plugin/state/component';
-import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory';
-import type { BuildInVolumeFormat } from '@molstar/plugin/state/formats/volume';
+import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
+import type { BuiltInVolumeFormat } from '@molstar/plugin/state/formats/volume/catalog';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
 import { renderReact18 } from '@molstar/plugin-ui/react18';
@@ -185,7 +186,7 @@ export class Viewer {
         });
      */
   loadVolumeFromUrl(
-    { url, format, isBinary }: { url: string; format: BuildInVolumeFormat; isBinary: boolean },
+    { url, format, isBinary }: { url: string; format: BuiltInVolumeFormat; isBinary: boolean },
     isovalues: loaders.VolumeIsovalueInfo[],
     options?: { entryId?: string | string[]; isLazy?: boolean },
   ) {

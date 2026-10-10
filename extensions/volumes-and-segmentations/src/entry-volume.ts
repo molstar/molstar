@@ -8,9 +8,9 @@ import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { Volume } from '@molstar/model/model/volume';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
-import { Download } from '@molstar/plugin/state/transforms/data';
-import { CreateGroup } from '@molstar/plugin/state/transforms/misc';
+import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
+import { Download } from '@molstar/plugin/state/transforms/data/fetch';
+import { CreateGroup } from '@molstar/plugin/state/transforms/misc/group';
 import { setSubtreeVisibility } from '@molstar/plugin/behavior/static/state';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { StateObjectSelector } from '@molstar/core/state';
@@ -93,7 +93,7 @@ export class VolsegVolumeData {
       await this.entryData
         .newUpdate()
         .to(volumeNode)
-        .apply(StateTransforms.Representation.VolumeRepresentation3D, visualParams, {
+        .apply(VolumeRepresentation3D, visualParams, {
           tags: [VOLUME_VISUAL_TAG],
           state: { isHidden: volumeType === 'off' },
         })

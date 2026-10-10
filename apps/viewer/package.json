@@ -17,7 +17,8 @@
       "molstar-src": "./src/app.ts",
       "types": "./lib/app.d.ts",
       "import": "./lib/app.js"
-    }
+    },
+    "./_test/*": null
   },
   "files": [
     "lib",

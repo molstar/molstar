@@ -6,7 +6,7 @@
 
 import { BehaviorSubject } from 'rxjs';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginContext } from '@molstar/plugin/context';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { VolsegEntry } from '@molstar/volumes-and-segmentations-extension/entry-root';

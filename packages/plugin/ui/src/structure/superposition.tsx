@@ -24,10 +24,11 @@ import {
   superposeLigandsByMccs,
   DefaultLigandMccsOptions,
 } from '@molstar/model/model/structure/structure/util/superposition-ligand';
-import { StructureSelectionQueries } from '@molstar/plugin/state/helpers/structure-selection-query';
+import { trace } from '@molstar/plugin/state/queries/structure/structure';
+import { ligand, polymer } from '@molstar/plugin/state/queries/structure/type';
 import type { StructureSelectionHistoryEntry } from '@molstar/plugin/state/manager/structure/selection';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { TransformStructureConformation } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig } from '@molstar/plugin/config';
 import { type StateObjectCell, StateObjectRef } from '@molstar/core/state';
@@ -104,7 +105,7 @@ type SuperpositionControlsState = {
 /** True iff the structure contains at least one ligand (the ligand query already excludes ions, water, lipids and saccharides). */
 function structureHasLigand(structure?: Structure): boolean {
   if (!structure) return false;
-  return !StructureSelection.isEmpty(StructureSelectionQueries.ligand.query(new QueryContext(structure)));
+  return !StructureSelection.isEmpty(ligand.query(new QueryContext(structure)));
 }
 
 export interface LociEntry {
@@ -166,7 +167,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
     const r = StateObjectRef.resolveAndCheck(this.plugin.state.data, s);
     if (!r) return;
     const o = this.plugin.state.data.selectQ((q) =>
-      q.byRef(r.transform.ref).subtree().withTransformer(StateTransforms.Model.TransformStructureConformation),
+      q.byRef(r.transform.ref).subtree().withTransformer(TransformStructureConformation),
     )[0];
 
     const transform =
@@ -182,10 +183,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
     };
     const b = o
       ? this.plugin.state.data.build().to(o).update(params)
-      : this.plugin.state.data
-          .build()
-          .to(s)
-          .insert(StateTransforms.Model.TransformStructureConformation, params, { tags: SuperpositionTag });
+      : this.plugin.state.data.build().to(s).insert(TransformStructureConformation, params, { tags: SuperpositionTag });
     await this.plugin.runTask(this.plugin.state.data.updateTree(b));
   }
 
@@ -196,9 +194,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
   }
 
   superposeChains = async () => {
-    const { query } = this.state.options.traceOnly
-      ? StructureSelectionQueries.trace
-      : StructureSelectionQueries.polymer;
+    const { query } = this.state.options.traceOnly ? trace : polymer;
     const entries = this.chainEntries;
 
     const locis = entries.map((e) => {
@@ -348,9 +344,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
   };
 
   superposeTMAlign = async () => {
-    const { query } = this.state.options.traceOnly
-      ? StructureSelectionQueries.trace
-      : StructureSelectionQueries.polymer;
+    const { query } = this.state.options.traceOnly ? trace : polymer;
     const entries = this.chainEntries;
 
     const locis = entries.map((e) => {

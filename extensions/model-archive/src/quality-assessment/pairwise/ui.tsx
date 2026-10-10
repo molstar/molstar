@@ -17,7 +17,7 @@ import {
 import { AtomicHierarchy } from '@molstar/model/model/structure/model/properties/atomic';
 import { atoms } from '@molstar/model/model/structure/query/queries/generators';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { OverpaintStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/representation';
+import { OverpaintStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/overpaint';
 import { CollapsableControls, type CollapsableState } from '@molstar/plugin-ui/controls/collapsable';
 import { ScatterPlotSvg } from '@molstar/plugin-ui/controls/icons';
 import { ParameterControls } from '@molstar/plugin-ui/controls/parameters';

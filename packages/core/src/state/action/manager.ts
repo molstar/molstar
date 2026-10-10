@@ -15,7 +15,8 @@ export { StateActionManager };
 
 class StateActionManager {
   private ev = RxEventHelper.create();
-  private actions: Map<StateAction['id'], StateAction> = new Map();
+  /** Registered actions with the number of registrations, keyed by action id. */
+  private actions: Map<StateAction['id'], { action: StateAction; count: number }> = new Map();
   private fromTypeIndex = new Map<StateObject.Type, StateAction[]>();
 
   readonly events = {
@@ -23,12 +24,17 @@ class StateActionManager {
     removed: this.ev<undefined>(),
   };
 
+  /** Registering the same action again increments its count; `added` fires only when the action first appears. */
   add(actionOrTransformer: StateAction | StateTransformer) {
     const action = StateTransformer.is(actionOrTransformer) ? actionOrTransformer.toAction() : actionOrTransformer;
 
-    if (this.actions.has(action.id)) return this;
+    const entry = this.actions.get(action.id);
+    if (entry) {
+      entry.count++;
+      return this;
+    }
 
-    this.actions.set(action.id, action);
+    this.actions.set(action.id, { action, count: 1 });
 
     for (const t of action.definition.from) {
       if (this.fromTypeIndex.has(t.type)) {
@@ -43,6 +49,10 @@ class StateActionManager {
     return this;
   }
 
+  /**
+   * Decrements the count of the action; it is removed (and `removed` fires) when the count reaches zero.
+   * Removing an unknown action is a no-op.
+   */
   remove(actionOrTransformer: StateAction | StateTransformer | UUID) {
     const id = StateTransformer.is(actionOrTransformer)
       ? actionOrTransformer.toAction().id
@@ -50,9 +60,12 @@ class StateActionManager {
         ? actionOrTransformer
         : actionOrTransformer.id;
 
-    const action = this.actions.get(id);
-    if (!action) return this;
+    const entry = this.actions.get(id);
+    if (!entry) return this;
 
+    if (--entry.count > 0) return this;
+
+    const { action } = entry;
     this.actions.delete(id);
     for (const t of action.definition.from) {
       const xs = this.fromTypeIndex.get(t.type);
@@ -65,6 +78,11 @@ class StateActionManager {
     this.events.removed.next(void 0);
 
     return this;
+  }
+
+  /** Registering an action never conflicts: the same action is counted, distinct actions have distinct ids. */
+  findConflict(_actionOrTransformer: StateAction | StateTransformer): string | undefined {
+    return undefined;
   }
 
   fromCell(cell: StateObjectCell, ctx: unknown): ReadonlyArray<StateAction> {

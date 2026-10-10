@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/representation';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { PluginContext } from '@molstar/plugin/context';
 import { PluginState } from '@molstar/plugin/state';
 import {
