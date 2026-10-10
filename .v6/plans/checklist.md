@@ -42,11 +42,18 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
       plugin composition: the `ExternalColorThemes` entry (`@molstar/plugin/themes/external`) is part of
       `DefaultRegistry`; `PluginContext` has no special registration logic.
 
-- [ ] Restore full MolQL validation in `mvs-validate` by importing mol-script. Decide how to expose the compiler
-      dependency without making the standalone builder depend on plugin/rendering code. Then reject unknown symbols and
-      invalid expressions with a nonzero CLI exit status. Until this is implemented, the builder validates expression
-      shape and the runtime performs compiler validation. This is deferred to settle the integration design, not to
-      remove full validation.
+- [ ] Add MolQL syntax and field-name validation to `mvs-validate` and the builder. Design a validation pass against
+      symbol and argument-definition tables without loading the molecular query runtime; reject malformed expressions,
+      unknown callable symbols, and invalid argument names with a nonzero CLI exit status. Argument type checking,
+      required-argument checks, and selection-result checking are outside this pass. Until implemented, the builder
+      checks expression shape and the runtime performs compiler validation. See the
+      [MolQL design discussion](../designs/architecture.md#72-molql-builder-and-validation-design).
+- [ ] Expose the MolQL expression builder to `mvs-builder` consumers. Decide the mol-script package boundary and public
+      entry point together with validation; keep the builder free of plugin/rendering dependencies. This work is in
+      design, with no validation or MolQL implementation changes yet.
+- [ ] Verify standalone-builder API/schema/serialization parity before replacing `molviewspec-ts` and JSR
+      `@molstar/molviewspec`. Existing packed smoke checks cover basic MVSJ/MVSX round trips; replacement parity and JSR
+      source publication remain separate release tasks.
 - [x] Migrate compilation to TypeScript 7, including project references, declaration checks, ESM/source conditions,
       incremental builds, and CI. Retain the separate TypeScript 6 compatibility API for AST/config parsing only.
 - [x] Replace ESLint with Biome, documenting rule differences and configuring optional formatting.
@@ -89,8 +96,7 @@ allow the caller to choose timestamps that are reproducible across time zones.
 
 ## Remaining architecture and release work
 
-- [ ] Rendering-backend extraction and GL resource/pass/readback redesign.
-- [ ] WebGPU and Blender integration.
+- [ ] Rendering-backend extraction and GL resource/pass/readback redesign (owner: Alex; separate workstream).
 - [x] Plugin composition per the [design](../designs/plugin-composition.md) and [plan](plugin-composition.md): empty
       registries, `spec.registry` entries, explicit base specs, presets that import what they run, transformer/catalog
       splitting, snapshot pre-validation, and slim-plugin guarantees.
@@ -103,7 +109,6 @@ allow the caller to choose timestamps that are reproducible across time zones.
       `@molstar/plugin/default-spec` and `@molstar/plugin-ui/default-spec`; literal specs add `DefaultRegistry`),
       `docs/docs/extensions/tunnels.md` (`StateTransforms` is gone; import `ShapeRepresentation3D` directly), and
       `docs/docs/plugin/selections.md` (selection queries are split under `@molstar/plugin/state/queries/structure/*`).
-- [ ] Fast types, isolated declarations, and the corresponding API annotations.
 - [ ] JSR publication, migration CLI, and downstream migration validation.
 - [ ] Publishing automation, release coordination, and stable-release readiness.
 - [ ] Write the v6 `CHANGELOG.md` section from the [changelog draft](changelog.md).
@@ -111,6 +116,13 @@ allow the caller to choose timestamps that are reproducible across time zones.
       moved, so apply fixes by hand using `migration-map.json` rather than by merging. Ported through 5.13.1
       (2026-10-08): molstar/molstar#1964, server path interpolation and dependency updates.
 - [ ] Capture a representative pre-migration Viewer render comparison baseline.
+
+## Deferred beyond v6
+
+- Full WebGPU rendering/parity and Blender integration. The v6 scope is the rendering-backend boundary with preserved
+  WebGL behavior; see the [rendering design](../designs/webgpu.md).
+- Fast types, isolated declarations, and the corresponding API annotations. Consider these for v7; v6 permits slow types
+  for validated JSR packages. See the [distribution and fast-types design](../designs/fasttypes.md).
 
 ## Other review findings to revisit
 

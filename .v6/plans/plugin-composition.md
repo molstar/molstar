@@ -632,11 +632,11 @@ Add to `@molstar/migrate-6-cli` ([architecture §9.2](../designs/architecture.md
 - [x] mesoscale-explorer, docking-viewer, mvs-stories, proteopedia-wrapper, the examples and smoke fixtures in §3,
       `cli/mvs-render`, and `cli/state-docs` build and behave as before.
 
-Left open. The slim-app items (the cartoon snapshot and the PyMOL script) are covered by the slim browser smoke test,
-not by this audit; the default plugin and Viewer half of the PyMOL item is verified below. The last item is verified for
-the builds, the type checks, the smoke fixtures, `cli/mvs-render` and `cli/state-docs`, but nothing exercises the
-mesoscale-explorer, docking-viewer, proteopedia-wrapper, or the other examples at run time: their specs are built inside
-`create`/`main` functions that need a browser, and the native headless smoke (`smoke/headless`, needs `gl`) was not run.
+The slim-app items (the cartoon snapshot and the PyMOL script) are covered by the slim browser smoke test; the default
+plugin and Viewer half of the PyMOL item is verified below. Browser runtime checks for mesoscale-explorer,
+docking-viewer, proteopedia-wrapper, and the other examples are recorded under item 13 below. The native headless smoke
+(`smoke/headless`, needs `gl`) was not run in this composition audit; earlier hosted native validation is recorded in
+the workspace plan.
 
 #### Evidence
 

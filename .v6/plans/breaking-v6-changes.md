@@ -74,8 +74,10 @@ The standalone builder and `mvs-validate` check MolQL expression structure but d
 symbol can therefore pass CLI validation. The MVS runtime still performs compiler validation and rejects it when
 loading.
 
-Full CLI validation will return after designing the mol-script import/integration. See the deferred validation item in
-[checklist.md](checklist.md).
+Standalone syntax and field-name validation is being designed as a pass against mol-script symbol/argument tables,
+without loading the molecular query runtime. MolQL builder exposure and the package dependency boundary are part of the
+same [design discussion](../designs/architecture.md#72-molql-builder-and-validation-design). These changes are not
+implemented yet; see the open validation item in [checklist.md](checklist.md).
 
 This also affects `MVSData.validationIssues`/`isValid` and schema decoding of MolQL selectors in the standalone builder.
 Runtime sanity checks invoke the compiler validation for both scene and animation trees, and selector loading still
