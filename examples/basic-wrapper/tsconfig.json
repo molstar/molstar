@@ -25,6 +25,9 @@
     },
     {
       "path": "../../extensions/pdbe"
+    },
+    {
+      "path": "../../packages/query-language"
     }
   ]
 }

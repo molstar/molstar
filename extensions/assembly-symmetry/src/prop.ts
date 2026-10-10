@@ -13,7 +13,7 @@ import { CustomStructureProperty } from '@molstar/model/props/common/custom-stru
 import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
 import type { ReadonlyVec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { SetUtils } from '@molstar/core/util/set';
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import { compile } from '@molstar/model/script/runtime/query/compiler';
 import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
 import { Asset } from '@molstar/core/util/assets';

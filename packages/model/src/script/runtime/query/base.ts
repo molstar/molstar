@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Expression } from '../../language/expression.js';
+import { Expression } from '@molstar/query-language/language/expression';
 import { QueryContext, type QueryFn, Structure } from '@molstar/model/model/structure';
-import type { MSymbol } from '../../language/symbol.js';
+import type { MSymbol } from '@molstar/query-language/language/symbol';
 import type { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
 
 /**

@@ -15,6 +15,9 @@
       "path": "../../packages/core"
     },
     {
+      "path": "../../packages/plugin/headless"
+    },
+    {
       "path": "../../packages/graphics"
     },
     {
@@ -22,9 +25,6 @@
     },
     {
       "path": "../../extensions/mp4-export"
-    },
-    {
-      "path": "../../packages/plugin/headless"
     },
     {
       "path": "../../packages/mvs/runtime"

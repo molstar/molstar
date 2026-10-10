@@ -5,8 +5,8 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { Expression } from '@molstar/model/script/language/expression';
-import { MolScriptBuilder } from '@molstar/model/script/language/builder';
+import type { Expression } from '@molstar/query-language/language/expression';
+import { MolScriptBuilder } from '@molstar/query-language/language/builder';
 import {
   StructureElement,
   Structure,

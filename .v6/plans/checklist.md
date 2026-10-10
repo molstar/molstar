@@ -42,15 +42,16 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
       plugin composition: the `ExternalColorThemes` entry (`@molstar/plugin/themes/external`) is part of
       `DefaultRegistry`; `PluginContext` has no special registration logic.
 
-- [ ] Add MolQL syntax and field-name validation to `mvs-validate` and the builder. Design a validation pass against
-      symbol and argument-definition tables without loading the molecular query runtime; reject malformed expressions,
-      unknown callable symbols, and invalid argument names with a nonzero CLI exit status. Argument type checking,
-      required-argument checks, and selection-result checking are outside this pass. Until implemented, the builder
-      checks expression shape and the runtime performs compiler validation. See the
-      [MolQL design discussion](../designs/architecture.md#72-molql-builder-and-validation-design).
-- [ ] Expose the MolQL expression builder to `mvs-builder` consumers. Decide the mol-script package boundary and public
-      entry point together with validation; keep the builder free of plugin/rendering dependencies. This work is in
-      design, with no validation or MolQL implementation changes yet.
+- [x] Add MolQL syntax and field-name validation to `mvs-validate` and the builder, against symbol and
+      argument-definition tables without the molecular query runtime. Reject malformed expressions, unknown calls, and
+      bad argument names; include file/expression paths and a nonzero CLI exit status. Custom symbols use an explicit
+      definition lookup. Argument type, required-argument, and selection-result checks are outside this pass. See the
+      [MolQL design](../designs/architecture.md#72-molql-builder-and-validation-design).
+- [x] Expose `MolScriptBuilder` and `compileScript` through `@molstar/mvs-builder/molql`, backed by the standalone
+      `@molstar/query-language` package. Keep executable molecular compilation/evaluation in model.
+- [x] Provide text-to-MolQL translation for MolScript, PyMOL, VMD, and Jmol. Preserve explicit per-language and
+      all-languages registration for plugin use; keep text parsers out of JSON builder/validation imports. Verify the
+      standalone dependency boundary and packed authoring/CLI consumers.
 - [ ] Verify standalone-builder API/schema/serialization parity before replacing `molviewspec-ts` and JSR
       `@molstar/molviewspec`. Existing packed smoke checks cover basic MVSJ/MVSX round trips; replacement parity and JSR
       source publication remain separate release tasks.

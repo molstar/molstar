@@ -15,16 +15,19 @@
       "path": "../../plugin/core"
     },
     {
-      "path": "../../graphics"
+      "path": "../../core"
     },
     {
-      "path": "../../core"
+      "path": "../../graphics"
     },
     {
       "path": "../builder"
     },
     {
       "path": "../../io"
+    },
+    {
+      "path": "../../query-language"
     }
   ]
 }

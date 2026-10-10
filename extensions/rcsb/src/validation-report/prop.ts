@@ -18,8 +18,8 @@ import { arrayMax } from '@molstar/core/util/array';
 import { equalEps } from '@molstar/core/math/linear-algebra/3d/common';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { QuerySymbolRuntime } from '@molstar/model/script/runtime/query/compiler';
-import { CustomPropSymbol } from '@molstar/model/script/language/symbol';
-import { Type } from '@molstar/model/script/language/type';
+import { CustomPropSymbol } from '@molstar/query-language/language/symbol';
+import { Type } from '@molstar/query-language/language/type';
 import { Asset } from '@molstar/core/util/assets';
 import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
 

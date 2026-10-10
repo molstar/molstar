@@ -117,9 +117,10 @@ scripts, with compiled-JS smoke tests.
 ## MolViewSpec
 
 `@molstar/mvs-builder` owns the schema, builder, MVSJ/MVSX serialization/validation, and validation/schema CLIs. It
-currently has no Mol* package dependency. A mol-script language dependency, MolQL builder entry point, and validation
-against symbol/argument tables without the query runtime are
-[under design](architecture.md#72-molql-builder-and-validation-design). Replacing molviewspec-ts / JSR
+depends on the standalone `@molstar/query-language` package. `@molstar/mvs-builder/molql` exposes `MolScriptBuilder` and
+`compileScript` for MolScript, PyMOL, VMD, and Jmol. Validation checks syntax and callable/argument names against symbol
+tables without the molecular query runtime; custom vocabularies use an explicit lookup. See the
+[MolQL design](architecture.md#72-molql-builder-and-validation-design). Replacing molviewspec-ts / JSR
 `@molstar/molviewspec` still requires parity checks and coordinated npm/JSR publication.
 
 `@molstar/mvs` depends on the builder and owns loading, plugin integration, and annotations. `mvs-render` ships

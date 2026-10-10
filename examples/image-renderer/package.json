@@ -36,8 +36,8 @@
     "tslib": "catalog:",
     "@types/argparse": "catalog:",
     "@types/pngjs": "catalog:",
-    "@molstar/plugin": "workspace:*",
     "@molstar/plugin-headless": "workspace:*",
+    "@molstar/plugin": "workspace:*",
     "@molstar/core": "workspace:*"
   },
   "devDependencies": {

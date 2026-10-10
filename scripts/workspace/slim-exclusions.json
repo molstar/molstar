@@ -46,7 +46,7 @@
     },
     {
       "name": "Script transpilers",
-      "paths": ["packages/model/src/script/transpilers/**"]
+      "paths": ["packages/query-language/src/transpilers/**"]
     },
     {
       "name": "MP4 export",

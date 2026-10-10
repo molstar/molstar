@@ -20,6 +20,15 @@ import { treeValidationIssues } from '@molstar/mvs-builder/tree/generic/tree-val
 import { Root, createMVSBuilder } from '@molstar/mvs-builder/tree/mvs/mvs-builder';
 import { MVSTreeSchema } from '@molstar/mvs-builder/tree/mvs/mvs-tree';
 import type { MVSTree } from '@molstar/mvs-builder/tree/mvs/mvs-tree';
+import { molQLValidationIssues } from './molql-validation.js';
+import type { ExpressionValidationOptions } from '@molstar/query-language/language/validation';
+
+export interface MVSValidationOptions {
+  /** Treat extra node parameters as validation issues. */
+  noExtra?: boolean;
+  /** Resolve MolQL symbol definitions, including custom vocabulary. Defaults to the standard MolScript symbol table. */
+  getMolQLSymbol?: ExpressionValidationOptions['getSymbol'];
+}
 
 /** Top-level metadata for a MVS file (single-state or multi-state). */
 export interface GlobalMetadata {
@@ -195,24 +204,24 @@ export const MVSData = {
 
   /** Validate `MVSData`. Return `true` if OK; `false` if not OK.
    * If `options.noExtra` is true, presence of any extra node parameters is treated as an issue. */
-  isValid(mvsData: MVSData, options: { noExtra?: boolean } = {}): boolean {
+  isValid(mvsData: MVSData, options: MVSValidationOptions = {}): boolean {
     return MVSData.validationIssues(mvsData, options) === undefined;
   },
 
   /** Validate `MVSData`. Return `undefined` if OK; list of issues if not OK.
    * If `options.noExtra` is true, presence of any extra node parameters is treated as an issue. */
-  validationIssues(mvsData: MVSData, options: { noExtra?: boolean } = {}): string[] | undefined {
+  validationIssues(mvsData: MVSData, options: MVSValidationOptions = {}): string[] | undefined {
     const version = mvsData?.metadata?.version;
     if (typeof version !== 'string')
       return [`MVSData.metadata.version must be a string, not ${typeof version}: ${version}`];
     if (mvsData.kind === 'single' || mvsData.kind === undefined) {
       return snapshotValidationIssues(mvsData, options);
     } else if (mvsData.kind === 'multiple') {
-      if (mvsData.snapshots === undefined) return [`"snapshots" missing in MVS`];
+      if (!Array.isArray(mvsData.snapshots)) return [`"snapshots" must be an array in MVS`];
       const issues: string[] = [];
-      for (const snapshot of mvsData.snapshots) {
+      for (const [index, snapshot] of mvsData.snapshots.entries()) {
         // would use .flatMap if it didn't work in a completely unpredictable way
-        const snapshotIssues = snapshotValidationIssues(snapshot, options);
+        const snapshotIssues = snapshotValidationIssues(snapshot, options, `snapshots[${index}]`);
         if (snapshotIssues) issues.push(...snapshotIssues);
       }
       if (issues.length > 0) return issues;
@@ -290,18 +299,25 @@ function majorVersion(semanticVersion: string | number): number | undefined {
 
 function snapshotValidationIssues(
   snapshot: MVSData_State | Snapshot,
-  options: { noExtra?: boolean } = {},
+  options: MVSValidationOptions = {},
+  path = '',
 ): string[] | undefined {
+  if (!snapshot || typeof snapshot !== 'object') return [`${path || 'Snapshot'} must be an object`];
   if (snapshot.root === undefined) return [`"root" missing in snapshot`];
   const state = treeValidationIssues(MVSTreeSchema, snapshot.root, options);
   const animation =
     'animation' in snapshot && snapshot.animation !== undefined
       ? treeValidationIssues(MVSAnimationSchema, snapshot.animation, options)
       : undefined;
-  if (state && animation) return [...state, ...animation];
-  if (state) return state;
-  if (animation) return animation;
-  return undefined;
+  const issues = [...(state ?? []), ...(animation ?? [])];
+  const nameOptions = { getSymbol: options.getMolQLSymbol };
+  const rootPath = path ? `${path}.root` : 'root';
+  if (!state) issues.push(...(molQLValidationIssues(snapshot.root, nameOptions, rootPath) ?? []));
+  if (!animation && 'animation' in snapshot && snapshot.animation !== undefined) {
+    const animationPath = path ? `${path}.animation` : 'animation';
+    issues.push(...(molQLValidationIssues(snapshot.animation, nameOptions, animationPath) ?? []));
+  }
+  return issues.length ? issues : undefined;
 }
 
 /** Return the current universal time, in ISO format, e.g. '2023-11-24T10:45:49.873Z' */

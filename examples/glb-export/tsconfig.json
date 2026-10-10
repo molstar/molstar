@@ -9,6 +9,9 @@
   "exclude": ["src/**/_test/**"],
   "references": [
     {
+      "path": "../../packages/plugin/headless"
+    },
+    {
       "path": "../../packages/core"
     },
     {
@@ -19,9 +22,6 @@
     },
     {
       "path": "../../extensions/geo-export"
-    },
-    {
-      "path": "../../packages/plugin/headless"
     }
   ]
 }

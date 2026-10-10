@@ -120,10 +120,10 @@ Modules that reach `transpilers/all.ts` through `@molstar/model/script/script` t
 `state/transforms/model.ts`, `state/transforms/representation.ts`, `state/manager/markdown-extensions.ts` (the `query`
 extension), and the UI parameter controls. After the script split (step 1) none of them reaches a transpiler.
 
-Direct `parse` users of `@molstar/model/script/transpile`, which reaches `transpilers/all.ts` today:
+Direct `parse` users of `@molstar/query-language/transpile`, which reaches `transpilers/all.ts` today:
 `packages/model/src/script/script.ts`, `examples/mvs-stories/src/stories/molql.ts` (`parse('pymol', ...)` at module
 level), and `packages/mvs/runtime/src/_test/molql.test.ts` (`parse('pymol', ...)`). After the split the last two import
-`@molstar/model/script/transpilers/pymol` (or `all`) themselves.
+`@molstar/query-language/transpilers/pymol` (or `all`) themselves.
 
 ### 1.6 Hard-coded policy and provider names
 
@@ -426,7 +426,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       then appends the custom-formats entry. `get(name)` returns the custom provider as in 5.x.
 - [x] `loadTrajectory({ preset })` keeps accepting the hierarchy short keys through the preset aliases, and also accepts
       ids.
-- [x] Import `@molstar/model/script/transpilers/all` at the top of the Viewer entry.
+- [x] Import `@molstar/query-language/transpilers/all` at the top of the Viewer entry.
 - [x] `molstar.lib.plugin` (`apps/viewer/src/lib.ts`): keep `StateTransforms` as an app-level object literal with the
       same `Data`/`Misc`/`Model`/`Particles`/`Volume`/`Representation`/`Shape` keys and member names, assembled from the
       split modules; no library module imports it. Keep `StateActions`, `DefaultPluginSpec`, and `DefaultPluginUISpec`

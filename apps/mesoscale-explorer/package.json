@@ -58,11 +58,11 @@
     "tslib": "catalog:",
     "@molstar/mp4-export-extension": "workspace:*",
     "@molstar/plugin": "workspace:*",
+    "@molstar/graphics": "workspace:*",
     "@molstar/plugin-ui": "workspace:*",
     "@molstar/core": "workspace:*",
     "@molstar/model": "workspace:*",
     "@molstar/backgrounds-extension": "workspace:*",
-    "@molstar/graphics": "workspace:*",
     "@molstar/io": "workspace:*"
   },
   "devDependencies": {

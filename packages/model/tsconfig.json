@@ -13,6 +13,9 @@
     },
     {
       "path": "../io"
+    },
+    {
+      "path": "../query-language"
     }
   ]
 }

@@ -32,7 +32,7 @@ import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-qu
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { PluginContext } from '@molstar/plugin/context';
 import { ShapeRepresentation } from '@molstar/graphics/repr/shape/representation';
-import { Expression } from '@molstar/model/script/language/expression';
+import { Expression } from '@molstar/query-language/language/expression';
 import { StateObject, StateTransformer } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
 import { round } from '@molstar/core/util';
