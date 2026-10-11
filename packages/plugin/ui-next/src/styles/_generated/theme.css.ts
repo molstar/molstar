@@ -37,6 +37,8 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-color-warning: #fcc937;
     --msp-color-info: #b18ac6;
     --msp-shade: #fff;
+    --msp-step-hover: 15%;
+    --msp-step-pressed: 20%;
     --msp-color-brand-1: #d29a68;
     --msp-color-brand-2: #f5d36b;
     --msp-color-brand-3: #a8d8bc;
@@ -54,6 +56,8 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-color-warning: #fcc937;
     --msp-color-info: #b18ac6;
     --msp-shade: #fff;
+    --msp-step-hover: 15%;
+    --msp-step-pressed: 20%;
     --msp-color-brand-1: #d29a68;
     --msp-color-brand-2: #f5d36b;
     --msp-color-brand-3: #a8d8bc;
@@ -72,6 +76,8 @@ defineStyles('styles/theme.css', `@layer msp.theme {
       --msp-color-warning: #fcc937;
       --msp-color-info: #b18ac6;
       --msp-shade: #fff;
+      --msp-step-hover: 15%;
+      --msp-step-pressed: 20%;
       --msp-color-brand-1: #d29a68;
       --msp-color-brand-2: #f5d36b;
       --msp-color-brand-3: #a8d8bc;
@@ -84,8 +90,8 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-color-raised: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 5%);
     --msp-color-well: var(--msp-color-bg);
     --msp-color-control: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 6.5%);
-    --msp-color-hover: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 9%);
-    --msp-color-pressed: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 13%);
+    --msp-color-hover: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) var(--msp-step-hover, 9%));
+    --msp-color-pressed: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) var(--msp-step-pressed, 13%));
     --msp-color-border: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 15%);
     --msp-color-border-strong: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 28%);
     --msp-color-text-muted: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 33%);

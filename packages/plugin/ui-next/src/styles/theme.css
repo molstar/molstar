@@ -41,6 +41,10 @@
     --msp-color-warning: #fcc937;
     --msp-color-info: #b18ac6;
     --msp-shade: #fff;
+
+    --msp-step-hover: 15%;
+
+    --msp-step-pressed: 20%;
     --msp-color-brand-1: #d29a68;
     --msp-color-brand-2: #f5d36b;
     --msp-color-brand-3: #a8d8bc;
@@ -58,6 +62,10 @@
     --msp-color-warning: #fcc937;
     --msp-color-info: #b18ac6;
     --msp-shade: #fff;
+
+    --msp-step-hover: 15%;
+
+    --msp-step-pressed: 20%;
     --msp-color-brand-1: #d29a68;
     --msp-color-brand-2: #f5d36b;
     --msp-color-brand-3: #a8d8bc;
@@ -76,6 +84,10 @@
       --msp-color-warning: #fcc937;
       --msp-color-info: #b18ac6;
       --msp-shade: #fff;
+
+      --msp-step-hover: 15%;
+
+      --msp-step-pressed: 20%;
       --msp-color-brand-1: #d29a68;
       --msp-color-brand-2: #f5d36b;
       --msp-color-brand-3: #a8d8bc;
@@ -92,8 +104,10 @@
        so the controls in it (control shade) stand out the more. */
     --msp-color-well: var(--msp-color-bg);
     --msp-color-control: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 6.5%);
-    --msp-color-hover: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 9%);
-    --msp-color-pressed: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 13%);
+    /* Hover and pressed: a step from the panel that shows. Toward white from a dark base, the same mix reads as a far
+       smaller change than toward black from a light one, so the dark themes take larger steps (--msp-step-*). */
+    --msp-color-hover: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) var(--msp-step-hover, 9%));
+    --msp-color-pressed: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) var(--msp-step-pressed, 13%));
     --msp-color-border: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 15%);
     --msp-color-border-strong: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 28%);
     --msp-color-text-muted: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 33%);
