@@ -39,6 +39,20 @@ export interface SceneNode {
   highlight(on: boolean): void;
   focus(): void;
   remove(): void;
+  /**
+   * The row's menu (the "…"): actions on this node, as Mol*'s component menu has them: add representation, set
+   * coloring, modify by selection (include, subtract, intersect), select this, edit label. Entries with `items` open
+   * inline.
+   */
+  menu?: readonly SceneMenuItem[];
+}
+
+export interface SceneMenuItem {
+  id: string;
+  label: string;
+  icon?: IconName;
+  run?(): void;
+  items?: readonly SceneMenuItem[];
 }
 
 /** What the inspector shows for a node: its parameters as a form (changes apply to the state tree). */
@@ -59,4 +73,15 @@ export interface SceneModel {
   picked: ReadonlyState<SceneNode | undefined>;
   pick(node: SceneNode | undefined): void;
   inspect(node: SceneNode): SceneInspection;
+}
+
+/**
+ * Quick styles (Mol*'s Quick Styles panel): one click restyles everything, by representation preset or by visual
+ * style. Commands underneath (`structure.preset`, `canvas.style`), so the palette offers them too.
+ */
+export interface QuickStylesModel {
+  representations: readonly { id: string; label: string }[];
+  styles: readonly { id: string; label: string }[];
+  applyRepresentation(id: string): void;
+  applyStyle(id: string): void;
 }

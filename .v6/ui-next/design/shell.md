@@ -173,11 +173,14 @@ returns the node's `ParamsFormModel` and its section slot `inspector:<kind>`. Se
 register into that slot, the same mechanism the Export panel uses. Tree rows are keyed by node id; hover highlights, a
 click picks, visibility and removal sit inline (the eye stays visible while a node is hidden). The form shows the
 essential params first and the rest under Advanced; mapped params (color theme) re-render their nested fields when the
-choice changes. The tab fills the panel: the tree scrolls on its own and the inspector stays pinned at the bottom (its
-content height, at most 60% of the panel, scrolling inside), however many structures are loaded. Inspections carry facts
-(a structure's chains, residues, atoms; a map's grid, voxel size, σ), shown compactly above the form. Volumes are
-top-level entries next to structures (an EMDB map beside its fitted model); density streaming is a structure inspector
-section (the volume streaming extension) whose channels appear under the structure.
+choice changes. The tab fills the panel: the tree scrolls on its own and the inspector is always at the bottom at a
+fixed height (scrolling inside; "Select an item in the tree to edit its properties" while nothing is picked), so picking
+never moves the tree. The Preset button opens quick styles under the header (representation: Default, Cartoon,
+Spacefill, Surface; style: Default, Illustrative). A row's "…" opens its menu inline under it (Mol*'s component menu:
+add representation, set coloring, modify by selection with include, subtract and intersect, select this, edit label).
+Inspections carry facts (a structure's chains, residues, atoms; a map's grid, voxel size, σ), shown compactly above the
+form. Volumes are top-level entries next to structures (an EMDB map beside its fitted model); density streaming is a
+structure inspector section (the volume streaming extension) whose channels appear under the structure.
 
 ### 4.2 Overlays
 
@@ -244,9 +247,12 @@ Mol*'s granularities (atom, residue, chain, entity, model, operator, structure, 
 chosen one in the accent (after stories-untold's pick-level control). The mode is also a command
 (`selection-mode.toggle`, with a keybinding) and Escape leaves Select.
 
-In Select, the selection bar shows at the bottom of the canvas: mode (add/remove/intersect/replace), the `select`
-command group as an inline palette, color, create component, undo ([commands.md](commands.md) §10.3). Granularity and
-leaving the mode live on the switch.
+While anything is selected, the selection bar sits at the bottom right of the canvas (moving with the panel edge): what
+is selected ("12 residues"), then what to do with it as icon buttons, Mol*'s selection toolbar actions: Color and
+Transparency, material, … (both open the Selection card in the panel's place: color, reset color, transparency,
+emissive, material, reset material, clipping, wiggle, applied to all or some representations), Create component, Focus,
+and Clear. They are commands of the `selection` group, so the palette offers the same ones. Selection operations (add,
+subtract, intersect, set) and queries come from the palette's `select` group ([commands.md](commands.md) §10).
 
 ### 4.7 Icons
 

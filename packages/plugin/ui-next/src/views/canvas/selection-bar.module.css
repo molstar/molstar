@@ -1,0 +1,57 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 34px;
+  padding: 0 3px 0 var(--msp-space-4);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-bg);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+  animation: bar-in var(--msp-motion-base) var(--msp-ease);
+}
+
+@keyframes bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  margin-right: var(--msp-space-3);
+  font-size: var(--msp-font-size-sm);
+  white-space: nowrap;
+}
+
+/* The selection's own color in the viewport. */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--msp-color-accent);
+}
+
+.action {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}

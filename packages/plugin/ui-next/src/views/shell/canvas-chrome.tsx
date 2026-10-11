@@ -303,9 +303,10 @@ export function StatusLine(props: { status: StatusModel; onOpenLog?: () => void 
 }
 
 /** The bottom centre of the canvas: what the person works on now (selection, focus) as chips. */
-export function ContextChips(props: { status: StatusModel }) {
+export function ContextChips(props: { status: StatusModel; lead?: Child }) {
   return (
     <div class={classes.context}>
+      {props.lead}
       <For each={props.status.chips}>
         {(chip) => (
           <span class={`${classes.pill} ${classes.chip}`}>

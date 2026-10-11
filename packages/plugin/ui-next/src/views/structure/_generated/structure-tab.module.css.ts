@@ -12,10 +12,13 @@ export const classes = {
   'actions': 'msp-structure-structure-tab-actions',
   'fact': 'msp-structure-structure-tab-fact',
   'facts': 'msp-structure-structure-tab-facts',
+  'inspection': 'msp-structure-structure-tab-inspection',
   'inspector': 'msp-structure-structure-tab-inspector',
+  'inspectorEmpty': 'msp-structure-structure-tab-inspectorEmpty',
   'inspectorHeader': 'msp-structure-structure-tab-inspectorHeader',
   'inspectorKind': 'msp-structure-structure-tab-inspectorKind',
   'inspectorTitle': 'msp-structure-structure-tab-inspectorTitle',
+  'quickStyles': 'msp-structure-structure-tab-quickStyles',
   'tab': 'msp-structure-structure-tab-tab',
   'tree': 'msp-structure-structure-tab-tree',
 } as const;
@@ -43,15 +46,29 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
 }
 
 .msp-structure-structure-tab-inspector {
-  align-content: start;
-  gap: var(--msp-space-2);
-  max-height: 60%;
-  padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
   flex: none;
-  display: grid;
+  height: clamp(180px, 42%, 420px);
   overflow: auto;
+}
+
+.msp-structure-structure-tab-inspection {
+  align-content: start;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
+  display: grid;
+}
+
+.msp-structure-structure-tab-inspectorEmpty {
+  height: 100%;
+  padding: var(--msp-space-4);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-sm);
+  text-align: center;
+  place-items: center;
+  margin: 0;
+  display: grid;
 }
 
 .msp-structure-structure-tab-inspectorHeader {
@@ -96,6 +113,15 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
     font-variant-numeric: tabular-nums;
     margin: 0;
   }
+}
+
+.msp-structure-structure-tab-quickStyles {
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-2) var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+  flex: none;
+  display: grid;
 }
 }
 `);

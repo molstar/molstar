@@ -27,16 +27,30 @@
 }
 
 .inspector {
-  /* Pinned to the bottom of the panel: at most a little over half of it, scrolling inside. */
+  /* Always there, at a fixed height: picking a node fills it rather than moving the tree. */
   flex: none;
-  max-height: 60%;
+  height: clamp(180px, 42%, 420px);
   overflow: auto;
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+}
+
+.inspection {
   display: grid;
   align-content: start;
   gap: var(--msp-space-2);
   padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
-  border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+}
+
+.inspectorEmpty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  margin: 0;
+  padding: var(--msp-space-4);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-sm);
+  text-align: center;
 }
 
 .inspectorHeader {
@@ -82,4 +96,13 @@
     margin: 0;
     font-variant-numeric: tabular-nums;
   }
+}
+
+.quickStyles {
+  flex: none;
+  display: grid;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-2) var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
 }

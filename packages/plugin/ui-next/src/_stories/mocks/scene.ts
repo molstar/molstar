@@ -7,7 +7,14 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { IconName } from '../../components/icon/icon.js';
 import { ParamsFormModel } from '../../forms/params-form.js';
-import type { SceneInspection, SceneModel, SceneNode, SceneNodeKind } from '../../model/scene.js';
+import type {
+  QuickStylesModel,
+  SceneInspection,
+  SceneMenuItem,
+  SceneModel,
+  SceneNode,
+  SceneNodeKind,
+} from '../../model/scene.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
 
 /** Representation params shaped like Mol*'s (type, color theme as a mapped param, size, opacity, quality, material). */
@@ -168,6 +175,7 @@ class MockNode implements SceneNode {
   readonly #expanded: ObservableState<boolean>;
   readonly #children = observableState<readonly SceneNode[]>([]);
   parent: MockNode | undefined;
+  menu?: readonly SceneMenuItem[];
 
   constructor(
     readonly id: string,
@@ -255,7 +263,12 @@ export type MockScenePreset = 'single' | 'many' | 'em';
  * the nodes as the plugin would.
  */
 export function mockScene(
-  options: { preset?: MockScenePreset; onHighlight?: (label: string | undefined) => void } = {},
+  options: {
+    preset?: MockScenePreset;
+    onHighlight?: (label: string | undefined) => void;
+    /** Reports a menu action (what the plugin would do). */
+    onAction?: (text: string) => void;
+  } = {},
 ): MockScene {
   const highlight = (node: MockNode, on: boolean) => options.onHighlight?.(on ? node.label.value : undefined);
   const forms = new Map<string, ParamsFormModel<any>>();
@@ -325,8 +338,48 @@ export function mockScene(
     return n;
   };
 
+  const act = (text: string) => () => options.onAction?.(text);
+  // Mol*'s component menu.
+  const componentMenu = (label: string): SceneMenuItem[] => [
+    {
+      id: 'add-repr',
+      label: 'Add representation',
+      icon: 'plus',
+      items: RepresentationTypes.map(([t, l]) => ({
+        id: t,
+        label: l,
+        icon: ReprIcons[t],
+        run: act(`${label}: add ${l}`),
+      })),
+    },
+    {
+      id: 'coloring',
+      label: 'Set coloring',
+      icon: 'palette',
+      items: Object.entries(ColorLabels).map(([c, l]) => ({ id: c, label: l, run: act(`${label}: color by ${l}`) })),
+    },
+    {
+      id: 'modify',
+      label: 'Modify by selection',
+      icon: 'mouse-pointer-click',
+      items: [
+        { id: 'include', label: 'Include', icon: 'squares-unite', run: act(`${label}: include the selection`) },
+        { id: 'subtract', label: 'Subtract', icon: 'squares-subtract', run: act(`${label}: subtract the selection`) },
+        {
+          id: 'intersect',
+          label: 'Intersect',
+          icon: 'squares-intersect',
+          run: act(`${label}: intersect with the selection`),
+        },
+      ],
+    },
+    { id: 'select', label: 'Select this', icon: 'mouse-pointer-2', run: act(`Selected ${label}`) },
+    { id: 'label', label: 'Edit label', icon: 'pencil', run: act(`Editing the label of ${label}`) },
+  ];
+
   const component = (id: string, label: string, description: string, ...reprs: MockNode[]) => {
     const n = node(id, 'component', 'layers', label, description).add(...reprs);
+    n.menu = componentMenu(label);
     forms.set(id, new ParamsFormModel(ComponentParams, { label }, { onChange: (v) => n.setLabel(v.label || label) }));
     return n;
   };
@@ -506,4 +559,22 @@ export function mockSceneWithPicked(id: string, options?: Parameters<typeof mock
   const n = find(scene.roots.value);
   if (n) scene.pick(n);
   return scene;
+}
+
+/** Mol*'s quick styles: representation presets and visual styles; applying reports what would happen. */
+export function mockQuickStyles(post: (text: string) => void = () => {}): QuickStylesModel {
+  return {
+    representations: [
+      { id: 'default', label: 'Default' },
+      { id: 'cartoon', label: 'Cartoon' },
+      { id: 'spacefill', label: 'Spacefill' },
+      { id: 'surface', label: 'Surface' },
+    ],
+    styles: [
+      { id: 'default', label: 'Default' },
+      { id: 'illustrative', label: 'Illustrative' },
+    ],
+    applyRepresentation: (id) => post(`Representation preset: ${id}`),
+    applyStyle: (id) => post(`Style: ${id}`),
+  };
 }

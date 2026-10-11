@@ -32,6 +32,8 @@ export interface ShellViewProps {
   overlays?: Child;
   /** Playback at the top left of the canvas (the snapshot and trajectory card). */
   playback?: Child;
+  /** The work in hand at the bottom right of the canvas, before the status chips (the selection bar). */
+  context?: Child;
   /**
    * The theme of the chrome over the canvas, from the canvas background (light background: light glass), independent
    * of the UI theme: dark glass over a white canvas would be muddy.
@@ -113,7 +115,7 @@ export function ShellView(props: ShellViewProps) {
           <div class={canvasClasses.bottom}>
             <div class={canvasClasses.bottomGrid}>
               <StatusLine status={status} onOpenLog={props.onOpenLog} />
-              <ContextChips status={status} />
+              <ContextChips status={status} lead={props.context} />
             </div>
           </div>
           <CanvasStack shell={shell} lead={props.canvasLead} aside={props.canvasAside} />

@@ -32,6 +32,7 @@ import {
   PickLevel,
 } from '../canvas/mode-switch.js';
 import { PlaybackCard } from '../canvas/playback.js';
+import { SelectionBar } from '../canvas/selection-bar.js';
 import { SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
 import { LogView } from './log-view.js';
@@ -42,9 +43,10 @@ import { StructureTab } from '../structure/structure-tab.js';
 import { mockHome } from '../../_stories/mocks/home.js';
 import { mockSnapshots, mockTrajectory } from '../../_stories/mocks/playback.js';
 import { registerMockAnimation } from '../../_stories/mocks/animation.js';
+import { mockSelection } from '../../_stories/mocks/selection.js';
 import { registerMockCanvasSettings } from '../../_stories/mocks/canvas-settings.js';
 import { registerMockInspectorSections } from '../../_stories/mocks/inspector-sections.js';
-import { type MockScenePreset, mockScene } from '../../_stories/mocks/scene.js';
+import { type MockScenePreset, mockQuickStyles, mockScene } from '../../_stories/mocks/scene.js';
 
 const meta: Meta = { title: 'Shell/Shell', parameters: { layout: 'fullscreen' } };
 export default meta;
@@ -243,7 +245,11 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
   const snapshots = observableState<readonly string[]>(['Overview', 'Active site']);
   const hoverLines = observableState<readonly string[]>([]);
   // The scene; hovering a node highlights it (the hover label stands in for the 3D highlight here).
-  const scene = mockScene({ preset: options.preset, onHighlight: (label) => hoverLines.set(label ? [label] : []) });
+  const scene = mockScene({
+    preset: options.preset,
+    onHighlight: (label) => hoverLines.set(label ? [label] : []),
+    onAction: (text) => status.post(text),
+  });
   // Extensions' inspector sections (volume streaming, assembly symmetry), contributed to the node kind's slot.
   registerMockInspectorSections(shell, scene);
   const hover: HoverLabelModel = { lines: hoverLines.asReadonly };
@@ -267,6 +273,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
         <StructureTab
           shell={ctx.shell}
           scene={scene}
+          quickStyles={mockQuickStyles((t) => status.post(t))}
           onAction={(a) =>
             status.post(
               `${a === 'preset' ? 'Apply preset' : a === 'color' ? 'Color by' : 'Add component'}… opens in the palette`,
@@ -469,12 +476,10 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
   mockExport(shell, status);
   registerMockCanvasSettings(shell);
   registerMockAnimation(shell, (text) => status.post(text));
+  const selection = mockSelection(shell, (text) => status.post(text));
 
   if (options.loaded) {
     status.post('Loaded 1TQN (3,624 atoms) in 0.4 s', 'success');
-    status.setChips([
-      { id: 'selection', label: '12 residues selected', activate: () => status.post('Focused on the selection') },
-    ]);
     status.setTasks([{ id: 'surface', label: 'Computing surface', progress: 0.4, abort: () => status.setTasks([]) }]);
   }
 
@@ -500,13 +505,22 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
     hoverLines,
     modeSwitch,
     pickLevel,
+    selection,
     snapshots: mockSnapshots((t) => status.post(t)),
     trajectory: mockTrajectory(),
   };
 }
 
-function ShellStory(props: { loaded: boolean; preset?: MockScenePreset; background?: string; openExportAt?: string }) {
-  const { shell, status, hover, hoverLines, modeSwitch, pickLevel, snapshots, trajectory } = mockShell(props);
+function ShellStory(props: {
+  loaded: boolean;
+  preset?: MockScenePreset;
+  background?: string;
+  openExportAt?: string;
+  /** What the loaded data has to play: a session's snapshots, a trajectory's models (plain 1TQN has neither). */
+  playback?: { snapshots?: boolean; trajectory?: boolean };
+}) {
+  const { shell, status, hover, hoverLines, modeSwitch, pickLevel, selection, snapshots, trajectory } =
+    mockShell(props);
   shell.mount();
   status.mount();
   if (props.openExportAt) shell.openOverlay('export', undefined, props.openExportAt);
@@ -536,9 +550,17 @@ function ShellStory(props: { loaded: boolean; preset?: MockScenePreset; backgrou
           </>
         ) : null
       }
-      playback={props.loaded ? <PlaybackCard snapshots={snapshots} trajectory={trajectory} /> : null}
+      playback={
+        props.loaded && (props.playback?.snapshots || props.playback?.trajectory) ? (
+          <PlaybackCard
+            snapshots={props.playback.snapshots ? snapshots : undefined}
+            trajectory={props.playback.trajectory ? trajectory : undefined}
+          />
+        ) : null
+      }
       canvasColor={props.background ?? '#ffffff'}
       canvasTheme={themeForColor(parseColor(props.background ?? '#ffffff') ?? 0xffffff)}
+      context={props.loaded ? <SelectionBar selection={selection} /> : null}
       canvasLead={props.loaded ? modeSwitch : null}
       canvasAside={props.loaded ? pickLevel : null}
       onOpenLog={() => shell.show('log')}
@@ -557,6 +579,19 @@ export const Loaded: StoryObj = {
 };
 
 /** Several structures: four CYP3A4 structures superposed on 1TQN, collapsed but the first. */
+/**
+ * A session with snapshots and a multi-model trajectory: playback appears at the top left only because the data has
+ * something to play (plain 1TQN has neither).
+ */
+export const SessionWithPlayback: StoryObj = {
+  render: () =>
+    story(() => (
+      <div style="height: 100vh">
+        <ShellStory loaded={true} playback={{ snapshots: true, trajectory: true }} />
+      </div>
+    )),
+};
+
 export const ManyStructures: StoryObj = {
   render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} preset="many" />}</div>),
 };

@@ -49,7 +49,9 @@ describe('StructureTab', () => {
     color.value = String([...color.options].findIndex((o) => o.text === 'Uniform'));
     color.dispatchEvent(new Event('change'));
     // A color row: the swatch button opens the palette under it.
-    const swatch = container.querySelector('button[aria-expanded]') as HTMLButtonElement;
+    const swatch = [...container.querySelectorAll('[aria-label=Inspector] button[aria-expanded]')].find((b) =>
+      b.textContent?.startsWith('#'),
+    ) as HTMLButtonElement;
     expect(swatch.textContent).toBe('#2e86c1');
     swatch.click();
     expect(container.querySelectorAll('[role=option]').length).toBeGreaterThan(8);

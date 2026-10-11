@@ -11,7 +11,7 @@ const ShowDelayMs = 350;
 
 /**
  * Tooltips for icon buttons: any element in `root` with `data-tip` (the text) gets one, placed by `data-tip-side`
- * (`left` for the rail and the canvas stack, `bottom` by default), on hover or keyboard focus. One element is reused,
+ * (`left` for the rail and the canvas stack, `top` for the bottom of the canvas, `bottom` by default), on hover or keyboard focus. One element is reused,
  * positioned in the viewport; buttons keep their `aria-label` for assistive technology (no native `title` as well).
  * Returns the uninstall function.
  */
@@ -37,6 +37,9 @@ export function installTooltips(root: HTMLElement): () => void {
     if (side === 'left') {
       x = r.left - gap - t.width;
       y = r.top + (r.height - t.height) / 2;
+    } else if (side === 'top') {
+      x = r.left + (r.width - t.width) / 2;
+      y = r.top - gap - t.height;
     } else {
       x = r.left + (r.width - t.width) / 2;
       y = r.bottom + gap;
