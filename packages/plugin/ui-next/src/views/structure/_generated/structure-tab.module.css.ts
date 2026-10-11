@@ -19,12 +19,12 @@ export const classes = {
   'inspectorHeader': 'msp-structure-structure-tab-inspectorHeader',
   'inspectorKind': 'msp-structure-structure-tab-inspectorKind',
   'inspectorTitle': 'msp-structure-structure-tab-inspectorTitle',
+  'options': 'msp-structure-structure-tab-options',
+  'optionsButton': 'msp-structure-structure-tab-optionsButton',
   'preset': 'msp-structure-structure-tab-preset',
   'presetCaption': 'msp-structure-structure-tab-presetCaption',
   'presetCheck': 'msp-structure-structure-tab-presetCheck',
   'presetGroup': 'msp-structure-structure-tab-presetGroup',
-  'presetOptions': 'msp-structure-structure-tab-presetOptions',
-  'presetOptionsToggle': 'msp-structure-structure-tab-presetOptionsToggle',
   'presets': 'msp-structure-structure-tab-presets',
   'quickStyles': 'msp-structure-structure-tab-quickStyles',
   'tab': 'msp-structure-structure-tab-tab',
@@ -181,28 +181,6 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
   }
 }
 
-.msp-structure-structure-tab-presetOptions {
-  gap: var(--msp-space-1);
-  padding-top: var(--msp-space-1);
-  border-top: 1px solid var(--msp-glass-edge);
-  display: grid;
-}
-
-.msp-structure-structure-tab-presetOptionsToggle {
-  align-items: center;
-  gap: var(--msp-space-2);
-  height: 28px;
-  padding: 0 var(--msp-space-2);
-  border-radius: var(--msp-radius-md);
-  color: var(--msp-color-text-muted);
-  display: flex;
-
-  &:hover {
-    background: var(--msp-color-hover);
-    color: var(--msp-color-text);
-  }
-}
-
 .msp-structure-structure-tab-chevron {
   transition: transform var(--msp-motion-fast) var(--msp-ease);
   margin-left: auto;
@@ -210,6 +188,19 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
   [aria-expanded="false"] > & {
     transform: rotate(-90deg);
   }
+}
+
+.msp-structure-structure-tab-optionsButton {
+  margin-left: auto;
+}
+
+.msp-structure-structure-tab-options {
+  max-height: 50%;
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+  flex: none;
+  overflow: auto;
 }
 }
 `);

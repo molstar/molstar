@@ -13,6 +13,7 @@ import { Icon } from '../../components/icon/icon.js';
 import { ParamsForm } from '../../components/params/params-form.js';
 import { Show } from '../../dom/control-flow.js';
 import type { PresetsModel, QuickStylesModel, SceneInspection, SceneModel } from '../../model/scene.js';
+import type { ParamsFormModel } from '../../forms/params-form.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ShellModel } from '../../shell/shell.js';
 import { SectionList } from '../shell/section-list.js';
@@ -28,6 +29,11 @@ export interface StructureTabProps {
   presets?: PresetsModel;
   /** Quick styles: the Styles button opens them under the header. */
   quickStyles?: QuickStylesModel;
+  /**
+   * The component options (Mol*'s component manager options: hydrogens, quality, lighting, material, clipping,
+   * interactions, interior, animation), applied to every component; the sliders button opens them.
+   */
+  options?: ParamsFormModel<any>;
 }
 
 /**
@@ -39,8 +45,8 @@ export interface StructureTabProps {
 export function StructureTab(props: StructureTabProps) {
   const { shell, scene } = props;
   // One inline block at a time under the header: the preset menu or the quick styles.
-  const open = observableState<'preset' | 'styles' | undefined>(undefined);
-  const toggle = (block: 'preset' | 'styles') => open.set(open.value === block ? undefined : block);
+  const open = observableState<'preset' | 'styles' | 'options' | undefined>(undefined);
+  const toggle = (block: 'preset' | 'styles' | 'options') => open.set(open.value === block ? undefined : block);
   return (
     <div class={classes.tab}>
       <div class={classes.actions}>
@@ -65,6 +71,17 @@ export function StructureTab(props: StructureTabProps) {
         <Button size="sm" variant="ghost" icon={<Icon name="plus" />} onClick={() => props.onAction?.('add')}>
           Component
         </Button>
+        {props.options ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            class={classes.optionsButton}
+            icon={<Icon name="sliders-horizontal" />}
+            title="Component options"
+            pressed={open.asReadonly.pipe(map((o) => o === 'options'))}
+            onClick={() => toggle('options')}
+          />
+        ) : null}
       </div>
       <Show when={open}>
         {(block) =>
@@ -72,6 +89,10 @@ export function StructureTab(props: StructureTabProps) {
             <PresetMenu model={props.presets} onApplied={() => open.set(undefined)} />
           ) : block === 'styles' && props.quickStyles ? (
             <QuickStyles model={props.quickStyles} />
+          ) : block === 'options' && props.options ? (
+            <section class={classes.options} aria-label="Component options">
+              <ParamsForm form={props.options} />
+            </section>
           ) : null
         }
       </Show>
@@ -128,11 +149,10 @@ function QuickStyles(props: { model: QuickStylesModel }) {
 
 /**
  * The preset menu: every representation preset, grouped as the registry groups them, the one in effect marked; a click
- * applies it. The presets' options (their params) fold out below, applied with the next preset.
+ * applies it.
  */
 function PresetMenu(props: { model: PresetsModel; onApplied(): void }) {
   const { model } = props;
-  const optionsOpen = observableState(false);
   return (
     <section class={classes.presets} aria-label="Presets">
       {model.groups.map((group) => (
@@ -155,21 +175,6 @@ function PresetMenu(props: { model: PresetsModel; onApplied(): void }) {
           ))}
         </div>
       ))}
-      {model.options ? (
-        <div class={classes.presetOptions}>
-          <button
-            type="button"
-            class={classes.presetOptionsToggle}
-            aria-expanded={optionsOpen}
-            onClick={() => optionsOpen.set(!optionsOpen.value)}
-          >
-            <Icon name="sliders-horizontal" size={14} />
-            Options
-            <Icon name="chevron-down" size={13} class={classes.chevron} />
-          </button>
-          <Show when={optionsOpen}>{() => <ParamsForm form={model.options!} />}</Show>
-        </div>
-      ) : null}
     </section>
   );
 }

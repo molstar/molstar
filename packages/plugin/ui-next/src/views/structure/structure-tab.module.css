@@ -161,28 +161,6 @@
   }
 }
 
-.presetOptions {
-  display: grid;
-  gap: var(--msp-space-1);
-  padding-top: var(--msp-space-1);
-  border-top: 1px solid var(--msp-glass-edge);
-}
-
-.presetOptionsToggle {
-  display: flex;
-  align-items: center;
-  gap: var(--msp-space-2);
-  height: 28px;
-  padding: 0 var(--msp-space-2);
-  border-radius: var(--msp-radius-md);
-  color: var(--msp-color-text-muted);
-
-  &:hover {
-    background: var(--msp-color-hover);
-    color: var(--msp-color-text);
-  }
-}
-
 .chevron {
   margin-left: auto;
   transition: transform var(--msp-motion-fast) var(--msp-ease);
@@ -190,4 +168,18 @@
   [aria-expanded="false"] > & {
     transform: rotate(-90deg);
   }
+}
+
+/* The options button sits at the end of the header row. */
+.optionsButton {
+  margin-left: auto;
+}
+
+.options {
+  flex: none;
+  max-height: 50%;
+  padding: var(--msp-space-2) var(--msp-space-3);
+  overflow: auto;
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
 }

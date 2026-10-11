@@ -48,7 +48,13 @@ import { mockSelection } from '../../_stories/mocks/selection.js';
 import { mockCommands, mockPrefixes } from '../../_stories/mocks/commands.js';
 import { registerMockCanvasSettings } from '../../_stories/mocks/canvas-settings.js';
 import { registerMockInspectorSections } from '../../_stories/mocks/inspector-sections.js';
-import { type MockScenePreset, mockPresets, mockQuickStyles, mockScene } from '../../_stories/mocks/scene.js';
+import {
+  type MockScenePreset,
+  mockComponentOptions,
+  mockPresets,
+  mockQuickStyles,
+  mockScene,
+} from '../../_stories/mocks/scene.js';
 
 const meta: Meta = { title: 'Shell/Shell', parameters: { layout: 'fullscreen' } };
 export default meta;
@@ -279,6 +285,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
           shell={ctx.shell}
           scene={scene}
           presets={mockPresets((t) => status.post(t))}
+          options={mockComponentOptions()}
           quickStyles={mockQuickStyles((t) => status.post(t))}
           onAction={(a) =>
             status.post(

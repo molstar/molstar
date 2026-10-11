@@ -95,13 +95,11 @@ export interface StructurePreset {
 
 /**
  * The representation presets for the Preset menu, grouped as the registry groups them (ungrouped first: Empty,
- * Automatic; then Basic, Miscellaneous, and what extensions register), the one in effect, and the presets' common
- * options as a form (their PD params).
+ * Automatic; then Basic, Miscellaneous, and what extensions register), and the one in effect.
  */
 export interface PresetsModel {
   groups: readonly { label?: string; presets: readonly StructurePreset[] }[];
   current: ReadonlyState<string | undefined>;
-  options?: ParamsFormModel<any>;
   apply(id: string): void;
 }
 
