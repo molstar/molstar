@@ -281,12 +281,3 @@
   background: var(--msp-color-well);
   box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
 }
-
-/* The style unfolds under its row: a chevron, turned while open. */
-.unfold {
-  transition: transform var(--msp-motion-fast) var(--msp-ease);
-
-  [aria-expanded="true"] > & {
-    transform: rotate(180deg);
-  }
-}

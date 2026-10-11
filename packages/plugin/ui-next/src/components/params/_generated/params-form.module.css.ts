@@ -41,7 +41,6 @@ export const classes = {
   'swatch': 'msp-params-params-form-swatch',
   'switch': 'msp-params-params-form-switch',
   'textarea': 'msp-params-params-form-textarea',
-  'unfold': 'msp-params-params-form-unfold',
   'unsupported': 'msp-params-params-form-unsupported',
 } as const;
 
@@ -326,14 +325,6 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   &:hover, &[aria-expanded="true"] {
     background: var(--msp-color-hover);
     color: var(--msp-color-text);
-  }
-}
-
-.msp-params-params-form-unfold {
-  transition: transform var(--msp-motion-fast) var(--msp-ease);
-
-  [aria-expanded="true"] > & {
-    transform: rotate(180deg);
   }
 }
 
