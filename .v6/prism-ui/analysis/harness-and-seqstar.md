@@ -65,16 +65,20 @@ Prism's contracts before they are frozen ([../review.md](../review.md)).
 - **Status.** The rewrite's models, spec, renderers and behaviors are done; its canvas surface and DOM/React UIs are not
   (only the old `lib/seqstar/viewer` mounts today).
 
-**What Prism's contracts need** (review B1, M18):
+**What Prism's contracts need** (review B1, M18). Prism draws the viewer's chrome itself, on its own runtime and tokens,
+over seqstar's headless context; seqstar provides the model, the layout and the drawing (its canvas surface, ready
+soon), not its DOM or React UI:
 
 1. **A mode attaches a model that owns an outside context**: the viewer mode's sequence model creates the
-   `SeqViewerContext` with Prism's loaders and document port, and disposes it with the app (the module slot of B1).
-2. **A view that mounts a foreign renderer** (`elementView` or a mount function) into a dock tab, sized by its host.
+   `SeqViewerContext` with Prism's loaders and document port, and disposes it with the app (the module slot of B1). Its
+   rxjs states read as Prism's `ReadonlyState`s, so views bind to them directly.
+2. **Prism's own sequence UI**: tabs, section headers, legend, tooltip, search and the player as Prism components (the
+   slots seqstar's own UIs fill), around seqstar's canvas surface in a dock tab; keyboard and focus as the rest of the
+   shell.
 3. **The structure link is Prism's to write**: registering a structure's chains as seqstar systems, translating loci to
    `Coordinates` and back, over the selection, highlight and focus sources, with origins to skip echoes.
 4. **Stories**: a story document can carry SVS next to MVS (both ref-addressed, patchable, snapshot-able); the story
    model treats both as parts of one document.
-5. **Theming**: map `--msp-*` onto `--seq-*` in the tab's scope; `chrome: "clean"` for a story's reader, `"full"` for
-   the viewer's dock.
-6. **Until the rewrite mounts**, the build keeps a placeholder sequence tab (decided); the contracts above are what it
-   plugs into.
+5. **Theming**: Prism's components use `--msp-*`; the canvas's data colors come from seqstar's themes, and its few drawn
+   chrome colors are mapped from `--msp-*`.
+6. **Until the canvas surface lands**, the placeholder sequence tab stands in; the contracts above are what replaces it.
