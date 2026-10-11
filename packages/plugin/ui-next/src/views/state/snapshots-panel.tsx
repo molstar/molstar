@@ -39,6 +39,8 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
     />
   ) as HTMLInputElement;
   const current = model.current.pipe(distinctUntilChanged());
+  let list: HTMLElement | undefined;
+  const drag = (id: string) => (e: PointerEvent) => startDrag(e, list, id, (index) => model.moveTo(id, index));
   return (
     <div class={classes.panel}>
       <div class={classes.actions}>
@@ -99,7 +101,7 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
           )
         }
       </Show>
-      <div class={classes.list} role="listbox" aria-label="Snapshots">
+      <div class={classes.list} role="listbox" aria-label="Snapshots" ref={(el: HTMLElement) => (list = el)}>
         <For
           each={model.entries}
           key={(e) => e.id}
@@ -114,6 +116,7 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
               model={model}
               entry={entry}
               index={index}
+              onGrab={drag(entry.id)}
               current={current.pipe(
                 map((c) => c === entry.id),
                 distinctUntilChanged(),
@@ -153,6 +156,8 @@ function SnapshotRow(props: {
   entry: SnapshotEntry;
   index: ReadonlyState<number>;
   current: Observable<boolean>;
+  /** Pointer down on the handle: starts dragging the row. */
+  onGrab: (e: PointerEvent) => void;
 }) {
   const { model, entry } = props;
   const menu = observableState(false);
@@ -161,7 +166,7 @@ function SnapshotRow(props: {
     .map((l) => l.replace(/[#*`>-]/g, '').trim())
     .find((l) => l);
   return (
-    <div class={classes.item}>
+    <div class={classes.item} data-id={entry.id}>
       <div
         class={classes.row}
         role="option"
@@ -175,7 +180,19 @@ function SnapshotRow(props: {
           }
         }}
       >
-        <span class={classes.index}>{props.index.pipe(map((i) => `${i + 1}`))}</span>
+        {/* The position; on hover, the handle that drags the row (Move up/down stay in its ⋯). */}
+        <span class={classes.slot}>
+          <span class={classes.index}>{props.index.pipe(map((i) => `${i + 1}`))}</span>
+          <span
+            class={classes.grip}
+            aria-hidden="true"
+            data-tip="Drag to reorder"
+            onPointerDown={props.onGrab}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Icon name="grip-vertical" size={14} />
+          </span>
+        </span>
         {entry.image ? <span class={classes.thumb} style={{ background: entry.image }} /> : null}
         <span class={classes.name}>{entry.name}</span>
         {entry.key ? <span class={classes.key}>#{entry.key}</span> : null}
@@ -287,4 +304,52 @@ function SnapshotEditor(props: { model: SnapshotsModel; entry: SnapshotEntry }) 
       {options ? <ParamsForm form={options} /> : null}
     </div>
   );
+}
+
+/**
+ * Drags a row by its handle: the row under the pointer shows where it would land (a line above or below it), release
+ * moves it there. Pointer captured on the handle, so leaving the list keeps the drag.
+ */
+function startDrag(e: PointerEvent, list: HTMLElement | undefined, id: string, moveTo: (index: number) => void) {
+  if (!list || e.button !== 0) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const handle = e.currentTarget as HTMLElement;
+  handle.setPointerCapture(e.pointerId);
+  const items = [...list.querySelectorAll<HTMLElement>(':scope > [data-id]')];
+  const self = items.find((el) => el.dataset.id === id);
+  self?.setAttribute('data-dragging', '');
+  let target = -1;
+  const mark = (index: number) => {
+    target = index;
+    for (let i = 0; i < items.length; i++) {
+      const el = items[i];
+      if (i === index) el.setAttribute('data-drop', 'before');
+      else if (index === items.length && i === items.length - 1) el.setAttribute('data-drop', 'after');
+      else el.removeAttribute('data-drop');
+    }
+  };
+  const onMove = (ev: PointerEvent) => {
+    let index = items.length;
+    for (let i = 0; i < items.length; i++) {
+      const r = items[i].getBoundingClientRect();
+      if (ev.clientY < r.top + r.height / 2) {
+        index = i;
+        break;
+      }
+    }
+    mark(index);
+  };
+  const onUp = () => {
+    handle.removeEventListener('pointermove', onMove);
+    self?.removeAttribute('data-dragging');
+    const from = items.indexOf(self as HTMLElement);
+    const to = target;
+    mark(-1);
+    // Dropping above or below itself leaves it where it is.
+    if (to >= 0 && to !== from && to !== from + 1) moveTo(to > from ? to - 1 : to);
+  };
+  handle.addEventListener('pointermove', onMove);
+  handle.addEventListener('pointerup', onUp, { once: true });
+  handle.addEventListener('pointercancel', onUp, { once: true });
 }

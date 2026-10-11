@@ -40,6 +40,8 @@ export interface SnapshotsModel {
   /** Takes the current state into this snapshot (keeps its name, key and description). */
   replace(id: string): void;
   move(id: string, by: -1 | 1): void;
+  /** Moves it to a position in the list (dragged by its handle). */
+  moveTo(id: string, index: number): void;
   remove(id: string): void;
   clear(): void;
   /** The state with its data (.molx), or the state description alone (.molj; data loads from its sources). */

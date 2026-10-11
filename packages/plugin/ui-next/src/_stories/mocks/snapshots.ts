@@ -134,6 +134,13 @@ export function mockSnapshotsModel(
       [list[i], list[j]] = [list[j], list[i]];
       entries.set(list);
     },
+    moveTo: (id, index) => {
+      const list = entries.value.filter((e) => e.id !== id);
+      const entry = entries.value.find((e) => e.id === id);
+      if (!entry) return;
+      list.splice(Math.max(0, Math.min(list.length, index)), 0, entry);
+      entries.set(list);
+    },
     remove: (id) => {
       post(`Removed “${name(id)}”`);
       entries.set(entries.value.filter((e) => e.id !== id));

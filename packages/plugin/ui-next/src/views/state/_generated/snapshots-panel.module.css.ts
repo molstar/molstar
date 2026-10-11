@@ -22,6 +22,7 @@ export const classes = {
   'empty': 'msp-state-snapshots-panel-empty',
   'field': 'msp-state-snapshots-panel-field',
   'fields': 'msp-state-snapshots-panel-fields',
+  'grip': 'msp-state-snapshots-panel-grip',
   'index': 'msp-state-snapshots-panel-index',
   'inspection': 'msp-state-snapshots-panel-inspection',
   'inspector': 'msp-state-snapshots-panel-inspector',
@@ -40,6 +41,7 @@ export const classes = {
   'panel': 'msp-state-snapshots-panel-panel',
   'row': 'msp-state-snapshots-panel-row',
   'rowActions': 'msp-state-snapshots-panel-rowActions',
+  'slot': 'msp-state-snapshots-panel-slot',
   'textarea': 'msp-state-snapshots-panel-textarea',
   'thumb': 'msp-state-snapshots-panel-thumb',
 } as const;
@@ -188,6 +190,54 @@ defineStyles('views/state/snapshots-panel.module.css', `@layer msp.components {
     & .msp-state-snapshots-panel-name {
       color: var(--msp-color-accent);
     }
+  }
+}
+
+.msp-state-snapshots-panel-slot {
+  flex: none;
+  place-items: center end;
+  min-width: 2ch;
+  display: grid;
+
+  & > * {
+    grid-area: 1 / 1;
+  }
+}
+
+.msp-state-snapshots-panel-grip {
+  width: 14px;
+  height: 22px;
+  color: var(--msp-color-text-subtle);
+  cursor: grab;
+  touch-action: none;
+  opacity: 0;
+  place-items: center;
+  display: grid;
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+
+  .msp-state-snapshots-panel-row:hover &, [data-dragging] & {
+    opacity: 1;
+  }
+}
+
+.msp-state-snapshots-panel-row:hover .msp-state-snapshots-panel-index, [data-dragging] .msp-state-snapshots-panel-index {
+  visibility: hidden;
+}
+
+.msp-state-snapshots-panel-item {
+  &[data-dragging] {
+    opacity: .5;
+  }
+
+  &[data-drop="before"] {
+    box-shadow: 0 -2px 0 var(--msp-color-text-muted);
+  }
+
+  &[data-drop="after"] {
+    box-shadow: 0 2px 0 var(--msp-color-text-muted);
   }
 }
 
