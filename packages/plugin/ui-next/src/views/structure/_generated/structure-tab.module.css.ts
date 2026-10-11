@@ -95,7 +95,7 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
 
 .msp-structure-structure-tab-inspector {
   height: clamp(180px, 42%, 420px);
-  margin: 0 calc(-1 * var(--msp-space-2));
+  margin: calc(-1 * var(--msp-space-2)) calc(-1 * var(--msp-space-2)) 0;
   border-top: 1px solid var(--msp-glass-edge);
   mask-image: linear-gradient(to bottom,
     transparent,

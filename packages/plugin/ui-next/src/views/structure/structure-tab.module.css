@@ -76,7 +76,9 @@
      would stick out of the title's column): a hairline sets it apart from the tree. */
   flex: none;
   height: clamp(180px, 42%, 420px);
-  margin: 0 calc(-1 * var(--msp-space-2));
+  /* Against the tree, without the tab's gap (the tree's fading edge runs right up to the hairline), and to the tab's
+     edges at the sides. */
+  margin: calc(-1 * var(--msp-space-2)) calc(-1 * var(--msp-space-2)) 0;
   overflow: auto;
   border-top: 1px solid var(--msp-glass-edge);
   /* More to scroll: its edges fade (reset.css, msp-fade-scroll-*). */
