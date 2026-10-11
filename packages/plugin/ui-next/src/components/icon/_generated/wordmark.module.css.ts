@@ -111,10 +111,11 @@ defineStyles('components/icon/wordmark.module.css', `@layer msp.components {
 
 .msp-icon-wordmark-live {
   opacity: 0;
-  mask-image: radial-gradient(circle 48px at var(--msp-wordmark-x, 50%) var(--msp-wordmark-y, 50%),
-    #000 0,
-    #000 35%,
-    transparent 100%);
+  mask-image: linear-gradient(90deg,
+    transparent calc(var(--msp-wordmark-x, 50%) - 42px),
+    #000 calc(var(--msp-wordmark-x, 50%) - 14px),
+    #000 calc(var(--msp-wordmark-x, 50%) + 14px),
+    transparent calc(var(--msp-wordmark-x, 50%) + 42px));
   transition: opacity .6s var(--msp-ease);
 
   .msp-icon-wordmark-wordmark:hover > & {
