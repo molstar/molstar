@@ -15,13 +15,15 @@ const preview: Preview = {
   },
   globalTypes: {
     theme: {
-      description: 'Color theme (sets `data-theme` on the document root)',
+      description: 'UI theme (sets `data-msp-theme` on the document root)',
       toolbar: {
         title: 'Theme',
         icon: 'paintbrush',
         items: [
           { value: 'light', title: 'Light' },
           { value: 'dark', title: 'Dark' },
+          { value: 'blue', title: 'Blue' },
+          { value: 'auto', title: 'Auto (system)' },
         ],
         dynamicTitle: true,
       },
@@ -29,7 +31,8 @@ const preview: Preview = {
   },
   decorators: [
     (story, context) => {
-      document.documentElement.dataset.theme = context.globals.theme ?? 'light';
+      document.documentElement.dataset.mspTheme = context.globals.theme ?? 'light';
+      document.body.style.background = 'var(--msp-color-bg)';
       return story();
     },
   ],

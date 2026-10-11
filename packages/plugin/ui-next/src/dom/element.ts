@@ -5,6 +5,8 @@
  */
 
 import { ReactiveModel } from '../reactive/reactive-model.js';
+import '../styles/base.js';
+import { adoptStyles } from '../styles/registry.js';
 import type { Child, CommonProps } from './jsx-types.js';
 import { insert } from './render.js';
 import { runInScope, Scope } from './scope.js';
@@ -18,6 +20,8 @@ const ElementBase = (typeof HTMLElement === 'undefined' ? class {} : HTMLElement
  * - Rendering starts when the element is connected and has a model; setting another model renders again.
  * - Disconnecting disposes the rendering on the next microtask, unless the element is connected again before then:
  *   moving an element (between docks, into a dialog) keeps its DOM and bindings.
+ * - On connect it adopts the registered styles into its document; a top-level element (not inside another ui-next root)
+ *   becomes a root (`.msp-root`), which scopes the reset and the theme tokens.
  * - The element does not own its model: whoever created the model mounts and retires it. An element that creates its
  *   own model (`createModel`) mounts it while rendered and unmounts it when the rendering is disposed.
  */
@@ -56,6 +60,8 @@ export abstract class MspElement<M = unknown> extends ElementBase {
   protected createModel?(): M;
 
   connectedCallback(): void {
+    adoptStyles(this.ownerDocument);
+    if (!this.parentElement?.closest('.msp-root')) this.classList.add('msp-root');
     if (this.#pendingDispose) {
       this.#pendingDispose = false;
       return;

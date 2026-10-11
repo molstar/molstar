@@ -241,7 +241,9 @@ function applyProps(el: Element, props: Record<string, any>, isSvg: boolean, isC
 }
 
 function setAttribute(el: Element, name: string, value: unknown) {
-  if (value === null || value === undefined || value === false) el.removeAttribute(name);
+  // ARIA states are the strings "true"/"false", not present/absent.
+  if (typeof value === 'boolean' && name.startsWith('aria-')) el.setAttribute(name, String(value));
+  else if (value === null || value === undefined || value === false) el.removeAttribute(name);
   else el.setAttribute(name, value === true ? '' : String(value));
 }
 

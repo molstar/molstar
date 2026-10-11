@@ -18,7 +18,8 @@
       "!build.mjs",
       "!.v6/baselines",
       "!**/package-lock.json",
-      "!**/npm-shrinkwrap.json"
+      "!**/npm-shrinkwrap.json",
+      "!**/*.css.ts"
     ]
   },
   "formatter": {

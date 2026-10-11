@@ -90,14 +90,19 @@ export interface CommonProps<E extends Element> {
   [prop: `prop:${string}`]: unknown;
 }
 
-/** The element's own properties (not methods or `on…` handler properties), each optionally reactive. */
+/**
+ * The element's own properties (not methods or `on…` handler properties), each optionally reactive; `null` or
+ * `undefined` clears the attribute.
+ */
 type PropertyKeys<E> = {
   [K in keyof E]: E[K] extends (...args: any[]) => any ? never : K extends `on${string}` ? never : K;
 }[keyof E];
 
 export type ElementProps<E extends Element> = CommonProps<E> &
   EventProps<E> & {
-    [K in Exclude<PropertyKeys<E>, keyof CommonProps<E> | 'className' | 'classList' | 'style'>]?: MaybeReactive<E[K]>;
+    [K in Exclude<PropertyKeys<E>, keyof CommonProps<E> | 'className' | 'classList' | 'style'>]?: MaybeReactive<
+      E[K] | null | undefined
+    >;
   };
 
 /** SVG is typed loosely: attributes by their SVG names (`viewBox`, `stroke-width`). */

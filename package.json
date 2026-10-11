@@ -209,6 +209,7 @@
       "^@molstar/volume-server/(.*)$": "<rootDir>/servers/volume/src/$1",
       "^@molstar/tests$": "<rootDir>/tests/src/index.ts",
       "^@molstar/tests/(.*)$": "<rootDir>/tests/src/$1",
+      "^(\\.{1,2}/.*\\.css)\\.js$": "$1.ts",
       "^(\\.{1,2}/.*)\\.js$": "$1"
     }
   },

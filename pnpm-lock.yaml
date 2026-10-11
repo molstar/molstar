@@ -126,6 +126,9 @@ catalogs:
     jpeg-js:
       specifier: 0.4.4
       version: 0.4.4
+    lightningcss:
+      specifier: 1.33.0
+      version: 1.33.0
     lit:
       specifier: 3.3.3
       version: 3.3.3
@@ -2473,6 +2476,9 @@ importers:
       '@types/react':
         specifier: 'catalog:'
         version: 18.3.31
+      lightningcss:
+        specifier: 'catalog:'
+        version: 1.33.0
       lit:
         specifier: 'catalog:'
         version: 3.3.3

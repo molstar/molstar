@@ -6,8 +6,9 @@
   detection, no global naming scheme to police. Replaces SCSS; native CSS nesting, custom properties, `color-mix()`, and
   `@layer` cover what Sass mixins and colour functions do today.
 - **Design tokens as custom properties with the `--msp-` prefix**, defined once in `styles/tokens.css`.
-- **Themes are token sets** switched at runtime by `data-theme` on the shell root (`light`, `dark`, `blue` to keep the
-  current variants, `auto` following `prefers-color-scheme`). A host can override any token on the element.
+- **Themes are token sets** switched at runtime by `data-msp-theme` on the shell root (or any subtree) (`light`, `dark`,
+  `blue` to keep the current variants, `auto` following `prefers-color-scheme`). A host can override any token on the
+  element.
 - **Everything in `@layer msp`** (reset, tokens, components), so host styles outside the layer win when they target
   ui-next deliberately, and ui-next never needs `!important`.
 - **Light DOM** ([rendering.md](rendering.md) §5): one stylesheet styles all elements; no per-shadow-root injection.
@@ -30,20 +31,28 @@ the default look stays recognisable. State-tree type-class colours and sequence 
 
 ## 3. Build
 
-`tsc` does not process CSS, so library output needs one extra step:
+Implemented in `scripts/css.mjs` and `src/styles/registry.ts`. `tsc` leaves CSS imports untouched in `lib/`, which
+neither Node nor bundler-free browsers can load, so CSS is compiled into TypeScript:
 
-1. **Compile CSS Modules** with deterministic, readable names (`msp-<file>-<class>`, e.g. `msp-button-primary`).
-   lightningcss supports CSS Modules with a configurable naming `pattern`, nesting lowering, and minification in one
-   native dependency. esbuild's `local-css` loader also handles `.module.css` but its naming is not configurable (to be
-   verified during setup); deterministic names matter because hosts and tests may read them and because library and app
-   builds must agree.
-2. **Emit per module** a `*.module.css.js` (the class map) and a `*.module.css.d.ts` (typed keys), next to the compiled
-   component in `lib/`; TS sources import `./button.module.css` and resolve to these at build and type-check time.
-3. **Concatenate** all modules plus tokens into `lib/ui-next.css`. Apps import that one file
-   (`@molstar/plugin-ui-next/ui-next.css`); app builds can instead let esbuild bundle the modules from source.
+1. **Each `.css` file under `src/` gets a generated sibling `x.css.ts`** (committed, excluded from Biome). lightningcss
+   compiles it; for `*.module.css` it renames classes deterministically to `msp-<component>-<class>` (the file name,
+   with its folder when they differ; duplicates are an error) and wraps the result in `@layer msp.components`. The
+   module exports the typed class map (`classes`) and registers the CSS with `defineStyles(id, css)`.
+2. **Components import the generated module** (`import { classes } from './button.module.css.js'`), so a page carries
+   exactly the CSS of the components it imports.
+3. **Elements adopt the styles.** On connect, every `MspElement` calls `adoptStyles(document)`: one constructed
+   stylesheet per document (a `<style>` element where constructed sheets are unavailable), updated when more modules
+   register (lazily loaded views). Top-level elements get `.msp-root`, which scopes the reset and the tokens. No
+   stylesheet to link, in any build setup; `styleText()` gives the whole CSS for a static file if a distribution wants
+   one.
+4. **Tooling**: `pnpm styles` regenerates, `pnpm styles:check` fails on missing, stale or orphaned modules (for CI),
+   `pnpm styles:watch` regenerates on change, and Storybook runs the same generator as a Vite plugin. Jest maps
+   `./x.css.js` to `./x.css.ts`. Edit the `.css` file, never the generated module; Biome formats `.css`, so regenerate
+   after formatting.
 
-This is added to the shared workspace scripts (`scripts/workspace/assets.mjs` and `scripts/esbuild/app.mjs`) and to the
-browser distribution. Biome formats and lints CSS.
+Layers, lowest first: `msp.reset`, `msp.theme`, `msp.components`, `msp.overrides`. Themes are set with `data-msp-theme`
+(`light`, `dark`, `blue`, `auto`) on any element; derived tokens are recomputed wherever a theme is set, so a subtree
+can use another theme.
 
 ## 4. Rules
 
