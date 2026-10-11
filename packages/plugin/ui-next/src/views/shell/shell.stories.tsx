@@ -16,6 +16,7 @@ import { For } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { onCleanup } from '../../dom/scope.js';
 import { domView } from '../../dom/view.js';
+import { parseColor, themeForColor } from '../../model/canvas-theme.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { HoverLabelModel, SnapshotStepperModel, TrajectoryControlsModel } from '../../model/playback.js';
 import { ShellModel } from '../../shell/shell.js';
@@ -345,7 +346,7 @@ function mockShell(options: { loaded: boolean }) {
   return { shell, status, hover, hoverLines, snapshots: mockSnapshots(status), trajectory: mockTrajectory() };
 }
 
-function ShellStory(props: { loaded: boolean; darkCanvas?: boolean }) {
+function ShellStory(props: { loaded: boolean; background?: string }) {
   const { shell, status, hover, hoverLines, snapshots, trajectory } = mockShell(props);
   shell.mount();
   status.mount();
@@ -360,7 +361,7 @@ function ShellStory(props: { loaded: boolean; darkCanvas?: boolean }) {
       canvas={
         <CanvasPlaceholder
           empty={!props.loaded}
-          background={props.darkCanvas ? 'radial-gradient(circle at 50% 45%, #1c1f26 0%, #0b0c0f 80%)' : undefined}
+          background={props.background}
           onHover={(i) =>
             hoverLines.set(
               i === undefined ? [] : [`${ThreeLetter[Sequence[i * 4]] ?? 'GLY'} ${i * 4 + 1}`, 'Chain A · 1TQN'],
@@ -377,7 +378,7 @@ function ShellStory(props: { loaded: boolean; darkCanvas?: boolean }) {
         ) : null
       }
       timeline={props.loaded ? <Timeline model={trajectory} /> : null}
-      canvasTheme={props.darkCanvas ? 'dark' : 'light'}
+      canvasTheme={themeForColor(parseColor(props.background ?? '#ffffff') ?? 0xffffff)}
       onOpenLog={() => shell.openOverlay('log')}
     />
   );
@@ -393,9 +394,15 @@ export const Loaded: StoryObj = {
   render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} />}</div>),
 };
 
-/** A dark canvas background: the chrome over it turns dark too, whatever the UI theme. */
-export const DarkCanvas: StoryObj = {
-  render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} darkCanvas={true} />}</div>),
+/**
+ * The chrome over the canvas follows the canvas background automatically (light glass on a light background, dark on
+ * a dark one), whatever the UI theme. Pick a background color in the controls.
+ */
+export const CanvasBackground: StoryObj<{ background: string }> = {
+  args: { background: '#14181f' },
+  argTypes: { background: { control: 'color' } },
+  render: (args) =>
+    story(() => <div style="height: 100vh">{<ShellStory loaded={true} background={args.background} />}</div>),
 };
 
 /** A narrow host: the panel becomes a bottom sheet with its tabs along the bottom. */

@@ -16,6 +16,7 @@ export function CanvasPlaceholder(props: {
   onHover?: (index: number | undefined) => void;
 }) {
   const background = props.background ?? 'radial-gradient(circle at 50% 45%, #ffffff 0%, #eef0f3 70%, #dfe3e8 100%)';
+  // A plain color (as the Mol* canvas has) shows as it is.
   if (props.empty) return <div style={{ position: 'absolute', inset: 0, background }} />;
   const beads: SVGElement[] = [];
   for (let i = 0; i < 90; i++) {

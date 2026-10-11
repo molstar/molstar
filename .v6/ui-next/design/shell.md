@@ -57,9 +57,12 @@ it is where contributions (built-in and extension UI) are placed.
   description that grows or collapses moves nothing else.
 - **Timeline** (bottom centre, §4.3): trajectory model index and animations, like a media player; above the status line
   when the canvas is narrow.
-- **Glass and canvas theme.** Everything over the canvas uses the glass tokens (translucent fill, blur, light edge, soft
-  shadow) and takes its theme from the canvas background, not the UI theme (`canvasTheme`: a white canvas gets light
-  glass even with the dark UI theme).
+- **Glass and canvas theme.** Everything over the canvas uses flat glass (translucent fill, blur, hairline edge, no
+  shadows) and takes its theme from the canvas background automatically, not from the UI theme, so it stays visible (as
+  stories-untold's stage ink does). `model/canvas-theme.ts` computes it from the Canvas3D props by relative luminance
+  (threshold 0.179, where light and dark text have equal contrast): the background color, a gradient's colors averaged
+  over it by opacity; images and skyboxes count as the background color for now; a transparent canvas uses the host's
+  fallback. The viewport model follows `events.canvas3d.settingsUpdated` and feeds `canvasTheme`.
 - **Hover label** next to the cursor (§4.4).
 - **Status line** (bottom of the canvas): the latest log message (fades after a few seconds; errors stay until
   dismissed), running tasks with progress and abort, and chips for the selection and focus (click to focus, ✕ to clear).
