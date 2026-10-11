@@ -252,16 +252,17 @@
   gap: 2px;
 }
 
-/* Nested params (a choice's own, a group's): their labels step in, their controls stay in the form's column. */
-.nested .label {
+/* Nested params (a choice's own, a group's): their labels and group headers step in, their controls stay in the
+   form's column. */
+.nested :is(.label, .collapsibleHeader) {
   padding-left: var(--msp-space-3);
 }
 
-.nested .nested .label {
+.nested .nested :is(.label, .collapsibleHeader) {
   padding-left: calc(2 * var(--msp-space-3));
 }
 
-.nested .nested .nested .label {
+.nested .nested .nested :is(.label, .collapsibleHeader) {
   padding-left: calc(3 * var(--msp-space-3));
 }
 
@@ -269,14 +270,15 @@
   display: grid;
 }
 
+/* A group's or Advanced's header: a quiet row like a label (as Mol*'s "Options"), not a title. */
 .collapsibleHeader {
   display: flex;
   align-items: center;
   gap: var(--msp-space-1);
-  height: 28px;
+  height: 24px;
+  margin-left: -2px;
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
-  font-weight: 600;
 
   &:hover {
     color: var(--msp-color-text);
@@ -284,6 +286,9 @@
 }
 
 .chevron {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+
   transition: transform var(--msp-motion-fast) var(--msp-ease);
 
   [aria-expanded="true"] > & {

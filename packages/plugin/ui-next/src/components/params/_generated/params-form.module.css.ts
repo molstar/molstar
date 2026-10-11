@@ -265,15 +265,15 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   display: grid;
 }
 
-.msp-params-params-form-nested .msp-params-params-form-label {
+.msp-params-params-form-nested :is(.msp-params-params-form-label, .msp-params-params-form-collapsibleHeader) {
   padding-left: var(--msp-space-3);
 }
 
-.msp-params-params-form-nested .msp-params-params-form-nested .msp-params-params-form-label {
+.msp-params-params-form-nested .msp-params-params-form-nested :is(.msp-params-params-form-label, .msp-params-params-form-collapsibleHeader) {
   padding-left: calc(2 * var(--msp-space-3));
 }
 
-.msp-params-params-form-nested .msp-params-params-form-nested .msp-params-params-form-nested .msp-params-params-form-label {
+.msp-params-params-form-nested .msp-params-params-form-nested .msp-params-params-form-nested :is(.msp-params-params-form-label, .msp-params-params-form-collapsibleHeader) {
   padding-left: calc(3 * var(--msp-space-3));
 }
 
@@ -284,10 +284,10 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 .msp-params-params-form-collapsibleHeader {
   align-items: center;
   gap: var(--msp-space-1);
-  height: 28px;
+  height: 24px;
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
-  font-weight: 600;
+  margin-left: -2px;
   display: flex;
 
   &:hover {
@@ -296,7 +296,9 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-chevron {
+  color: var(--msp-color-text-subtle);
   transition: transform var(--msp-motion-fast) var(--msp-ease);
+  flex: none;
 
   [aria-expanded="true"] > & {
     transform: rotate(90deg);

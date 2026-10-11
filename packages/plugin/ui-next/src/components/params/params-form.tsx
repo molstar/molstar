@@ -593,7 +593,7 @@ function Collapsible(props: { title: string; open?: boolean; force?: Observable<
   return (
     <div class={classes.collapsible}>
       <button type="button" class={classes.collapsibleHeader} aria-expanded={open} onClick={() => own.set(!own.value)}>
-        <Icon name="chevron-right" size={14} class={classes.chevron} />
+        <Icon name="chevron-right" size={12} class={classes.chevron} />
         {props.title}
       </button>
       <Show when={open}>{() => <div class={classes.nested}>{props.children()}</div>}</Show>
