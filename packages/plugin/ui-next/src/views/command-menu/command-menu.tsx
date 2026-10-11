@@ -6,12 +6,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
 import type { CommandInvocation, InvocationState } from '../../commands/invocation.js';
 import { formatChord } from '../../commands/keys.js';
 import type { CommandManager, CommandMatch } from '../../commands/manager.js';
-import { matchPositions } from '../../commands/match.js';
-import { Icon } from '../../components/icon/icon.js';
+import { fuzzyScore, matchPositions } from '../../commands/match.js';
+import type { CommandGroup } from '../../commands/types.js';
+import { Icon, type IconName } from '../../components/icon/icon.js';
 import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { onCleanup } from '../../dom/scope.js';
@@ -25,19 +26,40 @@ export interface CommandMenuProps {
   onClose(): void;
   /** Text to start with ("select " from a selection button). */
   initial?: string;
+  /** Prefixes that turn the menu into another list (`@` scene, `#` snapshots, `:` select); `?` help is built in. */
+  prefixes?: readonly CommandMenuPrefix[];
 }
 
-/** A row of the list: a section caption, or a command (or one of its ways in). */
-type Row =
-  | { kind: 'caption'; label: string }
-  | { kind: 'match'; match: CommandMatch<any>; tail?: string /** Its place among the pickable rows. */; index: number };
+/** One thing a prefix offers (a scene node for `@`, a snapshot for `#`, …). */
+export interface CommandMenuItem {
+  id: string;
+  label: string;
+  detail?: string;
+  icon?: IconName;
+  /** Does it; return true to keep the menu open (it opened a command's form, or typed another prefix). */
+  run(): boolean | void;
+}
 
 /**
- * The command menu: everything the plugin can do, by name. A list while searching (recent commands first on an
- * empty input; matched letters marked; category, keys, and why a command cannot run now); a command with arguments
- * reads as a sentence under the input, its active field typed into the same input, completions below. Enter runs,
- * Tab moves between fields, Backspace on an empty field goes back, Esc steps out (form, then the menu).
+ * A prefix that turns the menu into another list: `@` goes to a scene node, `#` to a snapshot, `:` selects by residues
+ * or an expression. The host provides them (it knows the scene); `?` (help) is built in.
  */
+export interface CommandMenuPrefix {
+  char: string;
+  title: string;
+  /** What to type after it. */
+  placeholder?: string;
+  items(text: string): readonly CommandMenuItem[];
+}
+
+/** A row of the list: a caption, a group to open, a command (or one of its ways in), or a prefix's item. */
+type Row =
+  | { kind: 'caption'; label: string }
+  | { kind: 'group'; group: CommandGroup; index: number }
+  | { kind: 'match'; match: CommandMatch<any>; tail?: string /** Its place among the pickable rows. */; index: number }
+  | { kind: 'item'; item: CommandMenuItem; index: number };
+type Pickable = Exclude<Row, { kind: 'caption' }>;
+
 export function CommandMenu(props: CommandMenuProps) {
   const { manager } = props;
   // A command that ran (or failed past its form) closes the command menu; its outcome goes to the status line.
@@ -67,51 +89,115 @@ export function CommandMenu(props: CommandMenuProps) {
 function ListMode(props: CommandMenuProps) {
   const { manager } = props;
   const text = observableState(props.initial ?? '');
+  const group = observableState<string | undefined>(undefined);
   const highlight = observableState(0);
   const message = observableState<string | undefined>(undefined);
-  const rows = combineLatest([text.asReadonly, manager.commands]).pipe(
-    map(([t]) => {
-      const q = manager.query(t);
+  const prefixes = [...(props.prefixes ?? []), helpPrefix(props, (t) => setText(t))];
+  const prefixOf = (t: string) => prefixes.find((p) => t.startsWith(p.char));
+
+  const rows = combineLatest([text.asReadonly, group.asReadonly, manager.commands, manager.groups]).pipe(
+    map(([t, g]) => {
       const out: Row[] = [];
       let n = 0;
-      const add = (match: CommandMatch<any>, tail?: string) => out.push({ kind: 'match', match, tail, index: n++ });
-      if (q.direct) add(q.direct, q.direct.tail);
-      if (q.recent.length) {
-        out.push({ kind: 'caption', label: 'Recent' });
-        for (const m of q.recent) add(m);
+      const add = (row: Row) => {
+        if (row.kind !== 'caption') (row as Pickable).index = n++;
+        out.push(row);
+      };
+      const prefix = prefixOf(t);
+      if (prefix) {
+        for (const item of prefix.items(t.slice(prefix.char.length).trimStart())) add({ kind: 'item', item, index: 0 });
+        return out;
       }
       if (!t.trim()) {
-        // Nothing typed: everything, by category (in the order categories came), under captions.
+        // Browsing: a group's subgroups and commands; at the top, recent ones first, then the groups, then the
+        // ungrouped commands by category.
+        const { groups, commands } = manager.children(g);
+        if (g === undefined) {
+          const q = manager.query('');
+          if (q.recent.length) {
+            add({ kind: 'caption', label: 'Recent' });
+            for (const m of q.recent) add({ kind: 'match', match: m, index: 0 });
+          }
+          if (groups.length) add({ kind: 'caption', label: 'Browse' });
+        }
+        for (const gr of groups) add({ kind: 'group', group: gr, index: 0 });
+        if (g !== undefined) {
+          for (const m of commands) add({ kind: 'match', match: m, index: 0 });
+          return out;
+        }
+        const recent = new Set(manager.query('').recent.map((m) => m.command));
         const byCategory = new Map<string, CommandMatch<any>[]>();
-        for (const m of q.matches) {
+        for (const m of commands) {
+          if (recent.has(m.command)) continue;
           const list = byCategory.get(m.command.category);
           if (list) list.push(m);
           else byCategory.set(m.command.category, [m]);
         }
         for (const [category, matches] of byCategory) {
-          out.push({ kind: 'caption', label: category });
-          for (const m of matches) add(m);
+          add({ kind: 'caption', label: category });
+          for (const m of matches) add({ kind: 'match', match: m, index: 0 });
         }
         return out;
       }
-      for (const m of q.matches) if (m.command !== q.direct?.command) add(m);
+      // Searching: everything at any depth (inside a group, its subtree), groups that match first.
+      const q = manager.query(t);
+      const within = (m: CommandMatch<any>) => g === undefined || manager.inGroup(m.command, g);
+      if (q.direct && within(q.direct)) add({ kind: 'match', match: q.direct, tail: q.direct.tail, index: 0 });
+      const groups = manager.groups.value.filter(
+        (gr) =>
+          (g === undefined || manager.groupPath(gr.id).some((x) => x.id === g)) &&
+          gr.id !== g &&
+          (fuzzyScore(gr.title, t) ?? -1) >= 0,
+      );
+      for (const gr of groups) add({ kind: 'group', group: gr, index: 0 });
+      for (const m of q.matches)
+        if (m.command !== q.direct?.command && within(m)) add({ kind: 'match', match: m, index: 0 });
       return out;
     }),
   );
   let current: Row[] = [];
-  const picks = () => current.filter((r): r is Extract<Row, { kind: 'match' }> => r.kind === 'match');
+  const picks = () => current.filter((r): r is Pickable => r.kind !== 'caption');
   rows.subscribe((r) => {
     current = r;
     if (highlight.value >= picks().length) highlight.set(0);
   });
 
-  const pick = (row: Extract<Row, { kind: 'match' }>) => {
+  const setText = (t: string) => {
+    text.set(t);
+    input.value = t;
+    highlight.set(0);
+    message.set(undefined);
+  };
+  const enter = (id: string | undefined) => {
+    group.set(id);
+    setText('');
+  };
+  const pick = (row: Pickable) => {
+    if (row.kind === 'group') return enter(row.group.id);
+    if (row.kind === 'item') {
+      const keep = row.item.run();
+      if (!keep && !manager.active.value) props.onClose();
+      return;
+    }
     if (row.match.blocked) return message.set(row.match.blocked);
     const r = manager.open(row.match.command.id, row.tail, row.match.preset?.id);
     if (r.kind === 'blocked') message.set(r.reason);
     else if (r.kind === 'ran') props.onClose();
   };
+  const up = () => {
+    const path = manager.groupPath(group.value);
+    if (!path.length) return false;
+    enter(path[path.length - 2]?.id);
+    return true;
+  };
 
+  const placeholder = combineLatest([text.asReadonly, group.asReadonly]).pipe(
+    map(([t, g]) => {
+      const prefix = prefixOf(t);
+      if (prefix) return prefix.placeholder ?? prefix.title;
+      return g === undefined ? 'Search commands, or type ? for help' : `Search in ${manager.groupPath(g).pop()?.title}`;
+    }),
+  );
   const input = (
     <input
       class={classes.input}
@@ -120,7 +206,7 @@ function ListMode(props: CommandMenuProps) {
       aria-expanded="true"
       aria-controls="msp-command-menu-list"
       aria-label="Command"
-      placeholder="Search commands"
+      placeholder={placeholder}
       spellcheck={false}
       value={text}
       onInput={(e) => {
@@ -130,6 +216,7 @@ function ListMode(props: CommandMenuProps) {
       }}
       onKeyDown={(e) => {
         const n = picks().length;
+        const empty = !e.currentTarget.value;
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
           e.preventDefault();
           if (n) highlight.set((highlight.value + (e.key === 'ArrowDown' ? 1 : n - 1)) % n);
@@ -137,6 +224,14 @@ function ListMode(props: CommandMenuProps) {
           e.preventDefault();
           const row = picks()[highlight.value];
           if (row) pick(row);
+        } else if (e.key === 'ArrowRight' && empty) {
+          const row = picks()[highlight.value];
+          if (row?.kind === 'group') {
+            e.preventDefault();
+            enter(row.group.id);
+          }
+        } else if ((e.key === 'Backspace' || e.key === 'ArrowLeft') && empty) {
+          if (up()) e.preventDefault();
         } else if (e.key === 'Escape') {
           e.preventDefault();
           e.stopPropagation();
@@ -151,21 +246,44 @@ function ListMode(props: CommandMenuProps) {
     <>
       <div class={classes.head}>
         <Icon name="search" size={16} class={classes.headIcon} />
+        <For each={group.asReadonly.pipe(map((g) => manager.groupPath(g)))}>
+          {(g) => (
+            <button type="button" class={classes.crumb} onClick={() => enter(g.id)}>
+              {g.title}
+              <Icon name="chevron-right" size={12} />
+            </button>
+          )}
+        </For>
         {input}
       </div>
       <Show when={message}>{(m) => <p class={classes.message}>{m}</p>}</Show>
       <div class={classes.list} id="msp-command-menu-list" role="listbox" aria-label="Commands">
-        <For each={rows} fallback={() => <p class={classes.empty}>No commands match.</p>}>
+        <For each={rows} fallback={() => <p class={classes.empty}>Nothing matches.</p>}>
           {(row) => {
             if (row.kind === 'caption') return <div class={classes.caption}>{row.label}</div>;
             const i = row.index;
+            const selected = highlight.asReadonly.pipe(map((h) => h === i));
+            const hover = () => highlight.set(i);
+            if (row.kind === 'group')
+              return (
+                <GroupRow
+                  manager={manager}
+                  group={row.group}
+                  selected={selected}
+                  onPick={() => pick(row)}
+                  onHover={hover}
+                />
+              );
+            if (row.kind === 'item')
+              return <ItemRow item={row.item} selected={selected} onPick={() => pick(row)} onHover={hover} />;
             return (
               <CommandRow
                 row={row}
+                path={manager.groupPath(row.match.command.group).map((g) => g.title)}
                 query={text.asReadonly}
-                selected={highlight.asReadonly.pipe(map((h) => h === i))}
+                selected={selected}
                 onPick={() => pick(row)}
-                onHover={() => highlight.set(i)}
+                onHover={hover}
               />
             );
           }}
@@ -175,6 +293,8 @@ function ListMode(props: CommandMenuProps) {
         hints={[
           ['↑↓', 'move'],
           ['↵', 'run'],
+          ['→', 'open group'],
+          ['?', 'help'],
           ['esc', 'close'],
         ]}
       />
@@ -182,8 +302,91 @@ function ListMode(props: CommandMenuProps) {
   );
 }
 
+/** `?`: the prefixes (picking one types it), then every command with a shortcut. */
+function helpPrefix(props: CommandMenuProps, type: (text: string) => void): CommandMenuPrefix {
+  return {
+    char: '?',
+    title: 'Help',
+    placeholder: 'Prefixes and shortcuts',
+    items: (text) => {
+      const q = text.toLowerCase();
+      const prefixes: CommandMenuItem[] = (props.prefixes ?? []).map((p) => ({
+        id: `prefix:${p.char}`,
+        label: `${p.char}  ${p.title}`,
+        detail: p.placeholder,
+        icon: 'command',
+        run: () => {
+          type(p.char);
+          return true;
+        },
+      }));
+      const shortcuts: CommandMenuItem[] = props.manager.commands.value
+        .filter((c) => c.shortcut)
+        .map((c) => ({
+          id: `keys:${c.id}`,
+          label: c.title,
+          detail: formatChord(c.shortcut!),
+          icon: c.icon ?? 'keyboard',
+          run: () => {
+            props.manager.open(c.id);
+          },
+        }));
+      return [...prefixes, ...shortcuts].filter((i) => !q || i.label.toLowerCase().includes(q));
+    },
+  };
+}
+
+function GroupRow(props: {
+  manager: CommandManager<any>;
+  group: CommandGroup;
+  selected: Observable<boolean>;
+  onPick(): void;
+  onHover(): void;
+}) {
+  const path = props.manager.groupPath(props.group.parent).map((g) => g.title);
+  const el = (
+    <div
+      class={classes.row}
+      role="option"
+      aria-selected={props.selected}
+      onClick={() => props.onPick()}
+      onPointerMove={() => props.onHover()}
+    >
+      <span class={classes.rowIcon}>
+        <Icon name={props.group.icon ?? 'list-tree'} size={16} />
+      </span>
+      <span class={classes.rowTitle}>{props.group.title}</span>
+      <span class={classes.rowMeta}>{path.join(' › ')}</span>
+      <Icon name="chevron-right" size={14} class={classes.rowChevron} />
+    </div>
+  ) as HTMLElement;
+  props.selected.subscribe((s) => s && queueMicrotask(() => el.scrollIntoView?.({ block: 'nearest' })));
+  return el;
+}
+
+function ItemRow(props: { item: CommandMenuItem; selected: Observable<boolean>; onPick(): void; onHover(): void }) {
+  const { item } = props;
+  const el = (
+    <div
+      class={classes.row}
+      role="option"
+      aria-selected={props.selected}
+      onClick={() => props.onPick()}
+      onPointerMove={() => props.onHover()}
+    >
+      <span class={classes.rowIcon}>{item.icon ? <Icon name={item.icon} size={16} /> : null}</span>
+      <span class={classes.rowTitle}>{item.label}</span>
+      <span class={classes.rowMeta}>{item.detail}</span>
+    </div>
+  ) as HTMLElement;
+  props.selected.subscribe((s) => s && queueMicrotask(() => el.scrollIntoView?.({ block: 'nearest' })));
+  return el;
+}
+
 function CommandRow(props: {
   row: Extract<Row, { kind: 'match' }>;
+  /** Its group path ("Select › Expression"), shown instead of the category when it has one. */
+  path: readonly string[];
   query: import('rxjs').Observable<string>;
   selected: import('rxjs').Observable<boolean>;
   onPick(): void;
@@ -206,7 +409,7 @@ function CommandRow(props: {
         {props.query.pipe(map((q) => highlight(title, tail ? '' : q)))}
         {tail ? <span class={classes.tail}>{tail}</span> : null}
       </span>
-      <span class={classes.rowMeta}>{match.blocked ?? c.category}</span>
+      <span class={classes.rowMeta}>{match.blocked ?? (props.path.length ? props.path.join(' › ') : c.category)}</span>
       {c.shortcut ? <kbd class={classes.keys}>{formatChord(c.shortcut)}</kbd> : null}
     </div>
   ) as HTMLElement;

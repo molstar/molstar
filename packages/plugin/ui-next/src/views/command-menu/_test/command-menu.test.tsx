@@ -7,16 +7,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { mockCommands } from '../../../_stories/mocks/commands.js';
+import { mockCommands, mockPrefixes } from '../../../_stories/mocks/commands.js';
+import { mockSnapshots } from '../../../_stories/mocks/playback.js';
+import { mockScene } from '../../../_stories/mocks/scene.js';
 import { render } from '../../../dom/render.js';
 import { ShellModel } from '../../../shell/shell.js';
 import { CommandMenu } from '../command-menu.js';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-function mount() {
+function mount(options: { prefixes?: boolean } = {}) {
   const shell = new ShellModel();
   const manager = mockCommands(shell);
+  const prefixes = options.prefixes
+    ? mockPrefixes({ manager, shell, scene: mockScene(), snapshots: mockSnapshots(() => {}) })
+    : undefined;
   const closed = jest.fn();
   const results: string[] = [];
   manager.outcomes.subscribe((o) => {
@@ -24,7 +29,7 @@ function mount() {
   });
   const container = document.createElement('div');
   document.body.append(container);
-  render(() => <CommandMenu manager={manager} onClose={closed} />, container);
+  render(() => <CommandMenu manager={manager} prefixes={prefixes} onClose={closed} />, container);
   const input = () => container.querySelector('input') as HTMLInputElement;
   const type = (text: string) => {
     input().value = text;
@@ -103,5 +108,39 @@ describe('CommandMenu', () => {
     p.key('Enter');
     await flush();
     expect(p.results).toEqual(['Added to the selection: PyMOL "resn HEM and chain A"']);
+  });
+
+  it('browses groups: opens them, shows the path, goes back up', () => {
+    const p = mount();
+    const row = (text: string) =>
+      [...p.container.querySelectorAll('[role=option]')].findIndex((r) => r.textContent?.startsWith(text));
+    // Down to "Select", open it; then "Expression".
+    for (let i = 0; i < row('Select'); i++) p.key('ArrowDown');
+    p.key('Enter');
+    expect(p.container.querySelector('[class*="crumb"]')?.textContent).toBe('Select');
+    for (let i = 0; i < row('Expression'); i++) p.key('ArrowDown');
+    p.key('ArrowRight');
+    expect(p.rows().map((r) => r.split('…')[0])).toEqual(['Select with PyMOL', 'Select with VMD', 'Select with Jmol']);
+    p.key('Backspace');
+    expect(p.container.querySelector('[class*="crumb"]')?.textContent).toBe('Select');
+    // A search shows a grouped command's path.
+    p.key('Backspace');
+    p.type('pymol');
+    expect(p.rows()[0]).toContain('Select › Expression');
+  });
+
+  it('turns into another list with a prefix: ":" opens a select form, "?" shows help', async () => {
+    const p = mount({ prefixes: true });
+    p.type(':pymol resn HEM');
+    expect(p.rows()[0]).toContain('Select with PyMOL: resn HEM');
+    p.key('Enter');
+    await flush();
+    expect(p.manager.active.value?.command.id).toBe('select.pymol');
+    expect(p.closed).not.toHaveBeenCalled();
+
+    const q = mount({ prefixes: true });
+    q.type('?');
+    expect(q.rows().join('|')).toContain('@  Go to');
+    expect(q.rows().join('|')).toContain('Toggle illumination');
   });
 });

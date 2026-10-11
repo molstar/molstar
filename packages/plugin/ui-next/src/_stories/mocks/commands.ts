@@ -9,7 +9,10 @@ import { CommandManager } from '../../commands/manager.js';
 import { rankBy } from '../../commands/match.js';
 import type { CommandDefinition, CommandFormats, CommandResult } from '../../commands/types.js';
 import { observableState } from '../../reactive/observable-state.js';
+import type { SnapshotStepperModel } from '../../model/playback.js';
+import type { SceneModel, SceneNode } from '../../model/scene.js';
 import type { ShellModel } from '../../shell/shell.js';
+import type { CommandMenuPrefix } from '../../views/command-menu/command-menu.js';
 
 // biome-ignore lint/complexity/noBannedTypes: the stories' commands see nothing of the plugin
 type Ctx = {};
@@ -161,10 +164,25 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
     return done(`Showing ${tab}`);
   };
   const commands: CommandDefinition<Ctx>[] = [
-    { id: 'camera.reset', title: 'Reset camera', category: 'View', icon: 'focus', run: () => done('Camera reset') },
-    { id: 'camera.reset-zoom', title: 'Reset zoom', category: 'View', icon: 'zoom-out', run: () => done('Zoom reset') },
+    {
+      id: 'camera.reset',
+      group: 'camera',
+      title: 'Reset camera',
+      category: 'View',
+      icon: 'focus',
+      run: () => done('Camera reset'),
+    },
+    {
+      id: 'camera.reset-zoom',
+      group: 'camera',
+      title: 'Reset zoom',
+      category: 'View',
+      icon: 'zoom-out',
+      run: () => done('Zoom reset'),
+    },
     {
       id: 'camera.orient-axes',
+      group: 'camera',
       title: 'Orient axes',
       category: 'View',
       icon: 'axis-3d',
@@ -220,9 +238,17 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
       icon: 'orbit',
       run: () => done('Wiggle: dynamics'),
     },
-    { id: 'export.image', title: 'Export image…', category: 'Export', icon: 'image', run: open('export', 'image') },
+    {
+      id: 'export.image',
+      group: 'export',
+      title: 'Export image…',
+      category: 'Export',
+      icon: 'image',
+      run: open('export', 'image'),
+    },
     {
       id: 'export.animation',
+      group: 'export',
       title: 'Export animation (MP4)…',
       category: 'Export',
       icon: 'film',
@@ -230,6 +256,7 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
     },
     {
       id: 'export.geometry',
+      group: 'export',
       title: 'Export geometry…',
       category: 'Export',
       icon: 'box',
@@ -309,6 +336,7 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
     },
     {
       id: 'selection.color',
+      group: 'selection',
       title: 'Color selection…',
       category: 'Selection',
       icon: 'palette',
@@ -332,6 +360,7 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
     },
     {
       id: 'selection.transparency',
+      group: 'selection',
       title: 'Set transparency…',
       category: 'Selection',
       icon: 'paintbrush',
@@ -356,6 +385,7 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
     ...Object.entries(Languages).map(
       ([id, language]): CommandDefinition<Ctx> => ({
         id: `select.${id}`,
+        group: 'select.expression',
         title: `Select with ${language.title}…`,
         category: 'Select',
         icon: 'text-cursor-input',
@@ -372,6 +402,7 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
     ),
     {
       id: 'select.residues',
+      group: 'select',
       title: 'Select residues…',
       category: 'Select',
       icon: 'text-cursor-input',
@@ -384,6 +415,7 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
     },
     {
       id: 'select.ligands',
+      group: 'select.query',
       title: 'Select ligands',
       category: 'Select',
       icon: 'mouse-pointer-click',
@@ -391,6 +423,7 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
     },
     {
       id: 'select.helices',
+      group: 'select.query',
       title: 'Select helices',
       category: 'Select',
       icon: 'mouse-pointer-click',
@@ -398,6 +431,7 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
     },
     {
       id: 'select.water',
+      group: 'select.query',
       title: 'Select water',
       category: 'Select',
       icon: 'mouse-pointer-click',
@@ -405,6 +439,7 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
     },
     {
       id: 'selection.clear',
+      group: 'selection',
       title: 'Clear selection',
       category: 'Selection',
       icon: 'x',
@@ -435,5 +470,103 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
   ];
   commands.sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category));
   manager.register(commands);
+  // The command tree for browsing (search finds everything either way).
+  manager.registerGroups([
+    { id: 'select', title: 'Select', icon: 'mouse-pointer-click', order: 0 },
+    { id: 'select.query', title: 'By query', icon: 'list-tree', parent: 'select', order: 0 },
+    { id: 'select.expression', title: 'Expression', icon: 'text-cursor-input', parent: 'select', order: 1 },
+    { id: 'selection', title: 'Selection', icon: 'paintbrush', order: 1 },
+    { id: 'camera', title: 'Camera', icon: 'focus', order: 2 },
+    { id: 'export', title: 'Export', icon: 'download', order: 3 },
+  ]);
   return manager;
+}
+
+/**
+ * The command menu's prefixes in the stories: `@` goes to a scene node (picks it, shows the Structure tab), `#` to a
+ * snapshot, `:` selects by residues or an expression (`:A 10-20`, `:pymol resn HEM`), opening that command's form.
+ */
+export function mockPrefixes(options: {
+  manager: CommandManager<Ctx>;
+  shell: ShellModel;
+  scene: SceneModel;
+  snapshots: SnapshotStepperModel;
+}): CommandMenuPrefix[] {
+  const { manager, shell, scene, snapshots } = options;
+  const nodes = (list: readonly SceneNode[], path: string[] = []): { node: SceneNode; path: string[] }[] =>
+    list.flatMap((n) => [{ node: n, path }, ...nodes(n.children.value, [...path, n.label.value])]);
+  return [
+    {
+      char: '@',
+      title: 'Go to',
+      placeholder: 'A structure, component, volume…',
+      items: (text) =>
+        rankBy(nodes(scene.roots.value), text, (x) => `${x.node.label.value} ${x.path.join(' ')}`).map((x) => ({
+          id: x.node.id,
+          label: x.node.label.value,
+          detail: x.path.join(' › ') || x.node.kind,
+          icon: x.node.icon,
+          run: () => {
+            shell.show('structure');
+            if (scene.picked.value !== x.node) scene.pick(x.node);
+          },
+        })),
+    },
+    {
+      char: '#',
+      title: 'Snapshots',
+      placeholder: 'A snapshot by title',
+      items: (text) =>
+        rankBy(
+          snapshots.titles.value.map((title, index) => ({ title, index })),
+          text,
+          (x) => x.title,
+        ).map((x) => ({
+          id: `snapshot:${x.index}`,
+          label: x.title,
+          detail: `${x.index + 1} / ${snapshots.count.value}`,
+          icon: 'image',
+          run: () => snapshots.goTo(x.index),
+        })),
+    },
+    {
+      char: ':',
+      title: 'Select',
+      placeholder: 'Residues (A 10-20) or an expression (pymol resn HEM)',
+      items: (text) => {
+        const language = /^(pymol|vmd|jmol)\b\s*(.*)$/i.exec(text);
+        const open = (id: string, tail: string) => () => {
+          manager.open(id, tail || undefined);
+          return true;
+        };
+        if (language) {
+          const id = language[1].toLowerCase();
+          return [
+            {
+              id: `select.${id}`,
+              label: `Select with ${Languages[id].title}${language[2] ? `: ${language[2]}` : '…'}`,
+              icon: 'text-cursor-input',
+              run: open(`select.${id}`, language[2]),
+            },
+          ];
+        }
+        return [
+          {
+            id: 'select.residues',
+            label: text ? `Select residues ${text}` : 'Select residues…',
+            detail: 'A 10-20, B 5',
+            icon: 'text-cursor-input',
+            run: open('select.residues', text),
+          },
+          ...Object.entries(Languages).map(([id, l]) => ({
+            id: `select.${id}`,
+            label: `Select with ${l.title}…`,
+            detail: `:${id} …`,
+            icon: 'text-cursor-input' as const,
+            run: open(`select.${id}`, ''),
+          })),
+        ];
+      },
+    },
+  ];
 }

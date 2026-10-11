@@ -12,6 +12,7 @@ export const classes = {
   'before': 'msp-command-menu-before',
   'caption': 'msp-command-menu-caption',
   'command': 'msp-command-menu-command',
+  'crumb': 'msp-command-menu-crumb',
   'empty': 'msp-command-menu-empty',
   'error': 'msp-command-menu-error',
   'footer': 'msp-command-menu-footer',
@@ -27,6 +28,7 @@ export const classes = {
   'message': 'msp-command-menu-message',
   'more': 'msp-command-menu-more',
   'row': 'msp-command-menu-row',
+  'rowChevron': 'msp-command-menu-rowChevron',
   'rowIcon': 'msp-command-menu-rowIcon',
   'rowMeta': 'msp-command-menu-rowMeta',
   'rowTitle': 'msp-command-menu-rowTitle',
@@ -172,6 +174,7 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   color: var(--msp-color-text);
   cursor: default;
   grid-template-columns: 20px minmax(0, 1fr) auto auto;
+  grid-auto-flow: column;
   display: grid;
 
   &[aria-selected="true"] {
@@ -212,15 +215,6 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-}
-
-.msp-command-menu-keys {
-  border-radius: var(--msp-radius-sm);
-  background: var(--msp-color-control);
-  color: var(--msp-color-text-muted);
-  font: inherit;
-  font-size: var(--msp-font-size-xs);
-  padding: 1px 6px;
 }
 
 .msp-command-menu-sentence {
@@ -286,8 +280,9 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   display: flex;
 
   & kbd {
-    font: inherit;
-    opacity: .8;
+    color: inherit;
+    background: none;
+    box-shadow: inset 0 0 0 1px #ffffff80;
   }
 }
 
@@ -299,20 +294,58 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
 }
 
 .msp-command-menu-footer {
-  gap: var(--msp-space-4);
+  gap: var(--msp-space-2) var(--msp-space-4);
   padding: var(--msp-space-2) var(--msp-space-4);
   border-top: 1px solid var(--msp-glass-edge);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
+  flex-wrap: wrap;
   flex: none;
   display: flex;
 
-  & kbd {
-    border-radius: var(--msp-radius-sm);
-    background: var(--msp-color-control);
-    font: inherit;
-    padding: 0 4px;
+  & > span {
+    align-items: center;
+    gap: var(--msp-space-1);
+    display: inline-flex;
   }
+}
+
+.msp-command-menu-footer kbd, .msp-command-menu-keys, .msp-command-menu-run kbd {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  background: var(--msp-color-bg);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge),
+    inset 0 -1px 0 var(--msp-glass-edge);
+  color: var(--msp-color-text-muted);
+  font: inherit;
+  font-family: var(--msp-font-mono);
+  place-items: center;
+  font-size: 10px;
+  line-height: 1;
+  display: inline-grid;
+}
+
+.msp-command-menu-crumb {
+  height: 24px;
+  padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  display: flex;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+.msp-command-menu-rowChevron {
+  color: var(--msp-color-text-subtle);
 }
 }
 `);

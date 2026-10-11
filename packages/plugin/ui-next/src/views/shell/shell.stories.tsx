@@ -45,7 +45,7 @@ import { mockHome } from '../../_stories/mocks/home.js';
 import { mockSnapshots, mockTrajectory } from '../../_stories/mocks/playback.js';
 import { registerMockAnimation } from '../../_stories/mocks/animation.js';
 import { mockSelection } from '../../_stories/mocks/selection.js';
-import { mockCommands } from '../../_stories/mocks/commands.js';
+import { mockCommands, mockPrefixes } from '../../_stories/mocks/commands.js';
 import { registerMockCanvasSettings } from '../../_stories/mocks/canvas-settings.js';
 import { registerMockInspectorSections } from '../../_stories/mocks/inspector-sections.js';
 import { type MockScenePreset, mockPresets, mockQuickStyles, mockScene } from '../../_stories/mocks/scene.js';
@@ -257,6 +257,8 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
   registerMockInspectorSections(shell, scene);
   const hover: HoverLabelModel = { lines: hoverLines.asReadonly };
   const home = mockHome((text, kind) => status.post(text, kind));
+  const snapshotStepper = mockSnapshots((t) => status.post(t));
+  const commands = mockCommands(shell);
 
   shell.registerTabs([
     {
@@ -514,8 +516,9 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
     pickLevel,
     selection,
     commandMenuOpen,
-    commands: mockCommands(shell),
-    snapshots: mockSnapshots((t) => status.post(t)),
+    commands,
+    prefixes: mockPrefixes({ manager: commands, shell, scene, snapshots: snapshotStepper }),
+    snapshots: snapshotStepper,
     trajectory: mockTrajectory(),
   };
 }
@@ -540,6 +543,7 @@ function ShellStory(props: {
     selection,
     commandMenuOpen,
     commands,
+    prefixes,
     snapshots,
     trajectory,
   } = mockShell(props);
@@ -603,7 +607,7 @@ function ShellStory(props: {
       context={props.loaded ? <SelectionBar selection={selection} /> : null}
       commandMenu={
         <Show when={commandMenuOpen}>
-          {() => <CommandMenu manager={commands} onClose={() => commandMenuOpen.set(false)} />}
+          {() => <CommandMenu manager={commands} prefixes={prefixes} onClose={() => commandMenuOpen.set(false)} />}
         </Show>
       }
       canvasLead={props.loaded ? modeSwitch : null}
