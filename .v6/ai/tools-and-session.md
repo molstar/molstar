@@ -76,7 +76,7 @@ storage (memory by default; IndexedDB or SQLite to keep it).
   exported for compaction and the trace.
 - **Hooks**: `onText`, `onTool` (started, progress, succeeded, failed, skipped; with `read` and times), `onStatus`
   (`{ kind: model | tools | permission | retrying | widened | budget-extended | compacting, detail? }`), `onTurn`
-  (begun, with the turn id: where a host takes its checkpoint).
+  (begun, with the turn id, before the first model call; or resumed: where a host takes its checkpoint).
 - **Models**: an adapter per provider (a lookup), the default model, windows and output limits the app gives for models
   an adapter does not know, thinking.
 
@@ -111,5 +111,7 @@ memory, pins).
 
 ## 7. One-off runs
 
-`runOnce({ models, model, guidance, tools, prompt, signal, timeoutMs })`: a throw-away session with terminal tools
-(`terminalTool`) whose first call settles the run (the command menu's assistant proposing a filled command).
+`runOnce({ models, model, guidance, toolkit, api, settlement, prompt, signal, timeoutMs })`: a throw-away session with
+terminal tools (`terminalToolFor<Api>()(settlement, { id, input, modules, run })`) whose first call settles the run with
+its value and stops the session (the command menu's assistant proposing a filled command). It returns
+`{ status: settled | completed | failed | timeout | aborted, value?, text, error? }` and never throws.
