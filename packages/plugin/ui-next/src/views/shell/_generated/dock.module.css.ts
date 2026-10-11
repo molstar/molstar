@@ -11,6 +11,7 @@ import { defineStyles } from '../../../styles/registry.js';
 export const classes = {
   'barTab': 'msp-shell-dock-barTab',
   'body': 'msp-shell-dock-body',
+  'bodyContent': 'msp-shell-dock-bodyContent',
   'bottom': 'msp-shell-dock-bottom',
   'collapsedBar': 'msp-shell-dock-collapsedBar',
   'compact': 'msp-shell-dock-compact',
@@ -108,19 +109,14 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-body {
-  min-height: 0;
-  mask-image: linear-gradient(to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent);
   flex: 1;
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self);
-  animation-range: 0 24px, calc(100% - 24px) 100%;
-  overflow: auto;
+  min-height: 0;
+}
+
+.msp-shell-dock-bodyContent {
+  flex-direction: column;
+  min-height: 100%;
+  display: flex;
 }
 
 .msp-shell-dock-strip {

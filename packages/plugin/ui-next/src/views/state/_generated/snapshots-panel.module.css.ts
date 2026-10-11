@@ -15,6 +15,7 @@ export const classes = {
   'add': 'msp-state-snapshots-panel-add',
   'block': 'msp-state-snapshots-panel-block',
   'blockCaption': 'msp-state-snapshots-panel-blockCaption',
+  'blockContent': 'msp-state-snapshots-panel-blockContent',
   'choice': 'msp-state-snapshots-panel-choice',
   'choiceHint': 'msp-state-snapshots-panel-choiceHint',
   'choiceTitle': 'msp-state-snapshots-panel-choiceTitle',
@@ -27,6 +28,7 @@ export const classes = {
   'index': 'msp-state-snapshots-panel-index',
   'inspection': 'msp-state-snapshots-panel-inspection',
   'inspector': 'msp-state-snapshots-panel-inspector',
+  'inspectorContent': 'msp-state-snapshots-panel-inspectorContent',
   'inspectorEmpty': 'msp-state-snapshots-panel-inspectorEmpty',
   'inspectorHeader': 'msp-state-snapshots-panel-inspectorHeader',
   'inspectorKind': 'msp-state-snapshots-panel-inspectorKind',
@@ -35,6 +37,7 @@ export const classes = {
   'key': 'msp-state-snapshots-panel-key',
   'label': 'msp-state-snapshots-panel-label',
   'list': 'msp-state-snapshots-panel-list',
+  'listContent': 'msp-state-snapshots-panel-listContent',
   'menu': 'msp-state-snapshots-panel-menu',
   'menuItem': 'msp-state-snapshots-panel-menuItem',
   'name': 'msp-state-snapshots-panel-name',
@@ -51,9 +54,11 @@ defineStyles('views/state/snapshots-panel.module.css', `@layer msp.components {
 .msp-state-snapshots-panel-panel {
   gap: var(--msp-space-2);
   height: 100%;
+  min-height: 0;
   padding: 0 var(--msp-space-2) var(--msp-space-2);
   font-size: var(--msp-font-size-sm);
   flex-direction: column;
+  flex: 1 1 0;
   display: flex;
   container-type: inline-size;
 }
@@ -105,13 +110,15 @@ defineStyles('views/state/snapshots-panel.module.css', `@layer msp.components {
 }
 
 .msp-state-snapshots-panel-block {
-  max-height: 50%;
-  padding: var(--msp-space-2) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-well);
   flex: none;
+  max-height: 50%;
+}
+
+.msp-state-snapshots-panel-blockContent {
+  padding: var(--msp-space-2) var(--msp-space-3);
   display: grid;
-  overflow: auto;
 }
 
 .msp-state-snapshots-panel-blockCaption {
@@ -160,22 +167,14 @@ defineStyles('views/state/snapshots-panel.module.css', `@layer msp.components {
 }
 
 .msp-state-snapshots-panel-list {
-  min-height: 80px;
-  mask-image: linear-gradient(to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent);
   flex: 1 1 0;
+  min-height: 80px;
+}
+
+.msp-state-snapshots-panel-listContent {
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self);
-  animation-range: 0 24px, calc(100% - 24px) 100%;
   display: grid;
-  overflow: auto;
 }
 
 .msp-state-snapshots-panel-empty {
@@ -393,22 +392,15 @@ defineStyles('views/state/snapshots-panel.module.css', `@layer msp.components {
   height: clamp(200px, 45%, 440px);
   margin: 0 calc(-1 * var(--msp-space-2));
   border-top: 1px solid var(--msp-glass-edge);
-  mask-image: linear-gradient(to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent);
   flex: none;
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self);
-  animation-range: 0 24px, calc(100% - 24px) 100%;
-  overflow: auto;
+}
+
+.msp-state-snapshots-panel-inspectorContent {
+  min-height: 100%;
+  display: grid;
 }
 
 .msp-state-snapshots-panel-inspectorEmpty {
-  height: 100%;
   padding: var(--msp-space-4);
   color: var(--msp-color-text-subtle);
   text-align: center;

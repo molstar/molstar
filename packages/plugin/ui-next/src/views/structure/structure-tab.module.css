@@ -8,7 +8,10 @@
   display: flex;
   flex-direction: column;
   gap: var(--msp-space-2);
+  /* Fills a panel's body (a flex column) by flex; elsewhere, its parent's height. */
+  flex: 1 1 0;
   height: 100%;
+  min-height: 0;
   /* The panel's content inset: 4px at the sides and bottom; boxes inside pad 8px, so text lines up with the header's
      12px. */
   padding: 0 var(--msp-space-2) var(--msp-space-2);
@@ -20,22 +23,6 @@
 .tree {
   flex: 1 1 0;
   min-height: 80px;
-  overflow: auto;
-  /* More to scroll: its edges fade (reset.css, msp-fade-scroll-*). */
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent
-  );
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-fill-mode: both;
-  animation-timing-function: linear;
-  animation-timeline: scroll(self block);
-  animation-range:
-    0 24px,
-    calc(100% - 24px) 100%;
 }
 
 .actions {
@@ -79,23 +66,13 @@
   /* Against the tree, without the tab's gap (the tree's fading edge runs right up to the hairline), and to the tab's
      edges at the sides. */
   margin: calc(-1 * var(--msp-space-2)) calc(-1 * var(--msp-space-2)) 0;
-  overflow: auto;
   border-top: 1px solid var(--msp-glass-edge);
-  /* More to scroll: its edges fade (reset.css, msp-fade-scroll-*). */
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent
-  );
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-fill-mode: both;
-  animation-timing-function: linear;
-  animation-timeline: scroll(self block);
-  animation-range:
-    0 24px,
-    calc(100% - 24px) 100%;
+}
+
+/* At least the inspector's height: the hint (stretched) centers in it. */
+.inspectorContent {
+  display: grid;
+  min-height: 100%;
 }
 
 .inspection {
@@ -109,7 +86,6 @@
 .inspectorEmpty {
   display: grid;
   place-items: center;
-  height: 100%;
   margin: 0;
   padding: var(--msp-space-4);
   color: var(--msp-color-text-subtle);
@@ -208,13 +184,15 @@
 /* The preset menu: groups of presets, the one in effect checked; options fold out below. */
 .presets {
   flex: none;
-  display: grid;
-  gap: var(--msp-space-2);
   max-height: 50%;
-  padding: var(--msp-space-2);
-  overflow: auto;
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-well);
+}
+
+.presetsContent {
+  display: grid;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-2);
 }
 
 .presetGroup {
@@ -274,8 +252,10 @@
 .options {
   flex: none;
   max-height: 50%;
-  padding: var(--msp-space-2) var(--msp-space-3);
-  overflow: auto;
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-well);
+}
+
+.optionsContent {
+  padding: var(--msp-space-2) var(--msp-space-3);
 }

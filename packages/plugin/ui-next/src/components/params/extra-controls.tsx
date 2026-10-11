@@ -16,6 +16,7 @@ import { onCleanup } from '../../dom/scope.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
 import { colorToHex } from '../color/color-picker.js';
 import { Icon } from '../icon/icon.js';
+import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/extra-controls.module.css.js';
 import { classes as form } from './_generated/params-form.module.css.js';
 import type { FieldBinding } from './field-binding.js';
@@ -80,7 +81,13 @@ export function MultiSelectRow(props: {
         </Field>
       )}
       body={() => (
-        <div class={classes.options} role="listbox" aria-multiselectable="true" aria-label={props.label}>
+        <ScrollArea
+          class={classes.options}
+          contentClass={classes.optionsContent}
+          role="listbox"
+          aria-multiselectable="true"
+          aria-label={props.label}
+        >
           {param.options.map(([value, label]) => (
             <button
               type="button"
@@ -99,7 +106,7 @@ export function MultiSelectRow(props: {
               <Icon name="check" size={14} class={classes.check} />
             </button>
           ))}
-        </div>
+        </ScrollArea>
       )}
     />
   );
@@ -261,7 +268,12 @@ export function ColorListRow(props: { head: Child; label: string; param: PD.Colo
         </Field>
       )}
       body={(close) => (
-        <div class={classes.options} role="listbox" aria-label={props.label}>
+        <ScrollArea
+          class={classes.options}
+          contentClass={classes.optionsContent}
+          role="listbox"
+          aria-label={props.label}
+        >
           {presets.map(([, preset]) => {
             const value = { kind: preset.type === 'qualitative' ? 'set' : 'interpolate', colors: preset.list } as const;
             return (
@@ -281,7 +293,7 @@ export function ColorListRow(props: { head: Child; label: string; param: PD.Colo
               </button>
             );
           })}
-        </div>
+        </ScrollArea>
       )}
     />
   );

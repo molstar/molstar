@@ -27,6 +27,7 @@ export const classes = {
   'card': 'msp-shell-canvas-card',
   'card-in': 'msp-shell-canvas-card-in',
   'cardBody': 'msp-shell-canvas-cardBody',
+  'cardBodyContent': 'msp-shell-canvas-cardBodyContent',
   'cardHeader': 'msp-shell-canvas-cardHeader',
   'cardTitle': 'msp-shell-canvas-cardTitle',
   'chip': 'msp-shell-canvas-chip',
@@ -48,6 +49,7 @@ export const classes = {
   'sections': 'msp-shell-canvas-sections',
   'spin': 'msp-shell-canvas-spin',
   'stack': 'msp-shell-canvas-stack',
+  'stackTools': 'msp-shell-canvas-stackTools',
   'status': 'msp-shell-canvas-status',
   'text': 'msp-shell-canvas-text',
   'tool': 'msp-shell-canvas-tool',
@@ -73,7 +75,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   display: flex;
   overflow: hidden;
 
-  & > * + *, & .msp-shell-canvas-sections > * + * {
+  & > * + *, & .msp-shell-canvas-stackTools > * + *, & .msp-shell-canvas-sections > * + * {
     border-top: 1px solid var(--msp-glass-edge);
   }
 
@@ -158,19 +160,14 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-cardBody {
-  min-height: 0;
-  mask-image: linear-gradient(to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent);
   flex: 1 1 0;
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self);
-  animation-range: 0 24px, calc(100% - 24px) 100%;
-  overflow: auto;
+  min-height: 0;
+}
+
+.msp-shell-canvas-cardBodyContent {
+  flex-direction: column;
+  min-height: 100%;
+  display: flex;
 }
 
 .msp-shell-canvas-stack:not(:has(button)) {
@@ -194,14 +191,17 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   }
 
   & .msp-shell-canvas-frame {
-    scrollbar-width: none;
     max-height: 100%;
-    overflow-y: auto;
   }
 }
 
 .msp-shell-canvas-stack .msp-shell-canvas-frame {
   width: 36px;
+}
+
+.msp-shell-canvas-stackTools {
+  flex-direction: column;
+  display: flex;
 }
 
 .msp-shell-canvas-stack .msp-shell-canvas-tool {

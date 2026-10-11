@@ -27,6 +27,7 @@ export const classes = {
   'matrix': 'msp-params-extra-controls-matrix',
   'option': 'msp-params-extra-controls-option',
   'options': 'msp-params-extra-controls-options',
+  'optionsContent': 'msp-params-extra-controls-optionsContent',
   'point': 'msp-params-extra-controls-point',
   'spark': 'msp-params-extra-controls-spark',
   'strip': 'msp-params-extra-controls-strip',
@@ -94,18 +95,10 @@ defineStyles('components/params/extra-controls.module.css', `@layer msp.componen
 
 .msp-params-extra-controls-options {
   max-height: 240px;
-  mask-image: linear-gradient(to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent);
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self);
-  animation-range: 0 24px, calc(100% - 24px) 100%;
+}
+
+.msp-params-extra-controls-optionsContent {
   display: grid;
-  overflow: auto;
 }
 
 .msp-params-extra-controls-option {

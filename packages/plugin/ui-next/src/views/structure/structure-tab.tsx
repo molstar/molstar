@@ -11,6 +11,7 @@ import { Button } from '../../components/button/button.js';
 import { Choices } from '../../components/choices/choices.js';
 import { Icon } from '../../components/icon/icon.js';
 import { ParamsForm } from '../../components/params/params-form.js';
+import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { Show } from '../../dom/control-flow.js';
 import type { PresetsModel, QuickStylesModel, SceneInspection, SceneModel } from '../../model/scene.js';
 import type { ParamsFormModel } from '../../forms/params-form.js';
@@ -107,23 +108,33 @@ export function StructureTab(props: StructureTabProps) {
           ) : block === 'styles' && props.quickStyles ? (
             <QuickStyles model={props.quickStyles} />
           ) : block === 'options' && props.options ? (
-            <section class={classes.options} aria-label="Component options">
+            <ScrollArea
+              class={classes.options}
+              contentClass={classes.optionsContent}
+              role="region"
+              aria-label="Component options"
+            >
               <ParamsForm form={props.options} />
-            </section>
+            </ScrollArea>
           ) : null
         }
       </Show>
-      <div class={classes.tree}>
+      <ScrollArea class={classes.tree}>
         <SceneTree scene={scene} />
-      </div>
-      <section class={classes.inspector} aria-label="Inspector">
+      </ScrollArea>
+      <ScrollArea
+        class={classes.inspector}
+        contentClass={classes.inspectorContent}
+        role="region"
+        aria-label="Inspector"
+      >
         <Show
           when={scene.picked}
           fallback={() => <p class={classes.inspectorEmpty}>Select an item in the tree to edit its properties.</p>}
         >
           {(node) => <Inspector shell={shell} inspection={scene.inspect(node)} />}
         </Show>
-      </section>
+      </ScrollArea>
     </div>
   );
 }
@@ -200,7 +211,7 @@ function QuickStyles(props: { model: QuickStylesModel }) {
 function PresetMenu(props: { model: PresetsModel; onApplied(): void }) {
   const { model } = props;
   return (
-    <section class={classes.presets} aria-label="Presets">
+    <ScrollArea class={classes.presets} contentClass={classes.presetsContent} role="region" aria-label="Presets">
       {model.groups.map((group) => (
         <div class={classes.presetGroup} role="group" aria-label={group.label ?? 'Presets'}>
           {group.label ? <span class={classes.presetCaption}>{group.label}</span> : null}
@@ -221,6 +232,6 @@ function PresetMenu(props: { model: PresetsModel; onApplied(): void }) {
           ))}
         </div>
       ))}
-    </section>
+    </ScrollArea>
   );
 }

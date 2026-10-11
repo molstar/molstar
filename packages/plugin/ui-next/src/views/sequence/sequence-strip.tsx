@@ -9,6 +9,7 @@
 import { map, type Observable } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
+import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { OptionList, type SelectOption } from '../../components/select/select.js';
 import { Show } from '../../dom/control-flow.js';
 import { observableState } from '../../reactive/observable-state.js';
@@ -60,7 +61,6 @@ export function SequenceStrip(props: {
   selectors?: readonly SequenceSelector[];
 }) {
   const { chain } = props;
-  const residues = (<div class={classes.residues} />) as HTMLElement;
   const fragment = document.createDocumentFragment();
   for (let i = 0; i < chain.sequence.length; i++) {
     const span = document.createElement('span');
@@ -71,19 +71,26 @@ export function SequenceStrip(props: {
     if (number % 10 === 0) span.dataset.number = String(number);
     fragment.appendChild(span);
   }
-  residues.appendChild(fragment);
   // One listener per strip (delegation), not per residue.
-  residues.addEventListener('pointerover', (e) => {
-    const seq = (e.target as HTMLElement).dataset?.seq;
-    props.onHover?.(seq === undefined ? undefined : Number(seq));
-  });
-  residues.addEventListener('pointerleave', () => props.onHover?.(undefined));
-  residues.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement;
-    if (target.dataset?.seq === undefined) return;
-    const selected = target.classList.toggle(classes.selected);
-    props.onToggle?.(Number(target.dataset.seq), selected);
-  });
+  const residues = (
+    <ScrollArea
+      class={classes.residues}
+      contentClass={classes.residuesContent}
+      onPointerOver={(e) => {
+        const seq = (e.target as HTMLElement).dataset?.seq;
+        props.onHover?.(seq === undefined ? undefined : Number(seq));
+      }}
+      onPointerLeave={() => props.onHover?.(undefined)}
+      onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.dataset?.seq === undefined) return;
+        const selected = target.classList.toggle(classes.selected);
+        props.onToggle?.(Number(target.dataset.seq), selected);
+      }}
+    >
+      {fragment}
+    </ScrollArea>
+  );
   // The current structure and chain as selectors on top (as in the classic UI), so the residues get the full width.
   return (
     <div class={classes.strip}>

@@ -9,6 +9,7 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
+import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { TextInput } from '../../components/text-input/text-input.js';
 import { For, Show } from '../../dom/control-flow.js';
 import { ParamsFormModel } from '../../forms/params-form.js';
@@ -60,11 +61,11 @@ export function RemoteStatesPanel(props: { model: RemoteStatesModel }) {
             onClick={() => model.refresh()}
           />
         </div>
-        <div class={classes.list}>
+        <ScrollArea class={classes.list} contentClass={classes.listContent}>
           <For each={model.states} key={(s) => s.id} fallback={() => <p class={classes.empty}>No states yet.</p>}>
             {(state) => <StateRow model={model} state={state} />}
           </For>
-        </div>
+        </ScrollArea>
       </section>
       <label class={classes.server}>
         <span>Server</span>

@@ -9,6 +9,7 @@
 import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import { Icon } from '../../components/icon/icon.js';
 import { ParamsForm, paramsMatch } from '../../components/params/params-form.js';
+import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { TextInput } from '../../components/text-input/text-input.js';
 import { Show } from '../../dom/control-flow.js';
 import type { SettingsGroup, SettingsModel } from '../../model/settings.js';
@@ -42,12 +43,12 @@ export function SettingsTab(props: { model: SettingsModel }) {
           onInput={(v) => query.set(v)}
         />
       </div>
-      <div class={classes.groups}>
+      <ScrollArea class={classes.groups} contentClass={classes.groupsContent}>
         {model.groups.map((group, i) => (
           <Group group={group} query={q} open={i === 0} />
         ))}
         <Show when={none}>{() => <p class={classes.none}>No setting matches “{q}”.</p>}</Show>
-      </div>
+      </ScrollArea>
     </div>
   );
 }

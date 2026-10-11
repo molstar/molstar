@@ -11,6 +11,7 @@ import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { ParamsForm } from '../../components/params/params-form.js';
 import { dragToReorder } from '../../components/reorder/drag-to-reorder.js';
+import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { TextInput } from '../../components/text-input/text-input.js';
 import { For, Show } from '../../dom/control-flow.js';
 import type { SnapshotEntry, SnapshotsModel } from '../../model/snapshots.js';
@@ -74,7 +75,12 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
       <Show when={open}>
         {(block) =>
           block === 'save' ? (
-            <section class={classes.block} aria-label="Save to a file">
+            <ScrollArea
+              class={classes.block}
+              contentClass={classes.blockContent}
+              role="region"
+              aria-label="Save to a file"
+            >
               <SaveChoice
                 icon="download"
                 title="Session"
@@ -93,16 +99,27 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
                   model.download('state');
                 }}
               />
-            </section>
+            </ScrollArea>
           ) : (
-            <section class={classes.block} aria-label="Save options">
+            <ScrollArea
+              class={classes.block}
+              contentClass={classes.blockContent}
+              role="region"
+              aria-label="Save options"
+            >
               <p class={classes.blockCaption}>What a new snapshot includes</p>
               <ParamsForm form={model.saveOptions} />
-            </section>
+            </ScrollArea>
           )
         }
       </Show>
-      <div class={classes.list} role="listbox" aria-label="Snapshots" ref={(el: HTMLElement) => (list = el)}>
+      <ScrollArea
+        class={classes.list}
+        contentClass={classes.listContent}
+        role="listbox"
+        aria-label="Snapshots"
+        ref={(el: HTMLElement) => (list = el)}
+      >
         <For
           each={model.entries}
           key={(e) => e.id}
@@ -125,8 +142,8 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
             />
           )}
         </For>
-      </div>
-      <section class={classes.inspector} aria-label="Snapshot">
+      </ScrollArea>
+      <ScrollArea class={classes.inspector} contentClass={classes.inspectorContent} role="region" aria-label="Snapshot">
         <Show
           when={model.entries.pipe(
             map((entries) => entries.find((e) => e.id === model.current.value)),
@@ -136,7 +153,7 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
         >
           {(entry) => <SnapshotEditor model={model} entry={entry} />}
         </Show>
-      </section>
+      </ScrollArea>
     </div>
   );
 }

@@ -9,7 +9,10 @@
   display: flex;
   flex-direction: column;
   gap: var(--msp-space-2);
+  /* Fills a panel's body (a flex column) by flex; elsewhere, its parent's height. */
+  flex: 1 1 0;
   height: 100%;
+  min-height: 0;
   padding: 0 var(--msp-space-2) var(--msp-space-2);
   font-size: var(--msp-font-size-sm);
   container-type: inline-size;
@@ -65,12 +68,14 @@
 /* What a header button opens: inline under the header, a quiet surface. */
 .block {
   flex: none;
-  display: grid;
   max-height: 50%;
-  padding: var(--msp-space-2) var(--msp-space-3);
-  overflow: auto;
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-well);
+}
+
+.blockContent {
+  display: grid;
+  padding: var(--msp-space-2) var(--msp-space-3);
 }
 
 .blockCaption {
@@ -123,26 +128,13 @@
 /* The snapshots: rows like the scene tree's (scene-tree.module.css). */
 .list {
   flex: 1 1 0;
+  min-height: 80px;
+}
+
+.listContent {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
-  min-height: 80px;
-  overflow: auto;
-  /* More to scroll: its edges fade (reset.css, msp-fade-scroll-*). */
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent
-  );
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-fill-mode: both;
-  animation-timing-function: linear;
-  animation-timeline: scroll(self block);
-  animation-range:
-    0 24px,
-    calc(100% - 24px) 100%;
 }
 
 .empty {
@@ -373,29 +365,18 @@
   flex: none;
   height: clamp(200px, 45%, 440px);
   margin: 0 calc(-1 * var(--msp-space-2));
-  overflow: auto;
   border-top: 1px solid var(--msp-glass-edge);
-  /* More to scroll: its edges fade (reset.css, msp-fade-scroll-*). */
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent
-  );
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-fill-mode: both;
-  animation-timing-function: linear;
-  animation-timeline: scroll(self block);
-  animation-range:
-    0 24px,
-    calc(100% - 24px) 100%;
+}
+
+/* At least the inspector's height: the hint (stretched) centers in it. */
+.inspectorContent {
+  display: grid;
+  min-height: 100%;
 }
 
 .inspectorEmpty {
   display: grid;
   place-items: center;
-  height: 100%;
   margin: 0;
   padding: var(--msp-space-4);
   color: var(--msp-color-text-subtle);

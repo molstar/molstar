@@ -11,6 +11,7 @@ import { Show } from '../../dom/control-flow.js';
 import { bind, type MaybeReactive, onCleanup, toStream } from '../../dom/scope.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
 import { Icon } from '../icon/icon.js';
+import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/select.module.css.js';
 
 export type SelectOption = readonly [value: string, label: string];
@@ -97,8 +98,9 @@ export function OptionList(props: {
   const buttons: HTMLButtonElement[] = [];
   const focus = (i: number) => buttons[Math.max(0, Math.min(buttons.length - 1, i))]?.focus();
   const list = (
-    <div
+    <ScrollArea
       class={classes.list}
+      contentClass={classes.listContent}
       role="listbox"
       onKeyDown={(e) => {
         const i = buttons.indexOf(document.activeElement as HTMLButtonElement);
@@ -131,9 +133,9 @@ export function OptionList(props: {
         buttons.push(button);
         return button;
       })}
-    </div>
+    </ScrollArea>
   ) as HTMLElement;
-  // Focus the current option once placed; close on a press outside the list and its button.
+  // Focus the current option once placed; close on a press outside the list (its scrollbar too) and its button.
   let current: string | undefined;
   bind(props.value, (v) => {
     current = v;

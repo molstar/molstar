@@ -19,6 +19,7 @@ export const classes = {
   'captionRow': 'msp-home-home-tab-captionRow',
   'chevron': 'msp-home-home-tab-chevron',
   'content': 'msp-home-home-tab-content',
+  'contentInner': 'msp-home-home-tab-contentInner',
   'group': 'msp-home-home-tab-group',
   'hint': 'msp-home-home-tab-hint',
   'home': 'msp-home-home-tab-home',
@@ -29,51 +30,38 @@ export const classes = {
   'stateDate': 'msp-home-home-tab-stateDate',
   'stateLabel': 'msp-home-home-tab-stateLabel',
   'states': 'msp-home-home-tab-states',
+  'statesContent': 'msp-home-home-tab-statesContent',
 } as const;
 
 defineStyles('views/home/home-tab.module.css', `@layer msp.components {
 .msp-home-home-tab-home {
   height: 100%;
+  min-height: 0;
   font-size: var(--msp-font-size-sm);
   flex-direction: column;
+  flex: 1 1 0;
   display: flex;
 }
 
 .msp-home-home-tab-content {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.msp-home-home-tab-contentInner {
   align-content: start;
   gap: var(--msp-space-4);
-  min-height: 0;
   padding: 0 var(--msp-space-2) var(--msp-space-2);
-  mask-image: linear-gradient(to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent);
-  flex: 1 1 0;
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self);
-  animation-range: 0 24px, calc(100% - 24px) 100%;
   display: grid;
-  overflow: auto;
 }
 
 .msp-home-home-tab-states {
   max-height: 264px;
-  mask-image: linear-gradient(to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent);
+}
+
+.msp-home-home-tab-statesContent {
   grid-template-columns: minmax(0, 1fr);
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self);
-  animation-range: 0 24px, calc(100% - 24px) 100%;
   display: grid;
-  overflow: auto;
 }
 
 .msp-home-home-tab-group {

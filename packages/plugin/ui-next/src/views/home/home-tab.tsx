@@ -12,6 +12,7 @@ import { ActionFooter } from '../../components/action-footer/action-footer.js';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { ParamsForm } from '../../components/params/params-form.js';
+import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { TextInput } from '../../components/text-input/text-input.js';
 import { For, Show } from '../../dom/control-flow.js';
 import type { HomeAction, HomeModel, RemoteStatesModel } from '../../model/home.js';
@@ -34,14 +35,14 @@ export function HomeTab(props: HomeTabProps) {
   return (
     <div class={classes.home}>
       {/* What scrolls; the hint below stays in view. */}
-      <div class={classes.content}>
+      <ScrollArea class={classes.content} contentClass={classes.contentInner}>
         <section class={classes.group} aria-label="Actions">
           <For each={home.actions} key={(a) => a.id}>
             {(action, index) => <ActionBlock action={action} open={index.value === 0} />}
           </For>
         </section>
         {home.remoteStates ? <RemoteStates model={home.remoteStates} /> : null}
-      </div>
+      </ScrollArea>
       <button type="button" class={classes.hint} onClick={() => props.onOpenCommandMenu?.()}>
         <kbd>{formatChord({ key: 'k', mod: true })}</kbd>
         <span>Search every command</span>
@@ -127,7 +128,7 @@ function RemoteStates(props: { model: RemoteStatesModel }) {
         )}
       </Show>
       {/* A long list scrolls on its own. */}
-      <div class={classes.states}>
+      <ScrollArea class={classes.states} contentClass={classes.statesContent}>
         <For
           each={model.states}
           key={(r) => r.id}
@@ -142,7 +143,7 @@ function RemoteStates(props: { model: RemoteStatesModel }) {
             </button>
           )}
         </For>
-      </div>
+      </ScrollArea>
     </section>
   );
 }

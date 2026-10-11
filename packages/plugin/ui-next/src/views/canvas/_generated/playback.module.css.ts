@@ -13,6 +13,7 @@ export const classes = {
   'card': 'msp-canvas-playback-card',
   'counter': 'msp-canvas-playback-counter',
   'description': 'msp-canvas-playback-description',
+  'descriptionContent': 'msp-canvas-playback-descriptionContent',
   'dot': 'msp-canvas-playback-dot',
   'dots': 'msp-canvas-playback-dots',
   'lead': 'msp-canvas-playback-lead',
@@ -20,6 +21,7 @@ export const classes = {
   'listIndex': 'msp-canvas-playback-listIndex',
   'listRow': 'msp-canvas-playback-listRow',
   'listRows': 'msp-canvas-playback-listRows',
+  'listRowsContent': 'msp-canvas-playback-listRowsContent',
   'position': 'msp-canvas-playback-position',
   'scrubber': 'msp-canvas-playback-scrubber',
   'title': 'msp-canvas-playback-title',
@@ -92,19 +94,11 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 
 .msp-canvas-playback-description {
   max-height: 40cqh;
+}
+
+.msp-canvas-playback-descriptionContent {
   padding: 0 var(--msp-space-4) var(--msp-space-4);
   font-size: var(--msp-font-size-sm);
-  mask-image: linear-gradient(to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent);
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self);
-  animation-range: 0 24px, calc(100% - 24px) 100%;
-  overflow: auto;
 }
 
 .msp-canvas-playback-scrubber {
@@ -224,18 +218,10 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 
 .msp-canvas-playback-listRows {
   max-height: 220px;
-  mask-image: linear-gradient(to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent);
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self);
-  animation-range: 0 24px, calc(100% - 24px) 100%;
+}
+
+.msp-canvas-playback-listRowsContent {
   display: grid;
-  overflow: auto;
 }
 
 .msp-canvas-playback-listRow {

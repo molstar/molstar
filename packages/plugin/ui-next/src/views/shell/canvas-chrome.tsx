@@ -9,6 +9,7 @@
 import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon, type IconName } from '../../components/icon/icon.js';
+import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { For, Show } from '../../dom/control-flow.js';
 import { bind, onCleanup } from '../../dom/scope.js';
 import type { CanvasToolbarItem, OpenOverlay, ShellModel } from '../../shell/shell.js';
@@ -149,8 +150,10 @@ export function CanvasStack(props: { shell: ShellModel; lead?: Child; aside?: Ch
   const stack = (
     <div class={classes.stack}>
       <div class={classes.frame}>
-        {props.lead}
-        <CanvasToolbar shell={props.shell} part="canvas" menus={menus} />
+        <ScrollArea contentClass={classes.stackTools}>
+          {props.lead}
+          <CanvasToolbar shell={props.shell} part="canvas" menus={menus} />
+        </ScrollArea>
       </div>
       {props.aside}
       <ToolMenu menus={menus} />
@@ -406,9 +409,9 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
         <PinButton shell={shell} dock="right" />
         <Button variant="ghost" size="sm" icon={<Icon name="x" />} title="Close" onClick={() => shell.closeOverlay()} />
       </header>
-      <div class={classes.cardBody}>
+      <ScrollArea class={classes.cardBody} contentClass={classes.cardBodyContent}>
         <ViewHost renderer={open.overlay.render} ctx={{ shell, ...(open.focus ? { focus: open.focus } : {}) }} />
-      </div>
+      </ScrollArea>
     </section>
   ) as HTMLElement;
   // Esc, or a pointer down outside the card and its button, closes it.

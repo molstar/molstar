@@ -18,6 +18,7 @@ export const classes = {
   'inspector': 'msp-structure-structure-tab-inspector',
   'inspectorAction': 'msp-structure-structure-tab-inspectorAction',
   'inspectorActions': 'msp-structure-structure-tab-inspectorActions',
+  'inspectorContent': 'msp-structure-structure-tab-inspectorContent',
   'inspectorEmpty': 'msp-structure-structure-tab-inspectorEmpty',
   'inspectorHeader': 'msp-structure-structure-tab-inspectorHeader',
   'inspectorKind': 'msp-structure-structure-tab-inspectorKind',
@@ -25,11 +26,13 @@ export const classes = {
   'nothing': 'msp-structure-structure-tab-nothing',
   'options': 'msp-structure-structure-tab-options',
   'optionsButton': 'msp-structure-structure-tab-optionsButton',
+  'optionsContent': 'msp-structure-structure-tab-optionsContent',
   'preset': 'msp-structure-structure-tab-preset',
   'presetCaption': 'msp-structure-structure-tab-presetCaption',
   'presetCheck': 'msp-structure-structure-tab-presetCheck',
   'presetGroup': 'msp-structure-structure-tab-presetGroup',
   'presets': 'msp-structure-structure-tab-presets',
+  'presetsContent': 'msp-structure-structure-tab-presetsContent',
   'quickStyles': 'msp-structure-structure-tab-quickStyles',
   'tab': 'msp-structure-structure-tab-tab',
   'tree': 'msp-structure-structure-tab-tree',
@@ -39,27 +42,18 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
 .msp-structure-structure-tab-tab {
   gap: var(--msp-space-2);
   height: 100%;
+  min-height: 0;
   padding: 0 var(--msp-space-2) var(--msp-space-2);
   font-size: var(--msp-font-size-sm);
   flex-direction: column;
+  flex: 1 1 0;
   display: flex;
   container-type: inline-size;
 }
 
 .msp-structure-structure-tab-tree {
-  min-height: 80px;
-  mask-image: linear-gradient(to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent);
   flex: 1 1 0;
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self);
-  animation-range: 0 24px, calc(100% - 24px) 100%;
-  overflow: auto;
+  min-height: 80px;
 }
 
 .msp-structure-structure-tab-actions {
@@ -97,18 +91,12 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
   height: clamp(180px, 42%, 420px);
   margin: calc(-1 * var(--msp-space-2)) calc(-1 * var(--msp-space-2)) 0;
   border-top: 1px solid var(--msp-glass-edge);
-  mask-image: linear-gradient(to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent);
   flex: none;
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self);
-  animation-range: 0 24px, calc(100% - 24px) 100%;
-  overflow: auto;
+}
+
+.msp-structure-structure-tab-inspectorContent {
+  min-height: 100%;
+  display: grid;
 }
 
 .msp-structure-structure-tab-inspection {
@@ -119,7 +107,6 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
 }
 
 .msp-structure-structure-tab-inspectorEmpty {
-  height: 100%;
   padding: var(--msp-space-4);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-sm);
@@ -214,14 +201,16 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
 }
 
 .msp-structure-structure-tab-presets {
-  gap: var(--msp-space-2);
-  max-height: 50%;
-  padding: var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-well);
   flex: none;
+  max-height: 50%;
+}
+
+.msp-structure-structure-tab-presetsContent {
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-2);
   display: grid;
-  overflow: auto;
 }
 
 .msp-structure-structure-tab-presetGroup {
@@ -277,12 +266,14 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
 }
 
 .msp-structure-structure-tab-options {
-  max-height: 50%;
-  padding: var(--msp-space-2) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-well);
   flex: none;
-  overflow: auto;
+  max-height: 50%;
+}
+
+.msp-structure-structure-tab-optionsContent {
+  padding: var(--msp-space-2) var(--msp-space-3);
 }
 }
 `);

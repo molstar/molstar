@@ -17,6 +17,7 @@ export const classes = {
   'popover': 'msp-sequence-sequence-strip-popover',
   'residue': 'msp-sequence-sequence-strip-residue',
   'residues': 'msp-sequence-sequence-strip-residues',
+  'residuesContent': 'msp-sequence-sequence-strip-residuesContent',
   'selected': 'msp-sequence-sequence-strip-selected',
   'selector': 'msp-sequence-sequence-strip-selector',
   'spacer': 'msp-sequence-sequence-strip-spacer',
@@ -27,8 +28,10 @@ export const classes = {
 defineStyles('views/sequence/sequence-strip.module.css', `@layer msp.components {
 .msp-sequence-sequence-strip-strip {
   flex-direction: column;
+  flex: 1 1 0;
   min-width: 0;
   height: 100%;
+  min-height: 0;
   display: flex;
 }
 
@@ -106,27 +109,19 @@ defineStyles('views/sequence/sequence-strip.module.css', `@layer msp.components 
 }
 
 .msp-sequence-sequence-strip-residues {
+  flex: 1;
   min-width: 0;
   min-height: 0;
+}
+
+.msp-sequence-sequence-strip-residuesContent {
   padding: var(--msp-space-1) var(--msp-space-3);
   font-family: var(--msp-font-mono);
-  mask-image: linear-gradient(to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent);
   flex-wrap: wrap;
-  flex: 1;
   align-content: flex-start;
   font-size: 13px;
   line-height: 1;
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self);
-  animation-range: 0 24px, calc(100% - 24px) 100%;
   display: flex;
-  overflow-y: auto;
 }
 
 .msp-sequence-sequence-strip-residue {

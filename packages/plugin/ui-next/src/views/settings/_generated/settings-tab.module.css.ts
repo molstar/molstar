@@ -13,6 +13,7 @@ export const classes = {
   'chevron': 'msp-settings-settings-tab-chevron',
   'group': 'msp-settings-settings-tab-group',
   'groups': 'msp-settings-settings-tab-groups',
+  'groupsContent': 'msp-settings-settings-tab-groupsContent',
   'header': 'msp-settings-settings-tab-header',
   'none': 'msp-settings-settings-tab-none',
   'search': 'msp-settings-settings-tab-search',
@@ -26,8 +27,10 @@ export const classes = {
 defineStyles('views/settings/settings-tab.module.css', `@layer msp.components {
 .msp-settings-settings-tab-tab {
   height: 100%;
+  min-height: 0;
   font-size: var(--msp-font-size-sm);
   flex-direction: column;
+  flex: 1 1 0;
   display: flex;
 }
 
@@ -54,23 +57,15 @@ defineStyles('views/settings/settings-tab.module.css', `@layer msp.components {
 }
 
 .msp-settings-settings-tab-groups {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.msp-settings-settings-tab-groupsContent {
   align-content: start;
   gap: var(--msp-space-1);
-  min-height: 0;
   padding: 0 var(--msp-space-2) var(--msp-space-2);
-  mask-image: linear-gradient(to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent);
-  flex: 1 1 0;
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self);
-  animation-range: 0 24px, calc(100% - 24px) 100%;
   display: grid;
-  overflow: auto;
 }
 
 .msp-settings-settings-tab-group {

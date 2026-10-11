@@ -16,6 +16,7 @@ export const classes = {
   'empty': 'msp-state-remote-states-panel-empty',
   'item': 'msp-state-remote-states-panel-item',
   'list': 'msp-state-remote-states-panel-list',
+  'listContent': 'msp-state-remote-states-panel-listContent',
   'menu': 'msp-state-remote-states-panel-menu',
   'menuItem': 'msp-state-remote-states-panel-menuItem',
   'name': 'msp-state-remote-states-panel-name',
@@ -32,9 +33,11 @@ defineStyles('views/state/remote-states-panel.module.css', `@layer msp.component
 .msp-state-remote-states-panel-panel {
   gap: var(--msp-space-4);
   height: 100%;
+  min-height: 0;
   padding: 0 var(--msp-space-2) var(--msp-space-2);
   font-size: var(--msp-font-size-sm);
   flex-direction: column;
+  flex: 1 1 0;
   display: flex;
 }
 
@@ -66,22 +69,14 @@ defineStyles('views/state/remote-states-panel.module.css', `@layer msp.component
 }
 
 .msp-state-remote-states-panel-list {
-  min-height: 0;
-  mask-image: linear-gradient(to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent);
   flex: 1 1 0;
+  min-height: 0;
+}
+
+.msp-state-remote-states-panel-listContent {
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self);
-  animation-range: 0 24px, calc(100% - 24px) 100%;
   display: grid;
-  overflow: auto;
 }
 
 .msp-state-remote-states-panel-empty {

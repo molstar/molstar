@@ -7,7 +7,10 @@
 .strip {
   display: flex;
   flex-direction: column;
+  /* Fills a panel's body (a flex column) by flex; elsewhere, its parent's height. */
+  flex: 1 1 0;
   height: 100%;
+  min-height: 0;
   min-width: 0;
 }
 
@@ -92,29 +95,16 @@
   flex: 1;
   min-width: 0;
   min-height: 0;
+}
+
+.residuesContent {
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
   padding: var(--msp-space-1) var(--msp-space-3);
-  overflow-y: auto;
   font-family: var(--msp-font-mono);
   font-size: 13px;
   line-height: 1;
-  /* More to scroll: its edges fade (reset.css, msp-fade-scroll-*). */
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent
-  );
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-fill-mode: both;
-  animation-timing-function: linear;
-  animation-timeline: scroll(self block);
-  animation-range:
-    0 24px,
-    calc(100% - 24px) 100%;
 }
 
 .residue {

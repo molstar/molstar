@@ -10,6 +10,7 @@ import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { Markdown } from '../../components/markdown/markdown.js';
+import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { TextInput } from '../../components/text-input/text-input.js';
 import { For, Show } from '../../dom/control-flow.js';
 import { observableState } from '../../reactive/observable-state.js';
@@ -95,9 +96,9 @@ function Snapshots(props: { model: SnapshotStepperModel }) {
       <Show when={listOpen}>{() => <SnapshotList model={model} onClose={() => listOpen.set(false)} />}</Show>
       <Show when={model.description}>
         {(source) => (
-          <div class={classes.description}>
+          <ScrollArea class={classes.description} contentClass={classes.descriptionContent}>
             <Markdown source={source} onLink={(href) => model.openLink(href)} />
-          </div>
+          </ScrollArea>
         )}
       </Show>
     </div>
@@ -150,7 +151,7 @@ function SnapshotList(props: { model: SnapshotStepperModel; onClose(): void }) {
           />
         )}
       </Show>
-      <div class={classes.listRows} role="listbox" aria-label="Snapshots">
+      <ScrollArea class={classes.listRows} contentClass={classes.listRowsContent} role="listbox" aria-label="Snapshots">
         <For each={rows} key={(r) => r.index}>
           {(r) => (
             <button
@@ -168,7 +169,7 @@ function SnapshotList(props: { model: SnapshotStepperModel; onClose(): void }) {
             </button>
           )}
         </For>
-      </div>
+      </ScrollArea>
     </div>
   );
 }

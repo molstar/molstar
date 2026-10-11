@@ -21,6 +21,7 @@
   -webkit-backdrop-filter: var(--msp-glass-filter);
 
   & > * + *,
+  & .stackTools > * + *,
   & .sections > * + * {
     border-top: 1px solid var(--msp-glass-edge);
   }
@@ -125,22 +126,13 @@
   /* The rest of the card's height: content can fill it (a list that scrolls on its own) or scroll as a whole. */
   flex: 1 1 0;
   min-height: 0;
-  overflow: auto;
-  /* More to scroll: its edges fade (reset.css, msp-fade-scroll-*). */
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent
-  );
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-fill-mode: both;
-  animation-timing-function: linear;
-  animation-timeline: scroll(self block);
-  animation-range:
-    0 24px,
-    calc(100% - 24px) 100%;
+}
+
+/* At least the body's height (as a panel's, dock.module.css .bodyContent). */
+.cardBodyContent {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
 }
 
 /* The canvas stack: top right of the canvas, under what floats at the top, beside the rail or the open panel. A frame,
@@ -173,13 +165,17 @@
 
   & .frame {
     max-height: 100%;
-    overflow-y: auto;
-    scrollbar-width: none;
   }
 }
 
 .stack .frame {
   width: 36px;
+}
+
+/* The stack's tools, in a scrolling area (it scrolls only when compact, on a short canvas). */
+.stackTools {
+  display: flex;
+  flex-direction: column;
 }
 
 .stack .tool {

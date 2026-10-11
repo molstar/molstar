@@ -66,15 +66,17 @@
 /* The options, inline under what opened them (Mol*'s action menu): a quiet surface with a hairline edge, the current
    one checked. */
 .list {
-  display: grid;
   max-height: 240px;
-  padding: var(--msp-space-1);
-  overflow: auto;
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
   /* A hairline, as the panels' edges: in a block of the same tone it would blend in otherwise. */
   box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
   animation: list-in var(--msp-motion-fast) var(--msp-ease);
+}
+
+.listContent {
+  display: grid;
+  padding: var(--msp-space-1);
 }
 
 @keyframes list-in {

@@ -9,6 +9,7 @@
 import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
+import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import type { DockId, DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
@@ -219,7 +220,7 @@ function DockContent(props: { shell: ShellModel; dock: DockModel; tab: ShellTab;
           onClick={() => shell.toggle(dock.id)}
         />
       </header>
-      <div class={classes.body}>
+      <ScrollArea class={classes.body} contentClass={classes.bodyContent}>
         {/* Shown at a section: the content again, with that section as its focus. */}
         <Show
           when={shell.tabFocus.pipe(
@@ -234,7 +235,7 @@ function DockContent(props: { shell: ShellModel; dock: DockModel; tab: ShellTab;
             />
           )}
         </Show>
-      </div>
+      </ScrollArea>
     </section>
   );
 }

@@ -13,6 +13,7 @@ import type { CommandManager, CommandMatch } from '../../commands/manager.js';
 import { fuzzyScore, matchPositions } from '../../commands/match.js';
 import type { CommandGroup } from '../../commands/types.js';
 import { Icon, type IconName } from '../../components/icon/icon.js';
+import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { onCleanup } from '../../dom/scope.js';
@@ -268,7 +269,13 @@ function ListMode(props: CommandMenuProps) {
         {input}
       </div>
       <Show when={message}>{(m) => <p class={classes.message}>{m}</p>}</Show>
-      <div class={classes.list} id="msp-command-menu-list" role="listbox" aria-label="Commands">
+      <ScrollArea
+        class={classes.list}
+        contentClass={classes.listContent}
+        id="msp-command-menu-list"
+        role="listbox"
+        aria-label="Commands"
+      >
         <For each={rows} fallback={() => <p class={classes.empty}>Nothing matches.</p>}>
           {(row) => {
             if (row.kind === 'caption') return <div class={classes.caption}>{row.label}</div>;
@@ -300,7 +307,7 @@ function ListMode(props: CommandMenuProps) {
             );
           }}
         </For>
-      </div>
+      </ScrollArea>
       <Footer
         hints={[
           ['↑↓', 'move'],
@@ -545,7 +552,13 @@ function FormMode(props: { manager: CommandManager<any>; invocation: CommandInvo
           </p>
         )}
       </Show>
-      <div class={classes.list} id="msp-command-menu-completions" role="listbox" aria-label="Options">
+      <ScrollArea
+        class={classes.list}
+        contentClass={classes.listContent}
+        id="msp-command-menu-completions"
+        role="listbox"
+        aria-label="Options"
+      >
         <For each={state.pipe(map((s) => s.completions))}>
           {(c, i) => (
             <div
@@ -561,7 +574,7 @@ function FormMode(props: { manager: CommandManager<any>; invocation: CommandInvo
             </div>
           )}
         </For>
-      </div>
+      </ScrollArea>
       <Show when={state.pipe(map((s) => s.formOnly.length > 0))}>
         {() => (
           <p class={classes.more}>

@@ -8,6 +8,7 @@
 
 import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import { Icon, type IconName } from '../../components/icon/icon.js';
+import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { For, Show } from '../../dom/control-flow.js';
 import type { StateTreeInspection, StateTreeModel, StateTreeNode } from '../../model/state-tree.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
@@ -38,7 +39,7 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
   );
   return (
     <div class={tab.tab}>
-      <div class={tab.tree}>
+      <ScrollArea class={tab.tree}>
         <div class={`${tree.tree} ${classes.tree}`} role="tree" aria-label="State tree">
           <For
             each={model.roots}
@@ -48,8 +49,8 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
             {(node) => <Cell model={model} node={node} depth={0} collapsed={collapsed} open={open} />}
           </For>
         </div>
-      </div>
-      <section class={tab.inspector} aria-label="Cell">
+      </ScrollArea>
+      <ScrollArea class={tab.inspector} contentClass={tab.inspectorContent} role="region" aria-label="Cell">
         <Show
           when={shown}
           fallback={() => <p class={tab.inspectorEmpty}>Select a cell to update it or apply an action to it.</p>}
@@ -60,7 +61,7 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
             return inspection ? <Inspection inspection={inspection} focus={block} /> : null;
           }}
         </Show>
-      </section>
+      </ScrollArea>
     </div>
   );
 }

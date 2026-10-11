@@ -15,6 +15,7 @@ export const classes = {
   'label': 'msp-select-label',
   'list': 'msp-select-list',
   'list-in': 'msp-select-list-in',
+  'listContent': 'msp-select-listContent',
   'option': 'msp-select-option',
   'select': 'msp-select-select',
 } as const;
@@ -77,14 +78,16 @@ defineStyles('components/select/select.module.css', `@layer msp.components {
 }
 
 .msp-select-list {
-  max-height: 240px;
-  padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+  max-height: 240px;
   box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
   animation: msp-select-list-in var(--msp-motion-fast) var(--msp-ease);
+}
+
+.msp-select-listContent {
+  padding: var(--msp-space-1);
   display: grid;
-  overflow: auto;
 }
 
 @keyframes msp-select-list-in {

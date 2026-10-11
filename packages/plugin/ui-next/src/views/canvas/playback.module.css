@@ -74,24 +74,11 @@
 
 .description {
   max-height: 40cqh;
+}
+
+.descriptionContent {
   padding: 0 var(--msp-space-4) var(--msp-space-4);
-  overflow: auto;
   font-size: var(--msp-font-size-sm);
-  /* More to scroll: its edges fade (reset.css, msp-fade-scroll-*). */
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent
-  );
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-fill-mode: both;
-  animation-timing-function: linear;
-  animation-timeline: scroll(self block);
-  animation-range:
-    0 24px,
-    calc(100% - 24px) 100%;
 }
 
 .scrubber {
@@ -218,24 +205,11 @@
 }
 
 .listRows {
-  display: grid;
   max-height: 220px;
-  overflow: auto;
-  /* More to scroll: its edges fade (reset.css, msp-fade-scroll-*). */
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent
-  );
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-fill-mode: both;
-  animation-timing-function: linear;
-  animation-timeline: scroll(self block);
-  animation-range:
-    0 24px,
-    calc(100% - 24px) 100%;
+}
+
+.listRowsContent {
+  display: grid;
 }
 
 .listRow {

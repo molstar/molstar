@@ -22,6 +22,7 @@ export const classes = {
   'input': 'msp-command-menu-input',
   'keys': 'msp-command-menu-keys',
   'list': 'msp-command-menu-list',
+  'listContent': 'msp-command-menu-listContent',
   'menu': 'msp-command-menu-menu',
   'menu-fade': 'msp-command-menu-menu-fade',
   'menu-in': 'msp-command-menu-menu-in',
@@ -142,24 +143,16 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
 }
 
 .msp-command-menu-list {
-  min-height: 0;
-  padding: var(--msp-space-2);
-  mask-image: linear-gradient(to bottom,
-    transparent,
-    #000 var(--msp-fade-top),
-    #000 calc(100% - var(--msp-fade-bottom)),
-    transparent);
   flex: 1;
-  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self);
-  animation-range: 0 24px, calc(100% - 24px) 100%;
-  overflow: auto;
+  min-height: 0;
 
-  &:empty {
+  &:has(.msp-command-menu-listContent:empty) {
     display: none;
   }
+}
+
+.msp-command-menu-listContent {
+  padding: var(--msp-space-2);
 }
 
 .msp-command-menu-empty {
