@@ -258,8 +258,8 @@ const Granularities: readonly Granularity[] = [
 ];
 
 /** A mock of everything around the canvas, with the shell's real model. */
-function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
-  const shell = new ShellModel();
+function mockShell(options: { loaded: boolean; preset?: MockScenePreset; pinned?: boolean }) {
+  const shell = new ShellModel({ docks: { right: { pinned: !!options.pinned } } });
   const status = new StatusModel();
   const canvasMode = observableState<CanvasMode>('interact');
   const commandMenuOpen = observableState(false);
@@ -564,6 +564,8 @@ function ShellStory(props: {
   preset?: MockScenePreset;
   background?: string;
   openExportAt?: string;
+  /** The right panel pinned beside the canvas. */
+  pinned?: boolean;
   /** Opens with the command menu open. */
   commandMenu?: boolean;
   /** What the loaded data has to play: a session's snapshots, a trajectory's models (plain 1TQN has neither). */
@@ -721,6 +723,14 @@ export const ExportAtSection: StoryObj = {
         <ShellStory loaded={true} openExportAt="animation" />
       </div>
     )),
+};
+
+/**
+ * The panel pinned (the pin in its header): it sits beside the canvas, which makes room, instead of floating over it;
+ * for workflows that keep a panel open the whole time.
+ */
+export const Pinned: StoryObj = {
+  render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} pinned={true} />}</div>),
 };
 
 /** A narrow host: the panel becomes a bottom sheet with its tabs along the bottom. */

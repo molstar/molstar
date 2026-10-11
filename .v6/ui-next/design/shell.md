@@ -56,8 +56,12 @@ it is where contributions (built-in and extension UI) are placed.
   canvas stack, the selection chips) follows its edge (`--msp-canvas-right-inset`). One margin frames the canvas
   (`--msp-canvas-edge`, 8px): every floating thing keeps it from the canvas edges, the docked rail, the open panel, the
   sequence card, and the cards stacked beside it. Panels and overlay cards share one header (title, ✕ on the right).
-  Escape closes the innermost open thing, one per press: an open list, then an overlay card, then the panel (never while
-  typing in a field).
+- **Pinned panel.** The pin in the panel's header (`setPinned('right', true)`, `DockState.pinned`) keeps the floating
+  layout but moves the rail and the open panel beside the canvas: the canvas and its chrome end where they begin
+  (`--msp-canvas-pinned`), the panel turns into a flat full-height column like the rail, overlay cards take the same
+  place and look, and Escape no longer closes it. For workflows that keep a panel open the whole time and want the whole
+  molecule in view beside it. Escape closes the innermost open thing, one per press: an open list, then an overlay card,
+  then the panel (never while typing in a field).
 - **Optional docks.** `left`, `top`, `bottom` take tabs moved there by the user or placed by the app spec (mesoscale
   explorer puts its entity tree on the left). The sequence is the only default occupant of `top`. Side docks run the
   full height; top and bottom docks span the canvas width only. A top or bottom dock with one tab has no tab strip: its

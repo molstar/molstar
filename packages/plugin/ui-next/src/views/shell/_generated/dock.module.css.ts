@@ -23,6 +23,7 @@ export const classes = {
   'floatingTop': 'msp-shell-dock-floatingTop',
   'header': 'msp-shell-dock-header',
   'left': 'msp-shell-dock-left',
+  'pin': 'msp-shell-dock-pin',
   'rail': 'msp-shell-dock-rail',
   'railFoot': 'msp-shell-dock-railFoot',
   'right': 'msp-shell-dock-right',
@@ -260,6 +261,17 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   }
 }
 
+[data-pinned] > .msp-shell-dock-floatingRight {
+  gap: 0;
+
+  & .msp-shell-dock-content {
+    box-shadow: -1px 0 0 var(--msp-glass-edge),
+      inset -1px 0 0 var(--msp-glass-edge);
+    border-radius: 0;
+    margin: 0;
+  }
+}
+
 .msp-shell-dock-floatingLeft {
   left: var(--msp-canvas-edge, 8px);
   flex-direction: row;
@@ -317,6 +329,16 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 
   & > * + * {
     border-top: 1px solid var(--msp-glass-edge);
+  }
+}
+
+.msp-shell-dock-pin > span {
+  justify-content: center;
+  align-items: center;
+
+  & > svg {
+    width: 14px;
+    height: 14px;
   }
 }
 }

@@ -65,6 +65,11 @@ export type DockState = {
    * The right and top docks float by default: the canvas runs under them and they read as part of the visualization.
    */
   floating: boolean;
+  /**
+   * A floating side dock pinned open: the canvas gives it room instead of running under it (some workflows keep a
+   * panel open the whole time and want the whole molecule beside it). Only while floating; off by default.
+   */
+  pinned: boolean;
 };
 
 export interface ShellLayout {
@@ -230,6 +235,7 @@ export class ShellModel extends ReactiveModel {
         size: DefaultSizes[id],
         collapsed: false,
         floating: id === 'right' || id === 'top',
+        pinned: false,
         ...options.docks?.[id],
       });
     }
@@ -376,6 +382,11 @@ export class ShellModel extends ReactiveModel {
   /** Floats a dock over the canvas, or docks it beside the canvas. */
   setFloating(dock: DockId, floating: boolean): void {
     this.#docks[dock].update({ floating }, this.#registered);
+  }
+
+  /** Pins a floating dock beside the canvas (the canvas shrinks to make room), or lets it float over it again. */
+  setPinned(dock: DockId, pinned: boolean): void {
+    this.#docks[dock].update({ pinned }, this.#registered);
   }
 
   setMode(mode: ShellLayout['mode']): void {

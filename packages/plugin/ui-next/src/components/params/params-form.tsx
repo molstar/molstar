@@ -371,7 +371,7 @@ function MappedControl(props: { label: string; param: PD.Mapped<any>; binding: F
 function Fields(props: { params: PD.Params; binding: FieldBinding; nested?: boolean }) {
   const { params, binding } = props;
   return (
-    <div class={props.nested ? classes.nested : undefined}>
+    <div class={props.nested ? classes.nested : classes.fields}>
       {Object.keys(params)
         .filter((k) => !params[k].isHidden)
         .map((k) => {

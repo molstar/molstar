@@ -10,6 +10,7 @@ import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'canvas': 'msp-shell-canvas',
+  'canvasLayer': 'msp-shell-canvasLayer',
   'layer': 'msp-shell-layer',
   'shell': 'msp-shell-shell',
   'viewport': 'msp-shell-viewport',
@@ -49,8 +50,8 @@ defineStyles('views/shell/shell.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas {
+  inset: 0 var(--msp-canvas-pinned, 0px) 0 0;
   position: absolute;
-  inset: 0;
 }
 
 .msp-shell-layer {
@@ -62,6 +63,10 @@ defineStyles('views/shell/shell.module.css', `@layer msp.components {
   & > * {
     pointer-events: auto;
   }
+}
+
+.msp-shell-canvasLayer {
+  right: var(--msp-canvas-pinned, 0px);
 }
 }
 `);

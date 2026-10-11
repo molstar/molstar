@@ -57,6 +57,15 @@ contracts) to match what the mocks taught, then run a deep multi-agent review (u
 phases 4–8 build it out. Findings are folded into the designs; the gate passes when the contracts are frozen for the
 first implementation.
 
+Carry into the proper implementation (from the mock review):
+
+- **Every PD control in Storybook.** One story per param type (text, numeric/slider, select, boolean, color, mapped,
+  flat and nested groups, on/off mapped, lists, …) in each state, so the renderer's spacing and alignment are checked in
+  isolation, not found in whichever panel happens to use a control.
+- **A UX pass on every panel, not a port.** The mocks prove the layout; the content is still a translation of the old UI
+  in places. Export's format sections (rows of GLB / STL / OBJ / USDZ / mmCIF buttons) are the clearest case: design
+  each panel for its task (choose what, then one action) rather than listing every variant as a button.
+
 ## Phase 4: sources, view models, actions
 
 `model/sources/*` with tests against a real plugin and fixtures; view models in the order Scene → ParamsForm/Inspector →

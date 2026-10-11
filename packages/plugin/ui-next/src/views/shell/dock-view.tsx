@@ -11,7 +11,7 @@ import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
-import type { DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
+import type { DockId, DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/dock.module.css.js';
 import { ViewHost } from './view-host.js';
@@ -127,7 +127,7 @@ export function FloatingDock(props: {
           {props.railFoot}
         </div>
       </div>
-      <Show when={dock.active}>{(tab) => <DockContent shell={shell} dock={dock} tab={tab} />}</Show>
+      <Show when={dock.active}>{(tab) => <DockContent shell={shell} dock={dock} tab={tab} pinnable />}</Show>
     </div>
   );
 }
@@ -178,13 +178,37 @@ function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab })
   );
 }
 
-function DockContent(props: { shell: ShellModel; dock: DockModel; tab: ShellTab }) {
+/**
+ * Pins the dock beside the canvas (the canvas makes room) or lets it float over it again; in every panel's and overlay
+ * card's header, before the ✕, since they all open in the same place.
+ */
+export function PinButton(props: { shell: ShellModel; dock: DockId }) {
+  const { shell } = props;
+  const dock = shell.dock(props.dock);
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      class={classes.pin}
+      icon={<Icon name="pin" />}
+      title="Pin beside the canvas"
+      pressed={dock.state.pipe(
+        map((s) => s.pinned),
+        distinctUntilChanged(),
+      )}
+      onClick={() => shell.setPinned(props.dock, !dock.state.value.pinned)}
+    />
+  );
+}
+
+function DockContent(props: { shell: ShellModel; dock: DockModel; tab: ShellTab; pinnable?: boolean }) {
   const { shell, dock, tab } = props;
   return (
     <section class={classes.content} role="tabpanel" aria-label={tab.title}>
       <Splitter shell={shell} dock={dock} />
       <header class={classes.header}>
         <span class={classes.title}>{tab.title}</span>
+        {props.pinnable ? <PinButton shell={shell} dock={dock.id} /> : null}
         <Button
           variant="ghost"
           size="sm"

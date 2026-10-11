@@ -213,9 +213,14 @@
   gap: 2px;
 }
 
+/* A group's rows: the form's spacing, whether flat (more rows at the same level) or nested under its choice. */
+.fields,
 .nested {
   display: grid;
   gap: 2px;
+}
+
+.nested {
   padding-left: var(--msp-space-3);
 }
 

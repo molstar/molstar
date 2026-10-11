@@ -16,6 +16,7 @@ import type { MessageKind, StatusModel, StatusTask } from '../../shell/status.js
 import type { Child } from '../../dom/jsx-types.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/canvas.module.css.js';
+import { PinButton } from './dock-view.js';
 import { ViewHost } from './view-host.js';
 
 /** A section of the toolbar: its id (none for the leading items: the command menu) and its buttons. */
@@ -384,6 +385,7 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
     <section class={classes.card} role="dialog" aria-label={open.overlay.title}>
       <header class={classes.cardHeader}>
         <span class={classes.cardTitle}>{open.overlay.title}</span>
+        <PinButton shell={shell} dock="right" />
         <Button variant="ghost" size="sm" icon={<Icon name="x" />} title="Close" onClick={() => shell.closeOverlay()} />
       </header>
       <div class={classes.cardBody}>
@@ -392,15 +394,17 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
     </section>
   ) as HTMLElement;
   // Esc, or a pointer down outside the card and its button, closes it.
+  // Pinned, the card is part of the workspace like the pinned panel: only its ✕ (or another card or tab) closes it.
+  const pinned = () => shell.dock('right').state.value.pinned;
   const doc = document;
   const onKey = (e: KeyboardEvent) => {
-    if (e.key !== 'Escape' || e.defaultPrevented) return;
+    if (e.key !== 'Escape' || e.defaultPrevented || pinned()) return;
     shell.closeOverlay();
     e.preventDefault();
   };
   const onPointer = (e: PointerEvent) => {
     const target = e.target as Element;
-    if (card.contains(target) || open.anchor?.contains(target)) return;
+    if (pinned() || card.contains(target) || open.anchor?.contains(target)) return;
     // Buttons that open another card, and panel tabs, swap the card on their click: closing it here first would show
     // the panel underneath for a frame (a blink), and a tab click would then collapse the panel.
     if (target.closest?.('[data-overlay-trigger], [role=tab]')) return;

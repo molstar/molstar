@@ -246,6 +246,20 @@
   }
 }
 
+/* Pinned: the panel is a column beside the canvas like the rail, full height, flat, a hairline between them. */
+[data-pinned] > .floatingRight {
+  gap: 0;
+
+  & .content {
+    margin: 0;
+    border-radius: 0;
+    /* Hairlines on both sides: the canvas on the left, the rail on the right. */
+    box-shadow:
+      -1px 0 0 var(--msp-glass-edge),
+      inset -1px 0 0 var(--msp-glass-edge);
+  }
+}
+
 .floatingLeft {
   left: var(--msp-canvas-edge, 8px);
   flex-direction: row;
@@ -308,5 +322,16 @@
 
   & > * + * {
     border-top: 1px solid var(--msp-glass-edge);
+  }
+}
+
+/* The pin's glyph is heavier than the ✕ beside it: drawn smaller so the two read as one size. */
+.pin > span {
+  align-items: center;
+  justify-content: center;
+
+  & > svg {
+    width: 14px;
+    height: 14px;
   }
 }

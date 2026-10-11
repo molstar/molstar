@@ -45,7 +45,8 @@
 
 .canvas {
   position: absolute;
-  inset: 0;
+  /* Pinned, the rail and the panel sit beside the canvas: it ends where they begin. */
+  inset: 0 var(--msp-canvas-pinned, 0px) 0 0;
 }
 
 /* Items floating over the canvas: two layers, the view's chrome (canvas-themed) and the application's (UI-themed).
@@ -60,4 +61,9 @@
   & > * {
     pointer-events: auto;
   }
+}
+
+/* The view's chrome follows the canvas: pinned, it lays out against the narrower canvas. */
+.canvasLayer {
+  right: var(--msp-canvas-pinned, 0px);
 }

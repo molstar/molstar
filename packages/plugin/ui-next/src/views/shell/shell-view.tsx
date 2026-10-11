@@ -90,11 +90,21 @@ export function ShellView(props: ShellViewProps) {
     distinctUntilChanged(),
     map((px) => `${px}px`),
   );
+  // Pinned: the canvas ends where the rail, or the open panel, begins (they sit beside it, not over it).
+  const pinned = combineLatest([right.state, floating]).pipe(
+    map(([s, f]) => f && s.pinned),
+    distinctUntilChanged(),
+  );
+  // An overlay card open in the panel's place counts as the panel.
+  const pinnedWidth = combineLatest([right.state, right.active, shell.overlay, pinned]).pipe(
+    map(([s, active, overlay, p]) => (p ? RailWidth + (active || overlay ? s.size : 0) : 0)),
+    distinctUntilChanged(),
+  );
   // What floats on the right takes this much of the canvas: the bottom bar keeps clear of it.
-  const rightInset = combineLatest([right.state, right.active, floating]).pipe(
+  const rightInset = combineLatest([right.state, right.active, floating, pinned]).pipe(
     // The docked rail is the canvas's right edge, and the open panel is too: what sits beside either keeps the frame
-    // margin.
-    map(([s, active, f]) => RailWidth + Edge + (f && active ? s.size + Edge : 0)),
+    // margin. Pinned, both are outside the canvas: only the margin is left.
+    map(([s, active, f, p]) => (p ? Edge : RailWidth + Edge + (f && active ? s.size + Edge : 0))),
     distinctUntilChanged(),
     map((px) => `${px}px`),
   );
@@ -119,12 +129,14 @@ export function ShellView(props: ShellViewProps) {
           '--msp-right-panel-width': rightPanelWidth,
           // Where cards beside the rail end (the floating panel's right edge).
           '--msp-canvas-panel-right': `${RailWidth + Edge}px`,
+          // How much of the right the pinned rail and panel take from the canvas (0 when floating over it).
+          '--msp-canvas-pinned': pinnedWidth.pipe(map((px) => `${px}px`)),
         }}
       >
         <div class={classes.canvas}>{props.canvas}</div>
         {/* Chrome that is part of the view: themed by the canvas background, tinted from its color. */}
         <div
-          class={classes.layer}
+          class={`${classes.layer} ${classes.canvasLayer}`}
           data-msp-theme={props.canvasTheme ?? 'light'}
           style={{
             // Every derived shade (glass, controls, hover, muted text) follows from the base color.
@@ -150,6 +162,7 @@ export function ShellView(props: ShellViewProps) {
         <div
           class={classes.layer}
           data-right-panel={rightPanelOpen}
+          data-pinned={pinned.pipe(map((p) => (p ? '' : undefined)))}
           data-overlay={shell.overlay.pipe(map((o) => (o ? 'open' : undefined)))}
         >
           <OverlayHost shell={shell} />
@@ -204,6 +217,8 @@ export function ShellView(props: ShellViewProps) {
   // open list) run first and mark it handled. Not while typing in a field, where Escape belongs to the field.
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key !== 'Escape' || e.defaultPrevented || shell.overlay.value || isEditable(e.target)) return;
+    // A pinned panel is part of the workspace, not something passing over the canvas: Escape leaves it.
+    if (right.state.value.pinned) return;
     if (!right.state.value.collapsed && right.active.value !== undefined) {
       shell.toggle('right');
       e.preventDefault();

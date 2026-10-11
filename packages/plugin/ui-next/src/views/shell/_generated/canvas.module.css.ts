@@ -125,6 +125,15 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   [data-right-panel="open"] > & {
     animation: none;
   }
+
+  [data-pinned] > & {
+    top: 0;
+    right: calc(var(--msp-canvas-rail-inset, 52px) - var(--msp-canvas-edge, 8px));
+    box-shadow: -1px 0 0 var(--msp-glass-edge),
+      inset -1px 0 0 var(--msp-glass-edge);
+    border-radius: 0;
+    bottom: 0;
+  }
 }
 
 @keyframes msp-shell-canvas-card-in {

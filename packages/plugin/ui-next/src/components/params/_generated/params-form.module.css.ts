@@ -14,6 +14,7 @@ export const classes = {
   'collapsibleHeader': 'msp-params-params-form-collapsibleHeader',
   'color': 'msp-params-params-form-color',
   'control': 'msp-params-params-form-control',
+  'fields': 'msp-params-params-form-fields',
   'form': 'msp-params-params-form-form',
   'hex': 'msp-params-params-form-hex',
   'input': 'msp-params-params-form-input',
@@ -227,15 +228,13 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   font-size: var(--msp-font-size-xs);
 }
 
-.msp-params-params-form-mapped {
+.msp-params-params-form-mapped, .msp-params-params-form-fields, .msp-params-params-form-nested {
   gap: 2px;
   display: grid;
 }
 
 .msp-params-params-form-nested {
   padding-left: var(--msp-space-3);
-  gap: 2px;
-  display: grid;
 }
 
 .msp-params-params-form-collapsible {
