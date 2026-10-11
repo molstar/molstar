@@ -9,7 +9,7 @@
 
 import { render } from '../../../dom/render.js';
 import { observableState } from '../../../reactive/observable-state.js';
-import { ColorPicker, colorToRgb, fieldColor, parseColor, shade } from '../color-picker.js';
+import { ColorPicker, colorToRgb, colorWeights, fieldColor, parseColor, shade } from '../color-picker.js';
 
 describe('parseColor', () => {
   it.each([
@@ -56,6 +56,19 @@ describe('ColorPicker', () => {
     expect(fieldColor(0, 1)).toBe(shade(0xff0000, -0.9));
   });
 
+  it('spreads the weights over the room a color has: black first lightens, white darkens, a mid color both ways', () => {
+    const black = colorWeights(0x000000);
+    expect(black[7]).toBe(0x000000);
+    expect(new Set(black).size).toBe(8);
+    const white = colorWeights(0xffffff);
+    expect(white[0]).toBe(0xffffff);
+    expect(new Set(white).size).toBe(8);
+    const blue = colorWeights(0x123456);
+    expect(blue).toHaveLength(8);
+    expect(new Set(blue).size).toBe(8);
+    expect(blue.indexOf(0x123456)).toBeGreaterThan(3);
+  });
+
   it('picks a hue, then its weights; takes typed colors; the current swatch is selected', () => {
     const color = observableState(0x0090ff);
     const container = document.createElement('div');
@@ -78,15 +91,16 @@ describe('ColorPicker', () => {
     text.blur();
     text.dispatchEvent(new Event('blur'));
     expect(text.value).toBe('18, 52, 86');
-    // Not a hue of the palette: only its own weight (the middle one) is marked.
+    // Not a hue of the palette: only its own weight is marked.
     expect(selected()).toBe('18, 52, 86');
     // The weights are of the color picked; picking one keeps them.
     const weights = () =>
       [...container.querySelectorAll('[aria-label=Weights] [role=option]')].map((b) => b.getAttribute('aria-label'));
-    expect(weights()[4]).toBe('18, 52, 86');
+    const row = colorWeights(0x123456);
+    expect(weights()).toEqual(row.map(colorToRgb));
     (container.querySelectorAll('[aria-label=Weights] [role=option]')[1] as HTMLButtonElement).click();
-    expect(color.value).toBe(shade(0x123456, 0.6));
-    expect(weights()[4]).toBe('18, 52, 86');
-    expect(selected()).toBe(colorToRgb(shade(0x123456, 0.6)));
+    expect(color.value).toBe(row[1]);
+    expect(weights()).toEqual(row.map(colorToRgb));
+    expect(selected()).toBe(colorToRgb(row[1]));
   });
 });

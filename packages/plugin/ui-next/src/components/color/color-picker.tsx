@@ -7,18 +7,33 @@
  */
 
 import { ColorNames } from '@molstar/core/util/color/names';
-import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map, type Observable, shareReplay } from 'rxjs';
 import { bind } from '../../dom/scope.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/color-picker.module.css.js';
 
-/** The palette's hues (vivid; their lighter and darker weights are the row under them, `ColorWeights`). */
+/** The palette's hues (vivid; their lighter and darker weights are the row under them, `colorWeights`). */
 export const ColorPalette: readonly number[] = [
   0xe5484d, 0xf76b15, 0xffc53d, 0x46a758, 0x12a594, 0x0090ff, 0x6e56cf, 0xd6409f,
 ];
 
-/** The weights of a color, lightest to darkest (toward white, itself, toward black): the second step of picking. */
-export const ColorWeights: readonly number[] = [0.8, 0.6, 0.4, 0.2, 0, -0.25, -0.5, -0.7];
+/**
+ * The weights of a color, lightest to darkest: eight, itself among them, placed by how light it is (black is the last,
+ * white the first, a mid color about the middle), the rest spread over the room it has toward white and toward black.
+ */
+export function colorWeights(c: number): number[] {
+  const r = (c >> 16) & 0xff;
+  const g = (c >> 8) & 0xff;
+  const b = c & 0xff;
+  const lightness = (Math.max(r, g, b) + Math.min(r, g, b)) / 510;
+  const lighter = Math.round(7 * (1 - lightness));
+  const darker = 7 - lighter;
+  const weights: number[] = [];
+  for (let i = lighter; i > 0; i--) weights.push(shade(c, (0.9 * i) / lighter));
+  weights.push(c);
+  for (let i = 1; i <= darker; i++) weights.push(shade(c, (-0.85 * i) / darker));
+  return weights;
+}
 
 /** For CSS: `#rrggbb`. */
 export function colorToHex(c: number): string {
@@ -164,6 +179,7 @@ export function ColorPicker(props: ColorPickerProps) {
   // The color the weights are of: every pick but a weight's (and any change from outside) moves it.
   const base = observableState(0);
   let fromWeight = false;
+  const weights = base.asReadonly.pipe(map(colorWeights), shareReplay({ bufferSize: 1, refCount: true }));
   bind(value, (v) => {
     current = v;
     if (!fromWeight) base.set(v);
@@ -226,8 +242,8 @@ export function ColorPicker(props: ColorPickerProps) {
         ))}
       </div>
       <div class={classes.palette} role="listbox" aria-label="Weights">
-        {ColorWeights.map((amount) => {
-          const color = base.asReadonly.pipe(map((b) => shade(b, amount)));
+        {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+          const color = weights.pipe(map((w) => w[i]));
           return (
             <button
               type="button"
@@ -238,7 +254,7 @@ export function ColorPicker(props: ColorPickerProps) {
               aria-selected={combineLatest([color, value]).pipe(map(([c, v]) => c === v))}
               onClick={() => {
                 fromWeight = true;
-                props.onChange(shade(base.value, amount));
+                props.onChange(colorWeights(base.value)[i]);
                 fromWeight = false;
               }}
             />
