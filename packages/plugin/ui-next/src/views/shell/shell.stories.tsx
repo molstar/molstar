@@ -556,6 +556,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset; pinned?
     prefixes: mockPrefixes({ manager: commands, shell, scene, snapshots: snapshotStepper }),
     snapshots: snapshotStepper,
     trajectory: mockTrajectory(),
+    home,
   };
 }
 
@@ -585,6 +586,7 @@ function ShellStory(props: {
     prefixes,
     snapshots,
     trajectory,
+    home,
   } = mockShell(props);
   // What commands did goes to the status line; ⌘K / ⇧⌘P open the command menu; commands' own shortcuts run them.
   const outcomes = commands.outcomes.subscribe((o) => {
@@ -662,6 +664,8 @@ function ShellStory(props: {
       canvasLead={props.loaded ? modeSwitch : null}
       canvasAside={props.loaded ? pickLevel : null}
       onOpenLog={() => shell.show('log')}
+      onDropFiles={(files) => home.openFiles(files)}
+      dropFormats={home.formats}
     />
   );
 }

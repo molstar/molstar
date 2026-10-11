@@ -56,6 +56,10 @@ it is where contributions (built-in and extension UI) are placed.
   canvas stack, the selection chips) follows its edge (`--msp-canvas-right-inset`). One margin frames the canvas
   (`--msp-canvas-edge`, 8px): every floating thing keeps it from the canvas edges, the docked rail, the open panel, the
   sequence card, and the cards stacked beside it. Panels and overlay cards share one header (title, ✕ on the right).
+- **Dropping files.** Files dragged anywhere over the plugin bring up a drop overlay over everything (Mol*'s drag
+  overlay); dropped files go to the plugin's drag-and-drop manager. On unless the spec sets
+  `components.disableDragOverlay` (the host then leaves out `ShellView`'s `onDropFiles`). Home's Open Files row is a
+  drop target of its own and opens the file picker.
 - **Pinned panel.** The pin in the panel's header (`setPinned('right', true)`, `DockState.pinned`) keeps the floating
   layout but moves the rail and the open panel beside the canvas: the canvas and its chrome end where they begin
   (`--msp-canvas-pinned`), the panel turns into a flat full-height column like the rail, overlay cards take the same

@@ -25,6 +25,7 @@ import {
   StatusLine,
 } from './canvas-chrome.js';
 import { DockView, FloatingDock } from './dock-view.js';
+import { FileDropOverlay } from './file-drop.js';
 
 /**
  * The rail's width, and the one margin of the canvas frame (px, `--msp-canvas-edge`): every floating thing keeps it
@@ -64,6 +65,13 @@ export interface ShellViewProps {
   /** Beside the canvas stack, outside its frame: what opens from it (the picking level, next to Select). */
   canvasAside?: Child;
   onOpenLog?: () => void;
+  /**
+   * Files dropped anywhere on the plugin (to the plugin's drag-and-drop manager). Given, dragging files in shows a drop
+   * overlay over everything; the host leaves it out when the spec turns the overlay off.
+   */
+  onDropFiles?: (files: readonly File[]) => void;
+  /** File formats the drop reads, for the overlay's hint. */
+  dropFormats?: readonly string[];
 }
 
 /** The frame: docks around the canvas, chrome over it. */
@@ -213,6 +221,11 @@ export function ShellView(props: ShellViewProps) {
       <BusyOverlay status={status} />
     </div>
   ) as HTMLElement;
+  if (props.onDropFiles) {
+    root.appendChild(
+      (<FileDropOverlay target={root} onDrop={props.onDropFiles} formats={props.dropFormats} />) as Node,
+    );
+  }
   // Escape closes the open right panel, after anything nearer has had it: handlers on the document (an overlay card, an
   // open list) run first and mark it handled. Not while typing in a field, where Escape belongs to the field.
   const onKeyDown = (e: KeyboardEvent) => {

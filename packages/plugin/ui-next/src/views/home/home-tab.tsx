@@ -31,8 +31,8 @@ export function HomeTab(props: HomeTabProps) {
   const { home } = props;
   return (
     <div class={classes.home}>
-      <OpenFiles home={home} />
       <section class={classes.group} aria-label="Actions">
+        <OpenFiles home={home} />
         <For each={home.actions} key={(a) => a.id}>
           {(action, index) => <ActionBlock action={action} open={index.value === 0} />}
         </For>
@@ -62,7 +62,7 @@ export function HomeTab(props: HomeTabProps) {
   );
 }
 
-/** Files by picking or dropping: the whole area is the target. */
+/** Files by picking or dropping: a row like the actions under it (no form: it opens the file picker), a drop target too. */
 function OpenFiles(props: { home: HomeModel }) {
   const { home } = props;
   const dragging = observableState(false);
@@ -81,7 +81,7 @@ function OpenFiles(props: { home: HomeModel }) {
   return (
     <button
       type="button"
-      class={classes.drop}
+      class={`${classes.actionHeader} ${classes.drop}`}
       data-dragging={dragging.asReadonly.pipe(map((d) => (d ? '' : undefined)))}
       onClick={() => input.click()}
       onDragOver={(e) => {
@@ -96,11 +96,9 @@ function OpenFiles(props: { home: HomeModel }) {
         if (files?.length) home.openFiles([...files]);
       }}
     >
-      <Icon name="folder-open" size={20} />
-      <span class={classes.dropText}>
-        <span class={classes.dropTitle}>Open files</span>
-        <span class={classes.dropHint}>or drop them here · {home.formats.join(', ')}</span>
-      </span>
+      <Icon name="folder-open" size={16} />
+      <span class={classes.actionTitle}>Open Files</span>
+      <span class={classes.actionDescription}>{home.formats.join(', ')}</span>
       {input}
     </button>
   );

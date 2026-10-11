@@ -19,9 +19,6 @@ export const classes = {
   'captionRow': 'msp-home-home-tab-captionRow',
   'chevron': 'msp-home-home-tab-chevron',
   'drop': 'msp-home-home-tab-drop',
-  'dropHint': 'msp-home-home-tab-dropHint',
-  'dropText': 'msp-home-home-tab-dropText',
-  'dropTitle': 'msp-home-home-tab-dropTitle',
   'group': 'msp-home-home-tab-group',
   'hint': 'msp-home-home-tab-hint',
   'home': 'msp-home-home-tab-home',
@@ -42,46 +39,11 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
   display: grid;
 }
 
-.msp-home-home-tab-drop {
-  align-items: center;
-  gap: var(--msp-space-4);
-  padding: var(--msp-space-4);
-  border-radius: var(--msp-radius-lg);
-  background: var(--msp-color-control);
-  color: var(--msp-color-text-muted);
-  text-align: left;
-  transition: background-color var(--msp-motion-fast) var(--msp-ease),
-    color var(--msp-motion-fast) var(--msp-ease);
-  display: flex;
-
-  &:hover, &[data-dragging] {
-    background: var(--msp-color-hover);
-    color: var(--msp-color-text);
-  }
-
-  &[data-dragging] {
-    outline: 2px dashed var(--msp-color-accent);
-    outline-offset: -2px;
-  }
-}
-
-.msp-home-home-tab-dropText {
-  gap: 2px;
-  min-width: 0;
-  display: grid;
-}
-
-.msp-home-home-tab-dropTitle {
+.msp-home-home-tab-drop[data-dragging] {
+  background: var(--msp-color-hover);
   color: var(--msp-color-text);
-  font-weight: 600;
-}
-
-.msp-home-home-tab-dropHint {
-  color: var(--msp-color-text-subtle);
-  font-size: var(--msp-font-size-xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
+  outline: 1.5px dashed var(--msp-color-border-strong);
+  outline-offset: -1.5px;
 }
 
 .msp-home-home-tab-group {

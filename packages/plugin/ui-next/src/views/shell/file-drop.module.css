@@ -1,0 +1,51 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Over the whole plugin while files are dragged in: a frosted scrim, the frame margin in, a dashed edge saying "here". */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: var(--msp-z-overlay);
+  display: grid;
+  padding: var(--msp-canvas-edge, 8px);
+  background: color-mix(in oklab, var(--msp-color-bg), transparent 25%);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+  animation: drop-in var(--msp-motion-fast) var(--msp-ease);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+@keyframes drop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.target {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--msp-space-2);
+  border: 1.5px dashed var(--msp-color-border-strong);
+  border-radius: var(--msp-radius-lg);
+  color: var(--msp-color-text-muted);
+  /* The children take no pointer events: leaving one must not count as leaving the overlay. */
+  pointer-events: none;
+}
+
+.title {
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-md);
+  font-weight: 600;
+}
+
+.hint {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}

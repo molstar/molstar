@@ -12,49 +12,12 @@
   font-size: var(--msp-font-size-sm);
 }
 
-/* Open files: the whole area is the button and the drop target. */
-.drop {
-  display: flex;
-  align-items: center;
-  gap: var(--msp-space-4);
-  padding: var(--msp-space-4);
-  border-radius: var(--msp-radius-lg);
-  background: var(--msp-color-control);
-  color: var(--msp-color-text-muted);
-  text-align: left;
-  transition:
-    background-color var(--msp-motion-fast) var(--msp-ease),
-    color var(--msp-motion-fast) var(--msp-ease);
-
-  &:hover,
-  &[data-dragging] {
-    background: var(--msp-color-hover);
-    color: var(--msp-color-text);
-  }
-
-  &[data-dragging] {
-    outline: 2px dashed var(--msp-color-accent);
-    outline-offset: -2px;
-  }
-}
-
-.dropText {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.dropTitle {
+/* Open files: an action row (actionHeader) that is also a drop target. */
+.drop[data-dragging] {
+  background: var(--msp-color-hover);
   color: var(--msp-color-text);
-  font-weight: 600;
-}
-
-.dropHint {
-  overflow: hidden;
-  color: var(--msp-color-text-subtle);
-  font-size: var(--msp-font-size-xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  outline: 1.5px dashed var(--msp-color-border-strong);
+  outline-offset: -1.5px;
 }
 
 .group {
