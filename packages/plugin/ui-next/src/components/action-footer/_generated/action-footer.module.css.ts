@@ -43,14 +43,14 @@ defineStyles('components/action-footer/action-footer.module.css', `@layer msp.co
 }
 
 .msp-action-footer-apply {
-  justify-content: flex-end;
   align-items: center;
   gap: var(--msp-space-2);
   padding: 0 var(--msp-space-4);
   color: var(--msp-color-accent);
   font-size: var(--msp-font-size-sm);
   transition: color var(--msp-motion-fast) var(--msp-ease);
-  flex: 1;
+  flex: none;
+  margin-left: auto;
   font-weight: 600;
   display: flex;
 
@@ -124,8 +124,8 @@ defineStyles('components/action-footer/action-footer.module.css', `@layer msp.co
   margin-left: auto;
 }
 
-.msp-action-footer-info ~ .msp-action-footer-apply, .msp-action-footer-secondary ~ .msp-action-footer-apply {
-  flex: none;
+.msp-action-footer-secondary ~ .msp-action-footer-apply {
+  margin-left: 0;
 }
 
 .msp-action-footer-spin {

@@ -28,8 +28,9 @@ export interface ActionFooterProps {
 }
 
 /**
- * The last row of a block with a form (Mol*'s action footer, flat): set defaults on the left, the action across the
- * rest, its icon and label at the right in the accent color; optionally a quiet info line and a lesser action before it. Edge to edge: it undoes its container's 8px padding at the
+ * The last row of a block with a form (Mol*'s action footer, flat): set defaults on the left, the action at the right
+ * (its icon and label in the accent color, only they are the button); optionally a quiet info line and a lesser action
+ * before it. Edge to edge: it undoes its container's 8px padding at the
  * sides and bottom. No lines or fills; hovering darkens the text.
  */
 export function ActionFooter(props: ActionFooterProps) {

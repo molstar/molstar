@@ -29,11 +29,13 @@
   }
 }
 
+/* Only as wide as its icon and label, at the right: the empty row between is not a button (a stray click there would
+   run the action). */
 .apply {
-  flex: 1;
+  flex: none;
+  margin-left: auto;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: var(--msp-space-2);
   padding: 0 var(--msp-space-4);
   color: var(--msp-color-accent);
@@ -63,7 +65,7 @@
   }
 }
 
-/* With an info line or a lesser action, those take the room; the action keeps to its label. */
+/* An info line takes the room between set defaults and the actions. */
 .info {
   flex: 1;
   min-width: 0;
@@ -116,9 +118,8 @@
   margin-left: auto;
 }
 
-.info ~ .apply,
 .secondary ~ .apply {
-  flex: none;
+  margin-left: 0;
 }
 
 .spin {
