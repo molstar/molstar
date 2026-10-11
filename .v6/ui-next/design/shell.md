@@ -91,6 +91,12 @@ it is where contributions (built-in and extension UI) are placed.
   (a card), then a structure's trajectory (a bar). Each only when the data has it.
 - **Bottom of the canvas**: messages and tasks on the left; the current selection and focus as chips on the right (the
   work in hand), moving with the open panel. On a narrow canvas the chips take a row of their own above.
+- **Busy overlay.** A task in overlay mode (rendering an animation, a long export) holds the plugin: a scrim over
+  everything and one card with what runs, its progress (or an indeterminate bar), and Cancel. Other tasks stay in the
+  status line.
+- **Compact.** The panel becomes a bottom sheet with its tabs along the bottom; the rail's actions (command menu,
+  animation, canvas settings, selection, save, export) go under More at the end of that bar; progress and the selection
+  dock between the canvas and the sheet (progress first, selection below); a card fills the canvas.
 - **Glass and canvas theme.** Everything over the canvas uses flat glass (translucent fill, blur, no borders, no
   shadows) and takes its theme from the canvas background automatically, not from the UI theme, so it stays visible (as
   stories-untold's stage ink does). `model/canvas-theme.ts` computes it from the Canvas3D props by relative luminance

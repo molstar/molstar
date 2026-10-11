@@ -22,6 +22,11 @@ export interface StatusTask {
   label: string;
   /** 0..1, or undefined when indeterminate. */
   progress?: number;
+  /**
+   * It holds the whole plugin while it runs (rendering an animation, exporting): shown over everything, with its
+   * progress and Cancel, instead of in the status line. Mol*'s task "overlay" mode.
+   */
+  overlay?: boolean;
   abort?(): void;
 }
 

@@ -11,6 +11,18 @@ import { defineStyles } from '../../../styles/registry.js';
 export const classes = {
   'bottom': 'msp-shell-canvas-bottom',
   'bottomGrid': 'msp-shell-canvas-bottomGrid',
+  'busy': 'msp-shell-canvas-busy',
+  'busy-in': 'msp-shell-canvas-busy-in',
+  'busy-slide': 'msp-shell-canvas-busy-slide',
+  'busy-spin': 'msp-shell-canvas-busy-spin',
+  'busyActions': 'msp-shell-canvas-busyActions',
+  'busyBar': 'msp-shell-canvas-busyBar',
+  'busyCard': 'msp-shell-canvas-busyCard',
+  'busyHead': 'msp-shell-canvas-busyHead',
+  'busyLabel': 'msp-shell-canvas-busyLabel',
+  'busyPercent': 'msp-shell-canvas-busyPercent',
+  'busySpin': 'msp-shell-canvas-busySpin',
+  'busyTrack': 'msp-shell-canvas-busyTrack',
   'caption': 'msp-shell-canvas-caption',
   'card': 'msp-shell-canvas-card',
   'card-in': 'msp-shell-canvas-card-in',
@@ -468,6 +480,98 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   left: var(--msp-canvas-edge, 8px);
   right: var(--msp-canvas-edge, 8px);
   width: auto;
+}
+
+.msp-shell-canvas-busy {
+  z-index: var(--msp-z-dialog);
+  padding: var(--msp-space-4);
+  background: color-mix(in oklab, var(--msp-color-bg), transparent 30%);
+  -webkit-backdrop-filter: blur(2px);
+  animation: msp-shell-canvas-busy-in var(--msp-motion-base) var(--msp-ease);
+  place-items: center;
+  display: grid;
+  position: absolute;
+  inset: 0;
+}
+
+@keyframes msp-shell-canvas-busy-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.msp-shell-canvas-busyCard {
+  gap: var(--msp-space-3);
+  width: min(360px, 100%);
+  padding: var(--msp-space-4);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+  box-shadow: var(--msp-glass-shadow),
+    0 12px 32px #0000001f;
+  display: grid;
+}
+
+.msp-shell-canvas-busyHead {
+  align-items: center;
+  gap: var(--msp-space-3);
+  display: flex;
+}
+
+.msp-shell-canvas-busySpin {
+  color: var(--msp-color-accent);
+  flex: none;
+  animation: .9s linear infinite msp-shell-canvas-busy-spin;
+}
+
+@keyframes msp-shell-canvas-busy-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.msp-shell-canvas-busyLabel {
+  flex: 1;
+  font-weight: 600;
+}
+
+.msp-shell-canvas-busyPercent {
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.msp-shell-canvas-busyTrack {
+  background: var(--msp-color-control);
+  border-radius: 2px;
+  height: 4px;
+  overflow: hidden;
+}
+
+.msp-shell-canvas-busyBar {
+  background: var(--msp-color-accent);
+  height: 100%;
+  transition: width var(--msp-motion-fast) linear;
+  border-radius: 2px;
+  display: block;
+
+  &[data-indeterminate] {
+    animation: msp-shell-canvas-busy-slide 1.2s var(--msp-ease) infinite;
+  }
+}
+
+@keyframes msp-shell-canvas-busy-slide {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(340%);
+  }
+}
+
+.msp-shell-canvas-busyActions {
+  justify-content: flex-end;
+  display: flex;
 }
 }
 `);

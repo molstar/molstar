@@ -15,7 +15,15 @@ import type { StatusModel } from '../../shell/status.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/shell.module.css.js';
 import { installTooltips } from '../../components/tooltip/tooltip.js';
-import { CanvasStack, CanvasToolbar, ContextChips, OverlayHost, RailMenu, StatusLine } from './canvas-chrome.js';
+import {
+  BusyOverlay,
+  CanvasStack,
+  CanvasToolbar,
+  ContextChips,
+  OverlayHost,
+  RailMenu,
+  StatusLine,
+} from './canvas-chrome.js';
 import { DockView, FloatingDock } from './dock-view.js';
 
 /**
@@ -189,6 +197,7 @@ export function ShellView(props: ShellViewProps) {
       </Show>
       <DockView shell={shell} dock={shell.dock('bottom')} />
       {props.commandMenu}
+      <BusyOverlay status={status} />
     </div>
   ) as HTMLElement;
   // Escape closes the open right panel, after anything nearer has had it: handlers on the document (an overlay card, an

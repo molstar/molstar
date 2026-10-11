@@ -474,3 +474,97 @@
   right: var(--msp-canvas-edge, 8px);
   width: auto;
 }
+
+/* A task in overlay mode: everything waits under a scrim; one card says what runs and how far. */
+.busy {
+  position: absolute;
+  inset: 0;
+  z-index: var(--msp-z-dialog);
+  display: grid;
+  place-items: center;
+  padding: var(--msp-space-4);
+  background: color-mix(in oklab, var(--msp-color-bg), transparent 30%);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: busy-in var(--msp-motion-base) var(--msp-ease);
+}
+
+@keyframes busy-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.busyCard {
+  display: grid;
+  gap: var(--msp-space-3);
+  width: min(360px, 100%);
+  padding: var(--msp-space-4);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+  box-shadow:
+    var(--msp-glass-shadow),
+    0 12px 32px rgb(0 0 0 / 0.12);
+}
+
+.busyHead {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+}
+
+.busySpin {
+  flex: none;
+  color: var(--msp-color-accent);
+  animation: busy-spin 900ms linear infinite;
+}
+
+@keyframes busy-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.busyLabel {
+  flex: 1;
+  font-weight: 600;
+}
+
+.busyPercent {
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.busyTrack {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--msp-color-control);
+}
+
+.busyBar {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--msp-color-accent);
+  transition: width var(--msp-motion-fast) linear;
+
+  &[data-indeterminate] {
+    animation: busy-slide 1.2s var(--msp-ease) infinite;
+  }
+}
+
+@keyframes busy-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+
+.busyActions {
+  display: flex;
+  justify-content: flex-end;
+}

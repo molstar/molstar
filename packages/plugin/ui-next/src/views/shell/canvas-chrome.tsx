@@ -285,6 +285,56 @@ export function RailMenu(props: { shell: ShellModel }) {
   return root;
 }
 
+/**
+ * A task in overlay mode (rendering an animation) holds the plugin: a scrim over everything and a card with what is
+ * running, its progress, and Cancel.
+ */
+export function BusyOverlay(props: { status: StatusModel }) {
+  const task = props.status.tasks.pipe(
+    map((tasks) => tasks.find((t) => t.overlay)),
+    distinctUntilChanged((a, b) => a?.id === b?.id),
+  );
+  return (
+    <Show when={task}>
+      {(first) => {
+        const live = props.status.tasks.pipe(map((tasks) => tasks.find((t) => t.id === first.id) ?? first));
+        const percent = live.pipe(map((t) => (t.progress === undefined ? undefined : Math.round(t.progress * 100))));
+        return (
+          <div class={classes.busy} role="alertdialog" aria-modal="true" aria-label={first.label}>
+            <div class={classes.busyCard}>
+              <div class={classes.busyHead}>
+                <Icon name="loader-circle" size={18} class={classes.busySpin} />
+                <span class={classes.busyLabel}>{live.pipe(map((t) => t.label))}</span>
+                <span class={classes.busyPercent}>{percent.pipe(map((p) => (p === undefined ? '' : `${p}%`)))}</span>
+              </div>
+              <div
+                class={classes.busyTrack}
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={percent}
+              >
+                <span
+                  class={classes.busyBar}
+                  data-indeterminate={percent.pipe(map((p) => (p === undefined ? '' : undefined)))}
+                  style={{ width: percent.pipe(map((p) => `${p ?? 30}%`)) }}
+                />
+              </div>
+              {first.abort ? (
+                <div class={classes.busyActions}>
+                  <Button size="sm" onClick={() => first.abort?.()}>
+                    Cancel
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        );
+      }}
+    </Show>
+  );
+}
+
 /** The open overlay as a card in the right panel's place (the panel steps aside while it is open). */
 export function OverlayHost(props: { shell: ShellModel }) {
   const { shell } = props;
@@ -354,7 +404,9 @@ export function StatusLine(props: { status: StatusModel; onOpenLog?: () => void 
           </button>
         )}
       </Show>
-      <For each={status.tasks}>{(task) => <TaskPill task={task} />}</For>
+      <For each={status.tasks.pipe(map((tasks) => tasks.filter((t) => !t.overlay)))}>
+        {(task) => <TaskPill task={task} />}
+      </For>
     </div>
   );
 }

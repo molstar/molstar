@@ -171,16 +171,30 @@ function mockExport(shell: ShellModel, status: StatusModel) {
             icon={<Icon name="film" />}
             disabled={rendering.asReadonly.pipe(map((r) => r !== undefined))}
             onClick={() => {
+              // Rendering holds the plugin: an overlay task, with Cancel.
               let p = 0;
               rendering.set(0);
+              const done = (message: string) => {
+                clearInterval(t);
+                rendering.set(undefined);
+                status.setTasks(status.tasks.value.filter((x) => x.id !== 'mp4'));
+                status.post(message, 'success');
+              };
+              const task = () => ({
+                id: 'mp4',
+                label: 'Rendering animation.mp4',
+                progress: p,
+                overlay: true,
+                abort: () => done('Rendering cancelled'),
+              });
+              const put = () => status.setTasks([...status.tasks.value.filter((x) => x.id !== 'mp4'), task()]);
+              put();
               const t = setInterval(() => {
-                p += 0.1;
-                rendering.set(p >= 1 ? undefined : p);
-                if (p >= 1) {
-                  clearInterval(t);
-                  status.post('Rendered animation.mp4 (6 s)', 'success');
-                }
-              }, 150);
+                p = Math.min(1, p + 0.04);
+                rendering.set(p);
+                put();
+                if (p >= 1) done('Rendered animation.mp4 (6 s)');
+              }, 120);
             }}
           >
             {rendering.asReadonly.pipe(
