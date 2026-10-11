@@ -107,7 +107,6 @@ const ICONS = [
   'locate',
   'orbit',
   'rotate-3d',
-  'atom',
   'glasses',
   'lightbulb',
   'command',

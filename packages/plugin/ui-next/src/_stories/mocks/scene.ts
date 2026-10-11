@@ -529,7 +529,7 @@ export function mockScene(
     info: MockStructureInfo & { facts: readonly (readonly [string, string])[]; expanded?: boolean },
     ...components: MockNode[]
   ) => {
-    const n = node(id, 'structure', 'atom', label, description, info.expanded ?? true).add(...components);
+    const n = node(id, 'structure', 'structure', label, description, info.expanded ?? true).add(...components);
     forms.set(id, new ParamsFormModel(StructureParams));
     facts.set(id, info.facts);
     infos.set(id, info);

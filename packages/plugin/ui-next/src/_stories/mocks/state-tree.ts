@@ -47,7 +47,7 @@ const Tree: Spec[] = [
                     ref: 'structure',
                     label: 'Assembly 1',
                     description: '3,999 elements',
-                    icon: 'atom',
+                    icon: 'structure',
                     transform: 'Structure from Model',
                     decorators: ['Custom Structure Properties'],
                     visible: true,

@@ -272,7 +272,7 @@ const Granularities: readonly Granularity[] = [
   { value: 'entity', label: 'Entity', icon: 'pick-entity' },
   { value: 'model', label: 'Model', icon: 'pick-model' },
   { value: 'operator', label: 'Operator', icon: 'copy' },
-  { value: 'structure', label: 'Structure', icon: 'atom' },
+  { value: 'structure', label: 'Structure', icon: 'structure' },
   { value: 'elementInstances', label: 'Atom', icon: 'pick-atom', group: 'All instances' },
   { value: 'residueInstances', label: 'Residue', icon: 'pick-residue', group: 'All instances' },
   { value: 'chainInstances', label: 'Chain', icon: 'pick-chain', group: 'All instances' },
