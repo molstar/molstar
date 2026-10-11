@@ -91,7 +91,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   align-items: center;
   gap: var(--msp-space-3);
   height: 40px;
-  padding: 0 var(--msp-space-3) 0 var(--msp-space-5);
+  padding: 0 var(--msp-space-3) 0 var(--msp-space-4);
   font-weight: 600;
   display: flex;
 }
@@ -239,6 +239,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-floatingRight {
+  gap: var(--msp-space-4);
   flex-direction: row-reverse;
   top: 0;
   bottom: 0;

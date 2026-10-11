@@ -9,9 +9,9 @@
   flex-direction: column;
   gap: var(--msp-space-2);
   height: 100%;
-  /* The panel's content inset: 8px at the sides and bottom (with the controls' own padding, text lines up with the
-     header's 12px). */
-  padding: 0 var(--msp-space-3) var(--msp-space-3);
+  /* The panel's content inset: 4px at the sides and bottom; boxes inside pad 8px, so text lines up with the header's
+     12px. */
+  padding: 0 var(--msp-space-2) var(--msp-space-2);
   font-size: var(--msp-font-size-sm);
 }
 

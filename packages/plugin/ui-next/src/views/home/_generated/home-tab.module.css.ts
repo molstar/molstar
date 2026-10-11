@@ -37,7 +37,7 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
 .msp-home-home-tab-home {
   align-content: start;
   gap: var(--msp-space-4);
-  padding: 0 var(--msp-space-3) var(--msp-space-3);
+  padding: 0 var(--msp-space-2) var(--msp-space-2);
   font-size: var(--msp-font-size-sm);
   display: grid;
 }

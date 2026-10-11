@@ -100,8 +100,8 @@
   align-items: center;
   gap: var(--msp-space-3);
   height: 40px;
-  /* The title at 16px: the column the content's text and icons start in (8px inset, 8px of their own). */
-  padding: 0 var(--msp-space-3) 0 var(--msp-space-5);
+  /* The title at 12px: the column the content's text starts in (4px inset, 8px of the boxes' own). */
+  padding: 0 var(--msp-space-3) 0 var(--msp-space-4);
   font-weight: 600;
 }
 
