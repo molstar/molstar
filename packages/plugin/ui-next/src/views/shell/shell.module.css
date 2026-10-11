@@ -11,10 +11,11 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  /* Side docks run the full height; top and bottom docks (sequence, log) span the canvas only. */
   grid-template-areas:
-    "top top top"
+    "left top right"
     "left viewport right"
-    "bottom bottom bottom";
+    "left bottom right";
   overflow: hidden;
   background: var(--msp-color-bg);
   /* Panels size against the shell, not the window. */
@@ -33,6 +34,8 @@
 
 .viewport {
   grid-area: viewport;
+  /* Canvas chrome lays out against the canvas width. */
+  container: canvas / inline-size;
   position: relative;
   min-width: 0;
   min-height: 0;
@@ -49,6 +52,8 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
+  /* Its own theme (from the canvas background) sets the text color too. */
+  color: var(--msp-color-text);
 
   & > * {
     pointer-events: auto;

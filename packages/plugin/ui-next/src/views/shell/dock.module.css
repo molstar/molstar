@@ -152,6 +152,27 @@
   right: -3px;
 }
 
+.collapsedBar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 24px;
+  padding: 0 var(--msp-space-3);
+}
+
+.barTab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+}
+
 /* Compact: the right dock is a bottom sheet with its tabs along the bottom edge. */
 .compact {
   flex-direction: column;

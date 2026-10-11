@@ -15,9 +15,11 @@
   gap: var(--msp-space-1);
   padding: var(--msp-space-2);
   border-radius: var(--msp-radius-lg);
-  background: color-mix(in oklab, var(--msp-color-panel), transparent 15%);
-  box-shadow: var(--msp-shadow-float);
-  backdrop-filter: blur(6px);
+  background: var(--msp-glass-bg);
+  border: var(--msp-glass-border);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
 }
 
 .tool {
@@ -57,10 +59,13 @@
   width: min(360px, calc(100% - 96px));
   max-height: calc(100% - 2 * var(--msp-space-4));
   border-radius: var(--msp-radius-lg);
-  background: var(--msp-color-panel);
-  box-shadow: var(--msp-shadow-overlay);
   overflow: hidden;
   animation: card-in var(--msp-motion-base) var(--msp-ease);
+  background: var(--msp-glass-bg);
+  border: var(--msp-glass-border);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
 }
 
 @keyframes card-in {
@@ -89,11 +94,35 @@
   overflow: auto;
 }
 
-.status {
+/* The bottom of the canvas: status on the left, the timeline centred; stacked when the shell is narrow. */
+.bottom {
   position: absolute;
   left: var(--msp-space-4);
-  right: calc(var(--msp-space-4) + 56px);
+  right: var(--msp-space-4);
   bottom: var(--msp-space-4);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "status timeline .";
+  align-items: end;
+  gap: var(--msp-space-3);
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+}
+
+@container canvas (width < 960px) {
+  .bottom {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "timeline"
+      "status";
+  }
+}
+
+.status {
+  grid-area: status;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -105,6 +134,11 @@
   }
 }
 
+.timeline {
+  grid-area: timeline;
+  justify-self: center;
+}
+
 .pill {
   display: inline-flex;
   align-items: center;
@@ -113,12 +147,14 @@
   height: 26px;
   padding: 0 var(--msp-space-3);
   border-radius: 13px;
-  background: color-mix(in oklab, var(--msp-color-panel), transparent 10%);
-  box-shadow: var(--msp-shadow-float);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
   white-space: nowrap;
-  backdrop-filter: blur(6px);
+  background: var(--msp-glass-bg);
+  border: var(--msp-glass-border);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
 }
 
 .message {

@@ -14,17 +14,14 @@ import { Show } from '../../dom/control-flow.js';
 import type { SnapshotStepperModel, TrajectoryControlsModel } from '../../model/playback.js';
 import { classes } from './_generated/playback.module.css.js';
 
-export interface PlaybackProps {
-  snapshots?: SnapshotStepperModel;
-  trajectory?: TrajectoryControlsModel;
-}
-
-/** The top-left cluster over the canvas: snapshot stepper, its description, trajectory controls. */
-export function Playback(props: PlaybackProps) {
+/**
+ * The snapshot panel at the top left of the canvas: the stepper and the current snapshot's description. Nothing is
+ * stacked under it, so a description that grows or collapses moves nothing else.
+ */
+export function SnapshotPanel(props: { model: SnapshotStepperModel }) {
   return (
     <div class={classes.cluster}>
-      {props.snapshots ? <SnapshotStepper model={props.snapshots} /> : null}
-      {props.trajectory ? <TrajectoryControls model={props.trajectory} /> : null}
+      <SnapshotStepper model={props.model} />
     </div>
   );
 }
@@ -95,13 +92,17 @@ function SnapshotStepper(props: { model: SnapshotStepperModel }) {
   );
 }
 
-function TrajectoryControls(props: { model: TrajectoryControlsModel }) {
+/**
+ * The timeline at the bottom centre of the canvas, like a media player: model index of a trajectory with a scrubber
+ * (later also animations). Shown for multi-model trajectories only.
+ */
+export function Timeline(props: { model: TrajectoryControlsModel }) {
   const { model } = props;
   const visible = model.count.pipe(map((c) => c > 1));
   return (
     <Show when={visible}>
       {() => (
-        <section class={`${classes.card} ${classes.bar}`} aria-label="Trajectory">
+        <section class={`${classes.card} ${classes.bar} ${classes.timeline}`} aria-label="Trajectory">
           <Icon name="trajectory" size={16} />
           <span class={classes.counter}>
             {combineLatest([model.index, model.count]).pipe(map(([i, c]) => `${i + 1} / ${c}`))}

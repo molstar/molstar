@@ -7,9 +7,10 @@
  */
 
 import type { Child } from '../../dom/jsx-types.js';
-import { onCleanup } from '../../dom/scope.js';
+import { type MaybeReactive, onCleanup } from '../../dom/scope.js';
 import type { ShellModel } from '../../shell/shell.js';
 import type { StatusModel } from '../../shell/status.js';
+import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/shell.module.css.js';
 import { CanvasToolbar, OverlayHost, StatusLine } from './canvas-chrome.js';
 import { DockView } from './dock-view.js';
@@ -19,8 +20,15 @@ export interface ShellViewProps {
   status: StatusModel;
   /** The canvas (the Mol* viewport, or a placeholder in stories). */
   canvas: Child;
-  /** Items floating over the canvas besides the toolbar and status line (playback, hover label, …). */
+  /** Items floating over the canvas besides the toolbar and status line (snapshots, hover label, …). */
   overlays?: Child;
+  /** The timeline at the bottom centre of the canvas (trajectory, animation). */
+  timeline?: Child;
+  /**
+   * The theme of the chrome over the canvas, from the canvas background (light background: light glass), independent
+   * of the UI theme: dark glass over a white canvas would be muddy.
+   */
+  canvasTheme?: MaybeReactive<'light' | 'dark'>;
   onOpenLog?: () => void;
 }
 
@@ -33,9 +41,12 @@ export function ShellView(props: ShellViewProps) {
       <DockView shell={shell} dock={shell.dock('left')} />
       <main class={classes.viewport}>
         <div class={classes.canvas}>{props.canvas}</div>
-        <div class={classes.layer}>
+        <div class={classes.layer} data-msp-theme={props.canvasTheme ?? 'light'}>
           {props.overlays}
-          <StatusLine status={status} onOpenLog={props.onOpenLog} />
+          <div class={canvasClasses.bottom}>
+            <StatusLine status={status} onOpenLog={props.onOpenLog} />
+            {props.timeline ? <div class={canvasClasses.timeline}>{props.timeline}</div> : null}
+          </div>
           <OverlayHost shell={shell} />
           <CanvasToolbar shell={shell} />
         </div>

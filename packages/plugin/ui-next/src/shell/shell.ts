@@ -18,6 +18,8 @@ export type ShellMode = 'desktop' | 'compact' | 'embedded';
 /** What a tab, overlay or canvas item is rendered with. */
 export interface ShellViewContext {
   shell: ShellModel;
+  /** The dock a tab is shown in (tabs only). */
+  dock?: DockId;
 }
 
 /** A panel tab, contributed by the default UI or an extension. */
@@ -60,7 +62,7 @@ export interface ShellOptions {
   compactWidth?: number;
 }
 
-const DefaultSizes: Record<DockId, number> = { left: 300, right: 340, top: 72, bottom: 220 };
+const DefaultSizes: Record<DockId, number> = { left: 300, right: 340, top: 96, bottom: 220 };
 const MinSize = 180;
 
 /** A button on the canvas toolbar. */

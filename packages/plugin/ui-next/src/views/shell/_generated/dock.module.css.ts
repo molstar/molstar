@@ -9,8 +9,10 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'barTab': 'msp-shell-dock-barTab',
   'body': 'msp-shell-dock-body',
   'bottom': 'msp-shell-dock-bottom',
+  'collapsedBar': 'msp-shell-dock-collapsedBar',
   'compact': 'msp-shell-dock-compact',
   'content': 'msp-shell-dock-content',
   'dock': 'msp-shell-dock-dock',
@@ -166,6 +168,27 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 
 .msp-shell-dock-left .msp-shell-dock-splitter {
   right: -3px;
+}
+
+.msp-shell-dock-collapsedBar {
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 24px;
+  padding: 0 var(--msp-space-3);
+  flex: 1;
+  display: flex;
+}
+
+.msp-shell-dock-barTab {
+  align-items: center;
+  gap: var(--msp-space-1);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  display: inline-flex;
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
 }
 
 .msp-shell-dock-compact {

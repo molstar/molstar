@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { distinctUntilChanged, map } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { For, Show } from '../../dom/control-flow.js';
@@ -17,8 +17,13 @@ import { ViewHost } from './view-host.js';
 /** A side dock: its tab strip on the outer edge and the active tab's content next to the canvas. */
 export function DockView(props: { shell: ShellModel; dock: DockModel }) {
   const { shell, dock } = props;
+  const horizontal = dock.id === 'top' || dock.id === 'bottom';
   const hasTabs = dock.tabs.pipe(map((tabs) => tabs.length > 0));
   const compact = shell.mode.pipe(map((m) => m === 'compact' && dock.id === 'right'));
+  // A top or bottom dock with one tab needs no strip: its content collapses itself, and a slim bar expands it.
+  const showStrip = horizontal
+    ? combineLatest([dock.tabs, dock.active]).pipe(map(([tabs, active]) => tabs.length > 1 && !!active))
+    : of(true);
   return (
     <Show when={hasTabs}>
       {() => (
@@ -27,17 +32,40 @@ export function DockView(props: { shell: ShellModel; dock: DockModel }) {
           classList={{ [classes.compact]: compact }}
           style={{ '--msp-dock-size': dock.state.pipe(map((s) => `${s.size}px`)) }}
         >
-          <Show when={dock.active}>{(tab) => <DockContent shell={shell} dock={dock} tab={tab} />}</Show>
-          <nav
-            class={classes.strip}
-            role="tablist"
-            aria-orientation={compact.pipe(map((c) => (c ? 'horizontal' : 'vertical')))}
-          >
-            <For each={dock.tabs}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
-          </nav>
+          <Show when={dock.active} fallback={horizontal ? () => <CollapsedBar shell={shell} dock={dock} /> : undefined}>
+            {(tab) => <DockContent shell={shell} dock={dock} tab={tab} />}
+          </Show>
+          <Show when={showStrip}>
+            {() => (
+              <nav
+                class={classes.strip}
+                role="tablist"
+                aria-orientation={compact.pipe(map((c) => (c || horizontal ? 'horizontal' : 'vertical')))}
+              >
+                <For each={dock.tabs}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
+              </nav>
+            )}
+          </Show>
         </div>
       )}
     </Show>
+  );
+}
+
+/** A collapsed top or bottom dock: its tab names in a slim bar; one click expands. */
+function CollapsedBar(props: { shell: ShellModel; dock: DockModel }) {
+  const { shell, dock } = props;
+  return (
+    <div class={classes.collapsedBar}>
+      <For each={dock.tabs}>
+        {(tab) => (
+          <button type="button" class={classes.barTab} onClick={() => shell.show(tab.id)} title={`Show ${tab.title}`}>
+            <Icon name={dock.id === 'top' ? 'chevron-down' : 'chevron-up'} size={14} />
+            {tab.title}
+          </button>
+        )}
+      </For>
+    </div>
   );
 }
 
@@ -78,7 +106,7 @@ function DockContent(props: { shell: ShellModel; dock: DockModel; tab: ShellTab 
         />
       </header>
       <div class={classes.body}>
-        <ViewHost renderer={tab.render} ctx={{ shell }} />
+        <ViewHost renderer={tab.render} ctx={{ shell, dock: dock.id }} />
       </div>
     </section>
   );

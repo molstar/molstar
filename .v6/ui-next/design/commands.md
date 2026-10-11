@@ -137,8 +137,8 @@ sink; its value store is a `ParamsFormModel` instead of a declarative binding co
 
 ## 5. Palette
 
-- Opens with ⌘/Ctrl+K and ⌘/Ctrl+Shift+P (both; the first is common on the web, the second familiar from VS Code), and
-  from a toolbar button for touch.
+- Opens with ⌘K / Ctrl+K and ⇧⌘P / Ctrl+Shift+P (both; the first is common on the web, the second familiar from VS
+  Code), and from a toolbar button for touch.
 - Modal overlay over the viewport; the canvas stays live (previews draw in 3D).
 - Prefixes: none = commands; `@` = go to a scene node (structure, component, volume; focuses and selects it); `#` =
   snapshots; `:` = select residues by expression (`:A 10-20`, `:HEM`); `?` = help on prefixes and keybindings.
@@ -160,6 +160,8 @@ A `KeybindingService` on the plugin root element:
 - **Coexistence with canvas bindings.** Trackball keys (W/A/S/D/R/F/Q/E…) and behavior bindings (`I`, `O`, `T`, `G`,
   Ctrl+arrows) keep working through `InputObserver`. The service reads those bindings and reports conflicts in the Help
   view instead of overriding them. Later, behavior key bindings can be re-expressed as commands with `viewport` scope.
+- **Platforms.** Chords are written once with `mod` (⌘ on macOS, Ctrl on Windows and Linux); `formatChord` in
+  `commands/keys.ts` shows them per platform (`⌘K` / `Ctrl+K`, `⇧⌘P` / `Ctrl+Shift+P`).
 - **Defaults** are part of command definitions; the UI spec can override them (`keybindings: [{ command, key }]`). User
   remapping is out of scope for the first version.
 - Help is generated from the registry, behavior bindings, and trackball bindings, so it is always complete.

@@ -71,8 +71,9 @@ export function compile(file) {
   const result = transform({
     filename: id,
     code: fs.readFileSync(file),
-    // Grid area names stay global: they are a layout contract between modules (shell grid, docks).
-    cssModules: isModule ? { pattern: `msp-${modulePrefix(file)}-[local]`, grid: false } : false,
+    // Grid area and container names stay global: they are layout contracts between modules (shell grid, docks,
+    // the canvas container).
+    cssModules: isModule ? { pattern: `msp-${modulePrefix(file)}-[local]`, grid: false, container: false } : false,
     minify: false,
   });
   let css = result.code.toString().trim();

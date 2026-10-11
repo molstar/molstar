@@ -9,6 +9,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'bottom': 'msp-shell-canvas-bottom',
   'card': 'msp-shell-canvas-card',
   'card-in': 'msp-shell-canvas-card-in',
   'cardBody': 'msp-shell-canvas-cardBody',
@@ -23,6 +24,7 @@ export const classes = {
   'spin': 'msp-shell-canvas-spin',
   'status': 'msp-shell-canvas-status',
   'text': 'msp-shell-canvas-text',
+  'timeline': 'msp-shell-canvas-timeline',
   'tool': 'msp-shell-canvas-tool',
   'toolbar': 'msp-shell-canvas-toolbar',
 } as const;
@@ -34,9 +36,10 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   gap: var(--msp-space-1);
   padding: var(--msp-space-2);
   border-radius: var(--msp-radius-lg);
-  background: color-mix(in oklab, var(--msp-color-panel), transparent 15%);
-  box-shadow: var(--msp-shadow-float);
-  backdrop-filter: blur(6px);
+  background: var(--msp-glass-bg);
+  border: var(--msp-glass-border);
+  box-shadow: var(--msp-glass-shadow);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
   flex-direction: column;
   display: flex;
   position: absolute;
@@ -75,9 +78,11 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   width: min(360px, 100% - 96px);
   max-height: calc(100% - 2 * var(--msp-space-4));
   border-radius: var(--msp-radius-lg);
-  background: var(--msp-color-panel);
-  box-shadow: var(--msp-shadow-overlay);
   animation: msp-shell-canvas-card-in var(--msp-motion-base) var(--msp-ease);
+  background: var(--msp-glass-bg);
+  border: var(--msp-glass-border);
+  box-shadow: var(--msp-glass-shadow);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
   flex-direction: column;
   display: flex;
   position: absolute;
@@ -110,20 +115,47 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   overflow: auto;
 }
 
-.msp-shell-canvas-status {
+.msp-shell-canvas-bottom {
   left: var(--msp-space-4);
-  right: calc(var(--msp-space-4) + 56px);
+  right: var(--msp-space-4);
   bottom: var(--msp-space-4);
-  align-items: center;
-  gap: var(--msp-space-2);
+  align-items: end;
+  gap: var(--msp-space-3);
   pointer-events: none;
-  flex-wrap: wrap;
-  display: flex;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "status timeline .";
+  display: grid;
   position: absolute;
 
   & > * {
     pointer-events: auto;
   }
+}
+
+@container canvas (width < 960px) {
+  .msp-shell-canvas-bottom {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "timeline"
+                         "status";
+  }
+}
+
+.msp-shell-canvas-status {
+  align-items: center;
+  gap: var(--msp-space-2);
+  pointer-events: none;
+  flex-wrap: wrap;
+  grid-area: status;
+  display: flex;
+
+  & > * {
+    pointer-events: auto;
+  }
+}
+
+.msp-shell-canvas-timeline {
+  grid-area: timeline;
+  justify-self: center;
 }
 
 .msp-shell-canvas-pill {
@@ -132,12 +164,13 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   max-width: 100%;
   height: 26px;
   padding: 0 var(--msp-space-3);
-  background: color-mix(in oklab, var(--msp-color-panel), transparent 10%);
-  box-shadow: var(--msp-shadow-float);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
   white-space: nowrap;
-  backdrop-filter: blur(6px);
+  background: var(--msp-glass-bg);
+  border: var(--msp-glass-border);
+  box-shadow: var(--msp-glass-shadow);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
   border-radius: 13px;
   display: inline-flex;
 }

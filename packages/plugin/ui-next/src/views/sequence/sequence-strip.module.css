@@ -6,34 +6,48 @@
 
 .strip {
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
   height: 100%;
   min-width: 0;
 }
 
-.chain {
+.header {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-  padding: 0 var(--msp-space-4);
-  border-right: 1px solid var(--msp-color-border);
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 26px;
+  padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
+  border-bottom: 1px solid var(--msp-color-border);
+}
+
+.selector {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 22px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
   font-size: var(--msp-font-size-sm);
-  white-space: nowrap;
-}
-
-.chainName {
   font-weight: 600;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
 }
 
-.chainInfo {
+.info {
   color: var(--msp-color-text-muted);
-  font-size: var(--msp-font-size-xs);
+  font-weight: 400;
+}
+
+.spacer {
+  flex: 1;
 }
 
 .residues {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;

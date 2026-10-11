@@ -23,33 +23,43 @@ it is where contributions (built-in and extension UI) are placed.
 ## 2. Structure
 
 ```
-┌──────────────────────────────────────────────────────────┬─────────────────────┐
-│ ▸ sequence strip (top dock; shown once a structure loads) │ ⌂  ⧉  ≡  ⚙  +ext    │ ← tab strip
-├──────────────────────────────────────────────────────────┤                     │
-│ ┌ playback ──────────────┐                         [⌘K] │  right panel        │
-│ │ ‹ 3/12 › Title     ▶   │  snapshot stepper       [⟲]  │  (active tab)       │
-│ │ markdown description…  │  snapshot description   [📷] │                     │
-│ │ Model 4/20 |◀ ◀ ▶ ▶| ⏯ │  trajectory             [💾] │  Home · Structure · │
-│ └────────────────────────┘                         [◎]  │  State tree ·       │
-│                 canvas          ┌ hover label ┐    [⛶]  │  Settings ·         │
-│                           ⌖ ────┤ A 42 GLU    │         │  extension tabs     │
-│                                 └─────────────┘          │                     │
-│   ┌ overlay card (save state / screenshot / log / …) ┐   │                     │
-│   └──────────────────────────────────────────────────┘   │                     │
-│ ⓘ Loaded 1TQN (fades) · ⟳ Computing surface 40% ✕ · ● 12 residues selected      │
-└──────────────────────────────────────────────────────────┴─────────────────────┘
-  also: palette (modal), dialogs, notifications, drag-and-drop target;
-  optional left / bottom docks (empty by default)
+┌──┬──────────────────────────────────────────────────────┬───────────────────┬──┐
+│  │ 1TQN ▾  Chain A ▾                                 ⌃  │                   │⌂ │
+│  │ MALYGTHSHGLFKKLGIPGPTPLPFLGNILSYHKGFCMFDMECHKKYG…    │  right panel      │⧉ │
+│  ├──────────────────────────────────────────────────────┤  (active tab)     │≡ │
+│ l│ ┌ snapshots ─────────────┐                     [⌘]  │                   │⚙ │
+│ e│ │ ‹ 3/12 ›  Title     ▶  │                     [⟲]  │  Home ·           │+ │
+│ f│ │ markdown description…  │                     [📷] │  Structure ·      │  │
+│ t│ └────────────────────────┘                     [💾] │  State tree ·     │  │
+│  │                  canvas      ┌ hover label ┐    [◎]  │  Settings ·       │  │
+│ (│                        ⌖ ────┤ GLU 213     │    [💡] │  extension tabs   │  │
+│ o│                              └─────────────┘    [XR] │                   │  │
+│ p│   ┌ overlay card (save state / screenshot / …) ┐ [⛶]  │                   │  │
+│ t│   └────────────────────────────────────────────┘      │                   │  │
+│ .│        ┌ ⧉ 4/20 |◀ ◀ ━━━━●━━━━━━ ▶ ▶| ⏯ ┐ timeline   │                   │  │
+│ )│ ⓘ Loaded 1TQN · ⟳ Surface 40% ✕ · ● 12 residues       │                   │  │
+│  ├──────────────────────────────────────────────────────┤                   │  │
+│  │ bottom dock (optional, canvas width)                  │                   │  │
+└──┴──────────────────────────────────────────────────────┴───────────────────┴──┘
+  also: palette (modal), dialogs, notifications, drag-and-drop target
 ```
 
 - **Right panel.** Icon tabs on its edge; collapses to the tab strip; resizable; becomes a bottom sheet in compact mode.
 - **Optional docks.** `left`, `top`, `bottom` take tabs moved there by the user or placed by the app spec (mesoscale
-  explorer puts its entity tree on the left). The sequence is the only default occupant of `top`.
+  explorer puts its entity tree on the left). The sequence is the only default occupant of `top`. Side docks run the
+  full height; top and bottom docks span the canvas width only. A top or bottom dock with one tab has no tab strip: its
+  content carries its own header (the sequence: structure and chain selectors, collapse), and collapsed it is a slim bar
+  that expands on click.
 - **Canvas toolbar.** A vertical strip of command buttons (palette, reset camera, screenshot, save state, selection
-  mode, fullscreen, plus contributed items), each gated by its command's `when` and `PluginConfig.Viewport.*`. A button
-  either runs its command or opens an overlay anchored to it.
-- **Playback cluster** (top-left of the canvas, §4.3): snapshot stepper, snapshot description, trajectory controls,
-  animation. Each part shows only when it applies.
+  mode, illumination, XR, expand/fullscreen, plus contributed items), each gated by its command's `when` and
+  `PluginConfig.Viewport.*`. A button either runs its command or opens an overlay anchored to it.
+- **Snapshot panel** (top-left of the canvas, §4.3): stepper and description. Nothing is stacked under it, so a
+  description that grows or collapses moves nothing else.
+- **Timeline** (bottom centre, §4.3): trajectory model index and animations, like a media player; above the status line
+  when the canvas is narrow.
+- **Glass and canvas theme.** Everything over the canvas uses the glass tokens (translucent fill, blur, light edge, soft
+  shadow) and takes its theme from the canvas background, not the UI theme (`canvasTheme`: a white canvas gets light
+  glass even with the dark UI theme).
 - **Hover label** next to the cursor (§4.4).
 - **Status line** (bottom of the canvas): the latest log message (fades after a few seconds; errors stay until
   dismissed), running tasks with progress and abort, and chips for the selection and focus (click to focus, ✕ to clear).
@@ -128,21 +138,21 @@ to commands (with forms or custom UI where the arguments are rich).
 Dialogs (modal) are kept for flows that must not be lost by a stray click: command forms opened "as form", MP4 export,
 Zenodo import.
 
-### 4.3 Playback cluster
+### 4.3 Snapshots and timeline
 
-Floats at the top-left of the canvas; each part appears only when it applies and the cluster collapses to a single
-button when the user hides it.
+Each part appears only when it applies.
 
-- **Snapshot stepper** (when snapshots exist): `‹ 3 / 12 ›`, the snapshot title, play/pause for the snapshot slideshow,
-  and a progress bar during animated transitions. Keyboard: the existing Ctrl+←/→ bindings and commands
+- **Snapshot panel** (top left, when snapshots exist): `‹ 3 / 12 ›`, the snapshot title, play/pause for the snapshot
+  slideshow, and a progress bar during animated transitions. Keyboard: the existing Ctrl+←/→ bindings and commands
   `snapshot.next`/`.previous`/`.play`.
-- **Snapshot description** (when the current snapshot has one): a markdown card under the stepper with the existing
+- **Snapshot description** (when the current snapshot has one): a markdown card in the snapshot panel with the existing
   markdown extensions (`#key` links apply snapshots, command links, color swatches, images, audio). Collapsible, text
   size adjustable, scrolls when long, remembers its collapsed state. Apps can replace it with their own renderer (a
   contribution), as mvs-stories and mesoscale-explorer do today.
-- **Trajectory controls** (when the current structure comes from a multi-model trajectory): `Model 4 / 20`, first,
-  previous, next, last, play/pause (model-index animation), and a scrubber.
-- **Animation** button (when animations are registered and something is loaded): opens the animation overlay.
+- **Timeline** (bottom centre, when the current structure comes from a multi-model trajectory or an animation runs):
+  `4 / 20`, first, previous, scrubber, next, last, play/pause (model-index animation). Kept apart from the snapshot
+  panel so neither moves the other.
+- **Animation**: chosen and configured from the timeline (an overlay), played there.
 
 ### 4.4 Hover label
 

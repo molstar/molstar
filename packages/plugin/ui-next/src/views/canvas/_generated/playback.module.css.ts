@@ -16,6 +16,7 @@ export const classes = {
   'description': 'msp-canvas-playback-description',
   'progress': 'msp-canvas-playback-progress',
   'scrubber': 'msp-canvas-playback-scrubber',
+  'timeline': 'msp-canvas-playback-timeline',
   'title': 'msp-canvas-playback-title',
 } as const;
 
@@ -31,9 +32,10 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 
 .msp-canvas-playback-card {
   border-radius: var(--msp-radius-lg);
-  background: color-mix(in oklab, var(--msp-color-panel), transparent 12%);
-  box-shadow: var(--msp-shadow-float);
-  backdrop-filter: blur(6px);
+  background: var(--msp-glass-bg);
+  border: var(--msp-glass-border);
+  box-shadow: var(--msp-glass-shadow);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
 }
 
 .msp-canvas-playback-bar {
@@ -76,6 +78,10 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
   border-top: 1px solid var(--msp-color-border);
   font-size: var(--msp-font-size-sm);
   overflow: auto;
+}
+
+.msp-canvas-playback-timeline {
+  width: min(460px, calc(100cqw - 2 * var(--msp-space-4)));
 }
 
 .msp-canvas-playback-scrubber {

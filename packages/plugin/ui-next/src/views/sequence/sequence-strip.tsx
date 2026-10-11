@@ -6,9 +6,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Button } from '../../components/button/button.js';
+import { Icon } from '../../components/icon/icon.js';
 import { classes } from './_generated/sequence-strip.module.css.js';
 
 export interface SequenceChain {
+  /** The structure it belongs to ("1TQN"). */
+  structure: string;
+  /** The chain ("A") and its entity description. */
   name: string;
   info?: string;
   /** One-letter codes. */
@@ -25,6 +30,8 @@ export function SequenceStrip(props: {
   chain: SequenceChain;
   onHover?: (seqNumber: number | undefined) => void;
   onToggle?: (seqNumber: number, selected: boolean) => void;
+  /** Collapses the strip (to the dock's slim bar). */
+  onCollapse?: () => void;
 }) {
   const { chain } = props;
   const residues = (<div class={classes.residues} />) as HTMLElement;
@@ -51,11 +58,28 @@ export function SequenceStrip(props: {
     const selected = target.classList.toggle(classes.selected);
     props.onToggle?.(Number(target.dataset.seq), selected);
   });
+  // The current structure and chain as selectors on top (as in the classic UI), so the residues get the full width.
   return (
     <div class={classes.strip}>
-      <div class={classes.chain}>
-        <span class={classes.chainName}>{chain.name}</span>
-        {chain.info ? <span class={classes.chainInfo}>{chain.info}</span> : null}
+      <div class={classes.header}>
+        <button type="button" class={classes.selector} title="Structure">
+          {chain.structure} <Icon name="chevron-down" size={12} />
+        </button>
+        <button type="button" class={classes.selector} title="Chain">
+          {chain.name}
+          {chain.info ? <span class={classes.info}>{chain.info}</span> : null}
+          <Icon name="chevron-down" size={12} />
+        </button>
+        <span class={classes.spacer} />
+        {props.onCollapse ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Icon name="chevron-up" />}
+            title="Hide the sequence"
+            onClick={() => props.onCollapse?.()}
+          />
+        ) : null}
       </div>
       {residues}
     </div>

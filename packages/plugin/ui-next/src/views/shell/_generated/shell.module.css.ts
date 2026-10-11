@@ -18,9 +18,9 @@ export const classes = {
 defineStyles('views/shell/shell.module.css', `@layer msp.components {
 .msp-shell-shell {
   background: var(--msp-color-bg);
-  grid-template: "top top top"
+  grid-template: "left top right"
                  "left viewport right" minmax(0, 1fr)
-                 "bottom bottom bottom"
+                 "left bottom right"
                  / auto minmax(0, 1fr) auto;
   width: 100%;
   height: 100%;
@@ -44,6 +44,7 @@ defineStyles('views/shell/shell.module.css', `@layer msp.components {
   min-height: 0;
   position: relative;
   overflow: hidden;
+  container: canvas / inline-size;
 }
 
 .msp-shell-canvas {
@@ -53,6 +54,7 @@ defineStyles('views/shell/shell.module.css', `@layer msp.components {
 
 .msp-shell-layer {
   pointer-events: none;
+  color: var(--msp-color-text);
   position: absolute;
   inset: 0;
 

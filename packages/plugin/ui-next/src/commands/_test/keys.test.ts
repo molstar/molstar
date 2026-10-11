@@ -6,6 +6,7 @@
  */
 
 import { observableState } from '../../reactive/observable-state.js';
+import { formatChord } from '../keys.js';
 import { CommandManager } from '../manager.js';
 import type { CommandDefinition } from '../types.js';
 
@@ -98,5 +99,15 @@ describe('keybindings', () => {
     press(document.body, { key: 'Process', code: 'KeyE', altKey: true });
     press(document.body, { key: '´', code: 'KeyE', altKey: true, isComposing: true });
     expect(context.value.log).toEqual(['scene.edit']);
+  });
+});
+
+describe('chord display', () => {
+  it('shows ⌘ on macOS and Ctrl elsewhere', () => {
+    expect(formatChord({ key: 'k', mod: true }, true)).toBe('⌘K');
+    expect(formatChord({ key: 'k', mod: true }, false)).toBe('Ctrl+K');
+    expect(formatChord({ key: 'p', mod: true, shift: true }, true)).toBe('⇧⌘P');
+    expect(formatChord({ key: 'p', mod: true, shift: true }, false)).toBe('Ctrl+Shift+P');
+    expect(formatChord({ key: 'ArrowRight', alt: true }, false)).toBe('Alt+→');
   });
 });

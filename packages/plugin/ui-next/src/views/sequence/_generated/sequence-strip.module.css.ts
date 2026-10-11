@@ -9,46 +9,61 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
-  'chain': 'msp-sequence-sequence-strip-chain',
-  'chainInfo': 'msp-sequence-sequence-strip-chainInfo',
-  'chainName': 'msp-sequence-sequence-strip-chainName',
   'gap': 'msp-sequence-sequence-strip-gap',
+  'header': 'msp-sequence-sequence-strip-header',
+  'info': 'msp-sequence-sequence-strip-info',
   'residue': 'msp-sequence-sequence-strip-residue',
   'residues': 'msp-sequence-sequence-strip-residues',
   'selected': 'msp-sequence-sequence-strip-selected',
+  'selector': 'msp-sequence-sequence-strip-selector',
+  'spacer': 'msp-sequence-sequence-strip-spacer',
   'strip': 'msp-sequence-sequence-strip-strip',
 } as const;
 
 defineStyles('views/sequence/sequence-strip.module.css', `@layer msp.components {
 .msp-sequence-sequence-strip-strip {
-  align-items: stretch;
+  flex-direction: column;
   min-width: 0;
   height: 100%;
   display: flex;
 }
 
-.msp-sequence-sequence-strip-chain {
-  padding: 0 var(--msp-space-4);
-  border-right: 1px solid var(--msp-color-border);
-  font-size: var(--msp-font-size-sm);
-  white-space: nowrap;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
+.msp-sequence-sequence-strip-header {
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 26px;
+  padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
+  border-bottom: 1px solid var(--msp-color-border);
   display: flex;
 }
 
-.msp-sequence-sequence-strip-chainName {
+.msp-sequence-sequence-strip-selector {
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 22px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  font-size: var(--msp-font-size-sm);
   font-weight: 600;
+  display: inline-flex;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
 }
 
-.msp-sequence-sequence-strip-chainInfo {
+.msp-sequence-sequence-strip-info {
   color: var(--msp-color-text-muted);
-  font-size: var(--msp-font-size-xs);
+  font-weight: 400;
+}
+
+.msp-sequence-sequence-strip-spacer {
+  flex: 1;
 }
 
 .msp-sequence-sequence-strip-residues {
   min-width: 0;
+  min-height: 0;
   padding: var(--msp-space-2) var(--msp-space-3);
   font-family: var(--msp-font-mono);
   flex-wrap: wrap;

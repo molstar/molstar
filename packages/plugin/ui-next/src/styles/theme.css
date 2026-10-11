@@ -82,6 +82,13 @@
     --msp-color-focus-ring: var(--msp-color-accent);
     --msp-color-scrim: rgb(0 0 0 / 0.35);
 
+    /* Glass: everything floating over the canvas (toolbar, cards, pills, labels). Flat: translucency, blur and a
+       hairline edge define it; no drop shadows on the canvas. */
+    --msp-glass-bg: color-mix(in oklab, var(--msp-color-panel), transparent 30%);
+    --msp-glass-filter: blur(20px) saturate(1.4);
+    --msp-glass-shadow: none;
+    --msp-glass-border: 1px solid color-mix(in oklab, var(--msp-shade), transparent 86%);
+
     /* Accents for extension and node-kind brands (the classic card accents). */
     --msp-accent-cyan: #7f8c8d;
     --msp-accent-red: #e74c3c;

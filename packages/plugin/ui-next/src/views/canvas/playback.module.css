@@ -15,9 +15,11 @@
 
 .card {
   border-radius: var(--msp-radius-lg);
-  background: color-mix(in oklab, var(--msp-color-panel), transparent 12%);
-  box-shadow: var(--msp-shadow-float);
-  backdrop-filter: blur(6px);
+  background: var(--msp-glass-bg);
+  border: var(--msp-glass-border);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
 }
 
 .bar {
@@ -60,6 +62,10 @@
   border-top: 1px solid var(--msp-color-border);
   overflow: auto;
   font-size: var(--msp-font-size-sm);
+}
+
+.timeline {
+  width: min(460px, calc(100cqw - 2 * var(--msp-space-4)));
 }
 
 .scrubber {

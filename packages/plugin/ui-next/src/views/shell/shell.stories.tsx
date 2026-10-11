@@ -9,6 +9,7 @@
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { map } from 'rxjs';
 import { story } from '../../_stories/story-root.js';
+import { formatChord } from '../../commands/keys.js';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { For } from '../../dom/control-flow.js';
@@ -20,7 +21,7 @@ import type { HoverLabelModel, SnapshotStepperModel, TrajectoryControlsModel } f
 import { ShellModel } from '../../shell/shell.js';
 import { StatusModel } from '../../shell/status.js';
 import { HoverLabel } from '../canvas/hover-label.js';
-import { Playback } from '../canvas/playback.js';
+import { SnapshotPanel, Timeline } from '../canvas/playback.js';
 import { SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
 import { ShellView } from './shell-view.js';
@@ -146,6 +147,7 @@ function mockShell(options: { loaded: boolean }) {
   const shell = new ShellModel();
   const status = new StatusModel();
   const selectionMode = observableState(false);
+  const illumination = observableState(false);
   const snapshots = observableState<readonly string[]>(['Overview', 'Active site']);
   const hoverLines = observableState<readonly string[]>([]);
   const hover: HoverLabelModel = { lines: hoverLines.asReadonly };
@@ -172,7 +174,7 @@ function mockShell(options: { loaded: boolean }) {
             ))}
           </div>
           <p style={muted}>
-            Press <kbd>⌘K</kbd> for every command.
+            Press <kbd>{formatChord({ key: 'k', mod: true })}</kbd> for every command.
           </p>
         </div>
       )),
@@ -212,9 +214,10 @@ function mockShell(options: { loaded: boolean }) {
         title: 'Sequence',
         icon: 'sequence',
         dock: 'top',
-        render: domView(() => (
+        render: domView(({ ctx }) => (
           <SequenceStrip
-            chain={{ name: 'Chain A', info: '1TQN · P450 3A4', sequence: Sequence, start: 1 }}
+            chain={{ structure: '1TQN', name: 'Chain A', info: 'Cytochrome P450 3A4', sequence: Sequence, start: 1 }}
+            onCollapse={() => ctx.shell.toggle(ctx.dock ?? 'top')}
             onHover={(n) =>
               hoverLines.set(n === undefined ? [] : [`${ThreeLetter[Sequence[n - 1]] ?? '?'} ${n}`, 'Chain A · 1TQN'])
             }
@@ -299,7 +302,12 @@ function mockShell(options: { loaded: boolean }) {
   ]);
 
   shell.registerToolbar([
-    { id: 'palette', icon: 'command', title: 'Commands (⌘K)', run: () => status.post('The palette comes next.') },
+    {
+      id: 'palette',
+      icon: 'command',
+      title: `Commands (${formatChord({ key: 'k', mod: true })})`,
+      run: () => status.post('The palette comes next.'),
+    },
     { id: 'reset', icon: 'rotate-ccw', title: 'Reset camera', run: () => status.post('Camera reset') },
     { id: 'screenshot', icon: 'camera', title: 'Screenshot', overlay: 'screenshot' },
     { id: 'save', icon: 'save', title: 'Save state', overlay: 'save-state' },
@@ -309,6 +317,19 @@ function mockShell(options: { loaded: boolean }) {
       title: 'Selection mode',
       pressed: selectionMode.asReadonly,
       run: () => selectionMode.set(!selectionMode.value),
+    },
+    {
+      id: 'illumination',
+      icon: 'lightbulb',
+      title: 'Illumination',
+      pressed: illumination.asReadonly,
+      run: () => illumination.set(!illumination.value),
+    },
+    {
+      id: 'xr',
+      icon: 'glasses',
+      title: 'Enter XR',
+      run: () => status.post('XR is not available in this browser.', 'warning'),
     },
     { id: 'expand', icon: 'maximize', title: 'Expand', run: () => status.post('Expanded') },
   ]);
@@ -324,7 +345,7 @@ function mockShell(options: { loaded: boolean }) {
   return { shell, status, hover, hoverLines, snapshots: mockSnapshots(status), trajectory: mockTrajectory() };
 }
 
-function ShellStory(props: { loaded: boolean }) {
+function ShellStory(props: { loaded: boolean; darkCanvas?: boolean }) {
   const { shell, status, hover, hoverLines, snapshots, trajectory } = mockShell(props);
   shell.mount();
   status.mount();
@@ -339,6 +360,7 @@ function ShellStory(props: { loaded: boolean }) {
       canvas={
         <CanvasPlaceholder
           empty={!props.loaded}
+          background={props.darkCanvas ? 'radial-gradient(circle at 50% 45%, #1c1f26 0%, #0b0c0f 80%)' : undefined}
           onHover={(i) =>
             hoverLines.set(
               i === undefined ? [] : [`${ThreeLetter[Sequence[i * 4]] ?? 'GLY'} ${i * 4 + 1}`, 'Chain A · 1TQN'],
@@ -349,11 +371,13 @@ function ShellStory(props: { loaded: boolean }) {
       overlays={
         props.loaded ? (
           <>
-            <Playback snapshots={snapshots} trajectory={trajectory} />
+            <SnapshotPanel model={snapshots} />
             <HoverLabel model={hover} area={() => document.querySelector('main')} />
           </>
         ) : null
       }
+      timeline={props.loaded ? <Timeline model={trajectory} /> : null}
+      canvasTheme={props.darkCanvas ? 'dark' : 'light'}
       onOpenLog={() => shell.openOverlay('log')}
     />
   );
@@ -367,6 +391,11 @@ export const Empty: StoryObj = {
 /** A structure loaded: the Structure tab, a status message, a running task and the selection chip. */
 export const Loaded: StoryObj = {
   render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} />}</div>),
+};
+
+/** A dark canvas background: the chrome over it turns dark too, whatever the UI theme. */
+export const DarkCanvas: StoryObj = {
+  render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} darkCanvas={true} />}</div>),
 };
 
 /** A narrow host: the panel becomes a bottom sheet with its tabs along the bottom. */

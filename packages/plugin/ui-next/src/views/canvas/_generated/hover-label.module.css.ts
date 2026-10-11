@@ -20,8 +20,6 @@ defineStyles('views/canvas/hover-label.module.css', `@layer msp.components {
   max-width: 280px;
   padding: var(--msp-space-2) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-panel), transparent 8%);
-  box-shadow: var(--msp-shadow-float);
   font-size: var(--msp-font-size-sm);
   pointer-events: none;
   will-change: transform;
@@ -34,6 +32,11 @@ defineStyles('views/canvas/hover-label.module.css', `@layer msp.components {
   &[hidden] {
     display: none;
   }
+
+  background: var(--msp-glass-bg);
+  border: var(--msp-glass-border);
+  box-shadow: var(--msp-glass-shadow);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
 }
 
 .msp-canvas-hover-label-primary {
