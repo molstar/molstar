@@ -162,6 +162,10 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   overflow: auto;
 }
 
+.msp-shell-canvas-stack:not(:has(button)) {
+  display: none;
+}
+
 .msp-shell-canvas-stack {
   --msp-stack-row: 34px;
   top: var(--msp-canvas-top-inset, var(--msp-canvas-edge, 8px));

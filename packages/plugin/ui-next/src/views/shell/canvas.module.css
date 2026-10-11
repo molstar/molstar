@@ -131,6 +131,11 @@
 /* The canvas stack: top right of the canvas, under what floats at the top, beside the rail or the open panel. A frame,
    and beside it what opens from it (the picking level), outside the frame's clipping. Denser than the rail: it sits on
    the canvas. */
+/* Nothing to show in the stack (an empty canvas: no mode buttons, every tool hidden): no empty frame either. */
+.stack:not(:has(button)) {
+  display: none;
+}
+
 .stack {
   --msp-stack-row: 34px;
 

@@ -7,7 +7,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { combineLatest, map } from 'rxjs';
+import { combineLatest, map, of } from 'rxjs';
 import { story } from '../../_stories/story-root.js';
 import { formatChord, isMac } from '../../commands/keys.js';
 import { Button } from '../../components/button/button.js';
@@ -382,6 +382,9 @@ function mockShell(options: {
     ]);
   }
 
+  // The canvas stack's camera and rendering tools act on what is shown: nothing loaded, nothing to show them for.
+  const hasData = of(options.loaded);
+
   shell.registerToolbar([
     {
       id: 'palette',
@@ -394,6 +397,7 @@ function mockShell(options: {
       id: 'reset',
       place: 'canvas',
       group: 'canvas',
+      visible: hasData,
       icon: 'focus',
       title: 'Reset camera',
       run: () => status.post('Camera reset'),
@@ -447,6 +451,7 @@ function mockShell(options: {
       id: 'rendering',
       place: 'canvas',
       group: 'canvas',
+      visible: hasData,
       icon: 'sparkles',
       title: 'Illumination & XR',
       pressed: illumination.asReadonly,
@@ -472,6 +477,7 @@ function mockShell(options: {
       id: 'expand',
       place: 'canvas',
       group: 'canvas',
+      visible: hasData,
       icon: 'maximize-2',
       title: 'Expand',
       run: () => status.post('Expanded'),
