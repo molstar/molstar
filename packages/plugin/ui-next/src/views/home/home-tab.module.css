@@ -83,12 +83,12 @@
   padding: var(--msp-space-1) var(--msp-space-3) 0;
 }
 
-/* The block's last row, edge to edge under a hairline: set defaults, then the action across the rest (Mol*'s footer). */
+/* The block's last row, edge to edge: set defaults, then the action across the rest (Mol*'s footer); no lines, the
+   hover shows each part. */
 .actionFooter {
   display: flex;
   height: 30px;
   margin: var(--msp-space-1) calc(-1 * var(--msp-space-3)) 0;
-  border-top: 1px solid var(--msp-glass-edge);
 }
 
 .actionReset {
@@ -96,7 +96,6 @@
   display: grid;
   place-items: center;
   width: 32px;
-  border-right: 1px solid var(--msp-glass-edge);
   color: var(--msp-color-text-muted);
 
   &:hover,

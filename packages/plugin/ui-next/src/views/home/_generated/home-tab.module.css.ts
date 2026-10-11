@@ -113,12 +113,10 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
 .msp-home-home-tab-actionFooter {
   height: 30px;
   margin: var(--msp-space-1) calc(-1 * var(--msp-space-3)) 0;
-  border-top: 1px solid var(--msp-glass-edge);
   display: flex;
 }
 
 .msp-home-home-tab-actionReset {
-  border-right: 1px solid var(--msp-glass-edge);
   width: 32px;
   color: var(--msp-color-text-muted);
   flex: none;
