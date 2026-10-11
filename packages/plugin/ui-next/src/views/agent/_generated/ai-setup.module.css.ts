@@ -12,6 +12,7 @@ export const classes = {
   'action': 'msp-agent-ai-setup-action',
   'caption': 'msp-agent-ai-setup-caption',
   'copy': 'msp-agent-ai-setup-copy',
+  'error': 'msp-agent-ai-setup-error',
   'fold': 'msp-agent-ai-setup-fold',
   'grow': 'msp-agent-ai-setup-grow',
   'intro': 'msp-agent-ai-setup-intro',
@@ -20,6 +21,7 @@ export const classes = {
   'label': 'msp-agent-ai-setup-label',
   'lead': 'msp-agent-ai-setup-lead',
   'link': 'msp-agent-ai-setup-link',
+  'modelRow': 'msp-agent-ai-setup-modelRow',
   'note': 'msp-agent-ai-setup-note',
   'own': 'msp-agent-ai-setup-own',
   'ownFoot': 'msp-agent-ai-setup-ownFoot',
@@ -28,6 +30,8 @@ export const classes = {
   'providerName': 'msp-agent-ai-setup-providerName',
   'providerState': 'msp-agent-ai-setup-providerState',
   'providers': 'msp-agent-ai-setup-providers',
+  'refresh': 'msp-agent-ai-setup-refresh',
+  'refresh-spin': 'msp-agent-ai-setup-refresh-spin',
   'row': 'msp-agent-ai-setup-row',
   'scope': 'msp-agent-ai-setup-scope',
   'scopes': 'msp-agent-ai-setup-scopes',
@@ -229,6 +233,41 @@ defineStyles('views/agent/ai-setup.module.css', `@layer msp.components {
   padding: 0 var(--msp-space-2);
   justify-content: flex-end;
   display: flex;
+}
+
+.msp-agent-ai-setup-modelRow {
+  grid-template-columns: var(--msp-label-width, 96px) minmax(0, 1fr) auto;
+}
+
+.msp-agent-ai-setup-refresh {
+  border-radius: var(--msp-radius-md);
+  width: 24px;
+  height: 24px;
+  color: var(--msp-color-text-muted);
+  place-items: center;
+  display: grid;
+
+  &:hover:not(:disabled) {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[data-busy] > svg {
+    animation: .9s linear infinite msp-agent-ai-setup-refresh-spin;
+  }
+}
+
+@keyframes msp-agent-ai-setup-refresh-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.msp-agent-ai-setup-error {
+  padding: 0 var(--msp-space-3);
+  color: var(--msp-color-danger);
+  font-size: var(--msp-font-size-xs);
+  margin: 0;
 }
 }
 `);

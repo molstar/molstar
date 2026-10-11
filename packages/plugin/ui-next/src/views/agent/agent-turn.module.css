@@ -305,3 +305,43 @@
     background: var(--msp-color-hover);
   }
 }
+
+/* A closed card: the request and its state, small; the spark pulses while the turn runs. */
+.pill {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  max-width: min(320px, calc(100cqw - 2 * var(--msp-space-4)));
+  height: 30px;
+  padding: 0 var(--msp-space-3);
+  border-radius: 15px;
+  background: var(--msp-glass-bg);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+
+  &:hover {
+    background: color-mix(in oklab, var(--msp-glass-bg), var(--msp-color-hover) 50%);
+  }
+
+  &:is([data-status="thinking"], [data-status="working"]) .spark {
+    animation: spark-pulse 1.4s var(--msp-ease) infinite;
+  }
+
+  &[data-status="waiting"] .state {
+    color: var(--msp-color-accent);
+  }
+}
+
+.pillPrompt {
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}

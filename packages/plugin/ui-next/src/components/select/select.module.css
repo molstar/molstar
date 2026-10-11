@@ -130,6 +130,12 @@
   border: 0;
   background: none;
   color: inherit;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+
+  & .option {
+    white-space: nowrap;
+  }
 
   & > .list {
     background: var(--msp-color-raised);

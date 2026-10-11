@@ -6,10 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { distinctUntilChanged, filter, map, type Observable } from 'rxjs';
+import { combineLatest, distinctUntilChanged, filter, map, type Observable } from 'rxjs';
 import { Icon, type IconName } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { For, Show } from '../../dom/control-flow.js';
+import { onCleanup } from '../../dom/scope.js';
 import type { AgentModel, AgentTurn, CommandRun, RunStatus, TurnStatus } from '../../model/agent.js';
 import { classes } from './_generated/agent-turn.module.css.js';
 
@@ -91,13 +92,18 @@ export function RunRow(props: { run: Observable<CommandRun> }) {
 /** A turn's runs, each row following its record. */
 export function RunList(props: { turn: Observable<AgentTurn>; class?: string }) {
   const runs = props.turn.pipe(map((t) => t.runs));
+  // By id: a run's record is replaced on every change, and a row made anew would restart its spinner.
+  const ids = runs.pipe(
+    map((rs) => rs.map((r) => r.id)),
+    distinctUntilChanged((a, b) => a.length === b.length && a.every((x, i) => x === b[i])),
+  );
   return (
     <div class={props.class}>
-      <For each={runs} key={(r) => r.id}>
-        {(r) => (
+      <For each={ids}>
+        {(id) => (
           <RunRow
             run={runs.pipe(
-              map((rs) => rs.find((x) => x.id === r.id)),
+              map((rs) => rs.find((x) => x.id === id)),
               filter((x): x is CommandRun => !!x),
               distinctUntilChanged(),
             )}
@@ -115,9 +121,62 @@ export function RunList(props: { turn: Observable<AgentTurn>; class?: string }) 
  */
 export function AgentTurnCard(props: { agent: AgentModel }) {
   const { agent } = props;
+  // Esc closes the card (to its pill): before the panels take it, but not from a field, a list, a menu or a dialog.
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape' || e.defaultPrevented || !agent.cardOpen.value || !agent.turn.value) return;
+    const target = e.target as HTMLElement | null;
+    if (
+      target?.isContentEditable ||
+      target?.closest?.('input, textarea, select, [role=listbox], [role=menu], [role=dialog], [popover]')
+    )
+      return;
+    e.preventDefault();
+    e.stopPropagation();
+    agent.dismiss();
+  };
+  document.addEventListener('keydown', onKey, true);
+  onCleanup(() => document.removeEventListener('keydown', onKey, true));
+  const which = (open: boolean) =>
+    combineLatest([agent.turn, agent.cardOpen]).pipe(
+      map(([t, o]) => (o === open ? t?.id : undefined)),
+      distinctUntilChanged(),
+    );
   return (
-    <Show when={agent.turn.pipe(map((t) => t?.id))}>
-      {(id) => {
+    <>
+      <Show when={which(false)}>{() => <TurnPill agent={agent} />}</Show>
+      <Show when={which(true)}>{(id) => <Card agent={agent} id={id} />}</Show>
+    </>
+  );
+}
+
+/** A closed card: the request and its state in a pill; a click opens the card again. */
+function TurnPill(props: { agent: AgentModel }) {
+  const turn = props.agent.turn.pipe(filter((t): t is AgentTurn => !!t));
+  const status = turn.pipe(
+    map((t) => t.status),
+    distinctUntilChanged(),
+  );
+  return (
+    <button
+      type="button"
+      class={classes.pill}
+      data-status={status}
+      aria-label="Show the assistant’s turn"
+      onClick={() => props.agent.reopen()}
+    >
+      <Icon name="sparkles" size={14} class={classes.spark} />
+      <span class={classes.pillPrompt}>{turn.pipe(map((t) => t.prompt))}</span>
+      <span class={classes.state}>{status.pipe(map((s) => TurnLabels[s]))}</span>
+    </button>
+  );
+}
+
+/** The open card of a turn. */
+function Card(props: { agent: AgentModel; id: string }) {
+  const { agent, id } = props;
+  return (
+    <Show when={id}>
+      {() => {
         const turn = agent.turn.pipe(
           filter((t): t is AgentTurn => t?.id === id),
           distinctUntilChanged(),
@@ -139,20 +198,7 @@ export function AgentTurnCard(props: { agent: AgentModel }) {
                 {turn.pipe(map((t) => t.prompt))}
               </span>
               <span class={classes.state}>{status.pipe(map((s) => TurnLabels[s]))}</span>
-              <Show
-                when={running}
-                fallback={() => (
-                  <button
-                    type="button"
-                    class={classes.icon}
-                    aria-label="Close"
-                    data-tip="Close"
-                    onClick={() => agent.dismiss()}
-                  >
-                    <Icon name="x" size={14} />
-                  </button>
-                )}
-              >
+              <Show when={running}>
                 {() => (
                   <button type="button" class={classes.stop} onClick={() => agent.stop()}>
                     <Icon name="square" size={10} />
@@ -160,6 +206,16 @@ export function AgentTurnCard(props: { agent: AgentModel }) {
                   </button>
                 )}
               </Show>
+              {/* Closes to the pill (Esc too); a running turn goes on. */}
+              <button
+                type="button"
+                class={classes.icon}
+                aria-label="Close"
+                data-tip="Close (Esc)"
+                onClick={() => agent.dismiss()}
+              >
+                <Icon name="x" size={14} />
+              </button>
             </header>
             <ScrollArea class={classes.body} contentClass={classes.bodyContent}>
               <Show when={turn.pipe(map((t) => t.text))}>

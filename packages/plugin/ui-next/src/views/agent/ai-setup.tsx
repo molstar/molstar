@@ -7,6 +7,7 @@
  */
 
 import { combineLatest, distinctUntilChanged, map } from 'rxjs';
+import { Icon } from '../../components/icon/icon.js';
 import { Select } from '../../components/select/select.js';
 import { TextInput } from '../../components/text-input/text-input.js';
 import { For, Show } from '../../dom/control-flow.js';
@@ -63,7 +64,7 @@ export function AISetup(props: { settings: AISettingsModel }) {
       </Show>
       <Show when={anyKey}>
         {() => (
-          <div class={classes.row}>
+          <div class={`${classes.row} ${classes.modelRow}`}>
             <span class={classes.label}>Model</span>
             <Show when={options}>
               {(opts) => (
@@ -81,6 +82,7 @@ export function AISetup(props: { settings: AISettingsModel }) {
                 />
               )}
             </Show>
+            <RefreshModels settings={settings} />
           </div>
         )}
       </Show>
@@ -189,45 +191,98 @@ function KeyForm(props: {
           {props.action ?? 'Save'}
         </button>
       </div>
-      <div class={classes.scopes} role="radiogroup" aria-label="Keep the key">
-        <span class={classes.scopesLabel}>Keep</span>
-        {Scopes.map(([id, label]) => (
-          <button
-            type="button"
-            role="radio"
-            class={classes.scope}
-            aria-checked={scope.asReadonly.pipe(map((s) => s === id))}
-            onClick={() => scope.set(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <ScopeChoice scope={scope} />
     </div>
   );
 }
 
-/** One's own OpenAI-compatible endpoint (Stories' "your own"): a name, the URL, which API, the key, a model. */
+/** How long a key is kept: until reload, this session, this browser. */
+function ScopeChoice(props: { scope: ObservableState<KeyScope> }) {
+  return (
+    <div class={classes.scopes} role="radiogroup" aria-label="Keep the key">
+      <span class={classes.scopesLabel}>Keep</span>
+      {Scopes.map(([id, label]) => (
+        <button
+          type="button"
+          role="radio"
+          class={classes.scope}
+          aria-checked={props.scope.asReadonly.pipe(map((s) => s === id))}
+          onClick={() => props.scope.set(id)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Asks the providers with a key for the models they offer now (their `/models`). */
+function RefreshModels(props: { settings: AISettingsModel }) {
+  const busy = observableState(false);
+  return (
+    <button
+      type="button"
+      class={classes.refresh}
+      aria-label="Ask the providers for their models"
+      data-tip="Ask the providers for their models"
+      disabled={busy.asReadonly}
+      data-busy={busy.asReadonly.pipe(map((b) => (b ? '' : undefined)))}
+      onClick={async () => {
+        busy.set(true);
+        try {
+          await props.settings.refreshModels();
+        } finally {
+          busy.set(false);
+        }
+      }}
+    >
+      <Icon name="refresh-cw" size={14} />
+    </button>
+  );
+}
+
+/**
+ * One's own OpenAI-compatible endpoint (Stories' "your own"): a name, the URL, which OpenAI API it speaks, its key and
+ * how long to keep it, and its models (typed, or fetched from its `/models`).
+ */
 function OwnEndpoint(props: { settings: AISettingsModel; onDone(): void }) {
-  const values = { label: '', baseURL: '', model: '' };
+  const values = { label: '', baseURL: '', key: '' };
   const api = observableState<'chat' | 'responses'>('chat');
-  const field = (name: keyof typeof values, label: string, placeholder: string) => (
+  const scope = observableState<KeyScope>('browser');
+  const models = observableState('');
+  const fetching = observableState<'idle' | 'busy' | 'failed'>('idle');
+  const field = (name: keyof typeof values, label: string, placeholder: string, type: 'text' | 'password' = 'text') => (
     <div class={classes.row}>
       <span class={classes.label}>{label}</span>
       <TextInput
         size="sm"
+        type={type}
         class={classes.grow}
         aria-label={label}
         placeholder={placeholder}
         onInput={(v) => {
-          values[name] = v;
+          values[name] = v.trim();
         }}
       />
     </div>
   );
-  const add = (key: string, scope: KeyScope) => {
-    if (!values.label || !values.baseURL || !values.model) return;
-    props.settings.addProvider({ ...values, key, scope, api: api.value });
+  const fetchModels = async () => {
+    fetching.set('busy');
+    try {
+      const ids = await props.settings.listModels({ baseURL: values.baseURL, key: values.key });
+      models.set(ids.join(', '));
+      fetching.set('idle');
+    } catch {
+      fetching.set('failed');
+    }
+  };
+  const add = () => {
+    const list = models.value
+      .split(/[,\s]+/)
+      .map((m) => m.trim())
+      .filter(Boolean);
+    if (!values.label || !values.baseURL || !list.length) return;
+    props.settings.addProvider({ ...values, scope: scope.value, api: api.value, models: list });
     props.onDone();
   };
   return (
@@ -242,18 +297,47 @@ function OwnEndpoint(props: { settings: AISettingsModel; onDone(): void }) {
           class={classes.grow}
           aria-label="API"
           options={[
-            ['chat', 'Chat completions'],
-            ['responses', 'Responses'],
+            ['chat', 'OpenAI chat completions'],
+            ['responses', 'OpenAI Responses'],
           ]}
           value={api.asReadonly}
           onChange={(v) => api.set(v as 'chat' | 'responses')}
         />
       </div>
-      {field('model', 'Model', 'e.g. llama-4-scout')}
-      <p class={classes.note}>
-        The key is optional for a local server; the server must allow this page to call it (CORS).
-      </p>
-      <KeyForm label="API key (optional)" action="Add" optional onSave={add} />
+      {field('key', 'Key', 'Optional for a local server', 'password')}
+      <ScopeChoice scope={scope} />
+      <div class={classes.row}>
+        <span class={classes.label}>Models</span>
+        <div class={classes.keyRow}>
+          <TextInput
+            size="sm"
+            class={classes.grow}
+            aria-label="Models"
+            placeholder="e.g. llama-4-scout, qwen3-coder"
+            value={models.asReadonly}
+            onInput={(v) => models.set(v)}
+          />
+          <button
+            type="button"
+            class={classes.link}
+            disabled={fetching.asReadonly.pipe(map((f) => f === 'busy'))}
+            onClick={fetchModels}
+          >
+            {fetching.asReadonly.pipe(map((f) => (f === 'busy' ? 'Fetching…' : 'Fetch')))}
+          </button>
+        </div>
+      </div>
+      <Show when={fetching.asReadonly.pipe(map((f) => f === 'failed'))}>
+        {() => (
+          <p class={classes.error}>Could not list its models: check the endpoint, the key, and that it allows CORS.</p>
+        )}
+      </Show>
+      <p class={classes.note}>It must speak an OpenAI API, and allow this page to call it (CORS).</p>
+      <div class={classes.ownFoot}>
+        <button type="button" class={classes.action} onClick={add}>
+          Add
+        </button>
+      </div>
     </div>
   );
 }

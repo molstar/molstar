@@ -10,7 +10,7 @@ import { combineLatest, distinctUntilChanged, filter, map, type Observable } fro
 import { Icon } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { For, Show } from '../../dom/control-flow.js';
-import type { AgentModel, AgentTurn, HistoryItem } from '../../model/agent.js';
+import type { AgentModel, AgentTurn, CommandRun, HistoryItem } from '../../model/agent.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { StatusModel } from '../../shell/status.js';
 import { LogView } from '../shell/log-view.js';
@@ -33,7 +33,17 @@ function ago(time: Date) {
 export function HistoryTab(props: { agent: AgentModel; status: StatusModel }) {
   const { agent } = props;
   const view = observableState<'commands' | 'messages'>('commands');
-  const newestFirst = agent.history.pipe(map((h) => h.slice().reverse()));
+  // By id, newest first: an item's record is replaced as its turn runs, and an item made anew would lose its fold.
+  const ids = agent.history.pipe(
+    map((h) => h.map(keyOf).reverse()),
+    distinctUntilChanged((a, b) => a.length === b.length && a.every((x, i) => x === b[i])),
+  );
+  const live = (id: string) =>
+    agent.history.pipe(
+      map((h) => h.find((x) => keyOf(x) === id)),
+      filter((x): x is HistoryItem => !!x),
+      distinctUntilChanged(),
+    );
   return (
     <div class={classes.tab}>
       <div class={classes.switch} role="tablist" aria-label="History">
@@ -56,32 +66,27 @@ export function HistoryTab(props: { agent: AgentModel; status: StatusModel }) {
         {() => (
           <ScrollArea class={classes.list} contentClass={classes.listContent} role="log" aria-label="Commands">
             <For
-              each={newestFirst}
-              key={keyOf}
+              each={ids}
               fallback={() => (
                 <p class={classes.empty}>Nothing run yet. Commands and the assistant’s work show here.</p>
               )}
             >
-              {(item) =>
-                item.kind === 'run' ? (
+              {(id) => {
+                const item = agent.history.value.find((x) => keyOf(x) === id)!;
+                return item.kind === 'run' ? (
                   <div class={classes.item}>
-                    <RunRow run={agent.history.pipe(map(() => item.run))} />
+                    <RunRow run={live(id).pipe(map((x) => (x as { kind: 'run'; run: CommandRun }).run))} />
                     <span class={classes.when}>{ago(item.run.time)}</span>
                   </div>
                 ) : (
                   <TurnItem
                     agent={agent}
-                    turn={agent.history.pipe(
-                      map((h) => h.find((x) => x.kind === 'turn' && x.turn.id === item.turn.id)),
-                      filter((x): x is { kind: 'turn'; turn: AgentTurn } => !!x && x.kind === 'turn'),
-                      map((x) => x.turn),
-                      distinctUntilChanged(),
-                    )}
-                    id={item.turn.id}
+                    turn={live(id).pipe(map((x) => (x as { kind: 'turn'; turn: AgentTurn }).turn))}
+                    id={id}
                     time={item.turn.time}
                   />
-                )
-              }
+                );
+              }}
             </For>
           </ScrollArea>
         )}

@@ -135,11 +135,17 @@ defineStyles('components/select/select.module.css', `@layer msp.components {
   color: inherit;
   background: none;
   border: 0;
+  width: max-content;
+  max-width: calc(100vw - 16px);
   margin: 0;
   padding: 0;
   position: fixed;
   inset: auto;
   overflow: visible;
+
+  & .msp-select-option {
+    white-space: nowrap;
+  }
 
   & > .msp-select-list {
     background: var(--msp-color-raised);

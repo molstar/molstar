@@ -159,13 +159,37 @@ export class MockAISettings implements AISettingsModel {
     this.#setup.set(setup);
   }
 
+  async refreshModels(provider?: string) {
+    await new Promise((r) => setTimeout(r, 700));
+    // What the providers' /models would add (a new release since the list was made).
+    const more: Record<string, string[]> = {
+      anthropic: ['claude-fable-5-1'],
+      google: ['gemini-3.8-flash-lite'],
+      openai: ['gpt-6-luna-nano'],
+    };
+    this.#providers.set(
+      this.#providers.value.map((p) =>
+        p.key && (!provider || p.id === provider) && more[p.id]
+          ? { ...p, models: [...new Set([...p.models, ...more[p.id]])] }
+          : p,
+      ),
+    );
+    this.post('Model lists updated from the providers', 'success');
+  }
+
+  async listModels(endpoint: { baseURL: string; key: string }) {
+    await new Promise((r) => setTimeout(r, 700));
+    if (!/^https?:\/\//.test(endpoint.baseURL)) throw new Error('Not a URL');
+    return ['llama-4-scout', 'qwen3-coder-next', 'mistral-large-3'];
+  }
+
   addProvider(own: {
     label: string;
     baseURL: string;
     api: 'chat' | 'responses';
     key: string;
     scope: KeyScope;
-    model: string;
+    models: readonly string[];
   }) {
     const id = `custom:${own.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
     this.#providers.set([
@@ -176,10 +200,10 @@ export class MockAISettings implements AISettingsModel {
         family: 'openai',
         baseURL: own.baseURL,
         key: own.key ? { from: 'here', scope: own.scope } : undefined,
-        models: [own.model],
+        models: own.models,
       },
     ]);
-    this.#setup.set({ provider: id, model: own.model });
+    this.#setup.set({ provider: id, model: own.models[0] });
     this.post(`Added ${own.label}`, 'success');
   }
 
@@ -203,6 +227,7 @@ const wait = (ms: number, signal: AbortSignal) =>
  */
 export class MockAgentModel implements AgentModel {
   readonly #turn = observableState<AgentTurn | undefined>(undefined);
+  readonly #cardOpen = observableState(false);
   readonly #history = observableState<readonly HistoryItem[]>([]);
   #serial = 0;
   #abort: AbortController | undefined;
@@ -210,6 +235,7 @@ export class MockAgentModel implements AgentModel {
 
   readonly settings: MockAISettings;
   readonly turn = this.#turn.asReadonly;
+  readonly cardOpen = this.#cardOpen.asReadonly;
   readonly history = this.#history.asReadonly;
 
   constructor(
@@ -276,13 +302,17 @@ export class MockAgentModel implements AgentModel {
   }
 
   dismiss() {
-    const t = this.#turn.value;
-    if (t && !isRunning(t)) this.#turn.set(undefined);
+    this.#cardOpen.set(false);
+  }
+
+  reopen() {
+    if (this.#turn.value) this.#cardOpen.set(true);
   }
 
   // The turn on show and its row in the history are one record, replaced on every change.
   #show(turn: AgentTurn) {
     this.#turn.set(turn);
+    this.#cardOpen.set(true);
     this.#history.set([...this.#history.value, { kind: 'turn', turn }]);
   }
 
@@ -431,10 +461,6 @@ export class MockAgentModel implements AgentModel {
       { kind: 'run', run: run('Take snapshot “Overview”', 'snapshot.add', 1) },
     ]);
   }
-}
-
-export function isRunning(t: AgentTurn) {
-  return t.status === 'thinking' || t.status === 'working' || t.status === 'waiting';
 }
 
 /**

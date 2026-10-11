@@ -24,6 +24,8 @@ export const classes = {
   'icon': 'msp-agent-agent-turn-icon',
   'mark': 'msp-agent-agent-turn-mark',
   'note': 'msp-agent-agent-turn-note',
+  'pill': 'msp-agent-agent-turn-pill',
+  'pillPrompt': 'msp-agent-agent-turn-pillPrompt',
   'prompt': 'msp-agent-agent-turn-prompt',
   'run': 'msp-agent-agent-turn-run',
   'runDetail': 'msp-agent-agent-turn-runDetail',
@@ -331,6 +333,43 @@ defineStyles('views/agent/agent-turn.module.css', `@layer msp.components {
   &:hover {
     background: var(--msp-color-hover);
   }
+}
+
+.msp-agent-agent-turn-pill {
+  align-items: center;
+  gap: var(--msp-space-2);
+  max-width: min(320px, calc(100cqw - 2 * var(--msp-space-4)));
+  height: 30px;
+  padding: 0 var(--msp-space-3);
+  background: var(--msp-glass-bg);
+  box-shadow: var(--msp-glass-shadow);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  border-radius: 15px;
+  display: flex;
+
+  &:hover {
+    background: color-mix(in oklab, var(--msp-glass-bg), var(--msp-color-hover) 50%);
+  }
+
+  &:is([data-status="thinking"], [data-status="working"]) .msp-agent-agent-turn-spark {
+    animation: msp-agent-agent-turn-spark-pulse 1.4s var(--msp-ease) infinite;
+  }
+
+  &[data-status="waiting"] .msp-agent-agent-turn-state {
+    color: var(--msp-color-accent);
+  }
+}
+
+.msp-agent-agent-turn-pillPrompt {
+  min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  white-space: nowrap;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  overflow: hidden;
 }
 }
 `);

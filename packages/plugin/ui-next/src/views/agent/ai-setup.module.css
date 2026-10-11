@@ -207,3 +207,39 @@
   justify-content: flex-end;
   padding: 0 var(--msp-space-2);
 }
+
+/* The model choice and, beside it, asking the providers for their models. */
+.modelRow {
+  grid-template-columns: var(--msp-label-width, 96px) minmax(0, 1fr) auto;
+}
+
+.refresh {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+
+  &:hover:not(:disabled) {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[data-busy] > svg {
+    animation: refresh-spin 0.9s linear infinite;
+  }
+}
+
+@keyframes refresh-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.error {
+  margin: 0;
+  padding: 0 var(--msp-space-3);
+  color: var(--msp-color-danger);
+  font-size: var(--msp-font-size-xs);
+}

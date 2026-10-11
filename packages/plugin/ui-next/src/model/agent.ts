@@ -103,14 +103,18 @@ export interface AISettingsModel {
   setKey(provider: string, key: string, scope: KeyScope): void;
   removeKey(provider: string): void;
   choose(setup: AISetup): void;
-  /** One's own OpenAI-compatible endpoint (name, URL, which API, key). */
+  /** Asks the providers with a key (or one) which models they offer now (their `/models`), and offers those. */
+  refreshModels(provider?: string): Promise<void>;
+  /** Asks an endpoint not added yet which models it offers (OpenAI-compatible `/models`). */
+  listModels(endpoint: { baseURL: string; key: string }): Promise<readonly string[]>;
+  /** One's own OpenAI-compatible endpoint (name, URL, which API, key, its models). */
   addProvider(own: {
     label: string;
     baseURL: string;
     api: 'chat' | 'responses';
     key: string;
     scope: KeyScope;
-    model: string;
+    models: readonly string[];
   }): void;
 }
 
@@ -121,8 +125,10 @@ export interface AISettingsModel {
 export interface AgentModel {
   /** The model setup; without a model, asking opens it. */
   settings: AISettingsModel;
-  /** The turn on show: running, waiting for the person, or just finished (until dismissed). */
+  /** The latest turn: running, waiting for the person, or the last one finished. */
   turn: ReadonlyState<AgentTurn | undefined>;
+  /** Its card is open (asking opens it; Esc or ✕ closes it to a pill, which reopens it). */
+  cardOpen: ReadonlyState<boolean>;
   /** Newest last. */
   history: ReadonlyState<readonly HistoryItem[]>;
   /** Hands a request to the agent (several steps, a turn of its own). */
@@ -133,6 +139,8 @@ export interface AgentModel {
   approve(runId: string, allow: boolean): void;
   /** Restores the checkpoint before the turn (says what else it discards: the person's runs after it). */
   undo(turnId: string): void;
-  /** Hides the finished turn's card (it stays in the history). */
+  /** Closes the turn's card (a running turn goes on; it stays in the history). */
   dismiss(): void;
+  /** Opens the latest turn's card again. */
+  reopen(): void;
 }

@@ -95,7 +95,8 @@ the state tree's undo does not cover (camera, selection, focus).
   the tool name): a spinner, its progress as a thin line when the command reports one, its outcome or error under it,
   its duration; reads quieter. Stop while it runs. A command waiting for approval shows what it does, why it asks
   ("Fetches data from www.ebi.ac.uk"), Deny and Allow. At the end, one line (commands, failures, time, tokens in and
-  out) and _Undo turn_ (back to the checkpoint).
+  out) and _Undo turn_ (back to the checkpoint). Esc or ✕ closes it to a pill (the request and its state, a pulsing
+  spark while it runs; a running turn goes on), and the pill opens it again.
 - **History** (the Log tab grows into it): every command, newest first; the person's one per row, an agent's grouped
   under its request with its answer, its commands folded under a one-line summary, and the checkpoint before it with
   _Undo turn_; Messages (the old log) one switch away.
@@ -104,11 +105,12 @@ the state tree's undo does not cover (camera, selection, focus).
   reload, for this session, kept in this browser, from the server), Add key / Change / Remove; entering a key also
   chooses how long it is kept (_Until reload_: memory only; _This session_; _This browser_). With no key yet, a word on
   what the assistant is comes first and the first provider's key is open. Then the model in use (only providers with a
-  key), and one's own OpenAI-compatible endpoint (name, URL, chat completions or Responses, model, an optional key;
-  OpenRouter, Ollama, vLLM, LiteLLM; the server must allow CORS). Keys go only to their provider; kept ones are stored
-  scrambled (encrypted with a key this browser keeps, as Stories does), so the storage read as it is gives no working
-  key, which the tab says, along with what it does not guard against (code running in the page). With a server-side
-  agent, keys come from its environment instead.
+  key; a refresh beside it asks the providers' `/models` for what they offer now), and one's own OpenAI-compatible
+  endpoint (name, URL, OpenAI chat completions or OpenAI Responses, an optional key and how long to keep it, its models
+  typed or fetched from its `/models`; OpenRouter, Ollama, vLLM, LiteLLM; the server must allow CORS). Keys go only to
+  their provider; kept ones are stored scrambled (encrypted with a key this browser keeps, as Stories does), so the
+  storage read as it is gives no working key, which the tab says, along with what it does not guard against (code
+  running in the page). With a server-side agent, keys come from its environment instead.
 - While an agent runs, the person's own commands still run (they are attributed to the person); undoing a turn also
   discards what the person did after it, and says so.
 
