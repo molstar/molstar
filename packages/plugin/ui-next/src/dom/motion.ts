@@ -25,7 +25,8 @@ export function playClose(el: Element, side: boolean): Animation | undefined {
       ]
     : [
         { height: `${el.getBoundingClientRect().height}px`, opacity: 1, overflow: 'clip' },
-        { height: '0px', opacity: 0, overflow: 'clip' },
+        // The whole box to nothing (padding and margins too, or they are left over and the end jumps).
+        { height: '0px', paddingBlock: '0px', marginBlock: '0px', opacity: 0, overflow: 'clip' },
       ];
   return (el as HTMLElement).animate(frames, { duration, easing, fill: 'forwards' });
 }

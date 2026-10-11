@@ -79,7 +79,11 @@
   /* Grows from nothing to its height (interpolate-size), so what is below glides down instead of jumping; clipped
      only while it grows. Without interpolate-size, it fades. */
   from {
+    /* The whole box from nothing: its padding and margins too, or they appear at once and the growth starts with a
+       jump. */
     height: 0;
+    padding-block: 0;
+    margin-block: 0;
     opacity: 0;
     overflow: clip;
   }

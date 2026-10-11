@@ -56,6 +56,8 @@ defineStyles('styles/reset.css', `@property --msp-fade {
   from {
     opacity: 0;
     height: 0;
+    margin-block: 0;
+    padding-block: 0;
     overflow: clip;
   }
 
