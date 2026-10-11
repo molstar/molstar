@@ -62,21 +62,23 @@ Next: the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin ye
 
 ## Documents
 
-| Document                                                 | Content                                                                 |
-| -------------------------------------------------------- | ----------------------------------------------------------------------- |
-| [analysis/current-ui.md](analysis/current-ui.md)         | Functional inventory of the current UI and its extension points         |
-| [analysis/plugin-state.md](analysis/plugin-state.md)     | Observable plugin state, gaps, command/input surface                    |
-| [analysis/stories-untold.md](analysis/stories-untold.md) | How stories-untold uses any-ui; take/adapt/leave                        |
-| [analysis/extensions.md](analysis/extensions.md)         | Extension and app UI inventory with prism-ui port forms                 |
-| [design/architecture.md](design/architecture.md)         | Rewrite decision, package layout, dependency rules, any-ui import       |
-| [design/view-models.md](design/view-models.md)           | Sources, view models, optimistic edits, actions                         |
-| [design/rendering.md](design/rendering.md)               | JSX runtime, custom elements, React/Preact                              |
-| [design/commands.md](design/commands.md)                 | Command definitions, registry, command menu, keybindings                |
-| [design/agent.md](design/agent.md)                       | Agents: commands as tools, state and focus, checkpoints, the client API |
-| [design/shell.md](design/shell.md)                       | Shell, default views, contributions, UI spec, embeddables               |
-| [design/modes.md](design/modes.md)                       | Modes: Mol\* and stories, the frame, opt-in story mode                  |
-| [design/styling.md](design/styling.md)                   | CSS Modules, tokens, themes, build                                      |
-| [plan.md](plan.md)                                       | Phases and acceptance                                                   |
+| Document                                                           | Content                                                                 |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| [analysis/current-ui.md](analysis/current-ui.md)                   | Functional inventory of the current UI and its extension points         |
+| [analysis/plugin-state.md](analysis/plugin-state.md)               | Observable plugin state, gaps, command/input surface                    |
+| [analysis/stories-untold.md](analysis/stories-untold.md)           | How stories-untold uses any-ui; take/adapt/leave                        |
+| [analysis/extensions.md](analysis/extensions.md)                   | Extension and app UI inventory with prism-ui port forms                 |
+| [analysis/harness-and-seqstar.md](analysis/harness-and-seqstar.md) | The agent harness and the sequence viewer: what Prism must host         |
+| [review.md](review.md)                                             | The spec review (2026-10-11): findings and open questions               |
+| [design/architecture.md](design/architecture.md)                   | Rewrite decision, package layout, dependency rules, any-ui import       |
+| [design/view-models.md](design/view-models.md)                     | Sources, view models, optimistic edits, actions                         |
+| [design/rendering.md](design/rendering.md)                         | JSX runtime, custom elements, React/Preact                              |
+| [design/commands.md](design/commands.md)                           | Command definitions, registry, command menu, keybindings                |
+| [design/agent.md](design/agent.md)                                 | Agents: commands as tools, state and focus, checkpoints, the client API |
+| [design/shell.md](design/shell.md)                                 | Shell, default views, contributions, UI spec, embeddables               |
+| [design/modes.md](design/modes.md)                                 | Modes: Mol\* and stories, the frame, opt-in story mode                  |
+| [design/styling.md](design/styling.md)                             | CSS Modules, tokens, themes, build                                      |
+| [plan.md](plan.md)                                                 | Phases and acceptance                                                   |
 
 ## Decisions
 
