@@ -18,9 +18,11 @@ import { installTooltips } from '../../components/tooltip/tooltip.js';
 import { CanvasStack, CanvasToolbar, ContextChips, OverlayHost, StatusLine } from './canvas-chrome.js';
 import { DockView, FloatingDock } from './dock-view.js';
 
-/** Widths (px) of what floats on the right: the rail (tab strip, toolbar), the gap to the card, the edge margin. */
+/**
+ * The rail's width, and the one margin of the canvas frame (px): every floating thing keeps 12px from the canvas
+ * edges, the docked rail, the open panel, and the sequence card.
+ */
 const RailWidth = 44;
-const Gap = 8;
 const Edge = 12;
 
 export interface ShellViewProps {
@@ -69,14 +71,15 @@ export function ShellView(props: ShellViewProps) {
   );
   // What floats at the top (the sequence card) takes this much: the snapshots and the canvas stack go below.
   const topInset = combineLatest([top.state, top.active, floatingTop]).pipe(
-    map(([s, active, f]) => (f && active ? Edge + s.size + Gap : Edge)),
+    map(([s, active, f]) => (f && active ? Edge + s.size + Edge : Edge)),
     distinctUntilChanged(),
     map((px) => `${px}px`),
   );
   // What floats on the right takes this much of the canvas: the bottom bar keeps clear of it.
   const rightInset = combineLatest([right.state, right.active, floating]).pipe(
-    // The docked rail is the canvas's right edge: what sits beside it keeps the edge's 12px, like the other edges.
-    map(([s, active, f]) => RailWidth + Edge + (f && active ? s.size + Gap : 0)),
+    // The docked rail is the canvas's right edge, and the open panel is too: what sits beside either keeps the edges'
+    // 12px.
+    map(([s, active, f]) => RailWidth + Edge + (f && active ? s.size + Edge : 0)),
     distinctUntilChanged(),
     map((px) => `${px}px`),
   );
