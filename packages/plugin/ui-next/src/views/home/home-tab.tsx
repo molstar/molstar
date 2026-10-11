@@ -62,7 +62,7 @@ export function ActionBlock(props: { action: HomeAction; open: boolean }) {
         <span class={classes.actionDescription}>{action.description}</span>
         <Icon name="chevron-down" size={14} class={classes.chevron} />
       </button>
-      <Show when={open}>
+      <Show when={open} reveal>
         {() => (
           <div class={classes.actionBody}>
             {action.form ? <ParamsForm form={action.form} /> : null}

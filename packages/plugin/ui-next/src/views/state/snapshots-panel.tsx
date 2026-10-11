@@ -72,7 +72,7 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
           onClick={() => toggle('options')}
         />
       </div>
-      <Show when={open}>
+      <Show when={open} reveal>
         {(block) =>
           block === 'save' ? (
             <ScrollArea

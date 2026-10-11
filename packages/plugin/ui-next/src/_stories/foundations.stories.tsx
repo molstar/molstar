@@ -7,6 +7,12 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
+import { map } from 'rxjs';
+import { Button } from '../components/button/button.js';
+import { Icon } from '../components/icon/icon.js';
+import { Select } from '../components/select/select.js';
+import { Show } from '../dom/control-flow.js';
+import { observableState } from '../reactive/observable-state.js';
 import { story } from './story-root.js';
 
 const meta: Meta = { title: 'Overview/Foundations' };
@@ -176,4 +182,126 @@ export const TypeAndSpace: StoryObj = {
         </div>
       </div>
     )),
+};
+
+/** One row that folds open: its chevron turns, its children grow in (Show's `reveal`) and collapse back. */
+function FoldRow(props: { label: string; children: readonly string[] }) {
+  const open = observableState(false);
+  return (
+    <div>
+      <button
+        type="button"
+        style="display: flex; align-items: center; gap: 6px; width: 100%; height: 26px; padding: 0 4px; border-radius: var(--msp-radius-md); color: var(--msp-color-text); font-size: var(--msp-font-size-sm);"
+        aria-expanded={open.asReadonly}
+        onClick={() => open.set(!open.value)}
+      >
+        <span
+          style={{
+            display: 'inline-flex',
+            transition: 'transform var(--msp-motion-fast) var(--msp-ease)',
+            transform: open.asReadonly.pipe(map((o) => (o ? 'rotate(90deg)' : 'none'))),
+          }}
+        >
+          <Icon name="chevron-right" size={14} />
+        </span>
+        {props.label}
+      </button>
+      <Show when={open.asReadonly} reveal>
+        {() => (
+          <div style="display: grid; padding-left: 24px;">
+            {props.children.map((c) => (
+              <div style="height: 26px; display: flex; align-items: center; color: var(--msp-color-text-muted); font-size: var(--msp-font-size-sm);">
+                {c}
+              </div>
+            ))}
+          </div>
+        )}
+      </Show>
+    </div>
+  );
+}
+
+/**
+ * Motion: what moves, and how (`--msp-motion-fast` for state changes, `--msp-motion-base` for content that opens,
+ * `--msp-ease`). Content that opens grows to its height and fades in, and closing plays it back (Show's `reveal`;
+ * `dom/motion.ts` for code that hides content itself, as section lists do); panels slide in from the side; chevrons
+ * turn; hover and press change color; option lists and popovers drop in. Nothing animates on the first render, on a
+ * tab switch, for rows of a list, or with reduced motion. Slow motion (×5) to look at them.
+ */
+export const Motion: StoryObj = {
+  render: () =>
+    story(() => {
+      const slow = observableState(false);
+      const panel = observableState(false);
+      const theme = observableState('chain-id');
+      const card =
+        'display: grid; gap: 8px; align-content: start; padding: 12px; border-radius: var(--msp-radius-lg); background: var(--msp-color-panel); box-shadow: inset 0 0 0 1px var(--msp-glass-edge);';
+      return (
+        <div
+          style={{
+            display: 'grid',
+            gap: '12px',
+            padding: '16px',
+            maxWidth: '960px',
+            '--msp-motion-fast': slow.asReadonly.pipe(map((s) => (s ? '500ms' : ''))),
+            '--msp-motion-base': slow.asReadonly.pipe(map((s) => (s ? '900ms' : ''))),
+          }}
+        >
+          <div style="display: flex; gap: 16px; align-items: center;">
+            <label style="display: flex; gap: 6px; align-items: center; font-size: var(--msp-font-size-sm);">
+              <input type="checkbox" checked={slow.asReadonly} onChange={(e) => slow.set(e.currentTarget.checked)} />
+              Slow motion (×5)
+            </label>
+            <p style={note}>
+              --msp-motion-fast 100 ms · --msp-motion-base 180 ms · --msp-ease cubic-bezier(0.2, 0, 0, 1)
+            </p>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;">
+            <section style={card}>
+              <h3 style={heading}>Fold (trees, groups, sections)</h3>
+              <p style={note}>The chevron turns (fast); the content grows in (base) and collapses back.</p>
+              <FoldRow label="1TQN" children={['Polymer', 'Ligand', 'Water']} />
+              <FoldRow label="Advanced" children={['Quality', 'Smoothness', 'Ignore light']} />
+            </section>
+            <section style={card}>
+              <h3 style={heading}>Panel (the right dock, cards)</h3>
+              <p style={note}>Slides in from the side and back; a tab switch inside does not move.</p>
+              <Button size="sm" onClick={() => panel.set(!panel.value)}>
+                {panel.asReadonly.pipe(map((p) => (p ? 'Close' : 'Open')))}
+              </Button>
+              <div style="min-height: 120px;">
+                <Show when={panel.asReadonly} reveal="side">
+                  {() => (
+                    <div style="height: 110px; padding: 12px; border-radius: var(--msp-radius-md); background: var(--msp-color-raised); font-size: var(--msp-font-size-sm);">
+                      A panel
+                    </div>
+                  )}
+                </Show>
+              </div>
+            </section>
+            <section style={card}>
+              <h3 style={heading}>State (hover, press, lists)</h3>
+              <p style={note}>Colors change (fast); an option list drops in.</p>
+              <div style="display: flex; gap: 8px;">
+                <Button size="sm">Hover me</Button>
+                <Button size="sm" variant="primary">
+                  Press me
+                </Button>
+              </div>
+              <Select
+                size="sm"
+                aria-label="Color theme"
+                options={[
+                  ['chain-id', 'Chain ID'],
+                  ['element-symbol', 'Element symbol'],
+                  ['uniform', 'Uniform'],
+                ]}
+                value={theme.asReadonly}
+                onChange={(v) => theme.set(v)}
+              />
+            </section>
+          </div>
+        </div>
+      );
+    }),
 };

@@ -9,6 +9,7 @@
 import { map } from 'rxjs';
 import { Icon } from '../../components/icon/icon.js';
 import { For } from '../../dom/control-flow.js';
+import { playClose } from '../../dom/motion.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ShellModel, ShellSection, ShellViewContext } from '../../shell/shell.js';
 import { classes } from './_generated/section-list.module.css.js';
@@ -63,17 +64,50 @@ function SectionBlock(props: {
 }) {
   const { ctx, section } = props;
   const open = observableState(props.open);
+  // What the header says (its chevron turns at once), ahead of the body while it closes.
+  const expanded = observableState(props.open);
+  // Opened by the user from here on: reveal it (as Show's `reveal`); the first render stays still.
+  const toggled = observableState(false);
+  let body: HTMLElement | undefined;
+  let closing: Animation | undefined;
   const toggle = () => {
-    open.set(!open.value);
+    toggled.set(true);
+    closing?.cancel();
+    closing = undefined;
+    expanded.set(!expanded.value);
+    // Closing plays the reveal back first (the body stays rendered, so it only hides after).
+    const anim = !expanded.value && open.value && body ? playClose(body, false) : undefined;
+    if (anim) {
+      closing = anim;
+      ctx.shell.setSectionOpen(props.slot, section.id, false);
+      anim.finished.then(
+        () => {
+          if (closing !== anim) return;
+          closing = undefined;
+          open.set(false);
+          anim.cancel();
+        },
+        () => {},
+      );
+      return;
+    }
+    open.set(expanded.value);
     ctx.shell.setSectionOpen(props.slot, section.id, open.value);
   };
   const block = (
     <section class={classes.section} data-section={section.id}>
-      <button type="button" class={classes.header} aria-expanded={open} onClick={toggle}>
+      <button type="button" class={classes.header} aria-expanded={expanded} onClick={toggle}>
         <span class={classes.title}>{section.title}</span>
         <Icon name="chevron-down" size={14} class={classes.chevron} />
       </button>
-      <div class={classes.body} hidden={open.asReadonly.pipe(map((o) => !o))}>
+      <div
+        class={classes.body}
+        ref={(el) => {
+          body = el;
+        }}
+        hidden={open.asReadonly.pipe(map((o) => !o))}
+        data-reveal={toggled.asReadonly.pipe(map((t) => (t ? '' : undefined)))}
+      >
         <ViewHost renderer={section.render} ctx={ctx} />
       </div>
     </section>

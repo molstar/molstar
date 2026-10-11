@@ -165,7 +165,7 @@ function Cell(props: {
           />
         )}
       </Show>
-      <Show when={expanded}>
+      <Show when={expanded} reveal>
         {() => (
           <div role="group">
             <For each={node.children ?? []} key={(n) => n.ref}>

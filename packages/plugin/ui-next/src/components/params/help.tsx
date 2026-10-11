@@ -101,7 +101,7 @@ export function withHelp(label: string, help: Observable<ParamHelp | undefined> 
 
 function HelpBlock(props: { help: Observable<ParamHelp | undefined>; open: ObservableState<boolean> }) {
   return (
-    <Show when={props.open}>
+    <Show when={props.open} reveal>
       {() => (
         <Show when={props.help}>
           {(h) => (

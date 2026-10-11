@@ -95,7 +95,9 @@ export function AISetup(props: { settings: AISettingsModel }) {
       <button type="button" class={classes.fold} aria-expanded={own.asReadonly} onClick={() => own.set(!own.value)}>
         <span>Your own endpoint</span>
       </button>
-      <Show when={own.asReadonly}>{() => <OwnEndpoint settings={settings} onDone={() => own.set(false)} />}</Show>
+      <Show when={own.asReadonly} reveal>
+        {() => <OwnEndpoint settings={settings} onDone={() => own.set(false)} />}
+      </Show>
       <p class={classes.note}>
         Keys go only to their provider. Kept ones are stored scrambled, so reading the browser’s storage as it is gives
         no working key (it does not guard against code running in this page). The model applies from the next request.
@@ -146,7 +148,7 @@ function ProviderRow(props: {
           )}
         </Show>
       </div>
-      <Show when={editing}>
+      <Show when={editing} reveal>
         {() => (
           <KeyForm
             label={`${props.provider.label} API key`}

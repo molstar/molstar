@@ -52,8 +52,28 @@ defineStyles('styles/reset.css', `@property --msp-fade {
   }
 }
 
+@keyframes msp-reveal {
+  from {
+    opacity: 0;
+    height: 0;
+    overflow: clip;
+  }
+
+  to {
+    overflow: clip;
+  }
+}
+
+@keyframes msp-reveal-side {
+  from {
+    opacity: 0;
+    translate: 12px;
+  }
+}
+
 @layer msp.reset {
   :where(.msp-root) {
+    interpolate-size: allow-keywords;
     font-family: var(--msp-font-sans);
     font-size: var(--msp-font-size-md);
     line-height: var(--msp-line-height);
@@ -106,6 +126,14 @@ defineStyles('styles/reset.css', `@property --msp-fade {
   :where(.msp-root) :where(:focus-visible) {
     outline: 2px solid var(--msp-color-focus-ring);
     outline-offset: 1px;
+  }
+
+  :where(.msp-root) :where([data-reveal]) {
+    animation: msp-reveal var(--msp-motion-base) var(--msp-ease);
+  }
+
+  :where(.msp-root) :where([data-reveal="side"]) {
+    animation-name: msp-reveal-side;
   }
 
   :where(.msp-root) :where([hidden]) {

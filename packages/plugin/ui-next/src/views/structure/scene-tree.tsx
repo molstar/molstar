@@ -110,7 +110,7 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
       <Show when={menuOpen}>
         {() => <RowMenu items={menuOf(node)} depth={depth} onDone={() => menuOpen.set(false)} />}
       </Show>
-      <Show when={open}>
+      <Show when={open} reveal>
         {() => {
           // Children computed on first look (lazy nodes); until they arrive, a quiet loading row.
           node.load?.();
@@ -204,7 +204,7 @@ function SubMenu(props: { item: SceneMenuItem; onDone(): void }) {
         <Icon name="chevron-right" size={12} class={classes.subChevron} />
         <span>{item.label}</span>
       </button>
-      <Show when={open}>
+      <Show when={open} reveal>
         {() => (
           <div class={classes.subItems} role="menu" aria-label={item.label}>
             <MenuItems items={item.items!} onDone={props.onDone} />

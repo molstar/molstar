@@ -43,7 +43,11 @@ export function DockView(props: {
           classList={{ [classes.compact]: compact }}
           style={{ '--msp-dock-size': dock.state.pipe(map((s) => `${s.size}px`)) }}
         >
-          <Show when={dock.active} fallback={horizontal ? () => <CollapsedBar shell={shell} dock={dock} /> : undefined}>
+          <Show
+            when={dock.active}
+            reveal
+            fallback={horizontal ? () => <CollapsedBar shell={shell} dock={dock} /> : undefined}
+          >
             {(tab) => <DockContent shell={shell} dock={dock} tab={tab} />}
           </Show>
           <Show when={showStrip}>
@@ -91,7 +95,9 @@ export function FloatingDock(props: {
         class={`${classes.floating} ${dock.id === 'top' ? classes.floatingTop : classes.floatingBottom}`}
         style={size}
       >
-        <Show when={dock.active}>{(tab) => <DockContent shell={shell} dock={dock} tab={tab} />}</Show>
+        <Show when={dock.active} reveal>
+          {(tab) => <DockContent shell={shell} dock={dock} tab={tab} />}
+        </Show>
       </div>
     );
   }
@@ -128,7 +134,9 @@ export function FloatingDock(props: {
           {props.railFoot}
         </div>
       </div>
-      <Show when={dock.active}>{(tab) => <DockContent shell={shell} dock={dock} tab={tab} pinnable />}</Show>
+      <Show when={dock.active} reveal="side">
+        {(tab) => <DockContent shell={shell} dock={dock} tab={tab} pinnable />}
+      </Show>
     </div>
   );
 }

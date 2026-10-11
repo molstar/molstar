@@ -60,8 +60,9 @@ export function installTooltips(root: HTMLElement): () => void {
 
   const show = (el: HTMLElement, immediate: boolean) => {
     if (timer !== undefined) clearTimeout(timer);
-    // Its own text, only when cut off.
-    if (el.dataset.tip === undefined && el.scrollWidth <= el.clientWidth) {
+    // Its own text, only when cut off (by more than rounding: scrollWidth rounds a fractional width up, clientWidth
+    // down, so text that fits can read 1 px over).
+    if (el.dataset.tip === undefined && el.scrollWidth - el.clientWidth <= 1) {
       target = undefined;
       tip.hidden = true;
       return;

@@ -146,6 +146,11 @@ outside the layers.
   `overflow: hidden`, `white-space: nowrap`, the `mask-image` gradient over `--msp-fade` and the animation as longhands
   (the recipe is in `reset.css`: the `animation` shorthand cannot carry a timeline). `data-tip-overflow` shows the full
   text in the app's tooltip, only while it is cut off. Nothing uses `text-overflow: ellipsis`.
+- **Motion** (Overview › Foundations › Motion): state changes (hover, press, a chevron turning) take
+  `--msp-motion-fast`; content that opens grows to its height and fades in, and closing plays it back, in
+  `--msp-motion-base` (`Show`'s `reveal`, `dom/motion.ts` for content hidden by hand); panels slide in from the side;
+  option lists drop in. Nothing animates on the first render, on a tab switch, for the rows of a list, or with reduced
+  motion.
 - **Every scrolling area is a `ScrollArea`** (`components/scroll-area`, adapted from Base UI's): overlay scrollbars that
   look the same on every platform (a thin thumb in the text color, wider under the pointer, shown on hover, while
   scrolling and while dragged, none when nothing overflows; a press on the track jumps there and drags on) and edges

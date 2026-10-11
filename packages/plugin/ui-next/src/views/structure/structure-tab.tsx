@@ -101,7 +101,7 @@ export function StructureTab(props: StructureTabProps) {
           />
         ) : null}
       </div>
-      <Show when={open}>
+      <Show when={open} reveal>
         {(block) =>
           block === 'preset' && props.presets ? (
             <PresetMenu model={props.presets} onApplied={() => open.set(undefined)} />

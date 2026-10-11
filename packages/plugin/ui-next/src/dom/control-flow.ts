@@ -5,10 +5,11 @@
  */
 
 import { Scheduler } from '@molstar/core/task/util/scheduler';
-import { combineLatest, distinctUntilChanged, map, type Observable, of } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map, Observable, of } from 'rxjs';
 import { type ObservableState, observableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 import type { Child, Component } from './jsx-types.js';
+import { playClose } from './motion.js';
 import { insert, insertRegion, Passthrough, removeBetween } from './render.js';
 import { bind, type MaybeReactive, onCleanup, requireScope, runInScope, type Scope, toStream } from './scope.js';
 
@@ -31,13 +32,71 @@ export function Show<T>(props: {
   when: MaybeReactive<T>;
   fallback?: () => Child;
   children: (value: NonNullable<T>) => Child;
+  /**
+   * Content that opens (hidden to shown after the first render; not one shown value replacing another, like a tab
+   * switch) is revealed: its element gets `data-reveal`, which `reset.css` animates (it grows to its height and fades
+   * in, or slides in from the side with `'side'`). Closing plays it back (collapses or slides out, then goes). None
+   * with reduced motion. Overview › Foundations › Motion.
+   */
+  reveal?: boolean | 'side';
 }): Node {
+  let first = true;
+  let shown = false;
+  // The content's top elements, kept to play a closing back on them.
+  let tops: Element[] = [];
+  const content = (v: NonNullable<T>, reveal: boolean) => () => {
+    const child = props.children(v);
+    tops = topElements(child);
+    if (reveal) for (const el of tops) el.setAttribute('data-reveal', props.reveal === 'side' ? 'side' : '');
+    return child;
+  };
   return region(
-    toObservable(props.when).pipe(
-      distinctUntilChanged(),
-      map((v) => (v ? () => props.children(v as NonNullable<T>) : (props.fallback ?? null))),
-    ),
+    new Observable<Child>((subscriber) => {
+      let closing: Animation[] | undefined;
+      const sub = toObservable(props.when)
+        .pipe(distinctUntilChanged())
+        .subscribe((v) => {
+          // Reopened while closing: the closing stops, the content is rendered anew.
+          if (closing) for (const a of closing) a.cancel();
+          closing = undefined;
+          const opening = !first && !shown && !!v;
+          const closingNow = !first && shown && !v;
+          first = false;
+          shown = !!v;
+          if (v) {
+            subscriber.next(content(v as NonNullable<T>, !!props.reveal && opening));
+            return;
+          }
+          const animations = closingNow && props.reveal ? tops.map((el) => playClose(el, props.reveal === 'side')) : [];
+          if (animations.length === 0 || animations.some((a) => !a)) {
+            subscriber.next(props.fallback ?? null);
+            return;
+          }
+          const these = animations as Animation[];
+          closing = these;
+          Promise.all(these.map((a) => a.finished)).then(
+            () => {
+              if (closing !== these || subscriber.closed) return;
+              closing = undefined;
+              subscriber.next(props.fallback ?? null);
+            },
+            () => {},
+          );
+        });
+      return () => {
+        sub.unsubscribe();
+        if (closing) for (const a of closing) a.cancel();
+      };
+    }),
   );
+}
+
+/** The elements a child renders at its top (an element, a list's elements, a fragment's children). */
+function topElements(child: Child): Element[] {
+  if (child instanceof Element) return [child];
+  if (child instanceof DocumentFragment) return [...child.children];
+  if (Array.isArray(child)) return child.flatMap((c) => topElements(c as Child));
+  return [];
 }
 
 /** Renders a component that may change; props are passed as they are. */

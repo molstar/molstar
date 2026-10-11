@@ -126,7 +126,7 @@ function TurnItem(props: { agent: AgentModel; turn: Observable<AgentTurn>; id: s
         <Icon name="chevron-down" size={14} class={classes.chevron} />
       </button>
       {/* Its commands: shown while it runs, folded once it is done. */}
-      <Show when={combineLatest([open.asReadonly, running]).pipe(map(([o, r]) => o || r))}>
+      <Show when={combineLatest([open.asReadonly, running]).pipe(map(([o, r]) => o || r))} reveal>
         {() => <RunList turn={turn} class={classes.runs} />}
       </Show>
       {/* Its checkpoint, held until the next action: Undo turn goes back to it; after that, it says why it cannot. */}

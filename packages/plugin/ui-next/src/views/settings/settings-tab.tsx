@@ -77,7 +77,7 @@ function Group(props: { group: SettingsGroup; query: ReadonlyState<string>; open
           <Icon name="chevron-down" size={14} class={classes.chevron} />
         </button>
       </div>
-      <Show when={open}>
+      <Show when={open} reveal>
         {() => (
           <div class={classes.body} data-wide-labels={group.wideLabels ? '' : undefined}>
             <ParamsForm form={group.form} filter={query} />

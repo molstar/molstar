@@ -219,7 +219,9 @@ function ColorRow(props: { label: string; head?: Child; description?: string; bi
           </button>
         </div>
       </div>
-      <Show when={open}>{() => <ColorPicker value={binding.value} onChange={(c) => binding.set(c)} />}</Show>
+      <Show when={open} reveal>
+        {() => <ColorPicker value={binding.value} onChange={(c) => binding.set(c)} />}
+      </Show>
     </>
   );
 }
@@ -774,7 +776,7 @@ function ObjectListItem(props: {
           <Icon name="x" size={13} />
         </button>
       </div>
-      <Show when={open}>
+      <Show when={open} reveal>
         {() => {
           // The item's own form: each change replaces the item in the list (a new list: the state stores it as is).
           const form = new ParamsFormModel(param.element, binding.get()?.[index], {
@@ -814,7 +816,9 @@ function Collapsible(props: { title: string; open?: boolean; force?: Observable<
         {props.title}
         <Icon name="chevron-right" size={12} class={classes.chevron} />
       </button>
-      <Show when={open}>{() => <div class={classes.nested}>{props.children()}</div>}</Show>
+      <Show when={open} reveal>
+        {() => <div class={classes.nested}>{props.children()}</div>}
+      </Show>
     </div>
   );
 }

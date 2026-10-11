@@ -216,7 +216,7 @@ function AddedRow(props: { model: MeasurementsModel; node: SceneNode }) {
         </span>
       </div>
       {style ? (
-        <Show when={open}>
+        <Show when={open} reveal>
           {() => (
             <div class={classes.style}>
               <ParamsForm form={style} />

@@ -34,7 +34,9 @@ function ExpandingRow(props: {
         <span class={form.label}>{props.head}</span>
         <div class={form.control}>{props.field(open)}</div>
       </div>
-      <Show when={open}>{() => <div class={classes.under}>{props.body(() => open.set(false))}</div>}</Show>
+      <Show when={open} reveal>
+        {() => <div class={classes.under}>{props.body(() => open.set(false))}</div>}
+      </Show>
     </>
   );
 }
