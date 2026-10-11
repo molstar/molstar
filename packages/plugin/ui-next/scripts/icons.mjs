@@ -95,7 +95,7 @@ const ICONS = [
   'panel-top',
   'grip-vertical',
   'pin',
-  'history',
+  'cloud',
   'keyboard',
   'circle-help',
   'image',

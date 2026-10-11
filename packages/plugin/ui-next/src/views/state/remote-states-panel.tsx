@@ -87,7 +87,7 @@ function StateRow(props: { model: RemoteStatesModel; state: RemoteState }) {
     <div class={classes.item}>
       <div class={classes.row}>
         <button type="button" class={classes.open} onClick={() => model.open(state.id)}>
-          <Icon name="history" size={15} />
+          <Icon name="cloud" size={15} />
           <span class={classes.name}>{state.label}</span>
           <span class={classes.date}>{state.date}</span>
         </button>

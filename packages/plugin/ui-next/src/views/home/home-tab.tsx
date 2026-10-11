@@ -123,7 +123,7 @@ function RemoteStates(props: { model: RemoteStatesModel }) {
       <For each={model.states} key={(r) => r.id} fallback={() => <p class={classes.none}>No states on this server.</p>}>
         {(state) => (
           <button type="button" class={classes.recent} onClick={() => model.open(state.id)}>
-            <Icon name="history" size={16} />
+            <Icon name="cloud" size={16} />
             <span class={classes.recentLabel}>{state.label}</span>
             <span class={classes.recentDescription}>{state.date}</span>
           </button>
