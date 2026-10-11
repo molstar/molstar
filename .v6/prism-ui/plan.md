@@ -126,6 +126,11 @@ area models, the command registry, history) is built there, headless ([design/sh
 **`@molstar/prism-headless`** on it, as `@molstar/plugin-headless` is on the plugin: the engine without a page (tests,
 CLI, evals, the agent's tools in Node).
 
+**The plugin behind one layer** ([design/shell.md](design/shell.md) §6): only `model/sources/` and `model/actions/`
+import `@molstar/plugin`, checked by a test (as the opt-in boundary is); Prism's spec composes a slim plugin (only the
+behaviors and registry entries it uses); a list of the plugin APIs Prism never touches goes to the API ledger as
+candidates for removal with the classic UI.
+
 **Core follow-ups, compatible ones** ([analysis/plugin-state.md](analysis/plugin-state.md) §5): a registry-changed
 event, what changed in `cell.stateUpdated`, settings events from `layout.setProps` and `canvas3d.setProps`, running
 tasks as a behavior, string ids next to `PluginCommands`. Each is additive; the classic UI keeps working unchanged.

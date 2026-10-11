@@ -138,9 +138,14 @@ Nothing in prism-ui imports `@molstar/plugin-ui`, and nothing outside `react/` i
 imports now makes that a file move. `@molstar/prism-agent` imports prism-ui (its entry, and `.ts` modules by path);
 prism-ui never depends on it or names it.
 
+**The plugin stays behind one layer** ([shell.md](shell.md) §6): only `@molstar/prism`'s `model/sources/` and
+`model/actions/` import `@molstar/plugin` (and `@molstar/model`/`@molstar/graphics` for the plugin's data); nothing in
+prism-ui, the modes or the agent does. Views and view models reach the plugin through sources, commands through actions.
+
 Enforcement: between packages, the workspace check (`scripts/workspace/check.mjs`: declared dependencies, no
-cross-package relative imports, no cycles) and `src/_test/agent-boundary.test.ts` (prism-ui's manifest and files never
-name `@molstar/prism-agent`). Inside prism-ui the folder rules hold by review.
+cross-package relative imports, no cycles) and `src/_test/opt-in-boundary.test.ts` (prism-ui's manifest and files never
+name the agent or a mode). Planned with `@molstar/prism` (Phase 4): the same kind of test for the plugin, failing any
+import of `@molstar/plugin` outside sources and actions. Inside prism-ui the folder rules hold by review.
 
 ## 4. Bringing in any-ui
 

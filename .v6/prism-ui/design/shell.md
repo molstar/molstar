@@ -597,6 +597,26 @@ from becoming one object everything depends on:
 - **Views and commands get the model they work with**, not the context: `StructureTab` takes `scene`, the History tab
   takes `history`. Only composition code (the default contributions, `createPrismUI`) reads the context.
 
+**The plugin is the engine, behind the context.** Prism keeps `PluginContext` for what it does well: the state tree and
+transforms (sessions, snapshots, undo, the reproducibility story mode relies on), the canvas and its renderer, picking,
+highlight and selection over loci, the camera, formats, presets, custom properties, the MVS runtime, the extensions. It
+does not carry the plugin's UI-era surface:
+
+- **One layer touches the plugin.** Only Prism's sources and actions (`@molstar/prism`'s `model/sources/` and
+  `model/actions/`) import `@molstar/plugin` (and the managers behind it); view models, views, commands and modes see
+  sources and models, never the plugin (`plugin` on `PrismContext` is for that layer and composition code). A test
+  checks it (architecture.md §3).
+- **A slim plugin.** Prism's spec composes the plugin from v6's empty registries with only the behaviors and entries
+  Prism uses.
+- **Not used, ever:** `PluginLayout` and `behaviors.layout.leftPanelTabName` (the shell is Prism's layout), the
+  `PluginCommands` bus for UI work (Prism's command registry), toasts (the status column), the UI-only maps
+  (`customStructureControls`, `customImportControls`, `genericRepresentationControls`; contributions replace them),
+  `customParamEditors` (`paramEditors` contributions), and behaviors that exist only to drive the classic UI. Each is a
+  candidate for removal when the classic UI retires
+  ([../../plans/breaking-v6-changes.md](../../plans/breaking-v6-changes.md)).
+- **The engine is swappable.** As the UI sees sources only, a mode can run on another engine later (story mode could
+  render MVS documents through a leaner path) without a UI change.
+
 Lifetimes: `init()` initialises the plugin, creates the sources and the models and (in the UI context) activates the
 spec's contributions; `dispose()` deactivates them, retires the models and disposes the plugin. Models are
 `ReactiveModel`s mounted by the context.

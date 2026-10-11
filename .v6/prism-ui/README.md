@@ -101,6 +101,11 @@ Next: the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin ye
    ([design/modes.md](design/modes.md)).
 7. **The sequence viewer**: a new one is being developed separately; the build uses a placeholder in its place (the
    mocks' sequence strip is a layout reference only).
+8. **The plugin is the engine, behind `PrismContext`**: Prism keeps `PluginContext` for the state tree, rendering,
+   interactivity, formats, MVS and the extensions, composed slim from v6's empty registries; only Prism's sources and
+   actions import it, and Prism never uses its UI-era surface (layout, the `PluginCommands` bus for UI, toasts, the
+   UI-only maps, `customParamEditors`). A mode could later run on another engine without a UI change
+   ([design/shell.md](design/shell.md) §6).
 
 Settled by the mocks:
 
