@@ -30,7 +30,7 @@ defineStyles('views/export/image-export.module.css', `@layer msp.components {
   height: 168px;
   padding: var(--msp-space-3);
   border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+  background: var(--msp-color-well);
   place-items: center;
   display: grid;
 }

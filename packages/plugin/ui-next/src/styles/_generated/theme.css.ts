@@ -66,6 +66,7 @@ defineStyles('styles/theme.css', `@layer msp.theme {
   :root, [data-msp-theme] {
     --msp-color-panel: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 3%);
     --msp-color-raised: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 5%);
+    --msp-color-well: var(--msp-color-bg);
     --msp-color-control: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 6.5%);
     --msp-color-hover: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 9%);
     --msp-color-pressed: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 13%);

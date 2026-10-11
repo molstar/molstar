@@ -89,7 +89,7 @@ defineStyles('views/state/snapshots-panel.module.css', `@layer msp.components {
   max-height: 50%;
   padding: var(--msp-space-2) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+  background: var(--msp-color-well);
   flex: none;
   display: grid;
   overflow: auto;

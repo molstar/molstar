@@ -76,7 +76,7 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
   overflow: hidden;
 
   &[data-open] {
-    background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+    background: var(--msp-color-well);
   }
 }
 

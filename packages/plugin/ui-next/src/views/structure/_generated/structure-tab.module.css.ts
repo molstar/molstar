@@ -146,7 +146,7 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
   gap: var(--msp-space-2);
   padding: var(--msp-space-2) var(--msp-space-2) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+  background: var(--msp-color-well);
   flex: none;
   display: grid;
 }
@@ -156,7 +156,7 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
   max-height: 50%;
   padding: var(--msp-space-2);
   border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+  background: var(--msp-color-well);
   flex: none;
   display: grid;
   overflow: auto;
@@ -218,7 +218,7 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
   max-height: 50%;
   padding: var(--msp-space-2) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+  background: var(--msp-color-well);
   flex: none;
   overflow: auto;
 }

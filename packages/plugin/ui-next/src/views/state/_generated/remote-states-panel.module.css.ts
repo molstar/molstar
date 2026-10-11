@@ -43,7 +43,7 @@ defineStyles('views/state/remote-states-panel.module.css', `@layer msp.component
   gap: var(--msp-space-2);
   padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+  background: var(--msp-color-well);
   flex: none;
   display: grid;
 }

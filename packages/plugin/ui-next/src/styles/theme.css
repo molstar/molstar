@@ -71,6 +71,9 @@
   [data-msp-theme] {
     --msp-color-panel: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 3%);
     --msp-color-raised: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 5%);
+    /* A well in a panel (an open action, an inline block): the base color, a step away from the panel the other way,
+       so the controls in it (control shade) stand out the more. */
+    --msp-color-well: var(--msp-color-bg);
     --msp-color-control: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 6.5%);
     --msp-color-hover: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 9%);
     --msp-color-pressed: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 13%);

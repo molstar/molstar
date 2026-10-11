@@ -127,7 +127,7 @@
   gap: var(--msp-space-2);
   padding: var(--msp-space-2) var(--msp-space-2) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+  background: var(--msp-color-well);
 }
 
 /* The preset menu: groups of presets, the one in effect checked; options fold out below. */
@@ -139,7 +139,7 @@
   padding: var(--msp-space-2);
   overflow: auto;
   border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+  background: var(--msp-color-well);
 }
 
 .presetGroup {
@@ -202,5 +202,5 @@
   padding: var(--msp-space-2) var(--msp-space-3);
   overflow: auto;
   border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+  background: var(--msp-color-well);
 }
