@@ -75,6 +75,11 @@ export interface CanvasToolbarItem {
   id: string;
   icon: IconName;
   title: string;
+  /**
+   * The rail section it belongs to ('Canvas', 'Export'); items without one come first, uncaptioned (the palette).
+   * Sections appear in the order of their first item.
+   */
+  group?: string;
   order?: number;
   /** Shown pressed (a toggle, or the open overlay's button). */
   pressed?: ReadonlyState<boolean>;

@@ -16,12 +16,54 @@ import type { MessageKind, StatusModel, StatusTask } from '../../shell/status.js
 import { classes } from './_generated/canvas.module.css.js';
 import { ViewHost } from './view-host.js';
 
-/** The vertical button strip at the top right of the canvas. */
-export function CanvasToolbar(props: { shell: ShellModel }) {
+/** A section of the toolbar: a caption (none for the leading, uncaptioned items) and its buttons. */
+interface ToolSection {
+  caption: string | undefined;
+  items: readonly CanvasToolbarItem[];
+}
+
+function sectionsOf(items: readonly CanvasToolbarItem[]): ToolSection[] {
+  const sections: ToolSection[] = [];
+  for (const item of items) {
+    const caption = item.group;
+    const section = sections.find((s) => s.caption === caption);
+    if (section) (section.items as CanvasToolbarItem[]).push(item);
+    else sections.push({ caption, items: [item] });
+  }
+  // Uncaptioned items (the palette) lead.
+  return sections.sort((a, b) => (a.caption === undefined ? -1 : b.caption === undefined ? 1 : 0));
+}
+
+/**
+ * The canvas toolbar: its buttons in captioned sections, each a glass block of its own. `part` splits it around the
+ * rail's tab strip: the leading, uncaptioned section (the palette) above it, the captioned sections below.
+ */
+export function CanvasToolbar(props: { shell: ShellModel; part?: 'all' | 'lead' | 'rest' }) {
   const { shell } = props;
+  const part = props.part ?? 'all';
+  const sections = shell.toolbar.pipe(
+    map(sectionsOf),
+    map((all) =>
+      part === 'all' ? all : all.filter((s) => (part === 'lead' ? s.caption === undefined : s.caption !== undefined)),
+    ),
+  );
   return (
-    <div class={classes.toolbar} role="toolbar" aria-orientation="vertical" aria-label="Canvas">
-      <For each={shell.toolbar}>{(item) => <ToolButton shell={shell} item={item} />}</For>
+    <div class={classes.sections}>
+      <For each={sections} key={(s) => s.caption ?? ''}>
+        {(section) => (
+          <div
+            class={classes.toolbar}
+            role="toolbar"
+            aria-orientation="vertical"
+            aria-label={section.caption ?? 'Commands'}
+          >
+            {section.caption ? <span class={classes.caption}>{section.caption}</span> : null}
+            {section.items.map((item) => (
+              <ToolButton shell={shell} item={item} />
+            ))}
+          </div>
+        )}
+      </For>
     </div>
   );
 }

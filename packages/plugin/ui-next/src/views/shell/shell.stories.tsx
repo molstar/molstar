@@ -309,11 +309,12 @@ function mockShell(options: { loaded: boolean }) {
       title: `Commands (${formatChord({ key: 'k', mod: true })})`,
       run: () => status.post('The palette comes next.'),
     },
-    { id: 'reset', icon: 'rotate-ccw', title: 'Reset camera', run: () => status.post('Camera reset') },
-    { id: 'screenshot', icon: 'camera', title: 'Screenshot', overlay: 'screenshot' },
-    { id: 'save', icon: 'save', title: 'Save state', overlay: 'save-state' },
+    { id: 'reset', group: 'Canvas', icon: 'rotate-ccw', title: 'Reset camera', run: () => status.post('Camera reset') },
+    { id: 'screenshot', group: 'Export', icon: 'camera', title: 'Screenshot', overlay: 'screenshot' },
+    { id: 'save', group: 'Export', icon: 'save', title: 'Save state', overlay: 'save-state' },
     {
       id: 'select',
+      group: 'Canvas',
       icon: 'mouse-pointer-click',
       title: 'Selection mode',
       pressed: selectionMode.asReadonly,
@@ -321,6 +322,7 @@ function mockShell(options: { loaded: boolean }) {
     },
     {
       id: 'illumination',
+      group: 'Canvas',
       icon: 'lightbulb',
       title: 'Illumination',
       pressed: illumination.asReadonly,
@@ -328,11 +330,12 @@ function mockShell(options: { loaded: boolean }) {
     },
     {
       id: 'xr',
+      group: 'Canvas',
       icon: 'glasses',
       title: 'Enter XR',
       run: () => status.post('XR is not available in this browser.', 'warning'),
     },
-    { id: 'expand', icon: 'maximize', title: 'Expand', run: () => status.post('Expanded') },
+    { id: 'expand', group: 'Canvas', icon: 'maximize', title: 'Expand', run: () => status.post('Expanded') },
   ]);
 
   if (options.loaded) {

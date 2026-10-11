@@ -11,6 +11,7 @@ import { defineStyles } from '../../../styles/registry.js';
 export const classes = {
   'bottom': 'msp-shell-canvas-bottom',
   'bottomGrid': 'msp-shell-canvas-bottomGrid',
+  'caption': 'msp-shell-canvas-caption',
   'card': 'msp-shell-canvas-card',
   'card-in': 'msp-shell-canvas-card-in',
   'cardBody': 'msp-shell-canvas-cardBody',
@@ -23,6 +24,7 @@ export const classes = {
   'pill-in': 'msp-shell-canvas-pill-in',
   'pillButton': 'msp-shell-canvas-pillButton',
   'progress': 'msp-shell-canvas-progress',
+  'sections': 'msp-shell-canvas-sections',
   'separator': 'msp-shell-canvas-separator',
   'spin': 'msp-shell-canvas-spin',
   'status': 'msp-shell-canvas-status',
@@ -34,6 +36,23 @@ export const classes = {
 } as const;
 
 defineStyles('views/shell/canvas.module.css', `@layer msp.components {
+.msp-shell-canvas-sections {
+  gap: var(--msp-space-3);
+  flex-direction: column;
+  display: flex;
+}
+
+.msp-shell-canvas-caption {
+  padding: var(--msp-space-1) 0 var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  letter-spacing: .06em;
+  text-align: center;
+  text-transform: uppercase;
+  user-select: none;
+  font-size: 9px;
+  font-weight: 600;
+}
+
 .msp-shell-canvas-toolbar {
   gap: var(--msp-space-1);
   padding: var(--msp-space-2);

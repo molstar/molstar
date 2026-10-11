@@ -103,7 +103,14 @@ export function ShellView(props: ShellViewProps) {
               </div>
             )}
           >
-            {() => <FloatingDock shell={shell} dock={right} railItems={<CanvasToolbar shell={shell} />} />}
+            {() => (
+              <FloatingDock
+                shell={shell}
+                dock={right}
+                railLead={<CanvasToolbar shell={shell} part="lead" />}
+                railItems={<CanvasToolbar shell={shell} part="rest" />}
+              />
+            )}
           </Show>
         </div>
       </main>

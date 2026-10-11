@@ -54,10 +54,11 @@ export function DockView(props: { shell: ShellModel; dock: DockModel }) {
 }
 
 /**
- * A dock floating over the canvas (the right dock by default): a rail at the edge with the tab strip and any rail
- * items (the canvas toolbar), and the active tab's content as a glass card beside it. Collapsed, only the rail stays.
+ * A dock floating over the canvas (the right dock by default): a rail at the edge with the tab strip between any
+ * leading items (the palette) and further items (the canvas toolbar's sections), and the active tab's content as a
+ * glass card beside it. Collapsed, only the rail stays.
  */
-export function FloatingDock(props: { shell: ShellModel; dock: DockModel; railItems?: Child }) {
+export function FloatingDock(props: { shell: ShellModel; dock: DockModel; railLead?: Child; railItems?: Child }) {
   const { shell, dock } = props;
   const size = { '--msp-dock-size': dock.state.pipe(map((s) => `${s.size}px`)) };
   if (dock.id === 'top' || dock.id === 'bottom') {
@@ -79,9 +80,11 @@ export function FloatingDock(props: { shell: ShellModel; dock: DockModel; railIt
       style={size}
     >
       <div class={classes.rail}>
+        {props.railLead}
         <Show when={dock.tabs.pipe(map((tabs) => tabs.length > 0))}>
           {() => (
-            <nav class={classes.strip} role="tablist" aria-orientation="vertical">
+            <nav class={classes.strip} role="tablist" aria-orientation="vertical" aria-label="Panels">
+              <span class={classes.caption}>Panels</span>
               <For each={dock.tabs}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
             </nav>
           )}
