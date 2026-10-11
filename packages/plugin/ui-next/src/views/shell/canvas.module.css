@@ -62,13 +62,16 @@
 }
 
 .card {
+  /* Every overlay card takes the right panel's place, full height, whether the panel is open or not: one target for
+     everything that opens on the right (export, save state, canvas settings). */
   position: absolute;
+  top: var(--msp-space-4);
   right: var(--msp-canvas-panel-right, 64px);
+  bottom: var(--msp-space-4);
   z-index: var(--msp-z-overlay);
   display: flex;
   flex-direction: column;
-  width: min(360px, calc(100% - 96px));
-  max-height: calc(100% - 2 * var(--msp-space-4));
+  width: min(var(--msp-right-panel-width, 340px), calc(100% - 96px));
   border-radius: var(--msp-radius-lg);
   overflow: hidden;
   animation: card-in var(--msp-motion-base) var(--msp-ease);
@@ -76,17 +79,10 @@
   box-shadow: var(--msp-glass-shadow);
   backdrop-filter: var(--msp-glass-filter);
   -webkit-backdrop-filter: var(--msp-glass-filter);
-  top: var(--msp-space-4);
 
-  /* Over an open floating panel: in the panel's place, opaque (no glass on glass), swapped in without a transition (it
-     replaces the panel's content; nothing new arrives). */
+  /* Over the open panel: swapped in without a transition (it replaces the panel's content; nothing new arrives). */
   [data-right-panel="open"] > & {
     animation: none;
-    top: var(--msp-space-4) !important;
-    bottom: var(--msp-space-4);
-    width: var(--msp-right-panel-width);
-    max-height: none;
-    background: var(--msp-color-panel);
   }
 }
 

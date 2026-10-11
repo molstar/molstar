@@ -215,7 +215,7 @@ function ToolMenu(props: { menus: ToolMenus }) {
   );
 }
 
-/** The open overlay as a card beside the toolbar, level with the button that opened it. */
+/** The open overlay as a card in the right panel's place (the panel steps aside while it is open). */
 export function OverlayHost(props: { shell: ShellModel }) {
   const { shell } = props;
   return <Show when={shell.overlay}>{(open) => <OverlayCard shell={shell} open={open} />}</Show>;
@@ -234,14 +234,6 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
       </div>
     </section>
   ) as HTMLElement;
-  // Level with its button once placed (the card is positioned within the canvas layer).
-  queueMicrotask(() => {
-    const layer = card.offsetParent as HTMLElement | null;
-    // Over an open panel the card takes the panel's place (CSS); otherwise it is level with its button.
-    if (!open.anchor || !layer || layer.dataset.rightPanel === 'open') return;
-    const top = open.anchor.getBoundingClientRect().top - layer.getBoundingClientRect().top - 4;
-    card.style.top = `${Math.max(8, Math.min(top, layer.clientHeight - card.offsetHeight - 8))}px`;
-  });
   // Esc, or a pointer down outside the card and its button, closes it.
   const doc = document;
   const onKey = (e: KeyboardEvent) => {

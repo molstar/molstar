@@ -88,28 +88,23 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-card {
+  top: var(--msp-space-4);
   right: var(--msp-canvas-panel-right, 64px);
+  bottom: var(--msp-space-4);
   z-index: var(--msp-z-overlay);
-  width: min(360px, 100% - 96px);
-  max-height: calc(100% - 2 * var(--msp-space-4));
+  width: min(var(--msp-right-panel-width, 340px), calc(100% - 96px));
   border-radius: var(--msp-radius-lg);
   animation: msp-shell-canvas-card-in var(--msp-motion-base) var(--msp-ease);
   background: var(--msp-glass-panel-bg);
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
-  top: var(--msp-space-4);
   flex-direction: column;
   display: flex;
   position: absolute;
   overflow: hidden;
 
   [data-right-panel="open"] > & {
-    bottom: var(--msp-space-4);
-    width: var(--msp-right-panel-width);
-    background: var(--msp-color-panel);
-    max-height: none;
     animation: none;
-    top: var(--msp-space-4) !important;
   }
 }
 
