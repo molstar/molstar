@@ -125,8 +125,23 @@
   right: var(--msp-canvas-right-inset, var(--msp-canvas-edge, 8px));
 }
 
+/* Compact: no rail (its actions are under More), so the stack keeps only the frame margin; on a short canvas its
+   frame scrolls rather than running past the bottom. */
 :where([data-mode="compact"]) .stack {
-  right: var(--msp-canvas-rail-inset, var(--msp-canvas-edge, 8px));
+  right: var(--msp-canvas-edge, 8px);
+  bottom: var(--msp-canvas-edge, 8px);
+  /* Its full-height box must not catch the canvas's pointer: only the frame does. */
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+
+  & .frame {
+    max-height: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
 }
 
 .stack .frame {
@@ -254,7 +269,8 @@
 
 /* A narrow shell: the canvas stack shares the top, the column ends before it. */
 :where([data-mode="compact"]) .lead {
-  width: min(320px, calc(100% - 96px - 84px));
+  /* Clear of the stack (36px) and the frame margins. */
+  width: min(320px, calc(100% - 36px - 3 * var(--msp-canvas-edge, 8px)));
 }
 
 /* The bottom of the canvas: status on the left, the work in hand (selection, focus) on the right. Its right edge

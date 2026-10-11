@@ -159,7 +159,19 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 :where([data-mode="compact"]) .msp-shell-canvas-stack {
-  right: var(--msp-canvas-rail-inset, var(--msp-canvas-edge, 8px));
+  right: var(--msp-canvas-edge, 8px);
+  bottom: var(--msp-canvas-edge, 8px);
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+
+  & .msp-shell-canvas-frame {
+    scrollbar-width: none;
+    max-height: 100%;
+    overflow-y: auto;
+  }
 }
 
 .msp-shell-canvas-stack .msp-shell-canvas-frame {
@@ -276,7 +288,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 :where([data-mode="compact"]) .msp-shell-canvas-lead {
-  width: min(320px, 100% - 180px);
+  width: min(320px, calc(100% - 36px - 3 * var(--msp-canvas-edge, 8px)));
 }
 
 .msp-shell-canvas-bottom {
