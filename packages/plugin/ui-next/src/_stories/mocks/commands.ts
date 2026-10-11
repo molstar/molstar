@@ -249,7 +249,7 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
     {
       id: 'export.animation',
       group: 'export',
-      title: 'Export animation (MP4)…',
+      title: 'Export animation…',
       category: 'Export',
       icon: 'film',
       run: open('export', 'animation'),

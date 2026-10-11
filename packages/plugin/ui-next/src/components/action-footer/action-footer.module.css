@@ -41,8 +41,15 @@
   font-weight: 600;
   transition: color var(--msp-motion-fast) var(--msp-ease);
 
-  &:hover {
+  /* Hover: darker, and the label underlined (no fill, as everywhere in the footer). */
+  &:hover:not(:disabled) {
     color: var(--msp-color-accent-strong);
+
+    & > span {
+      text-decoration: underline;
+      text-decoration-thickness: 1.5px;
+      text-underline-offset: 3px;
+    }
   }
 
   &:focus-visible {
@@ -83,8 +90,14 @@
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
 
-  &:hover {
+  &:hover:not(:disabled) {
     color: var(--msp-color-text);
+
+    & > span {
+      text-decoration: underline;
+      text-decoration-thickness: 1.5px;
+      text-underline-offset: 3px;
+    }
   }
 
   &:focus-visible {

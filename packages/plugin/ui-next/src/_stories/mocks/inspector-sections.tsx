@@ -15,8 +15,8 @@ import type { ShellModel } from '../../shell/shell.js';
 import type { MockScene } from './scene.js';
 
 /**
- * Extensions' inspector sections for structures, as their UI contributions would register them: volume streaming
- * (density for X-ray and EM entries) and the RCSB assembly symmetry (only for a symmetric assembly).
+ * Extensions' inspector sections for structures, as their UI contributions would register them: the RCSB assembly
+ * symmetry (only for a symmetric assembly). Volume streaming is a row of the structure in the tree instead.
  */
 export function registerMockInspectorSections(shell: ShellModel, scene: MockScene) {
   const symmetryForms = new Map<string, ParamsFormModel<any>>();
@@ -38,17 +38,6 @@ export function registerMockInspectorSections(shell: ShellModel, scene: MockScen
   };
 
   shell.registerSections([
-    {
-      id: 'volume-streaming',
-      slot: 'inspector:structure',
-      title: 'Density',
-      icon: 'volume',
-      keywords: ['volume streaming', 'electron density', 'map', '2fo-fc', 'em'],
-      order: 0,
-      // Enabling it streams the entry's map around the focus; the channels appear under the structure as volumes.
-      when: (ctx) => !!ctx.subject && !!scene.structureInfo(ctx.subject as SceneNode),
-      render: domView(({ ctx }) => <ParamsForm form={scene.streaming(ctx.subject as SceneNode)} />),
-    },
     {
       id: 'assembly-symmetry',
       slot: 'inspector:structure',

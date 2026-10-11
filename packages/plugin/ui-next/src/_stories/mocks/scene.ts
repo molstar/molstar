@@ -102,7 +102,21 @@ const VolumeRepresentationParams = {
   flatShaded: PD.Boolean(false),
 };
 
+// Mol*'s structure hierarchy presets (how the structure is built from its model), then the structure transform's own
+// params under Advanced.
+const HierarchyPresets: [string, string][] = [
+  ['default', 'Default (Assembly)'],
+  ['unit-cell', 'Unit cell'],
+  ['supercell', 'Super cell'],
+  ['crystal-contacts', 'Crystal contacts'],
+];
+
 const StructureParams = {
+  hierarchy: PD.Select('default', HierarchyPresets, {
+    label: 'Hierarchy',
+    isEssential: true,
+    description: 'How the structure is built from its model (Mol*’s hierarchy presets).',
+  }),
   type: PD.Select('assembly', [
     ['model', 'Model'],
     ['assembly', 'Assembly'],
@@ -128,7 +142,7 @@ const ComponentParams = {
 
 /** The volume streaming extension's options for a structure (density from the PDBe/RCSB density servers). */
 const StreamingParams = {
-  enabled: PD.Boolean(false, { label: 'Show density', isEssential: true }),
+  enabled: PD.Boolean(false, { label: 'Enabled', isEssential: true }),
   view: PD.Select(
     'selection-box',
     [
@@ -254,8 +268,14 @@ class MockNode implements SceneNode {
     this.#label.set(l);
   }
 
+  /** What the eye does: hide or show (a streaming row turns streaming on and off instead). */
+  onToggle?: () => void;
   toggleVisibility() {
-    this.#hidden.set(!this.#hidden.value);
+    if (this.onToggle) this.onToggle();
+    else this.#hidden.set(!this.#hidden.value);
+  }
+  setHidden(hidden: boolean) {
+    this.#hidden.set(hidden);
   }
   toggleExpanded() {
     this.#expanded.set(!this.#expanded.value);
@@ -280,7 +300,8 @@ export interface MockStructureInfo {
 export interface MockScene extends SceneModel {
   /** The structure behind a node, for sections' `when`. */
   structureInfo(node: SceneNode): MockStructureInfo | undefined;
-  /** The volume streaming extension's form for a structure: enabling it adds the streamed density under it. */
+  /** The volume streaming extension's form for a structure (its Volume streaming row's): enabling it streams the
+   * channels under that row. */
   streaming(node: SceneNode): ParamsFormModel<typeof StreamingParams>;
 }
 
@@ -496,6 +517,55 @@ export function mockScene(
     forms.set(id, new ParamsFormModel(StructureParams));
     facts.set(id, info.facts);
     infos.set(id, info);
+    n.menu = [
+      {
+        id: 'hierarchy',
+        label: 'Hierarchy preset',
+        icon: 'layers',
+        items: HierarchyPresets.map(([p, l]) => ({
+          id: p,
+          label: l,
+          run: () => {
+            forms.get(id)?.set('hierarchy', p);
+            options.onAction?.(`${label}: ${l}`);
+          },
+        })),
+      },
+    ];
+    n.add(streamingNode(n, info.method));
+    return n;
+  };
+
+  // Volume streaming (the extension), a row of the structure: off until its eye turns it on; on, the streamed channels
+  // appear under it, each with its own iso value; picked, its options (region, radius, detail).
+  const streamingNode = (owner: MockNode, method: MockStructureInfo['method']) => {
+    const id = `${owner.id}-streaming`;
+    const source = method === 'em' ? 'EMDB' : 'X-ray';
+    const n = node(id, 'volume', 'volume', 'Volume streaming', `${source} · off`, false);
+    n.setHidden(true);
+    const channels = () =>
+      method === 'em'
+        ? [volumeRepr(`${id}-em`, 'EM', { relative: 3 }, 0x808080)]
+        : [
+            volumeRepr(`${id}-2fofc`, '2Fo-Fc', { relative: 1.5 }, 0x3362b2),
+            volumeRepr(`${id}-fofc-pos`, 'Fo-Fc(+ve)', { relative: 3 }, 0x33bb33),
+            volumeRepr(`${id}-fofc-neg`, 'Fo-Fc(−ve)', { relative: -3 }, 0xbb3333),
+          ];
+    const form = new ParamsFormModel(StreamingParams, undefined, {
+      onChange: (v) => {
+        n.setHidden(!v.enabled);
+        if (v.enabled && !n.children.value.length) {
+          n.add(...channels());
+          if (!n.isExpanded.value) n.toggleExpanded();
+        } else if (!v.enabled) for (const c of n.children.value) n.drop(c);
+        const region = StreamingParams.view.options.find(([o]) => o === v.view)?.[1] ?? '';
+        n.setDescription(`${source} · ${v.enabled ? region.toLowerCase() : 'off'}`);
+      },
+    });
+    n.onToggle = () => form.set('enabled', !form.values.value.enabled);
+    n.removable = false;
+    forms.set(id, form);
+    streamingForms.set(owner.id, form);
     return n;
   };
 
@@ -641,39 +711,8 @@ export function mockScene(
       return inspection;
     },
     structureInfo: (n) => infos.get(n.id),
-    streaming: (n) => {
-      let form = streamingForms.get(n.id);
-      if (form) return form;
-      const owner = n as MockNode;
-      const em = infos.get(n.id)?.method === 'em';
-      let density: MockNode | undefined;
-      form = new ParamsFormModel(StreamingParams, undefined, {
-        onChange: (v) => {
-          if (v.enabled && !density) {
-            // The streamed channels appear under the structure, as volumes with their own iso values.
-            density = node(
-              `${n.id}-density`,
-              'volume',
-              'volume',
-              'Density',
-              em ? 'EMDB · streamed' : 'X-ray · streamed',
-            );
-            if (em) density.add(volumeRepr(`${n.id}-em`, 'EM', { relative: 3 }, 0x808080));
-            else
-              density.add(
-                volumeRepr(`${n.id}-2fofc`, '2Fo-Fc', { relative: 1.5 }, 0x3362b2),
-                volumeRepr(`${n.id}-fofc`, 'Fo-Fc', { relative: 3 }, 0x33bb33),
-              );
-            owner.add(density);
-          } else if (!v.enabled && density) {
-            owner.drop(density);
-            density = undefined;
-          }
-        },
-      });
-      streamingForms.set(n.id, form);
-      return form;
-    },
+    // The structure's streaming form (its Volume streaming row's).
+    streaming: (n) => streamingForms.get(n.id) as ParamsFormModel<typeof StreamingParams>,
   };
 }
 

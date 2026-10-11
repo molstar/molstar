@@ -203,6 +203,14 @@ size, σ), shown compactly above the form. Volumes are top-level entries next to
 fitted model); density streaming is a structure inspector section (the volume streaming extension) whose channels appear
 under the structure.
 
+### 4.1a Structure: hierarchy presets and volume streaming
+
+A structure's inspector leads with **Hierarchy**, Mol*'s structure hierarchy presets (Default (Assembly), Unit cell,
+Super cell, Crystal contacts), the structure transform's own params under Advanced; the structure row's ⋯ offers the
+same presets. **Volume streaming** is a row of each structure that has density (X-ray, EM): off (hidden, "X-ray · off")
+until its eye turns it on, then the streamed channels appear under it as volume rows with their iso values (2Fo-Fc σ,
+Fo-Fc(+ve), Fo-Fc(−ve); EM for EMDB entries); picked, its options (region, radius, detail).
+
 ### 4.1b Snapshots tab
 
 A tab beside Structure (`images` icon, `snapshots.show`, ⌘S), in the Structure tab's shape: a header of actions (**+

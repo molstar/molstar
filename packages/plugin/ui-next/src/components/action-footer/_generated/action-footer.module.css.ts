@@ -54,8 +54,13 @@ defineStyles('components/action-footer/action-footer.module.css', `@layer msp.co
   font-weight: 600;
   display: flex;
 
-  &:hover {
+  &:hover:not(:disabled) {
     color: var(--msp-color-accent-strong);
+
+    & > span {
+      text-underline-offset: 3px;
+      text-decoration: underline 1.5px;
+    }
   }
 
   &:focus-visible {
@@ -95,8 +100,13 @@ defineStyles('components/action-footer/action-footer.module.css', `@layer msp.co
   flex: none;
   display: flex;
 
-  &:hover {
+  &:hover:not(:disabled) {
     color: var(--msp-color-text);
+
+    & > span {
+      text-underline-offset: 3px;
+      text-decoration: underline 1.5px;
+    }
   }
 
   &:focus-visible {

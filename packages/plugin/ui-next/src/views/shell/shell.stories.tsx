@@ -176,7 +176,8 @@ function mockExport(shell: ShellModel, status: StatusModel) {
     {
       id: 'animation',
       slot: 'export',
-      title: 'Animation (MP4)',
+      // Named for what it makes, not the format: more formats may follow.
+      title: 'Animation',
       icon: 'film',
       keywords: ['mp4', 'video', 'movie'],
       order: 10,
@@ -186,7 +187,7 @@ function mockExport(shell: ShellModel, status: StatusModel) {
           <ActionFooter
             icon="film"
             label={rendering.asReadonly.pipe(
-              map((r) => (r === undefined ? 'Render MP4' : `Rendering ${Math.round(r * 100)}%`)),
+              map((r) => (r === undefined ? 'Render' : `Rendering ${Math.round(r * 100)}%`)),
             )}
             busy={rendering.asReadonly.pipe(map((r) => r !== undefined))}
             onReset={() => mp4Form.reset()}
@@ -735,7 +736,7 @@ export const CanvasBackground: StoryObj<{ background: string }> = {
     story(() => <div style="height: 100vh">{<ShellStory loaded={true} background={args.background} />}</div>),
 };
 
-/** A command opened the Export panel at a section ("Export animation (MP4)…" in the command menu). */
+/** A command opened the Export panel at a section ("Export animation…" in the command menu). */
 export const ExportAtSection: StoryObj = {
   render: () =>
     story(() => (
