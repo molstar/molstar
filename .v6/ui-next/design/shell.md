@@ -24,37 +24,37 @@ it is where contributions (built-in and extension UI) are placed.
 
 ```
 ┌──┬──────────────────────────────────────────────────────┬───────────────────┬──┐
-│  │ 1TQN ▾  Chain A ▾                                 ⌃  │                   │⌂ │
-│  │ MALYGTHSHGLFKKLGIPGPTPLPFLGNILSYHKGFCMFDMECHKKYG…    │  right panel      │⧉ │
-│  ├──────────────────────────────────────────────────────┤  (active tab)     │≡ │
-│ l│ ┌ snapshots ─────────────┐                     [⌘]  │                   │⚙ │
-│ e│ │ ‹ 3/12 ›  Title     ▶  │                     [⟲]  │  Home ·           │+ │
-│ f│ │ markdown description…  │                     [📷] │  Structure ·      │  │
-│ t│ └────────────────────────┘                     [💾] │  State tree ·     │  │
-│  │                  canvas      ┌ hover label ┐    [◎]  │  Settings ·       │  │
-│ (│                        ⌖ ────┤ GLU 213     │    [💡] │  extension tabs   │  │
-│ o│                              └─────────────┘    [XR] │                   │  │
-│ p│   ┌ overlay card (save state / screenshot / …) ┐ [⛶]  │                   │  │
-│ t│   └────────────────────────────────────────────┘      │                   │  │
-│ .│        ┌ ⧉ 4/20 |◀ ◀ ━━━━●━━━━━━ ▶ ▶| ⏯ ┐ timeline   │                   │  │
-│ )│ ⓘ Loaded 1TQN · ⟳ Surface 40% ✕ · ● 12 residues       │                   │  │
+│  │ 1TQN ▾  Chain A ▾                                 ⌃  │                   │⌘ │
+│  │ MALYGTHSHGLFKKLGIPGPTPLPFLGNILSYHKGFCMFDMECHKKYG…    │  right panel      │  │
+│  ├──────────────────────────────────────────────────────┤  (active tab,     │⌂ │
+│ l│ ┌ ⧉ 4/20 |◀ ◀ ━━●━━━ ▶ ▶| ⏯ ┐              [⟲⃝] │   full height)    │⧉ │
+│ e│ ┌ snapshots ─────────────┐   Picks ⬡ Residue ▾ [⇱] │                   │≡ │
+│ f│ │ ‹ 3/12 ›  Title     ▶  │                     ┈┈┈ │  Home ·           │☰ │
+│ t│ │ markdown description…  │                     [⟲]  │  Structure ·      │⚙ │
+│  │ └────────────────────────┘                     [💡] │  State tree ·     │  │
+│ (│                  canvas      ┌ hover label ┐   [XR] │  Log ·            │💾│
+│ o│                        ⌖ ────┤ GLU 213     │   [⛶]  │  Settings ·       │⤓ │
+│ p│                              └─────────────┘   ┈┈┈ │  extension tabs   │  │
+│ t│                                                 [≋]  │                   │  │
+│ .│ ⓘ Loaded 1TQN · ⟳ Surface 40% ✕     ● 12 residues   │                   │  │
 │  ├──────────────────────────────────────────────────────┤                   │  │
 │  │ bottom dock (optional, canvas width)                  │                   │  │
 └──┴──────────────────────────────────────────────────────┴───────────────────┴──┘
-  also: palette (modal), dialogs, notifications, drag-and-drop target
+  canvas stack: mode (interact, select), canvas (reset camera, illumination, XR, expand), view (sequence)
+  also: palette (modal), overlays and dialogs (in the panel's place when it is open), drag-and-drop target
 ```
 
 - **Floating docks.** The top dock (sequence) floats too: a glass card along the top of the canvas, between the left
-  edge and what floats on the right, or a small glass pill when collapsed; the canvas runs under everything, so the
-  sequence reads as part of the visualization. The snapshot panel sits below it (`--msp-canvas-top-inset`).
+  edge and what floats on the right; hidden, it takes no room (the canvas stack's Sequence button brings it back). The
+  canvas runs under everything, so the sequence reads as part of the visualization. Playback and the canvas stack sit
+  below it (`--msp-canvas-top-inset`).
 - **Right panel, floating.** By default the right dock floats over the canvas instead of taking space beside it: the
   canvas gets the full width, the active tab's content is a glass card (more opaque than the small controls, for
   reading), and a rail at the right edge carries the tab strip and the canvas toolbar as two glass groups. Collapsed,
   only the rail stays. Resizable; `setFloating(dock, false)` docks it beside the canvas instead; compact mode makes it a
-  bottom sheet. The panel card ends above the bottom bar, so the bar keeps the full canvas width up to the rail
-  (`--msp-canvas-rail-inset`, `--msp-canvas-bottom-inset`); the sequence card stops at the open panel
-  (`--msp-canvas-right-inset`). If the bar still gets crowded, next steps are a compact timeline pill that expands on
-  hover and messages/tasks condensing to icons.
+  bottom sheet. The panel runs the full height; everything else on the right of the canvas (the sequence card's end, the
+  canvas stack, the selection chips) follows its edge (`--msp-canvas-right-inset`). One 8px gap separates all floating
+  things, 12px the canvas edge.
 - **Optional docks.** `left`, `top`, `bottom` take tabs moved there by the user or placed by the app spec (mesoscale
   explorer puts its entity tree on the left). The sequence is the only default occupant of `top`. Side docks run the
   full height; top and bottom docks span the canvas width only. A top or bottom dock with one tab has no tab strip: its
@@ -73,12 +73,10 @@ it is where contributions (built-in and extension UI) are placed.
   hide the sequence). Each button runs its command or opens an overlay anchored to it, gated by the command's `when` and
   `PluginConfig.Viewport.*`. Panels over the canvas are shown and hidden from here: a hidden sequence card takes no room
   at all (no collapsed pill), and what was below it moves up.
-- **Snapshot panel** (top-left of the canvas, §4.3): stepper and description. Nothing is stacked under it, so a
-  description that grows or collapses moves nothing else.
-- **Bottom of the canvas**: messages and tasks on the left, the current selection and focus as chips in the centre (the
-  work in hand), the timeline (trajectory model index, animations; like a media player) on the right. The bar is its own
-  size container: when what floats on the right narrows it, the chips take a row of their own above, and on a very
-  narrow canvas everything stacks.
+- **Playback** (top left of the canvas, §4.3): one column, the timeline (when there is a trajectory) above the snapshot
+  panel. Nothing sits under it, so a description that grows or collapses moves nothing else.
+- **Bottom of the canvas**: messages and tasks on the left; the current selection and focus as chips on the right (the
+  work in hand), moving with the open panel. On a narrow canvas the chips take a row of their own above.
 - **Glass and canvas theme.** Everything over the canvas uses flat glass (translucent fill, blur, no borders, no
   shadows) and takes its theme from the canvas background automatically, not from the UI theme, so it stays visible (as
   stories-untold's stage ink does). `model/canvas-theme.ts` computes it from the Canvas3D props by relative luminance
@@ -184,9 +182,9 @@ Each part appears only when it applies.
   markdown extensions (`#key` links apply snapshots, command links, color swatches, images, audio). Collapsible, text
   size adjustable, scrolls when long, remembers its collapsed state. Apps can replace it with their own renderer (a
   contribution), as mvs-stories and mesoscale-explorer do today.
-- **Timeline** (bottom right, when the current structure comes from a multi-model trajectory or an animation runs):
-  `4 / 20`, first, previous, scrubber, next, last, play/pause (model-index animation). Kept apart from the snapshot
-  panel so neither moves the other.
+- **Timeline** (top left, above the snapshot panel, when the current structure comes from a multi-model trajectory or an
+  animation runs): `4 / 20`, first, previous, scrubber, next, last, play/pause (model-index animation). Playback in one
+  place: the timeline is one fixed-height row, so it moves the snapshot panel only when it appears or goes.
 - **Animation**: chosen and configured from the timeline (an overlay), played there.
 
 ### 4.4 Hover label

@@ -73,7 +73,7 @@
   /* Over an open floating panel: in the panel's place, opaque (no glass on glass). */
   [data-right-panel="open"] > & {
     top: var(--msp-space-4) !important;
-    bottom: var(--msp-canvas-bottom-inset, var(--msp-space-4));
+    bottom: var(--msp-space-4);
     width: var(--msp-right-panel-width);
     max-height: none;
     background: var(--msp-color-panel);
@@ -129,20 +129,37 @@
 
 /* The bottom of the canvas: status on the left, the timeline centred; stacked when the bar is narrow. The bar is a
    container itself: what floats on the right narrows it, not the canvas. */
+/* Top left of the canvas, below what floats at the top: playback (the trajectory, then the snapshots), one column. */
+.lead {
+  position: absolute;
+  top: var(--msp-canvas-top-inset, var(--msp-space-4));
+  left: var(--msp-space-4);
+  display: grid;
+  gap: var(--msp-space-3);
+  width: min(320px, calc(100% - 96px));
+}
+
+/* A narrow shell: the canvas stack shares the top, the column ends before it. */
+:where([data-mode="compact"]) .lead {
+  width: min(320px, calc(100% - 96px - 84px));
+}
+
+/* The bottom of the canvas: status on the left, the work in hand (selection, focus) on the right. Its right edge
+   follows what floats on the right (the open panel runs the full height), so the chips move with the panel. */
 .bottom {
   position: absolute;
   left: var(--msp-space-4);
-  /* Full width up to the rail: open side panels end above the bar instead of narrowing it. */
-  right: var(--msp-canvas-rail-inset, var(--msp-space-4));
+  right: var(--msp-canvas-right-inset, var(--msp-space-4));
   bottom: var(--msp-space-4);
   container: bottom-bar / inline-size;
   pointer-events: none;
+  transition: right var(--msp-motion-base) var(--msp-ease);
 }
 
 .bottomGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  grid-template-areas: "status context timeline";
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "status context";
   align-items: end;
   gap: var(--msp-space-3);
 
@@ -151,32 +168,22 @@
   }
 }
 
-/* Narrower: the context (selection, focus) keeps the centre on a row of its own. */
-@container bottom-bar (width < 900px) {
-  .bottomGrid {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "context context"
-      "status timeline";
-  }
-}
-
-@container bottom-bar (width < 560px) {
+/* Narrow: the context on a row of its own, above the status. */
+@container bottom-bar (width < 480px) {
   .bottomGrid {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "context"
-      "timeline"
       "status";
   }
 }
 
 .context {
   grid-area: context;
-  justify-self: center;
+  justify-self: end;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-end;
   gap: var(--msp-space-2);
 }
 
@@ -199,11 +206,6 @@
   & > * {
     pointer-events: auto;
   }
-}
-
-.timeline {
-  grid-area: timeline;
-  justify-self: end;
 }
 
 .pill {

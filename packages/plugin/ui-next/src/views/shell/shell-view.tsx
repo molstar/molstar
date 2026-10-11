@@ -21,8 +21,6 @@ import { DockView, FloatingDock } from './dock-view.js';
 const RailWidth = 44;
 const Gap = 8;
 const Edge = 12;
-/** The bottom bar's height (one row: the timeline's); floating side panels end above it. */
-const BottomBarHeight = 34;
 
 export interface ShellViewProps {
   shell: ShellModel;
@@ -31,8 +29,10 @@ export interface ShellViewProps {
   canvas: Child;
   /** Items floating over the canvas besides the toolbar and status line (snapshots, hover label, …). */
   overlays?: Child;
-  /** The timeline at the bottom right of the canvas (trajectory, animation). */
+  /** The trajectory controls, at the top left of the canvas, above the snapshots. */
   timeline?: Child;
+  /** The snapshot panel, at the top left of the canvas, below the timeline. */
+  snapshots?: Child;
   /**
    * The theme of the chrome over the canvas, from the canvas background (light background: light glass), independent
    * of the UI theme: dark glass over a white canvas would be muddy.
@@ -90,26 +90,29 @@ export function ShellView(props: ShellViewProps) {
           class={classes.layer}
           data-msp-theme={props.canvasTheme ?? 'light'}
           data-right-panel={rightPanelOpen}
+          data-overlay={shell.overlay.pipe(map((o) => (o ? 'open' : undefined)))}
           style={{
             // Every derived shade (glass, controls, hover, muted text) follows from the base color.
             '--msp-color-bg': props.canvasColor,
             '--msp-canvas-right-inset': rightInset,
             '--msp-canvas-top-inset': topInset,
-            // The bottom bar runs under open side panels (they end above it): it only keeps clear of the rail.
+            // Clear of the rail only (what sits beside it whatever the panel does: the compact stack).
             '--msp-canvas-rail-inset': `${Edge + RailWidth + Gap}px`,
-            '--msp-canvas-bottom-inset': `${Edge + BottomBarHeight + Gap}px`,
             '--msp-right-panel-width': rightPanelWidth,
             // Where cards beside the rail end (the floating panel's right edge).
             '--msp-canvas-panel-right': `${Edge + RailWidth + Gap}px`,
           }}
         >
           <Show when={floatingTop}>{() => <FloatingDock shell={shell} dock={top} />}</Show>
+          <div class={canvasClasses.lead}>
+            {props.timeline}
+            {props.snapshots}
+          </div>
           {props.overlays}
           <div class={canvasClasses.bottom}>
             <div class={canvasClasses.bottomGrid}>
               <StatusLine status={status} onOpenLog={props.onOpenLog} />
               <ContextChips status={status} />
-              {props.timeline ? <div class={canvasClasses.timeline}>{props.timeline}</div> : null}
             </div>
           </div>
           <CanvasStack shell={shell} lead={props.canvasLead} />

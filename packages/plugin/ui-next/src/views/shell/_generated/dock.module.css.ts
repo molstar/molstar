@@ -235,15 +235,15 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 .msp-shell-dock-floatingRight {
   right: var(--msp-space-4);
   flex-direction: row-reverse;
+
+  [data-overlay="open"] > & .msp-shell-dock-content {
+    visibility: hidden;
+  }
 }
 
 .msp-shell-dock-floatingLeft {
   left: var(--msp-space-4);
   flex-direction: row;
-}
-
-.msp-shell-dock-floatingRight .msp-shell-dock-content, .msp-shell-dock-floatingLeft .msp-shell-dock-content {
-  margin-bottom: calc(var(--msp-canvas-bottom-inset, var(--msp-space-4)) - var(--msp-space-4));
 }
 
 .msp-shell-dock-floatingTop, .msp-shell-dock-floatingBottom {

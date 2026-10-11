@@ -22,16 +22,8 @@ export const classes = {
 
 defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 .msp-canvas-playback-cluster {
-  top: var(--msp-canvas-top-inset, var(--msp-space-4));
-  left: var(--msp-space-4);
   gap: var(--msp-space-2);
-  width: min(320px, 100% - 96px);
   display: grid;
-  position: absolute;
-}
-
-:where([data-mode="compact"]) .msp-canvas-playback-cluster {
-  width: min(320px, 100% - 180px);
 }
 
 .msp-canvas-playback-card {
@@ -83,7 +75,7 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 }
 
 .msp-canvas-playback-timeline {
-  width: min(380px, 100cqw);
+  width: 100%;
 }
 
 .msp-canvas-playback-scrubber {

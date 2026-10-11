@@ -122,9 +122,9 @@
     --msp-space-6: 24px;
     /* Radii: lg for every surface floating over the canvas (cards, pills, the rail), md for controls and rows inside
        a surface, sm only for small inline marks (code, chips in text). */
-    --msp-radius-sm: 3px;
-    --msp-radius-md: 6px;
-    --msp-radius-lg: 10px;
+    --msp-radius-sm: 2px;
+    --msp-radius-md: 4px;
+    --msp-radius-lg: 8px;
 
     /* Elevation and layers. */
     --msp-shadow-float: 0 2px 8px rgb(0 0 0 / 0.18);

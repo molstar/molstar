@@ -18,6 +18,7 @@ export const classes = {
   'cardTitle': 'msp-shell-canvas-cardTitle',
   'chip': 'msp-shell-canvas-chip',
   'context': 'msp-shell-canvas-context',
+  'lead': 'msp-shell-canvas-lead',
   'message': 'msp-shell-canvas-message',
   'pill': 'msp-shell-canvas-pill',
   'pill-in': 'msp-shell-canvas-pill-in',
@@ -29,7 +30,6 @@ export const classes = {
   'stack': 'msp-shell-canvas-stack',
   'status': 'msp-shell-canvas-status',
   'text': 'msp-shell-canvas-text',
-  'timeline': 'msp-shell-canvas-timeline',
   'tool': 'msp-shell-canvas-tool',
   'toolbar': 'msp-shell-canvas-toolbar',
   'toolbarSlot': 'msp-shell-canvas-toolbarSlot',
@@ -97,7 +97,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   overflow: hidden;
 
   [data-right-panel="open"] > & {
-    bottom: var(--msp-canvas-bottom-inset, var(--msp-space-4));
+    bottom: var(--msp-space-4);
     width: var(--msp-right-panel-width);
     background: var(--msp-color-panel);
     max-height: none;
@@ -150,11 +150,25 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   position: absolute;
 }
 
+.msp-shell-canvas-lead {
+  top: var(--msp-canvas-top-inset, var(--msp-space-4));
+  left: var(--msp-space-4);
+  gap: var(--msp-space-3);
+  width: min(320px, 100% - 96px);
+  display: grid;
+  position: absolute;
+}
+
+:where([data-mode="compact"]) .msp-shell-canvas-lead {
+  width: min(320px, 100% - 180px);
+}
+
 .msp-shell-canvas-bottom {
   left: var(--msp-space-4);
-  right: var(--msp-canvas-rail-inset, var(--msp-space-4));
+  right: var(--msp-canvas-right-inset, var(--msp-space-4));
   bottom: var(--msp-space-4);
   pointer-events: none;
+  transition: right var(--msp-motion-base) var(--msp-ease);
   position: absolute;
   container: bottom-bar / inline-size;
 }
@@ -162,8 +176,8 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-bottomGrid {
   align-items: end;
   gap: var(--msp-space-3);
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  grid-template-areas: "status context timeline";
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "status context";
   display: grid;
 
   & > * {
@@ -171,26 +185,17 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   }
 }
 
-@container bottom-bar (width < 900px) {
-  .msp-shell-canvas-bottomGrid {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "context context"
-                         "status timeline";
-  }
-}
-
-@container bottom-bar (width < 560px) {
+@container bottom-bar (width < 480px) {
   .msp-shell-canvas-bottomGrid {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "context"
-                         "timeline"
                          "status";
   }
 }
 
 .msp-shell-canvas-context {
-  justify-content: center;
-  justify-self: center;
+  justify-content: flex-end;
+  justify-self: end;
   gap: var(--msp-space-2);
   flex-wrap: wrap;
   grid-area: context;
@@ -215,11 +220,6 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   & > * {
     pointer-events: auto;
   }
-}
-
-.msp-shell-canvas-timeline {
-  grid-area: timeline;
-  justify-self: end;
 }
 
 .msp-shell-canvas-pill {

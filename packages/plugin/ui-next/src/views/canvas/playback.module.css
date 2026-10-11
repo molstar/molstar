@@ -5,18 +5,8 @@
  */
 
 .cluster {
-  position: absolute;
-  /* Below what floats at the top (the sequence). */
-  top: var(--msp-canvas-top-inset, var(--msp-space-4));
-  left: var(--msp-space-4);
   display: grid;
   gap: var(--msp-space-2);
-  width: min(320px, calc(100% - 96px));
-}
-
-/* A narrow shell: the canvas mode switch shares the top row, the snapshots end before it. */
-:where([data-mode="compact"]) .cluster {
-  width: min(320px, calc(100% - 96px - 84px));
 }
 
 .card {
@@ -69,7 +59,7 @@
 }
 
 .timeline {
-  width: min(380px, 100cqw);
+  width: 100%;
 }
 
 .scrubber {

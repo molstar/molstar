@@ -104,9 +104,9 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-space-4: 12px;
     --msp-space-5: 16px;
     --msp-space-6: 24px;
-    --msp-radius-sm: 3px;
-    --msp-radius-md: 6px;
-    --msp-radius-lg: 10px;
+    --msp-radius-sm: 2px;
+    --msp-radius-md: 4px;
+    --msp-radius-lg: 8px;
     --msp-shadow-float: 0 2px 8px #0000002e;
     --msp-shadow-overlay: 0 8px 28px #00000047;
     --msp-z-overlay: 10;

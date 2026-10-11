@@ -571,12 +571,12 @@ function ShellStory(props: { loaded: boolean; preset?: MockScenePreset; backgrou
       overlays={
         props.loaded ? (
           <>
-            <SnapshotPanel model={snapshots} />
             <HoverLabel model={hover} area={() => document.querySelector('main')} />
           </>
         ) : null
       }
       timeline={props.loaded ? <Timeline model={trajectory} /> : null}
+      snapshots={props.loaded ? <SnapshotPanel model={snapshots} /> : null}
       canvasColor={props.background ?? '#ffffff'}
       canvasTheme={themeForColor(parseColor(props.background ?? '#ffffff') ?? 0xffffff)}
       canvasLead={props.loaded ? modeSwitch : null}
