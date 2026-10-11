@@ -13,6 +13,7 @@ import { Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import type { ParamsFormModel } from '../../forms/params-form.js';
 import { observableState } from '../../reactive/observable-state.js';
+import { Select } from '../select/select.js';
 import { Icon } from '../icon/icon.js';
 import { classes } from './_generated/params-form.module.css.js';
 
@@ -159,18 +160,15 @@ function format(v: number, step?: number) {
 function SelectControl(props: { options: readonly PD.SelectOption<any>[]; binding: FieldBinding }) {
   const { options, binding } = props;
   // Values may be any type: the select works with indices.
-  const select = (
-    <select
+  return (
+    <Select
       class={classes.select}
-      onChange={(e) => binding.set(options[Number(e.currentTarget.value)][0])}
+      size="sm"
+      options={options.map(([, label], i) => [String(i), label] as const)}
       value={binding.value.pipe(map((v) => String(options.findIndex((o) => o[0] === v))))}
-    >
-      {options.map(([, label], i) => (
-        <option value={String(i)}>{label}</option>
-      ))}
-    </select>
-  ) as HTMLSelectElement;
-  return select;
+      onChange={(i) => binding.set(options[Number(i)][0])}
+    />
+  );
 }
 
 function ColorControl(props: { binding: FieldBinding }) {

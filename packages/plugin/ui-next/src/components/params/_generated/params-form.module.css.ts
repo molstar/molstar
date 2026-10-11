@@ -62,7 +62,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   display: flex;
 }
 
-.msp-params-params-form-input, .msp-params-params-form-select, .msp-params-params-form-number {
+.msp-params-params-form-input, .msp-params-params-form-number {
   width: 100%;
   height: 24px;
   padding: 0 var(--msp-space-3);
@@ -78,7 +78,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-select {
-  padding-right: var(--msp-space-2);
+  width: 100%;
 }
 
 .msp-params-params-form-slider {

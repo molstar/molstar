@@ -1,0 +1,60 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.select {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  height: var(--msp-control-height);
+
+  &[data-size="sm"] {
+    height: 24px;
+  }
+}
+
+/* The platform's look removed: same box, font and arrow on every OS. */
+.native {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0 calc(var(--msp-space-3) + 18px) 0 var(--msp-space-3);
+  border: 0;
+  border-radius: var(--msp-radius-md);
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font: inherit;
+  font-size: var(--msp-font-size-sm);
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background-color var(--msp-motion-fast) var(--msp-ease);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 1px;
+  }
+
+  /* The open list stays the platform's; give it the theme's colors where the platform allows. */
+  & option {
+    background: var(--msp-color-panel);
+    color: var(--msp-color-text);
+  }
+}
+
+.chevron {
+  position: absolute;
+  top: 50%;
+  right: var(--msp-space-3);
+  color: var(--msp-color-text-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}

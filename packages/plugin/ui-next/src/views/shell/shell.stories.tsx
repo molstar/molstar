@@ -12,6 +12,7 @@ import { story } from '../../_stories/story-root.js';
 import { formatChord } from '../../commands/keys.js';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
+import { Select } from '../../components/select/select.js';
 import { For } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { onCleanup } from '../../dom/scope.js';
@@ -211,11 +212,14 @@ function mockExport(shell: ShellModel, status: StatusModel) {
       order: 10,
       render: domView(() => (
         <div style={pad}>
-          <select style="height: 28px">
-            <option>Spin</option>
-            <option>Rock</option>
-            <option>Snapshots</option>
-          </select>
+          <Select
+            aria-label="Animation"
+            options={[
+              ['spin', 'Spin'],
+              ['rock', 'Rock'],
+              ['snapshots', 'Snapshots'],
+            ]}
+          />
           <Button
             variant="primary"
             icon={<Icon name="film" />}
