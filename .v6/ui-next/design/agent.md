@@ -98,3 +98,9 @@ the state tree's undo does not cover (camera, selection, focus).
 **State (mocks):** the Ask row and a proposed command, an agent turn card (steps, Stop, approval, Undo turn), the
 History tab with sources and checkpoints. Not yet: the PD → JSON Schema generator, the state and focus accounts, the
 client API, the harness wiring, the MCP server.
+
+## 6. Later: skills
+
+Stories untold's MolQL selection skills (how to write a selection from words: residues, chains, ligands, "around",
+"within", secondary structure) come over as the agent's selection skills, with the selection commands as their tools. A
+separate slice, after the UI is done.
