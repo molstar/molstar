@@ -25,6 +25,21 @@ describe('ShellModel', () => {
     expect(shell.dock('top').tabs.value.map((t) => t.id)).toEqual(['seq']);
   });
 
+  it('remembers sections left open or closed; a section request is forgotten when the tab is shown plainly', () => {
+    const shell = new ShellModel();
+    shell.registerTabs([tab('selection'), tab('structure')]);
+    expect(shell.sectionOpen('selection', 'measure')).toBeUndefined();
+    shell.setSectionOpen('selection', 'measure', true);
+    expect(shell.sectionOpen('selection', 'measure')).toBe(true);
+
+    shell.show('selection', 'measure');
+    expect(shell.tabFocus.value).toEqual({ tab: 'selection', section: 'measure' });
+    shell.show('structure');
+    expect(shell.tabFocus.value).toEqual({ tab: 'selection', section: 'measure' });
+    shell.select('selection');
+    expect(shell.tabFocus.value).toBeUndefined();
+  });
+
   it('places a tab registered later by its order among the tabs already there', () => {
     const shell = new ShellModel();
     shell.registerTabs([tab('home', { order: 0 }), tab('structure', { order: 1 }), tab('tree', { order: 2 })]);

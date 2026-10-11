@@ -692,8 +692,8 @@ function ScriptControl(props: { head: Child; label: string; binding: FieldBindin
 }
 
 /**
- * An object list (a list of like things: a volume's channels, a set of points): the count in the row; under it the
- * items by their labels, each with its own form behind the sliders, and remove; Add appends a new one.
+ * An object list (a list of like things: a volume's channels, a set of points): the count in the row; under it one quiet
+ * list of the items by their labels (edit and remove on hover; an item's form unfolds inside the list), Add at its end.
  */
 function ObjectListRow(props: { head: Child; label: string; param: PD.ObjectList<any>; binding: FieldBinding }) {
   const { param, binding } = props;
@@ -709,21 +709,21 @@ function ObjectListRow(props: { head: Child; label: string; param: PD.ObjectList
         <span class={classes.label}>{props.head}</span>
         <div class={classes.control}>
           <span class={classes.count}>{items.pipe(map((l) => (l.length === 1 ? '1 item' : `${l.length} items`)))}</span>
-          <button
-            type="button"
-            class={classes.settings}
-            title="Add"
-            aria-label={`Add to ${props.label}`}
-            onClick={() => binding.set([...(binding.get() ?? []), param.ctor()])}
-          >
-            <Icon name="plus" size={14} />
-          </button>
         </div>
       </div>
+      {/* The items in one quiet list under the row; Add ends it. */}
       <div class={classes.items}>
         <For each={items.pipe(map((l) => l.map((_, i) => i)))}>
           {(i) => <ObjectListItem param={param} binding={binding} index={i} replace={replace} />}
         </For>
+        <button
+          type="button"
+          class={classes.itemAdd}
+          aria-label={`Add to ${props.label}`}
+          onClick={() => binding.set([...(binding.get() ?? []), param.ctor()])}
+        >
+          Add
+        </button>
       </div>
     </>
   );
@@ -738,7 +738,7 @@ function ObjectListItem(props: {
   const { param, binding, index } = props;
   const open = observableState(false);
   return (
-    <div class={classes.item}>
+    <div class={classes.item} data-open={open.asReadonly.pipe(map((o) => (o ? '' : undefined)))}>
       <div class={classes.itemRow}>
         <span class={classes.itemLabel}>
           {binding.value.pipe(map((v: unknown[]) => (v?.[index] !== undefined ? param.getLabel(v[index]) : '')))}
@@ -770,7 +770,7 @@ function ObjectListItem(props: {
             onChange: (v) => props.replace(index, v),
           });
           return (
-            <div class={classes.subSettings}>
+            <div class={classes.itemForm}>
               <ParamsForm form={form} />
             </div>
           );

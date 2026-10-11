@@ -258,6 +258,21 @@ export class ShellModel extends ReactiveModel {
     return this.#effectiveMode.asReadonly;
   }
 
+  /**
+   * Which sections the user opened or closed (by slot and section id), remembered while the shell lives: a panel
+   * shows them as left, across tab switches and re-renders.
+   */
+  readonly #sectionOpen = new Map<string, boolean>();
+
+  /** Whether the user left a section open or closed; undefined until they touched it. */
+  sectionOpen(slot: string, section: string): boolean | undefined {
+    return this.#sectionOpen.get(`${slot}\n${section}`);
+  }
+
+  setSectionOpen(slot: string, section: string, open: boolean): void {
+    this.#sectionOpen.set(`${slot}\n${section}`, open);
+  }
+
   /** A tab shown at a section (`show(tab, section)`): the tab's content gets it as its `focus`. */
   get tabFocus(): ReadonlyState<{ tab: string; section: string } | undefined> {
     return this.#tabFocus.asReadonly;
@@ -364,7 +379,9 @@ export class ShellModel extends ReactiveModel {
   show(tabId: string, section?: string): void {
     const dock = this.#dockOf(tabId);
     if (!dock) return;
+    // At a section, or plainly: a plain show forgets an earlier section request for this tab (it was done).
     if (section) this.#tabFocus.set({ tab: tabId, section });
+    else if (this.#tabFocus.value?.tab === tabId) this.#tabFocus.set(undefined);
     dock.update({ active: tabId, collapsed: false }, this.#registered);
   }
 
@@ -372,6 +389,7 @@ export class ShellModel extends ReactiveModel {
   select(tabId: string): void {
     const dock = this.#dockOf(tabId);
     if (!dock) return;
+    if (this.#tabFocus.value?.tab === tabId) this.#tabFocus.set(undefined);
     const state = dock.state.value;
     if (state.active === tabId && !state.collapsed) dock.update({ collapsed: true }, this.#registered);
     else dock.update({ active: tabId, collapsed: false }, this.#registered);

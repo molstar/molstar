@@ -97,7 +97,8 @@ export function mockSelection(shell: ShellModel, post: (text: string) => void): 
       icon: 'mouse-pointer-click',
       order: 1.2,
       // Opened at a section (the selection bar's Measure: `show('selection', 'measure')`), it brings that one into view.
-      render: domView(({ ctx }) => <SectionList shell={ctx.shell} slot="selection" focus={ctx.focus} />),
+      // Folded until opened: the sections read as a list of what can be done with the selection.
+      render: domView(({ ctx }) => <SectionList shell={ctx.shell} slot="selection" focus={ctx.focus} collapsed />),
     },
   ]);
   shell.registerSections([

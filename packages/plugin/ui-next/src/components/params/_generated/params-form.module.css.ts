@@ -24,6 +24,8 @@ export const classes = {
   'hex': 'msp-params-params-form-hex',
   'input': 'msp-params-params-form-input',
   'item': 'msp-params-params-form-item',
+  'itemAdd': 'msp-params-params-form-itemAdd',
+  'itemForm': 'msp-params-params-form-itemForm',
   'itemLabel': 'msp-params-params-form-itemLabel',
   'itemRow': 'msp-params-params-form-itemRow',
   'items': 'msp-params-params-form-items',
@@ -416,11 +418,12 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-items {
+  margin: 2px calc(-1 * var(--msp-space-2)) var(--msp-space-1);
+  padding: 2px var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
   display: grid;
-
-  &:empty {
-    display: none;
-  }
 }
 
 .msp-params-params-form-item {
@@ -428,14 +431,26 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-itemRow {
-  align-items: center;
-  gap: var(--msp-space-1);
   height: 26px;
-  padding: 0 0 0 var(--msp-space-3);
+  margin: 0 calc(-1 * var(--msp-space-1));
+  padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-space-3));
+  border-radius: var(--msp-radius-sm);
+  align-items: center;
+  gap: 2px;
   display: flex;
 
   &:hover {
     background: var(--msp-color-hover);
+  }
+
+  & .msp-params-params-form-settings {
+    opacity: 0;
+    width: 22px;
+    height: 22px;
+  }
+
+  &:hover .msp-params-params-form-settings, & .msp-params-params-form-settings:focus-visible, [data-open] > & .msp-params-params-form-settings {
+    opacity: 1;
   }
 }
 
@@ -447,6 +462,31 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   white-space: nowrap;
   flex: 1;
   overflow: hidden;
+}
+
+.msp-params-params-form-itemForm {
+  padding: 2px 0 var(--msp-space-2);
+
+  & .msp-params-params-form-label {
+    padding-left: calc(2 * var(--msp-space-3));
+  }
+}
+
+.msp-params-params-form-itemAdd {
+  height: 26px;
+  margin: 0 calc(-1 * var(--msp-space-1));
+  padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-space-3));
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+  align-items: center;
+  display: flex;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
 }
 }
 `);

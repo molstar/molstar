@@ -15,8 +15,9 @@ import { classes } from './_generated/section-list.module.css.js';
 import { ViewHost } from './view-host.js';
 
 /**
- * The sections of a slot as a list of collapsible blocks (the Export panel). The focused section (a command opened the
- * panel at it) is expanded and scrolled into view; the others start collapsed.
+ * The sections of a slot as a list of collapsible blocks (the Export panel). Each opens as the user last left it; until
+ * then, open, or folded with `collapsed` (the Selection tab: its sections read as a list of what can be done). The
+ * focused section (a command opened the panel at it) is expanded and scrolled into view; the others fold.
  */
 export function SectionList(props: {
   shell: ShellModel;
@@ -25,6 +26,8 @@ export function SectionList(props: {
   subject?: unknown;
   /** Inside a surface that already has a background (the inspector): no backgrounds of its own, smaller headers. */
   flat?: boolean;
+  /** Sections the user has not opened yet start folded. */
+  collapsed?: boolean;
 }) {
   const { shell, subject } = props;
   const ctx: ShellViewContext = { shell, subject };
@@ -37,9 +40,12 @@ export function SectionList(props: {
         {(section) => (
           <SectionBlock
             ctx={ctx}
+            slot={props.slot}
             section={section}
-            // Opened at a section: only that one open (the rest fold away); otherwise all.
-            open={props.focus ? props.focus === section.id : true}
+            // Opened at a section: only that one open (the rest fold away); otherwise as the user left it, or the default.
+            open={
+              props.focus ? props.focus === section.id : (shell.sectionOpen(props.slot, section.id) ?? !props.collapsed)
+            }
             focused={props.focus === section.id}
           />
         )}
@@ -48,12 +54,22 @@ export function SectionList(props: {
   );
 }
 
-function SectionBlock(props: { ctx: ShellViewContext; section: ShellSection; open: boolean; focused: boolean }) {
+function SectionBlock(props: {
+  ctx: ShellViewContext;
+  slot: string;
+  section: ShellSection;
+  open: boolean;
+  focused: boolean;
+}) {
   const { ctx, section } = props;
   const open = observableState(props.open);
+  const toggle = () => {
+    open.set(!open.value);
+    ctx.shell.setSectionOpen(props.slot, section.id, open.value);
+  };
   const block = (
     <section class={classes.section} data-section={section.id}>
-      <button type="button" class={classes.header} aria-expanded={open} onClick={() => open.set(!open.value)}>
+      <button type="button" class={classes.header} aria-expanded={open} onClick={toggle}>
         <span class={classes.title}>{section.title}</span>
         <Icon name="chevron-down" size={14} class={classes.chevron} />
       </button>
@@ -62,6 +78,10 @@ function SectionBlock(props: { ctx: ShellViewContext; section: ShellSection; ope
       </div>
     </section>
   ) as HTMLElement;
-  if (props.focused) queueMicrotask(() => block.scrollIntoView({ block: 'nearest' }));
+  if (props.focused) {
+    // Asked for (a command, the selection bar's Measure): as if the user opened it.
+    ctx.shell.setSectionOpen(props.slot, section.id, true);
+    queueMicrotask(() => block.scrollIntoView({ block: 'nearest' }));
+  }
   return block;
 }
