@@ -2,9 +2,11 @@
 
 Phases are buildable and reviewable on their own. Storybook comes first so the UI is mocked before it is wired.
 
-Where it stands: phases 0, 1 and 3 are done in Storybook (phase 3 ran ahead of phase 2: every mock is built on the `dom`
-runtime). Next, in order: the renderer bench (phase 2's follow-up), then the review gate. Phases 4–8 have not started,
-apart from the core `triggerLabel` (phase 4) and the shell's own models the mocks run on (phase 6).
+Where it stands: phases 0–3 are done in Storybook (the renderer check and its bench included: the `dom` runtime stays,
+[spike.md](spike.md)). The packages are split (`packages/prism/ui`, `packages/prism/agent`), and the decisions on the
+contexts, the layout, the core follow-ups and the app are in the designs ([README.md](README.md), Decisions). Next: the
+review gate. Phases 4–8 have not started, apart from the core `triggerLabel` (phase 4) and the shell's own models the
+mocks run on (phase 6).
 
 ## Phase 0: package and Storybook skeleton
 
@@ -80,7 +82,7 @@ Story levels:
 
 1. **Components**: props only, inline data. Built.
 2. **Views over fake data**: built over **mocked view models**: `model/*.ts` holds the view-model interfaces and
-   `_stories/mocks/*` implements them with in-memory data and the shell's own models (`ShellModel`, `StatusModel`,
+   `testing/*` implements them with in-memory data and the shell's own models (`ShellModel`, `StatusModel`,
    `ParamsFormModel` are real). The design's form, real view models over in-memory fake sources
    (`createFakeSources({ structures: […] })`), comes with phase 4, when the view models exist.
 3. **Integration**: a real `PluginContext` (no canvas, or with canvas in one story), local fixtures from `data/`, real
@@ -88,10 +90,10 @@ Story levels:
 
 ## Review gate: spec review before the full build
 
-**Next after the renderer check.** The designs (`PluginUIContext`, `PluginUISpec`, contributions, command and view
-contracts) are updated to describe what the mocks settled, each with its "State (mocks)" and "Not yet" notes; then a
-deep multi-agent review (ultracode) of the spec and mocks runs before phases 4–8 build it out. Findings are folded into
-the designs; the gate passes when the contracts are frozen for the first implementation.
+**Next.** The designs (`PrismContext`, `PrismUIContext`, `PrismUISpec`, contributions, command and view contracts) are
+updated to describe what the mocks settled, each with its "State (mocks)" and "Not yet" notes; then a deep multi-agent
+review (ultracode) of the spec and mocks runs before phases 4–8 build it out. Findings are folded into the designs; the
+gate passes when the contracts are frozen for the first implementation.
 
 Carry into the proper implementation (from the mock review):
 
@@ -100,10 +102,10 @@ Carry into the proper implementation (from the mock review):
   conditioned and script (More types; plain values have no row), and help with legends (Help and legends).
 - **The view-model interfaces are the contracts the build implements.** `model/*.ts` holds them (scene, selection,
   measurements, superposition, snapshots, playback, home, settings, state tree, image export, agent); the mocks in
-  `_stories/mocks/*` implement them over in-memory data and stay as the stories' data until real view models over fake
-  sources replace them. What the review freezes there is what phase 4 builds against.
-- **The agent stays opt-in.** `views/agent/_test/boundary.test.ts` keeps the rest of the package (stories aside) from
-  importing `views/agent` and `model/agent`; the wiring (phase 5) goes through the same ports (the command menu's
+  `testing/*` implement them over in-memory data and stay as the stories' data until real view models over fake sources
+  replace them. What the review freezes there is what phase 4 builds against.
+- **The agent stays opt-in.** It is its own package (`@molstar/prism-agent`); prism-ui never depends on it
+  (`src/_test/agent-boundary.test.ts`), and the wiring (phase 5) goes through the same ports (the command menu's
   `assistant`, `ShellView`'s `agent` slot in the status column, contributed tabs and commands), not new imports from the
   core.
 - **Theming and override docs after the review** (data-msp-part names, component tokens, a `ui.theme` spec option, a
@@ -113,6 +115,15 @@ Carry into the proper implementation (from the mock review):
   each panel for its task (choose what, then one action) rather than listing every variant as a button.
 
 ## Phase 4: sources, view models, actions
+
+**`PrismContext` and `@molstar/prism`.** `packages/prism/core` is carved out of prism-ui: `reactive/`, `forms/`,
+`commands/`, the `model/` contracts and `StatusModel` move into it, and `PrismContext` (`{ plugin }`, the sources, the
+area models, the command registry, history) is built there, headless ([design/shell.md](design/shell.md) §6). A
+`createPrism({ spec })` test runs a real plugin in Node with no DOM.
+
+**Core follow-ups, compatible ones** ([analysis/plugin-state.md](analysis/plugin-state.md) §5): a registry-changed
+event, what changed in `cell.stateUpdated`, settings events from `layout.setProps` and `canvas3d.setProps`, running
+tasks as a behavior, string ids next to `PluginCommands`. Each is additive; the classic UI keeps working unchanged.
 
 **Done: an action's trigger label.** `display` of state actions and transformers (`packages/core/src/state/action.ts`,
 `transformer.ts`) has `triggerLabel?: string`: what running it does, for its button. Set on the root actions:
@@ -153,16 +164,16 @@ separate slice after the UI is done, Stories untold's MolQL selection skills.
 
 ## Phase 6: shell and integration
 
-`ShellModel`, contributions, `PluginUISpec` (prism-ui), `createPluginUI`, `<msp-plugin>`, persistence, Layout bridge.
-Default contributions reach functional parity with [analysis/current-ui.md](analysis/current-ui.md) §5. The mocks
-already run on the real `ShellModel` (docks, tabs, overlays and their sections, toolbar items, pinned, compact),
-`StatusModel`, `ThemeModel` and `FullscreenModel` (`shell/`); this phase connects them to a plugin and a spec.
+`PrismUIContext`, contributions, `PrismUISpec`, `createPrismUI`, `<msp-plugin>`, persistence. Default contributions
+reach functional parity with [analysis/current-ui.md](analysis/current-ui.md) §5. The mocks already run on the real
+`ShellModel` (docks, tabs, overlays and their sections, toolbar items, pinned, compact), `StatusModel`, `ThemeModel` and
+`FullscreenModel` (`shell/`); this phase connects them to a plugin and a spec.
 
-**`apps/prism`: a temporary copy of the viewer on the new UI**, so it can be built, deployed and shown to people (and
-used day to day) before anything moves over. Same extensions, presets and URL options as `apps/viewer`, the plugin
-created with prism-ui's `createPluginUI`; built and served next to the viewer (its own entry in the app build). The
-classic viewer stays untouched until `apps/prism` reaches parity; then the viewer switches over and `apps/prism` goes
-away. Started as soon as the shell and the first tabs run on a real plugin, so feedback comes early.
+**`apps/prism`: a new app**, not a copy of the viewer: the base Mol\* viewer plus Stories Untold's features for building
+narratives (the story document and session, the agent), with the new sequence viewer as a contribution. Built and served
+next to `apps/viewer`, which stays as it is; it need not keep the viewer's URL options or globals. Started as soon as
+the shell and the first tabs run on a real plugin, so feedback comes early; the narrative features come as packages of
+their own under `packages/prism/`.
 
 ## Phase 7: extension ports
 
@@ -179,8 +190,8 @@ modularity test), examples as API checks (`react`, `alpha-orbitals`, `ligand-edi
 
 ## Cross-cutting
 
-- API ledger and migration-map entries for new public APIs and for deprecations (core `layout`, `leftPanelTabName`, UI
-  maps on `PluginContext`).
+- API ledger and migration-map entries for new public APIs; the core removals deferred to the classic UI's retirement
+  are recorded in [../plans/breaking-v6-changes.md](../plans/breaking-v6-changes.md).
 - Accessibility pass per view (keyboard-only use of every view; command menu as combobox).
 - Performance budget: scene tree with 1,000 components and state tree with 5,000 cells update in under one frame for a
   single-node change.

@@ -81,14 +81,17 @@ extensions, custom properties) and `config` have **no change notification**; `qu
 
 ## 5. Core follow-ups worth proposing
 
-None of these blocks prism-ui (the source layer works around them), but each removes a workaround:
+None of these blocks Prism (the source layer works around them), but each removes a workaround. The additive ones are
+done in v6 (Phase 4); the two that break compatibility wait until the classic UI is retired and are recorded in
+[../../plans/breaking-v6-changes.md](../../plans/breaking-v6-changes.md).
 
-| Change                                                                                            | Removes workaround                       |
-| ------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| `plugin.events.registryChanged` (emitted by `register()` and its undo)                            | Re-deriving menus on a timer or per open |
-| `cell.stateUpdated` payload says what changed (`status` / `flags`)                                | Diffing cell snapshots                   |
-| `layout.setProps` emits; `canvas3d.setProps` path emits `settingsUpdated`                         | Polling settings                         |
-| `TaskManager` exposes running tasks as a behavior, one id space                                   | Accumulating progress events             |
-| Stable string ids for `PluginCommands` (`'state.remove-object'`)                                  | Mapping UUIDs for telemetry/scripting    |
-| Fix help binding key, remove dead `Interactivity.Structure.*` commands and `customControl`        | —                                        |
-| Move `customStructureControls`/`customImportControls`/`genericRepresentationControls` out of core | React types in a non-UI package          |
+| Change                                                                                            | Removes workaround                       | Compatible                                  |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------- |
+| `plugin.events.registryChanged` (emitted by `register()` and its undo)                            | Re-deriving menus on a timer or per open | Yes: a new event                            |
+| `cell.stateUpdated` payload says what changed (`status` / `flags`)                                | Diffing cell snapshots                   | Yes: optional fields                        |
+| `layout.setProps` emits; `canvas3d.setProps` path emits `settingsUpdated`                         | Polling settings                         | Yes: existing events, emitted in more cases |
+| `TaskManager` exposes running tasks as a behavior, one id space                                   | Accumulating progress events             | Yes: a new behavior                         |
+| Stable string ids for `PluginCommands` (`'state.remove-object'`)                                  | Mapping UUIDs for telemetry/scripting    | Yes: ids next to the existing ones          |
+| Fix help binding key                                                                              | —                                        | Yes                                         |
+| Remove dead `Interactivity.Structure.*` commands and `customControl`                              | —                                        | No: deferred to the classic UI's retirement |
+| Move `customStructureControls`/`customImportControls`/`genericRepresentationControls` out of core | React types in a non-UI package          | No: deferred to the classic UI's retirement |

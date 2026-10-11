@@ -7,11 +7,11 @@ test) reads the same view models.
 
 **State (mocks).** The view-model contracts exist as interfaces in `model/*.ts` (§4.2), with `ParamsFormModel`
 (`forms/params-form`), `StatusModel` (`shell/status`) and `model/canvas-theme` as the only implementations in the
-package. The Storybook mocks in `_stories/mocks/` implement the interfaces in memory (`mockScene`, `mockSelection`,
-`MockAgentModel`, …) and views take them as props. The mocks skipped the plan's fake-sources level: they implement view
-models directly, so sources (§3) are still a design. Not yet: sources, `PluginUIModel` (§4.1), `keyedList`, `fromEvent`
-and the mount signal (§2), optimistic edits (§5), `model/actions/` (§6). All of these are Phase 4
-([../plan.md](../plan.md)).
+package. The mocks in `testing/` implement the interfaces in memory (`mockScene`, `mockSelection`, …; the agent's
+`MockAgentModel` is in `@molstar/prism-agent`) and views take them as props. The mocks skipped the plan's fake-sources
+level: they implement view models directly, so sources (§3) are still a design. Not yet: sources, `PrismContext` (§4.1),
+`keyedList`, `fromEvent` and the mount signal (§2), optimistic edits (§5), `model/actions/` (§6). All of these are Phase
+4 ([../plan.md](../plan.md)).
 
 ## 1. Short answer to "do view models wrap manager behaviors?"
 
@@ -75,7 +75,7 @@ Conventions (settled by the mocks):
     `RemoteState`, `CommandRun`, `AgentTurn`): plain objects with an `id` (`ref` for state-tree cells) in one
     `ReadonlyState<readonly T[]>`; a change replaces the record, never mutates it. Views key them by id (`<For key>`); a
     row that must not restart (a run's spinner, an open fold) follows its record by id and derives per-field streams
-    with `distinctUntilChanged` (`RunRow` in `views/agent/agent-turn`).
+    with `distinctUntilChanged` (`RunRow` in the agent's `views/agent-turn`).
 - Lists that come from registries or are fixed for the model's life are plain arrays (`SelectionModel.actions`,
   `MeasurementsModel.kinds`, `PresetsModel.groups`, `QuickStylesModel`, `SettingsModel.groups`, `HomeModel.formats`).
 - Editable params are a `ParamsFormModel` owned by the model, the same instance each time it is asked for
@@ -157,16 +157,18 @@ rebuilds, selection changes) is combined and debounced by a frame (§2, conventi
 **Not yet.** In the mocks each view takes its models as props (`StructureTab` takes `scene`, `presets`, `quickStyles`,
 `options`; `ShellView` takes `status`), and stories build them with the mock factories.
 
-`PluginUIModel` (one per plugin UI; `PluginUIContext.model`). The context holds the infrastructure (`shell`, `commands`,
-`keybindings`, `contributions`, `sources`; [shell.md](shell.md) §6); the root model holds the area view models built on
-it. A sketch, in the names of the interfaces of §4.2:
+The root is `PrismContext` itself ([shell.md](shell.md) §6): it holds the infrastructure (`plugin`, `commands`,
+`sources`) and the area view models built on it, each constructed with what it needs and nothing more; `PrismUIContext`
+adds the UI (`shell`, `keybindings`, `contributions`, `theme`). A sketch, in the names of the interfaces of §4.2:
 
 ```ts
-class PluginUIModel extends ReactiveModel {
-  constructor(ctx: PluginUIContext);
+class PrismContext {
+  readonly plugin: PluginContext;
+  readonly sources: PluginSources;
   readonly scene: SceneModel;            // structures, volumes, measurements, extension rows as one tree
   readonly selection: SelectionModel;
   readonly status: StatusModel;          // messages, tasks, chips; fed from the tasks, log and toasts sources
+  readonly history: HistoryModel;
   readonly hoverLabel: HoverLabelModel;
   readonly canvasTheme: Observable<CanvasTheme>;
   // created lazily by the views that need them:
@@ -193,7 +195,7 @@ The interfaces in `model/`, their mock, and what the plugin-backed implementatio
 | `HomeModel`, `RemoteStatesModel` (`home`)                      | `actions` (`HomeAction`: `id`, `title`, `icon`, `description`, `form`, `applyLabel`, `busy`, `apply`), `formats` (the drop hint), `openFiles(files)`, `remoteStates?` (`serverUrl`, `setServerUrl`, `states`, `loading`, `refresh`, `open`, `upload?`, `download?`, `remove?`).                                                                                                                                                                  | `mockHome`                         | The root's applicable state actions (`applyLabel` from `display.triggerLabel`), file-format detection; Remote States only when the spec turns them on.                              |
 | `SettingsModel` (`settings`)                                   | `groups` (`SettingsGroup`: `id`, `title`, `icon`, `form`, `wideLabels`) by intent: Appearance, Camera, Interaction, Performance, Interface, Behaviors, Advanced. Changes apply as they are made; no resets.                                                                                                                                                                                                                                      | `mockSettings`                     | Canvas3D, Canvas3DContext, the layout and `plugin.state.behaviors` params mapped into the groups; unmapped ones land in Advanced.                                                   |
 | `canvas-theme` (functions)                                     | `luminance`, `themeForLuminance`, `themeForColor`, `backgroundLuminance` (a gradient's colors averaged by its opacity; images and skyboxes count as the background color; `undefined` when transparent), `canvasThemeOf`, `canvasTheme(props$)` (distinct), `parseColor`. Dark chrome below luminance 0.179.                                                                                                                                     | Stories pass `themeForColor(…)`    | The canvas props (`canvas3d.props`, re-read on `settingsUpdated`).                                                                                                                  |
-| `AgentModel`, `AISettingsModel` (`agent`)                      | `turn`, `view` (`card`, `line`, `none`), `history` (`HistoryItem`: the person's runs, agent turns), `ask`, `stop`, `approve`, `undo` (the latest turn's checkpoint only), `dismiss`, `hide`, `reopen`; `settings`: `providers`, `setup`, `setKey` (`KeyScope`), `removeKey`, `choose`, `refreshModels`, `listModels`, `addProvider`.                                                                                                             | `MockAgentModel`, `MockAISettings` | any-harness over the command registry ([agent.md](agent.md)). Opt-in: only the agent views and stories import them (`views/agent/_test/boundary.test.ts`).                          |
+| `AgentModel`, `AISettingsModel` (agent pkg)                    | `turn`, `view` (`card`, `line`, `none`), `history` (`HistoryItem`: the person's runs, agent turns), `ask`, `stop`, `approve`, `undo` (the latest turn's checkpoint only), `dismiss`, `hide`, `reopen`; `settings`: `providers`, `setup`, `setKey` (`KeyScope`), `removeKey`, `choose`, `refreshModels`, `listModels`, `addProvider`.                                                                                                             | `MockAgentModel`, `MockAISettings` | any-harness over the command registry ([agent.md](agent.md)). Opt-in: only the agent views and stories import them (`views/agent/_test/boundary.test.ts`).                          |
 | `StatusModel` (`shell/status`, a `ReactiveModel` class)        | `current` (the message on show: fades, errors stay), `history`, `tasks` (`StatusTask`: `progress`, `overlay`, `abort`), `chips` (`activate`, `dismiss`); `post`, `dismiss`, `setTasks`, `setChips`.                                                                                                                                                                                                                                              | Used as is                         | The `tasks`, `log` and `toasts` sources and command outcomes; selection and focus chips.                                                                                            |
 
 `ParamsFormModel` (`forms/params-form`) is the form inside all of them: `params`, `values`, `field(name)` (one cached
@@ -219,17 +221,17 @@ The design's other view models, and where the mocks put them:
 
 Extensions contribute their own view models (e.g. `VolsegModel` over volseg entry data, `PaePlotModel`); see
 [shell.md](shell.md) §5. In the scene tree an extension adds a row under each structure it applies to (kind `extension`:
-volume streaming, assembly symmetry; `MockRowSpec` in `_stories/mocks/structure-rows`): off until its eye turns it on,
-then what it shows appears under it, and picked, its options are the inspector's form. The tree knows no extension by
-name. The contribution API for such rows is not in `model/` yet.
+volume streaming, assembly symmetry; `MockRowSpec` in `testing/structure-rows`): off until its eye turns it on, then
+what it shows appears under it, and picked, its options are the inspector's form. The tree knows no extension by name.
+The contribution API for such rows is not in `model/` yet.
 
 ### 4.3 Lifetimes
 
-Planned with `PluginUIModel`; the mocks live as long as their story, and cache what a view asks for again (an inspection
+Planned with `PrismContext`; the mocks live as long as their story, and cache what a view asks for again (an inspection
 per node, a form per snapshot).
 
-- `PluginUIModel` is created by `PluginUIContext.init()` and retired by its `dispose()`.
-- Area models (`scene`, `selection`, …) are children mounted by the root's `onMount`.
+- The area models (`scene`, `selection`, …) are created and mounted by `PrismContext.init()` and retired by its
+  `dispose()`.
 - View-only models (`stateTree()`, `snapshots()`, an inspector form) are created when their view becomes visible and
   unmounted when it closes. Expensive projections therefore cost nothing while hidden.
 - Node models in keyed lists are owned by their list and retired when their key disappears.
@@ -275,7 +277,7 @@ loading, quick styles, focus targets).
 
 The `react/` modules (`react/use-observable`, `react/react-view`, …; no barrel yet) export `useObservable`,
 `useObservableProp`, `useObservableSelection`, `useReactiveModel`, `reactView` and `MspElementHost`, and later
-`useUIModel()` (context; it waits for `PluginUIModel`), so a React or Preact view reads the same models:
+`usePrism()` (context; it waits for `PrismContext`), so a React or Preact view reads the same models:
 
 ```tsx
 function StructureLabel({ node }: { node: SceneNode }) {
@@ -290,8 +292,8 @@ function StructureLabel({ node }: { node: SceneNode }) {
 
 View models are tested without a renderer (jest, as the rest of the repo). Now: `forms/_test/params-form.test.ts`,
 `model/_test/canvas-theme.test.ts`, view tests over the mocks (`views/structure/_test/structure-tab.test.tsx` renders
-`StructureTab` over `mockScene`), and `views/agent/_test/boundary.test.ts` (only the agent views and stories import the
-agent model). With sources (Phase 4):
+`StructureTab` over `mockScene`), and `src/_test/agent-boundary.test.ts` (prism-ui never names `@molstar/prism-agent`).
+With sources (Phase 4):
 
 - Unit: construct with fake sources, `mount()`, drive states, assert fields and calls.
 - Integration: a real `PluginContext` without a canvas, loading local fixtures (`data/`), asserting the scene tree after

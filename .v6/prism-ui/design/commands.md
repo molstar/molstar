@@ -128,7 +128,7 @@ is a `ReadonlyState` derived from view models:
 
 ```ts
 interface CommandContext {
-  plugin: PluginUIContext;                 // prism-ui context (shell, commands, model, …)
+  prism: PrismContext;                     // the app's state (plugin, models, commands); UI commands get PrismUIContext
   structures: readonly StructureNode[];    // hierarchy selection
   sceneTarget?: SceneNode;                 // node the user acted on (context menu, inspector)
   currentCell?: CellNode;
@@ -153,9 +153,9 @@ interface CommandContext {
 Generated commands are the largest win: today these choices are buried in nested menus inside cards. The command menu
 lists them flat, fuzzy-searchable, with `when` explaining why one is unavailable ("Select a structure first").
 
-**State (mocks, `_stories/mocks/commands.ts`):** `mockCommands` registers a hand-written built-in set against the mock
-shell (§8 lists its ids); representation presets, quick styles, selection queries and expression languages are listed by
-hand where they would be generated. Not yet: generation from registries, contextual and view-scoped commands, and
+**State (mocks, `testing/commands.ts`):** `mockCommands` registers a hand-written built-in set against the mock shell
+(§8 lists its ids); representation presets, quick styles, selection queries and expression languages are listed by hand
+where they would be generated. Not yet: generation from registries, contextual and view-scoped commands, and
 contributions registering their own.
 
 ## 4. Registry

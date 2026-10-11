@@ -22,18 +22,30 @@ controllers in extensions (`GeometryControls`, `Mp4Controls`, volseg entry data)
 Lucide (extracted by `scripts/icons.mjs`) plus a few molecular glyphs drawn in the same style
 (`components/icon/molecular`).
 
-## 2. Package
+## 2. Packages
 
-`packages/prism/ui` → `@molstar/prism-ui` (private until stable; public name decided at release). Same package
-conventions as the rest of v6: ESM, `molstar-src` source condition, no barrels, `tsc -b` library build.
+Prism is a family of packages under `packages/prism/`, layered as stories-untold is (an application layer without UI,
+the screens on it, a headless engine beside them; [../analysis/stories-untold.md](../analysis/stories-untold.md)):
+
+| Path                   | Package                | Holds                                                                                                                                                                                      | State                                                      |
+| ---------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| `packages/prism/core`  | `@molstar/prism`       | `PrismContext` (`{ plugin: PluginContext }` and the app's state: sources, view models, the command registry, history and undo); `reactive/`, `forms/`, `commands/`, the `model/` contracts | Planned (Phase 4): carved out of prism-ui with the context |
+| `packages/prism/ui`    | `@molstar/prism-ui`    | the DOM runtime, components, views, the shell, `PrismUIContext`, the React/Preact adapter, `testing/`                                                                                      | Built (mocks)                                              |
+| `packages/prism/agent` | `@molstar/prism-agent` | the assistant: its model contracts, the turn card, History, the Assistant tab, its mocks; opt-in (§6)                                                                                      | Built (mocks)                                              |
+| later                  | `@molstar/prism-…`     | a headless engine (Node: tests, CLI, evals), the new sequence viewer, the narrative features                                                                                               | Planned                                                    |
+
+`apps/prism` is the app built on them (§5). All are private until stable; public names are decided at release. Same
+conventions as the rest of v6: ESM, `molstar-src` source condition, `tsc -b` library build.
 
 - **Per-file subpath exports.** `exports` maps `./*` to `src/*.ts` (`molstar-src`) and `lib/*.js`, so a module is
   imported by its path: `@molstar/prism-ui/reactive/observable-state`; the JSX import source is `@molstar/prism-ui/dom`
-  (`dom/jsx-runtime`). The `molstar-src` target names `.ts`, so `.tsx` modules (components, views) resolve only from
-  `lib/` for now; code inside the package imports relatively. `.` is `src/index.ts`, a placeholder until
-  `createPluginUI` lands. The top-level `./_stories/*` and `./_test/*` are `null` (nested `_test/` paths are not);
-  `tsc -b` leaves tests and stories out of `lib/`, and `files` leaves them and `*.stories.*` out of the published
-  package.
+  (`dom/jsx-runtime`). The `molstar-src` target names `.ts`, so `.tsx` modules (components, views) do not resolve by
+  path from source; code inside the package imports relatively, and packages built on prism-ui import `.` instead.
+- **One entry, `.` (`src/index.ts`)**, for packages built on prism-ui: the runtime, reactive state, the shell's models,
+  commands, the components, and the shell views a contribution sits in (`ShellView`, `StatusPill`, `LogView`,
+  `SectionList`, `CommandMenu`). `@molstar/prism-ui/testing/index` is the same for stories and tests. The top-level
+  `./_stories/*` and `./_test/*` are `null` (nested `_test/` paths are not); `tsc -b` leaves tests and stories out of
+  `lib/`, and `files` leaves them and `*.stories.*` out of the published package.
 - **Dependencies.** `@molstar/core`, `rxjs`, `tslib`; `react >= 18` is an optional peer used only by `react/`. The
   `tsconfig.json` references core only: the mocks need nothing from `@molstar/plugin`, `model` or `graphics` yet, and
   the references grow when sources are wired to a plugin. Storybook, Vite, lit, lightningcss and lucide-static are
@@ -58,22 +70,33 @@ packages/prism/ui/
     components/      dumb components, one folder each: button, icon, choices, select, text-input, color, params
                      (PD controls), scroll-area, tooltip, markdown, reorder, action-footer
     views/           built-in views: shell (shell view, docks, canvas chrome, log), home, structure, state,
-                     state-tree, settings, export, sequence, canvas, command-menu; agent (opt-in, §6)
+                     state-tree, settings, export, sequence, canvas, command-menu
     styles/          registry (CSS registered by generated modules, adopted per document), base, reset.css,
                      theme.css (tokens, themes)
-    _stories/        introduction.mdx, foundations, runtime and performance stories, story-root, mocks/
-                     (view-model fakes)
-    index.ts         placeholder; createPluginUI later
-  scripts/           css.mjs (CSS → generated modules), icons.mjs (Lucide extraction)
-  .storybook/        (dev only)
+    testing/         in-memory mocks of the model/ contracts, the mock shell (ShellStory, taking a module's
+                     contributions as an add-on), story() (a story's JSX in an element)
+    _stories/        introduction.mdx, foundations, runtime and performance stories
+    _test/           package-level tests (the agent boundary)
+    index.ts         the public entry (above); createPrismUI later
+  scripts/           css.mjs (CSS → generated modules, for prism-ui and packages built on it), icons.mjs (Lucide)
+  .storybook/        (dev only; also shows the stories of packages/prism/agent)
   package.json, tsconfig.json, tsconfig.storybook.json
+
+packages/prism/agent/
+  src/
+    model.ts         AgentModel, AISettingsModel and the turn, run and history types
+    views/           agent-turn (turn card, run rows, Undo turn), history-tab, assistant-tab, ai-setup
+    testing/         MockAgentModel, MockAISettings, mockAssistant, mockAgentAddOn (the agent in the mock shell)
+    assistant.stories.tsx   Shell › Assistant (set up, not set up)
+    index.ts         the public entry
+  package.json       depends on @molstar/prism-ui; `styles` runs prism-ui's css.mjs with `--prefix agent`
 ```
 
-Planned, not built (Phases 4–6 in [../plan.md](../plan.md)): `model/sources/` (plugin → `ReadonlyState` adapters) and
-`model/actions/` (operations shared by view models and commands), view-model implementations over a real plugin,
-`ui-commands/` (built-in, generated and contextual commands, formats, keybinding service), the built-in custom elements
-(`<msp-plugin>`, embeddable views), `context.ts` (`PluginUIContext`), `spec.ts` (`PluginUISpec`), `default-spec.ts`
-(`DefaultUIContributions`, `DefaultPluginUISpec`) and `createPluginUI` in `index.ts`.
+Planned, not built (Phases 4–6 in [../plan.md](../plan.md)): `@molstar/prism` with `PrismContext`, `model/sources/`
+(plugin → `ReadonlyState` adapters) and `model/actions/` (operations shared by view models and commands), view-model
+implementations over a real plugin, the built-in, generated and contextual commands; in prism-ui the keybinding service,
+the built-in custom elements (`<msp-plugin>`, embeddable views), `context.ts` (`PrismUIContext`), `spec.ts`
+(`PrismUISpec`), `default-spec.ts` (`DefaultUIContributions`, `DefaultPrismUISpec`) and `createPrismUI`.
 
 Each `.css` file compiles into a committed module next to it (`x.css` → `_generated/x.css.ts`) that exports the class
 names of a CSS module and registers its CSS with `styles/registry`; `MspElement` adopts the registered styles into its
@@ -85,20 +108,20 @@ components it imports ([styling.md](styling.md)). `_generated/` folders are excl
 As the code holds them now (rxjs is allowed everywhere, and so is `import type` of `IconName` from `components/icon`:
 icon names are data in models, commands and tabs):
 
-| Folder                        | May import                                                                                         |
-| ----------------------------- | -------------------------------------------------------------------------------------------------- |
-| `reactive/`                   | rxjs                                                                                               |
-| `forms/`                      | `reactive/`, `@molstar/core` (`util/param-definition`, `util/string`)                              |
-| `commands/`                   | `reactive/`, `forms/`, `@molstar/core/util/param-definition`                                       |
-| `styles/`                     | nothing (generated modules import the registry)                                                    |
-| `dom/`                        | `reactive/`, `styles/` (an element adopts the registered styles)                                   |
-| `react/`                      | `reactive/`, `dom/` (view contract types), `react` (peer, optional)                                |
-| `model/`                      | rxjs, `reactive/`, `forms/` (types); no DOM, no components, no plugin yet                          |
-| `shell/`                      | `reactive/`, `dom/` (view contract types)                                                          |
-| `components/`                 | `reactive/`, `dom/`, `forms/`, `styles/`, `@molstar/core` utils; **not** `model/`, `shell/`, views |
-| `views/`                      | everything above                                                                                   |
-| `views/agent/`, `model/agent` | everything above; imported by nothing outside the agent module but stories (§6)                    |
-| `_stories/`, `*.stories.tsx`  | anything; imported only by stories and tests (view tests use the mocks)                            |
+| Folder                       | May import                                                                                         |
+| ---------------------------- | -------------------------------------------------------------------------------------------------- |
+| `reactive/`                  | rxjs                                                                                               |
+| `forms/`                     | `reactive/`, `@molstar/core` (`util/param-definition`, `util/string`)                              |
+| `commands/`                  | `reactive/`, `forms/`, `@molstar/core/util/param-definition`                                       |
+| `styles/`                    | nothing (generated modules import the registry)                                                    |
+| `dom/`                       | `reactive/`, `styles/` (an element adopts the registered styles)                                   |
+| `react/`                     | `reactive/`, `dom/` (view contract types), `react` (peer, optional)                                |
+| `model/`                     | rxjs, `reactive/`, `forms/` (types); no DOM, no components, no plugin yet                          |
+| `shell/`                     | `reactive/`, `dom/` (view contract types)                                                          |
+| `components/`                | `reactive/`, `dom/`, `forms/`, `styles/`, `@molstar/core` utils; **not** `model/`, `shell/`, views |
+| `views/`                     | everything above                                                                                   |
+| `testing/`                   | everything above; imported by stories and tests only (here and in packages built on prism-ui)      |
+| `_stories/`, `*.stories.tsx` | anything; imported by nothing                                                                      |
 
 Components are dumb: props and states in, callbacks out; views bind them to a model. Views read models through the
 `model/` contracts and the shell through `ShellModel`, never the plugin directly (PD from `@molstar/core` is fine), so
@@ -106,13 +129,14 @@ the same views run over mocks now and over plugin-backed models later. Once sour
 `model/actions/` add `@molstar/plugin`, `@molstar/model` and `@molstar/graphics`; views and components still do not
 import them.
 
-Nothing in prism-ui imports `@molstar/plugin-ui`, and nothing outside `react/` imports React. `reactive/`, `forms/` and
-`commands/` are candidates to move to `@molstar/core` or `@molstar/plugin` later (headless commands); keeping them free
-of DOM and plugin imports now makes that a file move.
+Nothing in prism-ui imports `@molstar/plugin-ui`, and nothing outside `react/` imports React. `reactive/`, `forms/`,
+`commands/` and `model/` move to `@molstar/prism` with `PrismContext` (Phase 4); keeping them free of DOM and plugin
+imports now makes that a file move. `@molstar/prism-agent` imports prism-ui (its entry, and `.ts` modules by path);
+prism-ui never depends on it or names it.
 
-Enforcement: only the agent rule is checked today (`views/agent/_test/boundary.test.ts`, a Jest test that scans the
-sources for relative imports of the agent module). The other rules hold by review; import checks like the other v6
-boundaries are not yet in CI.
+Enforcement: between packages, the workspace check (`scripts/workspace/check.mjs`: declared dependencies, no
+cross-package relative imports, no cycles) and `src/_test/agent-boundary.test.ts` (prism-ui's manifest and files never
+name `@molstar/prism-agent`). Inside prism-ui the folder rules hold by review.
 
 ## 4. Bringing in any-ui
 
@@ -151,21 +175,24 @@ Adaptations made while copying or soon after:
 
 - prism-ui and `@molstar/plugin-ui` can run in the same repo and the same page (different class names, no shared
   globals). They do not share a `PluginContext` at the same time.
-- prism-ui has its **own `PluginUIContext`** (`@molstar/prism-ui/context`, [shell.md](shell.md) §6; not built yet) with
-  the new UI fields (shell, commands, contributions, keybindings, sources, view models). It is a different class from
-  `@molstar/plugin-ui`'s `PluginUIContext`; code that needs both imports them under different names. The UI-only maps on
-  core `PluginContext` (`customStructureControls`, …) are not read by prism-ui; their typed replacements live on the new
-  context, and removing them from core is the plugin-composition follow-up and an API-ledger entry once the old UI is
-  retired.
-- The viewer is not switched by a flag: `apps/prism`, a temporary copy of the viewer on prism-ui (same extensions,
-  presets and URL options, its own entry in the app build), is built and served next to `apps/viewer` so the new UI can
-  be shown and used early; the classic viewer stays untouched until `apps/prism` reaches parity, then switches over and
-  `apps/prism` goes away ([../plan.md](../plan.md) Phase 6; not started).
+- **`PrismContext` and `PrismUIContext`** ([shell.md](shell.md) §6; not built yet). `PrismContext` embeds the plugin
+  (`{ plugin: PluginContext }`; it does not extend it) and is the hub of the app's state, with no UI, so it runs
+  headless; `PrismUIContext` extends it with the UI. Neither is `@molstar/plugin-ui`'s `PluginUIContext`, so code that
+  uses both has no clash. The UI-only maps on core `PluginContext` (`customStructureControls`, …) are not read by Prism;
+  contributions replace them. Removing them from core waits for the classic UI's retirement (recorded in
+  [../../plans/breaking-v6-changes.md](../../plans/breaking-v6-changes.md)).
+- **Commands.** `PluginCommands` stay in the plugin core, the classic UI's bus. Prism's command registry is part of
+  `PrismContext`, so commands run headless and are what the agent calls.
+- **Layout.** `PrismUIContext`'s shell is Prism's layout. Prism neither reads nor writes core `PluginLayout` or
+  `behaviors.layout.leftPanelTabName`; they stay as they are for the classic UI and are not deprecated in v6.
+- **`apps/prism` is a new app**, not a copy of the viewer: the base Mol\* viewer plus Stories Untold's features for
+  building narratives, with the new sequence viewer as a contribution. It need not keep `apps/viewer`'s URL options or
+  globals; the classic viewer stays as it is ([../plan.md](../plan.md) Phase 6; not started).
 - Old React building blocks used by extensions (`CollapsableControls`, `ParameterControls`, `ApplyActionControl`,
   `UpdateTransformControl`) keep working in the old UI; ports provide prism-ui contributions next to them
   ([../analysis/extensions.md](../analysis/extensions.md)).
-- When parity is reached: prism-ui becomes `@molstar/plugin-ui`, the old package becomes `@molstar/plugin-ui-legacy` for
-  one major version, or is removed. Decided at that point.
+- When Prism covers what the classic UI does, the classic UI is retired (then the deferred core removals land) or kept
+  for a major version. Decided at that point.
 
 ## 6. How an app includes features
 
@@ -183,14 +210,16 @@ removed as a unit:
   runtime, `elementView` for a custom element, `reactView` (`react/react-view`) for React or Preact
   ([rendering.md](rendering.md)).
 
-Opt-in modules are not imported by the core at all. The agent (`views/agent/`, `model/agent`) is the first: nothing else
-in the package imports it (a test enforces it, §3), and the core reaches it only through ports: the command menu's
+Opt-in modules are packages the UI does not depend on. The agent (`@molstar/prism-agent`) is the first: an app gets it
+only by depending on it, prism-ui never imports it (§3), and the UI reaches it only through ports: the command menu's
 `assistant` prop (`CommandMenuAssistant`), the shell view's `agent` slot after the status line's tasks, and tabs and
 commands registered like any other. An app that does not import it ships none of it ([agent.md](agent.md) §6).
 
-State (mocks): the registrations above are real `ShellModel`/`CommandManager` APIs; the shell story
-(`views/shell/shell.stories.tsx`) assembles the default UI and the agent (with `ai` on) from them by hand. Not yet: the
-declarative `UIContribution` object listed in the spec and activated after `plugin.init()` ([shell.md](shell.md) §5),
+State (mocks): the registrations above are real `ShellModel`/`CommandManager` APIs; the mock shell (`testing/shell.tsx`,
+`ShellStory`) assembles the default UI from them by hand and takes a module's contributions as an add-on
+(`MockShellAddOn`: tabs, one replacing a tab of the same id; the command menu's assistant; the agent slot; finished
+commands). The agent's `mockAgentAddOn` (`@molstar/prism-agent`, `testing/`) is the first. Not yet: the declarative
+`UIContribution` object listed in the spec and activated after `plugin.init()` ([shell.md](shell.md) §5),
 `DefaultUIContributions`, `agentContribution`, extension packages' `…/prism-ui` entries.
 
 ## 7. Changes to core
@@ -217,17 +246,22 @@ settle before anything talks to a plugin.
 - Story order: Overview (Introduction, Foundations), Shell, Views, Canvas, Components, Internals (the DOM runtime, and
   Performance: the renderer check). Every component but the color picker has a story; `Components/Params form` shows
   every PD control in its states.
-- `_stories/story-root` hosts a story's JSX in an `MspElement`, so its bindings are disposed when Storybook removes it.
-- `_stories/mocks/` implements the `model/` contracts with in-memory data (scene, home, snapshots, selection, agent with
-  scripted turns, …); only stories and a few view tests (command menu, Structure tab) import them. Stories over a real
-  `PluginContext` (plan's level 3) are not built yet.
+- `testing/story-root` (`story()`) hosts a story's JSX in an `MspElement`, so its bindings are disposed when Storybook
+  removes it.
+- `testing/` implements the `model/` contracts with in-memory data (scene, home, snapshots, selection, …), and
+  `testing/shell` is the whole mock shell; stories, a few view tests (command menu, Structure tab) and the agent's
+  stories import them. The agent's mocks (an agent with scripted turns) are in its package.
+- The Storybook in prism-ui also shows the stories of packages built on it (`packages/prism/agent`: Shell › Assistant);
+  `cssModulesPlugin` keeps both packages' CSS current. Stories over a real `PluginContext` (plan's level 3) are not
+  built yet.
 
 ## 9. Tests and checks
 
 - Jest from the repo root (`pnpm jest`), tests in `_test/` folders next to the code as `*.test.ts` or `*.test.tsx`. The
-  root `moduleNameMapper` maps `@molstar/prism-ui/*` to `src/`. DOM tests opt into jsdom per file
-  (`/** @jest-environment jsdom */`) and name their JSX runtime with the pragma ([rendering.md](rendering.md) §4.1).
-  Interaction is tested in Jest (keyboard, focus, events on real nodes), not with Storybook `play`.
+  root `moduleNameMapper` maps `@molstar/prism-ui/*` and `@molstar/prism-agent/*` to their `src/`. DOM tests opt into
+  jsdom per file (`/** @jest-environment jsdom */`) and name their JSX runtime with the pragma
+  ([rendering.md](rendering.md) §4.1). Interaction is tested in Jest (keyboard, focus, events on real nodes), not with
+  Storybook `play`.
 - `tsc -b` builds `lib/` without tests and stories; `typecheck:storybook` (`tsconfig.storybook.json`) checks everything,
   stories and tests included.
 - `styles:check` fails when a generated CSS module is missing, stale or orphaned, `icons:check` when the Lucide module

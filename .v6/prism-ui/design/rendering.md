@@ -166,9 +166,9 @@ All in `dom/control-flow`; each renders into a range of its own and disposes wha
 keys by ref too, but its mock replaces records (§3). Where a list's records are replaced on every change (an agent
 turn's runs, History items), keying by id would still render a row anew on each change (a spinner restarts, a fold
 closes). Such views run `For` over the ids (a stream of id lists with `distinctUntilChanged` on their contents) and give
-each row a stream of its record, found by id in the list (`RunList` in `views/agent/agent-turn`, `HistoryTab` in
-`views/agent/history-tab`). Lists edited by position (a PD object list's items, a line graph's points) iterate indices
-the same way, each row reading its item by index.
+each row a stream of its record, found by id in the list (`RunList` and `HistoryTab` in the agent package's `views/`).
+Lists edited by position (a PD object list's items, a line graph's points) iterate indices the same way, each row
+reading its item by index.
 
 ### 4.4 Rules that keep it correct
 
@@ -191,7 +191,7 @@ view host, viewport, toolbar, command menu, PD form, state tree, sequence, PAE p
 island, plain function components do the work; elements are not the re-render boundary (bindings are).
 
 State (mocks): the element base is built and tested (`dom/element`), but no island element exists yet. Outside tests,
-the only `MspElement` subclass is `MspStoryRoot` (`_stories/story-root`), which hosts a story's JSX so that Storybook
+the only `MspElement` subclass is `MspStoryRoot` (`testing/story-root`), which hosts a story's JSX so that Storybook
 removing it disposes the bindings. The shell, docks, views and components are function components rendered inside it.
 The element below shows the intended shape of an island, not code that exists:
 

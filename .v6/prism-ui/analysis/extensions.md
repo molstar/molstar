@@ -48,12 +48,12 @@ command menu and toasts make the jump unnecessary.
 
 ## 4. Apps
 
-| App                | Today                                                                                                     | prism-ui                                                                                                                                               |
-| ------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| viewer             | `DefaultPluginUISpec()` + layout flags, region state, `controls.*: 'none'`, ~20 `PluginConfig.Viewport.*` | `?ui=next` opt-in during development; the options map to the shell's initial layout and viewport-toolbar contributions. Global `Viewer` API unchanged. |
-| docking-viewer     | Replaces `viewport.view` to add 4 preset buttons                                                          | A viewport-overlay contribution (button group) + 4 commands; no viewport replacement.                                                                  |
-| mesoscale-explorer | Own left/right panels (~3k LOC): entity tree, selection info, quick styles, animation, snapshots          | Its own views contributed to the shell; loaders, sessions, styles and animation presets become commands. The best test of shell modularity; port last. |
-| mvs-stories        | `<mvs-stories-viewer>` + `<mvs-stories-snapshot-markdown>` custom elements                                | Embeddable `msp-viewport` + `msp-snapshot-stepper` elements over shared models; commands: snapshot next/previous, load story.                          |
+| App                | Today                                                                                                     | prism-ui                                                                                                                                                                                 |
+| ------------------ | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| viewer             | `DefaultPluginUISpec()` + layout flags, region state, `controls.*: 'none'`, ~20 `PluginConfig.Viewport.*` | Stays on the classic UI, unchanged. Prism is a new app (`apps/prism`), not a mode of the viewer; options it shares map to the shell's initial layout and viewport-toolbar contributions. |
+| docking-viewer     | Replaces `viewport.view` to add 4 preset buttons                                                          | A viewport-overlay contribution (button group) + 4 commands; no viewport replacement.                                                                                                    |
+| mesoscale-explorer | Own left/right panels (~3k LOC): entity tree, selection info, quick styles, animation, snapshots          | Its own views contributed to the shell; loaders, sessions, styles and animation presets become commands. The best test of shell modularity; port last.                                   |
+| mvs-stories        | `<mvs-stories-viewer>` + `<mvs-stories-snapshot-markdown>` custom elements                                | Embeddable `msp-viewport` + `msp-snapshot-stepper` elements over shared models; commands: snapshot next/previous, load story.                                                            |
 
 ## 5. Examples
 
