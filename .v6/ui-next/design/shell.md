@@ -84,8 +84,8 @@ it is where contributions (built-in and extension UI) are placed.
   button has none. The camera button (a focus glyph) offers Reset zoom, Orient axes and Reset axes; one button holds the
   rendering modes (Illumination as a checked toggle, Enter XR). Canvas settings (rail) opens a card with sections, like
   Export: Background, Lighting & effects, Camera, Clipping & fog; extensions add sections to its slot. The Animation
-  card picks an animation (trajectory, camera spin and rock, state snapshots, assembly unwind), its options, and plays
-  it.
+  card has sections: Play (an animation: trajectory, camera spin and rock, state snapshots, assembly unwind; its
+  options) and Procedural animation (wiggle by dynamics or uncertainty, clear); extensions add their own.
 - **Playback** (top left of the canvas, §4.3): one column, the timeline (when there is a trajectory) above the snapshot
   panel. Nothing sits under it, so a description that grows or collapses moves nothing else.
 - **Bottom of the canvas**: messages and tasks on the left; the current selection and focus as chips on the right (the
