@@ -24,16 +24,16 @@ work.
 
 ## 2. Commands as tools
 
-| Command (`UICommand`)        | Tool (`ToolDefinition` of any-agent)                                                 |
-| ---------------------------- | ------------------------------------------------------------------------------------ |
-| `id`                         | `name` (`structure.component.add`)                                                   |
-| `title`, `alias`, `category` | `description` ("Add component… Also: create component. Structure.")                  |
-| `params(ctx)` (PD)           | `inputSchema`: JSON Schema generated from PD (formats become `format` + description) |
-| `when(ctx)`                  | listed only when available; the reason is returned if called anyway                  |
-| `check(values)`              | validation before run (the harness does not validate)                                |
-| `run(values, ctx, signal)`   | `invoke`: progress frames from the command's task, then the result                   |
-| `CommandResult`              | result parts: what was done, what changed (nodes, selection, view), undoable         |
-| `opens` (custom UI)          | not a tool; its panel's actions are commands of their own                            |
+| Command (`CommandDefinition`) | Tool (`ToolDefinition` of any-agent)                                                 |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| `id`                          | `name` (`structure.component.add`)                                                   |
+| `title`, `alias`, `category`  | `description` ("Add component… Also: create component. Structure.")                  |
+| `params(ctx, values)` (PD)    | `inputSchema`: JSON Schema generated from PD (formats become `format` + description) |
+| `when(ctx)`                   | listed only when available; the reason is returned if called anyway                  |
+| `check(args, ctx)`            | validation before run (the harness does not validate)                                |
+| `run(args, ctx, signal)`      | `invoke`: progress frames from the command's task, then the result                   |
+| `CommandResult`               | result parts: what was done, what changed (nodes, selection, view), undoable         |
+| `opens` (custom UI, planned)  | not a tool; its panel's actions are commands of their own                            |
 
 Commands add two fields for agents:
 
@@ -77,60 +77,85 @@ interface MolstarUIClient {
   readonly events: Observable<ClientEvent>;
 }
 
-type CommandSource = { kind: 'person' } | { kind: 'assistant' } | { kind: 'agent'; name: string } | { kind: 'script' };
+type CommandSource = { kind: 'person' } | { kind: 'assistant' } | { kind: 'agent'; name: string } | { kind: 'script'; name?: string };
 ```
 
-The checkpoint is a Mol\* state snapshot (data, camera, selection, components), so restoring is exact even for changes
-the state tree's undo does not cover (camera, selection, focus).
+`CommandSource` is `RunSource` in `model/agent`. The checkpoint is a Mol\* state snapshot (data, camera, selection,
+components), so restoring is exact even for changes the state tree's undo does not cover (camera, selection, focus).
+
+The views bind to `AgentModel` (`model/agent`), which the client will back: `turn` (the latest `AgentTurn`: its prompt,
+status, streamed `text`, `runs`, `checkpoint` held or not, `undone`, `retries`, `usage`), `view`
+(`'card' | 'line' | 'none'`), `history` (`HistoryItem`: a person's `CommandRun` or an `AgentTurn`), `ask`, `stop`,
+`approve`, `undo`, `dismiss`, `hide`, `reopen`, and `settings` (`AISettingsModel`: providers and keys, the model,
+refresh, own endpoints). A run's status (`RunStatus`) is `running` where the turn's (`TurnStatus`) is `thinking` or
+`working`, and adds `denied`.
 
 ## 5. In the UI
 
-- **The command menu asks.** Under the list, always there, an _Ask the assistant_ bar in the accent's soft wash: it
-  shows what is typed and takes it with ⌘↵ (Ctrl+↵), or with ↵ when no command matches (it is then the default, and the
-  list says so). The assistant (any-ui's `assist`: a one-off agent) proposes a command with its values, and the menu
-  opens the ordinary inline sentence, filled in; nothing runs until Enter. It can also answer in a line, or hand the
-  request to the agent when it takes several steps. Without a model, the bar is quiet (no tint, no shortcut) and reads
-  _Set up an AI assistant_; it opens the Assistant tab.
-- **An agent turn** (the harness's progress) shows as a card in the status column at the bottom left of the canvas,
-  under its tasks: the request and its state (Thinking…, Working…, Waiting for you, Done, Stopped, Failed), the model's
-  words as they stream, a note when the model was retried, and each command as it runs, in words (its title with its
-  arguments, not the tool name): a spinner, its progress as a thin line when the command reports one, its outcome or
-  error under it, its duration; reads quieter. Stop while it runs. A command waiting for approval shows what it does,
-  why it asks ("Fetches data from www.ebi.ac.uk"), Deny and Allow. At the end, one line (commands, failures, time,
-  tokens in and out) and _Undo turn_ (back to the checkpoint). Esc or ✕ closes it to a line of the status column, like a
-  task's (the request and its state, a pulsing spark while it runs; a running turn goes on): a click opens the card
-  again, its ✕ takes the line away (the turn stays in History).
-- **History** (the Log tab grows into it): every command, newest first; the person's one per row, an agent's grouped
-  under its request with its answer, its commands folded under a one-line summary, and the checkpoint before it with
-  _Undo turn_; Messages (the old log) one switch away.
-- **The Assistant tab**, at the rail's foot by Settings (as Stories untold sets up any-model-adapters): one list of
-  providers (Anthropic, Gemini, OpenAI, and one's own), each with its key (as many as one likes): its state (none, until
-  reload, for this session, kept in this browser, from the server), Add key / Change / Remove; entering a key also
-  chooses how long it is kept (_Until reload_: memory only; _This session_; _This browser_). With no key yet, a word on
-  what the assistant is comes first and the first provider's key is open. Then the model in use (only providers with a
-  key; a refresh beside it asks the providers' `/models` for what they offer now), and one's own OpenAI-compatible
-  endpoint (name, URL, OpenAI chat completions or OpenAI Responses, an optional key and how long to keep it, its models
-  typed or fetched from its `/models`; OpenRouter, Ollama, vLLM, LiteLLM; the server must allow CORS). Keys go only to
-  their provider; kept ones are stored scrambled (encrypted with a key this browser keeps, as Stories does), so the
-  storage read as it is gives no working key, which the tab says, along with what it does not guard against (code
-  running in the page). With a server-side agent, keys come from its environment instead.
+- **The command menu asks** (`views/command-menu`, the `assistant` port, `CommandMenuAssistant`: `ready`, `propose`,
+  `ask`, `setup`). Under the list, always there, an _Ask the assistant_ bar in the accent's soft wash: it shows what is
+  typed (with nothing typed, _describe what you want, in your words_, and a click focuses the input) and takes it with
+  ⌘↵ (Ctrl+↵; the footer lists it), or with ↵ when no command matches (the bar is then the default, outlined, and the
+  empty list reads _No command matches: ask the assistant._). Words after a prefix (`@`, `#`, `:`, `?`) are not asked.
+  The assistant (any-ui's `assist`: a one-off agent) proposes one command when the words fit it, read into its values:
+  the menu opens the ordinary inline sentence filled in, over it _Proposed by the assistant from “…”: check it, then
+  Enter to run_; nothing runs until Enter. Words that do not fit one command go to the agent as a turn (in the mock,
+  _color it red_ proposes `selection.color`; _color everything red_ is a turn). Without a model, the bar is quiet (no
+  tint, no shortcut) and reads _Set up an AI assistant_; it, and ⌘↵, open the Assistant tab.
+- **An agent turn** (the harness's progress) shows in the status column at the bottom left of the canvas, under its
+  tasks (the shell's `agent` slot), as a card that asking opens: the request and its state (Thinking…, Working…, Waiting
+  for you, Done, Stopped, Failed), the model's words as they stream, a note when the model was retried ("the provider
+  was busy"), and each command as it runs, in words (its title with its arguments, not the tool name): a spinner, its
+  progress as a thin line when the command reports one, its outcome or error under it, its duration; reads quieter. Rows
+  follow their run by id, so a spinner does not restart as the records change. Stop while it runs. A command waiting for
+  approval shows what it does, why it asks ("Fetches data from www.ebi.ac.uk"), Deny and Allow; Deny marks it denied and
+  ends the turn there. At the end, one line (commands that change something, failures, time, tokens in and out) and
+  _Undo turn_ while the checkpoint is held (_Undone_ after). Esc (unless a field, list, menu or dialog has it) or ✕
+  closes the card to a line of the status column, like a task's (`StatusPill`: the request and its state, the spark
+  pulsing while it thinks or works, the state in the accent while it waits; a running turn goes on): a click opens the
+  card again, its ✕ takes the line away (the turn stays in History).
+- **History** (with the agent module, the Log tab at the rail's foot becomes History): every command, newest first; the
+  person's one per row with how long ago, an agent's grouped under its request (by the agent's name) with its answer,
+  its commands listed while it runs and folded under a one-line summary once done (folds kept as records change), and
+  the checkpoint: _Checkpoint before it_ with _Undo turn_, or _Undone: back to how it was before_, or _No longer
+  undoable: something came after it_, or _Nothing to undo_ (only reads). Messages (the old log) one switch away.
+- **The Assistant tab**, at the rail's foot by Settings (the rail says _Set up assistant_; as Stories untold sets up
+  any-model-adapters): first the model in use (a select of the models of providers with a key; a refresh beside it asks
+  those providers' `/models` for what they offer now; it applies from the next request), then _Keys_: one list of
+  providers (Anthropic, Gemini, OpenAI, and one's own), one key each, for as many as one likes. Each shows its key's
+  state (no key, until reload, for this session, kept in this browser, from the server) and Add key / Change (Cancel
+  while open) / Remove; a key from the server has none of these. Entering a key also chooses how long it is kept (_Until
+  reload_: memory only; _This session_; _This browser_, the default). With no key yet, a word on what the assistant is
+  replaces the model and the first provider's key is open. Under the list, _Your own endpoint_ folds open: an
+  OpenAI-compatible server (name, URL (https, or http on localhost), OpenAI chat completions or OpenAI Responses, an
+  optional key and how long to keep it, its models typed or fetched from its `/models`; OpenRouter, Ollama, vLLM,
+  LiteLLM; it must allow CORS, and a failed fetch says to check the endpoint, the key and CORS). Keys go only to their
+  provider; kept ones are stored scrambled (encrypted with a key this browser keeps, as Stories does), so the storage
+  read as it is gives no working key, which the tab says, along with what it does not guard against (code running in the
+  page). With a server-side agent, keys come from its environment instead.
 - While an agent runs, the person's own commands still run (they are attributed to the person); a command of theirs
-  after the turn releases its checkpoint, and History says so ("No longer undoable: something came after it").
+  after the turn releases its checkpoint, and History says so.
 
-**State (mocks, `views/agent`, `_stories/mocks/agent.ts`, Shell › Assistant and Assistant Setup):** the Ask row with
-proposed commands (color, download, focus) and agent turns, the turn card (streaming, steps with progress and durations,
-a retry note, approval, Stop, failure, summary, Undo turn), History with turns and checkpoints, the Assistant tab (key
-needed; providers, model, own endpoint). Not yet: the PD → JSON Schema generator, the state and focus accounts, the
-client API, the harness wiring, the MCP server (a separate piece of work).
+**State (mocks, `views/agent`, `_stories/mocks/agent.ts`, Shell › Assistant and Assistant Setup):** the Ask bar with
+proposed commands (`selection.color`, `data.download-structure`, `focus.target`) and agent turns, the turn card and its
+line (streaming, steps with progress and durations, a retry note, approval and denial, Stop, failure, summary, Undo
+turn, one checkpoint released by the next action), History with turns and checkpoints, the Assistant tab (key needed;
+providers, model and refresh, own endpoint). Not yet: the `read` and `approval` command fields (they exist only on
+`CommandRun`), the PD → JSON Schema generator, the state and focus accounts, the client API, the harness wiring, an
+answer in a line from the menu's assistant (the port proposes a command or asks the agent), keeping keys (the mock holds
+them in memory whatever the scope; encrypted storage is to come) and keys from a server, the MCP server (a separate
+piece of work).
 
 ## 6. Opt-in: not in every build
 
-The agent is a module an app includes, not part of the core: nothing in the package imports `views/agent` or
-`model/agent` (a test enforces it), and the core knows it only through ports: the command menu's `assistant`
-(`CommandMenuAssistant`), the canvas's `agent` slot, and tabs and commands registered like any contribution. An app that
-does not include it ships none of it; one that does registers it as a contribution (`agentContribution({ … })`), with
-the harness and the model adapters as its own dependencies (any-harness moves into the Mol\* repo as a package of its
-own). The spec can still start it hidden (`ai: { enabled: false }`) for apps that include it but turn it on per user.
+The agent is a module an app includes, not part of the core: nothing in the package outside it imports `views/agent` or
+`model/agent` (stories aside; `views/agent/_test/boundary.test.ts` enforces it), and the core knows it only through
+ports: the command menu's `assistant` (`CommandMenuAssistant`), the shell's `agent` slot (`ShellViewProps.agent`, under
+the status column's tasks), and tabs and commands registered like any contribution (the stories add the Assistant tab
+and swap Log for History only when the module is in). An app that does not include it ships none of it. Planned, not
+built: one that does registers it as a contribution (`agentContribution({ … })`), with the harness and the model
+adapters as its own dependencies (any-harness moves into the Mol\* repo as a package of its own), and the spec can still
+start it hidden (`ai: { enabled: false }`) for apps that include it but turn it on per user.
 
 ## 7. Later: skills
 
