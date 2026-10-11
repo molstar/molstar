@@ -27,6 +27,8 @@ import { SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
 import { SectionList } from './section-list.js';
 import { ShellView } from './shell-view.js';
+import { StructureTab } from '../structure/structure-tab.js';
+import { mockScene } from '../../_stories/mocks/scene.js';
 
 const meta: Meta = { title: 'Shell/Shell', parameters: { layout: 'fullscreen' } };
 export default meta;
@@ -282,6 +284,25 @@ function mockShell(options: { loaded: boolean }) {
   const illumination = observableState(false);
   const snapshots = observableState<readonly string[]>(['Overview', 'Active site']);
   const hoverLines = observableState<readonly string[]>([]);
+  // The scene; hovering a node highlights it (the hover label stands in for the 3D highlight here).
+  const scene = mockScene({ onHighlight: (label) => hoverLines.set(label ? [label] : []) });
+  // An extension's inspector section for structures (assembly symmetry), contributed to the node kind's slot.
+  shell.registerSections([
+    {
+      id: 'assembly-symmetry',
+      slot: 'inspector:structure',
+      title: 'Assembly symmetry',
+      icon: 'orbit',
+      render: domView(() => (
+        <div style="display: grid; gap: 8px">
+          <span style={muted}>C1 · no symmetry in assembly 1</span>
+          <Button size="sm" icon={<Icon name="sparkles" />}>
+            Compute symmetry
+          </Button>
+        </div>
+      )),
+    },
+  ]);
   const hover: HoverLabelModel = { lines: hoverLines.asReadonly };
 
   shell.registerTabs([
@@ -316,10 +337,16 @@ function mockShell(options: { loaded: boolean }) {
       title: 'Structure',
       icon: 'layers',
       order: 1,
-      render: domView(() => (
-        <Placeholder title="Scene">
-          Structures, components and representations as one tree, with the inspector for the picked node below.
-        </Placeholder>
+      render: domView(({ ctx }) => (
+        <StructureTab
+          shell={ctx.shell}
+          scene={scene}
+          onAction={(a) =>
+            status.post(
+              `${a === 'preset' ? 'Apply preset' : a === 'color' ? 'Color by' : 'Add component'}… opens in the palette`,
+            )
+          }
+        />
       )),
     },
     {

@@ -40,6 +40,20 @@ describe('elements', () => {
     expect(input.disabled).toBe(true);
   });
 
+  it("sets a select's value after its options exist", () => {
+    const choice = observableState('b');
+    const { container } = mount(() => (
+      <select value={choice}>
+        <option value="a">A</option>
+        <option value="b">B</option>
+      </select>
+    ));
+    const select = container.querySelector('select')!;
+    expect(select.value).toBe('b');
+    choice.set('a');
+    expect(select.value).toBe('a');
+  });
+
   it('creates SVG in the SVG namespace', () => {
     const { container } = mount(() => (
       <svg viewBox="0 0 24 24">

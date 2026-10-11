@@ -1,0 +1,106 @@
+/** @jsxImportSource @molstar/plugin-ui-next/dom */
+
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { combineLatest, distinctUntilChanged, map } from 'rxjs';
+import { Icon } from '../../components/icon/icon.js';
+import { For, Show } from '../../dom/control-flow.js';
+import type { SceneModel, SceneNode } from '../../model/scene.js';
+import { classes } from './_generated/scene-tree.module.css.js';
+
+/**
+ * The scene as one tree: structures → components → representations, volumes, measurements. Rows are keyed by node, so
+ * a hierarchy update touches only the rows that changed; hover highlights in 3D, a click picks the node for the
+ * inspector, visibility toggles inline.
+ */
+export function SceneTree(props: { scene: SceneModel }) {
+  const { scene } = props;
+  return (
+    <div class={classes.tree} role="tree" aria-label="Scene">
+      <For each={scene.roots} key={(n) => n.id} fallback={() => <p class={classes.empty}>Nothing loaded yet.</p>}>
+        {(node) => <TreeNode scene={scene} node={node} depth={0} />}
+      </For>
+    </div>
+  );
+}
+
+function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) {
+  const { scene, node, depth } = props;
+  const hasChildren = node.children.pipe(
+    map((c) => c.length > 0),
+    distinctUntilChanged(),
+  );
+  const open = combineLatest([node.isExpanded, hasChildren]).pipe(map(([e, h]) => e && h));
+  const picked = scene.picked.pipe(
+    map((p) => p === node),
+    distinctUntilChanged(),
+  );
+  return (
+    <div role="treeitem" aria-expanded={open} aria-selected={picked}>
+      <div
+        class={classes.row}
+        classList={{ [classes.hidden]: node.isHidden, [classes.picked]: picked }}
+        style={{ '--msp-tree-depth': depth }}
+        onClick={() => scene.pick(node)}
+        onPointerEnter={() => node.highlight(true)}
+        onPointerLeave={() => node.highlight(false)}
+      >
+        <button
+          type="button"
+          class={classes.expander}
+          classList={{ [classes.leaf]: hasChildren.pipe(map((h) => !h)) }}
+          aria-label="Expand"
+          onClick={(e) => {
+            e.stopPropagation();
+            node.toggleExpanded();
+          }}
+        >
+          <Icon name="chevron-right" size={14} />
+        </button>
+        <Icon name={node.icon} size={16} class={classes.kind} />
+        <span class={classes.label}>{node.label}</span>
+        <span class={classes.description}>{node.description}</span>
+        <span class={classes.actions}>
+          <button
+            type="button"
+            class={classes.action}
+            classList={{ [classes.keep]: node.isHidden }}
+            title={node.isHidden.pipe(map((h) => (h ? 'Show' : 'Hide')))}
+            onClick={(e) => {
+              e.stopPropagation();
+              node.toggleVisibility();
+            }}
+          >
+            <Show when={node.isHidden} fallback={() => <Icon name="eye" size={15} />}>
+              {() => <Icon name="eye-off" size={15} />}
+            </Show>
+          </button>
+          <button
+            type="button"
+            class={classes.action}
+            title="Remove"
+            onClick={(e) => {
+              e.stopPropagation();
+              node.remove();
+            }}
+          >
+            <Icon name="trash-2" size={15} />
+          </button>
+        </span>
+      </div>
+      <Show when={open}>
+        {() => (
+          <div role="group">
+            <For each={node.children} key={(n) => n.id}>
+              {(child) => <TreeNode scene={scene} node={child} depth={depth + 1} />}
+            </For>
+          </div>
+        )}
+      </Show>
+    </div>
+  );
+}

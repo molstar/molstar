@@ -92,8 +92,11 @@ export function createElement(type: string | Component<any>, props: Record<strin
   const isSvg = SvgTags.has(type);
   const el = isSvg ? document.createElementNS(SVG_NS, type) : document.createElement(type);
   if (props) {
-    applyProps(el, props, isSvg, type.includes('-'));
+    // A select's value only sticks once its options exist: apply it after the children.
+    const deferred = type === 'select' && 'value' in props;
+    applyProps(el, props, isSvg, type.includes('-'), deferred);
     if (props.children !== undefined) insert(el, props.children, null);
+    if (deferred) applyProps(el, { value: props.value }, isSvg, false);
     if (typeof props.ref === 'function') props.ref(el);
   }
   return el;
@@ -195,11 +198,11 @@ export function removeBetween(start: Node, end: Node): void {
 
 // --- Props ---------------------------------------------------------------------------------------
 
-function applyProps(el: Element, props: Record<string, any>, isSvg: boolean, isCustom: boolean) {
+function applyProps(el: Element, props: Record<string, any>, isSvg: boolean, isCustom: boolean, skipValue = false) {
   let classes: ClassBinding | undefined;
   for (const key of Object.keys(props)) {
     const value = props[key];
-    if (key === 'children' || key === 'ref' || value === undefined) continue;
+    if (key === 'children' || key === 'ref' || value === undefined || (skipValue && key === 'value')) continue;
     if (key.startsWith('on:')) {
       el.addEventListener(key.slice(3), value);
     } else if (key.length > 2 && key.startsWith('on') && key.charCodeAt(2) < 91 && typeof value === 'function') {

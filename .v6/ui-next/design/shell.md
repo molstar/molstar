@@ -149,6 +149,13 @@ class ShellModel extends ReactiveModel {
 Quick styles, superposition, procedural animation, component options, measurement creation, and screenshot options move
 to commands (with forms or custom UI where the arguments are rich).
 
+The Structure tab is built on `SceneModel` (`model/scene.ts`): `roots`, `picked`, `pick`, and `inspect(node)`, which
+returns the node's `ParamsFormModel` and its section slot `inspector:<kind>`. Section contributions for a node kind
+register into that slot, the same mechanism the Export panel uses. Tree rows are keyed by node id; hover highlights, a
+click picks, visibility and removal sit inline (the eye stays visible while a node is hidden). The form shows the
+essential params first and the rest under Advanced; mapped params (color theme) re-render their nested fields when the
+choice changes.
+
 ### 4.2 Overlays
 
 | Overlay        | Opened from                  | Content                                                                                                                                                                                                                                                                                      | Replaces                    |
