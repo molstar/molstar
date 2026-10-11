@@ -34,7 +34,6 @@ defineStyles('views/canvas/hover-label.module.css', `@layer msp.components {
   }
 
   background: var(--msp-glass-bg);
-  border: var(--msp-glass-border);
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
 }

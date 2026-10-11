@@ -37,7 +37,6 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   padding: var(--msp-space-2);
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
-  border: var(--msp-glass-border);
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
   flex-direction: column;
@@ -80,7 +79,6 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   border-radius: var(--msp-radius-lg);
   animation: msp-shell-canvas-card-in var(--msp-motion-base) var(--msp-ease);
   background: var(--msp-glass-bg);
-  border: var(--msp-glass-border);
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
   flex-direction: column;
@@ -101,7 +99,6 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   gap: var(--msp-space-3);
   height: var(--msp-row-height);
   padding: 0 var(--msp-space-2) 0 var(--msp-space-4);
-  border-bottom: 1px solid var(--msp-color-border);
   font-weight: 600;
   display: flex;
 }
@@ -168,7 +165,6 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   font-size: var(--msp-font-size-sm);
   white-space: nowrap;
   background: var(--msp-glass-bg);
-  border: var(--msp-glass-border);
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
   border-radius: 13px;

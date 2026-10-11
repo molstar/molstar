@@ -57,6 +57,10 @@ can use another theme.
 
 ## 4. Rules
 
+- **Minimal borders and no shadows on the canvas.** Areas are separated by background tones (`--msp-color-bg`, `-panel`,
+  `-raised`, `-control`) and spacing, not lines; everything over the canvas is flat glass (`--msp-glass-*`: translucency
+  and blur only).
+
 - Components use tokens, not literal colours or sizes.
 - No inline styles except values computed at runtime (positions, sizes from the shell).
 - Class composition through a small `cx()` helper; state classes bound to `ReadonlyState`s via `classList`.

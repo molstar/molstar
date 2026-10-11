@@ -16,7 +16,6 @@
 .card {
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
-  border: var(--msp-glass-border);
   box-shadow: var(--msp-glass-shadow);
   backdrop-filter: var(--msp-glass-filter);
   -webkit-backdrop-filter: var(--msp-glass-filter);
@@ -59,7 +58,6 @@
 .description {
   max-height: 40cqh;
   padding: var(--msp-space-3) var(--msp-space-4) var(--msp-space-4);
-  border-top: 1px solid var(--msp-color-border);
   overflow: auto;
   font-size: var(--msp-font-size-sm);
 }

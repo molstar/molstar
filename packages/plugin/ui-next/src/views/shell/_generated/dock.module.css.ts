@@ -35,13 +35,11 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-right {
-  border-left: 1px solid var(--msp-color-border);
   flex-direction: row;
   grid-area: right;
 }
 
 .msp-shell-dock-left {
-  border-right: 1px solid var(--msp-color-border);
   flex-direction: row-reverse;
   grid-area: left;
 }
@@ -59,10 +57,6 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
     display: none;
   }
 
-  & .msp-shell-dock-strip {
-    border-right: 1px solid var(--msp-color-border);
-  }
-
   & .msp-shell-dock-tab {
     width: 28px;
     height: 28px;
@@ -70,12 +64,10 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-top {
-  border-bottom: 1px solid var(--msp-color-border);
   grid-area: top;
 }
 
 .msp-shell-dock-bottom {
-  border-top: 1px solid var(--msp-color-border);
   grid-area: bottom;
 }
 
@@ -93,7 +85,6 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   gap: var(--msp-space-3);
   height: var(--msp-row-height);
   padding: 0 var(--msp-space-2) 0 var(--msp-space-4);
-  border-bottom: 1px solid var(--msp-color-border);
   font-weight: 600;
   display: flex;
 }
@@ -117,14 +108,6 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   background: var(--msp-color-bg);
   flex-direction: column;
   display: flex;
-}
-
-.msp-shell-dock-right .msp-shell-dock-strip {
-  border-left: 1px solid var(--msp-color-border);
-}
-
-.msp-shell-dock-left .msp-shell-dock-strip {
-  border-right: 1px solid var(--msp-color-border);
 }
 
 .msp-shell-dock-tab {
@@ -192,8 +175,6 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-compact {
-  border-left: 0;
-  border-top: 1px solid var(--msp-color-border);
   flex-direction: column;
 
   & .msp-shell-dock-content {
@@ -202,8 +183,6 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   }
 
   & .msp-shell-dock-strip {
-    border-left: 0;
-    border-top: 1px solid var(--msp-color-border);
     flex-direction: row;
     justify-content: space-around;
   }

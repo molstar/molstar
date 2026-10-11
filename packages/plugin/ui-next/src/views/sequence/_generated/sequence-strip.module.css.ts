@@ -33,7 +33,6 @@ defineStyles('views/sequence/sequence-strip.module.css', `@layer msp.components 
   gap: var(--msp-space-1);
   height: 26px;
   padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
-  border-bottom: 1px solid var(--msp-color-border);
   display: flex;
 }
 

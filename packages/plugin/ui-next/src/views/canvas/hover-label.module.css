@@ -22,7 +22,6 @@
     display: none;
   }
   background: var(--msp-glass-bg);
-  border: var(--msp-glass-border);
   box-shadow: var(--msp-glass-shadow);
   backdrop-filter: var(--msp-glass-filter);
   -webkit-backdrop-filter: var(--msp-glass-filter);

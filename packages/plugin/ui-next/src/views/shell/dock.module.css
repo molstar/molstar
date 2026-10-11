@@ -14,13 +14,11 @@
 .right {
   grid-area: right;
   flex-direction: row;
-  border-left: 1px solid var(--msp-color-border);
 }
 
 .left {
   grid-area: left;
   flex-direction: row-reverse;
-  border-right: 1px solid var(--msp-color-border);
 }
 
 /* Top and bottom docks: content beside a slim tab strip, no header (the tab strip collapses them). */
@@ -39,10 +37,6 @@
     display: none;
   }
 
-  & .strip {
-    border-right: 1px solid var(--msp-color-border);
-  }
-
   & .tab {
     width: 28px;
     height: 28px;
@@ -51,12 +45,10 @@
 
 .top {
   grid-area: top;
-  border-bottom: 1px solid var(--msp-color-border);
 }
 
 .bottom {
   grid-area: bottom;
-  border-top: 1px solid var(--msp-color-border);
 }
 
 .content {
@@ -74,7 +66,6 @@
   gap: var(--msp-space-3);
   height: var(--msp-row-height);
   padding: 0 var(--msp-space-2) 0 var(--msp-space-4);
-  border-bottom: 1px solid var(--msp-color-border);
   font-weight: 600;
 }
 
@@ -97,14 +88,6 @@
   gap: var(--msp-space-1);
   padding: var(--msp-space-2);
   background: var(--msp-color-bg);
-}
-
-.right .strip {
-  border-left: 1px solid var(--msp-color-border);
-}
-
-.left .strip {
-  border-right: 1px solid var(--msp-color-border);
 }
 
 .tab {
@@ -176,8 +159,6 @@
 /* Compact: the right dock is a bottom sheet with its tabs along the bottom edge. */
 .compact {
   flex-direction: column;
-  border-left: 0;
-  border-top: 1px solid var(--msp-color-border);
 
   & .content {
     width: auto;
@@ -188,8 +169,6 @@
   & .strip {
     flex-direction: row;
     justify-content: space-around;
-    border-left: 0;
-    border-top: 1px solid var(--msp-color-border);
   }
 
   & .splitter {

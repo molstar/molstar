@@ -33,7 +33,6 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 .msp-canvas-playback-card {
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
-  border: var(--msp-glass-border);
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
 }
@@ -75,7 +74,6 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 .msp-canvas-playback-description {
   max-height: 40cqh;
   padding: var(--msp-space-3) var(--msp-space-4) var(--msp-space-4);
-  border-top: 1px solid var(--msp-color-border);
   font-size: var(--msp-font-size-sm);
   overflow: auto;
 }

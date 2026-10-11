@@ -16,7 +16,6 @@
   padding: var(--msp-space-2);
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
-  border: var(--msp-glass-border);
   box-shadow: var(--msp-glass-shadow);
   backdrop-filter: var(--msp-glass-filter);
   -webkit-backdrop-filter: var(--msp-glass-filter);
@@ -62,7 +61,6 @@
   overflow: hidden;
   animation: card-in var(--msp-motion-base) var(--msp-ease);
   background: var(--msp-glass-bg);
-  border: var(--msp-glass-border);
   box-shadow: var(--msp-glass-shadow);
   backdrop-filter: var(--msp-glass-filter);
   -webkit-backdrop-filter: var(--msp-glass-filter);
@@ -81,7 +79,6 @@
   gap: var(--msp-space-3);
   height: var(--msp-row-height);
   padding: 0 var(--msp-space-2) 0 var(--msp-space-4);
-  border-bottom: 1px solid var(--msp-color-border);
   font-weight: 600;
 }
 
@@ -151,7 +148,6 @@
   font-size: var(--msp-font-size-sm);
   white-space: nowrap;
   background: var(--msp-glass-bg);
-  border: var(--msp-glass-border);
   box-shadow: var(--msp-glass-shadow);
   backdrop-filter: var(--msp-glass-filter);
   -webkit-backdrop-filter: var(--msp-glass-filter);

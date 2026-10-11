@@ -79,7 +79,6 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-glass-bg: color-mix(in oklab, var(--msp-color-panel), transparent 30%);
     --msp-glass-filter: blur(20px) saturate(1.4);
     --msp-glass-shadow: none;
-    --msp-glass-border: 1px solid color-mix(in oklab, var(--msp-shade), transparent 86%);
     --msp-accent-cyan: #7f8c8d;
     --msp-accent-red: #e74c3c;
     --msp-accent-gray: #34495e;
