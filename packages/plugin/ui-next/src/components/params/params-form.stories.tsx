@@ -57,7 +57,7 @@ function Surfaces(props: { params: PD.Params; width?: number; filter?: boolean }
         >
           {props.filter ? (
             <div style="margin-bottom: 8px">
-              <TextInput size="sm" placeholder="Search" value={query.asReadonly} onInput={(v) => query.set(v)} />
+              <TextInput search size="sm" placeholder="Search" value={query.asReadonly} onInput={(v) => query.set(v)} />
             </div>
           ) : null}
           <ParamsForm form={form} filter={props.filter ? query.asReadonly : undefined} />
@@ -322,6 +322,14 @@ export const LongLabels = render(
       ['blended', 'Weighted, blended'],
       ['wboit', 'Weighted, order-independent'],
     ]),
+    // With help: the ? stays after the cut-off text.
+    backgroundOcclusionRadiusScale: PD.Numeric(
+      0.5,
+      { min: 0, max: 2, step: 0.05 },
+      {
+        description: 'How far around each point occlusion is sampled, relative to the scene radius.',
+      },
+    ),
   },
   { width: 240 },
 );
