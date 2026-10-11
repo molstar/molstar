@@ -10,11 +10,14 @@ import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'bottom': 'msp-shell-canvas-bottom',
+  'bottomGrid': 'msp-shell-canvas-bottomGrid',
   'card': 'msp-shell-canvas-card',
   'card-in': 'msp-shell-canvas-card-in',
   'cardBody': 'msp-shell-canvas-cardBody',
   'cardHeader': 'msp-shell-canvas-cardHeader',
   'cardTitle': 'msp-shell-canvas-cardTitle',
+  'chip': 'msp-shell-canvas-chip',
+  'context': 'msp-shell-canvas-context',
   'message': 'msp-shell-canvas-message',
   'pill': 'msp-shell-canvas-pill',
   'pill-in': 'msp-shell-canvas-pill-in',
@@ -120,25 +123,54 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   left: var(--msp-space-4);
   right: var(--msp-canvas-right-inset, var(--msp-space-4));
   bottom: var(--msp-space-4);
+  pointer-events: none;
+  position: absolute;
+  container: bottom-bar / inline-size;
+}
+
+.msp-shell-canvas-bottomGrid {
   align-items: end;
   gap: var(--msp-space-3);
-  pointer-events: none;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  grid-template-areas: "status timeline .";
+  grid-template-areas: "status context timeline";
   display: grid;
-  position: absolute;
 
   & > * {
     pointer-events: auto;
   }
 }
 
-@container canvas (width < 960px) {
-  .msp-shell-canvas-bottom {
+@container bottom-bar (width < 900px) {
+  .msp-shell-canvas-bottomGrid {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "context context"
+                         "status timeline";
+  }
+}
+
+@container bottom-bar (width < 560px) {
+  .msp-shell-canvas-bottomGrid {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "timeline"
+    grid-template-areas: "context"
+                         "timeline"
                          "status";
   }
+}
+
+.msp-shell-canvas-context {
+  justify-content: center;
+  justify-self: center;
+  gap: var(--msp-space-2);
+  flex-wrap: wrap;
+  grid-area: context;
+  display: flex;
+}
+
+.msp-shell-canvas-chip {
+  height: 30px;
+  padding: 0 var(--msp-space-4);
+  font-size: var(--msp-font-size-md);
+  border-radius: 15px;
 }
 
 .msp-shell-canvas-status {
@@ -156,7 +188,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-timeline {
   grid-area: timeline;
-  justify-self: center;
+  justify-self: end;
 }
 
 .msp-shell-canvas-pill {

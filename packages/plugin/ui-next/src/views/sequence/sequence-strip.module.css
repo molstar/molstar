@@ -50,7 +50,7 @@
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
-  padding: var(--msp-space-2) var(--msp-space-3);
+  padding: var(--msp-space-1) var(--msp-space-3);
   overflow-y: auto;
   font-family: var(--msp-font-mono);
   font-size: 13px;
@@ -59,7 +59,8 @@
 
 .residue {
   position: relative;
-  padding: 14px 0 2px;
+  height: 28px;
+  padding: 13px 0 2px;
   width: 1ch;
   text-align: center;
   cursor: pointer;

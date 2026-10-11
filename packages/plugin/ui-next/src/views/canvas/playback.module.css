@@ -6,7 +6,8 @@
 
 .cluster {
   position: absolute;
-  top: var(--msp-space-4);
+  /* Below what floats at the top (the sequence). */
+  top: var(--msp-canvas-top-inset, var(--msp-space-4));
   left: var(--msp-space-4);
   display: grid;
   gap: var(--msp-space-2);
@@ -63,7 +64,7 @@
 }
 
 .timeline {
-  width: min(460px, calc(100cqw - 2 * var(--msp-space-4)));
+  width: min(380px, 100cqw);
 }
 
 .scrubber {

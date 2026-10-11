@@ -93,7 +93,7 @@ function SnapshotStepper(props: { model: SnapshotStepperModel }) {
 }
 
 /**
- * The timeline at the bottom centre of the canvas, like a media player: model index of a trajectory with a scrubber
+ * The timeline at the bottom right of the canvas, like a media player: model index of a trajectory with a scrubber
  * (later also animations). Shown for multi-model trajectories only.
  */
 export function Timeline(props: { model: TrajectoryControlsModel }) {

@@ -44,6 +44,9 @@ it is where contributions (built-in and extension UI) are placed.
   also: palette (modal), dialogs, notifications, drag-and-drop target
 ```
 
+- **Floating docks.** The top dock (sequence) floats too: a glass card along the top of the canvas, between the left
+  edge and what floats on the right, or a small glass pill when collapsed; the canvas runs under everything, so the
+  sequence reads as part of the visualization. The snapshot panel sits below it (`--msp-canvas-top-inset`).
 - **Right panel, floating.** By default the right dock floats over the canvas instead of taking space beside it: the
   canvas gets the full width, the active tab's content is a glass card (more opaque than the small controls, for
   reading), and a rail at the right edge carries the tab strip and the canvas toolbar as two glass groups. Collapsed,
@@ -59,8 +62,10 @@ it is where contributions (built-in and extension UI) are placed.
   `PluginConfig.Viewport.*`. A button either runs its command or opens an overlay anchored to it.
 - **Snapshot panel** (top-left of the canvas, §4.3): stepper and description. Nothing is stacked under it, so a
   description that grows or collapses moves nothing else.
-- **Timeline** (bottom centre, §4.3): trajectory model index and animations, like a media player; above the status line
-  when the canvas is narrow.
+- **Bottom of the canvas**: messages and tasks on the left, the current selection and focus as chips in the centre (the
+  work in hand), the timeline (trajectory model index, animations; like a media player) on the right. The bar is its own
+  size container: when what floats on the right narrows it, the chips take a row of their own above, and on a very
+  narrow canvas everything stacks.
 - **Glass and canvas theme.** Everything over the canvas uses flat glass (translucent fill, blur, hairline edge, no
   shadows) and takes its theme from the canvas background automatically, not from the UI theme, so it stays visible (as
   stories-untold's stage ink does). `model/canvas-theme.ts` computes it from the Canvas3D props by relative luminance
@@ -156,7 +161,7 @@ Each part appears only when it applies.
   markdown extensions (`#key` links apply snapshots, command links, color swatches, images, audio). Collapsible, text
   size adjustable, scrolls when long, remembers its collapsed state. Apps can replace it with their own renderer (a
   contribution), as mvs-stories and mesoscale-explorer do today.
-- **Timeline** (bottom centre, when the current structure comes from a multi-model trajectory or an animation runs):
+- **Timeline** (bottom right, when the current structure comes from a multi-model trajectory or an animation runs):
   `4 / 20`, first, previous, scrubber, next, last, play/pause (model-index animation). Kept apart from the snapshot
   panel so neither moves the other.
 - **Animation**: chosen and configured from the timeline (an overlay), played there.

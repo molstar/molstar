@@ -22,7 +22,7 @@ export const classes = {
 
 defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 .msp-canvas-playback-cluster {
-  top: var(--msp-space-4);
+  top: var(--msp-canvas-top-inset, var(--msp-space-4));
   left: var(--msp-space-4);
   gap: var(--msp-space-2);
   width: min(320px, 100% - 96px);
@@ -79,7 +79,7 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 }
 
 .msp-canvas-playback-timeline {
-  width: min(460px, calc(100cqw - 2 * var(--msp-space-4)));
+  width: min(380px, 100cqw);
 }
 
 .msp-canvas-playback-scrubber {

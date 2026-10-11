@@ -14,13 +14,14 @@ import type { ShellModel } from '../../shell/shell.js';
 import type { StatusModel } from '../../shell/status.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/shell.module.css.js';
-import { CanvasToolbar, OverlayHost, StatusLine } from './canvas-chrome.js';
+import { CanvasToolbar, ContextChips, OverlayHost, StatusLine } from './canvas-chrome.js';
 import { DockView, FloatingDock } from './dock-view.js';
 
 /** Widths (px) of what floats on the right: the rail (tab strip, toolbar), the gap to the card, the edge margin. */
 const RailWidth = 44;
 const Gap = 8;
 const Edge = 12;
+const CollapsedHeight = 28;
 
 export interface ShellViewProps {
   shell: ShellModel;
@@ -29,7 +30,7 @@ export interface ShellViewProps {
   canvas: Child;
   /** Items floating over the canvas besides the toolbar and status line (snapshots, hover label, …). */
   overlays?: Child;
-  /** The timeline at the bottom centre of the canvas (trajectory, animation). */
+  /** The timeline at the bottom right of the canvas (trajectory, animation). */
   timeline?: Child;
   /**
    * The theme of the chrome over the canvas, from the canvas background (light background: light glass), independent
@@ -43,10 +44,21 @@ export interface ShellViewProps {
 export function ShellView(props: ShellViewProps) {
   const { shell, status } = props;
   const right = shell.dock('right');
+  const top = shell.dock('top');
   // The right dock floats over the canvas unless it is docked, or the shell is compact (then it is a bottom sheet).
   const floating = combineLatest([right.state, shell.mode]).pipe(
     map(([s, mode]) => s.floating && mode !== 'compact'),
     distinctUntilChanged(),
+  );
+  const floatingTop = combineLatest([top.state, shell.mode]).pipe(
+    map(([s, mode]) => s.floating && mode !== 'compact'),
+    distinctUntilChanged(),
+  );
+  // What floats at the top (the sequence card, or its collapsed pill) takes this much: the snapshot panel goes below.
+  const topInset = combineLatest([top.state, top.tabs, top.active, floatingTop]).pipe(
+    map(([s, tabs, active, f]) => (f && tabs.length ? Edge + (active ? s.size : CollapsedHeight) + Gap : Edge)),
+    distinctUntilChanged(),
+    map((px) => `${px}px`),
   );
   // What floats on the right takes this much of the canvas: the bottom bar keeps clear of it.
   const rightInset = combineLatest([right.state, right.active, floating]).pipe(
@@ -56,19 +68,23 @@ export function ShellView(props: ShellViewProps) {
   );
   const root = (
     <div class={classes.shell} data-mode={shell.mode}>
-      <DockView shell={shell} dock={shell.dock('top')} />
+      <Show when={floatingTop.pipe(map((f) => !f))}>{() => <DockView shell={shell} dock={top} />}</Show>
       <DockView shell={shell} dock={shell.dock('left')} />
       <main class={classes.viewport}>
         <div class={classes.canvas}>{props.canvas}</div>
         <div
           class={classes.layer}
           data-msp-theme={props.canvasTheme ?? 'light'}
-          style={{ '--msp-canvas-right-inset': rightInset }}
+          style={{ '--msp-canvas-right-inset': rightInset, '--msp-canvas-top-inset': topInset }}
         >
+          <Show when={floatingTop}>{() => <FloatingDock shell={shell} dock={top} />}</Show>
           {props.overlays}
           <div class={canvasClasses.bottom}>
-            <StatusLine status={status} onOpenLog={props.onOpenLog} />
-            {props.timeline ? <div class={canvasClasses.timeline}>{props.timeline}</div> : null}
+            <div class={canvasClasses.bottomGrid}>
+              <StatusLine status={status} onOpenLog={props.onOpenLog} />
+              <ContextChips status={status} />
+              {props.timeline ? <div class={canvasClasses.timeline}>{props.timeline}</div> : null}
+            </div>
           </div>
           <OverlayHost shell={shell} />
           <Show

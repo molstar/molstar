@@ -50,7 +50,7 @@ export type DockState = {
   collapsed: boolean;
   /**
    * Floats over the canvas instead of taking space beside it (desktop mode only; compact mode keeps the bottom sheet).
-   * The right dock floats by default.
+   * The right and top docks float by default: the canvas runs under them and they read as part of the visualization.
    */
   floating: boolean;
 };
@@ -67,7 +67,7 @@ export interface ShellOptions {
   compactWidth?: number;
 }
 
-const DefaultSizes: Record<DockId, number> = { left: 300, right: 340, top: 96, bottom: 220 };
+const DefaultSizes: Record<DockId, number> = { left: 300, right: 340, top: 88, bottom: 220 };
 const MinSize = 180;
 
 /** A button on the canvas toolbar. */
@@ -153,7 +153,7 @@ export class ShellModel extends ReactiveModel {
         active: undefined,
         size: DefaultSizes[id],
         collapsed: false,
-        floating: id === 'right',
+        floating: id === 'right' || id === 'top',
         ...options.docks?.[id],
       });
     }

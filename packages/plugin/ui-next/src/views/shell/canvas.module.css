@@ -95,32 +95,65 @@
   right: var(--msp-space-4);
 }
 
-/* The bottom of the canvas: status on the left, the timeline centred; stacked when the shell is narrow. */
+/* The bottom of the canvas: status on the left, the timeline centred; stacked when the bar is narrow. The bar is a
+   container itself: what floats on the right narrows it, not the canvas. */
 .bottom {
   position: absolute;
   left: var(--msp-space-4);
   /* Clear of whatever floats on the right (the rail, an open panel). */
   right: var(--msp-canvas-right-inset, var(--msp-space-4));
   bottom: var(--msp-space-4);
+  container: bottom-bar / inline-size;
+  pointer-events: none;
+}
+
+.bottomGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  grid-template-areas: "status timeline .";
+  grid-template-areas: "status context timeline";
   align-items: end;
   gap: var(--msp-space-3);
-  pointer-events: none;
 
   & > * {
     pointer-events: auto;
   }
 }
 
-@container canvas (width < 960px) {
-  .bottom {
+/* Narrower: the context (selection, focus) keeps the centre on a row of its own. */
+@container bottom-bar (width < 900px) {
+  .bottomGrid {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "context context"
+      "status timeline";
+  }
+}
+
+@container bottom-bar (width < 560px) {
+  .bottomGrid {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
+      "context"
       "timeline"
       "status";
   }
+}
+
+.context {
+  grid-area: context;
+  justify-self: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--msp-space-2);
+}
+
+/* Selection and focus are the work in hand: a little more presence than messages. */
+.chip {
+  height: 30px;
+  padding: 0 var(--msp-space-4);
+  border-radius: 15px;
+  font-size: var(--msp-font-size-md);
 }
 
 .status {
@@ -138,7 +171,7 @@
 
 .timeline {
   grid-area: timeline;
-  justify-self: center;
+  justify-self: end;
 }
 
 .pill {

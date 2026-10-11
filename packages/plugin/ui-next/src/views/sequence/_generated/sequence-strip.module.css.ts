@@ -63,7 +63,7 @@ defineStyles('views/sequence/sequence-strip.module.css', `@layer msp.components 
 .msp-sequence-sequence-strip-residues {
   min-width: 0;
   min-height: 0;
-  padding: var(--msp-space-2) var(--msp-space-3);
+  padding: var(--msp-space-1) var(--msp-space-3);
   font-family: var(--msp-font-mono);
   flex-wrap: wrap;
   flex: 1;
@@ -79,7 +79,8 @@ defineStyles('views/sequence/sequence-strip.module.css', `@layer msp.components 
   cursor: pointer;
   user-select: none;
   width: 1ch;
-  padding: 14px 0 2px;
+  height: 28px;
+  padding: 13px 0 2px;
   position: relative;
 
   &:hover {

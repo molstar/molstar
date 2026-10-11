@@ -222,6 +222,44 @@
   flex-direction: row;
 }
 
+.floatingTop,
+.floatingBottom {
+  left: var(--msp-space-4);
+  right: var(--msp-canvas-right-inset, var(--msp-space-4));
+  flex-direction: column;
+  align-items: stretch;
+
+  & .content {
+    flex: none;
+    width: auto;
+    height: var(--msp-dock-size);
+  }
+
+  & .header,
+  & .splitter {
+    display: none;
+  }
+
+  & .collapsedBar {
+    flex: none;
+    align-self: flex-start;
+    height: 28px;
+    border-radius: 14px;
+    background: var(--msp-glass-bg);
+    backdrop-filter: var(--msp-glass-filter);
+    -webkit-backdrop-filter: var(--msp-glass-filter);
+  }
+}
+
+.floatingTop {
+  bottom: auto;
+}
+
+.floatingBottom {
+  top: auto;
+  flex-direction: column-reverse;
+}
+
 .rail {
   display: flex;
   flex-direction: column;

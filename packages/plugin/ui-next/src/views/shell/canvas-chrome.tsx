@@ -102,7 +102,7 @@ const KindIcons: Record<MessageKind, IconName> = {
   error: 'circle-alert',
 };
 
-/** The line at the bottom of the canvas: the latest message, running tasks, selection and focus chips. */
+/** The bottom left of the canvas: the latest message and running tasks. */
 export function StatusLine(props: { status: StatusModel; onOpenLog?: () => void }) {
   const { status } = props;
   return (
@@ -122,9 +122,17 @@ export function StatusLine(props: { status: StatusModel; onOpenLog?: () => void 
         )}
       </Show>
       <For each={status.tasks}>{(task) => <TaskPill task={task} />}</For>
-      <For each={status.chips}>
+    </div>
+  );
+}
+
+/** The bottom centre of the canvas: what the person works on now (selection, focus) as chips. */
+export function ContextChips(props: { status: StatusModel }) {
+  return (
+    <div class={classes.context}>
+      <For each={props.status.chips}>
         {(chip) => (
-          <span class={classes.pill}>
+          <span class={`${classes.pill} ${classes.chip}`}>
             <button type="button" class={classes.text} onClick={() => chip.activate?.()}>
               {chip.label}
             </button>

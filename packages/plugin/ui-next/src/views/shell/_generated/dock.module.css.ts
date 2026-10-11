@@ -17,8 +17,10 @@ export const classes = {
   'content': 'msp-shell-dock-content',
   'dock': 'msp-shell-dock-dock',
   'floating': 'msp-shell-dock-floating',
+  'floatingBottom': 'msp-shell-dock-floatingBottom',
   'floatingLeft': 'msp-shell-dock-floatingLeft',
   'floatingRight': 'msp-shell-dock-floatingRight',
+  'floatingTop': 'msp-shell-dock-floatingTop',
   'header': 'msp-shell-dock-header',
   'left': 'msp-shell-dock-left',
   'rail': 'msp-shell-dock-rail',
@@ -236,6 +238,41 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 .msp-shell-dock-floatingLeft {
   left: var(--msp-space-4);
   flex-direction: row;
+}
+
+.msp-shell-dock-floatingTop, .msp-shell-dock-floatingBottom {
+  left: var(--msp-space-4);
+  right: var(--msp-canvas-right-inset, var(--msp-space-4));
+  flex-direction: column;
+  align-items: stretch;
+
+  & .msp-shell-dock-content {
+    width: auto;
+    height: var(--msp-dock-size);
+    flex: none;
+  }
+
+  & .msp-shell-dock-header, & .msp-shell-dock-splitter {
+    display: none;
+  }
+
+  & .msp-shell-dock-collapsedBar {
+    background: var(--msp-glass-bg);
+    height: 28px;
+    -webkit-backdrop-filter: var(--msp-glass-filter);
+    border-radius: 14px;
+    flex: none;
+    align-self: flex-start;
+  }
+}
+
+.msp-shell-dock-floatingTop {
+  bottom: auto;
+}
+
+.msp-shell-dock-floatingBottom {
+  flex-direction: column-reverse;
+  top: auto;
 }
 
 .msp-shell-dock-rail {

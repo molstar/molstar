@@ -67,9 +67,10 @@ describe('ShellModel', () => {
     expect(shell.mode.value).toBe('embedded');
   });
 
-  it('floats the right dock by default and can dock it', () => {
+  it('floats the right and top docks by default and can dock them', () => {
     const shell = new ShellModel();
     expect(shell.dock('right').state.value.floating).toBe(true);
+    expect(shell.dock('top').state.value.floating).toBe(true);
     expect(shell.dock('left').state.value.floating).toBe(false);
     shell.setFloating('right', false);
     expect(shell.layout.docks.right.floating).toBe(false);
