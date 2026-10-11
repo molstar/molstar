@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { distinctUntilChanged, map } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import { Select } from '../../components/select/select.js';
 import { TextInput } from '../../components/text-input/text-input.js';
 import { For, Show } from '../../dom/control-flow.js';
@@ -131,7 +131,7 @@ function ProviderRow(props: {
         <Show when={live.pipe(map((p) => p.key?.from !== 'server'))}>
           {() => (
             <button type="button" class={classes.link} onClick={toggle}>
-              {live.pipe(map((p) => (p.key ? 'Change' : 'Add key')))}
+              {combineLatest([live, editing]).pipe(map(([p, e]) => (e ? 'Cancel' : p.key ? 'Change' : 'Add key')))}
             </button>
           )}
         </Show>

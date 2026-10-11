@@ -128,12 +128,9 @@
   gap: var(--msp-space-1);
   padding: 2px 0;
 
-  /* A key being entered: on a quiet surface under its provider. */
+  /* A key being entered: right under its provider, on the panel's edges like every control (no box of its own). */
   & > .keyForm {
-    margin-bottom: var(--msp-space-1);
-    padding: var(--msp-space-2);
-    border-radius: var(--msp-radius-md);
-    background: var(--msp-color-well);
+    margin-bottom: var(--msp-space-2);
   }
 }
 
@@ -193,10 +190,16 @@
   }
 }
 
+/* One's own endpoint: an inline block like a dropdown's options (select.module.css .list): its surface and hairline. */
 .own {
-  padding: var(--msp-space-2) 0;
+  padding: var(--msp-space-2) var(--msp-space-2) var(--msp-space-2) 0;
   border-radius: var(--msp-radius-md);
-  background: var(--msp-color-well);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+
+  & > .keyForm {
+    padding-left: var(--msp-space-2);
+  }
 }
 
 .ownFoot {

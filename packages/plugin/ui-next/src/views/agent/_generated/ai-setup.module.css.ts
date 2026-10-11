@@ -154,10 +154,7 @@ defineStyles('views/agent/ai-setup.module.css', `@layer msp.components {
   display: grid;
 
   & > .msp-agent-ai-setup-keyForm {
-    margin-bottom: var(--msp-space-1);
-    padding: var(--msp-space-2);
-    border-radius: var(--msp-radius-md);
-    background: var(--msp-color-well);
+    margin-bottom: var(--msp-space-2);
   }
 }
 
@@ -218,9 +215,14 @@ defineStyles('views/agent/ai-setup.module.css', `@layer msp.components {
 }
 
 .msp-agent-ai-setup-own {
-  padding: var(--msp-space-2) 0;
+  padding: var(--msp-space-2) var(--msp-space-2) var(--msp-space-2) 0;
   border-radius: var(--msp-radius-md);
-  background: var(--msp-color-well);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+
+  & > .msp-agent-ai-setup-keyForm {
+    padding-left: var(--msp-space-2);
+  }
 }
 
 .msp-agent-ai-setup-ownFoot {

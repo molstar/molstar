@@ -458,7 +458,9 @@ function mockShell(options: {
       ? [
           {
             id: 'assistant',
-            title: 'Assistant',
+            // The rail's tooltip says what it is for; the panel is headed Assistant.
+            title: 'Set up assistant',
+            heading: 'Assistant',
             icon: 'sparkles' as const,
             order: 2.7,
             place: 'foot' as const,
