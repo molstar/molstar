@@ -127,8 +127,11 @@ export interface AgentModel {
   settings: AISettingsModel;
   /** The latest turn: running, waiting for the person, or the last one finished. */
   turn: ReadonlyState<AgentTurn | undefined>;
-  /** Its card is open (asking opens it; Esc or ✕ closes it to a pill, which reopens it). */
-  cardOpen: ReadonlyState<boolean>;
+  /**
+   * How it shows, under the status line's tasks: its card (asking opens it), a line (Esc or ✕ closes the card to it; a
+   * click reopens it), or nothing (the line's ✕; it stays in History).
+   */
+  view: ReadonlyState<'card' | 'line' | 'none'>;
   /** Newest last. */
   history: ReadonlyState<readonly HistoryItem[]>;
   /** Hands a request to the agent (several steps, a turn of its own). */
@@ -139,8 +142,10 @@ export interface AgentModel {
   approve(runId: string, allow: boolean): void;
   /** Restores the checkpoint before the turn (says what else it discards: the person's runs after it). */
   undo(turnId: string): void;
-  /** Closes the turn's card (a running turn goes on; it stays in the history). */
+  /** Closes the turn's card to its line (a running turn goes on). */
   dismiss(): void;
+  /** Takes the line away too (the turn stays in History). */
+  hide(): void;
   /** Opens the latest turn's card again. */
   reopen(): void;
 }

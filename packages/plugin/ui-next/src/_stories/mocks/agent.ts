@@ -244,7 +244,7 @@ const wait = (ms: number, signal: AbortSignal) =>
  */
 export class MockAgentModel implements AgentModel {
   readonly #turn = observableState<AgentTurn | undefined>(undefined);
-  readonly #cardOpen = observableState(false);
+  readonly #view = observableState<'card' | 'line' | 'none'>('none');
   readonly #history = observableState<readonly HistoryItem[]>([]);
   #serial = 0;
   #abort: AbortController | undefined;
@@ -252,7 +252,7 @@ export class MockAgentModel implements AgentModel {
 
   readonly settings: MockAISettings;
   readonly turn = this.#turn.asReadonly;
-  readonly cardOpen = this.#cardOpen.asReadonly;
+  readonly view = this.#view.asReadonly;
   readonly history = this.#history.asReadonly;
 
   constructor(
@@ -319,17 +319,21 @@ export class MockAgentModel implements AgentModel {
   }
 
   dismiss() {
-    this.#cardOpen.set(false);
+    if (this.#view.value === 'card') this.#view.set('line');
+  }
+
+  hide() {
+    this.#view.set('none');
   }
 
   reopen() {
-    if (this.#turn.value) this.#cardOpen.set(true);
+    if (this.#turn.value) this.#view.set('card');
   }
 
   // The turn on show and its row in the history are one record, replaced on every change.
   #show(turn: AgentTurn) {
     this.#turn.set(turn);
-    this.#cardOpen.set(true);
+    this.#view.set('card');
     this.#history.set([...this.#history.value, { kind: 'turn', turn }]);
   }
 

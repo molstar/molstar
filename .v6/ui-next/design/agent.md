@@ -89,14 +89,15 @@ the state tree's undo does not cover (camera, selection, focus).
   opens the ordinary inline sentence, filled in; nothing runs until Enter. It can also answer in a line, or hand the
   request to the agent when it takes several steps. Without a model, the bar reads _Set up the assistant_ and opens the
   Assistant tab.
-- **An agent turn** (the harness's progress) shows as a card at the bottom left of the canvas, above the status line:
-  the request and its state (Thinking…, Working…, Waiting for you, Done, Stopped, Failed), the model's words as they
-  stream, a note when the model was retried, and each command as it runs, in words (its title with its arguments, not
-  the tool name): a spinner, its progress as a thin line when the command reports one, its outcome or error under it,
-  its duration; reads quieter. Stop while it runs. A command waiting for approval shows what it does, why it asks
-  ("Fetches data from www.ebi.ac.uk"), Deny and Allow. At the end, one line (commands, failures, time, tokens in and
-  out) and _Undo turn_ (back to the checkpoint). Esc or ✕ closes it to a pill (the request and its state, a pulsing
-  spark while it runs; a running turn goes on), and the pill opens it again.
+- **An agent turn** (the harness's progress) shows as a card in the status column at the bottom left of the canvas,
+  under its tasks: the request and its state (Thinking…, Working…, Waiting for you, Done, Stopped, Failed), the model's
+  words as they stream, a note when the model was retried, and each command as it runs, in words (its title with its
+  arguments, not the tool name): a spinner, its progress as a thin line when the command reports one, its outcome or
+  error under it, its duration; reads quieter. Stop while it runs. A command waiting for approval shows what it does,
+  why it asks ("Fetches data from www.ebi.ac.uk"), Deny and Allow. At the end, one line (commands, failures, time,
+  tokens in and out) and _Undo turn_ (back to the checkpoint). Esc or ✕ closes it to a line of the status column, like a
+  task's (the request and its state, a pulsing spark while it runs; a running turn goes on): a click opens the card
+  again, its ✕ takes the line away (the turn stays in History).
 - **History** (the Log tab grows into it): every command, newest first; the person's one per row, an agent's grouped
   under its request with its answer, its commands folded under a one-line summary, and the checkpoint before it with
   _Undo turn_; Messages (the old log) one switch away.

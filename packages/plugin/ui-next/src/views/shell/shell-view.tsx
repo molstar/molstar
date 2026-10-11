@@ -42,7 +42,7 @@ export interface ShellViewProps {
   canvas: Child;
   /** Items floating over the canvas besides the toolbar and status line (snapshots, hover label, …). */
   overlays?: Child;
-  /** The assistant at work (its turn card): at the bottom left of the canvas, above the status line. */
+  /** The assistant at work (its turn card, or its line when closed): under the status line's tasks. */
   agent?: Child;
   /** Playback at the top left of the canvas (the snapshot and trajectory card). */
   playback?: Child;
@@ -163,9 +163,8 @@ export function ShellView(props: ShellViewProps) {
           <Show when={compact.pipe(map((c) => !c))}>
             {() => (
               <div class={canvasClasses.bottom}>
-                {props.agent ? <div class={canvasClasses.agent}>{props.agent}</div> : null}
                 <div class={canvasClasses.bottomGrid}>
-                  <StatusLine status={status} onOpenLog={props.onOpenLog} />
+                  <StatusLine status={status} onOpenLog={props.onOpenLog} after={props.agent} />
                   <ContextChips status={status} lead={props.context?.()} />
                 </div>
               </div>

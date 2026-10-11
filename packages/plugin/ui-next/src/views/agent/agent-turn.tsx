@@ -12,6 +12,7 @@ import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { For, Show } from '../../dom/control-flow.js';
 import { onCleanup } from '../../dom/scope.js';
 import type { AgentModel, AgentTurn, CommandRun, RunStatus, TurnStatus } from '../../model/agent.js';
+import { StatusPill } from '../shell/canvas-chrome.js';
 import { classes } from './_generated/agent-turn.module.css.js';
 
 const StatusIcons: Record<RunStatus, IconName> = {
@@ -123,7 +124,7 @@ export function AgentTurnCard(props: { agent: AgentModel }) {
   const { agent } = props;
   // Esc closes the card (to its pill): before the panels take it, but not from a field, a list, a menu or a dialog.
   const onKey = (e: KeyboardEvent) => {
-    if (e.key !== 'Escape' || e.defaultPrevented || !agent.cardOpen.value || !agent.turn.value) return;
+    if (e.key !== 'Escape' || e.defaultPrevented || agent.view.value !== 'card' || !agent.turn.value) return;
     const target = e.target as HTMLElement | null;
     if (
       target?.isContentEditable ||
@@ -136,38 +137,41 @@ export function AgentTurnCard(props: { agent: AgentModel }) {
   };
   document.addEventListener('keydown', onKey, true);
   onCleanup(() => document.removeEventListener('keydown', onKey, true));
-  const which = (open: boolean) =>
-    combineLatest([agent.turn, agent.cardOpen]).pipe(
-      map(([t, o]) => (o === open ? t?.id : undefined)),
+  const which = (view: 'card' | 'line') =>
+    combineLatest([agent.turn, agent.view]).pipe(
+      map(([t, v]) => (v === view ? t?.id : undefined)),
       distinctUntilChanged(),
     );
   return (
     <>
-      <Show when={which(false)}>{() => <TurnPill agent={agent} />}</Show>
-      <Show when={which(true)}>{(id) => <Card agent={agent} id={id} />}</Show>
+      <Show when={which('line')}>{() => <TurnLine agent={agent} />}</Show>
+      <Show when={which('card')}>{(id) => <Card agent={agent} id={id} />}</Show>
     </>
   );
 }
 
-/** A closed card: the request and its state in a pill; a click opens the card again. */
-function TurnPill(props: { agent: AgentModel }) {
+/**
+ * A closed card: a line of the status column, like a task's: the request and its state (the spark pulsing while it
+ * runs); a click opens the card again, ✕ takes the line away (the turn stays in History).
+ */
+function TurnLine(props: { agent: AgentModel }) {
   const turn = props.agent.turn.pipe(filter((t): t is AgentTurn => !!t));
   const status = turn.pipe(
     map((t) => t.status),
     distinctUntilChanged(),
   );
   return (
-    <button
-      type="button"
-      class={classes.pill}
-      data-status={status}
-      aria-label="Show the assistant’s turn"
-      onClick={() => props.agent.reopen()}
-    >
-      <Icon name="sparkles" size={14} class={classes.spark} />
-      <span class={classes.pillPrompt}>{turn.pipe(map((t) => t.prompt))}</span>
-      <span class={classes.state}>{status.pipe(map((s) => TurnLabels[s]))}</span>
-    </button>
+    <span class={classes.line} data-status={status}>
+      <StatusPill
+        icon={<Icon name="sparkles" size={14} class={classes.spark} />}
+        text={turn.pipe(map((t) => t.prompt))}
+        after={<span class={classes.state}>{status.pipe(map((s) => TurnLabels[s]))}</span>}
+        label="Show the assistant’s turn"
+        onClick={() => props.agent.reopen()}
+        dismissLabel="Hide"
+        onDismiss={() => props.agent.hide()}
+      />
+    </span>
   );
 }
 

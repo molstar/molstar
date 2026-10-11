@@ -9,7 +9,6 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
-  'agent': 'msp-shell-canvas-agent',
   'bottom': 'msp-shell-canvas-bottom',
   'bottomGrid': 'msp-shell-canvas-bottomGrid',
   'busy': 'msp-shell-canvas-busy',
@@ -42,6 +41,7 @@ export const classes = {
   'pill': 'msp-shell-canvas-pill',
   'pill-in': 'msp-shell-canvas-pill-in',
   'pillButton': 'msp-shell-canvas-pillButton',
+  'pillMain': 'msp-shell-canvas-pillMain',
   'progress': 'msp-shell-canvas-progress',
   'railMenu': 'msp-shell-canvas-railMenu',
   'railMenuButton': 'msp-shell-canvas-railMenuButton',
@@ -335,18 +335,6 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   container: bottom-bar / inline-size;
 }
 
-.msp-shell-canvas-agent {
-  margin-bottom: var(--msp-space-2);
-
-  &:empty {
-    display: none;
-  }
-
-  & > * {
-    pointer-events: auto;
-  }
-}
-
 .msp-shell-canvas-bottomGrid {
   align-items: end;
   gap: var(--msp-space-3);
@@ -465,6 +453,21 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 @keyframes msp-shell-canvas-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+.msp-shell-canvas-pillMain {
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  height: 100%;
+  color: inherit;
+  text-align: left;
+  display: inline-flex;
+
+  &:hover .msp-shell-canvas-text {
+    text-underline-offset: 3px;
+    text-decoration: underline;
   }
 }
 

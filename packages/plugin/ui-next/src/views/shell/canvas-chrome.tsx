@@ -447,8 +447,8 @@ export const KindIcons: Record<MessageKind, IconName> = {
   error: 'circle-alert',
 };
 
-/** The bottom left of the canvas: the latest message and running tasks. */
-export function StatusLine(props: { status: StatusModel; onOpenLog?: () => void }) {
+/** The bottom left of the canvas: the latest message, running tasks, and under them `after` (the assistant's turn). */
+export function StatusLine(props: { status: StatusModel; onOpenLog?: () => void; after?: Child }) {
   const { status } = props;
   return (
     <div class={classes.status} aria-live="polite">
@@ -469,7 +469,52 @@ export function StatusLine(props: { status: StatusModel; onOpenLog?: () => void 
       <For each={status.tasks.pipe(map((tasks) => tasks.filter((t) => !t.overlay)))}>
         {(task) => <TaskPill task={task} />}
       </For>
+      {props.after}
     </div>
+  );
+}
+
+/**
+ * One line of the status column (a task's look): an icon, its text, what follows (state, progress), and an ✕; the line
+ * itself clickable when `onClick` is given. For lines that are not tasks (the assistant's turn).
+ */
+export function StatusPill(props: {
+  icon: Child;
+  text: Child;
+  after?: Child;
+  label?: string;
+  onClick?(): void;
+  onDismiss?(): void;
+  dismissLabel?: string;
+}) {
+  const body = (
+    <>
+      {props.icon}
+      <span class={classes.text}>{props.text}</span>
+      {props.after}
+    </>
+  );
+  return (
+    <span class={classes.pill}>
+      {props.onClick ? (
+        <button type="button" class={classes.pillMain} aria-label={props.label} onClick={() => props.onClick?.()}>
+          {body}
+        </button>
+      ) : (
+        body
+      )}
+      {props.onDismiss ? (
+        <button
+          type="button"
+          class={classes.pillButton}
+          aria-label={props.dismissLabel ?? 'Dismiss'}
+          data-tip={props.dismissLabel ?? 'Dismiss'}
+          onClick={() => props.onDismiss?.()}
+        >
+          <Icon name="x" size={14} />
+        </button>
+      ) : null}
+    </span>
   );
 }
 

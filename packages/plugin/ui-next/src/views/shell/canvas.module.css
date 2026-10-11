@@ -324,19 +324,6 @@
   pointer-events: none;
 }
 
-/* The assistant's turn card, above the status line. */
-.agent {
-  margin-bottom: var(--msp-space-2);
-
-  &:empty {
-    display: none;
-  }
-
-  & > * {
-    pointer-events: auto;
-  }
-}
-
 .bottomGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -464,6 +451,22 @@
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* A clickable line's body: the line's look, up to its ✕. */
+.pillMain {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  height: 100%;
+  color: inherit;
+  text-align: left;
+
+  &:hover .text {
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 }
 
