@@ -135,7 +135,7 @@
   }
 }
 
-.recent {
+.state {
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr);
   align-items: center;
@@ -152,12 +152,12 @@
   }
 }
 
-.recentLabel {
+.stateLabel {
   color: var(--msp-color-text);
   font-weight: 500;
 }
 
-.recentDescription {
+.stateDate {
   overflow: hidden;
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);

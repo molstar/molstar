@@ -6,7 +6,7 @@
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ParamsFormModel } from '../../forms/params-form.js';
-import type { HomeAction, HomeModel, RecentEntry, RemoteState, RemoteStatesModel } from '../../model/home.js';
+import type { HomeAction, HomeModel, RemoteState, RemoteStatesModel } from '../../model/home.js';
 import { observableState } from '../../reactive/observable-state.js';
 
 // The root's state actions, shaped like Mol*'s (DownloadStructure, DownloadDensity, LoadTrajectory, OpenSession): the
@@ -146,7 +146,7 @@ const OpenSession = {
   url: PD.Text('', { label: 'Session URL', isEssential: true }),
 };
 
-/** Home for the stories: the root actions with forms, a few recent entries; applying posts what would happen. */
+/** Home for the stories: the root actions with forms; applying posts what would happen. */
 export function mockHome(
   post: (text: string, kind?: 'info' | 'success') => void,
   options: { remoteStates?: boolean } = {},
@@ -199,20 +199,8 @@ export function mockHome(
     action('load-trajectory', 'Load Trajectory', 'trajectory', 'Topology and coordinates', LoadTrajectory, 'Load'),
     action('open-session', 'Open Session', 'folder-open', 'A .molx session by URL', OpenSession, 'Load'),
   ]);
-  const recent = (id: string, label: string, description: string, icon: RecentEntry['icon']): RecentEntry => ({
-    id,
-    label,
-    description,
-    icon,
-    open: () => post(`Opening ${label}…`),
-  });
   return {
     actions: actions.asReadonly,
-    recent: observableState<readonly RecentEntry[]>([
-      recent('1tqn', '1TQN', 'PDB · Cytochrome P450 3A4 · 2 min ago', 'atom'),
-      recent('emd-2984', 'EMD-2984', 'EMDB · β-galactosidase · yesterday', 'volume'),
-      recent('af-q8w3k0', 'AF-Q8W3K0-F1', 'AlphaFold DB · last week', 'atom'),
-    ]).asReadonly,
     formats: ['mmCIF', 'BinaryCIF', 'PDB', 'CCP4', 'MRC', 'MOLX', 'MVSJ'],
     remoteStates: options.remoteStates ? mockRemoteStates(post) : undefined,
     openFiles: (files) => post(`Opening ${files.map((f) => f.name).join(', ')}…`),

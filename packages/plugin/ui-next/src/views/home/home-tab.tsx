@@ -25,7 +25,7 @@ export interface HomeTabProps {
 
 /**
  * The Home tab: the state actions applicable to the root as forms (download structure, open files, download density,
- * load trajectory, …; the first one open), recently opened entries, and a pointer to the command menu. Files dropped
+ * load trajectory, …; the first one open), remote states when on, and a pointer to the command menu. Files dropped
  * anywhere on the plugin open too (the shell's drop overlay).
  */
 export function HomeTab(props: HomeTabProps) {
@@ -37,22 +37,6 @@ export function HomeTab(props: HomeTabProps) {
           {(action, index) => <ActionBlock action={action} open={index.value === 0} />}
         </For>
       </section>
-      <Show when={home.recent.pipe(map((r) => r.length > 0))}>
-        {() => (
-          <section class={classes.group} aria-label="Recent">
-            <h3 class={classes.caption}>Recent</h3>
-            <For each={home.recent} key={(r) => r.id}>
-              {(entry) => (
-                <button type="button" class={classes.recent} onClick={() => entry.open()}>
-                  <Icon name={entry.icon} size={16} />
-                  <span class={classes.recentLabel}>{entry.label}</span>
-                  <span class={classes.recentDescription}>{entry.description}</span>
-                </button>
-              )}
-            </For>
-          </section>
-        )}
-      </Show>
       {home.remoteStates ? <RemoteStates model={home.remoteStates} /> : null}
       <button type="button" class={classes.hint} onClick={() => props.onOpenCommandMenu?.()}>
         <kbd>{formatChord({ key: 'k', mod: true })}</kbd>
@@ -127,10 +111,10 @@ function RemoteStates(props: { model: RemoteStatesModel }) {
       </div>
       <For each={model.states} key={(r) => r.id} fallback={() => <p class={classes.none}>No states on this server.</p>}>
         {(state) => (
-          <button type="button" class={classes.recent} onClick={() => model.open(state.id)}>
+          <button type="button" class={classes.state} onClick={() => model.open(state.id)}>
             <Icon name="cloud" size={16} />
-            <span class={classes.recentLabel}>{state.label}</span>
-            <span class={classes.recentDescription}>{state.date}</span>
+            <span class={classes.stateLabel}>{state.label}</span>
+            <span class={classes.stateDate}>{state.date}</span>
           </button>
         )}
       </For>

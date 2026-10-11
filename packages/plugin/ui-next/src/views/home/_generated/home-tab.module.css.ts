@@ -24,11 +24,11 @@ export const classes = {
   'hint': 'msp-home-home-tab-hint',
   'home': 'msp-home-home-tab-home',
   'none': 'msp-home-home-tab-none',
-  'recent': 'msp-home-home-tab-recent',
-  'recentDescription': 'msp-home-home-tab-recentDescription',
-  'recentLabel': 'msp-home-home-tab-recentLabel',
   'server': 'msp-home-home-tab-server',
   'spin': 'msp-home-home-tab-spin',
+  'state': 'msp-home-home-tab-state',
+  'stateDate': 'msp-home-home-tab-stateDate',
+  'stateLabel': 'msp-home-home-tab-stateLabel',
 } as const;
 
 defineStyles('views/home/home-tab.module.css', `@layer msp.components {
@@ -160,7 +160,7 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
   }
 }
 
-.msp-home-home-tab-recent {
+.msp-home-home-tab-state {
   align-items: center;
   gap: var(--msp-space-3);
   height: 30px;
@@ -177,12 +177,12 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
   }
 }
 
-.msp-home-home-tab-recentLabel {
+.msp-home-home-tab-stateLabel {
   color: var(--msp-color-text);
   font-weight: 500;
 }
 
-.msp-home-home-tab-recentDescription {
+.msp-home-home-tab-stateDate {
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   text-overflow: ellipsis;

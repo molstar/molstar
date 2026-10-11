@@ -28,16 +28,6 @@ export interface HomeAction {
   apply(): void | Promise<void>;
 }
 
-/** Something opened before, to open again in one click. */
-export interface RecentEntry {
-  id: string;
-  label: string;
-  /** Where it came from and when ("PDB · 2 min ago"). */
-  description?: string;
-  icon: IconName;
-  open(): void;
-}
-
 /** A session saved on a state server, to open in one click. */
 export interface RemoteState {
   id: string;
@@ -67,7 +57,6 @@ export interface RemoteStatesModel {
 export interface HomeModel {
   /** The root's applicable actions, the most used first. */
   actions: ReadonlyState<readonly HomeAction[]>;
-  recent: ReadonlyState<readonly RecentEntry[]>;
   /** File formats the open-files action reads, for the drop area's hint ("mmCIF, PDB, CCP4, MOLX, …"). */
   formats: readonly string[];
   /** Files picked or dropped: opened with the plugin's file-format detection. */
