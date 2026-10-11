@@ -30,3 +30,9 @@
   font-size: var(--msp-font-size-xs);
   font-weight: 500;
 }
+
+/* The state tree runs deep (download → parse → trajectory → model → structure → component → representation): a
+   smaller indent per level keeps the labels in view. */
+.tree {
+  --msp-tree-indent: 8px;
+}

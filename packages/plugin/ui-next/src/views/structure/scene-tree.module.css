@@ -5,6 +5,9 @@
  */
 
 .tree {
+  /* One level's indent; a deep tree (the state tree) sets less. */
+  --msp-tree-indent: 14px;
+
   display: grid;
   /* Rows never wider than the panel: the label and description give way, the actions stay in view. */
   grid-template-columns: minmax(0, 1fr);
@@ -22,7 +25,7 @@
   gap: var(--msp-space-2);
   min-width: 0;
   height: 26px;
-  padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * 14px);
+  padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, 14px));
   border-radius: var(--msp-radius-md);
   cursor: default;
   user-select: none;
@@ -129,7 +132,8 @@
 /* A row's menu: inline under the row, indented with it, a quiet surface holding it together. */
 .menu {
   display: grid;
-  margin: 2px var(--msp-space-1) var(--msp-space-1) calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * 14px + 22px);
+  margin: 2px var(--msp-space-1) var(--msp-space-1)
+    calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, 14px) + 22px);
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
@@ -173,7 +177,7 @@
 
 .loading {
   height: 26px;
-  padding-left: calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * 14px + 40px);
+  padding-left: calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, 14px) + 40px);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   line-height: 26px;

@@ -32,6 +32,7 @@ export const classes = {
 
 defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
 .msp-structure-scene-tree-tree {
+  --msp-tree-indent: 14px;
   grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
@@ -47,7 +48,7 @@ defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
   gap: var(--msp-space-2);
   min-width: 0;
   height: 26px;
-  padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * 14px);
+  padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, 14px));
   border-radius: var(--msp-radius-md);
   cursor: default;
   user-select: none;
@@ -150,7 +151,8 @@ defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
 }
 
 .msp-structure-scene-tree-menu {
-  margin: 2px var(--msp-space-1) var(--msp-space-1) calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * 14px + 22px);
+  margin: 2px var(--msp-space-1) var(--msp-space-1)
+    calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, 14px) + 22px);
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
@@ -194,7 +196,7 @@ defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
 
 .msp-structure-scene-tree-loading {
   height: 26px;
-  padding-left: calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * 14px + 40px);
+  padding-left: calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, 14px) + 40px);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   line-height: 26px;

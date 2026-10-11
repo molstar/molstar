@@ -13,6 +13,7 @@ export const classes = {
   'caption': 'msp-state-tree-state-tree-tab-caption',
   'error': 'msp-state-tree-state-tree-tab-error',
   'transform': 'msp-state-tree-state-tree-tab-transform',
+  'tree': 'msp-state-tree-state-tree-tab-tree',
 } as const;
 
 defineStyles('views/state-tree/state-tree-tab.module.css', `@layer msp.components {
@@ -38,6 +39,10 @@ defineStyles('views/state-tree/state-tree-tab.module.css', `@layer msp.component
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   font-weight: 500;
+}
+
+.msp-state-tree-state-tree-tab-tree {
+  --msp-tree-indent: 8px;
 }
 }
 `);

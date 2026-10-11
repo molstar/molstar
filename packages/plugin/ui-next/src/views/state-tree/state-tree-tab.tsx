@@ -38,7 +38,7 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
   return (
     <div class={tab.tab}>
       <div class={tab.tree}>
-        <div class={tree.tree} role="tree" aria-label="State tree">
+        <div class={`${tree.tree} ${classes.tree}`} role="tree" aria-label="State tree">
           <For
             each={model.roots}
             key={(n) => n.ref}
