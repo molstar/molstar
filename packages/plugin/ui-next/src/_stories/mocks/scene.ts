@@ -17,6 +17,7 @@ import type {
   SceneNodeKind,
 } from '../../model/scene.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { DefaultRows } from './structure-rows.js';
 
 /** Representation params shaped like Mol*'s (type, color theme as a mapped param, size, opacity, quality, material). */
@@ -135,6 +136,15 @@ const UnitCellParams = {
   color: PD.Color(0x808080 as any, { isEssential: true }),
   size: PD.Numeric(0.33, { min: 0.1, max: 2, step: 0.01 }, { label: 'Line size', isEssential: true }),
   alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity' }),
+};
+
+/** A measurement's look (the measurement manager's line and label params), adjustable after it is added. */
+const MeasurementStyleParams = {
+  lineColor: PD.Color(0xffee88 as any, { label: 'Line color', isEssential: true }),
+  lineSize: PD.Numeric(0.075, { min: 0.01, max: 0.5, step: 0.005 }, { label: 'Line size', isEssential: true }),
+  dashed: PD.Boolean(true, { isEssential: true }),
+  textColor: PD.Color(0x000000 as any, { label: 'Text color', isEssential: true }),
+  textSize: PD.Numeric(0.5, { min: 0.1, max: 5, step: 0.1 }, { label: 'Text size', isEssential: true }),
 };
 
 const ComponentParams = {
@@ -276,6 +286,10 @@ export interface MockScene extends SceneModel {
   rowForm(structure: SceneNode, rowId: string): ParamsFormModel<any> | undefined;
   /** The volume streaming row's options for a structure. */
   streaming(structure: SceneNode): ParamsFormModel<any>;
+  /** The measurements made: the rows under Measurements (each picked shows its style). */
+  measurements: ReadonlyState<readonly SceneNode[]>;
+  /** A measurement's style (shared by its row's inspector and the Selection tab's list). */
+  measurementStyle(node: SceneNode): ParamsFormModel<any> | undefined;
   /** Adds a measurement row under Measurements (what the measurement manager would create). */
   addMeasurement(label: string, description: string, icon: IconName): void;
 }
@@ -574,13 +588,21 @@ export function mockScene(
   };
 
   let measurementsNode: MockNode | undefined;
+  // The measurements made (the group's rows), followed wherever the group is (it appears with the first).
+  const measurementList = observableState<readonly SceneNode[]>([]);
+  const followMeasurements = (n: MockNode) => n.children.subscribe((c) => measurementList.set(c));
+  const measurementNode = (id: string, icon: IconName, label: string, description: string) => {
+    const m = node(id, 'measurement', icon, label, description, false);
+    forms.set(id, new ParamsFormModel(MeasurementStyleParams));
+    return m;
+  };
   const measurementsDescription = (n: MockNode) => {
     const count = n.children.value.length;
     n.setDescription(count ? `${count} measurement${count === 1 ? '' : 's'}` : 'None yet');
   };
   const measurements = () => {
     const n = node('measurements', 'measurements', 'ruler', 'Measurements', '1 distance').add(
-      node('d1', 'measurement', 'measure-distance', 'CYS 442 SG – HEM FE', '2.31 Å', false),
+      measurementNode('d1', 'measure-distance', 'CYS 442 SG – HEM FE', '2.31 Å'),
     );
     // The group stays; its menu adds (in the Selection tab) or removes all the measurements, not the group.
     n.removable = false;
@@ -598,6 +620,7 @@ export function mockScene(
       },
     ];
     measurementsNode = n;
+    followMeasurements(n);
     return n;
   };
   let measurementCount = 1;
@@ -744,6 +767,8 @@ export function mockScene(
     },
     structureInfo: (n) => infos.get(n.id),
     rowForm: (n, rowId) => rowForms.get(`${n.id}-${rowId}`),
+    measurements: measurementList.asReadonly,
+    measurementStyle: (n) => forms.get(n.id),
     addMeasurement: (label, description, icon) => {
       let owner = measurementsNode;
       if (!owner) {
@@ -754,7 +779,7 @@ export function mockScene(
         roots.set([...roots.value, owner]);
       }
       measurementCount++;
-      owner.add(node(`m${measurementCount}-${Date.now()}`, 'measurement', icon, label, description, false));
+      owner.add(measurementNode(`m${measurementCount}-${Date.now()}`, icon, label, description));
       measurementsDescription(owner);
       if (!owner.isExpanded.value) owner.toggleExpanded();
     },

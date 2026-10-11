@@ -7,6 +7,7 @@
 import type { IconName } from '../components/icon/icon.js';
 import type { ParamsFormModel } from '../forms/params-form.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
+import type { SceneNode } from './scene.js';
 
 /** A point to measure from: one of the latest selections (Mol*'s selection additions history). */
 export interface MeasurementPoint {
@@ -40,4 +41,10 @@ export interface MeasurementsModel {
   add(kind: MeasurementKind['id']): void;
   /** Distance unit, label text size and color (the measurement manager's options). */
   options: ParamsFormModel<any>;
+  /**
+   * The measurements made, to adjust after adding: the same rows as under Measurements in the Structure tab (show or
+   * hide, remove), each with its style (the same form its row's inspector shows).
+   */
+  added: ReadonlyState<readonly SceneNode[]>;
+  styleOf(node: SceneNode): ParamsFormModel<any> | undefined;
 }

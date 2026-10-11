@@ -77,6 +77,8 @@ export function mockMeasurements(scene: MockScene, post: (text: string) => void)
       );
       post(`Added ${k.title.toLowerCase()}: ${what}`);
     },
+    added: scene.measurements,
+    styleOf: (n) => scene.measurementStyle(n),
     options: new ParamsFormModel({
       distanceUnitLabel: PD.Text('Å', { label: 'Distance unit' }),
       textColor: PD.Color(0x000000 as any, { label: 'Text color' }),

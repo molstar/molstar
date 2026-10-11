@@ -11,6 +11,12 @@ import { defineStyles } from '../../../styles/registry.js';
 export const classes = {
   'action': 'msp-structure-measurements-add-action',
   'add': 'msp-structure-measurements-add-add',
+  'added': 'msp-structure-measurements-add-added',
+  'addedAction': 'msp-structure-measurements-add-addedAction',
+  'addedIcon': 'msp-structure-measurements-add-addedIcon',
+  'addedItem': 'msp-structure-measurements-add-addedItem',
+  'addedRow': 'msp-structure-measurements-add-addedRow',
+  'addedValue': 'msp-structure-measurements-add-addedValue',
   'caption': 'msp-structure-measurements-add-caption',
   'chevron': 'msp-structure-measurements-add-chevron',
   'grip': 'msp-structure-measurements-add-grip',
@@ -27,6 +33,7 @@ export const classes = {
   'pointLabel': 'msp-structure-measurements-add-pointLabel',
   'points': 'msp-structure-measurements-add-points',
   'slot': 'msp-structure-measurements-add-slot',
+  'style': 'msp-structure-measurements-add-style',
 } as const;
 
 defineStyles('views/structure/measurements-add.module.css', `@layer msp.components {
@@ -224,6 +231,72 @@ defineStyles('views/structure/measurements-add.module.css', `@layer msp.componen
   [aria-expanded="true"] > & {
     transform: rotate(90deg);
   }
+}
+
+.msp-structure-measurements-add-added {
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-panel);
+  display: grid;
+}
+
+.msp-structure-measurements-add-addedItem {
+  display: grid;
+}
+
+.msp-structure-measurements-add-addedRow {
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 26px;
+  padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
+  display: flex;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[data-hidden] .msp-structure-measurements-add-pointLabel, &[data-hidden] .msp-structure-measurements-add-addedIcon {
+    color: var(--msp-color-text-subtle);
+  }
+}
+
+.msp-structure-measurements-add-addedIcon {
+  color: var(--msp-color-text-muted);
+  flex: none;
+}
+
+.msp-structure-measurements-add-addedValue {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+.msp-structure-measurements-add-addedAction {
+  border-radius: var(--msp-radius-sm);
+  width: 20px;
+  height: 20px;
+  color: var(--msp-color-text-muted);
+  opacity: 0;
+  place-items: center;
+  display: grid;
+
+  .msp-structure-measurements-add-addedRow:hover &, [data-hidden] > .msp-structure-measurements-add-pointActions > &:first-child, &[aria-expanded="true"], &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: var(--msp-color-pressed);
+    color: var(--msp-color-text);
+  }
+}
+
+.msp-structure-measurements-add-style {
+  margin: 2px 0 var(--msp-space-1) calc(var(--msp-space-2) + 15px + var(--msp-space-2));
+  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-1) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+  box-shadow: inset 2px 0 0 var(--msp-color-accent);
 }
 }
 `);

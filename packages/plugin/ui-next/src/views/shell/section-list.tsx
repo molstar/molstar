@@ -16,7 +16,7 @@ import { ViewHost } from './view-host.js';
 
 /**
  * The sections of a slot as a list of collapsible blocks (the Export panel). The focused section (a command opened the
- * panel at it) is expanded and scrolled into view; the others start collapsed when there are many.
+ * panel at it) is expanded and scrolled into view; the others start collapsed.
  */
 export function SectionList(props: {
   shell: ShellModel;
@@ -31,7 +31,6 @@ export function SectionList(props: {
   const all = shell.sections(props.slot);
   const shown = (list: readonly ShellSection[]) => list.filter((s) => !s.when || s.when(ctx));
   const sections = all.pipe(map(shown));
-  const many = shown(all.value).length > 3;
   return (
     <div class={classes.list} data-flat={props.flat ? '' : undefined}>
       <For each={sections} key={(s) => s.id}>
@@ -39,7 +38,8 @@ export function SectionList(props: {
           <SectionBlock
             ctx={ctx}
             section={section}
-            open={!many || !props.focus || props.focus === section.id}
+            // Opened at a section: only that one open (the rest fold away); otherwise all.
+            open={props.focus ? props.focus === section.id : true}
             focused={props.focus === section.id}
           />
         )}
