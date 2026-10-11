@@ -13,6 +13,7 @@ import { formatChord } from '../../commands/keys.js';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { Select } from '../../components/select/select.js';
+import { TextInput } from '../../components/text-input/text-input.js';
 import { For } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { onCleanup } from '../../dom/scope.js';
@@ -410,11 +411,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
         const name = observableState(`Snapshot ${snapshots.value.length + 1}`);
         return (
           <div style={pad}>
-            <input
-              value={name}
-              onInput={(e) => name.set(e.currentTarget.value)}
-              style="height: 28px; padding: 0 8px; border: 1px solid var(--msp-color-border); border-radius: var(--msp-radius-sm); background: var(--msp-color-bg)"
-            />
+            <TextInput aria-label="Snapshot name" value={name} onInput={(v) => name.set(v)} />
             <div style="display: flex; gap: 8px; flex-wrap: wrap">
               <Button
                 variant="primary"

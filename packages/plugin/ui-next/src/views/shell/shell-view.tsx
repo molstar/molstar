@@ -140,9 +140,27 @@ export function ShellView(props: ShellViewProps) {
       <DockView shell={shell} dock={shell.dock('bottom')} />
     </div>
   ) as HTMLElement;
+  // Escape closes the open right panel, after anything nearer has had it: handlers on the document (an overlay card, an
+  // open list) run first and mark it handled. Not while typing in a field, where Escape belongs to the field.
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape' || e.defaultPrevented || shell.overlay.value || isEditable(e.target)) return;
+    if (!right.state.value.collapsed && right.active.value !== undefined) {
+      shell.toggle('right');
+      e.preventDefault();
+    }
+  };
+  window.addEventListener('keydown', onKeyDown);
+  onCleanup(() => window.removeEventListener('keydown', onKeyDown));
   // The shell decides compact or desktop by its own width, not the window's.
   const observer = new ResizeObserver((entries) => shell.setWidth(entries[0].contentRect.width));
   observer.observe(root);
   onCleanup(() => observer.disconnect());
   return root;
+}
+
+function isEditable(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  if (target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return true;
+  return target instanceof HTMLInputElement && !['checkbox', 'radio', 'range', 'button', 'color'].includes(target.type);
 }

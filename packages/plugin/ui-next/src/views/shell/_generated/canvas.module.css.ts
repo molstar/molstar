@@ -115,8 +115,8 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-cardHeader {
   align-items: center;
   gap: var(--msp-space-3);
-  height: var(--msp-row-height);
-  padding: 0 var(--msp-space-2) 0 var(--msp-space-4);
+  height: 40px;
+  padding: 0 var(--msp-space-3) 0 var(--msp-space-4);
   font-weight: 600;
   display: flex;
 }

@@ -125,7 +125,9 @@ function PickLevel(props: ModeSwitchProps) {
     if (open.value && !root.contains(e.target as Node)) open.set(false);
   };
   const onKeyDown = (e: KeyboardEvent) => {
-    if (open.value && e.key === 'Escape') open.set(false);
+    if (!open.value || e.key !== 'Escape' || e.defaultPrevented) return;
+    open.set(false);
+    e.preventDefault();
   };
   document.addEventListener('pointerdown', onPointerDown);
   document.addEventListener('keydown', onKeyDown);

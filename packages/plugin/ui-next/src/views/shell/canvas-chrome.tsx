@@ -139,7 +139,9 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
   // Esc, or a pointer down outside the card and its button, closes it.
   const doc = document;
   const onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && !e.defaultPrevented) shell.closeOverlay();
+    if (e.key !== 'Escape' || e.defaultPrevented) return;
+    shell.closeOverlay();
+    e.preventDefault();
   };
   const onPointer = (e: PointerEvent) => {
     const target = e.target as Node;

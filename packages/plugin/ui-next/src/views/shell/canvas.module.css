@@ -87,12 +87,13 @@
   }
 }
 
+/* The same header as a panel's (dock.module.css .header): one look for everything that opens on the right. */
 .cardHeader {
   display: flex;
   align-items: center;
   gap: var(--msp-space-3);
-  height: var(--msp-row-height);
-  padding: 0 var(--msp-space-2) 0 var(--msp-space-4);
+  height: 40px;
+  padding: 0 var(--msp-space-3) 0 var(--msp-space-4);
   font-weight: 600;
 }
 

@@ -142,8 +142,8 @@ function DockContent(props: { shell: ShellModel; dock: DockModel; tab: ShellTab 
         <Button
           variant="ghost"
           size="sm"
-          icon={<Icon name={dock.id === 'left' ? 'panel-left' : 'panel-right'} />}
-          title="Collapse panel"
+          icon={<Icon name="x" />}
+          title="Close panel"
           onClick={() => shell.toggle(dock.id)}
         />
       </header>
