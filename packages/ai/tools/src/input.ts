@@ -19,7 +19,7 @@ export interface ToolInput<A = unknown> {
   readonly shape: ObjectShape;
   /** JSON Schema draft 2020-12, the input side. */
   readonly jsonSchema: JsonObject;
-  /** The arguments, normalized, checked: the typed value, or one message the model can act on. */
+  /** The arguments (normalized first: `normalize`) checked: the typed value, or one message the model can act on. */
   parse(args: Readonly<Record<string, unknown>>): { ok: true; value: A } | { ok: false; message: string };
 }
 

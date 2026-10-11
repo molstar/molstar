@@ -41,6 +41,15 @@ Commands add two fields for agents:
   `structure.sequence.get`, `snapshot.list`.
 - `approval?: true`: the run waits for the person (the harness's `permission` decision parks the turn).
 
+**Params as input** (`paramsShape(params, { formats })`, `@molstar/prism-assistant/tools/params`): PD params become
+`ai-tools` field shapes, every field optional (a param has a default), and the arguments become the params' values over
+the defaults (`toValues`; `toArgs` reads values back). Select: a string enum, labels in the description; multi-select: a
+list of them; boolean, text (multiline: verbatim), numeric (integer when its step is), interval, vec3, mat4 (number
+lists); color: a name or hex; color list; url; group: an object; mapped: a variant on `name` with its `params`;
+conditioned: a variant on `condition` with its `value`; converted: its displayed form; object list: a list of objects;
+refs: a node ref; script: language and expression. Files, line graphs, opaque values and hidden params are left out and
+keep their defaults.
+
 Generated commands (presets, themes, queries, state actions) are tools too; there are hundreds, so they are grouped and
 _deferred_ (declared by group, loaded when the agent asks for the group), as Stories loads its tools by skill.
 

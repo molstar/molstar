@@ -2251,6 +2251,9 @@ importers:
       '@molstar/ai-agent':
         specifier: workspace:*
         version: link:../agent
+      '@molstar/ai-fibers':
+        specifier: workspace:*
+        version: link:../fibers
       '@molstar/ai-harness':
         specifier: workspace:*
         version: link:../harness
@@ -2279,12 +2282,28 @@ importers:
       '@molstar/ai-agent':
         specifier: workspace:*
         version: link:../agent
+      '@molstar/ai-fibers':
+        specifier: workspace:*
+        version: link:../fibers
       '@molstar/ai-harness':
         specifier: workspace:*
         version: link:../harness
       fast-check:
         specifier: 'catalog:'
         version: 4.10.2
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/ai/fibers:
+    dependencies:
       tslib:
         specifier: 'catalog:'
         version: 2.8.1
@@ -2391,6 +2410,31 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.6.5
+    devDependencies:
+      '@molstar/ai-components':
+        specifier: workspace:*
+        version: link:../components
+      '@molstar/ai-conformance':
+        specifier: workspace:*
+        version: link:../conformance
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/ai/trace:
+    dependencies:
+      '@molstar/ai-agent':
+        specifier: workspace:*
+        version: link:../agent
+      '@molstar/ai-harness':
+        specifier: workspace:*
+        version: link:../harness
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
     devDependencies:
       '@molstar/ai-components':
         specifier: workspace:*
@@ -2704,6 +2748,15 @@ importers:
 
   packages/prism/assistant:
     dependencies:
+      '@molstar/ai-agent':
+        specifier: workspace:*
+        version: link:../../ai/agent
+      '@molstar/ai-tools':
+        specifier: workspace:*
+        version: link:../../ai/tools
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
       '@molstar/prism-ui':
         specifier: workspace:*
         version: link:../ui

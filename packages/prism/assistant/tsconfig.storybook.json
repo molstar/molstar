@@ -5,6 +5,7 @@
     "declaration": false,
     "declarationMap": false,
     "noEmit": true,
+    "lib": ["ES2024", "DOM"],
     "rootDir": ".",
     "types": ["node", "jest"],
     "jsxImportSource": "@molstar/prism-ui/dom"

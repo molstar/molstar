@@ -36,6 +36,9 @@
     "styles:check": "node ../ui/scripts/css.mjs --root . --prefix assistant --check"
   },
   "dependencies": {
+    "@molstar/ai-agent": "workspace:*",
+    "@molstar/ai-tools": "workspace:*",
+    "@molstar/core": "workspace:*",
     "@molstar/prism-ui": "workspace:*",
     "rxjs": "catalog:",
     "tslib": "catalog:"
