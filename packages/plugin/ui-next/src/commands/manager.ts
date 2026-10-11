@@ -240,7 +240,20 @@ export class CommandManager<Ctx> {
       });
       return [...(s >= 0 ? [{ c, p: undefined, s }] : []), ...presets];
     });
-    return hits.sort((a, b) => b.s - a.s).map((x) => ({ ...this.#match(x.c), ...(x.p ? { preset: x.p } : {}) }));
+    // Better matches first (by whole points: a title that starts with the text, a word that does, then looser ones);
+    // equal matches keep their category together, in the order categories were registered, then go by title, so
+    // "Select …" commands sit together and "Select with …" ones next to each other.
+    const categories = new Map<string, number>();
+    for (const c of all) if (!categories.has(c.category)) categories.set(c.category, categories.size);
+    const title = (x: (typeof hits)[number]) => (x.p ? `${x.c.title} ${x.p.title}` : x.c.title);
+    return hits
+      .sort(
+        (a, b) =>
+          Math.floor(b.s) - Math.floor(a.s) ||
+          (categories.get(a.c.category) ?? 0) - (categories.get(b.c.category) ?? 0) ||
+          title(a).localeCompare(title(b)),
+      )
+      .map((x) => ({ ...this.#match(x.c), ...(x.p ? { preset: x.p } : {}) }));
   }
 
   #presets(command: CommandDefinition<Ctx>): readonly CommandPreset[] {

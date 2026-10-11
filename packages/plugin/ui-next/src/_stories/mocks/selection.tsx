@@ -81,10 +81,10 @@ export function mockSelection(shell: ShellModel, post: (text: string) => void): 
       render: domView(() => (
         <div style="display: grid; gap: 8px; padding: 4px 12px 12px">
           <ParamsForm form={form} />
-          <div style="display: flex; justify-content: flex-end">
+          <div style="display: flex">
             <Button
               variant="primary"
-              size="sm"
+              block
               icon={<Icon name="paintbrush" />}
               onClick={() => {
                 const v = form.values.value as any;

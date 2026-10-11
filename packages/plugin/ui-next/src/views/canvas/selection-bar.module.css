@@ -7,9 +7,9 @@
 .bar {
   display: flex;
   align-items: center;
-  gap: 2px;
   height: 34px;
-  padding: 0 3px 0 var(--msp-space-4);
+  overflow: hidden;
+  padding: 0 0 0 var(--msp-space-4);
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
   box-shadow: var(--msp-glass-shadow);
@@ -43,11 +43,12 @@
 }
 
 .action {
+  /* Edge to edge, like the canvas stack's buttons: square, the bar's full height, no radius of their own. */
   display: grid;
+  flex: none;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--msp-radius-md);
+  width: 34px;
+  height: 100%;
   color: var(--msp-color-text-muted);
 
   &:hover {

@@ -19,15 +19,15 @@ export const classes = {
 defineStyles('views/canvas/selection-bar.module.css', `@layer msp.components {
 .msp-canvas-selection-bar-bar {
   height: 34px;
-  padding: 0 3px 0 var(--msp-space-4);
+  padding: 0 0 0 var(--msp-space-4);
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
   animation: msp-canvas-selection-bar-bar-in var(--msp-motion-base) var(--msp-ease);
   align-items: center;
-  gap: 2px;
   display: flex;
+  overflow: hidden;
 }
 
 @keyframes msp-canvas-selection-bar-bar-in {
@@ -54,10 +54,10 @@ defineStyles('views/canvas/selection-bar.module.css', `@layer msp.components {
 }
 
 .msp-canvas-selection-bar-action {
-  border-radius: var(--msp-radius-md);
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 100%;
   color: var(--msp-color-text-muted);
+  flex: none;
   place-items: center;
   display: grid;
 

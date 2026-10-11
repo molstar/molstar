@@ -151,7 +151,7 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
 }
 
 .msp-home-home-tab-actionFooter {
-  justify-content: flex-end;
+  padding-top: var(--msp-space-1);
   display: flex;
 }
 

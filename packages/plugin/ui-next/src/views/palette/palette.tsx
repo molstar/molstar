@@ -79,7 +79,20 @@ function ListMode(props: CommandPaletteProps) {
       if (q.recent.length) {
         out.push({ kind: 'caption', label: 'Recent' });
         for (const m of q.recent) add(m);
-        out.push({ kind: 'caption', label: 'All commands' });
+      }
+      if (!t.trim()) {
+        // Nothing typed: everything, by category (in the order categories came), under captions.
+        const byCategory = new Map<string, CommandMatch<any>[]>();
+        for (const m of q.matches) {
+          const list = byCategory.get(m.command.category);
+          if (list) list.push(m);
+          else byCategory.set(m.command.category, [m]);
+        }
+        for (const [category, matches] of byCategory) {
+          out.push({ kind: 'caption', label: category });
+          for (const m of matches) add(m);
+        }
+        return out;
       }
       for (const m of q.matches) if (m.command !== q.direct?.command) add(m);
       return out;

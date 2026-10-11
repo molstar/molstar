@@ -113,6 +113,11 @@ export interface FormatCompletion {
   value: string;
   label: string;
   detail?: string;
+  /**
+   * Taking it fills the field's text for editing instead of choosing it (an example expression to adapt): nothing runs
+   * until the text is taken as it is.
+   */
+  fill?: boolean;
 }
 
 /** A named input type ("selection"): checks typed text into a value and completes it. */

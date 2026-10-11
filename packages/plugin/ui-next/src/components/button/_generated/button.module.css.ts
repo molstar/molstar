@@ -9,6 +9,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'block': 'msp-button-block',
   'button': 'msp-button-button',
   'danger': 'msp-button-danger',
   'ghost': 'msp-button-ghost',
@@ -48,12 +49,22 @@ defineStyles('components/button/button.module.css', `@layer msp.components {
 }
 
 .msp-button-primary {
-  color: var(--msp-color-accent);
+  background: var(--msp-color-accent);
+  color: #fff;
   font-weight: 600;
 
-  &:hover:not(:disabled) {
-    color: var(--msp-color-accent-strong);
+  &:hover:not(:disabled), &:active:not(:disabled), &[aria-pressed="true"] {
+    background: var(--msp-color-accent-strong);
   }
+
+  &:disabled {
+    background: color-mix(in oklab, var(--msp-color-accent), transparent 60%);
+    color: #fff;
+  }
+}
+
+.msp-button-block {
+  width: 100%;
 }
 
 .msp-button-ghost {

@@ -68,4 +68,40 @@ describe('CommandPalette', () => {
     p.type('measure');
     expect(p.rows()[0]).toContain('Select two atoms first');
   });
+
+  it('selects with a PyMOL expression typed after its name, and explains a broken one', async () => {
+    const p = mount();
+    p.type('pymol resn HEM and chain A');
+    p.key('Enter');
+    await flush();
+    expect(p.container.textContent).toContain('Select with PyMOL');
+    p.key('Enter');
+    await flush();
+    expect(p.results).toEqual(['Added to the selection: PyMOL "resn HEM and chain A"']);
+
+    const q = mount();
+    q.type('pymol (resn HEM');
+    q.key('Enter');
+    await flush();
+    q.key('Enter');
+    await flush();
+    expect(q.container.querySelector('[role=alert]')?.textContent).toContain('is not closed');
+    expect(q.results).toEqual([]);
+  });
+
+  it('fills an example expression for editing instead of running it', async () => {
+    const p = mount();
+    p.type('select with pymol');
+    p.key('Enter');
+    await flush();
+    p.key('ArrowDown'); // the first example: resn HEM
+    p.key('Enter');
+    await flush();
+    expect(p.results).toEqual([]);
+    expect(p.input().value).toBe('resn HEM');
+    p.type('resn HEM and chain A');
+    p.key('Enter');
+    await flush();
+    expect(p.results).toEqual(['Added to the selection: PyMOL "resn HEM and chain A"']);
+  });
 });

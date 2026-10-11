@@ -265,6 +265,11 @@ export class CommandInvocation<Ctx> {
     const f = this.#field(s.field);
     if (!f || !this.#editing()) return false;
     const chosen = s.completions[pick ?? s.pick];
+    if (chosen?.fill) {
+      // An example to edit: into the text, not the value.
+      this.type(chosen.value);
+      return false;
+    }
     if (chosen) return this.set(f.id, isNumeric(f) ? Number(chosen.value) : chosen.value);
     const text = s.text.trim();
     if (!text) return false;

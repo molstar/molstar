@@ -35,12 +35,29 @@
 }
 
 .primary {
-  color: var(--msp-color-accent);
+  /* The one action a block exists for: a solid fill, so it reads as the button at a glance. */
+  background: var(--msp-color-accent);
+  color: #fff;
   font-weight: 600;
 
   &:hover:not(:disabled) {
-    color: var(--msp-color-accent-strong);
+    background: var(--msp-color-accent-strong);
   }
+
+  &:active:not(:disabled),
+  &[aria-pressed="true"] {
+    background: var(--msp-color-accent-strong);
+  }
+
+  &:disabled {
+    background: color-mix(in oklab, var(--msp-color-accent), transparent 60%);
+    color: #fff;
+  }
+}
+
+/* Stretches across its container: the apply button at the end of a form. */
+.block {
+  width: 100%;
 }
 
 .ghost {

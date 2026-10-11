@@ -15,27 +15,36 @@ const DownloadStructure = {
   source: PD.MappedStatic(
     'pdb',
     {
-      pdb: PD.Group({
-        id: PD.Text('1tqn', { label: 'PDB ID', isEssential: true }),
-        server: PD.Select('pdbe', [
-          ['pdbe', 'PDBe'],
-          ['rcsb', 'RCSB PDB'],
-          ['pdbj', 'PDBj'],
-        ]),
-      }),
-      'pdb-ihm': PD.Group({ id: PD.Text('8zzc', { label: 'PDB-IHM ID', isEssential: true }) }),
-      alphafolddb: PD.Group({ id: PD.Text('Q8W3K0', { label: 'UniProt ID', isEssential: true }) }),
-      modelarchive: PD.Group({ id: PD.Text('ma-bak-cepc-0003', { label: 'ModelArchive ID', isEssential: true }) }),
-      pubchem: PD.Group({ id: PD.Text('2244', { label: 'PubChem CID', isEssential: true }) }),
-      url: PD.Group({
-        url: PD.Text('', { label: 'URL', isEssential: true }),
-        format: PD.Select('mmcif', [
-          ['mmcif', 'mmCIF'],
-          ['bcif', 'BinaryCIF'],
-          ['pdb', 'PDB'],
-          ['gro', 'GRO'],
-        ]),
-      }),
+      pdb: PD.Group(
+        {
+          id: PD.Text('1tqn', { label: 'PDB ID', isEssential: true }),
+          server: PD.Select('pdbe', [
+            ['pdbe', 'PDBe'],
+            ['rcsb', 'RCSB PDB'],
+            ['pdbj', 'PDBj'],
+          ]),
+        },
+        { isFlat: true },
+      ),
+      'pdb-ihm': PD.Group({ id: PD.Text('8zzc', { label: 'PDB-IHM ID', isEssential: true }) }, { isFlat: true }),
+      alphafolddb: PD.Group({ id: PD.Text('Q8W3K0', { label: 'UniProt ID', isEssential: true }) }, { isFlat: true }),
+      modelarchive: PD.Group(
+        { id: PD.Text('ma-bak-cepc-0003', { label: 'ModelArchive ID', isEssential: true }) },
+        { isFlat: true },
+      ),
+      pubchem: PD.Group({ id: PD.Text('2244', { label: 'PubChem CID', isEssential: true }) }, { isFlat: true }),
+      url: PD.Group(
+        {
+          url: PD.Text('', { label: 'URL', isEssential: true }),
+          format: PD.Select('mmcif', [
+            ['mmcif', 'mmCIF'],
+            ['bcif', 'BinaryCIF'],
+            ['pdb', 'PDB'],
+            ['gro', 'GRO'],
+          ]),
+        },
+        { isFlat: true },
+      ),
     },
     {
       label: 'Source',
@@ -66,23 +75,29 @@ const DownloadDensity = {
   source: PD.MappedStatic(
     'pdbe',
     {
-      pdbe: PD.Group({
-        id: PD.Text('1tqn', { label: 'PDB ID', isEssential: true }),
-        type: PD.Select('2fofc', [
-          ['2fofc', '2Fo-Fc'],
-          ['fofc', 'Fo-Fc'],
-        ]),
-      }),
-      emdb: PD.Group({ id: PD.Text('EMD-2984', { label: 'EMDB ID', isEssential: true }) }),
-      url: PD.Group({
-        url: PD.Text('', { label: 'URL', isEssential: true }),
-        format: PD.Select('ccp4', [
-          ['ccp4', 'CCP4/MRC'],
-          ['dscif', 'DensityServer CIF'],
-          ['dx', 'DX'],
-          ['cube', 'Cube'],
-        ]),
-      }),
+      pdbe: PD.Group(
+        {
+          id: PD.Text('1tqn', { label: 'PDB ID', isEssential: true }),
+          type: PD.Select('2fofc', [
+            ['2fofc', '2Fo-Fc'],
+            ['fofc', 'Fo-Fc'],
+          ]),
+        },
+        { isFlat: true },
+      ),
+      emdb: PD.Group({ id: PD.Text('EMD-2984', { label: 'EMDB ID', isEssential: true }) }, { isFlat: true }),
+      url: PD.Group(
+        {
+          url: PD.Text('', { label: 'URL', isEssential: true }),
+          format: PD.Select('ccp4', [
+            ['ccp4', 'CCP4/MRC'],
+            ['dscif', 'DensityServer CIF'],
+            ['dx', 'DX'],
+            ['cube', 'Cube'],
+          ]),
+        },
+        { isFlat: true },
+      ),
     },
     {
       label: 'Source',

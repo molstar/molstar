@@ -200,6 +200,8 @@ function SelectControl(props: { options: readonly PD.SelectOption<any>[]; bindin
 
 function GroupControl(props: { label: string; param: PD.Group<any>; binding: FieldBinding }) {
   const { param, binding } = props;
+  // A flat group has no header of its own: its params are rows like the others.
+  if (param.isFlat) return <Fields params={param.params} binding={binding} />;
   return (
     <Collapsible title={props.label} open={!!param.isExpanded}>
       {() => <Fields params={param.params} binding={binding} />}
@@ -241,7 +243,9 @@ function MappedControl(props: { label: string; param: PD.Mapped<any>; binding: F
             get: () => binding.get()?.params,
             set: (p) => binding.set({ name: n, params: p }),
           };
-          if (inner.type === 'group') return <Fields params={inner.params} binding={paramsBinding} nested />;
+          // A flat group (PD's isFlat) reads as more rows at the same level; others nest under the choice.
+          if (inner.type === 'group')
+            return <Fields params={inner.params} binding={paramsBinding} nested={!inner.isFlat} />;
           return <ParamRow name="value" param={inner} binding={paramsBinding} />;
         }}
       </Show>

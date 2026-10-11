@@ -129,7 +129,7 @@
 
 .actionFooter {
   display: flex;
-  justify-content: flex-end;
+  padding-top: var(--msp-space-1);
 }
 
 .recent {

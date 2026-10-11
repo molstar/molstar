@@ -309,8 +309,8 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   align-items: center;
   gap: var(--msp-space-2);
   max-width: 100%;
-  height: 26px;
-  padding: 0 var(--msp-space-3);
+  height: 34px;
+  padding: 0 0 0 var(--msp-space-3);
   border-radius: var(--msp-radius-lg);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
@@ -319,6 +319,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
   display: inline-flex;
+  overflow: hidden;
 }
 
 .msp-shell-canvas-message {
@@ -373,15 +374,21 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-pillButton {
-  margin-right: calc(-1 * var(--msp-space-2));
+  width: 34px;
+  height: 100%;
   color: var(--msp-color-text-muted);
-  border-radius: 50%;
+  flex: none;
   place-items: center;
   display: grid;
 
   &:hover {
+    background: var(--msp-color-hover);
     color: var(--msp-color-text);
   }
+}
+
+.msp-shell-canvas-pill:not(:has(.msp-shell-canvas-pillButton)) {
+  padding-right: var(--msp-space-3);
 }
 }
 `);

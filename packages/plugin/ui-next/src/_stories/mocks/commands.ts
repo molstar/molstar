@@ -21,9 +21,91 @@ const Ligands = [
   { value: 'SO4 2', label: 'SO4 2', detail: 'Sulfate ion' },
 ];
 
-/** Named argument types the stories' commands use: colors (names or hex) and ligands of 1TQN. */
+/** A selection language: its examples, offered as completions of what is typed. */
+interface Language {
+  title: string;
+  examples: readonly { value: string; label: string }[];
+}
+
+// What each language's expression looks like (Mol*'s transpilers read them for real; here, a light check).
+const Languages: Record<string, Language> = {
+  pymol: {
+    title: 'PyMOL',
+    examples: [
+      { value: 'resn HEM', label: 'resn HEM' },
+      { value: 'chain A and resi 100-120', label: 'chain A and resi 100-120' },
+      { value: 'byres (resn HEM around 5)', label: 'byres (resn HEM around 5)' },
+      { value: 'polymer and not hydro', label: 'polymer and not hydro' },
+      { value: 'organic', label: 'organic' },
+    ],
+  },
+  vmd: {
+    title: 'VMD',
+    examples: [
+      { value: 'resname HEM', label: 'resname HEM' },
+      { value: 'chain A and resid 100 to 120', label: 'chain A and resid 100 to 120' },
+      { value: 'same residue as within 5 of resname HEM', label: 'same residue as within 5 of resname HEM' },
+      { value: 'protein and backbone', label: 'protein and backbone' },
+      { value: 'water', label: 'water' },
+    ],
+  },
+  jmol: {
+    title: 'Jmol',
+    examples: [
+      { value: 'HEM', label: 'HEM' },
+      { value: ':A and 100-120', label: ':A and 100-120' },
+      { value: 'within(5.0, HEM)', label: 'within(5.0, HEM)' },
+      { value: 'protein and backbone', label: 'protein and backbone' },
+      { value: 'water', label: 'water' },
+    ],
+  },
+};
+
+/** Balanced parentheses and something to read: the mocks' stand-in for a transpiler's parse. */
+function checkExpression(language: Language, text: string) {
+  const v = text.trim();
+  if (!v) return { ok: false as const, message: `Type a ${language.title} expression.` };
+  let depth = 0;
+  for (const ch of v) {
+    depth += ch === '(' ? 1 : ch === ')' ? -1 : 0;
+    if (depth < 0) return { ok: false as const, message: 'A ")" without its "(".' };
+  }
+  if (depth > 0)
+    return { ok: false as const, message: 'A "(" is not closed.', hint: `For example: ${language.examples[2].value}` };
+  if (/\b(and|or|not)\s*$/.test(v))
+    return { ok: false as const, message: `The expression ends in "${v.split(/\s+/).pop()}".` };
+  return { ok: true as const, value: v };
+}
+
+/** Named argument types the stories' commands use: colors (names or hex), ligands of 1TQN, and expressions. */
 const formats: CommandFormats<Ctx> = {
   get: (name) => {
+    const language = name.startsWith('expression.') ? Languages[name.slice('expression.'.length)] : undefined;
+    if (language)
+      return {
+        hint: () => `a ${language.title} expression`,
+        check: (v) => checkExpression(language, v),
+        // Examples to adapt: those that continue what is typed; taking one fills the expression for editing, and Enter
+        // on the edited text runs it.
+        complete: (text) => {
+          const t = text.trim().toLowerCase();
+          return language.examples
+            .filter((e) => e.value.toLowerCase().startsWith(t) && e.value.toLowerCase() !== t)
+            .map((e) => ({ ...e, detail: 'example', fill: true }));
+        },
+      };
+    if (name === 'residues')
+      return {
+        hint: () => 'chains and residue ranges: A 10-20, B 5',
+        check: (v) =>
+          /^\s*[A-Za-z0-9]+(\s+\d+(-\d+)?)?(\s*,\s*[A-Za-z0-9]+(\s+\d+(-\d+)?)?)*\s*$/.test(v)
+            ? { ok: true, value: v.trim() }
+            : { ok: false, message: `"${v}" is not a residue list.`, hint: 'Chain, then residues: A 10-20, B 5' },
+        complete: () => [
+          { value: 'A 100-120', label: 'A 100-120', detail: 'a range in chain A' },
+          { value: 'A 442, A 508', label: 'A 442, A 508', detail: 'Cys442 and the heme' },
+        ],
+      };
     if (name === 'color')
       return {
         hint: () => 'a color name or #hex',
@@ -47,6 +129,22 @@ const formats: CommandFormats<Ctx> = {
 };
 
 const done = (message: string): CommandResult => ({ message });
+
+/** What a select command does to the current selection. */
+const SelectMode = PD.Select(
+  'add',
+  [
+    ['add', 'add to the selection'],
+    ['remove', 'remove from the selection'],
+    ['intersect', 'intersect with the selection'],
+    ['set', 'replace the selection'],
+  ],
+  { label: 'mode' },
+);
+const modeLabel = (mode: string) =>
+  ({ add: 'Added to the selection', remove: 'Removed from the selection', intersect: 'Intersected', set: 'Selected' })[
+    mode
+  ] ?? 'Selected';
 
 /**
  * The stories' commands: what the plugin's would be (camera, view, panels, export, data, presets, selection,
@@ -255,6 +353,35 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
       action: 'Focus',
       run: (a) => done(`Focused on ${a.target}`),
     },
+    ...Object.entries(Languages).map(
+      ([id, language]): CommandDefinition<Ctx> => ({
+        id: `select.${id}`,
+        title: `Select with ${language.title}…`,
+        category: 'Select',
+        icon: 'text-cursor-input',
+        alias: id,
+        params: () => ({
+          expression: PD.Text('', { label: `${language.title} expression` }),
+          mode: SelectMode,
+        }),
+        fields: { expression: { format: `expression.${id}` }, mode: { before: 'and' } },
+        defaults: () => ({ mode: 'add' }),
+        action: 'Select',
+        run: (a) => done(`${modeLabel(a.mode as string)}: ${language.title} "${a.expression}"`),
+      }),
+    ),
+    {
+      id: 'select.residues',
+      title: 'Select residues…',
+      category: 'Select',
+      icon: 'text-cursor-input',
+      alias: 'residues',
+      params: () => ({ residues: PD.Text('', { label: 'residues' }), mode: SelectMode }),
+      fields: { residues: { format: 'residues' }, mode: { before: 'and' } },
+      defaults: () => ({ mode: 'add' }),
+      action: 'Select',
+      run: (a) => done(`${modeLabel(a.mode as string)}: residues ${a.residues}`),
+    },
     {
       id: 'select.ligands',
       title: 'Select ligands',
@@ -292,6 +419,21 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
       run: () => done(''),
     },
   ];
+  // Categories in the order people reach for them (the palette lists them so); the sort keeps each one's own order.
+  const order = [
+    'Data',
+    'Structure',
+    'Select',
+    'Selection',
+    'Focus',
+    'Measure',
+    'View',
+    'Animation',
+    'Snapshots',
+    'Export',
+    'Panels',
+  ];
+  commands.sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category));
   manager.register(commands);
   return manager;
 }

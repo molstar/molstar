@@ -21,6 +21,8 @@ export interface ButtonProps {
   disabled?: MaybeReactive<boolean | undefined>;
   /** A toggle button's state (`aria-pressed`). */
   pressed?: MaybeReactive<boolean | undefined>;
+  /** Stretches across its container (the apply button ending a form). */
+  block?: boolean;
   class?: string;
   onClick?: (e: MouseEvent) => void;
 }
@@ -33,6 +35,7 @@ export function Button(props: ButtonProps) {
     variant !== 'default' ? classes[variant] : '',
     props.size === 'sm' ? classes.small : '',
     iconOnly ? classes.iconOnly : '',
+    props.block ? classes.block : '',
     props.class ?? '',
   ]
     .filter(Boolean)

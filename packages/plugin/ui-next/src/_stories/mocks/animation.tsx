@@ -86,10 +86,10 @@ export function registerMockAnimation(shell: ShellModel, post: (text: string) =>
       render: domView(() => (
         <div style="display: grid; gap: 8px">
           <ParamsForm form={form} />
-          <div style="display: flex; justify-content: flex-end">
+          <div style="display: flex">
             <Button
               variant="primary"
-              size="sm"
+              block
               icon={
                 <Show when={playing} fallback={() => <Icon name="play" />}>
                   {() => <Icon name="square" />}

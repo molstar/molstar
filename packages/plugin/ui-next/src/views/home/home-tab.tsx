@@ -124,7 +124,7 @@ function ActionBlock(props: { action: HomeAction; open: boolean }) {
             <div class={classes.actionFooter}>
               <Button
                 variant="primary"
-                size="sm"
+                block
                 disabled={busy}
                 icon={
                   <Show when={busy} fallback={() => <Icon name={action.icon} />}>
