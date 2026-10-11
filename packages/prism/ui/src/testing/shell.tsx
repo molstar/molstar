@@ -8,322 +8,69 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, map, of } from 'rxjs';
+import { map, type Observable, of, switchMap } from 'rxjs';
 import { formatChord, isMac } from '../commands/keys.js';
-import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { ActionFooter } from '../components/action-footer/action-footer.js';
-import { ParamsForm } from '../components/params/params-form.js';
-import { ParamsFormModel } from '../forms/params-form.js';
-import { Show } from '../dom/control-flow.js';
+import type { CommandManager } from '../commands/manager.js';
+import type { CommandDefinition } from '../commands/types.js';
+import type { IconName } from '../components/icon/icon.js';
+import { Dynamic, Show } from '../dom/control-flow.js';
+import type { Child } from '../dom/jsx-types.js';
 import { onCleanup } from '../dom/scope.js';
 import { domView } from '../dom/view.js';
 import { parseColor, themeForColor } from '../model/canvas-theme.js';
 import { observableState } from '../reactive/observable-state.js';
-import type { HoverLabelModel } from '../model/playback.js';
 import { FullscreenModel } from '../shell/fullscreen.js';
-import { ThemeModel, type UITheme, UIThemes } from '../shell/theme.js';
 import { ShellModel, type ShellTab } from '../shell/shell.js';
-import type { Child } from '../dom/jsx-types.js';
 import { StatusModel } from '../shell/status.js';
-import { HoverLabel } from '../views/canvas/hover-label.js';
-import {
-  type CanvasMode,
-  type Granularity,
-  ModeSwitch,
-  type ModeSwitchProps,
-  PickLevel,
-} from '../views/canvas/mode-switch.js';
-import { SnapshotCard, TrajectoryBar } from '../views/canvas/playback.js';
-import { SelectionBar } from '../views/canvas/selection-bar.js';
-import { CommandMenu, type CommandMenuAssistant } from '../views/command-menu/command-menu.js';
-import { type SequenceSelector, SequenceStrip } from '../views/sequence/sequence-strip.js';
-import { CanvasPlaceholder } from '../views/shell/canvas-placeholder.js';
-import { LogView } from '../views/shell/log-view.js';
-import { MolstarWordmark } from '../components/icon/wordmark.js';
-import { HomeTab } from '../views/home/home-tab.js';
-import { ImageExport } from '../views/export/image-export.js';
-import { RemoteStatesPanel } from '../views/state/remote-states-panel.js';
-import { SnapshotsPanel } from '../views/state/snapshots-panel.js';
-import { StateTreeTab } from '../views/state-tree/state-tree-tab.js';
+import { ThemeModel, type UITheme, UIThemes } from '../shell/theme.js';
+import { CommandMenu, type CommandMenuAssistant, type CommandMenuPrefix } from '../views/command-menu/command-menu.js';
 import { SettingsTab } from '../views/settings/settings-tab.js';
-import { mockSettings } from './settings.js';
-import { mockMeasurements, registerMockMeasurements } from './measurements.js';
-import { mockSuperposition, registerMockSuperposition } from './superposition.js';
-import { mockStateTree } from './state-tree.js';
-import { mockImageExport } from './image-export.js';
-import { mockSnapshotsModel } from './snapshots.js';
-import { SectionList } from '../views/shell/section-list.js';
+import { LogView } from '../views/shell/log-view.js';
 import { ShellView } from '../views/shell/shell-view.js';
-import { StructureTab } from '../views/structure/structure-tab.js';
-import { mockHome } from './home.js';
-import { mockSnapshots, mockTrajectory } from './playback.js';
-import { registerMockAnimation } from './animation.js';
-import { mockSelection } from './selection.js';
-import { mockCommands, mockPrefixes } from './commands.js';
-import { registerMockCanvasSettings } from './canvas-settings.js';
-import { type MockScenePreset, mockComponentOptions, mockPresets, mockQuickStyles, mockScene } from './scene.js';
+import { mockMolstarMode } from './molstar-mode.js';
+import type { MockScenePreset } from './scene.js';
+import { mockSettings } from './settings.js';
 
-const Sequence =
-  'MALYGTHSHGLFKKLGIPGPTPLPFLGNILSYHKGFCMFDMECHKKYGKVWGFYDGQQPVLAITDPDMIKTVLVKECYSVFTNRRPFGPVGFMKSAISIAEDEEWKRLRSLLSPTFTSGKLKEMVPIIAQYGDVLVRNLRREAETGKPVTLKDVFGAYSMDVITSTSFGVNIDSLNNPQDPFVENTKKLLRFDFLDPFFLSITVFPFLIPILEVLNICVFPREVTNFLRKSVKRMKESRLEDTQKHRVDFLQLMIDSQNSKETESHKALSDLELVAQSIIFIFAGYETTSSVLSFIMYELATHPDVQQKLQEEIDAVLPNKAPPTYDTVLQMEYLDMVVNETLRLFPIAMRLERVCKKDVEINGMFIPKGVVVMIPSYALHRDPKYWTEPEKFLPERFSKKNKDNIDPYIYTPFGSGPRNCIGMRFALMNMKLALIRVLQNFSFKPCKETQIPLKLSLGGLLQPEKPVVLKVESRDGTVSGA';
-const ThreeLetter: Record<string, string> = {
-  A: 'ALA',
-  R: 'ARG',
-  N: 'ASN',
-  D: 'ASP',
-  C: 'CYS',
-  Q: 'GLN',
-  E: 'GLU',
-  G: 'GLY',
-  H: 'HIS',
-  I: 'ILE',
-  L: 'LEU',
-  K: 'LYS',
-  M: 'MET',
-  F: 'PHE',
-  P: 'PRO',
-  S: 'SER',
-  T: 'THR',
-  W: 'TRP',
-  Y: 'TYR',
-  V: 'VAL',
-}; // prettier-ignore
+// The mock shell, in two layers: the frame (the shell and its view, the status column, the theme, fullscreen, the
+// command menu, Log and Settings, and the add-ons such as the agent) and a mode, what the app is for at the moment:
+// Mol*'s own UI (molstar-mode.tsx) or a story mode (@molstar/prism-stories). A mode brings its tabs, overlays, sections,
+// toolbar items, commands and canvas parts; the frame swaps it at runtime, undoing all it registered
+// (design/modes.md).
 
-/**
- * The Export panel: one rail button, its sections contributed to the `export` slot. Built-in sections (image, session)
- * and extension sections (animation, geometry, models) look alike; each is also a command that opens the panel at it.
- */
-function mockExport(shell: ShellModel, status: StatusModel) {
-  const imageExport = mockImageExport((t, k) => status.post(t, k));
-  const rendering = observableState<number | undefined>(undefined);
-  // Each section: choose in a form, then one action in the footer (Mol*'s action footer).
-  const form = 'display: grid; gap: 8px';
-  const sessionForm = new ParamsFormModel({
-    kind: PD.Select('session', [
-      ['session', 'Session (.molx) · with data'],
-      ['state', 'State (.molj) · description only'],
-    ]),
-  });
-  const mp4Form = new ParamsFormModel({
-    animation: PD.Select('spin', [
-      ['spin', 'Camera spin'],
-      ['rock', 'Camera rock'],
-      ['snapshots', 'State snapshots'],
-    ]),
-    resolution: PD.Select('full-hd', [
-      ['hd', 'HD (1280 × 720)'],
-      ['full-hd', 'Full HD (1920 × 1080)'],
-      ['ultra-hd', 'Ultra HD (3840 × 2160)'],
-    ]),
-    transparent: PD.Boolean(false),
-  });
-  const geometryForm = new ParamsFormModel({
-    format: PD.Select('glb', [
-      ['glb', 'GLB (glTF binary)'],
-      ['stl', 'STL'],
-      ['obj', 'OBJ'],
-      ['usdz', 'USDZ (AR)'],
-    ]),
-  });
-  const modelsForm = new ParamsFormModel({
-    format: PD.Select('cif', [
-      ['cif', 'mmCIF'],
-      ['bcif', 'BinaryCIF'],
-    ]),
-  });
-  shell.registerOverlays([
-    {
-      id: 'export',
-      title: 'Export',
-      render: domView(({ ctx }) => <SectionList shell={ctx.shell} slot="export" focus={ctx.focus} />),
-    },
-  ]);
-  shell.registerSections([
-    {
-      id: 'image',
-      slot: 'export',
-      title: 'Image',
-      icon: 'camera',
-      order: 0,
-      render: domView(() => <ImageExport model={imageExport} />),
-    },
-    {
-      id: 'session',
-      slot: 'export',
-      title: 'Session & state',
-      icon: 'save',
-      order: 1,
-      render: domView(() => (
-        <div style={form}>
-          <ParamsForm form={sessionForm} />
-          <ActionFooter
-            icon="download"
-            label="Download"
-            onApply={() =>
-              status.post(
-                (sessionForm.values.value as any).kind === 'session' ? 'Saved state.molx' : 'Saved state.molj',
-                'success',
-              )
-            }
-          />
-        </div>
-      )),
-    },
-    // Contributed by the mp4-export extension.
-    {
-      id: 'animation',
-      slot: 'export',
-      // Named for what it makes, not the format: more formats may follow.
-      title: 'Animation',
-      icon: 'film',
-      keywords: ['mp4', 'video', 'movie'],
-      order: 10,
-      render: domView(() => (
-        <div style={form}>
-          <ParamsForm form={mp4Form} />
-          <ActionFooter
-            icon="film"
-            label={rendering.asReadonly.pipe(
-              map((r) => (r === undefined ? 'Render' : `Rendering ${Math.round(r * 100)}%`)),
-            )}
-            busy={rendering.asReadonly.pipe(map((r) => r !== undefined))}
-            onReset={() => mp4Form.reset()}
-            onApply={() => {
-              // Rendering holds the plugin: an overlay task, with Cancel.
-              let p = 0;
-              rendering.set(0);
-              const done = (message: string) => {
-                clearInterval(t);
-                rendering.set(undefined);
-                status.setTasks(status.tasks.value.filter((x) => x.id !== 'mp4'));
-                status.post(message, 'success');
-              };
-              const task = () => ({
-                id: 'mp4',
-                label: 'Rendering animation.mp4',
-                progress: p,
-                overlay: true,
-                abort: () => done('Rendering cancelled'),
-              });
-              const put = () => status.setTasks([...status.tasks.value.filter((x) => x.id !== 'mp4'), task()]);
-              put();
-              const t = setInterval(() => {
-                p = Math.min(1, p + 0.04);
-                rendering.set(p);
-                put();
-                if (p >= 1) done('Rendered animation.mp4 (6 s)');
-              }, 120);
-            }}
-          />
-        </div>
-      )),
-    },
-    // Contributed by the geo-export extension.
-    {
-      id: 'geometry',
-      slot: 'export',
-      title: 'Geometry',
-      icon: 'box',
-      keywords: ['glb', 'stl', 'obj', 'usdz', 'mesh', '3d print', 'ar'],
-      order: 11,
-      render: domView(() => (
-        <div style={form}>
-          <ParamsForm form={geometryForm} />
-          <ActionFooter
-            icon="download"
-            label="Download"
-            onApply={() => status.post(`Exported scene.${(geometryForm.values.value as any).format}`, 'success')}
-          />
-        </div>
-      )),
-    },
-    // Contributed by the model-export extension.
-    {
-      id: 'models',
-      slot: 'export',
-      title: 'Models',
-      icon: 'file',
-      keywords: ['mmcif', 'bcif', 'cif', 'coordinates'],
-      order: 12,
-      render: domView(() => (
-        <div style={form}>
-          <ParamsForm form={modelsForm} />
-          <ActionFooter
-            icon="download"
-            label="Download"
-            onApply={() => status.post(`Saved 1tqn.${(modelsForm.values.value as any).format}`, 'success')}
-          />
-        </div>
-      )),
-    },
-  ]);
+/** What the frame gives a mode while it is active. Its `shell` records what the mode registers, to undo it. */
+export interface MockFrameContext {
+  shell: ShellModel;
+  status: StatusModel;
+  loaded: boolean;
+  /** The canvas background (a CSS color). */
+  background?: string;
+  openCommandMenu(group?: string): void;
 }
 
-// Mol*'s granularities (interactivity), labelled and drawn as picking levels.
-const Granularities: readonly Granularity[] = [
-  { value: 'element', label: 'Atom', icon: 'pick-atom' },
-  { value: 'residue', label: 'Residue', icon: 'pick-residue' },
-  { value: 'chain', label: 'Chain', icon: 'pick-chain' },
-  { value: 'entity', label: 'Entity', icon: 'pick-entity' },
-  { value: 'model', label: 'Model', icon: 'pick-model' },
-  { value: 'operator', label: 'Operator', icon: 'copy' },
-  { value: 'structure', label: 'Structure', icon: 'structure' },
-  { value: 'elementInstances', label: 'Atom', icon: 'pick-atom', group: 'All instances' },
-  { value: 'residueInstances', label: 'Residue', icon: 'pick-residue', group: 'All instances' },
-  { value: 'chainInstances', label: 'Chain', icon: 'pick-chain', group: 'All instances' },
-];
+/** What a mode brings to the frame: its commands and the canvas parts (all optional but the commands). */
+export interface MockModeParts {
+  commands: CommandManager<any>;
+  prefixes?: CommandMenuPrefix[];
+  canvas?: Child;
+  overlays?: Child;
+  playback?: Child;
+  context?: () => Child;
+  canvasLead?: Child;
+  canvasAside?: Child;
+  empty?: Observable<boolean>;
+  onDropFiles?: (files: readonly File[]) => void;
+  dropFormats?: readonly string[];
+  /** The tab shown when the mode starts. */
+  start?: string;
+  /** Called when the mode leaves (its registrations are undone by the frame). */
+  dispose?(): void;
+}
 
-/** The sequence view's choices for 1TQN (Mol*'s sequence controls): structure, mode, then entity and chain. */
-function sequenceSelectors(post: (text: string) => void): SequenceSelector[] {
-  const selector = (
-    id: string,
-    title: string,
-    initial: string,
-    options: [string, string][],
-    extra: Partial<SequenceSelector> = {},
-  ): SequenceSelector => {
-    const value = observableState(initial);
-    return {
-      id,
-      title,
-      options,
-      value: value.asReadonly,
-      set: (v) => {
-        value.set(v);
-        post(`Sequence: ${title.toLowerCase()} ${options.find((o) => o[0] === v)?.[1] ?? v}`);
-      },
-      ...extra,
-    };
-  };
-  const mode = selector('mode', 'Mode', 'single', [
-    ['single', 'Chain'],
-    ['polymers', 'Polymers'],
-    ['all', 'Everything'],
-  ]);
-  const single = mode.value.pipe(map((m) => m === 'single'));
-  return [
-    selector('structure', 'Structure', '1tqn', [['1tqn', '1TQN | Crystal structure of human microsomal P450 3A4']], {
-      display: () => '1TQN',
-      strong: true,
-    }),
-    mode,
-    selector(
-      'entity',
-      'Entity',
-      '1',
-      [
-        ['1', '1: Cytochrome P450 3A4'],
-        ['2', '2: Protoporphyrin IX containing Fe'],
-        ['3', '3: Sulfate ion'],
-        ['4', '4: Water'],
-      ],
-      {
-        display: (v) =>
-          ['Cytochrome P450 3A4', 'Protoporphyrin IX containing Fe', 'Sulfate ion', 'Water'][Number(v) - 1],
-        visible: single,
-      },
-    ),
-    selector('chain', 'Chain', 'A', [['A', 'A']], { display: (v) => `Chain ${v}`, visible: single }),
-  ];
+export interface MockMode {
+  id: string;
+  title: string;
+  icon: IconName;
+  activate(ctx: MockFrameContext): MockModeParts;
 }
 
 /**
@@ -345,108 +92,73 @@ function withAddOnTabs(tabs: ShellTab[], extra: readonly ShellTab[] | undefined)
   return [...tabs.filter((t) => !replaced.has(t.id)), ...extra];
 }
 
-/** A mock of everything around the canvas, with the shell's real model. */
-function mockShell(options: {
+/** The shell as a mode sees it: every `register…` call is recorded, so leaving the mode undoes them all. */
+function recordingShell(shell: ShellModel): { shell: ShellModel; undo(): void } {
+  const undos: (() => void)[] = [];
+  const proxy = new Proxy(shell, {
+    get(target, key) {
+      const value = Reflect.get(target, key, target);
+      if (typeof value !== 'function') return value;
+      if (typeof key === 'string' && key.startsWith('register')) {
+        return (...args: unknown[]) => {
+          const undo = value.apply(target, args) as () => void;
+          undos.push(undo);
+          return undo;
+        };
+      }
+      return value.bind(target);
+    },
+  });
+  return {
+    shell: proxy,
+    undo: () => {
+      for (let i = undos.length - 1; i >= 0; i--) undos[i]();
+      undos.length = 0;
+    },
+  };
+}
+
+export function ShellStory(props: {
   loaded: boolean;
   preset?: MockScenePreset;
+  background?: string;
+  openExportAt?: string;
+  /** The right panel pinned beside the canvas. */
   pinned?: boolean;
+  /** The spec turns remote states (a state server) on; a number fills the server with that many. */
   remoteStates?: boolean | number;
+  /** Opens with the command menu open. */
+  commandMenu?: boolean;
+  /** What the loaded data has to play: a session's snapshots, a trajectory's models (plain 1TQN has neither). */
+  playback?: { snapshots?: boolean; trajectory?: boolean };
+  /** What an add-on brings (the agent module's mock: `@molstar/prism-agent/testing`). */
   addOn?: MockShellAddOn;
+  /** The modes the app has, the first active (default: Mol*'s own UI alone). With more, the rail can switch. */
+  modes?: readonly MockMode[];
 }) {
-  const shell = new ShellModel({ docks: { right: { pinned: !!options.pinned } } });
+  const modes = props.modes ?? [mockMolstarMode(props)];
+  const shell = new ShellModel({ docks: { right: { pinned: !!props.pinned } } });
   const status = new StatusModel();
-  // What an add-on brings (the agent module's tabs, its Ask port and turn card): only when the story includes one.
-  const addOn = options.addOn?.({ shell, status, loaded: options.loaded });
-  const canvasMode = observableState<CanvasMode>('interact');
   const commandMenuOpen = observableState(false);
   // The group the command menu opens in (Preset, Styles); none for ⌘K.
   const commandMenuGroup = observableState<string | undefined>(undefined);
-  const granularity = observableState('residue');
-  const illumination = observableState(false);
+  const openCommandMenu = (group?: string) => {
+    commandMenuGroup.set(group);
+    commandMenuOpen.set(true);
+  };
   // The plugin root goes fullscreen (in the stories, the story page).
   const fullscreen = new FullscreenModel(() => document.documentElement);
   // The UI theme, starting from Storybook's (its toolbar sets the same attribute on the page).
   const theme = new ThemeModel((document.documentElement.dataset.mspTheme as UITheme | undefined) ?? 'light');
   theme.applyTo(document.documentElement);
-  const hoverLines = observableState<readonly string[]>([]);
-  // The scene; hovering a node highlights it (the hover label stands in for the 3D highlight here).
-  const scene = mockScene({
-    preset: options.preset,
-    onHighlight: (label) => hoverLines.set(label ? [label] : []),
-    onAction: (text) => status.post(text),
-    onMeasure: () => shell.show('selection', 'measure'),
-  });
-  // Superposing, with two or more structures: the Selection tab's Superpose section.
-  registerMockSuperposition(
-    shell,
-    mockSuperposition(scene, (t) => status.post(t)),
-  );
-  // Adding measurements: the Selection tab's Measure section.
-  registerMockMeasurements(
-    shell,
-    mockMeasurements(scene, (t) => status.post(t)),
-  );
-  const hover: HoverLabelModel = { lines: hoverLines.asReadonly };
-  const home = mockHome((text, kind) => status.post(text, kind), { remoteStates: options.remoteStates });
-  const snapshotsModel = mockSnapshotsModel((text, kind) => status.post(text, kind));
-  const stateTree = mockStateTree((text) => status.post(text));
+  // What an add-on brings (the agent module's tabs, its Ask port and turn card): only when the story includes one.
+  const addOn = props.addOn?.({ shell, status, loaded: props.loaded });
   const settings = mockSettings();
-  const snapshotStepper = mockSnapshots((t) => status.post(t));
-  const commands = mockCommands(shell, () => scene.roots.value.filter((n) => n.kind === 'structure').length);
 
+  // The frame's own tabs and buttons: in every mode.
   shell.registerTabs(
     withAddOnTabs(
       [
-        {
-          id: 'home',
-          compactBar: true,
-          title: 'Home',
-          // The Mol* wordmark over Home (the rail's tooltip stays "Home").
-          heading: () => <MolstarWordmark live />,
-          icon: 'molstar',
-          order: 0,
-          place: 'head',
-          render: domView(() => <HomeTab home={home} onOpenCommandMenu={() => commandMenuOpen.set(true)} />),
-        },
-        {
-          id: 'structure',
-          compactBar: true,
-          title: 'Structure',
-          icon: 'structure',
-          order: 1,
-          render: domView(({ ctx }) => (
-            <StructureTab
-              shell={ctx.shell}
-              scene={scene}
-              presets={mockPresets((t) => status.post(t))}
-              options={mockComponentOptions()}
-              quickStyles={mockQuickStyles((t) => status.post(t))}
-              openCommands={(group) => {
-                commandMenuGroup.set(group);
-                commandMenuOpen.set(true);
-              }}
-              onAction={(a) =>
-                status.post(
-                  `${a === 'preset' ? 'Apply preset' : a === 'styles' ? 'Styles' : 'Add component'}… opens in the command menu`,
-                )
-              }
-            />
-          )),
-        },
-        {
-          id: 'snapshots',
-          title: 'Snapshots',
-          icon: 'images',
-          order: 1.5,
-          render: domView(() => <SnapshotsPanel model={snapshotsModel} />),
-        },
-        {
-          id: 'state-tree',
-          title: 'State tree',
-          icon: 'list-tree',
-          order: 2,
-          render: domView(() => <StateTreeTab model={stateTree} />),
-        },
         {
           id: 'log',
           title: 'Log',
@@ -468,45 +180,28 @@ function mockShell(options: {
       addOn?.tabs,
     ),
   );
-  if (options.loaded) {
-    shell.registerTabs([
-      {
-        id: 'sequence',
-        title: 'Sequence',
-        icon: 'sequence',
-        dock: 'top',
-        render: domView(({ ctx }) => (
-          <SequenceStrip
-            chain={{ structure: '1TQN', name: 'Chain A', info: 'Cytochrome P450 3A4', sequence: Sequence, start: 1 }}
-            selectors={sequenceSelectors((t) => status.post(t))}
-            onCollapse={() => ctx.shell.toggle(ctx.dock ?? 'top')}
-            onHover={(n) =>
-              hoverLines.set(n === undefined ? [] : [`${ThreeLetter[Sequence[n - 1]] ?? '?'} ${n}`, 'Chain A · 1TQN'])
-            }
-            onToggle={(n, on) => status.post(`${on ? 'Selected' : 'Deselected'} residue ${n}`)}
-          />
-        )),
-      },
-    ]);
-    shell.show('structure');
-  }
 
-  // Remote states (a state server): a card next to Export, only when the spec turns them on.
-  if (home.remoteStates) {
-    const remote = home.remoteStates;
-    shell.registerOverlays([
-      {
-        id: 'remote-states',
-        title: 'Remote states',
-        render: domView(() => <RemoteStatesPanel model={remote} />),
-      },
-    ]);
-  }
-
-  // The canvas stack's camera and rendering tools act on what is shown: nothing loaded, nothing to show them for.
-  const hasData = of(options.loaded);
-
+  const active = observableState<MockMode>(modes[0]);
+  const parts = observableState<MockModeParts | undefined>(undefined);
+  const hasData = of(props.loaded);
   shell.registerToolbar([
+    // With more than one mode, the rail switches to the next (its face is where it goes).
+    ...(modes.length > 1
+      ? [
+          {
+            id: 'mode',
+            icon: modes[1].icon,
+            title: `Switch to ${modes[1].title}`,
+            face: active.asReadonly.pipe(
+              map((m) => {
+                const next = nextMode(m);
+                return { icon: next.icon, title: `Switch to ${next.title}` };
+              }),
+            ),
+            run: () => switchTo(nextMode(active.value)),
+          },
+        ]
+      : []),
     // The UI theme, by Settings at the rail's foot: a click goes to the next one; the icon is the current one.
     {
       id: 'theme',
@@ -525,87 +220,7 @@ function mockShell(options: {
       icon: 'command',
       title: 'Command menu',
       caption: formatChord({ key: 'k', mod: true }),
-      run: () => commandMenuOpen.set(true),
-    },
-    {
-      id: 'reset',
-      place: 'canvas',
-      group: 'canvas',
-      visible: hasData,
-      icon: 'focus',
-      title: 'Reset camera',
-      run: () => status.post('Camera reset'),
-      menu: [
-        {
-          id: 'reset-zoom',
-          label: 'Reset zoom',
-          icon: 'zoom-out',
-          hint: 'Fit everything, keep the orientation',
-          run: () => status.post('Zoom reset'),
-        },
-        {
-          id: 'orient-axes',
-          label: 'Orient axes',
-          icon: 'axis-3d',
-          hint: 'Principal axes along the screen',
-          run: () => status.post('Oriented along the principal axes'),
-        },
-        {
-          id: 'reset-axes',
-          label: 'Reset axes',
-          icon: 'rotate-ccw',
-          hint: 'Back to the default orientation',
-          run: () => status.post('Axes reset'),
-        },
-      ],
-    },
-    // The scene as a whole: how it plays, how the canvas renders it.
-    { id: 'animation', group: 'scene', icon: 'clapperboard', title: 'Animation', overlay: 'animation' },
-    {
-      id: 'canvas-settings',
-      group: 'scene',
-      icon: 'monitor-cog',
-      title: 'Canvas settings',
-      overlay: 'canvas-settings',
-    },
-    { id: 'export', group: 'export', icon: 'download', title: 'Export…', overlay: 'export' },
-    ...(home.remoteStates
-      ? [
-          {
-            id: 'remote-states',
-            group: 'export',
-            icon: 'cloud-upload' as const,
-            title: 'Remote states',
-            overlay: 'remote-states',
-          },
-        ]
-      : []),
-    // Rendering modes under one button: a click opens the menu (no action of its own); shown pressed while one is on.
-    {
-      id: 'rendering',
-      place: 'canvas',
-      group: 'canvas',
-      visible: hasData,
-      icon: 'lightbulb',
-      title: 'Illumination & XR',
-      pressed: illumination.asReadonly,
-      menu: [
-        {
-          id: 'illumination',
-          label: 'Illumination',
-          icon: 'lightbulb',
-          hint: 'Path-traced global illumination',
-          pressed: illumination.asReadonly,
-          run: () => illumination.set(!illumination.value),
-        },
-        {
-          id: 'xr',
-          label: 'Enter XR',
-          icon: 'glasses',
-          hint: 'View on a headset',
-          run: () => status.post('XR is not available in this browser.', 'warning'),
-        },
-      ],
+      run: () => openCommandMenu(),
     },
     // Expand by context (FullscreenModel.mode): on a page, Expand fills it and Fullscreen is beside it; in an iframe
     // that allows it, the button is Fullscreen (expanding would only fill the frame); in one that does not, Expand fills
@@ -641,169 +256,95 @@ function mockShell(options: {
             },
           ],
         },
-    // Panels over the canvas: brought back from the stack when hidden (hidden, they take no room at all).
-    {
-      id: 'sequence',
-      place: 'canvas',
-      group: 'view',
-      icon: 'sequence',
-      title: 'Sequence',
-      // Only while there is a sequence and its card is hidden (shown, it carries its own collapse button).
-      visible: combineLatest([shell.dock('top').tabs, shell.dock('top').active]).pipe(
-        map(([tabs, active]) => tabs.length > 0 && !active),
-      ),
-      run: () => shell.toggle('top'),
-    },
   ]);
 
-  // One Export button; built-in and extension exports are sections of its panel.
-  mockExport(shell, status);
-  registerMockCanvasSettings(shell);
-  registerMockAnimation(shell, (text) => status.post(text));
-  const selection = mockSelection(shell, (text) => status.post(text));
-
-  if (options.loaded) {
-    status.post('Loaded 1TQN (3,624 atoms) in 0.4 s', 'success');
-    // Two tasks at once: they stack.
-    const drop = (id: string) => () => status.setTasks(status.tasks.value.filter((t) => t.id !== id));
-    status.setTasks([
-      { id: 'density', label: 'Downloading density', progress: 0.7, abort: drop('density') },
-      { id: 'surface', label: 'Computing surface', progress: 0.4, abort: drop('surface') },
-    ]);
-  }
-
-  // The canvas mode lives on the canvas, not in the rail: what a click does is visible before the first click.
-  const modeProps: ModeSwitchProps = {
-    mode: canvasMode.asReadonly,
-    setMode: (m) => {
-      if (m === canvasMode.value) return;
-      canvasMode.set(m);
-      status.post(m === 'select' ? 'Select: click to select, Shift+click to extend' : 'Interact: click to focus');
-    },
-    granularity: granularity.asReadonly,
-    granularities: Granularities,
-    setGranularity: (g) => granularity.set(g),
+  const nextMode = (m: MockMode) => modes[(modes.indexOf(m) + 1) % modes.length];
+  // The active mode: activated with a recording shell; leaving it undoes its registrations and command wiring.
+  let leave: (() => void) | undefined;
+  const switchTo = (mode: MockMode) => {
+    leave?.();
+    commandMenuOpen.set(false);
+    const recording = recordingShell(shell);
+    const p = mode.activate({
+      shell: recording.shell,
+      status,
+      loaded: props.loaded,
+      background: props.background,
+      openCommandMenu,
+    });
+    // Switching modes is a command in each of them.
+    const switching: CommandDefinition<any>[] = modes
+      .filter((m) => m !== mode)
+      .map((m) => ({
+        id: `mode.${m.id}`,
+        title: `Switch to ${m.title}`,
+        category: 'View',
+        icon: m.icon,
+        run: () => {
+          queueMicrotask(() => switchTo(m));
+          return { message: '' };
+        },
+      }));
+    const unregister = switching.length ? p.commands.register(switching) : undefined;
+    // What commands did goes to the status line (and, with the agent, to History).
+    const outcomes = p.commands.outcomes.subscribe((o) => {
+      if (o.kind === 'done' && o.result.message) status.post(o.result.message);
+      if (o.kind === 'done') addOn?.commandDone?.(o.result.message ?? o.command.title, o.command.id);
+      else if (o.kind === 'failed' || o.kind === 'blocked') status.post(o.message, 'warning');
+    });
+    leave = () => {
+      outcomes.unsubscribe();
+      unregister?.();
+      recording.undo();
+      p.dispose?.();
+    };
+    active.set(mode);
+    parts.set(p);
+    if (p.start) shell.show(p.start);
   };
-  const modeSwitch = <ModeSwitch {...modeProps} />;
-  const pickLevel = <PickLevel {...modeProps} />;
 
-  return {
-    shell,
-    status,
-    hover,
-    hoverLines,
-    modeSwitch,
-    pickLevel,
-    selection,
-    commandMenuOpen,
-    commandMenuGroup,
-    commands,
-    prefixes: mockPrefixes({ manager: commands, shell, scene, snapshots: snapshotStepper }),
-    snapshots: snapshotStepper,
-    trajectory: mockTrajectory(),
-    home,
-    addOn,
-  };
-}
-
-export function ShellStory(props: {
-  loaded: boolean;
-  preset?: MockScenePreset;
-  background?: string;
-  openExportAt?: string;
-  /** The right panel pinned beside the canvas. */
-  pinned?: boolean;
-  /** The spec turns remote states (a state server) on; a number fills the server with that many. */
-  remoteStates?: boolean | number;
-  /** Opens with the command menu open. */
-  commandMenu?: boolean;
-  /** What the loaded data has to play: a session's snapshots, a trajectory's models (plain 1TQN has neither). */
-  playback?: { snapshots?: boolean; trajectory?: boolean };
-  /** What an add-on brings (the agent module's mock: `@molstar/prism-agent/testing`). */
-  addOn?: MockShellAddOn;
-}) {
-  const {
-    shell,
-    status,
-    hover,
-    hoverLines,
-    modeSwitch,
-    pickLevel,
-    selection,
-    commandMenuOpen,
-    commandMenuGroup,
-    commands,
-    prefixes,
-    snapshots,
-    trajectory,
-    home,
-    addOn,
-  } = mockShell(props);
-  // What commands did goes to the status line; ⌘K / ⇧⌘P open the command menu; commands' own shortcuts run them.
-  const outcomes = commands.outcomes.subscribe((o) => {
-    if (o.kind === 'done' && o.result.message) status.post(o.result.message);
-    if (o.kind === 'done') addOn?.commandDone?.(o.result.message ?? o.command.title, o.command.id);
-    else if (o.kind === 'failed' || o.kind === 'blocked') status.post(o.message, 'warning');
-  });
+  // ⌘K / ⇧⌘P open the command menu; the active mode's commands' own shortcuts run them.
   const onKey = (e: KeyboardEvent) => {
     const mod = isMac() ? e.metaKey : e.ctrlKey;
     if (mod && (e.key.toLowerCase() === 'k' || (e.shiftKey && e.key.toLowerCase() === 'p'))) {
       e.preventDefault();
-      commandMenuOpen.set(true);
-    } else if (!commandMenuOpen.value && commands.handleKey(e, isMac())) e.preventDefault();
+      openCommandMenu();
+    } else if (!commandMenuOpen.value && parts.value?.commands.handleKey(e, isMac())) e.preventDefault();
   };
   window.addEventListener('keydown', onKey);
-  onCleanup(() => {
-    outcomes.unsubscribe();
-    window.removeEventListener('keydown', onKey);
-  });
+  switchTo(modes[0]);
   shell.mount();
   status.mount();
   if (props.openExportAt) shell.openOverlay('export', undefined, props.openExportAt);
   if (props.commandMenu) commandMenuOpen.set(true);
   onCleanup(() => {
+    window.removeEventListener('keydown', onKey);
+    leave?.();
     shell.unmount();
     status.unmount();
   });
+
+  // A canvas part of the active mode, swapped with it.
+  const part = (pick: (p: MockModeParts) => Child) => (
+    <Dynamic component={parts.asReadonly.pipe(map((p) => (p ? () => pick(p) : undefined)))} />
+  );
+  const background = props.background ?? '#ffffff';
   return (
     <ShellView
       shell={shell}
       status={status}
-      canvas={
-        <CanvasPlaceholder
-          empty={!props.loaded}
-          background={props.background}
-          onHover={(i) =>
-            hoverLines.set(
-              i === undefined ? [] : [`${ThreeLetter[Sequence[i * 4]] ?? 'GLY'} ${i * 4 + 1}`, 'Chain A · 1TQN'],
-            )
-          }
-        />
-      }
-      overlays={
-        props.loaded ? (
-          <>
-            <HoverLabel model={hover} area={() => document.querySelector<HTMLElement>('[data-msp-canvas]')} />
-          </>
-        ) : null
-      }
-      playback={
-        props.loaded && (props.playback?.snapshots || props.playback?.trajectory) ? (
-          <>
-            {props.playback.snapshots ? <SnapshotCard model={snapshots} /> : null}
-            {props.playback.trajectory ? <TrajectoryBar model={trajectory} /> : null}
-          </>
-        ) : null
-      }
-      canvasColor={props.background ?? '#ffffff'}
-      canvasTheme={themeForColor(parseColor(props.background ?? '#ffffff') ?? 0xffffff)}
-      context={props.loaded ? () => <SelectionBar selection={selection} /> : undefined}
+      canvas={part((p) => p.canvas ?? null)}
+      overlays={part((p) => p.overlays ?? null)}
+      playback={part((p) => p.playback ?? null)}
+      canvasColor={background}
+      canvasTheme={themeForColor(parseColor(background) ?? 0xffffff)}
+      context={() => part((p) => p.context?.() ?? null)}
       commandMenu={
         <Show when={commandMenuOpen}>
           {() => (
             <CommandMenu
-              manager={commands}
-              prefixes={prefixes}
+              manager={parts.value!.commands}
+              prefixes={parts.value!.prefixes}
               group={commandMenuGroup.value}
               assistant={addOn?.assistant}
               onClose={() => {
@@ -815,12 +356,12 @@ export function ShellStory(props: {
         </Show>
       }
       agent={addOn?.agent}
-      canvasLead={props.loaded ? modeSwitch : null}
-      canvasAside={props.loaded ? pickLevel : null}
+      canvasLead={part((p) => p.canvasLead ?? null)}
+      canvasAside={part((p) => p.canvasAside ?? null)}
       onOpenLog={() => shell.show('log')}
-      empty={of(!props.loaded)}
-      onDropFiles={(files) => home.openFiles(files)}
-      dropFormats={home.formats}
+      empty={parts.asReadonly.pipe(switchMap((p) => p?.empty ?? of(!props.loaded)))}
+      onDropFiles={(files) => parts.value?.onDropFiles?.(files)}
+      dropFormats={parts.value?.dropFormats}
     />
   );
 }

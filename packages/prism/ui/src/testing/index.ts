@@ -10,4 +10,12 @@
 // shell (`ShellStory`) takes a module's contributions as an add-on.
 
 export { story } from './story-root.js';
-export { type MockShellAddOn, type MockShellAddOnParts, ShellStory } from './shell.js';
+export { mockMolstarMode } from './molstar-mode.js';
+export {
+  type MockFrameContext,
+  type MockMode,
+  type MockModeParts,
+  type MockShellAddOn,
+  type MockShellAddOnParts,
+  ShellStory,
+} from './shell.js';
