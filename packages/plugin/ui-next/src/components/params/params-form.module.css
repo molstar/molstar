@@ -318,6 +318,15 @@
   }
 }
 
+/* A row's own params, unfolding under it: a chevron (as dropdowns and groups), turned while open. */
+.unfold {
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(180deg);
+  }
+}
+
 .subSettings {
   /* A little wider than the form (4 px each side), its own padding the same: its controls stay in the form's column
      and clear of its edge; its labels step in like nested ones. */

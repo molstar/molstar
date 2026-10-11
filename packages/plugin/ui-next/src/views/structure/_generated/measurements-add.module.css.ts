@@ -34,6 +34,7 @@ export const classes = {
   'points': 'msp-structure-measurements-add-points',
   'slot': 'msp-structure-measurements-add-slot',
   'style': 'msp-structure-measurements-add-style',
+  'unfold': 'msp-structure-measurements-add-unfold',
 } as const;
 
 defineStyles('views/structure/measurements-add.module.css', `@layer msp.components {
@@ -298,6 +299,14 @@ defineStyles('views/structure/measurements-add.module.css', `@layer msp.componen
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-well);
   box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+}
+
+.msp-structure-measurements-add-unfold {
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(180deg);
+  }
 }
 }
 `);

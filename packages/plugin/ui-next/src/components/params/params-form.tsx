@@ -530,7 +530,7 @@ function OnOffControl(props: {
                   aria-expanded={open}
                   onClick={() => open.set(!open.value)}
                 >
-                  <Icon name="sliders-horizontal" size={14} />
+                  <Icon name="chevron-down" size={14} class={classes.unfold} />
                 </button>
               )}
             </Show>
@@ -751,7 +751,7 @@ function ObjectListItem(props: {
           aria-expanded={open}
           onClick={() => open.set(!open.value)}
         >
-          <Icon name="sliders-horizontal" size={14} />
+          <Icon name="chevron-down" size={14} class={classes.unfold} />
         </button>
         <button
           type="button"
