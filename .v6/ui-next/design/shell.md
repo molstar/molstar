@@ -56,6 +56,8 @@ it is where contributions (built-in and extension UI) are placed.
   canvas stack, the selection chips) follows its edge (`--msp-canvas-right-inset`). One margin frames the canvas
   (`--msp-canvas-edge`, 8px): every floating thing keeps it from the canvas edges, the docked rail, the open panel, the
   sequence card, and the cards stacked beside it. Panels and overlay cards share one header (title, ✕ on the right).
+- **Home's heading** is the Mol* wordmark, outlined in the text color: the logo's colors flash along it now and then,
+  and under the pointer the same live strip as on the empty canvas runs across it, back to the plain outline on leave.
 - **Empty canvas.** With nothing loaded (`ShellView`'s `empty`), the Mol* wordmark shows in the middle of the canvas,
   outlined in the canvas's subtle text color: only after the canvas has been empty a while (700 ms; clearing a scene to
   load the next never flashes it), fading in, then the logo's colors wipe in along the outline once and stay; under the

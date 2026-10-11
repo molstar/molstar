@@ -55,7 +55,7 @@ defineStyles('components/icon/wordmark.module.css', `@layer msp.components {
     mask-image: linear-gradient(100deg, #000 0 42%, #0000 58% 100%);
   }
 
-  .msp-icon-wordmark-wordmark:not([data-flash="reveal"]):hover & {
+  .msp-icon-wordmark-wordmark:not([data-flash="reveal"], [data-live]):hover & {
     animation: 2.8s ease-in-out both msp-icon-wordmark-flash-hover;
   }
 }
@@ -106,11 +106,12 @@ defineStyles('components/icon/wordmark.module.css', `@layer msp.components {
 
 .msp-icon-wordmark-live {
   opacity: 0;
+  --msp-wordmark-strip: calc(14px * var(--msp-wordmark-scale, 1));
   mask-image: linear-gradient(90deg,
-    transparent calc(var(--msp-wordmark-x, 50%) - 42px),
-    #000 calc(var(--msp-wordmark-x, 50%) - 14px),
-    #000 calc(var(--msp-wordmark-x, 50%) + 14px),
-    transparent calc(var(--msp-wordmark-x, 50%) + 42px));
+    transparent calc(var(--msp-wordmark-x, 50%) - var(--msp-wordmark-strip)),
+    #000 calc(var(--msp-wordmark-x, 50%) - var(--msp-wordmark-strip) / 3),
+    #000 calc(var(--msp-wordmark-x, 50%) + var(--msp-wordmark-strip) / 3),
+    transparent calc(var(--msp-wordmark-x, 50%) + var(--msp-wordmark-strip)));
   transition: opacity .6s var(--msp-ease);
 
   .msp-icon-wordmark-wordmark:hover > & {

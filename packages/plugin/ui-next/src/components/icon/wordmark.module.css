@@ -46,8 +46,8 @@
     animation: flash-reveal 2.8s ease-in-out 0.9s both;
   }
 
-  /* Hover replays a flash (not a reveal: its colors stay; a live one answers the pointer instead). */
-  .wordmark:not([data-flash="reveal"]):hover & {
+  /* Hover replays a flash (not a reveal, whose colors stay; not a live one, which answers the pointer instead). */
+  .wordmark:not([data-flash="reveal"], [data-live]):hover & {
     animation: flash-hover 2.8s ease-in-out both;
   }
 }
@@ -91,7 +91,7 @@
   }
 }
 
-/* Live (the empty canvas): it takes the pointer (the canvas around it does not); a vertical strip at the cursor, the
+/* Live (the empty canvas, Home's heading): it takes the pointer (the canvas around it does not); a vertical strip at the cursor, the
    colors running across it (only the color changes, the line stays); in on enter, back out on leave. */
 .wordmark[data-live] {
   pointer-events: auto;
@@ -99,13 +99,15 @@
 
 .live {
   opacity: 0;
-  /* A vertical strip at the cursor, full height, soft at its sides. */
+  /* A vertical strip at the cursor, full height, soft at its sides; as wide as the wordmark is large. */
+  --msp-wordmark-strip: calc(14px * var(--msp-wordmark-scale, 1));
+
   mask-image: linear-gradient(
     90deg,
-    transparent calc(var(--msp-wordmark-x, 50%) - 42px),
-    #000 calc(var(--msp-wordmark-x, 50%) - 14px),
-    #000 calc(var(--msp-wordmark-x, 50%) + 14px),
-    transparent calc(var(--msp-wordmark-x, 50%) + 42px)
+    transparent calc(var(--msp-wordmark-x, 50%) - var(--msp-wordmark-strip)),
+    #000 calc(var(--msp-wordmark-x, 50%) - var(--msp-wordmark-strip) / 3),
+    #000 calc(var(--msp-wordmark-x, 50%) + var(--msp-wordmark-strip) / 3),
+    transparent calc(var(--msp-wordmark-x, 50%) + var(--msp-wordmark-strip))
   );
   transition: opacity 600ms var(--msp-ease);
 

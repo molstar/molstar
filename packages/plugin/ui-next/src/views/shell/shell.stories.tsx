@@ -379,7 +379,7 @@ function mockShell(options: {
       compactBar: true,
       title: 'Home',
       // The Mol* wordmark over Home (the rail's tooltip stays "Home").
-      heading: () => <MolstarWordmark />,
+      heading: () => <MolstarWordmark live />,
       icon: 'molstar',
       order: 0,
       place: 'head',
