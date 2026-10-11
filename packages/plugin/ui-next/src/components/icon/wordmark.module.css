@@ -27,8 +27,8 @@
 }
 
 /* The flash: the outline in the logo's colors, seen through a band that sweeps left to right (2.8 s), again and again:
-   every 14 s in a heading, every 7 s on the empty canvas (`data-flash="often"`); hover runs it at once (a different
-   animation name restarts it). */
+   every 14 s in a heading (`often`: every 7 s); `reveal` wipes the colors in once and keeps them (the empty canvas);
+   hover runs it at once (a different animation name restarts it). */
 .flash {
   mask-image: linear-gradient(100deg, transparent 0 38%, #000 47% 53%, transparent 62% 100%);
   mask-size: 300% 100%;
@@ -38,6 +38,12 @@
 
   [data-flash="often"] > & {
     animation: flash-often 7s ease-in-out 0.3s infinite both;
+  }
+
+  /* Once, after it has faded in (the empty canvas): a wipe that leaves it in the logo's colors. */
+  [data-flash="reveal"] > & {
+    mask-image: linear-gradient(100deg, #000 0 42%, transparent 58% 100%);
+    animation: flash-reveal 2.8s ease-in-out 0.9s both;
   }
 
   .wordmark:hover & {
@@ -62,6 +68,15 @@
   }
   40%,
   100% {
+    mask-position: 0 0;
+  }
+}
+
+@keyframes flash-reveal {
+  from {
+    mask-position: 100% 0;
+  }
+  to {
     mask-position: 0 0;
   }
 }

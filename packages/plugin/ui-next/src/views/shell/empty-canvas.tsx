@@ -30,8 +30,8 @@ const FadeOut = 250;
 type Phase = 'in' | 'out' | 'gone';
 
 /**
- * The Mol* wordmark in the middle of an empty canvas, a while after it became empty: it fades in, its colors flash
- * along the outline; when something loads it fades out, faster (and if it never showed, nothing shows). Never in the
+ * The Mol* wordmark in the middle of an empty canvas, a while after it became empty: it fades in, then the logo's colors
+ * wipe in along the outline and stay; when something loads it fades out, faster (and if it never showed, nothing shows). Never in the
  * way of the canvas.
  */
 export function EmptyCanvas(props: { empty: Observable<boolean> }) {
@@ -53,7 +53,7 @@ export function EmptyCanvas(props: { empty: Observable<boolean> }) {
     <Show when={phase.pipe(map((p) => p !== 'gone'))}>
       {() => (
         <div class={classes.empty} data-phase={phase}>
-          <MolstarWordmark scale={4} flash="often" class={classes.mark} />
+          <MolstarWordmark scale={4} flash="reveal" class={classes.mark} />
         </div>
       )}
     </Show>

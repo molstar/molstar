@@ -40,8 +40,8 @@ export function MolstarWordmark(props: {
   class?: string;
   /** A whole multiple of its drawn size (the empty canvas shows it at 4): lines stay on the pixel grid. */
   scale?: number;
-  /** How often its colors flash: now and then (a heading), or often (the empty canvas). */
-  flash?: 'rare' | 'often';
+  /** Its colors: a flash now and then (a heading), often, or wiped in once and kept (the empty canvas). */
+  flash?: 'rare' | 'often' | 'reveal';
 }) {
   const id = `msp-wordmark-${++gradients}`;
   const scale = Math.max(1, Math.round(props.scale ?? 1));

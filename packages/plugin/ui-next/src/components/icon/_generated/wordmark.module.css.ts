@@ -13,6 +13,7 @@ export const classes = {
   'flash-hover': 'msp-icon-wordmark-flash-hover',
   'flash-often': 'msp-icon-wordmark-flash-often',
   'flash-rare': 'msp-icon-wordmark-flash-rare',
+  'flash-reveal': 'msp-icon-wordmark-flash-reveal',
   'outline': 'msp-icon-wordmark-outline',
   'wordmark': 'msp-icon-wordmark-wordmark',
 } as const;
@@ -48,6 +49,11 @@ defineStyles('components/icon/wordmark.module.css', `@layer msp.components {
     animation: 7s ease-in-out .3s infinite both msp-icon-wordmark-flash-often;
   }
 
+  [data-flash="reveal"] > & {
+    animation: 2.8s ease-in-out .9s both msp-icon-wordmark-flash-reveal;
+    mask-image: linear-gradient(100deg, #000 0 42%, #0000 58% 100%);
+  }
+
   .msp-icon-wordmark-wordmark:hover & {
     animation: 2.8s ease-in-out both msp-icon-wordmark-flash-hover;
   }
@@ -69,6 +75,16 @@ defineStyles('components/icon/wordmark.module.css', `@layer msp.components {
   }
 
   40%, 100% {
+    mask-position: 0 0;
+  }
+}
+
+@keyframes msp-icon-wordmark-flash-reveal {
+  from {
+    mask-position: 100% 0;
+  }
+
+  to {
     mask-position: 0 0;
   }
 }
