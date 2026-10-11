@@ -12,7 +12,6 @@ export const classes = {
   'action': 'msp-canvas-selection-bar-action',
   'bar': 'msp-canvas-selection-bar-bar',
   'bar-in': 'msp-canvas-selection-bar-bar-in',
-  'dot': 'msp-canvas-selection-bar-dot',
   'summary': 'msp-canvas-selection-bar-summary',
 } as const;
 
@@ -44,13 +43,6 @@ defineStyles('views/canvas/selection-bar.module.css', `@layer msp.components {
   font-size: var(--msp-font-size-sm);
   white-space: nowrap;
   display: flex;
-}
-
-.msp-canvas-selection-bar-dot {
-  background: var(--msp-color-accent);
-  border-radius: 50%;
-  width: 8px;
-  height: 8px;
 }
 
 .msp-canvas-selection-bar-action {

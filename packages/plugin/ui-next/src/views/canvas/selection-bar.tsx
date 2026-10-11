@@ -21,10 +21,7 @@ export function SelectionBar(props: { selection: SelectionModel }) {
     <Show when={selection.summary}>
       {(summary) => (
         <div class={classes.bar} role="toolbar" aria-label="Selection">
-          <span class={classes.summary}>
-            <span class={classes.dot} aria-hidden="true" />
-            {summary}
-          </span>
+          <span class={classes.summary}>{summary}</span>
           {selection.actions.map((a) => (
             <button
               type="button"

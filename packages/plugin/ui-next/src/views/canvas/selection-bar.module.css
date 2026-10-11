@@ -34,14 +34,6 @@
   white-space: nowrap;
 }
 
-/* The selection's own color in the viewport. */
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--msp-color-accent);
-}
-
 .action {
   /* Edge to edge, like the canvas stack's buttons: square, the bar's full height, no radius of their own. */
   display: grid;
