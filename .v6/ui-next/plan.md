@@ -68,6 +68,13 @@ Carry into the proper implementation (from the mock review):
 
 ## Phase 4: sources, view models, actions
 
+**Core tweak first: an action's apply label.** `StateAction.build`'s `display` (`packages/core/src/state/action.ts`,
+`{ name, description? }`) gains `applyLabel?: string`, so an action names what applying does ("Download", "Open",
+"Load") instead of a generic "Apply": `DownloadStructure` and `DownloadDensity` → Download, `OpenFiles` and the session
+action → Open, `LoadTrajectory` → Load. The old UI ignores it; ui-next's action blocks use it and fall back to "Apply"
+(transformer updates stay "Update"). Icons stay a UI concern: ui-next maps action ids to icons in its contributions,
+core does not learn about them.
+
 `model/sources/*` with tests against a real plugin and fixtures; view models in the order Scene → ParamsForm/Inspector →
 Selection/Focus → Measurements → Snapshots/Animation/Trajectory → Viewport/Screenshot → Sequence → Tasks/
 Notifications/Log → StateTree → Help. Actions extracted from the old UI where logic lives in views.
