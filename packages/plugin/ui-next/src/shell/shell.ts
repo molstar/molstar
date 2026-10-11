@@ -138,6 +138,8 @@ export interface CanvasToolbarItem {
   visible?: Observable<boolean>;
   /** Shown pressed (a toggle, or the open overlay's button). */
   pressed?: Observable<boolean>;
+  /** A face that changes (the theme switch: the current theme's icon and name), in place of `icon` and `title`. */
+  face?: Observable<{ icon: IconName; title: string }>;
   /** Opens (or closes) this overlay, anchored to the button. */
   overlay?: string;
   run?(anchor: Element): void;

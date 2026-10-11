@@ -87,6 +87,7 @@ const ICONS = [
   'ruler',
   'sun',
   'moon',
+  'sun-moon',
   'sparkles',
   'sliders-horizontal',
   'panel-right',

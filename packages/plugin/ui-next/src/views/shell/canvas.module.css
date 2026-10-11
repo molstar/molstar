@@ -212,6 +212,11 @@
   position: relative;
 }
 
+/* A button whose icon changes (the theme switch). */
+.face {
+  display: contents;
+}
+
 .menuMark {
   position: absolute;
   right: 5px;

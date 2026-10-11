@@ -32,6 +32,7 @@ export const classes = {
   'chip': 'msp-shell-canvas-chip',
   'compactStatus': 'msp-shell-canvas-compactStatus',
   'context': 'msp-shell-canvas-context',
+  'face': 'msp-shell-canvas-face',
   'frame': 'msp-shell-canvas-frame',
   'lead': 'msp-shell-canvas-lead',
   'menuMark': 'msp-shell-canvas-menuMark',
@@ -229,6 +230,10 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-tool {
   position: relative;
+}
+
+.msp-shell-canvas-face {
+  display: contents;
 }
 
 .msp-shell-canvas-menuMark {

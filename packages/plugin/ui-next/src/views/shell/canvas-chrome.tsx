@@ -10,7 +10,7 @@ import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon, type IconName } from '../../components/icon/icon.js';
 import { For, Show } from '../../dom/control-flow.js';
-import { onCleanup } from '../../dom/scope.js';
+import { bind, onCleanup } from '../../dom/scope.js';
 import type { CanvasToolbarItem, OpenOverlay, ShellModel } from '../../shell/shell.js';
 import type { MessageKind, StatusModel, StatusTask } from '../../shell/status.js';
 import type { Child } from '../../dom/jsx-types.js';
@@ -97,9 +97,19 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
       type="button"
       class={classes.tool}
       data-captioned={item.caption ? '' : undefined}
-      data-tip={withMenu ? undefined : item.caption ? `${item.title} (${item.caption})` : item.title}
+      data-tip={
+        withMenu
+          ? undefined
+          : item.face
+            ? item.face.pipe(map((f) => f.title))
+            : item.caption
+              ? `${item.title} (${item.caption})`
+              : item.title
+      }
       data-tip-side="left"
-      aria-label={item.caption ? `${item.title} (${item.caption})` : item.title}
+      aria-label={
+        item.face ? item.face.pipe(map((f) => f.title)) : item.caption ? `${item.title} (${item.caption})` : item.title
+      }
       aria-pressed={pressed}
       aria-haspopup={withMenu ? 'menu' : undefined}
       data-overlay-trigger={item.overlay ? '' : undefined}
@@ -115,7 +125,14 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
       onFocus={withMenu ? (e) => withMenu.show(item, e.currentTarget) : undefined}
       onBlur={withMenu ? () => withMenu.hideSoon() : undefined}
     >
-      <Icon name={item.icon} size={item.caption ? 16 : 20} />
+      {item.face ? (
+        <span
+          class={classes.face}
+          ref={(el) => bind(item.face!, (f) => el.replaceChildren(Icon({ name: f.icon, size: 20 })))}
+        />
+      ) : (
+        <Icon name={item.icon} size={item.caption ? 16 : 20} />
+      )}
       {item.caption ? <span class={classes.caption}>{item.caption}</span> : null}
       {withMenu ? <span class={classes.menuMark} aria-hidden="true" /> : null}
     </button>

@@ -21,6 +21,7 @@ import { parseColor, themeForColor } from '../../model/canvas-theme.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { HoverLabelModel } from '../../model/playback.js';
 import { FullscreenModel } from '../../shell/fullscreen.js';
+import { ThemeModel, type UITheme, UIThemes } from '../../shell/theme.js';
 import { ShellModel } from '../../shell/shell.js';
 import { StatusModel } from '../../shell/status.js';
 import { HoverLabel } from '../canvas/hover-label.js';
@@ -350,6 +351,9 @@ function mockShell(options: {
   const illumination = observableState(false);
   // The plugin root goes fullscreen (in the stories, the story page).
   const fullscreen = new FullscreenModel(() => document.documentElement);
+  // The UI theme, starting from Storybook's (its toolbar sets the same attribute on the page).
+  const theme = new ThemeModel((document.documentElement.dataset.mspTheme as UITheme | undefined) ?? 'light');
+  theme.applyTo(document.documentElement);
   const hoverLines = observableState<readonly string[]>([]);
   // The scene; hovering a node highlights it (the hover label stands in for the 3D highlight here).
   const scene = mockScene({
@@ -484,6 +488,19 @@ function mockShell(options: {
   const hasData = of(options.loaded);
 
   shell.registerToolbar([
+    // The UI theme, by Settings at the rail's foot: a click goes to the next one; the icon is the current one.
+    {
+      id: 'theme',
+      icon: 'sun',
+      title: 'Theme',
+      face: theme.theme.pipe(
+        map((t) => {
+          const current = UIThemes.find((u) => u.id === t)!;
+          return { icon: current.icon, title: `Theme: ${current.title}` };
+        }),
+      ),
+      run: () => theme.next(),
+    },
     {
       id: 'palette',
       icon: 'command',
