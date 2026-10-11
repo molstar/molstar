@@ -17,10 +17,11 @@ Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports them, and they
 
 ## Documents
 
-| Document                 | What it is                                                          |
-| ------------------------ | ------------------------------------------------------------------- |
-| [harness.md](harness.md) | the architecture; code comments cite its sections (`harness.md §6`) |
-| [plan.md](plan.md)       | where it comes from, the move, what is next                         |
+| Document                                           | What it is                                                                      |
+| -------------------------------------------------- | ------------------------------------------------------------------------------- |
+| [harness.md](harness.md)                           | the architecture; code comments cite its sections (`harness.md §6`)             |
+| [plan.md](plan.md)                                 | where it comes from, the move, what is next                                     |
+| [analysis/viewer-mode.md](analysis/viewer-mode.md) | the agent in the viewer mode: tools, skills, the Inspector, fibers (2026-10-11) |
 
 ## Decisions
 

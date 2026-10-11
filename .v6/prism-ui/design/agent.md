@@ -2,7 +2,7 @@
 
 An agent (an in-app assistant, or an outside one over MCP) controls Mol\* through the same commands people use, sees a
 compact account of what is loaded and what the person points at, and every change it makes is visible, attributed, and
-undoable in one step. The harness (any-harness, moving into the Mol\* repo) runs the model loop and calls tools; it
+undoable in one step. The harness (`@molstar/ai-*`, [../../ai/](../../ai/)) runs the model loop and calls tools; it
 knows nothing about UI. This document is the Mol\* side: what the harness is given and how the UI shows an agent at
 work.
 
@@ -151,16 +151,15 @@ the MCP server (a separate piece of work).
 ## 6. Opt-in: not in every build
 
 The agent is a package an app includes, `@molstar/prism-assistant`, not part of the UI: prism-ui does not depend on it
-and none of its files name it (`src/_test/agent-boundary.test.ts`), and the UI knows it only through ports: the command
+and none of its files name it (`src/_test/opt-in-boundary.test.ts`), and the UI knows it only through ports: the command
 menu's `assistant` (`CommandMenuAssistant`), the shell's `agent` slot (`ShellViewProps.agent`, under the status column's
 tasks), and tabs and commands registered like any contribution (the agent's `mockAgentAddOn` adds the Assistant tab and
 swaps Log for History in the mock shell). An app that does not include it ships none of it. Planned, not built: one that
-does registers it as a contribution (`agentContribution({ … })`), with the harness and the model adapters as its own
-dependencies (any-harness moves into the Mol\* repo as a package of its own), and the spec can still start it hidden
-(`ai: { enabled: false }`) for apps that include it but turn it on per user.
+does registers it as a contribution (`agentContribution({ … })`), with the harness and the model adapters
+(`@molstar/ai-*`) as its own dependencies, and the spec can still start it hidden (`ai: { enabled: false }`) for apps
+that include it but turn it on per user.
 
-## 7. Later: skills
+## 7. Skills
 
-Stories untold's MolQL selection skills (how to write a selection from words: residues, chains, ligands, "around",
-"within", secondary structure) come over as the agent's selection skills, with the selection commands as their tools. A
-separate slice, after the UI is done.
+The viewer mode's tools and skills (selections first), the generic tool layer and session, the Inspector (trace, tools,
+limits) and fibers are analysed in [../../ai/analysis/viewer-mode.md](../../ai/analysis/viewer-mode.md).
