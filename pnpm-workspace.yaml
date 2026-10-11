@@ -78,6 +78,8 @@ catalog:
   'vite': '8.3.1'
   'lit': '3.3.3'
   'lightningcss': '1.33.0'
+  # Icon extraction source (ui-next only); ISC licensed.
+  'lucide-static': '1.48.0'
 
 overrides:
   '@istanbuljs/load-nyc-config>js-yaml': '^4.3.2'

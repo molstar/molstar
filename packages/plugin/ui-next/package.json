@@ -38,7 +38,9 @@
     "build-storybook": "storybook build",
     "styles": "node scripts/css.mjs",
     "styles:check": "node scripts/css.mjs --check",
-    "styles:watch": "node scripts/css.mjs --watch"
+    "styles:watch": "node scripts/css.mjs --watch",
+    "icons": "node scripts/icons.mjs",
+    "icons:check": "node scripts/icons.mjs --check"
   },
   "dependencies": {
     "@molstar/core": "workspace:*",
@@ -65,6 +67,7 @@
     "react-dom": "catalog:",
     "storybook": "catalog:",
     "vite": "catalog:",
-    "lightningcss": "catalog:"
+    "lightningcss": "catalog:",
+    "lucide-static": "catalog:"
   }
 }

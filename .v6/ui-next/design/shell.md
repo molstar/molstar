@@ -177,9 +177,15 @@ command group as an inline palette, color, create component, undo, exit ([comman
 ### 4.7 Icons
 
 Keep the vendored Material icons as the fallback set and move actions to one consistent modern line set (Lucide,
-ISC-licensed; only the SVG path data that is used is copied into `components/icon/`, no dependency), plus custom glyphs
-for molecular concepts (cartoon, surface, ball-and-stick, ligand, volume, trajectory) that no generic set covers. Every
-icon is chosen once per command, so buttons, menus, and palette rows agree.
+ISC-licensed; only the SVG path data that is used is copied into `components/icon/`, no runtime dependency), plus custom
+glyphs for molecular concepts (cartoon, surface, ball-and-stick, ligand, volume, trajectory) that no generic set covers.
+Every icon is chosen once per command, so buttons, menus, and palette rows agree.
+
+Implementation: `scripts/icons.mjs` extracts the inner markup of the used icons from `lucide-static` 1.48.0 (a
+devDependency; `pnpm icons`, `icons:check` in CI) into the generated `components/icon/_generated/lucide.ts`; the custom
+molecular glyphs are hand-written in `components/icon/molecular.ts` on the same 24×24 stroke grid. `Icon` parses each
+icon's markup once into a cached `<svg>` template and returns a clone with size, class, and label (`aria-hidden`
+otherwise) set, so rendering an icon allocates one node tree and no parsing.
 
 ## 5. Contributions
 
