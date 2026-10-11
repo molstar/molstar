@@ -144,10 +144,10 @@ export const ExpandByContext: StoryObj = {
 };
 
 /**
- * Help (the rail's ? at its foot, the "Keyboard and mouse" command on ?, the command menu's ?): the canvas's mouse and
+ * Help, a tab at the rail's foot that stays open while you try things on the canvas (the rail's ?, the "Keyboard and mouse" command on ?, the command menu's ?): the canvas's mouse and
  * touch bindings (the mode's), the keys that work everywhere, and every command with a shortcut, from the registry as
  * it is; two commands on one key would be flagged first.
  */
 export const Help: StoryObj = {
-  render: () => story(() => <div style="height: 100vh">{<ViewerShellStory loaded={true} openCard="help" />}</div>),
+  render: () => story(() => <div style="height: 100vh">{<ViewerShellStory loaded={true} openTab="help" />}</div>),
 };

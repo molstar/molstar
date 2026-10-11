@@ -41,8 +41,8 @@ const GlobalKeys: InputBinding[] = [
 
 /**
  * Help: how to work the canvas (the mode's mouse and touch bindings), the keys (global ones, then every command with a
- * shortcut, read from the command registry as it is), and shortcut conflicts (two commands on one chord). A card in
- * the panel's place; also the command menu's `?`.
+ * shortcut, read from the command registry as it is), and shortcut conflicts (two commands on one chord). A tab at the
+ * rail's foot (it stays open while you try things on the canvas); also the command menu's `?`.
  */
 export function HelpPanel(props: { commands: CommandManager<any>; bindings: readonly InputBindingGroup[] }) {
   const shortcuts = props.commands.commands.pipe(map((all) => all.filter((c) => c.shortcut)));

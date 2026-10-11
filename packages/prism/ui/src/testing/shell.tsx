@@ -128,8 +128,10 @@ export interface ShellStoryProps {
   background?: string;
   /** Opens the Export card at a section (a mode registers the card). */
   openExportAt?: string;
-  /** Opens a card (Help, Animation, …). */
+  /** Opens a card (Animation, Export, …). */
   openCard?: string;
+  /** Shows a tab (Help, Settings, …). */
+  openTab?: string;
   /** The right panel pinned beside the canvas. */
   pinned?: boolean;
   /** Opens with the command menu open. */
@@ -264,16 +266,19 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
         },
   ]);
 
-  // Help: how to work the canvas (the mode's bindings) and the keys (the command registry as it is); a card, a button
-  // at the rail's foot, a command on ?, and the command menu's ?.
-  shell.registerOverlays([
+  // Help: how to work the canvas (the mode's bindings) and the keys (the command registry as it is). A tab at the
+  // rail's foot, not a card: it stays open while you try what it says on the canvas (a card closes on a click outside).
+  // Also a command on ?, and the command menu's ?.
+  shell.registerTabs([
     {
       id: 'help',
       title: 'Help',
+      icon: 'circle-help',
+      order: 2.8,
+      place: 'foot',
       render: domView(() => <HelpPanel commands={parts.commands} bindings={parts.bindings ?? []} />),
     },
   ]);
-  shell.registerToolbar([{ id: 'help', icon: 'circle-help', title: 'Help', overlay: 'help' }]);
   parts.commands.register([
     {
       id: 'help.show',
@@ -283,7 +288,7 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
       icon: 'circle-help',
       shortcut: { key: '?' },
       run: () => {
-        shell.openOverlay('help');
+        shell.show('help');
         return { message: '' };
       },
     },
@@ -328,6 +333,7 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
   status.mount();
   if (props.openExportAt) shell.openOverlay('export', undefined, props.openExportAt);
   if (props.openCard) shell.openOverlay(props.openCard);
+  if (props.openTab) shell.show(props.openTab);
   if (props.commandMenu) commandMenuOpen.set(true);
   onCleanup(() => {
     window.removeEventListener('keydown', onKey);
