@@ -218,6 +218,8 @@ export class ShellModel extends ReactiveModel {
   readonly #width = observableState(0);
   readonly #effectiveMode = observableState<ShellMode>('desktop');
   readonly #overlay = observableState<OpenOverlay | undefined>(undefined);
+  /** The last request to show a tab at a section (each request a new object, so asking again scrolls again). */
+  readonly #tabFocus = observableState<{ tab: string; section: string } | undefined>(undefined);
   /** Every registered item, and the shown ones (`buttons` applied). */
   readonly #toolbarAll = observableState<readonly CanvasToolbarItem[]>([]);
   readonly #toolbar = observableState<readonly CanvasToolbarItem[]>([]);
@@ -253,6 +255,11 @@ export class ShellModel extends ReactiveModel {
   /** The mode in effect: `auto` resolved by the shell's width. */
   get mode(): ReadonlyState<ShellMode> {
     return this.#effectiveMode.asReadonly;
+  }
+
+  /** A tab shown at a section (`show(tab, section)`): the tab's content gets it as its `focus`. */
+  get tabFocus(): ReadonlyState<{ tab: string; section: string } | undefined> {
+    return this.#tabFocus.asReadonly;
   }
 
   get overlay(): ReadonlyState<OpenOverlay | undefined> {
@@ -352,10 +359,12 @@ export class ShellModel extends ReactiveModel {
     };
   }
 
-  /** Shows a tab: activates it and expands its dock. */
-  show(tabId: string): void {
+  /** Shows a tab: activates it and expands its dock; with `section`, at that section (the Selection tab at Measure). */
+  show(tabId: string, section?: string): void {
     const dock = this.#dockOf(tabId);
-    if (dock) dock.update({ active: tabId, collapsed: false }, this.#registered);
+    if (!dock) return;
+    if (section) this.#tabFocus.set({ tab: tabId, section });
+    dock.update({ active: tabId, collapsed: false }, this.#registered);
   }
 
   /** A tab strip click: activates the tab, or collapses the dock when it is already the active one. */

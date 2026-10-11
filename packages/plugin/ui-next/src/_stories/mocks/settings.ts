@@ -195,5 +195,5 @@ export function mockSettings(): SettingsModel {
     group('behaviors', 'Behaviors', 'toggle-right', Behaviors, true),
     group('advanced', 'Advanced', 'wrench', Advanced),
   ];
-  return { groups, resetAll: () => groups.forEach((g) => g.form.reset()) };
+  return { groups };
 }

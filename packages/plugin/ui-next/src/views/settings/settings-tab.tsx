@@ -7,7 +7,6 @@
  */
 
 import { combineLatest, distinctUntilChanged, map } from 'rxjs';
-import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { ParamsForm, paramsMatch } from '../../components/params/params-form.js';
 import { TextInput } from '../../components/text-input/text-input.js';
@@ -19,8 +18,7 @@ import { classes } from './_generated/settings-tab.module.css.js';
 
 /**
  * The Settings tab: a search over every setting, then the groups by intent (essentials first), each a form that folds
- * open, with its own reset. While searching, only matching rows show and their groups open; a group with no match
- * hides.
+ * open. While searching, only matching rows show and their groups open; a group with no match hides.
  */
 export function SettingsTab(props: { model: SettingsModel }) {
   const { model } = props;
@@ -42,13 +40,6 @@ export function SettingsTab(props: { model: SettingsModel }) {
           value={q}
           onInput={(v) => query.set(v)}
         />
-        <Button
-          size="xs"
-          variant="ghost"
-          icon={<Icon name="rotate-ccw" />}
-          title="Reset all settings"
-          onClick={() => model.resetAll()}
-        />
       </div>
       <div class={classes.groups}>
         {model.groups.map((group, i) => (
@@ -60,7 +51,7 @@ export function SettingsTab(props: { model: SettingsModel }) {
   );
 }
 
-/** One group: a header that folds (with its reset), and its form, filtered by the search. */
+/** One group: a header that folds, and its form, filtered by the search. */
 function Group(props: { group: SettingsGroup; query: ReadonlyState<string>; open: boolean }) {
   const { group, query } = props;
   const own = observableState(props.open);
@@ -83,15 +74,6 @@ function Group(props: { group: SettingsGroup; query: ReadonlyState<string>; open
           <Icon name={group.icon} size={16} />
           <span class={classes.title}>{group.title}</span>
           <Icon name="chevron-down" size={14} class={classes.chevron} />
-        </button>
-        <button
-          type="button"
-          class={classes.reset}
-          data-tip={`Reset ${group.title.toLowerCase()}`}
-          aria-label={`Reset ${group.title}`}
-          onClick={() => group.form.reset()}
-        >
-          <Icon name="rotate-ccw" size={13} />
         </button>
       </div>
       <Show when={open}>

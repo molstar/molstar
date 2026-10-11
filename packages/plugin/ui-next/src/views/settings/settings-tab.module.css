@@ -94,29 +94,6 @@
   }
 }
 
-/* Reset: quiet until the group is hovered or open. */
-.reset {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  margin-right: var(--msp-space-1);
-  border-radius: var(--msp-radius-sm);
-  color: var(--msp-color-text-subtle);
-  opacity: 0;
-
-  .header:hover &,
-  .group:has(.toggle[aria-expanded="true"]) &,
-  &:focus-visible {
-    opacity: 1;
-  }
-
-  &:hover {
-    color: var(--msp-color-text);
-  }
-}
-
 .body {
   /* Settings' labels are longer than a form's ("Transparent background", "Depth peeling iterations"): a wider column. */
   --msp-label-width: 46%;

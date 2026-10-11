@@ -219,12 +219,14 @@ so the eyes stay in one column.
 
 ### 4.1a′ Measurements
 
-The Measurements row's inspector adds measurements (after Mol*'s measurement controls,
-`views/structure/ measurements-add.tsx`, `model/measurements.ts`): the **points** are the latest selections in order
+Measuring is done with the selection: a **Measure** section of the Selection tab (after Mol*'s measurement controls,
+`views/structure/measurements-add.tsx`, `model/measurements.ts`), which the selection bar's Measure button opens
+(`show('selection', 'measure')`: a tab can be shown at a section). The **points** are the latest selections in order
 (Mol*'s selection additions history), the first four used, each reorderable, removable, focused on click, highlighted on
 hover; then what can be **measured** from them, each a row with how many points it takes and enabled once there are
 enough: Distance (2), Angle (3), Dihedral (4), Label (1), Orientation and Plane (the selection); then the **options**
-(distance unit, text color and size). An added measurement appears as a row under Measurements; picked, its own options.
+(distance unit, text color and size). The Measurements row in the tree only lists them (each picked shows its own
+options); its inspector points to Measure.
 
 ### 4.1b Snapshots tab
 
@@ -299,7 +301,7 @@ Today's settings panel lists every canvas parameter at one level with truncated 
   pattern), Advanced (renderer, handle, XR). Groups come from a mapping over the existing PD params, so no param is lost
   and new ones land in Advanced.
 - **Wider labels** than other forms (a full label as the row's tooltip); Behaviors give the label the row.
-- **Reset** per group (in its header) and for all (by the search). Changes apply as they are made.
+- Changes apply as they are made; no reset buttons.
 
 ### 4.6 Canvas mode and selection bar
 

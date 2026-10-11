@@ -96,7 +96,8 @@ export function mockSelection(shell: ShellModel, post: (text: string) => void): 
       title: 'Selection',
       icon: 'mouse-pointer-click',
       order: 1.2,
-      render: domView(({ ctx }) => <SectionList shell={ctx.shell} slot="selection" />),
+      // Opened at a section (the selection bar's Measure: `show('selection', 'measure')`), it brings that one into view.
+      render: domView(({ ctx }) => <SectionList shell={ctx.shell} slot="selection" focus={ctx.focus} />),
     },
   ]);
   shell.registerSections([
@@ -145,6 +146,7 @@ export function mockSelection(shell: ShellModel, post: (text: string) => void): 
     // One way in: the card offers what to do (color, theme, component); focus stays one click.
     actions: [
       { id: 'edit', label: 'Color, theme, component…', icon: 'paintbrush', run: () => shell.show('selection') },
+      { id: 'measure', label: 'Measure…', icon: 'ruler', run: () => shell.show('selection', 'measure') },
       { id: 'focus', label: 'Focus', icon: 'focus', run: () => post(`Focused on ${summary.value}`) },
     ],
     clear: () => summary.set(undefined),

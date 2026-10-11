@@ -15,7 +15,6 @@ export const classes = {
   'groups': 'msp-settings-settings-tab-groups',
   'header': 'msp-settings-settings-tab-header',
   'none': 'msp-settings-settings-tab-none',
-  'reset': 'msp-settings-settings-tab-reset',
   'search': 'msp-settings-settings-tab-search',
   'searchIcon': 'msp-settings-settings-tab-searchIcon',
   'searchInput': 'msp-settings-settings-tab-searchInput',
@@ -110,26 +109,6 @@ defineStyles('views/settings/settings-tab.module.css', `@layer msp.components {
 
   [aria-expanded="false"] > & {
     transform: rotate(-90deg);
-  }
-}
-
-.msp-settings-settings-tab-reset {
-  width: 24px;
-  height: 24px;
-  margin-right: var(--msp-space-1);
-  border-radius: var(--msp-radius-sm);
-  color: var(--msp-color-text-subtle);
-  opacity: 0;
-  flex: none;
-  place-items: center;
-  display: grid;
-
-  .msp-settings-settings-tab-header:hover &, .msp-settings-settings-tab-group:has(.msp-settings-settings-tab-toggle[aria-expanded="true"]) &, &:focus-visible {
-    opacity: 1;
-  }
-
-  &:hover {
-    color: var(--msp-color-text);
   }
 }
 

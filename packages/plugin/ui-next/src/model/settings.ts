@@ -10,7 +10,7 @@ import type { ParamsFormModel } from '../forms/params-form.js';
 /**
  * A group of settings by intent (Appearance, Camera, Interaction, Performance, Interface, Behaviors, Advanced): a form
  * over the plugin's params (canvas, canvas context, layout, behaviors) mapped into it, so no param is lost and new ones
- * land in Advanced. Changes apply as they are made; reset brings the group back to its defaults.
+ * land in Advanced. Changes apply as they are made.
  */
 export interface SettingsGroup {
   id: string;
@@ -24,5 +24,4 @@ export interface SettingsGroup {
 /** The Settings tab (implemented over Canvas3D, Canvas3DContext, the layout, and `plugin.state.behaviors`). */
 export interface SettingsModel {
   groups: readonly SettingsGroup[];
-  resetAll(): void;
 }

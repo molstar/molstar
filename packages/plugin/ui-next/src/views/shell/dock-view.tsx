@@ -218,7 +218,20 @@ function DockContent(props: { shell: ShellModel; dock: DockModel; tab: ShellTab;
         />
       </header>
       <div class={classes.body}>
-        <ViewHost renderer={tab.render} ctx={{ shell, dock: dock.id }} />
+        {/* Shown at a section: the content again, with that section as its focus. */}
+        <Show
+          when={shell.tabFocus.pipe(
+            map((f) => ({ section: f?.tab === tab.id ? f.section : undefined })),
+            distinctUntilChanged((a, b) => a.section === b.section && !b.section),
+          )}
+        >
+          {(f) => (
+            <ViewHost
+              renderer={tab.render}
+              ctx={{ shell, dock: dock.id, ...(f.section ? { focus: f.section } : {}) }}
+            />
+          )}
+        </Show>
       </div>
     </section>
   );
