@@ -110,11 +110,21 @@ defineStyles('views/sequence/sequence-strip.module.css', `@layer msp.components 
   min-height: 0;
   padding: var(--msp-space-1) var(--msp-space-3);
   font-family: var(--msp-font-mono);
+  mask-image: linear-gradient(to bottom,
+    transparent,
+    #000 var(--msp-fade-top),
+    #000 calc(100% - var(--msp-fade-bottom)),
+    transparent);
   flex-wrap: wrap;
   flex: 1;
   align-content: flex-start;
   font-size: 13px;
   line-height: 1;
+  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self);
+  animation-range: 0 24px, calc(100% - 24px) 100%;
   display: flex;
   overflow-y: auto;
 }

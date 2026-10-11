@@ -47,8 +47,18 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
 }
 
 .msp-structure-structure-tab-tree {
-  flex: 1 1 0;
   min-height: 80px;
+  mask-image: linear-gradient(to bottom,
+    transparent,
+    #000 var(--msp-fade-top),
+    #000 calc(100% - var(--msp-fade-bottom)),
+    transparent);
+  flex: 1 1 0;
+  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self);
+  animation-range: 0 24px, calc(100% - 24px) 100%;
   overflow: auto;
 }
 
@@ -87,7 +97,17 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
   height: clamp(180px, 42%, 420px);
   margin: 0 calc(-1 * var(--msp-space-2));
   border-top: 1px solid var(--msp-glass-edge);
+  mask-image: linear-gradient(to bottom,
+    transparent,
+    #000 var(--msp-fade-top),
+    #000 calc(100% - var(--msp-fade-bottom)),
+    transparent);
   flex: none;
+  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self);
+  animation-range: 0 24px, calc(100% - 24px) 100%;
   overflow: auto;
 }
 

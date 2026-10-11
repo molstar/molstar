@@ -58,7 +58,17 @@ defineStyles('views/settings/settings-tab.module.css', `@layer msp.components {
   gap: var(--msp-space-1);
   min-height: 0;
   padding: 0 var(--msp-space-2) var(--msp-space-2);
+  mask-image: linear-gradient(to bottom,
+    transparent,
+    #000 var(--msp-fade-top),
+    #000 calc(100% - var(--msp-fade-bottom)),
+    transparent);
   flex: 1 1 0;
+  animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self);
+  animation-range: 0 24px, calc(100% - 24px) 100%;
   display: grid;
   overflow: auto;
 }

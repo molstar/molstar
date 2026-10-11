@@ -20,6 +20,38 @@ defineStyles('styles/reset.css', `@property --msp-fade {
   }
 }
 
+@property --msp-fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --msp-fade-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@keyframes msp-fade-scroll-top {
+  from {
+    --msp-fade-top: 0px;
+  }
+
+  to {
+    --msp-fade-top: 16px;
+  }
+}
+
+@keyframes msp-fade-scroll-bottom {
+  from {
+    --msp-fade-bottom: 16px;
+  }
+
+  to {
+    --msp-fade-bottom: 0px;
+  }
+}
+
 @layer msp.reset {
   :where(.msp-root) {
     font-family: var(--msp-font-sans);
