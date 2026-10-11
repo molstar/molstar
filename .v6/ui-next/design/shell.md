@@ -182,17 +182,18 @@ click picks, visibility and removal sit inline (the eye stays visible while a no
 essential params first and the rest under Advanced; mapped params (color theme) re-render their nested fields when the
 choice changes. The tab fills the panel: the tree scrolls on its own and the inspector is always at the bottom at a
 fixed height (scrolling inside; "Select an item in the tree to edit its properties" while nothing is picked), so picking
-never moves the tree. The header has Preset (the representation presets as the registry groups them: Empty, Automatic,
-Basic, Miscellaneous, and extensions'; the one in effect checked), Styles (quick styles: representation Default,
-Cartoon, Spacefill, Surface; style Default, Illustrative), Component, and the component options (sliders: hydrogens,
-visual quality, lighting, material, clipping, non-covalent interactions, interior, animation), each opening under the
-header. Every structure starts with "Structure": its entities, then chains, computed when first expanded
-(mesoscale-safe), each selectable, focusable, colorable, or made a component. A row's "…" opens its menu inline under it
-(Mol*'s component menu: add representation, set coloring, modify by selection with include, subtract and intersect,
-select this, edit label). Inspections carry facts (a structure's chains, residues, atoms; a map's grid, voxel size, σ),
-shown compactly above the form. Volumes are top-level entries next to structures (an EMDB map beside its fitted model);
-density streaming is a structure inspector section (the volume streaming extension) whose channels appear under the
-structure.
+never moves the tree. The header has Preset and Styles, which open the command menu inside their groups (teaching the
+command menu as they are used): Preset lists the representation presets as the registry groups them (Empty, Automatic;
+Basic; Miscellaneous; extensions'), Styles the quick styles (representation Default, Cartoon, Spacefill, Surface; style
+Default, Illustrative), each a command that a search anywhere also finds. Then Component, and the component options
+(sliders: hydrogens, visual quality, lighting, material, clipping, non-covalent interactions, interior, animation),
+which open under the header. Every structure starts with "Structure": its entities, then chains, computed when first
+expanded (mesoscale-safe), each selectable, focusable, colorable, or made a component. A row's "…" opens its menu inline
+under it (Mol*'s component menu: add representation, set coloring, modify by selection with include, subtract and
+intersect, select this, edit label). Inspections carry facts (a structure's chains, residues, atoms; a map's grid, voxel
+size, σ), shown compactly above the form. Volumes are top-level entries next to structures (an EMDB map beside its
+fitted model); density streaming is a structure inspector section (the volume streaming extension) whose channels appear
+under the structure.
 
 ### 4.2 Overlays
 
