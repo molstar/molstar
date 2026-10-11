@@ -105,7 +105,8 @@ defineStyles('views/agent/history-tab.module.css', `@layer msp.components {
   margin: var(--msp-space-1) 0;
   padding: var(--msp-space-2) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
-  background: var(--msp-color-well);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
   display: grid;
 
   &[data-undone] {

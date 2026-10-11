@@ -14,7 +14,7 @@ import type { AgentModel, AgentTurn, CommandRun, HistoryItem } from '../../model
 import { observableState } from '../../reactive/observable-state.js';
 import type { StatusModel } from '../../shell/status.js';
 import { LogView } from '../shell/log-view.js';
-import { isRunning, RunList, RunRow, turnSummary } from './agent-turn.js';
+import { isRunning, RunList, RunRow, turnSummary, UndoTurn } from './agent-turn.js';
 import { classes } from './_generated/history-tab.module.css.js';
 
 const keyOf = (h: HistoryItem) => (h.kind === 'run' ? h.run.id : h.turn.id);
@@ -129,20 +129,26 @@ function TurnItem(props: { agent: AgentModel; turn: Observable<AgentTurn>; id: s
       <Show when={combineLatest([open.asReadonly, running]).pipe(map(([o, r]) => o || r))}>
         {() => <RunList turn={turn} class={classes.runs} />}
       </Show>
-      {/* The checkpoint taken before its first change: Undo turn goes back to it. */}
-      <Show when={turn.pipe(map((t) => t.checkpoint && !isRunning(t)))}>
+      {/* Its checkpoint, held until the next action: Undo turn goes back to it; after that, it says why it cannot. */}
+      <Show when={turn.pipe(map((t) => !isRunning(t)))}>
         {() => (
           <div class={classes.checkpoint}>
             <Icon name="undo-2" size={12} class={classes.checkpointMark} />
             <span class={classes.checkpointText}>
-              {undone.pipe(map((u) => (u ? 'Undone: back to the checkpoint before it' : 'Checkpoint before it')))}
-            </span>
-            <Show when={undone.pipe(map((u) => !u))}>
-              {() => (
-                <button type="button" class={classes.undo} onClick={() => agent.undo(id)}>
-                  Undo turn
-                </button>
+              {turn.pipe(
+                map((t) =>
+                  t.undone
+                    ? 'Undone: back to how it was before'
+                    : t.checkpoint
+                      ? 'Checkpoint before it'
+                      : t.runs.some((r) => !r.read)
+                        ? 'No longer undoable: something came after it'
+                        : 'Nothing to undo',
+                ),
               )}
+            </span>
+            <Show when={turn.pipe(map((t) => t.checkpoint && !t.undone))}>
+              {() => <UndoTurn agent={agent} id={id} />}
             </Show>
           </div>
         )}

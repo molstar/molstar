@@ -4,17 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type {
-  AgentModel,
-  AgentTurn,
-  AIProvider,
-  AISettingsModel,
-  AISetup,
-  CommandRun,
-  KeyScope,
-  HistoryItem,
-  RunSource,
-  RunStatus,
+import {
+  type AgentModel,
+  type AgentTurn,
+  type AIProvider,
+  type AISettingsModel,
+  type AISetup,
+  type CommandRun,
+  type HistoryItem,
+  type KeyScope,
+  type RunSource,
+  type RunStatus,
 } from '../../model/agent.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { CommandMenuAssistant } from '../../views/command-menu/command-menu.js';
@@ -265,6 +265,7 @@ export class MockAgentModel implements AgentModel {
 
   /** A command the person ran (the command menu, a button): one history row. */
   record(title: string, command: string, detail?: string) {
+    this.#release();
     const run: CommandRun = {
       id: `run-${++this.#serial}`,
       command,
@@ -279,6 +280,7 @@ export class MockAgentModel implements AgentModel {
 
   ask(prompt: string) {
     if (this.#abort) this.stop();
+    this.#release();
     const script = scriptFor(prompt);
     const turn: AgentTurn = {
       id: `turn-${++this.#serial}`,
@@ -307,15 +309,20 @@ export class MockAgentModel implements AgentModel {
   undo(turnId: string) {
     const item = this.#history.value.find((h) => h.kind === 'turn' && h.turn.id === turnId);
     if (!item || item.kind !== 'turn' || !item.turn.checkpoint || item.turn.undone) return;
-    const index = this.#history.value.indexOf(item);
-    const after = this.#history.value.slice(index + 1).filter((h) => h.kind === 'run').length;
-    this.#update(turnId, (t) => ({ ...t, undone: true }));
-    this.post(
-      after
-        ? `Restored the state before “${item.turn.prompt}” (also undoing ${after} later command${after > 1 ? 's' : ''})`
-        : `Restored the state before “${item.turn.prompt}”`,
-      'success',
+    this.#update(turnId, (t) => ({ ...t, undone: true, checkpoint: false }));
+    this.post(`Undid “${item.turn.prompt}”`, 'success');
+  }
+
+  /** The next action releases the checkpoint before the last turn (one snapshot at most is kept). */
+  #release() {
+    if (!this.#history.value.some((h) => h.kind === 'turn' && h.turn.checkpoint)) return;
+    this.#history.set(
+      this.#history.value.map((h) =>
+        h.kind === 'turn' && h.turn.checkpoint ? { kind: 'turn', turn: { ...h.turn, checkpoint: false } } : h,
+      ),
     );
+    const latest = this.#turn.value;
+    if (latest?.checkpoint) this.#turn.set({ ...latest, checkpoint: false });
   }
 
   dismiss() {
@@ -469,7 +476,8 @@ export class MockAgentModel implements AgentModel {
         { ...run('Show “Active site” as ball & stick', 'structure.add-representation', 6), source: Agent },
         { ...run('Focus the view on “Active site”', 'camera.focus', 6), source: Agent },
       ],
-      checkpoint: true,
+      // Released: commands came after it.
+      checkpoint: false,
       usage: { input: 6100, output: 240 },
       time: at(6),
       durationMs: 4200,

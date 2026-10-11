@@ -16,7 +16,9 @@ work.
 - **Visible and attributed.** Each run shows in the history with its source (you, the assistant, an outside agent, a
   script); the view moves while the agent works, and the person can stop it at any time.
 - **One step back.** Before an agent changes anything, a checkpoint is taken; the whole turn undoes at once, back to the
-  checkpoint (state, camera, selection), however many commands it ran.
+  checkpoint (state, camera, selection), however many commands it ran. Only while nothing has come after it: the next
+  action (the person's command, another turn) releases the checkpoint, so at most one snapshot is ever held (no growing
+  memory, and no undo that would silently discard later work).
 - **The person approves what leaves the page or cannot be undone** (downloads from a server, remote state upload,
   closing a session): such commands wait for Allow or Deny.
 
@@ -112,8 +114,8 @@ the state tree's undo does not cover (camera, selection, focus).
   their provider; kept ones are stored scrambled (encrypted with a key this browser keeps, as Stories does), so the
   storage read as it is gives no working key, which the tab says, along with what it does not guard against (code
   running in the page). With a server-side agent, keys come from its environment instead.
-- While an agent runs, the person's own commands still run (they are attributed to the person); undoing a turn also
-  discards what the person did after it, and says so.
+- While an agent runs, the person's own commands still run (they are attributed to the person); a command of theirs
+  after the turn releases its checkpoint, and History says so ("No longer undoable: something came after it").
 
 **State (mocks, `views/agent`, `_stories/mocks/agent.ts`, Shell › Assistant and Assistant Setup):** the Ask row with
 proposed commands (color, download, focus) and agent turns, the turn card (streaming, steps with progress and durations,

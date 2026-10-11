@@ -115,6 +115,21 @@ export function RunList(props: { turn: Observable<AgentTurn>; class?: string }) 
   );
 }
 
+/** Undo turn: back to the checkpoint before it (held only until the next action). */
+export function UndoTurn(props: { agent: AgentModel; id: string }) {
+  return (
+    <button
+      type="button"
+      class={classes.undo}
+      data-tip="Back to how it was before this request"
+      onClick={() => props.agent.undo(props.id)}
+    >
+      <Icon name="undo-2" size={14} />
+      Undo turn
+    </button>
+  );
+}
+
 /**
  * The agent at work, over the canvas at the bottom left (design/agent.md §5): the request, the model's words as they
  * stream, each command as it runs, Allow / Deny when one waits for the person, Stop; at the end, what it did in one
@@ -266,17 +281,7 @@ function Card(props: { agent: AgentModel; id: string }) {
                       </Show>
                     )}
                   >
-                    {() => (
-                      <button
-                        type="button"
-                        class={classes.undo}
-                        data-tip="Back to how it was before this request"
-                        onClick={() => agent.undo(id)}
-                      >
-                        <Icon name="undo-2" size={14} />
-                        Undo turn
-                      </button>
-                    )}
+                    {() => <UndoTurn agent={agent} id={id} />}
                   </Show>
                 </footer>
               )}

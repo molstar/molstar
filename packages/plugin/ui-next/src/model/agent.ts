@@ -50,7 +50,10 @@ export interface AgentTurn {
   /** The model's words so far (streamed), and its last word at the end. */
   text: string;
   runs: readonly CommandRun[];
-  /** A checkpoint was taken (the turn changed something) and can be restored. */
+  /**
+   * Its checkpoint is held (the turn changed something, and nothing came after it): Undo turn restores it. The next
+   * action (the person's command, another turn) releases it, so one snapshot at most is ever kept.
+   */
   checkpoint: boolean;
   /** Undone: back at its checkpoint. */
   undone?: boolean;
@@ -140,7 +143,7 @@ export interface AgentModel {
   stop(): void;
   /** Answers a run waiting for approval. */
   approve(runId: string, allow: boolean): void;
-  /** Restores the checkpoint before the turn (says what else it discards: the person's runs after it). */
+  /** Restores the checkpoint before the turn (only the latest turn has one, until the next action). */
   undo(turnId: string): void;
   /** Closes the turn's card to its line (a running turn goes on). */
   dismiss(): void;
