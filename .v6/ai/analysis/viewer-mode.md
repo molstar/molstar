@@ -50,22 +50,34 @@ too.
 
 **Skills (loaded on request)**
 
-| Skill         | Commands                                                                         | Stories                                                    |
-| ------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| selections    | `query_reference`, `bounds.get`                                                  | ported nearly verbatim (§3)                                |
-| style         | `preset.apply`, `background.set`, `assembly.set`, `model.set`, spin              | partly; presets redefined on Mol\*'s own                   |
-| volumes       | `volume.load` (box around a selection, detail to fit), `volume.set_look`, remove | `load_volume`, `set_volume_look`                           |
-| superposition | `structures.align`, `structure.transform`                                        | `align_structures`, `set_transform`                        |
-| clipping      | `clip.set`, `clip.remove`, `camera.set_view`                                     | `cut_open`, `remove_clip`                                  |
-| measurements  | `measurement.add` (distance, angle, dihedral, label), list, remove               | new (Stories draws distances as shapes)                    |
-| interactions  | `interactions.find`                                                              | `find_interactions`                                        |
-| snapshots     | `snapshot.add`, `list`, `apply`, `update`, `remove`                              | new (scenes are the story's)                               |
-| export        | `image.export`, `state.export`, `structure.export`                               | new                                                        |
-| web and data  | `fetch` (approval), `file.read`, `annotation.import` (color by a table), MCP     | `fetch`, `read_resource`, `import_from_resource`, `invoke` |
+| Skill         | Commands                                                                                                                                                                                                       | Stories                                            |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| selections    | `query_reference`, `bounds.get`                                                                                                                                                                                | ported nearly verbatim (§3)                        |
+| style         | `preset.apply`, `background.set`, `assembly.set`, `model.set`, spin                                                                                                                                            | partly; presets redefined on Mol\*'s own           |
+| volumes       | `volume.load` (box around a selection, detail to fit), `volume.set_look`, remove; volume streaming: turn it on for a structure, what it shows (around the selection or the camera, the whole cell), its levels | `load_volume`, `set_volume_look`; streaming is new |
+| superposition | `structures.align`, `structure.transform`                                                                                                                                                                      | `align_structures`, `set_transform`                |
+| clipping      | `clip.set`, `clip.remove`, `camera.set_view`                                                                                                                                                                   | `cut_open`, `remove_clip`                          |
+| measurements  | `measurement.add` (distance, angle, dihedral, label), list, remove                                                                                                                                             | new (Stories draws distances as shapes)            |
+| interactions  | `interactions.find`                                                                                                                                                                                            | `find_interactions`                                |
+| snapshots     | `snapshot.add`, `list`, `apply`, `update`, `remove`                                                                                                                                                            | new (scenes are the story's)                       |
+| export        | `image.export`, `state.export`, `structure.export`; an extension's own (`video.export` from mp4-export, §2.1)                                                                                                  | new                                                |
+| code          | run code against the viewer (`@molstar/ai-toolscript`), MVS scripting (`mvs-code`)                                                                                                                             | `run_story_code`, the mvs-code skill, adapted      |
 
-Not brought over: scenes, the story's text, animation timelines, narration, claims and articles, code scenes, story
-code, the helper agents. Later, if wanted: MVS scripting (`mvs-code`) and running code against the viewer
-(`any-toolscript`, which has no Mol\* dependency and would be `@molstar/ai-toolscript`).
+Not in the viewer mode: scenes, the story's text, animation timelines, narration, claims and articles, the helper
+agents; these are the story mode's, which is Stories Untold with some changes, with its own tool set. Open for the
+viewer mode: web and data (`fetch` with approval, reading a file, coloring by a table, MCP servers).
+
+Code comes over for both modes: `any-toolscript` (a sandbox for code the agent writes, no Mol\* dependency) as
+`@molstar/ai-toolscript`, and `mvs-code` (MVS scripting: the builder in the sandbox, convert, compare, its references)
+next to the MVS packages, its imports moved to `@molstar/mvs-builder` and `@molstar/query-language`.
+
+### 2.1 Extensions bring tools
+
+A command is a tool by its metadata, so an extension's commands are tools wherever it is included: mp4-export's
+`video.export`, with its params as the schema, needs nothing more. What an extension adds for the agent beyond that (a
+skill: its guidance, which of its commands load together) is the agent's and ships only with it: an `agent` folder in
+the extension (as in the modes, §8), which an app with the assistant registers with the extension. To design with the
+contribution types (contexts.md §4).
 
 Representation kinds, color themes and presets come from Mol\*'s registries when the tools are defined (Stories' enums
 are hard-coded and would drift). The system prompt is rewritten from Stories' `guidance.ts`, keeping its general rules
@@ -101,8 +113,9 @@ too. The references and the guidance are the agent's and ship only with it.
 | `@molstar/ai-trace`   | `readTrace(reader, profile)` and its data types (turns, steps, attempts, the window a model saw, prefix breaks, usage); the profile gives the request marker, the window parts, what changed, prices                                                                                                                                                | ~650  |
 | `@molstar/ai-fibers`  | §6                                                                                                                                                                                                                                                                                                                                                  | ~1700 |
 
-None imports Mol\*, Prism, rxjs or React (the existing rules). zod stays out of the core: Prism's params are PD, so the
-normalizer reads a small field-shape interface with two adapters (PD in Prism, zod in `./zod`).
+None imports Mol\*, Prism, rxjs or React (the existing rules). zod validates, inside `ai-tools` only: a tool's input is
+declared as a small field-shape interface (Prism maps PD to it) or, through `./zod`, as a zod schema; `ai-tools` turns
+either into its validator and the JSON Schema, and normalizes arguments over the field shape.
 
 Fixes on the way, from reading the code:
 
@@ -118,14 +131,15 @@ Fixes on the way, from reading the code:
 
 Prism writes: the commands with their metadata and the PD → JSON Schema converter, the selection param and resolver, the
 state and focus accounts (and the request marker they share with compaction and the trace), the checkpointer, its drive
-overrides (approval through the Assistant card; Deny ends the turn, agent.md §5, where Stories tells the model),
-`AgentModel` over `AgentSession`, keys and storage, and the policy for a turn interrupted by a reload (the viewer's
-state is gone, so stop it rather than resume it).
+overrides (approval through the Assistant card; a denial is told to the model, which goes on or stops, §8), `AgentModel`
+over `AgentSession`, keys and storage, and the policy for a turn interrupted by a reload (the viewer's state is gone, so
+stop it rather than resume it).
 
 ## 5. The UIs: Inspector, with Trace, Tools and Limits
 
-Stories opens it over the canvas (Alt+T). Prism keeps the three tabs in one card, in `@molstar/prism-assistant` under a
-separate entry (`/inspector`) so the Assistant's tab and card do not pull it in.
+Stories opens it over the canvas (Alt+T). Prism opens it over the whole screen, a full-width panel (it needs the room),
+with the three tabs, in `@molstar/prism-assistant` under a separate entry (`/inspector`) so the Assistant's tab and card
+do not pull it in.
 
 - **Trace**: an overview strip (a column per turn, a block per step; Steps or Time), a row list (turn, request, model
   call, tool call; nested runs indented) and a detail pane. A model call shows what it saw (the window's makeup:
@@ -161,8 +175,9 @@ Port plan:
 
 - `@molstar/ai-fibers`: the kernel as it is, the host, and its own storage port (the row-store shape plus a watch); not
   built on `HarnessStorage`, whose transactions are fixed to the harness's records. Imports nothing of the workspace.
-- The IndexedDB and SQLite backends next to the harness's (only `ai-harness-components` touches the platform). Node
-  files are not carried over (SQLite is the Node store).
+- Its backends in `ai-harness-components`, next to the harness's: memory, IndexedDB and SQLite (`node:sqlite`, so a
+  server or a headless host keeps conversations from the start). Stories' plain-files backend is not carried over;
+  SQLite is the Node store.
 - The conformance (8 cases, `node:assert` → Jest) as `@molstar/ai-conformance/fibers`, plus the cases Stories tests only
   in its own suite: an inactive stream aborted, durability across a restart.
 - A turn observer in `ai-session` that writes an entry per turn, so any host gets a durable transcript; Prism's History
@@ -179,13 +194,19 @@ Port plan:
 5. `@molstar/ai-fibers` and History over it.
 6. Compaction (needed once turns get long), then the other skills.
 
-## 8. To decide
+## 8. Decided (2026-10-11)
 
-1. **Tool schemas**: a neutral field shape with PD and zod adapters (recommended), or zod everywhere.
-2. **Where the viewer's agent parts live** (its skills, guidance, accounts): an entry of the viewer
-   (`@molstar/prism-viewer/agent`, only imported by apps with the assistant; recommended) or a package of their own.
-3. **Selections in commands**: one selection param type with the three forms, shared by the agent and the command menu
-   (recommended), or agent-only tools.
-4. **Deny**: ends the turn (agent.md §5) or tells the model and goes on (Stories).
-5. **Fibers' backends**: in `ai-harness-components` (recommended; one home for platform code) or a components package of
-   their own.
+1. **Tool schemas**: a neutral field shape (Prism maps PD to it) or a zod schema through `ai-tools/zod`; zod validates,
+   isolated to `ai-tools`.
+2. **Packages**: the generic layer as in §4. Each mode's agent parts (its tools' guidance and skills, its state and
+   focus accounts, its drive overrides) live in an `agent` folder of the mode's package (`@molstar/prism-viewer/agent`,
+   `@molstar/prism-stories/agent`), the only code there that imports `@molstar/ai-*` (an import rule checks it), and
+   imported only by apps with the assistant. What both share (the Assistant's UI, the Inspector, `AgentModel` over
+   `AgentSession`) is `@molstar/prism-assistant`. No package per mode's assistant.
+3. **Selections**: one selection param type with the three forms, for commands and the command menu alike.
+4. **Denial**: the model is told and goes on; when the denial means it cannot do what was asked, it says so and stops.
+5. **Fibers' backends**: in `ai-harness-components`, SQLite included.
+6. **Code**: `@molstar/ai-toolscript` and `mvs-code` come over (the story mode needs both).
+7. **Volume streaming** is a viewer tool; **extensions bring tools** through their commands, and skills through an
+   `agent` folder (§2.1).
+8. **Open**: web and data tools in the viewer mode.

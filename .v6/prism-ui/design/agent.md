@@ -111,11 +111,12 @@ or `working`, and adds `denied`.
   progress as a thin line when the command reports one, its outcome or error under it, its duration; reads quieter. Rows
   follow their run by id, so a spinner does not restart as the records change. Stop while it runs. A command waiting for
   approval shows what it does, why it asks ("Fetches data from www.ebi.ac.uk"), Deny and Allow; Deny marks it denied and
-  ends the turn there. At the end, one line (commands that change something, failures, time, tokens in and out) and
-  _Undo turn_ while the checkpoint is held (_Undone_ after). Esc (unless a field, list, menu or dialog has it) or ✕
-  closes the card to a line of the status column, like a task's (`StatusPill`: the request and its state, the spark
-  pulsing while it thinks or works, the state in the accent while it waits; a running turn goes on): a click opens the
-  card again, its ✕ takes the line away (the turn stays in History).
+  the model is told: it goes on another way, or says it cannot and stops (the mock still ends the turn there). At the
+  end, one line (commands that change something, failures, time, tokens in and out) and _Undo turn_ while the checkpoint
+  is held (_Undone_ after). Esc (unless a field, list, menu or dialog has it) or ✕ closes the card to a line of the
+  status column, like a task's (`StatusPill`: the request and its state, the spark pulsing while it thinks or works, the
+  state in the accent while it waits; a running turn goes on): a click opens the card again, its ✕ takes the line away
+  (the turn stays in History).
 - **History** (with the agent module, the Log tab at the rail's foot becomes History): every command, newest first; the
   person's one per row with how long ago, an agent's grouped under its request (by the agent's name) with its answer,
   its commands listed while it runs and folded under a one-line summary once done (folds kept as records change), and
@@ -157,7 +158,11 @@ tasks), and tabs and commands registered like any contribution (the agent's `moc
 swaps Log for History in the mock shell). An app that does not include it ships none of it. Planned, not built: one that
 does registers it as a contribution (`agentContribution({ … })`), with the harness and the model adapters
 (`@molstar/ai-*`) as its own dependencies, and the spec can still start it hidden (`ai: { enabled: false }`) for apps
-that include it but turn it on per user.
+that include it but turn it on per user. Each mode's agent parts (its skills and guidance, its state and focus accounts,
+its drive overrides) are an `agent` folder of the mode's package (`@molstar/prism-viewer/agent`,
+`@molstar/prism-stories/agent`), the only code there that imports the assistant or `@molstar/ai-*`, imported only by
+apps with the assistant; an extension brings its skills the same way
+([../../ai/analysis/viewer-mode.md](../../ai/analysis/viewer-mode.md) §2.1, §8).
 
 ## 7. Skills
 
