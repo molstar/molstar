@@ -246,10 +246,15 @@
   font-size: var(--msp-font-size-sm);
   text-align: left;
 
-  &:hover,
+  &:hover:not(:disabled),
   &:focus-visible {
     background: var(--msp-color-hover);
     color: var(--msp-color-text);
+  }
+
+  /* Not possible here: greyed, its reason in place of the hint. */
+  &:disabled {
+    opacity: 0.55;
   }
 }
 

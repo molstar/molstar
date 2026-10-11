@@ -209,6 +209,7 @@ function ToolMenu(props: { menus: ToolMenus }) {
                 role={m.pressed ? 'menuitemcheckbox' : 'menuitem'}
                 aria-checked={m.pressed}
                 class={classes.toolMenuRow}
+                disabled={!!m.disabled}
                 onClick={() => {
                   menus.hide();
                   m.run();
@@ -217,7 +218,7 @@ function ToolMenu(props: { menus: ToolMenus }) {
                 {m.icon ? <Icon name={m.icon} size={16} /> : <span />}
                 <span class={classes.toolMenuLabel}>
                   {m.label}
-                  {m.hint ? <span class={classes.toolMenuHint}>{m.hint}</span> : null}
+                  {m.disabled || m.hint ? <span class={classes.toolMenuHint}>{m.disabled ?? m.hint}</span> : null}
                 </span>
                 {m.pressed ? (
                   <Show when={m.pressed}>{() => <Icon name="check" size={14} class={classes.toolMenuCheck} />}</Show>

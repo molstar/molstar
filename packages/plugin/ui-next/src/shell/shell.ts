@@ -158,6 +158,8 @@ export interface CanvasMenuItem {
   hint?: string;
   /** A toggle's state: shown with a check mark. */
   pressed?: Observable<boolean>;
+  /** Why it cannot be used here (shown greyed, the reason in place of the hint): fullscreen in an iframe that forbids it. */
+  disabled?: string;
   run(): void;
 }
 

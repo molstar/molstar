@@ -20,6 +20,7 @@ import { domView } from '../../dom/view.js';
 import { parseColor, themeForColor } from '../../model/canvas-theme.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { HoverLabelModel } from '../../model/playback.js';
+import { FullscreenModel } from '../../shell/fullscreen.js';
 import { ShellModel } from '../../shell/shell.js';
 import { StatusModel } from '../../shell/status.js';
 import { HoverLabel } from '../canvas/hover-label.js';
@@ -347,6 +348,8 @@ function mockShell(options: {
   const commandMenuGroup = observableState<string | undefined>(undefined);
   const granularity = observableState('residue');
   const illumination = observableState(false);
+  // The plugin root goes fullscreen (in the stories, the story page).
+  const fullscreen = new FullscreenModel(() => document.documentElement);
   const hoverLines = observableState<readonly string[]>([]);
   // The scene; hovering a node highlights it (the hover label stands in for the 3D highlight here).
   const scene = mockScene({
@@ -568,15 +571,40 @@ function mockShell(options: {
         },
       ],
     },
-    {
-      id: 'expand',
-      place: 'canvas',
-      group: 'canvas',
-      visible: hasData,
-      icon: 'maximize-2',
-      title: 'Expand',
-      run: () => status.post('Expanded'),
-    },
+    // Expand by context (FullscreenModel.mode): on a page, Expand fills it and Fullscreen is beside it; in an iframe
+    // that allows it, the button is Fullscreen (expanding would only fill the frame); in one that does not, Expand fills
+    // the frame and Fullscreen shows why it is not possible.
+    fullscreen.mode === 'fullscreen'
+      ? {
+          id: 'expand',
+          place: 'canvas',
+          group: 'canvas',
+          visible: hasData,
+          icon: 'fullscreen' as const,
+          title: 'Fullscreen',
+          pressed: fullscreen.active,
+          run: () => fullscreen.toggle(),
+        }
+      : {
+          id: 'expand',
+          place: 'canvas',
+          group: 'canvas',
+          visible: hasData,
+          icon: 'maximize-2' as const,
+          title: 'Expand',
+          run: () => status.post('Expanded'),
+          menu: [
+            {
+              id: 'fullscreen',
+              label: 'Fullscreen',
+              icon: 'fullscreen' as const,
+              hint: 'The whole screen, not just the page',
+              disabled: fullscreen.unavailableReason,
+              pressed: fullscreen.active,
+              run: () => fullscreen.toggle(),
+            },
+          ],
+        },
     // Panels over the canvas: brought back from the stack when hidden (hidden, they take no room at all).
     {
       id: 'sequence',
@@ -841,4 +869,43 @@ export const Compact: StoryObj = {
         </div>
       </div>
     )),
+};
+
+/**
+ * Expand by context, in real frames of the Loaded story (hover the canvas's Expand button, at the top right):
+ * - an iframe that allows fullscreen (`allow="fullscreen"`): the button is Fullscreen, since expanding would only fill
+ *   the frame; Escape leaves it;
+ * - an iframe that does not: Expand fills the frame, and Fullscreen beside it says why it is not possible;
+ * - a page (open it below): Expand fills the page, Fullscreen beside it.
+ */
+export const ExpandByContext: StoryObj = {
+  parameters: { layout: 'fullscreen' },
+  render: () =>
+    story(() => {
+      const src = 'iframe.html?id=shell-shell--loaded&viewMode=story';
+      const caption = 'color: var(--msp-color-text-muted); font-size: var(--msp-font-size-sm);';
+      const frame =
+        'width: 100%; height: 100%; border: 0; border-radius: var(--msp-radius-lg); box-shadow: inset 0 0 0 1px var(--msp-glass-edge);';
+      return (
+        <div style="display: grid; grid-template-rows: auto 1fr; gap: var(--msp-space-3); height: 100vh; padding: var(--msp-space-4); box-sizing: border-box; background: var(--msp-color-bg);">
+          <div style={`${caption} display: flex; gap: var(--msp-space-4);`}>
+            <span>Hover Expand at the top right of each canvas.</span>
+            <a href={src} target="_blank" rel="noopener" style="color: var(--msp-color-accent)">
+              Open as a page (Expand, Fullscreen beside it)
+            </a>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--msp-space-4); min-height: 0;">
+            <figure style="display: grid; grid-template-rows: auto 1fr; gap: var(--msp-space-2); margin: 0; min-height: 0;">
+              <figcaption style={caption}>In an iframe that allows fullscreen: the button is Fullscreen</figcaption>
+              <iframe title="Allows fullscreen" src={src} allow="fullscreen" style={frame} />
+            </figure>
+            <figure style="display: grid; grid-template-rows: auto 1fr; gap: var(--msp-space-2); margin: 0; min-height: 0;">
+              <figcaption style={caption}>In an iframe that does not: Expand, Fullscreen not possible</figcaption>
+              {/* Same-origin frames may go fullscreen by default ('self'): forbidden explicitly, as a page on another origin is. */}
+              <iframe title="Does not allow fullscreen" src={src} allow="fullscreen 'none'" style={frame} />
+            </figure>
+          </div>
+        </div>
+      );
+    }),
 };

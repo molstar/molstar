@@ -267,9 +267,13 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   grid-template-columns: 16px 1fr auto;
   display: grid;
 
-  &:hover, &:focus-visible {
+  &:hover:not(:disabled), &:focus-visible {
     background: var(--msp-color-hover);
     color: var(--msp-color-text);
+  }
+
+  &:disabled {
+    opacity: .55;
   }
 }
 
