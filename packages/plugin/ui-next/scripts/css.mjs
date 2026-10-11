@@ -71,7 +71,8 @@ export function compile(file) {
   const result = transform({
     filename: id,
     code: fs.readFileSync(file),
-    cssModules: isModule ? { pattern: `msp-${modulePrefix(file)}-[local]` } : false,
+    // Grid area names stay global: they are a layout contract between modules (shell grid, docks).
+    cssModules: isModule ? { pattern: `msp-${modulePrefix(file)}-[local]`, grid: false } : false,
     minify: false,
   });
   let css = result.code.toString().trim();
