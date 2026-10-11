@@ -32,6 +32,7 @@ defineStyles('views/shell/shell.module.css', `@layer msp.components {
   &[data-mode="compact"] {
     grid-template: "top"
                    "viewport" minmax(0, 1fr)
+                   "status"
                    "bottom"
                    "right"
                    / minmax(0, 1fr);

@@ -15,7 +15,7 @@ import type { StatusModel } from '../../shell/status.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/shell.module.css.js';
 import { installTooltips } from '../../components/tooltip/tooltip.js';
-import { CanvasStack, CanvasToolbar, ContextChips, OverlayHost, StatusLine } from './canvas-chrome.js';
+import { CanvasStack, CanvasToolbar, ContextChips, OverlayHost, RailMenu, StatusLine } from './canvas-chrome.js';
 import { DockView, FloatingDock } from './dock-view.js';
 
 /**
@@ -34,8 +34,11 @@ export interface ShellViewProps {
   overlays?: Child;
   /** Playback at the top left of the canvas (the snapshot and trajectory card). */
   playback?: Child;
-  /** The work in hand at the bottom right of the canvas, before the status chips (the selection bar). */
-  context?: Child;
+  /**
+   * The work in hand at the bottom right of the canvas, before the status chips (the selection bar). A render
+   * function: the compact layout docks it elsewhere, and each place renders its own.
+   */
+  context?: () => Child;
   /**
    * The theme of the chrome over the canvas, from the canvas background (light background: light glass), independent
    * of the UI theme: dark glass over a white canvas would be muddy.
@@ -59,6 +62,10 @@ export interface ShellViewProps {
 export function ShellView(props: ShellViewProps) {
   const { shell, status } = props;
   const right = shell.dock('right');
+  const compact = shell.mode.pipe(
+    map((m) => m === 'compact'),
+    distinctUntilChanged(),
+  );
   const top = shell.dock('top');
   // The right dock floats over the canvas unless it is docked, or the shell is compact (then it is a bottom sheet).
   const floating = combineLatest([right.state, shell.mode]).pipe(
@@ -119,12 +126,16 @@ export function ShellView(props: ShellViewProps) {
           <Show when={floatingTop}>{() => <FloatingDock shell={shell} dock={top} />}</Show>
           <div class={canvasClasses.lead}>{props.playback}</div>
           {props.overlays}
-          <div class={canvasClasses.bottom}>
-            <div class={canvasClasses.bottomGrid}>
-              <StatusLine status={status} onOpenLog={props.onOpenLog} />
-              <ContextChips status={status} lead={props.context} />
-            </div>
-          </div>
+          <Show when={compact.pipe(map((c) => !c))}>
+            {() => (
+              <div class={canvasClasses.bottom}>
+                <div class={canvasClasses.bottomGrid}>
+                  <StatusLine status={status} onOpenLog={props.onOpenLog} />
+                  <ContextChips status={status} lead={props.context?.()} />
+                </div>
+              </div>
+            )}
+          </Show>
           <CanvasStack shell={shell} lead={props.canvasLead} aside={props.canvasAside} />
         </div>
         {/* The application's own chrome over the canvas (the rail, the panel, the cards): the UI theme. */}
@@ -137,9 +148,14 @@ export function ShellView(props: ShellViewProps) {
           <Show
             when={floating}
             fallback={() => (
-              <div class={`${canvasClasses.toolbarSlot} ${canvasClasses.frame}`}>
-                <CanvasToolbar shell={shell} />
-              </div>
+              // Docked beside the canvas (not compact: there the rail's actions are under More).
+              <Show when={compact.pipe(map((c) => !c))}>
+                {() => (
+                  <div class={`${canvasClasses.toolbarSlot} ${canvasClasses.frame}`}>
+                    <CanvasToolbar shell={shell} />
+                  </div>
+                )}
+              </Show>
             )}
           >
             {() => (
@@ -153,7 +169,24 @@ export function ShellView(props: ShellViewProps) {
           </Show>
         </div>
       </main>
-      <Show when={floating.pipe(map((f) => !f))}>{() => <DockView shell={shell} dock={right} />}</Show>
+      {/* Compact: progress and the selection docked under the canvas, not over it. */}
+      <Show when={compact}>
+        {() => (
+          <div class={canvasClasses.compactStatus}>
+            <StatusLine status={status} onOpenLog={props.onOpenLog} />
+            <ContextChips status={status} lead={props.context?.()} />
+          </div>
+        )}
+      </Show>
+      <Show when={floating.pipe(map((f) => !f))}>
+        {() => (
+          <DockView
+            shell={shell}
+            dock={right}
+            stripEnd={<Show when={compact}>{() => <RailMenu shell={shell} />}</Show>}
+          />
+        )}
+      </Show>
       <DockView shell={shell} dock={shell.dock('bottom')} />
       {props.commandMenu}
     </div>

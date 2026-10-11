@@ -409,3 +409,68 @@
 .pill:not(:has(.pillButton)) {
   padding-right: var(--msp-space-3);
 }
+
+/* Compact: More at the end of the bottom tab bar; its list opens just above it. */
+.railMenu {
+  position: relative;
+  display: flex;
+}
+
+.railMenuButton {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 40px;
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+.railMenuList {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--msp-space-2));
+  z-index: var(--msp-z-overlay);
+  display: grid;
+  min-width: 220px;
+  padding: var(--msp-space-2);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+  box-shadow:
+    var(--msp-glass-shadow),
+    0 8px 24px rgb(0 0 0 / 0.12);
+  animation: tool-menu-in var(--msp-motion-fast) var(--msp-ease);
+}
+
+/* Compact: progress and the selection docked between the canvas and the sheet (progress first, selection below). */
+.compactStatus {
+  grid-area: status;
+  display: grid;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-2);
+  background: var(--msp-color-panel);
+  border-top: 1px solid var(--msp-glass-edge);
+
+  &:empty {
+    display: none;
+  }
+
+  & .status,
+  & .context {
+    grid-area: auto;
+    justify-self: stretch;
+    justify-content: flex-start;
+  }
+}
+
+/* Compact: no side panel to stand in for; a card fills the canvas. */
+:where([data-mode="compact"]) .card {
+  left: var(--msp-canvas-edge, 8px);
+  right: var(--msp-canvas-edge, 8px);
+  width: auto;
+}

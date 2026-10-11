@@ -96,9 +96,9 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
       type="button"
       class={classes.tool}
       data-captioned={item.caption ? '' : undefined}
-      data-tip={withMenu ? undefined : item.title}
+      data-tip={withMenu ? undefined : item.caption ? `${item.title} (${item.caption})` : item.title}
       data-tip-side="left"
-      aria-label={item.title}
+      aria-label={item.caption ? `${item.title} (${item.caption})` : item.title}
       aria-pressed={pressed}
       aria-haspopup={withMenu ? 'menu' : undefined}
       data-overlay-trigger={item.overlay ? '' : undefined}
@@ -228,6 +228,61 @@ function ToolMenu(props: { menus: ToolMenus }) {
       )}
     </Show>
   );
+}
+
+/**
+ * Compact: the rail's actions (command menu, animation, canvas settings, save, export) as a nested group at the end of
+ * the bottom tab bar: More opens their list just above it.
+ */
+export function RailMenu(props: { shell: ShellModel }) {
+  const { shell } = props;
+  const open = observableState(false);
+  const items = shell.toolbar.pipe(map((all) => all.filter((i) => i.place !== 'canvas')));
+  const root = (
+    <div class={classes.railMenu}>
+      <button
+        type="button"
+        role="tab"
+        class={classes.railMenuButton}
+        aria-label="More"
+        aria-expanded={open}
+        data-tip="More"
+        onClick={() => open.set(!open.value)}
+      >
+        <Icon name="ellipsis" size={20} />
+      </button>
+      <Show when={open}>
+        {() => (
+          <div class={classes.railMenuList} role="menu" aria-label="More">
+            <For each={items} key={(i) => i.id}>
+              {(item) => (
+                <button
+                  type="button"
+                  role="menuitem"
+                  class={classes.toolMenuRow}
+                  onClick={(e) => {
+                    open.set(false);
+                    if (item.overlay) shell.toggleOverlay(item.overlay, e.currentTarget);
+                    else item.run?.(e.currentTarget);
+                  }}
+                >
+                  <Icon name={item.icon} size={16} />
+                  <span class={classes.toolMenuLabel}>{item.title}</span>
+                  {item.caption ? <kbd class={classes.caption}>{item.caption}</kbd> : <span />}
+                </button>
+              )}
+            </For>
+          </div>
+        )}
+      </Show>
+    </div>
+  ) as HTMLElement;
+  const onDown = (e: PointerEvent) => {
+    if (open.value && !root.contains(e.target as Node)) open.set(false);
+  };
+  document.addEventListener('pointerdown', onDown);
+  onCleanup(() => document.removeEventListener('pointerdown', onDown));
+  return root;
 }
 
 /** The open overlay as a card in the right panel's place (the panel steps aside while it is open). */

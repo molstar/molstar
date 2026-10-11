@@ -393,7 +393,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
     {
       id: 'palette',
       icon: 'command',
-      title: `Command menu (${formatChord({ key: 'k', mod: true })})`,
+      title: 'Command menu',
       caption: formatChord({ key: 'k', mod: true }),
       run: () => commandMenuOpen.set(true),
     },
@@ -611,7 +611,7 @@ function ShellStory(props: {
       }
       canvasColor={props.background ?? '#ffffff'}
       canvasTheme={themeForColor(parseColor(props.background ?? '#ffffff') ?? 0xffffff)}
-      context={props.loaded ? <SelectionBar selection={selection} /> : null}
+      context={props.loaded ? () => <SelectionBar selection={selection} /> : undefined}
       commandMenu={
         <Show when={commandMenuOpen}>
           {() => <CommandMenu manager={commands} prefixes={prefixes} onClose={() => commandMenuOpen.set(false)} />}

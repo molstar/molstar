@@ -18,6 +18,7 @@ export const classes = {
   'cardHeader': 'msp-shell-canvas-cardHeader',
   'cardTitle': 'msp-shell-canvas-cardTitle',
   'chip': 'msp-shell-canvas-chip',
+  'compactStatus': 'msp-shell-canvas-compactStatus',
   'context': 'msp-shell-canvas-context',
   'frame': 'msp-shell-canvas-frame',
   'lead': 'msp-shell-canvas-lead',
@@ -27,6 +28,9 @@ export const classes = {
   'pill-in': 'msp-shell-canvas-pill-in',
   'pillButton': 'msp-shell-canvas-pillButton',
   'progress': 'msp-shell-canvas-progress',
+  'railMenu': 'msp-shell-canvas-railMenu',
+  'railMenuButton': 'msp-shell-canvas-railMenuButton',
+  'railMenuList': 'msp-shell-canvas-railMenuList',
   'sections': 'msp-shell-canvas-sections',
   'spin': 'msp-shell-canvas-spin',
   'stack': 'msp-shell-canvas-stack',
@@ -405,6 +409,65 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-pill:not(:has(.msp-shell-canvas-pillButton)) {
   padding-right: var(--msp-space-3);
+}
+
+.msp-shell-canvas-railMenu {
+  display: flex;
+  position: relative;
+}
+
+.msp-shell-canvas-railMenuButton {
+  border-radius: var(--msp-radius-md);
+  width: 44px;
+  height: 40px;
+  color: var(--msp-color-text-muted);
+  place-items: center;
+  display: grid;
+
+  &:hover, &[aria-expanded="true"] {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+.msp-shell-canvas-railMenuList {
+  right: 0;
+  bottom: calc(100% + var(--msp-space-2));
+  z-index: var(--msp-z-overlay);
+  min-width: 220px;
+  padding: var(--msp-space-2);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+  box-shadow: var(--msp-glass-shadow),
+    0 8px 24px #0000001f;
+  animation: msp-shell-canvas-tool-menu-in var(--msp-motion-fast) var(--msp-ease);
+  display: grid;
+  position: absolute;
+}
+
+.msp-shell-canvas-compactStatus {
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-2);
+  background: var(--msp-color-panel);
+  border-top: 1px solid var(--msp-glass-edge);
+  grid-area: status;
+  display: grid;
+
+  &:empty {
+    display: none;
+  }
+
+  & .msp-shell-canvas-status, & .msp-shell-canvas-context {
+    grid-area: auto;
+    justify-content: flex-start;
+    justify-self: stretch;
+  }
+}
+
+:where([data-mode="compact"]) .msp-shell-canvas-card {
+  left: var(--msp-canvas-edge, 8px);
+  right: var(--msp-canvas-edge, 8px);
+  width: auto;
 }
 }
 `);

@@ -15,6 +15,7 @@ import { ParamsFormModel } from '../../forms/params-form.js';
 import type { SelectionModel } from '../../model/selection.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ShellModel } from '../../shell/shell.js';
+import { SectionList } from '../../views/shell/section-list.js';
 
 // Mol*'s selection theme actions (the selection toolbar's Theme panel): what to apply to the selected part of which
 // representations.
@@ -74,12 +75,37 @@ const SelectionThemeParams = {
 export function mockSelection(shell: ShellModel, post: (text: string) => void): SelectionModel {
   const summary = observableState<string | undefined>('12 residues');
   const form = new ParamsFormModel(SelectionThemeParams);
+  // The Selection card: what to do with it, as sections (like Export): apply a theme action (color, transparency,
+  // material, …), or make a component of it.
+  const component = new ParamsFormModel({
+    label: PD.Text('Selection', { label: 'Label', isEssential: true }),
+    representation: PD.Select(
+      'ball-and-stick',
+      [
+        ['cartoon', 'Cartoon'],
+        ['ball-and-stick', 'Ball & Stick'],
+        ['spacefill', 'Spacefill'],
+        ['molecular-surface', 'Molecular Surface'],
+      ],
+      { label: 'Representation', isEssential: true },
+    ),
+  });
   shell.registerOverlays([
     {
       id: 'selection',
       title: 'Selection',
+      render: domView(({ ctx }) => <SectionList shell={ctx.shell} slot="selection" focus={ctx.focus} />),
+    },
+  ]);
+  shell.registerSections([
+    {
+      id: 'theme',
+      slot: 'selection',
+      title: 'Color, transparency, material…',
+      icon: 'palette',
+      order: 0,
       render: domView(() => (
-        <div style="display: grid; gap: 8px; padding: 4px 12px 12px">
+        <div style="display: grid; gap: 8px">
           <ParamsForm form={form} />
           <div style="display: flex; justify-content: flex-end">
             <Button
@@ -97,26 +123,34 @@ export function mockSelection(shell: ShellModel, post: (text: string) => void): 
         </div>
       )),
     },
+    {
+      id: 'component',
+      slot: 'selection',
+      title: 'Create component',
+      icon: 'layers',
+      order: 1,
+      render: domView(() => (
+        <div style="display: grid; gap: 8px">
+          <ParamsForm form={component} />
+          <div style="display: flex; justify-content: flex-end">
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Icon name="plus" />}
+              onClick={() => post(`Component "${(component.values.value as any).label}" from ${summary.value}`)}
+            >
+              Create
+            </Button>
+          </div>
+        </div>
+      )),
+    },
   ]);
-  const openWith = (action?: string) => {
-    if (action)
-      form.set('action', {
-        name: action,
-        params: PD.getDefaultValues((SelectionThemeParams.action.map(action) as PD.Group<any>).params),
-      } as any);
-    shell.openOverlay('selection');
-  };
   return {
     summary: summary.asReadonly,
+    // One way in: the card offers what to do (color, theme, component); focus stays one click.
     actions: [
-      { id: 'color', label: 'Color', icon: 'palette', run: () => openWith('color') },
-      { id: 'theme', label: 'Transparency, material, …', icon: 'paintbrush', run: () => openWith() },
-      {
-        id: 'component',
-        label: 'Create component',
-        icon: 'layers',
-        run: () => post(`Component from ${summary.value}`),
-      },
+      { id: 'edit', label: 'Color, theme, component…', icon: 'paintbrush', run: () => shell.openOverlay('selection') },
       { id: 'focus', label: 'Focus', icon: 'focus', run: () => post(`Focused on ${summary.value}`) },
     ],
     clear: () => summary.set(undefined),

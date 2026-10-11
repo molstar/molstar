@@ -17,7 +17,11 @@ import { classes } from './_generated/dock.module.css.js';
 import { ViewHost } from './view-host.js';
 
 /** A side dock: its tab strip on the outer edge and the active tab's content next to the canvas. */
-export function DockView(props: { shell: ShellModel; dock: DockModel }) {
+export function DockView(props: {
+  shell: ShellModel;
+  dock: DockModel /** After the tabs in the strip (compact: More). */;
+  stripEnd?: Child;
+}) {
   const { shell, dock } = props;
   const horizontal = dock.id === 'top' || dock.id === 'bottom';
   const hasTabs = dock.tabs.pipe(map((tabs) => tabs.length > 0));
@@ -45,6 +49,7 @@ export function DockView(props: { shell: ShellModel; dock: DockModel }) {
                 aria-orientation={compact.pipe(map((c) => (c || horizontal ? 'horizontal' : 'vertical')))}
               >
                 <For each={dock.tabs}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
+                {props.stripEnd}
               </nav>
             )}
           </Show>
