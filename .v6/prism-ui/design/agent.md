@@ -145,18 +145,37 @@ or `working`, and adds `denied`.
   provider; kept ones are stored scrambled (encrypted with a key this browser keeps, as Stories does), so the storage
   read as it is gives no working key, which the tab says, along with what it does not guard against (code running in the
   page). With a server-side agent, keys come from its environment instead.
+- **The Inspector** (`@molstar/prism-assistant/inspector`, a separate entry: the tab and the card do not pull it in), a
+  page over the whole app (`ShellPage`) with three tabs over `@molstar/ai-trace`'s data:
+  - _Trace_: an overview strip (a column per turn, a block per step; model and tool calls told apart by shape and lane,
+    failed in danger, a retry hatched, a running step pulsing, the selected one outlined in the accent; Steps or Time),
+    the rows (turns, requests, model and tool calls, nested runs indented; j/k move), and the detail: a turn's facts and
+    its input per model call, a model call's _What it saw_ (the window's makeup, its share, what is new, why a cache
+    prefix broke, the entries), _Answer_ and _Timing_ (a waterfall per attempt), a tool call's _Result_, _Arguments_,
+    _Definition_ (a link to Tools) and _Timing_.
+  - _Tools_: the groups (core, each skill, single; loaded, unavailable here and why) and their tools (reads, asks,
+    disabled; loaded at which turn; size in tokens), a tool's facts and its input as fields or JSON Schema, a group's
+    guidance as the model reads it.
+  - _Limits_: the turn budget per kind (used against the value, up to its ceiling; editable, with the default and
+    Reset), the model's context window, compaction trigger and thinking, credits as information (never a limit).
+
+  The header has the tabs, working or idle, and the budget kind nearest its ceiling. Ways in: the commands _Agent trace_
+  (⌥T), _Agent tools_, _Agent limits_; the Assistant tab's _Inspect_ block (Trace, Tools, Limits with their counts); the
+  turn card's _Trace_ link (at that turn).
+
 - While an agent runs, the person's own commands still run (they are attributed to the person); a command of theirs
   after the turn releases its checkpoint, and History says so.
 
-**State (mocks, `@molstar/prism-assistant`: `views/`, `testing/mock-agent.ts`; Shell › Assistant, Set up and Not set
-up):** the Ask bar with proposed commands (`selection.color`, `data.download-structure`, `focus.target`) and agent
-turns, the turn card and its line (streaming, steps with progress and durations, a retry note, approval and denial,
-Stop, failure, summary, Undo turn, one checkpoint released by the next action), History with turns and checkpoints, the
-Assistant tab (key needed; providers, model and refresh, own endpoint). Not yet: the `read` and `approval` command
-fields (they exist only on `CommandRun`), the PD → JSON Schema generator, the state and focus accounts, the client API,
-the harness wiring, an answer in a line from the menu's assistant (the port proposes a command or asks the agent),
-keeping keys (the mock holds them in memory whatever the scope; encrypted storage is to come) and keys from a server,
-the MCP server (a separate piece of work).
+**State (mocks, `@molstar/prism-assistant`: `views/`, `inspector/`, `testing/mock-agent.ts`,
+`testing/mock-inspector.ts`; Shell › Assistant: Set up, Not set up, Trace, Trace running, Trace what it saw, Tools,
+Tools at a tool, Limits, Inspect):** the Ask bar with proposed commands (`selection.color`, `data.download-structure`,
+`focus.target`) and agent turns, the turn card and its line (streaming, steps with progress and durations, a retry note,
+approval and denial, Stop, failure, summary, Undo turn, one checkpoint released by the next action), History with turns
+and checkpoints, the Assistant tab (key needed; providers, model and refresh, own endpoint). Not yet: the `read` and
+`approval` command fields (they exist only on `CommandRun`), the PD → JSON Schema generator, the state and focus
+accounts, the client API, the harness wiring, an answer in a line from the menu's assistant (the port proposes a command
+or asks the agent), keeping keys (the mock holds them in memory whatever the scope; encrypted storage is to come) and
+keys from a server, the MCP server (a separate piece of work).
 
 ## 6. Opt-in: not in every build
 

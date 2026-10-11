@@ -1,0 +1,47 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* A group's tools in its detail: each name a way to the tool, its first sentence after it. */
+.toolList {
+  display: grid;
+  gap: var(--msp-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.45;
+
+  & li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 var(--msp-space-3);
+  }
+}
+
+/* A tool's input, field by field: its path, type and whether it is optional; what it is; the values it takes. */
+.fields {
+  display: grid;
+  gap: var(--msp-space-4);
+  margin: 0;
+}
+
+.field {
+  display: grid;
+  gap: var(--msp-space-1);
+  line-height: 1.45;
+
+  & dt {
+    overflow-wrap: anywhere;
+  }
+
+  & dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}

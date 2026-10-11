@@ -294,6 +294,8 @@ export interface LimitRowView {
   readonly ceiling?: number;
   /** The smallest step the field takes (default 1). */
   readonly step?: number;
+  /** A limit picked from a few levels (the model's thinking level): each value with its name. */
+  readonly choices?: readonly { readonly value: number; readonly label: string }[];
   readonly editable: boolean;
 }
 

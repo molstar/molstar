@@ -27,3 +27,37 @@
   font-size: var(--msp-font-size-xs);
   line-height: 1.45;
 }
+
+/* The Inspect block: the Inspector's views, one row each, what each holds after it. */
+.inspect {
+  display: grid;
+}
+
+.caption {
+  margin: var(--msp-space-1) 0 var(--msp-space-1);
+  padding: 0 var(--msp-inset);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-weight: 500;
+}
+
+.link {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-3);
+  min-height: 24px;
+  padding: var(--msp-space-1) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  text-align: left;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.detail {
+  flex: 1;
+  min-width: 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}

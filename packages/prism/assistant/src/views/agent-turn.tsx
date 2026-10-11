@@ -131,9 +131,9 @@ export function UndoTurn(props: { agent: AgentModel; id: string }) {
 /**
  * The agent at work, over the canvas at the bottom left (design/agent.md §5): the request, the model's words as they
  * stream, each command as it runs, Allow / Deny when one waits for the person, Stop; at the end, what it did in one
- * line and Undo turn (back to the checkpoint before it).
+ * line, its trace (with the Inspector: `onTrace` opens it at the turn) and Undo turn (back to the checkpoint before it).
  */
-export function AgentTurnCard(props: { agent: AgentModel }) {
+export function AgentTurnCard(props: { agent: AgentModel; onTrace?: (turnId: string) => void }) {
   const { agent } = props;
   // Esc closes the card (to its pill): before the panels take it, but not from a field, a list, a menu or a dialog.
   const onKey = (e: KeyboardEvent) => {
@@ -158,7 +158,7 @@ export function AgentTurnCard(props: { agent: AgentModel }) {
   return (
     <>
       <Show when={which('line')}>{() => <TurnLine agent={agent} />}</Show>
-      <Show when={which('card')}>{(id) => <Card agent={agent} id={id} />}</Show>
+      <Show when={which('card')}>{(id) => <Card agent={agent} id={id} onTrace={props.onTrace} />}</Show>
     </>
   );
 }
@@ -189,7 +189,7 @@ function TurnLine(props: { agent: AgentModel }) {
 }
 
 /** The open card of a turn. */
-function Card(props: { agent: AgentModel; id: string }) {
+function Card(props: { agent: AgentModel; id: string; onTrace?: (turnId: string) => void }) {
   const { agent, id } = props;
   return (
     <Show when={id}>
@@ -271,6 +271,16 @@ function Card(props: { agent: AgentModel; id: string }) {
               {() => (
                 <footer class={classes.footer}>
                   <span class={classes.summary}>{turn.pipe(map(turnSummary))}</span>
+                  {props.onTrace ? (
+                    <button
+                      type="button"
+                      class={classes.trace}
+                      data-tip="Each step of this turn, in the Inspector"
+                      onClick={() => props.onTrace?.(id)}
+                    >
+                      Trace
+                    </button>
+                  ) : null}
                   <Show
                     when={turn.pipe(map((t) => t.checkpoint && !t.undone))}
                     fallback={() => (

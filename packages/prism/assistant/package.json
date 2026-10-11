@@ -38,6 +38,7 @@
   "dependencies": {
     "@molstar/ai-agent": "workspace:*",
     "@molstar/ai-tools": "workspace:*",
+    "@molstar/ai-trace": "workspace:*",
     "@molstar/core": "workspace:*",
     "@molstar/prism-ui": "workspace:*",
     "rxjs": "catalog:",

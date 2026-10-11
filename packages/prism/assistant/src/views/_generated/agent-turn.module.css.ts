@@ -40,6 +40,7 @@ export const classes = {
   'stop': 'msp-assistant-agent-turn-stop',
   'summary': 'msp-assistant-agent-turn-summary',
   'text': 'msp-assistant-agent-turn-text',
+  'trace': 'msp-assistant-agent-turn-trace',
   'undo': 'msp-assistant-agent-turn-undo',
   'undone': 'msp-assistant-agent-turn-undone',
 } as const;
@@ -320,6 +321,20 @@ defineStyles('assistant/views/agent-turn.module.css', `@layer msp.components {
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   flex: none;
+}
+
+.msp-assistant-agent-turn-trace {
+  height: 24px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+  flex: none;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
 }
 
 .msp-assistant-agent-turn-undo {

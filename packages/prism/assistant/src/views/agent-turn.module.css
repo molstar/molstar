@@ -294,6 +294,21 @@
   font-size: var(--msp-font-size-xs);
 }
 
+/* The way to the turn's trace: a quiet word, beside Undo turn. */
+.trace {
+  flex: none;
+  height: 24px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
 .undo {
   display: inline-flex;
   align-items: center;

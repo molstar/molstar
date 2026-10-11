@@ -10,8 +10,9 @@
 // It plugs into the UI through its ports: tabs (Assistant, History in place of Log), the command menu's `assistant`,
 // the canvas's agent slot (the turn card).
 
+export { type InspectorFocus, InspectorPageId, inspectorCommands } from './inspector-access.js';
 export * from './model.js';
 export { AgentTurnCard, RunList, RunRow, UndoTurn } from './views/agent-turn.js';
 export { AISetup } from './views/ai-setup.js';
-export { AssistantTab } from './views/assistant-tab.js';
+export { type AssistantInspect, AssistantTab, type InspectLink } from './views/assistant-tab.js';
 export { HistoryTab } from './views/history-tab.js';

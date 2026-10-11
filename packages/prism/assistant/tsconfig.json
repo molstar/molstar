@@ -16,6 +16,9 @@
       "path": "../../ai/tools"
     },
     {
+      "path": "../../ai/trace"
+    },
+    {
       "path": "../../core"
     },
     {
