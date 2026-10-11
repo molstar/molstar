@@ -95,6 +95,10 @@ Notifications/Log → StateTree → Help. Actions extracted from the old UI wher
 
 Registry wiring, `CommandContext`, built-in commands (map in [design/commands.md](design/commands.md) §8), generated
 commands from registries, contextual commands, formats, keybinding service, command menu. Command tests run headless.
+The four ways a command runs ([design/commands.md](design/commands.md) §2.1): `opens` as a declared field (commands that
+open a panel or section; the mocks call the shell from `run`), color as an inline argument (the parser in
+`components/color`), and "open as form" with the generated form in a dialog for params that are not flat (today they run
+at their defaults).
 
 ## Phase 6: shell and integration
 
