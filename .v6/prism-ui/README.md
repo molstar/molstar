@@ -1,9 +1,9 @@
 # Prism UI
 
 A new Mol* plugin UI built on a view-model layer (rxjs, from any-ui), a VS Code–style command system, a dynamic shell,
-and web components authored in TSX. It lives in `packages/plugin/prism-ui` next to the current `@molstar/plugin-ui`
-until it reaches parity. Status: **mocked in Storybook**; the designs describe what the mocks settled. Next: a renderer
-bench, then the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin yet.
+and web components authored in TSX. It lives in `packages/prism/ui` next to the current `@molstar/plugin-ui` until it
+reaches parity. Status: **mocked in Storybook**; the designs describe what the mocks settled. Next: a renderer bench,
+then the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin yet.
 
 ## Summary
 
@@ -85,8 +85,8 @@ bench, then the spec review ([plan.md](plan.md)). Nothing is wired to a real plu
    `cell.stateUpdated`, task list, stable `PluginCommands` ids. Do them in v6 alongside prism-ui, or work around them?
    (`display.triggerLabel` on state actions and transformers is done.)
 4. **Deprecating `PluginLayout` and `leftPanelTabName`** in v6, or only when the old UI is retired.
-5. **Package name and release**: ship `@molstar/plugin-prism-ui` as `dev`/experimental in 6.0, or keep it private until
-   it replaces `@molstar/plugin-ui`.
+5. **Package name and release**: ship `@molstar/prism-ui` as `dev`/experimental in 6.0, or keep it private until it
+   replaces `@molstar/plugin-ui`.
 
 Settled by the mocks:
 

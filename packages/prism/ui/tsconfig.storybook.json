@@ -1,0 +1,13 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "rootDir": ".",
+    "types": ["node", "jest"],
+    "jsxImportSource": "@molstar/prism-ui/dom"
+  },
+  "include": ["src/**/*", ".storybook/**/*"]
+}

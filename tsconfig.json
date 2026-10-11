@@ -179,7 +179,10 @@
       "path": "./packages/plugin/ui"
     },
     {
-      "path": "./packages/plugin/prism-ui"
+      "path": "./packages/prism/ui"
+    },
+    {
+      "path": "./packages/prism/agent"
     },
     {
       "path": "./packages/plugin/headless"

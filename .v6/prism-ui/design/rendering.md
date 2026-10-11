@@ -59,11 +59,11 @@ immutable tree rebuilds subtrees, `For`'s identity rule, §4.3), and long lists 
 
 Implemented in `src/dom/` (`scope`, `render`, `jsx-runtime`, `jsx-types`, `control-flow`, `element`, `view`).
 
-**Every `.tsx` file names its runtime with a pragma**: `/** @jsxImportSource @molstar/plugin-prism-ui/dom */` (React
-files: `/** @jsxImportSource react */`). The tsconfig sets the same default for editors and `tsc`, but bundlers do not
-all read it (Vite 8 compiled with React's runtime; Jest's esbuild transform is global), and the package publishes `src/`
-for consumers' bundlers, which apply their own JSX settings. `./dom/jsx-runtime` and `./dom/jsx-dev-runtime` resolve
-through the package's `./*` export.
+**Every `.tsx` file names its runtime with a pragma**: `/** @jsxImportSource @molstar/prism-ui/dom */` (React files:
+`/** @jsxImportSource react */`). The tsconfig sets the same default for editors and `tsc`, but bundlers do not all read
+it (Vite 8 compiled with React's runtime; Jest's esbuild transform is global), and the package publishes `src/` for
+consumers' bundlers, which apply their own JSX settings. `./dom/jsx-runtime` and `./dom/jsx-dev-runtime` resolve through
+the package's `./*` export.
 
 `jsx(type, props)` (`createElement` in `dom/render`) creates real nodes; the JSX `key` is ignored (lists key through
 `For`, §4.3):

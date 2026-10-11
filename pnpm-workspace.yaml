@@ -1,6 +1,7 @@
 packages:
   - 'packages/*'
   - 'packages/plugin/*'
+  - 'packages/prism/*'
   - 'packages/mvs/*'
   - 'extensions/*'
   - 'apps/*'

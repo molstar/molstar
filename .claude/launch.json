@@ -4,7 +4,7 @@
     {
       "name": "prism-ui-storybook",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@molstar/plugin-prism-ui", "storybook", "--ci", "--no-open"],
+      "runtimeArgs": ["--filter", "@molstar/prism-ui", "storybook", "--ci", "--no-open"],
       "port": 6006
     }
   ]

@@ -24,16 +24,16 @@ Lucide (extracted by `scripts/icons.mjs`) plus a few molecular glyphs drawn in t
 
 ## 2. Package
 
-`packages/plugin/prism-ui` → `@molstar/plugin-prism-ui` (private until stable; public name decided at release). Same
-package conventions as the rest of v6: ESM, `molstar-src` source condition, no barrels, `tsc -b` library build.
+`packages/prism/ui` → `@molstar/prism-ui` (private until stable; public name decided at release). Same package
+conventions as the rest of v6: ESM, `molstar-src` source condition, no barrels, `tsc -b` library build.
 
 - **Per-file subpath exports.** `exports` maps `./*` to `src/*.ts` (`molstar-src`) and `lib/*.js`, so a module is
-  imported by its path: `@molstar/plugin-prism-ui/reactive/observable-state`; the JSX import source is
-  `@molstar/plugin-prism-ui/dom` (`dom/jsx-runtime`). The `molstar-src` target names `.ts`, so `.tsx` modules
-  (components, views) resolve only from `lib/` for now; code inside the package imports relatively. `.` is
-  `src/index.ts`, a placeholder until `createPluginUI` lands. The top-level `./_stories/*` and `./_test/*` are `null`
-  (nested `_test/` paths are not); `tsc -b` leaves tests and stories out of `lib/`, and `files` leaves them and
-  `*.stories.*` out of the published package.
+  imported by its path: `@molstar/prism-ui/reactive/observable-state`; the JSX import source is `@molstar/prism-ui/dom`
+  (`dom/jsx-runtime`). The `molstar-src` target names `.ts`, so `.tsx` modules (components, views) resolve only from
+  `lib/` for now; code inside the package imports relatively. `.` is `src/index.ts`, a placeholder until
+  `createPluginUI` lands. The top-level `./_stories/*` and `./_test/*` are `null` (nested `_test/` paths are not);
+  `tsc -b` leaves tests and stories out of `lib/`, and `files` leaves them and `*.stories.*` out of the published
+  package.
 - **Dependencies.** `@molstar/core`, `rxjs`, `tslib`; `react >= 18` is an optional peer used only by `react/`. The
   `tsconfig.json` references core only: the mocks need nothing from `@molstar/plugin`, `model` or `graphics` yet, and
   the references grow when sources are wired to a plugin. Storybook, Vite, lit, lightningcss and lucide-static are
@@ -41,7 +41,7 @@ package conventions as the rest of v6: ESM, `molstar-src` source condition, no b
   `react/` tests), from the shared catalog.
 
 ```
-packages/plugin/prism-ui/
+packages/prism/ui/
   src/
     reactive/        any-ui state: observable-state, readonly-state, reactive-model, combine-behaviors, transaction,
                      disposable-group, shallow-equal, same-shallow                (no Mol*, no DOM, rxjs only)
@@ -151,12 +151,12 @@ Adaptations made while copying or soon after:
 
 - prism-ui and `@molstar/plugin-ui` can run in the same repo and the same page (different class names, no shared
   globals). They do not share a `PluginContext` at the same time.
-- prism-ui has its **own `PluginUIContext`** (`@molstar/plugin-prism-ui/context`, [shell.md](shell.md) §6; not built
-  yet) with the new UI fields (shell, commands, contributions, keybindings, sources, view models). It is a different
-  class from `@molstar/plugin-ui`'s `PluginUIContext`; code that needs both imports them under different names. The
-  UI-only maps on core `PluginContext` (`customStructureControls`, …) are not read by prism-ui; their typed replacements
-  live on the new context, and removing them from core is the plugin-composition follow-up and an API-ledger entry once
-  the old UI is retired.
+- prism-ui has its **own `PluginUIContext`** (`@molstar/prism-ui/context`, [shell.md](shell.md) §6; not built yet) with
+  the new UI fields (shell, commands, contributions, keybindings, sources, view models). It is a different class from
+  `@molstar/plugin-ui`'s `PluginUIContext`; code that needs both imports them under different names. The UI-only maps on
+  core `PluginContext` (`customStructureControls`, …) are not read by prism-ui; their typed replacements live on the new
+  context, and removing them from core is the plugin-composition follow-up and an API-ledger entry once the old UI is
+  retired.
 - The viewer is not switched by a flag: `apps/prism`, a temporary copy of the viewer on prism-ui (same extensions,
   presets and URL options, its own entry in the app build), is built and served next to `apps/viewer` so the new UI can
   be shown and used early; the classic viewer stays untouched until `apps/prism` reaches parity, then switches over and
@@ -212,7 +212,7 @@ settle before anything talks to a plugin.
 - Storybook 10 with `@storybook/web-components-vite` (stories return real DOM nodes), addons docs and a11y; a
   devDependency of prism-ui only. Vite runs only for Storybook: `molstar-src` condition (workspace packages from
   source), `rxjs` deduped, the monorepo root allowed, and `cssModulesPlugin()` from `scripts/css.mjs` keeps generated
-  CSS modules current while it runs. `pnpm --filter @molstar/plugin-prism-ui storybook` / `build-storybook`; not in CI.
+  CSS modules current while it runs. `pnpm --filter @molstar/prism-ui storybook` / `build-storybook`; not in CI.
 - A toolbar global sets the theme (`data-msp-theme` on the document root: light, dark, blue, auto).
 - Story order: Overview (Introduction, Foundations), Shell, Views, Canvas, Components, Internals (the DOM runtime, and
   Performance: the renderer check). Every component but the color picker has a story; `Components/Params form` shows
@@ -225,7 +225,7 @@ settle before anything talks to a plugin.
 ## 9. Tests and checks
 
 - Jest from the repo root (`pnpm jest`), tests in `_test/` folders next to the code as `*.test.ts` or `*.test.tsx`. The
-  root `moduleNameMapper` maps `@molstar/plugin-prism-ui/*` to `src/`. DOM tests opt into jsdom per file
+  root `moduleNameMapper` maps `@molstar/prism-ui/*` to `src/`. DOM tests opt into jsdom per file
   (`/** @jest-environment jsdom */`) and name their JSX runtime with the pragma ([rendering.md](rendering.md) §4.1).
   Interaction is tested in Jest (keyboard, focus, events on real nodes), not with Storybook `play`.
 - `tsc -b` builds `lib/` without tests and stories; `typecheck:storybook` (`tsconfig.storybook.json`) checks everything,

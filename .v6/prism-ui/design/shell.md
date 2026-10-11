@@ -604,8 +604,8 @@ interface PluginUISpec extends PluginSpec {
 }
 ```
 
-- `DefaultUIContributions()` in `@molstar/plugin-prism-ui/default-spec` lists the built-in contributions; apps spread it
-  and add extension contributions, mirroring `DefaultRegistry` and the v6 composition rule.
+- `DefaultUIContributions()` in `@molstar/prism-ui/default-spec` lists the built-in contributions; apps spread it and
+  add extension contributions, mirroring `DefaultRegistry` and the v6 composition rule.
 - Entry point: `createPluginUI({ target, spec })` builds the new `PluginUIContext`, initialises it, and mounts
   `<msp-plugin>`; no React render function is needed. `prism-ui/react` offers `<PluginUI>` for React hosts.
 - Today's spec fields map as follows: `components.controls.*: 'none'` → hide the tab or dock in `layout`;

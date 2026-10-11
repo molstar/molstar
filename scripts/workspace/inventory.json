@@ -355,8 +355,14 @@
       "private": false
     },
     {
-      "name": "@molstar/plugin-prism-ui",
-      "path": "packages/plugin/prism-ui",
+      "name": "@molstar/prism-ui",
+      "path": "packages/prism/ui",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/prism-agent",
+      "path": "packages/prism/agent",
       "kind": "library",
       "private": true
     },

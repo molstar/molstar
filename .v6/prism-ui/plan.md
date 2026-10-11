@@ -10,8 +10,8 @@ apart from the core `triggerLabel` (phase 4) and the shell's own models the mock
 
 **Done.**
 
-- `packages/plugin/prism-ui` (`@molstar/plugin-prism-ui`, private, `6.0.0-dev.0`): `package.json` with the explicit
-  exports map (`molstar-src` to `src/`, `_stories` and `_test` not exported), `tsconfig.json` (a reference in the root
+- `packages/prism/ui` (`@molstar/prism-ui`, private, `6.0.0-dev.0`): `package.json` with the explicit exports map
+  (`molstar-src` to `src/`, `_stories` and `_test` not exported), `tsconfig.json` (a reference in the root
   `tsconfig.json`), workspace registration, Biome, and jest through the root config (`moduleNameMapper` to `src/`; tests
   in `_test` folders).
 - Storybook as a **devDependency of prism-ui only** (`.storybook/`):
