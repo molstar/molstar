@@ -66,8 +66,12 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
         {/* Only top-level rows carry an icon (a structure, a volume, the measurements): below, the indent shows where a
             row belongs and its label and description say what it is. */}
         {depth === 0 ? <Icon name={node.icon} size={15} class={classes.kind} /> : null}
-        <span class={classes.label}>{node.label}</span>
-        <span class={classes.description}>{node.description}</span>
+        <span class={classes.label} data-tip-overflow="">
+          {node.label}
+        </span>
+        <span class={classes.description} data-tip-overflow="">
+          {node.description}
+        </span>
         <span class={classes.actions}>
           <button
             type="button"

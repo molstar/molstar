@@ -111,8 +111,10 @@ function Cell(props: {
           <Icon name="chevron-right" size={14} />
         </button>
         {depth === 0 ? <Icon name={node.icon} size={15} class={tree.kind} /> : null}
-        <span class={tree.label}>{node.label}</span>
-        <span class={tree.description}>
+        <span class={tree.label} data-tip-overflow="">
+          {node.label}
+        </span>
+        <span class={tree.description} data-tip-overflow="">
           {node.status === 'error' ? <span class={classes.error}>{node.error ?? 'Error'}</span> : node.description}
         </span>
         <span class={tree.actions}>

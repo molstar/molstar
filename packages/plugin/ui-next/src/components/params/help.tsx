@@ -51,11 +51,21 @@ export function helpOf(param: PD.Any, value: Observable<any>): Observable<ParamH
  * help itself opens under the row (`HelpBlock`). Returns the label's content and the block.
  */
 export function withHelp(label: string, help: Observable<ParamHelp | undefined> | undefined) {
-  if (!help) return { head: (<span class={classes.text}>{label}</span>) as Child, block: null as Child };
+  if (!help)
+    return {
+      head: (
+        <span class={classes.text} data-tip-overflow="">
+          {label}
+        </span>
+      ) as Child,
+      block: null as Child,
+    };
   const open = observableState(false);
   const head = (
     <>
-      <span class={classes.text}>{label}</span>
+      <span class={classes.text} data-tip-overflow="">
+        {label}
+      </span>
       <Show when={help.pipe(map((h) => !!h))}>
         {() => (
           <button

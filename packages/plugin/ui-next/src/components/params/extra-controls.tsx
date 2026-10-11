@@ -23,14 +23,13 @@ import type { FieldBinding } from './field-binding.js';
 /** A row with a field that opens something under it (a list, a grid, an editor), like a dropdown. */
 function ExpandingRow(props: {
   head: Child;
-  title?: string;
   field: (open: ObservableState<boolean>) => Child;
   body: (close: () => void) => Child;
 }) {
   const open = observableState(false);
   return (
     <>
-      <div class={form.row} title={props.title}>
+      <div class={form.row}>
         <span class={form.label}>{props.head}</span>
         <div class={form.control}>{props.field(open)}</div>
       </div>
@@ -75,7 +74,6 @@ export function MultiSelectRow(props: {
   return (
     <ExpandingRow
       head={props.head}
-      title={param.description}
       field={(open) => (
         <Field open={open} label={props.label}>
           {names}
@@ -116,7 +114,7 @@ export function Vec3Control(props: { param: PD.Vec3; binding: FieldBinding }) {
         <input
           class={form.number}
           aria-label={axis}
-          title={axis}
+          data-tip={axis}
           value={binding.value.pipe(map((v: number[]) => trim(v?.[i])))}
           onChange={(e) => {
             const n = Number(e.currentTarget.value);
@@ -145,7 +143,6 @@ export function Mat4Row(props: { head: Child; label: string; param: PD.Mat4; bin
   return (
     <ExpandingRow
       head={props.head}
-      title={props.param.description}
       field={(open) => (
         <Field open={open} label={props.label}>
           {binding.value.pipe(map((m: ArrayLike<number>) => (m && isIdentity(m) ? 'Identity' : '4 × 4 matrix')))}
@@ -257,7 +254,6 @@ export function ColorListRow(props: { head: Child; label: string; param: PD.Colo
   return (
     <ExpandingRow
       head={props.head}
-      title={param.description}
       field={(open) => (
         <Field open={open} label={props.label}>
           <span class={classes.strip} style={{ background: binding.value.pipe(map(colorListGradient)) }} />
@@ -316,7 +312,6 @@ export function LineGraphRow(props: { head: Child; label: string; param: PD.Line
   return (
     <ExpandingRow
       head={props.head}
-      title={props.param.description}
       field={(open) => (
         <Field open={open} label={props.label}>
           <svg class={classes.spark} viewBox="0 0 56 14" preserveAspectRatio="none" aria-hidden="true">

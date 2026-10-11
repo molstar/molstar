@@ -13,6 +13,7 @@ const ShowDelayMs = 350;
  * Tooltips for icon buttons: any element in `root` with `data-tip` (the text) gets one, placed by `data-tip-side`
  * (`left` for the rail and the canvas stack, `top` for the bottom of the canvas, `bottom` by default), on hover or keyboard focus. One element is reused,
  * positioned in the viewport; buttons keep their `aria-label` for assistive technology (no native `title` as well).
+ * `data-tip-overflow` (no text) shows the element's own text, only while it is cut off (a long label with an ellipsis).
  * Returns the uninstall function.
  */
 export function installTooltips(root: HTMLElement): () => void {
@@ -26,7 +27,7 @@ export function installTooltips(root: HTMLElement): () => void {
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   const place = (el: HTMLElement) => {
-    tip.textContent = el.dataset.tip ?? '';
+    tip.textContent = el.dataset.tip ?? el.textContent ?? '';
     tip.hidden = false;
     const side = el.dataset.tipSide ?? 'bottom';
     const r = el.getBoundingClientRect();
@@ -59,12 +60,19 @@ export function installTooltips(root: HTMLElement): () => void {
 
   const show = (el: HTMLElement, immediate: boolean) => {
     if (timer !== undefined) clearTimeout(timer);
+    // Its own text, only when cut off.
+    if (el.dataset.tip === undefined && el.scrollWidth <= el.clientWidth) {
+      target = undefined;
+      tip.hidden = true;
+      return;
+    }
     target = el;
     if (immediate) place(el);
     else timer = setTimeout(() => target === el && place(el), ShowDelayMs);
   };
 
-  const tipOf = (e: Event) => (e.target as Element | null)?.closest?.<HTMLElement>('[data-tip]') ?? undefined;
+  const tipOf = (e: Event) =>
+    (e.target as Element | null)?.closest?.<HTMLElement>('[data-tip], [data-tip-overflow]') ?? undefined;
 
   const onOver = (e: PointerEvent) => {
     const el = tipOf(e);

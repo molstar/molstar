@@ -193,7 +193,7 @@ function ParamRow(props: {
   // A plain value (data carried along, not edited): no row, as in the classic UI.
   if (param.type === 'value') return null;
   return wrap(
-    <div class={classes.row} title={param.description ?? label}>
+    <div class={classes.row}>
       <span class={classes.label}>{head}</span>
       <div class={classes.control}>{control(param, binding)}</div>
     </div>,
@@ -207,7 +207,7 @@ function ColorRow(props: { label: string; head?: Child; description?: string; bi
   const hex = binding.value.pipe(map((v: number) => colorToHex(v)));
   return (
     <>
-      <div class={classes.row} title={props.description}>
+      <div class={classes.row}>
         <span class={classes.label}>{props.head ?? props.label}</span>
         <div class={classes.control}>
           <button type="button" class={classes.color} aria-expanded={open} onClick={() => open.set(!open.value)}>
@@ -424,7 +424,7 @@ function SelectRow(props: {
   const indexed = options.map(([, label], i) => [String(i), label] as const);
   return (
     <>
-      <div class={classes.row} title={props.description}>
+      <div class={classes.row}>
         <span class={classes.label}>{props.head ?? props.label}</span>
         <div class={classes.control}>
           <SelectButton
@@ -515,7 +515,7 @@ function OnOffControl(props: {
   };
   return (
     <>
-      <div class={classes.row} title={props.description}>
+      <div class={classes.row}>
         <span class={classes.label}>{props.head ?? props.label}</span>
         <div class={classes.control}>
           <Toggle binding={toggle} />
@@ -705,7 +705,7 @@ function ObjectListRow(props: { head: Child; label: string; param: PD.ObjectList
   };
   return (
     <>
-      <div class={classes.row} title={param.description}>
+      <div class={classes.row}>
         <span class={classes.label}>{props.head}</span>
         <div class={classes.control}>
           <span class={classes.count}>{items.pipe(map((l) => (l.length === 1 ? '1 item' : `${l.length} items`)))}</span>

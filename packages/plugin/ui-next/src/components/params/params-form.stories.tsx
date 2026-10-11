@@ -15,6 +15,7 @@ import { story } from '../../_stories/story-root.js';
 import { ParamsFormModel } from '../../forms/params-form.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { TextInput } from '../text-input/text-input.js';
+import { installTooltips } from '../tooltip/tooltip.js';
 import { ParamsForm } from './params-form.js';
 
 /**
@@ -66,7 +67,8 @@ function Surfaces(props: { params: PD.Params; width?: number; filter?: boolean }
     );
   };
   return (
-    <div style={surfaces}>
+    // The app's tooltips (a long label's full text when it is cut off), as the shell installs them.
+    <div style={surfaces} ref={(el: HTMLElement) => installTooltips(el)}>
       {block('On a panel', 'var(--msp-color-panel)', '8px 8px')}
       {block('In a well (an open action, a section)', 'var(--msp-color-well)', '4px 8px 8px')}
     </div>
