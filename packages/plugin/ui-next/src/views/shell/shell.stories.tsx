@@ -460,7 +460,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
       id: 'expand',
       place: 'canvas',
       group: 'canvas',
-      icon: 'maximize',
+      icon: 'maximize-2',
       title: 'Expand',
       run: () => status.post('Expanded'),
     },

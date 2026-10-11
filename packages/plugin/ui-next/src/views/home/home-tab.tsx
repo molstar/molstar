@@ -11,8 +11,9 @@ import { formatChord } from '../../commands/keys.js';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { ParamsForm } from '../../components/params/params-form.js';
+import { TextInput } from '../../components/text-input/text-input.js';
 import { For, Show } from '../../dom/control-flow.js';
-import type { HomeAction, HomeModel } from '../../model/home.js';
+import type { HomeAction, HomeModel, RemoteStatesModel } from '../../model/home.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/home-tab.module.css.js';
 
@@ -52,6 +53,7 @@ export function HomeTab(props: HomeTabProps) {
           </section>
         )}
       </Show>
+      {home.remoteStates ? <RemoteStates model={home.remoteStates} /> : null}
       <button type="button" class={classes.hint} onClick={() => props.onOpenCommandMenu?.()}>
         <kbd>{formatChord({ key: 'k', mod: true })}</kbd>
         <span>Search every command</span>
@@ -140,5 +142,46 @@ function ActionBlock(props: { action: HomeAction; open: boolean }) {
         )}
       </Show>
     </div>
+  );
+}
+
+/** Sessions on a state server: the list (newest first), the server, refresh. */
+function RemoteStates(props: { model: RemoteStatesModel }) {
+  const { model } = props;
+  return (
+    <section class={classes.group} aria-label="Remote states">
+      <div class={classes.captionRow}>
+        <h3 class={classes.caption}>Remote states</h3>
+        <Button
+          size="sm"
+          variant="ghost"
+          icon={
+            <Show when={model.loading} fallback={() => <Icon name="rotate-ccw" />}>
+              {() => <Icon name="loader-circle" class={classes.spin} />}
+            </Show>
+          }
+          title="Refresh"
+          onClick={() => model.refresh()}
+        />
+      </div>
+      <For each={model.states} key={(r) => r.id} fallback={() => <p class={classes.none}>No states on this server.</p>}>
+        {(state) => (
+          <button type="button" class={classes.recent} onClick={() => model.open(state.id)}>
+            <Icon name="history" size={16} />
+            <span class={classes.recentLabel}>{state.label}</span>
+            <span class={classes.recentDescription}>{state.date}</span>
+          </button>
+        )}
+      </For>
+      <label class={classes.server}>
+        <span>Server</span>
+        <TextInput
+          size="sm"
+          aria-label="State server URL"
+          value={model.serverUrl}
+          onSubmit={(v) => model.setServerUrl(v)}
+        />
+      </label>
+    </section>
   );
 }

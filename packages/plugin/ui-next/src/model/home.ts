@@ -38,6 +38,27 @@ export interface RecentEntry {
   open(): void;
 }
 
+/** A session saved on a state server, to open in one click. */
+export interface RemoteState {
+  id: string;
+  label: string;
+  /** When it was saved ("Sun, 11 Oct 2026 09:05"). */
+  date?: string;
+}
+
+/**
+ * Sessions on a state server (Mol*'s Remote States). Optional: present only when the spec enables it (a feature flag,
+ * off by default), so apps that do not run a state server never show it.
+ */
+export interface RemoteStatesModel {
+  serverUrl: ReadonlyState<string>;
+  setServerUrl(url: string): void;
+  states: ReadonlyState<readonly RemoteState[]>;
+  loading: ReadonlyState<boolean>;
+  refresh(): void;
+  open(id: string): void;
+}
+
 export interface HomeModel {
   /** The root's applicable actions, the most used first. */
   actions: ReadonlyState<readonly HomeAction[]>;
@@ -46,4 +67,6 @@ export interface HomeModel {
   formats: readonly string[];
   /** Files picked or dropped: opened with the plugin's file-format detection. */
   openFiles(files: readonly File[]): void;
+  /** Sessions on a state server; absent unless the spec turns remote states on. */
+  remoteStates?: RemoteStatesModel;
 }

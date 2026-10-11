@@ -170,7 +170,7 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
       icon: 'axis-3d',
       run: () => done('Axes oriented'),
     },
-    { id: 'view.expand', title: 'Expand viewport', category: 'View', icon: 'maximize', run: () => done('Expanded') },
+    { id: 'view.expand', title: 'Expand viewport', category: 'View', icon: 'maximize-2', run: () => done('Expanded') },
     {
       id: 'view.illumination',
       title: 'Toggle illumination',

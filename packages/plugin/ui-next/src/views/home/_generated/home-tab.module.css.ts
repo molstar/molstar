@@ -16,6 +16,7 @@ export const classes = {
   'actionHeader': 'msp-home-home-tab-actionHeader',
   'actionTitle': 'msp-home-home-tab-actionTitle',
   'caption': 'msp-home-home-tab-caption',
+  'captionRow': 'msp-home-home-tab-captionRow',
   'chevron': 'msp-home-home-tab-chevron',
   'drop': 'msp-home-home-tab-drop',
   'dropHint': 'msp-home-home-tab-dropHint',
@@ -24,9 +25,11 @@ export const classes = {
   'group': 'msp-home-home-tab-group',
   'hint': 'msp-home-home-tab-hint',
   'home': 'msp-home-home-tab-home',
+  'none': 'msp-home-home-tab-none',
   'recent': 'msp-home-home-tab-recent',
   'recentDescription': 'msp-home-home-tab-recentDescription',
   'recentLabel': 'msp-home-home-tab-recentLabel',
+  'server': 'msp-home-home-tab-server',
   'spin': 'msp-home-home-tab-spin',
 } as const;
 
@@ -34,7 +37,7 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
 .msp-home-home-tab-home {
   align-content: start;
   gap: var(--msp-space-4);
-  padding: var(--msp-space-1) var(--msp-space-3) var(--msp-space-4);
+  padding: 0 var(--msp-space-3) var(--msp-space-3);
   font-size: var(--msp-font-size-sm);
   display: grid;
 }
@@ -216,6 +219,30 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
   to {
     transform: rotate(360deg);
   }
+}
+
+.msp-home-home-tab-captionRow {
+  padding-right: var(--msp-space-1);
+  justify-content: space-between;
+  align-items: center;
+  display: flex;
+}
+
+.msp-home-home-tab-none {
+  padding: var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  margin: 0;
+}
+
+.msp-home-home-tab-server {
+  align-items: center;
+  gap: var(--msp-space-3);
+  padding: var(--msp-space-1) var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  grid-template-columns: auto minmax(0, 1fr);
+  display: grid;
 }
 }
 `);

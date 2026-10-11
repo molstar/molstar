@@ -20,7 +20,7 @@ export const classes = {
 defineStyles('views/shell/section-list.module.css', `@layer msp.components {
 .msp-shell-section-list-list {
   gap: var(--msp-space-1);
-  padding: var(--msp-space-2);
+  padding: 0 var(--msp-space-3) var(--msp-space-3);
   display: grid;
 }
 

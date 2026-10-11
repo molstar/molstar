@@ -19,7 +19,7 @@ export const classes = {
 
 defineStyles('views/shell/log-view.module.css', `@layer msp.components {
 .msp-shell-log-view-log {
-  padding: var(--msp-space-2);
+  padding: 0 var(--msp-space-3) var(--msp-space-3);
   font-size: var(--msp-font-size-sm);
   display: grid;
 }

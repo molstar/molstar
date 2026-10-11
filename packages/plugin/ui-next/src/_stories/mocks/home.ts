@@ -6,7 +6,7 @@
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ParamsFormModel } from '../../forms/params-form.js';
-import type { HomeAction, HomeModel, RecentEntry } from '../../model/home.js';
+import type { HomeAction, HomeModel, RecentEntry, RemoteState, RemoteStatesModel } from '../../model/home.js';
 import { observableState } from '../../reactive/observable-state.js';
 
 // The root's state actions, shaped like Mol*'s (DownloadStructure, DownloadDensity, LoadTrajectory, OpenSession): the
@@ -127,7 +127,10 @@ const OpenSession = {
 };
 
 /** Home for the stories: the root actions with forms, a few recent entries; applying posts what would happen. */
-export function mockHome(post: (text: string, kind?: 'info' | 'success') => void): HomeModel {
+export function mockHome(
+  post: (text: string, kind?: 'info' | 'success') => void,
+  options: { remoteStates?: boolean } = {},
+): HomeModel {
   const busy = observableState(false);
   const action = (
     id: string,
@@ -186,6 +189,33 @@ export function mockHome(post: (text: string, kind?: 'info' | 'success') => void
       recent('af-q8w3k0', 'AF-Q8W3K0-F1', 'AlphaFold DB · last week', 'atom'),
     ]).asReadonly,
     formats: ['mmCIF', 'BinaryCIF', 'PDB', 'CCP4', 'MRC', 'MOLX', 'MVSJ'],
+    remoteStates: options.remoteStates ? mockRemoteStates(post) : undefined,
     openFiles: (files) => post(`Opening ${files.map((f) => f.name).join(', ')}…`),
+  };
+}
+
+/** A state server with a few saved sessions (Mol*'s Remote States). */
+function mockRemoteStates(post: (text: string) => void): RemoteStatesModel {
+  const serverUrl = observableState('https://webchem.ncbr.muni.cz/molstar-state');
+  const loading = observableState(false);
+  const states = observableState<readonly RemoteState[]>([
+    { id: '1', label: 'Zika + EM', date: 'Sun, 11 Oct 2026 09:05' },
+    { id: '2', label: 'P-450 superposition & validation', date: 'Fri, 9 Oct 2026 16:40' },
+    { id: '3', label: 'NPC', date: 'Mon, 5 Oct 2026 11:12' },
+    { id: '4', label: '1RB8 assembly symmetry', date: 'Thu, 1 Oct 2026 08:30' },
+  ]);
+  return {
+    serverUrl: serverUrl.asReadonly,
+    setServerUrl: (url) => {
+      serverUrl.set(url);
+      post(`State server: ${url}`);
+    },
+    states: states.asReadonly,
+    loading: loading.asReadonly,
+    refresh: () => {
+      loading.set(true);
+      setTimeout(() => loading.set(false), 800);
+    },
+    open: (id) => post(`Opening "${states.value.find((s) => s.id === id)?.label}"…`),
   };
 }

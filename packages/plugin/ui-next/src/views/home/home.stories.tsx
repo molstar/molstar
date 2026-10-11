@@ -25,3 +25,13 @@ export const Default: StoryObj = {
       </div>
     )),
 };
+
+/** With remote states (a feature flag in the spec, off by default): sessions on a state server. */
+export const WithRemoteStates: StoryObj = {
+  render: () =>
+    story(() => (
+      <div style={frame}>
+        <HomeTab home={mockHome((text) => console.info(text), { remoteStates: true })} />
+      </div>
+    )),
+};

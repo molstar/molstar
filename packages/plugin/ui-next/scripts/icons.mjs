@@ -37,6 +37,7 @@ const ICONS = [
   'save',
   'mouse-pointer-click',
   'maximize',
+  'maximize-2',
   'minimize',
   'fullscreen',
   'eye',

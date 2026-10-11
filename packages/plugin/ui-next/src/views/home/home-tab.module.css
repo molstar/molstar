@@ -8,7 +8,7 @@
   display: grid;
   align-content: start;
   gap: var(--msp-space-4);
-  padding: var(--msp-space-1) var(--msp-space-3) var(--msp-space-4);
+  padding: 0 var(--msp-space-3) var(--msp-space-3);
   font-size: var(--msp-font-size-sm);
 }
 
@@ -194,4 +194,29 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.captionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: var(--msp-space-1);
+}
+
+.none {
+  margin: 0;
+  padding: var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+/* The state server: a quiet field under the list; Enter applies it. */
+.server {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--msp-space-3);
+  padding: var(--msp-space-1) var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
 }
