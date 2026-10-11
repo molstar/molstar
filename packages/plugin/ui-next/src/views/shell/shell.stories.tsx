@@ -6,12 +6,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { map } from 'rxjs';
 import { story } from '../../_stories/story-root.js';
 import { formatChord } from '../../commands/keys.js';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
+import { ParamsForm } from '../../components/params/params-form.js';
+import { ParamsFormModel } from '../../forms/params-form.js';
 import { For } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { onCleanup } from '../../dom/scope.js';
@@ -22,6 +25,7 @@ import type { HoverLabelModel, SnapshotStepperModel, TrajectoryControlsModel } f
 import { ShellModel } from '../../shell/shell.js';
 import { StatusModel } from '../../shell/status.js';
 import { HoverLabel } from '../canvas/hover-label.js';
+import { type CanvasMode, ModeSwitch } from '../canvas/mode-switch.js';
 import { SnapshotPanel, Timeline } from '../canvas/playback.js';
 import { SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
@@ -276,11 +280,29 @@ function mockExport(shell: ShellModel, status: StatusModel) {
   ]);
 }
 
+const AssemblySymmetryParams = {
+  symmetry: PD.Select('global-c2', [
+    ['global-c2', 'Global · C2 · homo 2-mer'],
+    ['local-c3', 'Local · C3 · chains B–D'],
+  ]),
+  axes: PD.Boolean(true, { label: 'Show axes' }),
+  color: PD.Boolean(false, { label: 'Color by symmetry' }),
+};
+
+const Granularities = [
+  ['residue', 'Residue'],
+  ['chain', 'Chain'],
+  ['element', 'Atom'],
+  ['entity', 'Entity'],
+  ['structure', 'Structure'],
+] as const;
+
 /** A mock of everything around the canvas, with the shell's real model. */
 function mockShell(options: { loaded: boolean }) {
   const shell = new ShellModel();
   const status = new StatusModel();
-  const selectionMode = observableState(false);
+  const canvasMode = observableState<CanvasMode>('interact');
+  const granularity = observableState('residue');
   const illumination = observableState(false);
   const snapshots = observableState<readonly string[]>(['Overview', 'Active site']);
   const hoverLines = observableState<readonly string[]>([]);
@@ -293,14 +315,9 @@ function mockShell(options: { loaded: boolean }) {
       slot: 'inspector:structure',
       title: 'Assembly symmetry',
       icon: 'orbit',
-      render: domView(() => (
-        <div style="display: grid; gap: 8px">
-          <span style={muted}>C1 · no symmetry in assembly 1</span>
-          <Button size="sm" icon={<Icon name="sparkles" />}>
-            Compute symmetry
-          </Button>
-        </div>
-      )),
+      // The RCSB extension's section: annotated symmetry (from RCSB PDB), nothing to compute: which one, its axes,
+      // coloring by it. In the plugin it only appears when the assembly has symmetry.
+      render: domView(() => <ParamsForm form={new ParamsFormModel(AssemblySymmetryParams)} />),
     },
   ]);
   const hover: HoverLabelModel = { lines: hoverLines.asReadonly };
@@ -466,14 +483,6 @@ function mockShell(options: { loaded: boolean }) {
     { id: 'save', group: 'export', icon: 'save', title: 'Save state (snapshots)', overlay: 'save-state' },
     { id: 'export', group: 'export', icon: 'download', title: 'Export…', overlay: 'export' },
     {
-      id: 'select',
-      group: 'canvas',
-      icon: 'mouse-pointer-click',
-      title: 'Selection mode',
-      pressed: selectionMode.asReadonly,
-      run: () => selectionMode.set(!selectionMode.value),
-    },
-    {
       id: 'illumination',
       group: 'canvas',
       icon: 'lightbulb',
@@ -502,11 +511,34 @@ function mockShell(options: { loaded: boolean }) {
     status.setTasks([{ id: 'surface', label: 'Computing surface', progress: 0.4, abort: () => status.setTasks([]) }]);
   }
 
-  return { shell, status, hover, hoverLines, snapshots: mockSnapshots(status), trajectory: mockTrajectory() };
+  // The canvas mode lives on the canvas, not in the rail: what a click does is visible before the first click.
+  const modeSwitch = (
+    <ModeSwitch
+      mode={canvasMode.asReadonly}
+      setMode={(m) => {
+        if (m === canvasMode.value) return;
+        canvasMode.set(m);
+        status.post(m === 'select' ? 'Select: click to select, Shift+click to extend' : 'Interact: click to focus');
+      }}
+      granularity={granularity.asReadonly}
+      granularities={Granularities}
+      setGranularity={(g) => granularity.set(g)}
+    />
+  );
+
+  return {
+    shell,
+    status,
+    hover,
+    hoverLines,
+    modeSwitch,
+    snapshots: mockSnapshots(status),
+    trajectory: mockTrajectory(),
+  };
 }
 
 function ShellStory(props: { loaded: boolean; background?: string; openExportAt?: string }) {
-  const { shell, status, hover, hoverLines, snapshots, trajectory } = mockShell(props);
+  const { shell, status, hover, hoverLines, modeSwitch, snapshots, trajectory } = mockShell(props);
   shell.mount();
   status.mount();
   if (props.openExportAt) shell.openOverlay('export', undefined, props.openExportAt);
@@ -533,6 +565,7 @@ function ShellStory(props: { loaded: boolean; background?: string; openExportAt?
         props.loaded ? (
           <>
             <SnapshotPanel model={snapshots} />
+            {modeSwitch}
             <HoverLabel model={hover} area={() => document.querySelector('main')} />
           </>
         ) : null

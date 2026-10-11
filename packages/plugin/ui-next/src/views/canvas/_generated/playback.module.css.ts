@@ -30,6 +30,10 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
   position: absolute;
 }
 
+:where([data-mode="compact"]) .msp-canvas-playback-cluster {
+  width: min(320px, 100% - 180px);
+}
+
 .msp-canvas-playback-card {
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);

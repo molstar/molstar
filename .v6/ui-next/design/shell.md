@@ -61,13 +61,12 @@ it is where contributions (built-in and extension UI) are placed.
   content carries its own header (the sequence: structure and chain selectors, collapse), and collapsed it is a slim bar
   that expands on click.
 - **Rail sections.** The rail is grouped into glass blocks separated by gaps (no captions), top to bottom: the command
-  palette (the main way in), the tab strip, then the toolbar's sections (`canvas`: reset camera, selection mode,
-  illumination, XR, expand; `export`: save state, Export). Toolbar items name their section by id (`group`, `order`
-  within it). Extensions do **not** add rail buttons for their features (the rail would grow with every extension): they
-  contribute **sections** to a panel's slot instead, e.g. MP4, geometry and model export as sections of the Export panel
-  (`export` slot), next to the built-in Image and Session & state sections. Everything is also a command, and a command
-  can open a panel at a section (`openOverlay('export', anchor, 'animation')`), so the palette finds "mp4" and lands on
-  it.
+  palette (the main way in), the tab strip, then the toolbar's sections (`canvas`: reset camera, illumination, XR,
+  expand; `export`: save state, Export). Toolbar items name their section by id (`group`, `order` within it). Extensions
+  do **not** add rail buttons for their features (the rail would grow with every extension): they contribute
+  **sections** to a panel's slot instead, e.g. MP4, geometry and model export as sections of the Export panel (`export`
+  slot), next to the built-in Image and Session & state sections. Everything is also a command, and a command can open a
+  panel at a section (`openOverlay('export', anchor, 'animation')`), so the palette finds "mp4" and lands on it.
 - **Canvas toolbar.** A vertical strip of command buttons (palette, reset camera, screenshot, save state, selection
   mode, illumination, XR, expand/fullscreen, plus contributed items), each gated by its command's `when` and
   `PluginConfig.Viewport.*`. A button either runs its command or opens an overlay anchored to it.
@@ -210,10 +209,19 @@ Today's settings panel lists every canvas parameter at one level with truncated 
 - **Full labels**: labels sit above the control when they do not fit, with the PD description as a hint.
 - **Reset** per group and for all.
 
-### 4.6 Selection bar
+### 4.6 Canvas mode and selection bar
 
-Shown in selection mode at the bottom of the canvas: granularity, mode (add/remove/intersect/replace), the `select`
-command group as an inline palette, color, create component, undo, exit ([commands.md](commands.md) §10.3).
+What a click on the canvas does is a mode, and the difference matters, so the mode is always visible rather than a rail
+toggle: a two-segment glass switch at the top right of the canvas, **Interact | Select**
+(`views/canvas/mode-switch.tsx`), below what floats at the top and beside the rail or the open panel. Interact: drag
+rotates, a click focuses. Select: a click selects (Shift extends), drag still rotates. The Select segment takes the
+accent while on, and the switch then shows what a click selects (Residue ▾, the granularity) next to it. Each segment's
+title explains the mode, switching posts a one-line hint to the status line, and the segments are labelled on desktop,
+icons only in compact. The mode is also a command (`selection-mode.toggle`, with a keybinding) and Escape leaves Select.
+
+In Select, the selection bar shows at the bottom of the canvas: mode (add/remove/intersect/replace), the `select`
+command group as an inline palette, color, create component, undo ([commands.md](commands.md) §10.3). Granularity and
+leaving the mode live on the switch.
 
 ### 4.7 Icons
 

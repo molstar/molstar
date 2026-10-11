@@ -14,6 +14,11 @@
   width: min(320px, calc(100% - 96px));
 }
 
+/* A narrow shell: the canvas mode switch shares the top row, the snapshots end before it. */
+:where([data-mode="compact"]) .cluster {
+  width: min(320px, calc(100% - 96px - 84px));
+}
+
 .card {
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);

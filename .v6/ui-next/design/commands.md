@@ -298,15 +298,16 @@ Selection ›
 
 ### 10.3 The selection bar
 
-In selection mode the viewport shows a slim bar instead of today's toolbar:
+In selection mode the viewport shows a slim bar instead of today's toolbar (granularity and leaving the mode are on the
+canvas mode switch, [shell.md](shell.md) §4.6):
 
 ```
-[ Residue ▾ ]  [ + − ∩ = ]  [ Select…  type a query, residues, or :expression        ]  [ 🖌 ] [ ⧉ ] [ ↶ ] [ ✕ ]
- granularity    mode         the `select` group as an inline palette                      color  comp.  undo  exit
+[ + − ∩ = ]  [ Select…  type a query, residues, or :expression        ]  [ 🖌 ] [ ⧉ ] [ ↶ ]
+ mode         the `select` group as an inline palette                      color  comp.  undo
 ```
 
 - The input is the palette scoped to the `select` group, anchored to the bar: typing filters, Enter selects, the
   breadcrumb shows nesting. The mode control is the group's shared argument.
-- The buttons open `selection.color`, `selection.create-component`, run undo, and leave selection mode; each shows its
-  keybinding in the tooltip.
+- The buttons open `selection.color`, `selection.create-component`, and run undo; each shows its keybinding in the
+  tooltip.
 - Help moves to the Help dialog's selection section; the bar's `?` is dropped.

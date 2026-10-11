@@ -1,0 +1,83 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Top right of the canvas, below what floats at the top, beside the rail or the open panel. */
+.switch {
+  position: absolute;
+  top: var(--msp-canvas-top-inset, var(--msp-space-4));
+  right: var(--msp-canvas-right-inset, var(--msp-space-4));
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 34px;
+  padding: 3px;
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-bg);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+  transition: right var(--msp-motion-base) var(--msp-ease);
+}
+
+.segment {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 100%;
+  padding: 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  transition:
+    background-color var(--msp-motion-fast) var(--msp-ease),
+    color var(--msp-motion-fast) var(--msp-ease);
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+
+  &[aria-pressed="true"] {
+    background: var(--msp-color-control);
+    color: var(--msp-color-text);
+  }
+}
+
+/* Selecting is the mode that changes what a click does: the accent says so. */
+.switch[data-canvas-mode="select"] .segment[aria-pressed="true"] {
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 82%);
+  color: var(--msp-color-accent);
+}
+
+.granularity {
+  height: 100%;
+  padding: 0 var(--msp-space-2);
+  border: 0;
+  border-radius: var(--msp-radius-md);
+  background: transparent;
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  animation: granularity-in var(--msp-motion-base) var(--msp-ease);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+@keyframes granularity-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+}
+
+/* A narrow shell: icons only (the titles explain), beside the toolbar column; the panel is a bottom sheet. */
+:where([data-mode="compact"]) .switch {
+  right: var(--msp-canvas-rail-inset, var(--msp-space-4));
+}
+
+:where([data-mode="compact"]) .label {
+  display: none;
+}
