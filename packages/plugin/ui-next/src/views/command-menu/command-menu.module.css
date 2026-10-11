@@ -26,15 +26,16 @@
 .menu {
   display: flex;
   flex-direction: column;
-  width: min(600px, 100%);
-  max-height: min(520px, 76vh);
+  width: min(560px, 100%);
+  max-height: min(480px, 76vh);
   overflow: hidden;
   border-radius: var(--msp-radius-lg);
   background: var(--msp-color-panel);
   box-shadow:
     var(--msp-glass-shadow),
     0 12px 32px rgb(0 0 0 / 0.12);
-  font-size: var(--msp-font-size-md);
+  /* The app's density: 12px text, rows like the panels' (28px). */
+  font-size: var(--msp-font-size-sm);
   animation: menu-in var(--msp-motion-base) var(--msp-ease);
 }
 
@@ -50,7 +51,8 @@
   display: flex;
   align-items: center;
   gap: var(--msp-space-3);
-  height: 48px;
+  /* As tall as a panel's header. */
+  height: 40px;
   padding: 0 var(--msp-space-4);
   border-bottom: 1px solid var(--msp-glass-edge);
 }
@@ -68,6 +70,8 @@
   background: transparent;
   color: var(--msp-color-text);
   font: inherit;
+  /* What is typed reads a step larger than the rows. */
+  font-size: var(--msp-font-size-md);
   outline: none;
 
   &::placeholder {
@@ -133,11 +137,11 @@
 
 .row {
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto auto;
+  grid-template-columns: 16px minmax(0, 1fr) auto auto;
   grid-auto-flow: column;
   align-items: center;
   gap: var(--msp-space-3);
-  height: 34px;
+  height: 28px;
   padding: 0 var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text);

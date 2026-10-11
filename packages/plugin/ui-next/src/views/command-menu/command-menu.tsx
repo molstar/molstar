@@ -256,7 +256,7 @@ function ListMode(props: CommandMenuProps) {
   return (
     <>
       <div class={classes.head}>
-        <Icon name="search" size={16} class={classes.headIcon} />
+        <Icon name="search" size={15} class={classes.headIcon} />
         <For each={group.asReadonly.pipe(map((g) => manager.groupPath(g)))}>
           {(g) => (
             <button type="button" class={classes.crumb} onClick={() => enter(g.id)}>
@@ -372,7 +372,7 @@ function GroupRow(props: {
       onPointerMove={() => props.onHover()}
     >
       <span class={classes.rowIcon}>
-        <Icon name={props.group.icon ?? 'list-tree'} size={16} />
+        <Icon name={props.group.icon ?? 'list-tree'} size={15} />
       </span>
       <span class={classes.rowTitle}>{props.group.title}</span>
       <span class={classes.rowMeta}>{path.join(' › ')}</span>
@@ -393,7 +393,7 @@ function ItemRow(props: { item: CommandMenuItem; selected: Observable<boolean>; 
       onClick={() => props.onPick()}
       onPointerMove={() => props.onHover()}
     >
-      <span class={classes.rowIcon}>{item.icon ? <Icon name={item.icon} size={16} /> : null}</span>
+      <span class={classes.rowIcon}>{item.icon ? <Icon name={item.icon} size={15} /> : null}</span>
       <span class={classes.rowTitle}>{item.label}</span>
       <span class={classes.rowMeta}>{item.detail}</span>
     </div>
@@ -425,7 +425,7 @@ function CommandRow(props: {
       onClick={() => props.onPick()}
       onPointerMove={() => props.onHover()}
     >
-      <span class={classes.rowIcon}>{c.icon ? <Icon name={c.icon} size={16} /> : null}</span>
+      <span class={classes.rowIcon}>{c.icon ? <Icon name={c.icon} size={15} /> : null}</span>
       <span class={classes.rowTitle}>
         {props.query.pipe(map((q) => highlight(title, tail ? '' : q)))}
         {tail ? <span class={classes.tail}>{tail}</span> : null}

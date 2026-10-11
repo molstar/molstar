@@ -63,11 +63,11 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
 .msp-command-menu-menu {
   border-radius: var(--msp-radius-lg);
   background: var(--msp-color-panel);
-  width: min(600px, 100%);
-  max-height: min(520px, 76vh);
+  width: min(560px, 100%);
+  max-height: min(480px, 76vh);
   box-shadow: var(--msp-glass-shadow),
     0 12px 32px #0000001f;
-  font-size: var(--msp-font-size-md);
+  font-size: var(--msp-font-size-sm);
   animation: msp-command-menu-menu-in var(--msp-motion-base) var(--msp-ease);
   flex-direction: column;
   display: flex;
@@ -84,7 +84,7 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
 .msp-command-menu-head {
   align-items: center;
   gap: var(--msp-space-3);
-  height: 48px;
+  height: 40px;
   padding: 0 var(--msp-space-4);
   border-bottom: 1px solid var(--msp-glass-edge);
   flex: none;
@@ -101,6 +101,7 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   height: 100%;
   color: var(--msp-color-text);
   font: inherit;
+  font-size: var(--msp-font-size-md);
   background: none;
   border: 0;
   outline: none;
@@ -168,12 +169,12 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
 .msp-command-menu-row {
   align-items: center;
   gap: var(--msp-space-3);
-  height: 34px;
+  height: 28px;
   padding: 0 var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text);
   cursor: default;
-  grid-template-columns: 20px minmax(0, 1fr) auto auto;
+  grid-template-columns: 16px minmax(0, 1fr) auto auto;
   grid-auto-flow: column;
   display: grid;
 

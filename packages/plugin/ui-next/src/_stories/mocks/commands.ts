@@ -493,7 +493,7 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
     { id: 'select', title: 'Select', icon: 'mouse-pointer-click', order: 0 },
     { id: 'select.query', title: 'By query', icon: 'list-tree', parent: 'select', order: 0 },
     { id: 'select.expression', title: 'Expression', icon: 'text-cursor-input', parent: 'select', order: 1 },
-    { id: 'selection', title: 'Selection', icon: 'paintbrush', order: 1 },
+    { id: 'selection', title: 'Selection', icon: 'palette', order: 1 },
     { id: 'camera', title: 'Camera', icon: 'focus', order: 2 },
     { id: 'export', title: 'Export', icon: 'download', order: 3 },
   ]);
