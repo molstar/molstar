@@ -32,6 +32,7 @@ export const classes = {
 
 defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
 .msp-structure-scene-tree-tree {
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
@@ -44,6 +45,7 @@ defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
 .msp-structure-scene-tree-row {
   align-items: center;
   gap: var(--msp-space-2);
+  min-width: 0;
   height: 26px;
   padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * 14px);
   border-radius: var(--msp-radius-md);
@@ -70,6 +72,7 @@ defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
   height: 18px;
   color: var(--msp-color-text-subtle);
   transition: transform var(--msp-motion-fast) var(--msp-ease);
+  flex: none;
   place-items: center;
   display: grid;
 
@@ -88,12 +91,14 @@ defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
 
 .msp-structure-scene-tree-kind {
   color: var(--msp-color-text-muted);
+  flex: none;
 }
 
 .msp-structure-scene-tree-label {
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: none;
+  flex: 0 auto;
+  min-width: 3ch;
   max-width: 60%;
   font-weight: 500;
   overflow: hidden;
@@ -110,6 +115,7 @@ defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
 }
 
 .msp-structure-scene-tree-actions {
+  flex: none;
   gap: 1px;
   display: flex;
 }

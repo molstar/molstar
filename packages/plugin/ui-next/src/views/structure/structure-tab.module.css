@@ -13,6 +13,7 @@
      12px. */
   padding: 0 var(--msp-space-2) var(--msp-space-2);
   font-size: var(--msp-font-size-sm);
+  container-type: inline-size;
 }
 
 /* The tree takes what the inspector leaves and scrolls. */
@@ -26,6 +27,24 @@
   flex: none;
   display: flex;
   gap: var(--msp-space-1);
+  min-width: 0;
+}
+
+/* A narrow panel keeps the header's buttons as icons: the labels go (still read out), nothing falls off the edge. */
+@container (width < 296px) {
+  .actions > button:has(.actionLabel) {
+    width: 24px;
+    padding: 0;
+  }
+
+  .actionLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 .inspector {
@@ -173,8 +192,8 @@
 /* The options button sits at the end of the header row. */
 .optionsButton {
   margin-left: auto;
-  /* Level with the header's ✕ (8px from the panel's edge: the 4px inset and 4px more). */
-  margin-right: var(--msp-space-1);
+  /* Level with the header's ✕ (8px from the panel's edge: the tab's 4px inset and 4px more). */
+  margin-right: var(--msp-space-2);
 }
 
 .options {

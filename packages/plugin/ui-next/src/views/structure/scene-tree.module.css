@@ -6,6 +6,8 @@
 
 .tree {
   display: grid;
+  /* Rows never wider than the panel: the label and description give way, the actions stay in view. */
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .empty {
@@ -18,6 +20,7 @@
   display: flex;
   align-items: center;
   gap: var(--msp-space-2);
+  min-width: 0;
   height: 26px;
   padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * 14px);
   border-radius: var(--msp-radius-md);
@@ -38,6 +41,7 @@
 }
 
 .expander {
+  flex: none;
   display: grid;
   place-items: center;
   width: 18px;
@@ -60,11 +64,13 @@
 }
 
 .kind {
+  flex: none;
   color: var(--msp-color-text-muted);
 }
 
 .label {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 3ch;
   max-width: 60%;
   overflow: hidden;
   font-weight: 500;
@@ -83,6 +89,7 @@
 }
 
 .actions {
+  flex: none;
   display: flex;
   gap: 1px;
 }

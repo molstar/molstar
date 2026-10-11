@@ -93,31 +93,31 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-range {
+  width: calc(100% - var(--msp-space-3));
+  height: 16px;
+  margin: 0 0 0 var(--msp-space-3);
   -webkit-appearance: none;
   appearance: none;
   cursor: pointer;
   background: none;
-  width: 100%;
-  height: 16px;
-  margin: 0;
 
   &::-webkit-slider-runnable-track {
     background: linear-gradient(to right,
       var(--msp-color-text-muted) var(--msp-progress, 0%),
       var(--msp-color-border-strong) var(--msp-progress, 0%));
-    border-radius: 2px;
-    height: 4px;
+    border-radius: 1.5px;
+    height: 3px;
   }
 
   &::-webkit-slider-thumb {
     background: var(--msp-color-text);
     -webkit-appearance: none;
     appearance: none;
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
     transition: transform var(--msp-motion-fast) var(--msp-ease);
     border-radius: 50%;
-    margin-top: -4px;
+    margin-top: -3.5px;
   }
 
   &:hover::-webkit-slider-thumb, &:active::-webkit-slider-thumb {
@@ -126,22 +126,22 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 
   &::-moz-range-track {
     background: var(--msp-color-border-strong);
-    border-radius: 2px;
-    height: 4px;
+    border-radius: 1.5px;
+    height: 3px;
   }
 
   &::-moz-range-progress {
     background: var(--msp-color-text-muted);
-    border-radius: 2px;
-    height: 4px;
+    border-radius: 1.5px;
+    height: 3px;
   }
 
   &::-moz-range-thumb {
     background: var(--msp-color-text);
     border: 0;
     border-radius: 50%;
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
   }
 
   &:focus-visible {
@@ -158,11 +158,13 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-switch {
+  width: 24px;
+  height: 14px;
+  margin-left: var(--msp-space-3);
   background: var(--msp-color-pressed);
-  width: 32px;
-  height: 18px;
   transition: background-color var(--msp-motion-fast) var(--msp-ease);
-  border-radius: 9px;
+  border-radius: 7px;
+  flex: none;
   position: relative;
 
   &[aria-checked="true"] {
@@ -177,8 +179,8 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 
 .msp-params-params-form-knob {
   background: var(--msp-color-bg);
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
   transition: transform var(--msp-motion-fast) var(--msp-ease);
   border-radius: 50%;
   position: absolute;
@@ -187,7 +189,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   box-shadow: 0 1px 1px #0000001f;
 
   [aria-checked="true"] > & {
-    transform: translateX(14px);
+    transform: translateX(10px);
   }
 }
 

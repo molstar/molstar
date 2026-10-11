@@ -9,6 +9,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'actionLabel': 'msp-structure-structure-tab-actionLabel',
   'actions': 'msp-structure-structure-tab-actions',
   'chevron': 'msp-structure-structure-tab-chevron',
   'fact': 'msp-structure-structure-tab-fact',
@@ -39,6 +40,7 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
   font-size: var(--msp-font-size-sm);
   flex-direction: column;
   display: flex;
+  container-type: inline-size;
 }
 
 .msp-structure-structure-tab-tree {
@@ -50,7 +52,24 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
 .msp-structure-structure-tab-actions {
   gap: var(--msp-space-1);
   flex: none;
+  min-width: 0;
   display: flex;
+}
+
+@container (width < 296px) {
+  .msp-structure-structure-tab-actions > button:has(.msp-structure-structure-tab-actionLabel) {
+    width: 24px;
+    padding: 0;
+  }
+
+  .msp-structure-structure-tab-actionLabel {
+    clip-path: inset(50%);
+    white-space: nowrap;
+    width: 1px;
+    height: 1px;
+    position: absolute;
+    overflow: hidden;
+  }
 }
 
 .msp-structure-structure-tab-inspector {
@@ -192,7 +211,7 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
 
 .msp-structure-structure-tab-optionsButton {
   margin-left: auto;
-  margin-right: var(--msp-space-1);
+  margin-right: var(--msp-space-2);
 }
 
 .msp-structure-structure-tab-options {

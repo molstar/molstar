@@ -68,7 +68,7 @@ export function StructureTab(props: StructureTabProps) {
                 : props.onAction?.('preset')
           }
         >
-          Preset
+          <span class={classes.actionLabel}>Preset</span>
         </Button>
         <Button
           size="sm"
@@ -83,10 +83,10 @@ export function StructureTab(props: StructureTabProps) {
                 : props.onAction?.('styles')
           }
         >
-          Styles
+          <span class={classes.actionLabel}>Styles</span>
         </Button>
         <Button size="sm" variant="ghost" icon={<Icon name="plus" />} onClick={() => props.onAction?.('add')}>
-          Component
+          <span class={classes.actionLabel}>Component</span>
         </Button>
         {props.options ? (
           <Button
