@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Compiles every `.css` file under `src/` into a sibling `.css.ts` module that exports its class names (for
-// `*.module.css`) and registers its CSS with `styles/registry.ts`. The generated modules are committed, so tsc, Jest,
-// bundlers and browsers need no CSS support.
+// Compiles every `.css` file under `src/` into a module in the `_generated/` folder next to it (`x.css` →
+// `_generated/x.css.ts`) that exports its class names (for `*.module.css`) and registers its CSS with
+// `styles/registry.ts`. The generated modules are committed, so tsc, Jest, bundlers and browsers need no CSS support.
 //
 //   node scripts/css.mjs            regenerate everything
 //   node scripts/css.mjs --check    fail if a generated module is missing, stale or orphaned
@@ -27,11 +27,19 @@ const HEADER = `/**
  * @author David Sehnal <david.sehnal@gmail.com>
  */`;
 
+const GENERATED = '_generated';
+
+/** Where a CSS file's module goes. */
+function outputOf(file) {
+  return path.join(path.dirname(file), GENERATED, `${path.basename(file)}.ts`);
+}
+
 function listCss(dir = srcRoot, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) listCss(full, out);
-    else if (entry.name.endsWith('.css')) out.push(full);
+    if (entry.isDirectory()) {
+      if (entry.name !== GENERATED) listCss(full, out);
+    } else if (entry.name.endsWith('.css')) out.push(full);
   }
   return out;
 }
@@ -40,7 +48,7 @@ function listGenerated(dir = srcRoot, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) listGenerated(full, out);
-    else if (entry.name.endsWith('.css.ts')) out.push(full);
+    else if (path.basename(dir) === GENERATED && entry.name.endsWith('.css.ts')) out.push(full);
   }
   return out;
 }
@@ -68,7 +76,8 @@ export function compile(file) {
   });
   let css = result.code.toString().trim();
   if (isModule) css = `@layer msp.components {\n${css}\n}`;
-  let importPath = path.relative(path.dirname(file), registry).split(path.sep).join('/');
+  const out = outputOf(file);
+  let importPath = path.relative(path.dirname(out), registry).split(path.sep).join('/');
   if (!importPath.startsWith('.')) importPath = `./${importPath}`;
   const lines = [HEADER, '', `// Generated from ${path.basename(file)} by scripts/css.mjs; do not edit.`, ''];
   lines.push(`import { defineStyles } from '${importPath}';`, '');
@@ -79,7 +88,7 @@ export function compile(file) {
     lines.push('export const classes = {', ...classes, '} as const;', '');
   }
   lines.push(`defineStyles('${id}', \`${escapeTemplate(css)}\n\`);`, '');
-  return { out: `${file}.ts`, content: lines.join('\n'), prefix: isModule ? modulePrefix(file) : undefined };
+  return { out, content: lines.join('\n'), prefix: isModule ? modulePrefix(file) : undefined };
 }
 
 /** Regenerates (or, with `check`, verifies) all generated modules; returns the problems found. */
@@ -98,14 +107,26 @@ export function generateAll({ check = false } = {}) {
     const current = fs.existsSync(out) ? fs.readFileSync(out, 'utf8') : undefined;
     if (current === content) continue;
     if (check) problems.push(`${rel(out)} is ${current === undefined ? 'missing' : 'stale'}`);
-    else fs.writeFileSync(out, content);
+    else write(out, content);
   }
   for (const out of listGenerated()) {
     if (expected.has(out)) continue;
     if (check) problems.push(`${rel(out)} has no CSS file`);
-    else fs.rmSync(out);
+    else remove(out);
   }
   return problems;
+}
+
+function write(out, content) {
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  fs.writeFileSync(out, content);
+}
+
+/** Removes a generated module, and its `_generated` folder once empty. */
+function remove(out) {
+  fs.rmSync(out, { force: true });
+  const dir = path.dirname(out);
+  if (fs.existsSync(dir) && fs.readdirSync(dir).length === 0) fs.rmdirSync(dir);
 }
 
 function rel(file) {
@@ -117,9 +138,9 @@ export function updateFile(file) {
   if (!file.startsWith(srcRoot) || !file.endsWith('.css')) return;
   if (fs.existsSync(file)) {
     const { out, content } = compile(file);
-    if (!fs.existsSync(out) || fs.readFileSync(out, 'utf8') !== content) fs.writeFileSync(out, content);
-  } else if (fs.existsSync(`${file}.ts`)) {
-    fs.rmSync(`${file}.ts`);
+    if (!fs.existsSync(out) || fs.readFileSync(out, 'utf8') !== content) write(out, content);
+  } else {
+    remove(outputOf(file));
   }
 }
 

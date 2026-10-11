@@ -6,7 +6,7 @@
 
 // Generated from button.module.css by scripts/css.mjs; do not edit.
 
-import { defineStyles } from '../../styles/registry.js';
+import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'button': 'msp-button-button',

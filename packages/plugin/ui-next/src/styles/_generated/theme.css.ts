@@ -6,7 +6,7 @@
 
 // Generated from theme.css by scripts/css.mjs; do not edit.
 
-import { defineStyles } from './registry.js';
+import { defineStyles } from '../registry.js';
 
 defineStyles('styles/theme.css', `@layer msp.theme {
   :root, [data-msp-theme="light"] {

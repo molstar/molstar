@@ -19,7 +19,7 @@
       "!.v6/baselines",
       "!**/package-lock.json",
       "!**/npm-shrinkwrap.json",
-      "!**/*.css.ts"
+      "!**/_generated/**"
     ]
   },
   "formatter": {

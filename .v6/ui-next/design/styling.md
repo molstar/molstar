@@ -34,12 +34,13 @@ the default look stays recognisable. State-tree type-class colours and sequence 
 Implemented in `scripts/css.mjs` and `src/styles/registry.ts`. `tsc` leaves CSS imports untouched in `lib/`, which
 neither Node nor bundler-free browsers can load, so CSS is compiled into TypeScript:
 
-1. **Each `.css` file under `src/` gets a generated sibling `x.css.ts`** (committed, excluded from Biome). lightningcss
-   compiles it; for `*.module.css` it renames classes deterministically to `msp-<component>-<class>` (the file name,
-   with its folder when they differ; duplicates are an error) and wraps the result in `@layer msp.components`. The
-   module exports the typed class map (`classes`) and registers the CSS with `defineStyles(id, css)`.
-2. **Components import the generated module** (`import { classes } from './button.module.css.js'`), so a page carries
-   exactly the CSS of the components it imports.
+1. **Each `.css` file under `src/` gets a generated module `_generated/x.css.ts` in its folder** (committed, excluded
+   from Biome). lightningcss compiles it; for `*.module.css` it renames classes deterministically to
+   `msp-<component>-<class>` (the file name, with its folder when they differ; duplicates are an error) and wraps the
+   result in `@layer msp.components`. The module exports the typed class map (`classes`) and registers the CSS with
+   `defineStyles(id, css)`.
+2. **Components import the generated module** (`import { classes } from './_generated/button.module.css.js'`), so a page
+   carries exactly the CSS of the components it imports.
 3. **Elements adopt the styles.** On connect, every `MspElement` calls `adoptStyles(document)`: one constructed
    stylesheet per document (a `<style>` element where constructed sheets are unavailable), updated when more modules
    register (lazily loaded views). Top-level elements get `.msp-root`, which scopes the reset and the tokens. No
@@ -47,8 +48,8 @@ neither Node nor bundler-free browsers can load, so CSS is compiled into TypeScr
    one.
 4. **Tooling**: `pnpm styles` regenerates, `pnpm styles:check` fails on missing, stale or orphaned modules (for CI),
    `pnpm styles:watch` regenerates on change, and Storybook runs the same generator as a Vite plugin. Jest maps
-   `./x.css.js` to `./x.css.ts`. Edit the `.css` file, never the generated module; Biome formats `.css`, so regenerate
-   after formatting.
+   `./_generated/x.css.js` to `x.css.ts`. Edit the `.css` file, never the generated module; Biome formats `.css`, so
+   regenerate after formatting.
 
 Layers, lowest first: `msp.reset`, `msp.theme`, `msp.components`, `msp.overrides`. Themes are set with `data-msp-theme`
 (`light`, `dark`, `blue`, `auto`) on any element; derived tokens are recomputed wherever a theme is set, so a subtree

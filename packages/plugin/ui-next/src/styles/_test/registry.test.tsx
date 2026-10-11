@@ -7,7 +7,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { classes } from '../../components/button/button.module.css.js';
+import { classes } from '../../components/button/_generated/button.module.css.js';
 import { defineElements, MspElement } from '../../dom/element.js';
 import { defineStyles, styleText } from '../registry.js';
 

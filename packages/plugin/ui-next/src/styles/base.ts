@@ -5,5 +5,5 @@
  */
 
 // The global styles every ui-next root needs: the reset and the theme tokens.
-import './reset.css.js';
-import './theme.css.js';
+import './_generated/reset.css.js';
+import './_generated/theme.css.js';

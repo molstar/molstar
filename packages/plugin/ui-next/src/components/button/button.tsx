@@ -8,7 +8,7 @@
 
 import type { Child } from '../../dom/jsx-types.js';
 import type { MaybeReactive } from '../../dom/scope.js';
-import { classes } from './button.module.css.js';
+import { classes } from './_generated/button.module.css.js';
 
 export interface ButtonProps {
   variant?: 'default' | 'primary' | 'ghost' | 'danger';

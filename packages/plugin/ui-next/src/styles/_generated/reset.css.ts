@@ -6,7 +6,7 @@
 
 // Generated from reset.css by scripts/css.mjs; do not edit.
 
-import { defineStyles } from './registry.js';
+import { defineStyles } from '../registry.js';
 
 defineStyles('styles/reset.css', `@layer msp.reset {
   :where(.msp-root) {
