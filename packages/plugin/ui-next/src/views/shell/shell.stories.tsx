@@ -414,7 +414,6 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset; pinned?
       ],
     },
     // The scene as a whole: how it plays, how the canvas renders it.
-    { id: 'selection', group: 'scene', icon: 'mouse-pointer-click', title: 'Selection', overlay: 'selection' },
     { id: 'animation', group: 'scene', icon: 'clapperboard', title: 'Animation', overlay: 'animation' },
     {
       id: 'canvas-settings',

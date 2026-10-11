@@ -12,14 +12,6 @@
   font-size: var(--msp-font-size-sm);
 }
 
-/* Open files: an action row (actionHeader) that is also a drop target. */
-.drop[data-dragging] {
-  background: var(--msp-color-hover);
-  color: var(--msp-color-text);
-  outline: 1.5px dashed var(--msp-color-border-strong);
-  outline-offset: -1.5px;
-}
-
 .group {
   display: grid;
   gap: var(--msp-space-1);

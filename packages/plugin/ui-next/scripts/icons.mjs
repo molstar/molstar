@@ -124,7 +124,6 @@ const ICONS = [
   'hexagon',
   'arrow-up',
   'arrow-down',
-  'refresh-ccw',
   'crop',
   'images',
   'cloud-upload',

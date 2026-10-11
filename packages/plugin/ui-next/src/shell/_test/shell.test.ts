@@ -25,6 +25,14 @@ describe('ShellModel', () => {
     expect(shell.dock('top').tabs.value.map((t) => t.id)).toEqual(['seq']);
   });
 
+  it('places a tab registered later by its order among the tabs already there', () => {
+    const shell = new ShellModel();
+    shell.registerTabs([tab('home', { order: 0 }), tab('structure', { order: 1 }), tab('tree', { order: 2 })]);
+    shell.registerTabs([tab('selection', { order: 1.2 })]);
+    shell.registerTabs([tab('extra', { order: 9 })]);
+    expect(shell.dock('right').state.value.tabs).toEqual(['home', 'structure', 'selection', 'tree', 'extra']);
+  });
+
   it('selecting the active tab collapses its dock; selecting again (or another tab) expands it', () => {
     const shell = new ShellModel();
     shell.registerTabs([tab('a'), tab('b')]);

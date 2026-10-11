@@ -24,15 +24,15 @@ export interface HomeTabProps {
 }
 
 /**
- * The Home tab: open files (a drop area), the state actions applicable to the root as forms (download structure,
- * download density, load trajectory, …; the first one open), recently opened entries, and a pointer to the command menu.
+ * The Home tab: the state actions applicable to the root as forms (download structure, open files, download density,
+ * load trajectory, …; the first one open), recently opened entries, and a pointer to the command menu. Files dropped
+ * anywhere on the plugin open too (the shell's drop overlay).
  */
 export function HomeTab(props: HomeTabProps) {
   const { home } = props;
   return (
     <div class={classes.home}>
       <section class={classes.group} aria-label="Actions">
-        <OpenFiles home={home} />
         <For each={home.actions} key={(a) => a.id}>
           {(action, index) => <ActionBlock action={action} open={index.value === 0} />}
         </For>
@@ -59,48 +59,6 @@ export function HomeTab(props: HomeTabProps) {
         <span>Search every command</span>
       </button>
     </div>
-  );
-}
-
-/** Files by picking or dropping: a row like the actions under it (no form: it opens the file picker), a drop target too. */
-function OpenFiles(props: { home: HomeModel }) {
-  const { home } = props;
-  const dragging = observableState(false);
-  const input = (
-    <input
-      type="file"
-      multiple
-      hidden
-      onChange={(e) => {
-        const files = e.currentTarget.files;
-        if (files?.length) home.openFiles([...files]);
-        e.currentTarget.value = '';
-      }}
-    />
-  ) as HTMLInputElement;
-  return (
-    <button
-      type="button"
-      class={`${classes.actionHeader} ${classes.drop}`}
-      data-dragging={dragging.asReadonly.pipe(map((d) => (d ? '' : undefined)))}
-      onClick={() => input.click()}
-      onDragOver={(e) => {
-        e.preventDefault();
-        dragging.set(true);
-      }}
-      onDragLeave={() => dragging.set(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        dragging.set(false);
-        const files = e.dataTransfer?.files;
-        if (files?.length) home.openFiles([...files]);
-      }}
-    >
-      <Icon name="folder-open" size={16} />
-      <span class={classes.actionTitle}>Open Files</span>
-      <span class={classes.actionDescription}>{home.formats.join(', ')}</span>
-      {input}
-    </button>
   );
 }
 

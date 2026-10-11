@@ -315,7 +315,14 @@ export class ShellModel extends ReactiveModel {
       this.#registered.set(tab.id, tab);
       const dock = this.#dockOf(tab.id) ?? this.#docks[tab.dock ?? 'right'];
       const state = dock.state.value;
-      const ids = state.tabs.includes(tab.id) ? state.tabs : [...state.tabs, tab.id];
+      // A new tab goes by its order among those already there (an extension's tab lands where its order says, not
+      // at the end); one already in the dock (a restored layout) keeps its place.
+      let ids = state.tabs;
+      if (!ids.includes(tab.id)) {
+        const order = tab.order ?? 0;
+        const at = ids.findIndex((id) => (this.#registered.get(id)?.order ?? 0) > order);
+        ids = at < 0 ? [...ids, tab.id] : [...ids.slice(0, at), tab.id, ...ids.slice(at)];
+      }
       dock.update({ tabs: ids, active: state.active ?? tab.id }, this.#registered);
     }
     return () => {

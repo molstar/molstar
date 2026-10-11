@@ -73,16 +73,16 @@ it is where contributions (built-in and extension UI) are placed.
   that expands on click.
 - **Rail sections.** The rail is docked to the right edge: a full-height column, no margin (the panel floats beside it),
   buttons edge to edge, a hairline between sections, no captions. Top to bottom: Home as the Mol* mark (a section of its
-  own), the tab strip, the scene (`scene`: Animation, Canvas settings), app actions (`export`: Export, and Remote states
-  when on), and at its foot Log and Settings and, a shade apart, the command menu (the main way in). Every overlay card
-  (Animation, Canvas settings, Export, Remote states) takes the panel's place, full height. Which buttons show is the
-  app's choice (`ui.layout.buttons` in the spec, `ShellModel.setButtons` at runtime). Tabs choose their place
-  (`place: 'head' | 'strip' | 'foot'`). The canvas stack is the same kind of frame, floating. Toolbar items name their
-  section by id (`group`, `order` within it). Extensions do **not** add rail buttons for their features (the rail would
-  grow with every extension): they contribute **sections** to a panel's slot instead, e.g. MP4, geometry and model
-  export as sections of the Export panel (`export` slot), next to the built-in Image and Session & state sections.
-  Everything is also a command, and a command can open a panel at a section
-  (`openOverlay('export', anchor, 'animation')`), so the command menu finds "mp4" and lands on it.
+  own), the tab strip (Structure, Selection, Snapshots, State tree), the scene (`scene`: Animation, Canvas settings),
+  app actions (`export`: Export, and Remote states when on), and at its foot Log and Settings and, a shade apart, the
+  command menu (the main way in). Every overlay card (Animation, Canvas settings, Export, Remote states) takes the
+  panel's place, full height. Which buttons show is the app's choice (`ui.layout.buttons` in the spec,
+  `ShellModel.setButtons` at runtime). Tabs choose their place (`place: 'head' | 'strip' | 'foot'`). The canvas stack is
+  the same kind of frame, floating. Toolbar items name their section by id (`group`, `order` within it). Extensions do
+  **not** add rail buttons for their features (the rail would grow with every extension): they contribute **sections**
+  to a panel's slot instead, e.g. MP4, geometry and model export as sections of the Export panel (`export` slot), next
+  to the built-in Image and Session & state sections. Everything is also a command, and a command can open a panel at a
+  section (`openOverlay('export', anchor, 'animation')`), so the command menu finds "mp4" and lands on it.
 - **Canvas stack.** What acts on the view sits on the canvas itself, at its top right (below the sequence card, beside
   the rail or the open panel), as a vertical stack of glass blocks: the mode (Interact, Select; §4.6), then the toolbar
   items placed on the canvas (`place: 'canvas'`): `canvas` (reset camera, illumination & XR, expand) and `view` (show or
@@ -280,11 +280,11 @@ chosen one in the accent (after stories-untold's pick-level control). The mode i
 
 While anything is selected, the selection bar sits at the bottom right of the canvas (moving with the panel edge): what
 is selected ("12 residues"), then what to do with it as icon buttons, Mol*'s selection toolbar actions: Color and
-Transparency, material, … (both open the Selection card in the panel's place: color, reset color, transparency,
-emissive, material, reset material, clipping, wiggle, applied to all or some representations), Create component, Focus,
-and Clear. They are commands of the `selection` group, so the command menu offers the same ones. Selection operations
-(add, subtract, intersect, set) and queries come from the command menu's `select` group ([commands.md](commands.md)
-§10).
+Transparency, material, … (both open the Selection tab, beside Structure in the tab strip: color, reset color,
+transparency, emissive, material, reset material, clipping, wiggle, applied to all or some representations), Create
+component, Focus, and Clear. They are commands of the `selection` group, so the command menu offers the same ones.
+Selection operations (add, subtract, intersect, set) and queries come from the command menu's `select` group
+([commands.md](commands.md) §10).
 
 ### 4.7 Icons
 

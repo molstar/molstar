@@ -18,7 +18,6 @@ export const classes = {
   'caption': 'msp-home-home-tab-caption',
   'captionRow': 'msp-home-home-tab-captionRow',
   'chevron': 'msp-home-home-tab-chevron',
-  'drop': 'msp-home-home-tab-drop',
   'group': 'msp-home-home-tab-group',
   'hint': 'msp-home-home-tab-hint',
   'home': 'msp-home-home-tab-home',
@@ -37,13 +36,6 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
   padding: 0 var(--msp-space-2) var(--msp-space-2);
   font-size: var(--msp-font-size-sm);
   display: grid;
-}
-
-.msp-home-home-tab-drop[data-dragging] {
-  background: var(--msp-color-hover);
-  color: var(--msp-color-text);
-  outline: 1.5px dashed var(--msp-color-border-strong);
-  outline-offset: -1.5px;
 }
 
 .msp-home-home-tab-group {

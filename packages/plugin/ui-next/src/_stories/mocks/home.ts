@@ -122,6 +122,26 @@ const LoadTrajectory = {
   ]),
 };
 
+// Mol*'s OpenFiles: the files, their format (detected by default), default visuals.
+const OpenFiles = {
+  files: PD.FileList({
+    label: 'Files',
+    accept: '.cif,.bcif,.pdb,.ent,.gro,.ccp4,.mrc,.map,.molx,.molj,.mvsj,.gz,.zip',
+    multiple: true,
+  }),
+  format: PD.Select('auto', [
+    ['auto', 'Auto'],
+    ['mmcif', 'mmCIF'],
+    ['bcif', 'BinaryCIF'],
+    ['pdb', 'PDB'],
+    ['gro', 'GRO'],
+    ['ccp4', 'CCP4/MRC'],
+    ['molx', 'Mol* session'],
+    ['mvsj', 'MolViewSpec'],
+  ]),
+  visuals: PD.Boolean(true, { description: 'Add default visuals' }),
+};
+
 const OpenSession = {
   url: PD.Text('', { label: 'Session URL', isEssential: true }),
 };
@@ -151,9 +171,13 @@ export function mockHome(
       busy: busy.asReadonly,
       apply: () => {
         const v = form.values.value as any;
-        const what = v.source ? `${v.source.name}: ${v.source.params.id ?? v.source.params.url ?? ''}` : title;
+        const what = v.source
+          ? `${v.source.name}: ${v.source.params.id ?? v.source.params.url ?? ''}`
+          : v.files
+            ? v.files.map((f: { name: string }) => f.name).join(', ')
+            : title;
         busy.set(true);
-        post(`${applyLabel === 'Load' ? 'Loading' : 'Downloading'} ${what}…`);
+        post(`${applyLabel === 'Download' ? 'Downloading' : 'Opening'} ${what}…`);
         setTimeout(() => {
           busy.set(false);
           post(`${title}: done (${what})`, 'success');
@@ -170,6 +194,7 @@ export function mockHome(
       DownloadStructure,
       'Download',
     ),
+    action('open-files', 'Open Files', 'folder-open', 'mmCIF, PDB, CCP4, MOLX, …', OpenFiles, 'Open'),
     action('download-density', 'Download Density', 'volume', 'PDBe, EMDB, URL', DownloadDensity, 'Download'),
     action('load-trajectory', 'Load Trajectory', 'trajectory', 'Topology and coordinates', LoadTrajectory, 'Load'),
     action('open-session', 'Open Session', 'folder-open', 'A .molx session by URL', OpenSession, 'Load'),

@@ -15,6 +15,10 @@ export const classes = {
   'color': 'msp-params-params-form-color',
   'control': 'msp-params-params-form-control',
   'fields': 'msp-params-params-form-fields',
+  'file': 'msp-params-params-form-file',
+  'fileClear': 'msp-params-params-form-fileClear',
+  'fileNames': 'msp-params-params-form-fileNames',
+  'filePick': 'msp-params-params-form-filePick',
   'form': 'msp-params-params-form-form',
   'hex': 'msp-params-params-form-hex',
   'input': 'msp-params-params-form-input',
@@ -284,6 +288,74 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
   box-shadow: inset 2px 0 0 var(--msp-color-accent);
+}
+
+.msp-params-params-form-file {
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  display: flex;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[data-dragging] {
+    background: var(--msp-color-hover);
+    outline: 1.5px dashed var(--msp-color-border-strong);
+    outline-offset: -1.5px;
+  }
+}
+
+.msp-params-params-form-filePick {
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-width: 0;
+  height: 100%;
+  padding: 0 var(--msp-space-3);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+  flex: 1;
+  display: flex;
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 1px;
+    border-radius: var(--msp-radius-md);
+  }
+}
+
+.msp-params-params-form-fileNames {
+  min-width: 0;
+  color: var(--msp-color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  overflow: hidden;
+
+  &[data-empty] {
+    color: var(--msp-color-text-muted);
+  }
+}
+
+.msp-params-params-form-fileClear {
+  width: 20px;
+  height: 20px;
+  margin-right: var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  flex: none;
+  place-items: center;
+  display: grid;
+
+  &:hover {
+    background: var(--msp-color-pressed);
+    color: var(--msp-color-text);
+  }
 }
 }
 `);

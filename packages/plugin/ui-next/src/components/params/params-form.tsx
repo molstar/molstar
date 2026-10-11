@@ -7,6 +7,7 @@
  */
 
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { Asset } from '@molstar/core/util/assets';
 import { camelCaseToWords } from '@molstar/core/util/string';
 import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
@@ -113,6 +114,84 @@ function ColorRow(props: { label: string; description?: string; binding: FieldBi
   );
 }
 
+/**
+ * Files (PD.File, PD.FileList): a field like a dropdown's, "Select files…" until some are chosen, then their names; a
+ * click picks, files dropped on it are taken too, ✕ clears.
+ */
+function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: FieldBinding }) {
+  const { param, binding } = props;
+  const multiple = param.type === 'file-list';
+  const dragging = observableState(false);
+  const take = (files: readonly File[]) => {
+    if (!files.length) return;
+    binding.set(multiple ? files.map((f) => Asset.File(f)) : Asset.File(files[0]));
+  };
+  const input = (
+    <input
+      type="file"
+      hidden
+      multiple={multiple}
+      accept={param.accept}
+      onChange={(e) => {
+        take([...(e.currentTarget.files ?? [])]);
+        e.currentTarget.value = '';
+      }}
+    />
+  ) as HTMLInputElement;
+  const names = binding.value.pipe(
+    map((v: Asset.File | Asset.File[] | null) => (v ? (Array.isArray(v) ? v : [v]) : []).map((f) => f.name)),
+  );
+  return (
+    <div class={classes.file} data-dragging={dragging.asReadonly.pipe(map((d) => (d ? '' : undefined)))}>
+      <button
+        type="button"
+        class={classes.filePick}
+        onClick={() => input.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          dragging.set(true);
+        }}
+        onDragLeave={() => dragging.set(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dragging.set(false);
+          take([...(e.dataTransfer?.files ?? [])]);
+        }}
+      >
+        <Icon name="folder-open" size={14} />
+        <span class={classes.fileNames} data-empty={names.pipe(map((n) => (n.length ? undefined : '')))}>
+          {names.pipe(
+            map((n) =>
+              n.length === 0
+                ? multiple
+                  ? 'Select files…'
+                  : 'Select a file…'
+                : n.length === 1
+                  ? n[0]
+                  : `${n.length} files · ${n.join(', ')}`,
+            ),
+          )}
+        </span>
+      </button>
+      <Show when={names.pipe(map((n) => n.length > 0))}>
+        {() => (
+          <button
+            type="button"
+            class={classes.fileClear}
+            aria-label="Clear"
+            title="Clear"
+            onClick={() => binding.set(null)}
+          >
+            <Icon name="x" size={13} />
+          </button>
+        )}
+      </Show>
+      {input}
+    </div>
+  );
+}
+
 function control(param: PD.Any, binding: FieldBinding): Child {
   switch (param.type) {
     case 'boolean':
@@ -128,6 +207,9 @@ function control(param: PD.Any, binding: FieldBinding): Child {
           onChange={(e) => binding.set(e.currentTarget.value)}
         />
       );
+    case 'file':
+    case 'file-list':
+      return <FileControl param={param} binding={binding} />;
     default:
       return <span class={classes.unsupported}>{param.type}</span>;
   }

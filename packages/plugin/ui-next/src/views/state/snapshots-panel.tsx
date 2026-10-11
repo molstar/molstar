@@ -201,14 +201,14 @@ function SnapshotRow(props: {
           <button
             type="button"
             class={classes.action}
-            data-tip="Replace with the current view"
-            aria-label="Replace with the current view"
+            data-tip="Retake from the current view"
+            aria-label="Retake from the current view"
             onClick={(e) => {
               e.stopPropagation();
               model.replace(entry.id);
             }}
           >
-            <Icon name="refresh-ccw" size={14} />
+            <Icon name="camera" size={14} />
           </button>
           <button
             type="button"
@@ -272,7 +272,7 @@ function SnapshotEditor(props: { model: SnapshotsModel; entry: SnapshotEntry }) 
   return (
     <div class={classes.inspection}>
       <header class={classes.inspectorHeader}>
-        <Icon name="camera" size={15} />
+        <Icon name="images" size={15} />
         <span class={classes.inspectorTitle}>{entry.name}</span>
         <span class={classes.inspectorKind}>{entry.timestamp ?? 'snapshot'}</span>
       </header>

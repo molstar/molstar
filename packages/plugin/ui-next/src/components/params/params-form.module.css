@@ -275,3 +275,72 @@
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
   box-shadow: inset 2px 0 0 var(--msp-color-accent);
 }
+
+/* Files: a field like a dropdown's (the 8px text inset), the names once chosen, ✕ to clear; a drop target too. */
+.file {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[data-dragging] {
+    background: var(--msp-color-hover);
+    outline: 1.5px dashed var(--msp-color-border-strong);
+    outline-offset: -1.5px;
+  }
+}
+
+.filePick {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-width: 0;
+  height: 100%;
+  padding: 0 var(--msp-space-3);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 1px;
+    border-radius: var(--msp-radius-md);
+  }
+}
+
+.fileNames {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &[data-empty] {
+    color: var(--msp-color-text-muted);
+  }
+}
+
+.fileClear {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-right: var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    background: var(--msp-color-pressed);
+    color: var(--msp-color-text);
+  }
+}

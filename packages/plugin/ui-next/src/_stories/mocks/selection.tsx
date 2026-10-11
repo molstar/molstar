@@ -90,11 +90,14 @@ export function mockSelection(shell: ShellModel, post: (text: string) => void): 
       { label: 'Representation', isEssential: true },
     ),
   });
-  shell.registerOverlays([
+  // A panel tab beside Structure: what to do with the selection is structure work, not a scene setting.
+  shell.registerTabs([
     {
       id: 'selection',
       title: 'Selection',
-      render: domView(({ ctx }) => <SectionList shell={ctx.shell} slot="selection" focus={ctx.focus} />),
+      icon: 'mouse-pointer-click',
+      order: 1.2,
+      render: domView(({ ctx }) => <SectionList shell={ctx.shell} slot="selection" />),
     },
   ]);
   shell.registerSections([
@@ -150,7 +153,7 @@ export function mockSelection(shell: ShellModel, post: (text: string) => void): 
     summary: summary.asReadonly,
     // One way in: the card offers what to do (color, theme, component); focus stays one click.
     actions: [
-      { id: 'edit', label: 'Color, theme, component…', icon: 'paintbrush', run: () => shell.openOverlay('selection') },
+      { id: 'edit', label: 'Color, theme, component…', icon: 'paintbrush', run: () => shell.show('selection') },
       { id: 'focus', label: 'Focus', icon: 'focus', run: () => post(`Focused on ${summary.value}`) },
     ],
     clear: () => summary.set(undefined),
