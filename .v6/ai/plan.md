@@ -32,12 +32,18 @@ Done:
 
 In this order (reordered 2026-10-12; [analysis/viewer-mode.md](analysis/viewer-mode.md) §7):
 
-1. **The tool layer and the session**: `@molstar/ai-tools` (done) and `@molstar/ai-session`, ported from Stories' agent
+1. **The tool layer and the session** (done): `@molstar/ai-tools` and `@molstar/ai-session`, ported from Stories' agent
    with its story cut out ([tools-and-session.md](tools-and-session.md)).
-2. **`@molstar/ai-trace` and the Inspector** (Trace, Tools, Limits), on mock data until a session feeds them.
-3. **`@molstar/ai-fibers`**: the kernel, the host, the backends in `ai-components`, the conformance.
-4. **PD → field shape** (and so JSON Schema), for commands as tools.
-5. **Pause**: one plan with the Prism UI's, and the sequence viewer. Then Prism hosts it (the integration step of
+2. **`@molstar/ai-trace` (done) and the Inspector** (Trace, Tools, Limits; a page over the whole app, `ShellPage`), on
+   mock data until a session feeds them.
+3. **`@molstar/ai-fibers`** (done): the kernel, the host, the backends in `ai-components`, the conformance.
+4. **PD → field shape** (done: `paramsShape`, `@molstar/prism-assistant/tools/params`), for commands as tools.
+5. **A model catalog** in `@molstar/ai-model-adapters` (`./catalog`): entries by provider and model family, matched by
+   the longest prefix (a new version of a family works unchanged, a new family is one entry), each with its label and
+   note, limits, reasoning (modes, efforts, the default), dated prices, and quirks. The adapters' capabilities, the
+   session's default parameters (replacing `thinkingFor`) and the host's model list and credits read it; the host adds
+   its own endpoints and what the person types.
+6. **Pause**: one plan with the Prism UI's, and the sequence viewer. Then Prism hosts it (the integration step of
    [../prism-ui/plan.md](../prism-ui/plan.md): commands as tools, `execute` as the handler, the drive, origins, one undo
    step per turn through the mode's checkpointer, [harness.md](harness.md) §18), the skills, `ai-toolscript` and
    `mvs-code`, the MCP server over the same tools.
