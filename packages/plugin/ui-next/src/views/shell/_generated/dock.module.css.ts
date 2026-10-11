@@ -12,7 +12,6 @@ export const classes = {
   'barTab': 'msp-shell-dock-barTab',
   'body': 'msp-shell-dock-body',
   'bottom': 'msp-shell-dock-bottom',
-  'caption': 'msp-shell-dock-caption',
   'collapsedBar': 'msp-shell-dock-collapsedBar',
   'compact': 'msp-shell-dock-compact',
   'content': 'msp-shell-dock-content',
@@ -284,17 +283,6 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   gap: var(--msp-space-3);
   flex-direction: column;
   display: flex;
-}
-
-.msp-shell-dock-caption {
-  padding: var(--msp-space-1) 0;
-  color: var(--msp-color-text-subtle);
-  letter-spacing: .06em;
-  text-align: center;
-  text-transform: uppercase;
-  user-select: none;
-  font-size: 9px;
-  font-weight: 600;
 }
 }
 `);

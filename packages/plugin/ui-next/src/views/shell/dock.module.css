@@ -271,15 +271,3 @@
   flex-direction: column;
   gap: var(--msp-space-3);
 }
-
-/* The tab strip's caption in the rail (matches the toolbar sections' captions). */
-.caption {
-  padding: var(--msp-space-1) 0;
-  color: var(--msp-color-text-subtle);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-align: center;
-  text-transform: uppercase;
-  user-select: none;
-}

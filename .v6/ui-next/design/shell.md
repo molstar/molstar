@@ -61,9 +61,9 @@ it is where contributions (built-in and extension UI) are placed.
   content carries its own header (the sequence: structure and chain selectors, collapse), and collapsed it is a slim bar
   that expands on click.
 - **Rail sections.** The rail is grouped into captioned glass blocks, top to bottom: the command palette (uncaptioned,
-  the main way in), **Panels** (the tab strip), then the toolbar's sections (**Canvas**: reset camera, selection mode,
-  illumination, XR, expand; **Export**: screenshot, save state). Toolbar items name their section (`group`); contributed
-  items join a section or start a new one.
+  the main way in), the tab strip (uncaptioned: its selected state says what it is), then the toolbar's sections
+  (**Canvas**: reset camera, selection mode, illumination, XR, expand; **Export**: screenshot, save state). Toolbar
+  items name their section (`group`); contributed items join a section or start a new one.
 - **Canvas toolbar.** A vertical strip of command buttons (palette, reset camera, screenshot, save state, selection
   mode, illumination, XR, expand/fullscreen, plus contributed items), each gated by its command's `when` and
   `PluginConfig.Viewport.*`. A button either runs its command or opens an overlay anchored to it.

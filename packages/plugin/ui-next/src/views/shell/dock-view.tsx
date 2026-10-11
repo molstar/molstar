@@ -84,7 +84,6 @@ export function FloatingDock(props: { shell: ShellModel; dock: DockModel; railLe
         <Show when={dock.tabs.pipe(map((tabs) => tabs.length > 0))}>
           {() => (
             <nav class={classes.strip} role="tablist" aria-orientation="vertical" aria-label="Panels">
-              <span class={classes.caption}>Panels</span>
               <For each={dock.tabs}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
             </nav>
           )}
