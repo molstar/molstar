@@ -5,6 +5,7 @@
  */
 
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import type { IconName } from '../components/icon/icon.js';
 import type { FieldHint, FieldValue, FieldValues } from '../forms/flat-fields.js';
 
 /** A command's inline argument values by param name; primitive, as inline fields hold them. */
@@ -56,6 +57,8 @@ export interface CommandDefinition<Ctx> {
   id: string;
   title: string;
   category: string;
+  /** Shown before the title in the palette and on buttons that run it. */
+  icon?: IconName;
   /** Words that start this command when typed with arguments ("show as" in "show as sticks"); the longest that fits wins. */
   alias?: string | readonly string[];
   /** Shown in the menu, e.g. ['⌥', 'T']. */

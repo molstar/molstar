@@ -32,3 +32,17 @@ export function rankBy<T>(items: readonly T[], query: string, text: (item: T) =>
     .sort((a, b) => b.s - a.s)
     .map((x) => x.item);
 }
+
+/** Where `fuzzyScore` found the query's letters in the text (the same greedy pass), for highlighting; empty if none. */
+export function matchPositions(text: string, query: string): number[] {
+  const t = text.toLowerCase();
+  const q = query.toLowerCase().trim();
+  const at: number[] = [];
+  let j = 0;
+  for (let i = 0; i < t.length && j < q.length; i++) {
+    if (t[i] !== q[j]) continue;
+    at.push(i);
+    j++;
+  }
+  return j === q.length ? at : [];
+}

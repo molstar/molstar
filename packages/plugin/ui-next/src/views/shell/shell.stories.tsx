@@ -9,12 +9,12 @@
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { map } from 'rxjs';
 import { story } from '../../_stories/story-root.js';
-import { formatChord } from '../../commands/keys.js';
+import { formatChord, isMac } from '../../commands/keys.js';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { Select } from '../../components/select/select.js';
 import { TextInput } from '../../components/text-input/text-input.js';
-import { For } from '../../dom/control-flow.js';
+import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { onCleanup } from '../../dom/scope.js';
 import { domView } from '../../dom/view.js';
@@ -33,6 +33,7 @@ import {
 } from '../canvas/mode-switch.js';
 import { SnapshotCard, TrajectoryBar } from '../canvas/playback.js';
 import { SelectionBar } from '../canvas/selection-bar.js';
+import { CommandPalette } from '../palette/palette.js';
 import { SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
 import { LogView } from './log-view.js';
@@ -44,6 +45,7 @@ import { mockHome } from '../../_stories/mocks/home.js';
 import { mockSnapshots, mockTrajectory } from '../../_stories/mocks/playback.js';
 import { registerMockAnimation } from '../../_stories/mocks/animation.js';
 import { mockSelection } from '../../_stories/mocks/selection.js';
+import { mockCommands } from '../../_stories/mocks/commands.js';
 import { registerMockCanvasSettings } from '../../_stories/mocks/canvas-settings.js';
 import { registerMockInspectorSections } from '../../_stories/mocks/inspector-sections.js';
 import { type MockScenePreset, mockQuickStyles, mockScene } from '../../_stories/mocks/scene.js';
@@ -240,6 +242,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
   const shell = new ShellModel();
   const status = new StatusModel();
   const canvasMode = observableState<CanvasMode>('interact');
+  const paletteOpen = observableState(false);
   const granularity = observableState('residue');
   const illumination = observableState(false);
   const snapshots = observableState<readonly string[]>(['Overview', 'Active site']);
@@ -381,7 +384,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
       id: 'palette',
       icon: 'command',
       title: `Commands (${formatChord({ key: 'k', mod: true })})`,
-      run: () => status.post('The palette comes next.'),
+      run: () => paletteOpen.set(true),
     },
     {
       id: 'reset',
@@ -506,6 +509,8 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
     modeSwitch,
     pickLevel,
     selection,
+    paletteOpen,
+    commands: mockCommands(shell),
     snapshots: mockSnapshots((t) => status.post(t)),
     trajectory: mockTrajectory(),
   };
@@ -516,14 +521,45 @@ function ShellStory(props: {
   preset?: MockScenePreset;
   background?: string;
   openExportAt?: string;
+  /** Opens with the command palette open. */
+  palette?: boolean;
   /** What the loaded data has to play: a session's snapshots, a trajectory's models (plain 1TQN has neither). */
   playback?: { snapshots?: boolean; trajectory?: boolean };
 }) {
-  const { shell, status, hover, hoverLines, modeSwitch, pickLevel, selection, snapshots, trajectory } =
-    mockShell(props);
+  const {
+    shell,
+    status,
+    hover,
+    hoverLines,
+    modeSwitch,
+    pickLevel,
+    selection,
+    paletteOpen,
+    commands,
+    snapshots,
+    trajectory,
+  } = mockShell(props);
+  // What commands did goes to the status line; ⌘K / ⇧⌘P open the palette; commands' own shortcuts run them.
+  const outcomes = commands.outcomes.subscribe((o) => {
+    if (o.kind === 'done' && o.result.message) status.post(o.result.message);
+    else if (o.kind === 'failed' || o.kind === 'blocked') status.post(o.message, 'warning');
+  });
+  const onKey = (e: KeyboardEvent) => {
+    const mod = isMac() ? e.metaKey : e.ctrlKey;
+    if (mod && (e.key.toLowerCase() === 'k' || (e.shiftKey && e.key.toLowerCase() === 'p'))) {
+      e.preventDefault();
+      paletteOpen.set(true);
+    } else if (!paletteOpen.value && commands.handleKey(e, isMac())) e.preventDefault();
+  };
+  window.addEventListener('keydown', onKey);
+  onCleanup(() => {
+    outcomes.unsubscribe();
+    window.removeEventListener('keydown', onKey);
+  });
   shell.mount();
   status.mount();
   if (props.openExportAt) shell.openOverlay('export', undefined, props.openExportAt);
+  if (props.palette) paletteOpen.set(true);
   onCleanup(() => {
     shell.unmount();
     status.unmount();
@@ -561,12 +597,22 @@ function ShellStory(props: {
       canvasColor={props.background ?? '#ffffff'}
       canvasTheme={themeForColor(parseColor(props.background ?? '#ffffff') ?? 0xffffff)}
       context={props.loaded ? <SelectionBar selection={selection} /> : null}
+      palette={
+        <Show when={paletteOpen}>
+          {() => <CommandPalette manager={commands} onClose={() => paletteOpen.set(false)} />}
+        </Show>
+      }
       canvasLead={props.loaded ? modeSwitch : null}
       canvasAside={props.loaded ? pickLevel : null}
       onOpenLog={() => shell.show('log')}
     />
   );
 }
+
+/** The command palette open (⌘K / Ctrl+K anywhere, or the rail's ⌘): everything by name. */
+export const Palette: StoryObj = {
+  render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} palette={true} />}</div>),
+};
 
 /** Nothing loaded: Home is the open tab. */
 export const Empty: StoryObj = {

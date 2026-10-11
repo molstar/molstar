@@ -150,6 +150,14 @@ sink; its value store is a `ParamsFormModel` instead of a declarative binding co
   dialog, per `placement`).
 - ARIA combobox: the input keeps focus, rows are `role="option"`.
 
+**State (mocks, `views/palette/palette.tsx`):** the list (recent first on an empty input, matched letters marked,
+category, keys, a blocked command greyed with its reason, a preset as its own row), aliases with arguments ("color red",
+"download 7bv2"), the inline sentence (before-words, value tokens, the active one typed into the input, completions from
+the field's options or format, the run button with Enter), Tab between fields, Backspace back, Esc to the list and then
+out, a finished run closing the palette with its message in the status line, ⌘K and ⇧⌘P, and commands' own shortcuts.
+Not yet: groups and the breadcrumb, the `@ # : ?` prefixes, "open as form" for params that are not flat, custom command
+UI, previews while browsing.
+
 ## 6. Keybindings
 
 A `KeybindingService` on the plugin root element:

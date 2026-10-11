@@ -1,0 +1,285 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Over the whole shell; the canvas stays visible (previews draw in 3D), a light scrim says the palette has the keys. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: var(--msp-z-dialog);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12vh var(--msp-space-4) var(--msp-space-4);
+  background: color-mix(in oklab, var(--msp-color-bg), transparent 75%);
+  animation: palette-fade var(--msp-motion-fast) var(--msp-ease);
+}
+
+@keyframes palette-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.palette {
+  display: flex;
+  flex-direction: column;
+  width: min(600px, 100%);
+  max-height: min(520px, 76vh);
+  overflow: hidden;
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+  box-shadow:
+    var(--msp-glass-shadow),
+    0 12px 32px rgb(0 0 0 / 0.12);
+  font-size: var(--msp-font-size-md);
+  animation: palette-in var(--msp-motion-base) var(--msp-ease);
+}
+
+@keyframes palette-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 48px;
+  padding: 0 var(--msp-space-4);
+  border-bottom: 1px solid var(--msp-glass-edge);
+}
+
+.headIcon {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--msp-color-text);
+  font: inherit;
+  outline: none;
+
+  &::placeholder {
+    color: var(--msp-color-text-subtle);
+  }
+}
+
+/* The command being filled in, before the input. */
+.command {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 26px;
+  padding: 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 85%);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-sm);
+  font-weight: 600;
+}
+
+.message,
+.error {
+  margin: 0;
+  padding: var(--msp-space-2) var(--msp-space-4);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+}
+
+.error {
+  color: var(--msp-color-danger);
+}
+
+.hint {
+  color: var(--msp-color-text-muted);
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  padding: var(--msp-space-2);
+  overflow: auto;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.empty {
+  margin: 0;
+  padding: var(--msp-space-5) var(--msp-space-4);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-sm);
+  text-align: center;
+}
+
+.caption {
+  padding: var(--msp-space-3) var(--msp-space-3) var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 34px;
+  padding: 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text);
+  cursor: default;
+
+  &[aria-selected="true"] {
+    background: var(--msp-color-hover);
+  }
+
+  &[aria-disabled="true"] {
+    color: var(--msp-color-text-subtle);
+  }
+}
+
+.rowIcon {
+  display: grid;
+  place-items: center;
+  color: var(--msp-color-text-muted);
+}
+
+.rowTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  & mark {
+    background: none;
+    color: var(--msp-color-accent);
+    font-weight: 600;
+  }
+}
+
+.tail {
+  margin-left: var(--msp-space-2);
+  color: var(--msp-color-text-muted);
+}
+
+.rowMeta {
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.keys {
+  padding: 1px 6px;
+  border-radius: var(--msp-radius-sm);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text-muted);
+  font: inherit;
+  font-size: var(--msp-font-size-xs);
+}
+
+/* The arguments as a sentence: quiet before-words, values as tokens; the active one is being typed. */
+.sentence {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-3) var(--msp-space-4);
+  border-bottom: 1px solid var(--msp-glass-edge);
+}
+
+.token {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+}
+
+.before {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-sm);
+}
+
+.value {
+  height: 26px;
+  padding: 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[data-empty] {
+    color: var(--msp-color-text-subtle);
+  }
+
+  &[data-missing] {
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-danger), transparent 50%);
+  }
+
+  &[data-active] {
+    box-shadow: inset 0 0 0 1.5px var(--msp-color-accent);
+  }
+}
+
+.spacer {
+  flex: 1;
+}
+
+.run {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 28px;
+  padding: 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-accent);
+  color: #fff;
+  font-size: var(--msp-font-size-sm);
+  font-weight: 600;
+
+  & kbd {
+    font: inherit;
+    opacity: 0.8;
+  }
+}
+
+.more {
+  margin: 0;
+  padding: var(--msp-space-2) var(--msp-space-4);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.footer {
+  flex: none;
+  display: flex;
+  gap: var(--msp-space-4);
+  padding: var(--msp-space-2) var(--msp-space-4);
+  border-top: 1px solid var(--msp-glass-edge);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+
+  & kbd {
+    padding: 0 4px;
+    border-radius: var(--msp-radius-sm);
+    background: var(--msp-color-control);
+    font: inherit;
+  }
+}
