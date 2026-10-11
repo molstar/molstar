@@ -50,7 +50,7 @@ evidence is what reproduces it (head, configuration, tools, adapter revision, pa
   runner sends no heartbeat. A failed read is not a lost lease; only a `stale` refusal or expiry is. A turn written by
   another schema version is blocked (stop or reset it; there is no migration).
 - **The supervisor** starts one runner per launch key and checks when a launch window or lease runs out, so a turn whose
-  owner died is taken up without anyone asking. The in-process one is in harness-components.
+  owner died is taken up without anyone asking. The in-process one is in `ai-components`.
 
 ## 5. Turns
 

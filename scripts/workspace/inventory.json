@@ -373,8 +373,8 @@
       "private": true
     },
     {
-      "name": "@molstar/ai-harness-components",
-      "path": "packages/ai/harness-components",
+      "name": "@molstar/ai-components",
+      "path": "packages/ai/components",
       "kind": "library",
       "private": true
     },

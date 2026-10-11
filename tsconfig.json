@@ -188,7 +188,7 @@
       "path": "./packages/ai/conformance"
     },
     {
-      "path": "./packages/ai/harness-components"
+      "path": "./packages/ai/components"
     },
     {
       "path": "./packages/ai/model-adapters"

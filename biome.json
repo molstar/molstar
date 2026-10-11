@@ -107,8 +107,8 @@
                     "group": [
                       "@molstar/ai-harness",
                       "@molstar/ai-harness/**",
-                      "@molstar/ai-harness-components",
-                      "@molstar/ai-harness-components/**",
+                      "@molstar/ai-components",
+                      "@molstar/ai-components/**",
                       "@molstar/ai-model-adapters",
                       "@molstar/ai-model-adapters/**",
                       "@molstar/ai-conformance",
@@ -118,7 +118,7 @@
                   },
                   {
                     "group": ["node:*"],
-                    "message": "No platform API here: it runs in browsers and Node (runtimes are harness-components)."
+                    "message": "No platform API here: it runs in browsers and Node (runtimes are in ai-components)."
                   }
                 ]
               }
@@ -153,8 +153,8 @@
                   },
                   {
                     "group": [
-                      "@molstar/ai-harness-components",
-                      "@molstar/ai-harness-components/**",
+                      "@molstar/ai-components",
+                      "@molstar/ai-components/**",
                       "@molstar/ai-model-adapters",
                       "@molstar/ai-model-adapters/**",
                       "@molstar/ai-conformance",
@@ -164,7 +164,7 @@
                   },
                   {
                     "group": ["node:*"],
-                    "message": "No platform API here: it runs in browsers and Node (runtimes are harness-components)."
+                    "message": "No platform API here: it runs in browsers and Node (runtimes are in ai-components)."
                   }
                 ]
               }
@@ -174,7 +174,7 @@
       }
     },
     {
-      "includes": ["packages/ai/harness-components/src/**", "!packages/ai/harness-components/src/**/_test/**"],
+      "includes": ["packages/ai/components/src/**", "!packages/ai/components/src/**/_test/**"],
       "linter": {
         "rules": {
           "style": {
@@ -241,8 +241,8 @@
                     "group": [
                       "@molstar/ai-harness",
                       "@molstar/ai-harness/**",
-                      "@molstar/ai-harness-components",
-                      "@molstar/ai-harness-components/**",
+                      "@molstar/ai-components",
+                      "@molstar/ai-components/**",
                       "@molstar/ai-conformance",
                       "@molstar/ai-conformance/**"
                     ],
@@ -250,7 +250,7 @@
                   },
                   {
                     "group": ["node:*"],
-                    "message": "No platform API here: it runs in browsers and Node (runtimes are harness-components)."
+                    "message": "No platform API here: it runs in browsers and Node (runtimes are in ai-components)."
                   }
                 ]
               }
@@ -285,8 +285,8 @@
                   },
                   {
                     "group": [
-                      "@molstar/ai-harness-components",
-                      "@molstar/ai-harness-components/**",
+                      "@molstar/ai-components",
+                      "@molstar/ai-components/**",
                       "@molstar/ai-model-adapters",
                       "@molstar/ai-model-adapters/**"
                     ],

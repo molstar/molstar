@@ -1,9 +1,9 @@
 {
-  "name": "@molstar/ai-harness-components",
+  "name": "@molstar/ai-components",
   "version": "6.0.0-dev.0",
   "private": true,
   "type": "module",
-  "description": "Mol* AI: Implementations of the harness's contracts: storage (memory, IndexedDB, SQLite at ./storage/sqlite) and the in-process supervisor",
+  "description": "Mol* AI: the platform parts: the harness's storage (memory, IndexedDB, SQLite at ./harness/storage/sqlite) and the in-process supervisor",
   "license": "MIT",
   "engines": {
     "node": ">=22.13.0"

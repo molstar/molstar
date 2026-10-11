@@ -5,13 +5,13 @@ The agent harness and what it needs: durable agent turns, model adapters, storag
 
 ## Packages (`packages/ai/`)
 
-| Package                          | Holds                                                                                                                                      |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `@molstar/ai-agent`              | the model side's shapes: `Message` and its parts, tool definitions, `ModelConfiguration`, the `ModelAdapter` port, `hashMessage`, `digest` |
-| `@molstar/ai-harness`            | the contracts (storage port, supervisor) and the platform-free logic: host protocol, runner, tools, nested runs, drives, observation       |
-| `@molstar/ai-harness-components` | storage (memory, IndexedDB, SQLite at `./storage/sqlite`) on one durable core; the in-process supervisor                                   |
-| `@molstar/ai-model-adapters`     | Anthropic, OpenAI (Responses or chat completions, any compatible endpoint), Google, on the AI SDK                                          |
-| `@molstar/ai-conformance`        | the suite every storage backend runs, the storage meter, and test doubles at `./testing` (clock, ids, scripted model and tools)            |
+| Package                      | Holds                                                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@molstar/ai-agent`          | the model side's shapes: `Message` and its parts, tool definitions, `ModelConfiguration`, the `ModelAdapter` port, `hashMessage`, `digest` |
+| `@molstar/ai-harness`        | the contracts (storage port, supervisor) and the platform-free logic: host protocol, runner, tools, nested runs, drives, observation       |
+| `@molstar/ai-components`     | storage (memory, IndexedDB, SQLite at `./harness/storage/sqlite`) on one durable core; the in-process supervisor                           |
+| `@molstar/ai-model-adapters` | Anthropic, OpenAI (Responses or chat completions, any compatible endpoint), Google, on the AI SDK                                          |
+| `@molstar/ai-conformance`    | the suite every storage backend runs, the storage meter, and test doubles at `./testing` (clock, ids, scripted model and tools)            |
 
 Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports them, and they import nothing of either.
 
@@ -35,6 +35,6 @@ Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports them, and they
    helper.
 6. **The watch is level-triggered**, so a dropped connection cannot lose a Stop.
 7. **Adapters serve any endpoint of their dialect** under that endpoint's id; replay identity is never a URL.
-8. **Platform-free core.** Only `ai-harness-components` touches the platform (IndexedDB, `node:sqlite`); the rest runs
-   in browsers and Node alike.
+8. **Platform-free core.** Only `ai-components` touches the platform (IndexedDB, `node:sqlite`); the rest runs in
+   browsers and Node alike.
 9. **No data migration.** A turn written by another schema version is stopped or reset, not migrated.

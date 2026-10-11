@@ -421,7 +421,7 @@ export function supervisorCases(fixture: ConformanceFixture): void {
     });
 
     it.todo(
-      "S3 stalled: onStalled is called once after stalledAfterMs('tools') and never for a progressing tool; the policy hooks belong to the supervisor, which the simulated supervisor does not implement and the suite may not import (createInProcessSupervisor is in harness-components)",
+      "S3 stalled: onStalled is called once after stalledAfterMs('tools') and never for a progressing tool; the policy hooks belong to the supervisor, which the simulated supervisor does not implement and the suite may not import (createInProcessSupervisor is in ai-components)",
     );
   });
 }

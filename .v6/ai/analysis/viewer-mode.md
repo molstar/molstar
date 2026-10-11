@@ -175,9 +175,9 @@ Port plan:
 
 - `@molstar/ai-fibers`: the kernel as it is, the host, and its own storage port (the row-store shape plus a watch); not
   built on `HarnessStorage`, whose transactions are fixed to the harness's records. Imports nothing of the workspace.
-- Its backends in `ai-harness-components`, next to the harness's: memory, IndexedDB and SQLite (`node:sqlite`, so a
-  server or a headless host keeps conversations from the start). Stories' plain-files backend is not carried over;
-  SQLite is the Node store.
+- Its backends in `ai-components` (`src/fibers/`, next to the harness's in `src/harness/`): memory, IndexedDB and SQLite
+  (`node:sqlite`, so a server or a headless host keeps conversations from the start). Stories' plain-files backend is
+  not carried over; SQLite is the Node store.
 - The conformance (8 cases, `node:assert` → Jest) as `@molstar/ai-conformance/fibers`, plus the cases Stories tests only
   in its own suite: an inactive stream aborted, durability across a restart.
 - A turn observer in `ai-session` that writes an entry per turn, so any host gets a durable transcript; Prism's History
@@ -205,7 +205,7 @@ Port plan:
    `AgentSession`) is `@molstar/prism-assistant`. No package per mode's assistant.
 3. **Selections**: one selection param type with the three forms, for commands and the command menu alike.
 4. **Denial**: the model is told and goes on; when the denial means it cannot do what was asked, it says so and stops.
-5. **Fibers' backends**: in `ai-harness-components`, SQLite included.
+5. **Fibers' backends**: in `ai-components`, SQLite included.
 6. **Code**: `@molstar/ai-toolscript` and `mvs-code` come over (the story mode needs both).
 7. **Volume streaming** is a viewer tool; **extensions bring tools** through their commands, and skills through an
    `agent` folder (§2.1).

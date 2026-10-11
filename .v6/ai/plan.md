@@ -12,8 +12,8 @@ work:
 - **One home per concern** ([harness.md](harness.md) §1). A change that moves a concern to another home is the thing to
   look for in review.
 - **Import rules fail the build** (`biome.json`): no package imports Mol\*, Prism or rxjs; `ai-agent` imports nothing of
-  the workspace; `ai-harness` only `ai-agent`; no `node:*` outside `ai-harness-components`. The original stack had
-  drifted one reasonable local change at a time until concerns had no clear home; a rule that fails says "not here".
+  the workspace; `ai-harness` only `ai-agent`; no `node:*` outside `ai-components`. The original stack had drifted one
+  reasonable local change at a time until concerns had no clear home; a rule that fails says "not here".
 
 ## 1. The move (2026-10-11)
 
