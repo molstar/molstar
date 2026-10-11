@@ -58,8 +58,9 @@ it is where contributions (built-in and extension UI) are placed.
   sequence card, and the cards stacked beside it. Panels and overlay cards share one header (title, ✕ on the right).
 - **Empty canvas.** With nothing loaded (`ShellView`'s `empty`), the Mol* wordmark shows in the middle of the canvas,
   outlined in the canvas's subtle text color: only after the canvas has been empty a while (700 ms; clearing a scene to
-  load the next never flashes it), fading in, then the logo's colors wipe in along the outline once and stay; it fades
-  out, faster (250 ms), when something loads. Clicks pass through.
+  load the next never flashes it), fading in, then the logo's colors wipe in along the outline once and stay; under the
+  pointer it comes alive (a heavier, glowing line in the logo's colors in rings around the cursor, fading out when it
+  leaves); it fades out, faster (250 ms), when something loads. Clicks pass through.
 - **Dropping files.** Files dragged anywhere over the plugin bring up a drop overlay over everything (Mol*'s drag
   overlay); dropped files go to the plugin's drag-and-drop manager. On unless the spec sets
   `components.disableDragOverlay` (the host then leaves out `ShellView`'s `onDropFiles`). Home's Open Files row is a

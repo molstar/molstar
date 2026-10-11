@@ -42,6 +42,11 @@ export function MolstarWordmark(props: {
   scale?: number;
   /** Its colors: a flash now and then (a heading), often, or wiped in once and kept (the empty canvas). */
   flash?: 'rare' | 'often' | 'reveal';
+  /**
+   * Alive under the pointer (the empty canvas): around the cursor the logo's colors in rings centred on it, moving with
+   * it, fading in on enter and back out on leave.
+   */
+  live?: boolean;
 }) {
   const id = `msp-wordmark-${++gradients}`;
   const scale = Math.max(1, Math.round(props.scale ?? 1));
@@ -71,16 +76,60 @@ export function MolstarWordmark(props: {
       <Shapes />
     </svg>
   );
-  return (
+  const glow = props.live ? live(id, scale) : undefined;
+  const root = (
     <span
       class={`${classes.wordmark} ${props.class ?? ''}`}
       style={{ '--msp-wordmark-scale': scale }}
       data-flash={props.flash ?? 'rare'}
+      data-live={props.live ? '' : undefined}
       role="img"
       aria-label="Mol*"
     >
       {svg({ class: classes.outline, stroke: 'currentColor' })}
       {svg({ class: classes.flash, stroke: `url(#${id})`, hidden: true })}
+      {glow?.svg}
     </span>
+  ) as HTMLElement;
+  if (glow) {
+    // Follow the pointer: the rings' centre (drawing units) and the shown circle (px); nothing allocated per move.
+    root.addEventListener('pointermove', (e) => {
+      const r = root.getBoundingClientRect();
+      const x = e.clientX - r.left;
+      const y = e.clientY - r.top;
+      glow.gradient.setAttribute('cx', String(x / scale - 1));
+      glow.gradient.setAttribute('cy', String(y / scale - 1));
+      root.style.setProperty('--msp-wordmark-x', `${x}px`);
+      root.style.setProperty('--msp-wordmark-y', `${y}px`);
+    });
+  }
+  return root;
+}
+
+/** The live layer: the outline stroked with the logo's colors in rings around a centre the pointer moves. */
+function live(id: string, scale: number) {
+  const gradient = (
+    <radialGradient id={`${id}-live`} gradientUnits="userSpaceOnUse" cx="27" cy="10" r="16">
+      <stop offset="0" style={{ 'stop-color': 'var(--msp-color-brand-2)' }} />
+      <stop offset="0.35" style={{ 'stop-color': 'var(--msp-color-brand-3)' }} />
+      <stop offset="0.7" style={{ 'stop-color': 'var(--msp-color-brand-4)' }} />
+      <stop offset="1" style={{ 'stop-color': 'var(--msp-color-brand-1)' }} />
+    </radialGradient>
+  ) as SVGRadialGradientElement;
+  const svg = (
+    <svg
+      class={classes.live}
+      viewBox="-1 -1 57 22"
+      width={57 * scale}
+      height={22 * scale}
+      fill="none"
+      stroke={`url(#${id}-live)`}
+      stroke-linejoin="miter"
+      aria-hidden="true"
+    >
+      <defs>{gradient}</defs>
+      <Shapes />
+    </svg>
   );
+  return { svg, gradient };
 }

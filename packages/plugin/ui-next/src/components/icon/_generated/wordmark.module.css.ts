@@ -14,6 +14,7 @@ export const classes = {
   'flash-often': 'msp-icon-wordmark-flash-often',
   'flash-rare': 'msp-icon-wordmark-flash-rare',
   'flash-reveal': 'msp-icon-wordmark-flash-reveal',
+  'live': 'msp-icon-wordmark-live',
   'outline': 'msp-icon-wordmark-outline',
   'wordmark': 'msp-icon-wordmark-wordmark',
 } as const;
@@ -54,7 +55,7 @@ defineStyles('components/icon/wordmark.module.css', `@layer msp.components {
     mask-image: linear-gradient(100deg, #000 0 42%, #0000 58% 100%);
   }
 
-  .msp-icon-wordmark-wordmark:hover & {
+  .msp-icon-wordmark-wordmark:not([data-flash="reveal"]):hover & {
     animation: 2.8s ease-in-out both msp-icon-wordmark-flash-hover;
   }
 }
@@ -96,6 +97,29 @@ defineStyles('components/icon/wordmark.module.css', `@layer msp.components {
 
   to {
     mask-position: 0 0;
+  }
+}
+
+.msp-icon-wordmark-wordmark[data-live] {
+  pointer-events: auto;
+}
+
+.msp-icon-wordmark-wordmark svg.msp-icon-wordmark-live {
+  stroke-width: calc(2.4 / sqrt(var(--msp-wordmark-scale, 1)));
+  filter: drop-shadow(0 0 3px color-mix(in oklab, var(--msp-color-brand-2), transparent 40%));
+}
+
+.msp-icon-wordmark-live {
+  opacity: 0;
+  mask-image: radial-gradient(circle 48px at var(--msp-wordmark-x, 50%) var(--msp-wordmark-y, 50%),
+    #000 0,
+    #000 35%,
+    transparent 100%);
+  transition: opacity .6s var(--msp-ease);
+
+  .msp-icon-wordmark-wordmark:hover > & {
+    opacity: 1;
+    transition-duration: .2s;
   }
 }
 

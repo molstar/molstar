@@ -46,7 +46,8 @@
     animation: flash-reveal 2.8s ease-in-out 0.9s both;
   }
 
-  .wordmark:hover & {
+  /* Hover replays a flash (not a reveal: its colors stay; a live one answers the pointer instead). */
+  .wordmark:not([data-flash="reveal"]):hover & {
     animation: flash-hover 2.8s ease-in-out both;
   }
 }
@@ -87,6 +88,34 @@
   }
   to {
     mask-position: 0 0;
+  }
+}
+
+/* Live (the empty canvas): it takes the pointer (the canvas around it does not); under the cursor, in a soft circle,
+   the colors in rings around it; in on enter, back out on leave. */
+.wordmark[data-live] {
+  pointer-events: auto;
+}
+
+.wordmark svg.live {
+  /* A heavier line with a faint glow: the part under the cursor lights up. */
+  stroke-width: calc(2.4 / sqrt(var(--msp-wordmark-scale, 1)));
+  filter: drop-shadow(0 0 3px color-mix(in oklab, var(--msp-color-brand-2), transparent 40%));
+}
+
+.live {
+  opacity: 0;
+  mask-image: radial-gradient(
+    circle 48px at var(--msp-wordmark-x, 50%) var(--msp-wordmark-y, 50%),
+    #000 0,
+    #000 35%,
+    transparent 100%
+  );
+  transition: opacity 600ms var(--msp-ease);
+
+  .wordmark:hover > & {
+    opacity: 1;
+    transition-duration: 200ms;
   }
 }
 
