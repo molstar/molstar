@@ -72,6 +72,10 @@ can use another theme.
 - **Accent for actions and the picked item only.** Inline blocks (option lists, the color picker, an on/off setting's
   settings, a measurement's style) are set apart by their surface and a hairline edge (`--msp-glass-edge`), not an
   accent bar.
+- **Cut-off text fades out, no ellipsis.** A label that does not fit fades over its last 20px; the fade shows only when
+  it overflows (a scroll-driven animation on the element's own scroll timeline, `msp-fade-overflow` in `reset.css`, CSS
+  only), and `data-tip-overflow` shows the full text in the app's tooltip. Names starting with `msp-` are global in CSS
+  modules (shared keyframes); a module's own names never start with it.
 
 - Components use tokens, not literal colours or sizes.
 - No inline styles except values computed at runtime (positions, sizes from the shell).
