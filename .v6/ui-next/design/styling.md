@@ -76,9 +76,11 @@ can use another theme.
   it overflows (a scroll-driven animation on the element's own scroll timeline, `msp-fade-overflow` in `reset.css`, CSS
   only), and `data-tip-overflow` shows the full text in the app's tooltip. Names starting with `msp-` are global in CSS
   modules (shared keyframes); a module's own names never start with it.
-- **Scrolling areas fade at their edges** where there is more to scroll that way (`msp-fade-scroll-*` in `reset.css`,
-  CSS only: none at the top until scrolled, none at the bottom at the end, none when nothing scrolls). Not on an area
-  with its own background (the background would fade too); there, the area's inner list scrolls instead.
+- **Every scrolling area is a `ScrollArea`** (components/scroll-area, adapted from Base UI's): overlay scrollbars that
+  look the same on every platform (thin, shown on hover and while scrolling, none when nothing overflows) and edges that
+  fade where there is more to scroll (`msp-fade-scroll-*` in `reset.css`, CSS only). Its root carries the area's size
+  and surface (background, hairlines), so those never fade; its content carries the layout. Nothing else sets
+  `overflow: auto`.
 
 - Components use tokens, not literal colours or sizes.
 - No inline styles except values computed at runtime (positions, sizes from the shell).
