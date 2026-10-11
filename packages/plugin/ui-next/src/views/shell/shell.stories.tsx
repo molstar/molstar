@@ -519,7 +519,12 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
 
   if (options.loaded) {
     status.post('Loaded 1TQN (3,624 atoms) in 0.4 s', 'success');
-    status.setTasks([{ id: 'surface', label: 'Computing surface', progress: 0.4, abort: () => status.setTasks([]) }]);
+    // Two tasks at once: they stack.
+    const drop = (id: string) => () => status.setTasks(status.tasks.value.filter((t) => t.id !== id));
+    status.setTasks([
+      { id: 'density', label: 'Downloading density', progress: 0.7, abort: drop('density') },
+      { id: 'surface', label: 'Computing surface', progress: 0.4, abort: drop('surface') },
+    ]);
   }
 
   // The canvas mode lives on the canvas, not in the rail: what a click does is visible before the first click.

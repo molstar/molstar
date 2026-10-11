@@ -302,7 +302,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-bottomGrid {
-  align-items: center;
+  align-items: end;
   gap: var(--msp-space-3);
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas: "status context";
@@ -338,11 +338,12 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-status {
-  align-items: center;
-  gap: var(--msp-space-2);
   pointer-events: none;
-  flex-wrap: wrap;
+  flex-direction: column;
   grid-area: status;
+  align-self: end;
+  align-items: flex-start;
+  padding-bottom: 5px;
   display: flex;
 
   & > * {
@@ -435,12 +436,12 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-status .msp-shell-canvas-pill {
   height: auto;
   min-height: 24px;
+  padding-left: var(--msp-space-3);
   box-shadow: none;
   -webkit-backdrop-filter: none;
   text-shadow: 0 0 2px var(--msp-color-bg),
     0 0 6px var(--msp-color-bg);
   background: none;
-  padding-left: 0;
 }
 
 .msp-shell-canvas-status .msp-shell-canvas-pillButton {
@@ -502,6 +503,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
     justify-content: stretch;
     justify-self: stretch;
     gap: 0;
+    padding-bottom: 0;
     display: grid;
   }
 

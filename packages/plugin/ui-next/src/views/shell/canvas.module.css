@@ -288,7 +288,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas: "status context";
-  align-items: center;
+  /* Bottom-aligned: the status stack grows upward; its last line is level with the selection bar's middle. */
+  align-items: end;
   gap: var(--msp-space-3);
 
   & > * {
@@ -325,10 +326,13 @@
 
 .status {
   grid-area: status;
+  /* The latest message and every running task, one per line, growing upward; the last line level with the middle of
+     the selection bar (34px rows, 24px lines: 5px). */
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--msp-space-2);
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: end;
+  padding-bottom: 5px;
   pointer-events: none;
 
   & > * {
@@ -424,10 +428,11 @@
 /* The status line (messages, tasks) has no frame: ink on the canvas (its color from the canvas theme), with a soft
    halo of the background color so it reads over the molecule too. */
 .status .pill {
-  /* Its text's own height (no box to center in): at the frame margin, or centered with the selection bar. */
+  /* Its text's own height (no box to center in). Indented as a framed pill's content would be (no frame to set it
+     off the canvas edge). */
   height: auto;
   min-height: 24px;
-  padding-left: 0;
+  padding-left: var(--msp-space-3);
   background: none;
   box-shadow: none;
   backdrop-filter: none;
@@ -501,6 +506,7 @@
   & .status,
   & .context {
     grid-area: auto;
+    padding-bottom: 0;
     display: grid;
     justify-self: stretch;
     justify-content: stretch;
