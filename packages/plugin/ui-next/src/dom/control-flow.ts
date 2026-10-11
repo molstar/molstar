@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Scheduler } from '@molstar/core/task/util/scheduler';
 import { combineLatest, distinctUntilChanged, map, type Observable, of } from 'rxjs';
 import { type ObservableState, observableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
@@ -81,9 +82,11 @@ export function Switch(props: { fallback?: () => Child; children: Child }): Node
 /**
  * Time slicing for long lists. Every `For` in a task shares one slice (`SliceMs`) and one count: once `SliceFrom` new
  * entries were made in the slice (by any list: a tree's levels are short lists, its whole is long) and the slice is
- * spent, the rest wait for the next frame (a timer when the page is hidden,
- * which gets no frames), so a 5,000-row tree never holds the main thread for long. Only new entries wait: existing ones
- * update at once, so nothing on screen flickers.
+ * spent, the rest continue in a fresh task, so a 5,000-row tree never holds the main thread for long. The continuation
+ * is Mol*'s `setImmediate` (a MessageChannel task: not clamped like a timer, not throttled in a hidden page), so the
+ * browser takes input between any two slices and paints at its frames. 12 ms measured best (Internals › Performance,
+ * 5,025 cells: 5 ms slices took 40% longer in all, 12 ms matched frame-aligned slicing). Only new entries wait: existing
+ * ones update at once, so nothing on screen flickers.
  */
 const SliceMs = 12;
 const SliceFrom = 64;
@@ -95,8 +98,8 @@ let flushing = false;
 let slicing: boolean | 'auto' = 'auto';
 
 /**
- * Turns time slicing on or off (`auto`, the default: on where the page renders frames, off without a frame loop or in
- * jsdom, which has frames but never renders, so there is nothing to yield to and tests stay synchronous).
+ * Turns time slicing on or off (`auto`, the default: on in a browser, off in jsdom, which never renders, so there is
+ * nothing to yield to and tests stay synchronous).
  */
 export function timeSlicing(on: boolean | 'auto') {
   slicing = on;
@@ -104,7 +107,7 @@ export function timeSlicing(on: boolean | 'auto') {
 
 function slicingOn(): boolean {
   if (slicing !== 'auto') return slicing;
-  return typeof requestAnimationFrame === 'function' && !/jsdom/i.test(globalThis.navigator?.userAgent ?? '');
+  return typeof document !== 'undefined' && !/jsdom/i.test(globalThis.navigator?.userAgent ?? '');
 }
 
 /** Counts a new entry; whether the slice still has room for it (it starts one when none is running). */
@@ -125,15 +128,25 @@ function nextSlice(fn: () => void) {
   waiting.add(fn);
   if (flushing) return;
   flushing = true;
-  const flush = () => {
-    flushing = false;
-    const fns = [...waiting];
-    waiting.clear();
-    for (const f of fns) f();
-  };
-  // A hidden page gets no frames (its timers still run, if slower).
-  if (!document.hidden) requestAnimationFrame(flush);
-  else setTimeout(flush, 0);
+  Scheduler.setImmediate(flushWaiting);
+}
+
+function flushWaiting() {
+  flushing = false;
+  // A fresh task, a fresh slice (whatever ran before it; under Node the continuation is a nextTick, which runs before
+  // the microtask that would end the last slice).
+  sliceEnd = 0;
+  const fns = [...waiting];
+  waiting.clear();
+  for (const f of fns) {
+    // Spent: the rest wait as they are (running them would only walk their lists to defer them again).
+    if (sliceSpent()) nextSlice(f);
+    else f();
+  }
+}
+
+function sliceSpent(): boolean {
+  return sliceEnd !== 0 && sliceMade > SliceFrom && performance.now() >= sliceEnd;
 }
 
 interface ForEntry<T> {

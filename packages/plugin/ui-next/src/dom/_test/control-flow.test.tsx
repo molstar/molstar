@@ -139,13 +139,9 @@ describe('For', () => {
 
 describe('For, a long list', () => {
   it('renders over several slices once the slice is spent, in order, and follows the latest list', async () => {
-    jest.useFakeTimers();
-    // jsdom renders nothing, so slicing is off there unless asked for; frames as timers.
+    // jsdom renders nothing, so slicing is off there unless asked for.
     timeSlicing(true);
-    const g = globalThis as { requestAnimationFrame?: (fn: () => void) => number };
-    const raf = g.requestAnimationFrame;
-    g.requestAnimationFrame = (fn) => setTimeout(fn, 16) as unknown as number;
-    // Each reading of the clock costs 1 ms: the 12 ms slice is spent after a dozen new entries past the first 64.
+    // Each reading of the clock costs 1 ms: the 5 ms slice is spent after a few new entries past the first 64.
     let clock = 0;
     const now = jest.spyOn(performance, 'now').mockImplementation(() => (clock += 1));
     const items = observableState(Array.from({ length: 300 }, (_, i) => i));
@@ -154,22 +150,21 @@ describe('For, a long list', () => {
         <For each={items}>{(i) => <span>{i}</span>}</For>
       </div>
     ));
-    const shown = () => [...container.querySelectorAll('span')].map((e) => Number(e.textContent));
-    const first = shown().length;
-    expect(first).toBeGreaterThanOrEqual(64);
-    expect(first).toBeLessThan(300);
-    // The list changes while some of it waits: the rest follows the latest list.
-    items.set(items.value.filter((i) => i % 2 === 0));
-    for (let n = 0; n < 50 && shown().length < 150; n++) {
-      await Promise.resolve();
-      jest.runOnlyPendingTimers();
+    try {
+      const shown = () => [...container.querySelectorAll('span')].map((e) => Number(e.textContent));
+      const first = shown().length;
+      expect(first).toBeGreaterThanOrEqual(64);
+      expect(first).toBeLessThan(300);
+      // The list changes while some of it waits: the rest follows the latest list.
+      items.set(items.value.filter((i) => i % 2 === 0));
+      // The continuations are fresh tasks (Mol*'s setImmediate): let them run.
+      for (let n = 0; n < 500 && shown().length < 150; n++) await new Promise((r) => setTimeout(r, 0));
+      expect(shown()).toEqual(items.value);
+    } finally {
+      dispose();
+      now.mockRestore();
+      timeSlicing('auto');
     }
-    expect(shown()).toEqual(items.value);
-    dispose();
-    now.mockRestore();
-    g.requestAnimationFrame = raf;
-    timeSlicing('auto');
-    jest.useRealTimers();
   });
 });
 
