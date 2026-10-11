@@ -111,6 +111,7 @@ const DownloadStructure = StateAction.build({
   display: {
     name: 'Download Structure',
     description: 'Load a structure from the provided source and create its representation.',
+    triggerLabel: 'Download',
   },
   params: (_, plugin: PluginContext) => {
     const options = DownloadModelRepresentationOptions(plugin);
@@ -489,7 +490,11 @@ export const EnableStructureCustomProps = StateAction.build({
 })(({ ref, params }, ctx: PluginContext) => ctx.builders.structure.insertStructureProperties(ref, params));
 
 export const AddTrajectory = StateAction.build({
-  display: { name: 'Add Trajectory', description: 'Add trajectory from existing model/topology and coordinates.' },
+  display: {
+    name: 'Add Trajectory',
+    description: 'Add trajectory from existing model/topology and coordinates.',
+    triggerLabel: 'Add',
+  },
   from: PluginStateObject.Root,
   params(a, ctx: PluginContext) {
     const state = ctx.state.data;
@@ -538,6 +543,7 @@ export const LoadTrajectory = StateAction.build({
   display: {
     name: 'Load Trajectory',
     description: 'Load trajectory of model/topology and coordinates from URL or file.',
+    triggerLabel: 'Load',
   },
   from: PluginStateObject.Root,
   params(a, ctx: PluginContext) {

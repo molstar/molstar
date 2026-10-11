@@ -59,21 +59,23 @@ first implementation.
 
 Carry into the proper implementation (from the mock review):
 
-- **Every PD control in Storybook.** One story per param type (text, numeric/slider, select, boolean, color, mapped,
-  flat and nested groups, on/off mapped, lists, …) in each state, so the renderer's spacing and alignment are checked in
-  isolation, not found in whichever panel happens to use a control.
+- **Every PD control in Storybook.** Done (`Components/Params form`): every type alone and in its states, on a panel and
+  in a well; the types not rendered yet listed (multi-select, vec3, mat4, interval, line graph, color list, object list,
+  url, converted, value, script).
+- **Theming and override docs after the review** (data-msp-part names, component tokens, a `ui.theme` spec option, a
+  Storybook "Theming & overrides" page): once the contracts are frozen.
 - **A UX pass on every panel, not a port.** The mocks prove the layout; the content is still a translation of the old UI
   in places. Export's format sections (rows of GLB / STL / OBJ / USDZ / mmCIF buttons) are the clearest case: design
   each panel for its task (choose what, then one action) rather than listing every variant as a button.
 
 ## Phase 4: sources, view models, actions
 
-**Core tweak first: an action's apply label.** `StateAction.build`'s `display` (`packages/core/src/state/action.ts`,
-`{ name, description? }`) gains `applyLabel?: string`, so an action names what applying does ("Download", "Open",
-"Load") instead of a generic "Apply": `DownloadStructure` and `DownloadDensity` → Download, `OpenFiles` and the session
-action → Open, `LoadTrajectory` → Load. The old UI ignores it; ui-next's action blocks use it and fall back to "Apply"
-(transformer updates stay "Update"). Icons stay a UI concern: ui-next maps action ids to icons in its contributions,
-core does not learn about them.
+**Done: an action's trigger label.** `display` of state actions and transformers (`packages/core/src/state/action.ts`,
+`transformer.ts`) has `triggerLabel?: string`: what running it does, for its button. Set on the root actions:
+`DownloadStructure`, `DownloadDensity`, `DownloadFile` → Download; `OpenFiles` → Open; `LoadTrajectory` → Load;
+`AddTrajectory` → Add. The old UI ignores it; ui-next's action blocks use it (`HomeAction.applyLabel` from it) and fall
+back to "Apply" (transformer updates stay "Update"). Icons stay a UI concern: ui-next maps action ids to icons in its
+contributions, core does not learn about them.
 
 `model/sources/*` with tests against a real plugin and fixtures; view models in the order Scene → ParamsForm/Inspector →
 Selection/Focus → Measurements → Snapshots/Animation/Trajectory → Viewport/Screenshot → Sequence → Tasks/
