@@ -31,7 +31,7 @@ import {
   type ModeSwitchProps,
   PickLevel,
 } from '../canvas/mode-switch.js';
-import { PlaybackCard } from '../canvas/playback.js';
+import { SnapshotCard, TrajectoryBar } from '../canvas/playback.js';
 import { SelectionBar } from '../canvas/selection-bar.js';
 import { SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
@@ -552,10 +552,10 @@ function ShellStory(props: {
       }
       playback={
         props.loaded && (props.playback?.snapshots || props.playback?.trajectory) ? (
-          <PlaybackCard
-            snapshots={props.playback.snapshots ? snapshots : undefined}
-            trajectory={props.playback.trajectory ? trajectory : undefined}
-          />
+          <>
+            {props.playback.snapshots ? <SnapshotCard model={snapshots} /> : null}
+            {props.playback.trajectory ? <TrajectoryBar model={trajectory} /> : null}
+          </>
         ) : null
       }
       canvasColor={props.background ?? '#ffffff'}

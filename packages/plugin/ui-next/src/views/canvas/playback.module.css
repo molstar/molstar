@@ -131,9 +131,12 @@
   }
 }
 
-/* The trajectory below the snapshot: a hairline between them. */
-.snapshots + .trajectory {
-  border-top: 1px solid var(--msp-glass-edge);
+/* Which structure's models these are. */
+.trajectoryLabel {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Few snapshots: one dot each, the current one filled; a generous hit area around each small dot. */

@@ -86,8 +86,8 @@ it is where contributions (built-in and extension UI) are placed.
   Export: Background, Lighting & effects, Camera, Clipping & fog; extensions add sections to its slot. The Animation
   card has sections: Play (an animation: trajectory, camera spin and rock, state snapshots, assembly unwind; its
   options) and Procedural animation (wiggle by dynamics or uncertainty, clear); extensions add their own.
-- **Playback** (top left of the canvas, §4.3): one column, the timeline (when there is a trajectory) above the snapshot
-  panel. Nothing sits under it, so a description that grows or collapses moves nothing else.
+- **Playback** (top left of the canvas, §4.3): one column, two different things as two surfaces: the session's snapshots
+  (a card), then a structure's trajectory (a bar). Each only when the data has it.
 - **Bottom of the canvas**: messages and tasks on the left; the current selection and focus as chips on the right (the
   work in hand), moving with the open panel. On a narrow canvas the chips take a row of their own above.
 - **Glass and canvas theme.** Everything over the canvas uses flat glass (translucent fill, blur, no borders, no
@@ -205,10 +205,11 @@ Each part appears only when it applies.
   markdown extensions (`#key` links apply snapshots, command links, color swatches, images, audio). Collapsible, text
   size adjustable, scrolls when long, remembers its collapsed state. Apps can replace it with their own renderer (a
   contribution), as mvs-stories and mesoscale-explorer do today.
-- **Timeline** (top left, above the snapshot panel, when the current structure comes from a multi-model trajectory or an
-  animation runs): `4 / 20`, first, previous, scrubber, next, last, play/pause (model-index animation). Playback in one
-  place: the timeline is one fixed-height row, so it moves the snapshot panel only when it appears or goes.
-- **Animation**: chosen and configured from the timeline (an overlay), played there.
+- **Trajectory** (a bar under the snapshot card, when a structure has several models): a different thing from snapshots.
+  Snapshots step through saved states of the whole session; a trajectory steps through one structure's models (its model
+  index, also in that structure's inspector). The bar names its structure (`1TQN · 4 / 20`), a quiet scrubber, play;
+  with several trajectories loaded it follows the focused structure.
+- **Animation**: the rail's Animation card (play an animation, procedural wiggle); trajectory loop and speed live there.
 
 ### 4.4 Hover label
 

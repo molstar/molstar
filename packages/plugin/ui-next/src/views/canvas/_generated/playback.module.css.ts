@@ -22,9 +22,8 @@ export const classes = {
   'listRows': 'msp-canvas-playback-listRows',
   'position': 'msp-canvas-playback-position',
   'scrubber': 'msp-canvas-playback-scrubber',
-  'snapshots': 'msp-canvas-playback-snapshots',
   'title': 'msp-canvas-playback-title',
-  'trajectory': 'msp-canvas-playback-trajectory',
+  'trajectoryLabel': 'msp-canvas-playback-trajectoryLabel',
 } as const;
 
 defineStyles('views/canvas/playback.module.css', `@layer msp.components {
@@ -149,8 +148,11 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
   }
 }
 
-.msp-canvas-playback-snapshots + .msp-canvas-playback-trajectory {
-  border-top: 1px solid var(--msp-glass-edge);
+.msp-canvas-playback-trajectoryLabel {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  overflow: hidden;
 }
 
 .msp-canvas-playback-dots {

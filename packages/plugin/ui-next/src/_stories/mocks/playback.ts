@@ -69,11 +69,12 @@ export function mockSnapshots(post: (text: string) => void, count?: number): Sna
 }
 
 /** A multi-model trajectory of `count` models. */
-export function mockTrajectory(count = 20): TrajectoryControlsModel {
+export function mockTrajectory(count = 20, label = '1TQN'): TrajectoryControlsModel {
   const index = observableState(0);
   const isPlaying = observableState(false);
   let timer: ReturnType<typeof setInterval> | undefined;
   return {
+    label: observableState(label).asReadonly,
     count: observableState(count).asReadonly,
     index: index.asReadonly,
     isPlaying: isPlaying.asReadonly,

@@ -25,8 +25,13 @@ export interface SnapshotStepperModel {
   openLink(href: string): void;
 }
 
-/** Model-index controls for a multi-model trajectory (implemented over `UpdateTrajectory`). */
+/**
+ * Model-index controls for a multi-model trajectory (implemented over `UpdateTrajectory`). A trajectory belongs to a
+ * structure (its frame is the structure's model index): with several loaded, the bar follows the focused one.
+ */
 export interface TrajectoryControlsModel {
+  /** The structure it belongs to ("1TQN"). */
+  label: ReadonlyState<string>;
   count: ReadonlyState<number>;
   /** 0-based. */
   index: ReadonlyState<number>;

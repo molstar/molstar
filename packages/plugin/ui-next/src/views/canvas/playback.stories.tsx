@@ -9,7 +9,7 @@
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { mockSnapshots, mockTrajectory } from '../../_stories/mocks/playback.js';
 import { story } from '../../_stories/story-root.js';
-import { PlaybackCard } from './playback.js';
+import { SnapshotCard, TrajectoryBar } from './playback.js';
 
 const meta: Meta = { title: 'Canvas/Playback' };
 export default meta;
@@ -17,12 +17,13 @@ export default meta;
 const frame = 'width: 320px; padding: 24px; background: var(--msp-color-bg);';
 const post = (text: string) => console.info(text);
 
-/** Snapshots (dots for a few) and the trajectory below a hairline. */
+/** Two different things, two surfaces: the session's snapshots, and one structure's models. */
 export const SnapshotsAndTrajectory: StoryObj = {
   render: () =>
     story(() => (
-      <div style={frame}>
-        <PlaybackCard snapshots={mockSnapshots(post)} trajectory={mockTrajectory()} />
+      <div style={`${frame} display: grid; gap: 8px;`}>
+        <SnapshotCard model={mockSnapshots(post)} />
+        <TrajectoryBar model={mockTrajectory()} />
       </div>
     )),
 };
@@ -32,17 +33,17 @@ export const ManySnapshots: StoryObj = {
   render: () =>
     story(() => (
       <div style={frame}>
-        <PlaybackCard snapshots={mockSnapshots(post, 32)} />
+        <SnapshotCard model={mockSnapshots(post, 32)} />
       </div>
     )),
 };
 
-/** Only a trajectory: the card is one row. */
-export const TrajectoryOnly: StoryObj = {
+/** A trajectory: the bar names its structure. */
+export const Trajectory: StoryObj = {
   render: () =>
     story(() => (
       <div style={frame}>
-        <PlaybackCard trajectory={mockTrajectory(50)} />
+        <TrajectoryBar model={mockTrajectory(50, '6M0J')} />
       </div>
     )),
 };

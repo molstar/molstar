@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { Markdown } from '../../components/markdown/markdown.js';
@@ -21,23 +21,31 @@ import { classes } from './_generated/playback.module.css.js';
 const MaxDots = 7;
 
 /**
- * Playback at the top left of the canvas, one card: the current snapshot (its title, position, previous and next,
- * the slideshow's play; then its description) and, below a hairline, the trajectory (frame, scrubber, play). Each part
- * shows only when it applies; nothing is stacked under the card, so a description that grows moves nothing else.
+ * Snapshot playback (the session's story) at the top left of the canvas: the current snapshot's title, its position,
+ * previous, next, the slideshow's play, then its description. Only when the session has snapshots.
  */
-export function PlaybackCard(props: { snapshots?: SnapshotStepperModel; trajectory?: TrajectoryControlsModel }) {
-  const hasSnapshots = props.snapshots ? props.snapshots.count.pipe(map((c) => c > 0)) : of(false);
-  const hasTrajectory = props.trajectory ? props.trajectory.count.pipe(map((c) => c > 1)) : of(false);
-  const visible = combineLatest([hasSnapshots, hasTrajectory]).pipe(
-    map(([s, t]) => s || t),
-    distinctUntilChanged(),
-  );
+export function SnapshotCard(props: { model: SnapshotStepperModel }) {
   return (
-    <Show when={visible}>
+    <Show when={props.model.count.pipe(map((c) => c > 0))}>
       {() => (
-        <section class={classes.card} aria-label="Playback">
-          {props.snapshots ? <Show when={hasSnapshots}>{() => <Snapshots model={props.snapshots!} />}</Show> : null}
-          {props.trajectory ? <Show when={hasTrajectory}>{() => <Trajectory model={props.trajectory!} />}</Show> : null}
+        <section class={classes.card} aria-label="Snapshots">
+          <Snapshots model={props.model} />
+        </section>
+      )}
+    </Show>
+  );
+}
+
+/**
+ * Trajectory playback, a separate bar: the models of one structure (named, since it is that structure's model index),
+ * a scrubber and play. Only for a multi-model structure.
+ */
+export function TrajectoryBar(props: { model: TrajectoryControlsModel }) {
+  return (
+    <Show when={props.model.count.pipe(map((c) => c > 1))}>
+      {() => (
+        <section class={classes.card} aria-label="Trajectory">
+          <Trajectory model={props.model} />
         </section>
       )}
     </Show>
@@ -52,7 +60,7 @@ function Snapshots(props: { model: SnapshotStepperModel }) {
     distinctUntilChanged(),
   );
   return (
-    <div class={classes.snapshots}>
+    <div>
       <div class={classes.bar}>
         <span class={classes.title}>{model.title}</span>
         <Show when={many} fallback={() => <Dots model={model} />}>
@@ -171,10 +179,11 @@ function Trajectory(props: { model: TrajectoryControlsModel }) {
     map(([i, c]) => `${c > 1 ? (100 * i) / (c - 1) : 0}%`),
   );
   return (
-    <div class={`${classes.bar} ${classes.trajectory}`} aria-label="Trajectory" role="group">
+    <div class={classes.bar} role="group" aria-label="Models">
       <span class={classes.lead}>
         <Icon name="trajectory" size={16} />
       </span>
+      <span class={classes.trajectoryLabel}>{model.label}</span>
       <span class={classes.counter}>
         {combineLatest([model.index, model.count]).pipe(map(([i, c]) => `${i + 1} / ${c}`))}
       </span>
