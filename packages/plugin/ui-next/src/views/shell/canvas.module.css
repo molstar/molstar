@@ -13,18 +13,6 @@
   gap: var(--msp-space-3);
 }
 
-/* A section's caption: small, quiet, above its buttons. */
-.caption {
-  padding: var(--msp-space-1) 0 var(--msp-space-1);
-  color: var(--msp-color-text-subtle);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-align: center;
-  text-transform: uppercase;
-  user-select: none;
-}
-
 .toolbar {
   display: flex;
   flex-direction: column;

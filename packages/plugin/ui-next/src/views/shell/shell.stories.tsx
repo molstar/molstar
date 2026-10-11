@@ -143,6 +143,83 @@ function mockTrajectory(): TrajectoryControlsModel {
   };
 }
 
+/**
+ * What two extensions contribute (mocked): a button in the rail's `export` section and an overlay each. In ui-next an
+ * extension ships this as part of its UI contribution; an app that lists the contribution gets the buttons.
+ */
+function mockExportExtensions(shell: ShellModel, status: StatusModel) {
+  const rendering = observableState<number | undefined>(undefined);
+  shell.registerOverlays([
+    {
+      id: 'mp4-export',
+      title: 'Export animation',
+      render: domView(() => (
+        <div style={pad}>
+          <label style="display: grid; gap: 4px">
+            <span style={muted}>Animation</span>
+            <select style="height: 28px">
+              <option>Spin</option>
+              <option>Rock</option>
+              <option>Snapshots</option>
+            </select>
+          </label>
+          <Button
+            variant="primary"
+            icon={<Icon name="film" />}
+            disabled={rendering.asReadonly.pipe(map((r) => r !== undefined))}
+            onClick={() => {
+              let p = 0;
+              rendering.set(0);
+              const t = setInterval(() => {
+                p += 0.1;
+                rendering.set(p >= 1 ? undefined : p);
+                if (p >= 1) {
+                  clearInterval(t);
+                  status.post('Rendered animation.mp4 (6 s)', 'success');
+                }
+              }, 150);
+            }}
+          >
+            {rendering.asReadonly.pipe(
+              map((r) => (r === undefined ? 'Render MP4' : `Rendering ${Math.round(r * 100)}%`)),
+            )}
+          </Button>
+        </div>
+      )),
+    },
+    {
+      id: 'geo-export',
+      title: 'Export geometry',
+      render: domView(() => (
+        <div style={pad}>
+          <span style={muted}>Download the visible geometry as</span>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            {['GLB', 'STL', 'OBJ', 'USDZ'].map((f) => (
+              <Button
+                icon={<Icon name="download" />}
+                onClick={() => status.post(`Exported scene.${f.toLowerCase()}`, 'success')}
+              >
+                {f}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )),
+    },
+  ]);
+  shell.registerToolbar([
+    {
+      id: 'mp4-export',
+      group: 'export',
+      order: 10,
+      icon: 'film',
+      title: 'Export animation (MP4)',
+      overlay: 'mp4-export',
+    },
+    { id: 'geo-export', group: 'export', order: 11, icon: 'box', title: 'Export geometry', overlay: 'geo-export' },
+  ]);
+}
+
 /** A mock of everything around the canvas, with the shell's real model. */
 function mockShell(options: { loaded: boolean }) {
   const shell = new ShellModel();
@@ -309,12 +386,12 @@ function mockShell(options: { loaded: boolean }) {
       title: `Commands (${formatChord({ key: 'k', mod: true })})`,
       run: () => status.post('The palette comes next.'),
     },
-    { id: 'reset', group: 'Canvas', icon: 'rotate-ccw', title: 'Reset camera', run: () => status.post('Camera reset') },
-    { id: 'screenshot', group: 'Export', icon: 'camera', title: 'Screenshot', overlay: 'screenshot' },
-    { id: 'save', group: 'Export', icon: 'save', title: 'Save state', overlay: 'save-state' },
+    { id: 'reset', group: 'canvas', icon: 'rotate-ccw', title: 'Reset camera', run: () => status.post('Camera reset') },
+    { id: 'screenshot', group: 'export', icon: 'camera', title: 'Screenshot', overlay: 'screenshot' },
+    { id: 'save', group: 'export', icon: 'save', title: 'Save state', overlay: 'save-state' },
     {
       id: 'select',
-      group: 'Canvas',
+      group: 'canvas',
       icon: 'mouse-pointer-click',
       title: 'Selection mode',
       pressed: selectionMode.asReadonly,
@@ -322,7 +399,7 @@ function mockShell(options: { loaded: boolean }) {
     },
     {
       id: 'illumination',
-      group: 'Canvas',
+      group: 'canvas',
       icon: 'lightbulb',
       title: 'Illumination',
       pressed: illumination.asReadonly,
@@ -330,13 +407,16 @@ function mockShell(options: { loaded: boolean }) {
     },
     {
       id: 'xr',
-      group: 'Canvas',
+      group: 'canvas',
       icon: 'glasses',
       title: 'Enter XR',
       run: () => status.post('XR is not available in this browser.', 'warning'),
     },
-    { id: 'expand', group: 'Canvas', icon: 'maximize', title: 'Expand', run: () => status.post('Expanded') },
+    { id: 'expand', group: 'canvas', icon: 'maximize', title: 'Expand', run: () => status.post('Expanded') },
   ]);
+
+  // Extensions add their own buttons to the rail's sections.
+  mockExportExtensions(shell, status);
 
   if (options.loaded) {
     status.post('Loaded 1TQN (3,624 atoms) in 0.4 s', 'success');

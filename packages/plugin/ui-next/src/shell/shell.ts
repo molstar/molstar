@@ -76,8 +76,9 @@ export interface CanvasToolbarItem {
   icon: IconName;
   title: string;
   /**
-   * The rail section it belongs to ('Canvas', 'Export'); items without one come first, uncaptioned (the palette).
-   * Sections appear in the order of their first item.
+   * The rail section it belongs to: a built-in one (`canvas`, `export`) or a new one; items without one come first (the
+   * palette). Extensions add their buttons to a section this way (MP4 export, geometry export → `export`). Sections
+   * appear in the order of their first item; `order` places items within a section.
    */
   group?: string;
   order?: number;

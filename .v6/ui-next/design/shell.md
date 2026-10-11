@@ -60,10 +60,11 @@ it is where contributions (built-in and extension UI) are placed.
   full height; top and bottom docks span the canvas width only. A top or bottom dock with one tab has no tab strip: its
   content carries its own header (the sequence: structure and chain selectors, collapse), and collapsed it is a slim bar
   that expands on click.
-- **Rail sections.** The rail is grouped into captioned glass blocks, top to bottom: the command palette (uncaptioned,
-  the main way in), the tab strip (uncaptioned: its selected state says what it is), then the toolbar's sections
-  (**Canvas**: reset camera, selection mode, illumination, XR, expand; **Export**: screenshot, save state). Toolbar
-  items name their section (`group`); contributed items join a section or start a new one.
+- **Rail sections.** The rail is grouped into glass blocks separated by gaps (no captions), top to bottom: the command
+  palette (the main way in), the tab strip, then the toolbar's sections (`canvas`: reset camera, selection mode,
+  illumination, XR, expand; `export`: screenshot, save state). Toolbar items name their section by id (`group`, with
+  `order` within it); extensions add buttons to a built-in section or start their own, e.g. MP4 export and geometry
+  export as buttons in `export` that open their overlay cards. Apps get them by listing the extension's UI contribution.
 - **Canvas toolbar.** A vertical strip of command buttons (palette, reset camera, screenshot, save state, selection
   mode, illumination, XR, expand/fullscreen, plus contributed items), each gated by its command's `when` and
   `PluginConfig.Viewport.*`. A button either runs its command or opens an overlay anchored to it.
