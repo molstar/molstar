@@ -132,6 +132,8 @@ const ICONS = [
   'app-window',
   'toggle-right',
   'wrench',
+  'tag',
+  'move-3d',
 ];
 
 const require = createRequire(import.meta.url);

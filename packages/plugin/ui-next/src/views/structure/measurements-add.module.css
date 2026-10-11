@@ -1,0 +1,161 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.add {
+  display: grid;
+  gap: var(--msp-space-2);
+}
+
+.caption {
+  margin: var(--msp-space-1) 0 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-weight: 500;
+}
+
+/* The points: numbered rows in the well, the order they are used in. */
+.points {
+  display: grid;
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+}
+
+.hint,
+.more {
+  margin: 0;
+  padding: var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.45;
+}
+
+.more {
+  padding: var(--msp-space-1) var(--msp-space-2);
+}
+
+.point {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 26px;
+  padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.index {
+  flex: none;
+  min-width: 1.5ch;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.pointLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text);
+  font-weight: 500;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pointActions {
+  flex: none;
+  display: flex;
+  gap: 1px;
+}
+
+.action {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  opacity: 0;
+
+  .point:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: var(--msp-color-pressed);
+    color: var(--msp-color-text);
+  }
+}
+
+/* What can be measured: rows like a menu's; the ones without enough points quiet and disabled. */
+.kinds {
+  display: grid;
+}
+
+.kind {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 28px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  text-align: left;
+
+  &:hover:not(:disabled) {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &:disabled {
+    color: var(--msp-color-text-subtle);
+    cursor: default;
+
+    & .kindTitle {
+      color: var(--msp-color-text-subtle);
+    }
+  }
+}
+
+.kindTitle {
+  flex: none;
+  color: var(--msp-color-text);
+  font-weight: 600;
+}
+
+.kindHint {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optionsToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 28px;
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  font-weight: 600;
+}
+
+.chevron {
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(90deg);
+  }
+}

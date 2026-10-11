@@ -217,6 +217,15 @@ off, then 2Fo-Fc σ, Fo-Fc(+ve), Fo-Fc(−ve) or EM as volume rows with their is
 assembly symmetry (RCSB: the symmetry, its axes as a row, coloring by it) are rows this way. Every row keeps its ⋯ slot,
 so the eyes stay in one column.
 
+### 4.1a′ Measurements
+
+The Measurements row's inspector adds measurements (after Mol*'s measurement controls,
+`views/structure/ measurements-add.tsx`, `model/measurements.ts`): the **points** are the latest selections in order
+(Mol*'s selection additions history), the first four used, each reorderable, removable, focused on click, highlighted on
+hover; then what can be **measured** from them, each a row with how many points it takes and enabled once there are
+enough: Distance (2), Angle (3), Dihedral (4), Label (1), Orientation and Plane (the selection); then the **options**
+(distance unit, text color and size). An added measurement appears as a row under Measurements; picked, its own options.
+
 ### 4.1b Snapshots tab
 
 A tab beside Structure (`images` icon, `snapshots.show`, ⌘S), in the Structure tab's shape: a header of actions (**+

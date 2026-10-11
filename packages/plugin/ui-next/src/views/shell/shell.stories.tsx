@@ -43,6 +43,7 @@ import { SnapshotsPanel } from '../state/snapshots-panel.js';
 import { StateTreeTab } from '../state-tree/state-tree-tab.js';
 import { SettingsTab } from '../settings/settings-tab.js';
 import { mockSettings } from '../../_stories/mocks/settings.js';
+import { mockMeasurements, registerMockMeasurements } from '../../_stories/mocks/measurements.js';
 import { mockStateTree } from '../../_stories/mocks/state-tree.js';
 import { mockImageExport } from '../../_stories/mocks/image-export.js';
 import { mockSnapshotsModel } from '../../_stories/mocks/snapshots.js';
@@ -351,6 +352,11 @@ function mockShell(options: {
     onHighlight: (label) => hoverLines.set(label ? [label] : []),
     onAction: (text) => status.post(text),
   });
+  // Adding measurements: the Measurements row's inspector.
+  registerMockMeasurements(
+    shell,
+    mockMeasurements(scene, (t) => status.post(t)),
+  );
   const hover: HoverLabelModel = { lines: hoverLines.asReadonly };
   const home = mockHome((text, kind) => status.post(text, kind), { remoteStates: options.remoteStates });
   const snapshotsModel = mockSnapshotsModel((text, kind) => status.post(text, kind));

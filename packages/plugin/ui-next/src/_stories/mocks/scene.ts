@@ -276,6 +276,8 @@ export interface MockScene extends SceneModel {
   rowForm(structure: SceneNode, rowId: string): ParamsFormModel<any> | undefined;
   /** The volume streaming row's options for a structure. */
   streaming(structure: SceneNode): ParamsFormModel<any>;
+  /** Adds a measurement row under Measurements (what the measurement manager would create). */
+  addMeasurement(label: string, description: string, icon: IconName): void;
 }
 
 /** What an extension's structure row can put under itself once on: volume channels, a shape (symmetry axes). */
@@ -569,10 +571,14 @@ export function mockScene(
     return n;
   };
 
-  const measurements = () =>
-    node('measurements', 'measurements', 'ruler', 'Measurements', '1 distance').add(
+  let measurementsNode: MockNode | undefined;
+  const measurements = () => {
+    measurementsNode = node('measurements', 'measurements', 'ruler', 'Measurements', '1 distance').add(
       node('d1', 'measurement', 'measure-distance', 'CYS 442 SG – HEM FE', '2.31 Å', false),
     );
+    return measurementsNode;
+  };
+  let measurementCount = 1;
 
   const cyp = (id: string, label: string, ligand: string, description: string, expanded: boolean) =>
     structure(
@@ -706,6 +712,20 @@ export function mockScene(
     },
     structureInfo: (n) => infos.get(n.id),
     rowForm: (n, rowId) => rowForms.get(`${n.id}-${rowId}`),
+    addMeasurement: (label, description, icon) => {
+      let owner = measurementsNode;
+      if (!owner) {
+        // No measurements yet: the row appears with the first.
+        owner = measurements();
+        owner.drop(owner.children.value[0]);
+        measurementCount = 0;
+        roots.set([...roots.value, owner]);
+      }
+      measurementCount++;
+      owner.add(node(`m${measurementCount}-${Date.now()}`, 'measurement', icon, label, description, false));
+      owner.setDescription(`${owner.children.value.length} measurement${owner.children.value.length === 1 ? '' : 's'}`);
+      if (!owner.isExpanded.value) owner.toggleExpanded();
+    },
     streaming: (n) => rowForms.get(`${n.id}-volume-streaming`) as ParamsFormModel<any>,
   };
 }
