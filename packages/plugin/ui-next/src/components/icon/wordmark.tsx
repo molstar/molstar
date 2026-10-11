@@ -33,12 +33,15 @@ function Shapes() {
 
 /**
  * The Mol* wordmark, outlined in the text color: Home's heading. A flash of the logo's colors runs along the outline
- * when it appears and on hover (a copy stroked with the logo's gradient, shown through a moving band: CSS only).
+ * now and then (often on the empty canvas) and on hover (a copy stroked with the logo's gradient, shown through a
+ * moving band: CSS only).
  */
 export function MolstarWordmark(props: {
   class?: string;
   /** A whole multiple of its drawn size (the empty canvas shows it at 4): lines stay on the pixel grid. */
   scale?: number;
+  /** How often its colors flash: now and then (a heading), or often (the empty canvas). */
+  flash?: 'rare' | 'often';
 }) {
   const id = `msp-wordmark-${++gradients}`;
   const scale = Math.max(1, Math.round(props.scale ?? 1));
@@ -57,10 +60,11 @@ export function MolstarWordmark(props: {
         <defs>
           {/* The logo's colors, left to right. */}
           <linearGradient id={id} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="55" y2="0">
-            <stop offset="0" stop-color="#7a4f2f" />
-            <stop offset="0.35" stop-color="#e8b93a" />
-            <stop offset="0.6" stop-color="#7fa38a" />
-            <stop offset="1" stop-color="#3f86ad" />
+            {/* The theme's brand colors (theme.css): lighter on dark backgrounds, from the nearest theme. */}
+            <stop offset="0" style={{ 'stop-color': 'var(--msp-color-brand-1)' }} />
+            <stop offset="0.35" style={{ 'stop-color': 'var(--msp-color-brand-2)' }} />
+            <stop offset="0.6" style={{ 'stop-color': 'var(--msp-color-brand-3)' }} />
+            <stop offset="1" style={{ 'stop-color': 'var(--msp-color-brand-4)' }} />
           </linearGradient>
         </defs>
       ) : null}
@@ -71,6 +75,7 @@ export function MolstarWordmark(props: {
     <span
       class={`${classes.wordmark} ${props.class ?? ''}`}
       style={{ '--msp-wordmark-scale': scale }}
+      data-flash={props.flash ?? 'rare'}
       role="img"
       aria-label="Mol*"
     >

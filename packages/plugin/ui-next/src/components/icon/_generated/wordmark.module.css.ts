@@ -11,7 +11,8 @@ import { defineStyles } from '../../../styles/registry.js';
 export const classes = {
   'flash': 'msp-icon-wordmark-flash',
   'flash-hover': 'msp-icon-wordmark-flash-hover',
-  'flash-in': 'msp-icon-wordmark-flash-in',
+  'flash-often': 'msp-icon-wordmark-flash-often',
+  'flash-rare': 'msp-icon-wordmark-flash-rare',
   'outline': 'msp-icon-wordmark-outline',
   'wordmark': 'msp-icon-wordmark-wordmark',
 } as const;
@@ -37,23 +38,37 @@ defineStyles('components/icon/wordmark.module.css', `@layer msp.components {
 }
 
 .msp-icon-wordmark-flash {
-  animation: 1.4s ease-in-out .3s both msp-icon-wordmark-flash-in;
+  animation: 14s ease-in-out .3s infinite both msp-icon-wordmark-flash-rare;
   mask-image: linear-gradient(100deg, #0000 0 38%, #000 47% 53%, #0000 62% 100%);
   mask-position: 100% 0;
   mask-size: 300% 100%;
   mask-repeat: no-repeat;
 
+  [data-flash="often"] > & {
+    animation: 7s ease-in-out .3s infinite both msp-icon-wordmark-flash-often;
+  }
+
   .msp-icon-wordmark-wordmark:hover & {
-    animation: 1.1s ease-in-out both msp-icon-wordmark-flash-hover;
+    animation: 2.8s ease-in-out both msp-icon-wordmark-flash-hover;
   }
 }
 
-@keyframes msp-icon-wordmark-flash-in {
-  from {
+@keyframes msp-icon-wordmark-flash-rare {
+  0% {
     mask-position: 100% 0;
   }
 
-  to {
+  20%, 100% {
+    mask-position: 0 0;
+  }
+}
+
+@keyframes msp-icon-wordmark-flash-often {
+  0% {
+    mask-position: 100% 0;
+  }
+
+  40%, 100% {
     mask-position: 0 0;
   }
 }

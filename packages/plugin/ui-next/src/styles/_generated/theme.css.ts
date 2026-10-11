@@ -20,6 +20,10 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-color-warning: #b7860b;
     --msp-color-info: #5e3673;
     --msp-shade: #000;
+    --msp-color-brand-1: #7a4f2f;
+    --msp-color-brand-2: #e0ae2c;
+    --msp-color-brand-3: #6f9a80;
+    --msp-color-brand-4: #3f86ad;
   }
 
   [data-msp-theme="dark"] {
@@ -33,6 +37,10 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-color-warning: #fcc937;
     --msp-color-info: #b18ac6;
     --msp-shade: #fff;
+    --msp-color-brand-1: #d29a68;
+    --msp-color-brand-2: #f5d36b;
+    --msp-color-brand-3: #a8d8bc;
+    --msp-color-brand-4: #79bfe6;
   }
 
   [data-msp-theme="blue"] {
@@ -46,6 +54,10 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-color-warning: #fcc937;
     --msp-color-info: #b18ac6;
     --msp-shade: #fff;
+    --msp-color-brand-1: #d29a68;
+    --msp-color-brand-2: #f5d36b;
+    --msp-color-brand-3: #a8d8bc;
+    --msp-color-brand-4: #79bfe6;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -60,6 +72,10 @@ defineStyles('styles/theme.css', `@layer msp.theme {
       --msp-color-warning: #fcc937;
       --msp-color-info: #b18ac6;
       --msp-shade: #fff;
+      --msp-color-brand-1: #d29a68;
+      --msp-color-brand-2: #f5d36b;
+      --msp-color-brand-3: #a8d8bc;
+      --msp-color-brand-4: #79bfe6;
     }
   }
 
