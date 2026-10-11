@@ -117,6 +117,10 @@
   }
 }
 
+.actionSlot {
+  width: 22px;
+}
+
 /* A hidden node keeps its eye visible: the state is worth seeing at a glance. */
 .keep {
   opacity: 1;

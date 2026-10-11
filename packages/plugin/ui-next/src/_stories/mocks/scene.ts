@@ -17,6 +17,7 @@ import type {
   SceneNodeKind,
 } from '../../model/scene.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
+import { DefaultRows } from './structure-rows.js';
 
 /** Representation params shaped like Mol*'s (type, color theme as a mapped param, size, opacity, quality, material). */
 const RepresentationTypes = [
@@ -138,35 +139,6 @@ const UnitCellParams = {
 
 const ComponentParams = {
   label: PD.Text(''),
-};
-
-/** The volume streaming extension's options for a structure (density from the PDBe/RCSB density servers). */
-const StreamingParams = {
-  enabled: PD.Boolean(false, { label: 'Enabled', isEssential: true }),
-  view: PD.Select(
-    'selection-box',
-    [
-      ['selection-box', 'Around focus'],
-      ['camera-target', 'Camera target'],
-      ['box', 'Fixed box'],
-      ['cell', 'Whole structure'],
-    ],
-    { label: 'Region', hideIf: (p: any) => !p.enabled },
-  ),
-  radius: PD.Numeric(
-    5,
-    { min: 0, max: 20, step: 0.5 },
-    { label: 'Radius (Å)', hideIf: (p: any) => !p.enabled || p.view !== 'selection-box' },
-  ),
-  detail: PD.Select(
-    '3',
-    [
-      ['0', 'Lowest'],
-      ['3', 'Medium'],
-      ['6', 'Highest'],
-    ],
-    { label: 'Detail', hideIf: (p: any) => !p.enabled },
-  ),
 };
 
 const ColorLabels: Record<string, string> = {
@@ -300,9 +272,32 @@ export interface MockStructureInfo {
 export interface MockScene extends SceneModel {
   /** The structure behind a node, for sections' `when`. */
   structureInfo(node: SceneNode): MockStructureInfo | undefined;
-  /** The volume streaming extension's form for a structure (its Volume streaming row's): enabling it streams the
-   * channels under that row. */
-  streaming(node: SceneNode): ParamsFormModel<typeof StreamingParams>;
+  /** An extension row's options for a structure (its `enabled` switch turns the row on). */
+  rowForm(structure: SceneNode, rowId: string): ParamsFormModel<any> | undefined;
+  /** The volume streaming row's options for a structure. */
+  streaming(structure: SceneNode): ParamsFormModel<any>;
+}
+
+/** What an extension's structure row can put under itself once on: volume channels, a shape (symmetry axes). */
+export interface MockRowChildren {
+  volume(id: string, label: string, iso: { relative?: number; absolute?: number }, color: number): MockNode;
+  shape(id: string, label: string, description: string, icon: IconName): MockNode;
+}
+
+/**
+ * A row an extension adds under each structure it applies to (volume streaming, assembly symmetry), as its UI
+ * contribution would register it: off (hidden) until its eye turns it on; on, what it shows appears under it; picked,
+ * its options. The tree knows no extension by name.
+ */
+export interface MockRowSpec {
+  id: string;
+  label: string;
+  icon: IconName;
+  when(info: MockStructureInfo): boolean;
+  /** Its options; `enabled` (a boolean) is the row's on/off. */
+  params(info: MockStructureInfo): PD.Params;
+  describe(values: any, info: MockStructureInfo): string;
+  children(values: any, info: MockStructureInfo, make: MockRowChildren, id: string): MockNode[];
 }
 
 export type MockScenePreset = 'single' | 'many' | 'em';
@@ -318,13 +313,16 @@ export function mockScene(
     onHighlight?: (label: string | undefined) => void;
     /** Reports a menu action (what the plugin would do). */
     onAction?: (text: string) => void;
+    /** Extensions' structure rows (volume streaming, assembly symmetry by default). */
+    rows?: readonly MockRowSpec[];
   } = {},
 ): MockScene {
   const highlight = (node: MockNode, on: boolean) => options.onHighlight?.(on ? node.label.value : undefined);
   const forms = new Map<string, ParamsFormModel<any>>();
   const facts = new Map<string, readonly (readonly [string, string])[]>();
   const infos = new Map<string, MockStructureInfo>();
-  const streamingForms = new Map<string, ParamsFormModel<typeof StreamingParams>>();
+  const rowForms = new Map<string, ParamsFormModel<any>>();
+  const rows = options.rows ?? DefaultRows;
   const roots = observableState<readonly SceneNode[]>([]);
   const removeRoot = (node: MockNode) => roots.set(roots.value.filter((n) => n !== node));
   const node = (
@@ -532,40 +530,36 @@ export function mockScene(
         })),
       },
     ];
-    n.add(streamingNode(n, info.method));
+    for (const spec of rows) if (spec.when(info)) n.add(extensionRow(n, info, spec));
     return n;
   };
 
-  // Volume streaming (the extension), a row of the structure: off until its eye turns it on; on, the streamed channels
-  // appear under it, each with its own iso value; picked, its options (region, radius, detail).
-  const streamingNode = (owner: MockNode, method: MockStructureInfo['method']) => {
-    const id = `${owner.id}-streaming`;
-    const source = method === 'em' ? 'EMDB' : 'X-ray';
-    const n = node(id, 'volume', 'volume', 'Volume streaming', `${source} · off`, false);
-    n.setHidden(true);
-    const channels = () =>
-      method === 'em'
-        ? [volumeRepr(`${id}-em`, 'EM', { relative: 3 }, 0x808080)]
-        : [
-            volumeRepr(`${id}-2fofc`, '2Fo-Fc', { relative: 1.5 }, 0x3362b2),
-            volumeRepr(`${id}-fofc-pos`, 'Fo-Fc(+ve)', { relative: 3 }, 0x33bb33),
-            volumeRepr(`${id}-fofc-neg`, 'Fo-Fc(−ve)', { relative: -3 }, 0xbb3333),
-          ];
-    const form = new ParamsFormModel(StreamingParams, undefined, {
+  // An extension's row under a structure: off (hidden) until its eye turns it on; on, what it shows appears under it
+  // (expanded); picked, its options. Its description follows its options.
+  const make: MockRowChildren = {
+    volume: (id, label, iso, color) => volumeRepr(id, label, iso, color),
+    shape: (id, label, description, icon) => node(id, 'representation', icon, label, description, false),
+  };
+  const extensionRow = (owner: MockNode, info: MockStructureInfo, spec: MockRowSpec) => {
+    const id = `${owner.id}-${spec.id}`;
+    const n = node(id, 'extension', spec.icon, spec.label, undefined, false);
+    const form = new ParamsFormModel(spec.params(info), undefined, {
       onChange: (v) => {
         n.setHidden(!v.enabled);
-        if (v.enabled && !n.children.value.length) {
-          n.add(...channels());
-          if (!n.isExpanded.value) n.toggleExpanded();
-        } else if (!v.enabled) for (const c of n.children.value) n.drop(c);
-        const region = StreamingParams.view.options.find(([o]) => o === v.view)?.[1] ?? '';
-        n.setDescription(`${source} · ${v.enabled ? region.toLowerCase() : 'off'}`);
+        for (const c of n.children.value) n.drop(c);
+        if (v.enabled) {
+          n.add(...spec.children(v, info, make, id));
+          if (!n.isExpanded.value && n.children.value.length) n.toggleExpanded();
+        }
+        n.setDescription(spec.describe(v, info));
       },
     });
+    n.setHidden(true);
+    n.setDescription(spec.describe(form.values.value, info));
     n.onToggle = () => form.set('enabled', !form.values.value.enabled);
     n.removable = false;
     forms.set(id, form);
-    streamingForms.set(owner.id, form);
+    rowForms.set(id, form);
     return n;
   };
 
@@ -711,8 +705,8 @@ export function mockScene(
       return inspection;
     },
     structureInfo: (n) => infos.get(n.id),
-    // The structure's streaming form (its Volume streaming row's).
-    streaming: (n) => streamingForms.get(n.id) as ParamsFormModel<typeof StreamingParams>,
+    rowForm: (n, rowId) => rowForms.get(`${n.id}-${rowId}`),
+    streaming: (n) => rowForms.get(`${n.id}-volume-streaming`) as ParamsFormModel<any>,
   };
 }
 

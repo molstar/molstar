@@ -203,13 +203,19 @@ size, σ), shown compactly above the form. Volumes are top-level entries next to
 fitted model); density streaming is a structure inspector section (the volume streaming extension) whose channels appear
 under the structure.
 
-### 4.1a Structure: hierarchy presets and volume streaming
+### 4.1a Structure: hierarchy presets and extension rows
 
 A structure's inspector leads with **Hierarchy**, Mol*'s structure hierarchy presets (Default (Assembly), Unit cell,
 Super cell, Crystal contacts), the structure transform's own params under Advanced; the structure row's ⋯ offers the
-same presets. **Volume streaming** is a row of each structure that has density (X-ray, EM): off (hidden, "X-ray · off")
-until its eye turns it on, then the streamed channels appear under it as volume rows with their iso values (2Fo-Fc σ,
-Fo-Fc(+ve), Fo-Fc(−ve); EM for EMDB entries); picked, its options (region, radius, detail).
+same presets.
+
+**Extension rows.** An extension can add a row under every structure it applies to (`structureRows` in its UI
+contribution): its label and icon, when it applies, its options (an `enabled` switch among them), a description that
+follows them, and what appears under it once on. The tree knows no extension by name. A row is off (hidden, its eye
+crossed) until its eye turns it on; picked, the inspector shows its options. Volume streaming (X-ray and EM entries:
+off, then 2Fo-Fc σ, Fo-Fc(+ve), Fo-Fc(−ve) or EM as volume rows with their iso values; region, radius, detail) and
+assembly symmetry (RCSB: the symmetry, its axes as a row, coloring by it) are rows this way. Every row keeps its ⋯ slot,
+so the eyes stay in one column.
 
 ### 4.1b Snapshots tab
 
@@ -337,6 +343,7 @@ interface UIContribution {
   sceneEntries?: readonly SceneEntryContribution[];// scene-tree entries; replaces genericRepresentationControls
   paramEditors?: readonly ParamEditorContribution[]; // replaces customParamEditors (by transformer id or PD field)
   settings?: readonly SettingsGroupContribution[]; // groups or params added to the Settings tab
+  structureRows?: readonly StructureRowContribution[]; // rows under applicable structures (volume streaming, symmetry)
   formats?: readonly [name: string, ArgumentFormat][];
   models?(ui: PluginUIModel): ContributionModels;  // view models it owns, created on activation
 }

@@ -19,7 +19,9 @@ export type SceneNodeKind =
   | 'entity'
   | 'chain'
   | 'measurements'
-  | 'measurement';
+  | 'measurement'
+  /** A row an extension adds under a structure (volume streaming, assembly symmetry). */
+  | 'extension';
 
 /**
  * One row of the scene tree: a structure, a component, a representation, a volume, a measurement. Implemented over the

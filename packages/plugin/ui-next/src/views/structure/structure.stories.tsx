@@ -7,7 +7,6 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { registerMockInspectorSections } from '../../_stories/mocks/inspector-sections.js';
 import {
   type MockScenePreset,
   mockComponentOptions,
@@ -27,7 +26,6 @@ const frame = 'width: 360px; height: 100vh; overflow: auto; background: var(--ms
 function Tab(props: { pick: string; preset?: MockScenePreset; stream?: boolean }) {
   const shell = new ShellModel();
   const scene = mockSceneWithPicked(props.pick, { preset: props.preset });
-  registerMockInspectorSections(shell, scene);
   const picked = scene.picked.value;
   if (props.stream && picked) scene.streaming(picked).set('enabled', true);
   return (

@@ -95,7 +95,10 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
             >
               <Icon name="ellipsis" size={14} />
             </button>
-          ) : null}
+          ) : (
+            // No menu: its slot stays, so every row's eye sits in the same column.
+            <span class={classes.actionSlot} aria-hidden="true" />
+          )}
         </span>
       </div>
       <Show when={menuOpen}>

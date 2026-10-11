@@ -55,7 +55,6 @@ import { registerMockAnimation } from '../../_stories/mocks/animation.js';
 import { mockSelection } from '../../_stories/mocks/selection.js';
 import { mockCommands, mockPrefixes } from '../../_stories/mocks/commands.js';
 import { registerMockCanvasSettings } from '../../_stories/mocks/canvas-settings.js';
-import { registerMockInspectorSections } from '../../_stories/mocks/inspector-sections.js';
 import {
   type MockScenePreset,
   mockComponentOptions,
@@ -352,8 +351,6 @@ function mockShell(options: {
     onHighlight: (label) => hoverLines.set(label ? [label] : []),
     onAction: (text) => status.post(text),
   });
-  // Extensions' inspector sections (volume streaming, assembly symmetry), contributed to the node kind's slot.
-  registerMockInspectorSections(shell, scene);
   const hover: HoverLabelModel = { lines: hoverLines.asReadonly };
   const home = mockHome((text, kind) => status.post(text, kind), { remoteStates: options.remoteStates });
   const snapshotsModel = mockSnapshotsModel((text, kind) => status.post(text, kind));

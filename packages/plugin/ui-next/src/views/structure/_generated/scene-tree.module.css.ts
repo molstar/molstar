@@ -10,6 +10,7 @@ import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'action': 'msp-structure-scene-tree-action',
+  'actionSlot': 'msp-structure-scene-tree-actionSlot',
   'actions': 'msp-structure-scene-tree-actions',
   'description': 'msp-structure-scene-tree-description',
   'empty': 'msp-structure-scene-tree-empty',
@@ -138,6 +139,10 @@ defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
     background: var(--msp-color-pressed);
     color: var(--msp-color-text);
   }
+}
+
+.msp-structure-scene-tree-actionSlot {
+  width: 22px;
 }
 
 .msp-structure-scene-tree-keep {
