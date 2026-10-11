@@ -4,13 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-/* At its drawn size (55 × 20, on the pixel grid): scaled, its lines would blur unevenly. */
+/* At its drawn size (55 × 20 and a 1 px margin, on the pixel grid): scaled, its lines would blur unevenly. */
 .wordmark {
   position: relative;
   display: block;
   flex: none;
-  width: 55px;
-  height: 20px;
+  width: 57px;
+  height: 22px;
 
   & svg {
     position: absolute;

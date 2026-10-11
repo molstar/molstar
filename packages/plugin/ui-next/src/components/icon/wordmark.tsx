@@ -8,8 +8,9 @@
 
 import { classes } from './_generated/wordmark.module.css.js';
 
-// The Mol* wordmark as outlines, after the logo, drawn on the pixel grid at its size (20 px): every straight edge sits
-// mid-pixel, so the line is the same on all of them, every stroke of a letter is 3 px. The M symmetric, its diagonals parallel; the o a
+// The Mol* wordmark as outlines, after the logo, drawn on the pixel grid at its size (20 px, with a 1 px margin for the
+// line, which a heading clips): every straight edge sits mid-pixel, so the line is the same on all of them, every stroke
+// of a letter is 3 px. The M symmetric, its diagonals parallel; the o a
 // rounded rectangle; the l running into an asterisk whose arms are exactly 45° (built as the Mol* mark is, molecular.ts).
 const M =
   'M0.5 1.5 3.5 1.5 8.5 10.5 13.5 1.5 16.5 1.5 16.5 19.5 13.5 19.5 13.5 8.5 8.5 17.5 3.5 8.5 3.5 19.5 0.5 19.5Z';
@@ -39,9 +40,9 @@ export function MolstarWordmark(props: { class?: string }) {
   const svg = (extra: { class: string; stroke: string; hidden?: boolean }) => (
     <svg
       class={extra.class}
-      viewBox="0 0 55 20"
-      width="55"
-      height="20"
+      viewBox="-1 -1 57 22"
+      width="57"
+      height="22"
       fill="none"
       stroke={extra.stroke}
       stroke-linejoin="miter"
