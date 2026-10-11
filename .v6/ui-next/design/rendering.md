@@ -3,7 +3,8 @@
 How ui-next turns view models into DOM. The model layer ([view-models.md](view-models.md)) is renderer-free; this
 document proposes the renderer for the built-in UI and defines how other renderers plug in.
 
-State (mocks): every mock is built on option A (the `dom/` runtime, §4); the decision gate in §3 has not been run.
+State (mocks): every mock is built on option A (the `dom/` runtime, §4), the one decided on (§3,
+[../spike.md](../spike.md)).
 
 ## 1. Requirements
 
@@ -46,15 +47,11 @@ with keyboard navigation. Compare LOC, update cost (DOM mutations and time per b
 not clearly simpler, fall back to B with the same element and contribution contracts; the model layer is unaffected
 either way.
 
-**State: the gate has not been run formally.** No Preact counterparts were built and there is no `spike.md` (plan.md,
-Phase 2). The mocks went ahead on A: the PD form (`components/params`), the state tree (`views/state-tree`) and the
-command menu (`views/command-menu`) all exist in the `dom` runtime, so authoring friction on A is known, but nothing has
-been measured against B. A state-tree performance check on A only exists as a story (`_stories/performance.stories`,
-Internals › Performance: the State tree tab at 5,025 cells under bursts of relabels, against plain rows that follow
-their record by id); the renderer decision is recorded after it runs, not here. Relevant to that check: the tab keys
-cells by state-tree ref, a cell's children are a plain array on its node record, and a node whose record is replaced is
-rendered again with its subtree (`For`'s identity rule, §4.3). The mock model (`mockStateTree` in `_stories/mocks`)
-builds every record anew on each change, so a visibility toggle or a removal renders the whole tree again.
+**Decided: option A** ([../spike.md](../spike.md)). The state tree at 5,025 cells renders without blocking the page once
+`For` slices long lists (12 ms slices, continued with Mol*'s `setImmediate`; off in jsdom, `timeSlicing`), rows skip
+off-screen layout (`content-visibility`), sources hand out per-node records (a row follows its record by id; an
+immutable tree rebuilds subtrees, `For`'s identity rule, §4.3), and long lists are virtualized
+(`components/virtual-list`). None of that is the renderer's to remove; the Preact side was not built.
 
 ## 4. The `ui-next/dom` runtime
 

@@ -2,8 +2,8 @@
 
 A new Mol* plugin UI built on a view-model layer (rxjs, from any-ui), a VS Code–style command system, a dynamic shell,
 and web components authored in TSX. It lives in `packages/plugin/ui-next` next to the current `@molstar/plugin-ui` until
-it reaches parity. Status: **mocked in Storybook**; the designs describe what the mocks settled. Next: the renderer
-check, then the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin yet.
+it reaches parity. Status: **mocked in Storybook**; the designs describe what the mocks settled. Next: a renderer bench,
+then the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin yet.
 
 ## Summary
 
@@ -78,8 +78,8 @@ check, then the spec review ([plan.md](plan.md)). Nothing is wired to a real plu
 
 ## Open questions
 
-1. **Renderer**: own `dom` runtime vs Preact inside elements. Every mock uses the own runtime; to be confirmed by the
-   state-tree check (plan.md Phase 2) before the review.
+1. **Renderer**: decided, the own `dom` runtime ([spike.md](spike.md)): time slicing, per-node records and virtualized
+   long lists carry the state tree at 5,000 cells.
 2. **Where the command registry lives long-term**: ui-next only, or `@molstar/plugin` for headless/scripting/agent use.
 3. **Core follow-ups** ([analysis/plugin-state.md](analysis/plugin-state.md) §5): registry-changed event, richer
    `cell.stateUpdated`, task list, stable `PluginCommands` ids. Do them in v6 alongside ui-next, or work around them?

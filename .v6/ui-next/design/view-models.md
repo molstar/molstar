@@ -131,6 +131,12 @@ with `ReadonlyState`s and `Observable`s, disposed with the plugin UI.
 to bump `registry.version` after each call and its undo; derived lists recompute on `version`. With the core follow-up
 ([../analysis/plugin-state.md](../analysis/plugin-state.md) §5) the wrapper goes away.
 
+**Records per node.** A tree's source hands out one record per node (by ref) that changes on its own, not a tree rebuilt
+on each change: views render rows that follow their record by id, and `For` renders an entry again when its record is
+replaced, so a rebuilt tree costs a subtree per change ([../spike.md](../spike.md): 24 ms per relabel at 5,000 cells,
+against 20 relabels in one frame with records per node). Long lists and trees are virtualized
+(`components/virtual-list`: the shown nodes flattened, only the window rendered).
+
 **Identity.** Sources key everything by state-tree ref. A hierarchy rebuild that recreates `StructureRef` objects keeps
 the same `StructureSource` instance for the same ref; its fields update only when `transform.version`, `cell.state`, or
 `cell.status` change.

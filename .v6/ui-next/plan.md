@@ -3,9 +3,8 @@
 Phases are buildable and reviewable on their own. Storybook comes first so the UI is mocked before it is wired.
 
 Where it stands: phases 0, 1 and 3 are done in Storybook (phase 3 ran ahead of phase 2: every mock is built on the `dom`
-runtime). Next, in order: the designs describe what the mocks settled, the renderer check (phase 2), then the review
-gate. Phases 4–8 have not started, apart from the core `triggerLabel` (phase 4) and the shell's own models the mocks run
-on (phase 6).
+runtime). Next, in order: the renderer bench (phase 2's follow-up), then the review gate. Phases 4–8 have not started,
+apart from the core `triggerLabel` (phase 4) and the shell's own models the mocks run on (phase 6).
 
 ## Phase 0: package and Storybook skeleton
 
@@ -48,17 +47,11 @@ Runtime (bindings, keyed lists, conditionals).
 
 ## Phase 2: renderer check (decision gate)
 
-**Pending; next after the designs are synced.** The mocks already build the PD form (`components/params`) and the
-command menu (`views/command-menu`) on the `dom` runtime, so two of the spike's three pieces exist on one side; the
-Preact side was not built. What the mocks do not show is cost at scale: the State tree tab's mock holds one structure
-and one map. A story for the `dom` side exists (`_stories/performance.stories.tsx`, Internals › Performance: the State
-tree tab at 5,025 cells under a burst of relabels, select, collapse and expand, next to plain rows that follow their
-record by id; wall time per case, layout forced, no mutation counts); no result is recorded yet.
-
-The check: the state tree with 5,000 cells and bursts of updates on the `dom` runtime, measured in DOM mutations and
-time per burst against the budget under Cross-cutting (a single-node change in under one frame), with the same tree in
-Preact for comparison ([design/rendering.md](design/rendering.md) §3). Record LOC, update cost, and friction in
-`.v6/ui-next/spike.md`. Decide; if Preact wins, `dom/` shrinks to the element base and the view contract stays.
+**Done: the `dom` runtime stays** ([spike.md](spike.md)). The state tree at 5,025 cells on it, measured in Chrome: time
+slicing in `For` (12 ms, Mol*'s `setImmediate`), `content-visibility` on tree rows, per-node records instead of rebuilt
+trees, and `VirtualList` for the production trees and long lists. Next: a renderer bench (the js-framework-benchmark
+operations, script time apart from layout and paint) to make the runtime as cheap as it can be, kept as a regression
+guard.
 
 ## Phase 3: mocked UI in Storybook
 
