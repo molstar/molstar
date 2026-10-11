@@ -46,7 +46,7 @@ export function installTooltips(root: HTMLElement): () => void {
     if (side === 'beside') {
       // Outside the panel the row is in (its tab panel), clear of its edge; on its left, or its right without room.
       const edge = el.closest('[data-tip-edge], [role="tabpanel"]')?.getBoundingClientRect() ?? r;
-      const clear = 12;
+      const clear = 8;
       x = edge.left - clear - t.width;
       if (x < 4) x = edge.right + clear;
       y = r.top + (r.height - t.height) / 2;

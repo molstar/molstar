@@ -10,7 +10,9 @@
 // shell (`ShellStory`) takes a module's contributions as an add-on.
 
 export { story } from './story-root.js';
+export { CanvasPlaceholder } from '../views/shell/canvas-placeholder.js';
 export { mockMolstarMode } from './molstar-mode.js';
+export { mockSnapshots } from './playback.js';
 export {
   type MockFrameContext,
   type MockMode,

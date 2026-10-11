@@ -47,16 +47,20 @@ export interface MockFrameContext {
   openCommandMenu(group?: string): void;
 }
 
-/** What a mode brings to the frame: its commands and the canvas parts (all optional but the commands). */
+/**
+ * What a mode brings to the frame: its commands and the canvas parts (all optional but the commands). The parts are
+ * render functions: the frame renders them in their slots, in the slot's scope (a mode activates from a click, outside
+ * any render).
+ */
 export interface MockModeParts {
   commands: CommandManager<any>;
   prefixes?: CommandMenuPrefix[];
-  canvas?: Child;
-  overlays?: Child;
-  playback?: Child;
+  canvas?: () => Child;
+  overlays?: () => Child;
+  playback?: () => Child;
   context?: () => Child;
-  canvasLead?: Child;
-  canvasAside?: Child;
+  canvasLead?: () => Child;
+  canvasAside?: () => Child;
   empty?: Observable<boolean>;
   onDropFiles?: (files: readonly File[]) => void;
   dropFormats?: readonly string[];
@@ -333,9 +337,9 @@ export function ShellStory(props: {
     <ShellView
       shell={shell}
       status={status}
-      canvas={part((p) => p.canvas ?? null)}
-      overlays={part((p) => p.overlays ?? null)}
-      playback={part((p) => p.playback ?? null)}
+      canvas={part((p) => p.canvas?.() ?? null)}
+      overlays={part((p) => p.overlays?.() ?? null)}
+      playback={part((p) => p.playback?.() ?? null)}
       canvasColor={background}
       canvasTheme={themeForColor(parseColor(background) ?? 0xffffff)}
       context={() => part((p) => p.context?.() ?? null)}
@@ -356,8 +360,8 @@ export function ShellStory(props: {
         </Show>
       }
       agent={addOn?.agent}
-      canvasLead={part((p) => p.canvasLead ?? null)}
-      canvasAside={part((p) => p.canvasAside ?? null)}
+      canvasLead={part((p) => p.canvasLead?.() ?? null)}
+      canvasAside={part((p) => p.canvasAside?.() ?? null)}
       onOpenLog={() => shell.show('log')}
       empty={parts.asReadonly.pipe(switchMap((p) => p?.empty ?? of(!props.loaded)))}
       onDropFiles={(files) => parts.value?.onDropFiles?.(files)}

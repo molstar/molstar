@@ -74,6 +74,7 @@ Next: the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin ye
 | [design/commands.md](design/commands.md)                 | Command definitions, registry, command menu, keybindings                |
 | [design/agent.md](design/agent.md)                       | Agents: commands as tools, state and focus, checkpoints, the client API |
 | [design/shell.md](design/shell.md)                       | Shell, default views, contributions, UI spec, embeddables               |
+| [design/modes.md](design/modes.md)                       | Modes: Mol\* and stories, the frame, opt-in story mode                  |
 | [design/styling.md](design/styling.md)                   | CSS Modules, tokens, themes, build                                      |
 | [plan.md](plan.md)                                       | Phases and acceptance                                                   |
 
@@ -91,8 +92,14 @@ Next: the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin ye
    on state actions and transformers is done.)
 4. **Layout**: `PrismUIContext` has its own (the shell); core `PluginLayout` and `leftPanelTabName` stay the classic
    UI's and are not deprecated in v6.
-5. **Packages**: `packages/prism/*` (`@molstar/prism`, `@molstar/prism-ui`, `@molstar/prism-agent`, more as they come: a
-   headless engine, the new sequence viewer), private until stable. `apps/prism` is a new app, not a viewer copy.
+5. **Packages**: `packages/prism/*` (`@molstar/prism`, `@molstar/prism-ui`, `@molstar/prism-agent`,
+   `@molstar/prism-stories`, more as they come: a headless engine, the new sequence viewer), private until stable.
+   `apps/prism` is a new app, not a viewer copy.
+6. **Modes**: the app has a Mol\* mode and a story mode (stories on schemas and MolViewSpec: serializable and
+   reproducible, Stories Untold's UX), swapped on a frame that stays; story mode is opt-in like the agent
+   ([design/modes.md](design/modes.md)).
+7. **The sequence viewer**: a new one is being developed separately; the build uses a placeholder in its place (the
+   mocks' sequence strip is a layout reference only).
 
 Settled by the mocks:
 

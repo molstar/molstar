@@ -331,7 +331,7 @@ export function mockMolstarMode(
 ): MockMode {
   return {
     id: 'molstar',
-    title: 'Mol*',
+    title: 'Mol* mode',
     icon: 'molstar',
     activate: ({ shell, status, loaded, background, openCommandMenu }) => {
       const canvasMode = observableState<CanvasMode>('interact');
@@ -585,7 +585,7 @@ export function mockMolstarMode(
         start: loaded ? 'structure' : 'home',
         commands,
         prefixes: mockPrefixes({ manager: commands, shell, scene, snapshots: snapshotStepper }),
-        canvas: (
+        canvas: () => (
           <CanvasPlaceholder
             empty={!loaded}
             background={background}
@@ -596,10 +596,11 @@ export function mockMolstarMode(
             }
           />
         ),
-        overlays: loaded ? (
-          <HoverLabel model={hover} area={() => document.querySelector<HTMLElement>('[data-msp-canvas]')} />
-        ) : null,
-        playback:
+        overlays: () =>
+          loaded ? (
+            <HoverLabel model={hover} area={() => document.querySelector<HTMLElement>('[data-msp-canvas]')} />
+          ) : null,
+        playback: () =>
           loaded && (playback?.snapshots || playback?.trajectory) ? (
             <>
               {playback.snapshots ? <SnapshotCard model={snapshotStepper} /> : null}
@@ -607,8 +608,8 @@ export function mockMolstarMode(
             </>
           ) : null,
         context: loaded ? () => <SelectionBar selection={selection} /> : undefined,
-        canvasLead: loaded ? <ModeSwitch {...modeProps} /> : null,
-        canvasAside: loaded ? <PickLevel {...modeProps} /> : null,
+        canvasLead: () => (loaded ? <ModeSwitch {...modeProps} /> : null),
+        canvasAside: () => (loaded ? <PickLevel {...modeProps} /> : null),
         empty: of(!loaded),
         onDropFiles: (files) => home.openFiles(files),
         dropFormats: home.formats,

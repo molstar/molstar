@@ -367,6 +367,12 @@
       "private": true
     },
     {
+      "name": "@molstar/prism-stories",
+      "path": "packages/prism/stories",
+      "kind": "library",
+      "private": true
+    },
+    {
       "name": "@molstar/plugin-headless",
       "path": "packages/plugin/headless",
       "kind": "library",

@@ -2,11 +2,12 @@
 
 Phases are buildable and reviewable on their own. Storybook comes first so the UI is mocked before it is wired.
 
-Where it stands: phases 0–3 are done in Storybook (the renderer check and its bench included: the `dom` runtime stays,
-[spike.md](spike.md)). The packages are split (`packages/prism/ui`, `packages/prism/agent`), and the decisions on the
-contexts, the layout, the core follow-ups and the app are in the designs ([README.md](README.md), Decisions). Next: the
-review gate. Phases 4–8 have not started, apart from the core `triggerLabel` (phase 4) and the shell's own models the
-mocks run on (phase 6).
+Where it stands: phases 0–3 are done in Storybook (with modes: Mol\* and a first story mode,
+[design/modes.md](design/modes.md); the renderer check and its bench included: the `dom` runtime stays,
+[spike.md](spike.md)). The packages are split (`packages/prism/ui`, `packages/prism/agent`, `packages/prism/stories`),
+and the decisions on the contexts, the layout, the core follow-ups and the app are in the designs
+([README.md](README.md), Decisions). Next: the review gate. Phases 4–8 have not started, apart from the core
+`triggerLabel` (phase 4) and the shell's own models the mocks run on (phase 6).
 
 ## Phase 0: package and Storybook skeleton
 
@@ -175,6 +176,13 @@ narratives (the story document and session, the agent), with the new sequence vi
 next to `apps/viewer`, which stays as it is; it need not keep the viewer's URL options or globals. Started as soon as
 the shell and the first tabs run on a real plugin, so feedback comes early; the narrative features come as packages of
 their own under `packages/prism/`.
+
+**Modes.** A mode is a named set of contributions (tabs, overlays, sections, toolbar items, commands, canvas parts) over
+a frame that stays ([design/modes.md](design/modes.md)): Mol\* mode from the default contributions, story mode from
+`@molstar/prism-stories` (opt-in), whose document model is built on MolViewSpec as its own slice.
+
+**The sequence view is a placeholder** in the build: a new sequence viewer is being developed separately and comes in as
+a contribution when ready. The mocks' sequence strip stays a layout reference only; do not wire it to a plugin.
 
 ## Phase 7: extension ports
 

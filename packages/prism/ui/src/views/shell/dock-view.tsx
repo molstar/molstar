@@ -250,33 +250,50 @@ function DockContent(props: { shell: ShellModel; dock: DockModel; tab: ShellTab;
   );
 }
 
-/** Drags the dock's inner edge to resize it. */
+/**
+ * Drags the dock's inner edge to resize it. Lit while the pointer is on it or dragging (`data-active`, not `:hover`:
+ * a captured pointer keeps `:hover` on the handle after release until it moves again); the drag ends on release,
+ * cancel or a lost capture, and the light goes unless the pointer was released over the handle.
+ */
 function Splitter(props: { shell: ShellModel; dock: DockModel }) {
   const { shell, dock } = props;
   const sign = dock.id === 'left' ? 1 : -1;
   let startX = 0;
   let startSize = 0;
+  let dragging = false;
   const onMove = (e: PointerEvent) => shell.setSize(dock.id, startSize + sign * (e.clientX - startX));
   return (
     <div
       class={classes.splitter}
       role="separator"
       aria-orientation="vertical"
+      onPointerEnter={(e) => e.currentTarget.setAttribute('data-active', '')}
+      onPointerLeave={(e) => {
+        if (!dragging) e.currentTarget.removeAttribute('data-active');
+      }}
       onPointerDown={(e) => {
         const el = e.currentTarget;
         startX = e.clientX;
         startSize = dock.state.value.size;
+        dragging = true;
         el.setPointerCapture(e.pointerId);
-        el.setAttribute('data-dragging', '');
+        el.setAttribute('data-active', '');
         el.addEventListener('pointermove', onMove);
-        el.addEventListener(
-          'pointerup',
-          () => {
-            el.removeEventListener('pointermove', onMove);
-            el.removeAttribute('data-dragging');
-          },
-          { once: true },
-        );
+        const end = (u: PointerEvent) => {
+          if (!dragging) return;
+          dragging = false;
+          el.removeEventListener('pointermove', onMove);
+          el.removeEventListener('pointerup', end);
+          el.removeEventListener('pointercancel', end);
+          el.removeEventListener('lostpointercapture', end);
+          if (el.hasPointerCapture(u.pointerId)) el.releasePointerCapture(u.pointerId);
+          const r = el.getBoundingClientRect();
+          const over = u.clientX >= r.left && u.clientX <= r.right && u.clientY >= r.top && u.clientY <= r.bottom;
+          if (!over || u.type !== 'pointerup') el.removeAttribute('data-active');
+        };
+        el.addEventListener('pointerup', end);
+        el.addEventListener('pointercancel', end);
+        el.addEventListener('lostpointercapture', end);
       }}
       onDblClick={() => shell.setSize(dock.id, dock.id === 'left' ? 300 : 340)}
     />

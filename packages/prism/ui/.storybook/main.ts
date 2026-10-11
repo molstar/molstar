@@ -12,8 +12,9 @@ import { defaultClientConditions, mergeConfig, type Plugin } from 'vite';
 import { cssModulesPlugin, cssPackage } from '../scripts/css.mjs';
 
 const monorepoRoot = fileURLToPath(new URL('../../../..', import.meta.url));
-// Packages built on prism-ui show their stories here too (the agent module: Shell › Assistant).
+// Packages built on prism-ui show their stories here too (the agent: Shell › Assistant; story mode: Shell › Story mode).
 const agentRoot = fileURLToPath(new URL('../../agent', import.meta.url));
+const storiesRoot = fileURLToPath(new URL('../../stories', import.meta.url));
 
 // Internals › React and Preact runs one adapter on both: the modules in src/react/_stories/preact/, and the adapter
 // modules they import, resolve `react` to `preact/compat` (as a Preact app's bundler does for the whole app). The adapter
@@ -57,13 +58,21 @@ function preactFolderPlugin(): Plugin {
 }
 
 const config: StorybookConfig = {
-  stories: ['../src/**/*.mdx', '../src/**/*.stories.@(ts|tsx)', '../../agent/src/**/*.stories.@(ts|tsx)'],
+  stories: [
+    '../src/**/*.mdx',
+    '../src/**/*.stories.@(ts|tsx)',
+    '../../agent/src/**/*.stories.@(ts|tsx)',
+    '../../stories/src/**/*.stories.@(ts|tsx)',
+  ],
   addons: ['@storybook/addon-docs', '@storybook/addon-a11y'],
   framework: '@storybook/web-components-vite',
   viteFinal: (viteConfig) =>
     mergeConfig(viteConfig, {
       // Keeps the generated `*.css.ts` modules current while Storybook runs.
-      plugins: [cssModulesPlugin([cssPackage(), cssPackage(agentRoot, 'agent')]), preactFolderPlugin()],
+      plugins: [
+        cssModulesPlugin([cssPackage(), cssPackage(agentRoot, 'agent'), cssPackage(storiesRoot, 'stories')]),
+        preactFolderPlugin(),
+      ],
       resolve: {
         // Resolve workspace `@molstar/*` packages to source instead of built `lib/`.
         conditions: ['molstar-src', ...defaultClientConditions],

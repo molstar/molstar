@@ -134,8 +134,7 @@
   cursor: col-resize;
   touch-action: none;
 
-  &:hover,
-  &[data-dragging] {
+  &[data-active] {
     background: color-mix(in oklab, var(--msp-color-accent), transparent 60%);
   }
 }

@@ -9,11 +9,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-// The agent module is opt-in (design/agent.md §6): it is its own package, `@molstar/prism-agent`, which an app gets
-// only by depending on it. prism-ui knows it only through its ports (tabs, the command menu's assistant, the canvas's
-// agent slot), so neither its manifest nor any of its files (stories and tests included) may name it.
+// The opt-in modules are their own packages, which an app gets only by depending on them: the agent
+// (`@molstar/prism-agent`, design/agent.md §6) and story mode (`@molstar/prism-stories`, design/modes.md). prism-ui
+// knows them only through its ports (tabs, modes, the command menu's assistant, the canvas's agent slot), so neither
+// its manifest nor any of its files (stories and tests included) may name them.
 const root = path.resolve(__dirname, '../..');
-const Agent = '@molstar/prism-agent';
+const OptIn = ['@molstar/prism-agent', '@molstar/prism-stories'];
 
 function* sources(dir: string): Generator<string> {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -25,11 +26,11 @@ function* sources(dir: string): Generator<string> {
   }
 }
 
-describe('the agent module', () => {
+describe.each(OptIn)('the opt-in module %s', (name) => {
   it('is not a dependency of prism-ui', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
     const named = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'].filter(
-      (field) => manifest[field]?.[Agent],
+      (field) => manifest[field]?.[name],
     );
     expect(named).toEqual([]);
   });
@@ -38,7 +39,7 @@ describe('the agent module', () => {
     const offenders: string[] = [];
     for (const dir of ['src', '.storybook', 'scripts']) {
       for (const file of sources(path.join(root, dir))) {
-        if (fs.readFileSync(file, 'utf8').includes(`'${Agent}`)) offenders.push(path.relative(root, file));
+        if (fs.readFileSync(file, 'utf8').includes(`'${name}`)) offenders.push(path.relative(root, file));
       }
     }
     expect(offenders).toEqual([]);

@@ -195,6 +195,8 @@
       "^@molstar/prism-ui/(.*)$": "<rootDir>/packages/prism/ui/src/$1",
       "^@molstar/prism-agent$": "<rootDir>/packages/prism/agent/src/index.ts",
       "^@molstar/prism-agent/(.*)$": "<rootDir>/packages/prism/agent/src/$1",
+      "^@molstar/prism-stories$": "<rootDir>/packages/prism/stories/src/index.ts",
+      "^@molstar/prism-stories/(.*)$": "<rootDir>/packages/prism/stories/src/$1",
       "^@molstar/plugin-headless$": "<rootDir>/packages/plugin/headless/src/context.ts",
       "^@molstar/plugin-headless/(.*)$": "<rootDir>/packages/plugin/headless/src/$1",
       "^@molstar/perf-tests$": "<rootDir>/perf-tests/src/index.ts",

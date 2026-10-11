@@ -45,6 +45,7 @@ export { Select, type SelectOption, type SelectProps } from './components/select
 export { TextInput, type TextInputProps } from './components/text-input/text-input.js';
 export { flattenTree, VirtualList } from './components/virtual-list/virtual-list.js';
 
+export { SnapshotCard, TrajectoryBar } from './views/canvas/playback.js';
 export { type CommandMenuAssistant, CommandMenu, type CommandMenuProps } from './views/command-menu/command-menu.js';
 export { StatusLine, StatusPill } from './views/shell/canvas-chrome.js';
 export { LogView } from './views/shell/log-view.js';

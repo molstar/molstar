@@ -159,7 +159,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   top: 0;
   bottom: 0;
 
-  &:hover, &[data-dragging] {
+  &[data-active] {
     background: color-mix(in oklab, var(--msp-color-accent), transparent 60%);
   }
 }

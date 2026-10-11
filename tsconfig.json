@@ -185,6 +185,9 @@
       "path": "./packages/prism/agent"
     },
     {
+      "path": "./packages/prism/stories"
+    },
+    {
       "path": "./packages/plugin/headless"
     },
     {
