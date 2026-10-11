@@ -47,6 +47,8 @@ defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
 .msp-structure-scene-tree-row {
   align-items: center;
   gap: var(--msp-space-2);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 26px;
   min-width: 0;
   height: 26px;
   padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, 14px));

@@ -25,6 +25,9 @@
   gap: var(--msp-space-2);
   min-width: 0;
   height: 26px;
+  /* Off screen, a row skips layout and paint (a tree can have thousands; the state tree's 5,000 lay out in ~1 ms). */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 26px;
   padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, 14px));
   border-radius: var(--msp-radius-md);
   cursor: default;

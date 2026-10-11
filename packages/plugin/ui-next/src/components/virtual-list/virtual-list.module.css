@@ -1,0 +1,22 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.list {
+  flex: 1 1 0;
+}
+
+/* As tall as all the rows; only the window is in it, moved to where it shows. */
+.content {
+  position: relative;
+  contain: strict;
+  width: 100%;
+}
+
+.window {
+  position: absolute;
+  inset: 0 0 auto;
+  will-change: transform;
+}

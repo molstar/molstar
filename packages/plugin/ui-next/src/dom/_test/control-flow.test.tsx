@@ -137,6 +137,35 @@ describe('For', () => {
   });
 });
 
+describe('For, a long list', () => {
+  it('renders over several slices once the slice is spent, in order, and follows the latest list', async () => {
+    jest.useFakeTimers();
+    // Each reading of the clock costs 1 ms: the 12 ms slice is spent after a dozen new entries past the first 64.
+    let clock = 0;
+    const now = jest.spyOn(performance, 'now').mockImplementation(() => (clock += 1));
+    const items = observableState(Array.from({ length: 300 }, (_, i) => i));
+    const { container, dispose } = mount(() => (
+      <div>
+        <For each={items}>{(i) => <span>{i}</span>}</For>
+      </div>
+    ));
+    const shown = () => [...container.querySelectorAll('span')].map((e) => Number(e.textContent));
+    const first = shown().length;
+    expect(first).toBeGreaterThanOrEqual(64);
+    expect(first).toBeLessThan(300);
+    // The list changes while some of it waits: the rest follows the latest list.
+    items.set(items.value.filter((i) => i % 2 === 0));
+    for (let n = 0; n < 50 && shown().length < 150; n++) {
+      await Promise.resolve();
+      jest.runOnlyPendingTimers();
+    }
+    expect(shown()).toEqual(items.value);
+    dispose();
+    now.mockRestore();
+    jest.useRealTimers();
+  });
+});
+
 describe('Dynamic and Switch', () => {
   it('renders the component that is current, with the props given', () => {
     const A = (p: { n: number }) => <a>{p.n}</a>;

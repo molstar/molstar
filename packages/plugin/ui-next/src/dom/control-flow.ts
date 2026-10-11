@@ -9,7 +9,7 @@ import { type ObservableState, observableState } from '../reactive/observable-st
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 import type { Child, Component } from './jsx-types.js';
 import { insert, insertRegion, Passthrough, removeBetween } from './render.js';
-import { bind, type MaybeReactive, requireScope, runInScope, type Scope, toStream } from './scope.js';
+import { bind, type MaybeReactive, onCleanup, requireScope, runInScope, type Scope, toStream } from './scope.js';
 
 function toObservable<T>(value: MaybeReactive<T>): Observable<T> {
   return toStream(value) ?? of(value as T);
@@ -78,6 +78,47 @@ export function Switch(props: { fallback?: () => Child; children: Child }): Node
   );
 }
 
+/**
+ * Time slicing for long lists. Every `For` in a task shares one slice (`SliceMs`) and one count: once `SliceFrom` new
+ * entries were made in the slice (by any list: a tree's levels are short lists, its whole is long) and the slice is
+ * spent, the rest wait for the next frame (a timer when the page is hidden,
+ * which gets no frames), so a 5,000-row tree never holds the main thread for long. Only new entries wait: existing ones
+ * update at once, so nothing on screen flickers.
+ */
+const SliceMs = 12;
+const SliceFrom = 64;
+let sliceEnd = 0;
+let sliceMade = 0;
+const waiting = new Set<() => void>();
+let flushing = false;
+
+/** Counts a new entry; whether the slice still has room for it (it starts one when none is running). */
+function sliceRoom(): boolean {
+  if (sliceEnd === 0) {
+    sliceEnd = performance.now() + SliceMs;
+    sliceMade = 0;
+    // The slice is this task's: it ends with it.
+    queueMicrotask(() => {
+      sliceEnd = 0;
+    });
+  }
+  return ++sliceMade <= SliceFrom || performance.now() < sliceEnd;
+}
+
+function nextSlice(fn: () => void) {
+  waiting.add(fn);
+  if (flushing) return;
+  flushing = true;
+  const flush = () => {
+    flushing = false;
+    const fns = [...waiting];
+    waiting.clear();
+    for (const f of fns) f();
+  };
+  if (typeof requestAnimationFrame === 'function' && !document.hidden) requestAnimationFrame(flush);
+  else setTimeout(flush, 0);
+}
+
 interface ForEntry<T> {
   key: unknown;
   item: T;
@@ -140,10 +181,28 @@ export function For<T>(props: {
     for (const node of nodesOf(entry)) node.parentNode?.removeChild(node);
   };
 
-  bind(props.each, (items) => {
+  // The latest list, and whether some of it waits for the next slice (a long list renders over several frames).
+  let latest: readonly T[] = [];
+  let continuing = false;
+  let disposed = false;
+  onCleanup(() => {
+    disposed = true;
+  });
+  const continueLater = () => {
+    if (continuing) return;
+    continuing = true;
+    nextSlice(() => {
+      continuing = false;
+      if (!disposed) reconcile(latest);
+    });
+  };
+
+  const reconcile = (items: readonly T[]) => {
+    latest = items;
     const parent = end.parentNode!;
     const next = new Map<unknown, ForEntry<T>>();
     const order: ForEntry<T>[] = [];
+    let deferred = false;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const key = keyOf(item);
@@ -159,7 +218,14 @@ export function For<T>(props: {
         remove(entry);
         entry = undefined;
       }
-      entry ??= create(key, item, i);
+      if (!entry) {
+        // Many new entries: past the first ones, they wait once the slice is spent.
+        if (!sliceRoom()) {
+          deferred = true;
+          continue;
+        }
+        entry = create(key, item, i);
+      }
       entry.index.set(i);
       next.set(key, entry);
       order.push(entry);
@@ -188,6 +254,8 @@ export function For<T>(props: {
       // The fallback sits between the start anchor and the first entry.
       removeBetween(start, order[0].first);
     }
-  });
+    if (deferred) continueLater();
+  };
+  bind(props.each, reconcile);
   return fragment;
 }
