@@ -7,9 +7,6 @@
 /* Floating chrome over the canvas: compact, translucent, out of the way. */
 
 .toolbar {
-  position: absolute;
-  top: var(--msp-space-4);
-  right: var(--msp-space-4);
   display: flex;
   flex-direction: column;
   gap: var(--msp-space-1);
@@ -60,7 +57,7 @@
   border-radius: var(--msp-radius-lg);
   overflow: hidden;
   animation: card-in var(--msp-motion-base) var(--msp-ease);
-  background: var(--msp-glass-bg);
+  background: var(--msp-glass-panel-bg);
   box-shadow: var(--msp-glass-shadow);
   backdrop-filter: var(--msp-glass-filter);
   -webkit-backdrop-filter: var(--msp-glass-filter);
@@ -91,11 +88,19 @@
   overflow: auto;
 }
 
+/* The toolbar's own corner when no floating dock carries it in its rail. */
+.toolbarSlot {
+  position: absolute;
+  top: var(--msp-space-4);
+  right: var(--msp-space-4);
+}
+
 /* The bottom of the canvas: status on the left, the timeline centred; stacked when the shell is narrow. */
 .bottom {
   position: absolute;
   left: var(--msp-space-4);
-  right: var(--msp-space-4);
+  /* Clear of whatever floats on the right (the rail, an open panel). */
+  right: var(--msp-canvas-right-inset, var(--msp-space-4));
   bottom: var(--msp-space-4);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);

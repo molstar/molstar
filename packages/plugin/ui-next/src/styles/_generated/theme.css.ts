@@ -77,6 +77,7 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-color-focus-ring: var(--msp-color-accent);
     --msp-color-scrim: #00000059;
     --msp-glass-bg: color-mix(in oklab, var(--msp-color-panel), transparent 30%);
+    --msp-glass-panel-bg: color-mix(in oklab, var(--msp-color-panel), transparent 12%);
     --msp-glass-filter: blur(20px) saturate(1.4);
     --msp-glass-shadow: none;
     --msp-accent-cyan: #7f8c8d;

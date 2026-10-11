@@ -175,3 +175,55 @@
     display: none;
   }
 }
+
+/* Floating: over the canvas, inside the canvas layer. The rail (tab strip, toolbar) sits at the edge, the content card
+   beside it, both flat glass; the card is more opaque so trees and forms stay readable over the molecule. */
+.floating {
+  position: absolute;
+  top: var(--msp-space-4);
+  bottom: var(--msp-space-4);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--msp-space-2);
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+
+  & .content {
+    align-self: stretch;
+    border-radius: var(--msp-radius-lg);
+    background: var(--msp-glass-panel-bg);
+    backdrop-filter: var(--msp-glass-filter);
+    -webkit-backdrop-filter: var(--msp-glass-filter);
+    overflow: hidden;
+  }
+
+  & .strip {
+    border-radius: var(--msp-radius-lg);
+    background: var(--msp-glass-bg);
+    backdrop-filter: var(--msp-glass-filter);
+    -webkit-backdrop-filter: var(--msp-glass-filter);
+  }
+
+  & .tab[aria-selected="true"] {
+    background: var(--msp-color-hover);
+  }
+}
+
+.floatingRight {
+  right: var(--msp-space-4);
+  flex-direction: row-reverse;
+}
+
+.floatingLeft {
+  left: var(--msp-space-4);
+  flex-direction: row;
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-2);
+}

@@ -10,6 +10,7 @@ import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { For, Show } from '../../dom/control-flow.js';
+import type { Child } from '../../dom/jsx-types.js';
 import type { DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
 import { classes } from './_generated/dock.module.css.js';
 import { ViewHost } from './view-host.js';
@@ -49,6 +50,32 @@ export function DockView(props: { shell: ShellModel; dock: DockModel }) {
         </div>
       )}
     </Show>
+  );
+}
+
+/**
+ * A dock floating over the canvas (the right dock by default): a rail at the edge with the tab strip and any rail
+ * items (the canvas toolbar), and the active tab's content as a glass card beside it. Collapsed, only the rail stays.
+ */
+export function FloatingDock(props: { shell: ShellModel; dock: DockModel; railItems?: Child }) {
+  const { shell, dock } = props;
+  return (
+    <div
+      class={`${classes.floating} ${dock.id === 'left' ? classes.floatingLeft : classes.floatingRight}`}
+      style={{ '--msp-dock-size': dock.state.pipe(map((s) => `${s.size}px`)) }}
+    >
+      <div class={classes.rail}>
+        <Show when={dock.tabs.pipe(map((tabs) => tabs.length > 0))}>
+          {() => (
+            <nav class={classes.strip} role="tablist" aria-orientation="vertical">
+              <For each={dock.tabs}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
+            </nav>
+          )}
+        </Show>
+        {props.railItems}
+      </div>
+      <Show when={dock.active}>{(tab) => <DockContent shell={shell} dock={dock} tab={tab} />}</Show>
+    </div>
   );
 }
 

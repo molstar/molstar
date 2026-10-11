@@ -85,6 +85,8 @@
     /* Glass: everything floating over the canvas (toolbar, cards, pills, labels). Flat: translucency and blur define
        it; no borders, no drop shadows. */
     --msp-glass-bg: color-mix(in oklab, var(--msp-color-panel), transparent 30%);
+    /* Larger surfaces over the canvas (a floating panel): more opaque, for reading. */
+    --msp-glass-panel-bg: color-mix(in oklab, var(--msp-color-panel), transparent 12%);
     --msp-glass-filter: blur(20px) saturate(1.4);
     --msp-glass-shadow: none;
 

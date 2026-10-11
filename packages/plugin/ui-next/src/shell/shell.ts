@@ -48,6 +48,11 @@ export type DockState = {
   size: number;
   /** Collapsed docks show only their tab strip. */
   collapsed: boolean;
+  /**
+   * Floats over the canvas instead of taking space beside it (desktop mode only; compact mode keeps the bottom sheet).
+   * The right dock floats by default.
+   */
+  floating: boolean;
 };
 
 export interface ShellLayout {
@@ -148,6 +153,7 @@ export class ShellModel extends ReactiveModel {
         active: undefined,
         size: DefaultSizes[id],
         collapsed: false,
+        floating: id === 'right',
         ...options.docks?.[id],
       });
     }
@@ -255,6 +261,11 @@ export class ShellModel extends ReactiveModel {
 
   setSize(dock: DockId, size: number): void {
     this.#docks[dock].update({ size: Math.max(MinSize, Math.round(size)) }, this.#registered);
+  }
+
+  /** Floats a dock over the canvas, or docks it beside the canvas. */
+  setFloating(dock: DockId, floating: boolean): void {
+    this.#docks[dock].update({ floating }, this.#registered);
   }
 
   setMode(mode: ShellLayout['mode']): void {

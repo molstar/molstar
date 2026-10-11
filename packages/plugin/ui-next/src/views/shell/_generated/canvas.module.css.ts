@@ -27,12 +27,11 @@ export const classes = {
   'timeline': 'msp-shell-canvas-timeline',
   'tool': 'msp-shell-canvas-tool',
   'toolbar': 'msp-shell-canvas-toolbar',
+  'toolbarSlot': 'msp-shell-canvas-toolbarSlot',
 } as const;
 
 defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-toolbar {
-  top: var(--msp-space-4);
-  right: var(--msp-space-4);
   gap: var(--msp-space-1);
   padding: var(--msp-space-2);
   border-radius: var(--msp-radius-lg);
@@ -41,7 +40,6 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   -webkit-backdrop-filter: var(--msp-glass-filter);
   flex-direction: column;
   display: flex;
-  position: absolute;
 }
 
 .msp-shell-canvas-tool {
@@ -78,7 +76,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   max-height: calc(100% - 2 * var(--msp-space-4));
   border-radius: var(--msp-radius-lg);
   animation: msp-shell-canvas-card-in var(--msp-motion-base) var(--msp-ease);
-  background: var(--msp-glass-bg);
+  background: var(--msp-glass-panel-bg);
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
   flex-direction: column;
@@ -112,9 +110,15 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   overflow: auto;
 }
 
+.msp-shell-canvas-toolbarSlot {
+  top: var(--msp-space-4);
+  right: var(--msp-space-4);
+  position: absolute;
+}
+
 .msp-shell-canvas-bottom {
   left: var(--msp-space-4);
-  right: var(--msp-space-4);
+  right: var(--msp-canvas-right-inset, var(--msp-space-4));
   bottom: var(--msp-space-4);
   align-items: end;
   gap: var(--msp-space-3);

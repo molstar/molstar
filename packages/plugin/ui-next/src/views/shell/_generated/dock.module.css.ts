@@ -16,8 +16,12 @@ export const classes = {
   'compact': 'msp-shell-dock-compact',
   'content': 'msp-shell-dock-content',
   'dock': 'msp-shell-dock-dock',
+  'floating': 'msp-shell-dock-floating',
+  'floatingLeft': 'msp-shell-dock-floatingLeft',
+  'floatingRight': 'msp-shell-dock-floatingRight',
   'header': 'msp-shell-dock-header',
   'left': 'msp-shell-dock-left',
+  'rail': 'msp-shell-dock-rail',
   'right': 'msp-shell-dock-right',
   'splitter': 'msp-shell-dock-splitter',
   'strip': 'msp-shell-dock-strip',
@@ -190,6 +194,54 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   & .msp-shell-dock-splitter {
     display: none;
   }
+}
+
+.msp-shell-dock-floating {
+  top: var(--msp-space-4);
+  bottom: var(--msp-space-4);
+  align-items: flex-start;
+  gap: var(--msp-space-2);
+  pointer-events: none;
+  display: flex;
+  position: absolute;
+
+  & > * {
+    pointer-events: auto;
+  }
+
+  & .msp-shell-dock-content {
+    border-radius: var(--msp-radius-lg);
+    background: var(--msp-glass-panel-bg);
+    -webkit-backdrop-filter: var(--msp-glass-filter);
+    align-self: stretch;
+    overflow: hidden;
+  }
+
+  & .msp-shell-dock-strip {
+    border-radius: var(--msp-radius-lg);
+    background: var(--msp-glass-bg);
+    -webkit-backdrop-filter: var(--msp-glass-filter);
+  }
+
+  & .msp-shell-dock-tab[aria-selected="true"] {
+    background: var(--msp-color-hover);
+  }
+}
+
+.msp-shell-dock-floatingRight {
+  right: var(--msp-space-4);
+  flex-direction: row-reverse;
+}
+
+.msp-shell-dock-floatingLeft {
+  left: var(--msp-space-4);
+  flex-direction: row;
+}
+
+.msp-shell-dock-rail {
+  gap: var(--msp-space-2);
+  flex-direction: column;
+  display: flex;
 }
 }
 `);

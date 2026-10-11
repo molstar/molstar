@@ -44,7 +44,11 @@ it is where contributions (built-in and extension UI) are placed.
   also: palette (modal), dialogs, notifications, drag-and-drop target
 ```
 
-- **Right panel.** Icon tabs on its edge; collapses to the tab strip; resizable; becomes a bottom sheet in compact mode.
+- **Right panel, floating.** By default the right dock floats over the canvas instead of taking space beside it: the
+  canvas gets the full width, the active tab's content is a glass card (more opaque than the small controls, for
+  reading), and a rail at the right edge carries the tab strip and the canvas toolbar as two glass groups. Collapsed,
+  only the rail stays. Resizable; `setFloating(dock, false)` docks it beside the canvas instead; compact mode makes it a
+  bottom sheet. The bottom bar and overlays keep clear of whatever is open on the right (`--msp-canvas-right-inset`).
 - **Optional docks.** `left`, `top`, `bottom` take tabs moved there by the user or placed by the app spec (mesoscale
   explorer puts its entity tree on the left). The sequence is the only default occupant of `top`. Side docks run the
   full height; top and bottom docks span the canvas width only. A top or bottom dock with one tab has no tab strip: its
