@@ -1,0 +1,75 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.picker {
+  display: grid;
+  gap: var(--msp-space-3);
+  padding: var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+}
+
+.palette {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--msp-space-1);
+}
+
+.swatch {
+  aspect-ratio: 1;
+  min-height: 0;
+  border-radius: var(--msp-radius-sm);
+  /* A hairline so white and near-background swatches stay visible. */
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  &:hover {
+    transform: scale(1.08);
+  }
+
+  &[aria-selected="true"] {
+    box-shadow:
+      0 0 0 2px var(--msp-color-bg),
+      0 0 0 4px var(--msp-color-accent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+.custom {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+}
+
+.preview {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--msp-radius-sm);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
+}
+
+.hex {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 var(--msp-space-2);
+  border: 0;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 1px;
+  }
+}

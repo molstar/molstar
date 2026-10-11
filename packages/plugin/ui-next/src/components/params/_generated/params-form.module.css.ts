@@ -131,24 +131,23 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 .msp-params-params-form-color {
   align-items: center;
   gap: var(--msp-space-2);
+  width: 100%;
   height: 24px;
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
-  cursor: pointer;
   display: flex;
 
-  & input[type="color"] {
-    opacity: 0;
-    width: 0;
-    height: 0;
+  &:hover, &[aria-expanded="true"] {
+    background: var(--msp-color-hover);
   }
 }
 
 .msp-params-params-form-swatch {
-  border-radius: 50%;
+  border-radius: var(--msp-radius-sm);
   width: 16px;
   height: 16px;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
 }
 
 .msp-params-params-form-hex {

@@ -121,6 +121,8 @@ export interface CanvasToolbarItem {
    * the top right of the canvas (what acts on the view: camera, lighting, XR, expand), under the mode buttons.
    */
   place?: 'rail' | 'canvas';
+  /** Shown only while this holds (the Sequence button while the sequence card is hidden). */
+  visible?: Observable<boolean>;
   /** Shown pressed (a toggle, or the open overlay's button). */
   pressed?: Observable<boolean>;
   /** Opens (or closes) this overlay, anchored to the button. */

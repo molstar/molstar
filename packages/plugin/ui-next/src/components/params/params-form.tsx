@@ -14,6 +14,7 @@ import type { Child } from '../../dom/jsx-types.js';
 import type { ParamsFormModel } from '../../forms/params-form.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { Select } from '../select/select.js';
+import { ColorPicker, colorToHex } from '../color/color-picker.js';
 import { Icon } from '../icon/icon.js';
 import { classes } from './_generated/params-form.module.css.js';
 
@@ -65,11 +66,39 @@ function ParamRow(props: { name: string; param: PD.Any; binding: FieldBinding; v
       </div>
     );
   }
+  if (param.type === 'color') {
+    return (
+      <div hidden={hidden}>
+        <ColorRow label={label} description={param.description} binding={binding} />
+      </div>
+    );
+  }
   return (
     <div class={classes.row} hidden={hidden} title={param.description}>
       <span class={classes.label}>{label}</span>
       <div class={classes.control}>{control(param, binding)}</div>
     </div>
+  );
+}
+
+/** A color: the swatch and hex as a button; the picker opens under the row, full width. */
+function ColorRow(props: { label: string; description?: string; binding: FieldBinding }) {
+  const { binding } = props;
+  const open = observableState(false);
+  const hex = binding.value.pipe(map((v: number) => colorToHex(v)));
+  return (
+    <>
+      <div class={classes.row} title={props.description}>
+        <span class={classes.label}>{props.label}</span>
+        <div class={classes.control}>
+          <button type="button" class={classes.color} aria-expanded={open} onClick={() => open.set(!open.value)}>
+            <span class={classes.swatch} style={{ background: hex }} />
+            <span class={classes.hex}>{hex}</span>
+          </button>
+        </div>
+      </div>
+      <Show when={open}>{() => <ColorPicker value={binding.value} onChange={(c) => binding.set(c)} />}</Show>
+    </>
   );
 }
 
@@ -90,8 +119,6 @@ function control(param: PD.Any, binding: FieldBinding): Child {
           onChange={(e) => binding.set(e.currentTarget.value)}
         />
       );
-    case 'color':
-      return <ColorControl binding={binding} />;
     default:
       return <span class={classes.unsupported}>{param.type}</span>;
   }
@@ -168,22 +195,6 @@ function SelectControl(props: { options: readonly PD.SelectOption<any>[]; bindin
       value={binding.value.pipe(map((v) => String(options.findIndex((o) => o[0] === v))))}
       onChange={(i) => binding.set(options[Number(i)][0])}
     />
-  );
-}
-
-function ColorControl(props: { binding: FieldBinding }) {
-  const { binding } = props;
-  const hex = binding.value.pipe(map((v: number) => `#${(v >>> 0).toString(16).padStart(6, '0').slice(-6)}`));
-  return (
-    <label class={classes.color}>
-      <span class={classes.swatch} style={{ background: hex }} />
-      <span class={classes.hex}>{hex}</span>
-      <input
-        type="color"
-        value={hex}
-        onInput={(e) => binding.set(Number.parseInt(e.currentTarget.value.slice(1), 16))}
-      />
-    </label>
   );
 }
 

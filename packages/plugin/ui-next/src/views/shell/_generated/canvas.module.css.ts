@@ -58,7 +58,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
     border-top: 1px solid var(--msp-glass-edge);
   }
 
-  & .msp-shell-canvas-sections:empty {
+  & .msp-shell-canvas-sections:empty, & .msp-shell-canvas-toolbar:not(:has(button)) {
     display: none;
   }
 }

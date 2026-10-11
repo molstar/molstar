@@ -68,9 +68,13 @@ export function CanvasToolbar(props: {
             aria-orientation="vertical"
             aria-label={section.group ?? 'commands'}
           >
-            {section.items.map((item) => (
-              <ToolButton shell={shell} item={item} menus={props.menus} />
-            ))}
+            {section.items.map((item) =>
+              item.visible ? (
+                <Show when={item.visible}>{() => <ToolButton shell={shell} item={item} menus={props.menus} />}</Show>
+              ) : (
+                <ToolButton shell={shell} item={item} menus={props.menus} />
+              ),
+            )}
           </div>
         )}
       </For>

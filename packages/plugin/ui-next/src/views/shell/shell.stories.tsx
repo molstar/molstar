@@ -519,14 +519,15 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
       title: 'Expand',
       run: () => status.post('Expanded'),
     },
-    // Panels over the canvas: shown and hidden from the stack (hidden, they take no room at all).
+    // Panels over the canvas: brought back from the stack when hidden (hidden, they take no room at all).
     {
       id: 'sequence',
       place: 'canvas',
       group: 'view',
       icon: 'sequence',
       title: 'Sequence',
-      pressed: shell.dock('top').active.pipe(map((t) => !!t)),
+      // Only while the card is hidden: shown, it carries its own collapse button.
+      visible: shell.dock('top').active.pipe(map((t) => !t)),
       run: () => shell.toggle('top'),
     },
   ]);

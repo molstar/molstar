@@ -25,7 +25,8 @@
     border-top: 1px solid var(--msp-glass-edge);
   }
 
-  & .sections:empty {
+  & .sections:empty,
+  & .toolbar:not(:has(button)) {
     display: none;
   }
 }
