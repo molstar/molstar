@@ -7,11 +7,10 @@
 .picker {
   display: grid;
   gap: var(--msp-space-3);
-  padding: var(--msp-space-3) var(--msp-space-3) var(--msp-space-3) var(--msp-space-4);
+  padding: var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
-  /* Inline under its row like a dropdown's options (select.module.css .list): the same accent bar on the left. */
-  box-shadow: inset 2px 0 0 var(--msp-color-accent);
+  /* Inline under its row like a dropdown's options (select.module.css .list): its surface sets it apart, no bar. */
 }
 
 /* Small swatches with air between them, sized to the text around them rather than to the panel's width. */

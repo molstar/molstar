@@ -296,7 +296,6 @@ defineStyles('views/structure/measurements-add.module.css', `@layer msp.componen
   padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-1) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-well);
-  box-shadow: inset 2px 0 0 var(--msp-color-accent);
 }
 }
 `);

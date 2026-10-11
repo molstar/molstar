@@ -59,8 +59,7 @@
   }
 }
 
-/* The options, inline under what opened them (Mol*'s action menu): an accent bar on the left says where they belong,
-   the current one checked. */
+/* The options, inline under what opened them (Mol*'s action menu): a quiet surface, the current one checked. */
 .list {
   display: grid;
   max-height: 240px;
@@ -68,7 +67,6 @@
   overflow: auto;
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
-  box-shadow: inset 2px 0 0 var(--msp-color-accent);
   animation: list-in var(--msp-motion-fast) var(--msp-ease);
 }
 

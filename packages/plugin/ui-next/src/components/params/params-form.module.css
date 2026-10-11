@@ -253,8 +253,8 @@
   }
 }
 
-/* An on/off setting's own settings: a small sliders button after the switch; expanded, indented under the row with an
-   accent bar like an open choice. */
+/* An on/off setting's own settings: a small sliders button after the switch; expanded, under the row on a quiet
+   surface like an open choice. */
 .settings {
   display: grid;
   place-items: center;
@@ -276,7 +276,6 @@
   padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-1) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
-  box-shadow: inset 2px 0 0 var(--msp-color-accent);
 }
 
 /* Files: a field like a dropdown's (the 8px text inset), the names once chosen, ✕ to clear; a drop target too. */

@@ -78,7 +78,6 @@ defineStyles('components/select/select.module.css', `@layer msp.components {
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
-  box-shadow: inset 2px 0 0 var(--msp-color-accent);
   animation: msp-select-list-in var(--msp-motion-fast) var(--msp-ease);
   display: grid;
   overflow: auto;

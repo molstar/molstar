@@ -20,10 +20,9 @@ export const classes = {
 defineStyles('components/color/color-picker.module.css', `@layer msp.components {
 .msp-color-color-picker-picker {
   gap: var(--msp-space-3);
-  padding: var(--msp-space-3) var(--msp-space-3) var(--msp-space-3) var(--msp-space-4);
+  padding: var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
-  box-shadow: inset 2px 0 0 var(--msp-color-accent);
   display: grid;
 }
 
